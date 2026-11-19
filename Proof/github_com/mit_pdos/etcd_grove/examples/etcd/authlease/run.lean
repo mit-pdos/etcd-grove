@@ -402,7 +402,7 @@ theorem run.wp_proof
   iclear Hbq1
   ihave #F0 := BigSepL.bigSepL_lookup hy0 $$ Hbq1'
   iunfold barrierPost at F0
-  icases F0 with ⟨⟨%i₁, #Hfix₁⟩, -⟩
+  icases F0 with ⟨⟨%i₁, #Hfix₁⟩, %F₁, %lt₁, #HF₁, -⟩
   ihave #Hu' := BigSepL.bigSepL_lookup hyu $$ Hsv
   ihave #Hu : srvdW su xu wu .revocable $$ []
   · iexact Hu'
@@ -412,7 +412,7 @@ theorem run.wp_proof
   icases Hu with ⟨%HR₂, #Hrd₂, #Htls₂, #HKV₂, -, #HAu₂, #HWF₂, #Htag₂, #HLS₂⟩
   ihave #Fu := BigSepL.bigSepL_lookup hyu $$ Hbq1'
   iunfold barrierPost at Fu
-  icases Fu with ⟨⟨%i₂, #Hfix₂⟩, -⟩
+  icases Fu with ⟨⟨%i₂, #Hfix₂⟩, %F₂, %lt₂, #HF₂, -⟩
   ihave #Hv' := BigSepL.bigSepL_lookup hyv $$ Hsv
   ihave #Hv : srvdW sv xv wv .revocable $$ []
   · iexact Hv'
@@ -449,9 +449,12 @@ theorem run.wp_proof
   subst Hrerr
   wp_auto
   wp_apply (wp_newUserClient xu.1.Client' go!"u" go!"u-pw" lg (akV xu.1.Client' xu.2.ρ wu.R)
-      (fun t => auth.tokIssued wu.γa t go!"u") (Hpe xu hxum) (by omega) (by unfold strsSizeOk; decide))
+      (akTokP wu.γa go!"u") (Hpe xu hxum) (by omega) (by unfold strsSizeOk; decide))
     as %ucl %uerr Huc
   · iframe #
+    have hP : akTokP (GF := GF) wu.γa go!"u" = fun t => auth.tokIssued wu.γa t go!"u" := by
+      unfold akTokP; rw [if_pos (by decide)]
+    rw [hP]
     iapply (client.authTokReg_of _ _ _ wu.γa)
     iexact HAu₂
   icases Huc with (⟨%Huerr, #Hunc, #Hutk⟩ | %Hufail)
@@ -465,9 +468,12 @@ theorem run.wp_proof
   subst Huerr
   wp_auto
   wp_apply (wp_newUserClient xv.1.Client' go!"v" go!"v-pw" lg (akV xv.1.Client' xv.2.ρ wv.R)
-      (fun t => auth.tokIssued wv.γa t go!"v") (Hpe xv hxvm) (by omega) (by unfold strsSizeOk; decide))
+      (akTokP wv.γa go!"v") (Hpe xv hxvm) (by omega) (by unfold strsSizeOk; decide))
     as %vcl %verr Hvc
   · iframe #
+    have hP : akTokP (GF := GF) wv.γa go!"v" = fun t => auth.tokIssued wv.γa t go!"v" := by
+      unfold akTokP; rw [if_pos (by decide)]
+    rw [hP]
     iapply (client.authTokReg_of _ _ _ wv.γa)
     iexact HAu₃
   icases Hvc with (⟨%Hverr, #Hvnc, #Hvtk⟩ | %Hvfail)
@@ -491,6 +497,153 @@ theorem run.wp_proof
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hberr
+  wp_auto
+  -- `lz, ok := grantPut(root, zKey)`: root's lease `Lz` on `z/lease` (Fix: `cell_fix`, `cell_putZAu`)
+  have hon₁ : w0.E.authOn = true := by unfold apply.AEnv.authOn; rw [HR₁.1]; rfl
+  have hszL : ∀ (k : GoString) (id : w64), k.length ≤ 2 ^ 20 →
+      opSizeOk (opPutModel k go!"v" [withLeaseM id]) := by
+    intro k id hk
+    simp [opSizeOk, opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero]
+    omega
+  iunfold etcd_authN.leaseSrvd at HLS₁
+  iunfold etcdstart.etcdLeaseServedOn at HLS₁
+  icases HLS₁ with ⟨#HLG₁, #HLR₁, #HLT₁, #HLL₁⟩
+  ihave #Hput₁ : isGrpcRpcMd x0.1.Client' go!"/etcdserverpb.KV/Put"
+      (client.etcdPutSpecOn s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
+  · iunfold akKVOn at HKV₁
+    icases HKV₁ with ⟨#H, -, -, -⟩
+    iexact H
+  ihave #Hll₁ : srvReqLogLb x0.2.ρ.rd.raft Lset $$ []
+  · iunfold akAuthFixed at Hfix₁
+    icases Hfix₁ with ⟨-, -, #H, -⟩
+    iexact H
+  ihave #Hpub₁ : auth.authPubLbM w0.E.authMode i₁ $$ []
+  · rw [HR₁.1]
+    iunfold akAuthFixed at Hfix₁
+    icases Hfix₁ with ⟨#H, -⟩
+    iunfold auth.authPubLbM
+    iexact H
+  wp_apply (wp_grantPut rcl zK x0.1.Client' s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid i₁ F₁
+      (fun t => auth.tokIssued w0.γa t go!"root") (fun id => gsHas γc id) (fun _ => psAtLeast γc 1)
+      (monoListAuthOwn γc.ids (1 : Qp).half ([] : List w64))
+      (fun id => iprop(monoListAuthOwn γc.ids (1 : Qp).half [id] ∗ monoListLbOwn γc.ids [id] ∗
+        ⌜id ≠ W64 0⌝))
+      hon₁ (hlm x0 hx0m) (fun id => hszL zK id (by decide)) hAs) $$ [Hids] as %lz %okz Hz
+  · iframe Hids; iframe #
+    isplitl []
+    · iintro !> %conn %ctx %id
+      iunfold client.clientOpAuOn
+      iexists Lset
+      iframe Hll₁
+      ihave #Hg := cell_grantAu s0 w0.E { x0.2.ρ with wait := w0.γw } conn ctx γc grantTTLv Lset
+        (by decide) (hlm x0 hx0m) $$ Hinv
+      iapply Hg
+    iintro %id %hid ⟨%σ, Hg⟩ HR
+    iunfold gsHas at Hg
+    icases Hg with ⟨%gs, #Hgs, %hgs⟩
+    imod (cell_fix x0.2.ρ.rd.kv γc [] id [] hid (by simp) (by simp) ⊤ (by simp)) $$ [HR] with ⟨HR', #Hlb⟩
+    · iframe HR; iframe #
+    imodintro
+    ihave #Hlb1 : monoListLbOwn γc.ids [id] $$ []
+    · iExactEq Hlb; simp
+    isplitl [HR']
+    · isplitl [HR']
+      · iExactEq HR'; simp
+      iframe Hlb1
+      ipureintro; exact hid
+    iintro !> %conn %ctx #Htk %hout
+    iunfold client.clientOpAuOn
+    iexists Lset
+    iframe Hll₁
+    ihave #Hpz := cell_putZAu x0.2.ρ.rd.kv γc id gs hgs
+      (client.clientGrant s0 w0.E { x0.2.ρ with wait := w0.γw } conn ctx (.put (leasePutOp zK id)) Lset) $$ [Hlb]
+    · iframe #
+    iexact Hpz
+  icases Hz with (%Hz | ⟨%Hz, ⟨HidsZ, #HlbZ, %hlz0⟩, %σz, #HpsZ⟩) <;> subst Hz
+  · wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  wp_auto
+  -- `lu, ok := grantPut(ucli, aKey)`: u's lease `Lu` on `a/lease` at member `1 % k` (Fix: `cell_fix`,
+  -- `cell_putAAu`; `Lu ≠ Lz`: u's put with root's lease is refused, `grantG_refuted`)
+  have hsu := hsc xu hxum
+  have hon₂ : wu.E.authOn = true := by unfold apply.AEnv.authOn; rw [HR₂.1]; rfl
+  ihave #Hinvu := cellInv_same x0.2.ρ.rd.kv xu.2.ρ.rd.kv γc hsu.1 $$ Hinv
+  iunfold etcd_authN.leaseSrvd at HLS₂
+  iunfold etcdstart.etcdLeaseServedOn at HLS₂
+  icases HLS₂ with ⟨#HLG₂, #HLR₂, #HLT₂, #HLL₂⟩
+  ihave #Hput₂ : isGrpcRpcMd xu.1.Client' go!"/etcdserverpb.KV/Put"
+      (client.etcdPutSpecOn su wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid) $$ []
+  · iunfold akKVOn at HKV₂
+    icases HKV₂ with ⟨#H, -, -, -⟩
+    iexact H
+  ihave #Hll₂ : srvReqLogLb xu.2.ρ.rd.raft Lset $$ []
+  · iunfold akAuthFixed at Hfix₂
+    icases Hfix₂ with ⟨-, -, #H, -⟩
+    iexact H
+  ihave #Hpub₂ : auth.authPubLbM wu.E.authMode i₂ $$ []
+  · rw [HR₂.1]
+    iunfold akAuthFixed at Hfix₂
+    icases Hfix₂ with ⟨#H, -⟩
+    iunfold auth.authPubLbM
+    iexact H
+  iunfold psAtLeast at HpsZ
+  icases HpsZ with ⟨%ps1, #Hps1, %hps1⟩
+  have hau : akOut go!"u" = none := by unfold akOut; rw [if_neg (by decide)]
+  wp_apply (wp_grantPut ucl aK xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid i₂ F₂
+      (akTokP wu.γa go!"u") (fun id => gsHas γc id) (fun _ => psAtLeast γc 2)
+      (monoListAuthOwn γc.ids (1 : Qp).half [lz])
+      (fun id => iprop(monoListAuthOwn γc.ids (1 : Qp).half [lz, id] ∗ monoListLbOwn γc.ids [lz, id] ∗
+        ⌜id ≠ W64 0⌝))
+      hon₂ (hlm xu hxum) (fun id => hszL aK id (by decide)) hAs) $$ [HidsZ] as %lu %oku Hu
+  · iframe HidsZ; iframe #
+    isplitl []
+    · iintro !> %conn %ctx %id
+      iunfold client.clientOpAuOn
+      iexists Lset
+      iframe Hll₂
+      ihave #Hg := cell_grantAu su wu.E { xu.2.ρ with wait := wu.γw } conn ctx γc grantTTLv Lset
+        (by decide) (hlm xu hxum) $$ Hinvu
+      iapply Hg
+    iintro %id %hid ⟨%σ, Hg⟩ HR
+    iunfold gsHas at Hg
+    icases Hg with ⟨%gs, #Hgs, %hgs⟩
+    imod (cell_fix x0.2.ρ.rd.kv γc [lz] id ps1 hid (by simp) (by simp; omega) ⊤ (by simp)) $$ [HR]
+      with ⟨HR', #Hlb⟩
+    · iframe HR; iframe #
+    imodintro
+    ihave #Hlb1 : monoListLbOwn γc.ids [lz, id] $$ []
+    · iExactEq Hlb; simp
+    isplitl [HR']
+    · isplitl [HR']
+      · iExactEq HR'; simp
+      iframe Hlb1
+      ipureintro; exact hid
+    iintro !> %conn %ctx #Htk %hout
+    iunfold client.clientOpAuOn
+    iexists Lset
+    iframe Hll₂
+    ihave #Hpa := cell_putAAu xu.2.ρ.rd.kv γc lz id gs ps1 hgs (by omega)
+      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } conn ctx (.put (leasePutOp aK id)) Lset)
+      $$ [Hlb1]
+    · iframe #
+      iintro !> %σ' %hz HG
+      by_cases hil : id = lz
+      · subst hil
+        iunfold client.clientGrant at HG
+        icases HG with ⟨%md, %Hmd, HG⟩
+        ihave #Hs := akTokSeen_attempt wu.γa go!"u" conn md
+          (by unfold clientAttemptMd at Hmd; rw [hout, ← hau] at Hmd; exact Hmd) $$ Htk
+        iunfold v3rpc.opGrantT at HG
+        imod (grantG_refuted su wu.E wu.γa { xu.2.ρ with wait := wu.γw } Lset i₂ go!"u" _
+            (irrPut (leasePutOp aK id)) σ' zK id HR₂.1 hz hlz0
+            (Or.inr (Or.inr (Or.inr ⟨rfl, not_inRangeK_zK⟩)))
+            (fun r I hm h => leaseGranted_put r I _ hm h)) $$ [HG] with ⟨⟩
+        · iframe #; iframe HG
+      · imodintro; ipureintro; exact hil
+    iexact Hpa
+  icases Hu with (%Hu | ⟨%Hu, ⟨HidsU, #HlbU, %hlu0⟩, %σu, #HpsU⟩) <;> subst Hu
+  · wp_auto
+    iapply HΦ; ipureintro; right; rfl
   wp_auto
   sorry
 
