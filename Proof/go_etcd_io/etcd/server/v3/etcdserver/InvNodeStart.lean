@@ -265,9 +265,9 @@ def rnParts (E : RNEnv GF) (γ : RNNames GF) (rv : raftNode) : IProp GF :=
     "#Hrsci" ∷ isRNReadStateC E rv.readStateC' ∗
     "#Htki" ∷ isRNTicker rv.ticker' ∗
     "#Htdi" ∷ isRNTimeoutDetector rv.td' ∗
-    "#Hstci" ∷ rnStopBag E γ (storage.walOf rv.raftNodeConfig'.storage') rv.stopped' ∗
+    "#Hstci" ∷ rnStopBag E γ rv.stopped' ∗
     "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done
-      (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Unknown)
+      (rnDoneEsc γ) .Unknown)
 
 instance rnParts_persistent (E : RNEnv GF) (γ : RNNames GF) (rv : raftNode) :
     Persistent (rnParts E γ rv) := by
@@ -293,7 +293,7 @@ def rnBuilt (E : RNEnv GF) (γ : RNNames GF) (r : Loc) (cv : raftNodeConfig) (L�
     "Hcum" ∷ monoListAuthOwn γ.cum 1 [L₀] ∗
     "Hcum0" ∷ monoListIdxOwn γ.cum 0 L₀ ∗
     "Hdtok" ∷ ownBroadcastChan rv.done' γ.done
-      (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Pending ∗
+      (rnDoneEsc γ) .Pending ∗
     -- (2026-11-03, R2b-3b) the claim on the stop's escrow
     "Hsc" ∷ rnStopClaim γ)
 

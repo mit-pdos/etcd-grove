@@ -1,6 +1,36 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 n, fix 0009 in; InvRaftNode's definitions moved; clients next)
+## START HERE (2026-11-19 o, 0009 proved through the server's Save law; InvRaftNode done; clients next)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere.
+  Merge the origin merge (pin f551a1b46, manifest-f55) when it lands on lean. Full builds:
+  `/shared/tmp/build-slot.sh etc/timed-build.py --packages=<manifest>` (report the build id).
+- **Fork fix 0009** (user-approved, pushed `goose-lean-walfs3-fp9` d3feef9bc): pinned, examples' go.mod bumped,
+  `etc/goose.py --check` (etcd, etcd-wal) passes; WAL Go suite passes but TestWALByteMix (by design).
+- **Done, lean-check 0 errors each** (forms ACCEPTED by etcd-grove-03, questions.md 2026-11-19): `WAL__Save` (pre-lock
+  loop, refused arm, `hfit` → room), `RaftModel/LawsEnt`/`Srv`/`Laws` (SizeLaw), storage `Save`, `WalApi` (Save law
+  error arm, `isWalStorage_intro`), `RnNewStorage` (`walSave_law` split on size, `rnNewStorageOk_holds`), WalTester
+  `member__save`, `InvRaftNode` (RNNames GF + ss, rnWalTok γ, rnWalTokA/L with walStorRd, rnStopBag/rnWalClosedW/
+  rnStopImage/rnDoneEsc without the location, rnApSnap's walSnapRec payload), `InvNodeStart` (rnParts/rnBuilt).
+- **Next, in order** (each: edit, `lean-check -a`): the specs `bootstrappedRaft__newRaftNode` (`isWalStorage st γw.wal.h
+  γw.ss` replaces `isWalStorage st ∗ ⌜rnStorageOf st ss ∧ walOf st = wal⌝`), `raftNode__onStop` (rnWalTok γ r 1; walMetaIs
+  γ.wal.h, walPurgeRight γ.wal.h, walStorRd), `raftNode__stop`, `EtcdServer__applyAll` (payload l.228 → walSnapRec),
+  `EtcdServer__applySnapshot` (hstp `storageSnap stp ss` → `isWalStorage (mkOk stp) h ss` resource; payload
+  l.173 → walSnapRec over `h`; Release via `walRelease_spec`), snapshot/snapshotIfNeeded; then the proofs:
+  NodeStart, newRaftNode, raftNode__start (Save sites: `walSaveRn_spec` now takes `ss`, walStorRd from rnWalTokL,
+  error arm → `lg.Fatal` as the Sync error at ~l.660), onStop, stop, StopApi, EtcdServer__run/snapshot,
+  ApplyAllSnap, SnapApplyWalk/SnapRO/SnapTake, InvRestart, NewServer(R), StopShutdown, InvRunRes/InvRaftLoop/InvBuild/
+  AuthCompRows, the examples' Defs (list: `grep -rlE "rnWalTok|rnStopBag|rnDoneEsc|rnWalClosedW|storage\.walOf|walDirOf|walBaseLb|isWalStorage|rnStopImage|rnStorageOf|storageSnap|rnNewStorageOk" Proof Spec`);
+  then F2, P2, merge, full build, tcb (report the proto.SizePb delta for the wal collections), collections,
+  interfaces, Links (gen-link with LAKE_OPTS), examples' Go, closed-statement STOP.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a -q FILE`.
+- **Pitfalls:** a names-only callee (proto.Size): `wp_start_folded`; a ▷ in a Hoare-triple continuation:
+  `iintro %err !> H`; an `iprop(False)` hypothesis: `icases H with %h; exact h.elim`; `simp only [hb, and_self,
+  decide_true, ↓reduceIte]` after slice-index tests; gen-init needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`.
+
+## History
+
+### START HERE (2026-11-19 n, fix 0009 in; InvRaftNode's definitions moved; clients next)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere.
   Merge the origin merge (pin f551a1b46, manifest-f55) when it lands on lean.
@@ -21,8 +51,6 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a -q FILE`.
 - **Pitfalls:** gen-init needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`; build slots were busy for hours on
   2026-11-19 (full builds queued); handoff m's AU pitfalls still apply.
-
-## History
 
 ### START HERE (2026-11-19 m, the four laws proved; STOPPED: the Save batch's room)
 
