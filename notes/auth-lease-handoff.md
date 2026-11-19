@@ -1,6 +1,25 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-19, item 9 done to Main.wp_proof; STOP before linking)
+## START HERE (S4, 2026-11-19 evening: linked, full build green on f551a1b46; LAND STOP — second lean merge pending)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin still **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`).
+- **Done:** lean `1e4cb38613` (perheap) merged (`5cc9b6da79`): frozen texts re-keyed ctx → tok, recorded in
+  `notes/auth-lease-s4-freeze.md` "Thaw 2" (decided by etcd-grove-03; questions.md). Linking (`1742ecad19`):
+  `authlease/{MainLinked,Adequacy,Results,PkgTable}.lean`, `etc/gen-init.py` PROGRAMS += authlease. Collections
+  (`6cdea9ebe1`): `authlease.txt` new (684 axioms), `authN.txt` +10. Full timed build green `20261119-155136-554679`
+  (bulk `20261119-131417-3897180`); `tcb-report --check` matches (882/4); gen-link modes match; etcdstart interface regenerated.
+- **Next, in order:** (1) merge lean again: it moved to `e95ce79ce9` (merge-origin4: pin **3afd77e35**, perf 11-19) while
+  this branch was being linked. A trial merge (aborted) gave **55 conflicts, ~813 lines**: the bbolt entry bound (S1b:
+  `⌜k.length ≤ etcdKeyMax ∧ v.length ≤ etcdKeyMax⌝`, `leaseOwn`, `putAU`) against this branch's lease window
+  (`leaseOwnW … w`, `winMove`, `putAUW`) across mvcc `storeTxnWrite__*`/`metricsTxnWrite__*`/`writeView__*`/`Api*`,
+  txn `Put`/`put`/`Txn`/`txn`/`executeTxn`, apply `Chain`/`WriteLemmas`/`AuthApplyLatest`/`dispatch`, `ApplyAllSnap`
+  (347 lines), `NewServerR`, `ReqOn`, `WorkloadDefs`, mvccfull/mvccrand writers, interfaces, `tier-baseline`,
+  `authN.txt`. Resolution = both conjuncts (union); then switch to manifest-3af (+ `.lake/package-overrides.json`), full
+  timed build (~3.5 h, everything recompiles), tcb --check, collections, interfaces, gen-init --check, links. (2) Land stop.
+- **Pitfalls:** `questions.md` is gitignored (untracked; edit in place). build-slot sets LEAN_NUM_THREADS itself now.
+  `Scratch/` untracked (tier-check). status-history append-only: check `wc -l` against lean before committing.
+
+## Previous START HERE (S4, 2026-11-19, item 9 done to Main.wp_proof; STOP before linking)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`,
   `.lake/package-overrides.json` its copy).

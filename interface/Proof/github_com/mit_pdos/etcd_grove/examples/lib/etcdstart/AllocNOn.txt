@@ -2,6 +2,18 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem etcdstart.memberPresOn_of [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (N : Nat) (tok : GoString) (ms0 :
+    List etcdstart.GMember) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir :
+    w64 → List GoString) (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (ms : List
+    etcdstart.GMember) (gs : List (etcdstart.MemberG GF)) (ids : List w64) (hids : List.map (fun x
+    => x.id) gs = ids) (hlen : ms.length = gs.length) (m : lease.Mode := lease.Mode.none) : ⊢
+    ([∗list] m;id ∈ ms;ids, etcdstart.bootPremiseOn N ps bootLog ctxs dir tok m.Name'
+    (etcdstart.urlsN ms0 m) id) -∗ (□ ∀ lid, netHttpOk γn lid) -∗ ([∗list] g ∈ gs,
+    etcdstart.memberBootOn g.γ ctxs g.ρ g.E Φs g.id false m) -∗ ([∗list] m ∈ ms,
+    etcdstart.memberFreshRes m.Name' { peer := some m.Peer' } γn) -∗ [∗list] x ∈ ms.zip gs,
+    etcdstart.memberPreOn N tok ms0 ps bootLog ctxs dir Φs γn x m
+
 theorem etcdstart.memberBootsOn_ofM [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ps : List w64) (ctxs
     : List (List w8)) (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName →
@@ -26,6 +38,13 @@ theorem etcdstart.memberBootsOn_ofM [v3rpc_sem :
     etcdstart.MemberG GF), g ∈ gs → etcdstart.memberGOkOn γ γk g⌝ ∗ [∗list] g ∈ gs,
     etcdstart.memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm
 
+theorem etcdstart.memberBootsOn_lm [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (ctxs : List (List w8)) (Φs : w64 →
+    w64 → List w8 → GName → IProp GF) (lm : lease.Mode) (gs : List (etcdstart.MemberG GF)) :
+    ([∗list] g ∈ gs, etcdstart.memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm) ⊢ ⌜∀ (g :
+    etcdstart.MemberG GF), g ∈ gs → g.ρ.rd.kv.lm = lm⌝ ∗ [∗list] g ∈ gs, etcdstart.memberBootOn g.γ
+    ctxs g.ρ g.E Φs g.id false lm
+
 theorem etcdstart.allocNOnM [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid0
     : id0 ∈ ids) (ctxs : List (List w8)) (boot : List LogEntry) (Hbc : BootCore ps ctxs boot) (dir :
@@ -43,6 +62,11 @@ theorem etcdstart.allocNOnM [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.ap
     g.ρ g.E Φs g.id false lm) ∗ ([∗list] m ∈ ms, etcdstart.memberFreshRes m.fst { peer := some
     m.snd.fst, client := m.snd.snd } γn) ∗ etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0
     (bootEntries (LogEntry.toEntries boot 0)))) ∗ authHistView γk [srvAuthSt0]
+
+theorem etcdstart.etcdKV_member [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (γk : KVNames) (g :
+    etcdstart.MemberG GF) (h : etcdstart.memberGOkOn γ γk g) (σ : KVState) : etcdKV γk σ ⊢ etcdKV
+    g.ρ.rd.kv σ
 
 theorem etcdstart.allocNOn [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid0
@@ -75,6 +99,11 @@ def etcdstart.memberGOkOn (γ : SrvRaft) (γk : KVNames) (g : etcdstart.MemberG 
             pre := [], ai0 := W64 0 } ∧
         g.ρ.rd.kv.st = γk.st ∧
           g.ρ.rd.kv.c0 = γk.c0 ∧ g.ρ.rd.kv.ch0 = γk.ch0 ∧ g.ρ.rd.kv.log0 = γk.log0 ∧ g.ρ.rd.kv.hist = γk.hist
+
+theorem etcdstart.authHistView_member [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (γk : KVNames) (g :
+    etcdstart.MemberG GF) (h : etcdstart.memberGOkOn γ γk g) (hs : List auth.AuthState) :
+    authHistView γk hs ⊢ authHistView g.ρ.rd.kv hs
 
 theorem etcdstart.sameCluster_of_gOkOn [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (γk : KVNames) (g g' :
