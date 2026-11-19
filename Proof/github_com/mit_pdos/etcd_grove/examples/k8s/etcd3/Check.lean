@@ -65,12 +65,15 @@ theorem Check.wp_proof
   intro _ _ _ γ sp c g0 γk s0 hsl hs clients ops watchers wops dur hc hpfx hrp hdi hvi hAs hse htb
     hnr hne Hrb H0 Hw0 H31 Hops Hwops Hmul Hg0 Hrv0
   wp_start as ⟨#Hcc, #Hst, #Hrs, #Hinvs, Hks, #HinvK, #Hsw, #Hwl, #Hs0, #Hsl, #Hhs⟩
+  ihave %Hs0rv : ⌜s0.rv' = g0.st.rv⌝ $$ [Hs0]
+  · iunfold storeOwn at Hs0; icases Hs0 with ⟨-, %h⟩; ipureintro; exact h
   wp_auto
-  wp_apply wp_newCache c clients (clients * ops) as %tbl #Htbl
+  have hf62 : uint.Z s0.rv' < 2 ^ 62 := by rw [Hs0rv]; have := Hrv0; have := Hg0; word
+  wp_apply wp_newCache c clients (clients * ops) s0.rv' hf62 as %tbl ⟨#Htbl, #Hfl⟩
   (try wp_auto)
   ipersist s
   ipersist tbl
-  ihave #HA := (wp_Apply γ sp tbl c g0 γk hc hpfx hrp hdi hvi hAs hse htb hnr) $$ Hpkg Hpkg2 Hst
+  ihave #HA := (wp_Apply γ sp tbl c g0 γk hc hpfx hrp hdi hvi hAs hse htb hnr Hrv0) $$ Hpkg Hpkg2 Hst
     Hinvs %hne Htbl Hrs HinvK Hsw Hwl
   wp_apply wp_Model s0 hsl hs g0 $$ [] as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   · iframe #
@@ -79,7 +82,7 @@ theorem Check.wp_proof
   · iframe Hinit Hstep Heh
     ipureintro; exact ⟨Hp, Hsc⟩
   wp_apply wp_CounterClock clockN Hrb as %clock ⟨%clockVal, #Hclk, Hc0⟩
-  wp_apply wp_Run (linkv.PSet HSt Input) (k8setcd3S g0) m _ _ clock (kInOk c) (kState γ g0) clockVal
+  wp_apply wp_Run (linkv.PSet HSt Input) (k8setcd3S g0) m _ _ clock (kInOk c g0.st.rv) (kState γ g0) clockVal
     (W64 0) drvE ↑clockN clients ops watchers wops dur lintestN_drvE lintestN_clockN H0 Hw0 H31 Hops
     Hwops Hmul
     $$ [Hks Hc0]
@@ -113,7 +116,7 @@ theorem Check.wp_proof
       imodintro
       iintro %Φ' %H0id HQg
       wp_auto
-      wp_apply wp_Gen c tbl id $$ [] as %x ⟨%Hx, #Hcx⟩
+      wp_apply wp_Gen c tbl id s0.rv' $$ [] as %x ⟨%Hx, #Hcx⟩
       · iframe #
       (try wp_auto)
       iapply HQg
@@ -121,7 +124,7 @@ theorem Check.wp_proof
       iunfold kInOk
       iexists x
       iframe Hcx
-      ipureintro; exact ⟨rfl, Hx⟩
+      ipureintro; exact ⟨rfl, Hx.1, Hs0rv ▸ Hx.2⟩
     · iExactEq Hks; rfl
   iintro %r %lsl ⟨%Hr, -⟩
   wp_auto

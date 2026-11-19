@@ -295,7 +295,8 @@ theorem RunLin2.wp_proof
             | cons b t => simp at Hpsl
         icases BigSepL.bigSepL_cons.1 $$ Hparts with ⟨Hpart, -⟩
         iunfold partLins at Hpart
-        icases Hpart with ⟨%lsls, #Hlsls, %Hne, #Hlins⟩
+        icases Hpart with ⟨%lsls, #Hlsls, %Hne1, #Hlins⟩
+        have Hne : _ → lsls ≠ [] := fun h => List.ne_nil_of_length_pos (by rw [Hne1 h]; decide)
         simp only [List.getD_cons_zero] at Hne ⊢
         ihave %Hpl1 := ownSlice_len _ _ _ $$ Hpsls
         ihave %Hll := ownSlice_len _ _ _ $$ Hlsls
