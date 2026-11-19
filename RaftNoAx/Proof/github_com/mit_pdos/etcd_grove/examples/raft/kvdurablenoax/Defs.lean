@@ -535,7 +535,10 @@ def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st
     "#Hdmu" ∷ sync.isMutex (r.[KReplica, go!"dmu"]) (kdDmuInv γ id r n st ms γs ph) ∗
     -- (raft-entsize §2, 2026-11-09) no bound on proposed data (`cluster_alloc`'s `md = none`): the
     -- node API's size premises hold vacuously
-    "%Hmd" ∷ ⌜γ.r.cluster.maxData = none⌝)
+    "%Hmd" ∷ ⌜γ.r.cluster.maxData = none⌝ ∗
+    -- (auth-lease S4, 2026-11-16) outside raft's no-snapshot mode (no bootstrap log,
+    -- `clusterNoSnap_boot`): the storage's compaction justification (`kdJ`) past index `1`
+    "%Hnsn" ∷ ⌜¬ clusterNoSnap γ.r.cluster⌝)
 
 /-- **What a request to the snapshot goroutine carries** (kvreconf's `snapReqOk`, at the storage's
 key `K`): for a snapshot, the frozen entry at its index, its validity and the node's committed
