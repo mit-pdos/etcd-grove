@@ -469,6 +469,19 @@ def Lof (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness
     (U : List (Op (Input × RResp))) : List (github_com.anishathalye.porcupine.OpV × (Input × RResp)) :=
   List.zipWith (fun c u => ((boxReq c.Request', boxResp c.Response'), u.val)) os U
 
+theorem boxH_Lof_snoc (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (U : List (Op (Input × RResp))) (c : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (u : Op (Input × RResp)) (h : os.length = U.length) :
+    boxH (Lof (os ++ [c]) (U ++ [u])) (U ++ [u]) =
+      boxH (Lof os U) U ++ [⟨(boxReq c.Request', boxResp c.Response'), u.call, u.ret⟩] := by
+  unfold boxH Lof
+  rw [List.zipWith_append h, List.zipWith_append (by rw [List.length_zipWith, h, Nat.min_self])]
+  rfl
+
+theorem Lof_length (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (U : List (Op (Input × RResp))) (h : os.length = U.length) : (Lof os U).length = U.length := by
+  unfold Lof; rw [List.length_zipWith, h, Nat.min_self]
+
 /-- **A watch `realCheck` validates**: one that ran, its request and its (cut) events. -/
 def wRep (vs : List GOp) (w : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) :
     IProp GF :=
