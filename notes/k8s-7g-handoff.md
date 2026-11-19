@@ -2,6 +2,33 @@
 
 ## START HERE
 
+**2026-11-19 (night 11; for etcd-grove-03). IsNil attack accepted, threading done; step 5 started (RawOk, listOut,
+valsOk invariant). STOP: `rawOk` of a too-large answer needs facts the store's `tooLargeErrIs` lacks (questions.md
+"Step 5 night 11").**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`; switch to manifest-f55 on lean's
+  f551a1b46 merge). Commits: `61089b1368` (IsNil minor 1; `listIs`/`finalizeList` non-nil items; `UpdateList`
+  clause on metadata only), then the step-5 commit (see git log): `RawOk.lean` (RawRel moved, `rawOk`), `listOut`
+  posts the list's read-only deep value, `valsOk` invariant (`KOk.vals`, `KOk.ins` val bound, `hval` on
+  kOk_ok/kOk_errW and InvSteps' create_au/rw_au/write_err_commit/get_read_au/get_maker; `listQ`/`plainL` carry
+  `valsOk`), `call.spec` (QL premise + `valsOk`; post `plainOut y = …` + `rawOk x y`).
+- Checked (lean-check `-a`, 0 errors): ListDefs, finalizeList, GetList (`--fast`), RawOk, listOut, Inv, InvSteps,
+  Seed, RealBridge. NOT rebuilt through the slot yet; build-optA rerun was cancelled (slots busy) to keep
+  lean-check free: rerun `/shared/tmp/k8s7g/build-optA.sh Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ListContract`
+  after the call/Apply work (or now, for the raft-kv fixes alone).
+- Broken on purpose (step 5 in progress): `call.lean` (new spec: GetList needs `hQL` projected to 3 conjuncts;
+  list_ok: `listIs` → listOut's new pre, itemOk of the items from `valsOk` + a `kListL` membership lemma
+  (items ⊆ decoded kvs of the store read); errors: `rawOk` from `errIs` (storageErrIs/invalidErrMsg are
+  persistent `↦□`, rejections need `errStrCell` of eD/eU from drvInit); too-large: the STOP), `Apply.lean`
+  (pass `Hgen.2.2.1` as `hval`; QL discharges `valsOk` via `listQ_pure`/`plainL_pure`), Check.
+- Next after the decision: finish call, then Apply, runWatch, replay.go, watch.go, realcheck.go, Check (istart's
+  `uint.Z s0.rv' < 2^62`), the discharge list; report at step 5's end; step 6 prep, STOP for the Freeze.
+- Pitfalls (new): `ipersist` needs a WP/fupd goal (do it before the last `wp_auto`); `swap` does not exist
+  (`by_cases …; case neg => …`); `rw [if_pos h0]`/`if_neg` on `kStep`'s kind tests (simp leaves `W64 1 = W64 0`);
+  `exact hA` against a goal about another seeded kv times out at whnf (split the cases by hand).
+
+### Superseded (night 10b)
+
 **2026-11-19 (night 10b; for etcd-grove-03). MakeSlice attack ACCEPTED (minor 2 applied, minor 1 recorded).
 STOP: `reflect.Value.IsNil.spec` needs `b = false → s ≠ slice.nil` (trusted text, pending attack).**
 

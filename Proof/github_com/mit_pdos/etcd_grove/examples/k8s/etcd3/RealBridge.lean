@@ -8,8 +8,8 @@ Lean-first (no Rocq counterpart).
 the abstraction of the driver's next store (`mstepL`), when the answer is what the output's plain fields
 encode (`RawRel`; stage 7g option (C): a failed precondition's message is a plain field).
 
-- `RawRel x y r`: the plain-field relation of the scope's premise "each output's `Raw` is the deep value its
-  plain fields encode" (an object without the `Annotated` bit, a list with non-nil `Items`).
+- `RawRel x y r` (now in `RawOk.lean`): the plain-field relation of the scope's premise "each output's `Raw` is
+  the deep value its plain fields encode" (an object without the `Annotated` bit, a list with non-nil `Items`).
 - `absR_items`, `absR_rewrites`, `absR_other`: the abstraction read through `lookupL`.
 - `rstepL_write` (B1, writes): `Step` of a write's answer on `absR st` is accepted and moves to
   `absR (mstepL x st).1`.
@@ -19,6 +19,7 @@ encode (`RawRel`; stage 7g option (C): a failed precondition's message is a plai
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RawOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ModelFit
 
 @[expose] public section
@@ -36,28 +37,6 @@ open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj Input Output item)
 
 section go
 variable [GooseExts]
-
-/-! ## The plain-field relation -/
-
-/-- **The store's answer `r` is what the output `y`'s plain fields encode** for the unary input `x`: an
-object (its plain fields; the driver's objects are never `Annotated`), a list (its encoded items, objects
-`encodeItems` is injective on (`itemOk`), never a nil slice; its resource version, continue token and remaining
-count), or an error: "not found", "key exists" (key
-and resource version), a callback's rejection (the delete's or the update's sentinel), "invalid object" (key
-and `Check`'s message, stage 7g option (C)), too large. A client error (`EOther`) has no encoding. -/
-def RawRel (x : Input) (y : Output) (r : RResp) : Prop :=
-  if y.Err' = W64 0 then
-    if x.Kind' = W64 4 then
-      ∃ its, (∀ o ∈ its, itemOk o) ∧ y.Items' = encItemsL its ∧ r = ⟨.list (some its) y.ListRV' y.Continue'
-        (if y.HasRemaining' then some y.Remaining' else none), .none⟩
-    else r = ⟨.obj (objOfL y), .none⟩
-  else if y.Err' = W64 1 then r = ⟨.nil, .deep (.storageErr (W64 1) y.ErrKey' y.ErrRV' .nil)⟩
-  else if y.Err' = W64 2 then r = ⟨.nil, .deep (.storageErr (W64 2) y.ErrKey' y.ErrRV' .nil)⟩
-  else if y.Err' = W64 3 then r = ⟨.nil, if x.Kind' = W64 1 then delRejE else updRejE⟩
-  else if y.Err' = W64 5 then
-    r = ⟨.nil, .deep (.storageErr (W64 4) y.ErrKey' 0 (.errString y.ErrMsg'))⟩
-  else if y.Err' = W64 6 then r = ⟨.nil, tooLargeE⟩
-  else False
 
 /-! ## The abstraction, read through `lookupL` -/
 
