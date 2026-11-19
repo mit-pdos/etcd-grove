@@ -135,32 +135,6 @@ theorem etcd_restart3_safe [lctx : GoLocalContext] [sem : go.Semantics]
   etcd_restart3_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
-/-- **`etcd_restart3_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_restart3_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_restart3_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC restart3GF, ContextReadErrs (GF := restart3GF) (hG := heapAtR3 hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_restart.BootFacts id₁ id₂ id₃ ps ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
-    (HNs : prometheus.namesUnclaimed restart3Program restart3Names)
-    (HAs : addrsUnclaimed restart3Program restart3Addrs)
-    (HDs : dataDirsAbsent restart3Program
-      [(etcd_restart.name₁ ++ go!".etcd"), (etcd_restart.name₂ ++ go!".etcd"), (etcd_restart.name₃ ++ go!".etcd")])
-    (HEnv : verifyEnvOff restart3Program)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC restart3GF,
-      ⊢ etcd_restart.premises (GF := restart3GF) (hG := heapAtR3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(restart3Program, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_restart3_safe
-      Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hdbo HNs HAs HDs HEnv n (Hprem n (by omega)) σ g
-      Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
-
 end adequacy
 
 #print axioms restart3_Main

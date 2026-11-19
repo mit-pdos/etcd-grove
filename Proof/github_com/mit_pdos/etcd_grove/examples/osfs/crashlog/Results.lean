@@ -35,6 +35,7 @@ public import Proof.os.File__Fd
 public import Proof.os.File__Close
 public import GooseLang.Ext.Fs.Adequacy
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.TopLevelDefs
 
 @[expose] public section
 
@@ -50,11 +51,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.
 open Fs
 
 attribute [local instance] fsExts fsExtsSemantics fsExtsInterp fsExts_hasFs fsExtsCrashInterp
-
-/-- The boot program: initialize the package, then call `Boot(dir)`. -/
-def boot [GoGlobalContext] (dir : GoString) : Expr :=
-  Seq (App (Val initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve Boot []))) (Val #())) (Val #dir))
 
 /-- The root `d` names its directory, whatever the history. -/
 theorem lookupH_root {R : Roots} (hr : RootsOk R) {d : GoString} {j : Ino} (hd : (d, j) ∈ R)
@@ -261,28 +257,6 @@ theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem :
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir Hnd
     Hlog n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
-
-/-- **`crash_safety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that may crash at any step and restart,
-a fresh Go process (`Robust`'s premise), under `crash_safety`'s other hypotheses: in every
-execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
-theorem crash_robust
-    [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
-    (σ : state) (g : GlobalState) (dir : GoString) (Hinit : FsInit (extLocal fsExt σ.world))
-    (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
-    (Hnd : ∀ J, (extLocal fsExt σ.world).lookup (child dir logB) ≠ some (.dir J))
-    (Hlog : ∀ k, (extLocal fsExt σ.world).lookup (child dir logB) = some (.file k) →
-      Good ((extLocal fsExt σ.world).fs.files !! k))
-    (bound : Nat) :
-    Robustness.Robust [(boot dir, σ)] [] g bound :=
-  Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b _ Hsteps =>
-    (crash_safety
-      Hinit_wp σ g dir hf.1 hf.2.1 Hinit Hdir Hnd Hlog hf.2.2 n κs t2 σ2 b Hsteps).2
 
 end adequacy
 

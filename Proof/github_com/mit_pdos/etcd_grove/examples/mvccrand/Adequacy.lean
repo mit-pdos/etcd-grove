@@ -60,6 +60,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.runtime.StartFiles
 public import Proof.runtime.Threads
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
 
 @[expose] public section
 
@@ -79,21 +80,6 @@ attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdF
 
 /-! ## The ghost-state bundle -/
 
-/-- The functors (as `putgetGF`): the universal camera (`AllG`) at slot 0, then invariants, later
-credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def mvccrandGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
-
 /-- The universal camera at slot 0. -/
 def mvccrandGF_allG : AllG mvccrandGF := ⟨⟨0, rfl⟩⟩
 
@@ -109,18 +95,6 @@ instance mvccrandGF_gooseGpreS : GooseGpreS mvccrandGF where
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- `Main`'s configuration (`Run(Config{Path: "mvccrand.db", Seed: 1, Ops: 1000, Readers: 4,
-Reads: 200, Watchers: 8})`), with the file `b` of the directory `r` (S3e). -/
-def mvccrandCfg (r : GoString) : github_com.mit_pdos.etcd_grove.examples.mvccrand.Config :=
-  ⟨Fs.child r go!"mvccrand.db", W64 1, W64 1000, W64 4, W64 200, W64 8, W64 0⟩
-
-/-- The program: `mvccrand`'s initialization, then `Run` of `Main`'s configuration with the file
-`r/mvccrand.db`, its report dropped, as `Main` does (S3e; until then `Main()`, whose `mvccrand.db`
-is relative). -/
-def mvccrandProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.mvccrand.initialize' #() ;;
-  ((@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Run) #(mvccrandCfg r) ;; #())
 
 /-- **mvcc's randomized tester passes** (see the file header): every real execution of
 `mvccrandProgram r` from a fresh state with one thread, whose file system's root `r` has no entry
@@ -190,29 +164,6 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   (try wp_auto)
   ipureintro
   rfl
-
-/-- **`mvccrand_adequate` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `mvccrand_adequate`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem mvccrand_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
-    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-    [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
-      sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (r : GoString)
-    (HEnv : verifyEnvOff (mvccrandProgram r)) (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
-    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
-    (Habs : (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 go!"mvccrand.db" = none) :
-    Robustness.Robust [] [(mvccrandProgram r, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (mvccrand_adequate
-      Hsort r HEnv σ g hf.1 hf.2.1 Hfs j0 Hr Habs hf.2.2 n κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 

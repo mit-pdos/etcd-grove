@@ -56,6 +56,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.lease.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.lease.TopLevelDefs
 
 @[expose] public section
 
@@ -75,21 +76,6 @@ attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdF
 
 /-! ## The ghost-state bundle -/
 
-/-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def leasekvGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
-
 /-- The universal camera at slot 0. -/
 def leasekvGF_allG : AllG leasekvGF := ⟨⟨0, rfl⟩⟩
 
@@ -101,24 +87,10 @@ instance leasekvGF_gooseGpreS : GooseGpreS leasekvGF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := leasekvGF_allG
 
-/-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
-every instance of the ghost state whose Go local context is the semantics' own). -/
-abbrev heapAtLkv (hG : HeapGS .hasLC leasekvGF) (lctx : GoLocalContext) : HeapGS .hasLC leasekvGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `leasekv`'s initialization, then `Main()`. -/
-def leasekvProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.lease.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.lease.Main) #()
-
-/-- The read package's two metric names, which `leasekv`'s initialization registers (`readRegPerm`,
-D16). -/
-def leasekvNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The adequacy example is safe** (see the file header): every real execution of
 `leasekvProgram` from a fresh state with one thread, of `n` steps: if the main thread has finished,

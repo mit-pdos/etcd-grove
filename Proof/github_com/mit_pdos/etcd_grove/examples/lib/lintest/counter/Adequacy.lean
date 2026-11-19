@@ -45,6 +45,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.TopLevelDefs
 
 @[expose] public section
 
@@ -102,11 +103,6 @@ instance counterGF_naInvG : NaInvG counterGF := ⟨⟨11, rfl⟩⟩
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
-/-- The counter's program: the package's initialization, then `Main()`. -/
-def counterProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Main) #()
-
 /-- **Porcupine accepts every trace of the linearizable counter.** Every real execution of
 `counterProgram` (the counter package's initialization, then `Main()`) from a fresh state --
 no package initialized (`IsInit`), one live thread -- of `n < 2^63` steps: if the main thread
@@ -149,19 +145,6 @@ theorem counter_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe #
   ipureintro
   rfl
-
-/-- **`counter_adequate` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `counter_adequate`'s other hypotheses: in every
-execution of fewer than `2 ^ 63` steps no thread is stuck and none has an unrecovered panic. -/
-theorem counter_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Assumptions]
-    (σ : state) (g : GlobalState) :
-    Robustness.Robust [] [(counterProgram, σ)] g (2 ^ 63) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (counter_adequate
-      σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end adequacy
 
