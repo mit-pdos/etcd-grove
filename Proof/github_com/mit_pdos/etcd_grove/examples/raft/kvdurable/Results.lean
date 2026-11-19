@@ -29,6 +29,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.AdequacyLinked
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -119,8 +120,23 @@ theorem raft_kvdurable_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantic
     (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   raft_kvdurable_adequate dir σ g Hlctx Hinit Hthreads Hfiles n Hn κs t2 σ2 Hsteps
+
+/-- **`raft_kvdurable_porcupine_safe` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that never crashes,
+a fresh Go process (`Robust`'s premise), under `raft_kvdurable_porcupine_safe`'s other hypotheses: in every
+execution of fewer than `2 ^ 61` steps no thread is stuck and none has an unrecovered panic. -/
+theorem raft_kvdurable_porcupine_robust
+    [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
+    [hLog : log.NewModel] (dir : GoString) (σ : state) (g : GlobalState)
+    (Hfiles : ∀ i ∈ raft_kvreconf.allIds,
+      extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none) :
+    Robustness.Robust [] [(kvdurableProgram dir, σ)] g (2 ^ 61) :=
+  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
+    (raft_kvdurable_porcupine_safe
+      dir σ g hf.1 hf.2.1 hf.2.2 Hfiles n (by omega) κs t2 σ2 Hsteps).2
 
 end closed
 
@@ -155,8 +171,24 @@ theorem raft_kvdurableN_porcupine_safe [lctx : GoLocalContext] [sem : go.Semanti
     (Hsteps : RealNsteps n ([kvdurableProgramN dir k], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   raft_kvdurableN_adequate dir k hk1 hk σ g Hlctx Hinit Hthreads Hfiles n Hn κs t2 σ2 Hsteps
+
+/-- **`raft_kvdurableN_porcupine_safe` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that never crashes,
+a fresh Go process (`Robust`'s premise), under `raft_kvdurableN_porcupine_safe`'s other hypotheses: in every
+execution of fewer than `2 ^ 61` steps no thread is stuck and none has an unrecovered panic. -/
+theorem raft_kvdurableN_porcupine_robust
+    [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
+    [hLog : log.NewModel] (dir : GoString) (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (σ : state)
+    (g : GlobalState)
+    (Hfiles : ∀ i ∈ raft_kvreconf.bootVoters (k + 4),
+      extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none) :
+    Robustness.Robust [] [(kvdurableProgramN dir k, σ)] g (2 ^ 61) :=
+  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
+    (raft_kvdurableN_porcupine_safe
+      dir k hk1 hk σ g hf.1 hf.2.1 hf.2.2 Hfiles n (by omega) κs t2 σ2 Hsteps).2
 
 end closedN
 

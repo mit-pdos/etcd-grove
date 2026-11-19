@@ -1,0 +1,34 @@
+# The linking modules without a linking name (etc/tier-check.py; CLAUDE.md, "Import tiers"): each
+# composes linked results (a `Link`'s `wp_<M>` theorems, a `Results` theorem), so only linking
+# modules may import it. One module per line, with why.
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.DurableExt  # durable_init_adequate: over AdequacyStart's init_adequate_start
+Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Vertical  # queue_vertical: over the recipes Link's wp_NewQueue, Queue.wp_Enqueue/wp_Dequeue
+Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink  # srvApi_wp_*: raft's node API at raft's Link (wp_StartNode, node.wp_Propose, ...)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults  # mvccApi_compactChan_law_holds: over mvcc's Link and store.Compact.core_proof
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults  # mvccApi_*_wp_api: mvcc's API laws at mvcc's and backend's Links
+RaftWitness.Proof.go_etcd_io.raft.v3.MemstorageInstance  # is_Storage_MemoryStorage: the Storage interface at the witness raft's Link (MemoryStorage.wp_*)
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # etcd_auth.client_Delete_on: over linked results
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainServe  # etcd_auth.ak_served_kv: over linked results
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Init  # etcd.cache.wp_initialize'_res: over linked results
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundCalls  # etcd_compactwatch.client_Get_round: over linked results
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Served  # etcd_watch.wk_served_nd: over linked results
+Proof.go_etcd_io.etcd.cache.v3.Init  # cache.v3.wp_initialize'_lb: over linked results
+Proof.go_etcd_io.etcd.client.v3.AuthnServedOn  # client.etcd_kv_auth_served_on: over linked results
+Proof.go_etcd_io.etcd.client.v3.ClientPutGet  # client.client_Txn_st: over linked results
+Proof.go_etcd_io.etcd.client.v3.KMClient  # client.isEtcdClient_of_km: over linked results
+Proof.go_etcd_io.etcd.client.v3.KMGet  # client.isEtcdKVTodo_of_km: over linked results
+Proof.go_etcd_io.etcd.client.v3.KMPut  # client.isEtcdDeleteKVTodo_of_km: over linked results
+Proof.go_etcd_io.etcd.client.v3.KMTxn  # client.kv_txn_commit_km: over linked results
+Proof.go_etcd_io.etcd.client.v3.KMWatch  # client.isEtcdWatcher_of_km: over linked results
+Proof.go_etcd_io.etcd.client.v3.LeaseGrantServed  # client.etcd_leaseLeasesHandlerOkLive: over linked results
+Proof.go_etcd_io.etcd.client.v3.LeaseReadServed  # client.etcd_leaseLeasesMethodOk: over linked results
+Proof.go_etcd_io.etcd.client.v3.LinkMembers  # client.v3.txn.wp_CommitG: over linked results
+Proof.go_etcd_io.etcd.client.v3.ResultsOn  # client.client_range_on: over linked results
+Proof.go_etcd_io.etcd.client.v3.ServeFromStart  # client.grpcCfgOk_of_started: over linked results
+Proof.go_etcd_io.etcd.client.v3.ServerKVGet  # client.isEtcdKVE_of_kv_r: over linked results
+Proof.go_etcd_io.etcd.client.v3.ServerKVPut  # client.kv_put_result: over linked results
+Proof.go_etcd_io.etcd.client.v3.ServerKVTxn  # client.isEtcdTxnKVTodo_of_kv: over linked results
+Proof.go_etcd_io.etcd.client.v3.TxnPlain  # client.v3.txn.wp_Else_plain: over linked results
+Proof.go_etcd_io.etcd.client.v3.experimental.recipes.KVOfServer  # recipes.isEtcdRecipesClient_of_km: over linked results
+Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerR  # NewServer.wp_proofR: over linked results
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.PkgTable  # the program's package table, over its initializer's linked results (generated: etc/gen-init.py)

@@ -2067,7 +2067,7 @@ noncomputable def NewBytesAffinePoint.impl [GooseExts] [GoGlobalContext] : val :
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.adt where
   pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.math, pkg_id.strings]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

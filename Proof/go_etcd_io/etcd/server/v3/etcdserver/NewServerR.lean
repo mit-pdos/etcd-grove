@@ -18,6 +18,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerRFacts
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
 
 @[expose] public section
 

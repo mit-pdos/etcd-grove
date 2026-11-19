@@ -65,42 +65,42 @@ noncomputable def prefixTransformers.ty [GooseExts] [GoGlobalContext] : go.GoTyp
 
 attribute [irreducible] prefixTransformers.ty
 
-axiom gRPCError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque gRPCError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Read.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Read.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Write.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Write.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceTransformers.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceTransformers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom «namespace» [GooseExts] [GoGlobalContext] : val
+opaque «namespace» [GooseExts] [GoGlobalContext] : val
 
-axiom subsystem [GooseExts] [GoGlobalContext] : val
+opaque subsystem [GooseExts] [GoGlobalContext] : val
 
 noncomputable def transformerLatencies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.transformerLatencies"
 
-axiom transformerLatencies.init [GooseExts] [GoGlobalContext] : val
+opaque transformerLatencies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def transformerOperationsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.transformerOperationsTotal"
 
-axiom transformerOperationsTotal.init [GooseExts] [GoGlobalContext] : val
+opaque transformerOperationsTotal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def envelopeTransformationCacheMissTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.envelopeTransformationCacheMissTotal"
 
-axiom envelopeTransformationCacheMissTotal.init [GooseExts] [GoGlobalContext] : val
+opaque envelopeTransformationCacheMissTotal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dataKeyGenerationLatencies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.dataKeyGenerationLatencies"
 
-axiom dataKeyGenerationLatencies.init [GooseExts] [GoGlobalContext] : val
+opaque dataKeyGenerationLatencies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dataKeyGenerationFailuresTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.dataKeyGenerationFailuresTotal"
 
-axiom dataKeyGenerationFailuresTotal.init [GooseExts] [GoGlobalContext] : val
+opaque dataKeyGenerationFailuresTotal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.registerMetrics"
@@ -141,7 +141,7 @@ noncomputable def getResourceFromContext [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.value where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -168,8 +168,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val transformerLatencies.init) (Val #()))))))))
 
-axiom gRPCError : Type
-axiom gRPCError.zero_val : ZeroVal gRPCError
+opaque gRPCError.nonempty_type : NonemptyType.{0}
+def gRPCError : Type := gRPCError.nonempty_type.type
+instance gRPCError.nonempty : Nonempty gRPCError := gRPCError.nonempty_type.property
+opaque gRPCError.zero_val : ZeroVal gRPCError := ⟨Classical.ofNonempty⟩
 attribute [instance] gRPCError.zero_val
 
 class gRPCError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -199,8 +201,10 @@ attribute [instance] Context.TypeAssumptions.underlying
   Context.TypeAssumptions.method_set
   Context.TypeAssumptions.ptr_method_set
 
-axiom Read : Type
-axiom Read.zero_val : ZeroVal Read
+opaque Read.nonempty_type : NonemptyType.{0}
+def Read : Type := Read.nonempty_type.type
+instance Read.nonempty : Nonempty Read := Read.nonempty_type.property
+opaque Read.zero_val : ZeroVal Read := ⟨Classical.ofNonempty⟩
 attribute [instance] Read.zero_val
 
 class Read.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -216,8 +220,10 @@ attribute [instance] Read.TypeAssumptions.type_repr
   Read.TypeAssumptions.method_set
   Read.TypeAssumptions.ptr_method_set
 
-axiom Write : Type
-axiom Write.zero_val : ZeroVal Write
+opaque Write.nonempty_type : NonemptyType.{0}
+def Write : Type := Write.nonempty_type.type
+instance Write.nonempty : Nonempty Write := Write.nonempty_type.property
+opaque Write.zero_val : ZeroVal Write := ⟨Classical.ofNonempty⟩
 attribute [instance] Write.zero_val
 
 class Write.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -247,8 +253,10 @@ attribute [instance] Transformer.TypeAssumptions.underlying
   Transformer.TypeAssumptions.method_set
   Transformer.TypeAssumptions.ptr_method_set
 
-axiom ResourceTransformers : Type
-axiom ResourceTransformers.zero_val : ZeroVal ResourceTransformers
+opaque ResourceTransformers.nonempty_type : NonemptyType.{0}
+def ResourceTransformers : Type := ResourceTransformers.nonempty_type.type
+instance ResourceTransformers.nonempty : Nonempty ResourceTransformers := ResourceTransformers.nonempty_type.property
+opaque ResourceTransformers.zero_val : ZeroVal ResourceTransformers := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceTransformers.zero_val
 
 class ResourceTransformers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

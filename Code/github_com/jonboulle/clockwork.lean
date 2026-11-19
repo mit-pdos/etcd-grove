@@ -86,19 +86,19 @@ noncomputable def fakeTimer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] fakeTimer.ty
 
-axiom FakeClock.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FakeClock.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fakeClockContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque fakeClockContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def keyClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/jonboulle/clockwork.keyClock"
 
-axiom keyClock.init [GooseExts] [GoGlobalContext] : val
+opaque keyClock.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrFakeClockDeadlineExceeded [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/jonboulle/clockwork.ErrFakeClockDeadlineExceeded"
 
-axiom ErrFakeClockDeadlineExceeded.init [GooseExts] [GoGlobalContext] : val
+opaque ErrFakeClockDeadlineExceeded.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewRealClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/jonboulle/clockwork.NewRealClock"
@@ -133,7 +133,7 @@ noncomputable def newFakeTimer [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.jonboulle.clockwork where
   pkgImportedPkgs := [pkg_id.time]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -192,8 +192,10 @@ attribute [instance] realClock.TypeAssumptions.type_repr
   realClock.TypeAssumptions.method_set
   realClock.TypeAssumptions.ptr_method_set
 
-axiom FakeClock : Type
-axiom FakeClock.zero_val : ZeroVal FakeClock
+opaque FakeClock.nonempty_type : NonemptyType.{0}
+def FakeClock : Type := FakeClock.nonempty_type.type
+instance FakeClock.nonempty : Nonempty FakeClock := FakeClock.nonempty_type.property
+opaque FakeClock.zero_val : ZeroVal FakeClock := ⟨Classical.ofNonempty⟩
 attribute [instance] FakeClock.zero_val
 
 class FakeClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -278,8 +280,10 @@ attribute [instance] contextKey.TypeAssumptions.underlying
   contextKey.TypeAssumptions.method_set
   contextKey.TypeAssumptions.ptr_method_set
 
-axiom fakeClockContext : Type
-axiom fakeClockContext.zero_val : ZeroVal fakeClockContext
+opaque fakeClockContext.nonempty_type : NonemptyType.{0}
+def fakeClockContext : Type := fakeClockContext.nonempty_type.type
+instance fakeClockContext.nonempty : Nonempty fakeClockContext := fakeClockContext.nonempty_type.property
+opaque fakeClockContext.zero_val : ZeroVal fakeClockContext := ⟨Classical.ofNonempty⟩
 attribute [instance] fakeClockContext.zero_val
 
 class fakeClockContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

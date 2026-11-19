@@ -61,7 +61,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthFuel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AdminChain
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridgeLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStart
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeListIfc
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Results
@@ -85,7 +85,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthCheckTxnLb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVOutcomeOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_tieSure
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrvLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AdminChain
 public import Proof.go_uber_org.zap.Int
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn
@@ -99,6 +99,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
 
 @[expose] public section
 

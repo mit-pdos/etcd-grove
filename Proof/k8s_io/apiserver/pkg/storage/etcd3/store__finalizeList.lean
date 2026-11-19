@@ -9,6 +9,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.SelectionPredicate__SetShardInfo
 public import Spec.reflect.Value__IsNil
 public import Spec.reflect.Value__Type
 public import Spec.reflect.Value__Set
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

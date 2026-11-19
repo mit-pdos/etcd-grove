@@ -48,12 +48,12 @@ noncomputable def defaultBufferBytes [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrShortRead [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.ErrShortRead"
 
-axiom ErrShortRead.init [GooseExts] [GoGlobalContext] : val
+opaque ErrShortRead.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrExpectEOF [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.ErrExpectEOF"
 
-axiom ErrExpectEOF.init [GooseExts] [GoGlobalContext] : val
+opaque ErrExpectEOF.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewPageWriter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.NewPageWriter"
@@ -437,7 +437,7 @@ noncomputable def limitedBufferReader.Read.impl [GooseExts] [GoGlobalContext] : 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.ioutil where
   pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

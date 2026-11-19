@@ -51,7 +51,6 @@ public import RaftTla.Spec.go_etcd_io.raft.v3.node__Advance
 public import RaftTla.Spec.go_etcd_io.raft.v3.node__Step
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedNodeApi
 public import RaftTla.Proof.go_etcd_io.raft.v3.ConfchangeApi
-public import RaftTla.Proof.go_etcd_io.raft.v3.TracedLinked
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
 
 @[expose] public section
@@ -393,11 +392,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (2026-11-12) **`node.Advance.spec` is `node.Advance.tracedSpec`'s instance** (A5): raft's
-`node.Advance.spec_of_traced`, at the linked traced proof. -/
-theorem advance_spec_of_traced : node.Advance.spec (GF := GF) (hG := hG) :=
-  node.Advance.spec_of_traced RaftLink.node.wp_Advance_traced
-
 /-- **A received `Ready`, taken apart** (the check "the claim's `ms` against `readyGot`'s `ms` and
 `rd.Messages`"): the messages `rd.Messages'` points to, each owned with its credits, the claim on the
 same list, *enter* (whose post gives their `sentMsg`s), the storage part, and the `Ready`'s loop state
@@ -435,62 +429,6 @@ theorem probeA_msgs (γ : Cluster) (N : Namespace) (src : w64) (ms : List QMsg) 
       (readyDq q.st) q.st ∗ sentMsg γ N src q.st ∗ msgCredits γ N q.st))
     (Ψ := fun (_ : Nat) (q : QMsg) => trTok (GF := GF) γ q.st)).2
   iframe H Ht
-
-/-- **One round of `app`, from the `Ready` to `Advance`'s return** (§2.3): the received `Ready`
-(`readyGotT`), *enter* run with the driver's durable state and its share of `nodeRunning`, the snapshot
-loan refuted (`probeA_noSnap`), `handleReady`'s storage and apply work (abstracted: `Hwork`, from the
-`Ready`'s storage part, the batch's receipt and the view with the skipped conf entries: not on the
-probe's list), then the linked `node.Advance.tracedSpec` with the claim. Its post: for each message,
-what `send` takes (`probeA_msgs`), or the node stopped. -/
-theorem probeA_round (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
-    (st : NodeDriverState) (rd : Ready) (qr : Qp) (hN : ↑N ⊆ (⊤ : CoPset)) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗ isCluster γ N -∗ isNode n γ N id -∗
-      tcSnapsInv γ -∗ readyGotT n γ N id st rd -∗
-      raftState γ id st.durable -∗ nodeRunning n γ N qr -∗
-      (∀ (ce : List LogEntry) (es : List EntryM), readySnap γ N id rd st ce es none -∗
-        advReceipt st.storage (st.delivered ++ ce).length es none ∗
-        ∃ v : ConfigView, nodeConfig n γ N v ∗
-          skippedIn γ (st.delivered ++ ce) v.applied (st.delivered ++ ce).length) -∗
-      |={⊤}=> ∃ (ms : List QMsg) (S : RaftState), rd.Messages' ↦* ms.map QMsg.loc ∗ raftState γ id S ∗
-        nodeRunning n γ N qr ∗
-        WP (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-          {{ v, ⌜v = #()⌝ ∗ ((∃ st', nodeDriver n γ N st' ∗
-              [∗list] q ∈ ms, (msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗
-                msgCredits γ N q.st) ∗ trTok γ q.st) ∨
-            (∃ st', nodeStopped n γ N ∗ nodeDriver n γ N st')) }} := by
-  iintro #Hi #Hc #Hn #Hsn Hrg Hrs Hrun Hwork
-  ihave Hsp := probeA_readySplit n γ N id st rd $$ Hrg
-  icases Hsp with ⟨%ce, %es, %h, %L, %ms, %ss, Hmsl, Hms, Hsnap, Hent, Hcl, %Hh⟩
-  cases L with
-  | some l =>
-    imod probeA_noSnap γ N id rd st ce es l ⊤ (fun _ _ => CoPset.mem_full) $$ Hc Hsn Hsnap
-      with %Hf
-    exact Hf.elim
-  | none =>
-  iunfold readyEnter at Hent
-  imod Hent $$ %⊤ %qr %hN [Hrs Hrun] with ⟨Hrs, Hrun, Hdrv, #Hsent⟩
-  · iframe Hrs Hrun
-  ihave ⟨Hrec, %v, Hv, #Hsk⟩ := Hwork $$ %ce %es Hsnap
-  imodintro
-  iexists ms, _
-  iframe Hmsl Hrs Hrun
-  iapply (RaftLink.node.wp_Advance_traced n γ N id (st.afterReady ce es h none ss) es none v ms Hh
-    (fun _ h => by cases h)) $$ [Hdrv Hrec Hv Hcl] [Hms]
-  · iframe Hi Hc Hn Hdrv Hv Hcl
-    simp only [NodeDriverState.afterReady]
-    iframe Hrec Hsk
-  · inext
-    iintro Hpost
-    isplitr
-    · ipureintro; rfl
-    icases Hpost with (⟨Hd, -, -, Ht⟩ | ⟨Hs, Hd⟩)
-    · ileft
-      iexists _
-      iframe Hd
-      iapply probeA_msgs γ N id ms $$ Hms Hsent Ht
-    · iright
-      iexists _
-      iframe Hs Hd
 
 end claim
 

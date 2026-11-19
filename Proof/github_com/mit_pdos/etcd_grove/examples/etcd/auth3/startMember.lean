@@ -19,6 +19,7 @@ public import Spec.net.Listen
 public import Proof.net.http.Axioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

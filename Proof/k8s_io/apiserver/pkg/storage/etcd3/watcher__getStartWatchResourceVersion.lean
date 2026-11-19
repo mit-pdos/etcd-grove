@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.watcher__getStartWatchResourceVersion
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

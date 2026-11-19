@@ -40,6 +40,8 @@ public import GeneratedProof.k8s_io.utils.clock
 public import Proof.go_etcd_io.etcd.client.v3.WatchStateDefs
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Spec.fmt.Errorf
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 
 @[expose] public section
 

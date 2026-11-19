@@ -50,17 +50,17 @@ noncomputable def ClusterTrustBundleExpansion.ty [GooseExts] [GoGlobalContext] :
 
 attribute [irreducible] ClusterTrustBundleExpansion.ty
 
-axiom CertificatesV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificatesV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CertificatesV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificatesV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterTrustBundlesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterTrustBundlesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterTrustBundleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterTrustBundleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clusterTrustBundles.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clusterTrustBundles.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterTrustBundleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterTrustBundleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/certificates/v1alpha1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newClusterTrustBundles [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.certificates.v1alpha1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom CertificatesV1alpha1Interface : Type
-axiom CertificatesV1alpha1Interface.zero_val : ZeroVal CertificatesV1alpha1Interface
+opaque CertificatesV1alpha1Interface.nonempty_type : NonemptyType.{0}
+def CertificatesV1alpha1Interface : Type := CertificatesV1alpha1Interface.nonempty_type.type
+instance CertificatesV1alpha1Interface.nonempty : Nonempty CertificatesV1alpha1Interface := CertificatesV1alpha1Interface.nonempty_type.property
+opaque CertificatesV1alpha1Interface.zero_val : ZeroVal CertificatesV1alpha1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificatesV1alpha1Interface.zero_val
 
 class CertificatesV1alpha1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] CertificatesV1alpha1Interface.TypeAssumptions.type_repr
   CertificatesV1alpha1Interface.TypeAssumptions.method_set
   CertificatesV1alpha1Interface.TypeAssumptions.ptr_method_set
 
-axiom CertificatesV1alpha1Client : Type
-axiom CertificatesV1alpha1Client.zero_val : ZeroVal CertificatesV1alpha1Client
+opaque CertificatesV1alpha1Client.nonempty_type : NonemptyType.{0}
+def CertificatesV1alpha1Client : Type := CertificatesV1alpha1Client.nonempty_type.type
+instance CertificatesV1alpha1Client.nonempty : Nonempty CertificatesV1alpha1Client := CertificatesV1alpha1Client.nonempty_type.property
+opaque CertificatesV1alpha1Client.zero_val : ZeroVal CertificatesV1alpha1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificatesV1alpha1Client.zero_val
 
 class CertificatesV1alpha1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] CertificatesV1alpha1Client.TypeAssumptions.type_repr
   CertificatesV1alpha1Client.TypeAssumptions.method_set
   CertificatesV1alpha1Client.TypeAssumptions.ptr_method_set
 
-axiom ClusterTrustBundlesGetter : Type
-axiom ClusterTrustBundlesGetter.zero_val : ZeroVal ClusterTrustBundlesGetter
+opaque ClusterTrustBundlesGetter.nonempty_type : NonemptyType.{0}
+def ClusterTrustBundlesGetter : Type := ClusterTrustBundlesGetter.nonempty_type.type
+instance ClusterTrustBundlesGetter.nonempty : Nonempty ClusterTrustBundlesGetter := ClusterTrustBundlesGetter.nonempty_type.property
+opaque ClusterTrustBundlesGetter.zero_val : ZeroVal ClusterTrustBundlesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterTrustBundlesGetter.zero_val
 
 class ClusterTrustBundlesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] ClusterTrustBundlesGetter.TypeAssumptions.type_repr
   ClusterTrustBundlesGetter.TypeAssumptions.method_set
   ClusterTrustBundlesGetter.TypeAssumptions.ptr_method_set
 
-axiom ClusterTrustBundleInterface : Type
-axiom ClusterTrustBundleInterface.zero_val : ZeroVal ClusterTrustBundleInterface
+opaque ClusterTrustBundleInterface.nonempty_type : NonemptyType.{0}
+def ClusterTrustBundleInterface : Type := ClusterTrustBundleInterface.nonempty_type.type
+instance ClusterTrustBundleInterface.nonempty : Nonempty ClusterTrustBundleInterface := ClusterTrustBundleInterface.nonempty_type.property
+opaque ClusterTrustBundleInterface.zero_val : ZeroVal ClusterTrustBundleInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterTrustBundleInterface.zero_val
 
 class ClusterTrustBundleInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] ClusterTrustBundleInterface.TypeAssumptions.type_repr
   ClusterTrustBundleInterface.TypeAssumptions.method_set
   ClusterTrustBundleInterface.TypeAssumptions.ptr_method_set
 
-axiom clusterTrustBundles : Type
-axiom clusterTrustBundles.zero_val : ZeroVal clusterTrustBundles
+opaque clusterTrustBundles.nonempty_type : NonemptyType.{0}
+def clusterTrustBundles : Type := clusterTrustBundles.nonempty_type.type
+instance clusterTrustBundles.nonempty : Nonempty clusterTrustBundles := clusterTrustBundles.nonempty_type.property
+opaque clusterTrustBundles.zero_val : ZeroVal clusterTrustBundles := ⟨Classical.ofNonempty⟩
 attribute [instance] clusterTrustBundles.zero_val
 
 class clusterTrustBundles.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] clusterTrustBundles.TypeAssumptions.type_repr
   clusterTrustBundles.TypeAssumptions.method_set
   clusterTrustBundles.TypeAssumptions.ptr_method_set
 
-axiom ClusterTrustBundleExpansion : Type
-axiom ClusterTrustBundleExpansion.zero_val : ZeroVal ClusterTrustBundleExpansion
+opaque ClusterTrustBundleExpansion.nonempty_type : NonemptyType.{0}
+def ClusterTrustBundleExpansion : Type := ClusterTrustBundleExpansion.nonempty_type.type
+instance ClusterTrustBundleExpansion.nonempty : Nonempty ClusterTrustBundleExpansion := ClusterTrustBundleExpansion.nonempty_type.property
+opaque ClusterTrustBundleExpansion.zero_val : ZeroVal ClusterTrustBundleExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterTrustBundleExpansion.zero_val
 
 class ClusterTrustBundleExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

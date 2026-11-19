@@ -80,25 +80,25 @@ noncomputable def TransformFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] TransformFunc.ty
 
-axiom Requirement.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Requirement.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnescapedRune.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnescapedRune.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom notEqualOperator [GooseExts] [GoGlobalContext] : val
+opaque notEqualOperator [GooseExts] [GoGlobalContext] : val
 
-axiom doubleEqualOperator [GooseExts] [GoGlobalContext] : val
+opaque doubleEqualOperator [GooseExts] [GoGlobalContext] : val
 
-axiom equalOperator [GooseExts] [GoGlobalContext] : val
+opaque equalOperator [GooseExts] [GoGlobalContext] : val
 
 noncomputable def valueEscaper [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/fields.valueEscaper"
 
-axiom valueEscaper.init [GooseExts] [GoGlobalContext] : val
+opaque valueEscaper.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def termOperators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/fields.termOperators"
 
-axiom termOperators.init [GooseExts] [GoGlobalContext] : val
+opaque termOperators.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Nothing [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/fields.Nothing"
@@ -163,7 +163,7 @@ noncomputable def Set.Get.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.fields where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -222,8 +222,10 @@ attribute [instance] Requirements.TypeAssumptions.underlying
   Requirements.TypeAssumptions.method_set
   Requirements.TypeAssumptions.ptr_method_set
 
-axiom Requirement : Type
-axiom Requirement.zero_val : ZeroVal Requirement
+opaque Requirement.nonempty_type : NonemptyType.{0}
+def Requirement : Type := Requirement.nonempty_type.type
+instance Requirement.nonempty : Nonempty Requirement := Requirement.nonempty_type.property
+opaque Requirement.zero_val : ZeroVal Requirement := ⟨Classical.ofNonempty⟩
 attribute [instance] Requirement.zero_val
 
 class Requirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -414,8 +416,10 @@ attribute [instance] InvalidEscapeSequence.TypeAssumptions.type_repr
   InvalidEscapeSequence.TypeAssumptions.method_set
   InvalidEscapeSequence.TypeAssumptions.ptr_method_set
 
-axiom UnescapedRune : Type
-axiom UnescapedRune.zero_val : ZeroVal UnescapedRune
+opaque UnescapedRune.nonempty_type : NonemptyType.{0}
+def UnescapedRune : Type := UnescapedRune.nonempty_type.type
+instance UnescapedRune.nonempty : Nonempty UnescapedRune := UnescapedRune.nonempty_type.property
+opaque UnescapedRune.zero_val : ZeroVal UnescapedRune := ⟨Classical.ofNonempty⟩
 attribute [instance] UnescapedRune.zero_val
 
 class UnescapedRune.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

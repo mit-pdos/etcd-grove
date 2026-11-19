@@ -248,13 +248,13 @@ noncomputable def zapRaftLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] zapRaftLogger.ty
 
-axiom Response.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Response.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PeerHashKVPath [GooseExts] [GoGlobalContext] : val
+opaque PeerHashKVPath [GooseExts] [GoGlobalContext] : val
 
-axiom maxSizePerMsg [GooseExts] [GoGlobalContext] : val
+opaque maxSizePerMsg [GooseExts] [GoGlobalContext] : val
 
-axiom maxInflightMsgs [GooseExts] [GoGlobalContext] : val
+opaque maxInflightMsgs [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DefaultSnapshotCount [GooseExts] [GoGlobalContext] : val :=
   #(10000 : Int)
@@ -262,13 +262,13 @@ axiom maxInflightMsgs [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def DefaultSnapshotCatchUpEntries [GooseExts] [GoGlobalContext] : val :=
   #(W64 5000)
 
-axiom StoreClusterPrefix [GooseExts] [GoGlobalContext] : val
+opaque StoreClusterPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom StoreKeysPrefix [GooseExts] [GoGlobalContext] : val
+opaque StoreKeysPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom HealthInterval [GooseExts] [GoGlobalContext] : val
+opaque HealthInterval [GooseExts] [GoGlobalContext] : val
 
-axiom purgeFileInterval [GooseExts] [GoGlobalContext] : val
+opaque purgeFileInterval [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def maxInFlightMsgSnap [GooseExts] [GoGlobalContext] : val :=
   #(16 : Int)
@@ -279,11 +279,11 @@ axiom purgeFileInterval [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def maxPendingRevokes [GooseExts] [GoGlobalContext] : val :=
   #(16 : Int)
 
-axiom recommendedMaxRequestBytes [GooseExts] [GoGlobalContext] : val
+opaque recommendedMaxRequestBytes [GooseExts] [GoGlobalContext] : val
 
-axiom readyPercentThreshold [GooseExts] [GoGlobalContext] : val
+opaque readyPercentThreshold [GooseExts] [GoGlobalContext] : val
 
-axiom DowngradeEnabledPath [GooseExts] [GoGlobalContext] : val
+opaque DowngradeEnabledPath [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def memorySnapshotCount [GooseExts] [GoGlobalContext] : val :=
   #(100 : Int)
@@ -300,69 +300,69 @@ axiom DowngradeEnabledPath [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def traceThreshold [GooseExts] [GoGlobalContext] : val :=
   #(W64 100000000)
 
-axiom applyTimeout [GooseExts] [GoGlobalContext] : val
+opaque applyTimeout [GooseExts] [GoGlobalContext] : val
 
-axiom initialStreamChunkLimit [GooseExts] [GoGlobalContext] : val
+opaque initialStreamChunkLimit [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hasLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.hasLeader"
 
-axiom hasLeader.init [GooseExts] [GoGlobalContext] : val
+opaque hasLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def isLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader"
 
-axiom isLeader.init [GooseExts] [GoGlobalContext] : val
+opaque isLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaderChanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.leaderChanges"
 
-axiom leaderChanges.init [GooseExts] [GoGlobalContext] : val
+opaque leaderChanges.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def learnerPromoteFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.learnerPromoteFailed"
 
-axiom learnerPromoteFailed.init [GooseExts] [GoGlobalContext] : val
+opaque learnerPromoteFailed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def learnerPromoteSucceed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.learnerPromoteSucceed"
 
-axiom learnerPromoteSucceed.init [GooseExts] [GoGlobalContext] : val
+opaque learnerPromoteSucceed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def heartbeatSendFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.heartbeatSendFailures"
 
-axiom heartbeatSendFailures.init [GooseExts] [GoGlobalContext] : val
+opaque heartbeatSendFailures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def applySnapshotInProgress [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshotInProgress"
 
-axiom applySnapshotInProgress.init [GooseExts] [GoGlobalContext] : val
+opaque applySnapshotInProgress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def proposalsCommitted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsCommitted"
 
-axiom proposalsCommitted.init [GooseExts] [GoGlobalContext] : val
+opaque proposalsCommitted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def proposalsApplied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsApplied"
 
-axiom proposalsApplied.init [GooseExts] [GoGlobalContext] : val
+opaque proposalsApplied.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def proposalsPending [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsPending"
 
-axiom proposalsPending.init [GooseExts] [GoGlobalContext] : val
+opaque proposalsPending.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def proposalsFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsFailed"
 
-axiom proposalsFailed.init [GooseExts] [GoGlobalContext] : val
+opaque proposalsFailed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def requestDurationSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.requestDurationSec"
 
-axiom requestDurationSec.init [GooseExts] [GoGlobalContext] : val
+opaque requestDurationSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaseExpired [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.leaseExpired"
@@ -370,32 +370,32 @@ noncomputable def leaseExpired [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def currentVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.currentVersion"
 
-axiom currentVersion.init [GooseExts] [GoGlobalContext] : val
+opaque currentVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def currentGoVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.currentGoVersion"
 
-axiom currentGoVersion.init [GooseExts] [GoGlobalContext] : val
+opaque currentGoVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def serverID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.serverID"
 
-axiom serverID.init [GooseExts] [GoGlobalContext] : val
+opaque serverID.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def serverFeatureEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.serverFeatureEnabled"
 
-axiom serverFeatureEnabled.init [GooseExts] [GoGlobalContext] : val
+opaque serverFeatureEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def fdUsed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.fdUsed"
 
-axiom fdUsed.init [GooseExts] [GoGlobalContext] : val
+opaque fdUsed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def fdLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.fdLimit"
 
-axiom fdLimit.init [GooseExts] [GoGlobalContext] : val
+opaque fdLimit.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def enableAllRuntimeMetricsOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.enableAllRuntimeMetricsOnce"
@@ -409,12 +409,12 @@ noncomputable def raftStatus [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def monitorVersionInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.monitorVersionInterval"
 
-axiom monitorVersionInterval.init [GooseExts] [GoGlobalContext] : val
+opaque monitorVersionInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def recommendedMaxRequestBytesString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.recommendedMaxRequestBytesString"
 
-axiom recommendedMaxRequestBytesString.init [GooseExts] [GoGlobalContext] : val
+opaque recommendedMaxRequestBytesString.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewServerVersionAdapter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewServerVersionAdapter"
@@ -10084,7 +10084,7 @@ noncomputable def EtcdServer.requireAuthInfo.impl [GooseExts] [GoGlobalContext] 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver where
   pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.encoding.json, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp, pkg_id.encoding.base64, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -11390,8 +11390,10 @@ attribute [instance] raftNode.TypeAssumptions.type_repr
   raftNode.TypeAssumptions.ptr_stop_unfold
   raftNode.TypeAssumptions.ptr_tick_unfold
 
-axiom Response : Type
-axiom Response.zero_val : ZeroVal Response
+opaque Response.nonempty_type : NonemptyType.{0}
+def Response : Type := Response.nonempty_type.type
+instance Response.nonempty : Nonempty Response := Response.nonempty_type.property
+opaque Response.zero_val : ZeroVal Response := ⟨Classical.ofNonempty⟩
 attribute [instance] Response.zero_val
 
 class Response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

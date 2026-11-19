@@ -475,631 +475,631 @@ noncomputable def Dialer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Dialer.ty
 
-axiom weakCertCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque weakCertCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cipherSuite.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cipherSuite.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cipherSuiteTLS13.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cipherSuiteTLS13.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aead.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque aead.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom prefixNonceAEAD.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque prefixNonceAEAD.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom xorNonceAEAD.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque xorNonceAEAD.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom constantTimeHash.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque constantTimeHash.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConnectionState.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ConnectionState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClientHelloInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClientHelloInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CertificateRequestInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificateRequestInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ticketKey.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ticketKey.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Certificate.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Certificate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lruSessionCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque lruSessionCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CertificateVerificationError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificateVerificationError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Conn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Conn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom halfConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque halfConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom permanentError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque permanentError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cbcMode.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cbcMode.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RecordHeaderError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RecordHeaderError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientHandshakeState.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clientHandshakeState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom echClientContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque echClientContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientHandshakeStateTLS13.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clientHandshakeStateTLS13.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom marshalingFunction.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque marshalingFunction.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverHandshakeState.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serverHandshakeState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom echServerContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque echServerContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverHandshakeStateTLS13.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serverHandshakeStateTLS13.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom keyAgreement.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque keyAgreement.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ecdheKeyAgreement.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ecdheKeyAgreement.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom keySharePrivateKeys.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque keySharePrivateKeys.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom keyExchange.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque keyExchange.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ecdhKeyExchange.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ecdhKeyExchange.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom hybridKeyExchange.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque hybridKeyExchange.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom finishedHash.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque finishedHash.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom QUICConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque QUICConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom quicState.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque quicState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SessionState.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SessionState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque listener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom alertLevelWarning [GooseExts] [GoGlobalContext] : val
+opaque alertLevelWarning [GooseExts] [GoGlobalContext] : val
 
-axiom alertLevelError [GooseExts] [GoGlobalContext] : val
+opaque alertLevelError [GooseExts] [GoGlobalContext] : val
 
-axiom alertCloseNotify [GooseExts] [GoGlobalContext] : val
+opaque alertCloseNotify [GooseExts] [GoGlobalContext] : val
 
-axiom alertUnexpectedMessage [GooseExts] [GoGlobalContext] : val
+opaque alertUnexpectedMessage [GooseExts] [GoGlobalContext] : val
 
-axiom alertBadRecordMAC [GooseExts] [GoGlobalContext] : val
+opaque alertBadRecordMAC [GooseExts] [GoGlobalContext] : val
 
-axiom alertDecryptionFailed [GooseExts] [GoGlobalContext] : val
+opaque alertDecryptionFailed [GooseExts] [GoGlobalContext] : val
 
-axiom alertRecordOverflow [GooseExts] [GoGlobalContext] : val
+opaque alertRecordOverflow [GooseExts] [GoGlobalContext] : val
 
-axiom alertDecompressionFailure [GooseExts] [GoGlobalContext] : val
+opaque alertDecompressionFailure [GooseExts] [GoGlobalContext] : val
 
-axiom alertHandshakeFailure [GooseExts] [GoGlobalContext] : val
+opaque alertHandshakeFailure [GooseExts] [GoGlobalContext] : val
 
-axiom alertBadCertificate [GooseExts] [GoGlobalContext] : val
+opaque alertBadCertificate [GooseExts] [GoGlobalContext] : val
 
-axiom alertUnsupportedCertificate [GooseExts] [GoGlobalContext] : val
+opaque alertUnsupportedCertificate [GooseExts] [GoGlobalContext] : val
 
-axiom alertCertificateRevoked [GooseExts] [GoGlobalContext] : val
+opaque alertCertificateRevoked [GooseExts] [GoGlobalContext] : val
 
-axiom alertCertificateExpired [GooseExts] [GoGlobalContext] : val
+opaque alertCertificateExpired [GooseExts] [GoGlobalContext] : val
 
-axiom alertCertificateUnknown [GooseExts] [GoGlobalContext] : val
+opaque alertCertificateUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom alertIllegalParameter [GooseExts] [GoGlobalContext] : val
+opaque alertIllegalParameter [GooseExts] [GoGlobalContext] : val
 
-axiom alertUnknownCA [GooseExts] [GoGlobalContext] : val
+opaque alertUnknownCA [GooseExts] [GoGlobalContext] : val
 
-axiom alertAccessDenied [GooseExts] [GoGlobalContext] : val
+opaque alertAccessDenied [GooseExts] [GoGlobalContext] : val
 
-axiom alertDecodeError [GooseExts] [GoGlobalContext] : val
+opaque alertDecodeError [GooseExts] [GoGlobalContext] : val
 
-axiom alertDecryptError [GooseExts] [GoGlobalContext] : val
+opaque alertDecryptError [GooseExts] [GoGlobalContext] : val
 
-axiom alertExportRestriction [GooseExts] [GoGlobalContext] : val
+opaque alertExportRestriction [GooseExts] [GoGlobalContext] : val
 
-axiom alertProtocolVersion [GooseExts] [GoGlobalContext] : val
+opaque alertProtocolVersion [GooseExts] [GoGlobalContext] : val
 
-axiom alertInsufficientSecurity [GooseExts] [GoGlobalContext] : val
+opaque alertInsufficientSecurity [GooseExts] [GoGlobalContext] : val
 
-axiom alertInternalError [GooseExts] [GoGlobalContext] : val
+opaque alertInternalError [GooseExts] [GoGlobalContext] : val
 
-axiom alertInappropriateFallback [GooseExts] [GoGlobalContext] : val
+opaque alertInappropriateFallback [GooseExts] [GoGlobalContext] : val
 
-axiom alertUserCanceled [GooseExts] [GoGlobalContext] : val
+opaque alertUserCanceled [GooseExts] [GoGlobalContext] : val
 
-axiom alertNoRenegotiation [GooseExts] [GoGlobalContext] : val
+opaque alertNoRenegotiation [GooseExts] [GoGlobalContext] : val
 
-axiom alertMissingExtension [GooseExts] [GoGlobalContext] : val
+opaque alertMissingExtension [GooseExts] [GoGlobalContext] : val
 
-axiom alertUnsupportedExtension [GooseExts] [GoGlobalContext] : val
+opaque alertUnsupportedExtension [GooseExts] [GoGlobalContext] : val
 
-axiom alertCertificateUnobtainable [GooseExts] [GoGlobalContext] : val
+opaque alertCertificateUnobtainable [GooseExts] [GoGlobalContext] : val
 
-axiom alertUnrecognizedName [GooseExts] [GoGlobalContext] : val
+opaque alertUnrecognizedName [GooseExts] [GoGlobalContext] : val
 
-axiom alertBadCertificateStatusResponse [GooseExts] [GoGlobalContext] : val
+opaque alertBadCertificateStatusResponse [GooseExts] [GoGlobalContext] : val
 
-axiom alertBadCertificateHashValue [GooseExts] [GoGlobalContext] : val
+opaque alertBadCertificateHashValue [GooseExts] [GoGlobalContext] : val
 
-axiom alertUnknownPSKIdentity [GooseExts] [GoGlobalContext] : val
+opaque alertUnknownPSKIdentity [GooseExts] [GoGlobalContext] : val
 
-axiom alertCertificateRequired [GooseExts] [GoGlobalContext] : val
+opaque alertCertificateRequired [GooseExts] [GoGlobalContext] : val
 
-axiom alertNoApplicationProtocol [GooseExts] [GoGlobalContext] : val
+opaque alertNoApplicationProtocol [GooseExts] [GoGlobalContext] : val
 
-axiom alertECHRequired [GooseExts] [GoGlobalContext] : val
+opaque alertECHRequired [GooseExts] [GoGlobalContext] : val
 
-axiom serverSignatureContext [GooseExts] [GoGlobalContext] : val
+opaque serverSignatureContext [GooseExts] [GoGlobalContext] : val
 
-axiom clientSignatureContext [GooseExts] [GoGlobalContext] : val
+opaque clientSignatureContext [GooseExts] [GoGlobalContext] : val
 
-axiom suiteECDHE [GooseExts] [GoGlobalContext] : val
+opaque suiteECDHE [GooseExts] [GoGlobalContext] : val
 
-axiom suiteECSign [GooseExts] [GoGlobalContext] : val
+opaque suiteECSign [GooseExts] [GoGlobalContext] : val
 
-axiom suiteTLS12 [GooseExts] [GoGlobalContext] : val
+opaque suiteTLS12 [GooseExts] [GoGlobalContext] : val
 
-axiom suiteSHA384 [GooseExts] [GoGlobalContext] : val
+opaque suiteSHA384 [GooseExts] [GoGlobalContext] : val
 
-axiom aeadNonceLength [GooseExts] [GoGlobalContext] : val
+opaque aeadNonceLength [GooseExts] [GoGlobalContext] : val
 
-axiom noncePrefixLength [GooseExts] [GoGlobalContext] : val
+opaque noncePrefixLength [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_RSA_WITH_RC4_128_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_RSA_WITH_RC4_128_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_RSA_WITH_3DES_EDE_CBC_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_RSA_WITH_3DES_EDE_CBC_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_RSA_WITH_AES_128_CBC_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_RSA_WITH_AES_128_CBC_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_RSA_WITH_AES_256_CBC_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_RSA_WITH_AES_256_CBC_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_RSA_WITH_AES_128_CBC_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_RSA_WITH_AES_128_CBC_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_RSA_WITH_AES_128_GCM_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_RSA_WITH_AES_128_GCM_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_RSA_WITH_AES_256_GCM_SHA384 [GooseExts] [GoGlobalContext] : val
+opaque TLS_RSA_WITH_AES_256_GCM_SHA384 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_ECDSA_WITH_RC4_128_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_ECDSA_WITH_RC4_128_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_RC4_128_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_RC4_128_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_AES_128_GCM_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_AES_128_GCM_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_AES_256_GCM_SHA384 [GooseExts] [GoGlobalContext] : val
+opaque TLS_AES_256_GCM_SHA384 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_CHACHA20_POLY1305_SHA256 [GooseExts] [GoGlobalContext] : val
+opaque TLS_CHACHA20_POLY1305_SHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_FALLBACK_SCSV [GooseExts] [GoGlobalContext] : val
+opaque TLS_FALLBACK_SCSV [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305 [GooseExts] [GoGlobalContext] : val
 
-axiom TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305 [GooseExts] [GoGlobalContext] : val
+opaque TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305 [GooseExts] [GoGlobalContext] : val
 
-axiom VersionTLS10 [GooseExts] [GoGlobalContext] : val
+opaque VersionTLS10 [GooseExts] [GoGlobalContext] : val
 
-axiom VersionTLS11 [GooseExts] [GoGlobalContext] : val
+opaque VersionTLS11 [GooseExts] [GoGlobalContext] : val
 
-axiom VersionTLS12 [GooseExts] [GoGlobalContext] : val
+opaque VersionTLS12 [GooseExts] [GoGlobalContext] : val
 
-axiom VersionTLS13 [GooseExts] [GoGlobalContext] : val
+opaque VersionTLS13 [GooseExts] [GoGlobalContext] : val
 
-axiom VersionSSL30 [GooseExts] [GoGlobalContext] : val
+opaque VersionSSL30 [GooseExts] [GoGlobalContext] : val
 
-axiom maxPlaintext [GooseExts] [GoGlobalContext] : val
+opaque maxPlaintext [GooseExts] [GoGlobalContext] : val
 
-axiom maxCiphertext [GooseExts] [GoGlobalContext] : val
+opaque maxCiphertext [GooseExts] [GoGlobalContext] : val
 
-axiom maxCiphertextTLS13 [GooseExts] [GoGlobalContext] : val
+opaque maxCiphertextTLS13 [GooseExts] [GoGlobalContext] : val
 
-axiom recordHeaderLen [GooseExts] [GoGlobalContext] : val
+opaque recordHeaderLen [GooseExts] [GoGlobalContext] : val
 
-axiom maxHandshake [GooseExts] [GoGlobalContext] : val
+opaque maxHandshake [GooseExts] [GoGlobalContext] : val
 
-axiom maxHandshakeCertificateMsg [GooseExts] [GoGlobalContext] : val
+opaque maxHandshakeCertificateMsg [GooseExts] [GoGlobalContext] : val
 
-axiom maxUselessRecords [GooseExts] [GoGlobalContext] : val
+opaque maxUselessRecords [GooseExts] [GoGlobalContext] : val
 
-axiom recordTypeChangeCipherSpec [GooseExts] [GoGlobalContext] : val
+opaque recordTypeChangeCipherSpec [GooseExts] [GoGlobalContext] : val
 
-axiom recordTypeAlert [GooseExts] [GoGlobalContext] : val
+opaque recordTypeAlert [GooseExts] [GoGlobalContext] : val
 
-axiom recordTypeHandshake [GooseExts] [GoGlobalContext] : val
+opaque recordTypeHandshake [GooseExts] [GoGlobalContext] : val
 
-axiom recordTypeApplicationData [GooseExts] [GoGlobalContext] : val
+opaque recordTypeApplicationData [GooseExts] [GoGlobalContext] : val
 
-axiom typeHelloRequest [GooseExts] [GoGlobalContext] : val
+opaque typeHelloRequest [GooseExts] [GoGlobalContext] : val
 
-axiom typeClientHello [GooseExts] [GoGlobalContext] : val
+opaque typeClientHello [GooseExts] [GoGlobalContext] : val
 
-axiom typeServerHello [GooseExts] [GoGlobalContext] : val
+opaque typeServerHello [GooseExts] [GoGlobalContext] : val
 
-axiom typeNewSessionTicket [GooseExts] [GoGlobalContext] : val
+opaque typeNewSessionTicket [GooseExts] [GoGlobalContext] : val
 
-axiom typeEndOfEarlyData [GooseExts] [GoGlobalContext] : val
+opaque typeEndOfEarlyData [GooseExts] [GoGlobalContext] : val
 
-axiom typeEncryptedExtensions [GooseExts] [GoGlobalContext] : val
+opaque typeEncryptedExtensions [GooseExts] [GoGlobalContext] : val
 
-axiom typeCertificate [GooseExts] [GoGlobalContext] : val
+opaque typeCertificate [GooseExts] [GoGlobalContext] : val
 
-axiom typeServerKeyExchange [GooseExts] [GoGlobalContext] : val
+opaque typeServerKeyExchange [GooseExts] [GoGlobalContext] : val
 
-axiom typeCertificateRequest [GooseExts] [GoGlobalContext] : val
+opaque typeCertificateRequest [GooseExts] [GoGlobalContext] : val
 
-axiom typeServerHelloDone [GooseExts] [GoGlobalContext] : val
+opaque typeServerHelloDone [GooseExts] [GoGlobalContext] : val
 
-axiom typeCertificateVerify [GooseExts] [GoGlobalContext] : val
+opaque typeCertificateVerify [GooseExts] [GoGlobalContext] : val
 
-axiom typeClientKeyExchange [GooseExts] [GoGlobalContext] : val
+opaque typeClientKeyExchange [GooseExts] [GoGlobalContext] : val
 
-axiom typeFinished [GooseExts] [GoGlobalContext] : val
+opaque typeFinished [GooseExts] [GoGlobalContext] : val
 
-axiom typeCertificateStatus [GooseExts] [GoGlobalContext] : val
+opaque typeCertificateStatus [GooseExts] [GoGlobalContext] : val
 
-axiom typeKeyUpdate [GooseExts] [GoGlobalContext] : val
+opaque typeKeyUpdate [GooseExts] [GoGlobalContext] : val
 
-axiom typeMessageHash [GooseExts] [GoGlobalContext] : val
+opaque typeMessageHash [GooseExts] [GoGlobalContext] : val
 
-axiom compressionNone [GooseExts] [GoGlobalContext] : val
+opaque compressionNone [GooseExts] [GoGlobalContext] : val
 
-axiom extensionServerName [GooseExts] [GoGlobalContext] : val
+opaque extensionServerName [GooseExts] [GoGlobalContext] : val
 
-axiom extensionStatusRequest [GooseExts] [GoGlobalContext] : val
+opaque extensionStatusRequest [GooseExts] [GoGlobalContext] : val
 
-axiom extensionSupportedCurves [GooseExts] [GoGlobalContext] : val
+opaque extensionSupportedCurves [GooseExts] [GoGlobalContext] : val
 
-axiom extensionSupportedPoints [GooseExts] [GoGlobalContext] : val
+opaque extensionSupportedPoints [GooseExts] [GoGlobalContext] : val
 
-axiom extensionSignatureAlgorithms [GooseExts] [GoGlobalContext] : val
+opaque extensionSignatureAlgorithms [GooseExts] [GoGlobalContext] : val
 
-axiom extensionALPN [GooseExts] [GoGlobalContext] : val
+opaque extensionALPN [GooseExts] [GoGlobalContext] : val
 
-axiom extensionSCT [GooseExts] [GoGlobalContext] : val
+opaque extensionSCT [GooseExts] [GoGlobalContext] : val
 
-axiom extensionExtendedMasterSecret [GooseExts] [GoGlobalContext] : val
+opaque extensionExtendedMasterSecret [GooseExts] [GoGlobalContext] : val
 
-axiom extensionSessionTicket [GooseExts] [GoGlobalContext] : val
+opaque extensionSessionTicket [GooseExts] [GoGlobalContext] : val
 
-axiom extensionPreSharedKey [GooseExts] [GoGlobalContext] : val
+opaque extensionPreSharedKey [GooseExts] [GoGlobalContext] : val
 
-axiom extensionEarlyData [GooseExts] [GoGlobalContext] : val
+opaque extensionEarlyData [GooseExts] [GoGlobalContext] : val
 
-axiom extensionSupportedVersions [GooseExts] [GoGlobalContext] : val
+opaque extensionSupportedVersions [GooseExts] [GoGlobalContext] : val
 
-axiom extensionCookie [GooseExts] [GoGlobalContext] : val
+opaque extensionCookie [GooseExts] [GoGlobalContext] : val
 
-axiom extensionPSKModes [GooseExts] [GoGlobalContext] : val
+opaque extensionPSKModes [GooseExts] [GoGlobalContext] : val
 
-axiom extensionCertificateAuthorities [GooseExts] [GoGlobalContext] : val
+opaque extensionCertificateAuthorities [GooseExts] [GoGlobalContext] : val
 
-axiom extensionSignatureAlgorithmsCert [GooseExts] [GoGlobalContext] : val
+opaque extensionSignatureAlgorithmsCert [GooseExts] [GoGlobalContext] : val
 
-axiom extensionKeyShare [GooseExts] [GoGlobalContext] : val
+opaque extensionKeyShare [GooseExts] [GoGlobalContext] : val
 
-axiom extensionQUICTransportParameters [GooseExts] [GoGlobalContext] : val
+opaque extensionQUICTransportParameters [GooseExts] [GoGlobalContext] : val
 
-axiom extensionRenegotiationInfo [GooseExts] [GoGlobalContext] : val
+opaque extensionRenegotiationInfo [GooseExts] [GoGlobalContext] : val
 
-axiom extensionECHOuterExtensions [GooseExts] [GoGlobalContext] : val
+opaque extensionECHOuterExtensions [GooseExts] [GoGlobalContext] : val
 
-axiom extensionEncryptedClientHello [GooseExts] [GoGlobalContext] : val
+opaque extensionEncryptedClientHello [GooseExts] [GoGlobalContext] : val
 
-axiom scsvRenegotiation [GooseExts] [GoGlobalContext] : val
+opaque scsvRenegotiation [GooseExts] [GoGlobalContext] : val
 
-axiom CurveP256 [GooseExts] [GoGlobalContext] : val
+opaque CurveP256 [GooseExts] [GoGlobalContext] : val
 
-axiom CurveP384 [GooseExts] [GoGlobalContext] : val
+opaque CurveP384 [GooseExts] [GoGlobalContext] : val
 
-axiom CurveP521 [GooseExts] [GoGlobalContext] : val
+opaque CurveP521 [GooseExts] [GoGlobalContext] : val
 
-axiom X25519 [GooseExts] [GoGlobalContext] : val
+opaque X25519 [GooseExts] [GoGlobalContext] : val
 
-axiom X25519MLKEM768 [GooseExts] [GoGlobalContext] : val
+opaque X25519MLKEM768 [GooseExts] [GoGlobalContext] : val
 
-axiom SecP256r1MLKEM768 [GooseExts] [GoGlobalContext] : val
+opaque SecP256r1MLKEM768 [GooseExts] [GoGlobalContext] : val
 
-axiom SecP384r1MLKEM1024 [GooseExts] [GoGlobalContext] : val
+opaque SecP384r1MLKEM1024 [GooseExts] [GoGlobalContext] : val
 
-axiom MLKEM1024 [GooseExts] [GoGlobalContext] : val
+opaque MLKEM1024 [GooseExts] [GoGlobalContext] : val
 
-axiom pskModePlain [GooseExts] [GoGlobalContext] : val
+opaque pskModePlain [GooseExts] [GoGlobalContext] : val
 
-axiom pskModeDHE [GooseExts] [GoGlobalContext] : val
+opaque pskModeDHE [GooseExts] [GoGlobalContext] : val
 
-axiom pointFormatUncompressed [GooseExts] [GoGlobalContext] : val
+opaque pointFormatUncompressed [GooseExts] [GoGlobalContext] : val
 
-axiom statusTypeOCSP [GooseExts] [GoGlobalContext] : val
+opaque statusTypeOCSP [GooseExts] [GoGlobalContext] : val
 
-axiom certTypeRSASign [GooseExts] [GoGlobalContext] : val
+opaque certTypeRSASign [GooseExts] [GoGlobalContext] : val
 
-axiom certTypeECDSASign [GooseExts] [GoGlobalContext] : val
+opaque certTypeECDSASign [GooseExts] [GoGlobalContext] : val
 
-axiom signaturePKCS1v15 [GooseExts] [GoGlobalContext] : val
+opaque signaturePKCS1v15 [GooseExts] [GoGlobalContext] : val
 
-axiom signatureRSAPSS [GooseExts] [GoGlobalContext] : val
+opaque signatureRSAPSS [GooseExts] [GoGlobalContext] : val
 
-axiom signatureECDSA [GooseExts] [GoGlobalContext] : val
+opaque signatureECDSA [GooseExts] [GoGlobalContext] : val
 
-axiom signatureEd25519 [GooseExts] [GoGlobalContext] : val
+opaque signatureEd25519 [GooseExts] [GoGlobalContext] : val
 
-axiom signatureMLDSA [GooseExts] [GoGlobalContext] : val
+opaque signatureMLDSA [GooseExts] [GoGlobalContext] : val
 
-axiom downgradeCanaryTLS12 [GooseExts] [GoGlobalContext] : val
+opaque downgradeCanaryTLS12 [GooseExts] [GoGlobalContext] : val
 
-axiom downgradeCanaryTLS11 [GooseExts] [GoGlobalContext] : val
+opaque downgradeCanaryTLS11 [GooseExts] [GoGlobalContext] : val
 
-axiom NoClientCert [GooseExts] [GoGlobalContext] : val
+opaque NoClientCert [GooseExts] [GoGlobalContext] : val
 
-axiom RequestClientCert [GooseExts] [GoGlobalContext] : val
+opaque RequestClientCert [GooseExts] [GoGlobalContext] : val
 
-axiom RequireAnyClientCert [GooseExts] [GoGlobalContext] : val
+opaque RequireAnyClientCert [GooseExts] [GoGlobalContext] : val
 
-axiom VerifyClientCertIfGiven [GooseExts] [GoGlobalContext] : val
+opaque VerifyClientCertIfGiven [GooseExts] [GoGlobalContext] : val
 
-axiom RequireAndVerifyClientCert [GooseExts] [GoGlobalContext] : val
+opaque RequireAndVerifyClientCert [GooseExts] [GoGlobalContext] : val
 
-axiom PKCS1WithSHA256 [GooseExts] [GoGlobalContext] : val
+opaque PKCS1WithSHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom PKCS1WithSHA384 [GooseExts] [GoGlobalContext] : val
+opaque PKCS1WithSHA384 [GooseExts] [GoGlobalContext] : val
 
-axiom PKCS1WithSHA512 [GooseExts] [GoGlobalContext] : val
+opaque PKCS1WithSHA512 [GooseExts] [GoGlobalContext] : val
 
-axiom PSSWithSHA256 [GooseExts] [GoGlobalContext] : val
+opaque PSSWithSHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom PSSWithSHA384 [GooseExts] [GoGlobalContext] : val
+opaque PSSWithSHA384 [GooseExts] [GoGlobalContext] : val
 
-axiom PSSWithSHA512 [GooseExts] [GoGlobalContext] : val
+opaque PSSWithSHA512 [GooseExts] [GoGlobalContext] : val
 
-axiom ECDSAWithP256AndSHA256 [GooseExts] [GoGlobalContext] : val
+opaque ECDSAWithP256AndSHA256 [GooseExts] [GoGlobalContext] : val
 
-axiom ECDSAWithP384AndSHA384 [GooseExts] [GoGlobalContext] : val
+opaque ECDSAWithP384AndSHA384 [GooseExts] [GoGlobalContext] : val
 
-axiom ECDSAWithP521AndSHA512 [GooseExts] [GoGlobalContext] : val
+opaque ECDSAWithP521AndSHA512 [GooseExts] [GoGlobalContext] : val
 
-axiom Ed25519 [GooseExts] [GoGlobalContext] : val
+opaque Ed25519 [GooseExts] [GoGlobalContext] : val
 
-axiom MLDSA44 [GooseExts] [GoGlobalContext] : val
+opaque MLDSA44 [GooseExts] [GoGlobalContext] : val
 
-axiom MLDSA65 [GooseExts] [GoGlobalContext] : val
+opaque MLDSA65 [GooseExts] [GoGlobalContext] : val
 
-axiom MLDSA87 [GooseExts] [GoGlobalContext] : val
+opaque MLDSA87 [GooseExts] [GoGlobalContext] : val
 
-axiom PKCS1WithSHA1 [GooseExts] [GoGlobalContext] : val
+opaque PKCS1WithSHA1 [GooseExts] [GoGlobalContext] : val
 
-axiom ECDSAWithSHA1 [GooseExts] [GoGlobalContext] : val
+opaque ECDSAWithSHA1 [GooseExts] [GoGlobalContext] : val
 
-axiom RenegotiateNever [GooseExts] [GoGlobalContext] : val
+opaque RenegotiateNever [GooseExts] [GoGlobalContext] : val
 
-axiom RenegotiateOnceAsClient [GooseExts] [GoGlobalContext] : val
+opaque RenegotiateOnceAsClient [GooseExts] [GoGlobalContext] : val
 
-axiom RenegotiateFreelyAsClient [GooseExts] [GoGlobalContext] : val
+opaque RenegotiateFreelyAsClient [GooseExts] [GoGlobalContext] : val
 
-axiom ticketKeyLifetime [GooseExts] [GoGlobalContext] : val
+opaque ticketKeyLifetime [GooseExts] [GoGlobalContext] : val
 
-axiom ticketKeyRotation [GooseExts] [GoGlobalContext] : val
+opaque ticketKeyRotation [GooseExts] [GoGlobalContext] : val
 
-axiom maxSessionTicketLifetime [GooseExts] [GoGlobalContext] : val
+opaque maxSessionTicketLifetime [GooseExts] [GoGlobalContext] : val
 
-axiom roleClient [GooseExts] [GoGlobalContext] : val
+opaque roleClient [GooseExts] [GoGlobalContext] : val
 
-axiom roleServer [GooseExts] [GoGlobalContext] : val
+opaque roleServer [GooseExts] [GoGlobalContext] : val
 
-axiom keyLogLabelTLS12 [GooseExts] [GoGlobalContext] : val
+opaque keyLogLabelTLS12 [GooseExts] [GoGlobalContext] : val
 
-axiom keyLogLabelClientHandshake [GooseExts] [GoGlobalContext] : val
+opaque keyLogLabelClientHandshake [GooseExts] [GoGlobalContext] : val
 
-axiom keyLogLabelServerHandshake [GooseExts] [GoGlobalContext] : val
+opaque keyLogLabelServerHandshake [GooseExts] [GoGlobalContext] : val
 
-axiom keyLogLabelClientTraffic [GooseExts] [GoGlobalContext] : val
+opaque keyLogLabelClientTraffic [GooseExts] [GoGlobalContext] : val
 
-axiom keyLogLabelServerTraffic [GooseExts] [GoGlobalContext] : val
+opaque keyLogLabelServerTraffic [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_0 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_0 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_1 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_1 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_2 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_2 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_3 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_3 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_4 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_4 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_5 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_5 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_6 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_6 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_7 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_7 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_8 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_8 [GooseExts] [GoGlobalContext] : val
 
-axiom _SignatureScheme_name_9 [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_name_9 [GooseExts] [GoGlobalContext] : val
 
-axiom _CurveID_name_0 [GooseExts] [GoGlobalContext] : val
+opaque _CurveID_name_0 [GooseExts] [GoGlobalContext] : val
 
-axiom _CurveID_name_1 [GooseExts] [GoGlobalContext] : val
+opaque _CurveID_name_1 [GooseExts] [GoGlobalContext] : val
 
-axiom _CurveID_name_2 [GooseExts] [GoGlobalContext] : val
+opaque _CurveID_name_2 [GooseExts] [GoGlobalContext] : val
 
-axiom _CurveID_name_3 [GooseExts] [GoGlobalContext] : val
+opaque _CurveID_name_3 [GooseExts] [GoGlobalContext] : val
 
-axiom _ClientAuthType_name [GooseExts] [GoGlobalContext] : val
+opaque _ClientAuthType_name [GooseExts] [GoGlobalContext] : val
 
-axiom tcpMSSEstimate [GooseExts] [GoGlobalContext] : val
+opaque tcpMSSEstimate [GooseExts] [GoGlobalContext] : val
 
-axiom recordSizeBoostThreshold [GooseExts] [GoGlobalContext] : val
+opaque recordSizeBoostThreshold [GooseExts] [GoGlobalContext] : val
 
-axiom innerECHExt [GooseExts] [GoGlobalContext] : val
+opaque innerECHExt [GooseExts] [GoGlobalContext] : val
 
-axiom outerECHExt [GooseExts] [GoGlobalContext] : val
+opaque outerECHExt [GooseExts] [GoGlobalContext] : val
 
-axiom defaultMaxRSAKeySize [GooseExts] [GoGlobalContext] : val
+opaque defaultMaxRSAKeySize [GooseExts] [GoGlobalContext] : val
 
-axiom maxClientPSKIdentities [GooseExts] [GoGlobalContext] : val
+opaque maxClientPSKIdentities [GooseExts] [GoGlobalContext] : val
 
-axiom masterSecretLength [GooseExts] [GoGlobalContext] : val
+opaque masterSecretLength [GooseExts] [GoGlobalContext] : val
 
-axiom finishedVerifyLength [GooseExts] [GoGlobalContext] : val
+opaque finishedVerifyLength [GooseExts] [GoGlobalContext] : val
 
-axiom masterSecretLabel [GooseExts] [GoGlobalContext] : val
+opaque masterSecretLabel [GooseExts] [GoGlobalContext] : val
 
-axiom extendedMasterSecretLabel [GooseExts] [GoGlobalContext] : val
+opaque extendedMasterSecretLabel [GooseExts] [GoGlobalContext] : val
 
-axiom keyExpansionLabel [GooseExts] [GoGlobalContext] : val
+opaque keyExpansionLabel [GooseExts] [GoGlobalContext] : val
 
-axiom clientFinishedLabel [GooseExts] [GoGlobalContext] : val
+opaque clientFinishedLabel [GooseExts] [GoGlobalContext] : val
 
-axiom serverFinishedLabel [GooseExts] [GoGlobalContext] : val
+opaque serverFinishedLabel [GooseExts] [GoGlobalContext] : val
 
-axiom QUICEncryptionLevelInitial [GooseExts] [GoGlobalContext] : val
+opaque QUICEncryptionLevelInitial [GooseExts] [GoGlobalContext] : val
 
-axiom QUICEncryptionLevelEarly [GooseExts] [GoGlobalContext] : val
+opaque QUICEncryptionLevelEarly [GooseExts] [GoGlobalContext] : val
 
-axiom QUICEncryptionLevelHandshake [GooseExts] [GoGlobalContext] : val
+opaque QUICEncryptionLevelHandshake [GooseExts] [GoGlobalContext] : val
 
-axiom QUICEncryptionLevelApplication [GooseExts] [GoGlobalContext] : val
+opaque QUICEncryptionLevelApplication [GooseExts] [GoGlobalContext] : val
 
-axiom QUICNoEvent [GooseExts] [GoGlobalContext] : val
+opaque QUICNoEvent [GooseExts] [GoGlobalContext] : val
 
-axiom QUICSetReadSecret [GooseExts] [GoGlobalContext] : val
+opaque QUICSetReadSecret [GooseExts] [GoGlobalContext] : val
 
-axiom QUICSetWriteSecret [GooseExts] [GoGlobalContext] : val
+opaque QUICSetWriteSecret [GooseExts] [GoGlobalContext] : val
 
-axiom QUICWriteData [GooseExts] [GoGlobalContext] : val
+opaque QUICWriteData [GooseExts] [GoGlobalContext] : val
 
-axiom QUICTransportParameters [GooseExts] [GoGlobalContext] : val
+opaque QUICTransportParameters [GooseExts] [GoGlobalContext] : val
 
-axiom QUICTransportParametersRequired [GooseExts] [GoGlobalContext] : val
+opaque QUICTransportParametersRequired [GooseExts] [GoGlobalContext] : val
 
-axiom QUICRejectedEarlyData [GooseExts] [GoGlobalContext] : val
+opaque QUICRejectedEarlyData [GooseExts] [GoGlobalContext] : val
 
-axiom QUICHandshakeDone [GooseExts] [GoGlobalContext] : val
+opaque QUICHandshakeDone [GooseExts] [GoGlobalContext] : val
 
-axiom QUICResumeSession [GooseExts] [GoGlobalContext] : val
+opaque QUICResumeSession [GooseExts] [GoGlobalContext] : val
 
-axiom QUICStoreSession [GooseExts] [GoGlobalContext] : val
+opaque QUICStoreSession [GooseExts] [GoGlobalContext] : val
 
-axiom QUICErrorEvent [GooseExts] [GoGlobalContext] : val
+opaque QUICErrorEvent [GooseExts] [GoGlobalContext] : val
 
 noncomputable def alertText [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.alertText"
 
-axiom alertText.init [GooseExts] [GoGlobalContext] : val
+opaque alertText.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def signaturePadding [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.signaturePadding"
 
-axiom signaturePadding.init [GooseExts] [GoGlobalContext] : val
+opaque signaturePadding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rsaSignatureSchemes [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.rsaSignatureSchemes"
 
-axiom rsaSignatureSchemes.init [GooseExts] [GoGlobalContext] : val
+opaque rsaSignatureSchemes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def globalCertCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.globalCertCache"
 
-axiom globalCertCache.init [GooseExts] [GoGlobalContext] : val
+opaque globalCertCache.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedUpToTLS12 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.supportedUpToTLS12"
 
-axiom supportedUpToTLS12.init [GooseExts] [GoGlobalContext] : val
+opaque supportedUpToTLS12.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedOnlyTLS12 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.supportedOnlyTLS12"
 
-axiom supportedOnlyTLS12.init [GooseExts] [GoGlobalContext] : val
+opaque supportedOnlyTLS12.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedOnlyTLS13 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.supportedOnlyTLS13"
 
-axiom supportedOnlyTLS13.init [GooseExts] [GoGlobalContext] : val
+opaque supportedOnlyTLS13.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cipherSuites [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.cipherSuites"
 
-axiom cipherSuites.init [GooseExts] [GoGlobalContext] : val
+opaque cipherSuites.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cipherSuitesTLS13 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.cipherSuitesTLS13"
 
-axiom cipherSuitesTLS13.init [GooseExts] [GoGlobalContext] : val
+opaque cipherSuitesTLS13.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cipherSuitesPreferenceOrder [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.cipherSuitesPreferenceOrder"
 
-axiom cipherSuitesPreferenceOrder.init [GooseExts] [GoGlobalContext] : val
+opaque cipherSuitesPreferenceOrder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cipherSuitesPreferenceOrderNoAES [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.cipherSuitesPreferenceOrderNoAES"
 
-axiom cipherSuitesPreferenceOrderNoAES.init [GooseExts] [GoGlobalContext] : val
+opaque cipherSuitesPreferenceOrderNoAES.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def disabledCipherSuites [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.disabledCipherSuites"
 
-axiom disabledCipherSuites.init [GooseExts] [GoGlobalContext] : val
+opaque disabledCipherSuites.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hasGCMAsmAMD64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.hasGCMAsmAMD64"
 
-axiom hasGCMAsmAMD64.init [GooseExts] [GoGlobalContext] : val
+opaque hasGCMAsmAMD64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hasGCMAsmARM64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.hasGCMAsmARM64"
 
-axiom hasGCMAsmARM64.init [GooseExts] [GoGlobalContext] : val
+opaque hasGCMAsmARM64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hasGCMAsmS390X [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.hasGCMAsmS390X"
 
-axiom hasGCMAsmS390X.init [GooseExts] [GoGlobalContext] : val
+opaque hasGCMAsmS390X.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hasGCMAsmPPC64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.hasGCMAsmPPC64"
 
-axiom hasGCMAsmPPC64.init [GooseExts] [GoGlobalContext] : val
+opaque hasGCMAsmPPC64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hasAESGCMHardwareSupport [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.hasAESGCMHardwareSupport"
 
-axiom hasAESGCMHardwareSupport.init [GooseExts] [GoGlobalContext] : val
+opaque hasAESGCMHardwareSupport.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def aesgcmCiphers [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.aesgcmCiphers"
 
-axiom aesgcmCiphers.init [GooseExts] [GoGlobalContext] : val
+opaque aesgcmCiphers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def directSigning [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.directSigning"
 
-axiom directSigning.init [GooseExts] [GoGlobalContext] : val
+opaque directSigning.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def helloRetryRequestRandom [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.helloRetryRequestRandom"
 
-axiom helloRetryRequestRandom.init [GooseExts] [GoGlobalContext] : val
+opaque helloRetryRequestRandom.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testingOnlyForceDowngradeCanary [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.testingOnlyForceDowngradeCanary"
@@ -1107,17 +1107,17 @@ noncomputable def testingOnlyForceDowngradeCanary [GooseExts] [GoGlobalContext] 
 noncomputable def deprecatedSessionTicketKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.deprecatedSessionTicketKey"
 
-axiom deprecatedSessionTicketKey.init [GooseExts] [GoGlobalContext] : val
+opaque deprecatedSessionTicketKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedVersions [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.supportedVersions"
 
-axiom supportedVersions.init [GooseExts] [GoGlobalContext] : val
+opaque supportedVersions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoCertificates [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.errNoCertificates"
 
-axiom errNoCertificates.init [GooseExts] [GoGlobalContext] : val
+opaque errNoCertificates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def writerMutex [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.writerMutex"
@@ -1131,127 +1131,127 @@ noncomputable def testingOnlySupportedSignatureAlgorithms [GooseExts] [GoGlobalC
 noncomputable def tlssha1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.tlssha1"
 
-axiom tlssha1.init [GooseExts] [GoGlobalContext] : val
+opaque tlssha1.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _SignatureScheme_index_8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls._SignatureScheme_index_8"
 
-axiom _SignatureScheme_index_8.init [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_index_8.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _SignatureScheme_index_9 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls._SignatureScheme_index_9"
 
-axiom _SignatureScheme_index_9.init [GooseExts] [GoGlobalContext] : val
+opaque _SignatureScheme_index_9.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _CurveID_index_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls._CurveID_index_0"
 
-axiom _CurveID_index_0.init [GooseExts] [GoGlobalContext] : val
+opaque _CurveID_index_0.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _CurveID_index_3 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls._CurveID_index_3"
 
-axiom _CurveID_index_3.init [GooseExts] [GoGlobalContext] : val
+opaque _CurveID_index_3.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _ClientAuthType_index [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls._ClientAuthType_index"
 
-axiom _ClientAuthType_index.init [GooseExts] [GoGlobalContext] : val
+opaque _ClientAuthType_index.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def outBufPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.outBufPool"
 
-axiom outBufPool.init [GooseExts] [GoGlobalContext] : val
+opaque outBufPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errShutdown [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.errShutdown"
 
-axiom errShutdown.init [GooseExts] [GoGlobalContext] : val
+opaque errShutdown.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errEarlyCloseWrite [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.errEarlyCloseWrite"
 
-axiom errEarlyCloseWrite.init [GooseExts] [GoGlobalContext] : val
+opaque errEarlyCloseWrite.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tlsmlkem [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.tlsmlkem"
 
-axiom tlsmlkem.init [GooseExts] [GoGlobalContext] : val
+opaque tlsmlkem.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tlssecpmlkem [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.tlssecpmlkem"
 
-axiom tlssecpmlkem.init [GooseExts] [GoGlobalContext] : val
+opaque tlssecpmlkem.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultCipherSuitesTLS13 [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.defaultCipherSuitesTLS13"
 
-axiom defaultCipherSuitesTLS13.init [GooseExts] [GoGlobalContext] : val
+opaque defaultCipherSuitesTLS13.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultCipherSuitesTLS13NoAES [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.defaultCipherSuitesTLS13NoAES"
 
-axiom defaultCipherSuitesTLS13NoAES.init [GooseExts] [GoGlobalContext] : val
+opaque defaultCipherSuitesTLS13NoAES.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def allowedSupportedVersionsFIPS [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.allowedSupportedVersionsFIPS"
 
-axiom allowedSupportedVersionsFIPS.init [GooseExts] [GoGlobalContext] : val
+opaque allowedSupportedVersionsFIPS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def allowedCurvePreferencesFIPS [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.allowedCurvePreferencesFIPS"
 
-axiom allowedCurvePreferencesFIPS.init [GooseExts] [GoGlobalContext] : val
+opaque allowedCurvePreferencesFIPS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def allowedSignatureAlgorithmsFIPS [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.allowedSignatureAlgorithmsFIPS"
 
-axiom allowedSignatureAlgorithmsFIPS.init [GooseExts] [GoGlobalContext] : val
+opaque allowedSignatureAlgorithmsFIPS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def allowedCipherSuitesFIPS [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.allowedCipherSuitesFIPS"
 
-axiom allowedCipherSuitesFIPS.init [GooseExts] [GoGlobalContext] : val
+opaque allowedCipherSuitesFIPS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def allowedCipherSuitesTLS13FIPS [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.allowedCipherSuitesTLS13FIPS"
 
-axiom allowedCipherSuitesTLS13FIPS.init [GooseExts] [GoGlobalContext] : val
+opaque allowedCipherSuitesTLS13FIPS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMalformedECHConfigList [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.errMalformedECHConfigList"
 
-axiom errMalformedECHConfigList.init [GooseExts] [GoGlobalContext] : val
+opaque errMalformedECHConfigList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMalformedECHExt [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.errMalformedECHExt"
 
-axiom errMalformedECHExt.init [GooseExts] [GoGlobalContext] : val
+opaque errMalformedECHExt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidECHExt [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.errInvalidECHExt"
 
-axiom errInvalidECHExt.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalidECHExt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def fips140ems [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.fips140ems"
 
-axiom fips140ems.init [GooseExts] [GoGlobalContext] : val
+opaque fips140ems.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tlsmaxrsasize [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.tlsmaxrsasize"
 
-axiom tlsmaxrsasize.init [GooseExts] [GoGlobalContext] : val
+opaque tlsmaxrsasize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errClientKeyExchange [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.errClientKeyExchange"
 
-axiom errClientKeyExchange.init [GooseExts] [GoGlobalContext] : val
+opaque errClientKeyExchange.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errServerKeyExchange [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.errServerKeyExchange"
 
-axiom errServerKeyExchange.init [GooseExts] [GoGlobalContext] : val
+opaque errServerKeyExchange.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def verifyHandshakeSignature [GooseExts] [GoGlobalContext] : GoString :=
   go!"crypto/tls.verifyHandshakeSignature"
@@ -1625,7 +1625,7 @@ noncomputable def parsePrivateKey [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.crypto.tls where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1809,8 +1809,10 @@ attribute [instance] alert.TypeAssumptions.underlying
   alert.TypeAssumptions.method_set
   alert.TypeAssumptions.ptr_method_set
 
-axiom weakCertCache : Type
-axiom weakCertCache.zero_val : ZeroVal weakCertCache
+opaque weakCertCache.nonempty_type : NonemptyType.{0}
+def weakCertCache : Type := weakCertCache.nonempty_type.type
+instance weakCertCache.nonempty : Nonempty weakCertCache := weakCertCache.nonempty_type.property
+opaque weakCertCache.zero_val : ZeroVal weakCertCache := ⟨Classical.ofNonempty⟩
 attribute [instance] weakCertCache.zero_val
 
 class weakCertCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1879,8 +1881,10 @@ attribute [instance] CipherSuite.TypeAssumptions.type_repr
   CipherSuite.TypeAssumptions.method_set
   CipherSuite.TypeAssumptions.ptr_method_set
 
-axiom cipherSuite : Type
-axiom cipherSuite.zero_val : ZeroVal cipherSuite
+opaque cipherSuite.nonempty_type : NonemptyType.{0}
+def cipherSuite : Type := cipherSuite.nonempty_type.type
+instance cipherSuite.nonempty : Nonempty cipherSuite := cipherSuite.nonempty_type.property
+opaque cipherSuite.zero_val : ZeroVal cipherSuite := ⟨Classical.ofNonempty⟩
 attribute [instance] cipherSuite.zero_val
 
 class cipherSuite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1896,8 +1900,10 @@ attribute [instance] cipherSuite.TypeAssumptions.type_repr
   cipherSuite.TypeAssumptions.method_set
   cipherSuite.TypeAssumptions.ptr_method_set
 
-axiom cipherSuiteTLS13 : Type
-axiom cipherSuiteTLS13.zero_val : ZeroVal cipherSuiteTLS13
+opaque cipherSuiteTLS13.nonempty_type : NonemptyType.{0}
+def cipherSuiteTLS13 : Type := cipherSuiteTLS13.nonempty_type.type
+instance cipherSuiteTLS13.nonempty : Nonempty cipherSuiteTLS13 := cipherSuiteTLS13.nonempty_type.property
+opaque cipherSuiteTLS13.zero_val : ZeroVal cipherSuiteTLS13 := ⟨Classical.ofNonempty⟩
 attribute [instance] cipherSuiteTLS13.zero_val
 
 class cipherSuiteTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1913,8 +1919,10 @@ attribute [instance] cipherSuiteTLS13.TypeAssumptions.type_repr
   cipherSuiteTLS13.TypeAssumptions.method_set
   cipherSuiteTLS13.TypeAssumptions.ptr_method_set
 
-axiom aead : Type
-axiom aead.zero_val : ZeroVal aead
+opaque aead.nonempty_type : NonemptyType.{0}
+def aead : Type := aead.nonempty_type.type
+instance aead.nonempty : Nonempty aead := aead.nonempty_type.property
+opaque aead.zero_val : ZeroVal aead := ⟨Classical.ofNonempty⟩
 attribute [instance] aead.zero_val
 
 class aead.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1930,8 +1938,10 @@ attribute [instance] aead.TypeAssumptions.type_repr
   aead.TypeAssumptions.method_set
   aead.TypeAssumptions.ptr_method_set
 
-axiom prefixNonceAEAD : Type
-axiom prefixNonceAEAD.zero_val : ZeroVal prefixNonceAEAD
+opaque prefixNonceAEAD.nonempty_type : NonemptyType.{0}
+def prefixNonceAEAD : Type := prefixNonceAEAD.nonempty_type.type
+instance prefixNonceAEAD.nonempty : Nonempty prefixNonceAEAD := prefixNonceAEAD.nonempty_type.property
+opaque prefixNonceAEAD.zero_val : ZeroVal prefixNonceAEAD := ⟨Classical.ofNonempty⟩
 attribute [instance] prefixNonceAEAD.zero_val
 
 class prefixNonceAEAD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1947,8 +1957,10 @@ attribute [instance] prefixNonceAEAD.TypeAssumptions.type_repr
   prefixNonceAEAD.TypeAssumptions.method_set
   prefixNonceAEAD.TypeAssumptions.ptr_method_set
 
-axiom xorNonceAEAD : Type
-axiom xorNonceAEAD.zero_val : ZeroVal xorNonceAEAD
+opaque xorNonceAEAD.nonempty_type : NonemptyType.{0}
+def xorNonceAEAD : Type := xorNonceAEAD.nonempty_type.type
+instance xorNonceAEAD.nonempty : Nonempty xorNonceAEAD := xorNonceAEAD.nonempty_type.property
+opaque xorNonceAEAD.zero_val : ZeroVal xorNonceAEAD := ⟨Classical.ofNonempty⟩
 attribute [instance] xorNonceAEAD.zero_val
 
 class xorNonceAEAD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1964,8 +1976,10 @@ attribute [instance] xorNonceAEAD.TypeAssumptions.type_repr
   xorNonceAEAD.TypeAssumptions.method_set
   xorNonceAEAD.TypeAssumptions.ptr_method_set
 
-axiom constantTimeHash : Type
-axiom constantTimeHash.zero_val : ZeroVal constantTimeHash
+opaque constantTimeHash.nonempty_type : NonemptyType.{0}
+def constantTimeHash : Type := constantTimeHash.nonempty_type.type
+instance constantTimeHash.nonempty : Nonempty constantTimeHash := constantTimeHash.nonempty_type.property
+opaque constantTimeHash.zero_val : ZeroVal constantTimeHash := ⟨Classical.ofNonempty⟩
 attribute [instance] constantTimeHash.zero_val
 
 class constantTimeHash.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2126,8 +2140,10 @@ attribute [instance] pskIdentity.TypeAssumptions.type_repr
   pskIdentity.TypeAssumptions.method_set
   pskIdentity.TypeAssumptions.ptr_method_set
 
-axiom ConnectionState : Type
-axiom ConnectionState.zero_val : ZeroVal ConnectionState
+opaque ConnectionState.nonempty_type : NonemptyType.{0}
+def ConnectionState : Type := ConnectionState.nonempty_type.type
+instance ConnectionState.nonempty : Nonempty ConnectionState := ConnectionState.nonempty_type.property
+opaque ConnectionState.zero_val : ZeroVal ConnectionState := ⟨Classical.ofNonempty⟩
 attribute [instance] ConnectionState.zero_val
 
 class ConnectionState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2185,8 +2201,10 @@ attribute [instance] SignatureScheme.TypeAssumptions.underlying
   SignatureScheme.TypeAssumptions.method_set
   SignatureScheme.TypeAssumptions.ptr_method_set
 
-axiom ClientHelloInfo : Type
-axiom ClientHelloInfo.zero_val : ZeroVal ClientHelloInfo
+opaque ClientHelloInfo.nonempty_type : NonemptyType.{0}
+def ClientHelloInfo : Type := ClientHelloInfo.nonempty_type.type
+instance ClientHelloInfo.nonempty : Nonempty ClientHelloInfo := ClientHelloInfo.nonempty_type.property
+opaque ClientHelloInfo.zero_val : ZeroVal ClientHelloInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] ClientHelloInfo.zero_val
 
 class ClientHelloInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2202,8 +2220,10 @@ attribute [instance] ClientHelloInfo.TypeAssumptions.type_repr
   ClientHelloInfo.TypeAssumptions.method_set
   ClientHelloInfo.TypeAssumptions.ptr_method_set
 
-axiom CertificateRequestInfo : Type
-axiom CertificateRequestInfo.zero_val : ZeroVal CertificateRequestInfo
+opaque CertificateRequestInfo.nonempty_type : NonemptyType.{0}
+def CertificateRequestInfo : Type := CertificateRequestInfo.nonempty_type.type
+instance CertificateRequestInfo.nonempty : Nonempty CertificateRequestInfo := CertificateRequestInfo.nonempty_type.property
+opaque CertificateRequestInfo.zero_val : ZeroVal CertificateRequestInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificateRequestInfo.zero_val
 
 class CertificateRequestInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2233,8 +2253,10 @@ attribute [instance] RenegotiationSupport.TypeAssumptions.underlying
   RenegotiationSupport.TypeAssumptions.method_set
   RenegotiationSupport.TypeAssumptions.ptr_method_set
 
-axiom Config : Type
-axiom Config.zero_val : ZeroVal Config
+opaque Config.nonempty_type : NonemptyType.{0}
+def Config : Type := Config.nonempty_type.type
+instance Config.nonempty : Nonempty Config := Config.nonempty_type.property
+opaque Config.zero_val : ZeroVal Config := ⟨Classical.ofNonempty⟩
 attribute [instance] Config.zero_val
 
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2297,8 +2319,10 @@ attribute [instance] EncryptedClientHelloKey.TypeAssumptions.type_repr
   EncryptedClientHelloKey.TypeAssumptions.method_set
   EncryptedClientHelloKey.TypeAssumptions.ptr_method_set
 
-axiom ticketKey : Type
-axiom ticketKey.zero_val : ZeroVal ticketKey
+opaque ticketKey.nonempty_type : NonemptyType.{0}
+def ticketKey : Type := ticketKey.nonempty_type.type
+instance ticketKey.nonempty : Nonempty ticketKey := ticketKey.nonempty_type.property
+opaque ticketKey.zero_val : ZeroVal ticketKey := ⟨Classical.ofNonempty⟩
 attribute [instance] ticketKey.zero_val
 
 class ticketKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2314,8 +2338,10 @@ attribute [instance] ticketKey.TypeAssumptions.type_repr
   ticketKey.TypeAssumptions.method_set
   ticketKey.TypeAssumptions.ptr_method_set
 
-axiom Certificate : Type
-axiom Certificate.zero_val : ZeroVal Certificate
+opaque Certificate.nonempty_type : NonemptyType.{0}
+def Certificate : Type := Certificate.nonempty_type.type
+instance Certificate.nonempty : Nonempty Certificate := Certificate.nonempty_type.property
+opaque Certificate.zero_val : ZeroVal Certificate := ⟨Classical.ofNonempty⟩
 attribute [instance] Certificate.zero_val
 
 class Certificate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2359,8 +2385,10 @@ attribute [instance] handshakeMessageWithOriginalBytes.TypeAssumptions.underlyin
   handshakeMessageWithOriginalBytes.TypeAssumptions.method_set
   handshakeMessageWithOriginalBytes.TypeAssumptions.ptr_method_set
 
-axiom lruSessionCache : Type
-axiom lruSessionCache.zero_val : ZeroVal lruSessionCache
+opaque lruSessionCache.nonempty_type : NonemptyType.{0}
+def lruSessionCache : Type := lruSessionCache.nonempty_type.type
+instance lruSessionCache.nonempty : Nonempty lruSessionCache := lruSessionCache.nonempty_type.property
+opaque lruSessionCache.zero_val : ZeroVal lruSessionCache := ⟨Classical.ofNonempty⟩
 attribute [instance] lruSessionCache.zero_val
 
 class lruSessionCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2417,8 +2445,10 @@ attribute [instance] lruSessionCacheEntry.TypeAssumptions.type_repr
   lruSessionCacheEntry.TypeAssumptions.method_set
   lruSessionCacheEntry.TypeAssumptions.ptr_method_set
 
-axiom CertificateVerificationError : Type
-axiom CertificateVerificationError.zero_val : ZeroVal CertificateVerificationError
+opaque CertificateVerificationError.nonempty_type : NonemptyType.{0}
+def CertificateVerificationError : Type := CertificateVerificationError.nonempty_type.type
+instance CertificateVerificationError.nonempty : Nonempty CertificateVerificationError := CertificateVerificationError.nonempty_type.property
+opaque CertificateVerificationError.zero_val : ZeroVal CertificateVerificationError := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificateVerificationError.zero_val
 
 class CertificateVerificationError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2434,8 +2464,10 @@ attribute [instance] CertificateVerificationError.TypeAssumptions.type_repr
   CertificateVerificationError.TypeAssumptions.method_set
   CertificateVerificationError.TypeAssumptions.ptr_method_set
 
-axiom Conn : Type
-axiom Conn.zero_val : ZeroVal Conn
+opaque Conn.nonempty_type : NonemptyType.{0}
+def Conn : Type := Conn.nonempty_type.type
+instance Conn.nonempty : Nonempty Conn := Conn.nonempty_type.property
+opaque Conn.zero_val : ZeroVal Conn := ⟨Classical.ofNonempty⟩
 attribute [instance] Conn.zero_val
 
 class Conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2451,8 +2483,10 @@ attribute [instance] Conn.TypeAssumptions.type_repr
   Conn.TypeAssumptions.method_set
   Conn.TypeAssumptions.ptr_method_set
 
-axiom halfConn : Type
-axiom halfConn.zero_val : ZeroVal halfConn
+opaque halfConn.nonempty_type : NonemptyType.{0}
+def halfConn : Type := halfConn.nonempty_type.type
+instance halfConn.nonempty : Nonempty halfConn := halfConn.nonempty_type.property
+opaque halfConn.zero_val : ZeroVal halfConn := ⟨Classical.ofNonempty⟩
 attribute [instance] halfConn.zero_val
 
 class halfConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2468,8 +2502,10 @@ attribute [instance] halfConn.TypeAssumptions.type_repr
   halfConn.TypeAssumptions.method_set
   halfConn.TypeAssumptions.ptr_method_set
 
-axiom permanentError : Type
-axiom permanentError.zero_val : ZeroVal permanentError
+opaque permanentError.nonempty_type : NonemptyType.{0}
+def permanentError : Type := permanentError.nonempty_type.type
+instance permanentError.nonempty : Nonempty permanentError := permanentError.nonempty_type.property
+opaque permanentError.zero_val : ZeroVal permanentError := ⟨Classical.ofNonempty⟩
 attribute [instance] permanentError.zero_val
 
 class permanentError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2485,8 +2521,10 @@ attribute [instance] permanentError.TypeAssumptions.type_repr
   permanentError.TypeAssumptions.method_set
   permanentError.TypeAssumptions.ptr_method_set
 
-axiom cbcMode : Type
-axiom cbcMode.zero_val : ZeroVal cbcMode
+opaque cbcMode.nonempty_type : NonemptyType.{0}
+def cbcMode : Type := cbcMode.nonempty_type.type
+instance cbcMode.nonempty : Nonempty cbcMode := cbcMode.nonempty_type.property
+opaque cbcMode.zero_val : ZeroVal cbcMode := ⟨Classical.ofNonempty⟩
 attribute [instance] cbcMode.zero_val
 
 class cbcMode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2502,8 +2540,10 @@ attribute [instance] cbcMode.TypeAssumptions.type_repr
   cbcMode.TypeAssumptions.method_set
   cbcMode.TypeAssumptions.ptr_method_set
 
-axiom RecordHeaderError : Type
-axiom RecordHeaderError.zero_val : ZeroVal RecordHeaderError
+opaque RecordHeaderError.nonempty_type : NonemptyType.{0}
+def RecordHeaderError : Type := RecordHeaderError.nonempty_type.type
+instance RecordHeaderError.nonempty : Nonempty RecordHeaderError := RecordHeaderError.nonempty_type.property
+opaque RecordHeaderError.zero_val : ZeroVal RecordHeaderError := ⟨Classical.ofNonempty⟩
 attribute [instance] RecordHeaderError.zero_val
 
 class RecordHeaderError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2815,8 +2855,10 @@ attribute [instance] echExtType.TypeAssumptions.underlying
   echExtType.TypeAssumptions.method_set
   echExtType.TypeAssumptions.ptr_method_set
 
-axiom clientHandshakeState : Type
-axiom clientHandshakeState.zero_val : ZeroVal clientHandshakeState
+opaque clientHandshakeState.nonempty_type : NonemptyType.{0}
+def clientHandshakeState : Type := clientHandshakeState.nonempty_type.type
+instance clientHandshakeState.nonempty : Nonempty clientHandshakeState := clientHandshakeState.nonempty_type.property
+opaque clientHandshakeState.zero_val : ZeroVal clientHandshakeState := ⟨Classical.ofNonempty⟩
 attribute [instance] clientHandshakeState.zero_val
 
 class clientHandshakeState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2832,8 +2874,10 @@ attribute [instance] clientHandshakeState.TypeAssumptions.type_repr
   clientHandshakeState.TypeAssumptions.method_set
   clientHandshakeState.TypeAssumptions.ptr_method_set
 
-axiom echClientContext : Type
-axiom echClientContext.zero_val : ZeroVal echClientContext
+opaque echClientContext.nonempty_type : NonemptyType.{0}
+def echClientContext : Type := echClientContext.nonempty_type.type
+instance echClientContext.nonempty : Nonempty echClientContext := echClientContext.nonempty_type.property
+opaque echClientContext.zero_val : ZeroVal echClientContext := ⟨Classical.ofNonempty⟩
 attribute [instance] echClientContext.zero_val
 
 class echClientContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2849,8 +2893,10 @@ attribute [instance] echClientContext.TypeAssumptions.type_repr
   echClientContext.TypeAssumptions.method_set
   echClientContext.TypeAssumptions.ptr_method_set
 
-axiom clientHandshakeStateTLS13 : Type
-axiom clientHandshakeStateTLS13.zero_val : ZeroVal clientHandshakeStateTLS13
+opaque clientHandshakeStateTLS13.nonempty_type : NonemptyType.{0}
+def clientHandshakeStateTLS13 : Type := clientHandshakeStateTLS13.nonempty_type.type
+instance clientHandshakeStateTLS13.nonempty : Nonempty clientHandshakeStateTLS13 := clientHandshakeStateTLS13.nonempty_type.property
+opaque clientHandshakeStateTLS13.zero_val : ZeroVal clientHandshakeStateTLS13 := ⟨Classical.ofNonempty⟩
 attribute [instance] clientHandshakeStateTLS13.zero_val
 
 class clientHandshakeStateTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2866,8 +2912,10 @@ attribute [instance] clientHandshakeStateTLS13.TypeAssumptions.type_repr
   clientHandshakeStateTLS13.TypeAssumptions.method_set
   clientHandshakeStateTLS13.TypeAssumptions.ptr_method_set
 
-axiom marshalingFunction : Type
-axiom marshalingFunction.zero_val : ZeroVal marshalingFunction
+opaque marshalingFunction.nonempty_type : NonemptyType.{0}
+def marshalingFunction : Type := marshalingFunction.nonempty_type.type
+instance marshalingFunction.nonempty : Nonempty marshalingFunction := marshalingFunction.nonempty_type.property
+opaque marshalingFunction.zero_val : ZeroVal marshalingFunction := ⟨Classical.ofNonempty⟩
 attribute [instance] marshalingFunction.zero_val
 
 class marshalingFunction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3920,8 +3968,10 @@ attribute [instance] transcriptHash.TypeAssumptions.underlying
   transcriptHash.TypeAssumptions.method_set
   transcriptHash.TypeAssumptions.ptr_method_set
 
-axiom serverHandshakeState : Type
-axiom serverHandshakeState.zero_val : ZeroVal serverHandshakeState
+opaque serverHandshakeState.nonempty_type : NonemptyType.{0}
+def serverHandshakeState : Type := serverHandshakeState.nonempty_type.type
+instance serverHandshakeState.nonempty : Nonempty serverHandshakeState := serverHandshakeState.nonempty_type.property
+opaque serverHandshakeState.zero_val : ZeroVal serverHandshakeState := ⟨Classical.ofNonempty⟩
 attribute [instance] serverHandshakeState.zero_val
 
 class serverHandshakeState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3937,8 +3987,10 @@ attribute [instance] serverHandshakeState.TypeAssumptions.type_repr
   serverHandshakeState.TypeAssumptions.method_set
   serverHandshakeState.TypeAssumptions.ptr_method_set
 
-axiom echServerContext : Type
-axiom echServerContext.zero_val : ZeroVal echServerContext
+opaque echServerContext.nonempty_type : NonemptyType.{0}
+def echServerContext : Type := echServerContext.nonempty_type.type
+instance echServerContext.nonempty : Nonempty echServerContext := echServerContext.nonempty_type.property
+opaque echServerContext.zero_val : ZeroVal echServerContext := ⟨Classical.ofNonempty⟩
 attribute [instance] echServerContext.zero_val
 
 class echServerContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3954,8 +4006,10 @@ attribute [instance] echServerContext.TypeAssumptions.type_repr
   echServerContext.TypeAssumptions.method_set
   echServerContext.TypeAssumptions.ptr_method_set
 
-axiom serverHandshakeStateTLS13 : Type
-axiom serverHandshakeStateTLS13.zero_val : ZeroVal serverHandshakeStateTLS13
+opaque serverHandshakeStateTLS13.nonempty_type : NonemptyType.{0}
+def serverHandshakeStateTLS13 : Type := serverHandshakeStateTLS13.nonempty_type.type
+instance serverHandshakeStateTLS13.nonempty : Nonempty serverHandshakeStateTLS13 := serverHandshakeStateTLS13.nonempty_type.property
+opaque serverHandshakeStateTLS13.zero_val : ZeroVal serverHandshakeStateTLS13 := ⟨Classical.ofNonempty⟩
 attribute [instance] serverHandshakeStateTLS13.zero_val
 
 class serverHandshakeStateTLS13.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3971,8 +4025,10 @@ attribute [instance] serverHandshakeStateTLS13.TypeAssumptions.type_repr
   serverHandshakeStateTLS13.TypeAssumptions.method_set
   serverHandshakeStateTLS13.TypeAssumptions.ptr_method_set
 
-axiom keyAgreement : Type
-axiom keyAgreement.zero_val : ZeroVal keyAgreement
+opaque keyAgreement.nonempty_type : NonemptyType.{0}
+def keyAgreement : Type := keyAgreement.nonempty_type.type
+instance keyAgreement.nonempty : Nonempty keyAgreement := keyAgreement.nonempty_type.property
+opaque keyAgreement.zero_val : ZeroVal keyAgreement := ⟨Classical.ofNonempty⟩
 attribute [instance] keyAgreement.zero_val
 
 class keyAgreement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4018,8 +4074,10 @@ attribute [instance] rsaKeyAgreement.TypeAssumptions.type_repr
   rsaKeyAgreement.TypeAssumptions.method_set
   rsaKeyAgreement.TypeAssumptions.ptr_method_set
 
-axiom ecdheKeyAgreement : Type
-axiom ecdheKeyAgreement.zero_val : ZeroVal ecdheKeyAgreement
+opaque ecdheKeyAgreement.nonempty_type : NonemptyType.{0}
+def ecdheKeyAgreement : Type := ecdheKeyAgreement.nonempty_type.type
+instance ecdheKeyAgreement.nonempty : Nonempty ecdheKeyAgreement := ecdheKeyAgreement.nonempty_type.property
+opaque ecdheKeyAgreement.zero_val : ZeroVal ecdheKeyAgreement := ⟨Classical.ofNonempty⟩
 attribute [instance] ecdheKeyAgreement.zero_val
 
 class ecdheKeyAgreement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4035,8 +4093,10 @@ attribute [instance] ecdheKeyAgreement.TypeAssumptions.type_repr
   ecdheKeyAgreement.TypeAssumptions.method_set
   ecdheKeyAgreement.TypeAssumptions.ptr_method_set
 
-axiom keySharePrivateKeys : Type
-axiom keySharePrivateKeys.zero_val : ZeroVal keySharePrivateKeys
+opaque keySharePrivateKeys.nonempty_type : NonemptyType.{0}
+def keySharePrivateKeys : Type := keySharePrivateKeys.nonempty_type.type
+instance keySharePrivateKeys.nonempty : Nonempty keySharePrivateKeys := keySharePrivateKeys.nonempty_type.property
+opaque keySharePrivateKeys.zero_val : ZeroVal keySharePrivateKeys := ⟨Classical.ofNonempty⟩
 attribute [instance] keySharePrivateKeys.zero_val
 
 class keySharePrivateKeys.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4052,8 +4112,10 @@ attribute [instance] keySharePrivateKeys.TypeAssumptions.type_repr
   keySharePrivateKeys.TypeAssumptions.method_set
   keySharePrivateKeys.TypeAssumptions.ptr_method_set
 
-axiom keyExchange : Type
-axiom keyExchange.zero_val : ZeroVal keyExchange
+opaque keyExchange.nonempty_type : NonemptyType.{0}
+def keyExchange : Type := keyExchange.nonempty_type.type
+instance keyExchange.nonempty : Nonempty keyExchange := keyExchange.nonempty_type.property
+opaque keyExchange.zero_val : ZeroVal keyExchange := ⟨Classical.ofNonempty⟩
 attribute [instance] keyExchange.zero_val
 
 class keyExchange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4099,8 +4161,10 @@ attribute [instance] mlkem1024KeyExchange.TypeAssumptions.type_repr
   mlkem1024KeyExchange.TypeAssumptions.method_set
   mlkem1024KeyExchange.TypeAssumptions.ptr_method_set
 
-axiom ecdhKeyExchange : Type
-axiom ecdhKeyExchange.zero_val : ZeroVal ecdhKeyExchange
+opaque ecdhKeyExchange.nonempty_type : NonemptyType.{0}
+def ecdhKeyExchange : Type := ecdhKeyExchange.nonempty_type.type
+instance ecdhKeyExchange.nonempty : Nonempty ecdhKeyExchange := ecdhKeyExchange.nonempty_type.property
+opaque ecdhKeyExchange.zero_val : ZeroVal ecdhKeyExchange := ⟨Classical.ofNonempty⟩
 attribute [instance] ecdhKeyExchange.zero_val
 
 class ecdhKeyExchange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4116,8 +4180,10 @@ attribute [instance] ecdhKeyExchange.TypeAssumptions.type_repr
   ecdhKeyExchange.TypeAssumptions.method_set
   ecdhKeyExchange.TypeAssumptions.ptr_method_set
 
-axiom hybridKeyExchange : Type
-axiom hybridKeyExchange.zero_val : ZeroVal hybridKeyExchange
+opaque hybridKeyExchange.nonempty_type : NonemptyType.{0}
+def hybridKeyExchange : Type := hybridKeyExchange.nonempty_type.type
+instance hybridKeyExchange.nonempty : Nonempty hybridKeyExchange := hybridKeyExchange.nonempty_type.property
+opaque hybridKeyExchange.zero_val : ZeroVal hybridKeyExchange := ⟨Classical.ofNonempty⟩
 attribute [instance] hybridKeyExchange.zero_val
 
 class hybridKeyExchange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4147,8 +4213,10 @@ attribute [instance] prfFunc.TypeAssumptions.underlying
   prfFunc.TypeAssumptions.method_set
   prfFunc.TypeAssumptions.ptr_method_set
 
-axiom finishedHash : Type
-axiom finishedHash.zero_val : ZeroVal finishedHash
+opaque finishedHash.nonempty_type : NonemptyType.{0}
+def finishedHash : Type := finishedHash.nonempty_type.type
+instance finishedHash.nonempty : Nonempty finishedHash := finishedHash.nonempty_type.property
+opaque finishedHash.zero_val : ZeroVal finishedHash := ⟨Classical.ofNonempty⟩
 attribute [instance] finishedHash.zero_val
 
 class finishedHash.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4219,8 +4287,10 @@ attribute [instance] QUICConn.TypeAssumptions.type_repr
   QUICConn.TypeAssumptions.method_set
   QUICConn.TypeAssumptions.ptr_method_set
 
-axiom QUICConfig : Type
-axiom QUICConfig.zero_val : ZeroVal QUICConfig
+opaque QUICConfig.nonempty_type : NonemptyType.{0}
+def QUICConfig : Type := QUICConfig.nonempty_type.type
+instance QUICConfig.nonempty : Nonempty QUICConfig := QUICConfig.nonempty_type.property
+opaque QUICConfig.zero_val : ZeroVal QUICConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] QUICConfig.zero_val
 
 class QUICConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4315,8 +4385,10 @@ attribute [instance] QUICEvent.TypeAssumptions.type_repr
   QUICEvent.TypeAssumptions.method_set
   QUICEvent.TypeAssumptions.ptr_method_set
 
-axiom quicState : Type
-axiom quicState.zero_val : ZeroVal quicState
+opaque quicState.nonempty_type : NonemptyType.{0}
+def quicState : Type := quicState.nonempty_type.type
+instance quicState.nonempty : Nonempty quicState := quicState.nonempty_type.property
+opaque quicState.zero_val : ZeroVal quicState := ⟨Classical.ofNonempty⟩
 attribute [instance] quicState.zero_val
 
 class quicState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4373,8 +4445,10 @@ attribute [instance] QUICSessionTicketOptions.TypeAssumptions.type_repr
   QUICSessionTicketOptions.TypeAssumptions.method_set
   QUICSessionTicketOptions.TypeAssumptions.ptr_method_set
 
-axiom SessionState : Type
-axiom SessionState.zero_val : ZeroVal SessionState
+opaque SessionState.nonempty_type : NonemptyType.{0}
+def SessionState : Type := SessionState.nonempty_type.type
+instance SessionState.nonempty : Nonempty SessionState := SessionState.nonempty_type.property
+opaque SessionState.zero_val : ZeroVal SessionState := ⟨Classical.ofNonempty⟩
 attribute [instance] SessionState.zero_val
 
 class SessionState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4425,8 +4499,10 @@ attribute [instance] ClientSessionState.TypeAssumptions.type_repr
   ClientSessionState.TypeAssumptions.method_set
   ClientSessionState.TypeAssumptions.ptr_method_set
 
-axiom listener : Type
-axiom listener.zero_val : ZeroVal listener
+opaque listener.nonempty_type : NonemptyType.{0}
+def listener : Type := listener.nonempty_type.type
+instance listener.nonempty : Nonempty listener := listener.nonempty_type.property
+opaque listener.zero_val : ZeroVal listener := ⟨Classical.ofNonempty⟩
 attribute [instance] listener.zero_val
 
 class listener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4472,8 +4548,10 @@ attribute [instance] timeoutError.TypeAssumptions.type_repr
   timeoutError.TypeAssumptions.method_set
   timeoutError.TypeAssumptions.ptr_method_set
 
-axiom Dialer : Type
-axiom Dialer.zero_val : ZeroVal Dialer
+opaque Dialer.nonempty_type : NonemptyType.{0}
+def Dialer : Type := Dialer.nonempty_type.type
+instance Dialer.nonempty : Nonempty Dialer := Dialer.nonempty_type.property
+opaque Dialer.zero_val : ZeroVal Dialer := ⟨Classical.ofNonempty⟩
 attribute [instance] Dialer.zero_val
 
 class Dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

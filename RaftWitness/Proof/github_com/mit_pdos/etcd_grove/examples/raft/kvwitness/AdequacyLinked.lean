@@ -48,7 +48,7 @@ theorem kv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kv_adequate_of kv_wp_Main_kvGF σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 /-- `MainWitness`'s linked result at `kvGF`. -/
@@ -71,7 +71,7 @@ theorem raft_kvwitness_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvProgramWitness], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kv_witness_adequate_of kv_wp_MainWitness_kvGF σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end adequacy

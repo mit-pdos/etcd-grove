@@ -25,31 +25,31 @@ noncomputable def leaseHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] leaseHandler.ty
 
-axiom leaseHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque leaseHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom maxLeaseHTTPRequestSize [GooseExts] [GoGlobalContext] : val
+opaque maxLeaseHTTPRequestSize [GooseExts] [GoGlobalContext] : val
 
-axiom maxLeaseHTTPResponseSize [GooseExts] [GoGlobalContext] : val
+opaque maxLeaseHTTPResponseSize [GooseExts] [GoGlobalContext] : val
 
 noncomputable def LeasePrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasehttp.LeasePrefix"
 
-axiom LeasePrefix.init [GooseExts] [GoGlobalContext] : val
+opaque LeasePrefix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def LeaseInternalPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasehttp.LeaseInternalPrefix"
 
-axiom LeaseInternalPrefix.init [GooseExts] [GoGlobalContext] : val
+opaque LeaseInternalPrefix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def applyTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasehttp.applyTimeout"
 
-axiom applyTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque applyTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaseHTTPTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasehttp.ErrLeaseHTTPTimeout"
 
-axiom ErrLeaseHTTPTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLeaseHTTPTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasehttp.NewHandler"
@@ -66,7 +66,7 @@ noncomputable def readResponse [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -84,8 +84,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val LeasePrefix.init) (Val #()))))))))
 
-axiom leaseHandler : Type
-axiom leaseHandler.zero_val : ZeroVal leaseHandler
+opaque leaseHandler.nonempty_type : NonemptyType.{0}
+def leaseHandler : Type := leaseHandler.nonempty_type.type
+instance leaseHandler.nonempty : Nonempty leaseHandler := leaseHandler.nonempty_type.property
+opaque leaseHandler.zero_val : ZeroVal leaseHandler := ⟨Classical.ofNonempty⟩
 attribute [instance] leaseHandler.zero_val
 
 class leaseHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

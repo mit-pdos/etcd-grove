@@ -12,6 +12,7 @@ public import Perennial.Spec.sync.Mutex__Lock
 public import Perennial.Spec.sync.Mutex__Unlock
 public import Perennial.Proof.sync.Link
 import all Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

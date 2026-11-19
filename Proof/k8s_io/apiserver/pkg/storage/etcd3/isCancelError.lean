@@ -4,6 +4,7 @@ Proof of `Spec/k8s_io/apiserver/pkg/storage/etcd3/isCancelError.lean`. Lean-firs
 module
 
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.isCancelError
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

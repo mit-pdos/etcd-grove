@@ -245,33 +245,33 @@ noncomputable def watchCacheIntervalBuffer.ty [GooseExts] [GoGlobalContext] : go
 
 attribute [irreducible] watchCacheIntervalBuffer.ty
 
-axiom cacheWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cacheWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Cacher.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Cacher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom watchCacheEvent.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque watchCacheEvent.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cacheWatcherWaitingForBookmark [GooseExts] [GoGlobalContext] : val
+opaque cacheWatcherWaitingForBookmark [GooseExts] [GoGlobalContext] : val
 
-axiom cacheWatcherBookmarkReceived [GooseExts] [GoGlobalContext] : val
+opaque cacheWatcherBookmarkReceived [GooseExts] [GoGlobalContext] : val
 
-axiom cacheWatcherBookmarkSent [GooseExts] [GoGlobalContext] : val
+opaque cacheWatcherBookmarkSent [GooseExts] [GoGlobalContext] : val
 
-axiom storageWatchListPageSize [GooseExts] [GoGlobalContext] : val
+opaque storageWatchListPageSize [GooseExts] [GoGlobalContext] : val
 
-axiom defaultBookmarkFrequency [GooseExts] [GoGlobalContext] : val
+opaque defaultBookmarkFrequency [GooseExts] [GoGlobalContext] : val
 
-axiom compactorPollPeriod [GooseExts] [GoGlobalContext] : val
+opaque compactorPollPeriod [GooseExts] [GoGlobalContext] : val
 
-axiom Pending [GooseExts] [GoGlobalContext] : val
+opaque Pending [GooseExts] [GoGlobalContext] : val
 
-axiom Ready [GooseExts] [GoGlobalContext] : val
+opaque Ready [GooseExts] [GoGlobalContext] : val
 
-axiom Stopped [GooseExts] [GoGlobalContext] : val
+opaque Stopped [GooseExts] [GoGlobalContext] : val
 
-axiom refreshPerSecond [GooseExts] [GoGlobalContext] : val
+opaque refreshPerSecond [GooseExts] [GoGlobalContext] : val
 
-axiom maxBudget [GooseExts] [GoGlobalContext] : val
+opaque maxBudget [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def blockTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 3000000000)
@@ -279,34 +279,34 @@ axiom maxBudget [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def resourceVersionTooHighRetrySeconds [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-axiom defaultLowerBoundCapacity [GooseExts] [GoGlobalContext] : val
+opaque defaultLowerBoundCapacity [GooseExts] [GoGlobalContext] : val
 
-axiom defaultUpperBoundCapacity [GooseExts] [GoGlobalContext] : val
+opaque defaultUpperBoundCapacity [GooseExts] [GoGlobalContext] : val
 
-axiom minWatchChanSize [GooseExts] [GoGlobalContext] : val
+opaque minWatchChanSize [GooseExts] [GoGlobalContext] : val
 
-axiom maxWatchChanSizeWithIndexAndTrigger [GooseExts] [GoGlobalContext] : val
+opaque maxWatchChanSizeWithIndexAndTrigger [GooseExts] [GoGlobalContext] : val
 
-axiom maxWatchChanSizeWithIndexWithoutTrigger [GooseExts] [GoGlobalContext] : val
+opaque maxWatchChanSizeWithIndexWithoutTrigger [GooseExts] [GoGlobalContext] : val
 
-axiom maxWatchChanSizeWithoutIndex [GooseExts] [GoGlobalContext] : val
+opaque maxWatchChanSizeWithoutIndex [GooseExts] [GoGlobalContext] : val
 
-axiom bufferSize [GooseExts] [GoGlobalContext] : val
+opaque bufferSize [GooseExts] [GoGlobalContext] : val
 
 noncomputable def emptyFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.emptyFunc"
 
-axiom emptyFunc.init [GooseExts] [GoGlobalContext] : val
+opaque emptyFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def coreNamespaceResource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.coreNamespaceResource"
 
-axiom coreNamespaceResource.init [GooseExts] [GoGlobalContext] : val
+opaque coreNamespaceResource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultEventFreshDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.DefaultEventFreshDuration"
 
-axiom DefaultEventFreshDuration.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultEventFreshDuration.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def invalidationCacheTimestampLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.invalidationCacheTimestampLock"
@@ -1784,7 +1784,7 @@ noncomputable def watchCache.WaitUntilFreshAndGet.impl [GooseExts] [GoGlobalCont
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher where
   pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.util.flowcontrol, pkg_id.k8s_io.klog.v2, pkg_id.net.http, pkg_id.reflect, pkg_id.strings, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.google_golang_org.grpc.metadata, pkg_id.k8s_io.apimachinery.pkg.api.errors, pkg_id.k8s_io.apimachinery.pkg.api.«meta», pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.conversion, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.apiserver.pkg.audit, pkg_id.k8s_io.apiserver.pkg.endpoints.request, pkg_id.k8s_io.apiserver.pkg.features, pkg_id.k8s_io.apiserver.pkg.storage.cacher.delegator, pkg_id.k8s_io.apiserver.pkg.storage.cacher.key, pkg_id.k8s_io.apiserver.pkg.storage.cacher.progress, pkg_id.k8s_io.apiserver.pkg.storage.cacher.store, pkg_id.k8s_io.apiserver.pkg.storage.feature, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.k8s_io.client_go.tools.cache, pkg_id.k8s_io.component_base.tracing, pkg_id.bytes, pkg_id.io, pkg_id.sync.atomic, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency, pkg_id.k8s_io.client_go.util.consistencydetector, pkg_id.k8s_io.client_go.util.watchlist, pkg_id.math, pkg_id.sort, pkg_id.iter]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1940,8 +1940,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.iter.initialize') (Val #()))))))))
 
-axiom cacheWatcher : Type
-axiom cacheWatcher.zero_val : ZeroVal cacheWatcher
+opaque cacheWatcher.nonempty_type : NonemptyType.{0}
+def cacheWatcher : Type := cacheWatcher.nonempty_type.type
+instance cacheWatcher.nonempty : Nonempty cacheWatcher := cacheWatcher.nonempty_type.property
+opaque cacheWatcher.zero_val : ZeroVal cacheWatcher := ⟨Classical.ofNonempty⟩
 attribute [instance] cacheWatcher.zero_val
 
 class cacheWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2301,8 +2303,10 @@ attribute [instance] indexedTriggerFunc.TypeAssumptions.type_repr
   indexedTriggerFunc.TypeAssumptions.method_set
   indexedTriggerFunc.TypeAssumptions.ptr_method_set
 
-axiom Cacher : Type
-axiom Cacher.zero_val : ZeroVal Cacher
+opaque Cacher.nonempty_type : NonemptyType.{0}
+def Cacher : Type := Cacher.nonempty_type.type
+instance Cacher.nonempty : Nonempty Cacher := Cacher.nonempty_type.property
+opaque Cacher.zero_val : ZeroVal Cacher := ⟨Classical.ofNonempty⟩
 attribute [instance] Cacher.zero_val
 
 class Cacher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2965,8 +2969,10 @@ attribute [instance] timeBudgetImpl.TypeAssumptions.type_repr
   timeBudgetImpl.TypeAssumptions.method_set
   timeBudgetImpl.TypeAssumptions.ptr_method_set
 
-axiom watchCacheEvent : Type
-axiom watchCacheEvent.zero_val : ZeroVal watchCacheEvent
+opaque watchCacheEvent.nonempty_type : NonemptyType.{0}
+def watchCacheEvent : Type := watchCacheEvent.nonempty_type.type
+instance watchCacheEvent.nonempty : Nonempty watchCacheEvent := watchCacheEvent.nonempty_type.property
+opaque watchCacheEvent.zero_val : ZeroVal watchCacheEvent := ⟨Classical.ofNonempty⟩
 attribute [instance] watchCacheEvent.zero_val
 
 class watchCacheEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

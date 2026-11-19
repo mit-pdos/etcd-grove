@@ -1987,31 +1987,40 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
                 old[os.path.join(root, f)] = c
         newc = {f: c for f, (c, _) in new.items()}
         changed = sorted(f for f in newc.keys() | old.keys() if newc.get(f) != old.get(f))
-        if check:
-            if not changed:
-                print(f"goose.py: the translation of {proj.name} is up to date (Perennial "
-                      f"{perennial_rev}, {proj.name} {desc})")
-                return True
-            for f in changed:
-                sys.stdout.writelines(difflib.unified_diff(
-                    old.get(f, "").splitlines(keepends=True), newc.get(f, "").splitlines(keepends=True),
-                    "checked-in/" + f, "translator/" + f))
-            print(f"goose.py: {len(changed)} file(s) of the translation of {proj.name} differ from what Perennial "
-                  f"{perennial_rev} produces from {proj.name} {desc}; run etc/goose.py",
-                  file=sys.stderr)
-            return False
-        for f in changed:
-            dst = os.path.join(ROOT, f)
-            if f in new:
-                os.makedirs(os.path.dirname(dst), exist_ok=True)
-                shutil.copyfile(new[f][1], dst)
-            else:
-                os.remove(dst)
-        print(f"goose.py: {proj.name}: {len(changed)} file(s) updated (Perennial {perennial_rev}, "
-              f"{proj.name} {desc})")
-        return True
+        with PRINT_LOCK:
+            return _report(proj, new, newc, old, changed, perennial_rev, desc, check)
     finally:
         shutil.rmtree(out, ignore_errors=True)
+
+
+PRINT_LOCK = __import__("threading").Lock()
+
+
+def _report(proj, new, newc, old, changed, perennial_rev, desc, check):
+    """`translate`'s verdict on one project, printed under PRINT_LOCK (projects run at once)."""
+    if check:
+        if not changed:
+            print(f"goose.py: the translation of {proj.name} is up to date (Perennial "
+                  f"{perennial_rev}, {proj.name} {desc})")
+            return True
+        for f in changed:
+            sys.stdout.writelines(difflib.unified_diff(
+                old.get(f, "").splitlines(keepends=True), newc.get(f, "").splitlines(keepends=True),
+                "checked-in/" + f, "translator/" + f))
+        print(f"goose.py: {len(changed)} file(s) of the translation of {proj.name} differ from what Perennial "
+              f"{perennial_rev} produces from {proj.name} {desc}; run etc/goose.py",
+              file=sys.stderr)
+        return False
+    for f in changed:
+        dst = os.path.join(ROOT, f)
+        if f in new:
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(new[f][1], dst)
+        else:
+            os.remove(dst)
+    print(f"goose.py: {proj.name}: {len(changed)} file(s) updated (Perennial {perennial_rev}, "
+          f"{proj.name} {desc})")
+    return True
 
 
 def main():
@@ -2045,7 +2054,13 @@ def main():
     run(["go", "build", "-o", bindir + os.sep, "./goose/cmd/goose", "./goose/cmd/proofgen"],
         cwd=perennial, env=host_env())
 
-    ok =[translate(p, src, bindir, rev, desc, args.check) for p, src, desc in sources]
+    # the projects at once ($GOOSE_JOBS lanes, default 4): each translation is independent (its
+    # own output directory), and Goose loads and type-checks its Go packages on about five cores;
+    # one after another, the check took 2.5 minutes of the gates (2026-11-18)
+    import concurrent.futures
+    jobs = max(1, int(os.environ.get("GOOSE_JOBS") or 4))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
+        ok = list(ex.map(lambda a: translate(a[0], a[1], bindir, rev, a[2], args.check), sources))
     pin_errors = go_mod_pin_errors()
     for e in pin_errors:
         print("goose.py: " + e, file=sys.stderr)

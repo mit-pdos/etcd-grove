@@ -500,418 +500,418 @@ noncomputable def _Ctype_void.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] _Ctype_void.ty
 
-axiom ipAttr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ipAttr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom byRFC6724Info.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque byRFC6724Info.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom policyTableEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque policyTableEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom policyTable.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque policyTable.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom scope.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque scope.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom addrinfoErrno.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque addrinfoErrno.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom conf.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque conf.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mdnsTest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mdnsTest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mptcpStatusDial.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mptcpStatusDial.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mptcpStatusListen.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mptcpStatusListen.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sysDialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sysDialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ListenConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ListenConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sysListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sysListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SRV.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SRV.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom byPriorityWeight.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque byPriorityWeight.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MX.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MX.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom byPref.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque byPref.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NS.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NS.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resolverConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resolverConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom hostLookupOrder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque hostLookupOrder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom dnsConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque dnsConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom netFD.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque netFD.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fileAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque fileAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom byName.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque byName.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Flags.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Flags.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ipv6ZoneCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ipv6ZoneCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IP.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IP.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IPMask.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IPMask.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IPNet.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IPNet.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IPConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IPConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ipStackCapabilities.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ipStackCapabilities.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom addrList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque addrList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Resolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Resolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom onlyValuesCtx.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque onlyValuesCtx.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HardwareAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HardwareAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Conn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Conn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom conn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque conn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PacketConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PacketConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Error.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Error.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom canceledError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque canceledError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque OpError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timeout.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque timeout.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom temporary.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque temporary.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ParseError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ParseError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AddrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AddrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnknownNetworkError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnknownNetworkError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InvalidAddrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque InvalidAddrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timeoutError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque timeoutError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DNSConfigError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DNSConfigError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom notFoundError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque notFoundError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom temporaryError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque temporaryError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DNSError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DNSError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noReadFrom.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque noReadFrom.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tcpConnWithoutReadFrom.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque tcpConnWithoutReadFrom.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noWriteTo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque noWriteTo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tcpConnWithoutWriteTo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque tcpConnWithoutWriteTo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom buffersWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque buffersWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Buffers.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Buffers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom nsswitchConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque nsswitchConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom nssConf.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque nssConf.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom nssSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque nssSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom nssCriterion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque nssCriterion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom file.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque file.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pipeDeadline.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque pipeDeadline.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pipeAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque pipeAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pipe.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque pipe.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom rawConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque rawConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom rawListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque rawListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sockaddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sockaddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TCPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TCPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TCPConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TCPConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KeepAliveConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque KeepAliveConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TCPListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TCPListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UDPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UDPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom addrPortUDPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque addrPortUDPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UDPConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UDPConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnixAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnixAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnixConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnixConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnixListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnixListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom «_».underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque «_».underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype__GoString_.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype__GoString_.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype___socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype___socklen_t [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_char.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_char.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_int.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_int.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_intgo [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_intgo [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_long.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_long.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_ptrdiff_t [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_ptrdiff_t [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_sa_family_t [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_sa_family_t [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_size_t [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_size_t [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_socklen_t [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_struct_addrinfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_struct_addrinfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_struct_sockaddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_struct_sockaddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_uchar.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_uchar.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_uint.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_uint.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_ulong.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_ulong.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_ushort.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_ushort.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _Ctype_void.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque _Ctype_void.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _C_char [GooseExts] [GoGlobalContext] : go.GoType
+opaque _C_char [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _C_uchar [GooseExts] [GoGlobalContext] : go.GoType
+opaque _C_uchar [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _C_int [GooseExts] [GoGlobalContext] : go.GoType
+opaque _C_int [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _C_uint [GooseExts] [GoGlobalContext] : go.GoType
+opaque _C_uint [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _C_socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+opaque _C_socklen_t [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _C_struct_addrinfo [GooseExts] [GoGlobalContext] : go.GoType
+opaque _C_struct_addrinfo [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _C_struct_sockaddr [GooseExts] [GoGlobalContext] : go.GoType
+opaque _C_struct_sockaddr [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _C_struct___res_state [GooseExts] [GoGlobalContext] : go.GoType
+opaque _C_struct___res_state [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom scopeInterfaceLocal [GooseExts] [GoGlobalContext] : val
+opaque scopeInterfaceLocal [GooseExts] [GoGlobalContext] : val
 
-axiom scopeLinkLocal [GooseExts] [GoGlobalContext] : val
+opaque scopeLinkLocal [GooseExts] [GoGlobalContext] : val
 
-axiom scopeAdminLocal [GooseExts] [GoGlobalContext] : val
+opaque scopeAdminLocal [GooseExts] [GoGlobalContext] : val
 
-axiom scopeSiteLocal [GooseExts] [GoGlobalContext] : val
+opaque scopeSiteLocal [GooseExts] [GoGlobalContext] : val
 
-axiom scopeOrgLocal [GooseExts] [GoGlobalContext] : val
+opaque scopeOrgLocal [GooseExts] [GoGlobalContext] : val
 
-axiom scopeGlobal [GooseExts] [GoGlobalContext] : val
+opaque scopeGlobal [GooseExts] [GoGlobalContext] : val
 
-axiom cgoAvailable [GooseExts] [GoGlobalContext] : val
+opaque cgoAvailable [GooseExts] [GoGlobalContext] : val
 
-axiom nameinfoLen [GooseExts] [GoGlobalContext] : val
+opaque nameinfoLen [GooseExts] [GoGlobalContext] : val
 
-axiom maxNameinfoLen [GooseExts] [GoGlobalContext] : val
+opaque maxNameinfoLen [GooseExts] [GoGlobalContext] : val
 
-axiom mdnsFromSystem [GooseExts] [GoGlobalContext] : val
+opaque mdnsFromSystem [GooseExts] [GoGlobalContext] : val
 
-axiom mdnsAssumeExists [GooseExts] [GoGlobalContext] : val
+opaque mdnsAssumeExists [GooseExts] [GoGlobalContext] : val
 
-axiom mdnsAssumeDoesNotExist [GooseExts] [GoGlobalContext] : val
+opaque mdnsAssumeDoesNotExist [GooseExts] [GoGlobalContext] : val
 
-axiom defaultTCPKeepAliveIdle [GooseExts] [GoGlobalContext] : val
+opaque defaultTCPKeepAliveIdle [GooseExts] [GoGlobalContext] : val
 
-axiom defaultTCPKeepAliveInterval [GooseExts] [GoGlobalContext] : val
+opaque defaultTCPKeepAliveInterval [GooseExts] [GoGlobalContext] : val
 
-axiom defaultTCPKeepAliveCount [GooseExts] [GoGlobalContext] : val
+opaque defaultTCPKeepAliveCount [GooseExts] [GoGlobalContext] : val
 
-axiom defaultMPTCPEnabledListen [GooseExts] [GoGlobalContext] : val
+opaque defaultMPTCPEnabledListen [GooseExts] [GoGlobalContext] : val
 
-axiom defaultMPTCPEnabledDial [GooseExts] [GoGlobalContext] : val
+opaque defaultMPTCPEnabledDial [GooseExts] [GoGlobalContext] : val
 
-axiom mptcpUseDefaultDial [GooseExts] [GoGlobalContext] : val
+opaque mptcpUseDefaultDial [GooseExts] [GoGlobalContext] : val
 
-axiom mptcpEnabledDial [GooseExts] [GoGlobalContext] : val
+opaque mptcpEnabledDial [GooseExts] [GoGlobalContext] : val
 
-axiom mptcpDisabledDial [GooseExts] [GoGlobalContext] : val
+opaque mptcpDisabledDial [GooseExts] [GoGlobalContext] : val
 
-axiom mptcpUseDefaultListen [GooseExts] [GoGlobalContext] : val
+opaque mptcpUseDefaultListen [GooseExts] [GoGlobalContext] : val
 
-axiom mptcpEnabledListen [GooseExts] [GoGlobalContext] : val
+opaque mptcpEnabledListen [GooseExts] [GoGlobalContext] : val
 
-axiom mptcpDisabledListen [GooseExts] [GoGlobalContext] : val
+opaque mptcpDisabledListen [GooseExts] [GoGlobalContext] : val
 
-axiom useTCPOnly [GooseExts] [GoGlobalContext] : val
+opaque useTCPOnly [GooseExts] [GoGlobalContext] : val
 
-axiom useUDPOrTCP [GooseExts] [GoGlobalContext] : val
+opaque useUDPOrTCP [GooseExts] [GoGlobalContext] : val
 
-axiom maxDNSPacketSize [GooseExts] [GoGlobalContext] : val
+opaque maxDNSPacketSize [GooseExts] [GoGlobalContext] : val
 
-axiom hostLookupCgo [GooseExts] [GoGlobalContext] : val
+opaque hostLookupCgo [GooseExts] [GoGlobalContext] : val
 
-axiom hostLookupFilesDNS [GooseExts] [GoGlobalContext] : val
+opaque hostLookupFilesDNS [GooseExts] [GoGlobalContext] : val
 
-axiom hostLookupDNSFiles [GooseExts] [GoGlobalContext] : val
+opaque hostLookupDNSFiles [GooseExts] [GoGlobalContext] : val
 
-axiom hostLookupFiles [GooseExts] [GoGlobalContext] : val
+opaque hostLookupFiles [GooseExts] [GoGlobalContext] : val
 
-axiom hostLookupDNS [GooseExts] [GoGlobalContext] : val
+opaque hostLookupDNS [GooseExts] [GoGlobalContext] : val
 
-axiom readSyscallName [GooseExts] [GoGlobalContext] : val
+opaque readSyscallName [GooseExts] [GoGlobalContext] : val
 
-axiom readFromSyscallName [GooseExts] [GoGlobalContext] : val
+opaque readFromSyscallName [GooseExts] [GoGlobalContext] : val
 
-axiom readMsgSyscallName [GooseExts] [GoGlobalContext] : val
+opaque readMsgSyscallName [GooseExts] [GoGlobalContext] : val
 
-axiom writeSyscallName [GooseExts] [GoGlobalContext] : val
+opaque writeSyscallName [GooseExts] [GoGlobalContext] : val
 
-axiom writeToSyscallName [GooseExts] [GoGlobalContext] : val
+opaque writeToSyscallName [GooseExts] [GoGlobalContext] : val
 
-axiom writeMsgSyscallName [GooseExts] [GoGlobalContext] : val
+opaque writeMsgSyscallName [GooseExts] [GoGlobalContext] : val
 
-axiom _SO_TYPE [GooseExts] [GoGlobalContext] : val
+opaque _SO_TYPE [GooseExts] [GoGlobalContext] : val
 
-axiom cacheMaxAge [GooseExts] [GoGlobalContext] : val
+opaque cacheMaxAge [GooseExts] [GoGlobalContext] : val
 
-axiom FlagUp [GooseExts] [GoGlobalContext] : val
+opaque FlagUp [GooseExts] [GoGlobalContext] : val
 
-axiom FlagBroadcast [GooseExts] [GoGlobalContext] : val
+opaque FlagBroadcast [GooseExts] [GoGlobalContext] : val
 
-axiom FlagLoopback [GooseExts] [GoGlobalContext] : val
+opaque FlagLoopback [GooseExts] [GoGlobalContext] : val
 
-axiom FlagPointToPoint [GooseExts] [GoGlobalContext] : val
+opaque FlagPointToPoint [GooseExts] [GoGlobalContext] : val
 
-axiom FlagMulticast [GooseExts] [GoGlobalContext] : val
+opaque FlagMulticast [GooseExts] [GoGlobalContext] : val
 
-axiom FlagRunning [GooseExts] [GoGlobalContext] : val
+opaque FlagRunning [GooseExts] [GoGlobalContext] : val
 
-axiom sysARPHardwareIPv4IPv4 [GooseExts] [GoGlobalContext] : val
+opaque sysARPHardwareIPv4IPv4 [GooseExts] [GoGlobalContext] : val
 
-axiom sysARPHardwareIPv6IPv6 [GooseExts] [GoGlobalContext] : val
+opaque sysARPHardwareIPv6IPv6 [GooseExts] [GoGlobalContext] : val
 
-axiom sysARPHardwareIPv6IPv4 [GooseExts] [GoGlobalContext] : val
+opaque sysARPHardwareIPv6IPv4 [GooseExts] [GoGlobalContext] : val
 
-axiom sysARPHardwareGREIPv4 [GooseExts] [GoGlobalContext] : val
+opaque sysARPHardwareGREIPv4 [GooseExts] [GoGlobalContext] : val
 
-axiom sysARPHardwareGREIPv6 [GooseExts] [GoGlobalContext] : val
+opaque sysARPHardwareGREIPv6 [GooseExts] [GoGlobalContext] : val
 
-axiom IPv4len [GooseExts] [GoGlobalContext] : val
+opaque IPv4len [GooseExts] [GoGlobalContext] : val
 
-axiom IPv6len [GooseExts] [GoGlobalContext] : val
+opaque IPv6len [GooseExts] [GoGlobalContext] : val
 
-axiom maxProtoLength [GooseExts] [GoGlobalContext] : val
+opaque maxProtoLength [GooseExts] [GoGlobalContext] : val
 
-axiom maxPortBufSize [GooseExts] [GoGlobalContext] : val
+opaque maxPortBufSize [GooseExts] [GoGlobalContext] : val
 
-axiom hexDigit [GooseExts] [GoGlobalContext] : val
+opaque hexDigit [GooseExts] [GoGlobalContext] : val
 
-axiom _IPPROTO_MPTCP [GooseExts] [GoGlobalContext] : val
+opaque _IPPROTO_MPTCP [GooseExts] [GoGlobalContext] : val
 
-axiom _SOL_MPTCP [GooseExts] [GoGlobalContext] : val
+opaque _SOL_MPTCP [GooseExts] [GoGlobalContext] : val
 
-axiom _MPTCP_INFO [GooseExts] [GoGlobalContext] : val
+opaque _MPTCP_INFO [GooseExts] [GoGlobalContext] : val
 
-axiom netCgoBuildTag [GooseExts] [GoGlobalContext] : val
+opaque netCgoBuildTag [GooseExts] [GoGlobalContext] : val
 
-axiom netGoBuildTag [GooseExts] [GoGlobalContext] : val
+opaque netGoBuildTag [GooseExts] [GoGlobalContext] : val
 
-axiom nssConfigPath [GooseExts] [GoGlobalContext] : val
+opaque nssConfigPath [GooseExts] [GoGlobalContext] : val
 
-axiom big [GooseExts] [GoGlobalContext] : val
+opaque big [GooseExts] [GoGlobalContext] : val
 
-axiom readMsgFlags [GooseExts] [GoGlobalContext] : val
+opaque readMsgFlags [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_AF_INET [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_AF_INET [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_AF_INET6 [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_AF_INET6 [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_AF_UNSPEC [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_AF_UNSPEC [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_AI_ALL [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_AI_ALL [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_AI_CANONNAME [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_AI_CANONNAME [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_AI_V4MAPPED [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_AI_V4MAPPED [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_EAI_ADDRFAMILY [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_EAI_ADDRFAMILY [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_EAI_AGAIN [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_EAI_AGAIN [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_EAI_NODATA [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_EAI_NODATA [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_EAI_NONAME [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_EAI_NONAME [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_EAI_OVERFLOW [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_EAI_OVERFLOW [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_EAI_SERVICE [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_EAI_SERVICE [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_EAI_SYSTEM [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_EAI_SYSTEM [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_IPPROTO_TCP [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_IPPROTO_TCP [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_IPPROTO_UDP [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_IPPROTO_UDP [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_NI_NAMEREQD [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_NI_NAMEREQD [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_SOCK_DGRAM [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_SOCK_DGRAM [GooseExts] [GoGlobalContext] : val
 
-axiom _Ciconst_SOCK_STREAM [GooseExts] [GoGlobalContext] : val
+opaque _Ciconst_SOCK_STREAM [GooseExts] [GoGlobalContext] : val
 
-axiom cgoAddrInfoFlags [GooseExts] [GoGlobalContext] : val
+opaque cgoAddrInfoFlags [GooseExts] [GoGlobalContext] : val
 
-axiom _C_AF_INET [GooseExts] [GoGlobalContext] : val
+opaque _C_AF_INET [GooseExts] [GoGlobalContext] : val
 
-axiom _C_AF_INET6 [GooseExts] [GoGlobalContext] : val
+opaque _C_AF_INET6 [GooseExts] [GoGlobalContext] : val
 
-axiom _C_AF_UNSPEC [GooseExts] [GoGlobalContext] : val
+opaque _C_AF_UNSPEC [GooseExts] [GoGlobalContext] : val
 
-axiom _C_EAI_ADDRFAMILY [GooseExts] [GoGlobalContext] : val
+opaque _C_EAI_ADDRFAMILY [GooseExts] [GoGlobalContext] : val
 
-axiom _C_EAI_AGAIN [GooseExts] [GoGlobalContext] : val
+opaque _C_EAI_AGAIN [GooseExts] [GoGlobalContext] : val
 
-axiom _C_EAI_NODATA [GooseExts] [GoGlobalContext] : val
+opaque _C_EAI_NODATA [GooseExts] [GoGlobalContext] : val
 
-axiom _C_EAI_NONAME [GooseExts] [GoGlobalContext] : val
+opaque _C_EAI_NONAME [GooseExts] [GoGlobalContext] : val
 
-axiom _C_EAI_SERVICE [GooseExts] [GoGlobalContext] : val
+opaque _C_EAI_SERVICE [GooseExts] [GoGlobalContext] : val
 
-axiom _C_EAI_OVERFLOW [GooseExts] [GoGlobalContext] : val
+opaque _C_EAI_OVERFLOW [GooseExts] [GoGlobalContext] : val
 
-axiom _C_EAI_SYSTEM [GooseExts] [GoGlobalContext] : val
+opaque _C_EAI_SYSTEM [GooseExts] [GoGlobalContext] : val
 
-axiom _C_IPPROTO_TCP [GooseExts] [GoGlobalContext] : val
+opaque _C_IPPROTO_TCP [GooseExts] [GoGlobalContext] : val
 
-axiom _C_IPPROTO_UDP [GooseExts] [GoGlobalContext] : val
+opaque _C_IPPROTO_UDP [GooseExts] [GoGlobalContext] : val
 
-axiom _C_SOCK_DGRAM [GooseExts] [GoGlobalContext] : val
+opaque _C_SOCK_DGRAM [GooseExts] [GoGlobalContext] : val
 
-axiom _C_SOCK_STREAM [GooseExts] [GoGlobalContext] : val
+opaque _C_SOCK_STREAM [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rfc6724policyTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.rfc6724policyTable"
 
-axiom rfc6724policyTable.init [GooseExts] [GoGlobalContext] : val
+opaque rfc6724policyTable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def confOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.confOnce"
@@ -919,57 +919,57 @@ noncomputable def confOnce [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def confVal [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.confVal"
 
-axiom confVal.init [GooseExts] [GoGlobalContext] : val
+opaque confVal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def netdns [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.netdns"
 
-axiom netdns.init [GooseExts] [GoGlobalContext] : val
+opaque netdns.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def multipathtcp [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.multipathtcp"
 
-axiom multipathtcp.init [GooseExts] [GoGlobalContext] : val
+opaque multipathtcp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errLameReferral [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errLameReferral"
 
-axiom errLameReferral.init [GooseExts] [GoGlobalContext] : val
+opaque errLameReferral.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCannotUnmarshalDNSMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errCannotUnmarshalDNSMessage"
 
-axiom errCannotUnmarshalDNSMessage.init [GooseExts] [GoGlobalContext] : val
+opaque errCannotUnmarshalDNSMessage.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCannotMarshalDNSMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errCannotMarshalDNSMessage"
 
-axiom errCannotMarshalDNSMessage.init [GooseExts] [GoGlobalContext] : val
+opaque errCannotMarshalDNSMessage.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errServerMisbehaving [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errServerMisbehaving"
 
-axiom errServerMisbehaving.init [GooseExts] [GoGlobalContext] : val
+opaque errServerMisbehaving.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidDNSResponse [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errInvalidDNSResponse"
 
-axiom errInvalidDNSResponse.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalidDNSResponse.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoAnswerFromDNSServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoAnswerFromDNSServer"
 
-axiom errNoAnswerFromDNSServer.init [GooseExts] [GoGlobalContext] : val
+opaque errNoAnswerFromDNSServer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errServerTemporarilyMisbehaving [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errServerTemporarilyMisbehaving"
 
-axiom errServerTemporarilyMisbehaving.init [GooseExts] [GoGlobalContext] : val
+opaque errServerTemporarilyMisbehaving.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def netedns0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.netedns0"
 
-axiom netedns0.init [GooseExts] [GoGlobalContext] : val
+opaque netedns0.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def resolvConf [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.resolvConf"
@@ -977,22 +977,22 @@ noncomputable def resolvConf [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def distantFuture [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.distantFuture"
 
-axiom distantFuture.init [GooseExts] [GoGlobalContext] : val
+opaque distantFuture.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def lookupOrderName [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.lookupOrderName"
 
-axiom lookupOrderName.init [GooseExts] [GoGlobalContext] : val
+opaque lookupOrderName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultNS [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.defaultNS"
 
-axiom defaultNS.init [GooseExts] [GoGlobalContext] : val
+opaque defaultNS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def getHostname [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.getHostname"
 
-axiom getHostname.init [GooseExts] [GoGlobalContext] : val
+opaque getHostname.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookDialTCP [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookDialTCP"
@@ -1000,52 +1000,52 @@ noncomputable def testHookDialTCP [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def testHookLookupIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookLookupIP"
 
-axiom testHookLookupIP.init [GooseExts] [GoGlobalContext] : val
+opaque testHookLookupIP.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testPreHookSetKeepAlive [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testPreHookSetKeepAlive"
 
-axiom testPreHookSetKeepAlive.init [GooseExts] [GoGlobalContext] : val
+opaque testPreHookSetKeepAlive.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookSetKeepAlive [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookSetKeepAlive"
 
-axiom testHookSetKeepAlive.init [GooseExts] [GoGlobalContext] : val
+opaque testHookSetKeepAlive.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookStepTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookStepTime"
 
-axiom testHookStepTime.init [GooseExts] [GoGlobalContext] : val
+opaque testHookStepTime.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookCanceledDial [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookCanceledDial"
 
-axiom testHookCanceledDial.init [GooseExts] [GoGlobalContext] : val
+opaque testHookCanceledDial.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hostsFilePath [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.hostsFilePath"
 
-axiom hostsFilePath.init [GooseExts] [GoGlobalContext] : val
+opaque hostsFilePath.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def socketFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.socketFunc"
 
-axiom socketFunc.init [GooseExts] [GoGlobalContext] : val
+opaque socketFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def connectFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.connectFunc"
 
-axiom connectFunc.init [GooseExts] [GoGlobalContext] : val
+opaque connectFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def listenFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.listenFunc"
 
-axiom listenFunc.init [GooseExts] [GoGlobalContext] : val
+opaque listenFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def getsockoptIntFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.getsockoptIntFunc"
 
-axiom getsockoptIntFunc.init [GooseExts] [GoGlobalContext] : val
+opaque getsockoptIntFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hosts [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.hosts"
@@ -1053,107 +1053,107 @@ noncomputable def hosts [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def errInvalidInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errInvalidInterface"
 
-axiom errInvalidInterface.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalidInterface.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidInterfaceIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errInvalidInterfaceIndex"
 
-axiom errInvalidInterfaceIndex.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalidInterfaceIndex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidInterfaceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errInvalidInterfaceName"
 
-axiom errInvalidInterfaceName.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalidInterfaceName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoSuchInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoSuchInterface"
 
-axiom errNoSuchInterface.init [GooseExts] [GoGlobalContext] : val
+opaque errNoSuchInterface.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoSuchMulticastInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoSuchMulticastInterface"
 
-axiom errNoSuchMulticastInterface.init [GooseExts] [GoGlobalContext] : val
+opaque errNoSuchMulticastInterface.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def flagNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.flagNames"
 
-axiom flagNames.init [GooseExts] [GoGlobalContext] : val
+opaque flagNames.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def zoneCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.zoneCache"
 
-axiom zoneCache.init [GooseExts] [GoGlobalContext] : val
+opaque zoneCache.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def v4InV6Prefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.v4InV6Prefix"
 
-axiom v4InV6Prefix.init [GooseExts] [GoGlobalContext] : val
+opaque v4InV6Prefix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv4bcast [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv4bcast"
 
-axiom IPv4bcast.init [GooseExts] [GoGlobalContext] : val
+opaque IPv4bcast.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv4allsys [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv4allsys"
 
-axiom IPv4allsys.init [GooseExts] [GoGlobalContext] : val
+opaque IPv4allsys.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv4allrouter [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv4allrouter"
 
-axiom IPv4allrouter.init [GooseExts] [GoGlobalContext] : val
+opaque IPv4allrouter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv4zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv4zero"
 
-axiom IPv4zero.init [GooseExts] [GoGlobalContext] : val
+opaque IPv4zero.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6zero"
 
-axiom IPv6zero.init [GooseExts] [GoGlobalContext] : val
+opaque IPv6zero.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6unspecified [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6unspecified"
 
-axiom IPv6unspecified.init [GooseExts] [GoGlobalContext] : val
+opaque IPv6unspecified.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6loopback [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6loopback"
 
-axiom IPv6loopback.init [GooseExts] [GoGlobalContext] : val
+opaque IPv6loopback.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6interfacelocalallnodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6interfacelocalallnodes"
 
-axiom IPv6interfacelocalallnodes.init [GooseExts] [GoGlobalContext] : val
+opaque IPv6interfacelocalallnodes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6linklocalallnodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6linklocalallnodes"
 
-axiom IPv6linklocalallnodes.init [GooseExts] [GoGlobalContext] : val
+opaque IPv6linklocalallnodes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6linklocalallrouters [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6linklocalallrouters"
 
-axiom IPv6linklocalallrouters.init [GooseExts] [GoGlobalContext] : val
+opaque IPv6linklocalallrouters.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def classAMask [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.classAMask"
 
-axiom classAMask.init [GooseExts] [GoGlobalContext] : val
+opaque classAMask.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def classBMask [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.classBMask"
 
-axiom classBMask.init [GooseExts] [GoGlobalContext] : val
+opaque classBMask.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def classCMask [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.classCMask"
 
-axiom classCMask.init [GooseExts] [GoGlobalContext] : val
+opaque classCMask.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ipStackCaps [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.ipStackCaps"
@@ -1161,12 +1161,12 @@ noncomputable def ipStackCaps [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def protocols [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.protocols"
 
-axiom protocols.init [GooseExts] [GoGlobalContext] : val
+opaque protocols.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def services [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.services"
 
-axiom services.init [GooseExts] [GoGlobalContext] : val
+opaque services.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dnsWaitGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.dnsWaitGroup"
@@ -1174,17 +1174,17 @@ noncomputable def dnsWaitGroup [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def DefaultResolver [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.DefaultResolver"
 
-axiom DefaultResolver.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultResolver.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMalformedDNSRecordsDetail [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errMalformedDNSRecordsDetail"
 
-axiom errMalformedDNSRecordsDetail.init [GooseExts] [GoGlobalContext] : val
+opaque errMalformedDNSRecordsDetail.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def readProtocolsOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.readProtocolsOnce"
 
-axiom readProtocolsOnce.init [GooseExts] [GoGlobalContext] : val
+opaque readProtocolsOnce.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def mptcpOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.mptcpOnce"
@@ -1201,62 +1201,62 @@ noncomputable def listenerBacklogCache [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def errNoSuitableAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoSuitableAddress"
 
-axiom errNoSuitableAddress.init [GooseExts] [GoGlobalContext] : val
+opaque errNoSuitableAddress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMissingAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errMissingAddress"
 
-axiom errMissingAddress.init [GooseExts] [GoGlobalContext] : val
+opaque errMissingAddress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errCanceled"
 
-axiom errCanceled.init [GooseExts] [GoGlobalContext] : val
+opaque errCanceled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrWriteToConnected [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.ErrWriteToConnected"
 
-axiom ErrWriteToConnected.init [GooseExts] [GoGlobalContext] : val
+opaque ErrWriteToConnected.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def aLongTimeAgo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.aLongTimeAgo"
 
-axiom aLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
+opaque aLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noDeadline [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.noDeadline"
 
-axiom noDeadline.init [GooseExts] [GoGlobalContext] : val
+opaque noDeadline.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noCancel [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.noCancel"
 
-axiom noCancel.init [GooseExts] [GoGlobalContext] : val
+opaque noCancel.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errTimeout"
 
-axiom errTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque errTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoSuchHost [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoSuchHost"
 
-axiom errNoSuchHost.init [GooseExts] [GoGlobalContext] : val
+opaque errNoSuchHost.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errUnknownPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errUnknownPort"
 
-axiom errUnknownPort.init [GooseExts] [GoGlobalContext] : val
+opaque errUnknownPort.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errClosed"
 
-axiom errClosed.init [GooseExts] [GoGlobalContext] : val
+opaque errClosed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.ErrClosed"
 
-axiom ErrClosed.init [GooseExts] [GoGlobalContext] : val
+opaque ErrClosed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def threadLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.threadLimit"
@@ -1276,7 +1276,7 @@ noncomputable def testHookSupportsSendfile [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def pollSplice [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.pollSplice"
 
-axiom pollSplice.init [GooseExts] [GoGlobalContext] : val
+opaque pollSplice.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _Cgo_always_false [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._Cgo_always_false"
@@ -1287,7 +1287,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_C2func_getaddrinfo [GooseExts] [GoGl
 noncomputable def _cgo_77133bf98b3a_C2func_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_C2func_getaddrinfo"
 
-axiom _cgo_77133bf98b3a_C2func_getaddrinfo.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_C2func_getaddrinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_C2func_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_C2func_getnameinfo"
@@ -1295,7 +1295,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_C2func_getnameinfo [GooseExts] [GoGl
 noncomputable def _cgo_77133bf98b3a_C2func_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_C2func_getnameinfo"
 
-axiom _cgo_77133bf98b3a_C2func_getnameinfo.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_C2func_getnameinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_free [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_free"
@@ -1303,7 +1303,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_free [GooseExts] [GoGlobalCont
 noncomputable def _cgo_77133bf98b3a_Cfunc_free [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_free"
 
-axiom _cgo_77133bf98b3a_Cfunc_free.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_Cfunc_free.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo"
@@ -1311,7 +1311,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo [GooseExts] [GoGl
 noncomputable def _cgo_77133bf98b3a_Cfunc_freeaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_freeaddrinfo"
 
-axiom _cgo_77133bf98b3a_Cfunc_freeaddrinfo.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_Cfunc_freeaddrinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror"
@@ -1319,7 +1319,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror [GooseExts] [GoGl
 noncomputable def _cgo_77133bf98b3a_Cfunc_gai_strerror [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_gai_strerror"
 
-axiom _cgo_77133bf98b3a_Cfunc_gai_strerror.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_Cfunc_gai_strerror.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo"
@@ -1327,7 +1327,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo [GooseExts] [GoGlo
 noncomputable def _cgo_77133bf98b3a_Cfunc_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_getaddrinfo"
 
-axiom _cgo_77133bf98b3a_Cfunc_getaddrinfo.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_Cfunc_getaddrinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo"
@@ -1335,7 +1335,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo [GooseExts] [GoGlo
 noncomputable def _cgo_77133bf98b3a_Cfunc_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_getnameinfo"
 
-axiom _cgo_77133bf98b3a_Cfunc_getnameinfo.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_Cfunc_getnameinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_res_search [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_res_search"
@@ -1343,7 +1343,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_res_search [GooseExts] [GoGlob
 noncomputable def _cgo_77133bf98b3a_Cfunc_res_search [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_res_search"
 
-axiom _cgo_77133bf98b3a_Cfunc_res_search.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_Cfunc_res_search.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc"
@@ -1351,7 +1351,7 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc [GooseExts] [GoGlobal
 noncomputable def _cgo_77133bf98b3a_Cfunc__Cmalloc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc__Cmalloc"
 
-axiom _cgo_77133bf98b3a_Cfunc__Cmalloc.init [GooseExts] [GoGlobalContext] : val
+opaque _cgo_77133bf98b3a_Cfunc__Cmalloc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sortByRFC6724 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.sortByRFC6724"
@@ -2199,7 +2199,7 @@ noncomputable def _C_res_nsearch [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.net where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2439,8 +2439,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val rfc6724policyTable.init) (Val #()))))))))
 
-axiom ipAttr : Type
-axiom ipAttr.zero_val : ZeroVal ipAttr
+opaque ipAttr.nonempty_type : NonemptyType.{0}
+def ipAttr : Type := ipAttr.nonempty_type.type
+instance ipAttr.nonempty : Nonempty ipAttr := ipAttr.nonempty_type.property
+opaque ipAttr.zero_val : ZeroVal ipAttr := ⟨Classical.ofNonempty⟩
 attribute [instance] ipAttr.zero_val
 
 class ipAttr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2456,8 +2458,10 @@ attribute [instance] ipAttr.TypeAssumptions.type_repr
   ipAttr.TypeAssumptions.method_set
   ipAttr.TypeAssumptions.ptr_method_set
 
-axiom byRFC6724Info : Type
-axiom byRFC6724Info.zero_val : ZeroVal byRFC6724Info
+opaque byRFC6724Info.nonempty_type : NonemptyType.{0}
+def byRFC6724Info : Type := byRFC6724Info.nonempty_type.type
+instance byRFC6724Info.nonempty : Nonempty byRFC6724Info := byRFC6724Info.nonempty_type.property
+opaque byRFC6724Info.zero_val : ZeroVal byRFC6724Info := ⟨Classical.ofNonempty⟩
 attribute [instance] byRFC6724Info.zero_val
 
 class byRFC6724Info.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2473,8 +2477,10 @@ attribute [instance] byRFC6724Info.TypeAssumptions.type_repr
   byRFC6724Info.TypeAssumptions.method_set
   byRFC6724Info.TypeAssumptions.ptr_method_set
 
-axiom policyTableEntry : Type
-axiom policyTableEntry.zero_val : ZeroVal policyTableEntry
+opaque policyTableEntry.nonempty_type : NonemptyType.{0}
+def policyTableEntry : Type := policyTableEntry.nonempty_type.type
+instance policyTableEntry.nonempty : Nonempty policyTableEntry := policyTableEntry.nonempty_type.property
+opaque policyTableEntry.zero_val : ZeroVal policyTableEntry := ⟨Classical.ofNonempty⟩
 attribute [instance] policyTableEntry.zero_val
 
 class policyTableEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2490,8 +2496,10 @@ attribute [instance] policyTableEntry.TypeAssumptions.type_repr
   policyTableEntry.TypeAssumptions.method_set
   policyTableEntry.TypeAssumptions.ptr_method_set
 
-axiom policyTable : Type
-axiom policyTable.zero_val : ZeroVal policyTable
+opaque policyTable.nonempty_type : NonemptyType.{0}
+def policyTable : Type := policyTable.nonempty_type.type
+instance policyTable.nonempty : Nonempty policyTable := policyTable.nonempty_type.property
+opaque policyTable.zero_val : ZeroVal policyTable := ⟨Classical.ofNonempty⟩
 attribute [instance] policyTable.zero_val
 
 class policyTable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2507,8 +2515,10 @@ attribute [instance] policyTable.TypeAssumptions.type_repr
   policyTable.TypeAssumptions.method_set
   policyTable.TypeAssumptions.ptr_method_set
 
-axiom scope : Type
-axiom scope.zero_val : ZeroVal scope
+opaque scope.nonempty_type : NonemptyType.{0}
+def scope : Type := scope.nonempty_type.type
+instance scope.nonempty : Nonempty scope := scope.nonempty_type.property
+opaque scope.zero_val : ZeroVal scope := ⟨Classical.ofNonempty⟩
 attribute [instance] scope.zero_val
 
 class scope.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2524,8 +2534,10 @@ attribute [instance] scope.TypeAssumptions.type_repr
   scope.TypeAssumptions.method_set
   scope.TypeAssumptions.ptr_method_set
 
-axiom addrinfoErrno : Type
-axiom addrinfoErrno.zero_val : ZeroVal addrinfoErrno
+opaque addrinfoErrno.nonempty_type : NonemptyType.{0}
+def addrinfoErrno : Type := addrinfoErrno.nonempty_type.type
+instance addrinfoErrno.nonempty : Nonempty addrinfoErrno := addrinfoErrno.nonempty_type.property
+opaque addrinfoErrno.zero_val : ZeroVal addrinfoErrno := ⟨Classical.ofNonempty⟩
 attribute [instance] addrinfoErrno.zero_val
 
 class addrinfoErrno.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2541,8 +2553,10 @@ attribute [instance] addrinfoErrno.TypeAssumptions.type_repr
   addrinfoErrno.TypeAssumptions.method_set
   addrinfoErrno.TypeAssumptions.ptr_method_set
 
-axiom conf : Type
-axiom conf.zero_val : ZeroVal conf
+opaque conf.nonempty_type : NonemptyType.{0}
+def conf : Type := conf.nonempty_type.type
+instance conf.nonempty : Nonempty conf := conf.nonempty_type.property
+opaque conf.zero_val : ZeroVal conf := ⟨Classical.ofNonempty⟩
 attribute [instance] conf.zero_val
 
 class conf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2558,8 +2572,10 @@ attribute [instance] conf.TypeAssumptions.type_repr
   conf.TypeAssumptions.method_set
   conf.TypeAssumptions.ptr_method_set
 
-axiom mdnsTest : Type
-axiom mdnsTest.zero_val : ZeroVal mdnsTest
+opaque mdnsTest.nonempty_type : NonemptyType.{0}
+def mdnsTest : Type := mdnsTest.nonempty_type.type
+instance mdnsTest.nonempty : Nonempty mdnsTest := mdnsTest.nonempty_type.property
+opaque mdnsTest.zero_val : ZeroVal mdnsTest := ⟨Classical.ofNonempty⟩
 attribute [instance] mdnsTest.zero_val
 
 class mdnsTest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2575,8 +2591,10 @@ attribute [instance] mdnsTest.TypeAssumptions.type_repr
   mdnsTest.TypeAssumptions.method_set
   mdnsTest.TypeAssumptions.ptr_method_set
 
-axiom mptcpStatusDial : Type
-axiom mptcpStatusDial.zero_val : ZeroVal mptcpStatusDial
+opaque mptcpStatusDial.nonempty_type : NonemptyType.{0}
+def mptcpStatusDial : Type := mptcpStatusDial.nonempty_type.type
+instance mptcpStatusDial.nonempty : Nonempty mptcpStatusDial := mptcpStatusDial.nonempty_type.property
+opaque mptcpStatusDial.zero_val : ZeroVal mptcpStatusDial := ⟨Classical.ofNonempty⟩
 attribute [instance] mptcpStatusDial.zero_val
 
 class mptcpStatusDial.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2592,8 +2610,10 @@ attribute [instance] mptcpStatusDial.TypeAssumptions.type_repr
   mptcpStatusDial.TypeAssumptions.method_set
   mptcpStatusDial.TypeAssumptions.ptr_method_set
 
-axiom mptcpStatusListen : Type
-axiom mptcpStatusListen.zero_val : ZeroVal mptcpStatusListen
+opaque mptcpStatusListen.nonempty_type : NonemptyType.{0}
+def mptcpStatusListen : Type := mptcpStatusListen.nonempty_type.type
+instance mptcpStatusListen.nonempty : Nonempty mptcpStatusListen := mptcpStatusListen.nonempty_type.property
+opaque mptcpStatusListen.zero_val : ZeroVal mptcpStatusListen := ⟨Classical.ofNonempty⟩
 attribute [instance] mptcpStatusListen.zero_val
 
 class mptcpStatusListen.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2609,8 +2629,10 @@ attribute [instance] mptcpStatusListen.TypeAssumptions.type_repr
   mptcpStatusListen.TypeAssumptions.method_set
   mptcpStatusListen.TypeAssumptions.ptr_method_set
 
-axiom Dialer : Type
-axiom Dialer.zero_val : ZeroVal Dialer
+opaque Dialer.nonempty_type : NonemptyType.{0}
+def Dialer : Type := Dialer.nonempty_type.type
+instance Dialer.nonempty : Nonempty Dialer := Dialer.nonempty_type.property
+opaque Dialer.zero_val : ZeroVal Dialer := ⟨Classical.ofNonempty⟩
 attribute [instance] Dialer.zero_val
 
 class Dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2626,8 +2648,10 @@ attribute [instance] Dialer.TypeAssumptions.type_repr
   Dialer.TypeAssumptions.method_set
   Dialer.TypeAssumptions.ptr_method_set
 
-axiom sysDialer : Type
-axiom sysDialer.zero_val : ZeroVal sysDialer
+opaque sysDialer.nonempty_type : NonemptyType.{0}
+def sysDialer : Type := sysDialer.nonempty_type.type
+instance sysDialer.nonempty : Nonempty sysDialer := sysDialer.nonempty_type.property
+opaque sysDialer.zero_val : ZeroVal sysDialer := ⟨Classical.ofNonempty⟩
 attribute [instance] sysDialer.zero_val
 
 class sysDialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2643,8 +2667,10 @@ attribute [instance] sysDialer.TypeAssumptions.type_repr
   sysDialer.TypeAssumptions.method_set
   sysDialer.TypeAssumptions.ptr_method_set
 
-axiom ListenConfig : Type
-axiom ListenConfig.zero_val : ZeroVal ListenConfig
+opaque ListenConfig.nonempty_type : NonemptyType.{0}
+def ListenConfig : Type := ListenConfig.nonempty_type.type
+instance ListenConfig.nonempty : Nonempty ListenConfig := ListenConfig.nonempty_type.property
+opaque ListenConfig.zero_val : ZeroVal ListenConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] ListenConfig.zero_val
 
 class ListenConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2660,8 +2686,10 @@ attribute [instance] ListenConfig.TypeAssumptions.type_repr
   ListenConfig.TypeAssumptions.method_set
   ListenConfig.TypeAssumptions.ptr_method_set
 
-axiom sysListener : Type
-axiom sysListener.zero_val : ZeroVal sysListener
+opaque sysListener.nonempty_type : NonemptyType.{0}
+def sysListener : Type := sysListener.nonempty_type.type
+instance sysListener.nonempty : Nonempty sysListener := sysListener.nonempty_type.property
+opaque sysListener.zero_val : ZeroVal sysListener := ⟨Classical.ofNonempty⟩
 attribute [instance] sysListener.zero_val
 
 class sysListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2677,8 +2705,10 @@ attribute [instance] sysListener.TypeAssumptions.type_repr
   sysListener.TypeAssumptions.method_set
   sysListener.TypeAssumptions.ptr_method_set
 
-axiom SRV : Type
-axiom SRV.zero_val : ZeroVal SRV
+opaque SRV.nonempty_type : NonemptyType.{0}
+def SRV : Type := SRV.nonempty_type.type
+instance SRV.nonempty : Nonempty SRV := SRV.nonempty_type.property
+opaque SRV.zero_val : ZeroVal SRV := ⟨Classical.ofNonempty⟩
 attribute [instance] SRV.zero_val
 
 class SRV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2694,8 +2724,10 @@ attribute [instance] SRV.TypeAssumptions.type_repr
   SRV.TypeAssumptions.method_set
   SRV.TypeAssumptions.ptr_method_set
 
-axiom byPriorityWeight : Type
-axiom byPriorityWeight.zero_val : ZeroVal byPriorityWeight
+opaque byPriorityWeight.nonempty_type : NonemptyType.{0}
+def byPriorityWeight : Type := byPriorityWeight.nonempty_type.type
+instance byPriorityWeight.nonempty : Nonempty byPriorityWeight := byPriorityWeight.nonempty_type.property
+opaque byPriorityWeight.zero_val : ZeroVal byPriorityWeight := ⟨Classical.ofNonempty⟩
 attribute [instance] byPriorityWeight.zero_val
 
 class byPriorityWeight.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2711,8 +2743,10 @@ attribute [instance] byPriorityWeight.TypeAssumptions.type_repr
   byPriorityWeight.TypeAssumptions.method_set
   byPriorityWeight.TypeAssumptions.ptr_method_set
 
-axiom MX : Type
-axiom MX.zero_val : ZeroVal MX
+opaque MX.nonempty_type : NonemptyType.{0}
+def MX : Type := MX.nonempty_type.type
+instance MX.nonempty : Nonempty MX := MX.nonempty_type.property
+opaque MX.zero_val : ZeroVal MX := ⟨Classical.ofNonempty⟩
 attribute [instance] MX.zero_val
 
 class MX.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2728,8 +2762,10 @@ attribute [instance] MX.TypeAssumptions.type_repr
   MX.TypeAssumptions.method_set
   MX.TypeAssumptions.ptr_method_set
 
-axiom byPref : Type
-axiom byPref.zero_val : ZeroVal byPref
+opaque byPref.nonempty_type : NonemptyType.{0}
+def byPref : Type := byPref.nonempty_type.type
+instance byPref.nonempty : Nonempty byPref := byPref.nonempty_type.property
+opaque byPref.zero_val : ZeroVal byPref := ⟨Classical.ofNonempty⟩
 attribute [instance] byPref.zero_val
 
 class byPref.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2745,8 +2781,10 @@ attribute [instance] byPref.TypeAssumptions.type_repr
   byPref.TypeAssumptions.method_set
   byPref.TypeAssumptions.ptr_method_set
 
-axiom NS : Type
-axiom NS.zero_val : ZeroVal NS
+opaque NS.nonempty_type : NonemptyType.{0}
+def NS : Type := NS.nonempty_type.type
+instance NS.nonempty : Nonempty NS := NS.nonempty_type.property
+opaque NS.zero_val : ZeroVal NS := ⟨Classical.ofNonempty⟩
 attribute [instance] NS.zero_val
 
 class NS.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2762,8 +2800,10 @@ attribute [instance] NS.TypeAssumptions.type_repr
   NS.TypeAssumptions.method_set
   NS.TypeAssumptions.ptr_method_set
 
-axiom resolverConfig : Type
-axiom resolverConfig.zero_val : ZeroVal resolverConfig
+opaque resolverConfig.nonempty_type : NonemptyType.{0}
+def resolverConfig : Type := resolverConfig.nonempty_type.type
+instance resolverConfig.nonempty : Nonempty resolverConfig := resolverConfig.nonempty_type.property
+opaque resolverConfig.zero_val : ZeroVal resolverConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] resolverConfig.zero_val
 
 class resolverConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2779,8 +2819,10 @@ attribute [instance] resolverConfig.TypeAssumptions.type_repr
   resolverConfig.TypeAssumptions.method_set
   resolverConfig.TypeAssumptions.ptr_method_set
 
-axiom hostLookupOrder : Type
-axiom hostLookupOrder.zero_val : ZeroVal hostLookupOrder
+opaque hostLookupOrder.nonempty_type : NonemptyType.{0}
+def hostLookupOrder : Type := hostLookupOrder.nonempty_type.type
+instance hostLookupOrder.nonempty : Nonempty hostLookupOrder := hostLookupOrder.nonempty_type.property
+opaque hostLookupOrder.zero_val : ZeroVal hostLookupOrder := ⟨Classical.ofNonempty⟩
 attribute [instance] hostLookupOrder.zero_val
 
 class hostLookupOrder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2796,8 +2838,10 @@ attribute [instance] hostLookupOrder.TypeAssumptions.type_repr
   hostLookupOrder.TypeAssumptions.method_set
   hostLookupOrder.TypeAssumptions.ptr_method_set
 
-axiom dnsConfig : Type
-axiom dnsConfig.zero_val : ZeroVal dnsConfig
+opaque dnsConfig.nonempty_type : NonemptyType.{0}
+def dnsConfig : Type := dnsConfig.nonempty_type.type
+instance dnsConfig.nonempty : Nonempty dnsConfig := dnsConfig.nonempty_type.property
+opaque dnsConfig.zero_val : ZeroVal dnsConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] dnsConfig.zero_val
 
 class dnsConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2813,8 +2857,10 @@ attribute [instance] dnsConfig.TypeAssumptions.type_repr
   dnsConfig.TypeAssumptions.method_set
   dnsConfig.TypeAssumptions.ptr_method_set
 
-axiom netFD : Type
-axiom netFD.zero_val : ZeroVal netFD
+opaque netFD.nonempty_type : NonemptyType.{0}
+def netFD : Type := netFD.nonempty_type.type
+instance netFD.nonempty : Nonempty netFD := netFD.nonempty_type.property
+opaque netFD.zero_val : ZeroVal netFD := ⟨Classical.ofNonempty⟩
 attribute [instance] netFD.zero_val
 
 class netFD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2830,8 +2876,10 @@ attribute [instance] netFD.TypeAssumptions.type_repr
   netFD.TypeAssumptions.method_set
   netFD.TypeAssumptions.ptr_method_set
 
-axiom fileAddr : Type
-axiom fileAddr.zero_val : ZeroVal fileAddr
+opaque fileAddr.nonempty_type : NonemptyType.{0}
+def fileAddr : Type := fileAddr.nonempty_type.type
+instance fileAddr.nonempty : Nonempty fileAddr := fileAddr.nonempty_type.property
+opaque fileAddr.zero_val : ZeroVal fileAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] fileAddr.zero_val
 
 class fileAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2847,8 +2895,10 @@ attribute [instance] fileAddr.TypeAssumptions.type_repr
   fileAddr.TypeAssumptions.method_set
   fileAddr.TypeAssumptions.ptr_method_set
 
-axiom byName : Type
-axiom byName.zero_val : ZeroVal byName
+opaque byName.nonempty_type : NonemptyType.{0}
+def byName : Type := byName.nonempty_type.type
+instance byName.nonempty : Nonempty byName := byName.nonempty_type.property
+opaque byName.zero_val : ZeroVal byName := ⟨Classical.ofNonempty⟩
 attribute [instance] byName.zero_val
 
 class byName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2864,8 +2914,10 @@ attribute [instance] byName.TypeAssumptions.type_repr
   byName.TypeAssumptions.method_set
   byName.TypeAssumptions.ptr_method_set
 
-axiom Interface : Type
-axiom Interface.zero_val : ZeroVal Interface
+opaque Interface.nonempty_type : NonemptyType.{0}
+def Interface : Type := Interface.nonempty_type.type
+instance Interface.nonempty : Nonempty Interface := Interface.nonempty_type.property
+opaque Interface.zero_val : ZeroVal Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] Interface.zero_val
 
 class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2881,8 +2933,10 @@ attribute [instance] Interface.TypeAssumptions.type_repr
   Interface.TypeAssumptions.method_set
   Interface.TypeAssumptions.ptr_method_set
 
-axiom Flags : Type
-axiom Flags.zero_val : ZeroVal Flags
+opaque Flags.nonempty_type : NonemptyType.{0}
+def Flags : Type := Flags.nonempty_type.type
+instance Flags.nonempty : Nonempty Flags := Flags.nonempty_type.property
+opaque Flags.zero_val : ZeroVal Flags := ⟨Classical.ofNonempty⟩
 attribute [instance] Flags.zero_val
 
 class Flags.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2898,8 +2952,10 @@ attribute [instance] Flags.TypeAssumptions.type_repr
   Flags.TypeAssumptions.method_set
   Flags.TypeAssumptions.ptr_method_set
 
-axiom ipv6ZoneCache : Type
-axiom ipv6ZoneCache.zero_val : ZeroVal ipv6ZoneCache
+opaque ipv6ZoneCache.nonempty_type : NonemptyType.{0}
+def ipv6ZoneCache : Type := ipv6ZoneCache.nonempty_type.type
+instance ipv6ZoneCache.nonempty : Nonempty ipv6ZoneCache := ipv6ZoneCache.nonempty_type.property
+opaque ipv6ZoneCache.zero_val : ZeroVal ipv6ZoneCache := ⟨Classical.ofNonempty⟩
 attribute [instance] ipv6ZoneCache.zero_val
 
 class ipv6ZoneCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2915,8 +2971,10 @@ attribute [instance] ipv6ZoneCache.TypeAssumptions.type_repr
   ipv6ZoneCache.TypeAssumptions.method_set
   ipv6ZoneCache.TypeAssumptions.ptr_method_set
 
-axiom IP : Type
-axiom IP.zero_val : ZeroVal IP
+opaque IP.nonempty_type : NonemptyType.{0}
+def IP : Type := IP.nonempty_type.type
+instance IP.nonempty : Nonempty IP := IP.nonempty_type.property
+opaque IP.zero_val : ZeroVal IP := ⟨Classical.ofNonempty⟩
 attribute [instance] IP.zero_val
 
 class IP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2932,8 +2990,10 @@ attribute [instance] IP.TypeAssumptions.type_repr
   IP.TypeAssumptions.method_set
   IP.TypeAssumptions.ptr_method_set
 
-axiom IPMask : Type
-axiom IPMask.zero_val : ZeroVal IPMask
+opaque IPMask.nonempty_type : NonemptyType.{0}
+def IPMask : Type := IPMask.nonempty_type.type
+instance IPMask.nonempty : Nonempty IPMask := IPMask.nonempty_type.property
+opaque IPMask.zero_val : ZeroVal IPMask := ⟨Classical.ofNonempty⟩
 attribute [instance] IPMask.zero_val
 
 class IPMask.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2949,8 +3009,10 @@ attribute [instance] IPMask.TypeAssumptions.type_repr
   IPMask.TypeAssumptions.method_set
   IPMask.TypeAssumptions.ptr_method_set
 
-axiom IPNet : Type
-axiom IPNet.zero_val : ZeroVal IPNet
+opaque IPNet.nonempty_type : NonemptyType.{0}
+def IPNet : Type := IPNet.nonempty_type.type
+instance IPNet.nonempty : Nonempty IPNet := IPNet.nonempty_type.property
+opaque IPNet.zero_val : ZeroVal IPNet := ⟨Classical.ofNonempty⟩
 attribute [instance] IPNet.zero_val
 
 class IPNet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2966,8 +3028,10 @@ attribute [instance] IPNet.TypeAssumptions.type_repr
   IPNet.TypeAssumptions.method_set
   IPNet.TypeAssumptions.ptr_method_set
 
-axiom IPAddr : Type
-axiom IPAddr.zero_val : ZeroVal IPAddr
+opaque IPAddr.nonempty_type : NonemptyType.{0}
+def IPAddr : Type := IPAddr.nonempty_type.type
+instance IPAddr.nonempty : Nonempty IPAddr := IPAddr.nonempty_type.property
+opaque IPAddr.zero_val : ZeroVal IPAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] IPAddr.zero_val
 
 class IPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2983,8 +3047,10 @@ attribute [instance] IPAddr.TypeAssumptions.type_repr
   IPAddr.TypeAssumptions.method_set
   IPAddr.TypeAssumptions.ptr_method_set
 
-axiom IPConn : Type
-axiom IPConn.zero_val : ZeroVal IPConn
+opaque IPConn.nonempty_type : NonemptyType.{0}
+def IPConn : Type := IPConn.nonempty_type.type
+instance IPConn.nonempty : Nonempty IPConn := IPConn.nonempty_type.property
+opaque IPConn.zero_val : ZeroVal IPConn := ⟨Classical.ofNonempty⟩
 attribute [instance] IPConn.zero_val
 
 class IPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3000,8 +3066,10 @@ attribute [instance] IPConn.TypeAssumptions.type_repr
   IPConn.TypeAssumptions.method_set
   IPConn.TypeAssumptions.ptr_method_set
 
-axiom ipStackCapabilities : Type
-axiom ipStackCapabilities.zero_val : ZeroVal ipStackCapabilities
+opaque ipStackCapabilities.nonempty_type : NonemptyType.{0}
+def ipStackCapabilities : Type := ipStackCapabilities.nonempty_type.type
+instance ipStackCapabilities.nonempty : Nonempty ipStackCapabilities := ipStackCapabilities.nonempty_type.property
+opaque ipStackCapabilities.zero_val : ZeroVal ipStackCapabilities := ⟨Classical.ofNonempty⟩
 attribute [instance] ipStackCapabilities.zero_val
 
 class ipStackCapabilities.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3017,8 +3085,10 @@ attribute [instance] ipStackCapabilities.TypeAssumptions.type_repr
   ipStackCapabilities.TypeAssumptions.method_set
   ipStackCapabilities.TypeAssumptions.ptr_method_set
 
-axiom addrList : Type
-axiom addrList.zero_val : ZeroVal addrList
+opaque addrList.nonempty_type : NonemptyType.{0}
+def addrList : Type := addrList.nonempty_type.type
+instance addrList.nonempty : Nonempty addrList := addrList.nonempty_type.property
+opaque addrList.zero_val : ZeroVal addrList := ⟨Classical.ofNonempty⟩
 attribute [instance] addrList.zero_val
 
 class addrList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3034,8 +3104,10 @@ attribute [instance] addrList.TypeAssumptions.type_repr
   addrList.TypeAssumptions.method_set
   addrList.TypeAssumptions.ptr_method_set
 
-axiom Resolver : Type
-axiom Resolver.zero_val : ZeroVal Resolver
+opaque Resolver.nonempty_type : NonemptyType.{0}
+def Resolver : Type := Resolver.nonempty_type.type
+instance Resolver.nonempty : Nonempty Resolver := Resolver.nonempty_type.property
+opaque Resolver.zero_val : ZeroVal Resolver := ⟨Classical.ofNonempty⟩
 attribute [instance] Resolver.zero_val
 
 class Resolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3051,8 +3123,10 @@ attribute [instance] Resolver.TypeAssumptions.type_repr
   Resolver.TypeAssumptions.method_set
   Resolver.TypeAssumptions.ptr_method_set
 
-axiom onlyValuesCtx : Type
-axiom onlyValuesCtx.zero_val : ZeroVal onlyValuesCtx
+opaque onlyValuesCtx.nonempty_type : NonemptyType.{0}
+def onlyValuesCtx : Type := onlyValuesCtx.nonempty_type.type
+instance onlyValuesCtx.nonempty : Nonempty onlyValuesCtx := onlyValuesCtx.nonempty_type.property
+opaque onlyValuesCtx.zero_val : ZeroVal onlyValuesCtx := ⟨Classical.ofNonempty⟩
 attribute [instance] onlyValuesCtx.zero_val
 
 class onlyValuesCtx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3068,8 +3142,10 @@ attribute [instance] onlyValuesCtx.TypeAssumptions.type_repr
   onlyValuesCtx.TypeAssumptions.method_set
   onlyValuesCtx.TypeAssumptions.ptr_method_set
 
-axiom HardwareAddr : Type
-axiom HardwareAddr.zero_val : ZeroVal HardwareAddr
+opaque HardwareAddr.nonempty_type : NonemptyType.{0}
+def HardwareAddr : Type := HardwareAddr.nonempty_type.type
+instance HardwareAddr.nonempty : Nonempty HardwareAddr := HardwareAddr.nonempty_type.property
+opaque HardwareAddr.zero_val : ZeroVal HardwareAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] HardwareAddr.zero_val
 
 class HardwareAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3099,8 +3175,10 @@ attribute [instance] Addr.TypeAssumptions.underlying
   Addr.TypeAssumptions.method_set
   Addr.TypeAssumptions.ptr_method_set
 
-axiom Conn : Type
-axiom Conn.zero_val : ZeroVal Conn
+opaque Conn.nonempty_type : NonemptyType.{0}
+def Conn : Type := Conn.nonempty_type.type
+instance Conn.nonempty : Nonempty Conn := Conn.nonempty_type.property
+opaque Conn.zero_val : ZeroVal Conn := ⟨Classical.ofNonempty⟩
 attribute [instance] Conn.zero_val
 
 class Conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3116,8 +3194,10 @@ attribute [instance] Conn.TypeAssumptions.type_repr
   Conn.TypeAssumptions.method_set
   Conn.TypeAssumptions.ptr_method_set
 
-axiom conn : Type
-axiom conn.zero_val : ZeroVal conn
+opaque conn.nonempty_type : NonemptyType.{0}
+def conn : Type := conn.nonempty_type.type
+instance conn.nonempty : Nonempty conn := conn.nonempty_type.property
+opaque conn.zero_val : ZeroVal conn := ⟨Classical.ofNonempty⟩
 attribute [instance] conn.zero_val
 
 class conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3133,8 +3213,10 @@ attribute [instance] conn.TypeAssumptions.type_repr
   conn.TypeAssumptions.method_set
   conn.TypeAssumptions.ptr_method_set
 
-axiom PacketConn : Type
-axiom PacketConn.zero_val : ZeroVal PacketConn
+opaque PacketConn.nonempty_type : NonemptyType.{0}
+def PacketConn : Type := PacketConn.nonempty_type.type
+instance PacketConn.nonempty : Nonempty PacketConn := PacketConn.nonempty_type.property
+opaque PacketConn.zero_val : ZeroVal PacketConn := ⟨Classical.ofNonempty⟩
 attribute [instance] PacketConn.zero_val
 
 class PacketConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3164,8 +3246,10 @@ attribute [instance] Listener.TypeAssumptions.underlying
   Listener.TypeAssumptions.method_set
   Listener.TypeAssumptions.ptr_method_set
 
-axiom Error : Type
-axiom Error.zero_val : ZeroVal Error
+opaque Error.nonempty_type : NonemptyType.{0}
+def Error : Type := Error.nonempty_type.type
+instance Error.nonempty : Nonempty Error := Error.nonempty_type.property
+opaque Error.zero_val : ZeroVal Error := ⟨Classical.ofNonempty⟩
 attribute [instance] Error.zero_val
 
 class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3181,8 +3265,10 @@ attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.method_set
   Error.TypeAssumptions.ptr_method_set
 
-axiom canceledError : Type
-axiom canceledError.zero_val : ZeroVal canceledError
+opaque canceledError.nonempty_type : NonemptyType.{0}
+def canceledError : Type := canceledError.nonempty_type.type
+instance canceledError.nonempty : Nonempty canceledError := canceledError.nonempty_type.property
+opaque canceledError.zero_val : ZeroVal canceledError := ⟨Classical.ofNonempty⟩
 attribute [instance] canceledError.zero_val
 
 class canceledError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3198,8 +3284,10 @@ attribute [instance] canceledError.TypeAssumptions.type_repr
   canceledError.TypeAssumptions.method_set
   canceledError.TypeAssumptions.ptr_method_set
 
-axiom OpError : Type
-axiom OpError.zero_val : ZeroVal OpError
+opaque OpError.nonempty_type : NonemptyType.{0}
+def OpError : Type := OpError.nonempty_type.type
+instance OpError.nonempty : Nonempty OpError := OpError.nonempty_type.property
+opaque OpError.zero_val : ZeroVal OpError := ⟨Classical.ofNonempty⟩
 attribute [instance] OpError.zero_val
 
 class OpError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3215,8 +3303,10 @@ attribute [instance] OpError.TypeAssumptions.type_repr
   OpError.TypeAssumptions.method_set
   OpError.TypeAssumptions.ptr_method_set
 
-axiom timeout : Type
-axiom timeout.zero_val : ZeroVal timeout
+opaque timeout.nonempty_type : NonemptyType.{0}
+def timeout : Type := timeout.nonempty_type.type
+instance timeout.nonempty : Nonempty timeout := timeout.nonempty_type.property
+opaque timeout.zero_val : ZeroVal timeout := ⟨Classical.ofNonempty⟩
 attribute [instance] timeout.zero_val
 
 class timeout.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3232,8 +3322,10 @@ attribute [instance] timeout.TypeAssumptions.type_repr
   timeout.TypeAssumptions.method_set
   timeout.TypeAssumptions.ptr_method_set
 
-axiom temporary : Type
-axiom temporary.zero_val : ZeroVal temporary
+opaque temporary.nonempty_type : NonemptyType.{0}
+def temporary : Type := temporary.nonempty_type.type
+instance temporary.nonempty : Nonempty temporary := temporary.nonempty_type.property
+opaque temporary.zero_val : ZeroVal temporary := ⟨Classical.ofNonempty⟩
 attribute [instance] temporary.zero_val
 
 class temporary.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3249,8 +3341,10 @@ attribute [instance] temporary.TypeAssumptions.type_repr
   temporary.TypeAssumptions.method_set
   temporary.TypeAssumptions.ptr_method_set
 
-axiom ParseError : Type
-axiom ParseError.zero_val : ZeroVal ParseError
+opaque ParseError.nonempty_type : NonemptyType.{0}
+def ParseError : Type := ParseError.nonempty_type.type
+instance ParseError.nonempty : Nonempty ParseError := ParseError.nonempty_type.property
+opaque ParseError.zero_val : ZeroVal ParseError := ⟨Classical.ofNonempty⟩
 attribute [instance] ParseError.zero_val
 
 class ParseError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3266,8 +3360,10 @@ attribute [instance] ParseError.TypeAssumptions.type_repr
   ParseError.TypeAssumptions.method_set
   ParseError.TypeAssumptions.ptr_method_set
 
-axiom AddrError : Type
-axiom AddrError.zero_val : ZeroVal AddrError
+opaque AddrError.nonempty_type : NonemptyType.{0}
+def AddrError : Type := AddrError.nonempty_type.type
+instance AddrError.nonempty : Nonempty AddrError := AddrError.nonempty_type.property
+opaque AddrError.zero_val : ZeroVal AddrError := ⟨Classical.ofNonempty⟩
 attribute [instance] AddrError.zero_val
 
 class AddrError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3283,8 +3379,10 @@ attribute [instance] AddrError.TypeAssumptions.type_repr
   AddrError.TypeAssumptions.method_set
   AddrError.TypeAssumptions.ptr_method_set
 
-axiom UnknownNetworkError : Type
-axiom UnknownNetworkError.zero_val : ZeroVal UnknownNetworkError
+opaque UnknownNetworkError.nonempty_type : NonemptyType.{0}
+def UnknownNetworkError : Type := UnknownNetworkError.nonempty_type.type
+instance UnknownNetworkError.nonempty : Nonempty UnknownNetworkError := UnknownNetworkError.nonempty_type.property
+opaque UnknownNetworkError.zero_val : ZeroVal UnknownNetworkError := ⟨Classical.ofNonempty⟩
 attribute [instance] UnknownNetworkError.zero_val
 
 class UnknownNetworkError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3300,8 +3398,10 @@ attribute [instance] UnknownNetworkError.TypeAssumptions.type_repr
   UnknownNetworkError.TypeAssumptions.method_set
   UnknownNetworkError.TypeAssumptions.ptr_method_set
 
-axiom InvalidAddrError : Type
-axiom InvalidAddrError.zero_val : ZeroVal InvalidAddrError
+opaque InvalidAddrError.nonempty_type : NonemptyType.{0}
+def InvalidAddrError : Type := InvalidAddrError.nonempty_type.type
+instance InvalidAddrError.nonempty : Nonempty InvalidAddrError := InvalidAddrError.nonempty_type.property
+opaque InvalidAddrError.zero_val : ZeroVal InvalidAddrError := ⟨Classical.ofNonempty⟩
 attribute [instance] InvalidAddrError.zero_val
 
 class InvalidAddrError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3317,8 +3417,10 @@ attribute [instance] InvalidAddrError.TypeAssumptions.type_repr
   InvalidAddrError.TypeAssumptions.method_set
   InvalidAddrError.TypeAssumptions.ptr_method_set
 
-axiom timeoutError : Type
-axiom timeoutError.zero_val : ZeroVal timeoutError
+opaque timeoutError.nonempty_type : NonemptyType.{0}
+def timeoutError : Type := timeoutError.nonempty_type.type
+instance timeoutError.nonempty : Nonempty timeoutError := timeoutError.nonempty_type.property
+opaque timeoutError.zero_val : ZeroVal timeoutError := ⟨Classical.ofNonempty⟩
 attribute [instance] timeoutError.zero_val
 
 class timeoutError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3334,8 +3436,10 @@ attribute [instance] timeoutError.TypeAssumptions.type_repr
   timeoutError.TypeAssumptions.method_set
   timeoutError.TypeAssumptions.ptr_method_set
 
-axiom DNSConfigError : Type
-axiom DNSConfigError.zero_val : ZeroVal DNSConfigError
+opaque DNSConfigError.nonempty_type : NonemptyType.{0}
+def DNSConfigError : Type := DNSConfigError.nonempty_type.type
+instance DNSConfigError.nonempty : Nonempty DNSConfigError := DNSConfigError.nonempty_type.property
+opaque DNSConfigError.zero_val : ZeroVal DNSConfigError := ⟨Classical.ofNonempty⟩
 attribute [instance] DNSConfigError.zero_val
 
 class DNSConfigError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3351,8 +3455,10 @@ attribute [instance] DNSConfigError.TypeAssumptions.type_repr
   DNSConfigError.TypeAssumptions.method_set
   DNSConfigError.TypeAssumptions.ptr_method_set
 
-axiom notFoundError : Type
-axiom notFoundError.zero_val : ZeroVal notFoundError
+opaque notFoundError.nonempty_type : NonemptyType.{0}
+def notFoundError : Type := notFoundError.nonempty_type.type
+instance notFoundError.nonempty : Nonempty notFoundError := notFoundError.nonempty_type.property
+opaque notFoundError.zero_val : ZeroVal notFoundError := ⟨Classical.ofNonempty⟩
 attribute [instance] notFoundError.zero_val
 
 class notFoundError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3368,8 +3474,10 @@ attribute [instance] notFoundError.TypeAssumptions.type_repr
   notFoundError.TypeAssumptions.method_set
   notFoundError.TypeAssumptions.ptr_method_set
 
-axiom temporaryError : Type
-axiom temporaryError.zero_val : ZeroVal temporaryError
+opaque temporaryError.nonempty_type : NonemptyType.{0}
+def temporaryError : Type := temporaryError.nonempty_type.type
+instance temporaryError.nonempty : Nonempty temporaryError := temporaryError.nonempty_type.property
+opaque temporaryError.zero_val : ZeroVal temporaryError := ⟨Classical.ofNonempty⟩
 attribute [instance] temporaryError.zero_val
 
 class temporaryError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3385,8 +3493,10 @@ attribute [instance] temporaryError.TypeAssumptions.type_repr
   temporaryError.TypeAssumptions.method_set
   temporaryError.TypeAssumptions.ptr_method_set
 
-axiom DNSError : Type
-axiom DNSError.zero_val : ZeroVal DNSError
+opaque DNSError.nonempty_type : NonemptyType.{0}
+def DNSError : Type := DNSError.nonempty_type.type
+instance DNSError.nonempty : Nonempty DNSError := DNSError.nonempty_type.property
+opaque DNSError.zero_val : ZeroVal DNSError := ⟨Classical.ofNonempty⟩
 attribute [instance] DNSError.zero_val
 
 class DNSError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3402,8 +3512,10 @@ attribute [instance] DNSError.TypeAssumptions.type_repr
   DNSError.TypeAssumptions.method_set
   DNSError.TypeAssumptions.ptr_method_set
 
-axiom noReadFrom : Type
-axiom noReadFrom.zero_val : ZeroVal noReadFrom
+opaque noReadFrom.nonempty_type : NonemptyType.{0}
+def noReadFrom : Type := noReadFrom.nonempty_type.type
+instance noReadFrom.nonempty : Nonempty noReadFrom := noReadFrom.nonempty_type.property
+opaque noReadFrom.zero_val : ZeroVal noReadFrom := ⟨Classical.ofNonempty⟩
 attribute [instance] noReadFrom.zero_val
 
 class noReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3419,8 +3531,10 @@ attribute [instance] noReadFrom.TypeAssumptions.type_repr
   noReadFrom.TypeAssumptions.method_set
   noReadFrom.TypeAssumptions.ptr_method_set
 
-axiom tcpConnWithoutReadFrom : Type
-axiom tcpConnWithoutReadFrom.zero_val : ZeroVal tcpConnWithoutReadFrom
+opaque tcpConnWithoutReadFrom.nonempty_type : NonemptyType.{0}
+def tcpConnWithoutReadFrom : Type := tcpConnWithoutReadFrom.nonempty_type.type
+instance tcpConnWithoutReadFrom.nonempty : Nonempty tcpConnWithoutReadFrom := tcpConnWithoutReadFrom.nonempty_type.property
+opaque tcpConnWithoutReadFrom.zero_val : ZeroVal tcpConnWithoutReadFrom := ⟨Classical.ofNonempty⟩
 attribute [instance] tcpConnWithoutReadFrom.zero_val
 
 class tcpConnWithoutReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3436,8 +3550,10 @@ attribute [instance] tcpConnWithoutReadFrom.TypeAssumptions.type_repr
   tcpConnWithoutReadFrom.TypeAssumptions.method_set
   tcpConnWithoutReadFrom.TypeAssumptions.ptr_method_set
 
-axiom noWriteTo : Type
-axiom noWriteTo.zero_val : ZeroVal noWriteTo
+opaque noWriteTo.nonempty_type : NonemptyType.{0}
+def noWriteTo : Type := noWriteTo.nonempty_type.type
+instance noWriteTo.nonempty : Nonempty noWriteTo := noWriteTo.nonempty_type.property
+opaque noWriteTo.zero_val : ZeroVal noWriteTo := ⟨Classical.ofNonempty⟩
 attribute [instance] noWriteTo.zero_val
 
 class noWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3453,8 +3569,10 @@ attribute [instance] noWriteTo.TypeAssumptions.type_repr
   noWriteTo.TypeAssumptions.method_set
   noWriteTo.TypeAssumptions.ptr_method_set
 
-axiom tcpConnWithoutWriteTo : Type
-axiom tcpConnWithoutWriteTo.zero_val : ZeroVal tcpConnWithoutWriteTo
+opaque tcpConnWithoutWriteTo.nonempty_type : NonemptyType.{0}
+def tcpConnWithoutWriteTo : Type := tcpConnWithoutWriteTo.nonempty_type.type
+instance tcpConnWithoutWriteTo.nonempty : Nonempty tcpConnWithoutWriteTo := tcpConnWithoutWriteTo.nonempty_type.property
+opaque tcpConnWithoutWriteTo.zero_val : ZeroVal tcpConnWithoutWriteTo := ⟨Classical.ofNonempty⟩
 attribute [instance] tcpConnWithoutWriteTo.zero_val
 
 class tcpConnWithoutWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3470,8 +3588,10 @@ attribute [instance] tcpConnWithoutWriteTo.TypeAssumptions.type_repr
   tcpConnWithoutWriteTo.TypeAssumptions.method_set
   tcpConnWithoutWriteTo.TypeAssumptions.ptr_method_set
 
-axiom buffersWriter : Type
-axiom buffersWriter.zero_val : ZeroVal buffersWriter
+opaque buffersWriter.nonempty_type : NonemptyType.{0}
+def buffersWriter : Type := buffersWriter.nonempty_type.type
+instance buffersWriter.nonempty : Nonempty buffersWriter := buffersWriter.nonempty_type.property
+opaque buffersWriter.zero_val : ZeroVal buffersWriter := ⟨Classical.ofNonempty⟩
 attribute [instance] buffersWriter.zero_val
 
 class buffersWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3487,8 +3607,10 @@ attribute [instance] buffersWriter.TypeAssumptions.type_repr
   buffersWriter.TypeAssumptions.method_set
   buffersWriter.TypeAssumptions.ptr_method_set
 
-axiom Buffers : Type
-axiom Buffers.zero_val : ZeroVal Buffers
+opaque Buffers.nonempty_type : NonemptyType.{0}
+def Buffers : Type := Buffers.nonempty_type.type
+instance Buffers.nonempty : Nonempty Buffers := Buffers.nonempty_type.property
+opaque Buffers.zero_val : ZeroVal Buffers := ⟨Classical.ofNonempty⟩
 attribute [instance] Buffers.zero_val
 
 class Buffers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3504,8 +3626,10 @@ attribute [instance] Buffers.TypeAssumptions.type_repr
   Buffers.TypeAssumptions.method_set
   Buffers.TypeAssumptions.ptr_method_set
 
-axiom nsswitchConfig : Type
-axiom nsswitchConfig.zero_val : ZeroVal nsswitchConfig
+opaque nsswitchConfig.nonempty_type : NonemptyType.{0}
+def nsswitchConfig : Type := nsswitchConfig.nonempty_type.type
+instance nsswitchConfig.nonempty : Nonempty nsswitchConfig := nsswitchConfig.nonempty_type.property
+opaque nsswitchConfig.zero_val : ZeroVal nsswitchConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] nsswitchConfig.zero_val
 
 class nsswitchConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3521,8 +3645,10 @@ attribute [instance] nsswitchConfig.TypeAssumptions.type_repr
   nsswitchConfig.TypeAssumptions.method_set
   nsswitchConfig.TypeAssumptions.ptr_method_set
 
-axiom nssConf : Type
-axiom nssConf.zero_val : ZeroVal nssConf
+opaque nssConf.nonempty_type : NonemptyType.{0}
+def nssConf : Type := nssConf.nonempty_type.type
+instance nssConf.nonempty : Nonempty nssConf := nssConf.nonempty_type.property
+opaque nssConf.zero_val : ZeroVal nssConf := ⟨Classical.ofNonempty⟩
 attribute [instance] nssConf.zero_val
 
 class nssConf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3538,8 +3664,10 @@ attribute [instance] nssConf.TypeAssumptions.type_repr
   nssConf.TypeAssumptions.method_set
   nssConf.TypeAssumptions.ptr_method_set
 
-axiom nssSource : Type
-axiom nssSource.zero_val : ZeroVal nssSource
+opaque nssSource.nonempty_type : NonemptyType.{0}
+def nssSource : Type := nssSource.nonempty_type.type
+instance nssSource.nonempty : Nonempty nssSource := nssSource.nonempty_type.property
+opaque nssSource.zero_val : ZeroVal nssSource := ⟨Classical.ofNonempty⟩
 attribute [instance] nssSource.zero_val
 
 class nssSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3555,8 +3683,10 @@ attribute [instance] nssSource.TypeAssumptions.type_repr
   nssSource.TypeAssumptions.method_set
   nssSource.TypeAssumptions.ptr_method_set
 
-axiom nssCriterion : Type
-axiom nssCriterion.zero_val : ZeroVal nssCriterion
+opaque nssCriterion.nonempty_type : NonemptyType.{0}
+def nssCriterion : Type := nssCriterion.nonempty_type.type
+instance nssCriterion.nonempty : Nonempty nssCriterion := nssCriterion.nonempty_type.property
+opaque nssCriterion.zero_val : ZeroVal nssCriterion := ⟨Classical.ofNonempty⟩
 attribute [instance] nssCriterion.zero_val
 
 class nssCriterion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3572,8 +3702,10 @@ attribute [instance] nssCriterion.TypeAssumptions.type_repr
   nssCriterion.TypeAssumptions.method_set
   nssCriterion.TypeAssumptions.ptr_method_set
 
-axiom file : Type
-axiom file.zero_val : ZeroVal file
+opaque file.nonempty_type : NonemptyType.{0}
+def file : Type := file.nonempty_type.type
+instance file.nonempty : Nonempty file := file.nonempty_type.property
+opaque file.zero_val : ZeroVal file := ⟨Classical.ofNonempty⟩
 attribute [instance] file.zero_val
 
 class file.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3589,8 +3721,10 @@ attribute [instance] file.TypeAssumptions.type_repr
   file.TypeAssumptions.method_set
   file.TypeAssumptions.ptr_method_set
 
-axiom pipeDeadline : Type
-axiom pipeDeadline.zero_val : ZeroVal pipeDeadline
+opaque pipeDeadline.nonempty_type : NonemptyType.{0}
+def pipeDeadline : Type := pipeDeadline.nonempty_type.type
+instance pipeDeadline.nonempty : Nonempty pipeDeadline := pipeDeadline.nonempty_type.property
+opaque pipeDeadline.zero_val : ZeroVal pipeDeadline := ⟨Classical.ofNonempty⟩
 attribute [instance] pipeDeadline.zero_val
 
 class pipeDeadline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3606,8 +3740,10 @@ attribute [instance] pipeDeadline.TypeAssumptions.type_repr
   pipeDeadline.TypeAssumptions.method_set
   pipeDeadline.TypeAssumptions.ptr_method_set
 
-axiom pipeAddr : Type
-axiom pipeAddr.zero_val : ZeroVal pipeAddr
+opaque pipeAddr.nonempty_type : NonemptyType.{0}
+def pipeAddr : Type := pipeAddr.nonempty_type.type
+instance pipeAddr.nonempty : Nonempty pipeAddr := pipeAddr.nonempty_type.property
+opaque pipeAddr.zero_val : ZeroVal pipeAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] pipeAddr.zero_val
 
 class pipeAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3623,8 +3759,10 @@ attribute [instance] pipeAddr.TypeAssumptions.type_repr
   pipeAddr.TypeAssumptions.method_set
   pipeAddr.TypeAssumptions.ptr_method_set
 
-axiom pipe : Type
-axiom pipe.zero_val : ZeroVal pipe
+opaque pipe.nonempty_type : NonemptyType.{0}
+def pipe : Type := pipe.nonempty_type.type
+instance pipe.nonempty : Nonempty pipe := pipe.nonempty_type.property
+opaque pipe.zero_val : ZeroVal pipe := ⟨Classical.ofNonempty⟩
 attribute [instance] pipe.zero_val
 
 class pipe.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3640,8 +3778,10 @@ attribute [instance] pipe.TypeAssumptions.type_repr
   pipe.TypeAssumptions.method_set
   pipe.TypeAssumptions.ptr_method_set
 
-axiom rawConn : Type
-axiom rawConn.zero_val : ZeroVal rawConn
+opaque rawConn.nonempty_type : NonemptyType.{0}
+def rawConn : Type := rawConn.nonempty_type.type
+instance rawConn.nonempty : Nonempty rawConn := rawConn.nonempty_type.property
+opaque rawConn.zero_val : ZeroVal rawConn := ⟨Classical.ofNonempty⟩
 attribute [instance] rawConn.zero_val
 
 class rawConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3657,8 +3797,10 @@ attribute [instance] rawConn.TypeAssumptions.type_repr
   rawConn.TypeAssumptions.method_set
   rawConn.TypeAssumptions.ptr_method_set
 
-axiom rawListener : Type
-axiom rawListener.zero_val : ZeroVal rawListener
+opaque rawListener.nonempty_type : NonemptyType.{0}
+def rawListener : Type := rawListener.nonempty_type.type
+instance rawListener.nonempty : Nonempty rawListener := rawListener.nonempty_type.property
+opaque rawListener.zero_val : ZeroVal rawListener := ⟨Classical.ofNonempty⟩
 attribute [instance] rawListener.zero_val
 
 class rawListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3674,8 +3816,10 @@ attribute [instance] rawListener.TypeAssumptions.type_repr
   rawListener.TypeAssumptions.method_set
   rawListener.TypeAssumptions.ptr_method_set
 
-axiom sockaddr : Type
-axiom sockaddr.zero_val : ZeroVal sockaddr
+opaque sockaddr.nonempty_type : NonemptyType.{0}
+def sockaddr : Type := sockaddr.nonempty_type.type
+instance sockaddr.nonempty : Nonempty sockaddr := sockaddr.nonempty_type.property
+opaque sockaddr.zero_val : ZeroVal sockaddr := ⟨Classical.ofNonempty⟩
 attribute [instance] sockaddr.zero_val
 
 class sockaddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3691,8 +3835,10 @@ attribute [instance] sockaddr.TypeAssumptions.type_repr
   sockaddr.TypeAssumptions.method_set
   sockaddr.TypeAssumptions.ptr_method_set
 
-axiom TCPAddr : Type
-axiom TCPAddr.zero_val : ZeroVal TCPAddr
+opaque TCPAddr.nonempty_type : NonemptyType.{0}
+def TCPAddr : Type := TCPAddr.nonempty_type.type
+instance TCPAddr.nonempty : Nonempty TCPAddr := TCPAddr.nonempty_type.property
+opaque TCPAddr.zero_val : ZeroVal TCPAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] TCPAddr.zero_val
 
 class TCPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3708,8 +3854,10 @@ attribute [instance] TCPAddr.TypeAssumptions.type_repr
   TCPAddr.TypeAssumptions.method_set
   TCPAddr.TypeAssumptions.ptr_method_set
 
-axiom TCPConn : Type
-axiom TCPConn.zero_val : ZeroVal TCPConn
+opaque TCPConn.nonempty_type : NonemptyType.{0}
+def TCPConn : Type := TCPConn.nonempty_type.type
+instance TCPConn.nonempty : Nonempty TCPConn := TCPConn.nonempty_type.property
+opaque TCPConn.zero_val : ZeroVal TCPConn := ⟨Classical.ofNonempty⟩
 attribute [instance] TCPConn.zero_val
 
 class TCPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3725,8 +3873,10 @@ attribute [instance] TCPConn.TypeAssumptions.type_repr
   TCPConn.TypeAssumptions.method_set
   TCPConn.TypeAssumptions.ptr_method_set
 
-axiom KeepAliveConfig : Type
-axiom KeepAliveConfig.zero_val : ZeroVal KeepAliveConfig
+opaque KeepAliveConfig.nonempty_type : NonemptyType.{0}
+def KeepAliveConfig : Type := KeepAliveConfig.nonempty_type.type
+instance KeepAliveConfig.nonempty : Nonempty KeepAliveConfig := KeepAliveConfig.nonempty_type.property
+opaque KeepAliveConfig.zero_val : ZeroVal KeepAliveConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] KeepAliveConfig.zero_val
 
 class KeepAliveConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3742,8 +3892,10 @@ attribute [instance] KeepAliveConfig.TypeAssumptions.type_repr
   KeepAliveConfig.TypeAssumptions.method_set
   KeepAliveConfig.TypeAssumptions.ptr_method_set
 
-axiom TCPListener : Type
-axiom TCPListener.zero_val : ZeroVal TCPListener
+opaque TCPListener.nonempty_type : NonemptyType.{0}
+def TCPListener : Type := TCPListener.nonempty_type.type
+instance TCPListener.nonempty : Nonempty TCPListener := TCPListener.nonempty_type.property
+opaque TCPListener.zero_val : ZeroVal TCPListener := ⟨Classical.ofNonempty⟩
 attribute [instance] TCPListener.zero_val
 
 class TCPListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3759,8 +3911,10 @@ attribute [instance] TCPListener.TypeAssumptions.type_repr
   TCPListener.TypeAssumptions.method_set
   TCPListener.TypeAssumptions.ptr_method_set
 
-axiom UDPAddr : Type
-axiom UDPAddr.zero_val : ZeroVal UDPAddr
+opaque UDPAddr.nonempty_type : NonemptyType.{0}
+def UDPAddr : Type := UDPAddr.nonempty_type.type
+instance UDPAddr.nonempty : Nonempty UDPAddr := UDPAddr.nonempty_type.property
+opaque UDPAddr.zero_val : ZeroVal UDPAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] UDPAddr.zero_val
 
 class UDPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3776,8 +3930,10 @@ attribute [instance] UDPAddr.TypeAssumptions.type_repr
   UDPAddr.TypeAssumptions.method_set
   UDPAddr.TypeAssumptions.ptr_method_set
 
-axiom addrPortUDPAddr : Type
-axiom addrPortUDPAddr.zero_val : ZeroVal addrPortUDPAddr
+opaque addrPortUDPAddr.nonempty_type : NonemptyType.{0}
+def addrPortUDPAddr : Type := addrPortUDPAddr.nonempty_type.type
+instance addrPortUDPAddr.nonempty : Nonempty addrPortUDPAddr := addrPortUDPAddr.nonempty_type.property
+opaque addrPortUDPAddr.zero_val : ZeroVal addrPortUDPAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] addrPortUDPAddr.zero_val
 
 class addrPortUDPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3793,8 +3949,10 @@ attribute [instance] addrPortUDPAddr.TypeAssumptions.type_repr
   addrPortUDPAddr.TypeAssumptions.method_set
   addrPortUDPAddr.TypeAssumptions.ptr_method_set
 
-axiom UDPConn : Type
-axiom UDPConn.zero_val : ZeroVal UDPConn
+opaque UDPConn.nonempty_type : NonemptyType.{0}
+def UDPConn : Type := UDPConn.nonempty_type.type
+instance UDPConn.nonempty : Nonempty UDPConn := UDPConn.nonempty_type.property
+opaque UDPConn.zero_val : ZeroVal UDPConn := ⟨Classical.ofNonempty⟩
 attribute [instance] UDPConn.zero_val
 
 class UDPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3810,8 +3968,10 @@ attribute [instance] UDPConn.TypeAssumptions.type_repr
   UDPConn.TypeAssumptions.method_set
   UDPConn.TypeAssumptions.ptr_method_set
 
-axiom UnixAddr : Type
-axiom UnixAddr.zero_val : ZeroVal UnixAddr
+opaque UnixAddr.nonempty_type : NonemptyType.{0}
+def UnixAddr : Type := UnixAddr.nonempty_type.type
+instance UnixAddr.nonempty : Nonempty UnixAddr := UnixAddr.nonempty_type.property
+opaque UnixAddr.zero_val : ZeroVal UnixAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] UnixAddr.zero_val
 
 class UnixAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3827,8 +3987,10 @@ attribute [instance] UnixAddr.TypeAssumptions.type_repr
   UnixAddr.TypeAssumptions.method_set
   UnixAddr.TypeAssumptions.ptr_method_set
 
-axiom UnixConn : Type
-axiom UnixConn.zero_val : ZeroVal UnixConn
+opaque UnixConn.nonempty_type : NonemptyType.{0}
+def UnixConn : Type := UnixConn.nonempty_type.type
+instance UnixConn.nonempty : Nonempty UnixConn := UnixConn.nonempty_type.property
+opaque UnixConn.zero_val : ZeroVal UnixConn := ⟨Classical.ofNonempty⟩
 attribute [instance] UnixConn.zero_val
 
 class UnixConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3844,8 +4006,10 @@ attribute [instance] UnixConn.TypeAssumptions.type_repr
   UnixConn.TypeAssumptions.method_set
   UnixConn.TypeAssumptions.ptr_method_set
 
-axiom UnixListener : Type
-axiom UnixListener.zero_val : ZeroVal UnixListener
+opaque UnixListener.nonempty_type : NonemptyType.{0}
+def UnixListener : Type := UnixListener.nonempty_type.type
+instance UnixListener.nonempty : Nonempty UnixListener := UnixListener.nonempty_type.property
+opaque UnixListener.zero_val : ZeroVal UnixListener := ⟨Classical.ofNonempty⟩
 attribute [instance] UnixListener.zero_val
 
 class UnixListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3861,8 +4025,10 @@ attribute [instance] UnixListener.TypeAssumptions.type_repr
   UnixListener.TypeAssumptions.method_set
   UnixListener.TypeAssumptions.ptr_method_set
 
-axiom «_» : Type
-axiom «_».zero_val : ZeroVal «_»
+opaque «_».nonempty_type : NonemptyType.{0}
+def «_» : Type := «_».nonempty_type.type
+instance «_».nonempty : Nonempty «_» := «_».nonempty_type.property
+opaque «_».zero_val : ZeroVal «_» := ⟨Classical.ofNonempty⟩
 attribute [instance] «_».zero_val
 
 class «_».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3878,8 +4044,10 @@ attribute [instance] «_».TypeAssumptions.type_repr
   «_».TypeAssumptions.method_set
   «_».TypeAssumptions.ptr_method_set
 
-axiom _Ctype__GoString_ : Type
-axiom _Ctype__GoString_.zero_val : ZeroVal _Ctype__GoString_
+opaque _Ctype__GoString_.nonempty_type : NonemptyType.{0}
+def _Ctype__GoString_ : Type := _Ctype__GoString_.nonempty_type.type
+instance _Ctype__GoString_.nonempty : Nonempty _Ctype__GoString_ := _Ctype__GoString_.nonempty_type.property
+opaque _Ctype__GoString_.zero_val : ZeroVal _Ctype__GoString_ := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype__GoString_.zero_val
 
 class _Ctype__GoString_.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3895,8 +4063,10 @@ attribute [instance] _Ctype__GoString_.TypeAssumptions.type_repr
   _Ctype__GoString_.TypeAssumptions.method_set
   _Ctype__GoString_.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_char : Type
-axiom _Ctype_char.zero_val : ZeroVal _Ctype_char
+opaque _Ctype_char.nonempty_type : NonemptyType.{0}
+def _Ctype_char : Type := _Ctype_char.nonempty_type.type
+instance _Ctype_char.nonempty : Nonempty _Ctype_char := _Ctype_char.nonempty_type.property
+opaque _Ctype_char.zero_val : ZeroVal _Ctype_char := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_char.zero_val
 
 class _Ctype_char.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3912,8 +4082,10 @@ attribute [instance] _Ctype_char.TypeAssumptions.type_repr
   _Ctype_char.TypeAssumptions.method_set
   _Ctype_char.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_int : Type
-axiom _Ctype_int.zero_val : ZeroVal _Ctype_int
+opaque _Ctype_int.nonempty_type : NonemptyType.{0}
+def _Ctype_int : Type := _Ctype_int.nonempty_type.type
+instance _Ctype_int.nonempty : Nonempty _Ctype_int := _Ctype_int.nonempty_type.property
+opaque _Ctype_int.zero_val : ZeroVal _Ctype_int := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_int.zero_val
 
 class _Ctype_int.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3929,8 +4101,10 @@ attribute [instance] _Ctype_int.TypeAssumptions.type_repr
   _Ctype_int.TypeAssumptions.method_set
   _Ctype_int.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_long : Type
-axiom _Ctype_long.zero_val : ZeroVal _Ctype_long
+opaque _Ctype_long.nonempty_type : NonemptyType.{0}
+def _Ctype_long : Type := _Ctype_long.nonempty_type.type
+instance _Ctype_long.nonempty : Nonempty _Ctype_long := _Ctype_long.nonempty_type.property
+opaque _Ctype_long.zero_val : ZeroVal _Ctype_long := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_long.zero_val
 
 class _Ctype_long.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3946,8 +4120,10 @@ attribute [instance] _Ctype_long.TypeAssumptions.type_repr
   _Ctype_long.TypeAssumptions.method_set
   _Ctype_long.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_struct_addrinfo : Type
-axiom _Ctype_struct_addrinfo.zero_val : ZeroVal _Ctype_struct_addrinfo
+opaque _Ctype_struct_addrinfo.nonempty_type : NonemptyType.{0}
+def _Ctype_struct_addrinfo : Type := _Ctype_struct_addrinfo.nonempty_type.type
+instance _Ctype_struct_addrinfo.nonempty : Nonempty _Ctype_struct_addrinfo := _Ctype_struct_addrinfo.nonempty_type.property
+opaque _Ctype_struct_addrinfo.zero_val : ZeroVal _Ctype_struct_addrinfo := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_struct_addrinfo.zero_val
 
 class _Ctype_struct_addrinfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3963,8 +4139,10 @@ attribute [instance] _Ctype_struct_addrinfo.TypeAssumptions.type_repr
   _Ctype_struct_addrinfo.TypeAssumptions.method_set
   _Ctype_struct_addrinfo.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_struct_sockaddr : Type
-axiom _Ctype_struct_sockaddr.zero_val : ZeroVal _Ctype_struct_sockaddr
+opaque _Ctype_struct_sockaddr.nonempty_type : NonemptyType.{0}
+def _Ctype_struct_sockaddr : Type := _Ctype_struct_sockaddr.nonempty_type.type
+instance _Ctype_struct_sockaddr.nonempty : Nonempty _Ctype_struct_sockaddr := _Ctype_struct_sockaddr.nonempty_type.property
+opaque _Ctype_struct_sockaddr.zero_val : ZeroVal _Ctype_struct_sockaddr := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_struct_sockaddr.zero_val
 
 class _Ctype_struct_sockaddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3980,8 +4158,10 @@ attribute [instance] _Ctype_struct_sockaddr.TypeAssumptions.type_repr
   _Ctype_struct_sockaddr.TypeAssumptions.method_set
   _Ctype_struct_sockaddr.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_uchar : Type
-axiom _Ctype_uchar.zero_val : ZeroVal _Ctype_uchar
+opaque _Ctype_uchar.nonempty_type : NonemptyType.{0}
+def _Ctype_uchar : Type := _Ctype_uchar.nonempty_type.type
+instance _Ctype_uchar.nonempty : Nonempty _Ctype_uchar := _Ctype_uchar.nonempty_type.property
+opaque _Ctype_uchar.zero_val : ZeroVal _Ctype_uchar := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_uchar.zero_val
 
 class _Ctype_uchar.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3997,8 +4177,10 @@ attribute [instance] _Ctype_uchar.TypeAssumptions.type_repr
   _Ctype_uchar.TypeAssumptions.method_set
   _Ctype_uchar.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_uint : Type
-axiom _Ctype_uint.zero_val : ZeroVal _Ctype_uint
+opaque _Ctype_uint.nonempty_type : NonemptyType.{0}
+def _Ctype_uint : Type := _Ctype_uint.nonempty_type.type
+instance _Ctype_uint.nonempty : Nonempty _Ctype_uint := _Ctype_uint.nonempty_type.property
+opaque _Ctype_uint.zero_val : ZeroVal _Ctype_uint := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_uint.zero_val
 
 class _Ctype_uint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4014,8 +4196,10 @@ attribute [instance] _Ctype_uint.TypeAssumptions.type_repr
   _Ctype_uint.TypeAssumptions.method_set
   _Ctype_uint.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_ulong : Type
-axiom _Ctype_ulong.zero_val : ZeroVal _Ctype_ulong
+opaque _Ctype_ulong.nonempty_type : NonemptyType.{0}
+def _Ctype_ulong : Type := _Ctype_ulong.nonempty_type.type
+instance _Ctype_ulong.nonempty : Nonempty _Ctype_ulong := _Ctype_ulong.nonempty_type.property
+opaque _Ctype_ulong.zero_val : ZeroVal _Ctype_ulong := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_ulong.zero_val
 
 class _Ctype_ulong.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4031,8 +4215,10 @@ attribute [instance] _Ctype_ulong.TypeAssumptions.type_repr
   _Ctype_ulong.TypeAssumptions.method_set
   _Ctype_ulong.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_ushort : Type
-axiom _Ctype_ushort.zero_val : ZeroVal _Ctype_ushort
+opaque _Ctype_ushort.nonempty_type : NonemptyType.{0}
+def _Ctype_ushort : Type := _Ctype_ushort.nonempty_type.type
+instance _Ctype_ushort.nonempty : Nonempty _Ctype_ushort := _Ctype_ushort.nonempty_type.property
+opaque _Ctype_ushort.zero_val : ZeroVal _Ctype_ushort := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_ushort.zero_val
 
 class _Ctype_ushort.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4048,8 +4234,10 @@ attribute [instance] _Ctype_ushort.TypeAssumptions.type_repr
   _Ctype_ushort.TypeAssumptions.method_set
   _Ctype_ushort.TypeAssumptions.ptr_method_set
 
-axiom _Ctype_void : Type
-axiom _Ctype_void.zero_val : ZeroVal _Ctype_void
+opaque _Ctype_void.nonempty_type : NonemptyType.{0}
+def _Ctype_void : Type := _Ctype_void.nonempty_type.type
+instance _Ctype_void.nonempty : Nonempty _Ctype_void := _Ctype_void.nonempty_type.property
+opaque _Ctype_void.zero_val : ZeroVal _Ctype_void := ⟨Classical.ofNonempty⟩
 attribute [instance] _Ctype_void.zero_val
 
 class _Ctype_void.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

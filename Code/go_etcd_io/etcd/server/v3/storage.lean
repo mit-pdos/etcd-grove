@@ -64,18 +64,18 @@ noncomputable def storage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] storage.ty
 
-axiom DefaultQuotaBytes [GooseExts] [GoGlobalContext] : val
+opaque DefaultQuotaBytes [GooseExts] [GoGlobalContext] : val
 
-axiom MaxQuotaBytes [GooseExts] [GoGlobalContext] : val
+opaque MaxQuotaBytes [GooseExts] [GoGlobalContext] : val
 
-axiom leaseOverhead [GooseExts] [GoGlobalContext] : val
+opaque leaseOverhead [GooseExts] [GoGlobalContext] : val
 
-axiom kvOverhead [GooseExts] [GoGlobalContext] : val
+opaque kvOverhead [GooseExts] [GoGlobalContext] : val
 
 noncomputable def quotaBackendBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.quotaBackendBytes"
 
-axiom quotaBackendBytes.init [GooseExts] [GoGlobalContext] : val
+opaque quotaBackendBytes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def quotaLogOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.quotaLogOnce"
@@ -83,12 +83,12 @@ noncomputable def quotaLogOnce [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def DefaultQuotaSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.DefaultQuotaSize"
 
-axiom DefaultQuotaSize.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultQuotaSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxQuotaSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.maxQuotaSize"
 
-axiom maxQuotaSize.init [GooseExts] [GoGlobalContext] : val
+opaque maxQuotaSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.newBackend"
@@ -488,7 +488,7 @@ noncomputable def storage.Sync.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.etcd.server.v3.storage.wal.walpb]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

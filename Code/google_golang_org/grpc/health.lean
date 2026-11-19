@@ -35,30 +35,30 @@ noncomputable def Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Server.ty
 
-axiom producerBuilder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque producerBuilder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom healthServiceProducer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque healthServiceProducer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom healthCheckMethod [GooseExts] [GoGlobalContext] : val
+opaque healthCheckMethod [GooseExts] [GoGlobalContext] : val
 
-axiom maxAllowedServices [GooseExts] [GoGlobalContext] : val
+opaque maxAllowedServices [GooseExts] [GoGlobalContext] : val
 
 noncomputable def backoffStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.backoffStrategy"
 
-axiom backoffStrategy.init [GooseExts] [GoGlobalContext] : val
+opaque backoffStrategy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def backoffFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.backoffFunc"
 
-axiom backoffFunc.init [GooseExts] [GoGlobalContext] : val
+opaque backoffFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.logger"
 
-axiom logger.init [GooseExts] [GoGlobalContext] : val
+opaque logger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def producerBuilderSingleton [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.producerBuilderSingleton"
@@ -81,7 +81,7 @@ noncomputable def NewServer [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -102,8 +102,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val backoffStrategy.init) (Val #()))))))))
 
-axiom producerBuilder : Type
-axiom producerBuilder.zero_val : ZeroVal producerBuilder
+opaque producerBuilder.nonempty_type : NonemptyType.{0}
+def producerBuilder : Type := producerBuilder.nonempty_type.type
+instance producerBuilder.nonempty : Nonempty producerBuilder := producerBuilder.nonempty_type.property
+opaque producerBuilder.zero_val : ZeroVal producerBuilder := ⟨Classical.ofNonempty⟩
 attribute [instance] producerBuilder.zero_val
 
 class producerBuilder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -119,8 +121,10 @@ attribute [instance] producerBuilder.TypeAssumptions.type_repr
   producerBuilder.TypeAssumptions.method_set
   producerBuilder.TypeAssumptions.ptr_method_set
 
-axiom healthServiceProducer : Type
-axiom healthServiceProducer.zero_val : ZeroVal healthServiceProducer
+opaque healthServiceProducer.nonempty_type : NonemptyType.{0}
+def healthServiceProducer : Type := healthServiceProducer.nonempty_type.type
+instance healthServiceProducer.nonempty : Nonempty healthServiceProducer := healthServiceProducer.nonempty_type.property
+opaque healthServiceProducer.zero_val : ZeroVal healthServiceProducer := ⟨Classical.ofNonempty⟩
 attribute [instance] healthServiceProducer.zero_val
 
 class healthServiceProducer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -136,8 +140,10 @@ attribute [instance] healthServiceProducer.TypeAssumptions.type_repr
   healthServiceProducer.TypeAssumptions.method_set
   healthServiceProducer.TypeAssumptions.ptr_method_set
 
-axiom Server : Type
-axiom Server.zero_val : ZeroVal Server
+opaque Server.nonempty_type : NonemptyType.{0}
+def Server : Type := Server.nonempty_type.type
+instance Server.nonempty : Nonempty Server := Server.nonempty_type.property
+opaque Server.zero_val : ZeroVal Server := ⟨Classical.ofNonempty⟩
 attribute [instance] Server.zero_val
 
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -28,117 +28,117 @@ attribute [irreducible] DiscoveryError.ty
 noncomputable def ErrUnknownMethod [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrUnknownMethod"
 
-axiom ErrUnknownMethod.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnknownMethod.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrStopped"
 
-axiom ErrStopped.init [GooseExts] [GoGlobalContext] : val
+opaque ErrStopped.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrCanceled"
 
-axiom ErrCanceled.init [GooseExts] [GoGlobalContext] : val
+opaque ErrCanceled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeout"
 
-axiom ErrTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutDueToLeaderFail [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeoutDueToLeaderFail"
 
-axiom ErrTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutDueToConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeoutDueToConnectionLost"
 
-axiom ErrTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutLeaderTransfer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeoutLeaderTransfer"
 
-axiom ErrTimeoutLeaderTransfer.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeoutLeaderTransfer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutWaitAppliedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeoutWaitAppliedIndex"
 
-axiom ErrTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaderChanged [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrLeaderChanged"
 
-axiom ErrLeaderChanged.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLeaderChanged.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotEnoughStartedMembers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrNotEnoughStartedMembers"
 
-axiom ErrNotEnoughStartedMembers.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotEnoughStartedMembers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLearnerNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrLearnerNotReady"
 
-axiom ErrLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrNoLeader"
 
-axiom ErrNoLeader.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrNotLeader"
 
-axiom ErrNotLeader.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRequestTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrRequestTooLarge"
 
-axiom ErrRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
+opaque ErrRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrNoSpace"
 
-axiom ErrNoSpace.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoSpace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTooManyRequests"
 
-axiom ErrTooManyRequests.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTooManyRequests.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnhealthy [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrUnhealthy"
 
-axiom ErrUnhealthy.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnhealthy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrCorrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrCorrupt"
 
-axiom ErrCorrupt.init [GooseExts] [GoGlobalContext] : val
+opaque ErrCorrupt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrBadLeaderTransferee"
 
-axiom ErrBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
+opaque ErrBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClusterVersionUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrClusterVersionUnavailable"
 
-axiom ErrClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
+opaque ErrClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrWrongDowngradeVersionFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrWrongDowngradeVersionFormat"
 
-axiom ErrWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
+opaque ErrWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrKeyNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrKeyNotFound"
 
-axiom ErrKeyNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrKeyNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

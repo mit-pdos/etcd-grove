@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the axiom-tok gate, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports and interfaces. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports, the import tiers and the interfaces. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -26,6 +26,16 @@ export LAKE_RESTORE_ARTIFACTS=${LAKE_RESTORE_ARTIFACTS:-true}
 # the run's whole import closure, proofs included): a group none of whose imports changed is read
 # from the cache. TCB_CACHE= (empty) runs every group.
 export TCB_CACHE=${TCB_CACHE-/shared/tmp/tcb-report-cache}
+# The Go tests below use Go's own test cache (keyed by the test binary, so by every Go source and
+# dependency it is built from, and by the files and environment variables the test reads; only a
+# pass is cached): they read Go code only, never the proofs, so a branch that changes no Go code
+# reruns none of them (k8s 7e's cluster tests were 4.5 minutes of every landing, 2026-11-18).
+# GATES_GO_COUNT=-count=1 reruns them all. For a result to be reused across runs and worktrees
+# (each landing is a branch worktree of its own), `gotest` runs them with a stable TMPDIR (Go
+# records the variables a test reads: os.MkdirTemp reads TMPDIR; the tests' own directories are
+# unique below it) and -trimpath (no worktree path in the test binary). Measured: k8s 7e's
+# TestClientErrorTypes 215s, then (cached) in 0.4s.
+gocount=${GATES_GO_COUNT-}
 pk=()
 if [ -n "${LAKE_PACKAGES:-}" ]; then pk=(--packages="$LAKE_PACKAGES"); export LAKE_OPTS="--packages=$LAKE_PACKAGES"; fi
 fail=0
@@ -42,6 +52,10 @@ tmp=$(mktemp -d "$gtmp/gates.XXXXXX")
 mkdir -p "$tmp/tmpdir"
 export TMPDIR="$tmp/tmpdir"
 trap 'rm -rf "$tmp"; unlink_perennial' EXIT
+# the Go tests' TMPDIR (above), on a disk, shared by every gate run
+gotmp=${GATES_GO_TMPDIR:-/shared/tmp/gates-gotest}
+mkdir -p "$gotmp"
+gotest() { TMPDIR="$gotmp" GOFLAGS="${GOFLAGS:+$GOFLAGS }-trimpath" go test $gocount "$@"; }
 
 linked=0
 link_perennial() {
@@ -200,7 +214,7 @@ python3 etc/model-param-check.py || fail=1
 python3 etc/pbschema-check.py || fail=1
 # raft-entsize: etcd's bootstrapped raft configuration has MaxSizePerMsg = 2^20 (`rnStartCfg`'s
 # `maxMsg`, a field of the bootstrap contract; examples/entsize, about a second)
-if (cd examples && GOWORK=off go test -count=1 ./entsize/ > "$tmp/entsize.log" 2>&1); then
+if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
   echo "entsize: ok"
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
@@ -276,6 +290,13 @@ if python3 etc/import-all-check.py --check > "$tmp/ia.log" 2>&1; then
 else
   echo "import-all: FAILED"; head -20 "$tmp/ia.log"; fail=1
 fi
+# the import tiers: no spec, definition or proof module imports a proof or linking module, but the
+# known ones of etc/tier-baseline.txt (CLAUDE.md, "Import tiers"; reads the sources only, seconds)
+if python3 etc/tier-check.py --check > "$tmp/tier.log" 2>&1; then
+  echo "$(tail -1 "$tmp/tier.log")"
+else
+  echo "tier: FAILED"; head -20 "$tmp/tier.log"; fail=1
+fi
 return $fail
 }
 
@@ -284,11 +305,23 @@ fail=0
 # 8b. the checked-in interfaces (`interface/`) are what the build exports, with no new layout
 # violation: CI's "Check the packages' interfaces" loop, verbatim (reads the build; `$LAKE_OPTS`
 # carries `--packages`). Added 2026-11-13: CI failed on it since a1e57a9676 while land.sh passed.
+# The packages at once (each about 30s, mostly its own parallel pretty-printing; one after another
+# they were 200s of the gate, 2026-11-18).
 iface=ok
+pids=()
 for c in etc/api/*.txt; do
   case "$c" in *-layout.txt) continue ;; esac
-  if ! python3 etc/gen-interface.py "$c" --check --layout > "$tmp/iface.log" 2>&1; then
-    echo "interface $c: FAILED"; tail -20 "$tmp/iface.log"; iface=FAILED
+  b=$(basename "$c" .txt)
+  ( python3 etc/gen-interface.py "$c" --check --layout > "$tmp/iface.$b.log" 2>&1
+    echo $? > "$tmp/iface.$b.status" ) &
+  pids+=($!)
+done
+wait "${pids[@]}"
+for c in etc/api/*.txt; do
+  case "$c" in *-layout.txt) continue ;; esac
+  b=$(basename "$c" .txt)
+  if [ "$(cat "$tmp/iface.$b.status" 2>/dev/null)" != 0 ]; then
+    echo "interface $c: FAILED"; tail -20 "$tmp/iface.$b.log"; iface=FAILED
   fi
 done
 echo "interfaces: $iface"; [ "$iface" = ok ] || fail=1
@@ -302,7 +335,7 @@ fail=0
 # (premise fixes 3: skipped while the examples module holds none, `go test` failing on no packages)
 if [ -z "$(cd examples && GOWORK=off go list ./premisefix/... 2>/dev/null)" ]; then
   echo "premisefix: none in the examples module"
-elif (cd examples && GOWORK=off go test -count=1 ./premisefix/... > "$tmp/pf.log" 2>&1); then
+elif (cd examples && GOWORK=off gotest ./premisefix/... > "$tmp/pf.log" 2>&1); then
   echo "premisefix: ok ($(grep -c '^ok' "$tmp/pf.log") packages)"
 else
   echo "premisefix: FAILED"; tail -20 "$tmp/pf.log"; fail=1
@@ -313,7 +346,7 @@ fi
 pfn=0
 for m in $(find examples/premisefix -mindepth 2 -name go.mod 2>/dev/null | sort); do
   d=$(dirname "$m")
-  if (cd "$d" && GOWORK=off go test -count=1 ./... > "$tmp/pfn.log" 2>&1); then
+  if (cd "$d" && GOWORK=off gotest ./... > "$tmp/pfn.log" 2>&1); then
     pfn=$((pfn + 1))
   else
     echo "premisefix $d: FAILED"; tail -20 "$tmp/pfn.log"; fail=1
@@ -336,7 +369,7 @@ fail=0
 cet_try=0; cet_ok=0; cet_miss=
 while [ $cet_try -lt 3 ]; do
   cet_try=$((cet_try + 1))
-  if (cd examples/k8s/etcd3 && GOWORK=off go test -count=1 -timeout 30m \
+  if (cd examples/k8s/etcd3 && GOWORK=off gotest -timeout 30m \
       -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
     cet_ok=1; break
   fi
@@ -351,21 +384,21 @@ fi
 
 # 9e. the attack programs behind grpcInvokerOk's attempt-level error types (k8s 7e Freeze review):
 # grpc-go's bare invoker returns nil or *status.Error under etcd's configuration (seconds)
-if (cd examples/k8s7e1attack && GOWORK=off go test -count=1 ./... > "$tmp/k7a.log" 2>&1); then
+if (cd examples/k8s7e1attack && GOWORK=off gotest ./... > "$tmp/k7a.log" 2>&1); then
   echo "k8s 7e-1 attack programs: ok"
 else
   echo "k8s 7e-1 attack programs: FAILED"; tail -20 "$tmp/k7a.log"; fail=1
 fi
 # 9f. k8s 7e-2's Go evidence for its trusted texts (examples/k8s7e2attack, at the etcd pin of
 # etc/goose.py: rpctypes' error values, apierrors' views, tracing's contexts, reflect; seconds)
-if (cd examples/k8s7e2attack && GOWORK=off go test -count=1 ./... > "$tmp/k72.log" 2>&1); then
+if (cd examples/k8s7e2attack && GOWORK=off gotest ./... > "$tmp/k72.log" 2>&1); then
   echo "k8s 7e-2 attack tests: ok"
 else
   echo "k8s 7e-2 attack tests: FAILED"; tail -20 "$tmp/k72.log"; fail=1
 fi
 # 9d. k8s 7e-1's owned reply Kvs (recvOwn, decided by etcd-grove-81): no race on the reply's Kvs
 # array after Invoke, with retries, in the default configuration (EnableTracing off)
-if (cd examples/k8s/etcd3 && GOWORK=off go test -race -count=1 -timeout 10m \
+if (cd examples/k8s/etcd3 && GOWORK=off gotest -race -timeout 10m \
     -run '^TestDefaultNoRace$' . > "$tmp/kvo.log" 2>&1); then
   echo "k8s owned reply Kvs: ok"
 else
@@ -378,7 +411,7 @@ fi
 # that misses it, up to 3 attempts; pass once one attempt fails with a data race reported.
 kvc_ok=0; kvc_miss=""
 for kvc_try in 1 2 3; do
-  if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off go test -race -count=1 -timeout 10m \
+  if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off gotest -race -timeout 10m \
       -run '^TestTracingRace$' . > "$tmp/kvc.$kvc_try.log" 2>&1); then
     kvc_miss="$kvc_miss attempt $kvc_try: passed (no race detected);"
   elif grep -q 'WARNING: DATA RACE' "$tmp/kvc.$kvc_try.log"; then

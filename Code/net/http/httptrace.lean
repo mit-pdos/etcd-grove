@@ -50,11 +50,11 @@ noncomputable def GotConnInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] GotConnInfo.ty
 
-axiom ClientTrace.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClientTrace.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DNSDoneInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DNSDoneInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GotConnInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GotConnInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def ContextClientTrace [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http/httptrace.ContextClientTrace"
@@ -80,7 +80,7 @@ noncomputable def compose3to0 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.net.http.httptrace where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -119,8 +119,10 @@ attribute [instance] clientEventContextKey.TypeAssumptions.type_repr
   clientEventContextKey.TypeAssumptions.method_set
   clientEventContextKey.TypeAssumptions.ptr_method_set
 
-axiom ClientTrace : Type
-axiom ClientTrace.zero_val : ZeroVal ClientTrace
+opaque ClientTrace.nonempty_type : NonemptyType.{0}
+def ClientTrace : Type := ClientTrace.nonempty_type.type
+instance ClientTrace.nonempty : Nonempty ClientTrace := ClientTrace.nonempty_type.property
+opaque ClientTrace.zero_val : ZeroVal ClientTrace := ⟨Classical.ofNonempty⟩
 attribute [instance] ClientTrace.zero_val
 
 class ClientTrace.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -206,8 +208,10 @@ attribute [instance] DNSStartInfo.TypeAssumptions.type_repr
   DNSStartInfo.TypeAssumptions.method_set
   DNSStartInfo.TypeAssumptions.ptr_method_set
 
-axiom DNSDoneInfo : Type
-axiom DNSDoneInfo.zero_val : ZeroVal DNSDoneInfo
+opaque DNSDoneInfo.nonempty_type : NonemptyType.{0}
+def DNSDoneInfo : Type := DNSDoneInfo.nonempty_type.type
+instance DNSDoneInfo.nonempty : Nonempty DNSDoneInfo := DNSDoneInfo.nonempty_type.property
+opaque DNSDoneInfo.zero_val : ZeroVal DNSDoneInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] DNSDoneInfo.zero_val
 
 class DNSDoneInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -223,8 +227,10 @@ attribute [instance] DNSDoneInfo.TypeAssumptions.type_repr
   DNSDoneInfo.TypeAssumptions.method_set
   DNSDoneInfo.TypeAssumptions.ptr_method_set
 
-axiom GotConnInfo : Type
-axiom GotConnInfo.zero_val : ZeroVal GotConnInfo
+opaque GotConnInfo.nonempty_type : NonemptyType.{0}
+def GotConnInfo : Type := GotConnInfo.nonempty_type.type
+instance GotConnInfo.nonempty : Nonempty GotConnInfo := GotConnInfo.nonempty_type.property
+opaque GotConnInfo.zero_val : ZeroVal GotConnInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] GotConnInfo.zero_val
 
 class GotConnInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

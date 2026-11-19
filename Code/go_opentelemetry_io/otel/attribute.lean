@@ -100,73 +100,73 @@ noncomputable def unknownValueType.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] unknownValueType.ty
 
-axiom defaultAttrEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque defaultAttrEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Hasher.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Hasher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom escapeChar [GooseExts] [GoGlobalContext] : val
+opaque escapeChar [GooseExts] [GoGlobalContext] : val
 
-axiom boolID [GooseExts] [GoGlobalContext] : val
+opaque boolID [GooseExts] [GoGlobalContext] : val
 
-axiom int64ID [GooseExts] [GoGlobalContext] : val
+opaque int64ID [GooseExts] [GoGlobalContext] : val
 
-axiom float64ID [GooseExts] [GoGlobalContext] : val
+opaque float64ID [GooseExts] [GoGlobalContext] : val
 
-axiom stringID [GooseExts] [GoGlobalContext] : val
+opaque stringID [GooseExts] [GoGlobalContext] : val
 
-axiom boolSliceID [GooseExts] [GoGlobalContext] : val
+opaque boolSliceID [GooseExts] [GoGlobalContext] : val
 
-axiom int64SliceID [GooseExts] [GoGlobalContext] : val
+opaque int64SliceID [GooseExts] [GoGlobalContext] : val
 
-axiom float64SliceID [GooseExts] [GoGlobalContext] : val
+opaque float64SliceID [GooseExts] [GoGlobalContext] : val
 
-axiom stringSliceID [GooseExts] [GoGlobalContext] : val
+opaque stringSliceID [GooseExts] [GoGlobalContext] : val
 
-axiom byteSliceID [GooseExts] [GoGlobalContext] : val
+opaque byteSliceID [GooseExts] [GoGlobalContext] : val
 
-axiom sliceID [GooseExts] [GoGlobalContext] : val
+opaque sliceID [GooseExts] [GoGlobalContext] : val
 
-axiom mapID [GooseExts] [GoGlobalContext] : val
+opaque mapID [GooseExts] [GoGlobalContext] : val
 
-axiom emptyID [GooseExts] [GoGlobalContext] : val
+opaque emptyID [GooseExts] [GoGlobalContext] : val
 
-axiom _Type_name [GooseExts] [GoGlobalContext] : val
+opaque _Type_name [GooseExts] [GoGlobalContext] : val
 
-axiom EMPTY [GooseExts] [GoGlobalContext] : val
+opaque EMPTY [GooseExts] [GoGlobalContext] : val
 
-axiom BOOL [GooseExts] [GoGlobalContext] : val
+opaque BOOL [GooseExts] [GoGlobalContext] : val
 
-axiom INT64 [GooseExts] [GoGlobalContext] : val
+opaque INT64 [GooseExts] [GoGlobalContext] : val
 
-axiom FLOAT64 [GooseExts] [GoGlobalContext] : val
+opaque FLOAT64 [GooseExts] [GoGlobalContext] : val
 
-axiom STRING [GooseExts] [GoGlobalContext] : val
+opaque STRING [GooseExts] [GoGlobalContext] : val
 
-axiom BOOLSLICE [GooseExts] [GoGlobalContext] : val
+opaque BOOLSLICE [GooseExts] [GoGlobalContext] : val
 
-axiom INT64SLICE [GooseExts] [GoGlobalContext] : val
+opaque INT64SLICE [GooseExts] [GoGlobalContext] : val
 
-axiom FLOAT64SLICE [GooseExts] [GoGlobalContext] : val
+opaque FLOAT64SLICE [GooseExts] [GoGlobalContext] : val
 
-axiom STRINGSLICE [GooseExts] [GoGlobalContext] : val
+opaque STRINGSLICE [GooseExts] [GoGlobalContext] : val
 
-axiom BYTESLICE [GooseExts] [GoGlobalContext] : val
+opaque BYTESLICE [GooseExts] [GoGlobalContext] : val
 
-axiom SLICE [GooseExts] [GoGlobalContext] : val
+opaque SLICE [GooseExts] [GoGlobalContext] : val
 
-axiom MAP [GooseExts] [GoGlobalContext] : val
+opaque MAP [GooseExts] [GoGlobalContext] : val
 
-axiom INVALID [GooseExts] [GoGlobalContext] : val
+opaque INVALID [GooseExts] [GoGlobalContext] : val
 
-axiom jsonArrayBracketsLen [GooseExts] [GoGlobalContext] : val
+opaque jsonArrayBracketsLen [GooseExts] [GoGlobalContext] : val
 
-axiom boolArrayElemMaxLen [GooseExts] [GoGlobalContext] : val
+opaque boolArrayElemMaxLen [GooseExts] [GoGlobalContext] : val
 
-axiom int64ArrayElemMaxLen [GooseExts] [GoGlobalContext] : val
+opaque int64ArrayElemMaxLen [GooseExts] [GoGlobalContext] : val
 
-axiom float64ArrayElemMaxLen [GooseExts] [GoGlobalContext] : val
+opaque float64ArrayElemMaxLen [GooseExts] [GoGlobalContext] : val
 
-axiom commaLen [GooseExts] [GoGlobalContext] : val
+opaque commaLen [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encoderIDCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.encoderIDCounter"
@@ -177,7 +177,7 @@ noncomputable def defaultEncoderOnce [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultEncoderID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.defaultEncoderID"
 
-axiom defaultEncoderID.init [GooseExts] [GoGlobalContext] : val
+opaque defaultEncoderID.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultEncoderInstance [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.defaultEncoderInstance"
@@ -185,27 +185,27 @@ noncomputable def defaultEncoderInstance [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable def keyValueType [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.keyValueType"
 
-axiom keyValueType.init [GooseExts] [GoGlobalContext] : val
+opaque keyValueType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def emptyHash [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.emptyHash"
 
-axiom emptyHash.init [GooseExts] [GoGlobalContext] : val
+opaque emptyHash.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def userDefinedEmptySet [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.userDefinedEmptySet"
 
-axiom userDefinedEmptySet.init [GooseExts] [GoGlobalContext] : val
+opaque userDefinedEmptySet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def emptySet [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.emptySet"
 
-axiom emptySet.init [GooseExts] [GoGlobalContext] : val
+opaque emptySet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _Type_index [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute._Type_index"
 
-axiom _Type_index.init [GooseExts] [GoGlobalContext] : val
+opaque _Type_index.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewEncoderID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.NewEncoderID"
@@ -519,7 +519,7 @@ noncomputable def appendBase64 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.«attribute» where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -601,8 +601,10 @@ attribute [instance] EncoderID.TypeAssumptions.type_repr
   EncoderID.TypeAssumptions.method_set
   EncoderID.TypeAssumptions.ptr_method_set
 
-axiom defaultAttrEncoder : Type
-axiom defaultAttrEncoder.zero_val : ZeroVal defaultAttrEncoder
+opaque defaultAttrEncoder.nonempty_type : NonemptyType.{0}
+def defaultAttrEncoder : Type := defaultAttrEncoder.nonempty_type.type
+instance defaultAttrEncoder.nonempty : Nonempty defaultAttrEncoder := defaultAttrEncoder.nonempty_type.property
+opaque defaultAttrEncoder.zero_val : ZeroVal defaultAttrEncoder := ⟨Classical.ofNonempty⟩
 attribute [instance] defaultAttrEncoder.zero_val
 
 class defaultAttrEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -632,8 +634,10 @@ attribute [instance] Filter.TypeAssumptions.underlying
   Filter.TypeAssumptions.method_set
   Filter.TypeAssumptions.ptr_method_set
 
-axiom Hasher : Type
-axiom Hasher.zero_val : ZeroVal Hasher
+opaque Hasher.nonempty_type : NonemptyType.{0}
+def Hasher : Type := Hasher.nonempty_type.type
+instance Hasher.nonempty : Nonempty Hasher := Hasher.nonempty_type.property
+opaque Hasher.zero_val : ZeroVal Hasher := ⟨Classical.ofNonempty⟩
 attribute [instance] Hasher.zero_val
 
 class Hasher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

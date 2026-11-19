@@ -50,17 +50,17 @@ noncomputable def leaseCandidates.ty [GooseExts] [GoGlobalContext] : go.GoType :
 
 attribute [irreducible] leaseCandidates.ty
 
-axiom CoordinationV1alpha2Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CoordinationV1alpha2Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CoordinationV1alpha2Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CoordinationV1alpha2Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseCandidateExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LeaseCandidateExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseCandidatesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LeaseCandidatesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseCandidateInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LeaseCandidateInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom leaseCandidates.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque leaseCandidates.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/coordination/v1alpha2.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newLeaseCandidates [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom CoordinationV1alpha2Interface : Type
-axiom CoordinationV1alpha2Interface.zero_val : ZeroVal CoordinationV1alpha2Interface
+opaque CoordinationV1alpha2Interface.nonempty_type : NonemptyType.{0}
+def CoordinationV1alpha2Interface : Type := CoordinationV1alpha2Interface.nonempty_type.type
+instance CoordinationV1alpha2Interface.nonempty : Nonempty CoordinationV1alpha2Interface := CoordinationV1alpha2Interface.nonempty_type.property
+opaque CoordinationV1alpha2Interface.zero_val : ZeroVal CoordinationV1alpha2Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] CoordinationV1alpha2Interface.zero_val
 
 class CoordinationV1alpha2Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] CoordinationV1alpha2Interface.TypeAssumptions.type_repr
   CoordinationV1alpha2Interface.TypeAssumptions.method_set
   CoordinationV1alpha2Interface.TypeAssumptions.ptr_method_set
 
-axiom CoordinationV1alpha2Client : Type
-axiom CoordinationV1alpha2Client.zero_val : ZeroVal CoordinationV1alpha2Client
+opaque CoordinationV1alpha2Client.nonempty_type : NonemptyType.{0}
+def CoordinationV1alpha2Client : Type := CoordinationV1alpha2Client.nonempty_type.type
+instance CoordinationV1alpha2Client.nonempty : Nonempty CoordinationV1alpha2Client := CoordinationV1alpha2Client.nonempty_type.property
+opaque CoordinationV1alpha2Client.zero_val : ZeroVal CoordinationV1alpha2Client := ⟨Classical.ofNonempty⟩
 attribute [instance] CoordinationV1alpha2Client.zero_val
 
 class CoordinationV1alpha2Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] CoordinationV1alpha2Client.TypeAssumptions.type_repr
   CoordinationV1alpha2Client.TypeAssumptions.method_set
   CoordinationV1alpha2Client.TypeAssumptions.ptr_method_set
 
-axiom LeaseCandidateExpansion : Type
-axiom LeaseCandidateExpansion.zero_val : ZeroVal LeaseCandidateExpansion
+opaque LeaseCandidateExpansion.nonempty_type : NonemptyType.{0}
+def LeaseCandidateExpansion : Type := LeaseCandidateExpansion.nonempty_type.type
+instance LeaseCandidateExpansion.nonempty : Nonempty LeaseCandidateExpansion := LeaseCandidateExpansion.nonempty_type.property
+opaque LeaseCandidateExpansion.zero_val : ZeroVal LeaseCandidateExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] LeaseCandidateExpansion.zero_val
 
 class LeaseCandidateExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] LeaseCandidateExpansion.TypeAssumptions.type_repr
   LeaseCandidateExpansion.TypeAssumptions.method_set
   LeaseCandidateExpansion.TypeAssumptions.ptr_method_set
 
-axiom LeaseCandidatesGetter : Type
-axiom LeaseCandidatesGetter.zero_val : ZeroVal LeaseCandidatesGetter
+opaque LeaseCandidatesGetter.nonempty_type : NonemptyType.{0}
+def LeaseCandidatesGetter : Type := LeaseCandidatesGetter.nonempty_type.type
+instance LeaseCandidatesGetter.nonempty : Nonempty LeaseCandidatesGetter := LeaseCandidatesGetter.nonempty_type.property
+opaque LeaseCandidatesGetter.zero_val : ZeroVal LeaseCandidatesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] LeaseCandidatesGetter.zero_val
 
 class LeaseCandidatesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] LeaseCandidatesGetter.TypeAssumptions.type_repr
   LeaseCandidatesGetter.TypeAssumptions.method_set
   LeaseCandidatesGetter.TypeAssumptions.ptr_method_set
 
-axiom LeaseCandidateInterface : Type
-axiom LeaseCandidateInterface.zero_val : ZeroVal LeaseCandidateInterface
+opaque LeaseCandidateInterface.nonempty_type : NonemptyType.{0}
+def LeaseCandidateInterface : Type := LeaseCandidateInterface.nonempty_type.type
+instance LeaseCandidateInterface.nonempty : Nonempty LeaseCandidateInterface := LeaseCandidateInterface.nonempty_type.property
+opaque LeaseCandidateInterface.zero_val : ZeroVal LeaseCandidateInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] LeaseCandidateInterface.zero_val
 
 class LeaseCandidateInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] LeaseCandidateInterface.TypeAssumptions.type_repr
   LeaseCandidateInterface.TypeAssumptions.method_set
   LeaseCandidateInterface.TypeAssumptions.ptr_method_set
 
-axiom leaseCandidates : Type
-axiom leaseCandidates.zero_val : ZeroVal leaseCandidates
+opaque leaseCandidates.nonempty_type : NonemptyType.{0}
+def leaseCandidates : Type := leaseCandidates.nonempty_type.type
+instance leaseCandidates.nonempty : Nonempty leaseCandidates := leaseCandidates.nonempty_type.property
+opaque leaseCandidates.zero_val : ZeroVal leaseCandidates := ⟨Classical.ofNonempty⟩
 attribute [instance] leaseCandidates.zero_val
 
 class leaseCandidates.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

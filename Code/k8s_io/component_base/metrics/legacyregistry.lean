@@ -23,37 +23,37 @@ namespace k8s_io.component_base.metrics.legacyregistry
 noncomputable def defaultRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.defaultRegistry"
 
-axiom defaultRegistry.init [GooseExts] [GoGlobalContext] : val
+opaque defaultRegistry.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultGatherer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.DefaultGatherer"
 
-axiom DefaultGatherer.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultGatherer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Reset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.Reset"
 
-axiom Reset.init [GooseExts] [GoGlobalContext] : val
+opaque Reset.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MustRegister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.MustRegister"
 
-axiom MustRegister.init [GooseExts] [GoGlobalContext] : val
+opaque MustRegister.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RawMustRegister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.RawMustRegister"
 
-axiom RawMustRegister.init [GooseExts] [GoGlobalContext] : val
+opaque RawMustRegister.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.Register"
 
-axiom Register.init [GooseExts] [GoGlobalContext] : val
+opaque Register.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Registerer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.Registerer"
 
-axiom Registerer.init [GooseExts] [GoGlobalContext] : val
+opaque Registerer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def processStart [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics/legacyregistry.processStart"
@@ -79,7 +79,7 @@ noncomputable def GetProcessStart [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.metrics.legacyregistry where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

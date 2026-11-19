@@ -7,6 +7,7 @@ module
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.handleCompactedErrorForPaging
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewResourceExpired
 public import Spec.k8s_io.apiserver.pkg.storage.EncodeContinue
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
