@@ -328,6 +328,70 @@ theorem nodes_mem (cs : List (PE × Trie)) (D : PathSet) (hD : ∀ q, Trie.paths
   obtain ⟨e, t, r, hm, rfl, h⟩ := (pathsC_iff cs q).1 ((hD q).2 hq)
   exact ⟨e, t, r, hm, rfl, paths_ne t r h, h⟩
 
+theorem pathsC_long (cs : List (PE × Trie)) (q : Path) (h : Trie.pathsC cs q) : 2 ≤ q.length := by
+  obtain ⟨e, t, r, -, rfl, hr⟩ := (pathsC_iff cs q).1 h
+  have := paths_ne t r hr
+  cases r with
+  | nil => exact absurd rfl this
+  | cons _ _ => simp
+
+/-- A set's deep paths are its children's. -/
+theorem deep_iff (ms : List PE) (cs : List (PE × Trie)) (S : PathSet)
+    (h : ∀ q, Trie.paths (.mk ms cs) q ↔ q ∈ S) (q : Path) : Trie.pathsC cs q ↔ q ∈ S.deep := by
+  rw [PathSet_mem_deep_law_holds, ← h]
+  simp only [Trie.paths]
+  constructor
+  · intro hq; exact ⟨Or.inr hq, pathsC_long cs q hq⟩
+  · rintro ⟨⟨e, rfl, -⟩ | hq, hl⟩
+    · simp at hl
+    · exact hq
+
+/-- A set's one-element paths are its members. -/
+theorem tops_iff (ms : List PE) (cs : List (PE × Trie)) (S : PathSet)
+    (h : ∀ q, Trie.paths (.mk ms cs) q ↔ q ∈ S) (x : PE) : [x] ∈ S ↔ x ∈ ms := by
+  rw [← h]
+  simp only [Trie.paths]
+  constructor
+  · rintro (⟨e, he, hm⟩ | hq)
+    · simp at he; subst he; exact hm
+    · have := pathsC_long cs _ hq; simp at this
+  · intro hm; exact Or.inl ⟨x, rfl, hm⟩
+
+/-- `Set.iteratePrefix`'s paths: the members', then the children's. -/
+theorem iterate_final (pre : Path) (ms : List PE) (cs : List (PE × Trie)) (S : PathSet)
+    (h : ∀ q, Trie.paths (.mk ms cs) q ↔ q ∈ S) (mdone : List PE) (dsc : List Path)
+    (hmd : mdone.Nodup ∧ FSet.ofList mdone = FSet.ofList ms)
+    (hc : dsc.Nodup ∧ FSet.ofList dsc = PathSet.prepend pre S.deep) :
+    (mdone.map (fun y => pre ++ [y]) ++ dsc).Nodup ∧
+      FSet.ofList (mdone.map (fun y => pre ++ [y]) ++ dsc) = PathSet.prepend pre S := by
+  have hmm : ∀ y, y ∈ mdone ↔ [y] ∈ S := fun y => by
+    rw [tops_iff ms cs S h, ← FSet.mem_ofList' mdone, hmd.2, FSet.mem_ofList']
+  have hdc : ∀ x, x ∈ dsc ↔ ∃ q, q ∈ S ∧ 2 ≤ q.length ∧ x = pre ++ q := fun x => by
+    have hd : ∀ (S : PathSet) q, q ∈ S.deep ↔ q ∈ S ∧ 2 ≤ q.length := PathSet_mem_deep_law_holds
+    rw [← FSet.mem_ofList', hc.2, PathSet_mem_prepend_law_holds]
+    simp only [hd, and_assoc]
+  refine ⟨?_, FSet.ext' (fun x => ?_)⟩
+  · rw [List.nodup_append]
+    refine ⟨List.Pairwise.map _ (fun a b hab e => hab (by simpa using e)) hmd.1, hc.1, fun a ha b hb hab => ?_⟩
+    subst hab
+    obtain ⟨y, -, rfl⟩ := List.mem_map.1 ha
+    obtain ⟨q, -, hl, hq⟩ := (hdc _).1 hb
+    have := List.append_cancel_left hq
+    subst this; simp at hl
+  · rw [FSet.mem_ofList', PathSet_mem_prepend_law_holds, List.mem_append, hdc]
+    constructor
+    · rintro (h1 | ⟨q, hq, -, rfl⟩)
+      · obtain ⟨y, hy, rfl⟩ := List.mem_map.1 h1
+        exact ⟨[y], (hmm y).1 hy, rfl⟩
+      · exact ⟨q, hq, rfl⟩
+    · rintro ⟨q, hq, rfl⟩
+      have hne : q ≠ [] := by
+        intro h0; subst h0
+        exact paths_ne _ _ ((h []).2 hq) rfl
+      match q, hne, hq with
+      | [y], _, hq => exact Or.inl (List.mem_map.2 ⟨y, (hmm y).2 hq, rfl⟩)
+      | y :: z :: r, _, hq => exact Or.inr ⟨y :: z :: r, hq, by simp, rfl⟩
+
 /-- A child's paths are the paths below its key (keys distinct). -/
 theorem under_iff (cs : List (PE × Trie)) (D : PathSet)
     (hnd : (cs.map Prod.fst).Nodup) (hD : ∀ q, Trie.pathsC cs q ↔ q ∈ D)
@@ -367,6 +431,13 @@ theorem isMFL_lookup (M : GMap GoString GoInterface) : ∀ (mf : MF) (k : GoStri
         simp only [MF.get, lookupKV, if_neg hk] at h; exact h
       iapply isMFL_lookup M rest k e (List.pairwise_cons.1 hs).2 h'
       iexact Hr
+
+theorem trieRep_mk_eq (p : Loc) (ms : List PE) (cs : List (PE × Trie)) :
+    trieRep (GF := GF) p (.mk ms cs) = iprop(∃ (v : fieldpath.Set') (es : List fieldpath.PathElement)
+      (ns : List fieldpath.setNode),
+      p ↦□ v ∗ v.Members'.members' ↦*{DFrac.discard} es ∗ isPEL es ms ∗
+      v.Children'.members' ↦*{DFrac.discard} ns ∗ trieRepC ns cs) := by
+  simp only [trieRep]
 
 theorem trieRepC_nil_eq : trieRepC (GF := GF) [] [] = iprop(True) := by simp only [trieRepC]
 
