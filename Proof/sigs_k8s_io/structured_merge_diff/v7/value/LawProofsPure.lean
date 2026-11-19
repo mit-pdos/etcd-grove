@@ -263,6 +263,21 @@ theorem zipKeys_swap_none (kvs : List (GoString × UVal)) :
   simp only [zipKeys, kvsOrEmpty, Option.getD_some, Option.getD_none, List.length_nil]
   rw [zipLexical_left, zipLexical_right]
 
+/-! ## The constructor tests -/
+
+theorem isIntB_true {x : UVal} (h : true = x.isIntB) : ∃ n, x = .int n := by
+  cases x <;> simp [UVal.isIntB] at h ⊢
+theorem isStrB_true {x : UVal} (h : true = x.isStrB) : ∃ s, x = .str s := by
+  cases x <;> simp [UVal.isStrB] at h ⊢
+theorem isBoolB_true {x : UVal} (h : true = x.isBoolB) : ∃ b, x = .bool b := by
+  cases x <;> simp [UVal.isBoolB] at h ⊢
+theorem isListB_true {x : UVal} (h : true = x.isListB) : ∃ vs, x = .list vs := by
+  cases x <;> simp [UVal.isListB] at h ⊢
+theorem isMapB_true {x : UVal} (h : true = x.isMapB) : ∃ kvs, x = .map kvs := by
+  cases x <;> simp [UVal.isMapB] at h ⊢
+theorem isNullB_true {x : UVal} (h : true = x.isNullB) : x = .null := by
+  cases x <;> simp [UVal.isNullB] at h ⊢
+
 end ValuePure
 
 end smd
