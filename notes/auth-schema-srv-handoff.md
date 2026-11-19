@@ -13,7 +13,8 @@
   Full timed build green (`20261119-113918-3123454`, 1h31m); tcb `--check` matches the baseline (888 axioms, 4 sorries);
   collections authkv/auth3/authN +6 axioms, server +2 (committed); interfaces `--check` clean (all six); gen-link
   --server/--authkv/--backend/--mvcc: no change. Then lean (per-heap, 1e4cb38613) merged again (e6993af3bb): rebuild,
-  re-check tcb and the collections, then the land stop.
+  re-checked: full timed build green (`20261119-143502-174164`), tcb `--check` matches (886 axioms, 4 sorries), all
+  collections match, interfaces and Links unchanged, tier-check ok. **At the land stop** (no commits until the land finishes).
 - Land: `LAKE_PACKAGES=/shared/tmp/manifest-f55.json PERENNIAL_CHECKOUT=/shared/perennial-f551a1b46
   PERENNIAL_DIR=/shared/perennial-f551a1b46 etc/land.sh` (GOWORK unset), only when the coordinator says go.
 - Pitfalls: (0)-(42) as before (History); (43) the TCB tool's statement scan must skip `:=` inside parentheses
