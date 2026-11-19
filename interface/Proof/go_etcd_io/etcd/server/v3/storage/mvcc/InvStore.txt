@@ -2868,8 +2868,9 @@ def mvcc.kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
 def mvcc.bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
     (fun x =>
-      ((x.dls, x.fkd, x.dbf, x.rq), x.rbD, x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist,
-        x.cached, x.cur, x.hook, x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
+      ((x.dls, x.fkd, x.dbf, x.rq, x.rbr, x.rbc), x.rbD, x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view,
+        x.rd, x.hist, x.cached, x.cur, x.hook, x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls,
+        x.sdn, x.stk))
     (fun pr0 =>
       have pr := pr0.snd;
       have r0' := pr.snd;
@@ -2893,7 +2894,8 @@ def mvcc.bNames_countable : Pos.Countable backend.BNames :=
         sdn := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         stk := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd, hkd := p.fst, rbk := q.fst,
         cln := q0.fst, dlg := r0.fst, dlb := r'.fst, fk := r.fst, fkv := r0'.fst, dbf := pr0.fst.snd.snd.fst,
-        rq := pr0.fst.snd.snd.snd, rbD := pr.fst, fkd := pr0.fst.snd.fst, dls := pr0.fst.fst })
+        rq := pr0.fst.snd.snd.snd.fst, rbD := pr.fst, fkd := pr0.fst.snd.fst, dls := pr0.fst.fst,
+        rbr := pr0.fst.snd.snd.snd.snd.fst, rbc := pr0.fst.snd.snd.snd.snd.snd })
     mvcc.bNames_countable._proof_1
 
 theorem mvcc.readerPool_checkin (γ : mvcc.StoreNames) (dq : DFrac) (o : mvcc.StoreObjs) : ⊢ £ 1 -∗

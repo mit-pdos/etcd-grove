@@ -12,13 +12,13 @@
   (`authSchemaSnap` at the tickets over the vault), over 47 proved callee specs and `receiptBound GF ≤ 2^48`; no axiom
   or sorry. Targeted build rc=0 (`/shared/tmp/auth-schema-srv/srv-build1.log`: AuthRealSrv, server Link, backend
   Link, ImageOn, RoleList); backend interface `--check` clean (no etcdserver API config exists, nothing to
-  regenerate there). Full timed build: `/shared/tmp/auth-schema-srv/full-build1.log` (see the report for its result).
+  regenerate there). Full timed build GREEN (21852 jobs, build id `20261119-034000-1196107`, 49m26s); interfaces `--check`: backend, etcdstart, raft, bbolt clean, mvcc regenerated (A6.2's `BNames` fields, (c)'s `viewSame_*` at any `cl`); `tcb-report --check` matches the baseline (895 axioms, 4 sorries).
 - **A7 STOP** (`notes/auth-schema-srv-a7.md`): the link drops `hD22` from `etcd_auth_safe`, `etcd_auth3_safe`,
   `etcd_authN_safe` and their chains; the trusted-text list with what stays in the TCB; the trust-base delta. Nothing
   linked until the user decides.
 - Next after the decision: the link (`authStoreKit_on` at `AuthSrv.lean:496` uses `real_srv`; package inits from the
   context's `isPkgInit`; `hRB` from `ReceiptBoundLe`), regenerate Links (`LAKE_OPTS` for gen-link), collections
-  `--check --update`, mvcc/etcdstart interfaces `--check` after the full build; land stop.
+  `--check --update`; land stop.
 - Pitfalls: (0)-(39) as before (History); (40) lean-check's output right after an edit can repeat the previous run's
   errors: re-run before trusting it; (41) `iexact`/`iframe` match only up to reducible unfolding: convert a hypothesis
   with `iapply (show A ⊢ B from .rfl) $$ H` (record projections, `authBktL`, `authRolesName`, `0 + 1`), and unfold a
