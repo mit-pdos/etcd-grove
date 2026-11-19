@@ -70,80 +70,89 @@ theorem schema.Atom.Equals.wp_proofBody :
        first | rw [decide_eq_decide, hsa, hsb] | rw [decide_eq_decide, hla, hlb] | rw [decide_eq_decide, hma, hmb]
        done)
     | skip
-  rename_i hs hl hm
+  have hm := Hif
+  rename_i hs hl _
   rcases oA with _ | (s | ⟨e, rel, ks⟩ | ⟨fs, e, rel⟩) <;>
     rcases oB with _ | (s' | ⟨e', rel', ks'⟩ | ⟨fs', e', rel'⟩) <;>
     simp at hsa hla hma hsb hlb hmb <;>
-    simp only [hsa, hla, hma, hsb, hlb, hmb, decide_true, decide_false] at hs hl hm <;>
-    (try simp at hs hl hm)
+    simp only [hsa, hla, hma, hsb, hlb, hmb, decide_true, decide_false, Bool.true_eq_false,
+      Bool.false_eq_true] at hs hl hm
+  all_goals try (exfalso; simp_all; done)
   all_goals simp only [hsa, hla, hma, hsb, hlb, hmb, decide_true, decide_false, Bool.not_true,
     Bool.not_false]
-  all_goals first
-    | (wp_auto
-       iapply HΦ
-       isplitl [Scalara Lista Mapa]
-       · iapply typedPointsto_combine _ _ _ Hane
-         simp only [TypedPointsto.typedPointstoDef]
-         iframe
-       isplitl [Scalarb Listb Mapb]
-       · iapply typedPointsto_combine _ _ _ Hbne
-         simp only [TypedPointsto.typedPointstoDef]
-         iframe
-       ipureintro
-       simp
-       done)
-    | (icases (isAtomOpt_scalar_law_holds _ _).1 $$ HoA with ⟨#Hsa, -⟩
-       icases (isAtomOpt_scalar_law_holds _ _).1 $$ HoB with ⟨#Hsb, -⟩
-       wp_auto
-       iapply HΦ
-       isplitl [Scalara Lista Mapa]
-       · iapply typedPointsto_combine _ _ _ Hane
-         simp only [TypedPointsto.typedPointstoDef]
-         iframe
-       isplitl [Scalarb Listb Mapb]
-       · iapply typedPointsto_combine _ _ _ Hbne
-         simp only [TypedPointsto.typedPointstoDef]
-         iframe
-       ipureintro
-       simp only [decide_eq_true_eq, Option.some.injEq, Atom.scalar.injEq]
-       constructor
-       · intro h; revert h; cases s <;> cases s' <;> simp [Scalar.goName]
-       · rintro rfl; rfl
-       done)
-    | (icases (isAtomOpt_list_law_holds _ _ _ _).1 $$ HoA with ⟨-, #Hla⟩
-       icases (isAtomOpt_list_law_holds _ _ _ _).1 $$ HoB with ⟨-, #Hlb⟩
-       ihave ⟨-, #HL, -⟩ := IH
-       wp_apply HL $$ [] as %r %hr
-       · iframe #
-       iapply HΦ
-       isplitl [Scalara Lista Mapa]
-       · iapply typedPointsto_combine _ _ _ Hane
-         simp only [TypedPointsto.typedPointstoDef]
-         iframe
-       isplitl [Scalarb Listb Mapb]
-       · iapply typedPointsto_combine _ _ _ Hbne
-         simp only [TypedPointsto.typedPointstoDef]
-         iframe
-       ipureintro
-       simpa using hr
-       done)
-    | (icases (isAtomOpt_map_law_holds _ _ _ _).1 $$ HoA with ⟨-, #Hma⟩
-       icases (isAtomOpt_map_law_holds _ _ _ _).1 $$ HoB with ⟨-, #Hmb⟩
-       ihave ⟨-, -, #HM, -⟩ := IH
-       wp_apply HM $$ [] as %r %hr
-       · iframe #
-       iapply HΦ
-       isplitl [Scalara Lista Mapa]
-       · iapply typedPointsto_combine _ _ _ Hane
-         simp only [TypedPointsto.typedPointstoDef]
-         iframe
-       isplitl [Scalarb Listb Mapb]
-       · iapply typedPointsto_combine _ _ _ Hbne
-         simp only [TypedPointsto.typedPointstoDef]
-         iframe
-       ipureintro
-       simpa using hr
-       done)
+  case none.none =>
+    wp_auto
+    iapply HΦ
+    isplitl [Scalara Lista Mapa]
+    · iapply typedPointsto_combine _ _ _ Hane
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    isplitl [Scalarb Listb Mapb]
+    · iapply typedPointsto_combine _ _ _ Hbne
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ipureintro
+    simp
+  case some.scalar.some.scalar =>
+    icases (isAtomOpt_scalar_law_holds (GF := GF) _ s).1 $$ HoA with ⟨#Hsa, -⟩
+    icases (isAtomOpt_scalar_law_holds (GF := GF) _ s').1 $$ HoB with ⟨#Hsb, -⟩
+    wp_auto
+    iapply HΦ
+    isplitl [Scalara Lista Mapa]
+    · iapply typedPointsto_combine _ _ _ Hane
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    isplitl [Scalarb Listb Mapb]
+    · iapply typedPointsto_combine _ _ _ Hbne
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ipureintro
+    simp only [decide_eq_true_eq, Option.some.injEq, Atom.scalar.injEq]
+    constructor
+    · intro h; revert h; cases s <;> cases s' <;> simp [Scalar.goName]
+    · rintro rfl; rfl
+  case some.list.some.list =>
+    icases (isAtomOpt_list_law_holds (GF := GF) _ e rel ks).1 $$ HoA with ⟨-, #Hla⟩
+    icases (isAtomOpt_list_law_holds (GF := GF) _ e' rel' ks').1 $$ HoB with ⟨-, #Hlb⟩
+    ihave ⟨-, #HL, -⟩ := IH
+    wp_auto
+    try simp only [hsa, hla, hma, hsb, hlb, hmb, decide_true, decide_false, Bool.not_true,
+      Bool.not_false, decide_eq_true_eq]
+    try wp_auto
+    wp_apply HL $$ [] as %r %hr
+    · iframe #
+    iapply HΦ
+    isplitl [Scalara Lista Mapa]
+    · iapply typedPointsto_combine _ _ _ Hane
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    isplitl [Scalarb Listb Mapb]
+    · iapply typedPointsto_combine _ _ _ Hbne
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ipureintro
+    simpa using hr
+  case some.map.some.map =>
+    icases (isAtomOpt_map_law_holds (GF := GF) _ fs e rel).1 $$ HoA with ⟨-, #Hma⟩
+    icases (isAtomOpt_map_law_holds (GF := GF) _ fs' e' rel').1 $$ HoB with ⟨-, #Hmb⟩
+    ihave ⟨-, -, #HM, -⟩ := IH
+    wp_auto
+    try simp only [hsa, hla, hma, hsb, hlb, hmb, decide_true, decide_false, Bool.not_true,
+      Bool.not_false, decide_eq_true_eq]
+    try wp_auto
+    wp_apply HM $$ [] as %r %hr
+    · iframe #
+    iapply HΦ
+    isplitl [Scalara Lista Mapa]
+    · iapply typedPointsto_combine _ _ _ Hane
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    isplitl [Scalarb Listb Mapb]
+    · iapply typedPointsto_combine _ _ _ Hbne
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ipureintro
+    simpa using hr
 
 end proof
 
