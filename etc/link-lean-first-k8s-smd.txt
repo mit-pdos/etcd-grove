@@ -1,0 +1,14 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/smd/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --k8s-smd`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `k8s_smd`. (2026-11-19, notes/smd-robustness.md)
+#
+# The trust boundary of the standard library as structured-merge-diff calls it (axioms; names-only
+# in Perennial), linked here so that the trust base of the driver's theorem lists them. Their
+# callers are SMD's functions, whose proofs (not written yet) take them as callees.
+reflect_DeepEqual+Nil:
+slices_BinarySearchFunc:
+slices_Insert:
+sort_SliceStable:
+# `Main`: not proved yet (`sorry`); its callees, SMD's API, once specified
+smd_Main:

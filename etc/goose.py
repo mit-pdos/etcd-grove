@@ -8,10 +8,11 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
-               projects' pins (GO_MOD_PINS; without --check, only a warning).
+               projects' pins (GO_MOD_PINS), or require a project pinned at a tag
+               at another version (GO_MOD_TAG_PINS); without --check, only a warning.
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, bbolt-bank, bbolttest or smd; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, bbolt-bank, bbolttest, smd or k8s-smd; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -123,6 +124,9 @@ class Project:
     # the parallel tree `RaftWitness/`; raft v3.7 was one, the parallel tree `Raft37/` the
     # raft proof was ported into).
     root: str = ""
+    # The release tag `rev` is (a project pinned at an upstream tag, which the examples' go.mod files
+    # require by that version, not by a pseudo-version `replace`: GO_MOD_TAG_PINS checks them).
+    tag: str = None
 
     @property
     def env(self):
@@ -1779,10 +1783,25 @@ PROJECTS = [
         # (`encoding/json/v2`, `go.yaml.in/yaml/v2`, the module's `internal/json`) are not imported.
         repo="https://github.com/kubernetes-sigs/structured-merge-diff",
         rev="8d11054be605e4018886201fb2bce0651c053592",
+        tag="v7.0.0",
         lean_roots=["sigs.k8s.io/structured-merge-diff/v7="],
         packages=["./value", "./schema", "./fieldpath", "./typed", "./merge"],
         owned=[os.path.join("sigs_k8s_io", "structured_merge_diff")],
         counted_modules=["sigs.k8s.io/structured-merge-diff/v7"],
+    ),
+    Project(
+        name="k8s-smd",
+        # The top-level driver of structured-merge-diff (`examples/k8s/smd`, package `smd`, `Main`:
+        # nine checked server-side-apply steps through `merge.Updater.Apply`/`Update`;
+        # notes/smd-robustness.md), a Go module of its own requiring
+        # sigs.k8s.io/structured-merge-diff/v7 at project smd's tag (GO_MOD_TAG_PINS checks it), with
+        # bodies. Everything it names of SMD is project smd's translation (the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8s", "smd"),
+        lean_roots=["sigs.k8s.io/structured-merge-diff/v7=", "github.com/mit-pdos/etcd-grove="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "smd")],
     ),
 ]
 
@@ -1823,6 +1842,15 @@ CLIENT_GO_PINS = {
 }
 
 
+# Go modules of this repository that require a project's Go module at its release tag (no `replace`):
+# the module's required version must be the project's `tag` (its pinned `rev` is that tag's commit),
+# and nothing may replace the module. `--check` fails on a mismatch, as for GO_MOD_PINS.
+GO_MOD_TAG_PINS = {
+    # structured-merge-diff's driver (project k8s-smd) and the translated SMD (project smd)
+    os.path.join("examples", "k8s", "smd", "go.mod"): {"sigs.k8s.io/structured-merge-diff/v7": "smd"},
+}
+
+
 def go_mod_requires(f):
     """The versions a go.mod file selects, by module path: its requirements, except that a module
     replaced by the same path at a version (`M => M vX`, as examples/k8s/daemonset/go.mod replaces
@@ -1839,7 +1867,17 @@ def go_mod_pin_errors():
     """The replaces of GO_MOD_PINS's go.mod files not at their project's pinned revision, and the
     requirements of CLIENT_GO_PINS's that differ from their reference's."""
     revs = {p.name: p.rev for p in PROJECTS}
+    tags = {p.name: p.tag for p in PROJECTS}
     errors = []
+    for f, pins in GO_MOD_TAG_PINS.items():
+        have = go_mod_requires(f)
+        text = open(os.path.join(ROOT, f), encoding="utf-8").read()
+        for mod, proj in pins.items():
+            if have.get(mod) != tags[proj]:
+                errors.append(f"{f}: {mod} {have.get(mod)} is not project {proj}'s pinned tag "
+                              f"{tags[proj]} ({revs[proj][:12]}, etc/goose.py)")
+            if re.search(r"^\s*(?:replace\s+)?" + re.escape(mod) + r"(?:\s+\S+)?\s+=>", text, re.M):
+                errors.append(f"{f}: {mod} is replaced; project {proj} translates its tag {tags[proj]}")
     for f, (ref, mods) in CLIENT_GO_PINS.items():
         have, want = go_mod_requires(f), go_mod_requires(ref)
         for m in mods:

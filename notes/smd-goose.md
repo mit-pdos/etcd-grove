@@ -122,10 +122,11 @@ names only. `notes/perennial-changes.md`, "Goose: labelled `break`/`continue`".
 Nothing else failed: the reflection and JSON code translated too (its bodies are cut for being
 untranslatable in meaning, not by the translator).
 
-## Not done here
+## Not done here (done since, 2026-11-19: `notes/smd-robustness.md`)
 
 - `etc/gen-init.py`: `smd`'s packages have no `Proof/**/Init.lean` yet; no initializer of theirs is
-  opaque now (above), so none needs an `opaqueInitsOk` axiom.
+  opaque now (above), so none needs an `opaqueInitsOk` axiom. (Done: generated, fact `True`, no
+  axiom.)
 - `GO_MOD_PINS`: SMD is required at its tag (no `replace`), so there is no pseudo-version for
   `etc/goose.py` to check; the driver's `go.mod` must require `sigs.k8s.io/structured-merge-diff/v7
-  v7.0.0` to be the translated code.
+  v7.0.0` to be the translated code. (Done: `GO_MOD_TAG_PINS`, project `smd`'s `tag`.)

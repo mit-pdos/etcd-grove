@@ -81,7 +81,7 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
 
 | shape | bridge (`Robustness/Statement.lean`) | `Robust` form | examples |
 |---|---|---|---|
-| one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv` |
+| one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv`, `k8s/smd` (structured-merge-diff's driver, 2026-11-19: `Main` still `sorry`, `notes/smd-robustness.md`) |
 | one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three), `osfs/bboltfs` |
 | several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`NetTcp/…/net/*`) |
 

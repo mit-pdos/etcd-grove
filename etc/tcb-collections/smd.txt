@@ -1,0 +1,20 @@
+# Structured-merge-diff's driver (examples/k8s/smd, 2026-11-19, notes/smd-robustness.md): the results
+# of Proof/github_com/mit_pdos/etcd_grove/examples/k8s/smd/{Link,Results,TopLevelRobustness}.lean:
+# `wp_Main`, the standard library's trust boundary as SMD calls it (`reflect.DeepEqual` on two nil
+# interfaces, `slices.BinarySearchFunc`, `slices.Insert`, `sort.SliceStable`: axioms), the closed
+# theorem `smd_driver_safe` and its robustness form `smd_driver_robust`. `Main.wp_proof` is a
+# `sorry` until the SMD specs are written and Main is proved.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/smd.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/smd.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/smd.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/smd/(Link|Results|TopLevelRobustness)\.lean$
+axiom Perennial.reflect.opaqueInitsOk
+axiom reflect.DeepEqual.wp_proofNil
+axiom slices.BinarySearchFunc.wp_proof
+axiom slices.Insert.wp_proof
+axiom sort.SliceStable.wp_proof
+sorry k8s_smd.Main.wp_proof

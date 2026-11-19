@@ -55,6 +55,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Link.lean
        etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/Link.lean
        etc/gen-link.py --prophkv > Proof/github_com/mit_pdos/etcd_grove/examples/goose/prophkv/Link.lean
+       etc/gen-link.py --k8s-smd > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/smd/Link.lean
        etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/Link.lean
        etc/gen-link.py --authkv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean
        etc/gen-link.py --k8s > Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean
@@ -473,6 +474,11 @@ LEAN_FIRST = {
                   "github_com.anishathalye.porcupine",
                   "github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions",
                   "The partitioned three-member instance's proofs (`examples/etcd/partition`)", [""]),
+    # structured-merge-diff's driver (examples/k8s/smd, 2026-11-19, notes/smd-robustness.md)
+    "--k8s-smd": ("link-lean-first-k8s-smd.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.k8s.smd",
+                  "github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumptions",
+                  "The structured-merge-diff driver's proofs (`examples/k8s/smd`)", [""]),
     # GetAny's logically atomic spec over a prophecy patch (examples/goose/prophkv, 2026-11-03)
     "--prophkv": ("link-lean-first-prophkv.txt",
                   "github_com.mit_pdos.etcd_grove.examples.goose.prophkv",
@@ -610,7 +616,7 @@ for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--link
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--k8s-smd": "k8s_smd", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by

@@ -1,0 +1,4 @@
+# With bodies (project k8s-smd; notes/smd-robustness.md): the robustness theorem's program `Main`
+# and its helpers.
+translate = ["*"]
+imports = ["*"]

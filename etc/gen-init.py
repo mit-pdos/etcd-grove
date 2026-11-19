@@ -99,6 +99,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.authN',
          # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
          'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
+         # (2026-11-19, notes/smd-robustness.md) structured-merge-diff's driver (project k8s-smd) and
+         # SMD's five packages (project smd)
+         'github_com.mit_pdos.etcd_grove.examples.k8s.smd',
          'go_etcd_io.etcd.client.v3.kubernetes',
          'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
          # K4 of notes/k8s-compactor-plan.md (2026-11-04): Kubernetes' compactor example
@@ -2384,6 +2387,69 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
             ['imodintro', 'unfold readInit', 'iframe #']),
 )
 
+# structured-merge-diff v7.0.0 (project smd, notes/smd-goose.md) and its driver (project k8s-smd,
+# notes/smd-robustness.md), 2026-11-19: every package's fact is `True` (its `Base.lean`); their
+# initializers allocate and set their translated variables (stepped: `errors.New`, slice literals,
+# `[]byte` conversions, `sync.Pool` literals, function values) and run the trusted no-op models of
+# the untranslatable ones (`TrustedCode/sigs_k8s_io/structured_merge_diff/v7/`): no axiom.
+_SMD = 'sigs_k8s_io.structured_merge_diff.v7.'
+_SMD_SLICE = ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩',
+              'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto']
+SPECIAL[_SMD + 'value'] = dict(
+    doc='''Its fact is `True` (`Base.lean`). Its initializer allocates its translated variables,
+initializes its imports, sets them (`HeapAllocator`, `EmptyRange`: pointers to empty structs;
+`nullBytes`, `trueBytes`, `falseBytes`: `[]byte` conversions of constants) and runs the trusted
+initializers of the others (`TrustedCode/sigs_k8s_io/structured_merge_diff/v7/value.lean`: models
+that do nothing).''',
+    alloc_types=_ALLOC_ANY,
+    before={'HeapAllocator': ['try wp_auto'], 'EmptyRange': ['try wp_auto'],
+            **{x + 'Bytes': ['try wp_auto', f'wp_apply wp_string_to_bytes go!"{x}" as %_ ⟨-, -⟩',
+                             'try wp_auto'] for x in ['null', 'true', 'false']},
+            '$end': ['try wp_auto']},
+)
+SPECIAL[_SMD + 'schema'] = dict(
+    doc='''Its fact is `True` (`Base.lean`). Its initializer allocates `SchemaSchemaYAML`, initializes
+its imports and sets it (a string constant).''',
+    alloc_types=_ALLOC_ANY,
+    before={'SchemaSchemaYAML': ['try wp_auto'], '$end': ['try wp_auto']},
+)
+SPECIAL[_SMD + 'fieldpath'] = dict(
+    doc='''Its fact is `True` (`Base.lean`). Its initializer allocates its translated variables,
+initializes its imports, sets them (`AssociativeListCandidateFieldNames`, a `[]string` literal;
+`ErrUnknownPathElementType`, an `errors.New` error, Perennial's `errors.wp_New_errorString`; the
+`pe*SepBytes`, `[]byte` literals) and runs the trusted initializers of the others
+(`TrustedCode/sigs_k8s_io/structured_merge_diff/v7/fieldpath.lean`: models that do nothing).''',
+    imports=['Perennial.Proof.errors.NewVar'],
+    vars=['[_root_.Perennial.errors.Assumptions]'],
+    alloc_types=_ALLOC_ANY,
+    before={'AssociativeListCandidateFieldNames': ['try wp_auto'] + _SMD_SLICE,
+            'ErrUnknownPathElementType': ['try wp_auto',
+                                          'wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_',
+                                          'try wp_auto'],
+            **{f'pe{x}SepBytes': ['try wp_auto'] + _SMD_SLICE for x in ['Field', 'Value', 'Index', 'Key']},
+            '$end': ['try wp_auto']},
+)
+SPECIAL[_SMD + 'typed'] = dict(
+    doc='''Its fact is `True` (`Base.lean`). Its initializer allocates its translated variables,
+initializes its imports, sets them (`ruleKeepRHS`, a function value; the walker pools `fmPool`,
+`tPool`, `cmpwPool`, `mwPool`, `vPool`, `sync.Pool` literals with a `New` function) and runs the
+trusted initializers of `ssParser` and `DeducedParseableType`
+(`TrustedCode/sigs_k8s_io/structured_merge_diff/v7/typed.lean`: models that do nothing).''',
+    alloc_types=_ALLOC_ANY,
+    # the pools' literals: their `New` function value, rewritten to `func.mk` for `wp_auto` (as
+    # `os`'s `dirBufPool`), all five at once
+    before={'ruleKeepRHS': ['try wp_auto'],
+            'fmPool': ['repeat (first | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto) | wp_auto)']},
+)
+SPECIAL[_SMD + 'merge'] = dict(
+    doc='''Its fact is `True` (`Base.lean`). Its initializer initializes its imports and evaluates
+`var _ error = Conflicts{}` (`conflict.go`: a conversion to an interface, discarded; goose stores
+nothing for a blank variable).''',
+    before={'$end': ['try wp_auto',
+                     'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩',
+                     'try wp_auto']},
+)
+
 RAFT_INIT = {'go_etcd_io.raft.v3', 'go_etcd_io.raft.v3.quorum', 'go_etcd_io.raft.v3.tracker',
              'go_etcd_io.raft.v3.confchange', 'go_etcd_io.raft.v3.raftpb',
              'google_golang_org.protobuf.proto'}
@@ -3037,6 +3103,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
+# (2026-11-19, notes/smd-robustness.md) structured-merge-diff's driver, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.smd'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/smd/PkgTable.lean'
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
