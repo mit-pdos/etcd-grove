@@ -1,11 +1,12 @@
 /-
-`typed.compareWalker.derefMap`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.compareWalker.derefMap`: proved (Prove phase, 2026-11-19): nil for an absent side, else
+`mapValue`'s view (no error: the side is `null` or a map, the premise).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__derefMap
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mapValue
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBPers
 
 @[expose] public section
 
@@ -29,8 +30,42 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.compareWalker.derefMap.wp_proof
     (h_mapValue : typed.mapValue.spec (GF := GF)) :
-    typed.compareWalker.derefMap.spec (GF := GF) := by
-  sorry
+    typed.compareWalker.derefMap.spec (GF := GF) := fun w wv dqw pfx v dq o => by
+  wp_start as ⟨Hw, Hv, %Ho⟩
+  wp_auto
+  rcases o with _ | x
+  · ihave ⟨Hv, %Hvn⟩ := isValO_nil $$ Hv
+    rw [Hvn.2 rfl]
+    wp_auto
+    iapply HΦ
+    iframe
+    isplitr
+    · unfold isMapO mapOfO; ipureintro; rfl
+    · iapply errsIff_nil; simp
+  · ihave ⟨Hv, %Hvp⟩ := isValO_some $$ Hv
+    obtain ⟨p, Hp⟩ := Hvp
+    rw [Hp]
+    wp_auto
+    ihave ⟨Hw, %Hnn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hw
+    iStructNamed Hw
+    wp_auto
+    have Hok : some x = some UVal.null ∨ (mapOfO (some x)).isSome = true := by
+      rcases Ho with h | h | h
+      · cases h
+      · exact Or.inl h
+      · exact Or.inr h
+    wp_apply h_mapValue wv.allocator' _ dq (some x) $$ [Hv] as %m %err ⟨Hv, Hm, %Herr⟩
+    · iexact Hv
+    rw [Herr.2 Hok]
+    wp_auto
+    iapply HΦ
+    iframe
+    isplitl
+    · iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · iapply errsIff_nil; exact Or.inr Hok
+
 
 end proof
 

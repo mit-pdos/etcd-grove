@@ -62,6 +62,22 @@ theorem isValO_some (v : value.Value) (dq : DFrac) (x : UVal) :
   · iexists p, i; iframe; ipureintro; exact Hv
   ipureintro; exact ⟨p, Hv⟩
 
+/-- No errors: the nil slice. -/
+theorem errsIff_nil (ok : Prop) (h : ok) : ⊢ errsIff (GF := GF) slice.nil ok := by
+  unfold errsIff ownErrs
+  iexists []
+  isplitl
+  · isplitl
+    · iapply ownSlice_nil
+    · iapply ownSliceCap_nil
+  · ipureintro; exact ⟨fun _ => h, fun _ => rfl⟩
+
+theorem noErrs_nil : ⊢ noErrs (GF := GF) slice.nil := by
+  unfold noErrs ownErrs
+  isplitl
+  · iapply ownSlice_nil
+  · iapply ownSliceCap_nil
+
 /-- Calling `ruleKeepRHS`'s closure (the persistent spec read at one call). -/
 theorem ruleKeepRHSOk_call (f : GoFunc) (w : Loc) (v : typed.mergingWalker) (dql dqr : DFrac)
     (l r : Option UVal) :

@@ -3,6 +3,9 @@
 `null`, the view of a map; an error (prefixed) for any other kind. Reads the walker's allocator
 field only; the side is lent (any share).
 
+The side is nil, `null` or of the kind (Prove phase, 2026-11-19: the error branch calls
+`errorf`, outside the scope; the callers' sides conform).
+
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
 module
@@ -32,7 +35,8 @@ variable [package_sem : typed.Assumptions]
 abbrev typed.mergingWalker.derefMap.spec : Prop :=
   ∀ (w : Loc) (wv : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker) (dqw : DFrac) (pfx : GoString) (v : value.Value) (dq : DFrac)
     (o : Option UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ w ↦{dqw} wv ∗ isValO v dq o }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ w ↦{dqw} wv ∗ isValO v dq o ∗
+      ⌜o = none ∨ o = some .null ∨ (mapOfO o).isSome⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"derefMap")) (Val #pfx)) (Val #v))
   {{ (m : value.Map) (errs : GoSlice), RET (PairV #m #errs); w ↦{dqw} wv ∗ isValO v dq o ∗
       isMapO m (mapOfO o) ∗ errsIff errs (o = none ∨ o = some .null ∨ (mapOfO o).isSome) }}
