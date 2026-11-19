@@ -5,14 +5,16 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.membership`
 Its fact (`membershipInit`, `etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a
 fixed pointer (a `*prometheus.GaugeVec`, with its label names: D19l (iii)), and (D43 M4,
 2026-10-26) every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`). Its
-initializer initializes its imports and runs its variables' untranslated initializers; the
-trust-boundary axiom `ClusterVersionMetrics_init` states the one the fact reads (`metrics.go`:
-`prometheus.NewGaugeVec(...)`), `errorsNewVarsInit` the error variables' (`errors.go`: `errors.New`
-calls), `opaqueInitsOk` the others.
+initializer allocates its error variables, initializes its imports, runs their translated
+initializers (`errors.go`: `errors.New` calls, Perennial's `errors.wp_New_errorString`; translated
+since 2026-11-19, until then the trust-boundary axiom `errorsNewVarsInit`) and its other variables'
+untranslated initializers; the trust-boundary axiom `ClusterVersionMetrics_init` states the one the
+fact reads (`metrics.go`: `prometheus.NewGaugeVec(...)`), `opaqueInitsOk` the others.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Perennial.Proof.errors.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
 public import Proof.encoding.json.Init
@@ -22,7 +24,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
-public import Proof.errors.NewVarCell
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -69,18 +71,6 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.membership`'s variables initialized by `errors.New`.** Each
-listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
-it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
-axiom errorsNewVarsInit :
-    ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrIDRemoved.init, ErrIDRemoved, go!"membership: ID removed"),
-        (ErrIDExists.init, ErrIDExists, go!"membership: ID exists"),
-        (ErrIDNotFound.init, ErrIDNotFound, go!"membership: ID not found"),
-        (ErrPeerURLexists.init, ErrPeerURLexists, go!"membership: peerURL exists"),
-        (ErrMemberNotLearner.init, ErrMemberNotLearner, go!"membership: can only promote a learner member"),
-        (ErrTooManyLearners.init, ErrTooManyLearners, go!"membership: too many learner members in cluster")] : List (val × GoString × GoString)) →
-    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
-
 /-- `ClusterVersionMetrics = prometheus.NewGaugeVec(..., []string{"cluster_version"})`
 (`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
 axiom ClusterVersionMetrics_init :
@@ -111,6 +101,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrTooManyLearners _ as HErrTooManyLearners
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrMemberNotLearner _ as HErrMemberNotLearner
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrPeerURLexists _ as HErrPeerURLexists
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrIDNotFound _ as HErrIDNotFound
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrIDExists _ as HErrIDExists
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrIDRemoved _ as HErrIDRemoved
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
       EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
@@ -123,18 +121,24 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
       EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (errorsNewVarsInit ErrIDRemoved.init ErrIDRemoved go!"membership: ID removed" (by mem_tac))
-    as ⟨%xErrIDRemoved, HErrIDRemoved, #MErrIDRemoved, #CErrIDRemoved⟩
-  wp_apply (errorsNewVarsInit ErrIDExists.init ErrIDExists go!"membership: ID exists" (by mem_tac))
-    as ⟨%xErrIDExists, HErrIDExists, #MErrIDExists, #CErrIDExists⟩
-  wp_apply (errorsNewVarsInit ErrIDNotFound.init ErrIDNotFound go!"membership: ID not found" (by mem_tac))
-    as ⟨%xErrIDNotFound, HErrIDNotFound, #MErrIDNotFound, #CErrIDNotFound⟩
-  wp_apply (errorsNewVarsInit ErrPeerURLexists.init ErrPeerURLexists go!"membership: peerURL exists" (by mem_tac))
-    as ⟨%xErrPeerURLexists, HErrPeerURLexists, #MErrPeerURLexists, #CErrPeerURLexists⟩
-  wp_apply (errorsNewVarsInit ErrMemberNotLearner.init ErrMemberNotLearner go!"membership: can only promote a learner member" (by mem_tac))
-    as ⟨%xErrMemberNotLearner, HErrMemberNotLearner, #MErrMemberNotLearner, #CErrMemberNotLearner⟩
-  wp_apply (errorsNewVarsInit ErrTooManyLearners.init ErrTooManyLearners go!"membership: too many learner members in cluster" (by mem_tac))
-    as ⟨%xErrTooManyLearners, HErrTooManyLearners, #MErrTooManyLearners, #CErrTooManyLearners⟩
+  -- translated initializer of ErrIDRemoved))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDRemoved #MErrIDRemoved
+  -- translated initializer of ErrIDExists))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDExists #MErrIDExists
+  -- translated initializer of ErrIDNotFound))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDNotFound #MErrIDNotFound
+  -- translated initializer of ErrPeerURLexists))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPeerURLexists #MErrPeerURLexists
+  -- translated initializer of ErrMemberNotLearner))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMemberNotLearner #MErrMemberNotLearner
+  -- translated initializer of ErrTooManyLearners))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTooManyLearners #MErrTooManyLearners
   wp_apply ClusterVersionMetrics_init as ⟨%vClusterVersionMetrics, HClusterVersionMetrics, #LClusterVersionMetrics⟩
   wp_apply (opaqueInitsOk knownPeers.init (by mem_tac))
   wp_apply (opaqueInitsOk isLearner.init (by mem_tac))
