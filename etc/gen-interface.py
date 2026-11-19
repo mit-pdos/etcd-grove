@@ -78,7 +78,11 @@ def ensure_built(mods):
 
 
 def dump(mode, mods, outdir):
-    r = run(["lake", "env", "lean", "--run", str(ROOT / "etc/interface.lean"), mode, str(outdir), *mods])
+    # a native build of etc/interface.lean (etc/proof_roots.py's lean_script), else `lean --run`
+    sys.path.insert(0, str(ROOT / "etc"))
+    import proof_roots
+    script = proof_roots.lean_script("etc/interface.lean")
+    r = run(["lake", "env", *script, mode, str(outdir), *mods])
     if r.returncode != 0:
         sys.exit("gen-interface: etc/interface.lean failed\n" + (r.stdout + r.stderr)[-4000:])
 

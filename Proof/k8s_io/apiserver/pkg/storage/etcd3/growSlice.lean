@@ -10,6 +10,7 @@ public import Spec.reflect.Value__Cap
 public import Spec.reflect.Value__Len
 public import Spec.reflect.Value__Type
 public import Spec.reflect.Value__Set
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

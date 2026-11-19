@@ -52,7 +52,7 @@ theorem raft_kvdurable_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kvdurable_adequate_of kvdurable_wp_Main_durableGF dir σ g Hlctx Hinit Hthreads Hfiles n Hn κs t2
     σ2 Hsteps
 
@@ -82,7 +82,7 @@ theorem raft_kvdurableN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvdurableProgramN dir k], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kvdurableN_adequate_of kvdurable_wp_MainN_durableGF dir k hk1 hk σ g Hlctx Hinit Hthreads Hfiles n Hn
     κs t2 σ2 Hsteps
 

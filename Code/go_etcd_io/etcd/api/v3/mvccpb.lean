@@ -39,7 +39,7 @@ attribute [irreducible] Event.ty
 @[reducible] noncomputable def PUT [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-axiom DELETE [GooseExts] [GoGlobalContext] : val
+opaque DELETE [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def Event_PUT [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
@@ -47,17 +47,17 @@ axiom DELETE [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def Event_DELETE [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-axiom file_kv_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_kv_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Event_EventType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_name"
 
-axiom Event_EventType_name.init [GooseExts] [GoGlobalContext] : val
+opaque Event_EventType_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Event_EventType_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_value"
 
-axiom Event_EventType_value.init [GooseExts] [GoGlobalContext] : val
+opaque Event_EventType_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_kv_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.File_kv_proto"
@@ -71,22 +71,22 @@ noncomputable def file_kv_proto_rawDescData [GooseExts] [GoGlobalContext] : GoSt
 noncomputable def file_kv_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_enumTypes"
 
-axiom file_kv_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_kv_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_kv_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_msgTypes"
 
-axiom file_kv_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_kv_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_kv_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_goTypes"
 
-axiom file_kv_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_kv_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_kv_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_depIdxs"
 
-axiom file_kv_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_kv_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_kv_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_rawDescGZIP"
@@ -217,7 +217,7 @@ noncomputable def Event.GetKv.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.mvccpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

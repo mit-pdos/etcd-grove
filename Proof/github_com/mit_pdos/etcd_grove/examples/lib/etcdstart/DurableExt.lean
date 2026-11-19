@@ -100,7 +100,7 @@ theorem durable_init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         (durableOwn (L := (heapWith hG lctx).goose_localGS) (extLocal durableExt σ.world))
         init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate_start (GF := GF) init body φ hφ σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
     Hthreads n κs t2 σ2 Hsteps ?_
   intro hG HN HT

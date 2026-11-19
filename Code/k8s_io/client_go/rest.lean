@@ -245,118 +245,118 @@ noncomputable def wrapPreviousError.ty [GooseExts] [GoGlobalContext] : go.GoType
 
 attribute [irreducible] wrapPreviousError.ty
 
-axiom APIResultAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque APIResultAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClientContentConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClientContentConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RESTClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RESTClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom requestClientContentConfigProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque requestClientContentConfigProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientNegotiatorWithCBORSequenceStreamDecoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clientNegotiatorWithCBORSequenceStreamDecoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientNegotiatorDroppingManagedFields.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clientNegotiatorDroppingManagedFields.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom decoderDroppingManagedFields.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque decoderDroppingManagedFields.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sanitizedConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sanitizedConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sanitizedAuthConfigPersister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sanitizedAuthConfigPersister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sanitizedObject.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sanitizedObject.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ImpersonationConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ImpersonationConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TLSClientConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TLSClientConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sanitizedTLSClientConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sanitizedTLSClientConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContentConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContentConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Factory.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Factory.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthProviderConfigPersister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthProviderConfigPersister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopPersister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque noopPersister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HTTPClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HTTPClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResponseWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResponseWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RequestConstructionError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RequestConstructionError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom requestRetryFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque requestRetryFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Request.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Request.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom throttleSettings.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque throttleSettings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom throttledLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque throttledLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Result.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Result.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BackoffManager.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BackoffManager.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BackoffManagerWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BackoffManagerWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom URLBackoff.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque URLBackoff.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NoBackoff.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NoBackoff.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom backoffManagerNopContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque backoffManagerNopContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WarningHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WarningHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WarningHandlerWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WarningHandlerWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom warningLoggerNopContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque warningLoggerNopContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NoWarnings.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NoWarnings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WarningLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WarningLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom warningWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque warningWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WarningWriterOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WarningWriterOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IsRetryableErrorFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IsRetryableErrorFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WithRetry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WithRetry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RetryAfter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RetryAfter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom withRetry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque withRetry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom wrapPreviousError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque wrapPreviousError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom envBackoffBase [GooseExts] [GoGlobalContext] : val
+opaque envBackoffBase [GooseExts] [GoGlobalContext] : val
 
-axiom envBackoffDuration [GooseExts] [GoGlobalContext] : val
+opaque envBackoffDuration [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultQPS [GooseExts] [GoGlobalContext] : val
+opaque DefaultQPS [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultBurst [GooseExts] [GoGlobalContext] : val
+opaque DefaultBurst [GooseExts] [GoGlobalContext] : val
 
-axiom longThrottleLatency [GooseExts] [GoGlobalContext] : val
+opaque longThrottleLatency [GooseExts] [GoGlobalContext] : val
 
-axiom extraLongThrottleLatency [GooseExts] [GoGlobalContext] : val
+opaque extraLongThrottleLatency [GooseExts] [GoGlobalContext] : val
 
-axiom maxUnstructuredResponseTextBytes [GooseExts] [GoGlobalContext] : val
+opaque maxUnstructuredResponseTextBytes [GooseExts] [GoGlobalContext] : val
 
-axiom yellowColor [GooseExts] [GoGlobalContext] : val
+opaque yellowColor [GooseExts] [GoGlobalContext] : val
 
-axiom resetColor [GooseExts] [GoGlobalContext] : val
+opaque resetColor [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotInCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.ErrNotInCluster"
 
-axiom ErrNotInCluster.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotInCluster.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def pluginsLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.pluginsLock"
@@ -364,42 +364,42 @@ noncomputable def pluginsLock [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def plugins [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.plugins"
 
-axiom plugins.init [GooseExts] [GoGlobalContext] : val
+opaque plugins.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noBackoff [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.noBackoff"
 
-axiom noBackoff.init [GooseExts] [GoGlobalContext] : val
+opaque noBackoff.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def globalThrottledLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.globalThrottledLogger"
 
-axiom globalThrottledLogger.init [GooseExts] [GoGlobalContext] : val
+opaque globalThrottledLogger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NameMayNotBe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.NameMayNotBe"
 
-axiom NameMayNotBe.init [GooseExts] [GoGlobalContext] : val
+opaque NameMayNotBe.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NameMayNotContain [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.NameMayNotContain"
 
-axiom NameMayNotContain.init [GooseExts] [GoGlobalContext] : val
+opaque NameMayNotContain.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def serverIsOverloadedSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.serverIsOverloadedSet"
 
-axiom serverIsOverloadedSet.init [GooseExts] [GoGlobalContext] : val
+opaque serverIsOverloadedSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxResponseCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.maxResponseCode"
 
-axiom maxResponseCode.init [GooseExts] [GoGlobalContext] : val
+opaque maxResponseCode.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultWarningHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.defaultWarningHandler"
 
-axiom defaultWarningHandler.init [GooseExts] [GoGlobalContext] : val
+opaque defaultWarningHandler.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultWarningHandlerLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.defaultWarningHandlerLock"
@@ -407,7 +407,7 @@ noncomputable def defaultWarningHandlerLock [GooseExts] [GoGlobalContext] : GoSt
 noncomputable def neverRetryError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.neverRetryError"
 
-axiom neverRetryError.init [GooseExts] [GoGlobalContext] : val
+opaque neverRetryError.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewRESTClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.NewRESTClient"
@@ -598,7 +598,7 @@ noncomputable def retryAfterResponseWithCodeAndDelay [GooseExts] [GoGlobalContex
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.rest where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -673,8 +673,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))))
 
-axiom APIResultAdapter : Type
-axiom APIResultAdapter.zero_val : ZeroVal APIResultAdapter
+opaque APIResultAdapter.nonempty_type : NonemptyType.{0}
+def APIResultAdapter : Type := APIResultAdapter.nonempty_type.type
+instance APIResultAdapter.nonempty : Nonempty APIResultAdapter := APIResultAdapter.nonempty_type.property
+opaque APIResultAdapter.zero_val : ZeroVal APIResultAdapter := ⟨Classical.ofNonempty⟩
 attribute [instance] APIResultAdapter.zero_val
 
 class APIResultAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -690,8 +692,10 @@ attribute [instance] APIResultAdapter.TypeAssumptions.type_repr
   APIResultAdapter.TypeAssumptions.method_set
   APIResultAdapter.TypeAssumptions.ptr_method_set
 
-axiom Interface : Type
-axiom Interface.zero_val : ZeroVal Interface
+opaque Interface.nonempty_type : NonemptyType.{0}
+def Interface : Type := Interface.nonempty_type.type
+instance Interface.nonempty : Nonempty Interface := Interface.nonempty_type.property
+opaque Interface.zero_val : ZeroVal Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] Interface.zero_val
 
 class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -707,8 +711,10 @@ attribute [instance] Interface.TypeAssumptions.type_repr
   Interface.TypeAssumptions.method_set
   Interface.TypeAssumptions.ptr_method_set
 
-axiom ClientContentConfig : Type
-axiom ClientContentConfig.zero_val : ZeroVal ClientContentConfig
+opaque ClientContentConfig.nonempty_type : NonemptyType.{0}
+def ClientContentConfig : Type := ClientContentConfig.nonempty_type.type
+instance ClientContentConfig.nonempty : Nonempty ClientContentConfig := ClientContentConfig.nonempty_type.property
+opaque ClientContentConfig.zero_val : ZeroVal ClientContentConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] ClientContentConfig.zero_val
 
 class ClientContentConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -724,8 +730,10 @@ attribute [instance] ClientContentConfig.TypeAssumptions.type_repr
   ClientContentConfig.TypeAssumptions.method_set
   ClientContentConfig.TypeAssumptions.ptr_method_set
 
-axiom RESTClient : Type
-axiom RESTClient.zero_val : ZeroVal RESTClient
+opaque RESTClient.nonempty_type : NonemptyType.{0}
+def RESTClient : Type := RESTClient.nonempty_type.type
+instance RESTClient.nonempty : Nonempty RESTClient := RESTClient.nonempty_type.property
+opaque RESTClient.zero_val : ZeroVal RESTClient := ⟨Classical.ofNonempty⟩
 attribute [instance] RESTClient.zero_val
 
 class RESTClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -741,8 +749,10 @@ attribute [instance] RESTClient.TypeAssumptions.type_repr
   RESTClient.TypeAssumptions.method_set
   RESTClient.TypeAssumptions.ptr_method_set
 
-axiom requestClientContentConfigProvider : Type
-axiom requestClientContentConfigProvider.zero_val : ZeroVal requestClientContentConfigProvider
+opaque requestClientContentConfigProvider.nonempty_type : NonemptyType.{0}
+def requestClientContentConfigProvider : Type := requestClientContentConfigProvider.nonempty_type.type
+instance requestClientContentConfigProvider.nonempty : Nonempty requestClientContentConfigProvider := requestClientContentConfigProvider.nonempty_type.property
+opaque requestClientContentConfigProvider.zero_val : ZeroVal requestClientContentConfigProvider := ⟨Classical.ofNonempty⟩
 attribute [instance] requestClientContentConfigProvider.zero_val
 
 class requestClientContentConfigProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -758,8 +768,10 @@ attribute [instance] requestClientContentConfigProvider.TypeAssumptions.type_rep
   requestClientContentConfigProvider.TypeAssumptions.method_set
   requestClientContentConfigProvider.TypeAssumptions.ptr_method_set
 
-axiom clientNegotiatorWithCBORSequenceStreamDecoder : Type
-axiom clientNegotiatorWithCBORSequenceStreamDecoder.zero_val : ZeroVal clientNegotiatorWithCBORSequenceStreamDecoder
+opaque clientNegotiatorWithCBORSequenceStreamDecoder.nonempty_type : NonemptyType.{0}
+def clientNegotiatorWithCBORSequenceStreamDecoder : Type := clientNegotiatorWithCBORSequenceStreamDecoder.nonempty_type.type
+instance clientNegotiatorWithCBORSequenceStreamDecoder.nonempty : Nonempty clientNegotiatorWithCBORSequenceStreamDecoder := clientNegotiatorWithCBORSequenceStreamDecoder.nonempty_type.property
+opaque clientNegotiatorWithCBORSequenceStreamDecoder.zero_val : ZeroVal clientNegotiatorWithCBORSequenceStreamDecoder := ⟨Classical.ofNonempty⟩
 attribute [instance] clientNegotiatorWithCBORSequenceStreamDecoder.zero_val
 
 class clientNegotiatorWithCBORSequenceStreamDecoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -775,8 +787,10 @@ attribute [instance] clientNegotiatorWithCBORSequenceStreamDecoder.TypeAssumptio
   clientNegotiatorWithCBORSequenceStreamDecoder.TypeAssumptions.method_set
   clientNegotiatorWithCBORSequenceStreamDecoder.TypeAssumptions.ptr_method_set
 
-axiom clientNegotiatorDroppingManagedFields : Type
-axiom clientNegotiatorDroppingManagedFields.zero_val : ZeroVal clientNegotiatorDroppingManagedFields
+opaque clientNegotiatorDroppingManagedFields.nonempty_type : NonemptyType.{0}
+def clientNegotiatorDroppingManagedFields : Type := clientNegotiatorDroppingManagedFields.nonempty_type.type
+instance clientNegotiatorDroppingManagedFields.nonempty : Nonempty clientNegotiatorDroppingManagedFields := clientNegotiatorDroppingManagedFields.nonempty_type.property
+opaque clientNegotiatorDroppingManagedFields.zero_val : ZeroVal clientNegotiatorDroppingManagedFields := ⟨Classical.ofNonempty⟩
 attribute [instance] clientNegotiatorDroppingManagedFields.zero_val
 
 class clientNegotiatorDroppingManagedFields.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -792,8 +806,10 @@ attribute [instance] clientNegotiatorDroppingManagedFields.TypeAssumptions.type_
   clientNegotiatorDroppingManagedFields.TypeAssumptions.method_set
   clientNegotiatorDroppingManagedFields.TypeAssumptions.ptr_method_set
 
-axiom decoderDroppingManagedFields : Type
-axiom decoderDroppingManagedFields.zero_val : ZeroVal decoderDroppingManagedFields
+opaque decoderDroppingManagedFields.nonempty_type : NonemptyType.{0}
+def decoderDroppingManagedFields : Type := decoderDroppingManagedFields.nonempty_type.type
+instance decoderDroppingManagedFields.nonempty : Nonempty decoderDroppingManagedFields := decoderDroppingManagedFields.nonempty_type.property
+opaque decoderDroppingManagedFields.zero_val : ZeroVal decoderDroppingManagedFields := ⟨Classical.ofNonempty⟩
 attribute [instance] decoderDroppingManagedFields.zero_val
 
 class decoderDroppingManagedFields.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -809,8 +825,10 @@ attribute [instance] decoderDroppingManagedFields.TypeAssumptions.type_repr
   decoderDroppingManagedFields.TypeAssumptions.method_set
   decoderDroppingManagedFields.TypeAssumptions.ptr_method_set
 
-axiom Config : Type
-axiom Config.zero_val : ZeroVal Config
+opaque Config.nonempty_type : NonemptyType.{0}
+def Config : Type := Config.nonempty_type.type
+instance Config.nonempty : Nonempty Config := Config.nonempty_type.property
+opaque Config.zero_val : ZeroVal Config := ⟨Classical.ofNonempty⟩
 attribute [instance] Config.zero_val
 
 class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -826,8 +844,10 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
 
-axiom sanitizedConfig : Type
-axiom sanitizedConfig.zero_val : ZeroVal sanitizedConfig
+opaque sanitizedConfig.nonempty_type : NonemptyType.{0}
+def sanitizedConfig : Type := sanitizedConfig.nonempty_type.type
+instance sanitizedConfig.nonempty : Nonempty sanitizedConfig := sanitizedConfig.nonempty_type.property
+opaque sanitizedConfig.zero_val : ZeroVal sanitizedConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] sanitizedConfig.zero_val
 
 class sanitizedConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -843,8 +863,10 @@ attribute [instance] sanitizedConfig.TypeAssumptions.type_repr
   sanitizedConfig.TypeAssumptions.method_set
   sanitizedConfig.TypeAssumptions.ptr_method_set
 
-axiom sanitizedAuthConfigPersister : Type
-axiom sanitizedAuthConfigPersister.zero_val : ZeroVal sanitizedAuthConfigPersister
+opaque sanitizedAuthConfigPersister.nonempty_type : NonemptyType.{0}
+def sanitizedAuthConfigPersister : Type := sanitizedAuthConfigPersister.nonempty_type.type
+instance sanitizedAuthConfigPersister.nonempty : Nonempty sanitizedAuthConfigPersister := sanitizedAuthConfigPersister.nonempty_type.property
+opaque sanitizedAuthConfigPersister.zero_val : ZeroVal sanitizedAuthConfigPersister := ⟨Classical.ofNonempty⟩
 attribute [instance] sanitizedAuthConfigPersister.zero_val
 
 class sanitizedAuthConfigPersister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -860,8 +882,10 @@ attribute [instance] sanitizedAuthConfigPersister.TypeAssumptions.type_repr
   sanitizedAuthConfigPersister.TypeAssumptions.method_set
   sanitizedAuthConfigPersister.TypeAssumptions.ptr_method_set
 
-axiom sanitizedObject : Type
-axiom sanitizedObject.zero_val : ZeroVal sanitizedObject
+opaque sanitizedObject.nonempty_type : NonemptyType.{0}
+def sanitizedObject : Type := sanitizedObject.nonempty_type.type
+instance sanitizedObject.nonempty : Nonempty sanitizedObject := sanitizedObject.nonempty_type.property
+opaque sanitizedObject.zero_val : ZeroVal sanitizedObject := ⟨Classical.ofNonempty⟩
 attribute [instance] sanitizedObject.zero_val
 
 class sanitizedObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -877,8 +901,10 @@ attribute [instance] sanitizedObject.TypeAssumptions.type_repr
   sanitizedObject.TypeAssumptions.method_set
   sanitizedObject.TypeAssumptions.ptr_method_set
 
-axiom ImpersonationConfig : Type
-axiom ImpersonationConfig.zero_val : ZeroVal ImpersonationConfig
+opaque ImpersonationConfig.nonempty_type : NonemptyType.{0}
+def ImpersonationConfig : Type := ImpersonationConfig.nonempty_type.type
+instance ImpersonationConfig.nonempty : Nonempty ImpersonationConfig := ImpersonationConfig.nonempty_type.property
+opaque ImpersonationConfig.zero_val : ZeroVal ImpersonationConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] ImpersonationConfig.zero_val
 
 class ImpersonationConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -894,8 +920,10 @@ attribute [instance] ImpersonationConfig.TypeAssumptions.type_repr
   ImpersonationConfig.TypeAssumptions.method_set
   ImpersonationConfig.TypeAssumptions.ptr_method_set
 
-axiom TLSClientConfig : Type
-axiom TLSClientConfig.zero_val : ZeroVal TLSClientConfig
+opaque TLSClientConfig.nonempty_type : NonemptyType.{0}
+def TLSClientConfig : Type := TLSClientConfig.nonempty_type.type
+instance TLSClientConfig.nonempty : Nonempty TLSClientConfig := TLSClientConfig.nonempty_type.property
+opaque TLSClientConfig.zero_val : ZeroVal TLSClientConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] TLSClientConfig.zero_val
 
 class TLSClientConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -911,8 +939,10 @@ attribute [instance] TLSClientConfig.TypeAssumptions.type_repr
   TLSClientConfig.TypeAssumptions.method_set
   TLSClientConfig.TypeAssumptions.ptr_method_set
 
-axiom sanitizedTLSClientConfig : Type
-axiom sanitizedTLSClientConfig.zero_val : ZeroVal sanitizedTLSClientConfig
+opaque sanitizedTLSClientConfig.nonempty_type : NonemptyType.{0}
+def sanitizedTLSClientConfig : Type := sanitizedTLSClientConfig.nonempty_type.type
+instance sanitizedTLSClientConfig.nonempty : Nonempty sanitizedTLSClientConfig := sanitizedTLSClientConfig.nonempty_type.property
+opaque sanitizedTLSClientConfig.zero_val : ZeroVal sanitizedTLSClientConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] sanitizedTLSClientConfig.zero_val
 
 class sanitizedTLSClientConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -928,8 +958,10 @@ attribute [instance] sanitizedTLSClientConfig.TypeAssumptions.type_repr
   sanitizedTLSClientConfig.TypeAssumptions.method_set
   sanitizedTLSClientConfig.TypeAssumptions.ptr_method_set
 
-axiom ContentConfig : Type
-axiom ContentConfig.zero_val : ZeroVal ContentConfig
+opaque ContentConfig.nonempty_type : NonemptyType.{0}
+def ContentConfig : Type := ContentConfig.nonempty_type.type
+instance ContentConfig.nonempty : Nonempty ContentConfig := ContentConfig.nonempty_type.property
+opaque ContentConfig.zero_val : ZeroVal ContentConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] ContentConfig.zero_val
 
 class ContentConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -945,8 +977,10 @@ attribute [instance] ContentConfig.TypeAssumptions.type_repr
   ContentConfig.TypeAssumptions.method_set
   ContentConfig.TypeAssumptions.ptr_method_set
 
-axiom AuthProvider : Type
-axiom AuthProvider.zero_val : ZeroVal AuthProvider
+opaque AuthProvider.nonempty_type : NonemptyType.{0}
+def AuthProvider : Type := AuthProvider.nonempty_type.type
+instance AuthProvider.nonempty : Nonempty AuthProvider := AuthProvider.nonempty_type.property
+opaque AuthProvider.zero_val : ZeroVal AuthProvider := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthProvider.zero_val
 
 class AuthProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -962,8 +996,10 @@ attribute [instance] AuthProvider.TypeAssumptions.type_repr
   AuthProvider.TypeAssumptions.method_set
   AuthProvider.TypeAssumptions.ptr_method_set
 
-axiom Factory : Type
-axiom Factory.zero_val : ZeroVal Factory
+opaque Factory.nonempty_type : NonemptyType.{0}
+def Factory : Type := Factory.nonempty_type.type
+instance Factory.nonempty : Nonempty Factory := Factory.nonempty_type.property
+opaque Factory.zero_val : ZeroVal Factory := ⟨Classical.ofNonempty⟩
 attribute [instance] Factory.zero_val
 
 class Factory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -979,8 +1015,10 @@ attribute [instance] Factory.TypeAssumptions.type_repr
   Factory.TypeAssumptions.method_set
   Factory.TypeAssumptions.ptr_method_set
 
-axiom AuthProviderConfigPersister : Type
-axiom AuthProviderConfigPersister.zero_val : ZeroVal AuthProviderConfigPersister
+opaque AuthProviderConfigPersister.nonempty_type : NonemptyType.{0}
+def AuthProviderConfigPersister : Type := AuthProviderConfigPersister.nonempty_type.type
+instance AuthProviderConfigPersister.nonempty : Nonempty AuthProviderConfigPersister := AuthProviderConfigPersister.nonempty_type.property
+opaque AuthProviderConfigPersister.zero_val : ZeroVal AuthProviderConfigPersister := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthProviderConfigPersister.zero_val
 
 class AuthProviderConfigPersister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -996,8 +1034,10 @@ attribute [instance] AuthProviderConfigPersister.TypeAssumptions.type_repr
   AuthProviderConfigPersister.TypeAssumptions.method_set
   AuthProviderConfigPersister.TypeAssumptions.ptr_method_set
 
-axiom noopPersister : Type
-axiom noopPersister.zero_val : ZeroVal noopPersister
+opaque noopPersister.nonempty_type : NonemptyType.{0}
+def noopPersister : Type := noopPersister.nonempty_type.type
+instance noopPersister.nonempty : Nonempty noopPersister := noopPersister.nonempty_type.property
+opaque noopPersister.zero_val : ZeroVal noopPersister := ⟨Classical.ofNonempty⟩
 attribute [instance] noopPersister.zero_val
 
 class noopPersister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1013,8 +1053,10 @@ attribute [instance] noopPersister.TypeAssumptions.type_repr
   noopPersister.TypeAssumptions.method_set
   noopPersister.TypeAssumptions.ptr_method_set
 
-axiom HTTPClient : Type
-axiom HTTPClient.zero_val : ZeroVal HTTPClient
+opaque HTTPClient.nonempty_type : NonemptyType.{0}
+def HTTPClient : Type := HTTPClient.nonempty_type.type
+instance HTTPClient.nonempty : Nonempty HTTPClient := HTTPClient.nonempty_type.property
+opaque HTTPClient.zero_val : ZeroVal HTTPClient := ⟨Classical.ofNonempty⟩
 attribute [instance] HTTPClient.zero_val
 
 class HTTPClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1030,8 +1072,10 @@ attribute [instance] HTTPClient.TypeAssumptions.type_repr
   HTTPClient.TypeAssumptions.method_set
   HTTPClient.TypeAssumptions.ptr_method_set
 
-axiom ResponseWrapper : Type
-axiom ResponseWrapper.zero_val : ZeroVal ResponseWrapper
+opaque ResponseWrapper.nonempty_type : NonemptyType.{0}
+def ResponseWrapper : Type := ResponseWrapper.nonempty_type.type
+instance ResponseWrapper.nonempty : Nonempty ResponseWrapper := ResponseWrapper.nonempty_type.property
+opaque ResponseWrapper.zero_val : ZeroVal ResponseWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] ResponseWrapper.zero_val
 
 class ResponseWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1047,8 +1091,10 @@ attribute [instance] ResponseWrapper.TypeAssumptions.type_repr
   ResponseWrapper.TypeAssumptions.method_set
   ResponseWrapper.TypeAssumptions.ptr_method_set
 
-axiom RequestConstructionError : Type
-axiom RequestConstructionError.zero_val : ZeroVal RequestConstructionError
+opaque RequestConstructionError.nonempty_type : NonemptyType.{0}
+def RequestConstructionError : Type := RequestConstructionError.nonempty_type.type
+instance RequestConstructionError.nonempty : Nonempty RequestConstructionError := RequestConstructionError.nonempty_type.property
+opaque RequestConstructionError.zero_val : ZeroVal RequestConstructionError := ⟨Classical.ofNonempty⟩
 attribute [instance] RequestConstructionError.zero_val
 
 class RequestConstructionError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1064,8 +1110,10 @@ attribute [instance] RequestConstructionError.TypeAssumptions.type_repr
   RequestConstructionError.TypeAssumptions.method_set
   RequestConstructionError.TypeAssumptions.ptr_method_set
 
-axiom requestRetryFunc : Type
-axiom requestRetryFunc.zero_val : ZeroVal requestRetryFunc
+opaque requestRetryFunc.nonempty_type : NonemptyType.{0}
+def requestRetryFunc : Type := requestRetryFunc.nonempty_type.type
+instance requestRetryFunc.nonempty : Nonempty requestRetryFunc := requestRetryFunc.nonempty_type.property
+opaque requestRetryFunc.zero_val : ZeroVal requestRetryFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] requestRetryFunc.zero_val
 
 class requestRetryFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1081,8 +1129,10 @@ attribute [instance] requestRetryFunc.TypeAssumptions.type_repr
   requestRetryFunc.TypeAssumptions.method_set
   requestRetryFunc.TypeAssumptions.ptr_method_set
 
-axiom Request : Type
-axiom Request.zero_val : ZeroVal Request
+opaque Request.nonempty_type : NonemptyType.{0}
+def Request : Type := Request.nonempty_type.type
+instance Request.nonempty : Nonempty Request := Request.nonempty_type.property
+opaque Request.zero_val : ZeroVal Request := ⟨Classical.ofNonempty⟩
 attribute [instance] Request.zero_val
 
 class Request.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1098,8 +1148,10 @@ attribute [instance] Request.TypeAssumptions.type_repr
   Request.TypeAssumptions.method_set
   Request.TypeAssumptions.ptr_method_set
 
-axiom throttleSettings : Type
-axiom throttleSettings.zero_val : ZeroVal throttleSettings
+opaque throttleSettings.nonempty_type : NonemptyType.{0}
+def throttleSettings : Type := throttleSettings.nonempty_type.type
+instance throttleSettings.nonempty : Nonempty throttleSettings := throttleSettings.nonempty_type.property
+opaque throttleSettings.zero_val : ZeroVal throttleSettings := ⟨Classical.ofNonempty⟩
 attribute [instance] throttleSettings.zero_val
 
 class throttleSettings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1115,8 +1167,10 @@ attribute [instance] throttleSettings.TypeAssumptions.type_repr
   throttleSettings.TypeAssumptions.method_set
   throttleSettings.TypeAssumptions.ptr_method_set
 
-axiom throttledLogger : Type
-axiom throttledLogger.zero_val : ZeroVal throttledLogger
+opaque throttledLogger.nonempty_type : NonemptyType.{0}
+def throttledLogger : Type := throttledLogger.nonempty_type.type
+instance throttledLogger.nonempty : Nonempty throttledLogger := throttledLogger.nonempty_type.property
+opaque throttledLogger.zero_val : ZeroVal throttledLogger := ⟨Classical.ofNonempty⟩
 attribute [instance] throttledLogger.zero_val
 
 class throttledLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1132,8 +1186,10 @@ attribute [instance] throttledLogger.TypeAssumptions.type_repr
   throttledLogger.TypeAssumptions.method_set
   throttledLogger.TypeAssumptions.ptr_method_set
 
-axiom Result : Type
-axiom Result.zero_val : ZeroVal Result
+opaque Result.nonempty_type : NonemptyType.{0}
+def Result : Type := Result.nonempty_type.type
+instance Result.nonempty : Nonempty Result := Result.nonempty_type.property
+opaque Result.zero_val : ZeroVal Result := ⟨Classical.ofNonempty⟩
 attribute [instance] Result.zero_val
 
 class Result.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1149,8 +1205,10 @@ attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.method_set
   Result.TypeAssumptions.ptr_method_set
 
-axiom BackoffManager : Type
-axiom BackoffManager.zero_val : ZeroVal BackoffManager
+opaque BackoffManager.nonempty_type : NonemptyType.{0}
+def BackoffManager : Type := BackoffManager.nonempty_type.type
+instance BackoffManager.nonempty : Nonempty BackoffManager := BackoffManager.nonempty_type.property
+opaque BackoffManager.zero_val : ZeroVal BackoffManager := ⟨Classical.ofNonempty⟩
 attribute [instance] BackoffManager.zero_val
 
 class BackoffManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1166,8 +1224,10 @@ attribute [instance] BackoffManager.TypeAssumptions.type_repr
   BackoffManager.TypeAssumptions.method_set
   BackoffManager.TypeAssumptions.ptr_method_set
 
-axiom BackoffManagerWithContext : Type
-axiom BackoffManagerWithContext.zero_val : ZeroVal BackoffManagerWithContext
+opaque BackoffManagerWithContext.nonempty_type : NonemptyType.{0}
+def BackoffManagerWithContext : Type := BackoffManagerWithContext.nonempty_type.type
+instance BackoffManagerWithContext.nonempty : Nonempty BackoffManagerWithContext := BackoffManagerWithContext.nonempty_type.property
+opaque BackoffManagerWithContext.zero_val : ZeroVal BackoffManagerWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] BackoffManagerWithContext.zero_val
 
 class BackoffManagerWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1183,8 +1243,10 @@ attribute [instance] BackoffManagerWithContext.TypeAssumptions.type_repr
   BackoffManagerWithContext.TypeAssumptions.method_set
   BackoffManagerWithContext.TypeAssumptions.ptr_method_set
 
-axiom URLBackoff : Type
-axiom URLBackoff.zero_val : ZeroVal URLBackoff
+opaque URLBackoff.nonempty_type : NonemptyType.{0}
+def URLBackoff : Type := URLBackoff.nonempty_type.type
+instance URLBackoff.nonempty : Nonempty URLBackoff := URLBackoff.nonempty_type.property
+opaque URLBackoff.zero_val : ZeroVal URLBackoff := ⟨Classical.ofNonempty⟩
 attribute [instance] URLBackoff.zero_val
 
 class URLBackoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1200,8 +1262,10 @@ attribute [instance] URLBackoff.TypeAssumptions.type_repr
   URLBackoff.TypeAssumptions.method_set
   URLBackoff.TypeAssumptions.ptr_method_set
 
-axiom NoBackoff : Type
-axiom NoBackoff.zero_val : ZeroVal NoBackoff
+opaque NoBackoff.nonempty_type : NonemptyType.{0}
+def NoBackoff : Type := NoBackoff.nonempty_type.type
+instance NoBackoff.nonempty : Nonempty NoBackoff := NoBackoff.nonempty_type.property
+opaque NoBackoff.zero_val : ZeroVal NoBackoff := ⟨Classical.ofNonempty⟩
 attribute [instance] NoBackoff.zero_val
 
 class NoBackoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1217,8 +1281,10 @@ attribute [instance] NoBackoff.TypeAssumptions.type_repr
   NoBackoff.TypeAssumptions.method_set
   NoBackoff.TypeAssumptions.ptr_method_set
 
-axiom backoffManagerNopContext : Type
-axiom backoffManagerNopContext.zero_val : ZeroVal backoffManagerNopContext
+opaque backoffManagerNopContext.nonempty_type : NonemptyType.{0}
+def backoffManagerNopContext : Type := backoffManagerNopContext.nonempty_type.type
+instance backoffManagerNopContext.nonempty : Nonempty backoffManagerNopContext := backoffManagerNopContext.nonempty_type.property
+opaque backoffManagerNopContext.zero_val : ZeroVal backoffManagerNopContext := ⟨Classical.ofNonempty⟩
 attribute [instance] backoffManagerNopContext.zero_val
 
 class backoffManagerNopContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1234,8 +1300,10 @@ attribute [instance] backoffManagerNopContext.TypeAssumptions.type_repr
   backoffManagerNopContext.TypeAssumptions.method_set
   backoffManagerNopContext.TypeAssumptions.ptr_method_set
 
-axiom WarningHandler : Type
-axiom WarningHandler.zero_val : ZeroVal WarningHandler
+opaque WarningHandler.nonempty_type : NonemptyType.{0}
+def WarningHandler : Type := WarningHandler.nonempty_type.type
+instance WarningHandler.nonempty : Nonempty WarningHandler := WarningHandler.nonempty_type.property
+opaque WarningHandler.zero_val : ZeroVal WarningHandler := ⟨Classical.ofNonempty⟩
 attribute [instance] WarningHandler.zero_val
 
 class WarningHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1251,8 +1319,10 @@ attribute [instance] WarningHandler.TypeAssumptions.type_repr
   WarningHandler.TypeAssumptions.method_set
   WarningHandler.TypeAssumptions.ptr_method_set
 
-axiom WarningHandlerWithContext : Type
-axiom WarningHandlerWithContext.zero_val : ZeroVal WarningHandlerWithContext
+opaque WarningHandlerWithContext.nonempty_type : NonemptyType.{0}
+def WarningHandlerWithContext : Type := WarningHandlerWithContext.nonempty_type.type
+instance WarningHandlerWithContext.nonempty : Nonempty WarningHandlerWithContext := WarningHandlerWithContext.nonempty_type.property
+opaque WarningHandlerWithContext.zero_val : ZeroVal WarningHandlerWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] WarningHandlerWithContext.zero_val
 
 class WarningHandlerWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1268,8 +1338,10 @@ attribute [instance] WarningHandlerWithContext.TypeAssumptions.type_repr
   WarningHandlerWithContext.TypeAssumptions.method_set
   WarningHandlerWithContext.TypeAssumptions.ptr_method_set
 
-axiom warningLoggerNopContext : Type
-axiom warningLoggerNopContext.zero_val : ZeroVal warningLoggerNopContext
+opaque warningLoggerNopContext.nonempty_type : NonemptyType.{0}
+def warningLoggerNopContext : Type := warningLoggerNopContext.nonempty_type.type
+instance warningLoggerNopContext.nonempty : Nonempty warningLoggerNopContext := warningLoggerNopContext.nonempty_type.property
+opaque warningLoggerNopContext.zero_val : ZeroVal warningLoggerNopContext := ⟨Classical.ofNonempty⟩
 attribute [instance] warningLoggerNopContext.zero_val
 
 class warningLoggerNopContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1285,8 +1357,10 @@ attribute [instance] warningLoggerNopContext.TypeAssumptions.type_repr
   warningLoggerNopContext.TypeAssumptions.method_set
   warningLoggerNopContext.TypeAssumptions.ptr_method_set
 
-axiom NoWarnings : Type
-axiom NoWarnings.zero_val : ZeroVal NoWarnings
+opaque NoWarnings.nonempty_type : NonemptyType.{0}
+def NoWarnings : Type := NoWarnings.nonempty_type.type
+instance NoWarnings.nonempty : Nonempty NoWarnings := NoWarnings.nonempty_type.property
+opaque NoWarnings.zero_val : ZeroVal NoWarnings := ⟨Classical.ofNonempty⟩
 attribute [instance] NoWarnings.zero_val
 
 class NoWarnings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1302,8 +1376,10 @@ attribute [instance] NoWarnings.TypeAssumptions.type_repr
   NoWarnings.TypeAssumptions.method_set
   NoWarnings.TypeAssumptions.ptr_method_set
 
-axiom WarningLogger : Type
-axiom WarningLogger.zero_val : ZeroVal WarningLogger
+opaque WarningLogger.nonempty_type : NonemptyType.{0}
+def WarningLogger : Type := WarningLogger.nonempty_type.type
+instance WarningLogger.nonempty : Nonempty WarningLogger := WarningLogger.nonempty_type.property
+opaque WarningLogger.zero_val : ZeroVal WarningLogger := ⟨Classical.ofNonempty⟩
 attribute [instance] WarningLogger.zero_val
 
 class WarningLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1319,8 +1395,10 @@ attribute [instance] WarningLogger.TypeAssumptions.type_repr
   WarningLogger.TypeAssumptions.method_set
   WarningLogger.TypeAssumptions.ptr_method_set
 
-axiom warningWriter : Type
-axiom warningWriter.zero_val : ZeroVal warningWriter
+opaque warningWriter.nonempty_type : NonemptyType.{0}
+def warningWriter : Type := warningWriter.nonempty_type.type
+instance warningWriter.nonempty : Nonempty warningWriter := warningWriter.nonempty_type.property
+opaque warningWriter.zero_val : ZeroVal warningWriter := ⟨Classical.ofNonempty⟩
 attribute [instance] warningWriter.zero_val
 
 class warningWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1336,8 +1414,10 @@ attribute [instance] warningWriter.TypeAssumptions.type_repr
   warningWriter.TypeAssumptions.method_set
   warningWriter.TypeAssumptions.ptr_method_set
 
-axiom WarningWriterOptions : Type
-axiom WarningWriterOptions.zero_val : ZeroVal WarningWriterOptions
+opaque WarningWriterOptions.nonempty_type : NonemptyType.{0}
+def WarningWriterOptions : Type := WarningWriterOptions.nonempty_type.type
+instance WarningWriterOptions.nonempty : Nonempty WarningWriterOptions := WarningWriterOptions.nonempty_type.property
+opaque WarningWriterOptions.zero_val : ZeroVal WarningWriterOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] WarningWriterOptions.zero_val
 
 class WarningWriterOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1353,8 +1433,10 @@ attribute [instance] WarningWriterOptions.TypeAssumptions.type_repr
   WarningWriterOptions.TypeAssumptions.method_set
   WarningWriterOptions.TypeAssumptions.ptr_method_set
 
-axiom IsRetryableErrorFunc : Type
-axiom IsRetryableErrorFunc.zero_val : ZeroVal IsRetryableErrorFunc
+opaque IsRetryableErrorFunc.nonempty_type : NonemptyType.{0}
+def IsRetryableErrorFunc : Type := IsRetryableErrorFunc.nonempty_type.type
+instance IsRetryableErrorFunc.nonempty : Nonempty IsRetryableErrorFunc := IsRetryableErrorFunc.nonempty_type.property
+opaque IsRetryableErrorFunc.zero_val : ZeroVal IsRetryableErrorFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] IsRetryableErrorFunc.zero_val
 
 class IsRetryableErrorFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1370,8 +1452,10 @@ attribute [instance] IsRetryableErrorFunc.TypeAssumptions.type_repr
   IsRetryableErrorFunc.TypeAssumptions.method_set
   IsRetryableErrorFunc.TypeAssumptions.ptr_method_set
 
-axiom WithRetry : Type
-axiom WithRetry.zero_val : ZeroVal WithRetry
+opaque WithRetry.nonempty_type : NonemptyType.{0}
+def WithRetry : Type := WithRetry.nonempty_type.type
+instance WithRetry.nonempty : Nonempty WithRetry := WithRetry.nonempty_type.property
+opaque WithRetry.zero_val : ZeroVal WithRetry := ⟨Classical.ofNonempty⟩
 attribute [instance] WithRetry.zero_val
 
 class WithRetry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1387,8 +1471,10 @@ attribute [instance] WithRetry.TypeAssumptions.type_repr
   WithRetry.TypeAssumptions.method_set
   WithRetry.TypeAssumptions.ptr_method_set
 
-axiom RetryAfter : Type
-axiom RetryAfter.zero_val : ZeroVal RetryAfter
+opaque RetryAfter.nonempty_type : NonemptyType.{0}
+def RetryAfter : Type := RetryAfter.nonempty_type.type
+instance RetryAfter.nonempty : Nonempty RetryAfter := RetryAfter.nonempty_type.property
+opaque RetryAfter.zero_val : ZeroVal RetryAfter := ⟨Classical.ofNonempty⟩
 attribute [instance] RetryAfter.zero_val
 
 class RetryAfter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1404,8 +1490,10 @@ attribute [instance] RetryAfter.TypeAssumptions.type_repr
   RetryAfter.TypeAssumptions.method_set
   RetryAfter.TypeAssumptions.ptr_method_set
 
-axiom withRetry : Type
-axiom withRetry.zero_val : ZeroVal withRetry
+opaque withRetry.nonempty_type : NonemptyType.{0}
+def withRetry : Type := withRetry.nonempty_type.type
+instance withRetry.nonempty : Nonempty withRetry := withRetry.nonempty_type.property
+opaque withRetry.zero_val : ZeroVal withRetry := ⟨Classical.ofNonempty⟩
 attribute [instance] withRetry.zero_val
 
 class withRetry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1421,8 +1509,10 @@ attribute [instance] withRetry.TypeAssumptions.type_repr
   withRetry.TypeAssumptions.method_set
   withRetry.TypeAssumptions.ptr_method_set
 
-axiom wrapPreviousError : Type
-axiom wrapPreviousError.zero_val : ZeroVal wrapPreviousError
+opaque wrapPreviousError.nonempty_type : NonemptyType.{0}
+def wrapPreviousError : Type := wrapPreviousError.nonempty_type.type
+instance wrapPreviousError.nonempty : Nonempty wrapPreviousError := wrapPreviousError.nonempty_type.property
+opaque wrapPreviousError.zero_val : ZeroVal wrapPreviousError := ⟨Classical.ofNonempty⟩
 attribute [instance] wrapPreviousError.zero_val
 
 class wrapPreviousError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -57,3 +57,11 @@ func Test() string {
 	}()
 	return GetAny(kv, "k")
 }
+
+// Main runs Test and panics unless GetAny's answer is one of the two values written.
+func Main() {
+	r := Test()
+	if r != "a" && r != "b" {
+		panic("prophkv: GetAny answered a value that was never written")
+	}
+}

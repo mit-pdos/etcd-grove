@@ -30,24 +30,24 @@ noncomputable def rudimentaryErrorBackoff.ty [GooseExts] [GoGlobalContext] : go.
 
 attribute [irreducible] rudimentaryErrorBackoff.ty
 
-axiom ErrorHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ErrorHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom rudimentaryErrorBackoff.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque rudimentaryErrorBackoff.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def ReallyCrash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.ReallyCrash"
 
-axiom ReallyCrash.init [GooseExts] [GoGlobalContext] : val
+opaque ReallyCrash.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def PanicHandlers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.PanicHandlers"
 
-axiom PanicHandlers.init [GooseExts] [GoGlobalContext] : val
+opaque PanicHandlers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrorHandlers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.ErrorHandlers"
 
-axiom ErrorHandlers.init [GooseExts] [GoGlobalContext] : val
+opaque ErrorHandlers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def HandleCrash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.HandleCrash"
@@ -97,7 +97,7 @@ noncomputable def Must [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.runtime where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -112,8 +112,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ReallyCrash.init) (Val #()))))))))
 
-axiom ErrorHandler : Type
-axiom ErrorHandler.zero_val : ZeroVal ErrorHandler
+opaque ErrorHandler.nonempty_type : NonemptyType.{0}
+def ErrorHandler : Type := ErrorHandler.nonempty_type.type
+instance ErrorHandler.nonempty : Nonempty ErrorHandler := ErrorHandler.nonempty_type.property
+opaque ErrorHandler.zero_val : ZeroVal ErrorHandler := ⟨Classical.ofNonempty⟩
 attribute [instance] ErrorHandler.zero_val
 
 class ErrorHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -129,8 +131,10 @@ attribute [instance] ErrorHandler.TypeAssumptions.type_repr
   ErrorHandler.TypeAssumptions.method_set
   ErrorHandler.TypeAssumptions.ptr_method_set
 
-axiom rudimentaryErrorBackoff : Type
-axiom rudimentaryErrorBackoff.zero_val : ZeroVal rudimentaryErrorBackoff
+opaque rudimentaryErrorBackoff.nonempty_type : NonemptyType.{0}
+def rudimentaryErrorBackoff : Type := rudimentaryErrorBackoff.nonempty_type.type
+instance rudimentaryErrorBackoff.nonempty : Nonempty rudimentaryErrorBackoff := rudimentaryErrorBackoff.nonempty_type.property
+opaque rudimentaryErrorBackoff.zero_val : ZeroVal rudimentaryErrorBackoff := ⟨Classical.ofNonempty⟩
 attribute [instance] rudimentaryErrorBackoff.zero_val
 
 class rudimentaryErrorBackoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

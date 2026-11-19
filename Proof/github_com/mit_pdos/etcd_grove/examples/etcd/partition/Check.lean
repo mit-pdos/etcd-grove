@@ -16,6 +16,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Model
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Check
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

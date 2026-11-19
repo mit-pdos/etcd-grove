@@ -49,6 +49,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__runWatchLoop
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ErrOk
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.OptsOwn
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.SyncPages
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

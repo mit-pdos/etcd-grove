@@ -28,6 +28,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__GetList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PredOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ListContract
 public import Perennial.Proof.context.Link
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

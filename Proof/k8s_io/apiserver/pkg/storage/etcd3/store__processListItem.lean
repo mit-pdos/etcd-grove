@@ -7,6 +7,7 @@ module
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__processListItem
 public import Spec.reflect.ValueOf
 public import Spec.reflect.Value__Set
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

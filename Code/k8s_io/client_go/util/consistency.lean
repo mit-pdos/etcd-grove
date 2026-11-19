@@ -655,7 +655,7 @@ noncomputable def NewNoopConsistencyStore.impl [GooseExts] [GoGlobalContext] : v
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.consistency where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.sync, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.util.resourceversion]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -33,6 +33,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ForRange
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ListPages
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.fmt.Link
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

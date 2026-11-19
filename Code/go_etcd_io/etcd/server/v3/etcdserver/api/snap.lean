@@ -32,37 +32,37 @@ noncomputable def Snapshotter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Snapshotter.ty
 
-axiom Snapshotter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Snapshotter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def ErrNoDBSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.ErrNoDBSnapshot"
 
-axiom ErrNoDBSnapshot.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoDBSnapshot.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapMarshallingSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapMarshallingSec"
 
-axiom snapMarshallingSec.init [GooseExts] [GoGlobalContext] : val
+opaque snapMarshallingSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapSaveSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapSaveSec"
 
-axiom snapSaveSec.init [GooseExts] [GoGlobalContext] : val
+opaque snapSaveSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapFsyncSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapFsyncSec"
 
-axiom snapFsyncSec.init [GooseExts] [GoGlobalContext] : val
+opaque snapFsyncSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapDBSaveSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapDBSaveSec"
 
-axiom snapDBSaveSec.init [GooseExts] [GoGlobalContext] : val
+opaque snapDBSaveSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapDBFsyncSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapDBFsyncSec"
 
-axiom snapDBFsyncSec.init [GooseExts] [GoGlobalContext] : val
+opaque snapDBFsyncSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def fsyncSnapDir [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.fsyncSnapDir"
@@ -79,7 +79,7 @@ noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap where
   pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.raft.v3.raftpb]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -171,8 +171,10 @@ attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.GetTo_unfold
   Message.TypeAssumptions.ptr_GetTo_unfold
 
-axiom Snapshotter : Type
-axiom Snapshotter.zero_val : ZeroVal Snapshotter
+opaque Snapshotter.nonempty_type : NonemptyType.{0}
+def Snapshotter : Type := Snapshotter.nonempty_type.type
+instance Snapshotter.nonempty : Nonempty Snapshotter := Snapshotter.nonempty_type.property
+opaque Snapshotter.zero_val : ZeroVal Snapshotter := ⟨Classical.ofNonempty⟩
 attribute [instance] Snapshotter.zero_val
 
 class Snapshotter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

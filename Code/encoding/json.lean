@@ -85,53 +85,53 @@ noncomputable def Delim.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Delim.ty
 
-axiom Unmarshaler [GooseExts] [GoGlobalContext] : go.GoType
+opaque Unmarshaler [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnmarshalTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnmarshalTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnmarshalFieldError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnmarshalFieldError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InvalidUnmarshalError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque InvalidUnmarshalError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Marshaler [GooseExts] [GoGlobalContext] : go.GoType
+opaque Marshaler [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnsupportedTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnsupportedTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnsupportedValueError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnsupportedValueError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MarshalerError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MarshalerError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Options [GooseExts] [GoGlobalContext] : go.GoType
+opaque Options [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RawMessage [GooseExts] [GoGlobalContext] : go.GoType
+opaque RawMessage [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Delim.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Delim.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom indentGrowthFactor [GooseExts] [GoGlobalContext] : val
+opaque indentGrowthFactor [GooseExts] [GoGlobalContext] : val
 
 noncomputable def numberType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.numberType"
 
-axiom numberType.init [GooseExts] [GoGlobalContext] : val
+opaque numberType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def «export» [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.export"
 
-axiom «export».init [GooseExts] [GoGlobalContext] : val
+opaque «export».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errUnexpectedEnd [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.errUnexpectedEnd"
 
-axiom errUnexpectedEnd.init [GooseExts] [GoGlobalContext] : val
+opaque errUnexpectedEnd.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def syntaxErrorReplacer [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.syntaxErrorReplacer"
 
-axiom syntaxErrorReplacer.init [GooseExts] [GoGlobalContext] : val
+opaque syntaxErrorReplacer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Unmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Unmarshal"
@@ -226,7 +226,7 @@ noncomputable def NewEncoder [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.encoding.json where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -247,8 +247,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val numberType.init) (Val #()))))))))
 
-axiom UnmarshalTypeError : Type
-axiom UnmarshalTypeError.zero_val : ZeroVal UnmarshalTypeError
+opaque UnmarshalTypeError.nonempty_type : NonemptyType.{0}
+def UnmarshalTypeError : Type := UnmarshalTypeError.nonempty_type.type
+instance UnmarshalTypeError.nonempty : Nonempty UnmarshalTypeError := UnmarshalTypeError.nonempty_type.property
+opaque UnmarshalTypeError.zero_val : ZeroVal UnmarshalTypeError := ⟨Classical.ofNonempty⟩
 attribute [instance] UnmarshalTypeError.zero_val
 
 class UnmarshalTypeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -264,8 +266,10 @@ attribute [instance] UnmarshalTypeError.TypeAssumptions.type_repr
   UnmarshalTypeError.TypeAssumptions.method_set
   UnmarshalTypeError.TypeAssumptions.ptr_method_set
 
-axiom UnmarshalFieldError : Type
-axiom UnmarshalFieldError.zero_val : ZeroVal UnmarshalFieldError
+opaque UnmarshalFieldError.nonempty_type : NonemptyType.{0}
+def UnmarshalFieldError : Type := UnmarshalFieldError.nonempty_type.type
+instance UnmarshalFieldError.nonempty : Nonempty UnmarshalFieldError := UnmarshalFieldError.nonempty_type.property
+opaque UnmarshalFieldError.zero_val : ZeroVal UnmarshalFieldError := ⟨Classical.ofNonempty⟩
 attribute [instance] UnmarshalFieldError.zero_val
 
 class UnmarshalFieldError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -281,8 +285,10 @@ attribute [instance] UnmarshalFieldError.TypeAssumptions.type_repr
   UnmarshalFieldError.TypeAssumptions.method_set
   UnmarshalFieldError.TypeAssumptions.ptr_method_set
 
-axiom InvalidUnmarshalError : Type
-axiom InvalidUnmarshalError.zero_val : ZeroVal InvalidUnmarshalError
+opaque InvalidUnmarshalError.nonempty_type : NonemptyType.{0}
+def InvalidUnmarshalError : Type := InvalidUnmarshalError.nonempty_type.type
+instance InvalidUnmarshalError.nonempty : Nonempty InvalidUnmarshalError := InvalidUnmarshalError.nonempty_type.property
+opaque InvalidUnmarshalError.zero_val : ZeroVal InvalidUnmarshalError := ⟨Classical.ofNonempty⟩
 attribute [instance] InvalidUnmarshalError.zero_val
 
 class InvalidUnmarshalError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -312,8 +318,10 @@ attribute [instance] Number.TypeAssumptions.underlying
   Number.TypeAssumptions.method_set
   Number.TypeAssumptions.ptr_method_set
 
-axiom UnsupportedTypeError : Type
-axiom UnsupportedTypeError.zero_val : ZeroVal UnsupportedTypeError
+opaque UnsupportedTypeError.nonempty_type : NonemptyType.{0}
+def UnsupportedTypeError : Type := UnsupportedTypeError.nonempty_type.type
+instance UnsupportedTypeError.nonempty : Nonempty UnsupportedTypeError := UnsupportedTypeError.nonempty_type.property
+opaque UnsupportedTypeError.zero_val : ZeroVal UnsupportedTypeError := ⟨Classical.ofNonempty⟩
 attribute [instance] UnsupportedTypeError.zero_val
 
 class UnsupportedTypeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -329,8 +337,10 @@ attribute [instance] UnsupportedTypeError.TypeAssumptions.type_repr
   UnsupportedTypeError.TypeAssumptions.method_set
   UnsupportedTypeError.TypeAssumptions.ptr_method_set
 
-axiom UnsupportedValueError : Type
-axiom UnsupportedValueError.zero_val : ZeroVal UnsupportedValueError
+opaque UnsupportedValueError.nonempty_type : NonemptyType.{0}
+def UnsupportedValueError : Type := UnsupportedValueError.nonempty_type.type
+instance UnsupportedValueError.nonempty : Nonempty UnsupportedValueError := UnsupportedValueError.nonempty_type.property
+opaque UnsupportedValueError.zero_val : ZeroVal UnsupportedValueError := ⟨Classical.ofNonempty⟩
 attribute [instance] UnsupportedValueError.zero_val
 
 class UnsupportedValueError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -381,8 +391,10 @@ attribute [instance] InvalidUTF8Error.TypeAssumptions.type_repr
   InvalidUTF8Error.TypeAssumptions.method_set
   InvalidUTF8Error.TypeAssumptions.ptr_method_set
 
-axiom MarshalerError : Type
-axiom MarshalerError.zero_val : ZeroVal MarshalerError
+opaque MarshalerError.nonempty_type : NonemptyType.{0}
+def MarshalerError : Type := MarshalerError.nonempty_type.type
+instance MarshalerError.nonempty : Nonempty MarshalerError := MarshalerError.nonempty_type.property
+opaque MarshalerError.zero_val : ZeroVal MarshalerError := ⟨Classical.ofNonempty⟩
 attribute [instance] MarshalerError.zero_val
 
 class MarshalerError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -439,8 +451,10 @@ attribute [instance] SyntaxError.TypeAssumptions.type_repr
   SyntaxError.TypeAssumptions.method_set
   SyntaxError.TypeAssumptions.ptr_method_set
 
-axiom Decoder : Type
-axiom Decoder.zero_val : ZeroVal Decoder
+opaque Decoder.nonempty_type : NonemptyType.{0}
+def Decoder : Type := Decoder.nonempty_type.type
+instance Decoder.nonempty : Nonempty Decoder := Decoder.nonempty_type.property
+opaque Decoder.zero_val : ZeroVal Decoder := ⟨Classical.ofNonempty⟩
 attribute [instance] Decoder.zero_val
 
 class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -456,8 +470,10 @@ attribute [instance] Decoder.TypeAssumptions.type_repr
   Decoder.TypeAssumptions.method_set
   Decoder.TypeAssumptions.ptr_method_set
 
-axiom Encoder : Type
-axiom Encoder.zero_val : ZeroVal Encoder
+opaque Encoder.nonempty_type : NonemptyType.{0}
+def Encoder : Type := Encoder.nonempty_type.type
+instance Encoder.nonempty : Nonempty Encoder := Encoder.nonempty_type.property
+opaque Encoder.zero_val : ZeroVal Encoder := ⟨Classical.ofNonempty⟩
 attribute [instance] Encoder.zero_val
 
 class Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -487,8 +503,10 @@ attribute [instance] Token.TypeAssumptions.underlying
   Token.TypeAssumptions.method_set
   Token.TypeAssumptions.ptr_method_set
 
-axiom Delim : Type
-axiom Delim.zero_val : ZeroVal Delim
+opaque Delim.nonempty_type : NonemptyType.{0}
+def Delim : Type := Delim.nonempty_type.type
+instance Delim.nonempty : Nonempty Delim := Delim.nonempty_type.property
+opaque Delim.zero_val : ZeroVal Delim := ⟨Classical.ofNonempty⟩
 attribute [instance] Delim.zero_val
 
 class Delim.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

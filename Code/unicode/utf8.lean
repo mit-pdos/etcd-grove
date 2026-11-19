@@ -25,45 +25,45 @@ noncomputable def acceptRange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] acceptRange.ty
 
-axiom RuneError [GooseExts] [GoGlobalContext] : val
+opaque RuneError [GooseExts] [GoGlobalContext] : val
 
 /-- characters below RuneSelf are represented as themselves in a single byte. -/
 @[reducible] noncomputable def RuneSelf [GooseExts] [GoGlobalContext] : val :=
   #(128 : Int)
 
-axiom MaxRune [GooseExts] [GoGlobalContext] : val
+opaque MaxRune [GooseExts] [GoGlobalContext] : val
 
-axiom UTFMax [GooseExts] [GoGlobalContext] : val
+opaque UTFMax [GooseExts] [GoGlobalContext] : val
 
-axiom surrogateMin [GooseExts] [GoGlobalContext] : val
+opaque surrogateMin [GooseExts] [GoGlobalContext] : val
 
-axiom surrogateMax [GooseExts] [GoGlobalContext] : val
+opaque surrogateMax [GooseExts] [GoGlobalContext] : val
 
-axiom t1 [GooseExts] [GoGlobalContext] : val
+opaque t1 [GooseExts] [GoGlobalContext] : val
 
-axiom tx [GooseExts] [GoGlobalContext] : val
+opaque tx [GooseExts] [GoGlobalContext] : val
 
-axiom t2 [GooseExts] [GoGlobalContext] : val
+opaque t2 [GooseExts] [GoGlobalContext] : val
 
-axiom t3 [GooseExts] [GoGlobalContext] : val
+opaque t3 [GooseExts] [GoGlobalContext] : val
 
-axiom t4 [GooseExts] [GoGlobalContext] : val
+opaque t4 [GooseExts] [GoGlobalContext] : val
 
-axiom t5 [GooseExts] [GoGlobalContext] : val
+opaque t5 [GooseExts] [GoGlobalContext] : val
 
-axiom maskx [GooseExts] [GoGlobalContext] : val
+opaque maskx [GooseExts] [GoGlobalContext] : val
 
-axiom mask2 [GooseExts] [GoGlobalContext] : val
+opaque mask2 [GooseExts] [GoGlobalContext] : val
 
-axiom mask3 [GooseExts] [GoGlobalContext] : val
+opaque mask3 [GooseExts] [GoGlobalContext] : val
 
-axiom mask4 [GooseExts] [GoGlobalContext] : val
+opaque mask4 [GooseExts] [GoGlobalContext] : val
 
-axiom rune1Max [GooseExts] [GoGlobalContext] : val
+opaque rune1Max [GooseExts] [GoGlobalContext] : val
 
-axiom rune2Max [GooseExts] [GoGlobalContext] : val
+opaque rune2Max [GooseExts] [GoGlobalContext] : val
 
-axiom rune3Max [GooseExts] [GoGlobalContext] : val
+opaque rune3Max [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def locb [GooseExts] [GoGlobalContext] : val :=
   #(128 : Int)
@@ -107,11 +107,11 @@ axiom rune3Max [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def s7 [GooseExts] [GoGlobalContext] : val :=
   #(68 : Int)
 
-axiom runeErrorByte0 [GooseExts] [GoGlobalContext] : val
+opaque runeErrorByte0 [GooseExts] [GoGlobalContext] : val
 
-axiom runeErrorByte1 [GooseExts] [GoGlobalContext] : val
+opaque runeErrorByte1 [GooseExts] [GoGlobalContext] : val
 
-axiom runeErrorByte2 [GooseExts] [GoGlobalContext] : val
+opaque runeErrorByte2 [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def ptrSize [GooseExts] [GoGlobalContext] : val :=
   #(8 : Int)
@@ -358,7 +358,7 @@ noncomputable def ValidString.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.unicode.utf8 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -8,6 +8,7 @@ public import Perennial.Proof.sync.atomic.Link
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__get
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

@@ -63,7 +63,7 @@ theorem Model.listItems.wp_proof
     (wp_FE : fieldSel.Empty.spec (GF := GF) (hG := hG))
     (wp_GA : getAttrs.spec (GF := GF) (hG := hG)) :
     Model.listItems.spec (GF := GF) (hG := hG) := by
-  have wp_Matches := mlistMatches.wp_proof wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
+  have wp_Matches := mlistMatches.wp_ok wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
   intro mp m x key
   wp_start as Hm
   unfold modelAt modelRep modelVal

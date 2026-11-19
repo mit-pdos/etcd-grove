@@ -16,8 +16,8 @@ firing's changes for the next, so the next one is not older).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.InvSteps
-public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatchBridge
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

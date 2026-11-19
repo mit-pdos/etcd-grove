@@ -216,7 +216,7 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate (GF := kvGF) github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
     Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
@@ -258,7 +258,7 @@ theorem kv_witness_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvProgramWitness], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate (GF := kvGF) github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.MainWitness) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
     Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_

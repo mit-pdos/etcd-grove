@@ -22,6 +22,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.SelectionPredicate__Empty
 public import Spec.k8s_io.apiserver.pkg.storage.PrepareContinueToken
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RefineList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
@@ -134,7 +135,7 @@ abbrev mlistMatches.spec : Prop :=
         (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) #op)))
   {{ RET (PairV #(selOkL x o) #GoInterface.nil); pp ↦ predV x ∗ op ↦{dq} o }}
 
-theorem mlistMatches.wp_proof
+theorem mlistMatches.wp_ok
     (wp_Matches : storage.SelectionPredicate.Matches.spec (GF := GF) (hG := hG))
     (wp_LM : labelSel.Matches.spec (GF := GF) (hG := hG))
     (wp_LE : labelSel.Empty.spec (GF := GF) (hG := hG))
@@ -249,7 +250,7 @@ abbrev mlistPCT.spec : Prop :=
         else ⌜err ≠ GoInterface.nil⌝)
       else ⌜c = [] ∧ rem = null ∧ err = GoInterface.nil⌝ }}
 
-theorem mlistPCT.wp_proof
+theorem mlistPCT.wp_ok
     (wp_PCT : storage.PrepareContinueToken.spec (GF := GF) (hG := hG))
     (wp_Matches : storage.SelectionPredicate.Matches.spec (GF := GF) (hG := hG))
     (wp_Empty : storage.SelectionPredicate.Empty.spec (GF := GF) (hG := hG))

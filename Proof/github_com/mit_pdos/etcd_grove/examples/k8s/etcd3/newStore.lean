@@ -14,6 +14,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.New
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.NewDefaultLeaseManagerConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Contract
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

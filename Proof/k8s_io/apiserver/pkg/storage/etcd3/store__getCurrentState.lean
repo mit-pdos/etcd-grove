@@ -13,6 +13,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

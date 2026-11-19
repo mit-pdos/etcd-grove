@@ -14,6 +14,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__watchContext
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.watcher__Watch
 public import Proof.go_etcd_io.etcd.client.v3.WithRequireLeaderLaws
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
