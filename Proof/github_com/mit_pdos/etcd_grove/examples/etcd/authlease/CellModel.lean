@@ -242,7 +242,7 @@ def lzOf (ids : List w64) : w64 := ids.getD 0 (W64 0)
 def luOf (ids : List w64) : w64 := ids.getD 1 (W64 0)
 
 /-- **The cell's invariant, purely.** -/
-structure CellOk (σ : KVState) (ids : List w64) (ps : List Nat) (gs : List w64) (d : Nat) : Prop where
+structure CellOk0 (σ : KVState) (ids : List w64) (ps : List Nat) (gs : List w64) (d : Nat) : Prop where
   x_none : mvcc.findKey xK σ.kvs = none
   ids_len : ids.length ≤ 2
   ps_len : ps.length ≤ 3
@@ -273,14 +273,14 @@ theorem leaseOf_eq_of_findKey {k : GoString} {s s' : List EtcdKv}
   unfold leaseOf; rw [h]
 
 /-- The start: nothing fixed, nothing attached, no key `a/x`. -/
-theorem cellOk_start (σ : KVState) (hx : mvcc.findKey xK σ.kvs = none) : CellOk σ [] [] [] 0 := by
+theorem cellOk0_start (σ : KVState) (hx : mvcc.findKey xK σ.kvs = none) : CellOk0 σ [] [] [] 0 := by
   refine ⟨hx, by simp, by simp, by simp, by simp, by simp, by simp, by simp, by simp, by simp, by simp,
     by simp, by simp, by simp, by simp, by simp, by simp⟩
 
 /-- **The main thread fixes the next lease** (`Lz` at no lease fixed, `Lu` at one), an id of `gs`. -/
-theorem cellOk_fix (σ : KVState) (ids : List w64) (ps : List Nat) (gs : List w64) (d : Nat) (L : w64)
-    (h : CellOk σ ids ps gs d) (hlen : ids.length = ps.length) (hlt : ids.length < 2) (hL : L ≠ W64 0) :
-    CellOk σ (ids ++ [L]) ps gs d := by
+theorem cellOk0_fix (σ : KVState) (ids : List w64) (ps : List Nat) (gs : List w64) (d : Nat) (L : w64)
+    (h : CellOk0 σ ids ps gs d) (hlen : ids.length = ps.length) (hlt : ids.length < 2) (hL : L ≠ W64 0) :
+    CellOk0 σ (ids ++ [L]) ps gs d := by
   have hps : ps.length ≤ 1 := by omega
   have g0 : lzOf (ids ++ [L]) = (if ids.length = 0 then L else lzOf ids) := by
     unfold lzOf; rcases ids with _ | ⟨a, _⟩ <;> simp
@@ -304,8 +304,8 @@ theorem cellOk_fix (σ : KVState) (ids : List w64) (ps : List Nat) (gs : List w6
 
 /-- **What a grant's freshness gives the cell**: after the revocation, a grant's id is not `Lu`
 (`Lu` was attached to `a/lease` at a revision of the state). -/
-theorem cellOk_fresh {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
-    (h : CellOk σ ids ps gs d) (id : w64)
+theorem cellOk0_fresh {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk0 σ ids ps gs d) (id : w64)
     (hf : ∀ r ≤ σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ W64 0 → kv.lease ≠ id) :
     d = 1 → id ≠ luOf ids := by
   intro hd he
@@ -318,10 +318,10 @@ theorem cellOk_fresh {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List 
 
 /-- **A grant keeps the cell**, its id added to `gs` (its TTL at most the maximum; after the
 revocation, its id not `Lu`). -/
-theorem cellOk_grant {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
-    (h : CellOk σ ids ps gs d) (id ttl : w64) (httl : sint.Z ttl ≤ maxLeaseTTL)
+theorem cellOk0_grant {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk0 σ ids ps gs d) (id ttl : w64) (httl : sint.Z ttl ≤ maxLeaseTTL)
     (hf : d = 1 → id ≠ luOf ids) :
-    CellOk (kvOpStep (.leaseGrant id ttl) σ) ids ps (gs ++ [id]) d := by
+    CellOk0 (kvOpStep (.leaseGrant id ttl) σ) ids ps (gs ++ [id]) d := by
   obtain ⟨hkv, hids⟩ := step_grant id ttl σ
   have hrev : (kvOpStep (.leaseGrant id ttl) σ).rev = σ.rev := by
     simp only [kvOpStep]; split <;> rfl
@@ -347,8 +347,8 @@ theorem cellOk_grant {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List 
         exact Or.inl ((hids _).2 (Or.inl this))
 
 /-- `Lz` is live whenever it is a grant id (no update removes it). -/
-theorem cellOk_lz_live {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
-    (h : CellOk σ ids ps gs d) (h1 : 1 ≤ ids.length) (hg : lzOf ids ∈ gs) : lzOf ids ∈ σ.leases.ids := by
+theorem cellOk0_lz_live {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk0 σ ids ps gs d) (h1 : 1 ≤ ids.length) (hg : lzOf ids ∈ gs) : lzOf ids ∈ σ.leases.ids := by
   rcases h.live _ hg (h.lz_ne h1) with h' | ⟨hd, he⟩
   · exact h'
   · exact absurd he.symm (h.lu_lz (by have := h.d_len hd; omega))
@@ -357,11 +357,11 @@ theorem leaseMissing_of_mem {σ : KVState} {L : w64} (h : L ∈ σ.leases.ids) :
   fun hm => hm.2 h
 
 /-- **Root's put of `z/lease` with `Lz` keeps the cell**, recording `z/lease`'s first attachment. -/
-theorem cellOk_putZ {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
-    (h : CellOk σ ids ps gs d) (h1 : 1 ≤ ids.length) (hg : lzOf ids ∈ gs) :
-    CellOk (kvOpStep (.put (leasePutOp zK (lzOf ids))) σ) ids
+theorem cellOk0_putZ {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk0 σ ids ps gs d) (h1 : 1 ≤ ids.length) (hg : lzOf ids ∈ gs) :
+    CellOk0 (kvOpStep (.put (leasePutOp zK (lzOf ids))) σ) ids
       (if ps = [] then [(kvOpStep (.put (leasePutOp zK (lzOf ids))) σ).rev] else ps) gs d := by
-  have hlive := cellOk_lz_live h h1 hg
+  have hlive := cellOk0_lz_live h h1 hg
   obtain ⟨hz, hoth, hls⟩ := step_leasePut_live zK (lzOf ids) σ (leaseMissing_of_mem hlive)
   have hle := kvOpStep_rev_le (.put (leasePutOp zK (lzOf ids))) σ
   have hat : ∀ r ≤ σ.rev, (kvOpStep (.put (leasePutOp zK (lzOf ids))) σ).at r = σ.at r :=
@@ -396,10 +396,10 @@ theorem cellOk_putZ {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w
 /-- **u's put of `a/lease` with `Lu` keeps the cell** (fired after root's put; granted, so `Lu ≠ Lz`:
 `z/lease` holds `Lz`, which u may not write), recording `a/lease`'s first attachment; after the
 revocation it changes nothing (`Lu` is gone). -/
-theorem cellOk_putA {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
-    (h : CellOk σ ids ps gs d) (h1 : 1 ≤ ps.length) (h2 : 2 ≤ ids.length) (hg : luOf ids ∈ gs)
+theorem cellOk0_putA {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk0 σ ids ps gs d) (h1 : 1 ≤ ps.length) (h2 : 2 ≤ ids.length) (hg : luOf ids ∈ gs)
     (hne : luOf ids ≠ lzOf ids) :
-    CellOk (kvOpStep (.put (leasePutOp aK (luOf ids))) σ) ids
+    CellOk0 (kvOpStep (.put (leasePutOp aK (luOf ids))) σ) ids
       (if ps.length = 1 then ps ++ [(kvOpStep (.put (leasePutOp aK (luOf ids))) σ).rev] else ps) gs d := by
   by_cases hd : d = 1
   · have h3 := h.d_len hd
@@ -441,9 +441,9 @@ theorem cellOk_putA {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w
 
 /-- **u's transaction putting `a/txn` with `Lu` keeps the cell** (fired after u's put), recording
 `a/txn`'s first attachment; after the revocation it changes nothing. -/
-theorem cellOk_txnT {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
-    (h : CellOk σ ids ps gs d) (h2 : 2 ≤ ps.length) :
-    CellOk (kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids)))) σ) ids
+theorem cellOk0_txnT {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk0 σ ids ps gs d) (h2 : 2 ≤ ps.length) :
+    CellOk0 (kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids)))) σ) ids
       (if ps.length = 2 then ps ++ [(kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids)))) σ).rev] else ps)
       gs d := by
   have hi2 : 2 ≤ ids.length := h.ps_ids.2.2 h2
@@ -483,9 +483,9 @@ theorem cellOk_txnT {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w
 
 /-- **u's revocation of `Lu` keeps the cell** (fired after u's transaction): it deletes `a/lease` and
 `a/txn` and removes `Lu`; the cell is then revoked (`d = 1`). -/
-theorem cellOk_revokeU {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
-    (h : CellOk σ ids ps gs d) (h3 : ps.length = 3) :
-    CellOk (kvOpStep (.leaseRevoke (luOf ids)) σ) ids ps gs 1 := by
+theorem cellOk0_revokeU {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk0 σ ids ps gs d) (h3 : ps.length = 3) :
+    CellOk0 (kvOpStep (.leaseRevoke (luOf ids)) σ) ids ps gs 1 := by
   have hi2 : 2 ≤ ids.length := h.ps_ids.2.2 (by omega)
   by_cases hd : d = 1
   · subst hd; rw [step_revoke_missing _ σ (h.lu_dead rfl)]; exact h
@@ -514,9 +514,172 @@ theorem cellOk_revokeU {σ : KVState} {ids : List w64} {ps : List Nat} {gs : Lis
       · omega
 
 /-- **After the revocation, any revocation of `Lu` changes nothing.** -/
+theorem cellOk0_revokeLu_done {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64}
+    (h : CellOk0 σ ids ps gs 1) : kvOpStep (.leaseRevoke (luOf ids)) σ = σ :=
+  step_revoke_missing _ σ (h.lu_dead rfl)
+
+/-! ### The attachments' history -/
+
+/-- A step's revision grows by at most one. -/
+theorem kvOpStep_rev_le_succ (op : KVOp) (σ : KVState) : (kvOpStep op σ).rev ≤ σ.rev + 1 := by
+  obtain ⟨cs, -, h⟩ := kvOpStep_commit op σ
+  by_cases hc : cs = []
+  · subst hc; rw [KVState.commit_nil] at h; omega
+  · rw [KVState.commit_rev σ cs hc] at h; omega
+
+/-- **The attachments' history**: `z/lease` holds `Lz` at every revision from its first attachment on,
+and `a/lease` holds `Lu` at every revision from its first attachment on until the revocation (what the
+lessor law's `leaseKeptIn` asks). -/
+structure CellHist (σ : KVState) (ids : List w64) (ps : List Nat) (d : Nat) : Prop where
+  z_hist : ∀ r0, ps[0]? = some r0 → r0 ≤ σ.rev ∧
+    ∀ r, r0 ≤ r → r ≤ σ.rev → leaseOf zK (σ.at r).kvs = some (lzOf ids)
+  a_hist : ∀ r1, ps[1]? = some r1 → d = 0 → r1 ≤ σ.rev ∧
+    ∀ r, r1 ≤ r → r ≤ σ.rev → leaseOf aK (σ.at r).kvs = some (luOf ids)
+
+/-- **The cell's invariant, purely**: `CellOk0` and the attachments' history. -/
+def CellOk (σ : KVState) (ids : List w64) (ps : List Nat) (gs : List w64) (d : Nat) : Prop :=
+  CellOk0 σ ids ps gs d ∧ CellHist σ ids ps d
+
+/-- One key's history through a step: held at every revision from `r0` to the state's (or `r0` the
+step's new revision: a first attachment), and in the step's current state, it is held at every
+revision from `r0` to the new state's. -/
+theorem kept_step (op : KVOp) (σ : KVState) (k : GoString) (L : w64) (r0 : Nat)
+    (hold : (r0 ≤ σ.rev ∧ ∀ r, r0 ≤ r → r ≤ σ.rev → leaseOf k (σ.at r).kvs = some L) ∨
+      r0 = (kvOpStep op σ).rev)
+    (hnew : leaseOf k (kvOpStep op σ).kvs = some L) :
+    r0 ≤ (kvOpStep op σ).rev ∧
+      ∀ r, r0 ≤ r → r ≤ (kvOpStep op σ).rev → leaseOf k ((kvOpStep op σ).at r).kvs = some L := by
+  have hle := kvOpStep_rev_le op σ
+  have hs := kvOpStep_rev_le_succ op σ
+  refine ⟨?_, fun r h1 h2 => ?_⟩
+  · rcases hold with ⟨h, -⟩ | h <;> omega
+  · by_cases hr : r = (kvOpStep op σ).rev
+    · subst hr; exact hnew
+    · rcases hold with ⟨h, hh⟩ | h
+      · have hr' : r ≤ σ.rev := by omega
+        rw [kvOpStep_at op σ r hr']; exact hh r h1 hr'
+      · omega
+
+theorem getElem?_prefix {ps ps' : List Nat} (hps : ps <+: ps') {i r : Nat} (h : ps[i]? = some r) :
+    ps'[i]? = some r := by
+  obtain ⟨t, rfl⟩ := hps
+  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 h).1]; exact h
+
+theorem getElem?_append_new {ps : List Nat} {x i r : Nat} (hi : (ps ++ [x])[i]? = some r)
+    (hn : ps[i]? = none) : r = x := by
+  have hi1 : ps.length ≤ i := List.getElem?_eq_none_iff.1 hn
+  rw [List.getElem?_append_right hi1] at hi
+  have : i - ps.length = 0 := by have := (List.getElem?_eq_some_iff.1 hi).1; simp at this; omega
+  rw [this] at hi; simp at hi; exact hi.symm
+
+/-- **The history through a step** whose result is a `CellOk0` at attachments `ps'` extending `ps`, the
+new ones at the new revision. -/
+theorem cellHist_step (op : KVOp) {σ : KVState} {ids : List w64} {ps ps' : List Nat} {gs' : List w64}
+    {d d' : Nat} (h0' : CellOk0 (kvOpStep op σ) ids ps' gs' d') (hh : CellHist σ ids ps d)
+    (hps : ps <+: ps') (hnew : ∀ (i r : Nat), ps'[i]? = some r → ps[i]? = none → r = (kvOpStep op σ).rev)
+    (hd : d' = 0 → d = 0) :
+    CellHist (kvOpStep op σ) ids ps' d' := by
+  constructor
+  · intro r0 h0
+    have hl : 1 ≤ ps'.length := by have := (List.getElem?_eq_some_iff.1 h0).1; omega
+    refine kept_step op σ zK _ r0 ?_ (h0'.z_at hl)
+    cases hp : ps[0]? with
+    | none => exact Or.inr (hnew 0 r0 h0 hp)
+    | some r0' =>
+      have e : r0 = r0' := Option.some.inj (h0.symm.trans (getElem?_prefix hps hp))
+      subst e
+      exact Or.inl (hh.z_hist r0 hp)
+  · intro r1 h1 hd0
+    have hl : 2 ≤ ps'.length := by have := (List.getElem?_eq_some_iff.1 h1).1; omega
+    refine kept_step op σ aK _ r1 ?_ (h0'.a_at hl hd0)
+    cases hp : ps[1]? with
+    | none => exact Or.inr (hnew 1 r1 h1 hp)
+    | some r1' =>
+      have e : r1 = r1' := Option.some.inj (h1.symm.trans (getElem?_prefix hps hp))
+      subst e
+      exact Or.inl (hh.a_hist r1 hp (hd hd0))
+
+theorem hnew_same {ps : List Nat} {x : Nat} : ∀ (i r : Nat), ps[i]? = some r → ps[i]? = none → r = x :=
+  fun _ _ h1 h2 => by rw [h1] at h2; cases h2
+
+theorem cellOk_start (σ : KVState) (hx : mvcc.findKey xK σ.kvs = none) : CellOk σ [] [] [] 0 :=
+  ⟨cellOk0_start σ hx, ⟨fun _ h => by simp at h, fun _ h => by simp at h⟩⟩
+
+theorem cellOk_fix (σ : KVState) (ids : List w64) (ps : List Nat) (gs : List w64) (d : Nat) (L : w64)
+    (h : CellOk σ ids ps gs d) (hlen : ids.length = ps.length) (hlt : ids.length < 2) (hL : L ≠ W64 0) :
+    CellOk σ (ids ++ [L]) ps gs d := by
+  refine ⟨cellOk0_fix σ ids ps gs d L h.1 hlen hlt hL, ⟨fun r0 h0 => ?_, fun r1 h1 _ => ?_⟩⟩
+  · have hl : 1 ≤ ps.length := by have := (List.getElem?_eq_some_iff.1 h0).1; omega
+    have e : lzOf (ids ++ [L]) = lzOf ids := by
+      unfold lzOf; rcases ids with _ | ⟨a, _⟩
+      · simp at hlen; omega
+      · simp
+    rw [e]; exact h.2.z_hist r0 h0
+  · have := (List.getElem?_eq_some_iff.1 h1).1; omega
+
+theorem cellOk_fresh {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk σ ids ps gs d) (id : w64)
+    (hf : ∀ r ≤ σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ W64 0 → kv.lease ≠ id) :
+    d = 1 → id ≠ luOf ids :=
+  cellOk0_fresh h.1 id hf
+
+theorem cellOk_grant {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk σ ids ps gs d) (id ttl : w64) (httl : sint.Z ttl ≤ maxLeaseTTL)
+    (hf : d = 1 → id ≠ luOf ids) :
+    CellOk (kvOpStep (.leaseGrant id ttl) σ) ids ps (gs ++ [id]) d :=
+  ⟨cellOk0_grant h.1 id ttl httl hf,
+    cellHist_step _ (cellOk0_grant h.1 id ttl httl hf) h.2 (List.prefix_refl _) hnew_same _root_.id⟩
+
+theorem cellOk_putZ {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk σ ids ps gs d) (h1 : 1 ≤ ids.length) (hg : lzOf ids ∈ gs) :
+    CellOk (kvOpStep (.put (leasePutOp zK (lzOf ids))) σ) ids
+      (if ps = [] then [(kvOpStep (.put (leasePutOp zK (lzOf ids))) σ).rev] else ps) gs d := by
+  refine ⟨cellOk0_putZ h.1 h1 hg, cellHist_step _ (cellOk0_putZ h.1 h1 hg) h.2 ?_ ?_ _root_.id⟩
+  · split
+    · rename_i hp; subst hp; exact List.nil_prefix
+    · exact List.prefix_refl _
+  · intro i r hi hn
+    split at hi
+    · rename_i hp; subst hp; exact getElem?_append_new (ps := []) hi hn
+    · exact hnew_same i r hi hn
+
+theorem cellOk_putA {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk σ ids ps gs d) (h1 : 1 ≤ ps.length) (h2 : 2 ≤ ids.length) (hg : luOf ids ∈ gs)
+    (hne : luOf ids ≠ lzOf ids) :
+    CellOk (kvOpStep (.put (leasePutOp aK (luOf ids))) σ) ids
+      (if ps.length = 1 then ps ++ [(kvOpStep (.put (leasePutOp aK (luOf ids))) σ).rev] else ps) gs d := by
+  refine ⟨cellOk0_putA h.1 h1 h2 hg hne, cellHist_step _ (cellOk0_putA h.1 h1 h2 hg hne) h.2 ?_ ?_ _root_.id⟩
+  · split
+    · exact List.prefix_append _ _
+    · exact List.prefix_refl _
+  · intro i r hi hn
+    split at hi
+    · exact getElem?_append_new hi hn
+    · exact hnew_same i r hi hn
+
+theorem cellOk_txnT {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk σ ids ps gs d) (h2 : 2 ≤ ps.length) :
+    CellOk (kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids)))) σ) ids
+      (if ps.length = 2 then ps ++ [(kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids)))) σ).rev] else ps)
+      gs d := by
+  refine ⟨cellOk0_txnT h.1 h2, cellHist_step _ (cellOk0_txnT h.1 h2) h.2 ?_ ?_ _root_.id⟩
+  · split
+    · exact List.prefix_append _ _
+    · exact List.prefix_refl _
+  · intro i r hi hn
+    split at hi
+    · exact getElem?_append_new hi hn
+    · exact hnew_same i r hi hn
+
+theorem cellOk_revokeU {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk σ ids ps gs d) (h3 : ps.length = 3) :
+    CellOk (kvOpStep (.leaseRevoke (luOf ids)) σ) ids ps gs 1 :=
+  ⟨cellOk0_revokeU h.1 h3, cellHist_step _ (cellOk0_revokeU h.1 h3) h.2 (List.prefix_refl _) hnew_same
+    (fun h => absurd h (by decide))⟩
+
 theorem cellOk_revokeLu_done {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64}
     (h : CellOk σ ids ps gs 1) : kvOpStep (.leaseRevoke (luOf ids)) σ = σ :=
-  step_revoke_missing _ σ (h.lu_dead rfl)
+  cellOk0_revokeLu_done h.1
 
 /-! ### The lease checks at the set-up's auth state -/
 

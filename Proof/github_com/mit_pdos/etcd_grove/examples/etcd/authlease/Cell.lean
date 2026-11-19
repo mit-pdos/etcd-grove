@@ -357,7 +357,7 @@ theorem cell_putAAu (γk : KVNames) (γc : CellNames) (Lz Lu : w64) (gs0 : List 
   icases Ha with ⟨Hp, Hg, Hd, Hdo⟩
   ihave %Hgs := mem_of_lb γc gs gs0 Lu hg $$ Hg Hg0
   ihave %Hps := len_of_lb γc ps ps0 $$ Hp Hp0
-  have hza : leaseOf zK σ.kvs = some Lz := by rw [← hz]; exact HS.z_at (by omega)
+  have hza : leaseOf zK σ.kvs = some Lz := by rw [← hz]; exact HS.1.z_at (by omega)
   imod Hne $$ %σ %hza HG with %Hne'
   subst hz hu
   imod (monoListAuthOwn_update (GF := GF) (γ := γc.ps) (l := ps)
@@ -374,11 +374,11 @@ theorem cell_putAAu (γk : KVNames) (γc : CellNames) (Lz Lu : w64) (gs0 : List 
   iexists _
   iframe Hpl
   ipureintro
-  have := HS.ps_ids
+  have := HS.1.ps_ids
   split
   · simp; omega
   · have : ps.length ≠ 0 := by omega
-    have := HS.ps_len
+    have := HS.1.ps_len
     -- ps.length ≥ 2 here: it is not 1 and at least 1
     omega
 
@@ -413,7 +413,7 @@ theorem cell_txnTAu (γk : KVNames) (γc : CellNames) (Lz Lu : w64) (ps0 : List 
   iexists _
   iframe Hpl
   ipureintro
-  have := HS.ps_len
+  have := HS.1.ps_len
   split
   · simp; omega
   · omega
@@ -435,13 +435,13 @@ theorem cell_revokeUAu (γk : KVNames) (γc : CellNames) (Lz Lu : w64) (ps0 : Li
   icases Ha with ⟨Hp, Hg, Hd, Hdo⟩
   ihave %Hps := len_of_lb γc ps ps0 $$ Hp Hp0
   subst hu
-  have hdle := HS.d_le
+  have hdle := HS.1.d_le
   imod (mono_nat_own_update (GF := GF) (γ := γc.d) 1 hdle) $$ Hd with ⟨Hd, #Hdl⟩
   imodintro
   iexists ps, gs, 1
   iframe Hids
   isplitr
-  · ipureintro; exact cellOk_revokeU HS (by have := HS.ps_len; omega)
+  · ipureintro; exact cellOk_revokeU HS (by have := HS.1.ps_len; omega)
   isplitl [Hp Hg Hd]
   · iunfold cellAuth; iframe Hp Hg Hd; iright; iexact Hal
   iunfold revoked
@@ -493,8 +493,8 @@ theorem cell_revokeLuAu (γk : KVNames) (γc : CellNames) (Lz Lu : w64) (ps0 : L
     · iunfold cellAuth; iframe Hp Hg Hd Hdo
     iunfold revoked
     iexact Hdl
-  · have hd0 : d = 0 := by have := HS.d_le; omega
-    have ha : leaseOf aK σ.kvs = some Lu := by rw [← hu]; exact HS.a_at (by have := HS.ps_len; omega) hd0
+  · have hd0 : d = 0 := by have := HS.1.d_le; omega
+    have ha : leaseOf aK σ.kvs = some Lu := by rw [← hu]; exact HS.1.a_at (by have := HS.1.ps_len; omega) hd0
     imod HF $$ %σ %ha HG with ⟨⟩
 
 /-- **Before u's revocation is permitted, no update's `revoked` holds** (the main thread's half of
@@ -531,7 +531,7 @@ theorem cell_fix (γk : KVNames) (γc : CellNames) (pre : List w64) (L : w64) (p
   icases Ha with ⟨Hp, Hg, Hd, Hdo⟩
   ihave %Hps := len_of_lb γc ps ps0 $$ Hp Hp0
   have hlen : ids.length = ps.length := by
-    have h1 := HS.ps_ids
+    have h1 := HS.1.ps_ids
     rcases Nat.lt_or_ge ids.length 1 with h0 | h0
     · have : ps.length = 0 := by
         rcases Nat.eq_zero_or_pos ps.length with h | h
