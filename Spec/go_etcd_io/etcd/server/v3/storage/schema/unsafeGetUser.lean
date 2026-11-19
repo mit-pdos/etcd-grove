@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 named `name` of `D.users`, owned (the record `dU name`), or nil. -/
 abbrev schema.unsafeGetUser.spec : Prop :=
   ∀ (lg : Loc) (r : GoInterfaceOk) (name : GoString) (H : IProp GF) (D : schema.AuthData) (dU : GoString → auth.UserRec),
-  lg ≠ null → schema.usersDec D.users dU →
+  schema.usersDec D.users dU →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.authReader r H D ∗ H }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeGetUser)) (Val #lg)) (Val #(GoInterface.ok r)))
       (Val #name))

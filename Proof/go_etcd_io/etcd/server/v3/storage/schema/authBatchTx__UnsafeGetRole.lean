@@ -27,10 +27,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 theorem schema.authBatchTx.UnsafeGetRole.wp_proof
     (hF : schema.unsafeGetRole.spec (GF := GF) (hG := hG)) :
     schema.authBatchTx.UnsafeGetRole.spec (GF := GF) (hG := hG) := by
-  intro atx t lg name H D dX hlg hwf
+  intro atx t lg name H D dX hwf
   wp_start as ⟨#Htx, #Hlg, #Hrd, HH⟩
   wp_auto
-  wp_apply (hF lg t name H D dX hlg hwf) $$ [$Hrd $HH] as %u ⟨HH, Hu⟩
+  wp_apply (hF lg t name H D dX hwf) $$ [$Hrd $HH] as %u ⟨HH, Hu⟩
   (try wp_auto)
   iapply HΦ
   iframe

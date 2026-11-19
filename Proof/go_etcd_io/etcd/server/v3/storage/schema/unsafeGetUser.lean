@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 theorem schema.unsafeGetUser.wp_proof
     (hUnm : proto.UnmarshalUser.spec (GF := GF) (hG := hG)) :
     schema.unsafeGetUser.spec (GF := GF) (hG := hG) := by
-  intro lg r name H D dU hlg hwf
+  intro lg r name H D dU hwf
   wp_start as ⟨#Hrd, HH⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

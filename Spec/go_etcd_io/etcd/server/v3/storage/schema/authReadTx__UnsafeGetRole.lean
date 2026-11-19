@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 under `H`: returns the role named `name` of `D.roles`, owned (the record `dR name`), or nil. -/
 abbrev schema.authReadTx.UnsafeGetRole.spec : Prop :=
   ∀ (atx : Loc) (rt : GoInterfaceOk) (lg : Loc) (name : GoString) (H : IProp GF)
-    (D : schema.AuthData) (dR : GoString → auth.RoleRec), lg ≠ null → schema.rolesDec D.roles dR →
+    (D : schema.AuthData) (dR : GoString → auth.RoleRec), schema.rolesDec D.roles dR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.atxF go!"lg" atx ↦□ lg ∗
       schema.authReader rt H D ∗ H }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"UnsafeGetRole")) (Val #name))

@@ -2890,3 +2890,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   producer goes through `authHist_split`; independent read-only check: no producer lacks the fact, nothing new for a
   client against the four forbidden laws. P2 kept (now redundant).
 - **Decision.** Approved by etcd-grove-03, 2026-11-18 (on the A7 list); made on branch `auth-schema-srv`.
+
+## 2026-11-19: `GetAllRoles` lists every role only below the range's implicit limit (auth-schema-srv A6, STOP 4, F-roles)
+
+- **Spec.** `auth.rolesOut` (InvAuth.lean; the trusted write contract's `GetAllRoles` clause, `auth.authBackendReads`) and
+  `auth.roleListOut` (Reads.lean; the post of the exported `auth.authStore.RoleList.spec`).
+- **Defect.** Unprovable as stated: both listed every role of the state (`n ∈ names ↔ role ∧ roleListed n`). schema's
+  `unsafeGetAllRoles` ranges with limit `-1`, which the backend's cursor reads as at most `2^63 - 1` entries
+  (`backend.cursorRange`), and nothing bounds a recorded state's roles (the snapshot clause installs any state).
+- **Evidence.** `questions.md` "A6 STOP 4"; `schema.rolesRangeEnts`, `mvcc.cursorRange_window`.
+- **Proposed change.** `auth.rolesListed names st`: the names each once, each a role of `st` that `roleListed`, and every
+  such role when `names.length < 2^63 - 1` (R-c); both texts use it. Weaker only in states with `2^63 - 1` or more roles.
+- **SpecPlan.** W0's model answers `.roleList` with every role (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, ~l.1262),
+  stronger than the code in two ways (F3's `0xff` names, this cap); not changed here (a SpecPlan entry for convergence).
+- **Decision.** Approved by etcd-grove-03, 2026-11-19 (on the A7 list for the user); made on branch `auth-schema-srv`.

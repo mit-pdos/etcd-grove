@@ -1055,7 +1055,10 @@ private theorem trkSide_rbPartR_agree (γ : BNames) (P : BParams) (st : BSess) (
     exact ⟨⟨⟨Hl0, HF⟩, Hbt⟩, Hs, hres⟩
 
 /-- **A claimed part agrees with the batch lock's writer's contents**, one bucket `n` of it (as
-`trkSide_rbPartR_agree`). -/
+`trkSide_rbPartR_agree`). None of the four forbidden laws (`notes/auth-schema-srv-a1-soundness.md` §6; checked
+2026-11-19, the (c) forms' acceptance by etcd-grove-03): (i) it states no exclusivity between a claimed resource and a
+`γ.rbk` share (only an equality of contents); (ii) it is no reader law (it needs the batch lock, not `rbOwnIn`);
+(iii) it opens nothing (the batch lock is held); (iv) it updates no ghost state (both sides come back unchanged). -/
 theorem batchLocked_rbPartR_agree (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool)
     (S : GoString → Prop) (r : GMap GoString BktData) (n : GoString) (hS : S n) (E : CoPset)
     (hE : ↑rbClaimN ⊆ E) :

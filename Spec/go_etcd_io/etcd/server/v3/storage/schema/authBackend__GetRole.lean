@@ -31,7 +31,7 @@ abbrev schema.authBackend.GetRole.spec : Prop :=
     (Φ : schema.AuthData → Prop) (dR : schema.AuthData → GoString → auth.RoleRec) (name : GoString),
   (∀ D : schema.AuthData, schema.authWf D → Φ D → schema.rolesDec D.roles (dR D)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.abeF go!"be" abe ↦□ (GoInterface.ok bi : GoInterface) ∗ schema.abeF go!"lg" abe ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗ schema.authBE bi R L Held ∗ R ∗ L i ∗
+      schema.authBE bi R L Held ∗ R ∗ L i ∗
       □ (∀ (x : Loc) (D : schema.AuthData), Held x D -∗ Held x D ∗ ⌜Φ D⌝) }}
     (App (Val (abe @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty @!! go!"GetRole")) (Val #name))
   {{ (u : Loc), RET #u; R ∗ L i ∗ ∃ D : schema.AuthData, ⌜schema.authWf D ∧ Φ D⌝ ∗

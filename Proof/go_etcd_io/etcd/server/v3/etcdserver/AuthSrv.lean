@@ -95,7 +95,8 @@ contract serves only the holder of the unset hook, which nobody can set meanwhil
 law against the batch lock's `rbOwn`), with no write authority; until F2 it lent the buckets'
 `rbPart`, through which a client could write them.
 **The write contract's text** (`auth.authBatchTxLkR`): `GetAllRoles` lists only `auth.roleListed`
-names (F3: Go's range `[0x00, 0xff)`); `UnsafePutUser` takes valid UTF-8 roles (F4: a proto3
+names (F3: Go's range `[0x00, 0xff)`), and all of them only when fewer than `2 ^ 63 - 1` are listed (A6 (R-c),
+2026-11-19: the range's implicit limit); `UnsafePutUser` takes valid UTF-8 roles (F4: a proto3
 `string`); both puts take a non-empty name of a message without unknown fields (the axiom
 re-review's m1 and M1, 2026-11-13).
 

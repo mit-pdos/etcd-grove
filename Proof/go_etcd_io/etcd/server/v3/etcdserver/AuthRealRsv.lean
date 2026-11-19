@@ -327,7 +327,7 @@ theorem real_reads3 (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     (hGR : schema.authBackend.GetRole.spec (GF := GF) (hG := hG))
     (hGA : schema.authBackend.GetAllUsers.spec (GF := GF) (hG := hG))
     (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (W Pk : IProp GF) (hP : schema.authHas d.P)
-    (X : IProp GF) (abl lg : Loc) (hlg : lg ≠ null) :
+    (X : IProp GF) (abl lg : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend d.γB d.P W Pk d.be ∗ realInv γ d s0 q0 ∗ ablOn abl d.be lg ⊢
@@ -357,7 +357,6 @@ theorem real_reads3 (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
       (fun _ : Unit => auth.authOwn (.on γ.γa) hs) () (phiL hs) (dUL hs) name
       (fun D _ h => by obtain ⟨st, hl, hv⟩ := h; exact schema.usersAt_dec (dUL_at hl hv)))
       $$ [$Hp2 $Hbf $Hlf $Hbe $HR $HL $Hobs] as %u ⟨HR, HL, %D, %HD, Hu⟩
-    · ipureintro; exact hlg
     obtain ⟨-, st, hl, hv⟩ := HD
     iapply HΦ
     iframe HR HL
@@ -373,7 +372,6 @@ theorem real_reads3 (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
       (fun _ : Unit => auth.authOwn (.on γ.γa) hs) () (phiL hs) (dRL hs) name
       (fun D _ h => by obtain ⟨st, hl, hv⟩ := h; exact schema.rolesAt_dec (dRL_at hl hv)))
       $$ [$Hp2 $Hbf $Hlf $Hbe $HR $HL $Hobs] as %r ⟨HR, HL, %D, %HD, Hr⟩
-    · ipureintro; exact hlg
     obtain ⟨-, st, hl, hv⟩ := HD
     iapply HΦ
     iframe HR HL

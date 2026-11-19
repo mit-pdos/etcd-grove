@@ -1,6 +1,32 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, A6 (c) the write side done but GetAllRoles: STOP 4, F-roles)
+## START HERE (2026-11-19, A6: R-c, GetAllRoles, the hook/boot contracts, CreateAuthBuckets written; STOP 5, F-order)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere (`.lake/package-overrides.json` = that manifest). lean 1b298c1e70 merged.
+- Done before: A1-A5, A6.1-A6.2, fix (A), F-enc/F-acc, pool, L-rev/P2, read side, reserved reads, lifecycle, P1', (c).
+- **Decided 2026-11-19** (questions.md "A6 (c) forms and STOP 4 decided"): (c) forms ACCEPTED; STOP 4 -> (R-c).
+- **Done now** (see the commit after c92d56d253): (R-c) `auth.rolesListed` (InvAuth) in `rolesOut` and `roleListOut`
+  (ledger entry; independent check: no consumer uses completeness, no closed statement mentions role lists);
+  `real_getAllRoles` (AuthRealWr; the bbolt tx pinned by a one-shot `dghostVar` set at Lock: `garLk`, `gar_rolesRange`;
+  `rolesOutD_at`, `rolesListed_range`, `dRm`), `garClause` gone; the unused `lg ≠ null` premise dropped from schema's
+  `unsafeGet{User,Role}`, `auth{Batch,Read}Tx.UnsafeGet{User,Role}`, `authBackend.Get{User,Role}` and the realization
+  lemmas (authWAtHook quantifies every logger); `real_wAtHook`, `real_wBoot`; (d) `real_createAuthBuckets` (`lk_claim`
+  factored out of `lk_lock`, `lkI`, `lk_create`, `lkOk_create`; `LkOk.pend` has a slack of 3; `unC`'s second token
+  generic `Y`).
+- **Build state**: everything above was queued in ONE targeted build, `/shared/tmp/auth-schema-srv/rc-build2.log`
+  (backend Link, auth RoleList, AuthRealWr, AuthRealRd, server Link); the build slots were busy for hours. Expect
+  errors in the new AuthRealWr code; fix with lean-check once the imports are built; then regenerate the backend,
+  schema and etcdserver interfaces (`etc/gen-interface.py etc/api/<pkg>.txt`).
+- **STOP 5 (questions.md "A6 STOP 5")**: F-order: `authBkLend`'s `authBucketsAt` needs the roles in the state's order;
+  Go sorts, the model appends. Recommended (O-a) `authBucketsAre` up to order. `authBkLend` not started.
+- Next after the decision: `authBkLend` (agreement law `rbOwn` vs claimed part through the claim invariant), (e)
+  creation, `⊢ authSchemaSrv`, `authSchemaSnap`; A6-end report; A7 (HARD STOP; trusted list incl. R-c).
+- Pitfalls: (0)-(35) as before (History); (36) the build slots poll randomly: a queued targeted build can wait hours;
+  batch all edits before queuing.
+
+## History (START HERE of 2026-11-18, STOP 4, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
   everywhere (`.lake/package-overrides.json` = that manifest). lean 1b298c1e70 merged.

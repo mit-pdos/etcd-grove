@@ -1596,13 +1596,22 @@ is non-empty and below `"\xff"`; a name starting with the byte `0xff` (never val
 etcd's request strings are) is skipped (`nonissues/etcd-auth-getallroles-ff-names.md`). -/
 def roleListed (n : GoString) : Prop := n ≠ [] ∧ go.GoStringLt n [W8 255]
 
+/-- **The role names `GetAllRoles()` lists of the state `st`** (auth-schema-srv A6 (R-c), 2026-11-19,
+decided by etcd-grove-03): each once, each a role of `st` that `roleListed`; and every such role
+when fewer than `2 ^ 63 - 1` names are listed. schema's range has no limit (`-1`), which the
+backend's cursor reads as `2 ^ 63 - 1` entries at most (a Go slice holds fewer than `2 ^ 63`), and
+nothing bounds a state's roles; a bounded run never stores that many (until A6 (R-c) every listed
+role unconditionally, which the realization could not show). -/
+def rolesListed (names : List GoString) (st : AuthState) : Prop :=
+  names.Nodup ∧ (∀ n ∈ names, (st.roles.lookup n).isSome ∧ roleListed n) ∧
+    (names.length < 2 ^ 63 - 1 → ∀ n, (st.roles.lookup n).isSome → roleListed n → n ∈ names)
+
 /-- What `GetAllRoles()` returns of the state `st` (the auth plan's E2j): as `usersOut`, the
-state's roles (`roleOut`) whose names it lists (`roleListed`; until auth-schema-fix F3 every role,
-false of a role named `"\xff"`: S0's F3). -/
+state's roles (`roleOut`) whose names it lists (`rolesListed`; until auth-schema-fix F3 every role,
+false of a role named `"\xff"`: S0's F3; until A6 (R-c) every listed role at any count). -/
 def rolesOut (s : GoSlice) (st : AuthState) : IProp GF :=
   iprop(∃ (rs : List Loc) (names : List GoString), s ↦* rs ∗
-    ⌜rs.length = names.length ∧ names.Nodup ∧
-      ∀ n, n ∈ names ↔ (st.roles.lookup n).isSome ∧ roleListed n⌝ ∗
+    ⌜rs.length = names.length ∧ rolesListed names st⌝ ∗
     [∗list] x ∈ rs.zip names, roleOut x.1 st x.2)
 
 /-- **The auth backend's reads** `bi` with the hook `P f` and the write token `T` in the mode `M`

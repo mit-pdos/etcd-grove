@@ -84,7 +84,7 @@ theorem real_readTxOk (hRLs : schema.authReadTx.RLock.spec (GF := GF) (hG := hG)
     (hEn : schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG))
     (hRev : schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG))
     (hGA : schema.authReadTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG))
-    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (l : Loc) (rt : GoInterfaceOk) (lg : Loc) (hlg : lg ≠ null) :
+    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (l : Loc) (rt : GoInterfaceOk) (lg : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ realInv γ d s0 q0 ∗
       schema.atxF go!"tx" l ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.atxF go!"lg" l ↦□ lg ∗
       schema.authRTx rt (ownToks γ.γt 1) (depT γ) (heldT γ d) ⊢
@@ -153,7 +153,7 @@ theorem real_readTxOk (hRLs : schema.authReadTx.RLock.spec (GF := GF) (hG := hG)
       icases Hs with ⟨%x, %D, HD, #Hrd, %Hv⟩
       obtain ⟨-, ⟨dU, hu⟩, -⟩ := id Hv
       iapply wp_fupd
-      wp_apply (hGU l rt lg name (heldT γ d x D) D dU hlg (schema.usersAt_dec hu)) $$ [$Htx $Hlg $Hrd $HD]
+      wp_apply (hGU l rt lg name (heldT γ d x D) D dU (schema.usersAt_dec hu)) $$ [$Htx $Hlg $Hrd $HD]
         as %u ⟨HD, Hu⟩
       imod schema.userOutDX_persist u D.users name dU $$ Hu with Hu
       imodintro
@@ -167,7 +167,7 @@ theorem real_readTxOk (hRLs : schema.authReadTx.RLock.spec (GF := GF) (hG := hG)
       icases Hs with ⟨%x, %D, HD, #Hrd, %Hv⟩
       obtain ⟨-, -, ⟨dR, hr⟩⟩ := id Hv
       iapply wp_fupd
-      wp_apply (hGR l rt lg name (heldT γ d x D) D dR hlg (schema.rolesAt_dec hr)) $$ [$Htx $Hlg $Hrd $HD]
+      wp_apply (hGR l rt lg name (heldT γ d x D) D dR (schema.rolesAt_dec hr)) $$ [$Htx $Hlg $Hrd $HD]
         as %u ⟨HD, Hu⟩
       imod schema.roleOutDX_persist ⊤ u D.roles name dR $$ Hu with Hu
       imodintro
@@ -226,7 +226,7 @@ theorem real_backendOk (hRTs : schema.authBackend.ReadTx.spec (GF := GF) (hG := 
     (hEn : schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG))
     (hRev : schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG))
     (hGA : schema.authReadTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG))
-    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (abl lg : Loc) (hlg : lg ≠ null) :
+    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (abl lg : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ realInv γ d s0 q0 ∗
       ablOn abl d.be lg ∗ schema.authBE (schema.beIface d.be) (ownToks γ.γt 1) (depT γ) (heldT γ d) ⊢
       auth.authBackendOk (authBkIface abl) (ownToks γ.γt 1) (.on γ.γa) γ.γc := by
@@ -242,7 +242,7 @@ theorem real_backendOk (hRTs : schema.authBackend.ReadTx.spec (GF := GF) (hG := 
     as %tx ⟨%l, %rt, %Htx, #Htxf, #Hlgf, #Hrtx⟩
   iapply HΦ
   rw [Htx]
-  iapply real_readTxOk hRLs hRUs hGU hGR hEn hRev hGA γ d s0 q0 l rt lg hlg $$ [$Hpkg $Hinv $Htxf $Hlgf $Hrtx]
+  iapply real_readTxOk hRLs hRUs hGU hGR hEn hRev hGA γ d s0 q0 l rt lg $$ [$Hpkg $Hinv $Htxf $Hlgf $Hrtx]
 
 end rd
 

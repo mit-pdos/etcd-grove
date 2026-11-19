@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 under `H`: returns the user named `name` of `D.users`, owned (the record `dU name`), or nil. -/
 abbrev schema.authReadTx.UnsafeGetUser.spec : Prop :=
   ∀ (atx : Loc) (rt : GoInterfaceOk) (lg : Loc) (name : GoString) (H : IProp GF)
-    (D : schema.AuthData) (dU : GoString → auth.UserRec), lg ≠ null → schema.usersDec D.users dU →
+    (D : schema.AuthData) (dU : GoString → auth.UserRec), schema.usersDec D.users dU →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.atxF go!"lg" atx ↦□ lg ∗
       schema.authReader rt H D ∗ H }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"UnsafeGetUser")) (Val #name))
