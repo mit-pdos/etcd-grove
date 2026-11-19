@@ -1,0 +1,5 @@
+# Project smd (etc/goose.py; notes/smd-goose.md): structured-merge-diff v7.0.0's `schema`, the
+# whole package with bodies (type resolution, `Map.FindField`'s lazy index, the `Equals`
+# methods; `StructField.Equals` calls Perennial's names-only `reflect.DeepEqual`).
+translate = ["*"]
+imports = ["*"]

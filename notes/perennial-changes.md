@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose: labelled `break`/`continue` (2026-11-19, SMD translation, branch `smd-robustness`)
+
+- **Limitation.** Goose rejects a labelled statement (`[unsupported]: statement
+  *ast.LabeledStmt`), so a `continue outer` out of a nested loop does not translate.
+- **Needed by.** structured-merge-diff v7.0.0's `fieldpath.Set.Leaves` (`set.go:432`,
+  `outer: for … { for … { … continue outer } }`); not on `merge.Updater.Apply`/`Update`'s path.
+- **Workaround here.** `Set.Leaves` names only (`Code/sigs_k8s_io/structured_merge_diff/v7/
+  fieldpath.toml`; `notes/smd-goose.md`, G1).
+- **Proposed change.** Translate a label on a `for`/`range` loop: the loop's `break`/`continue`
+  results carry the label, and an inner loop passes on a labelled `break`/`continue` that is not
+  its own (as a `return` is passed on now).
+- **Status.** Not started.
+
 ### `go.NotInterface` of the predeclared named types; the standard-library axioms that only bodies would discharge (2026-11-19, branch `prove-stdlib/2026-11-19`)
 
 - **Limitation.** `go_method_resolve_step` needs `[go.NotInterface tunder]`, and Perennial's

@@ -1,0 +1,19 @@
+# Project smd (etc/goose.py; notes/smd-goose.md): structured-merge-diff v7.0.0's `typed`, with
+# bodies: `AsTyped`, `TypedValue`'s methods (`Validate`, `ToFieldSet`, `Merge`, `Compare`,
+# `RemoveItems`, `ExtractItems`, `Empty`), the walkers, `ReconcileFieldSetWithSchema`, and of the
+# parser (`parser.go`) the parts over the unstructured `value` (`Parser.Type`, `TypeNames`,
+# `ParseableType.IsValid`, `FromUnstructured`).
+#
+# Names only, the YAML and reflection entry points of `parser.go`: `create`, `createOrDie`,
+# `NewParser`, `ParseableType.FromYAML` (`go.yaml.in/yaml/v2`, not imported) and
+# `ParseableType.FromStructured` (`value.NewValueReflect`). The package variables initialized by
+# parsing YAML, `ssParser` and `DeducedParseableType`, have trusted no-op initializers
+# (TrustedCode/sigs_k8s_io/structured_merge_diff/v7/typed.lean, which says why): no translated
+# code reads them.
+translate = [
+  "*",
+  "!create", "!createOrDie", "!ssParser", "!NewParser", "!ParseableType.FromYAML",
+  "!ParseableType.FromStructured", "!DeducedParseableType",
+]
+imports = ["*", "!go.yaml.in/yaml/v2"]
+trusted = ["ssParser", "DeducedParseableType"]

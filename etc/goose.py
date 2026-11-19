@@ -11,7 +11,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, bbolt-bank, bbolttest or smd; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -1765,6 +1765,24 @@ PROJECTS = [
                     "io/fs=", "hash=", "encoding/hex="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "bbolt", "bank")],
+    ),
+    Project(
+        name="smd",
+        # Kubernetes' structured-merge-diff (server-side apply's merge library), upstream
+        # kubernetes-sigs/structured-merge-diff at tag v7.0.0 (8d11054b; the
+        # sigs.k8s.io/structured-merge-diff/v7 v7.0.0 examples/k8s/etcd3/go.mod requires), for the
+        # robustness theorem of `merge.Updater.Apply`/`Update` (notes/smd-goose.md). With bodies:
+        # `merge`, `typed` (but the YAML parser), `fieldpath` (but the FieldsV1 JSON serialization),
+        # `schema`, and `value`'s unstructured implementation; names only the reflection-based
+        # implementation and the JSON/YAML conversions (their .toml,
+        # Code/sigs_k8s_io/structured_merge_diff/v7/**.toml). The JSON/YAML packages they import
+        # (`encoding/json/v2`, `go.yaml.in/yaml/v2`, the module's `internal/json`) are not imported.
+        repo="https://github.com/kubernetes-sigs/structured-merge-diff",
+        rev="8d11054be605e4018886201fb2bce0651c053592",
+        lean_roots=["sigs.k8s.io/structured-merge-diff/v7="],
+        packages=["./value", "./schema", "./fieldpath", "./typed", "./merge"],
+        owned=[os.path.join("sigs_k8s_io", "structured_merge_diff")],
+        counted_modules=["sigs.k8s.io/structured-merge-diff/v7"],
     ),
 ]
 

@@ -1,0 +1,37 @@
+# Project smd (etc/goose.py; notes/smd-goose.md): structured-merge-diff v7.0.0's `fieldpath`,
+# with bodies: path elements, paths, sets, matchers and filters, `ManagedFields`,
+# `SetFromValue`.
+#
+# Names only:
+# - the FieldsV1 JSON serialization (`serialize.go`, `serialize-pe.go`, over
+#   `encoding/json/v2`): `Set.ToJSON`/`FromJSON` and `SerializePathElement`/
+#   `DeserializePathElement`, which `merge` and `typed` do not call; `encoding/json/*`, `bytes`,
+#   `io` and the module's `internal/json` are not imported. Its package variables are
+#   translated, but the JSON options `allowInvalidUTF8`, `allowDuplicates` and the buffer pool
+#   `pool`, which have trusted no-op initializers (`trusted` below).
+# - `Set.Leaves` (`set.go`): its loop is labelled (`continue outer`), which goose does not
+#   translate (notes/perennial-changes.md); nothing on the Apply/Update path calls it.
+translate = [
+  "*",
+  "!Set.Leaves",
+  # serialize-pe.go
+  "!allowInvalidUTF8", "!allowDuplicates", "!DeserializePathElement",
+  "!SerializePathElement", "!pathElementSerializer", "!pathElementSerializer.*",
+  "!fastMarshalValue", "!fastMarshalValue.*",
+  # serialize.go
+  "!Set.ToJSON", "!Set.ToJSONStream", "!pool", "!writePathKey",
+  "!setContentsV1", "!setContentsV1.*", "!Set.FromJSON", "!readIterV1", "!writeEmptyObject",
+  "!_",
+]
+imports = [
+  "*", "!encoding/json/v2", "!encoding/json/jsontext", "!bytes", "!io", "!strconv",
+  "!sync", "!sigs.k8s.io/structured-merge-diff/v7/internal/json",
+]
+# The serialization's option and pool variables: trusted no-op initializers
+# (TrustedCode/sigs_k8s_io/structured_merge_diff/v7/fieldpath.lean, which says why); only the
+# names-only serialization reads them.
+trusted = [
+  "allowInvalidUTF8", "allowDuplicates", "pool",
+  # the `var _ json.MarshalerTo = …` assertions (`serialize.go`, `serialize-pe.go`)
+  "_",
+]

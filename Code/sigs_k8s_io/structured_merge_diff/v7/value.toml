@@ -1,0 +1,57 @@
+# Project smd (etc/goose.py; notes/smd-goose.md): structured-merge-diff v7.0.0's `value`.
+#
+# With bodies: the `Value`/`Map`/`List` interfaces' unstructured implementation
+# (`valueunstructured.go`, `mapunstructured.go`, `listunstructured.go`), the comparisons and
+# zips (`value.go`, `map.go`, `list.go`, `scalar.go`), `fields.go`'s `FieldList` but its JSON
+# methods, and the allocators (`allocator.go`), all of which `typed` and `fieldpath` call.
+#
+# Names only (functions; their types are translated, since the allocators hold and clear them;
+# their package variables initialized by reflection are `trusted` below):
+# - the reflection-based implementation (`valuereflect.go`, `structreflect.go`, `mapreflect.go`,
+#   `listreflect.go`, `reflectcache.go`, `jsontagutil.go`), reached only from
+#   `NewValueReflect` (called by `typed.ParseableType.FromStructured`, itself names only) and
+#   from the allocators' `alloc*Reflect` methods, which only the reflection code calls. The
+#   allocators' bodies (`heapAllocator.alloc*Reflect`, `freelistAllocator.alloc*Reflect` and
+#   the reflection cases of `freelistAllocator.Free`) are translated: they only allocate and
+#   clear these structs.
+# - the JSON and YAML conversions (`FromJSON`, `FromJSONFast`, `ToJSON`, `ToYAML`,
+#   `ValueMarshalJSONTo`, `FieldList.MarshalJSONTo`/`UnmarshalJSONFrom`, over
+#   `encoding/json/v2`, `go.yaml.in/yaml/v2` and the module's `internal/json`), which nothing
+#   in `merge`, `typed`, `fieldpath` or `schema` calls; those packages are not imported.
+translate = [
+  "*",
+  # valuereflect.go
+  "!NewValueReflect", "!wrapValueReflect", "!mustWrapValueReflect", "!nilType",
+  "!valueReflect.*", "!dereference", "!kind", "!safeIsNil",
+  # structreflect.go, mapreflect.go, listreflect.go
+  "!structReflect.*", "!eachStructField", "!mapReflect.*", "!eachMapEntry",
+  "!listReflect.*", "!listReflectRange.*",
+  # reflectcache.go
+  "!FieldCacheEntry.*", "!marshalerType", "!unmarshalerType", "!unstructuredConverterType",
+  "!unstructuredConverterWithErrorType", "!defaultReflectCache", "!TypeReflectEntryOf",
+  "!typeReflectEntryOf", "!buildStructCacheEntry", "!TypeReflectCacheEntry.*",
+  "!unstructuredConverterWithNilError.*", "!newReflectCache",
+  "!typeReflectCache.*", "!unmarshal", "!convertInterfaceNumbers", "!convertMapNumbers",
+  "!convertSliceNumbers", "!convertNumber",
+  # jsontagutil.go
+  "!isZeroerType", "!reflectIsZero", "!OmitZeroFunc", "!lookupJsonTags", "!isEmpty",
+  "!parseTag", "!tagOptions.*",
+  # JSON and YAML (value.go, fields.go)
+  "!FromJSON", "!FromJSONFast", "!ToJSON", "!ToYAML", "!ValueMarshalJSONTo",
+  "!FieldList.MarshalJSONTo", "!FieldList.UnmarshalJSONFrom", "!_",
+]
+imports = [
+  "*", "!encoding/json/v2", "!encoding/json/jsontext", "!encoding/json", "!encoding/base64",
+  "!go.yaml.in/yaml/v2", "!sigs.k8s.io/structured-merge-diff/v7/internal/json", "!bytes",
+  "!io",
+]
+# The package variables initialized by reflection (`valuereflect.go`, `jsontagutil.go`,
+# `reflectcache.go`): trusted no-op initializers
+# (TrustedCode/sigs_k8s_io/structured_merge_diff/v7/value.lean, which says why); only the
+# names-only reflection code reads them.
+trusted = [
+  "nilType", "isZeroerType", "marshalerType", "unmarshalerType", "unstructuredConverterType",
+  "unstructuredConverterWithErrorType", "defaultReflectCache",
+  # `var _ json.MarshalerTo = (*FieldList)(nil)` and `UnmarshalerFrom` (`fields.go`)
+  "_",
+]

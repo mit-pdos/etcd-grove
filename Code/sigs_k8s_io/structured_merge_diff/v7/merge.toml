@@ -1,0 +1,4 @@
+# Project smd (etc/goose.py; notes/smd-goose.md): structured-merge-diff v7.0.0's `merge`, the
+# whole package with bodies (`Updater.Apply`, `Update` and their helpers, the conflicts).
+translate = ["*"]
+imports = ["*"]
