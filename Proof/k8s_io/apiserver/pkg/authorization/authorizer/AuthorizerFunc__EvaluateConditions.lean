@@ -29,7 +29,17 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 theorem AuthorizerFunc.EvaluateConditions.wp_proof :
     AuthorizerFunc.EvaluateConditions.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro f ctx d data
+  wp_start
+  ihave Hai : (authorizerInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  iunfold authorizerInit at Hai
+  icases Hai with ⟨%e, #He⟩
+  wp_auto
+  simp only [DecisionDeny]
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 
