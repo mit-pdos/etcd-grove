@@ -55,8 +55,8 @@ def walPreIn (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e lt 
     locks ↦* [lt] ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ fileutil.lockedFile lt f)
 
 /-- The frame of the snapshot record of `sm`, the chain's CRC before it `c`. -/
-def snapFrame (Mr : WalMarshal) (c : w32) (sm : SnapshotMetadataM) : List w8 :=
-  frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩)
+def snapFrame (Mr : WalMarshal) (c : w32) (sm : SnapshotMetadataM) (al : Bool) : List w8 :=
+  frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm al), Mr.encSnap sm al⟩)
 
 /-- What an fdatasync of `f` does to the writer's state `W out`: on success `S out`, else `W out`
 back (the hypothesis triple of the specs below). -/

@@ -55,7 +55,7 @@ abbrev storage.storage.Release.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
         □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
         WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
         AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗
-            ⌜d.H[i]? = some (WalOpG.snap ⟨cs, md.Index', t⟩) ∧ i < n⌝ }> @ walAuMask, ∅
+            ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, md.Index', t⟩ al)) ∧ i < n⌝ }> @ walAuMask, ∅
           <{ WalFs.walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) md.Index') },
             COMM Q d }> }}
       (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!!

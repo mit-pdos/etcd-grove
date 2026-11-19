@@ -54,7 +54,7 @@ theorem absHs_zero : absHs tHs0 = hsZero := rfl
 /-- The abstraction's hard-state step. -/
 theorem walLastHS_abs_step (p : THs) (o : TOp) :
     absHs (if o.snap then p else tPhsNext p o.hs) =
-      (match absOp o with | .save h _ => phsNext (absHs p) h | .snap _ => absHs p) := by
+      (match absOp o with | .save h _ => phsNext (absHs p) h | .snap _ _ => absHs p) := by
   unfold absOp
   cases o.snap <;> simp [absHs_phsNext]
 
@@ -62,7 +62,7 @@ theorem tLastHS_abs (h : List TOp) : absHs (tLastHS h) = walLastHS (h.map absOp)
   unfold tLastHS walLastHS
   rw [List.foldl_map]
   suffices ∀ (l : List TOp) (p : THs), absHs (l.foldl (fun p o => if o.snap then p else tPhsNext p o.hs) p) =
-      l.foldl (fun q o => match absOp o with | .save h _ => phsNext q h | .snap _ => q) (absHs p) by
+      l.foldl (fun q o => match absOp o with | .save h _ => phsNext q h | .snap _ _ => q) (absHs p) by
     exact this h tHs0
   intro l
   induction l with
@@ -149,7 +149,7 @@ theorem tFoldChkFrom_abs : ∀ (h : List TOp) (s : TContents) (σ : StorContents
     intro s σ hs
     cases ho : o.snap with
     | true =>
-      have hop : absOp o = .snap (absSnapMd o.idx o.term) := by simp [absOp, ho]
+      have hop : absOp o = .snap (absSnapMd o.idx o.term) true := by simp [absOp, ho]
       simp only [tFoldChkFrom, ho, ite_true, List.map_cons, hop, walFoldChkFrom]
       exact ih _ _ (tSaveSnap_agree hs o.idx o.term)
     | false =>
@@ -208,7 +208,7 @@ theorem tNewest_abs_gen : ∀ (f : List TOp) (acc : Option (w64 × w64)) (accm :
           | some b => if uint.nat b.1 ≤ uint.nat o.idx then some (o.idx, o.term) else acc)
       else acc) acc =
     ((f.map absOp).foldl (fun best o => match o with
-      | .snap m => match best with
+      | .snap m _ => match best with
         | none => some m
         | some b => if uint.nat b.Index' ≤ uint.nat m.Index' then some m else best
       | .save _ _ => best) accm).map (fun m => (m.Index', m.Term')) := by

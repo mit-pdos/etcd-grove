@@ -29,7 +29,7 @@ variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 theorem storage.storage.SaveSnap.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_SaveSnapshot : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (Sio := Sio) P Mr) :
     storage.storage.SaveSnap.spec (Sio := Sio) P Mr := by
-  intro p ss R jr r w dir γ q sn mp dq m sized Q
+  intro p ss R jr r w dir γ q sn mp dq m al sized Q
   wp_start as ⟨#Hover, Hrd, HM, #Hmeta, %Hset, %Henc, #Harea, Hws, %Hcov, %Hidx, %Hlt, %Hlen, HAU⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -51,12 +51,12 @@ theorem storage.storage.SaveSnap.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   (try wp_auto)
   wp_apply wp_SnapshotMetadata_GetConfState_fieldS mp pc DFrac.discard Hmnn $$ [$HC] as -
   (try wp_auto)
-  imod walSnapAt_storageLit Mr m walsnap_ptr pi pt pc i t _ _ hi ht Henc $$ [walsnap] [] [] [] with #Hsnap
+  imod walSnapAt_storageLit Mr m walsnap_ptr pi pt pc i t _ _ hi ht al Henc $$ [walsnap] [] [] [] with #Hsnap
   · iexact walsnap
   · iexact Hi
   · iexact Ht
   · iexact Hc
-  wp_apply (wp_SaveSnapshot R jr r w dir (.shared γ q) walsnap_ptr m.model m.confState.isSome sized Q)
+  wp_apply (wp_SaveSnapshot R jr r w dir (.shared γ q) walsnap_ptr m.model al m.confState.isSome sized Q)
     $$ [Hws HAU] as %err Hpost
   · dsimp only
     iframe Hws HAU Harea Hsnap

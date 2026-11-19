@@ -94,8 +94,8 @@ theorem saveOp_noMax (hs : HardStateM) (es : List EntryM)
   omega
 
 /-- **A `SaveSnapshot`'s operation has no maximal index** (its index premise; `WalsBounded`). -/
-theorem snapOp_noMax (m : SnapshotMetadataM) (h : uint.nat m.Index' < 2 ^ 64 - 1) :
-    ¬ walHasMaxIdx [(WalOpG.snap m : WalOpG WalEnt).toM] := by
+theorem snapOp_noMax (m : SnapshotMetadataM) (al : Bool) (h : uint.nat m.Index' < 2 ^ 64 - 1) :
+    ¬ walHasMaxIdx [(WalOpG.snap m al : WalOpG WalEnt).toM] := by
   rintro ⟨o, ho, hm⟩
   simp only [List.mem_singleton] at ho
   subst ho

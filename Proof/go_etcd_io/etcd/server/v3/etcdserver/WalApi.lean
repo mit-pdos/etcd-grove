@@ -100,12 +100,12 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
             storage.walOpen h q ∗ walStorRd st h ∗
             AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }}) ∗
-    □ (∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (Q : IProp GF),
+    □ (∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF),
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model⌝ ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
-          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model).length < 2 ^ 40⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
                 ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m.model) sized, COMM Q }> }}
@@ -158,12 +158,12 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
             storage.walOpen h q ∗ walStorRd st h ∗
             AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }})
-    (hSnap : ∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (Q : IProp GF), R ⊢
+    (hSnap : ∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF), R ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model⌝ ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
-          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model).length < 2 ^ 40⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
                 ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m.model) sized, COMM Q }> }}
@@ -211,8 +211,8 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
     iexact HR
   isplitr
   · iintro !>
-    iintro %sized %q %sn %mp %dq %m %Q
-    iapply (hSnap sized q sn mp dq m Q)
+    iintro %sized %q %sn %mp %dq %m %al %Q
+    iapply (hSnap sized q sn mp dq m al Q)
     iexact HR
   isplitr
   · iintro !>
@@ -397,14 +397,14 @@ theorem walSaveRn_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInter
 
 /-- **`SaveSnap`** (the contract's law): the snapshot record saved, synced, its witness (`walSnapRec`). -/
 theorem walSaveSnap_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
-    (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (Q : IProp GF)
+    (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF)
     (sized : Bool := false) :
     isWalStorage st h ss ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model⌝ ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
-          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model).length < 2 ^ 40⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
                 ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m.model) sized, COMM Q }> }}
@@ -415,7 +415,7 @@ theorem walSaveSnap_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInt
   unfold isWalStorage
   iintro ⟨-, %si', %Heq, -, #HS, -, -, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %sized %q %sn %mp %dq %m %Q
+  ispecialize HS $$ %sized %q %sn %mp %dq %m %al %Q
   iexact HS
 
 /-- **`Sync`** (the contract's law). -/

@@ -630,8 +630,8 @@ theorem raftNode.start.wp_proof
             have h := Hb61
             have := uint_nat_eq l.snap.Metadata'.Index'
             omega
-          ihave #HSaveSnap := walSaveSnapC_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ uf1 _ true HF2z
-            HF2i HF2e $$ Hsti
+          ihave #HSaveSnap := walSaveSnapC_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ true uf1 _ true HF2z
+            HF2i (HF2e true) $$ Hsti
           wp_apply HSaveSnap $$ [$Hwo $Hrd $HM1 $Hm1 $HAU] as %err ⟨%Herr, Hwo, Hrd, -, ⟨Hwv, Hwok, #Hwblb⟩, %iw, #Hwrec⟩
           subst Herr
           ihave Hwv : rnWalView γ _ $$ [Hwv Hwok]
@@ -757,7 +757,7 @@ theorem raftNode.start.wp_proof
           -- `r.lg.Info(.., zap.Uint64("snapshot-index", raftSnap.Metadata.GetIndex()))`
           ihave #Hm1o : smOpt pm1 DFrac.discard l.snap.Metadata' $$ []
           · iunfold smOpt; iright
-            have hh := metaRoC_smPts (GF := GF) pm1 (srvSnapMetaC l.snap.Metadata' uf1)
+            have hh := metaRoC_smPts (GF := GF) pm1 (srvSnapMetaC l.snap.Metadata' true uf1)
               (by simp [srvSnapMetaC])
             rw [srvSnapMetaC_model] at hh
             iapply hh; iexact Hm1

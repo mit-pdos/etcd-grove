@@ -46,7 +46,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (P : WalPbIn
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (a t : w64)
     (i n : Nat) (cs : ConfStateM) (Q : WalDur → IProp GF),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩) ∧ i < n⌝ }>
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n⌝ }>
         @ walAuMask, ∅
         <{ WalFs.walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
           COMM Q d }> }}
@@ -61,7 +61,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specR (P : WalPbI
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (a t : w64)
     (i n : Nat) (cs : ConfStateM) (Q : WalDur → IProp GF),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩) ∧ i < n⌝ }>
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n⌝ }>
         @ walAuMask, ∅
         <{ WalFs.walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
           COMM Q d }> }}

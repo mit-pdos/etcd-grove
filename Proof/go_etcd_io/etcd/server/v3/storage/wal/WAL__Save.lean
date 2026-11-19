@@ -264,7 +264,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   ihave HQ : (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) $$ [HQ]
   · iexists dq; iframe HQ; ipureintro; exact hdq
   have hcut : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
-    rcases hcp.1 b hb with h0 | ⟨_, _, h1, _⟩ | ⟨_, h1⟩
+    rcases hcp.1 b hb with h0 | ⟨_, _, h1, _⟩ | ⟨_, _, h1⟩
     · omega
     · have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega
     · have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega

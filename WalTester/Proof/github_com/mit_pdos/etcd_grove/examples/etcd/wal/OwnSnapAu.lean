@@ -33,13 +33,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 /-- **`ReleaseLockTo`'s update, committed on the tester's invariant.** -/
 theorem tInv_releaseAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (c1 : TCand) (d : WalDur)
     (a t : w64) (i n : Nat) (cs : ConfStateM) (hcr : o1.created = true) (hc : c1 ∈ o1.cands)
-    (hok : tCandOk o1 c1 (tReleaseD d a)) (hH : d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩))
+    (hok : tCandOk o1 c1 (tReleaseD d a)) (hH : d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ true))
     (hin : i < n) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ∗ tOrOwn γ o1 none ∗
       WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o1 c1) ∗
       WalFs.walNamed (W := W) (tWalDir e.area) ⊢
       AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.area) d' ∗
-            ⌜d'.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩) ∧ i < n⌝ }>
+            ⌜(∃ al, d'.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n⌝ }>
           @ WalFs.walAuMask, ∅
         <{ WalFs.walDiskAt (W := W) (tWalDir e.area)
             { d' with unl := max d'.unl (walReleasePos (d'.H.map WalOpG.toM) a) },
@@ -65,7 +65,7 @@ theorem tInv_releaseAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (c1 :
   iexists d
   iframe Hwd
   isplitr
-  · ipureintro; exact ⟨hH, hin⟩
+  · ipureintro; exact ⟨⟨true, hH⟩, hin⟩
   isplit
   · iintro ⟨Hwd, -⟩
     imod Hclose2 with -

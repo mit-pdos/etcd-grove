@@ -125,8 +125,8 @@ theorem walCutPos_save (H : List (WalOpG WalEnt)) (hs : HardStateM) (es : List E
   simp
 
 /-- A snapshot record's end is a cut position (`SaveSnapshot` cuts as `Save` does, the fork's fix 0007). -/
-theorem walCutPos_snap (H : List (WalOpG WalEnt)) (md : SnapshotMetadataM) :
-    walCutPos ((H ++ [WalOpG.snap md]).map WalOpG.toM) (H ++ [WalOpG.snap md]).length := by
+theorem walCutPos_snap (H : List (WalOpG WalEnt)) (md : SnapshotMetadataM) (al : Bool) :
+    walCutPos ((H ++ [WalOpG.snap md al]).map WalOpG.toM) (H ++ [WalOpG.snap md al]).length := by
   refine Or.inr (Or.inr ⟨md, ?_⟩)
   simp [WalOpG.toM]
 

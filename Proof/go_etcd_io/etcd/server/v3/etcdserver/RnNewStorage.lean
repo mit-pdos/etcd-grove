@@ -229,14 +229,14 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
 `walRecs_saveSnapAU`; the record's bytes the canonical ones, F2; the synced record's witness from the
 history's lower bound and the synced mark). -/
 theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bool) (q : Qp)
-    (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (Q : IProp GF) :
+    (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ⊢
       {{ storage.walOpen h q ∗
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model⌝ ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
-          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model).length < 2 ^ 40⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
                 ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m.model) sized, COMM Q }> }}
@@ -258,16 +258,16 @@ theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized 
     have := ((interface_mkOk_inj _ _ _ _).1 Hp').2
     exact (go.intoVal_inj this).symm
   subst hp'
-  ihave HAU := walRecs_saveSnapAU h sized m.model Q $$ HAU
-  wp_apply (hSnap p' ss h.R h.jr h.r h.w h.dir h.γ q sn mp dq m true
-      (fun d => iprop(Q ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m.model]))))
+  ihave HAU := walRecs_saveSnapAU h sized m.model al Q $$ HAU
+  wp_apply (hSnap p' ss h.R h.jr h.r h.w h.dir h.γ q sn mp dq m al true
+      (fun d => iprop(Q ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m.model al]))))
     $$ [Hrd Hws HAU Hsn] as %err ⟨Hrd, Hsn, Hpost⟩
   · iframe Hover Hrd Harea Hws Hsn Hm HAU
     isplitr
     · ipureintro; exact ⟨hm1.1, hm1.2.1⟩
     isplitr
     · ipureintro
-      show WalEnc.snapEnc (storage.metaWalC m) = WalEnc.snapEnc (walSnapCanon m.model)
+      show WalEnc.snapEnc (storage.metaWalC m) = WalEnc.snapEnc (walSnapCanon m.model al)
       rw [hm1.2.2]
     isplitr
     · ipureintro; exact Or.inl h.cov
@@ -277,7 +277,7 @@ theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized 
     · ipureintro; exact hm3.1
     · ipureintro; exact hm3.2
   icases Hpost with (⟨%he, Hws, %d, ⟨HQ, #Hlb⟩, -, #Hsy⟩ | ⟨%Hbad, -⟩)
-  · ihave #Hrec := walSnapRec_intro h d.H m.model $$ [Hlb Hsy]
+  · ihave #Hrec := walSnapRec_intro h d.H m.model al $$ [Hlb Hsy]
     · iframe Hlb Hsy
     iapply HΦ
     iframe HQ Hsn
@@ -397,9 +397,9 @@ theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := 
         iintro ⟨#H1, #H2, -⟩
         iapply (walSave_law h (hS h) p ss sized q hp hs sl esL cs Q)
         iframe H1 H2)
-      (fun sized q sn mp dq m Q => by
+      (fun sized q sn mp dq m al Q => by
         iintro ⟨#H1, #H2, -⟩
-        iapply (walSaveSnap_law h (hS h) p ss sized q sn mp dq m Q)
+        iapply (walSaveSnap_law h (hS h) p ss sized q sn mp dq m al Q)
         iframe H1 H2)
       (fun q => by
         iintro ⟨#H1, #H2, -⟩

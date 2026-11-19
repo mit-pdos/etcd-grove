@@ -234,10 +234,10 @@ theorem walCutPos_of_take {P Q : WalHist} {b c : Nat} (hbc : b ≤ c) (ht : P.ta
   · exact Or.inl rfl
   have e : ∀ L : WalHist, L[b - 1]? = (L.take c)[b - 1]? := fun L => by
     rw [List.getElem?_take_of_lt (by omega)]
-  rcases h with h | ⟨hs, es, hq, hne⟩ | ⟨m, hq⟩
+  rcases h with h | ⟨hs, es, hq, hne⟩ | ⟨m, al, hq⟩
   · exact Or.inl h
   · exact Or.inr (Or.inl ⟨hs, es, by rw [e P, ht, ← e Q]; exact hq, hne⟩)
-  · exact Or.inr (Or.inr ⟨m, by rw [e P, ht, ← e Q]; exact hq⟩)
+  · exact Or.inr (Or.inr ⟨m, al, by rw [e P, ht, ← e Q]; exact hq⟩)
 
 theorem take_of_take {P Q : WalHist} {b c : Nat} (hbc : b ≤ c) (ht : P.take c = Q.take c) :
     P.take b = Q.take b := by

@@ -956,7 +956,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1) (⟨i, false, true, lo, lk⟩ : OsFd) m2
       (zs2.map (fun c => ((0 : w8), c)))
     have hfit3 : ([] ++ ys1 ++ ys2 ++ pend2 ++
-        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model).length ≤
+        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model true).length ≤
         (createStream Mr md).length := by
       rw [hFr]
       simp only [List.length_append, List.length_nil] at hlen1 hlen2 ⊢; omega
@@ -971,7 +971,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
             (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))))
           (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
           (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md))
-        «$a0_ptr» snapC0.model false true (fun _ => iprop(True)))
+        «$a0_ptr» snapC0.model true false true (fun _ => iprop(True)))
       $$ [Hpre Henc HW2 fp] as %serr3 ⟨%snapi', %enti', Hpre, fp, %hse3, Hr3⟩
     · dsimp only
       isplitr
@@ -1108,7 +1108,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     have hm2c : m2.cut = none := by
       rw [hgrow.1]; simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
     have hout : [] ++ ys1 ++ ys2 ++ pend2 ++
-        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model = createStream Mr md := by
+        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model true = createStream Mr md := by
       rw [hFr]
       simp only [List.nil_append] at hys1 ⊢
       rw [show ys1 ++ ys2 ++ pend2 = ys1 ++ (ys2 ++ pend2) by simp, hys2, ← List.append_assoc, hys1]
@@ -1204,7 +1204,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         OsFile.ofDisk, hpe0], by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk],
         by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, hpe0]⟩⟩
       have hoffE : W64 ((((0 + ([] ++ ys1 ++ ys2 ++ pend2 ++ snapFrame Mr
-          (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model).length : Nat)) : Int)) =
+          (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model true).length : Nat)) : Int)) =
           W64 (((createStream Mr md).length : Nat) : Int) := by
         rw [hout, Nat.zero_add]
       have htmS := createSeg_tailMeta Mr md hMr i m2 mS zs2 ysS hokS' hm2s hm2c hmaps2 hzp

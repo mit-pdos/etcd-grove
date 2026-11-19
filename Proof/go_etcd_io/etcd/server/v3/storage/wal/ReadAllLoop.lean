@@ -72,11 +72,11 @@ theorem dsDec_opDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (o : WalOp)
         subst htd
         exact ⟨fun h => by simp [entryType, stateType] at h, fun _ => ⟨h, hU.state h⟩,
           fun h => by simp [stateType, snapshotType] at h⟩
-  | snap m =>
+  | snap m al =>
     simp only [opDs, List.mem_singleton] at htd
     subst htd
     exact ⟨fun h => by simp [entryType, snapshotType] at h,
-      fun h => by simp [stateType, snapshotType] at h, fun _ => ⟨_, hU.snap m⟩⟩
+      fun h => by simp [stateType, snapshotType] at h, fun _ => ⟨_, hU.snap m al⟩⟩
 
 theorem dsDec_segsDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : List w8) :
     ∀ (first : Bool) (P : WalHist) (Ss : List WalHist),
@@ -154,7 +154,7 @@ theorem dsMd_opDs {M : WalMarshal} (md : List w8) (o : WalOp) :
       · simp only [List.mem_singleton] at htd
         subst htd
         simp [stateType, metadataType] at ht
-  | snap m =>
+  | snap m al =>
     simp only [opDs, List.mem_singleton] at htd
     subst htd
     simp [snapshotType, metadataType] at ht

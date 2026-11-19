@@ -58,7 +58,7 @@ theorem createHS_split (Mr : WalMarshal) (md : List w8) (i : Ino) (γ : GName) (
 theorem createHS_crc (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreateOk Mr) (i : Ino) (L : Nat)
     (γ : GName) (sz : Nat) :
     (createHS md i L γ sz).crc Mr = hash.crc32.crc32c (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md)
-      (Mr.encSnap snapC0.model) := by
+      (Mr.encSnap snapC0.model true) := by
   unfold WalHS.crc createHS allRecs
   simp only [Nat.sub_zero, List.take_length]
   have e := create_recsOfSegs Mr md
@@ -202,7 +202,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
     (hRp : Rp = R) (hdqp : dqp = DFrac.own q) (hWR : W.roots = R) :
     walPreIn w lg (child r nm) mds md e lt f (W64 0) (W64 0) ∗
       ownEncoder e (wal.fileWi f) (hash.crc32.crc32c (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md)
-        (Mr.encSnap snapC0.model)) [] ∗
+        (Mr.encSnap snapC0.model true)) [] ∗
       os.ownFile f fd fname (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocksW fd d ∗ os.ownOff f off ∗
       walTailReg (W := W) (child r nm) (createTailG Mr md jr nm J g) ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗

@@ -35,7 +35,7 @@ def snapC0 : WalSnapC := ⟨some (W64 0), some (W64 0), none, []⟩
 record's data `Mr.snap0` is protobuf-go's encoding of `Create`'s object, and `Mr.encSnap` of its model
 gives the same bytes. -/
 def WalMarshalCreateOk (Mr : WalMarshal) : Prop :=
-  Mr.snap0 = snapEnc snapC0 ∧ Mr.encSnap snapC0.model = Mr.snap0
+  Mr.snap0 = snapEnc snapC0 ∧ Mr.encSnap snapC0.model true = Mr.snap0
 
 end pure
 
@@ -49,7 +49,7 @@ variable [sem : go.Semantics] [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal
 theorem walSnapAt_lit (Mr : WalMarshal) (hMr : WalMarshalCreateOk Mr) (l pi pt : Loc)
     (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) :
     ⊢ l ↦ (walpb.Snapshot.mk st pi pt null slice.nil sc) -∗ pi ↦ W64 0 -∗ pt ↦ W64 0 ={⊤}=∗
-      walSnapAt (GF := GF) Mr l snapC0.model false := by
+      walSnapAt (GF := GF) Mr l snapC0.model true false := by
   iintro Hl Hi Ht
   ihave ⟨Hl, %Hln⟩ := typedPointsto_not_null_dup _ _ _ $$ Hl
   iStructNamed Hl

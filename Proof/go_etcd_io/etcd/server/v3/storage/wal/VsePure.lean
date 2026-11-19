@@ -52,11 +52,11 @@ def vseOut (U : WalUnmarshal) (ds : List (w64 × List w8)) : List (w64 × w64) :
 
 /-- The operations' snapshot (index, term) pairs, in order. -/
 def snapsOf (H : WalHist) : List (w64 × w64) :=
-  H.filterMap (fun o => match o with | .snap m => some (m.Index', m.Term') | .save _ _ => none)
+  H.filterMap (fun o => match o with | .snap m _ => some (m.Index', m.Term') | .save _ _ => none)
 
 /-- `walLastHS`'s step. -/
 def lhsStep (p : HardStateM) (o : WalOp) : HardStateM :=
-  match o with | .save h _ => phsNext p h | .snap _ => p
+  match o with | .save h _ => phsNext p h | .snap _ _ => p
 
 theorem walLastHS_eq (H : WalHist) : walLastHS H = H.foldl lhsStep hsZero := rfl
 
@@ -96,7 +96,7 @@ theorem vseSnaps_opDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (o : Wal
     split
     · rfl
     · simp [vseSnaps, stateType, snapshotType]
-  | snap m =>
+  | snap m al =>
     simp [opDs, vseSnaps, snapsOf, hU.snap m]
 
 theorem vseHs_opDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (h : HardStateM) (o : WalOp) :
@@ -122,7 +122,7 @@ theorem vseHs_opDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (h : HardSt
       split
       · rename_i hh; exact absurd hh hE
       · simp [vseHs, vseHsStep, hU.state]
-  | snap m =>
+  | snap m al =>
     simp [opDs, vseHs, vseHsStep, lhsStep, snapshotType, stateType]
 
 theorem vseSnaps_ops {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) :

@@ -138,12 +138,12 @@ are all those above the first segment it reads, the names being increasing). -/
 def walMaxSnapIdx (P : WalHist) : Nat :=
   P.foldl (fun x o => match o with
     | .save _ _ => x
-    | .snap m => max x (uint.nat m.Index')) 0
+    | .snap m _ => max x (uint.nat m.Index')) 0
 
 theorem walLastIdx_snap (P : WalHist) :
     walLastIdx P = max (P.foldl (fun x o => match o with
       | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
-      | .snap _ => x) 0) (walMaxSnapIdx P) := rfl
+      | .snap _ _ => x) 0) (walMaxSnapIdx P) := rfl
 
 /-- **The bytes a batch of entries takes in the WAL**, over-approximated: each entry's encoding plus 64
 bytes (its record's type, CRC and length fields, the frame's length word and padding; `frame_walRecEnc_tight`,
