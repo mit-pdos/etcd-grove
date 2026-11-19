@@ -40,7 +40,7 @@ theorem tryUpdateFor.wp_proof (wp_updated : updated.spec (GF := GF) (hG := hG)) 
   · iunfold tryUpdatePin
     iexists in_ptr
     isplitr
-    · ipureintro; simp only [exprVals, List.append_assoc, List.cons_append, List.nil_append]; rfl
+    · ipureintro; simp only [exprVals, List.cons_append, List.nil_append]; rfl
     iframe #
   iunfold tryUpdateD
   imodintro

@@ -39,7 +39,7 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   · iunfold validatePin
     iexists rejects_ptr, reject_ptr
     isplitr
-    · ipureintro; simp only [exprVals, List.append_assoc, List.cons_append, List.nil_append]; exact ⟨rfl, rfl⟩
+    · ipureintro; simp only [exprVals, List.cons_append, List.nil_append]; exact ⟨rfl, rfl⟩
     iframe #
   iunfold validateD
   imodintro
