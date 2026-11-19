@@ -39,7 +39,46 @@ theorem schema.EqualsRec.wp_proof
     (h_StructField_Equals_body : schema.StructField.Equals.specBody (GF := GF))
     (h_TypeRef_Equals_body : schema.TypeRef.Equals.specBody (GF := GF)) :
     schema.EqualsRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ schema.EqualsRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H1 := h_Atom_Equals_body $$ IH
+    ihave H2 := h_List_Equals_body $$ IH
+    ihave H3 := h_Map_Equals_body $$ IH
+    ihave H4 := h_StructField_Equals_body $$ IH
+    ihave H5 := h_TypeRef_Equals_body $$ IH
+    unfold schema.EqualsRec.specI
+    isplit
+    · iexact H1
+    isplit
+    · iexact H2
+    isplit
+    · iexact H3
+    isplit
+    · iexact H4
+    · iexact H5
+  unfold schema.EqualsRec.specI schema.Atom.Equals.specI schema.List.Equals.specI
+    schema.Map.Equals.specI schema.StructField.Equals.specI schema.TypeRef.Equals.specI at H
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro a0 a1 a2 a3 a4 a5 a6 a7
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6 a7
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6 a7
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6 a7
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, -, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6 a7
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, -, -, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 
