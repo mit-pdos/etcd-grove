@@ -4,7 +4,7 @@ slow-queue trace calls it).
 -/
 module
 
-public import GeneratedProof.k8s_io.utils.trace
+public import Proof.k8s_io.utils.trace.Defs
 
 @[expose] public section
 
@@ -24,12 +24,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.utils.trace.Assumptions]
 
-/-- `trace.New(name, fields)`: some trace (a pointer). -/
+/-- `trace.New(name, fields)`: some trace (a pointer), one `Step` and `LogIfLong` take
+(`trace.fromNew`). -/
 abbrev trace.New.spec : Prop :=
   ∀ (name : GoString) (fields : GoSlice),
   {{ (True : IProp GF) }}
     (App (App (Val (@! k8s_io.utils.trace.New)) (Val #name)) (Val #fields))
-  {{ (t : Loc), RET #t; True }}
+  {{ (t : Loc), RET #t; ⌜trace.fromNew t⌝ }}
 
 end spec
 

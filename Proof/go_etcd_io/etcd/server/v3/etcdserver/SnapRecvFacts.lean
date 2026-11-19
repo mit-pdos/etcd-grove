@@ -671,6 +671,37 @@ theorem epCsVoters_of_snap (γ : ServerRaftNames) (sv : SnapshotM) (cs : Loc) (l
       ipureintro; exact ⟨Hnn, fun h => by cases h⟩
     ipureintro; exact hci
 
+/-- (S1b, 2026-11-17) **A certified snapshot's conf state lists at most the voters**: the voters'
+simple one (`epCsVoters_of_snap`'s steps), of at most `2 ^ 20` voters (`srvMemOk`'s bound), within
+the backend hooks' bound (`storage.csIdMax`). -/
+theorem snap_csIdCount (γ : ServerRaftNames) (sv : SnapshotM)
+    (hpos : 0 < uint.Z sv.Metadata'.Index') (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hsz : GMap.size γ.raft.cfg ≤ 2 ^ 20) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ={⊤}=∗
+      ⌜storage.csIdCount sv.Metadata'.ConfState' ≤ storage.csIdMax⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro #Hinv #Hk
+  ihave #Hinv' := Hinv
+  iunfold srvRaftLogInv at Hinv'
+  icases Hinv' with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave #Hv := snapshotCert_valid γ.raft.cl srvClusterN sv hpos h61 $$ [Hc Hk]
+  · iframe Hc Hk
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, #Hm, -, %Hf⟩
+  imod srv_confAt_simple γ l l.length (Nat.le_refl _) ⊤ (fun _ _ => CoPset.mem_full)
+    (fun _ _ => CoPset.mem_full) $$ [Hinv Hlb] with #Hs
+  · iframe Hinv Hlb
+  ihave %Heq := confAt_agree γ.raft.cl l.length m (Membership.simple γ.raft.cfg) $$ [Hm Hs]
+  · iframe Hm Hs
+  subst Heq
+  have hci : confStateIs sv.Metadata'.ConfState' (Membership.simple γ.raft.cfg) := Hf.2.2.2.1
+  imodintro
+  ipureintro
+  exact csIdCount_simple_le _ _ hci hsz
+
 /-- (2026-11-01, J8a-5) **The image's log ends at the snapshot's term**: the certified snapshot's
 committed prefix (`snapshotValid`'s, of length its index, its last entry of its term) and the
 image's committed log `A'` of the same length (from an empty prefix) agree. -/

@@ -10,6 +10,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Aus
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Base
 
 @[expose] public section
 
@@ -41,6 +42,26 @@ theorem srvOnce_of_one [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.
     | [_], _ => simp)
 
 end proof
+
+section mainVars
+-- `Main.lean`'s section variables, which `loop_step`'s statement takes (moved from there unchanged)
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
+
+/-- The API servers' loop's counters: one more round, one more `Add`. -/
+theorem loop_step (n : w64) (k : w32)
+    (hk : sint.Z k ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 5 ∧ 0 ≤ sint.Z k)
+    (h3 : sint.Z n < sint.Z (W64 5)) :
+    sint.Z (k + W32 1) ≤ sint.Z (n + W64 1) ∧ 0 ≤ sint.Z (n + W64 1) ∧ sint.Z (n + W64 1) ≤ 5 ∧
+      0 ≤ sint.Z (k + W32 1) := by
+  obtain ⟨h1, h2, h4, h5⟩ := hk
+  word
+
+end mainVars
 
 end k8s_compactor
 end EtcdGrove

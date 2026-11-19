@@ -4,13 +4,16 @@
 its length positive (as `Mmap` requires), and the client gives back all of its cells' client halves, with the whole of the file's `OsMeta`. The
 model (`TrustedCode/golang_org/x/sys/unix.lean`) is the extension's `Munmap` (`wp_osMunmap`). On
 success the mapping is gone from the `OsMeta`; on failure it may be gone, or still there with its
-cells back. Proved in `Proof/golang_org/x/sys/unix/Munmap.lean`. Lean-first (no Rocq
+cells back, and the failure witnesses that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the
+premises `FsNoErr` names, `munmap` returns 0; session S6 folded the former `specNoErr` into it).
+Proved in `Proof/golang_org/x/sys/unix/Munmap.lean`. Lean-first (no Rocq
 counterpart).
 -/
 module
 
 public import GeneratedProof.golang_org.x.sys.unix
 public import Proof.syscall.Base
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -38,7 +41,7 @@ abbrev golang_org.x.sys.unix.Munmap.spec : Prop :=
     (App (Val (@! golang_org.x.sys.unix.Munmap)) (Val #(⟨base, len, len⟩ : GoSlice)))
   {{ (e : w64), RET #(errnoErr e);
       (⌜e = 0⌝ ∗ osMeta p (DFrac.own 1) ({ m with maps := GMap.delete base m.maps })) ∨
-      (⌜e ≠ 0⌝ ∗
+      (⌜e ≠ 0 ∧ ¬ FsNoErr⌝ ∗
         (osMeta p (DFrac.own 1) ({ m with maps := GMap.delete base m.maps }) ∨
          (osMeta p (DFrac.own 1) m ∗ cellsR base 0 len.toNat vf))) }}
 

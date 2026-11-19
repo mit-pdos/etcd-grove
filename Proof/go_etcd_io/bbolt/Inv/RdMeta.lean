@@ -41,7 +41,7 @@ theorem rdTxK_meta_pgid_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : Tx
   iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpkg, #Hcore, Hv, Hex,
     ⟨%t, Hw, Hmg, Hrest⟩, Hpool⟩
   icases Hrest with ⟨Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hrest⟩
-  icases Hrest with ⟨Hmv, Hvc, Hmap, Hvo, %Hf⟩
+  icases Hrest with ⟨Hmv, Hvc, Hmap, Hvo, Hrdx, %Hf⟩
   iexists t.meta', mv
   iframe Hme Hmv
   isplitr

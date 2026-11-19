@@ -30,14 +30,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 S8a, 2026-10-24) The creator's batch-lock step takes the fresh backend's payment rights (`bFresh`)
 and gives `K` in their place (`newPostK`). (2026-11-06, `notes/begin-tok-plan.md`) Under
 `[ThreadBoundLe GF (2 ^ 29)]` (`bbolt.Open_kv`'s); the caller's `threadTok` pays for the first read
-transaction, and the `run` goroutine's fork token comes back to it on success. -/
+transaction, and the `run` goroutine's fork token comes back to it on success. (S3e, 2026-11-17)
+Under `[ReceiptBoundLe GF (2 ^ 62)]` too, and with `cfg.Mlock` false (bbolt's proved `Open`'s); the
+panic case no longer happens (`Open_kv` has no error), but is kept in the statement. -/
 abbrev backend.New.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : BackendConfig) (P : BParams) (D : Data)
-    (W Pk K : BNames → IProp GF),
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (cfg : BackendConfig) (P : BParams)
+    (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       -- (premise fixes 6, D2a) the logger nil (replaced by `zap.NewNop()`) or a zap logger
       zapLoggerOrNil cfg.Logger' ∗
-      fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
+      fileHolds cfg.Path' D ∗
+      -- (S3e) `Mlock` off (bbolt's proved `Open` does not model `mlock`); no `Timeout` and an mmap
+      -- size `mmapSize` accepts (`Open` has then no error of its own, `bbolt.optsNoErr`)
+      ⌜P.Wf ∧ P.limit = cfg.BatchLimit' ∧ cfg.Mlock' = false ∧ cfg.Timeout' = W64 0 ∧
+        sint.Z cfg.MmapSize' ≤ 0xFFFFFFFFFFFF⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
       -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
       envVerifyOff ∗
@@ -49,7 +55,10 @@ abbrev backend.New.spec : Prop :=
         ⌜r = #(interface.mkOk (go.GoType.PointerType backend.ty) #b)⌝ ∗ newPostK γ P W Pk K b D ∗
           hooksAt b cfg.Hooks' ∗
           -- (2026-11-04, R2b-3c part 2) the backend's file is the configuration's path
-          bFile γ cfg.Path' ∗ threadTok) ∨
+          bFile γ cfg.Path' ∗
+          -- (S5, 2026-11-18) and the claim on its name is the caller's (`bPath`: what `Close`'s
+          -- `bClosed` joins back into the file, or what a rename onto the path takes)
+          bPath γ.db cfg.Path' ∗ threadTok) ∨
       -- (2026-11-08) a panic only where bbolt's `Open` failed (`dbOpenOk`, `Open_kv`'s)
       ⌜¬ dbOpenOk ∧ ∃ p : val, r = PanicV p⌝ }}
 

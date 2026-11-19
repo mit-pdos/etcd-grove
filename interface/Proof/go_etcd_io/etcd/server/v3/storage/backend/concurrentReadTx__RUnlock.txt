@@ -2,10 +2,10 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem backend.wp_rdDone (γ : backend.BNames) (rtx wg : Loc) (γw γo γt : GName) (k : Nat) (q : Qp)
-    : ⊢ ∀ Φ, isPkgInit pkg_id.sync ∗ □ backend.wgInv γ rtx wg γw γo γt ∗ backend.rdShare rtx γo k q
-    -∗ ▷ (ownToks γ.rdt 1 -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods sync.WaitGroup.ty.PointerType
-    go!"Done" (intoVal wg))) (intoVal ())) {{ Φ }}
+theorem backend.wp_rdDone (γ : backend.BNames) (rtx : Loc) (D : backend.Data) (wg : Loc) (γw γo γt :
+    GName) (k : Nat) (q : Qp) : ⊢ ∀ Φ, isPkgInit pkg_id.sync ∗ □ backend.wgInv γ rtx D wg γw γo γt ∗
+    backend.rdShare γ rtx D γo k q -∗ ▷ (ownToks γ.rdt 1 -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods
+    sync.WaitGroup.ty.PointerType go!"Done" (intoVal wg))) (intoVal ())) {{ Φ }}
 
 theorem backend.concurrentReadTx.RUnlock.wp_proof : backend.concurrentReadTx.RUnlock.spec
   -- `Perennial.EtcdGrove.backend.concurrentReadTx.RUnlock.spec`, unfolded:

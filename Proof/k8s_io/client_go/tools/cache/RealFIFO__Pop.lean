@@ -281,7 +281,7 @@ theorem RealFIFO.Pop.wp_proof
       subst hv2
       icases Hfields with ⟨%fs, %fv, Hfp, Hfs, Hfc⟩
       (try wp_auto)
-      wp_apply wp_tnew as %tr -
+      wp_apply wp_tnew as %tr %Htr
       (try wp_auto)
       iunfold popAU at HAU1
       imod (lc_fupd_elim_later (E := ⊤)) $$ Hlc2 HAU1 with HAU1
@@ -335,7 +335,8 @@ theorem RealFIFO.Pop.wp_proof
       iintro %rsl -
       simp only [go.arrayLiteralSize, List.foldl]
       (try wp_auto)
-      wp_apply wp_tlog
+      wp_apply (wp_tlog tr _) $$ []
+      · ipureintro; exact Htr
       (try wp_auto)
       iunfold fifoRes at HR
       icases HR with ⟨%q2, %sl2, %vs2, Hex, Hst, Hsy, Hitems, Hsl, Hcap, Hds, Hpop, Hinit, %Hic2,

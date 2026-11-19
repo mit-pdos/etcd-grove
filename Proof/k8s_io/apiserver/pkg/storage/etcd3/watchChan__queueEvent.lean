@@ -38,6 +38,7 @@ theorem watchChan.queueEvent.wp_proof
   (try wp_auto)
   wp_apply wp_with_defer as %defer defer
   wp_apply_core time.wp_Now
+  iframe Pti
   iintro %t -
   wp_auto_lc 3
   wp_apply context.isContext_Done ctx cdw $$ Hctx as %dch %γd #Hdone

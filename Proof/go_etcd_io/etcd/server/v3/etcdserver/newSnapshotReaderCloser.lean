@@ -72,7 +72,7 @@ theorem newSnapshotReaderCloser.wp_proof
   · -- the goroutine: `snapshot.WriteTo(pw)`, the log line, `pw.CloseWithError(err)` (which hands
     -- it the sender's half), `snapshot.Close()` (nil: no panic)
     wp_auto
-    wp_apply hWT sp D γ _ _ _ false [] $$ [Hsn Hwok Hpw] as %n %err ⟨%bs, Hsn, Hpw, %Himg⟩
+    wp_apply hWT sp D γ _ _ _ false [] (io.writerPlain_pipeWriter _) $$ [Hsn Hwok Hpw] as %n %err ⟨%bs, Hsn, Hpw, %Himg⟩
     · iframe #; iframe
     (try wp_auto)
     rcases err with ei | _

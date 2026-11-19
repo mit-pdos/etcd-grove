@@ -73,7 +73,7 @@ local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic|
       $$ [$(frameH `Htx) $(frameH `Htrc) $(frameH `Hks) $(frameH `HVS) $(frameH `Hlok)
         $(frameH `Hown)]
       as ⟨Htx, Htrc, Hown⟩
-    · ipureintro; exact Hklen
+    · ipureintro; exact ⟨Hklen, Hob.1, by first | exact Hob.2 rfl | exact Hsv⟩
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -106,8 +106,12 @@ theorem txn.put.wp_proof
     (hAdd : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     txn.put.spec (GF := GF) (hG := hG) := by
   intro ctx cd tw γ trace te σ pend p o prev L
-  wp_start as ⟨#Hctx, #Hct, Htx, Htrc, #Hp, Hprev, %Hneed, #Hlok, Hown⟩
+  wp_start as ⟨#Hctx, #Hct, Htx, Htrc, #Hp, Hprev, %Hneed, #Hlok, Hown, %Hob⟩
   icases txn.mvccTxn_shape hsh tw γ trace (.write σ pend) $$ Htx with ⟨%Hsh, Htx⟩
+  -- (S1b) the values of the state the transaction writes at: at most `etcdKeyMax` bytes
+  icases mvcc.api.mvccTxn_write_putsLe tw γ trace σ pend $$ Htx with ⟨Htx, %Hrp⟩
+  have Hstv : ∀ kv' ∈ txn.pendState σ.log pend, kv'.value.length ≤ etcdKeyMax :=
+    mvcc.applyChanges_vals _ pend Hrp.2 _ (mvcc.stateAfter_vals (mvcc.api.reach_putsLe σ Hrp.1).1)
   obtain ⟨tyX, vX, rfl, -, -, -, hPutM, -, -, -⟩ := Hsh
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
@@ -131,7 +135,7 @@ theorem txn.put.wp_proof
   generalize hst : txn.pendState σ.log pend = st at *
   subst Ho
   simp only [txn.readsPrev, txn.needsPrev, txn.putChangeOf, txn.putValOf, txn.putLeaseOf,
-    txn.putOpOf] at Hneed ⊢
+    txn.putOpOf] at Hneed Hob ⊢
   have hb0 : sint.Z (W64 0 : w64) = 0 := by decide
   iunfold txn.leaseOk at Hlok
   cases hf : mvcc.findKey k st with
@@ -167,6 +171,8 @@ theorem txn.put.wp_proof
       put_reply vsl v lease
       ipureintro; exact ⟨Hhn, rfl⟩
   | some kv =>
+    have Hsv : kv.value.length ≤ etcdKeyMax := by
+      unfold mvcc.findKey at hf; exact Hstv kv (List.mem_of_find?_eq_some hf)
     simp only [Option.map_some, Option.getD_some]
     cases iv <;> cases il <;> cases pk <;>
       simp only [Bool.or_false, Bool.false_or, Bool.or_true, Bool.true_or, Bool.false_eq_true,

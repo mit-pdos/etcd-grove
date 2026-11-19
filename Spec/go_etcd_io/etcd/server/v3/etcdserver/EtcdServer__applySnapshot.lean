@@ -93,6 +93,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai at0 dsi : w64) (nc : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk : Loc)
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
+    -- (S1b, 2026-11-17) the snapshot's conf state of at most `storage.csIdMax` ids (its voters':
+    -- `snap_csIdCount`), as `ep.confState` keeps it (`epCsOk`)
+    (hcsz : storage.csIdCount sv.Metadata'.ConfState' ≤ storage.csIdMax)
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
@@ -181,8 +184,8 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- logger a zap logger (`OpenSnapshotBackend`'s `openPre`)
        srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-       snap.isSnapshotter ss ∗ backend.fileHolds (snap.snapDBPath ss sv.Metadata'.Index') D ∗
-       backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+       snap.isSnapshotter ss ∗ backend.fileAt (snap.snapDBPath ss sv.Metadata'.Index') D ∗
+       backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
        envVerifyOff ∗

@@ -168,7 +168,8 @@ live set `T` of the method's resources, the outcomes also lease-exact at `T`. -/
 def putPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
+  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log ∧
+      o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax⌝ ∗ txn.putRequestIs r o ∗
     ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
       mPreAt E c a info log T Pre Q Post)
 
@@ -183,7 +184,8 @@ def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.et
 def txnPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log ∧
+      t.putsLe etcdKeyMax⌝ ∗
     txn.txnRequestIs r t ∗ ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
       mPreAt E c a info log T Pre Q Post)
 

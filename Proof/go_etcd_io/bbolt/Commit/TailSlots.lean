@@ -61,7 +61,7 @@ theorem cm_slots_split (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (t
     (ws : WSt) (w : WDb) (b : Loc) (l : Nat) (SB : List Nat) (bs : Nat → List w8)
     (P : Nat → Bool) (hms : w.ms = some (b, l)) (hdisj : ∀ s ∈ w.W, s ∉ SB)
     (hin : ∀ s ∈ SB, 4096 * (s + 1) ≤ l ∧ 4096 * (s + 1) ≤ w.m.size)
-    (hlen : ∀ s ∈ SB, (bs s).length = 4096) :
+    (hlen : ∀ s ∈ SB, (bs s).length = 4096) (hX : ∀ wb : Nat → List w8, flxS w.C w.fl wb = []) :
     wdbLive (GF := GF) B db p sp t0 tx ws w ∗ slotsOwn (some (b, l)) p SB bs ⊢
       wdbLive B db p sp t0 tx ws
         (w.reslot w.m (SB.filter (fun s => !P s) ++ w.W)
@@ -72,7 +72,7 @@ theorem cm_slots_split (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (t
   iframe HS
   ihave HR := slotsOwn_wrSlots b l p _ bs
     (fun s hs => hlen s (List.mem_filter.1 hs).1) $$ HR
-  icases cm_file_acc B db p sp t0 tx ws w $$ Hd with ⟨Hfile, Hwa, Hfo, Hfd, Hom, Hwc, Hwbs, Hback⟩
+  icases cm_file_acc B db p sp t0 tx ws w hX $$ Hd with ⟨Hfile, Hwa, Hfo, Hfd, Hom, Hwc, Hwbs, Hback⟩
   rw [hms]
   icases wSlots_return b l p w.W (SB.filter (fun s => !P s)) w.wb bs w.m.size
     (fun s hs hR => hdisj s hs (List.mem_filter.1 hR).1)
@@ -86,12 +86,12 @@ theorem cm_slots_back (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx
     (ws : WSt) (w : WDb) (b : Loc) (l : Nat) (S : List Nat) (bs : Nat → List w8)
     (hms : w.ms = some (b, l)) (hdisj : ∀ s ∈ w.W, s ∉ S)
     (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ l ∧ 4096 * (s + 1) ≤ w.m.size)
-    (hlen : ∀ s ∈ S, (bs s).length = 4096) :
+    (hlen : ∀ s ∈ S, (bs s).length = 4096) (hX : ∀ wb : Nat → List w8, flxS w.C w.fl wb = []) :
     wdbLive (GF := GF) B db p sp t0 tx ws w ∗ slotsOwn (some (b, l)) p S bs ⊢
       wdbLive B db p sp t0 tx ws (w.reslot w.m (S ++ w.W) (wbUpd S bs w.wb)) := by
   iintro ⟨Hd, HS⟩
   ihave HS := slotsOwn_wrSlots b l p S bs hlen $$ HS
-  icases cm_file_acc B db p sp t0 tx ws w $$ Hd with ⟨Hfile, Hwa, Hfo, Hfd, Hom, Hwc, Hwbs, Hback⟩
+  icases cm_file_acc B db p sp t0 tx ws w hX $$ Hd with ⟨Hfile, Hwa, Hfo, Hfd, Hom, Hwc, Hwbs, Hback⟩
   rw [hms]
   icases wSlots_return b l p w.W S w.wb bs w.m.size hdisj hin $$ [HS Hwc Hwbs] with ⟨Hwc, Hwbs⟩
   · iframe

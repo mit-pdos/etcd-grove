@@ -11,6 +11,8 @@ module
 
 public import Proof.go_etcd_io.bbolt.Inv.Bolt
 public import Proof.go_etcd_io.bbolt.Mmap.RemapBase
+public import Proof.go_etcd_io.bbolt.Inv.WBytesX
+public import Proof.go_etcd_io.bbolt.Inv.PmFile
 public import Perennial.Proof.ThreadPool
 public import Perennial.ProgramLogic.Bounds
 
@@ -106,9 +108,12 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
     (fd : w64) (p : BFile) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
     (wb : Nat → List w8) (fl : FLPg) (fli : GoInterface) (hpend : fl.pending = ∅)
     (hok : storeOK { openSigma b L C wb with fl := fl })
+    (hfx : flxOK { openSigma b L C wb with fl := fl })
+    (hX : ∀ s ∈ flxS C fl wb, s ∈ wSlots (L / 4096) C FLPg.empty ∧ 4096 * (s + 1) ≤ m.size)
+    (hhwm : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF)
     (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null)
     (γbq : GName) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed γbq N db sp ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⧖ C.txid ∗ dbFixed γbq N db sp ∗
       ghostVar γbq 1 () ∗
       db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
       db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
@@ -133,8 +138,9 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
       wdbCore B db p { openW C b L m wb f fd with fl := fl, fli := fli } ∗
       ghostVar B.st (1 : Qp).half.half (treeData C) ∗ ghostVar B.cls (1 : Qp).half false ∗
       sparePair B db sp ∗ threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
-      boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false := by
-  iintro ⟨#Hpkg, #Hos, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hro, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
+      boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗
+      ghostVar B.clo 1 () := by
+  iintro ⟨#Hpkg, #Hos, #Hrcm, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hro, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
     Hosm, Hfo, Hfd, Hps, Hmo1, Hmo2, Hslots, Hwb, Hmc1, Hmc2, Hcells, Hwc⟩
   -- the ghost names (`boltState`'s validity token `γbq` is the caller's: the page pool's `New`
   -- was specified against it, U11i)
@@ -152,17 +158,29 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   imod ghost_map_alloc (GF := GF) (∅ : GMap Unit Loc) with ⟨%γdbl, Hdbl, -⟩
   imod ghost_map_insert_persist () db (by rfl) $$ Hdbl with ⟨-, #Hdbl⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γcls, Hcls⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit Nat) with ⟨%γt0, Ht0, -⟩
-  imod ghost_map_insert_persist () C.txid (by rfl) $$ Ht0 with ⟨-, #Ht0⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit (Nat × Ino)) with ⟨%γt0, Ht0, -⟩
+  imod ghost_map_insert_persist () (C.txid, p.ino) (by rfl) $$ Ht0 with ⟨-, #Ht0⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γmln, Hmln⟩
   obtain ⟨W, hW⟩ := exists_bytesWit (slotsOf C FLPg.empty) wb
   imod ghostVar_alloc (GF := GF) W with ⟨%γbyt, Hbyt⟩
   imod ghostVar_alloc (GF := GF) (∅ : GMap Nat (List w8)) with ⟨%γfpb, Hfpb⟩
   imod dghostVar_alloc (GF := GF) false with ⟨%γopn, Hopn⟩
   imod ghostVar_alloc (GF := GF) (none : Option Nat) with ⟨%γspr, Hspr⟩
+  imod dghostVar_alloc (GF := GF) false with ⟨%γnf, Hnf⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γclo, Hclo⟩
+  -- the file handle's halves (session S4: `mmaplock`'s share, `pmFile`)
+  icases pt_halves _ _ $$ Hfile with ⟨Hfile, Hfile2⟩
+  have hfo := ((fileOwn_fractional (GF := GF) f fd p.path).fractional (1 : Qp).half (1 : Qp).half).1
+  have hfd := ((osFd_fractional (GF := GF) fd (dbFd p.ino)).fractional (1 : Qp).half (1 : Qp).half).1
+  rw [Qp.half_add_half] at hfo hfd
+  icases hfo $$ Hfo with ⟨Hfo, Hfo2⟩
+  icases hfd $$ Hfd with ⟨Hfd, Hfd2⟩
+  -- the synced freelist page's halves (session S4: the store's, `flxS`)
+  icases wBytes_splitX p (wSlots (L / 4096) C FLPg.empty) (flxS C fl wb) wb m.size
+    (wSlots_nodup _ _ _) (flxS_nodup _ _ _) hX $$ Hwb with ⟨Hwb, Hflx⟩
   -- the names but the pool's
   let B0 : BNs := ⟨γst, γbq, γcur, γfl, γrds, γfltx, γmtok, γmap, γout, γmlk, γwv, γtxs, γdbl,
-    γcls, γt0, default, γmln, γbyt, γfpb, γopn, γspr⟩
+    γcls, γt0, default, γmln, γbyt, γfpb, γopn, γspr, γnf, γclo⟩
   -- `mmaplock` and `statlock`, with their reader slots
   icases (ghostVar_split_half γmap 1 _).1 $$ Hmap with ⟨Hmap1, Hmap2⟩
   icases (ghostVar_split_half γmap _ _).1 $$ Hmap2 with ⟨Hmap2, Hmap3⟩
@@ -173,7 +191,10 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   · rw [DFrac.op_own, Qp.half_add_half]; iexact Hmf
   haveI := Pm_fractional (GF := GF) B0 db
   haveI := Ps_fractional (GF := GF) sp
-  imod sync.init_RWMutex (Pm B0 db) (E := E) db.[DB, go!"mmaplock"] $$ [Hmap3 Hmf1 Hmtok] Hmm
+  ihave Hpf := pmFile_intro B0 db f fd p.path (DFrac.own (1 : Qp).half) C.txid p.ino (some (b, L))
+    $$ [Hfile2 Hfo2 Hfd2]
+  · iframe; iframe Ht0
+  imod sync.init_RWMutex (Pm B0 db) (E := E) db.[DB, go!"mmaplock"] $$ [Hmap3 Hmf1 Hmtok Hpf] Hmm
     with Hmms
   · inext; unfold Pm; iexists (some (b, L)); iframe
   imod sync.init_RWMutex (Ps sp) (E := E) db.[DB, go!"statlock"] $$ Hps Hsl with Hsls
@@ -194,7 +215,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
     ⟨%γpool, #Hpool⟩
   · unfold rdPair; iexact Hpairs
   let B : BNs := ⟨γst, γbq, γcur, γfl, γrds, γfltx, γmtok, γmap, γout, γmlk, γwv, γtxs, γdbl,
-    γcls, γt0, γpool, γmln, γbyt, γfpb, γopn, γspr⟩
+    γcls, γt0, γpool, γmln, γbyt, γfpb, γopn, γspr, γnf, γclo⟩
   have hPm : Pm (GF := GF) B0 db = Pm B db := rfl
   have hrd : rdPair (GF := GF) B0 db sp = rdPair B db sp := rfl
   rw [hPm] at *
@@ -208,6 +229,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   icases (ghostVar_split_half γout 1 _).1 $$ Hout with ⟨Hout1, Hout2⟩
   icases (ghostVar_split_half γwv 1 _).1 $$ Hwv with ⟨Hwv1, Hwv2⟩
   icases (ghostVar_split_half γcls 1 _).1 $$ Hcls with ⟨Hcls1, Hcls2⟩
+  icases (ghostVar_split_half γcls _ _).1 $$ Hcls1 with ⟨Hcls1, Hcls3⟩
   icases (ghostVar_split_half γbyt 1 _).1 $$ Hbyt with ⟨Hbyt1, Hbyt2⟩
   icases (ghostVar_split_half γfpb 1 _).1 $$ Hfpb with ⟨Hfpb1, Hfpb2⟩
   icases (ghostVar_split_half γspr 1 _).1 $$ Hspr with ⟨Hspr1, Hspr2⟩
@@ -217,9 +239,14 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   icases pt_halves _ _ $$ Hwa with ⟨Hwa1, Hwa2⟩
   -- the page store
   imod inv_alloc (pagesN N) E (pagesInv (GF := GF) B p) $$
-    [Hcur2 Hfl1 Hmap2 Hwv1 Hrds Hcells Hslots Hbyt1 Hbyt2 Hmc1 Hout1 Hmln Hfpb1 Hfpb2 Hspr2]
+    [Hcur2 Hfl1 Hmap2 Hwv1 Hrds Hcells Hslots Hcls3 Hbyt1 Hbyt2 Hmc1 Hout1 Hmln Hfpb1 Hfpb2 Hspr2 Hflx]
     with #Hpages
   · inext
+    ihave Hslots := slotsOs_intro B p (slotsOf C FLPg.empty) (flxS C fl wb) wb none (some (b, L))
+      $$ [Hcls3 Hslots Hflx]
+    · isplitl [Hcls3]
+      · iexact Hcls3
+      iframe
     unfold pagesInv
     iexists { openSigma b L C wb with fl := fl }, W
     have hws : ({ openSigma b L C wb with fl := fl } : StoreSt).wst = wIdle := rfl
@@ -257,7 +284,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
       ipureintro; intro _ s v h; simp at h
     isplitl [Hmc1 Hout1 Hmln]
     · ileft; iframe
-    · ipureintro; exact hok
+    · ipureintro; exact ⟨hok, hfx⟩
   -- the transactions
   imod inv_alloc (txsN N) E (txsInv (GF := GF) B p sp C.txid) $$ [Htxs] with #Htxsi
   · inext
@@ -276,10 +303,11 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
     iexists C, ∅, false, fli,
       methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f
     simp only [Bool.not_false, Bool.false_eq_true, ↓reduceIte]
+    iframe Hrcm
     iframe
     ipureintro
     and_intros <;> first | exact hok.1 | exact hok.2.1 | exact htx.1 | trivial |
-      (intro k t h; simp at h) | (intro _; exact ⟨hok.1, hok.2.1, htx.1⟩)
+      (intro k t h; simp at h) | (intro _; exact ⟨hok.1, hok.2.1, htx.1, hhwm⟩)
   ihave Hspare : sparePair (GF := GF) B db sp $$ [Hspare Hspr1]
   · unfold sparePair rdPair spareTok; iframe Hspr1; iexact Hspare
   imodintro
@@ -290,7 +318,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   simp only [openW, mapLen]
   iframe Hdbl Ht0 Hpkg Hos Hfix Hmeta Hmg Hsg Hpages Htxsi Hpool Hspare Hcls2 Hst1 Hbq
   iframe Hcur3 Hfl2 Hmap1 Hout2 Hwv2 Hfli2 Hop2 Hwa2 Hrw Hfile Hpath Hdsz Hmf2 Hosm Hfo Hfd Hmc2
-  iframe Hmo2 Hwc Hwb Hst3 Hopn
+  iframe Hmo2 Hwc Hwb Hst3 Hopn Hnf Hclo
   ipureintro
   exact ⟨⟨htx.2, ReceiptBoundLe.receiptBound_le⟩, hdb, hN⟩
 
@@ -298,10 +326,12 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
 theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : CoPset) (N : Namespace) (db sp f : Loc)
     (fd : w64) (p : BFile) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
     (wb : Nat → List w8)
-    (hok : storeOK (openSigma b L C wb))
+    (hok : storeOK (openSigma b L C wb)) (hfx : flxOK (openSigma b L C wb))
+    (hX : ∀ s ∈ flxS C FLPg.empty wb, s ∈ wSlots (L / 4096) C FLPg.empty ∧ 4096 * (s + 1) ≤ m.size)
+    (hhwm : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF)
     (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null)
     (γbq : GName) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed γbq N db sp ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⧖ C.txid ∗ dbFixed γbq N db sp ∗
       ghostVar γbq 1 () ∗
       db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
       db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
@@ -325,11 +355,12 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : 
     |={E}=> ∃ B : BNs, ⌜B.bq = γbq⌝ ∗ isBoltCoreP B N db p sp C.txid ∗
       wdbOpen B db p (openW C b L m wb f fd) ∗ ghostVar B.cls (1 : Qp).half false ∗
       sparePair B db sp ∗ threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
-      boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false := by
-  iintro ⟨#Hpkg, #Hos, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hrest⟩
-  imod open_core_fl E N db sp f fd p C b L m wb FLPg.empty interface.nil rfl hok htx hN hdb γbq $$
+      boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗
+      ghostVar B.clo 1 () := by
+  iintro ⟨#Hpkg, #Hos, #Hrcm, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hrest⟩
+  imod open_core_fl E N db sp f fd p C b L m wb FLPg.empty interface.nil rfl hok hfx hX hhwm htx hN hdb γbq $$
     [Hfix Hbq Hml Hmm Hsl Hop Hfli Hrest] with ⟨%B, %HB, Hc, Hw, Hst, Hrest⟩
-  · iframe Hpkg Hos Hfix Hbq Hml Hmm Hsl Hop Hfli Hrest
+  · iframe Hpkg Hos Hrcm Hfix Hbq Hml Hmm Hsl Hop Hfli Hrest
     unfold flRoOpt; simp only [↓reduceIte]; iempintro
   imodintro
   iexists B

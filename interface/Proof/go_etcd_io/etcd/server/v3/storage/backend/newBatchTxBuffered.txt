@@ -38,8 +38,7 @@ theorem backend.newBatchTxBuffered.wp_proof (hBegin : backend.backend.begin.spec
                                           typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
                                         backend.ownDB db γd D ∗
                                           backend.ownWTx wtx γd D D ∗
-                                            backend.txDB wtx db ∗
-                                              backend.txLive rtx 1 ∗
-                                                backend.rtxSnap rtx D ∗ backend.rtxStats rtx ∗ backend.txDB rtx db) -∗
+                                            backend.txDB wtx γd db ∗
+                                              backend.txLive rtx γd 1 (bbolt.TxView.ro D) ∗ backend.txDB rtx γd db) -∗
                   Φ (intoVal t)) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered [])) (intoVal b)) {{ Φ }}

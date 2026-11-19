@@ -44,6 +44,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.PkgTabl
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.InitLinked
 
 @[expose] public section
 
@@ -59,24 +61,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def putget3GF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def putget3GF_allG : AllG putget3GF := ⟨⟨0, rfl⟩⟩
@@ -89,28 +76,10 @@ instance putget3GF_gooseGpreS : GooseGpreS putget3GF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putget3GF_allG
 
-/-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
-every instance of the ghost state whose Go local context is the semantics' own). -/
-abbrev heapAt3 (hG : HeapGS .hasLC putget3GF) (lctx : GoLocalContext) : HeapGS .hasLC putget3GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `putget3`'s initialization, then `Main()`. -/
-def putget3Program [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main) #()
-
-/-- The program's addresses: the three members' peer addresses and the first's client address. -/
-def putget3Addrs : List GoString :=
-  [etcd_putget3.peerAddr₁, etcd_putget3.peerAddr₂, etcd_putget3.peerAddr₃, etcd_putget3.clientAddr₁]
-
-/-- The read package's two metric names, which `putget3`'s initialization registers (`readRegPerm`,
-D16). -/
-def putget3Names : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **putget3 is safe** (see the file header): every real execution of
 `putget3Program` from a fresh state with one thread, of `n` steps: if the main thread has finished,

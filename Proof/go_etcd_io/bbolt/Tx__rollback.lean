@@ -29,17 +29,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+omit [ExtSemantics fsExt] [FsSemOk] hos in
 theorem Tx.rollback.wp_proof
-    (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
-    (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
-    (wp_Freelist : internal.common.Meta.Freelist.spec (GF := GF) (hG := hG))
-    (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
-    (wp_hasSynced : DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
-    (wp_freepages : DB.freepages.spec (GF := GF) (hG := hG))
-    (wp_NSR : internal.freelist.Interface.NoSyncReload.spec (GF := GF) (hG := hG))
-    (wp_Reload : internal.freelist.Interface.Reload.spec (GF := GF) (hG := hG))
-    (wp_page : DB.page.spec (GF := GF) (hG := hG))
-    (wp_close : Tx.close_w.spec (GF := GF) (hG := hG)) :
+    (wp_meta : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.meta.spec (GF := GF) (hG := hG))
+    (wp_Txid : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
+    (wp_Freelist : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.common.Meta.Freelist.spec (GF := GF) (hG := hG))
+    (wp_FlRollback : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
+    (wp_hasSynced : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
+    (wp_freepages : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.freepages.spec (GF := GF) (hG := hG))
+    (wp_NSR : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.freelist.Interface.NoSyncReload.spec (GF := GF) (hG := hG))
+    (wp_Reload : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.freelist.Interface.Reload.spec (GF := GF) (hG := hG))
+    (wp_page : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.page.spec (GF := GF) (hG := hG))
+    (wp_close : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
     Tx.rollback.spec (GF := GF) (hG := hG) :=
   Tx.rollback.spec_of_f (Tx.rollback_f.wp_proof wp_meta wp_Txid wp_Freelist wp_FlRollback
     wp_hasSynced wp_freepages wp_NSR wp_Reload wp_page wp_close)

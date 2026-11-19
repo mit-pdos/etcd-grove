@@ -31,12 +31,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `tx.Size()`: the database's size as the transaction sees it (some value). -/
+/-- `tx.Size()`: the database's size as the transaction sees it; (session S4) for a read
+transaction, a size of the database file bbolt maps (at most `maxMapSize`, so below `2 ^ 62`: what
+the backend's `snapshot.Size` promises). -/
 abbrev Tx.Size.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView),
   {{ boltTx (GF := GF) tx γ q T }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Size")) (Val #()))
-  {{ (n : w64), RET #n; boltTx tx γ q T }}
+  {{ (n : w64), RET #n; boltTx tx γ q T ∗ ⌜T.rw = false → 0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 62⌝ }}
 
 end spec
 

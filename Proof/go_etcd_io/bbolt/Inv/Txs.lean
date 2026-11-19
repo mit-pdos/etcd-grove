@@ -89,7 +89,8 @@ def metaCopyOK (mv : Meta) (C : CommitSt) : Prop :=
   (batches 43.1, 44.4) the meta copy the committed meta's (`metaCopyOK`) and the committed tree
   well-formed (`treeOK`);
 - a reader's: `mmaplock` read-locked, the pool loan (for `loan`), its `statlock` token, its
-  registry entry in the store. -/
+  registry entry in the store (session S4: half of it, with the reader's recorded synced freelist
+  page `fx`; the other half is the reader's, `rdx`). -/
 def txExcl (B : BNs) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : IProp GF :=
   iprop(∃ (c : TxViewC) (x : TxX), ghostVar r.n.v (1 : Qp).half (c, x) ∗
     ghostVar r.n.done (1 : Qp).half false ∗
@@ -101,7 +102,8 @@ def txExcl (B : BNs) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : 
             flViewU X w.fl ∧ metaCopyOK X.t.mv w.C ∧ treeOK w.C⌝)
     | .rd v _ k => iprop(sync.ownRWMutexRLocked r.db.[DB, go!"mmaplock"] (Pm B r.db) ∗
         (if r.src = .loan then threadPool.ownThreadLoan B.pool else emp) ∗
-        sync.ownRWMutex r.db.[DB, go!"statlock"] (Ps sp) ∗ k ↪[B.rds] (⟨v⟩ : RdInfo)))
+        sync.ownRWMutex r.db.[DB, go!"statlock"] (Ps sp) ∗
+        ∃ fx, k ↪[B.rds]{DFrac.own (1 : Qp).half} (⟨v, fx⟩ : RdInfo)))
 
 /-- **A writer's view registry** `γ` (batch 37.3, maintainer 11): its authority, every entry's
 persistent fragment, and every entry the same view up to its base (`{v0 with base := u.base}`),

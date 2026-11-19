@@ -246,6 +246,12 @@ theorem TxnOp.opsPutsLe_mono {N M : Nat} (h : N ≤ M) :
   | op :: ops, ho => ⟨TxnOp.putsLe_mono h op ho.1, TxnOp.opsPutsLe_mono h ops ho.2⟩
 end
 
+/-- (S1b, 2026-11-17) `opsPutsLe` as a statement about each operation. -/
+theorem TxnOp.opsPutsLe_iff {N : Nat} :
+    ∀ ops : List TxnOp, TxnOp.opsPutsLe N ops ↔ ∀ op ∈ ops, op.putsLe N
+  | [] => by simp [TxnOp.opsPutsLe]
+  | op :: ops => by simp [TxnOp.opsPutsLe, TxnOp.opsPutsLe_iff ops]
+
 /-- **Every key and value the transaction puts is at most `N` bytes**, in either branch, at every
 depth. -/
 def TxnModel.putsLe (N : Nat) (t : TxnModel) : Prop :=

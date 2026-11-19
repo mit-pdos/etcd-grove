@@ -939,7 +939,7 @@ theorem rqShape_txnL (lm : lease.Mode) (rq : apply.IRRModel) (hk : apply.dispatc
   unfold apply.rqOk
   rw [hk] at hs ⊢
   intro t ht'
-  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1⟩
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht').1, (hs t ht').1.1, (hs t ht').2⟩
 
 /-- A grant's shape where the mode admits it. -/
 theorem rqShape_grant (lm : lease.Mode) (rq : apply.IRRModel) (hg : grantPropOk lm rq) :

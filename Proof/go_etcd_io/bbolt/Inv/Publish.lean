@@ -23,6 +23,8 @@ open go_etcd_io.bbolt
 
 section publish
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- The writer's record after the publish of `C'` with the new tree slots `S`. -/
 def WDb.publish (w : WDb) (C' : CommitSt) (S : List Nat) : WDb :=

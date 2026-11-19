@@ -19,6 +19,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
 
 @[expose] public section
 
@@ -57,7 +59,8 @@ theorem etcd_auth3.wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerB
 theorem etcd_auth3.wp_barrier [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_auth3.barrier.spec (GF := GF) (hG := hG) :=
   etcd_auth3.barrier.wp_proof etcd_auth3.wp_newUserClient context.wp_ErrAny
-    etcd_auth.context.wp_WithTimeoutBackground
+    etcd_auth.context.wp_WithTimeoutBackground etcd_auth.client_Get_on_law_holds
+    client.authTokReg_of_law_holds
 
 /-- **auth3's `run`**: authkv's run across the three members (`run.lean`), over authkv's linked
 `SetUp`, `Work` and checks (`auth/Link.lean`). -/

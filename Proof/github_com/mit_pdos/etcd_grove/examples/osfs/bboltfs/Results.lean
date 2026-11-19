@@ -44,6 +44,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Link
 public import Proof.os.CrashStSpec
 public import GooseLang.Ext.Fs.AdequacyS
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.TopLevelDefs
 
 @[expose] public section
 
@@ -100,12 +101,6 @@ theorem DB.wp_commitC : DB.commit.specCrash (GF := GF) (hG := hG) :=
 
 theorem DB.wp_CommitC : DB.Commit.specCrash (GF := GF) (hG := hG) :=
   DB.Commit.wp_proof_crash DB.wp_meta DB.wp_commitC
-
-/-- The package initializer's spec (an assumption of `bootCrashSafety`: see the file header). -/
-abbrev initialize'.spec : Prop :=
-  {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-    (App (Val initialize') (Val #()))
-  {{ RET #(); pkgFacts (GF := GF) }}
 
 end links
 
@@ -170,30 +165,12 @@ end start
 
 attribute [local instance] fsExts fsExtsInterp
 
-/-- `AnyStep` keeps every step. -/
-theorem anyStep_keeps : StepKeeps AnyStep := by
-  intro _ _ _ _ _ _ _ _ _ _ hs
-  exact ⟨_, _, _, hs, trivial⟩
-
 local instance : GooseSemantics := fsExtsSemanticsWithS AnyStep P1
 local instance : ExtSemantics fsExt := fsSemWithS AnyStep P1
 local instance : HasExt fsExt := fsExtsWithS_hasFs AnyStep P1
 
-/-- The semantics' instances the specs need, over the semantics with P1. -/
-abbrev P1Ctx (P : ∀ [GooseSemantics] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Prop) : Prop :=
-  letI := fsExtsSemanticsWithS AnyStep P1
-  letI := fsSemWithS AnyStep P1
-  letI := fsExtsWithS_hasFs AnyStep P1
-  haveI : FsSemOk := fsSemWithS_ok AnyStep P1 anyStep_keeps
-  P
-
 section adequacy
 variable [GoGlobalContext] {GF : BundledGFunctors}
-
-/-- A ghost-state instance at the local context `lctx` (the hypotheses are stated over every
-instance whose Go local context is the semantics' own). -/
-abbrev heapAt (hG : HeapGS .hasLC GF) (lctx : GoLocalContext) : HeapGS .hasLC GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-- The precondition of the boot program in the generation `L`, `R` the roots. -/
 def bootPre [G : GooseGlobalGS .hasLC GF] (R : Roots) (dir : GoString) (L : GooseLocalGS GF) :
@@ -325,31 +302,6 @@ theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
   intro σ g Hlctx Hpkgs Hinit Hdir Hnone Hthreads n κs t2 σ2 b Hsteps Hlive
   exact bootCrashSafety_bounded (GF := fsGF) Hinit_wp (n + 1) (2 ^ 30) (Nat.le_refl _)
     σ g dir Hlctx Hpkgs Hinit Hdir Hnone n κs t2 σ2 b Hsteps (by omega) Hthreads Hlive
-
-/-- **`bootCrashSafety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`), under P1's semantics: the program alone on one machine that may
-crash at any step and restart, a fresh Go process (`Robust`'s premise), its files as on disk, its
-directory a root with no `db` in it: in every execution of fewer than `2 ^ 30 - 1` steps no thread
-is stuck and none has an unrecovered panic. `BootCrashSafety`'s thread bound (fewer than `2 ^ 30`
-live threads) follows from the step bound: an execution of `n` steps from one thread has fewer
-than `n + 2`. -/
-theorem bootCrashRobust [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (dir : GoString)
-    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
-      ∀ hG : HeapGS .hasLC fsGF, initialize'.spec (GF := fsGF) (hG := heapAt hG lctx)) :
-    letI := fsExtsSemanticsWithS AnyStep P1
-    letI := fsExtsWithS_hasFs AnyStep P1
-    ∀ (σ : state) (g : GlobalState),
-      FsInit (extLocal fsExt σ.world) →
-      (∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots) →
-      (extLocal fsExt σ.world).lookup (dir ++ go!"/db") = none →
-      Robustness.Robust [(boot dir, σ)] [] g (2 ^ 30 - 1) := by
-  intro σ g Hinit Hdir Hnone
-  refine Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b hn Hsteps => ?_
-  exact bootCrashSafety dir Hinit_wp σ g hf.1 hf.2.1 Hinit Hdir Hnone hf.2.2 n κs t2 σ2 b Hsteps
-    (fun k κs' ρ' b' hk hs => Nat.lt_of_lt_of_le
-      (RealCrashThreadsBelow.of_single hf.2.2 k κs' ρ' b' hk hs) (by omega))
 
 end adequacy
 

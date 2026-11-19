@@ -61,7 +61,7 @@ def lean_pkg(go_path):
 
 KVD_MAIN = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurable"
 # The main tree's modules whose closure the part copies: the closed theorem's.
-ROOTS = [f"Proof.{lean_pkg(KVD_MAIN)}.Results"]
+ROOTS = [f"Proof.{lean_pkg(KVD_MAIN)}.Results", f"Proof.{lean_pkg(KVD_MAIN)}.TopLevelRobustness"]
 # Main package (Lean, dotted) -> the part's: kvdurable's proofs follow the part's translation's Go
 # path (goose.KVDURABLE_NOAX_PKG); empty while that is kvdurable's own.
 RENAME = {k: v for k, v in [(lean_pkg(KVD_MAIN), lean_pkg(goose.KVDURABLE_NOAX_PKG))] if k != v}

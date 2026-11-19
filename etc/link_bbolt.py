@@ -25,18 +25,20 @@ The rules:
   callees of the other modes); else the result of etcd-grove's own proof of it
   (`Proof/os/`, `Proof/syscall/`, ...: the file-system model's, as minibolt's Link links them),
   linked here too, in the namespace `bbolt` (`bbolt.os.File.wp_Close`).
-- **Specs with no proof** (a callee left a hypothesis: `fs.FileMode.String.spec`) and the **premises without proof** (`PREMISES` with no term:
-  `PidSetDeleteUnfold`, a Perennial gap) are hypotheses `h_<name>` of a section
-  `links_pending`, as a `?` callee of the other modes: every result reaching one is stated
-  there, and takes them all.
+- **Specs with no proof** (a callee left a hypothesis; none since `fs.FileMode.String.spec` was
+  proved, 2026-11-18) and the **premises
+  without proof** (`PREMISES` with no term; none since `PidSetDeleteUnfold` was proved,
+  2026-11-17) are hypotheses `h_<name>`: every result reaching one is stated in a section
+  `links_pending`, as a `?` callee of the other modes, and takes those it reaches (since
+  2026-11-17, stage S1 of `notes/bbolt-integration-plan.md`; until then all of them).
 - **Premises** that are not specs are given by `PREMISES` (type pattern -> term): facts proved
   elsewhere (`errnoErrOk_holds`), a trust-boundary axiom shared with the server
   (`sort.«Sort».wp_anyLess`), and the freelist implementations' contracts
   (`internal.freelist.impl_contract` of the callees `FLCallees` they rest on).
-- **The backend's `_kv` axioms** (`bbolt.Open_kv.wp_proof`, ...: the old trust boundary etcd's
-  backend still rests on, until the backend switch derives them from the triples) are not
-  results: an `axiom` proving a `_kv` spec is skipped, so neither `Link.lean` nor `Results.lean`
-  presents it as bbolt's.
+- **The backend's `_kv` specs** (`bbolt.Tx.Size_kv.spec`, ...: the backend's corollaries of the
+  triples over its vocabulary, stages S1 and S1b, and the axioms `Open_kv` and `DB.Close_kv`)
+  are not bbolt's results: a declaration proving one is skipped, and the
+  backend's `Link.lean` (`etc/gen-link.py --backend`) links them to this one's results.
 - Instance binders (`[sync.Assumptions]`, `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]`) are left to instance search: the
   section's `[package_sem : go_etcd_io.bbolt.Assumptions]` includes every imported package's;
   the field assumptions of `os`'s trusted `file` and `fileStat` (`TrustedCode/os.lean`), which
@@ -70,10 +72,11 @@ PREMISES = [
     # `sort.Sort` for any `Less`: the trust-boundary axiom the server's `lessor.Leases` takes too
     (r"sort\.«Sort»\.anyLessSpec \(GF := GF\) \(hG := hG\)",
      "_root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess", None, "Proof.sort.SortAnyLess"),
-    # `delete` at `pidSet` (a defined map type) unfolds as at its underlying type: a gap of
-    # Perennial's semantics (`internal/freelist/Lemmas/HashDelete.lean`), not provable here
-    (r"PidSetDeleteUnfold \(GF := GF\)", None, "PidSetDeleteUnfold",
-     "Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.HashDelete"),
+    # `delete` at `pidSet` (a defined map type), Perennial's `wp_mapDelete_underlying`
+    # (`internal/freelist/Lemmas/HashDelete.lean`; until 2026-11-17 a gap of Perennial's semantics
+    # and a hypothesis of `links_pending`)
+    (r"PidSetDeleteUnfold \(GF := GF\)", "_root_.Perennial.EtcdGrove.bbolt.pidSetDelete_holds",
+     "PidSetDeleteUnfold", "Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.HashDelete"),
     # the freelist implementations' contracts, from the callees they rest on (`FLCallees`)
     (r"∀ \(I : FLImpl \(GF := GF\)\) a, I\.IsImpl a → I\.FreeCountSpec",
      "(fun I a h => (_root_.Perennial.EtcdGrove.bbolt.internal.freelist.impl_contract {fc} I a h).freeCount)",
@@ -290,8 +293,8 @@ def main(root, perennial, argv0, results_file=False):
         s = concl_spec(x)
         if not s:
             continue
-        if x["kind"] == "axiom" and re.search(r"_kv[rw]?\.spec$", s):
-            continue  # the backend's legacy `_kv` axioms, not bbolt's results (the backend switch)
+        if re.search(r"_kv[rw]?\.spec$", s):
+            continue  # the backend's `_kv` corollaries and axioms: the backend's Link links them
         bs = [classify(h, x["ns"]) for h in x["hyps"]]
         if any(b[0] == "bad" for b in bs):
             continue  # a lemma generic in more than callees (`shared`'s methods)
@@ -380,9 +383,10 @@ def main(root, perennial, argv0, results_file=False):
                     pending_premises.append(hn)
                 if term and "{fc}" in term:
                     uses_fc = True
+    prem_term = {hn: t for _, t, hn, _ in PREMISES if hn}
     if uses_fc:
         for c in FL_CALLEES:
-            if c in FL_CALLEES_PREMISE and c not in pending_premises:
+            if c in FL_CALLEES_PREMISE and not prem_term.get(c) and c not in pending_premises:
                 pending_premises.append(c)
     hyps = [(hyp_name(s), f"_root_.{s} (GF := GF) (hG := hG)") for s in pending] + \
         [("h_" + p, "_root_." + FL_CALLEES_PREMISE.get(p, next(
@@ -390,25 +394,41 @@ def main(root, perennial, argv0, results_file=False):
             if hn == p))) for p in sorted(pending_premises)]
     hyp_names = [n for n, _ in hyps]
 
-    # blocked: the results reaching a pending hypothesis
+    # blocked: the results reaching a pending hypothesis; each takes those it reaches (2026-11-17,
+    # stage S1 of `notes/bbolt-integration-plan.md`: until then every blocked result took them all,
+    # so that `DB.Begin` took `Open`'s `fs.FileMode.String` spec)
     blocked = set()
+
+    def fc_reach():
+        r = set()
+        for c in FL_CALLEES:
+            if c in how:
+                r |= reaches(c)
+            elif not prem_term.get(c):
+                r.add("h_" + c)
+        return r
 
     def reaches(s, memo={}):
         if s in memo:
             return memo[s]
-        memo[s] = False
+        memo[s] = set()
         h = how[s]
-        r = h[0] == "pending"
+        r = {hyp_name(s)} if h[0] == "pending" else set()
         if h[0] == "result":
             for b in h[1]["binders"]:
-                if b[0] == "spec" and reaches(b[1]):
-                    r = True
+                if b[0] == "spec":
+                    r |= reaches(b[1])
                 if b[0] == "premise":
-                    pat, term, _, _ = PREMISES[b[1]]
-                    if term is None or "{fc}" in term:
-                        r = True
+                    pat, term, hn, _ = PREMISES[b[1]]
+                    if term is None:
+                        r.add("h_" + hn)
+                    elif "{fc}" in term:
+                        r |= fc_reach()
         memo[s] = r
         return r
+
+    def own(hs):
+        return [n for n in hyp_names if n in hs]
 
     order, seen = [], set()
 
@@ -430,6 +450,11 @@ def main(root, perennial, argv0, results_file=False):
     for s in sorted(how):
         topo(s)
     blocked = {s for s in order if reaches(s)}
+    hyp_ty = dict(hyps)
+
+    def applied(r, hs):
+        hs = own(hs)
+        return f"({r} {' '.join(hs)})" if hs else r
 
     def term_of(s):
         h = how[s]
@@ -437,12 +462,11 @@ def main(root, perennial, argv0, results_file=False):
             return h[1]
         if h[0] == "pending":
             return hyp_name(s)
-        r = f"_root_.{NS}.{short(s)}"
-        return f"({r} {' '.join(hyp_names)})" if s in blocked else r
+        return applied(f"_root_.{NS}.{short(s)}", reaches(s))
 
     fc_term = None
     if uses_fc:
-        fc_args = [term_of(c) if c in how else "h_" + c for c in FL_CALLEES]
+        fc_args = [term_of(c) if c in how else (prem_term.get(c) or "h_" + c) for c in FL_CALLEES]
         fc_term = "⟨" + ", ".join(fc_args) + "⟩"
 
     def arg(b):
@@ -451,13 +475,22 @@ def main(root, perennial, argv0, results_file=False):
         pat, term, hn, _ = PREMISES[b[1]]
         if term is None:
             return "h_" + hn
-        return term.replace("{fc}", f"(_root_.{NS}.freelistCallees {' '.join(hyp_names)})")
+        return term.replace("{fc}", applied(f"_root_.{NS}.freelistCallees", fc_reach()))
+
+    def binders(hs):
+        return "".join(f" ({n} : {hyp_ty[n]})" for n in own(hs))
 
     def emit(s):
         x = how[s][1]
         args = " ".join(arg(b) for b in x["binders"])
-        return (f"theorem {short(s)} :\n    _root_.{s} (GF := GF) (hG := hG) :=\n"
+        return (f"theorem {short(s)}{binders(reaches(s))} :\n    _root_.{s} (GF := GF) (hG := hG) :=\n"
                 f"  _root_.{x['name']}" + (f" {args}" if args else "") + "\n")
+
+    fc_decl = ("/-- The callees the freelist implementations' contracts rest on. -/\n"
+               f"theorem freelistCallees{binders(fc_reach()) if uses_fc else ''} :\n"
+               "    _root_.Perennial.EtcdGrove.bbolt.internal.freelist.FLCallees "
+               "(GF := GF) (hG := hG) :=\n"
+               f"  {fc_term}\n")
 
     results = [s for s in order]
     names = [short(s) for s in results]
@@ -491,9 +524,11 @@ The callees are read off each proof's binders (`etc/link_bbolt.py`'s docstring).
 `etc/gen-link.py --bbolt` -- do not edit by hand.
 
 `#print axioms` on a result is its trust base (`Results.lean` prints the public specs').
-""" + textwrap.fill("The results reaching a spec with no proof, or a premise with no proof, are "
+""" + textwrap.fill(("The results reaching a spec with no proof, or a premise with no proof, are "
                     "in `links_pending`, which takes them as hypotheses: "
-                    + ", ".join(f"`{n}`" for n in hyp_names) + ".", 96,
+                    + ", ".join(f"`{n}`" for n in hyp_names) + ".") if hyp_names else
+                    "Every result is linked to proofs: none reaches a spec or a premise with no "
+                    "proof (no `links_pending`).", 96,
                     break_on_hyphens=False) + "\n-/"
     out = [header, "module", ""]
     out.extend(f"public import {m}" for m in sorted(imports, key=mod_key))
@@ -518,21 +553,30 @@ open Iris Iris.BI
 
 section links
 """ + sec_vars)
-    out.extend(emit(s) for s in generic)
+    # the freelist callees' term, before the first result whose proof uses the contracts (after
+    # the callees themselves, which `topo` orders before it)
+    fc_first = uses_fc and not fc_reach()
+
+    def uses_fc_term(s):
+        return any(b[0] == "premise" and "{fc}" in (PREMISES[b[1]][1] or "")
+                   for b in how[s][1]["binders"])
+
+    fc_done = False
+    for s in generic:
+        if fc_first and not fc_done and uses_fc_term(s):
+            out.append(fc_decl)
+            fc_done = True
+        out.append(emit(s))
+    if fc_first and not fc_done:
+        out.append(fc_decl)
     out.append("end links\n")
-    if later or uses_fc:
-        out.append("""/-! The results that reach a spec or premise with no proof: each takes them as hypotheses
-(`h_<name>`). -/
+    if later or (uses_fc and not fc_first):
+        out.append("""/-! The results that reach a spec or premise with no proof: each takes those it reaches as
+hypotheses (`h_<name>`). -/
 section links_pending
-""" + sec_vars + "\n".join(f"variable ({n} : {t})" for n, t in hyps) + f"""
-include {' '.join(hyp_names)}
-""")
-        if uses_fc:
-            out.append("/-- The callees the freelist implementations' contracts rest on. -/\n"
-                       "theorem freelistCallees :\n"
-                       "    _root_.Perennial.EtcdGrove.bbolt.internal.freelist.FLCallees "
-                       "(GF := GF) (hG := hG) :=\n"
-                       f"  {fc_term}\n")
+""" + sec_vars)
+        if uses_fc and not fc_first:
+            out.append(fc_decl)
         out.extend(emit(s) for s in later)
         out.append("end links_pending\n")
     out.append("end bbolt\nend EtcdGrove\nend Perennial")
@@ -547,8 +591,9 @@ The trust base of bbolt's public results: `#print axioms` of the result of every
 importable `Spec` module (`etc/api/bbolt.txt`), as `Link.lean` states it. Generated by
 `etc/gen-link.py --bbolt --results` -- do not edit by hand. Built with the rest; read its output
 to check it. The results of `links_pending` take its hypotheses (`Link.lean`'s header), which
-`#print axioms` does not show. The `_kv` specs of etcd's backend are not here: they are still the
-backend's axioms, until the backend switch derives them from these results.
+`#print axioms` does not show. The `_kv` specs of etcd's backend are not here: the backend's
+`Link.lean` derives them from these results (stages S1, S1b), but `Open_kv` and `DB.Close_kv`,
+still the backend's axioms.
 -/
 module
 
@@ -563,6 +608,7 @@ set_option pp.fullNames true
         return
     print("\n".join(out))
     unlinked = sorted(s for s in specs if s.startswith(NS + ".") and s not in proofs
+                      and not re.search(r"_kv[rw]?\.spec$", s)
                       and specs[s]["mod"].startswith(("Spec.go_etcd_io.bbolt", "Proof.go_etcd_io.bbolt")))
     if unlinked:
         print("gen-link.py --bbolt: specs with no linked proof: " + ", ".join(unlinked),

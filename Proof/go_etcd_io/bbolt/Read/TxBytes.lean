@@ -69,7 +69,7 @@ theorem rdTxK_view_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView)
   unfold rdTxK rtxFrac
   iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
     ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells,
-      ⟨%l, Hg, Hmf, %Hl⟩, #Hvo, %Hf⟩, Hpool⟩
+      ⟨%l, Hg, Hmf, %Hl⟩, #Hvo, Hrdx, %Hf⟩, Hpool⟩
   ihave %Hnn : ⌜0 < v.base.addr⌝ $$ [Hmf]
   · iunfold mapFields at Hmf; icases Hmf with ⟨-, -, -, -, %H⟩; ipureintro; exact H.2.1
   iexists r, _

@@ -50,6 +50,7 @@ theorem boltTxDef_size_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BN
     boltTxDef (GF := GF) B N tx q T ⊢ ∃ (m : Loc) (mv : internal.common.Meta) (db : Loc)
       (dq dq' : DFrac), tx.[Tx, go!"meta"] ↦{dq} m ∗ m ↦{dq} mv ∗ tx.[Tx, go!"db"] ↦{dq'} db ∗
       db.[DB, go!"pageSize"] ↦□ W64 4096 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
+      ⌜T.rw = false → mv.pgid'.toNat * 4096 ≤ 0xFFFFFFFFFFFF⌝ ∗
       (tx.[Tx, go!"meta"] ↦{dq} m -∗ m ↦{dq} mv -∗ tx.[Tx, go!"db"] ↦{dq'} db -∗
         boltTxDef B N tx q T) := by
   unfold boltTxDef
@@ -69,6 +70,8 @@ theorem boltTxDef_size_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BN
     iframe Hm Hmv Hdb
     obtain ⟨hT, rfl, hrw⟩ := Hc
     iframe Hps Hpk
+    isplitr
+    · ipureintro; intro h; simp_all
     iintro Hm Hmv Hdb
     iexists r.db, p, sp, t0, r, c, X
     iframe Hreg Hb Hv Hex
@@ -79,7 +82,7 @@ theorem boltTxDef_size_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BN
   · iintro ⟨%db', Hr, #Hb'⟩
     unfold rdTx rtxFrac
     icases Hr with ⟨%db, %p, %sp, %t0, %r, %c, %v, %mv, %k, %Hc, #Hreg, #Hcore, Hv, Hex,
-      ⟨%t, Hw, Hmg, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, Hmap, #Hvo, %Hf⟩, Hpool⟩
+      ⟨%t, Hw, Hmg, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, Hmap, #Hvo, Hrdx, %Hf⟩, Hpool⟩
     ihave #Hps : db.[DB, go!"pageSize"] ↦□ W64 4096 $$ []
     · unfold isBoltCoreP dbFixed
       icases Hcore with ⟨-, -, -, -, -, ⟨$, -⟩, -⟩
@@ -90,6 +93,14 @@ theorem boltTxDef_size_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BN
     iframe Hme Hmv Hdb
     obtain ⟨hT, rfl, hrw, hsrc⟩ := Hc
     iframe Hps Hpk
+    ihave %Hpg : ⌜mv.pgid'.toNat * 4096 ≤ 0xFFFFFFFFFFFF⌝ $$ [Hrdx]
+    · unfold rdx rdxC
+      icases Hrdx with ⟨⟨%fx, ⟨%C, -, %HC⟩, -⟩, -⟩
+      obtain ⟨hok, -, -, hhwm, hmv, -⟩ := HC
+      have := hok.2.2.2.2.2.2.1.2.2.1
+      ipureintro; rw [hmv, this]; exact hhwm
+    isplitr
+    · ipureintro; exact fun _ => Hpg
     iintro Hme Hmv Hdb
     iexists db'
     iframe Hb'
@@ -107,13 +118,20 @@ theorem Tx.Size.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF) (h
   intro _ _ _ tx γ q T
   wp_start as Ht
   unfold boltTx
-  icases boltTxDef_size_acc _ _ tx q T $$ Ht with ⟨%m, %mv, %db, %dq, %dq', Hm, Hmv, Hdb, #Hps, #Hpk, Hcl⟩
+  icases boltTxDef_size_acc _ _ tx q T $$ Ht with ⟨%m, %mv, %db, %dq, %dq', Hm, Hmv, Hdb, #Hps, #Hpk, %Hpg, Hcl⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
   wp_auto
   wp_apply wp_Pgid $$ [$Hpkg $Hmv] as Hmv
   iapply HΦ
-  iapply Hcl $$ Hm Hmv Hdb
+  isplitl [Hcl Hm Hmv Hdb]
+  · iapply Hcl $$ Hm Hmv Hdb
+  ipureintro
+  intro hro
+  have h := Hpg hro
+  have hlt : mv.pgid'.toNat * 4096 < 2 ^ 63 := by omega
+  simp only [sint.Z] at *
+  constructor <;> word
 
 end proof
 

@@ -241,6 +241,23 @@ internal transaction without its trace, at the state it began at, with the reade
 @[no_expose] def mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF :=
   api.mvccTxnI t (γ : StoreNames) trace k
 
+/-- **A write transaction's puts are short** (a law of the vocabulary, proved here; S1b of
+`notes/bbolt-integration-plan.md`, 2026-11-17): the state it began at is reachable (its puts at most
+`etcdKeyMax` bytes, `reach_putsLe`), and so is every pending put's key and value. -/
+theorem mvccTxn_write_putsLe (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState)
+    (pend : List Change) :
+    mvccTxn (GF := GF) t γ trace (.write σ pend) ⊢
+      mvccTxn t γ trace (.write σ pend) ∗ ⌜MvccReachable σ ∧ ChPutsLe etcdKeyMax pend⌝ := by
+  unfold mvccTxn
+  simp only [mvccTxnI]
+  iintro H
+  icases H with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk, Htx, Hback, #Hfree, Hwrap⟩
+  isplitl
+  · iexists mw, s, p, puts, deletes, putSize
+    iframe Htx Hback Hfree Hwrap
+    ipureintro; exact Hk
+  ipureintro; exact Hk.2
+
 /-- The rest of a stream's handle: its channel (buffered) and the channel's invariant, at a
 watchable store `s` of `γ` (stage 2, the watch chain, 2026-11-05: what `wsChan_recv.law` needs);
 the stream `ws` itself (`isWatchStreamAt`, over the store at that channel), and the store's
@@ -516,14 +533,16 @@ abbrev KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
         ⌜LogWf' σ.log ∧ ∀ cs ∈ σ.log, cs.length < 2 ^ 63⌝ }}
 
 /-- **`Put(key, value, lease)`** (a write transaction of one put): the hook, then the commit's two
-steps at the state the update gives (the lessor's item map that state's). -/
+steps at the state the update gives (the lessor's item map that state's). The key and the value of
+at most `etcdKeyMax` bytes (S1b of `notes/bbolt-integration-plan.md`, 2026-11-17: the store's states
+put no longer, `MvccReachable`, so that every entry it writes fits bbolt's). -/
 abbrev KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (q : Qp) (B : MvccStorage)
     (P Pre Q' Post : IProp GF) (f : GoFunc) (Q : MvccState → IProp GF),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ mvccReaders γ 1 ∗ key ↦*□ k ∗
       value ↦*□ vv ∗
-      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ ⌜k.length ≤ etcdKeyMax ∧ vv.length ≤ etcdKeyMax⌝ ∗
       lease.leaseOwn (mvccLeases γ) L I ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜pendItems σ.log [] = I⌝ }> @ ⊤ \ ↑mvccN, ∅
@@ -696,6 +715,7 @@ abbrev Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
     (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64),
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace (.write σ pend) ∗ traceutil.ownTrace trace te ∗
       key ↦*□ k ∗ value ↦*□ vv ∗ ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      ⌜k.length ≤ etcdKeyMax ∧ vv.length ≤ etcdKeyMax⌝ ∗
       lease.leaseOwn (mvccLeases γ) L (pendItems σ.log pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
     (App (App (App (Val #(methods ty go!"Put" v)) (Val #key)) (Val #value)) (Val #leaseID))
   {{ RET #(W64 (σ.log.length : Int) : w64);

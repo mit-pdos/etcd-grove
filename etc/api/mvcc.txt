@@ -81,6 +81,7 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Init
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InitLinked
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndexCut

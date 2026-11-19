@@ -42,8 +42,9 @@ free is false of Go (the read transactions of `bboltrd`).
    `if c then A else B` (either branch: `Begin_kv`'s `if w then wrTok γ else threadTok`, whose read
    branch is the holder's, `w` not being mapped to the Go call's literal). A token under a wand,
    `□`, `⌜⌝`, a nested triple or any other connective does not count.
-3. The closers: `etc/reader-slot-pairs.txt` lists each holder axiom with its closer axiom, an axiom
-   of the same tree that states its spec, whose Go function releases every lock the holder holds,
+3. The closers: `etc/reader-slot-pairs.txt` lists each holder axiom with its closer, an axiom (or,
+   since S4b, 2026-11-18, a proved `theorem <F>.wp_proof`, `snapshot.Close`'s) of the same tree that
+   states its spec, whose Go function releases every lock the holder holds,
    and whose **post returns a token**: a token conjunct, as in 2., of the post after `RET v;` (in
    every branch of an `if`). A holder axiom with no pair fails.
 4. Exceptions: `etc/reader-slot-allow.txt`, one line per axiom:
@@ -142,7 +143,7 @@ THIRD_PARTY = (
 # the scanned axioms' count may not fall below this (a tree or package gone, or the layout's
 # mapping broken, would move axioms out of the scan): when axioms are added and the count rises,
 # raise it to the count `reader-slot: ok (...)` prints; lower it only with a reason in the commit
-MIN_SCANNED = 199
+MIN_SCANNED = 185  # 2026-11-18, S4b: `snapshot.WriteTo`/`Size`/`Close` proved; 2026-11-18, S5: `os.Rename` proved; 2026-11-17, bbolt S1: the backend's bbolt predicates and 17 `_kv` specs are no longer axioms; 2026-11-17, S1b: `Bucket.Put_kv` too; 2026-11-18, S3e: `Open_kv`, `DB.Close_kv` too (the `_kv` layer deleted)
 
 
 def under(a, prefix):
@@ -943,6 +944,35 @@ def axiom_states(base, rel, name):
     return bool(m and m.group(1) == name + '.spec')
 
 
+THEOREM = re.compile(r'^theorem\s+(\S+?)\.wp_proof\b', re.M)
+
+
+def theorem_states(base, rel, name):
+    """Whether `theorem <name>.wp_proof (hyps...) : <name>.spec ... :=` in its proof file states
+    `<name>.spec` (its conclusion, after the callees' hypotheses)."""
+    t = strip_lean_comments((base / 'Proof' / rel).read_text())
+    m = re.search(r'^theorem\s+' + re.escape(name) + r'\.wp_proof\b(.*?):=\s*(?:by\b|$)', t,
+                  re.M | re.S)
+    if not m:
+        return False
+    concl = re.split(r'\)\s*:|^\s*:', m.group(1).strip(), flags=re.M)[-1].strip()
+    return concl.split()[0] == name + '.spec' if concl else False
+
+
+def proved_closers():
+    """Every `theorem <F>.wp_proof` in every file, as {name: [(base, rel)]} (closers only)."""
+    res = {}
+    for base in [ROOT] + [ROOT / p for p in PARTS]:
+        pd = base / 'Proof'
+        if not pd.is_dir():
+            continue
+        for f in sorted(pd.rglob('*.lean')):
+            s = f.read_text()
+            for m in THEOREM.finditer(s):
+                res.setdefault(m.group(1), []).append((base, f.relative_to(pd)))
+    return res
+
+
 def axioms():
     """Every `axiom <F>.wp_proof` in every file, as [(name, base, rel)]: a name may occur in several
     files (a part's copies of main-tree modules, `k8s.io/api`'s two `Resource`s), each checked."""
@@ -991,6 +1021,7 @@ def main():
     by_name = {}
     for name, base, rel in ax:
         by_name.setdefault(name, []).append((base, rel))
+    thm_by_name = proved_closers()
     pairs = read_list(PAIRS)
     allow, bad = {}, []
     if ALLOW.exists():
@@ -1094,12 +1125,14 @@ def main():
             stating its spec, whose Go function releases every lock the holder holds, and (when
             `need_token`) whose post gives a token back."""
             cs = [(cb, crel) for cb, crel in by_name.get(closer, []) if cb == base]
-            if not cs:
-                return [f'{lb}: its closer {closer} is not an axiom of the same tree']
+            proved = [(cb, crel) for cb, crel in thm_by_name.get(closer, []) if cb == base]
+            if not cs and not proved:
+                return [f'{lb}: its closer {closer} is not an axiom or a proved theorem of the same tree']
             out = []
-            for cb, crel in cs:
+            for cb, crel in cs + proved:
                 cl = label(closer, cb)
-                if not axiom_states(cb, crel, closer):
+                if not (axiom_states(cb, crel, closer) if (cb, crel) in cs
+                        else theorem_states(cb, crel, closer)):
                     out.append(f'{lb}: its closer {cl}\'s axiom does not state `{closer}.spec`')
                     continue
                 ck = next((k for t, m in go_candidates(crel.stem)

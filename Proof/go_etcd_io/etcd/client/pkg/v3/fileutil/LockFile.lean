@@ -162,7 +162,7 @@ theorem fileutil.wp_flockLockFile
   ihave Ht := lockTok_none (GF := GF) .flock fd (openFd i (flag ||| W64 0x80000))
     (by simp [OsFd.lk, openFd])
   wp_apply wp_Flock fd (W64 2) (openFd i (flag ||| W64 0x80000)) (some true) false
-    (by rfl) (fun _ => rfl) $$ [Hinv Hfd Ht] as %e Hout
+    (by rfl) (fun _ => rfl) $$ [Hinv Hfd Ht] as %e ⟨-, Hout⟩
   · iframe; isplitl []; iexact Hinv; iexact Ht
   icases fileutil.lockOut_split .flock fd i flag e $$ Hout with (⟨%he, Hfd, Hk⟩ | ⟨%he, Hfd, Hlt⟩)
   · subst he
