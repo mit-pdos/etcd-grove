@@ -18,6 +18,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbEval
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap__Evaluate
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__FailureDecision
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.B6Lemmas
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
 
 @[expose] public section
 
@@ -53,7 +55,98 @@ theorem arbAuthorizer.EvaluateConditions.wp_proof
     (wp_ConditionsMap_Evaluate : EtcdGrove.authorizer.ConditionsMap.Evaluate.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_FailureDecision : EtcdGrove.authorizer.ConditionsAwareDecision.FailureDecision.spec (GF := GF) (hG := hG)) :
     arbAuthorizer.EvaluateConditions.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro z ctx d data
+  wp_start as #Hwf
+  iunfold isWFDecision at Hwf
+  icases Hwf with ⟨%m, #Hd, %Hm⟩
+  wp_auto
+  wp_apply wp_Int63n as %x %Hx
+  · ipureintro; decide
+  rcases int63n_4_cases x Hx with rfl | rfl | rfl | rfl
+  · -- a lying authorizer
+    wp_auto
+    wp_apply wp_arbDecisionValue as %k _
+    (try wp_auto)
+    wp_apply wp_arbReason as %r _
+    (try wp_auto)
+    wp_apply wp_arbErr as %e _
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  · -- partial evaluation
+    wp_auto
+    wp_apply (wp_PartiallyEvaluateConditionsAwareDecision ctx d m data _) as %d' #Hwf'
+    · iframe #
+      isplitr
+      · ipureintro; exact Hm
+      iunfold maybeEvalFnOk
+      iright
+      iintro %ctx' %cond %data'
+      iunfold maybeEvalCallOk
+      iintro !> %Ψ _ HΨ
+      wp_apply wp_arbMaybeEval as %r _
+      iapply HΨ
+      itrivial
+    iunfold isWFDecision at Hwf'
+    icases Hwf' with ⟨%m', #Hd', %Hm'⟩
+    (try wp_auto)
+    wp_apply (wp_ptr_UnconditionalPartsOrFailClosed_of
+      wp_ConditionsAwareDecision_UnconditionalPartsOrFailClosed pd_ptr (DFrac.own 1) d' m')
+      $$ [$pd] as %dec %r %e Hpd
+    · iexact Hd'
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  · -- full evaluation of a conditions map
+    wp_auto
+    wp_apply (wp_ptr_IsConditionsMap_of wp_ConditionsAwareDecision_IsConditionsMap d_ptr
+      (DFrac.own 1) d) $$ [$d] as Hdp
+    icases isDecision_tag d m $$ Hd with %Htag
+    rw [Htag, Dec.tag_cmap]
+    cases hC : m.isCMap
+    · wp_auto
+      wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of
+        wp_ConditionsAwareDecision_FailureDecision d_ptr (DFrac.own 1) d m) $$ [$Hdp] as Hdp
+      · iexact Hd
+      ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer $$ []
+      · iPkgInit
+      ihave #Hai : (authorizerInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hapkg
+      iunfold authorizerInit at Hai
+      icases Hai with ⟨%e0, #He0⟩
+      (try wp_auto)
+      iapply HΦ
+      itrivial
+    · cases m with
+      | cmap dn no al =>
+        wp_auto
+        wp_apply (wp_ptr_ConditionsMap_of wp_ConditionsAwareDecision_ConditionsMap d_ptr
+          (DFrac.own 1) d) $$ [$Hdp] as Hdp
+        (try wp_auto)
+        wp_apply (wp_ConditionsMap_Evaluate d.conditionsMap' dn no al ctx data _) as %dec %r %e _
+        · isplitr
+          · iapply isDecision_cmap
+            iexact Hd
+          iunfold evalFnOk
+          iintro %ctx' %cond %data'
+          iunfold evalCallOk
+          iintro !> %Ψ _ HΨ
+          wp_apply wp_arbEval as %b %e _
+          iapply HΨ
+          itrivial
+        (try wp_auto)
+        iapply HΦ
+        itrivial
+      | _ => simp [Dec.isCMap] at hC
+  · ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer $$ []
+    · iPkgInit
+    ihave #Hai : (authorizerInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hapkg
+    iunfold authorizerInit at Hai
+    icases Hai with ⟨%e0, #He0⟩
+    wp_auto
+    iapply HΦ
+    itrivial
 
 end proof
 
