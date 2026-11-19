@@ -58,19 +58,37 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoSlice) emptyStorageVersion _ as HemptyStorageVersion
+  wp_apply wp_GlobalAlloc (V := GoSlice) MetaStorageVersionName _ as HMetaStorageVersionName
+  wp_apply wp_GlobalAlloc (V := GoSlice) ClusterDowngradeKeyName _ as HClusterDowngradeKeyName
+  wp_apply wp_GlobalAlloc (V := GoSlice) ClusterClusterVersionKeyName _ as HClusterClusterVersionKeyName
+  wp_apply wp_GlobalAlloc (V := GoSlice) MetaConfStateName _ as HMetaConfStateName
   wp_apply wp_GlobalAlloc (V := GoSlice) MetaTermKeyName _ as HMetaTermKeyName
   wp_apply wp_GlobalAlloc (V := GoSlice) AuthRevisionKeyName _ as HAuthRevisionKeyName
   wp_apply wp_GlobalAlloc (V := GoSlice) AuthEnabledKeyName _ as HAuthEnabledKeyName
   wp_apply wp_GlobalAlloc (V := GoSlice) MetaConsistentIndexKeyName _ as HMetaConsistentIndexKeyName
+  wp_apply wp_GlobalAlloc (V := GoSlice) FinishedCompactKeyName _ as HFinishedCompactKeyName
+  wp_apply wp_GlobalAlloc (V := GoSlice) ScheduledCompactKeyName _ as HScheduledCompactKeyName
+  wp_apply wp_GlobalAlloc (V := GoSlice) AllBuckets _ as HAllBuckets
+  wp_apply wp_GlobalAlloc (V := GoInterface) Test _ as HTest
   wp_apply wp_GlobalAlloc (V := GoInterface) AuthRoles _ as HAuthRoles
   wp_apply wp_GlobalAlloc (V := GoInterface) AuthUsers _ as HAuthUsers
   wp_apply wp_GlobalAlloc (V := GoInterface) Auth _ as HAuth
+  wp_apply wp_GlobalAlloc (V := GoInterface) MembersRemoved _ as HMembersRemoved
+  wp_apply wp_GlobalAlloc (V := GoInterface) Members _ as HMembers
+  wp_apply wp_GlobalAlloc (V := GoInterface) Cluster _ as HCluster
+  wp_apply wp_GlobalAlloc (V := GoInterface) Alarm _ as HAlarm
   wp_apply wp_GlobalAlloc (V := GoInterface) Lease _ as HLease
   wp_apply wp_GlobalAlloc (V := GoInterface) Meta _ as HMeta
   wp_apply wp_GlobalAlloc (V := GoInterface) Key _ as HKey
+  wp_apply wp_GlobalAlloc (V := GoSlice) testBucketName _ as HtestBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) authRolesBucketName _ as HauthRolesBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) authUsersBucketName _ as HauthUsersBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) authBucketName _ as HauthBucketName
+  wp_apply wp_GlobalAlloc (V := GoSlice) membersRemovedBucketName _ as HmembersRemovedBucketName
+  wp_apply wp_GlobalAlloc (V := GoSlice) membersBucketName _ as HmembersBucketName
+  wp_apply wp_GlobalAlloc (V := GoSlice) clusterBucketName _ as HclusterBucketName
+  wp_apply wp_GlobalAlloc (V := GoSlice) alarmBucketName _ as HalarmBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) leaseBucketName _ as HleaseBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) metaBucketName _ as HmetaBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) keyBucketName _ as HkeyBucketName
@@ -109,40 +127,57 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩
   try wp_auto
-  wp_apply (opaqueInitsOk alarmBucketName.init (by mem_tac))
-  wp_apply (opaqueInitsOk clusterBucketName.init (by mem_tac))
-  wp_apply (opaqueInitsOk membersBucketName.init (by mem_tac))
-  wp_apply (opaqueInitsOk membersRemovedBucketName.init (by mem_tac))
-  -- translated initializer of authBucketName))
-  -- translated initializer of authUsersBucketName))
-  -- translated initializer of authRolesBucketName))
+  wp_apply wp_string_to_bytes go!"alarm" as %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"cluster" as %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"members" as %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"members_removed" as %_ ⟨-, -⟩
+  try wp_auto
   wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩
   try wp_auto
   wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩
   try wp_auto
   wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩
   try wp_auto
-  wp_apply (opaqueInitsOk testBucketName.init (by mem_tac))
+  wp_apply wp_string_to_bytes go!"test" as %_ ⟨-, -⟩
+  try wp_auto
+  -- translated initializer of alarmBucketName))
+  -- translated initializer of clusterBucketName))
+  -- translated initializer of membersBucketName))
+  -- translated initializer of membersRemovedBucketName))
+  -- translated initializer of authBucketName))
+  -- translated initializer of authUsersBucketName))
+  -- translated initializer of authRolesBucketName))
+  -- translated initializer of testBucketName))
   -- translated initializer of Key))
   -- translated initializer of Meta))
   -- translated initializer of Lease))
-  try wp_auto
-  wp_apply (opaqueInitsOk Alarm.init (by mem_tac))
-  wp_apply (opaqueInitsOk Cluster.init (by mem_tac))
-  wp_apply (opaqueInitsOk Members.init (by mem_tac))
-  wp_apply (opaqueInitsOk MembersRemoved.init (by mem_tac))
+  -- translated initializer of Alarm))
+  -- translated initializer of Cluster))
+  -- translated initializer of Members))
+  -- translated initializer of MembersRemoved))
   -- translated initializer of Auth))
   -- translated initializer of AuthUsers))
   -- translated initializer of AuthRoles))
-  try wp_auto
-  wp_apply (opaqueInitsOk Test.init (by mem_tac))
-  wp_apply AllBuckets_init as ⟨%slAllBuckets, HAllBuckets⟩
-  wp_apply ScheduledCompactKeyName_init as ⟨%sScheduledCompactKeyName, HScheduledCompactKeyName, #SScheduledCompactKeyName⟩
-  wp_apply FinishedCompactKeyName_init as ⟨%sFinishedCompactKeyName, HFinishedCompactKeyName, #SFinishedCompactKeyName⟩
+  -- translated initializer of Test))
+  -- translated initializer of AllBuckets))
+  -- translated initializer of ScheduledCompactKeyName))
+  -- translated initializer of FinishedCompactKeyName))
   -- translated initializer of MetaConsistentIndexKeyName))
   -- translated initializer of AuthEnabledKeyName))
   -- translated initializer of AuthRevisionKeyName))
   -- translated initializer of MetaTermKeyName))
+  -- translated initializer of MetaConfStateName))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"scheduledCompactRev" as %ssc ⟨Hssc, -⟩
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"finishedCompactRev" as %sfc ⟨Hsfc, -⟩
+  try wp_auto
   wp_apply wp_string_to_bytes go!"consistent_index" as %sci ⟨Hsci, -⟩
   try wp_auto
   wp_apply wp_string_to_bytes go!"authEnabled" as %sae ⟨Hsae, -⟩
@@ -151,16 +186,40 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩
   try wp_auto
-  wp_apply (opaqueInitsOk MetaConfStateName.init (by mem_tac))
-  wp_apply (opaqueInitsOk ClusterClusterVersionKeyName.init (by mem_tac))
-  wp_apply (opaqueInitsOk ClusterDowngradeKeyName.init (by mem_tac))
-  wp_apply (opaqueInitsOk MetaStorageVersionName.init (by mem_tac))
-  wp_apply (opaqueInitsOk emptyStorageVersion.init (by mem_tac))
+  wp_apply wp_string_to_bytes go!"confState" as %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"clusterVersion" as %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"downgrade" as %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"storageVersion" as %_ ⟨-, -⟩
+  try wp_auto
+  wp_apply wp_string_to_bytes go!"" as %_ ⟨-, -⟩
+  try wp_auto
+  -- translated initializer of ClusterClusterVersionKeyName))
+  -- translated initializer of ClusterDowngradeKeyName))
+  -- translated initializer of MetaStorageVersionName))
+  -- translated initializer of emptyStorageVersion))
   wp_apply (opaqueInitsOk schemaChanges.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of AuthRoles))
+  -- translated initializer of AuthUsers))
+  -- translated initializer of Auth))
+  -- translated initializer of MembersRemoved))
+  -- translated initializer of Members))
+  -- translated initializer of Cluster))
+  -- translated initializer of Alarm))
+  -- translated initializer of Lease))
+  -- translated initializer of Meta))
+  -- translated initializer of Key))
+  -- translated initializer of testBucketName))
   -- translated initializer of authRolesBucketName))
   -- translated initializer of authUsersBucketName))
   -- translated initializer of authBucketName))
+  -- translated initializer of membersRemovedBucketName))
+  -- translated initializer of membersBucketName))
+  -- translated initializer of clusterBucketName))
+  -- translated initializer of alarmBucketName))
   -- translated initializer of leaseBucketName))
   -- translated initializer of metaBucketName))
   -- translated initializer of keyBucketName))
@@ -175,6 +234,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HAllBuckets
   ipersist HScheduledCompactKeyName
   ipersist HFinishedCompactKeyName
+  ipersist Hssc
+  ipersist Hsfc
   ipersist Hsaroles
   ipersist Hsae
   ipersist Hsar

@@ -57,21 +57,6 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([«_».init,
         «_».init,
         «_».init,
-        alarmBucketName.init,
-        clusterBucketName.init,
-        membersBucketName.init,
-        membersRemovedBucketName.init,
-        testBucketName.init,
-        Alarm.init,
-        Cluster.init,
-        Members.init,
-        MembersRemoved.init,
-        Test.init,
-        MetaConfStateName.init,
-        ClusterClusterVersionKeyName.init,
-        ClusterDowngradeKeyName.init,
-        MetaStorageVersionName.init,
-        emptyStorageVersion.init,
         schemaChanges.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
@@ -84,21 +69,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `AllBuckets = []backend.Bucket{Key, Meta, ...}` (`bucket.go`): a slice. -/
-axiom AllBuckets_init :
-    {{ (True : IProp GF) }} (App (Val AllBuckets.init) (Val #()))
-    {{ RET #(); ∃ sl : GoSlice, globalAddr AllBuckets ↦ sl }}
-
-/-- `ScheduledCompactKeyName = []byte("scheduledCompactRev")` (`bucket.go`). -/
-axiom ScheduledCompactKeyName_init :
-    {{ (True : IProp GF) }} (App (Val ScheduledCompactKeyName.init) (Val #()))
-    {{ RET #(); ∃ s : GoSlice, globalAddr ScheduledCompactKeyName ↦ s ∗ s ↦*□ (go!"scheduledCompactRev" : GoString) }}
-
-/-- `FinishedCompactKeyName = []byte("finishedCompactRev")` (`bucket.go`). -/
-axiom FinishedCompactKeyName_init :
-    {{ (True : IProp GF) }} (App (Val FinishedCompactKeyName.init) (Val #()))
-    {{ RET #(); ∃ s : GoSlice, globalAddr FinishedCompactKeyName ↦ s ∗ s ↦*□ (go!"finishedCompactRev" : GoString) }}
 
 end go_etcd_io.etcd.server.v3.storage.schema
 end opaqueInits

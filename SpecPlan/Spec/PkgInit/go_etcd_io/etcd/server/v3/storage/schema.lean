@@ -12,6 +12,7 @@ public import Perennial.Proof.encoding.binary.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.auth
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.authpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.verify
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease.leasepb
 
 @[expose] public section
 noncomputable section

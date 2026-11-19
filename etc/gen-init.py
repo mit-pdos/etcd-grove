@@ -392,6 +392,18 @@ packages that read `GOOS`/`GOARCH` state them in their own facts from these axio
          'end runtime', ''],
 )
 
+# (2026-11-19) `ErrLength` translated (an `errors.New` call; until then `opaqueInitsOk`)
+SPECIAL['encoding.hex'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `ErrLength`, initializes its imports and runs
+its translated initializer (`hex.go`: `errors.New("encoding/hex: odd length hex string")`; Perennial's
+`errors.wp_New_errorString`).''',
+    imports=['Perennial.Proof.errors.NewVar'],
+    alloc_types={'ErrLength': 'GoInterface'},
+    before={'ErrLength': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_',
+                          'try wp_auto']},
+    finish=FIN_PRE[:6],
+)
+
 SPECIAL['go_etcd_io.bbolt'] = dict(
     doc='''Its fact (`bboltRootInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `runtime.GOOS` is
 `"linux"` and `runtime.GOARCH` `"amd64"` (the trust-boundary axioms `runtime.GOOS_linux` and
@@ -860,24 +872,19 @@ generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` 
 
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
     doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
-`MinClusterVersion` `"3.0.0"`. Its
-initializer runs its variables' untranslated initializers (`version.go`): string constants,
-`semver` versions (`*semver.New(3, 6, 0, "", "")`), and `AllVersions`; the trust-boundary axioms
-`Version_init`, `V3_6_init` and `MinClusterVersion_init` state the three the fact reads,
-`opaqueInitsOk` the others.''',
+`MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string variables
+(`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since 2026-11-19,
+until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`) and runs its other
+variables' untranslated initializers: `semver` versions (`*semver.New(3, 6, 0, "", "")`, which
+formats with `fmt`) and `AllVersions`; the trust-boundary axiom `V3_6_init` states the one the fact
+reads, `opaqueInitsOk` the others.''',
+    alloc_types={x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
     custom={
-        # (2026-10-23, rafthttp stage 5e-2, accepted by the user) its value: the stream handler's
-        # `X-Server-Version`, which the stream reader parses
-        'Version': dict(doc='/-- `Version = "3.8.0-alpha.0"` (`version.go`). -/',
-                        post='globalAddr Version ↦ go!"3.8.0-alpha.0"', pat='H@'),
         'V3_6': dict(doc='/-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/',
                      post='∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v',
                      pat='⟨%v@, H@⟩'),
-        # (2026-10-23, rafthttp stage 5e-3, accepted by the user) its value: the stream reader's
-        # `X-Min-Cluster-Version` header
-        'MinClusterVersion': dict(doc='/-- `MinClusterVersion = "3.0.0"` (`version.go`). -/',
-                                  post='globalAddr MinClusterVersion ↦ go!"3.0.0"', pat='H@'),
     },
+    before={'V3_0': ['try wp_auto']},
     finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion'] + FIN_PRE[:6],
 )
 
@@ -1289,24 +1296,26 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['errMembe
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HerrMemberNotFound']
 
+_MEMBERSHIP_ERRS = ['ErrIDRemoved', 'ErrIDExists', 'ErrIDNotFound', 'ErrPeerURLexists',
+                    'ErrMemberNotLearner', 'ErrTooManyLearners']
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
     doc='''Its fact (`membershipInit`, `etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a
 fixed pointer (a `*prometheus.GaugeVec`, with its label names: D19l (iii)), and (D43 M4,
 2026-10-26) every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`). Its
-initializer initializes its imports and runs its variables' untranslated initializers; the
-trust-boundary axiom `ClusterVersionMetrics_init` states the one the fact reads (`metrics.go`:
-`prometheus.NewGaugeVec(...)`), `errorsNewVarsInit` the error variables' (`errors.go`: `errors.New`
-calls), `opaqueInitsOk` the others.''',
-    newvars=dict(ErrIDRemoved="membership: ID removed", ErrIDExists="membership: ID exists",
-        ErrIDNotFound="membership: ID not found", ErrPeerURLexists="membership: peerURL exists",
-        ErrMemberNotLearner="membership: can only promote a learner member",
-        ErrTooManyLearners="membership: too many learner members in cluster"),
+initializer allocates its error variables, initializes its imports, runs their translated
+initializers (`errors.go`: `errors.New` calls, Perennial's `errors.wp_New_errorString`; translated
+since 2026-11-19, until then the trust-boundary axiom `errorsNewVarsInit`) and its other variables'
+untranslated initializers; the trust-boundary axiom `ClusterVersionMetrics_init` states the one the
+fact reads (`metrics.go`: `prometheus.NewGaugeVec(...)`), `opaqueInitsOk` the others.''',
+    imports=['Perennial.Proof.errors.NewVar'],
+    alloc_types={x: 'GoInterface' for x in _MEMBERSHIP_ERRS},
+    before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+            for x in _MEMBERSHIP_ERRS},
     custom={
         'ClusterVersionMetrics': promvec('ClusterVersionMetrics', 'Gauge', ['cluster_version']),
     },
     finish=['ipersist HClusterVersionMetrics'] +
-        [f'ipersist H{x}' for x in ['ErrIDRemoved', 'ErrIDExists', 'ErrIDNotFound',
-          'ErrPeerURLexists', 'ErrMemberNotLearner', 'ErrTooManyLearners']] + FIN_PRE[:6] +
+        [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] + FIN_PRE[:6] +
         ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
          'unfold membershipInit membershipErrMsgs',
          'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
@@ -1376,25 +1385,43 @@ the trust-boundary axiom `opaqueInitsOk` says run.''',
                  'authRolesBucketName': 'GoSlice', 'Auth': 'GoInterface', 'AuthUsers': 'GoInterface',
                  'AuthRoles': 'GoInterface', 'AuthEnabledKeyName': 'GoSlice',
                  'AuthRevisionKeyName': 'GoSlice', 'Lease': 'GoInterface',
-                 'leaseBucketName': 'GoSlice'},
+                 'leaseBucketName': 'GoSlice',
+                 **{x: 'GoSlice' for x in ['alarmBucketName', 'clusterBucketName', 'membersBucketName',
+                                           'membersRemovedBucketName', 'testBucketName', 'AllBuckets',
+                                           'ScheduledCompactKeyName', 'FinishedCompactKeyName',
+                                           'MetaConfStateName', 'ClusterClusterVersionKeyName',
+                                           'ClusterDowngradeKeyName', 'MetaStorageVersionName',
+                                           'emptyStorageVersion']},
+                 **{x: 'GoInterface' for x in ['Alarm', 'Cluster', 'Members', 'MembersRemoved', 'Test']}},
     before={
         '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
                 'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
+        # (2026-11-19) all of `bucket.go`'s variables are translated: the bucket names' conversions, in
+        # order (`alarm` ... `test` named `-`: the fact does not read them)
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto',
-                            'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto'],
-        'testBucketName': ['wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩', 'try wp_auto',
-                           'wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩', 'try wp_auto',
-                           'wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩', 'try wp_auto'],
-        'Lease': ['try wp_auto'],
-        'Test': ['try wp_auto'],
-        'MetaConfStateName': ['wp_apply wp_string_to_bytes go!"consistent_index" as %sci ⟨Hsci, -⟩',
+                            'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto']
+                           + [l for n in ['alarm', 'cluster', 'members', 'members_removed']
+                              for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')] + [
+                            'wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩', 'try wp_auto',
+                            'wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩', 'try wp_auto',
+                            'wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩', 'try wp_auto',
+                            'wp_apply wp_string_to_bytes go!"test" as %_ ⟨-, -⟩', 'try wp_auto'],
+        # the buckets (stepped by `wp_auto`), `AllBuckets`' slice literal, then the key names
+        'MetaConfStateName': ['try wp_auto',
+                              'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩',
+                              'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"scheduledCompactRev" as %ssc ⟨Hssc, -⟩', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"finishedCompactRev" as %sfc ⟨Hsfc, -⟩', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"consistent_index" as %sci ⟨Hsci, -⟩',
                               'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"authEnabled" as %sae ⟨Hsae, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"authRevision" as %sar ⟨Hsar, -⟩', 'try wp_auto',
-                              'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto'],
+                              'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto']
+                             + [l for n in ['confState', 'clusterVersion', 'downgrade', 'storageVersion', '']
+                                for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')],
     },
     finish=['ipersist Hskey', 'ipersist Hsmeta', 'ipersist Hsci', 'ipersist Hsterm',
             'ipersist Hsen', 'ipersist Hsdis', 'ipersist Hsauth', 'ipersist Hsausers', 'ipersist Hsaroles',
@@ -1845,16 +1872,11 @@ _C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOpt
                  'ipureintro', 'exact ⟨RdefaultOptions, PdefaultCallOpts⟩'])
 
 _S = SPECIAL['go_etcd_io.etcd.server.v3.storage.schema']
-_S['custom'] = {
-    'AllBuckets': dict(doc='/-- `AllBuckets = []backend.Bucket{Key, Meta, ...}` (`bucket.go`): a slice. -/',
-                       post='∃ sl : GoSlice, globalAddr AllBuckets ↦ sl', pat='⟨%sl@, H@⟩'),
-    'ScheduledCompactKeyName': dict(doc='/-- `ScheduledCompactKeyName = []byte("scheduledCompactRev")` (`bucket.go`). -/',
-        post='∃ s : GoSlice, globalAddr ScheduledCompactKeyName ↦ s ∗ s ↦*□ (go!"scheduledCompactRev" : GoString)', pat='⟨%s@, H@, #S@⟩'),
-    'FinishedCompactKeyName': dict(doc='/-- `FinishedCompactKeyName = []byte("finishedCompactRev")` (`bucket.go`). -/',
-        post='∃ s : GoSlice, globalAddr FinishedCompactKeyName ↦ s ∗ s ↦*□ (go!"finishedCompactRev" : GoString)', pat='⟨%s@, H@, #S@⟩'),
-}
-_S['doc'] = _S['doc'].replace("and the consistent index's two key names (`cindex.go`).", "the consistent index's two key names (`cindex.go`), `AllBuckets` and the compaction's two key\nnames (untranslated: the trust-boundary axioms `<X>_init`).")
-_S['finish'] = (_S['finish'][:8] + ['ipersist HAllBuckets', 'ipersist HScheduledCompactKeyName', 'ipersist HFinishedCompactKeyName']
+# (2026-11-19) `AllBuckets` and the compaction's two key names are translated (they were the
+# trust-boundary axioms `<X>_init`)
+_S['doc'] = _S['doc'].replace("and the consistent index's two key names (`cindex.go`).", "the consistent index's two key names (`cindex.go`), `AllBuckets` and the compaction's two key\nnames.")
+_S['finish'] = (_S['finish'][:8] + ['ipersist HAllBuckets', 'ipersist HScheduledCompactKeyName', 'ipersist HFinishedCompactKeyName',
+                                    'ipersist Hssc', 'ipersist Hsfc']
                 + _S['finish'][8:])
 
 

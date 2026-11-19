@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.google_golang_org.grpc.stats
 public import Perennial.Golang.Theory
 public import Code.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
@@ -15,25 +16,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
-
-namespace Filter
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
-
-noncomputable instance Filter_typed_pointsto :
-    TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Filter :=
-  sorry -- axiomatized type
-
-noncomputable instance Filter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Filter go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Filter.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Filter
 
 namespace config
 section def_
