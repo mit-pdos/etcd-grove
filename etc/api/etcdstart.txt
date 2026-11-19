@@ -83,6 +83,10 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLea
 # `ServedLease` (`kv_served`, `kv_lease_served*`)
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLinked
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseLinked
+# (auth-lease S4, 2026-11-19) the Lease service registered with auth on: `etcdLeaseServedOn` (defs) and
+# `lease_served_on` (over linked results)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOn
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOnLinked
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartStop
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchBase

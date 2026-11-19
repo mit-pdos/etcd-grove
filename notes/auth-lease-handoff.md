@@ -1,6 +1,30 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-19, item 9: Cell compiles; helpers' specs checked; absent, grantPut proved)
+## START HERE (S4, 2026-11-19 late, item 9: merged lean f551; noAuth, foreign, barriers proved)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46**: `--packages=/shared/tmp/manifest-f55.json`
+  everywhere, `.lake/package-overrides.json` its copy, `PERENNIAL_DIR=/shared/perennial-f551a1b46` for gen-init/goose.
+- **Done this session:** `6a861f7f0a` merge of lean df37bd5157 (conflicts = lean's tier split moving blocks this branch
+  edited into `*Linked`; ported). Tier fixes: client/v3 `LeaseSpecs.lean` (defs: the lease Md/On specs and the permit
+  unfoldings, moved, names unchanged), etcdstart `ServedLeaseOn` split (+`ServedLeaseOnLinked`), five authlease
+  proof->linking edges ADDED to `etc/tier-baseline.txt` (for decision). `667d5247e3` `WithAttachedKeys` translated
+  (goose config) + spec/proof. `011d04399d` `LeaseAttempts.lean`, `noAuth`, `foreign` (spec + `E.authOn = true`),
+  `barriers` (BArgs + `V`) proved. Full timed build **20261119-050626-2435300** (only authlease.barrier failed: import,
+  fixed), then the 21 leaves: rc=0. `tcb-report --check`: matches the baseline (884 axioms, 4 sorries; Thaw 1 adds
+  none). etcdstart API: `ServedLeaseOn`/`…Linked` importable, interfaces regenerated. questions.md: the forms.
+- **Next, in order:** `run` (spec draft `/shared/tmp/auth-lease-s4/draft/run.spec.lean`: authN's + `lm = .revocable`
+  for every member, `leasePeersOk`, `memberUpOn … .revocable`, result 0/1): an authlease `serve_member` (authN's +
+  `etcdstart.lease_served_on`: needs `grpcServerAt` from `ak_served_kv`'s post, `srvLeaseRd` from
+  `memberUpOn_served`'s post, `srvRevokeBuilt`, `srvRunPool`), the serve loop, SetUp, cell alloc (`cell_alloc`),
+  barriers (BArgs per member, `V := akV …`), clients, grantPut ×2, the txn, barriers 2, the checks (noAuth ×2,
+  u's refused put/txn, absent, foreign ×2, root's Get z/lease, u's Revoke(Lu), absent ×2). Then `Main`
+  (`allocNOnM … .revocable … (ns := true)`). STOP at Main.wp_proof / linking, as the brief says.
+- **Pitfalls:** an Iris lemma whose statement contains `fun _ => iprop(False)` (or any iprop lambda) fails to unify
+  with the same text at the use site (hidden elaboration difference): make the lemma generic in `Φ` and give the
+  lambda at the `wp_apply` (see `LeaseAttempts`). An `isimp … at H` for Iris hyps (not `simp at`). `wp_slice_literal`
+  gives a `Loc`: pass `_` for the `GoSlice`. The slot queue can hold a full build 1-2 h before it starts.
+
+## Previous START HERE (S4, 2026-11-19, item 9: Cell compiles; helpers' specs checked; absent, grantPut proved)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a** (`--packages=/shared/tmp/manifest-6d3.json`,
   `.lake/package-overrides.json` its copy). lean's f551a1b46 merge ("Merge origin/lean (d52bb9be66)") NOT on lean yet: when it
