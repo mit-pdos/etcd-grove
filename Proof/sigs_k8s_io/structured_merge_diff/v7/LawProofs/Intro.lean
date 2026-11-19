@@ -34,6 +34,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+open LawProofs
+
 /-! ## `isValF` -/
 
 theorem isValF_split_law_holds : isValF_split.law (GF := GF) := fun v dq1 dq2 x => by
@@ -72,11 +74,11 @@ theorem isValF_persist_law_holds : isValF_persist.law (GF := GF) := fun v dq x =
 theorem isIface_scalar_law_holds : isIface_scalar.law (GF := GF) := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;> intros <;> (unfold isIface; iintro _; ipureintro; rfl)
 
-theorem sepL_nil {α : Type} (f : α → IProp GF) : sepL f [] = iprop(True) := rfl
-theorem sepL_cons {α : Type} (f : α → IProp GF) (a : α) (xs : List α) :
+theorem LawProofs.sepL_nil {α : Type} (f : α → IProp GF) : sepL f [] = iprop(True) := rfl
+theorem LawProofs.sepL_cons {α : Type} (f : α → IProp GF) (a : α) (xs : List α) :
     sepL f (a :: xs) = iprop(f a ∗ sepL f xs) := rfl
 
-theorem isIfaceL_of_sepL : ∀ (xs : List GoInterface) (vs : List UVal), xs.length = vs.length →
+theorem LawProofs.isIfaceL_of_sepL : ∀ (xs : List GoInterface) (vs : List UVal), xs.length = vs.length →
     sepL (fun xv => isIface (GF := GF) xv.1 xv.2) (xs.zip vs) ⊢ isIfaceL xs vs
   | [], [], _ => by unfold isIfaceL; iintro _; ipureintro; trivial
   | [], _ :: _, h => by simp at h
@@ -98,7 +100,7 @@ theorem isIface_list_law_holds : isIface_list.law (GF := GF) := fun sl xs vs h =
   iframe; iframe #
   ipureintro; rfl
 
-theorem isFieldsL_of_sepL : ∀ (fs : List value.Field) (fl : FieldList), fs.length = fl.length →
+theorem LawProofs.isFieldsL_of_sepL : ∀ (fs : List value.Field) (fl : FieldList), fs.length = fl.length →
     sepL (fun ff => iprop(⌜ff.1.Name' = ff.2.1⌝ ∗ isVal (GF := GF) ff.1.Value' ff.2.2)) (fs.zip fl) ⊢
       isFieldsL fs fl
   | [], [], _ => by unfold isFieldsL; iintro _; ipureintro; trivial
@@ -122,7 +124,7 @@ theorem isFieldList_intro_law_holds : isFieldList_intro.law (GF := GF) := fun s 
   iexists fs
   iframe; iframe #
 
-theorem isPEL_of_sepL : ∀ (es : List fieldpath.PathElement) (p : Path), es.length = p.length →
+theorem LawProofs.isPEL_of_sepL : ∀ (es : List fieldpath.PathElement) (p : Path), es.length = p.length →
     sepL (fun ep => isPE (GF := GF) ep.1 ep.2) (es.zip p) ⊢ isPEL es p
   | [], [], _ => by unfold isPEL; iintro _; ipureintro; trivial
   | [], _ :: _, h => by simp at h
@@ -200,7 +202,7 @@ theorem isPaths_app_law_holds : isPaths_app.law (GF := GF) := by
         iapply (ih ss' ps ps' h).2
         iframe
 
-theorem isConflictL_of_sepL : ∀ (xs : List merge.Conflict) (cs : List (GoString × Path)),
+theorem LawProofs.isConflictL_of_sepL : ∀ (xs : List merge.Conflict) (cs : List (GoString × Path)),
     xs.length = cs.length →
     sepL (fun xc => iprop(⌜xc.1.Manager' = xc.2.1⌝ ∗ isPath (GF := GF) xc.1.Path' xc.2.2)) (xs.zip cs) ⊢
       isConflictL xs cs

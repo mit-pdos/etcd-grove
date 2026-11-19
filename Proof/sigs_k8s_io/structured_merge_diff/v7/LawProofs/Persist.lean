@@ -32,6 +32,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+namespace LawProofs
+
 /-! ## `value` -/
 
 mutual
@@ -247,10 +249,14 @@ instance isUpdater_pers (u : Loc) (cv : merge.Converter) (igf igfl : GoMap) (rio
     Persistent (isUpdater (GF := GF) u cv igf igfl rion) := by
   unfold isUpdater; infer_instance
 
-/-! ## The laws -/
-
 theorem pers_box {P : IProp GF} [Persistent P] : P ⊢ □ P := by
   iintro #H; imodintro; iexact H
+
+end LawProofs
+
+open LawProofs
+
+/-! ## The laws -/
 
 theorem isIface_persistent_law_holds : isIface_persistent.law (GF := GF) := fun _ _ => pers_box
 theorem isVal_persistent_law_holds : isVal_persistent.law (GF := GF) := fun _ _ => pers_box

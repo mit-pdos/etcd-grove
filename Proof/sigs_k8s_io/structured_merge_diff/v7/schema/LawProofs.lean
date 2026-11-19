@@ -22,16 +22,17 @@ namespace smd
 
 open Iris Iris.BI Iris.ProofMode
 open sigs_k8s_io.structured_merge_diff.v7
+open LawProofs
 
 /-- The zero atom is the atom with no pointer set. -/
-theorem atomZero_iff [GooseExts] (a : schema.Atom) : atomZero a ↔ a = zero_val schema.Atom := by
+theorem LawProofs.atomZero_iff [GooseExts] (a : schema.Atom) : atomZero a ↔ a = zero_val schema.Atom := by
   cases a
   simp only [atomZero, zero_val, zeroValDef]
   constructor
   · rintro ⟨rfl, rfl, rfl⟩; rfl
   · intro h; cases h; exact ⟨rfl, rfl, rfl⟩
 
-theorem typeRef_zero_iff [GooseExts] (tr : schema.TypeRef) :
+theorem LawProofs.typeRef_zero_iff [GooseExts] (tr : schema.TypeRef) :
     (tr.NamedType' = null ∧ atomZero tr.Inlined' ∧ tr.ElementRelationship' = null ∧
       tr.Nullable' = false) ↔ tr = zero_val schema.TypeRef := by
   cases tr with
@@ -89,7 +90,7 @@ theorem isAtomOpt_map_law_holds : isAtomOpt_map.law (GF := GF) := fun a fs e rel
 theorem isListRep_elim_law_holds : isListRep_elim.law (GF := GF) := fun l e rel ks => by
   unfold isListRep; exact .rfl
 
-theorem isFields_elim : ∀ (sfs : List schema.StructField) (fs : List (GoString × TypeRef)),
+theorem LawProofs.isFields_elim : ∀ (sfs : List schema.StructField) (fs : List (GoString × TypeRef)),
     isFields (GF := GF) sfs fs ⊢ ⌜sfs.length = fs.length⌝ ∗
       □ (∀ (i : Nat) sf f, ⌜sfs[i]? = some sf ∧ fs[i]? = some f⌝ -∗ isStructField sf f)
   | [], [] => by
@@ -131,7 +132,7 @@ end laws
 
 /-! ## Pure laws -/
 
-theorem lookupKV_mem {α : Type} {k : GoString} : ∀ {xs : List (GoString × α)} {v : α},
+theorem LawProofs.lookupKV_mem {α : Type} {k : GoString} : ∀ {xs : List (GoString × α)} {v : α},
     lookupKV k xs = some v → (k, v) ∈ xs
   | [], _, h => by simp [lookupKV] at h
   | (k', v') :: rest, v, h => by
