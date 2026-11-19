@@ -32,9 +32,10 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersAu
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocNOn
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 # (2026-11-18) what the examples' top-level statements name, out of `Adequacy` (which they imported):
-# `heapWith` (TopLevelDefs) and the extension-less instances (TrivialExt)
+# `heapWith` (TopLevelDefs) and the extensions' instances (TrivialExt, FsExts)
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 # the package's initialization
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
