@@ -1,6 +1,7 @@
 # Porting dsverify-lab onto etcd-grove's network semantics (plan)
 
-Plan, 2026-11-17, revised 2026-11-18 with the user's decisions (Section 2); being implemented. The user's request: port dsverify-lab's network kits to
+Plan, 2026-11-17, revised 2026-11-18 with the user's decisions (Section 2), and 2026-11-19 (phase 4: a
+library of laws, not second specs); being implemented. The user's request: port dsverify-lab's network kits to
 etcd-grove's network semantics (the net extension, v3.2; today `GooseLang/Ext/Tcp`, renamed in phase 1), copying what we need from dsverify-lab
 into etcd-grove, so that there is **one general-purpose model of `net/http` and gRPC** (and
 `net/rpc`, the codecs) used both by etcd and by the dsverify examples.
@@ -79,9 +80,10 @@ under crash *and restart*: `SafeDist` over the net extension with `goose_dist_ad
 a process's death without restart is already a cut for its peers (D10/D11). Crash-restart
 statements (`goose_dist_crash_adequacy`, later `Robust`) only for kits with durable state.
 
-**Q5. Kit proofs port by editing.** The kit-facing spec statements are kept (phase 4) so that each
-kit's proof ports by changing imports and names; where a statement must change, the port edits the
-proof here. A kit whose port needs more than editing (a new invariant, a real proof gap) is listed
+**Q5. Kit proofs port by editing.** The kit-facing vocabulary is kept (phase 4, as a library of
+laws over the canonical `net` specs, not as second specs: revised 2026-11-19) so that each kit's
+proof ports by changing imports, names and its `net` call sites (the canonical spec with the law's
+update); where a statement must change, the port edits the proof here. A kit whose port needs more than editing (a new invariant, a real proof gap) is listed
 for the user, who decides whether the lab reruns it.
 
 ## 3. The plan
@@ -191,21 +193,113 @@ for clients left to phase 4), 5 in part (`IP.To4` translated; `SplitHostPort`, `
 interfaces. dsverify-lab's own build moving onto the export (Lake, our Perennial pin) is the lab's
 change, proposed to the user, not made here.
 
-### Phase 4: the kit-facing net specs over the net extension (proved, no trust)
+### Phase 4: the kits' network vocabulary as a proved library of laws (no trust)
 
-dsverify's kit proofs reach the network only through exported specs (`D/notes/conform.md` L315-337:
-the F1-F3 model change re-checked every run with no proof change). Prove **those statements** over
-the net extension in `Net/Proof/net/Kit*.lean`, from the logically atomic specs and
-`wire/Stream.lean`: `addrProto`, `addrTok`/`addrUnset`, `addr_set_proto`/`addrs_set_proto`,
-`sendTok`/`recvTok`/`sentLb`, `connEnd`/`connFresh`, `newConnResult`, `connErr`, and `Spec/net/*`'s
-Hoare triples. Where a statement does not hold of the stronger semantics, change it and record which
-kits it touches:
-- `connErr code err`: dsverify's codes (none, EOF, timeout, closed, broken, fail) become the net
-  extension's kinds (`closed | timeout | sys`, EOF separate).
-- Facts `NetConn` gives and the net extension does not: a `Dial` succeeds only with an open listener;
-  a read error only after the bytes are drained; no interleaved concurrent writes (phase 2.3).
-First clients: dsverify's `netprobe` (`netprobe_safeDist`), then the `bufio` connection lemmas
-(`Proof/bufio/Net.lean`) the raw-TCP kits use.
+**Redesign (2026-11-19, the user's rule "a single canonical spec for each function", 2026-11-18;
+`notes/decisions.md`, "The kits' network vocabulary: a library of laws").** The first version of
+this phase proved the lab's Hoare triples of `net`'s functions (`Spec/net/*`) over the net extension,
+as second specs. That is dropped: `Net/Spec/net/*` stay the only specs of `net`'s functions, and the
+phase is a **library**, `GooseLang/Ext/Net/Proto.lean` (neutral path and names: nothing of etcd, so
+phase 3's export carries it), giving the lab's vocabulary as predicates over the extension's ghost
+state with **laws**: for each operation, the update its canonical spec takes, built from the
+vocabulary, and what the caller has after it. A kit proof calls the canonical spec with the law's
+update; phase 6 ports each kit's call sites by editing (`wp_apply net.TCPConn.Write.wp_proof ...`
+becomes `wp_apply net.Conn.Write.wp_proof ...` with `writeP`/`write_acc`). The pure facts of a
+direction (`DirOk` and its laws, `setMap`, `ndot_mask`) moved from the examples' `wire/Stream.lean`
+and `wire/Addr.lean` to `GooseLang/Ext/Net/Stream.lean`, which `wire` imports (the seven examples
+build unchanged but for qualified names).
+
+**The library** (`Proto.lean`, 1450 lines, no axiom, no `sorry`):
+- Vocabulary: `Proto GF := Nat → List w8 → IProp GF`, `protoPrefix`, `ProtoPrefixClosed`;
+  `addrTok a` (persistent: the plan entry), `addrUnset a` (the address's empty pending set),
+  `addrProto a P Q` (persistent), `sendTok cn s P W`, `recvTok cn s P R`, `recvTokL` (its protocol
+  fact one step later), `connEnd`, `sentLb`, `connFresh` (timeless, exclusive), `connIs`, `lisInv`
+  (a listener shared between threads); the global names `[NetProtoGS]` and `regCtx`, made by
+  `netProto_alloc`.
+- Built on: a registry invariant (`regInv`, timeless: each connection's ends and directions with
+  `DirOk`), and per address an invariant with the protocols as parameters of its statement
+  (`addrInvP a γa P Q`: the pending set, the acceptors' deposits, each connection's protocol facts),
+  so a reader's protocol fact costs one later (an invariant's), not two (an invariant's and a saved
+  predicate's): `recvTokL` and `recvTokL_later`/`recvTok_L`.
+- Laws: `addrs_start` (the extension's start resources: every plan address `addrUnset`),
+  `addr_set_proto`, `addrs_set_proto`, `addrTok_listenAt`; `dial_au`, `accept_au`,
+  `accept_shared_au`, `writeP`/`writeP_init`/`write_acc`, `read_au`, `close_au`, `closeWrite_au`,
+  `deadline_au`, `sockopt_au`, `lisClose_au`, `lisInv_alloc`; `connFresh_excl`, `recvTok_proto`,
+  `recvTok_proto_closed`, `protoPrefix_closed`, `sendTok_sentLb`, `recvTok_sentLb`,
+  `sendTok_sentLb_prefix`, `sendTok_connIs`, `recvTok_connIs`.
+- No canonical spec changed. `Conn.Write.spec` does not expose the write lock's contiguity (D25):
+  `sendTok` is exclusive and travels in the writer predicate, so no other writer appends between a
+  `Write`'s steps in the ghost state, and phase 0 found no kit writing one end from two threads
+  without a lock. Added: `Conn.SetReadDeadline.spec` and `Conn.SetWriteDeadline.spec` (the models
+  were there, with no spec; the lab's rpc/http/gRPC models call them), proved as `SetDeadline`'s.
+
+**Coverage against the lab's use** (the visible kit files use only `addrProto`, `addrTok`,
+`addrUnset` and their `G` variants; the lab's rpc/http/gRPC, bufio and netprobe proofs use the rest;
+counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
+
+| the lab's | here |
+|---|---|
+| `addrProto a P Q`, `addrProtoG` | `addrProto a P Q` (same shape; `cn : Nat`, not `cid : w64`) |
+| `addrTok a`, `addrTokG` (exclusive; `Listen` needs it) | `addrTok a` (persistent); `Listen.spec` needs `ListenAt`: `addrTok_listenAt` with the node's host |
+| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (`SafeDist`'s bridge) |
+| `addr_set_proto` (`==∗`), `addrs_set_proto` | `addr_set_proto`, `addrs_set_proto` (`={E}=∗`, with `regCtx`) |
+| `sendTok`, `recvTok`, `connEnd` | the same; a `Read` gives `recvTokL` (`recvTokL_later`, or a credit) |
+| `connFresh`, `connFresh_excl` | the same (timeless, `⊢ False`) |
+| `sentLb`, `sendTok_sentLb` (no visible use) | `sentLb`, `sendTok_sentLb`, `recvTok_sentLb`, `sendTok_sentLb_prefix` |
+| `recvTok_proto`, `protoPrefix`, `ProtoPrefixClosed`, `protoPrefix_closed`, `recvTok_proto_closed` | the same |
+| `newConnResult` (`Dial`/`Accept`'s post) | `Dial.spec`/`Listener.Accept.spec`'s post (`isConn c cn s a ∗ Qok cn`) with `Qok` from `dial_au`/`accept_au`/`accept_shared_au` (`connEnd ∗ connFresh`) |
+| `connErr`, `opErr`, `opResult` (codes) | the specs' `resErr`/`ReadErr` (kinds `closed`, `timeout`, `sys`; EOF a `ReadRes`) |
+| `ownTCPConn c cid side` | `connAt t cn s a la ra`/`isConn c cn s a` (`Net/Proof/net/Base.lean`) with `connIs cn` |
+| `ownListener l lid a`, `listening` | `isListener`/`lisAt` with `netLisAt`, and `netLis` (owned) or `lisInv` (shared) |
+| `nodeIp ip` | the node's host in `NodeBootWpAt` (`Net/Statement/SafeDist.lean`) |
+| `net.TCPConn.Read.wp_proof` | `net.Conn.Read.wp_proof` + `read_au` |
+| `net.TCPConn.Write.wp_proof` | `net.Conn.Write.wp_proof` + `writeP`, `writeP_init`, `write_acc` |
+| `net.TCPConn.Close.wp_proof` | `net.Conn.Close.wp_proof` + `close_au` |
+| `net.TCPConn.Set{,Read,Write}Deadline.wp_proof` | `net.Conn.Set{,Read,Write}Deadline.wp_proof` + `deadline_au` |
+| `net.TCPConn.Set{ReadBuffer,WriteBuffer,KeepAlive,KeepAlivePeriod}.wp_proof` | `net.TCPConn.Set*.wp_proof` + `sockopt_au` |
+| `net.TCPListener.Accept.wp_proof` | `net.Listener.Accept.wp_proof` + `accept_au`/`accept_shared_au` |
+| `net.TCPListener.Close.wp_proof` | `net.Listener.Close.wp_proof` + `lisClose_au` (shared) |
+| `net.Dial.wp_proof`, `net.DialTimeout.wp_proof`, `DialNet` | `net.Dial.wp_proof`/`DialTimeout.wp_proof` (`tcpNet nw`) + `dial_au`, `addrProto_tok` |
+| `net.Listen.wp_proof`, `ListenWild`, `ListenNet` | `net.Listen.wp_proof` (`ListenAt`: an address itself or a wildcard, D21) + `addrTok_listenAt` |
+| `isConnP`, `isListener`, `connEnd_isConnP`, `listening` (no visible use) | `connIs`, `sendTok_connIs` |
+| `ownSlice_take_acc` (`NetLib.lean`, netprobe) | not ported (a slice lemma: Perennial's, or the kit's) |
+| `safeDist_of_wp`, `safeDist_of_bootAt`, `NodeBootWpAt`, `addrs_set_proto` (`SafeDist.lean`) | `Net/Statement/SafeDist.lean`: `safeDist_of_bootAt`, `safeDist_of_proto`, `NodeBootWpAt` |
+
+The facts `NetConn` gives and the net extension does not: "a `Dial` succeeds only with an open
+listener" and "a read error only after the bytes are drained". The lab's exported specs do not
+state either (`Specs.lean:1702-1706`, `:1829-1835`: `wp_Dial`'s post is `connEnd ∗ connFresh` or
+`True`, `wp_Read`'s says only that an error comes with no bytes), so no lab proof can use them:
+confirmed, none of `Proof/net/{rpc,http}`, `Proof/grpc`, `Proof/bufio`, `netprobe` mentions a
+listener's state in a dial or a stream's drained state in a read error. The third, no interleaved
+concurrent writes, is the write lock (above).
+
+**bufio over a connection.** Here `bufio`'s `Reader` is translated with its bodies (project `etcd`,
+`Code/bufio.toml`, for the WAL) and specified over `io.readerStream` (`Spec/bufio/Reader__Read.lean`,
+`Proof/io/ReaderStream.lean`); the lab's `readerOk_conn` becomes "a connection end with
+`recvTokL` is an `io.readerStream`". Not written: `io.readerStream` needs `sint.Z n = len ys` of the
+count, and `Conn.Read.spec` gives `sint.nat n` only, because Perennial's `copy` spec
+(`wp_slice_copy`) does (an empty read could return a negative count, as far as the specs say:
+`notes/perennial-changes.md`, 2026-11-19). With `copy`'s spec stating `sint.Z` (Perennial), or a
+local `copy` lemma here, `ReadOut` states `sint.Z` and the law is about 100 lines. The module lives
+in the main tree (namespace `EtcdGrove`), which phase 3's export must then take or move. The
+`Writer` is not translated: adding it is `Writer`, `NewWriter{,Size}`, `(*Writer).{Write,
+WriteByte,WriteString,Flush,Available,Buffered}` in `Code/bufio.toml`, a regeneration of project
+`etcd`, and a rebuild of `Code/bufio.lean`'s importers (4860 modules, the main tree:
+`etc/importers.py --count`); its spec and proof are the lab's `Proof/bufio/Writer.lean` (706 lines)
+over a writer contract like `io.readerStream`.
+
+**The statement** (`Net/Statement/SafeDist.lean`, module `Net.Statement.SafeDist`): `SafeDist nodes
+pl hosts`, the lab's over `netExts`, `PlanWellFormed pl` in place of `NetConfig.WellFormed`, node
+`i` on `hosts[i]`, over `goose_dist_adequacy` (Q4); bridges `safeDist_of_bootAt` (from every plan
+address `addrUnset` and the ghost state's plan) and `safeDist_of_proto` (the library's names made
+first). Not vacuous: `echo_safeDist`
+(`Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/SafeDist.lean`) is the three-node echo
+system as a `SafeDist` (plan `[(SrvAddr, "h")]`, every node on `"h"`), closed, `#print axioms`:
+`propext`, `Classical.choice`, `Quot.sound`; its proof keeps echo's own protocol (`echoInvs`), so the
+bridge serves a program that does not use the library too.
+
+**Open, for phase 6:** a kit proof using the library end to end (dsverify's `netprobe` is the
+first client, once its proof is copied here); the bufio laws above.
 
 ### Phase 5: one set of models, over the net extension (trusted Go code, proved specs)
 
@@ -234,8 +328,9 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
 
 ### Phase 6: the statement and the kits
 
-- `Net/Statement/SafeDist.lean`: dsverify's `SafeDist` over `netExts` with `PlanWellFormed` (Q4) and
-  `driver_dist_safe`; the lab's goal template and checks follow (the lab's change).
+- `Net/Statement/SafeDist.lean`: dsverify's `SafeDist` over `netExts` with `PlanWellFormed` (Q4),
+  written in phase 4 (above), and `driver_dist_safe`; the lab's goal template and checks follow (the
+  lab's change).
 - The kits' Go (the forks at their pins) and proofs copied into a part `Dsverify/` (modules
   `Dsverify.*`, nothing outside it imports it), ported by editing (Q5), in order of transport:
   paxos-net-3 (raw TCP), vsr-net-1 (JSON), rabia-net-1, epaxos-net-1/2, gryff-net-2 (bufio, net/rpc

@@ -2822,3 +2822,17 @@ parameter.
 - **Workaround here.** Private `runesFrom_length_le`/`runes_length_le` in
   `Proof/io/fs/FileMode__String.lean` (an induction on the fuel).
 - **Proposed change.** Those two lemmas beside `runesFrom_cons` in Perennial. Status: not proposed.
+
+## 2026-11-19: `copy`'s count is stated as `sint.nat` (a connection as an `io.Reader`, phase 4 of `notes/dsverify-net-port-plan.md`, branch `net-kitlib`)
+
+- **Missing.** `wp_slice_copy` (`Perennial/Golang/Theory/Slice.lean`) returns `n` with
+  `sint.nat n = min vs.length vs'.length`: nothing excludes a negative `n` when both lengths are 0,
+  though Go's `copy` returns `min(len(dst), len(src)) ≥ 0`. `net`'s `Conn.Read.spec` (whose model
+  copies the read bytes into the buffer) inherits it (`ReadOut`: `sint.nat k = ...`), and
+  `io.readerStream` (`Proof/io/ReaderStream.lean`, what `bufio.Reader`'s spec reads through) needs
+  `sint.Z n = len ys`: a connection is not provably an `io.readerStream`.
+- **Workaround here.** None yet: the law (a connection end with `recvTokL` is an `io.readerStream`)
+  is not written. A local lemma proving `copy`'s count with `sint.Z` (from its body), then
+  `ReadOut` with `sint.Z`, would do.
+- **Proposed change.** `wp_slice_copy`'s post `sint.Z n = min vs.length vs'.length` (or
+  `n = W64 (min ...)`). Status: not proposed.

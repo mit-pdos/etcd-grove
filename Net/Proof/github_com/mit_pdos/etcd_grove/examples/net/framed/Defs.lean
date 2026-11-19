@@ -50,8 +50,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask DirNames dirInv
-  sentAll sentLb rcvdAll DirOk)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv DirNames dirInv sentAll sentLb rcvdAll)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.framed
 
@@ -220,7 +219,7 @@ theorem framed_deposit (γm : GName) (cn : Nat) :
   iintro #Hinv - Hd Ha
   iunfold netFresh at Hd
   icases Hd with ⟨Hde, Hdd⟩
-  imod framed_alloc γm cn NetDir.fresh wire.dirOk_fresh $$ Hinv Hdd Ha with ⟨Hp, %γ, Huw, Hdr, #Hlbd, #Hname⟩
+  imod framed_alloc γm cn NetDir.fresh Net.dirOk_fresh $$ Hinv Hdd Ha with ⟨Hp, %γ, Huw, Hdr, #Hlbd, #Hname⟩
   imodintro
   iframe Hp
   unfold dialerProto
@@ -235,7 +234,7 @@ theorem framed_deposit_ab (γm : GName) (cn : Nat) :
       netEnd G cn false { NetEnd.fresh with closed := true } -∗ netDir G cn false ⟨[], .fin⟩ -∗
       netFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
   iintro #Hinv - - Hdd Ha
-  imod framed_alloc γm cn ⟨[], .fin⟩ wire.dirOk_abandoned $$ Hinv Hdd Ha with ⟨Hp, -⟩
+  imod framed_alloc γm cn ⟨[], .fin⟩ Net.dirOk_abandoned $$ Hinv Hdd Ha with ⟨Hp, -⟩
   imodintro
   iexact Hp
 
@@ -367,7 +366,7 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : FNames) (so bs si : List 
     isplitl [Hd Hwa Hr]
     · iexists d', W ++ bs.take k, R
       iframe Hd Hwa Hr
-      ipureintro; exact wire.dirOk_write Hok Hwr
+      ipureintro; exact Net.dirOk_write Hok Hwr
     · iexists W ++ bs.take k, si
       iframe Hw Hv' Hsi
       ipureintro

@@ -40846,3 +40846,63 @@ and operations table, `Tests.lean` examples, and its transcription in the confor
   assumption (D13, prose: "fewer than 2^20 concurrent calls on one socket"), as the closed world is,
   rather than a per-end waiter count with a `Panic` outcome: no program here comes near it, and a
   count would be state that only that panic observes. Revisit with the bounds plan's thread tokens.
+
+## The kits' network vocabulary: a library of laws, not second specs (2026-11-19 · the user's rule, one canonical spec per function · branch `net-kitlib`, on `net-gaps`, pending the user's review)
+
+**Context.** Phase 4 of `notes/dsverify-net-port-plan.md` was to prove dsverify-lab's Hoare triples of
+`net`'s functions (over its `addrProto`/`sendTok`/`recvTok` vocabulary) over the net extension, so
+that the kits' proofs port by renaming. That would give `net.Dial`, `Conn.Read`, ... a second spec
+each, in a client's vocabulary; the user's rule (2026-11-18: "I expect to see a single canonical spec
+for each function") excludes it.
+
+**Decision.** `Net/Spec/net/*` stay the only specs of `net`'s functions. The lab's vocabulary is a
+proved library, `GooseLang/Ext/Net/Proto.lean` (a neutral path and namespace, `Perennial.Net`,
+naming nothing of etcd, for phase 3's export): predicates over the extension's ghost state, and
+for each operation a **law**, the update (accessor) that operation's canonical spec takes, built
+from the vocabulary (`dial_au`, `accept_au`, `accept_shared_au`, `write_acc` with `writeP`,
+`read_au`, `close_au`, `closeWrite_au`, `deadline_au`, `sockopt_au`, `lisClose_au`), plus the
+vocabulary's own laws (`addr_set_proto`, `connFresh_excl`, `recvTok_proto`, ...). A kit proof calls
+the canonical spec with the law's update. The table of what replaces each lab lemma is in the plan,
+phase 4.
+
+**How the library is built, and why.**
+- *Syntactic protocols.* An address's protocols are the parameters of its invariant's statement
+  (`inv (addrN a) (addrInvP a γa P Q)`, allocated once by `addr_set_proto` from the address's
+  pending set), not saved predicates as in the lab. The lab's state interpretation is not an
+  invariant, so its reader paid one later (a saved predicate's agreement, with a credit); here the
+  per-connection state is in invariants, and saved predicates would cost two laters. With the
+  protocols in the statement a reader's fact costs one (`recvTokL`: `recvTok` with `▷ protoPrefix`,
+  turned back by any program step, `recvTokL_later`, or a credit). Two invariants for one address
+  cannot both hold its pending set; each is consistent on its own, so a stray second
+  `addrProto a P' Q'` is harmless.
+- *A timeless registry.* Every connection's ends and directions (`netEnd`, `netDir`, with what
+  was written and read, `DirOk`) are in one invariant keyed by connection number (`regInv`, ghost
+  map `NetProtoGS.reg`): `connElem cn γ` agrees, so `sendTok`, `recvTok`, `sentLb`, `connFresh`
+  of one `cn` are about one connection, and `connFresh` is timeless (the lab's rpc/gRPC proofs keep
+  it in their own invariants). A dial's number is fresh in the registry because an entry holds the
+  connection's directions and a dial has their fresh resources (`netDir_excl`).
+- *What was written*, a monotone list per direction, in three shares: the writer's half (in
+  `sendTok`), a quarter in the registry (for `DirOk`), a quarter at the address (for the protocol
+  fact).
+- *The write lock* (D25) is not needed: `sendTok` is exclusive and travels in `Conn.Write.spec`'s
+  writer predicate, so in the ghost state nothing appends between a `Write`'s steps. So
+  `Conn.Write.spec` is unchanged (the phase 2 agent left the question to this phase).
+- *Listeners*: owned (`accept_au`, the thread's `netLis`) or shared (`lisInv`, the lab's persistent
+  listener: `accept_shared_au`, `lisClose_au`). `addrTok` is persistent (the plan entry): our
+  `Listen` of an address in use fails with a `sys` error instead of needing a token; it needs the
+  node's host to be the address's (`addrTok_listenAt`).
+
+**Moved.** `DirOk` and its laws, `setMap`, `ndot_mask` from the examples' `wire` library to
+`GooseLang/Ext/Net/Stream.lean` (both libraries use them); the examples changed only their qualified
+names and `open` lists.
+
+**Added specs** (functions that had none): `Conn.SetReadDeadline.spec`, `Conn.SetWriteDeadline.spec`
+(the models existed; the lab's rpc/http/gRPC models call them).
+
+**The statement.** `Net/Statement/SafeDist.lean`: the lab's `SafeDist` over `netExts`,
+`PlanWellFormed` for `NetConfig.WellFormed`, a host per node, no restart (`goose_dist_adequacy`, Q4),
+bridges `safeDist_of_bootAt` and `safeDist_of_proto`; `echo_safeDist` shows it is not vacuous.
+
+**Not done.** The bufio-over-a-connection law (`Conn.Read.spec`'s count is `sint.nat`, from
+Perennial's `copy` spec; `io.readerStream` needs `sint.Z`: `notes/perennial-changes.md`,
+2026-11-19); `bufio.Writer` is not translated (cost in the plan, phase 4).

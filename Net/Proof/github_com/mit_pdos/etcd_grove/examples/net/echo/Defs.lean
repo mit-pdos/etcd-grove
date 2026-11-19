@@ -21,7 +21,7 @@ per-address protocol (`wire/Addr.lean`) and the per-direction stream protocol (`
   (abandoned, D16: the dialer's end closed, its direction shut and empty) deposits the same
   `connProto`
   (`echo_deposit_ab`): the up-direction's protocol starts from that shut direction, nothing written
-  (`wire.dirInv_body_alloc_of`, `wire.dirOk_abandoned`), so a server that accepts it reads EOF, and
+  (`wire.dirInv_body_alloc_of`, `Net.dirOk_abandoned`), so a server that accepts it reads EOF, and
   the dialer keeps nothing.
 
 The client's check (`client_check`): a reply it read (`sentLb γ.down resp`, from `Stream.read_acc`)
@@ -47,8 +47,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask DirNames DirOk
-  dirInv sentAll sentLb rcvdAll setMap_insert setMap_lookup_none)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv DirNames dirInv sentAll sentLb rcvdAll)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.echo
 
@@ -216,7 +215,7 @@ theorem echo_deposit (γm : GName) (cn : Nat) :
   unfold netFresh
   icases Hd with ⟨Hde, Hdd⟩
   icases Ha with ⟨Hae, Had⟩
-  imod echo_deposit_dir γm cn NetDir.fresh wire.dirOk_fresh $$ Hinv Hdd Hae Had
+  imod echo_deposit_dir γm cn NetDir.fresh Net.dirOk_fresh $$ Hinv Hdd Hae Had
     with ⟨Hp, %γ, #Hname, Hw, Hr, #Hlb⟩
   imodintro
   iframe Hp
@@ -234,7 +233,7 @@ theorem echo_deposit_ab (γm : GName) (cn : Nat) :
   iintro #Hinv #- - Hdd Ha
   unfold netFresh
   icases Ha with ⟨Hae, Had⟩
-  imod echo_deposit_dir γm cn ⟨[], .fin⟩ wire.dirOk_abandoned $$ Hinv Hdd Hae Had with ⟨Hp, -⟩
+  imod echo_deposit_dir γm cn ⟨[], .fin⟩ Net.dirOk_abandoned $$ Hinv Hdd Hae Had with ⟨Hp, -⟩
   imodintro
   iexact Hp
 
@@ -339,7 +338,7 @@ theorem server_write_acc (γm : GName) (cn : Nat) (γ : EchoNames) (st : NetEnd)
     isplitl [Hdir Hw Hr]
     · iexists d', W ++ rs.take k, R
       iframe Hdir Hw Hr
-      ipureintro; exact wire.dirOk_write Hok Hwr
+      ipureintro; exact Net.dirOk_write Hok Hwr
     · iexists W ++ rs.take k
       iframe Hwd Hsrv'
       iexists bs

@@ -48,8 +48,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask DirNames
-  dirInv sentAll sentLb rcvdAll DirOk)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv DirNames dirInv sentAll sentLb rcvdAll)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.acceptloop
 
@@ -260,7 +259,7 @@ theorem echo_register (γm : GName) (cn : Nat) :
   iintro #Hinv Hd Ha
   iunfold netFresh at Hd
   icases Hd with ⟨Hde, Hdd⟩
-  imod echo_register_dir γm cn NetDir.fresh wire.dirOk_fresh $$ Hinv Hdd Ha
+  imod echo_register_dir γm cn NetDir.fresh Net.dirOk_fresh $$ Hinv Hdd Ha
     with ⟨Hp, %γ, Hsu, Hrd, #Hlbd, #Hname⟩
   imodintro
   iframe Hp
@@ -276,7 +275,7 @@ theorem echo_register_ab (γm : GName) (cn : Nat) :
       netEnd G cn false { NetEnd.fresh with closed := true } -∗ netDir G cn false ⟨[], .fin⟩ -∗
       netFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
   iintro #Hinv - Hdd Ha
-  imod echo_register_dir γm cn _ wire.dirOk_abandoned $$ Hinv Hdd Ha with ⟨Hp, -⟩
+  imod echo_register_dir γm cn _ Net.dirOk_abandoned $$ Hinv Hdd Ha with ⟨Hp, -⟩
   imodintro
   iexact Hp
 
@@ -324,7 +323,7 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : ConnG) (bs si w rs : List
     isplitl [Hd Hw Hr]
     · iexists d', W ++ rs.take k, R
       iframe Hd Hw Hr
-      ipureintro; exact wire.dirOk_write Hok Hwr
+      ipureintro; exact Net.dirOk_write Hok Hwr
     iexists W ++ rs.take k
     iframe Hsd Hsv'
     iexists si

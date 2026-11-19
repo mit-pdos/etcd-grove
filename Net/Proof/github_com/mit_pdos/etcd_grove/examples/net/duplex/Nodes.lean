@@ -44,8 +44,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap dirInv sentAll sentLb
-  rcvdAll)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv dirInv sentAll sentLb rcvdAll)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.duplex
 
@@ -157,7 +156,7 @@ theorem wp_serveConn
     simp only [Bool.not_true]
     iapply read_au' srvN cn γ.up NetEnd.fresh R buf.len.toNat $$ HdU Hend Hr
   obtain ⟨d, d', Hro⟩ := Hro
-  have Hgl := (wire.readOutcome_got_le Hro).1
+  have Hgl := (Net.readOutcome_got_le Hro).1
   rw [Hbn16] at Hgl
   cases r with
   | bytes bs1 =>

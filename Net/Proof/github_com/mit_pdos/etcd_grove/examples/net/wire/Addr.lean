@@ -4,12 +4,13 @@ A per-address protocol, for the proofs of `examples/net/`: the invariant of a pl
 the resources `Φ cn` its dialer deposited (`Φ` timeless). A dial that deposits `Φ cn`
 (`dial_au`, `dial_both_au`; a dial that fails but leaves its connection pending, abandoned, deposits
 too) and an accept that takes it (`accept_au`) are the atomic updates of `net.Dial` and
-`Listener.Accept` (`Net/Spec/net/`). Also `setMap`, sets as the maps `[∗map]` ranges over
-(`GSet` has no `[∗set]` instance; as raft's `Protocol.toMap`), with its laws.
+`Listener.Accept` (`Net/Spec/net/`). (`setMap`, sets as the maps `[∗map]` ranges over, is in
+`GooseLang/Ext/Net/Stream.lean`.)
 -/
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Base
+public import GooseLang.Ext.Net.Stream
 
 @[expose] public section
 
@@ -22,64 +23,6 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.wire
-
-/-- A set as the map `[∗map]` ranges over. -/
-@[reducible] def setMap (X : GSet Nat) : GMap Nat Unit := X
-
-
-
-theorem setMap_insert (S : GSet Nat) (c : Nat) :
-    setMap (S ∪ {[c]}) = (setMap S).insert c () := by
-  apply GMap.ext; intro k
-  simp only [setMap, GMap.lookup_insert_eq_iff]
-  by_cases h : c = k
-  · subst h
-    have : c ∈ S ∪ {[c]} := (GMap.elem_of_union _ _ _).2 (.inr (GMap.elem_of_singleton_2 c))
-    simpa [GMap.elem_of_gset] using this
-  · simp only [h, ↓reduceIte]
-    have hiff : k ∈ S ∪ {[c]} ↔ k ∈ S := by
-      rw [GMap.elem_of_union, GMap.elem_of_singleton]; constructor
-      · rintro (h1 | h1)
-        · exact h1
-        · exact absurd h1.symm h
-      · intro h1; exact .inl h1
-    simp only [GMap.elem_of_gset] at hiff
-    cases h1 : S !! k <;> cases h2 : (S ∪ {[c]}) !! k <;> simp_all
-
-theorem setMap_lookup_none {S : GSet Nat} {c : Nat} (h : c ∉ S) :
-    PartialMap.get? (setMap S) c = none := by
-  rw [gmap_get?_eq]
-  cases hk : (setMap S).lookup c with
-  | none => rfl
-  | some u => exact absurd ((GMap.elem_of_gset _ _).2 (by simpa using hk)) h
-
-theorem setMap_delete (S : GSet Nat) (c : Nat) :
-    PartialMap.delete (setMap S) c = setMap (S \ {[c]}) := by
-  apply GMap.ext; intro k
-  show (GMap.delete c S).lookup k = (S \ {[c]}).lookup k
-  by_cases h : c = k
-  · subst h
-    rw [GMap.lookup_delete]
-    have : c ∉ S \ {[c]} := by
-      rw [GMap.elem_of_difference]; intro h1; exact h1.2 (GMap.elem_of_singleton_2 c)
-    rw [GMap.elem_of_gset] at this
-    cases hk : (S \ {[c]}).lookup c with
-    | none => rfl
-    | some u => exact absurd (by simpa using hk) this
-  · rw [GMap.lookup_delete_ne _ h]
-    have hiff : k ∈ S \ {[c]} ↔ k ∈ S := by
-      rw [GMap.elem_of_difference, GMap.not_elem_of_singleton]
-      exact ⟨fun h1 => h1.1, fun h1 => ⟨h1, Ne.symm h⟩⟩
-    simp only [GMap.elem_of_gset] at hiff
-    cases h1 : S !! k <;> cases h2 : (S \ {[c]}) !! k <;> simp_all
-
-
-/-- Two namespaces of different names are disjoint (as Perennial's `sync.wg_mask_ndot_ne`). -/
-theorem ndot_mask (N : Namespace) (x y : String) (h : x ≠ y) :
-    (↑(N.@x) : CoPset) ⊆ ⊤ \ ↑(N.@y) := by
-  intro p hp
-  rw [LawfulSet.mem_diff]
-  exact ⟨CoPset.mem_full, fun h' => ndot_ne_disjoint N h p ⟨hp, h'⟩⟩
 
 section wps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]

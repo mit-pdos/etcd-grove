@@ -16,7 +16,7 @@ the shared per-address protocol (`wire/Addr.lean`) and the stream bookkeeping of
   writer's half of the down direction, and the names. The dialer keeps the other halves
   (`clientProto`). A failed dial that abandons its connection (D16: the dialer's end closed, the up
   direction `⟨[], .fin⟩`) deposits the same `connProto` (`hc_deposit_ab`): its state has nothing
-  written or read (`dirPart_alloc`, over `wire.dirInv_body_alloc_of` and `wire.dirOk_abandoned`),
+  written or read (`dirPart_alloc`, over `wire.dirInv_body_alloc_of` and `Net.dirOk_abandoned`),
   and nobody keeps the dialer's halves, so the server reads EOF and writes back nothing it did not
   read.
 
@@ -47,9 +47,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask DirNames sentAll
-  rcvdAll DirOk dirInv dirInv_body_alloc_of dirOk_prefix dirOk_fresh dirOk_abandoned dirOk_read dirOk_write dirOk_close dirOk_closeWrite
-  setMap_insert setMap_lookup_none sentAll_app)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv DirNames sentAll rcvdAll dirInv dirInv_body_alloc_of sentAll_app)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.halfclose
 

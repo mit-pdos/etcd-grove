@@ -50,8 +50,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask DirNames DirOk
-  dirInv sentAll sentLb rcvdAll setMap_insert setMap_lookup_none)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv DirNames dirInv sentAll sentLb rcvdAll)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.duplex
 
@@ -303,7 +302,7 @@ theorem dup_deposit_ab (γm : GName) (cn : Nat) :
     icases Hc with ⟨-, ⟨%d, %W, %R, Hdir, -⟩, -⟩
     icases netDir_excl _ cn true d NetDir.fresh $$ Hdir Had with ⟨⟩
   | none =>
-    imod wire.dirInv_body_alloc_of cn false ⟨[], .fin⟩ wire.dirOk_abandoned $$ Hdd
+    imod wire.dirInv_body_alloc_of cn false ⟨[], .fin⟩ Net.dirOk_abandoned $$ Hdd
       with ⟨%γu, HIu, Hwu, Hru⟩
     imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, HId, Hwd, -⟩
     imod half_alloc (Gg := Gg) ([] : List w8) with ⟨%γh, Hh1, Hh2⟩
@@ -416,7 +415,7 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : DupNames) (W bs : List w8
     isplitl [Hdir Hw Hr]
     · iexists d', Wi ++ bs.take k, Ri
       iframe Hdir Hw Hr
-      ipureintro; exact wire.dirOk_write Hok Hwr
+      ipureintro; exact Net.dirOk_write Hok Hwr
     · iexists Wi ++ bs.take k, Wi ++ bs
       iframe Hws Hh' Hlb
       ipureintro
@@ -503,10 +502,10 @@ theorem cli_read_acc (cn : Nat) (γ : DupNames) (γw : GName) (R0 : List w8) :
   icases ghostVar_agree $$ Hr' Hr with %Heq
   subst Heq
   imod ghostVar_update_halves (R0 ++ got ++ r.got) $$ Hr' Hr with ⟨Hr', Hr⟩
-  have Hok' := wire.dirOk_read Hok Hrd
+  have Hok' := Net.dirOk_read Hok Hrd
   ihave #Hlb : (sentLb (Gg := Gg) γ.down (R0 ++ got ++ r.got) : IProp GF) $$ [Hwa]
   · unfold sentLb
-    iapply monoListLbOwn_le _ (wire.dirOk_prefix Hok')
+    iapply monoListLbOwn_le _ (Net.dirOk_prefix Hok')
     iapply monoListLbOwn_get
     iexact Hwa
   imod Hclose' $$ [Hd Hwa Hr'] with -
@@ -563,7 +562,7 @@ theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (rs : Li
   · inext
     iexists d', dseq.take i ++ rs.take k, R
     iframe Hd Hwa Hr
-    ipureintro; exact wire.dirOk_write Hok Hwr
+    ipureintro; exact Net.dirOk_write Hok Hwr
   imod Hclose $$ [Hend Hw Hwh'] with -
   · inext
     iexists st, i + (rs.take k).length
@@ -635,7 +634,7 @@ theorem cli_close_au (cn : Nat) (γ : DupNames) (γw : GName) :
   · inext
     iexists d', W, R
     iframe Hd Hwa Hr
-    ipureintro; exact wire.dirOk_close Hok Hc
+    ipureintro; exact Net.dirOk_close Hok Hc
   imod Hclose $$ [Hend Hw Hwh] with -
   · inext
     iexists st', w

@@ -47,8 +47,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask
-  closeOutcome_closed closeOutcome_of_closed writeOutcome_of_closed readOutcome_of_closed)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.shutdown
 
@@ -285,7 +284,7 @@ theorem loop_accept_au (γm : GName) (hL : NetLocalGS GF) (l : w64) (γo : GName
     have hl : PartialMap.get? (setMap S) cn = some () := by
       rw [gmap_get?_eq]; exact (GMap.elem_of_gset _ _).1 HcS
     icases (BigSepM.bigSepM_delete hl).1 $$ Hdeps with ⟨Hp, Hdeps⟩
-    rw [wire.setMap_delete]
+    rw [Net.setMap_delete]
     imod Hclose' $$ [Hpend Hdeps] with -
     · inext
       iexists S \ {[cn]}

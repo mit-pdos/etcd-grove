@@ -46,8 +46,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap sentAll rcvdAll dial_both_au
-  readOutcome_got_le readOutcome_bytes_pos)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv sentAll rcvdAll dial_both_au)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.halfclose
 
