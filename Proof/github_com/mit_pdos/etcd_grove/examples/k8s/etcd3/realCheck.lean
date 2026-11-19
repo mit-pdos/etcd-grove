@@ -251,7 +251,23 @@ theorem realCheck.wp_proof
       wp_apply wp_CheckOperationsVerbose _ (realMS (Lof os (fmapH unaryOf (histR lops vs))) (absR g0.st)) m
         psl ps (DFrac.own 1) dur $$ [$Hps] as %r %info ⟨%Hr, Hinfo⟩
       · iframe #; ipureintro; exact hhps
-      sorry
+      have hlinM : Linearizable (realM (Lof os (fmapH unaryOf (histR lops vs))) (absR g0.st))
+          (github_com.anishathalye.porcupine.histOf ps) := by
+        rw [Hj.2.2]; exact ⟨π2, (realM_lin_iff _ _ _ hag hLlen hLval π2).1 hπ2⟩
+      rcases Hr with ⟨rfl, -⟩ | ⟨rfl, hnL⟩ | ⟨rfl, hd⟩
+      · -- Ok
+        ihave #Hli := Hinfo $$ %rfl
+        wp_if_destruct
+        rotate_left
+        · exact absurd rfl Hif
+        sorry
+      · exact absurd hlinM hnL
+      · -- Unknown: porcupine's verdict
+        wp_if_destruct
+        · exact absurd Hif (by decide)
+        · (try wp_auto)
+          iapply HΦ; ipureintro
+          exact ⟨by decide, fun h => by omega⟩
     · sorry
 
 end proof

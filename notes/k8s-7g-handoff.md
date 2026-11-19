@@ -2,6 +2,42 @@
 
 ## START HERE
 
+**2026-11-19 (night 20; for etcd-grove-03). 03's night-19 decisions recorded (questions.md, local file).
+Build n19 (`/shared/tmp/k8s7g/build-n19.log`): only `Check` (expected) and `Apply` failed; Apply fixed (`h1.1`, GenInW's
+Limit), lean-checked. realCheck proof well under way; stopped for context size.**
+
+- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`), lean not moved (23d3bae205).
+- Done night 20 (all lean-checked `-a`, not `--fast`):
+  - `RealGlue.lean` (new, no sorry): `GOp`/`GOk`/`GOks`/`histR`, `kM_lin`, `realM_lin_iff`/`boxH`, `realCheck_pure`
+    (B2 + B4 + B5 + Validate premises in one), `gOks_collect` (ghost values from `opsIoOk`), `bigSepL2_pick`, `Uj`
+    (loop-1 prefix), `Lof`, `wRep`, `realMS_opsIoOk`, `stepAgree_of`, `histOk_ps`, checker Request/Response injectivity.
+  - `realCheck.lean` (new): loop 1 complete; after it: realCheck_pure, initialModel (+freeze), toPorcupineModel,
+    CheckOperationsVerbose, the Illegal (refuted) and Unknown (returned) cases. Two `sorry`s left (grep `sorry`).
+  - trust notes §8 (the two bridge holes as findings).
+- NEXT, in order:
+  1. realCheck, Ok branch (sorry after `rotate_left; · exact absurd rfl Hif`): `wp_apply wp_PartialLinearizations info_ptr`
+     (frame `info`); `Hli : linInfoOk (realM L init) info [histOf ps]` → psls (len 1), `partLins` psl0 → lsls (len 1:
+     `histOf ps ≠ []` from `0 < psl.len`) → `linSlice` lsl0 → xs; the `len != 1 ||` test is false; `orderByLinearization`
+     (range from the lin's `k ∈ π ↔ k < length`, `hpsl`, `Holen`) → r ↦* xs.filterMap (os[toNat]?); lin2 := xs.map toNat,
+     realS-lin via `(realM_lin_iff … lin2).2` (rewrite `Hj.2.2`). opRep list: `bigSepL2_pick` (idx := toNat) on Hor mapped
+     to `U.map Op.val` (bigSepL2_map_right), `List.filterMap_map`, `vals`.
+  2. len = 0 branch: os = [] (Holen, hpsl), U = [], linearizedOps = osl, lin2 := π2.
+  3. Shared tail (write as a `local macro` like realEvents' `re_tail`): `hrep lin2 hlin2` → R; `ipersist` the ops slice;
+     NewReplay (`replayPre_of _ _ hfit` with stepIn via `mem_vals`); err = nil; loop 2 (Validate per op: opPre =
+     stepIn.1, listExpOk/rvalidateL from hrep, keyOkL = stepIn.2.2.1); NewWatchValidator; loop 3 over `ws` (`wRep`:
+     k, v; `hrep`'s watch conjunct gives wInPre + validateWatchL; rewrite `w.Response' = ⟨Events', nil⟩`); return Ok.
+  4. Check: failureFree + realCheck (premises from RunLin2's Ok post; okOut premise of failureFree from opsIoOk's boxes);
+     `Check.spec` gains `RunOk g0`; prove it for Seed's g0s; discharge at Main/MainCluster/MainPartition; DIFF the closed
+     statements (any change = STOP). Then add `realCheck:` and the RealGlue-dependent lines to
+     `etc/link-lean-first-k8setcd3.txt`, gen-link (LAKE_OPTS), timed full build, step-5 report, step-6 prep, STOP.
+- Pitfalls (new): wp_if_destruct on `#!decide (r = "Ok")` puts the `r = Ok` branch FIRST (use `rotate_left`). No
+  `swap` tactic. `imod` right after a `wp_apply … as` failed because a side goal (`isPkgInit …correctness`) was open:
+  `· solve_pkg_init`. Persistent pre facts are not auto-framed: `$$ [$Hm]`. `iExactEq` does not see through
+  `rawResp`: `dsimp only; iunfold rawResp at H; iexact H`. Rewrite Iris hyps with a plain `rw [..]` on the goal (no
+  `at`). lean-check after an edit sometimes reports stale errors: re-run with `-a`.
+
+### Superseded (night 19)
+
 **2026-11-19 (night 19; for etcd-grove-03). 03's night-18 decisions recorded (questions.md). Build n18 ran
 (`/shared/tmp/k8s7g/build-n18.log`): only `Check` failed (expected: realCheck not wired) and night-19's new RealMS lemmas
 (since fixed). Night 19 found two gaps in the B2/B5 bridge and closed them (pure, lean-checked `-a` without `--fast`:

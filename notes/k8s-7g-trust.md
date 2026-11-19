@@ -252,3 +252,20 @@ driver discharges, not by trusted text:
 - **`Change.toWatchEvent` panics on a change with neither object nor previous object.** Fix: `replayAt` carries
   `chgOk c` (`c.obj.isSome ∨ c.prev.isSome`) of every change, proved by `NewReplay` from `replayL_chgOk`
   (`rexecL_chgOk`/`rstepL_chgOk`): the replay never records such a change.
+
+## 8. Findings in the bridge proofs (step 5, night 19; recorded as findings by etcd-grove-03, 2026-11-19)
+
+Both are holes in this repository's own pure bridge (B2/B5), not in the verified code or the trust text; both were
+closed before any caller used the bridge, so no closed statement depended on them.
+
+- **B5's `HistWf` was underivable.** `validateWatchL_of_watchOkL` needs `HistWf x hv.hist` (objects' revisions in
+  range, unannotated), but B4 exported only `RunOk hv`, which said nothing of the history's objects. Fix: `HistGood`
+  (RealReplay) as `RunOk`'s fourth conjunct, kept by every unary step (`kstepL_runOk`, via `mstepL_one` and
+  `histGood_snoc`); `histWf_of_histGood` gives `HistWf` for any watch.
+- **B2's `hpres` was unprovable.** `realS_isLinearization` asked `∀ h, CfgOk h → CfgOk (kstepL x h).1`, false at
+  revision `2^64 - 1` (the step wraps to `0`; `CfgOk` has no bound). Fix: B2 restated over an invariant `I` (`I → CfgOk`,
+  `I h0`, kept while the revision has room) with the bound `rv h0 + |H| < 2^63`, proved by counted steps
+  (`isLinearization_filterN`). `realCheck` discharges it with `I := RunOk` and the premise `rv g0 + |lops| < 2^63`.
+- (night 20) `StepAgree` for the checker's porcupine model needed `boxReq`/`boxResp` injective: proved
+  (`request_intoVal_inj`, `response_intoVal_inj` and the nested struct lemmas, RealGlue) from the generated
+  `TypeAssumptions` projections, no new trust text.
