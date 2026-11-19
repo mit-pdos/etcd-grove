@@ -8,6 +8,7 @@ module
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.defaultMapZip
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.lexicalKeyOrderedMapZip
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.unorderedMapZip
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -32,8 +33,20 @@ variable [package_sem : value.Assumptions]
 theorem value.defaultMapZip.wp_proof
     (h_lexicalKeyOrderedMapZip : value.lexicalKeyOrderedMapZip.spec (GF := GF))
     (h_unorderedMapZip : value.unorderedMapZip.spec (GF := GF)) :
-    value.defaultMapZip.spec (GF := GF) := by
-  sorry
+    value.defaultMapZip.spec (GF := GF) := fun al lm rm ol or_ order fn I Q => by
+  wp_start as ⟨Ha, Hl, Hr, %Hord, #Hfn, HI⟩
+  wp_auto
+  rcases Hord with rfl | rfl
+  · rw [show decide ((W64 0 : w64) = W64 1) = false by decide]
+    wp_auto
+    wp_apply h_unorderedMapZip al lm rm ol or_ fn I Q $$ [Ha Hl Hr HI] as %b Hb
+    · iframe; iexact Hfn
+    wp_end
+  · rw [show decide ((W64 1 : w64) = W64 1) = true by decide]
+    wp_auto
+    wp_apply h_lexicalKeyOrderedMapZip al lm rm ol or_ fn I Q $$ [Ha Hl Hr HI] as %b Hb
+    · iframe; iexact Hfn
+    wp_end
 
 end proof
 

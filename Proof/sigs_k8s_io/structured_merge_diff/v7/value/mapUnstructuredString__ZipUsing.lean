@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__ZipUsing
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.defaultMapZip
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,17 @@ variable [package_sem : value.Assumptions]
 
 theorem value.mapUnstructuredString.ZipUsing.wp_proof
     (h_defaultMapZip : value.defaultMapZip.spec (GF := GF)) :
-    value.mapUnstructuredString.ZipUsing.spec (GF := GF) := by
-  sorry
+    value.mapUnstructuredString.ZipUsing.spec (GF := GF) := fun m kvs al o or_ order fn I Q => by
+  wp_start as ⟨Hm, Ho, Ha, %Hord, #Hfn, HI⟩
+  wp_auto
+  wp_apply h_defaultMapZip al _ o (some kvs) or_ order fn I Q $$ [Hm Ho Ha HI] as %b Hb
+  · iframe
+    isplitl [Hm]
+    · simp only [isMapO]; iexact Hm
+    isplitr
+    · ipureintro; exact Hord
+    iexact Hfn
+  wp_end
 
 end proof
 
