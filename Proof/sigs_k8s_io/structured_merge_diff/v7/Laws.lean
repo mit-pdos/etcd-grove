@@ -56,6 +56,22 @@ def isIdentityConverter_persistent.law : Prop :=
 def isUpdater_persistent.law : Prop :=
   ∀ u cv igf igfl rion, isUpdater (GF := GF) u cv igf igfl rion ⊢ □ isUpdater u cv igf igfl rion
 
+/-- A `ManagedFields` map's model is sorted by manager (review round 2: a client needs it for
+`MF_ext` and for the chaining laws' premise). -/
+def isMF_sorted.law : Prop := ∀ m mf, isMF (GF := GF) m mf ⊢ ⌜keysSorted mf = true⌝
+
+/-- **Introduction of `isIdentityConverter`** (review round 2: the driver must build it): a
+converter value of dynamic type `T` whose `Convert` returns its argument with a nil error and whose
+`IsMissingVersionError` returns `false`. -/
+def isIdentityConverter_intro.law : Prop :=
+  ∀ (T : go.GoType) (v : val),
+    (□ (∀ (p : Loc) (ver : fieldpath.APIVersion) (Φ : val → IProp GF),
+        ▷ Φ (PairV #p #(interface.nil : GoInterface)) -∗
+        WP (App (App (Val #(methods T go!"Convert" v)) (Val #p)) (Val #ver)) {{ Φ }}) ∗
+     □ (∀ (e : GoInterface) (Φ : val → IProp GF), ▷ Φ #false -∗
+        WP (App (Val #(methods T go!"IsMissingVersionError" v)) (Val #e)) {{ Φ }}))
+    ⊢ isIdentityConverter (interface.mkOk T v)
+
 /-! ## Fractions and ownership -/
 
 /-- A lent wrapper splits and recombines (`isValF` is fractional in `dq`). -/
@@ -254,6 +270,7 @@ version, keep items with their key fields and have nothing below a key field (so
 chain applies). -/
 def applyResult_premise.law : Prop :=
   ∀ S t rion live config ver mf mgr force obj mf', S.WF → conforms S t live → conforms S t config →
+    keysSorted mf = true →
     (∀ m e, mf.get m = some e → e.version = ver ∧ keysWithItems S t e.set) →
     applyResult S t rion live config ver mf mgr force = .ok obj mf' →
     keysSorted mf' = true ∧
@@ -262,6 +279,7 @@ def applyResult_premise.law : Prop :=
 /-- `Update` likewise (its result's managers are at `ver` if the input's are). -/
 def updateResult_premise.law : Prop :=
   ∀ S t live new ver mf mgr, S.WF → conforms S t live → conforms S t new →
+    keysSorted mf = true →
     (∀ m e, mf.get m = some e → e.version = ver ∧ keysWithItems S t e.set) →
     keysSorted (updateResult S t live new ver mf mgr) = true ∧
     (∀ m e, (updateResult S t live new ver mf mgr).get m = some e →
