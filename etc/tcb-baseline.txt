@@ -719,7 +719,6 @@ axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom strings.TrimSuffix.wp_proof
-axiom time.Duration.Nanoseconds_ptr.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
