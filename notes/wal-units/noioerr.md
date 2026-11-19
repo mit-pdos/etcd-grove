@@ -303,3 +303,42 @@ no `sorry`. `etc/gen-link.py --wal-tester --check` and `--durable --check` uncha
    `Open` (its goroutine's `OpenFile`/`Preallocate`), the encodes on `N.tmp`, `Rename`, the directory
    `Fsync`, `Close`, `LockFile`, `Seek`).
 3. `Create.specNoErr` by the flag parametrization.
+
+## Session 4 (2026-11-19, branch `wal-link`): option (a) implemented; item 3 is needed by `Create`
+
+The user approved option (a) (via etcd-grove-03, `questions.md`). Done in 3778c95957 (trusted, `Premises.lean`):
+`IoCovers` gains `Flock`, `OfdLock` (an fd of a covered inode) and `DirReadNext` (a directory fd of a covered
+inode); `ErrnoZero "DirReadNext"` is errno 0 **or `ENOENT`** (the semantics gives `ENOENT` only for a removed
+directory, as Linux, `meta_enoent.go`; excluding it there would make the premise false of Linux; the
+shared-mode specs already exclude it for a directory reachable through a claim,
+`wp_osDirReadNextChildS`). `noIoErr_keeps` extended (`lockStep_maps`; the reads change only `dfds`). Go
+example `premise_no_io_err.go` (excluded/allowed lists, the further assumptions: memory for lock records,
+no other process locking, no fatal signal), measurement `premise_no_io_err_test.go` (support only; for
+the user's run on C with `run-models-on-c.sh`).
+
+**Not covered, though named in the approval:** `LstatDir` (its outcome `isDir = 0` is both a
+non-directory and a failed `lstat` of a directory: no success to name; the WAL's `os.Rename`s target
+absent names, where `isDir = 0` is the only outcome), `PathKind` and `FdKind` (model queries with one
+answer per state: "covering" them in `NoIoErr`'s form is vacuous).
+
+**Item 3 is reached by `Create`** (so `Create.specNoErr` is blocked on it; `cut` is not):
+`renameWAL` starts with `os.RemoveAll(w.dir)`, and `w.dir` is absent at a first start (`wal.Exist` is
+false: no WAL directory, or an empty one; etcd's bootstrap does not make `member/wal` first). The
+`RemoveAll` model (`TrustedCode/os.lean`) on an absent path: `unlink` fails (no success exists, any
+errno), `rmdir` fails (any errno `e1`); `nil` only if `e1 = ENOENT` (or `e1 = ENOTDIR` and the unlink's
+errno is `ENOENT`), else it opens the parent and `removeAllFrom`'s `unlink` again needs `0`/`ENOENT`
+(or `EISDIR`/`EPERM`/`EACCES`, then the open needs `ENOENT`...). So with any other errno `RemoveAll`
+returns an error and `Create` fails, which `NoIoErr` does not exclude. What `Create` needs: "an
+`Unlink`/`Rmdir` of a covered path that has no entry, in an existing directory, fails with `ENOENT`"
+(Linux: `ENOENT` for a missing last component). With `w.dir` present and empty, `rmdir` succeeds (no
+item 3). `Exist(tmpdir)` (a `Stat`) and `MkdirAll`'s `Stat` of the absent `dir.tmp` take any errno as
+"absent", and the deferred `RemoveAll(dir.tmp)`'s result is ignored: neither needs item 3. A
+leftover `dir.tmp` (a crash's, if `Create.spec`'s area allows one) needs item 3 too: `RemoveAll` of a
+non-empty directory first `unlink`s it (no success: Linux `EISDIR`, the model any errno) and `rmdir`s it
+(no success: Linux `ENOTEMPTY`, the model any errno); an `ENOENT` there makes `RemoveAll` return `nil`
+with the tree still present (then `CreateDirAll`'s emptiness check fails), and `removeAllFrom` recurses
+only on `EISDIR`/`EPERM`/`EACCES` (any other errno is an error). So item 3's statement, for `Create`:
+a covered path's `Unlink`/`Rmdir` that cannot succeed fails with Linux's errno: `ENOENT` for an absent
+entry (its parent a directory), `EISDIR` for `unlink` of a directory, `ENOTEMPTY` for `rmdir` of a
+non-empty directory (Linux may also give `EEXIST` there; Go treats both alike), `ENOTDIR` for `rmdir` of
+a file. **Stopped for the decision** (the coordinator's instruction).
