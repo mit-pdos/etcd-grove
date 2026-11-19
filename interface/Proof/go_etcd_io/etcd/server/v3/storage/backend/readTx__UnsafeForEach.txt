@@ -20,10 +20,12 @@ theorem backend.readTx.UnsafeForEach.wp_proof (hbase : backend.baseReadTx.Unsafe
                           ⌜(backend.rtForEach rv bi)[i]? = some e⌝ →
                             □
                               ∀ Φ,
-                                I i ∗ backend.txLive rtx p.half ∗ backend.rdB rtx k e.fst ∗ backend.rdB rtx v e.snd -∗
+                                I i ∗
+                                    backend.txLive rtx γ.db p (bbolt.TxView.ro rv.fst) ∗
+                                      backend.rdB γ.db rtx k e.fst ∗ backend.rdB γ.db rtx v e.snd -∗
                                   (▷
                                       ∀ err,
-                                        backend.txLive rtx p.half ∗
+                                        backend.txLive rtx γ.db p (bbolt.TxView.ro rv.fst) ∗
                                             (⌜err = GoInterface.nil⌝ ∗ I (i + 1) ∨ ⌜err ≠ GoInterface.nil⌝ ∗ E i err) -∗
                                           Φ (intoVal err)) -∗
                                     WP (((intoVal fn) (intoVal k)) (intoVal v)) {{ Φ }}) -∗

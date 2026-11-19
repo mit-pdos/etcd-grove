@@ -14,16 +14,17 @@ def backend.batchTxBuffered.UnsafeForEach.spec : Prop :=
                   backend.isBucket bk bi ∗
                     I 0 ∗
                       □
-                        ∀ i e k v,
+                        ∀ G i e k v,
                           ⌜(backend.bktEnts (backend.bktOf st.S bi.name))[i]? = some e⌝ →
                             □
                               ∀ Φ,
                                 I i ∗
-                                    backend.txLive st.tx (Qp.half 1) ∗
-                                      ⌜k ≠ slice.nil⌝ ∗ backend.txBytes st.tx k e.fst ∗ backend.txBytes st.tx v e.snd -∗
+                                    backend.ownWTxG st.tx γ.db st.C st.S G ∗
+                                      ⌜k ≠ slice.nil⌝ ∗
+                                        backend.txBytes st.tx γ.db k e.fst ∗ backend.txBytes st.tx γ.db v e.snd -∗
                                   (▷
                                       ∀ err,
-                                        backend.txLive st.tx (Qp.half 1) ∗
+                                        backend.ownWTxG st.tx γ.db st.C st.S G ∗
                                             (⌜err = GoInterface.nil⌝ ∗ I (i + 1) ∨ ⌜err ≠ GoInterface.nil⌝ ∗ E i err) -∗
                                           Φ (intoVal err)) -∗
                                     WP (((intoVal fn) (intoVal k)) (intoVal v)) {{ Φ }}) -∗
