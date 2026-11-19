@@ -1,12 +1,13 @@
 /-
-`containerPaths`: its earlier proof was over the old model's predicates; not re-proved yet (`sorry`)
-until the specs are frozen (notes/smd-plan.md). Lean-first (2026-11-19).
+`containerPaths`: a `[]fieldpath.Path` literal of three paths (`isPaths_cons`, `isPaths_nil`).
+Lean-first (2026-11-19).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.containerPaths
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.item
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.itemField
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
 
 @[expose] public section
 
@@ -28,11 +29,39 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumptions]
 
+theorem containerPaths.wp_proof_of (hNil : isPaths_nil.law (GF := GF))
+    (hCons : isPaths_cons.law (GF := GF))
+    (wp_item : item.spec (GF := GF))
+    (wp_itemField : itemField.spec (GF := GF)) :
+    containerPaths.spec (GF := GF) := fun k => by
+  wp_start
+  wp_auto
+  wp_apply wp_item as %s1 H1
+  wp_apply wp_itemField as %s2 H2
+  wp_apply wp_itemField as %s3 H3
+  wp_apply (wp_slice_literal (l := [s1, s2, s3]))
+  isplitr
+  · ipureintro; rfl
+  iintro %sp ⟨Hs, -⟩
+  wp_auto
+  iapply HΦ
+  iexists [s1, s2, s3]
+  iframe Hs
+  simp only [k8s_smd.containerPaths]
+  iapply (hCons _ _ _ _).2
+  iframe H1
+  iapply (hCons _ _ _ _).2
+  iframe H2
+  iapply (hCons _ _ _ _).2
+  iframe H3
+  iapply hNil
+  itrivial
+
 theorem containerPaths.wp_proof
     (wp_item : item.spec (GF := GF))
     (wp_itemField : itemField.spec (GF := GF)) :
-    containerPaths.spec (GF := GF) := by
-  sorry
+    containerPaths.spec (GF := GF) :=
+  containerPaths.wp_proof_of sorry sorry wp_item wp_itemField
 
 end proof
 
