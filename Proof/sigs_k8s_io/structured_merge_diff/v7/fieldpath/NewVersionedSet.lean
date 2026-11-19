@@ -5,6 +5,9 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewVersionedSet
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
+import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsRep
 
 @[expose] public section
 
@@ -27,8 +30,14 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.NewVersionedSet.wp_proof :
-    fieldpath.NewVersionedSet.spec (GF := GF) := by
-  sorry
+    fieldpath.NewVersionedSet.spec (GF := GF) := fun p S ver b => by
+  wp_start as #Hs
+  wp_auto
+  iapply HΦ
+  unfold isVSet
+  iexists p
+  iframe Hs
+  ipureintro; rfl
 
 end proof
 

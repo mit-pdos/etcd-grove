@@ -1,11 +1,13 @@
 /-
-`fieldpath.MakePathElementValueMap`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.MakePathElementValueMap`: proved over its callees' specs (the hypotheses).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.MakePathElementValueMap
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.MakePathElementMap
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
+import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsRep
 
 @[expose] public section
 
@@ -29,8 +31,16 @@ variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.MakePathElementValueMap.wp_proof
     (h_MakePathElementMap : fieldpath.MakePathElementMap.spec (GF := GF)) :
-    fieldpath.MakePathElementValueMap.spec (GF := GF) := by
-  sorry
+    fieldpath.MakePathElementValueMap.spec (GF := GF) := fun n => by
+  wp_start as %Hn
+  wp_auto
+  wp_apply h_MakePathElementMap $$ [] as %v Hv
+  · ipureintro; exact Hn
+  iapply HΦ
+  unfold ownPEVMapV
+  iframe Hv
+  ipureintro
+  intro k x h; cases h
 
 end proof
 
