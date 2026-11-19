@@ -25,8 +25,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumptions]
 
-theorem concat.wp_proof : concat.spec (GF := GF) := by
-  sorry
+theorem concat.wp_proof :
+    concat.spec (GF := GF) := fun a b dqa dqb xs ys => by
+  wp_start as ⟨Ha, Hb⟩
+  wp_auto
+  wp_apply (wp_slice_literal (l := ([] : List GoSlice)))
+  isplitr
+  · ipureintro; rfl
+  iintro %sp ⟨Hs, Hcap⟩
+  wp_auto
+  wp_apply wp_slice_append $$ [$Hs $Hcap $Ha] as %s1 ⟨Hs1, Hcap1, Ha⟩
+  wp_apply wp_slice_append $$ [$Hs1 $Hcap1 $Hb] as %s2 ⟨Hs2, -, Hb⟩
+  iapply HΦ
+  iframe Ha Hb
+  rw [show xs ++ ys = [] ++ xs ++ ys by simp]
+  iexact Hs2
 
 end proof
 

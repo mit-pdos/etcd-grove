@@ -59,7 +59,7 @@ def sc : Schema := ⟨[
 /-- `schema.TypeRef{NamedType: &rootName}`. -/
 def rootRef : TypeRef := named go!"root"
 /-- The scenario's API version. -/
-def version : GoString := go!"v1"
+abbrev version : GoString := go!"v1"
 
 /-! ## Objects, paths, managed fields -/
 

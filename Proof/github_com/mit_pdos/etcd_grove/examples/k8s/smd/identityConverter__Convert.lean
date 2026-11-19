@@ -25,8 +25,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumptions]
 
-theorem identityConverter.Convert.wp_proof : identityConverter.Convert.spec (GF := GF) := by
-  sorry
+theorem identityConverter.Convert.wp_proof :
+    identityConverter.Convert.spec (GF := GF) := fun ic p ver => by
+  wp_start
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 
