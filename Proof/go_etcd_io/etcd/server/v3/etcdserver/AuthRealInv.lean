@@ -7,7 +7,8 @@
   realization's quarter of the published index; idle (the batch lock's share of the history, the claimed part,
   the batch token: every bucket at the history's last), in a batch (the write token deposited), or gone (after
   the retirement);
-- **the life** (`realSt`): live (the succession right and the retired token, the two reader pools and the rest of
+- **the life** (`realSt`): live (the publication share `liveP` (V-pub: the succession right waits in the store's
+  vault, `pubVault`) and the retired token, the two reader pools and the rest of
   the open share), retired (the write token and the publication quarter, the pools), released (the write token,
   the whole currency, the retired token; the pools' remains).
 Lean-first (no Rocq counterpart).
@@ -64,8 +65,9 @@ end pure
 /-! ## The ghost names -/
 
 /-- **The realization's names of one backend**: the store's (`γa`), the backend's auth names (`γc`), the
-tickets' (`γt`), the ticket pool's (`γm`, `γh`), the reserved pool's (`γm'`, `γh'`), the batch token's (`γk`) and the
-batch session's writes' (`γw`). -/
+tickets' (`γt`), the ticket pool's (`γm`, `γh`), the reserved pool's (`γm'`, `γh'`), the batch token's (`γk`), the
+batch session's writes' (`γw`) and the store's publication vault's live token (`γv`, V-pub, shared by every backend of
+the store). -/
 structure RNames where
   γa : auth.AuthNames
   γc : auth.AuthBkNames
@@ -76,6 +78,7 @@ structure RNames where
   γh' : GName
   γk : GName
   γw : GName
+  γv : GName
 
 /-- The realization's invariants' namespace. -/
 def authRealN : Namespace := nroot.@"authReal"
@@ -132,14 +135,14 @@ def bkIdle (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (sa su sr : auth.AuthState)
       ∀ n, n ∈ authBktL → bktOf rc n = cs n⌝)
 
 /-- **The buckets' common part**: the readers' contents `cs` of the three buckets, their states `sa su sr`
-recorded at `ja ju jr`, the realization's quarter of the published index at `p`. -/
+recorded at `ja ju jr`, each no older than the published index `p` (whose quarter the live and retired branches
+hold, V-pub). -/
 def bkCommon (γ : RNames) (d : mvcc.KBReal) (cs : GoString → BktData) (sa su sr : auth.AuthState)
     (ja ju jr p : Nat) : IProp GF :=
   iprop(rbRd d.γB go!"auth" (1 : Qp).half (cs go!"auth") ∗
     rbRd d.γB go!"authUsers" (1 : Qp).half (cs go!"authUsers") ∗
     rbRd d.γB go!"authRoles" (1 : Qp).half (cs go!"authRoles") ∗
     auth.authStateAt γ.γa ja sa ∗ auth.authStateAt γ.γa ju su ∗ auth.authStateAt γ.γa jr sr ∗
-    auth.authPubQ γ.γa (1 : Qp).half.half p ∗
     ⌜viewAt ⟨sa, su, sr⟩ ⟨cs go!"auth", cs go!"authUsers", cs go!"authRoles"⟩ ∧
       ju ≤ ja ∧ jr ≤ ja ∧ p ≤ ju ∧ p ≤ jr⌝)
 
@@ -159,17 +162,43 @@ def poolsRel (γ : RNames) : IProp GF :=
 def bkBatch (γ : RNames) (cs : GoString → BktData) : IProp GF :=
   iprop(auth.authWTok γ.γc ∗ bkTok γ (1 : Qp).half (csT cs))
 
+/-- **The live realization's publication share** (V-pub, auth-schema-srv A6 (e), 2026-11-19, form decided by the
+agent): its quarter of the published index's authority at `p` and the vault's live token. -/
+def liveP (γ : RNames) (p : Nat) : IProp GF :=
+  iprop(auth.authPubQ γ.γa (1 : Qp).half.half p ∗ token γ.γv)
+
+/-- **The store's publication vault** (V-pub, 2026-11-19, form decided by the agent; questions.md "A6 (e) F-pub"):
+the quarter of the published index's authority that the live backend's realization holds, with the live token, or,
+while a backend is live, the succession right. A realization is created (boot, snapshot) with the succession right,
+which it deposits, taking the quarter (the other side would make two succession rights); its retirement takes the
+succession right back and deposits its quarter (the other side would make two live tokens). So the quarter passes
+from each backend's realization to the next, where an old realization kept it until V-pub. The quarter comes with a
+recorded state at an index `j ≥ p` (the history is longer than the published index: a new realization's buckets,
+at the history's last state, are no older than it). -/
+def pubVault (γa : auth.AuthNames) (γv : GName) : IProp GF :=
+  iprop(((∃ (p j : Nat) (s : auth.AuthState), auth.authPubQ γa (1 : Qp).half.half p ∗ auth.authStateAt γa j s ∗
+      ⌜p ≤ j⌝) ∗ token γv) ∨ auth.authSucc γa)
+
+/-- The vault's namespace (disjoint from `authRealN`). -/
+def pubVN : Namespace := nroot.@"authPubV"
+
+/-- **The store's publication vault invariant.** -/
+def vaultInv (γa : auth.AuthNames) (γv : GName) : IProp GF := iprop(inv pubVN (pubVault γa γv))
+
+instance vaultInv_persistent (γa : auth.AuthNames) (γv : GName) : Persistent (vaultInv (GF := GF) γa γv) := by
+  unfold vaultInv; infer_instance
+
 /-- **The realization's state of one backend** (see the file header): the buckets' common part and the life:
-live (the succession right, the retired token, the pools; the buckets idle, with the rest `q0` of the open
-share, or in a batch, the write token then deposited), retired (the publication quarter, the pools, the rest of the open
-share; the buckets gone: the write token and the batch token kept) or released (the whole currency, the retired
+live (the publication share `liveP` (V-pub; until then the succession right, now in the vault), the retired token, the pools; the buckets idle, with the rest `q0` of the open
+share, or in a batch, the write token then deposited), retired (the apply thread's publication quarter, at `p`, the pools,
+the rest of the open share; the buckets gone: the write token and the batch token kept) or released (the whole currency, the retired
 token, the pools' remains; gone). -/
 def realSt (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) : IProp GF :=
   iprop(∃ (cs : GoString → BktData) (sa su sr : auth.AuthState) (ja ju jr p : Nat),
     bkCommon γ d cs sa su sr ja ju jr p ∗
-    ((auth.authSucc γ.γa ∗ auth.authRetired γ.γc ∗ pools γ d s0 ∗
+    ((liveP γ p ∗ auth.authRetired γ.γc ∗ pools γ d s0 ∗
         (bkIdle γ d q0 sa su sr ja ju jr cs ∨ bkBatch γ cs)) ∨
-      (auth.authPubTok γ.γa ∗ pools γ d s0 ∗ bOpen d.γB q0 ∗ auth.authWTok γ.γc ∗ batchTok γ) ∨
+      (auth.authPubQ γ.γa (1 : Qp).half.half p ∗ pools γ d s0 ∗ bOpen d.γB q0 ∗ auth.authWTok γ.γc ∗ batchTok γ) ∨
       (auth.authCur γ.γc 1 ∗ auth.authRetired γ.γc ∗ poolsRel γ ∗ auth.authWTok γ.γc ∗ batchTok γ)))
 
 /-- **The realization's invariant of one backend.** -/
@@ -267,14 +296,14 @@ theorem bkCommon_rv (γ : RNames) (d : mvcc.KBReal) (cs : GoString → BktData) 
       ⌜schema.rvAuth d.P rv = ⟨cs go!"auth", cs go!"authUsers", cs go!"authRoles"⟩⌝ := by
   iintro ⟨Hc, Hh⟩
   iunfold bkCommon at Hc
-  icases Hc with ⟨Ha, Hu, Hr, #Hsa, #Hsu, #Hsr, Hp, %Hv⟩
+  icases Hc with ⟨Ha, Hu, Hr, #Hsa, #Hsu, #Hsr, %Hv⟩
   rw [rtHeld_eq]
   icases rtHeldF_rbRd d.γB d.P d.be x rv _ go!"auth" _ _ $$ [$Hh $Ha] with ⟨Hh, Ha, %h1⟩
   icases rtHeldF_rbRd d.γB d.P d.be x rv _ go!"authUsers" _ _ $$ [$Hh $Hu] with ⟨Hh, Hu, %h2⟩
   icases rtHeldF_rbRd d.γB d.P d.be x rv _ go!"authRoles" _ _ $$ [$Hh $Hr] with ⟨Hh, Hr, %h3⟩
   iframe Hh
-  isplitl [Ha Hu Hr Hp]
-  · iunfold bkCommon; iframe Ha Hu Hr Hp; iframe #; ipureintro; exact Hv
+  isplitl [Ha Hu Hr]
+  · iunfold bkCommon; iframe Ha Hu Hr; iframe #; ipureintro; exact Hv
   ipureintro
   unfold schema.rvAuth
   simp only [mvcc.authBI, mvcc.authUsersBI, mvcc.authRolesBI,
@@ -299,7 +328,7 @@ theorem real_obs (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (o : Option Qp) (x
   icases bkCommon_rv γ d cs sa su sr ja ju jr p x rv $$ [$Hc $Hh] with ⟨Hc, Hh, %Hrv⟩
   ihave %Hwf : ⌜schema.authWf (schema.rvAuth d.P rv)⌝ $$ [Hc]
   · iunfold bkCommon at Hc
-    icases Hc with ⟨-, -, -, -, -, -, -, %Hv⟩
+    icases Hc with ⟨-, -, -, -, -, -, %Hv⟩
     ipureintro; rw [Hrv]; exact viewAt_wf Hv.1
   icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT, Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, Hbt⟩)
   · iunfold pools at Hp
@@ -398,13 +427,15 @@ theorem real_rel (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
 /-! ## Real reads' views (after schema's `RLock`) -/
 
 /-- **The view of a held read**: the buckets read hold a view of recorded states, each no older than any
-published lower bound `i`, the `auth` bucket's the latest. -/
+published lower bound `i`, the `auth` bucket's the latest. The reader's lent share of the currency (`depT γ (some q)`)
+refutes the released branch, which holds no quarter of the published index (V-pub). -/
 theorem real_view (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView → IProp GF) (x : Loc)
-    (D : schema.AuthData) (i : Nat) :
-    realInv (GF := GF) γ d s0 q0 ∗ schema.heldR d.γB d.P d.be Y x D ∗ auth.authPubLb γ.γa i ∗ £ 1 ⊢
-      |={⊤}=> schema.heldR d.γB d.P d.be Y x D ∗
+    (D : schema.AuthData) (i : Nat) (q : Qp) :
+    realInv (GF := GF) γ d s0 q0 ∗ schema.heldR d.γB d.P d.be Y x D ∗ auth.authPubLb γ.γa i ∗ depT γ (some q) ∗
+      £ 1 ⊢
+      |={⊤}=> schema.heldR d.γB d.P d.be Y x D ∗ depT γ (some q) ∗
         ∃ v : auth.BkView, ⌜viewAt v D⌝ ∗ auth.authViewSnapFrom (.on γ.γa) i v := by
-  iintro ⟨#Hinv, Hh, #Hlb, Hlc⟩
+  iintro ⟨#Hinv, Hh, #Hlb, Hd, Hlc⟩
   iunfold schema.heldR at Hh
   icases Hh with ⟨%rv, %Hrv, Hh, HY⟩
   iunfold realInv at Hinv
@@ -414,21 +445,28 @@ theorem real_view (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView → IP
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
   icases bkCommon_rv γ d cs sa su sr ja ju jr p x rv $$ [$Hc $Hh] with ⟨Hc, Hh, %Hcs⟩
   iunfold bkCommon at Hc
-  icases Hc with ⟨Ha, Hu, Hr, #Hsa, #Hsu, #Hsr, Hp, %Hv⟩
-  iunfold auth.authPubQ at Hp
+  icases Hc with ⟨Ha, Hu, Hr, #Hsa, #Hsu, #Hsr, %Hv⟩
   iunfold auth.authPubLb at Hlb
-  ihave %Hip := monoNatLbOwn_valid γ.γa.pub _ p i $$ Hp Hlb
-  imod Hclose $$ [Ha Hu Hr Hp Hl]
+  ihave %Hip : ⌜i ≤ p⌝ $$ [Hl Hd]
+  · icases Hl with (⟨⟨Hp, -⟩, -⟩ | ⟨Hp, -⟩ | ⟨Hcur, -, -, HT, -⟩)
+    · iunfold auth.authPubQ at Hp
+      ihave %h := monoNatLbOwn_valid γ.γa.pub _ p i $$ Hp Hlb
+      ipureintro; exact h.2
+    · iunfold auth.authPubQ at Hp
+      ihave %h := monoNatLbOwn_valid γ.γa.pub _ p i $$ Hp Hlb
+      ipureintro; exact h.2
+    · iexfalso
+      iapply depT_released γ (some q) $$ [$Hd $Hcur $HT]
+  imod Hclose $$ [Ha Hu Hr Hl]
   · inext
     iunfold realSt
     iexists cs, sa, su, sr, ja, ju, jr, p
     iframe Hl
     iunfold bkCommon
     iframe Ha Hu Hr; iframe #
-    isplitl [Hp]
-    · iunfold auth.authPubQ; iexact Hp
     ipureintro; exact Hv
   imodintro
+  iframe Hd
   isplitl [Hh HY]
   · iunfold schema.heldR
     iexists rv
@@ -472,13 +510,13 @@ theorem real_viewIdle (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView �
       subst Heq
       obtain ⟨hl, hu, hr, -, -, -, -⟩ := id Hid
       iunfold bkCommon at Hc
-      icases Hc with ⟨Ha, Hu, Hr', #Hsa, #Hsu, #Hsr, Hp', %Hv⟩
-      imod Hclose $$ [Ha Hu Hr' Hp' Hs Hr Hp Hq Hlq Hro Hbt Hsw]
+      icases Hc with ⟨Ha, Hu, Hr', #Hsa, #Hsu, #Hsr, %Hv⟩
+      imod Hclose $$ [Ha Hu Hr' Hs Hr Hp Hq Hlq Hro Hbt Hsw]
       · inext
         iunfold realSt
         iexists cs, sa, su, sr, ja, ju, jr, p
-        isplitl [Ha Hu Hr' Hp']
-        · iunfold bkCommon; iframe Ha Hu Hr' Hp'; iframe #; ipureintro; exact Hv
+        isplitl [Ha Hu Hr']
+        · iunfold bkCommon; iframe Ha Hu Hr'; iframe #; ipureintro; exact Hv
         ileft
         iframe Hs Hr Hp
         ileft

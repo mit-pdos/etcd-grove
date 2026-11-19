@@ -147,15 +147,15 @@ theorem real_obsR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
       subst Heq
       obtain ⟨hl, hu, hr, -, -, -, -⟩ := id Hid
       iunfold bkCommon at Hc
-      icases Hc with ⟨Ha, Hu, Hr', #Hsa, #Hsu, #Hsr, Hp', %Hv⟩
+      icases Hc with ⟨Ha, Hu, Hr', #Hsa, #Hsu, #Hsr, %Hv⟩
       imod pool_obs _ γ.γm' γ.γh' (tokIn (auth.authWTok γ.γc)) (fun _ => iprop(True)) _ _ 1 k none
         $$ [$Hp2 $Hk $Ho] with ⟨Hp2, -, Hy⟩
-      imod Hclose $$ [Ha Hu Hr' Hp' Hs Hr Hp1 Hp2 Hq Hlq Hro Hbt Hsw]
+      imod Hclose $$ [Ha Hu Hr' Hs Hr Hp1 Hp2 Hq Hlq Hro Hbt Hsw]
       · inext
         iunfold realSt
         iexists cs, sa, su, sr, ja, ju, jr, p
-        isplitl [Ha Hu Hr' Hp']
-        · iunfold bkCommon; iframe Ha Hu Hr' Hp'; iframe #; ipureintro; exact Hv
+        isplitl [Ha Hu Hr']
+        · iunfold bkCommon; iframe Ha Hu Hr'; iframe #; ipureintro; exact Hv
         ileft
         iframe Hs Hr
         isplitl [Hp1 Hp2]

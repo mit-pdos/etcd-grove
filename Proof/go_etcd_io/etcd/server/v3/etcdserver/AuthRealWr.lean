@@ -824,7 +824,7 @@ theorem real_acc (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (st :
   icombine Hx Hbt gives %Hxe
   obtain ⟨-, rfl⟩ := Hxe
   iunfold bkCommon at Hc
-  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >%Hv⟩
   imodintro
   iexists cs
   isplitl [Ha Hu Hr']
@@ -852,13 +852,13 @@ theorem real_acc (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (st :
     (by rcases Hpr with ⟨h1, -, h3⟩ | ⟨h1, -, h3⟩
         · exact Or.inl ⟨h1, h3⟩
         · exact Or.inr ⟨h1, h3⟩)
-  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp HT Hbt] with -
+  imod Hclose $$ [Ha Hu Hr' Hs Hr Hp HT Hbt] with -
   · inext
     iunfold realSt
     iexists v, st, su', sr', hs.length - 1, ju', jr', p
-    isplitl [Ha Hu Hr' Hpq]
+    isplitl [Ha Hu Hr']
     · iunfold bkCommon
-      iframe Ha Hu Hr' Hpq
+      iframe Ha Hu Hr'
       iframe #
       ipureintro
       obtain ⟨-, -, -, hpu, hpr⟩ := Hv
@@ -927,7 +927,7 @@ theorem real_conf (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (st 
   icombine Hx Hbt gives %Hxe
   obtain ⟨-, rfl⟩ := Hxe
   iunfold bkCommon at Hc
-  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >%Hv⟩
   imodintro
   iexists cs
   isplitl [Ha Hu Hr']
@@ -941,13 +941,13 @@ theorem real_conf (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (st 
   have hcsT : csT cs = csT (fun n => bktOf bs.S n) := by simp only [csT, ha, hu, hr]
   icases lockQ_rec γ.γa hs st Hh.1 $$ Hlq with ⟨Hlq, #HsL⟩
   icases lockQ_idx γ.γa hs ju su $$ [$Hlq $Hsu] with ⟨Hlq, %Hju⟩
-  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp HT Hbt] with -
+  imod Hclose $$ [Ha Hu Hr' Hs Hr Hp HT Hbt] with -
   · inext
     iunfold realSt
     iexists cs, st, st, st, hs.length - 1, hs.length - 1, hs.length - 1, p
-    isplitl [Ha Hu Hr' Hpq]
+    isplitl [Ha Hu Hr']
     · iunfold bkCommon
-      iframe Ha Hu Hr' Hpq
+      iframe Ha Hu Hr'
       iframe #
       ipureintro
       obtain ⟨-, -, -, hpu, -⟩ := Hv
@@ -1004,16 +1004,16 @@ theorem real_borrow (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
   icases Hid with ⟨%hs, %rc, %w, >Hlq, >Hro, >Hbt, >Hsw, >Hq, >%Hid⟩
   obtain ⟨hl, hu, hr, -, -, -, hcs⟩ := Hid
   iunfold bkCommon at Hc
-  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >%Hv⟩
   iunfold bkTok at Hbt
   icases (ghostVar_split_half γ.γk 1 (csT cs)).1 $$ Hbt with ⟨Hb1, Hb2⟩
-  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp HT Hb1] with -
+  imod Hclose $$ [Ha Hu Hr' Hs Hr Hp HT Hb1] with -
   · inext
     iunfold realSt
     iexists cs, sa, su, sr, ja, ju, jr, p
-    isplitl [Ha Hu Hr' Hpq]
+    isplitl [Ha Hu Hr']
     · iunfold bkCommon
-      iframe Ha Hu Hr' Hpq
+      iframe Ha Hu Hr'
       iframe #
       ipureintro; exact Hv
     ileft
@@ -1069,18 +1069,18 @@ theorem real_return (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (s
   have hu : cs go!"authUsers" = bktOf bs.S go!"authUsers" := (congrArg (fun t => t.2.1) Hxe).symm
   have hr : cs go!"authRoles" = bktOf bs.S go!"authRoles" := (congrArg (fun t => t.2.2) Hxe).symm
   iunfold bkCommon at Hc
-  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >%Hv⟩
   icases lockQ_rec γ.γa hs st hl $$ Hlq with ⟨Hlq, #HsL⟩
   icases lockQ_idx γ.γa hs ju su $$ [$Hlq $Hsu] with ⟨Hlq, %Hju⟩
   ihave Hbt := (ghostVar_split_half γ.γk 1 (csT cs)).2 $$ [Hx Hbt]
   · rw [← Hxe]; iframe Hx Hbt
-  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp Hbt Hlq Hro Hsw Hq] with -
+  imod Hclose $$ [Ha Hu Hr' Hs Hr Hp Hbt Hlq Hro Hsw Hq] with -
   · inext
     iunfold realSt
     iexists cs, st, st, st, hs.length - 1, hs.length - 1, hs.length - 1, p
-    isplitl [Ha Hu Hr' Hpq]
+    isplitl [Ha Hu Hr']
     · iunfold bkCommon
-      iframe Ha Hu Hr' Hpq
+      iframe Ha Hu Hr'
       iframe #
       ipureintro
       obtain ⟨-, -, -, hpu, -⟩ := Hv
@@ -1921,18 +1921,18 @@ theorem real_unborrow (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (cs : GoStrin
   have hu : cs' go!"authUsers" = cs go!"authUsers" := (congrArg (fun t => t.2.1) Hxe).symm
   have hr : cs' go!"authRoles" = cs go!"authRoles" := (congrArg (fun t => t.2.2) Hxe).symm
   iunfold bkCommon at Hc
-  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >%Hv⟩
   icases lockQ_rec γ.γa hs st hl $$ Hlq with ⟨Hlq, #HsL⟩
   icases lockQ_idx γ.γa hs ju su $$ [$Hlq $Hsu] with ⟨Hlq, %Hju⟩
   ihave Hbt := (ghostVar_split_half γ.γk 1 (csT cs')).2 $$ [Hx Hbt]
   · rw [← Hxe]; iframe Hx Hbt
-  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp Hbt Hlq Hro Hsw Hq] with -
+  imod Hclose $$ [Ha Hu Hr' Hs Hr Hp Hbt Hlq Hro Hsw Hq] with -
   · inext
     iunfold realSt
     iexists cs', st, st, st, hs.length - 1, hs.length - 1, hs.length - 1, p
-    isplitl [Ha Hu Hr' Hpq]
+    isplitl [Ha Hu Hr']
     · iunfold bkCommon
-      iframe Ha Hu Hr' Hpq
+      iframe Ha Hu Hr'
       iframe #
       ipureintro
       obtain ⟨-, -, -, hpu, -⟩ := Hv

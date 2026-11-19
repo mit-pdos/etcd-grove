@@ -68,6 +68,9 @@ instance pubQ_timeless (γa : auth.AuthNames) (q : Qp) (p : Nat) : Timeless (aut
 instance pubTok_timeless (γa : auth.AuthNames) : Timeless (auth.authPubTok (GF := GF) γa) := by
   unfold auth.authPubTok; infer_instance
 
+instance liveP_timeless (γ : RNames) (p : Nat) : Timeless (liveP (GF := GF) γ p) := by
+  unfold liveP; infer_instance
+
 instance bkTok_timeless (γ : RNames) (q : Qp) (x : BktData × BktData × BktData) :
     Timeless (bkTok (GF := GF) γ q x) := by
   unfold bkTok; infer_instance
@@ -143,11 +146,13 @@ theorem pub_join (γ : GName) (n : Nat) :
     iapply h2.2
     iframe Hb Hc
 
-/-- **Retire.** -/
+/-- **Retire.** The apply thread's publication quarter (at the live branch's `p`, by agreement) stays with the
+retired realization for its views; the realization's own quarter and the live token go back to the store's vault,
+which gives the succession right back (V-pub). -/
 theorem real_retire (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
-    realInv (GF := GF) γ d s0 q0 ⊢ auth.authWTok γ.γc ∗ auth.authPubTok γ.γa ={⊤}=∗
+    realInv (GF := GF) γ d s0 q0 ∗ vaultInv γ.γa γ.γv ⊢ auth.authWTok γ.γc ∗ auth.authPubTok γ.γa ={⊤}=∗
       (∃ st : auth.AuthState, auth.authLockI (.on γ.γa) st) ∗ auth.authRetired γ.γc ∗ auth.authSucc γ.γa := by
-  iintro #Hinv ⟨HT, Hpt⟩
+  iintro ⟨#Hinv, #Hvi⟩ ⟨HT, Hpt⟩
   iunfold realInv at Hinv
   iinv Hinv with Hi Hclose
   iunfold realSt at Hi
@@ -158,15 +163,43 @@ theorem real_retire (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
       icases Hid with ⟨%hs, %rc, %w, >Hlq, -, >Hbt, -, Hq, >%Hid⟩
       ihave Hbt : batchTok γ $$ [Hbt]
       · iunfold batchTok; iexists _; iexact Hbt
-      imod Hclose $$ [Hc Hp Hq HT Hpt Hbt]
+      iunfold liveP at Hs
+      icases Hs with ⟨Hpq, Hlv⟩
+      iunfold auth.authPubTok at Hpt
+      icases Hpt with ⟨%p2, Hpt⟩
+      iunfold auth.authPubQ at Hpt Hpq
+      ihave %Ha := monoNatAuthOwn_agree γ.γa.pub _ _ p p2 $$ Hpq Hpt
+      obtain ⟨-, hp⟩ := Ha
+      subst hp
+      iunfold bkCommon at Hc
+      icases Hc with ⟨Ha, Hu, Hr', #Hsa, #Hsu, #Hsr, >%Hv⟩
+      imod Hclose $$ [Ha Hu Hr' Hp Hq HT Hpt Hbt]
       · inext
         iunfold realSt
         iexists cs, sa, su, sr, ja, ju, jr, p
-        iframe Hc
+        isplitl [Ha Hu Hr']
+        · iunfold bkCommon; iframe Ha Hu Hr'; iframe #; ipureintro; exact Hv
         iright; ileft
-        iframe Hpt Hp Hq HT Hbt
+        isplitl [Hpt]
+        · iunfold auth.authPubQ; iexact Hpt
+        iframe Hp Hq HT Hbt
+      iunfold vaultInv at Hvi
+      iinv Hvi with Hv Hvclose
+      iunfold pubVault at Hv
+      icases Hv with (⟨-, >Hlv'⟩ | >Hsucc)
+      · iexfalso; iapply token_exclusive $$ Hlv Hlv'
+      imod Hvclose $$ [Hpq Hlv]
+      · inext
+        iunfold pubVault
+        ileft
+        iframe Hlv
+        iexists p, ja, sa
+        iframe Hsa
+        isplitl [Hpq]
+        · iunfold auth.authPubQ; iexact Hpq
+        ipureintro; obtain ⟨-, h1, -, h3, -⟩ := Hv; omega
       imodintro
-      iframe Hs Hr
+      iframe Hsucc Hr
       iexists sa
       iunfold auth.authLockI
       iexists hs
@@ -212,7 +245,8 @@ theorem real_release (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (hq : authOpen
       iunfold poolsRel
       iframe Hr1 Hr2
     imodintro
-    iframe Hpt
+    isplitl [Hpt]
+    · iunfold auth.authPubTok; iexists p; iexact Hpt
     ihave Hs := rep_add (bOpen d.γB s0) ticketN 1 $$ [$Hs1 $Hs2]
     have hn : ticketN + 1 = authRdN := by unfold ticketN authRdN; omega
     rw [hn]
@@ -242,7 +276,9 @@ theorem real_publish (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
       subst Heq
       obtain ⟨hl, hu, hr, hja, hju, hjr, hcs⟩ := id Hid
       iunfold bkCommon at Hc
-      icases Hc with ⟨Ha, Hu, Hr', Hsa, Hsu, Hsr, >Hpq, >%Hv⟩
+      icases Hc with ⟨Ha, Hu, Hr', Hsa, Hsu, Hsr, >%Hv⟩
+      iunfold liveP at Hs
+      icases Hs with ⟨>Hpq, Hlv⟩
       iunfold auth.authPubTok at Hpt
       icases Hpt with ⟨%p2, Hpt⟩
       iunfold auth.authPubQ at Hph Hpt Hpq
@@ -253,19 +289,19 @@ theorem real_publish (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
       ihave Hfull := (pub_join γ.γa.pub p).2 $$ [$Hph $Hpt $Hpq]
       imod mono_nat_own_update (hs.length - 1) (by omega) $$ Hfull with ⟨Hfull, -⟩
       icases (pub_join γ.γa.pub (hs.length - 1)).1 $$ Hfull with ⟨Hph, Hpt, Hpq⟩
-      imod Hclose $$ [Ha Hu Hr' Hsa Hsu Hsr Hpq Hs Hr Hp Hq Hlq Hro Hbt Hsw]
+      imod Hclose $$ [Ha Hu Hr' Hsa Hsu Hsr Hpq Hlv Hr Hp Hq Hlq Hro Hbt Hsw]
       · inext
         iunfold realSt
         iexists cs, sa, su, sr, ja, ju, jr, hs.length - 1
-        isplitl [Ha Hu Hr' Hsa Hsu Hsr Hpq]
+        isplitl [Ha Hu Hr' Hsa Hsu Hsr]
         · iunfold bkCommon
           iframe Ha Hu Hr' Hsa Hsu Hsr
-          isplitl [Hpq]
-          · iunfold auth.authPubQ; iexact Hpq
           ipureintro
           exact ⟨Hv.1, Hv.2.1, Hv.2.2.1, by omega, by omega⟩
         ileft
-        iframe Hs Hr Hp
+        isplitl [Hpq Hlv]
+        · iunfold liveP; iframe Hlv; iunfold auth.authPubQ; iexact Hpq
+        iframe Hr Hp
         ileft
         iunfold bkIdle
         iexists hs, rc, w
@@ -284,12 +320,12 @@ theorem real_publish (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
 
 /-- **The realization meets the lifecycle** at its open share. -/
 theorem real_life (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (hq : authOpenQ = qpRep q0 s0 authRdN) :
-    realInv (GF := GF) γ d s0 q0 ⊢ auth.authBkLife γ.γa γ.γc (bOpen d.γB authOpenQ) := by
-  iintro #Hinv
+    realInv (GF := GF) γ d s0 q0 ∗ vaultInv γ.γa γ.γv ⊢ auth.authBkLife γ.γa γ.γc (bOpen d.γB authOpenQ) := by
+  iintro ⟨#Hinv, #Hvi⟩
   iunfold auth.authBkLife
   isplitr
   · iintro !> H
-    iapply real_retire γ d s0 q0 $$ Hinv H
+    iapply real_retire γ d s0 q0 $$ [$Hinv $Hvi] H
   isplitr
   · iintro !> H
     iapply real_release γ d s0 q0 hq $$ Hinv H

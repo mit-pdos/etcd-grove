@@ -104,7 +104,7 @@ theorem real_readTxOk (hRLs : schema.authReadTx.RLock.spec (GF := GF) (hG := hG)
       as ⟨⟨%x, %D, %Hwf, HD, HL, #Hrd⟩, Hlc⟩
     · simp only [depT]; iexact Hc
     imod (monoNatLbOwn_0 (GF := GF) γ.γa.pub) with #Hlb0
-    imod real_view γ d s0 q0 _ x D 0 $$ [$Hinv $HD $Hlc] with ⟨HD, %v, %Hv, #Hsn⟩
+    imod real_view γ d s0 q0 _ x D 0 q $$ [$Hinv $HD $HL $Hlc] with ⟨HD, HL, %v, %Hv, #Hsn⟩
     · iunfold auth.authPubLb; iexact Hlb0
     imodintro
     iapply HΦ
@@ -121,7 +121,7 @@ theorem real_readTxOk (hRLs : schema.authReadTx.RLock.spec (GF := GF) (hG := hG)
     wp_apply (hRLs l rt (ownToks γ.γt 1) (heldT γ d) (depT γ) (some q)) $$ [$Htx $Hrt $HR Hc]
       as ⟨⟨%x, %D, %Hwf, HD, HL, #Hrd⟩, Hlc⟩
     · simp only [depT]; iexact Hc
-    imod real_view γ d s0 q0 _ x D i $$ [$Hinv $HD $Hlc] with ⟨HD, %v, %Hv, #Hsn⟩
+    imod real_view γ d s0 q0 _ x D i q $$ [$Hinv $HD $HL $Hlc] with ⟨HD, HL, %v, %Hv, #Hsn⟩
     · simp only [auth.authPubLbM]; iexact Hlb
     imodintro
     iapply HΦ
