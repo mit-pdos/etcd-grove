@@ -1,6 +1,38 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 l, L3 applying the approved statements; stopped for context)
+## START HERE (2026-11-19 m, the four laws proved; STOPPED: the Save batch's room)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 1b298c1e70 merged (lean had not moved); pin 6d365ee1a,
+  `/shared/tmp/manifest-6d3.json` everywhere. Merge the origin merge (pin f551a1b46, manifest-f55) when it lands.
+- **Decided (etcd-grove-03, questions.md 2026-11-19):** the forms of session l ACCEPTED; linking `rnNewStorageOk_holds`
+  by hand in the examples' adequacy files is fine (list it; tcb-report/gen-link must still see it linked).
+- **Done (17eb60285f, + this commit):** `WalRecs`: `walRecs_saveAU`/`saveSnapAU` (commits with the history lb)/
+  `releaseAU`/`closeAU` (layer 1's AU from the server's, or from the held records for Close), `walSnapRec_intro`/
+  `_synced`, `walSrvHist_snoc_save`/`_snap`. `RnNewStorage`: `walSave_law` (with an explicit `hroom`, see STOP),
+  `walSaveSnap_law`, `walRelease_law` (takes `isSnapshotter ss`), `walClose_law`, `walSync_law`; each file
+  lean-check 0 errors. `walSaveEntOk`'s bound `< 2^40` (form). nonissues/etcd-wal-save-batch-efbig.md.
+- **STOP (open, questions.md):** layer 1's `Save` needs `walCov Sio → saveRoom walSrvMr hs (cs.map walEntW) ≤
+  walFreshRoom` (one batch < ~8 TiB); the approved law lacks it and nothing in raft bounds a Ready's total entry
+  bytes (etcd sets no `MaxUncommittedEntriesSize`). Options: (a) fork fix in `WAL.Save` (cut between records
+  once the tail passes `SegmentSizeBytes`, as 0007 for SaveSnapshot): layer 1 re-proof, a cut inside a `save`
+  op (walCutPos/crash model at record granularity), cost unknown, likely >1k lines; (b) fork fix in the raft
+  loop (save a Ready's entries in chunks): raftNode.start's proof gains a loop, `walSave` per chunk; (c) an
+  error arm for an oversized batch, covered by the raft loop's `lg.Fatal` (AngelicExit): layer 1's error path
+  needs the whole share today (`walCov Sio ∨ q = 1`), the raft loop holds a half shared with the apply thread,
+  so layer 1's shared handle must survive a failed Save: re-design; (d) a premise of the closed theorems
+  (program behavior, not recommended).
+- **Next after the decision:** the Save law text in `isWalStorage`/`walSaveSized_spec`/`walSaveRn_spec`;
+  `isWalStorage_intro` (in WalApi: the five laws ⊢ the contract; WalApi stays sealed); `rnNewStorageOk_holds`
+  (NewStorage: `storageOver`, two `storageRd`; `interface_mkOk_inj` + `go.intoVal_inj`); then handoff l's (2)-(5).
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a -q FILE`.
+- **Pitfalls:** an AU transformer: `iauintro; unfold atomic_acc; ihave Hacc := aupd_aacc $$ Hau; unfold atomic_acc;
+  imod Hacc; isimp only [texist_cons, …] at Hacc`; an AU from held resources: `iapply fupd_mask_intro
+  Iris.Std.LawfulSet.empty_subset`, abort gives back the context; `(walSrvP).hsIn` vs `walHsIn`: state the
+  entailment with `have … := walHsIn_of_hsOptC` (iexact does not unfold the projection).
+
+## History
+
+### START HERE (2026-11-19 l, L3 applying the approved statements; stopped for context)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 1b298c1e70 merged (lean had not moved on 2026-11-19);
   pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere. Merge the origin merge (pin f551a1b46, manifest-f55) when it lands.
@@ -39,8 +71,6 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a -q FILE`.
 - **Pitfalls:** `iinv` leaves an unsolved mask side goal first when the mask is `walAuMask`; `WalH` needs the instances
   `letI := h.ext; h.semOk; h.has; h.W; h.inj; haveI := h.sat` before a layer-1/2 spec; questions.md is gitignored (local).
-
-## History
 
 ### START HERE (2026-11-18 k, L3 started: vocabulary + Release in place; STOP: server-statement stop)
 
