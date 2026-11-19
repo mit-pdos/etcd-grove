@@ -32,7 +32,18 @@ theorem arbErr.wp_proof
     (wp_arbBool : EtcdGrove.k8s_authz.arbBool.spec (GF := GF) (hG := hG))
     (wp_errors_New : _root_.Perennial.errors.New.spec (GF := GF) (hG := hG)) :
     arbErr.spec (GF := GF) (hG := hG) := by
-  sorry
+  wp_start
+  wp_auto
+  wp_apply wp_arbBool as %b _
+  cases b
+  · wp_auto
+    wp_apply wp_errors_New as %e _
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  · wp_auto
+    iapply HΦ
+    itrivial
 
 end proof
 

@@ -17,6 +17,7 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbName
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__Add
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__ToDecision
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.B6Lemmas
 
 @[expose] public section
 
@@ -51,7 +52,126 @@ theorem arbDecision.wp_proof
     (wp_ConditionsAwareDecisionUnion_Add : EtcdGrove.authorizer.ConditionsAwareDecisionUnion.Add.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecisionUnion_ToDecision : EtcdGrove.authorizer.ConditionsAwareDecisionUnion.ToDecision.spec (GF := GF) (hG := hG)) :
     arbDecision.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro depth
+  induction hk : uint.nat depth using Nat.strongRecOn generalizing depth with
+  | _ k IH =>
+  wp_start
+  wp_auto
+  wp_apply wp_Int63n as %x %Hx
+  · ipureintro; decide
+  rcases int63n_5_cases x Hx with rfl | rfl | rfl | rfl | rfl
+  · wp_auto
+    wp_apply wp_arbReason as %r _
+    (try wp_auto)
+    wp_apply wp_arbErr as %e _
+    (try wp_auto)
+    wp_apply (wp_ConditionsAwareDecisionDeny r e) as %d #Hd
+    (try wp_auto)
+    iapply HΦ
+    iunfold isWFDecision
+    iexists .deny
+    iframe #
+    ipureintro; trivial
+  · wp_auto
+    wp_apply wp_arbReason as %r _
+    (try wp_auto)
+    wp_apply wp_arbErr as %e _
+    (try wp_auto)
+    wp_apply (wp_ConditionsAwareDecisionAllow r e) as %d #Hd
+    (try wp_auto)
+    iapply HΦ
+    iunfold isWFDecision
+    iexists .allow
+    iframe #
+    ipureintro; trivial
+  · wp_auto
+    wp_apply wp_arbReason as %r _
+    (try wp_auto)
+    wp_apply wp_arbErr as %e _
+    (try wp_auto)
+    wp_apply (wp_ConditionsAwareDecisionNoOpinion r e) as %d #Hd
+    (try wp_auto)
+    iapply HΦ
+    iunfold isWFDecision
+    iexists .noOpinion
+    iframe #
+    ipureintro; trivial
+  · wp_auto
+    wp_apply wp_arbConds as %s1 ⟨%c1, Hs1, #Hc1⟩
+    (try wp_auto)
+    wp_apply wp_arbConds as %s2 ⟨%c2, Hs2, #Hc2⟩
+    (try wp_auto)
+    wp_apply wp_arbConds as %s3 ⟨%c3, Hs3, #Hc3⟩
+    (try wp_auto)
+    wp_apply (wp_ConditionsAwareDecisionConditionsMap s1 s2 s3 _ _ _ c1 c2 c3) $$ [$Hs1 $Hs2 $Hs3]
+      as %d ⟨#Hd, -⟩
+    · iapply (BigSepL.bigSepL_append (l₁ := c1 ++ c2) (l₂ := c3)).2
+      isplitl
+      · iapply (BigSepL.bigSepL_append (l₁ := c1) (l₂ := c2)).2
+        isplitl
+        · iexact Hc1
+        iexact Hc2
+      iexact Hc3
+    (try wp_auto)
+    iapply HΦ
+    iexact Hd
+  · wp_auto
+    by_cases hd0 : depth = W64 0
+    · rw [decide_eq_true hd0]
+      wp_auto
+      wp_apply wp_arbConds as %s1 ⟨%c1, Hs1, #Hc1⟩
+      (try wp_auto)
+      wp_apply wp_arbConds as %s2 ⟨%c2, Hs2, #Hc2⟩
+      (try wp_auto)
+      wp_apply wp_arbConds as %s3 ⟨%c3, Hs3, #Hc3⟩
+      (try wp_auto)
+      wp_apply (wp_ConditionsAwareDecisionConditionsMap s1 s2 s3 _ _ _ c1 c2 c3) $$ [$Hs1 $Hs2 $Hs3]
+        as %d ⟨#Hd, -⟩
+      · iapply (BigSepL.bigSepL_append (l₁ := c1 ++ c2) (l₂ := c3)).2
+        isplitl
+        · iapply (BigSepL.bigSepL_append (l₁ := c1) (l₂ := c2)).2
+          isplitl
+          · iexact Hc1
+          iexact Hc2
+        iexact Hc3
+      (try wp_auto)
+      iapply HΦ
+      iexact Hd
+    · rw [decide_eq_false hd0]
+      wp_auto
+      ihave Hu := ownBuilder_zero u_ptr $$ u
+      wp_apply wp_Int63n as %n %Hn
+      · ipureintro; decide
+      (try wp_auto)
+      ihave HI : (∃ (j : w64) (ks : List Dec),
+          "i" ∷ i_ptr ↦ j ∗ "Hu" ∷ ownBuilder u_ptr ks : IProp GF) $$ [i Hu]
+      · iexists W64 0, []
+        iframe
+      wp_for HI
+      by_cases Hlt : sint.Z j < sint.Z n
+      · rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+        (try wp_auto)
+        wp_apply wp_arbName as %nm _
+        (try wp_auto)
+        wp_apply (IH (uint.nat (depth - W64 1)) (by subst hk; word) (depth - W64 1) rfl) as %d' #Hwf'
+        iunfold isWFDecision at Hwf'
+        icases Hwf' with ⟨%m', #Hd', %Hm'⟩
+        (try wp_auto)
+        wp_apply (wp_ConditionsAwareDecisionUnion_Add u_ptr ks nm d' m') $$ [$Hu] as Hu
+        · iframe #
+          ipureintro; exact Hm'
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists _, _
+        iframe
+      · rw [decide_eq_false Hlt]
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        (try wp_auto)
+        wp_apply (wp_ConditionsAwareDecisionUnion_ToDecision u_ptr ks) $$ [$Hu] as %d ⟨#Hd, -⟩
+        (try wp_auto)
+        iapply HΦ
+        iexact Hd
 
 end proof
 

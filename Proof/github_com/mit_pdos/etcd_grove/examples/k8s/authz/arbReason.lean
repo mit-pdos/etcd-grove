@@ -31,7 +31,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 theorem arbReason.wp_proof
     (wp_arbBool : EtcdGrove.k8s_authz.arbBool.spec (GF := GF) (hG := hG)) :
     arbReason.spec (GF := GF) (hG := hG) := by
-  sorry
+  wp_start
+  wp_auto
+  wp_apply wp_arbBool as %b _
+  cases b
+  all_goals
+    wp_auto
+    iapply HΦ
+    itrivial
 
 end proof
 

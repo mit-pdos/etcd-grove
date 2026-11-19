@@ -35,7 +35,17 @@ theorem arbAuthorizer.Authorize.wp_proof
     (wp_arbReason : EtcdGrove.k8s_authz.arbReason.spec (GF := GF) (hG := hG))
     (wp_arbErr : EtcdGrove.k8s_authz.arbErr.spec (GF := GF) (hG := hG)) :
     arbAuthorizer.Authorize.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro z ctx a
+  wp_start
+  wp_auto
+  wp_apply wp_arbDecisionValue as %k _
+  (try wp_auto)
+  wp_apply wp_arbReason as %r _
+  (try wp_auto)
+  wp_apply wp_arbErr as %e _
+  (try wp_auto)
+  iapply HΦ
+  itrivial
 
 end proof
 
