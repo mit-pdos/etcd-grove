@@ -40,6 +40,8 @@ importable Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NamedVocab
 importable Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Laws
 importable Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Walkers
 importable Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
+# (the Prove phase, 2026-11-19) the closures `typed`'s package fact (`typedPoolsAt`) names
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Closures
 importable Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Laws
 
 ## The specs (one per function)
