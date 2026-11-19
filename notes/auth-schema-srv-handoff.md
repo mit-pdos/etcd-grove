@@ -1,11 +1,24 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 i, STOP: the concrete form of option (1))
+## START HERE (2026-11-19 k, route (d'): full timed build 4 running)
 
-- Lean 5f94c44bee merged (f3278f12b4, same pin; not yet built). The user chose option (1) for the blocker below
-  (questions.md, ledger 2026-11-19 "the auth records' size"); STOP on its concrete form (questions.md "Option (1):
-  concrete form"): a parameterless `authRecordsFit` that implies the bound for every step is false (vacuity in the 49
-  `Haf` places). Nothing coded for it yet.
+- Branch `auth-schema-port` (worktree `/shared/etcd-grove-authschema`), pin 3afd77e35 (manifest-3af); lean 5f94c44bee
+  merged (f3278f12b4). `auth-schema-srv` still cc85342beb (fast-forward at checkpoint B).
+- The user chose route (d') (questions.md, ledger 2026-11-19 "the auth records' size"): bbolt fork fix 3f8520bd
+  (`Put` refuses key+value > 2^28; local clone `/shared/tmp/auth-schema-srv/bbolt-fork`, branch `goose-lean-entrymax`,
+  NOT pushed: the user pushes); `etc/goose.py` pin; bbolt translation regenerated with `--src
+  bbolt=/shared/tmp/auth-schema-srv/bbolt-fork`. Done: aba2aa4634 + next commit: `Bucket.Put.spec` in place, PutWp's
+  branches (fresh lean-check clean), backend Put specs drop the premise (`unsafePut`'s post: entry within the bound),
+  8 direct callers, issue/nonissue files.
+- Pending after the push: `examples/go.mod` bbolt replace → `github.com/upamanyus/bbolt v0.0.0-20261119194012-3f8520bd7298`
+  (+ go.sum; `etc/goose.py --check` fails until then).
+- Next: build 4 (`/shared/tmp/auth-schema-srv/build-full4.log`) green → bbolt + backend interfaces, tcb `--check
+  --update`, collections, tier-check, gen-link all modes, checkpoint B; C: `stmtdiff2.py lean` (only hD22).
+- Pitfalls: (46) duplicate `Countable Qp` (`attribute [-instance] Perennial.Fs.Qp.countable`); (47) in PutWp, facts
+  about `sint.Z (W64 268435456 - key.len)` left in context make later `omega`s hit kernel deep recursion: derive
+  an iff, then `clear` them; avoid `contradiction` on goals with `bboltEntryMax`.
+
+## History (START HERE of 2026-11-19 i, superseded: stop on option (1))
 
 ## History (START HERE of 2026-11-19 h, P3-P5 BLOCKER: UnsafePut's entry-size premise)
 
