@@ -63,11 +63,15 @@ def version : GoString := go!"v1"
 
 /-! ## Objects, paths, managed fields -/
 
-/-- A `map[string]interface{}` literal: its entries, sorted (a Go map has no order). -/
-def mkObj (kvs : List (GoString × UVal)) : UVal := .map (kvs.foldl (fun m (k, v) => insertKV k v m) [])
+/-- A `map[string]interface{}` literal's entries, sorted (a Go map has no order). -/
+def mkKVs (kvs : List (GoString × UVal)) : List (GoString × UVal) := kvs.foldl (fun m (k, v) => insertKV k v m) []
+/-- A `map[string]interface{}` literal. -/
+def mkObj (kvs : List (GoString × UVal)) : UVal := .map (mkKVs kvs)
 def str (x : GoString) : UVal := .str x
+/-- `container(name, image)`'s entries. -/
+def containerKVs (n i : GoString) : List (GoString × UVal) := mkKVs [(go!"name", str n), (go!"image", str i)]
 /-- `container(name, image)`. -/
-def container (n i : GoString) : UVal := mkObj [(go!"name", str n), (go!"image", str i)]
+def container (n i : GoString) : UVal := .map (containerKVs n i)
 
 /-- `field(name)`. -/
 def field (n : GoString) : Path := [.field n]
@@ -111,6 +115,10 @@ def stApply (st : St) (config : UVal) (m : GoString) : Option (St × Bool) :=
 /-- `state.check(obj, managers, msg)`: whether it returns (no panic). -/
 def stCheck (st : St) (o : UVal) (m : MF) : Bool :=
   (match st.live.value with | some v => UVal.equals v o | none => false) && mfEquals st.mf m
+
+/-- What `state.apply` needs of the state (spec premises of `Apply`): every manager's set at the
+scenario's version, a named type. -/
+def stOk (st : St) : Bool := st.mf.all (fun e => e.2.version == version) && st.live.typeRef.namedType.isSome
 
 /-- A step's state, when the step returns (`Option.getD`). -/
 def stOf (r : Option (St × Bool)) : St := (r.getD default).1
@@ -229,6 +237,10 @@ def r9 : Option (St × Bool) := stApply S8 cfg9 go!"A"
 def S9 : St := stOf r9
 
 /-! ## The facts, decided by the kernel -/
+
+/-- The states the steps start from are `stOk`, and the schema's lists' keys are distinct. -/
+theorem states_ok : stOk S0 && stOk S1 && stOk S2 && stOk S3 && stOk S5 && stOk S6 && stOk S7a &&
+    stOk S7b && stOk S8 && sc.keysNodup = true := by decide +kernel
 
 /-- The objects the driver types validate (`typedObj` does not panic). -/
 theorem typed_ok : (stTyped obj0).isSome && (stTyped cfg1).isSome && (stTyped cfg2).isSome &&

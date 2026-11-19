@@ -162,6 +162,41 @@ def TypeRef.isZero (tr : TypeRef) : Bool :=
   tr.namedType.isNone && tr.inlined.scalar.isNone && tr.inlined.list.isNone &&
     tr.inlined.map.isNone && !tr.nullable
 
+-- Every associative list's key names are distinct (a premise of the specs: `FieldList.Sort`
+-- sorts a list item's key fields with `sort.SliceStable`, whose trust-boundary spec does not state
+-- stability, so only distinct names have one sorted order).
+mutual
+def TypeRef.keysNodup : TypeRef → Bool
+  | .mk _ a _ => Atom.keysNodup a
+  termination_by structural x => x
+def Atom.keysNodup : Atom → Bool
+  | .mk _ l m => OptListT.keysNodup l && OptMapT.keysNodup m
+  termination_by structural x => x
+def OptListT.keysNodup : OptListT → Bool
+  | .none => true
+  | .some l => ListT.keysNodup l
+  termination_by structural x => x
+def OptMapT.keysNodup : OptMapT → Bool
+  | .none => true
+  | .some m => MapT.keysNodup m
+  termination_by structural x => x
+def ListT.keysNodup : ListT → Bool
+  | .mk t _ ks => decide ks.Nodup && TypeRef.keysNodup t
+  termination_by structural x => x
+def MapT.keysNodup : MapT → Bool
+  | .mk fs t _ => Fields.keysNodup fs && TypeRef.keysNodup t
+  termination_by structural x => x
+def Fields.keysNodup : Fields → Bool
+  | .nil => true
+  | .cons f rest => StructField.keysNodup f && Fields.keysNodup rest
+  termination_by structural x => x
+def StructField.keysNodup : StructField → Bool
+  | .mk _ t => TypeRef.keysNodup t
+  termination_by structural x => x
+end
+
+def Schema.keysNodup (sc : Schema) : Bool := sc.types.all (fun (_, a) => a.keysNodup)
+
 end smd
 end EtcdGrove
 end Perennial
