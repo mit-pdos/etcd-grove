@@ -836,3 +836,8 @@ standard-library axioms already listed.
   premises follow (a value's field set is bounded by its size; unions and results stay below a
   small multiple); the driver discharges it by `decide`. Real Go runs out of memory long before;
   this is the margin, recorded at the API, not a law of the state (PRINCIPLES "A workload premise").
+- D10 (typed draft): (a) `typedSizeMax` is D9's `smdSizeMax` (one constant); (b) `RemoveItems` keeps
+  its premise that the result conforms, discharged in `prune`'s proof from `keysWithItems`;
+  (c) `Validate`/`AsTyped` are specified on conforming values only (post `err = nil`): rejection is
+  outside the scope, so their error paths need no stronger `fmt` spec (no new axiom). The driver
+  only types conforming literals.
