@@ -783,6 +783,50 @@ theorem run.wp_proof
   iunfold psAtLeast at HpsT
   icases HpsT with ⟨%ps3, #Hps3, %hps3⟩
   (try wp_auto)
+  -- `barriers(ms, lg)` again, the read update seeing the three attachments (`cell_readAu`); the lessor
+  -- facts at u's member (Lz on z/lease) and v's member (Lu on a/lease) from their floors (`cell_holds`)
+  ihave #Hbp2 : [∗list] b ∈ ((ss.zip xs).zip ws).map (bArg γz hs Lset Lc rset (cellSeen γc ps3 0)),
+      barrierPre b $$ []
+  · iclear Hbp1 Hbq1'
+    rw [BigSepL.bigSepL_map (fun q => bArg γz hs Lset Lc rset (cellSeen γc ps3 0) q)]
+    iapply (barrierPre_all x0 w0 γz hs Lset Lc rset _ _ hlq Hadm HLcst)
+    iframe #
+    iintro !> %ρ' %hρ'
+    iright
+    ihave #Hinv' := cellInv_same x0.2.ρ.rd.kv ρ'.rd.kv γc hρ'.1 $$ Hinv
+    iapply (cell_readAu ρ'.rd.kv γc ps3 0)
+    iframe #
+  wp_apply (wp_barriers msl lg (xs.map (·.1)) _ (hmsb _) (by omega) hAs) as %okb2 Hb2
+  · iframe #
+  icases Hb2 with (%Hb | ⟨%Hb, #Hbq2⟩) <;> subst Hb
+  · wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  wp_auto
+  ihave #Hbq2' : [∗list] q ∈ (ss.zip xs).zip ws,
+      barrierPost (bArg γz hs Lset Lc rset (cellSeen γc ps3 0) q) $$ []
+  · iclear Hbp1 Hbq1' Hbp2
+    rw [← BigSepL.bigSepL_map (fun q => bArg γz hs Lset Lc rset (cellSeen γc ps3 0) q)]
+    iexact Hbq2
+  iclear Hbq2
+  have hsv := hsc xv hxvm
+  have hon₃ : wv.E.authOn = true := by unfold apply.AEnv.authOn; rw [HR₃.1]; rfl
+  ihave #Gu := BigSepL.bigSepL_lookup hyu $$ Hbq2'
+  iunfold barrierPost at Gu
+  icases Gu with ⟨-, %Fu₂, %ltu₂, #HFu₂, #HSu⟩
+  ihave #Gv := BigSepL.bigSepL_lookup hyv $$ Hbq2'
+  iunfold barrierPost at Gv
+  icases Gv with ⟨-, %Fv₂, %ltv₂, #HFv₂, #HSv⟩
+  ihave #Hrdu : isServerReadM wu.E.authOn su wu.E xu.2.ρ.rd $$ []
+  · rw [hon₂]; iexact Hrd₂
+  ihave #Hrdv : isServerReadM wv.E.authOn sv wv.E xv.2.ρ.rd $$ []
+  · rw [hon₃]; iexact Hrd₃
+  ihave #Hinvv := cellInv_same x0.2.ρ.rd.kv xv.2.ρ.rd.kv γc hsv.1 $$ Hinv
+  imod (cell_holds hlaw su wu.E xu.2.ρ.rd γc Fu₂ ltu₂ lz lu lz zK ps3 0 hps3
+      (by rw [hsu.2.2.2.2.2.1]; exact hns) (Or.inl ⟨rfl, rfl⟩)) $$ [] with ⟨%mz, #Hlbz, #Hhz⟩
+  · iframe #
+  imod (cell_holds hlaw sv wv.E xv.2.ρ.rd γc Fv₂ ltv₂ lz lu lu aK ps3 0 hps3
+      (by rw [hsv.2.2.2.2.2.1]; exact hns) (Or.inr ⟨rfl, rfl⟩)) $$ [] with ⟨%mu, #Hlbu, #Hhu⟩
+  · iframe #
   sorry
 
 end proof
