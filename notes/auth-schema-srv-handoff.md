@@ -1,6 +1,31 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 c, A6: K-c, the lend, V-pub, creation drafted; builds pending)
+## START HERE (2026-11-19 d, A6 done; A7 HARD STOP for the user)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere (`.lake/package-overrides.json` = that manifest). When lean has "Merge origin/lean (d52bb9be66)": merge,
+  switch to manifest-f55 (and the overrides copy), full timed rebuild.
+- Decided 2026-11-19 by etcd-grove-03 (questions.md "A6 K-c, real_bkLend, V-pub decided"): K-c, `real_bkLend`
+  ACCEPTED; V-pub ACCEPTED (internal) after an independent check, done: OK, two liveness MINORs (questions.md).
+- **Done** (b7c4a39873, c43860f056, bf2c6f69d9): AuthRealWr's 18 errors fixed; AuthRealNew compiles; new
+  `etcdserver/AuthRealSrv.lean`: `real_srv : isPkgInit backend ∗ isPkgInit schema ⊢ authSchemaSrv` and `real_snap`
+  (`authSchemaSnap` at the tickets over the vault), over 47 proved callee specs and `receiptBound GF ≤ 2^48`; no axiom
+  or sorry. Targeted build rc=0 (`/shared/tmp/auth-schema-srv/srv-build1.log`: AuthRealSrv, server Link, backend
+  Link, ImageOn, RoleList); backend interface `--check` clean (no etcdserver API config exists, nothing to
+  regenerate there). Full timed build: `/shared/tmp/auth-schema-srv/full-build1.log` (see the report for its result).
+- **A7 STOP** (`notes/auth-schema-srv-a7.md`): the link drops `hD22` from `etcd_auth_safe`, `etcd_auth3_safe`,
+  `etcd_authN_safe` and their chains; the trusted-text list with what stays in the TCB; the trust-base delta. Nothing
+  linked until the user decides.
+- Next after the decision: the link (`authStoreKit_on` at `AuthSrv.lean:496` uses `real_srv`; package inits from the
+  context's `isPkgInit`; `hRB` from `ReceiptBoundLe`), regenerate Links (`LAKE_OPTS` for gen-link), collections
+  `--check --update`, mvcc/etcdstart interfaces `--check` after the full build; land stop.
+- Pitfalls: (0)-(39) as before (History); (40) lean-check's output right after an edit can repeat the previous run's
+  errors: re-run before trusting it; (41) `iexact`/`iframe` match only up to reducible unfolding: convert a hypothesis
+  with `iapply (show A ⊢ B from .rfl) $$ H` (record projections, `authBktL`, `authRolesName`, `0 + 1`), and unfold a
+  tactic `let` in the goal with `dsimp only [L]`; (42) an Iris hypothesis applied to arguments in a term
+  (`wp_apply (H a b)`) is an unknown identifier: write `wp_apply H $$ %a %b [..]`.
+
+## History (START HERE of 2026-11-19 c, superseded)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
   everywhere (`.lake/package-overrides.json` = that manifest; f551a1b46 / manifest-f55 comes with the next lean merge).
