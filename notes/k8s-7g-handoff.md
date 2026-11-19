@@ -11,7 +11,9 @@ STOP: `reflect.Value.IsNil.spec` needs `b = false → s ≠ slice.nil` (trusted 
   Written: `Spec/reflect/Value__IsNil.lean` post `… ∧ (b = false → s ≠ slice.nil)`; Go `TestIsNilFalseNonNil` PASS.
 - Done with the accepted MakeSlice fact: `listContractOk'`'s MakeSlice-0 clause gives `⌜s' ≠ slice.nil⌝`
   (ListContract discharges `Hs.2.2.2`; growSlice/finalizeList take it).
-- Build: `/shared/tmp/k8s7g/build-optA.sh` (log `build-optA.log`), ran this night: see the report / log.
+- Build `/shared/tmp/k8s7g/build-optA.sh` (log `build-optA.log`) ran: rc 1 on raft kv/kvdurable/kvreconf/kvdurablenoax/
+  kvwitness (option A: facts by `rfl`, Get/Read continuations in the `∀ o'` form; fixed, lean-check `-a` clean, not yet
+  rebuilt through their Results) and on `k8s/etcd3/Check` (step 5's known work). Rerun it after the IsNil threading.
 - Next after the IsNil attack: `finalizeList`'s post and `listIs` (GetList's success post) in a non-nil-items form
   (`∃ pl s, … ⌜s ≠ slice.nil⌝ …`, in place), then step 5 in the order below (night 10).
 
