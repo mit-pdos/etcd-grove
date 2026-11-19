@@ -7,7 +7,7 @@
 grant update for every id (`Qg`), and a ghost step `Fix` that, once the grant returned the id `id`
 (not `NoLease`) with `Qg id` of some state, turns the caller's `R` into `R' id` and the put's update
 for that id (`Qp id`), every attempt's context without outgoing metadata. `true` returns the id, with
-`R' id`, `Qg id` and `Qp id` of some states; `false`, nothing.
+`R' id` and `Qp id` of some state; `false`, nothing.
 -/
 module
 
@@ -54,7 +54,7 @@ abbrev grantPut.spec : Prop :=
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut)) (Val #cli))
       (Val #k))
   {{ (id : w64) (ok : Bool), RET (PairV #id #ok); ⌜ok = false⌝ ∨
-      (⌜ok = true⌝ ∗ R' id ∗ (∃ σ, Qg id σ) ∗ ∃ σ, Qp id σ) }}
+      (⌜ok = true⌝ ∗ R' id ∗ ∃ σ, Qp id σ) }}
 
 end spec
 
