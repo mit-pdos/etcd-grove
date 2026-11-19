@@ -15,6 +15,7 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Reason
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Error
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__UnionedDecisions
+public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__ContainsUnconditionalAllowOrDeny
 public import Spec.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler__evaluateConditions
 
 @[expose] public section
@@ -157,6 +158,22 @@ theorem wp_ptr_Error_of
   wp_auto
   wp_apply (wp_X d)
   iapply HΦ; iframe
+
+theorem wp_ptr_ContainsUnconditionalAllowOrDeny_of
+    (wp_X : ConditionsAwareDecision.ContainsUnconditionalAllowOrDeny.spec (GF := GF) (hG := hG))
+    (l : Loc) (dl : DFrac) (d : ConditionsAwareDecision) (m : authorizer.Dec) :
+    {{ (l ↦{dl} d ∗ isDecision d m : IProp GF) }}
+      (App (Val (l @!! go.GoType.PointerType ConditionsAwareDecision.ty @!!
+        go!"ContainsUnconditionalAllowOrDeny")) (Val #()))
+    {{ RET #(m.cuad); l ↦{dl} d }} := by
+  iintro %Φ ⟨Hl, #Hd⟩ HΦ
+  wp_method_call; (try wp_call)
+  wp_auto
+  iapply (wp_X d m)
+  · iexact Hd
+  iintro !> -
+  iapply HΦ
+  iframe
 
 theorem wp_ptr_UnionedDecisions_of
     (wp_X : ConditionsAwareDecision.UnionedDecisions.spec (GF := GF) (hG := hG))
