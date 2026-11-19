@@ -2722,6 +2722,86 @@ theorem real_wBoot
   iframe Hk
   iintro Hk; iexact Hk
 
+/-! ## The lend (`authBkLend`; STOP 6's K-c, decided by etcd-grove-03, 2026-11-19) -/
+
+/-- Eight bytes are the big-endian encoding of what they decode to. -/
+theorem u64Be_beToU64 (v : List w8) (h : v.length = 8) : u64Be (beToU64 v) = v := by
+  unfold u64Be beToU64
+  rw [leToU64_le _ (by simp [h]), List.reverse_reverse]
+
+/-- **The buckets at one state hold it**, once its revision is written (`1 ≤ st.revision`: the revision key is then
+present, of 8 bytes, `revWf`). -/
+theorem viewAt_bucketsAre {st : auth.AuthState} {D : schema.AuthData} (h : viewAt ⟨st, st, st⟩ D)
+    (h1 : 1 ≤ st.revision) : schema.authBucketsAre st D ∧ st.revision < 2 ^ 64 := by
+  have hwf := viewAt_wf h
+  obtain ⟨⟨hen, hrev, hrw⟩, ⟨dU, hu⟩, ⟨dR, hr⟩⟩ := h
+  obtain ⟨v, hv⟩ : ∃ v, D.auth.lookup schema.authRevisionKey = some v := by
+    cases hc : D.auth.lookup schema.authRevisionKey with
+    | none =>
+      exfalso
+      have h0 : uint.nat (schema.revisionOf ⟨D.auth, ∅, ∅⟩) = 0 := by
+        simp only [schema.revisionOf, hc]; rfl
+      dsimp only at hrev
+      omega
+    | some v => exact ⟨v, rfl⟩
+  have h8 : v.length = 8 := hrw v hv
+  have hrev' : uint.nat (beToU64 v) = st.revision := by
+    have e : schema.revisionOf ⟨D.auth, ∅, ∅⟩ = beToU64 v := by simp only [schema.revisionOf, hv]
+    dsimp only at hrev
+    rw [← e]; exact hrev
+  refine ⟨⟨hwf, (enabledOf_auth D).trans hen, ?_, hu.1, fun n v hl => ⟨dU n, hu.2 n v hl⟩, hr.1,
+    fun n v hl => ⟨dR n, hr.2 n v hl⟩⟩, ?_⟩
+  · rw [hv, ← hrev', w64_to_nat_id, u64Be_beToU64 v h8]
+  · rw [← hrev']; word
+
+/-- **What the lend observes**: the auth buckets of `r`, equal to the claimed part's `rc` there, whose buckets are
+the readers' contents `cs` at one state `st` of revision at least 1, hold `st`. -/
+theorem lend_bucketsAt {st : auth.AuthState} {r rc : GMap GoString BktData} {cs : GoString → BktData}
+    (hv : viewAt ⟨st, st, st⟩ ⟨cs go!"auth", cs go!"authUsers", cs go!"authRoles"⟩) (h1 : 1 ≤ st.revision)
+    (hrc : ∀ n, n ∈ authBktL → bktOf rc n = cs n) (hag : ∀ n, n ∈ authBktL → rc.lookup n = r.lookup n) :
+    authBucketsAt st r := by
+  have e : ∀ n, n ∈ authBktL → (r.lookup n).getD ∅ = cs n := fun n hn => by
+    rw [← hag n hn]; exact hrc n hn
+  have hD : authDataOf r = ⟨cs go!"auth", cs go!"authUsers", cs go!"authRoles"⟩ := by
+    unfold authDataOf
+    rw [e _ (by simp [authBktL]), e _ (by simp [authBktL]), e _ (by simp [authBktL])]
+  unfold authBucketsAt
+  rw [hD]
+  exact viewAt_bucketsAre hv h1
+
+/-- **The lend** (`authBkLend`, `authSchemaSrv`'s and `authSchemaSnap`'s trusted clause; STOP 6, K-c): the write
+token and the admin side's half of the history borrow the idle buckets (`real_borrow`, as a batch begins), whose
+lock share of the history agrees with the half (so the buckets are at its last state); `RL` keeps what was borrowed
+and the half; with the batch lock's `rbOwn r`, the claimed part's eighth of each auth bucket's element agrees with
+`r` there (`rbOwnInR_rbOwn_agree`), so `r`'s auth buckets are the readers' contents, which hold the last state
+(`viewAt`, revision at least 1: `lend_bucketsAt`); `RL` given back returns the borrow (`real_unborrow`). -/
+theorem real_bkLend (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
+    realInv (GF := GF) γ d s0 q0 ⊢ authBkLend γ.γa γ.γc d := by
+  iintro #Hinv
+  iunfold authBkLend
+  iintro !> %hs %st %hl %h1 HT Hh
+  imod real_borrow γ d s0 q0 $$ [$Hinv $HT] with ⟨%cs, %hs', %rc, %w, %st', Hlq, Hro, Hbt, Hsw, Hq, %Hb⟩
+  obtain ⟨hl', hv, hrc⟩ := Hb
+  ihave %Heq := auth.authHistHalf_lockQ_agree γ.γa hs hs' $$ Hh Hlq
+  subst Heq
+  have hst : st = st' := by rw [hl] at hl'; exact Option.some.inj hl'
+  subst hst
+  imodintro
+  iexists iprop(auth.authLockQ γ.γa hs ∗ rbOwnInR d.γB (fun n => n ∈ authBktL) rc ∗
+    (bkTok γ (1 : Qp).half (csT cs) ∗ bkSw γ 1 w ∗ bOpen d.γB q0 ∗ auth.authHistHalf γ.γa hs))
+  isplitl [Hlq Hro Hbt Hsw Hq Hh]
+  · iframe Hlq Hro Hbt Hsw Hq Hh
+  isplitr
+  · iintro !> %r ⟨Hlq, Hro, Hrest⟩ Hown
+    icases rbOwnInR_rbOwn_agree d.γB (fun n => n ∈ authBktL) rc r $$ [$Hro $Hown] with ⟨Hro, Hown, %Hag⟩
+    iframe Hlq Hro Hrest Hown
+    ipureintro
+    exact lend_bucketsAt hv h1 hrc Hag
+  · iintro ⟨Hlq, Hro, Hbt, Hsw, Hq, Hh⟩
+    imod real_unborrow γ d s0 q0 cs hs rc w st hl hv hrc $$ [$Hinv $Hbt $Hlq $Hro $Hsw $Hq] with HT
+    imodintro
+    iframe HT Hh
+
 end wr
 
 end authReal

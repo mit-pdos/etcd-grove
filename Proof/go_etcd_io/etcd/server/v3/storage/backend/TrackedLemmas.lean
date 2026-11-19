@@ -218,6 +218,15 @@ theorem rbEls_none (γ : BNames) (q : Qp) (v : GoString → Option BktData × Bo
   iintro -
   itrivial
 
+/-- The elements of an empty set of buckets are nothing. -/
+theorem rbEls_empty (γ : BNames) (S : GoString → Prop) (hS : ∀ n, ¬ S n) (q : Qp)
+    (v : GoString → Option BktData × Bool) : ⊢ rbEls (GF := GF) γ S q v := by
+  unfold rbEls
+  refine BigSepM.bigSepM_intro (P := iprop(emp)) fun {k} {_} _ => ?_
+  rw [if_neg (hS k)]
+  iintro -
+  itrivial
+
 /-- **Allocation**: a fresh ghost map whose elements over `D` are at `v`. -/
 private theorem els_alloc_from (D : GMap GoString Unit) (v : GoString → Option BktData × Bool) (g : GName) :
     ∀ M : GMap GoString (Option BktData × Bool), (∀ k, D.lookup k ≠ none → M.lookup k = none) →
@@ -500,9 +509,22 @@ theorem q34_add : ((1 : Qp).half + (1 : Qp).half.half) + (1 : Qp).half.half = 1 
 theorem q_whole : ((1 : Qp).half.half + (1 : Qp).half.half) + (1 : Qp).half = 1 := by
   rw [q4_add, q2_add]
 
+/-- (K-c) Two quarters and a claimed bucket's five eighths are too many. -/
 theorem q_over : 1 < ((1 : Qp).half.half + (1 : Qp).half.half).val +
-    ((1 : Qp).half + (1 : Qp).half.half).val := by
+    ((1 : Qp).half + (1 : Qp).half.half.half).val := by
   simp; grind
+
+/-- (K-c) The claim's split: the unclaimed branch's half and the client's quarter are the claimed branch's
+five eighths and the claimed part's eighth. -/
+theorem q_claim : (1 : Qp).half + (1 : Qp).half.half =
+    ((1 : Qp).half + (1 : Qp).half.half.half) + (1 : Qp).half.half.half :=
+  Subtype.ext (by simp; grind)
+
+/-- (K-c) A claimed write's whole element: the claimed branch's five eighths, the batch lock's quarter and
+the claimed part's eighth. -/
+theorem q58_whole : (((1 : Qp).half + (1 : Qp).half.half.half) + (1 : Qp).half.half) +
+    (1 : Qp).half.half.half = 1 :=
+  Subtype.ext (by simp; grind)
 
 theorem dfrac_own_op (a b : Qp) : DFrac.own a • DFrac.own b = DFrac.own (a + b) := rfl
 
@@ -588,6 +610,15 @@ theorem rbPartF_one (γ : BNames) (n : GoString) (r : GMap GoString BktData) (F 
     isplitr
     · ipureintro; intro m hm h0; subst hm; exact absurd h0 hd
     · iapply h.1 $$ H
+
+/-- The elements of one tracked bucket are its element. -/
+theorem rbEls_one (γ : BNames) (n : GoString) (q : Qp) (v : GoString → Option BktData × Bool)
+    (hd : γ.rbD.lookup n ≠ none) :
+    rbEls (GF := GF) γ (fun m => m = n) q v ⊣⊢ rbElem γ n q (v n) := by
+  unfold rbEls
+  have h := mapIf_one (GF := GF) γ.rbD (fun m => m = n) n (fun _ => Iff.rfl) hd
+    (fun k => rbElem γ k q (v k))
+  exact ⟨h.2, h.1⟩
 
 /-- The elements of every bucket, as the raw family. -/
 theorem rbEls_top (γ : BNames) (q : Qp) (v : GoString → Option BktData × Bool) :
@@ -702,7 +733,7 @@ private theorem rbPartF_join_compl (γ : BNames) (S : GoString → Prop) (r : GM
 `UnsafeCreateBucket`, `UnsafeDeleteBucket`): the batch lock's side and the client's part of `n`
 updated to the new contents, the bucket's write pending (`I'` of the other buckets with no write
 pending, from `I`). (A6.2) The bucket is unclaimed (the client's quarter, the batch lock's and a claimed
-bucket's three quarters are too many), and its element is whole only with the claim invariant's half,
+bucket's five eighths are too many, K-c), and its element is whole only with the claim invariant's half,
 which the write updates (the flag set: the invariant's link holds vacuously). -/
 theorem rbSide_put (γ : BNames) (P : BParams) (r r' : GMap GoString BktData) (n : GoString)
     (hBT : ∃ i, P.BT.lookup n = some i) (hRB : P.RB n = true)
@@ -1326,7 +1357,7 @@ private theorem rbcEls_acc (γ : BNames) (S : GoString → Prop) (v : GoString �
       simp only [if_pos hS]; exact .rfl) $$ Hn'
 
 /-- **A claimed session's write to the claimed bucket `m`** (A1.4; A6.2): the claim element (the part's half
-and the claim invariant's) and the bucket's `γ.rbk` element (the invariant's three quarters and the batch
+and the claim invariant's) and the bucket's `γ.rbk` element (the invariant's five eighths, the part's eighth (K-c) and the batch
 lock's quarter) move to the new contents, the claim element's flag set and the `γ.rbk` flag left clear (the
 batch lock records the claimed write in `st.cw`: `hIm`); the readers' contents are untouched (they move at
 `Unlock`, through the client's quarters, A1.5). -/
@@ -1340,8 +1371,9 @@ theorem rbrSide_writeR (γ : BNames) (P : BParams) (m : GoString) (st st' : BSes
   have hO' : ∀ n, n ≠ m → (rbData P st'.S).lookup n = (rbData P st.S).lookup n := by
     intro n hn; rw [rbData_lookup, rbData_lookup, (hO n hn).2.1]
   unfold rbPutR rbPartR rbPartRF rbSide
-  iintro ⟨⟨⟨%M, Ha⟩, ⟨%FL, Hl, %HI⟩, %Hd, #Hinv⟩, ⟨%hRB, %F, %Hpd, Hp⟩, Hr⟩
+  iintro ⟨⟨⟨%M, Ha⟩, ⟨%FL, Hl, %HI⟩, %Hd, #Hinv⟩, ⟨%hRB, %F, %Hpd, Hp, He⟩, Hr⟩
   have hmd : γ.rbD.lookup m ≠ none := Hpd m rfl
+  ihave He := (rbEls_one γ m (1 : Qp).half.half.half (fun n => ((rbData P st.S).lookup n, false)) hmd).1 $$ He
   icases rbcEls_acc γ (fun k => k = m) (fun k => some ((rbData P st.S).lookup k, F k)) m rfl hmd $$ Hp
     with ⟨Hpm, Hp⟩
   icases rbPartF_split_compl γ (fun k => k = m) (rbData P st.S) FL $$ Hl with ⟨Hln, Hlo⟩
@@ -1368,10 +1400,12 @@ theorem rbrSide_writeR (γ : BNames) (P : BParams) (m : GoString) (st st' : BSes
     icases gme_split γ.rbc m _ _ _ $$ Hc with ⟨Hc1, Hc2⟩
     icases gme_join γ.rbk m _ _ _ _ $$ [$Hk $Hln] with ⟨Hw, %Hke⟩
     have hFL : FL m = false := (congrArg Prod.snd Hke).symm
-    ihave Hw := gme_frac γ.rbk m _ 1 _ q34_add $$ Hw
+    icases gme_join γ.rbk m _ _ _ _ $$ [$Hw $He] with ⟨Hw, -⟩
+    ihave Hw := gme_frac γ.rbk m _ 1 _ q58_whole $$ Hw
     imod ghost_map_update (((rbData P st'.S).lookup m, false) : Option BktData × Bool) $$ Ha Hw
       with ⟨Ha, Hw⟩
-    ihave Hw := gme_frac γ.rbk m 1 _ _ q34_add.symm $$ Hw
+    ihave Hw := gme_frac γ.rbk m 1 _ _ q58_whole.symm $$ Hw
+    icases gme_split γ.rbk m _ _ _ $$ Hw with ⟨Hw, He⟩
     icases gme_split γ.rbk m _ _ _ $$ Hw with ⟨Hk, Hln⟩
     imod Hclose $$ [Hac Hm Hk Hc1] with -
     · inext
@@ -1408,14 +1442,17 @@ theorem rbrSide_writeR (γ : BNames) (P : BParams) (m : GoString) (st st' : BSes
       isplitr
       · ipureintro; exact Hd
       · iexact Hinv
-    isplitl [Hp Hc2]
+    isplitl [Hp Hc2 He]
     · isplitr
       · ipureintro; exact hRB
       iexists (fun _ => true)
       isplitr
       · ipureintro; exact Hpd
-      iapply Hp $$ %(fun k => some ((rbData P st'.S).lookup k, true)) %(fun k hk hk' => absurd hk hk')
-      iexact Hc2
+      isplitl [Hp Hc2]
+      · iapply Hp $$ %(fun k => some ((rbData P st'.S).lookup k, true)) %(fun k hk hk' => absurd hk hk')
+        iexact Hc2
+      · iapply (rbEls_one γ m (1 : Qp).half.half.half (fun n => ((rbData P st'.S).lookup n, false)) hmd).2
+        iexact He
     · iapply rbrSide_congr γ P st st' hC hR true (fun _ h => by cases h) $$ Hr
 
 /-- **A session's write to bucket `m` through a part of either kind** (`k`: claimed; A1.4), in the mode

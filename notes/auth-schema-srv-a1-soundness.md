@@ -192,3 +192,36 @@ the claimed flags, the token laws). `batchLocked_claim`, `trkSide_claim1`, `trkS
   allocates them, `NewAlloc.lean`); `authRdSlots` gains the auth buckets' tokens (`authSchemaSrv`/`authSchemaSnap`'s
   premise asks more). `newPostKP` is unchanged, so no exported result whose precondition holds `newPostKP`
   changes (the second review's MINOR 2 does not arise).
+
+## 7. K-c: the claimed part keeps an eighth of `γ.rbk` (2026-11-19; amends §6)
+
+STOP 6 (F-lend, questions.md "A6 STOP 6"), option (K-c), decided by etcd-grove-03. `authBkLend`'s law is a plain
+wand (its consumer, `backend.Snapshot.spec`'s observation, is fupd-free), so it cannot open the claim invariant,
+and before K-c no `γ.rbk` share was outside it for a claimed bucket but the batch lock's.
+
+- **The fractions.** `rbPartRF` (sealed) also holds `rbEls γ S ⅛ (fun n => (r.lookup n, false))`; the claimed
+  branch `rbClaimC` holds ⅝ (was ¾). The claim (`rbOwnIn_claim1`) joins the unclaimed half and the client's ¼ at
+  `(r n, false)` and splits ⅝ (deposited) + ⅛ (kept: `q_claim`). A claimed write (`rbrSide_writeR`) joins ⅝ + the
+  lock's ¼ + the writer's ⅛ (`q58_whole`) and gives back ⅛ at the new contents, flag `false`. An unclaimed write
+  or flag clear on a claimed bucket (`rbSide_put`, `idle_one`) is refuted by ¼ + ¼ + ⅝ > 1 (`q_over`).
+- **The law.** `rbPartRF_rbPart_agree` (corollaries `rbPartR_rbPart_agree`, `rbOwnInR_rbPart_agree`,
+  `rbOwnInR_rbOwn_agree`; ClaimedLemmas.lean): `rbPartRF γ S r F ∗ rbPart γ S' r' ⊢ … ∗ ⌜∀ n, S n → S' n →
+  r.lookup n = r'.lookup n⌝`: agreement of **contents** only, no update. Used by `real_bkLend` (AuthRealWr.lean).
+- **Independent check** (fresh read-only subagent, 2026-11-19, given the fractions, the four laws and the claim
+  design): every `γ.rbk` share of a claimed bucket is the invariant's ⅝ (inside `inv rbClaimN`), the batch lock's
+  ¼ (client-reachable only after `Close`, `bStopView`, or inside a snapshot's observation) and the claimer's ⅛; no
+  other client quarter exists (the claim consumes it), so a client holds at most ⅜. (i) A claimed write holds the
+  whole element, the three values agreeing: OK. (ii) An unclaimed write on a claimed bucket is refuted: OK. (iii)
+  The law is agreement; no exclusivity is provable from client shares even with the invariant opened (⅝ + ⅛ + ¼ =
+  1): OK; MINOR: whole-pair agreement would also show the `rbPart`'s flag `false`, an idleness of a claimed bucket,
+  so the law states contents only and (i) now forbids deriving it. (iv) No existing law updates from stale ¼ +
+  claimer ⅛ + ⅝ (every update takes `rbSide`'s authority or is the claim from a client quarter); MINOR: the ⅛ is
+  not "client-shaped", so (iv)'s wording now names it. (v) No client of `isBackend`/`rbOwnInR` derives False:
+  OK (Snapshot's observation sees shares that coexist in a valid state; `Unlock`'s `rbPartR_idle` leaves the ⅛).
+- **Forbidden laws, amended** (in `rbOwnInR`'s docstring; `bStopView`'s points to it): (i) also: no law deriving
+  `rbOwnIn` (idleness) of a claimed bucket from a claimed part; (ii) also `rbPartR`/`rbOwnInR` and any `γ.rbk` share
+  at flag `false` (a claimed bucket's `γ.rbk` flag is always `false` and says nothing of its readers; its pending
+  writes are in `γ.rbc`); (iv) client-held shares include `bStopView`'s quarter and a claimed part's ⅛: after
+  `Close`, stale ¼ + ⅛ + ⅝ make a whole element.
+- **Trusted text.** The body of the sealed `rbPartRF`/`rbClaimC` under `isBackend` (so `backend.Snapshot`'s and
+  `newPostK`'s meaning) and of `rbOwnInR` in `authSchemaSrv`/`authSchemaSnap`'s texts: on the A7 list.

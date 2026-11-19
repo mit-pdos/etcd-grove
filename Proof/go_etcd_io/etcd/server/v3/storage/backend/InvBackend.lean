@@ -553,8 +553,11 @@ instance rbOwn_timeless (γ : BNames) (r : GMap GoString BktData) :
 open Classical in
 /-- **A claimed part of the tracked buckets in `S`** at contents `r` and pending flags `F` (A1.4 of
 `auth-schema-srv`, D3, 2026-11-17): half of each bucket's claim element (`γ.rbc`, at `some (r n, F n)`),
-the claim invariant (`rbClaimInv`'s claimed branch, A6.2) holding the other half and three quarters of
-the `γ.rbk` element (the batch lock the last quarter), every name of `S` tracked. Sealed (`@[no_expose]`):
+the claim invariant (`rbClaimInv`'s claimed branch, A6.2) holding the other half; and (K-c, STOP 6 of A6,
+decided by etcd-grove-03, 2026-11-19) an eighth of each bucket's `γ.rbk` element at the part's contents and flag
+`false` (the claim invariant holds five eighths, the batch lock the last quarter), so that a fupd-free law can
+compare a claimed part with a `γ.rbk` share (`rbPartR_rbPart_agree`: agreement of contents only); every name of
+`S` tracked. Sealed (`@[no_expose]`):
 it is made only by the claim (`rbOwnIn_claim`, A6.2) and has **no law back to an unclaimed part**
 (`rbPart`), so no trusted writer (all take `rbPart`/`rbOwn`) reaches a claimed bucket; a claimed bucket's
 writes move its readers' contents only through the client's quarters (`rbRd`, at `Unlock`'s accessor,
@@ -562,8 +565,9 @@ A1.5). -/
 @[no_expose] def rbPartRF (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData)
     (F : GoString → Bool) : IProp GF :=
   iprop(⌜∀ n, S n → γ.rbD.lookup n ≠ none⌝ ∗
-    [∗map] n ↦ _u ∈ γ.rbD, (if S n then ghostMapElem γ.rbc n (DFrac.own (1 : Qp).half)
-      (some (r.lookup n, F n) : Option (Option BktData × Bool)) else iprop(True)))
+    ([∗map] n ↦ _u ∈ γ.rbD, (if S n then ghostMapElem γ.rbc n (DFrac.own (1 : Qp).half)
+      (some (r.lookup n, F n) : Option (Option BktData × Bool)) else iprop(True))) ∗
+    rbEls γ S (1 : Qp).half.half.half (fun n => (r.lookup n, false)))
 
 /-- **The client's claimed part of the tracked buckets in `S`** (A1.4): the writer's contents hold `r` on
 them; only its holder writes them (`UnsafePut`, `UnsafeDelete`, `UnsafeCreateBucket`, `UnsafeDeleteBucket`
@@ -576,15 +580,21 @@ def rbPartR (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) : 
 
 **Forbidden future laws** (A6.2 second review, decided by etcd-grove-03, 2026-11-17). After `Close`, a client
 may hold the stopped batch lock's client-shaped share of a claimed bucket (`bStopView`'s `rbOwn`), which is
-harmless only because nothing relates a claimed resource to a `γ.rbk` share. None of these may be added:
+harmless only because nothing relates a claimed resource to a `γ.rbk` share beyond agreement of contents. (K-c,
+2026-11-19: a claimed part holds ⅛ of each claimed bucket's `γ.rbk` element at flag `false`, the claimed branch
+⅝; the law `rbPartR_rbPart_agree` is agreement of contents only.) None of these may be added:
 (i) an exclusivity law between a claimed resource (`rbOwnInR`, `rbPartR`, `rbRd`, `rbClaimToks`) and a `γ.rbk`
-share, e.g. `rbOwnInR γ {n} r ∗ rbPart γ {n} r' ⊢ False`, or "claimed ⇒ no `rbPart`/`rbOwn` of `n`";
-(ii) a reader law or axiom taking `rbOwnIn` (or a `γ.rbk` share at flag `false`) without `bOpen` or a held
-read lock; (iii) anything that re-opens a closed backend under the same ghost names `γ` (giving a batch lock)
-while a client may hold `bStopView`'s share;
-(iv) a law updating a bucket's `γ.rbk` element (contents or flag) from client-shaped shares plus the claim
-invariant or a token (`rbClaimToks`) without `rbSide` (the batch lock's side): after `Close` the stale lock quarter, a
-client quarter and the invariant's half make a whole element (delta review of the A6.2 forms, MINOR 1). -/
+share, e.g. `rbOwnInR γ {n} r ∗ rbPart γ {n} r' ⊢ False`, or "claimed ⇒ no `rbPart`/`rbOwn` of `n`"; nor a law
+deriving `rbOwnIn` (idleness: the flag) of a claimed bucket from a claimed part;
+(ii) a reader law or axiom taking `rbOwnIn`, `rbPartR`/`rbOwnInR`, or any `γ.rbk` share at flag `false`, without
+`bOpen` or a held read lock (a claimed bucket's `γ.rbk` flag is always `false` and says nothing about its
+readers: its pending writes are in `γ.rbc`); (iii) anything that re-opens a closed backend under the same ghost
+names `γ` (giving a batch lock) while a client may hold `bStopView`'s share;
+(iv) a law updating a bucket's `γ.rbk` element (contents or flag) from client-held `γ.rbk` shares (client-shaped
+quarters, `bStopView`'s quarter, or a claimed part's ⅛) plus the claim invariant or a token (`rbClaimToks`)
+without `rbSide` (the batch lock's side): after `Close` the stale lock quarter, the claimer's ⅛ and the claimed
+branch's ⅝ make a whole element, as do the stale quarter, a client quarter and the unclaimed half (delta review
+of the A6.2 forms, MINOR 1; K-c soundness check, 2026-11-19). -/
 def rbOwnInR (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) : IProp GF :=
   rbPartRF γ S r (fun _ => false)
 
@@ -803,14 +813,14 @@ quarter and the batch lock's are not the whole element), and sets the flag; the 
     ghostMapElem γ.rbc n (DFrac.own (1 : Qp).half) (none : Option (Option BktData × Bool)) ∗
     ⌜f = false → v = c.getD ∅⌝)
 
-/-- **A claimed tracked bucket in the claim invariant** (A6.2): three quarters of its `γ.rbk` element
-(the invariant's half and the claimer's quarter, deposited by the claim for good: so no unclaimed part's
-write reaches it), its flag clear (a claimed write leaves it: the batch lock then learns of the claimed
+/-- **A claimed tracked bucket in the claim invariant** (A6.2): five eighths of its `γ.rbk` element
+(the invariant's half and an eighth of the claimer's quarter, deposited by the claim for good: so no unclaimed
+part's write reaches it; the claimed part keeps the other eighth, K-c, 2026-11-19), its flag clear (a claimed write leaves it: the batch lock then learns of the claimed
 writes from `st.cw`, `tkI`), and half of its claim element at `some w`, the claimed part's contents the
 writer's (`w.1 = c`; the claimed part, `rbPartRF`, holds the other half). -/
 @[no_expose] def rbClaimC (γ : BNames) (n : GoString) : IProp GF :=
   iprop(∃ (c : Option BktData) (w : Option BktData × Bool),
-    rbElem γ n ((1 : Qp).half + (1 : Qp).half.half) (c, false) ∗
+    rbElem γ n ((1 : Qp).half + (1 : Qp).half.half.half) (c, false) ∗
     ghostMapElem γ.rbc n (DFrac.own (1 : Qp).half) (some w) ∗ ⌜w.1 = c⌝)
 
 /-- One tracked bucket in the claim invariant, claimed (`cl`) or not. -/
