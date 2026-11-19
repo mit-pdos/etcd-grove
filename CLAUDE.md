@@ -179,7 +179,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   kernel and the harness, never by the program): `notes/robustness.md`. A program's statement lives
   with its proofs (`Proof/.../examples/raft/kvnet/Robust.lean`).
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
-  reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
+  reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`), `old/dsverify/` (dsverify-lab's network
+  harness at `348a866`, the reference for `notes/dsverify-net-port-plan.md`).
 
 ## Modules
 

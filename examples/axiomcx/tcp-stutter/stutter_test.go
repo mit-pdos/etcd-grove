@@ -1,5 +1,5 @@
 // Package tcpstutter measures what the TCP semantics v3.2 changed
-// (GooseLang/Ext/Tcp/Impl.lean, D22; NetTcp/TrustedCode/net.lean), for the
+// (GooseLang/Ext/Net/Impl.lean, D22; Net/TrustedCode/net.lean), for the
 // v3.2 review (notes/axiom-review/tcp-semantics.md, "v3.2 (2026-11-15)").
 // Tests only: none is a counterexample.
 //
@@ -38,15 +38,15 @@ import (
 // read. 12 MiB: a traced run's steps must fit the Lean replay (the v3.1
 // review's M3).
 var Size = func() int {
-	if v, err := strconv.Atoi(os.Getenv("NETTCP_ST_SIZE")); err == nil && v > 0 {
+	if v, err := strconv.Atoi(os.Getenv("NET_ST_SIZE")); err == nil && v > 0 {
 		return v
 	}
 	return 12 << 20
 }()
 
-// iters returns n, or $NETTCP_ST_ITERS if set (1 for a traced run).
+// iters returns n, or $NET_ST_ITERS if set (1 for a traced run).
 func iters(n int) int {
-	if v, err := strconv.Atoi(os.Getenv("NETTCP_ST_ITERS")); err == nil && v > 0 {
+	if v, err := strconv.Atoi(os.Getenv("NET_ST_ITERS")); err == nil && v > 0 {
 		return v
 	}
 	return n

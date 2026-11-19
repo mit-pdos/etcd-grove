@@ -92,7 +92,7 @@ func runProbe(t *testing.T, probe, dir, mode string, args ...string) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	out, err := runCmd(t, ".", []string{"NETTCP_TRACE_DIR=" + dir, "NETTCP_NODE=probe"}, 5*time.Minute,
+	out, err := runCmd(t, ".", []string{"NET_TRACE_DIR=" + dir, "NET_NODE=probe"}, 5*time.Minute,
 		probe, append([]string{"-mode", mode}, args...)...)
 	os.WriteFile(dir+".txt", []byte(out), 0o644)
 	if err != nil {
@@ -104,23 +104,23 @@ func runProbe(t *testing.T, probe, dir, mode string, args ...string) {
 
 // TestCollect builds the examples' commands and the probe with the tracer, runs the
 // examples' process tests (TestProcesses, TestServerCrashes) and every probe mode, and checks
-// the traces (README.md, "Collecting traces"). Only with NETTCP_CONFORM=1. The traces go to
-// $NETTCP_CONFORM_OUT (which must not exist or be empty), else a fresh temporary directory;
-// NETTCP_CONFORM_SEMANTICS=1 also traces the measured semantics tests (examples/net/semantics),
-// NETTCP_CONFORM_SAMPLE=1 also rewrites the committed sample (testdata/).
+// the traces (README.md, "Collecting traces"). Only with NET_CONFORM=1. The traces go to
+// $NET_CONFORM_OUT (which must not exist or be empty), else a fresh temporary directory;
+// NET_CONFORM_SEMANTICS=1 also traces the measured semantics tests (examples/net/semantics),
+// NET_CONFORM_SAMPLE=1 also rewrites the committed sample (testdata/).
 func TestCollect(t *testing.T) {
-	if os.Getenv("NETTCP_CONFORM") != "1" {
-		t.Skip("NETTCP_CONFORM=1 collects the conformance traces")
+	if os.Getenv("NET_CONFORM") != "1" {
+		t.Skip("NET_CONFORM=1 collects the conformance traces")
 	}
-	out := os.Getenv("NETTCP_CONFORM_OUT")
+	out := os.Getenv("NET_CONFORM_OUT")
 	if out == "" {
 		var err error
-		if out, err = os.MkdirTemp("", "nettcp-conform-"); err != nil {
+		if out, err = os.MkdirTemp("", "net-conform-"); err != nil {
 			t.Fatal(err)
 		}
 	} else {
 		if ents, err := os.ReadDir(out); err == nil && len(ents) > 0 {
-			t.Fatalf("NETTCP_CONFORM_OUT=%s is not empty", out)
+			t.Fatalf("NET_CONFORM_OUT=%s is not empty", out)
 		}
 		if err := os.MkdirAll(out, 0o755); err != nil {
 			t.Fatal(err)
@@ -140,7 +140,7 @@ func TestCollect(t *testing.T) {
 	for _, ex := range examples {
 		pkgs = append(pkgs, "./net/"+ex)
 	}
-	env := []string{"NETTCP_CONFORM=1", "NETTCP_TRACE_DIR=" + traces, "NETTCP_OVERLAY=" + ov}
+	env := []string{"NET_CONFORM=1", "NET_TRACE_DIR=" + traces, "NET_OVERLAY=" + ov}
 	o, err := runCmd(t, modRoot, env, 20*time.Minute, "go",
 		append([]string{"test", "-count=1", "-p=1", "-v", "-run", "^(TestProcesses|TestServerCrashes)$"}, pkgs...)...)
 	os.WriteFile(filepath.Join(out, "examples.txt"), []byte(o), 0o644)
@@ -159,10 +159,10 @@ func TestCollect(t *testing.T) {
 
 	// The semantics tests (their child processes are killed by the tests themselves, which
 	// record no events: checked leniently).
-	if os.Getenv("NETTCP_CONFORM_SEMANTICS") == "1" {
+	if os.Getenv("NET_CONFORM_SEMANTICS") == "1" {
 		dir := filepath.Join(traces, "semantics", "all")
 		os.MkdirAll(dir, 0o755)
-		o, err := runCmd(t, modRoot, []string{"NETTCP_TRACE_DIR=" + dir, "NETTCP_NODE=semantics"}, 20*time.Minute,
+		o, err := runCmd(t, modRoot, []string{"NET_TRACE_DIR=" + dir, "NET_NODE=semantics"}, 20*time.Minute,
 			"go", "test", "-overlay", ov, "-count=1", "./net/semantics")
 		os.WriteFile(filepath.Join(out, "semantics.txt"), []byte(o), 0o644)
 		if err != nil {
@@ -174,7 +174,7 @@ func TestCollect(t *testing.T) {
 	os.WriteFile(filepath.Join(out, "summary.txt"), []byte(st.String()), 0o644)
 	t.Logf("summary (%s/summary.txt):\n%s", out, st)
 
-	if os.Getenv("NETTCP_CONFORM_SAMPLE") == "1" {
+	if os.Getenv("NET_CONFORM_SAMPLE") == "1" {
 		writeSample(t, out, probe, traces)
 	}
 }

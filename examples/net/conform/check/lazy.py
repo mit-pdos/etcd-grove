@@ -12,7 +12,7 @@ The rest of a connection's step is determined by the operation and its observed 
 
 A direction, lazily, is `(segs, n, status, a)`:
   - `segs`, `n`: its bytes (a tuple of (write id, lo, hi) slices of the component's writes, and
-    their total length: the bytes are those of the model's TcpDir);
+    their total length: the bytes are those of the model's NetDir);
   - `status`: OPEN, FIN or CUT;
   - `a`: for an OPEN or FIN direction, the number of bytes appended since the last Read of it by
     its reader (a Read of n > 0 bytes at an open end: a cut point, D1), or None if it has had no
@@ -85,28 +85,28 @@ def seg_append_range(segs, w, lo, hi):
 
 
 DIR_FRESH = ((), 0, OPEN, None)
-DIR_ABANDONED = ((), 0, FIN, None)  # Impl: TcpConn.abandoned's `up`
+DIR_ABANDONED = ((), 0, FIN, None)  # Impl: NetConn.abandoned's `up`
 
 
 def ldir(d, W):
-    """The model's TcpDir for the lazy direction as it is (its gamma's first member)."""
-    return M.TcpDir(seg_bytes(d[0], W), d[2])
+    """The model's NetDir for the lazy direction as it is (its gamma's first member)."""
+    return M.NetDir(seg_bytes(d[0], W), d[2])
 
 
 def gamma(d, W):
-    """The concretization of a lazy direction, as a set of model TcpDirs (for the tests)."""
+    """The concretization of a lazy direction, as a set of model NetDirs (for the tests)."""
     b = seg_bytes(d[0], W)
     if d[2] == CUT:
-        return {M.TcpDir(b[:i], CUT) for i in range(len(b) + 1)}
-    out = {M.TcpDir(b, d[2])}
+        return {M.NetDir(b[:i], CUT) for i in range(len(b) + 1)}
+    out = {M.NetDir(b, d[2])}
     if d[3] is not None:
         keep = len(b) - d[3]
-        out |= {M.TcpDir(b[:i], CUT) for i in range(keep + 1)}
+        out |= {M.NetDir(b[:i], CUT) for i in range(keep + 1)}
     return out
 
 
 def shut(d):
-    """Impl: TcpDir.shut. gamma commutes with it: a cut member stays cut."""
+    """Impl: NetDir.shut. gamma commutes with it: a cut member stays cut."""
     return (d[0], d[1], FIN, d[3]) if d[2] == OPEN else d
 
 
@@ -116,8 +116,8 @@ def _after_read(d, segs, n):
 
 
 # ---------------------------------------------------------------------------------------------
-# A connection: (dEnd, aEnd, up, down, inflight), ends as model.TcpEnd; side 0 the dialer, 1 the
-# acceptor. Impl: TcpConn without `addr` and `accepted` (the address component's). `inflight`: the
+# A connection: (dEnd, aEnd, up, down, inflight), ends as model.NetEnd; side 0 the dialer, 1 the
+# acceptor. Impl: NetConn without `addr` and `accepted` (the address component's). `inflight`: the
 # Write calls that have taken steps and not finished, as (op index, progress so far): a Go Write is
 # a loop of the extension's steps (poll.FD.Write), each at its own point in the call's interval;
 # not model state, the search's record of where each call is in its loop.
@@ -411,13 +411,13 @@ def deadline_pending(c, s, kind, set_):
 
 # ---------------------------------------------------------------------------------------------
 # An address a0: (open, pending, tokens). `open`: the open listeners at a0, as (node, listener)
-# pairs (Impl: each node's TcpLocal.lis restricted to a0; ListenStep allows one open per node);
+# pairs (Impl: each node's NetLocal.lis restricted to a0; ListenStep allows one open per node);
 # `pending`: the connections dialed to a0 that a Dial in the trace returned, not yet accepted
-# (Impl: TcpConn.accepted = false); `tokens`: how many connections to a0 are pending that no Dial
+# (Impl: NetConn.accepted = false); `tokens`: how many connections to a0 are pending that no Dial
 # returned (D16's abandoned ones, and those of Dials cut short by their process's end). Those are
 # interchangeable here: each is accepted by at most one Accept, and the connection component of
 # an Accept that took one sees only its acceptor's operations, whose outcomes are the same from
-# TcpConn.abandoned and from TcpConn.fresh (README.md, "Accepts no Dial returned").
+# NetConn.abandoned and from NetConn.fresh (README.md, "Accepts no Dial returned").
 
 ADDR0 = (frozenset(), frozenset(), 0)
 
@@ -496,7 +496,7 @@ def dial_pending(st):
 
 
 def crash(st, node):
-    """Impl: tcp_semantics.crash: the node's listeners are gone."""
+    """Impl: net_semantics.crash: the node's listeners are gone."""
     open_, pend, tok = st
     return [((frozenset(x for x in open_ if x[0] != node), pend, tok), None)], None
 

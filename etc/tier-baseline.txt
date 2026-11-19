@@ -2,7 +2,7 @@
 # kind in the comment. Only shrinks: `etc/tier-check.py --check --update` after a fix.
 GooseLang.Ext.AbsDisk.Impl Proof.go_etcd_io.raft.v3.PbModel  # base->defs
 ManualProof.github_com.mit_pdos.etcd_grove.examples.lib.durable Proof.DurablePrelude  # base->defs
-NetTcp.Proof.net.OpError__Temporary NetTcp.Proof.net.OpError__Timeout  # proof->proof
+Net.Proof.net.OpError__Temporary Net.Proof.net.OpError__Timeout  # proof->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Run Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Run Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainServe  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Run Proof.go_etcd_io.etcd.client.v3.ServeFromStart  # proof->linking

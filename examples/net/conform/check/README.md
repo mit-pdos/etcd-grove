@@ -2,8 +2,8 @@
 
 `../` records whole runs of real Go programs (every call of `net` they make: the tracer, its
 trace format, the probe, the collection). This directory decides, for each recorded run, whether
-some execution of the TCP extension's trusted semantics (`GooseLang/Ext/Tcp/Impl.lean`, with the
-trusted models of `NetTcp/TrustedCode/net.lean` that build Go's values from the extension's) produces
+some execution of the net extension's trusted semantics (`GooseLang/Ext/Net/Impl.lean`, with the
+trusted models of `Net/TrustedCode/net.lean` that build Go's values from the extension's) produces
 it, and outputs a **witness** of an admitted run that a later step replays through Lean
 (`notes/net-tcp-v3-plan.md`, E10). It adapts dsverify-lab's `harness/conform` (Wing & Gong's search
 with Lowe's memo, lazy breaks, lazy prefixes, components, ends paired by 4-tuple;
@@ -15,7 +15,7 @@ D22) waits as stutters, which leave no step.
 **Nothing here is proved.** `model.py` is a hand transcription of Impl.lean, the rest is tested
 (below). An ADMITTED verdict is then **certified in Lean** ("Certification in Lean"): the witness
 and the run's calls replay through proved deciders of Impl.lean's own relations
-(`GooseLang/Ext/Tcp/{Decide,Replay}.lean`, `lake exe nettcp-replay`), so a CERTIFIED run rests on
+(`GooseLang/Ext/Net/{Decide,Replay}.lean`, `lake exe net-replay`), so a CERTIFIED run rests on
 the Lean definitions, not on this directory's transcription of them.
 
 **The model transcribed** is Impl.lean v3.1 (b334f68554: `Write` a loop of steps, D2/D15 rewritten
@@ -47,11 +47,11 @@ least one byte unless none remain (the search already never made a zero step of 
 ```
 cd examples/net/conform
 python3 -B check/conform_check.py check testdata/echo-TestProcesses.tar.gz          # one run, its verdict and findings
-python3 -B check/conform_check.py check -v --witness /tmp/w /tmp/nettcp-collect/traces/probe/writeclose
-python3 -B check/conform_check.py table /tmp/nettcp-collect/traces [--json rows.json]  # every run under a directory
+python3 -B check/conform_check.py check -v --witness /tmp/w /tmp/net-collect/traces/probe/writeclose
+python3 -B check/conform_check.py table /tmp/net-collect/traces [--json rows.json]  # every run under a directory
 python3 -B check/conform_check.py mutate testdata/*.tar.gz [-n 5]                       # every mutant must be rejected
 python3 -B check/test_check.py                                                          # the tests (about 15 s)
-python3 -B check/certify.py [PATH...]          # certify in Lean (default: the sample; needs `lake build nettcp-replay`)
+python3 -B check/certify.py [PATH...]          # certify in Lean (default: the sample; needs `lake build net-replay`)
 cd examples && go test ./net/conform/check                                              # the same, from Go
 ```
 
@@ -137,7 +137,7 @@ The model's global state is a product of independent parts, and so is the trace 
 decomposition, adapted):
 
 - **an address** `a0` of the plan: the listeners at it of the nodes whose host is `plan[a0]` (each
-  node's `TcpLocal.lis` restricted to `a0`), and the `accepted` flags of the connections dialed to it;
+  node's `NetLocal.lis` restricted to `a0`), and the `accepted` flags of the connections dialed to it;
   its operations are the Listens resolving to it (`ListenAt`), the Accepts and Closes of those
   listeners, the Dials of it, and the crashes of its host's nodes;
 - **a connection**: its two ends and two directions; its operations are the Reads, Writes, Closes,
@@ -268,13 +268,13 @@ process's death bound. Their result is unobserved; the lazy successors are:
 - a Close, CloseWrite, SetDeadline: its effect (CloseWrite's sys is the state as it is);
 - dropped, in every case.
 
-**Accepts no Dial returned.** In an address component, a connection a failed Dial left (D16, `TcpConn.
+**Accepts no Dial returned.** In an address component, a connection a failed Dial left (D16, `NetConn.
 abandoned`) or an unfinished Dial made (it may have succeeded) is an anonymous *token*: a failed
 Dial always leaves one (more pending connections constrain nothing: an Accept may take one or not,
 nothing needs one absent), an unfinished one too, and an Accept that no Dial returned takes one.
 Tokens are interchangeable: each is taken by at most one Accept, and the connection component of such
-an Accept has only its acceptor's operations, whose outcomes are the same from `TcpConn.abandoned`
-and `TcpConn.fresh` (the up direction, ε fin or ε open, gives a reader the same results: EOF, sys,
+an Accept has only its acceptor's operations, whose outcomes are the same from `NetConn.abandoned`
+and `NetConn.fresh` (the up direction, ε fin or ε open, gives a reader the same results: EOF, sys,
 timeout, no bytes; the down direction is fresh in both). An Accept left unfinished, or a Listen, is
 dropped (leaving a connection pending, or a listener closed, dominates). The witness gives each such
 Accept the first token of its address in witness order, and turns the tokens no Accept took back
@@ -290,14 +290,14 @@ bound plus 1 ns (after every step of the old process, at or before the next's st
 respects real time and every component's order, but for crashes against Dials of other nodes,
 which commute. It is then made concrete (a Read cuts only when its result needs it: EOF of a
 direction with bytes or open, keeping nothing; sys of one not cut, keeping every byte; or when
-marked: a retro cut) and replayed through `model.py`: every step must satisfy `model.tcp_step` (on a
-one-connection `TcpGlobal`: no step reads or writes another connection) or `model.crash`.
+marked: a retro cut) and replayed through `model.py`: every step must satisfy `model.net_step` (on a
+one-connection `NetGlobal`: no step reads or writes another connection) or `model.crash`.
 
 **The format** (`--witness DIR` writes `<run>.witness.json`), version 1:
 
 ```
-{ "format": "nettcp-witness", "version": 1, "run": "<the run's path>",
-  "plan": [["127.0.0.1:7101", "server"], ...],      // the plan (Impl: TcpGlobal.plan), as a list
+{ "format": "net-witness", "version": 1, "run": "<the run's path>",
+  "plan": [["127.0.0.1:7101", "server"], ...],      // the plan (Impl: NetGlobal.plan), as a list
   "plan_well_formed": true,                          // Deploy.lean's PlanWellFormed of that list
   "nodes": [{"node": "server", "host": "server", "procs": [pid, ...]}, ...],
   "conns": 12,                                       // connections numbered 1..conns (Impl: NewConn)
@@ -308,7 +308,7 @@ one-connection `TcpGlobal`: no step reads or writes another connection) or `mode
 A step has `i` (its index), `t` (its point, ns), `node` (the node it is a step of), `op`, and, for a
 traced call, `trace: {pid, s}` (the call's records) and `pending: true` if the call never returned
 (its result is then the checker's choice). The extension's argument and result, by `op`
-(Impl.lean's `TcpStep` cases; codes are `errCode`: 0 success, 1 closed, 2 timeout, 3 sys, and 4 a
+(Impl.lean's `NetStep` cases; codes are `errCode`: 0 success, 1 closed, 2 timeout, 3 sys, and 4 a
 Read's EOF):
 
 | `op` | arguments | `res` | Lean |
@@ -321,7 +321,7 @@ Read's EOF):
 | `Write` | `conn`, `side`, `end`, `data` (hex: the bytes not yet written, `rs`), `part` (the step's number in its call), `last` | `{k, code}`: the count the step adds, its code | `WriteStep` |
 | `Close`, `CloseWrite` | `conn`, `side`, `end` | `{code}` | `CloseStep`, `CloseWriteStep` |
 | `SetDeadline` | `conn`, `side`, `end`, `kind` (0 both, 1 read, 2 write), `set`, `wall`, `ext` (`(1, 0)` set, `(0, 0)` cleared: `timeIsZero`) | `{code}` | `SetDeadlineStep` |
-| `Crash` | `node`, `between: [old pid, new pid]` | | `tcp_semantics.crash` |
+| `Crash` | `node`, `between: [old pid, new pid]` | | `net_semantics.crash` |
 
 Listener ids are numbered from 1 per node (never reused; Impl's `l ≠ 0 ∧ L.lis !! l = none`). A
 Write call is one `Write` step per step of its loop; the call's count is the sum of its steps' `k`,
@@ -332,17 +332,17 @@ calls (next section).
 
 ## Certification in Lean
 
-`nettcp-replay WITNESS CALLS` (`GooseLang/Ext/Tcp/Replay.lean`, its `main`; built by
-`lake build nettcp-replay`, at `.lake/build/bin/nettcp-replay`) replays a witness against Impl.lean's
+`net-replay WITNESS CALLS` (`GooseLang/Ext/Net/Replay.lean`, its `main`; built by
+`lake build net-replay`, at `.lake/build/bin/net-replay`) replays a witness against Impl.lean's
 definitions themselves and against the run's traced calls, and prints `CERTIFIED`, or
 `NOT CERTIFIED: step i: why` (or the plan, or a call, for failures that are not one step's); it
 exits 0 or 1. `certify.py` runs the whole chain:
 
 ```
-lake build nettcp-replay                                           # from the repository's root
+lake build net-replay                                           # from the repository's root
 cd examples/net/conform
 python3 -B check/conform_check.py check --witness DIR --calls-out DIR RUN...   # DIR/<run>.{witness,calls}.json
-.lake/build/bin/nettcp-replay DIR/<run>.witness.json DIR/<run>.calls.json      # (from the root)
+.lake/build/bin/net-replay DIR/<run>.witness.json DIR/<run>.calls.json      # (from the root)
 python3 -B check/certify.py [PATH...] [--out DIR] [--json rows.json]          # the checker, the replay, the negative tests
 ```
 
@@ -350,7 +350,7 @@ python3 -B check/certify.py [PATH...] [--out DIR] [--json rows.json]          # 
 1: the run's records as the tracer wrote them, nothing mapped:
 
 ```
-{ "format": "nettcp-calls", "version": 1, "run": "<the run's path>",
+{ "format": "net-calls", "version": 1, "run": "<the run's path>",
   "procs": [{"pid", "node", "t0", "t1", "timens", "exit": <its driver's exit event's t, or null>}, ...],
   "drivers": [{"pid", "node", "timens"}, ...],
   "calls": [{"pid", "b": <the B record>, "e": <the E record, or null if the call never returned>}, ...] }
@@ -402,12 +402,12 @@ theorem checkSteps_sound [GooseExts] [GoGlobalContext] {plan nodes ss w'}
 ```
 
 `Exec g loc evs g' loc'`: the events `evs` in order, each a step of the model from the state the
-earlier ones reached (`MStep`): `tcp_semantics.step` (`TcpStep`) of the event's operation, argument
+earlier ones reached (`MStep`): `net_semantics.step` (`NetStep`) of the event's operation, argument
 and result at its node's local state, for every heap, the other nodes unchanged; or the node's
-`tcp_semantics.crash`. `WOp.toEv` is the event a witness step stands for: the extension's
+`net_semantics.crash`. `WOp.toEv` is the event a witness step stands for: the extension's
 operation, the argument the trusted model passes it (`PairV (#e) (#n)` for a Read, ...) and the
 expression it steps to (its result value). The proof is `step_sound` per step, from the deciders'
-lemmas (`GooseLang/Ext/Tcp/Decide.lean`) and the replay's association lists standing for the
+lemmas (`GooseLang/Ext/Net/Decide.lean`) and the replay's association lists standing for the
 model's `GMap`s (`World.global`, `World.loc`, `ofList_alSet`). The deciders, each with its proved
 `= true ↔` lemma against the relation of Impl.lean or Deploy.lean (an existential decided at the
 instance the witness gives):
@@ -439,7 +439,7 @@ witness is NOT CERTIFIED. A certified run is ADMITTED and wholly in scope; an OU
 not certified (its unmodeled calls refuse it).
 
 **Results** (2026-11-15). The sample (`../testdata`, 14 runs): 14 CERTIFIED, about 14 s of Lean in all
-(`certify.py`, 17 s with the checker). The collection (`/tmp/nettcp-collect`, 22 runs, regenerated
+(`certify.py`, 17 s with the checker). The collection (`/tmp/net-collect`, 22 runs, regenerated
 as `../README.md` says): 21 CERTIFIED, the 22nd (`semantics/all`) OUT OF SCOPE with no witness (one
 of its components is inconclusive); about 67 s of Lean in all, 80 s with the checker. The probe's runs
 dominate: their witnesses list a 1 MiB `Write`'s remaining bytes at each step and their directions
@@ -487,22 +487,22 @@ call's `b[nn:]`. All 19 are rejected where expected.
 
 | Impl.lean / Deploy.lean | model.py | notes |
 |---|---|---|
-| `TcpStatus`, `TcpDir`, `TcpDir.fresh`, `TcpEnd`, `TcpEnd.fresh`, `TcpConn` | `OPEN/FIN/CUT`, `TcpDir`, `DIR_FRESH`, `TcpEnd`, `END_FRESH`, `TcpConn` | side False = 0, the dialer |
-| `TcpConn.fresh`, `TcpConn.abandoned` | `conn_fresh`, `conn_abandoned` | |
-| `TcpConn.endSt`, `.out`, `.setEnd`, `.setOut` | `end_st`, `out`, `set_end`, `set_out` | |
-| `TcpGlobal`, `TcpGlobal.setConn`, `TcpLocal` | `TcpGlobal`, `.set_conn`, `TcpLocal` | dicts, copied on update |
+| `NetStatus`, `NetDir`, `NetDir.fresh`, `NetEnd`, `NetEnd.fresh`, `NetConn` | `OPEN/FIN/CUT`, `NetDir`, `DIR_FRESH`, `NetEnd`, `END_FRESH`, `NetConn` | side False = 0, the dialer |
+| `NetConn.fresh`, `NetConn.abandoned` | `conn_fresh`, `conn_abandoned` | |
+| `NetConn.endSt`, `.out`, `.setEnd`, `.setOut` | `end_st`, `out`, `set_end`, `set_out` | |
+| `NetGlobal`, `NetGlobal.setConn`, `NetLocal` | `NetGlobal`, `.set_conn`, `NetLocal` | dicts, copied on update |
 | `endId`, `IsEnd` | `end_id`, `is_end`, `decode_end` | |
-| `TcpErr`, `TcpErr.code`, `errCode` | `CLOSED/TIMEOUT/SYS`, `ERR_CODE`, `err_code` | |
+| `NetErr`, `NetErr.code`, `errCode` | `CLOSED/TIMEOUT/SYS`, `ERR_CODE`, `err_code` | |
 | `ReadRes`, `readRes`'s EOF code | `R_BYTES`, `R_EOF`, `R_ERR`, `EOF_CODE` | |
 | `ReadAvail` | `read_avail` | its `∃ k` at k = the bytes' length |
 | `ReadOutcome` | `read_outcome` | the cut's `∃ k` given (`keep`) or at its only candidate; tested against every k |
 | `WriteOutcome` | `write_outcome` | one step of the Write loop (v3.1) |
-| `TcpDir.shut`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`, `timeIsZero` | `shut`, `close_outcome`, `close_write_outcome`, `deadline_outcome`, `time_is_zero` | |
+| `NetDir.shut`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`, `timeIsZero` | `shut`, `close_outcome`, `close_write_outcome`, `deadline_outcome`, `time_is_zero` | |
 | `stripPrefix`, `wildPort`, `portOf`, `ListenAt` | `strip_prefix`, `wild_port`, `port_of`, `listen_at`, `listen_resolve` | `listen_resolve`: the unique a0 (`listenAt_unique`) |
 | `ReadStep`, `WriteStep`, `CloseStep`, `CloseWriteStep`, `SetDeadlineStep` | `read_step`, `write_step`, `close_step`, `close_write_step`, `set_deadline_step` | e' as its value |
 | `failV`, `NewConn`, `DialStep`, `AcceptStep`, `ListenStep`, `LisCloseOutcome` | `fail_v`, `new_conn`, `dial_step`, `accept_step`, `listen_step`, `lis_close_outcome` | the `∃ c`, `∃ l`, `∃ a0` at their only candidates |
-| `TcpStep` | `tcp_step` | not the `Any*` operations (the trusted models' choices, not trace steps) |
-| `tcp_semantics.crash` | `crash` | |
+| `NetStep` | `net_step` | not the `Any*` operations (the trusted models' choices, not trace steps) |
+| `net_semantics.crash` | `crash` | |
 | `isDigit`, `digitsVal`, `decNat`, `splitBy`, `parseAddr`, `addrOk`, `keysDistinct`, `PlanWellFormed` | `is_digit`, `digits_val`, `dec_nat`, `split_by`, `parse_addr`, `addr_ok`, `keys_distinct`, `plan_well_formed` | |
 | net.lean: `model.kindErr`, `model.connErr`, `model.opError`, `model.errFlag`, each `*.impl`'s Op, Source, Addr, Syscall | `mapping.py`: `err_kind`, `map_call`, `GO_OP`, `SYSCALL`, `SOURCE_NIL` | read backwards: a Go value to the extension's result |
 | net.lean: `model.writeLoop` (`conn.Write.impl`) | `lazy.write`, `replay.py`'s Write steps | count the sum, error the failing step's |
@@ -552,12 +552,12 @@ call's `b[nn:]`. All 19 are rejected where expected.
 - **The sample** (`../testdata/*.tar.gz`, 14 runs): all ADMITTED, with witnesses.
 - **Mutants of the sample** (`mutate.py`, 3 of each kind per run): all rejected.
 - **Certification** (`certify.py`, `certify_test.go`, about 22 s; skipped unless the replay is built
-  or `NETTCP_CERTIFY=1`, which builds it): the sample's 14 witnesses CERTIFIED in Lean, and 19
+  or `NET_CERTIFY=1`, which builds it): the sample's 14 witnesses CERTIFIED in Lean, and 19
   tampered witnesses (or calls) NOT CERTIFIED where expected ("Certification in Lean").
 
-## Results (2026-11-14, the collection of `../README.md` in `/tmp/nettcp-collect`, 22 runs)
+## Results (2026-11-14, the collection of `../README.md` in `/tmp/net-collect`, 22 runs)
 
-`conform_check.py table /tmp/nettcp-collect/traces`: 21 runs ADMITTED, 1 OUT OF SCOPE, none NOT
+`conform_check.py table /tmp/net-collect/traces`: 21 runs ADMITTED, 1 OUT OF SCOPE, none NOT
 ADMITTED; 8.6 s in all (2.2 s of it loading the semantics run's 257 MB). Load and check seconds; the
 witness's steps, crashes, Reads that cut (none retro), D16 connections accepted, Write calls of
 several steps (every one a race or a deadline), calls cut short in it:
@@ -594,7 +594,7 @@ listeners, D12), its zero-value sockets (EINVAL), 51 `TCPConn.SyscallConn`, 2 `S
 TestAddressAliases' `localhost:P` Dials and `:P` wildcard listening at 127.0.0.1:P and 127.0.0.2:P
 (no `ListenAt` address); every other component of it is admitted.
 
-**Mutation** (`conform_check.py mutate /tmp/nettcp-collect/traces -n 5`, the 21 admitted runs):
+**Mutation** (`conform_check.py mutate /tmp/net-collect/traces -n 5`, the 21 admitted runs):
 786 of 786 mutants rejected (100%), 87 s: m-flip 94/94, m-short 98/98, m-closeerr 104/104,
 m-liscloseerr 16/16, m-readclosed 104/104, m-swap 55/55, m-early 94/94, m-timeout 94/94,
 m-closedopen 94/94, m-dialshape 33/33. (The semantics run, OUT OF SCOPE, is not mutated: most of
