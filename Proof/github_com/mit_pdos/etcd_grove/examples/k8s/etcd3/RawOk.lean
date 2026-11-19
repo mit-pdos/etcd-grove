@@ -13,10 +13,15 @@ driver's unary calls (`call`'s post, the model's `ioOk`).
   `correctness.Response{Object: out.Raw.Object, Err: out.Raw.Err}`).
 - `rawOk x y`: `rawResp y` has a view (`respRep`, persistent) that `RawRel x (plainOut y)` relates to the
   output's plain fields.
+- `wrawOk s0 x y`: a watch that ran (not skipped, its `Watch` call not failed) received, in its `Raw`,
+  events (`evsRO`) whose driver records its plain value encodes, and which mark revisions after the seeded
+  revision `s0` past the initial ones (`WatchFromL`, B5's premise).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.EvRep
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealWatch
 
 @[expose] public section
 
@@ -75,6 +80,16 @@ def rawOk (x : Input) (y : Output) : IProp GF :=
 
 instance rawOk_persistent (x : Input) (y : Output) : Persistent (rawOk (GF := GF) x y) := by
   unfold rawOk; infer_instance
+
+/-- **A watch's `Raw` events** (see the file header; persistent). -/
+def wrawOk (s0 : w64) (x : Input) (y : Output) : IProp GF :=
+  iprop(⌜x.Skip' = true ∨ y.WFailed' = true⌝ ∨
+    ∃ rs : List REv, evsRO y.Raw'.Events' rs ∗
+      ⌜k8s_etcd3.decWEventsL y.WEvents' = some (rs.map toWEvL) ∧ WatchFromL s0 x (rs.map toWEvL)⌝)
+
+instance wrawOk_persistent (s0 : w64) (x : Input) (y : Output) :
+    Persistent (wrawOk (GF := GF) s0 x y) := by
+  unfold wrawOk; infer_instance
 
 end defs
 

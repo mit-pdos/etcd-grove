@@ -609,13 +609,14 @@ def GenInW (x : Input) : Prop :=
 def GenInA (x : Input) : Prop := GenIn x ∨ GenInW x
 
 
-/-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return, with its cached object
-one of the store `c` (`cachedIn`). -/
-def kInOk (c : StoreCfg GF DObj) (i : GoInterface) : IProp GF :=
-  iprop(∃ x, ⌜i = boxIn x ∧ GenInA x⌝ ∗ cachedIn c x)
+/-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return, its resource version
+floored at `f` (k8s 7g, D7g-1: `Gen`'s post), with its cached object one of the store `c`
+(`cachedIn`). -/
+def kInOk (c : StoreCfg GF DObj) (f : w64) (i : GoInterface) : IProp GF :=
+  iprop(∃ x, ⌜i = boxIn x ∧ GenInA x ∧ FloorOk f x⌝ ∗ cachedIn c x)
 
-instance kInOk_persistent (c : StoreCfg GF DObj) (i : GoInterface) :
-    Persistent (kInOk (GF := GF) c i) := by
+instance kInOk_persistent (c : StoreCfg GF DObj) (f : w64) (i : GoInterface) :
+    Persistent (kInOk (GF := GF) c f i) := by
   unfold kInOk; infer_instance
 
 /-- A workload key is one the store takes, under the driver's prefixes, and fits an object. -/

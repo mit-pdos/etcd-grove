@@ -21,7 +21,8 @@ As linkvtxn's `Defs.lean`:
   value made by `k` steps), and `ioOk i o` (a boxed `Input` and a boxed `Output`: what `Step`'s
   type assertions need; a watch's output not an error and its resource version, parsed, below
   `2^63`, stage E of 7f-6; a unary output's `Raw` what its plain fields encode, `rawOk`, unless it
-  is `EOther`'s, k8s 7g step 5).
+  is `EOther`'s, k8s 7g step 5; the input's resource version floored at the seeded revision, and a
+  watch's received events, `wrawOk`, k8s 7g step 5).
 
 `Input_intoVal_inj`/`Output_intoVal_inj`: a struct's `intoVal` is injective, from the
 translation's field projections (`proj_eq`, as linkvtxn's).
@@ -344,8 +345,10 @@ def k8setcd3S (g0 : HSt) : github_com.anishathalye.porcupine.ModelSpec GF (linkv
   M := linkv.pM (kSpec g0) decOp
   rep k := stRepB g0 (k + g0.st.items.length + g0.hist.length + 1)
   ioOk i o := iprop(∃ x y, ⌜i = boxIn x ∧ o = boxOut y ∧
-    (x.Kind' = W64 5 → y.Err' ≠ W64 4 ∧ ∀ n, parseRVD x.MinRV' = some n → uint.Z n < 2 ^ 63)⌝ ∗
-    (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y))
+    (x.Kind' = W64 5 → y.Err' ≠ W64 4 ∧ ∀ n, parseRVD x.MinRV' = some n → uint.Z n < 2 ^ 63) ∧
+    FloorOk g0.st.rv x⌝ ∗
+    (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y) ∗
+    (⌜x.Kind' ≠ W64 5⌝ ∨ k8s_correctness.wrawOk g0.st.rv x y))
   ioOk_pers _ _ := by infer_instance
 
 end spec

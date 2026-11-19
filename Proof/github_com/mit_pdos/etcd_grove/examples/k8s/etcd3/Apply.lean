@@ -174,7 +174,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     (wp_runWatch : runWatch.spec (GF := GF) (hG := hG))
     (wp_putW : cache.putW.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp tbl c g0 γk hc hpfx hrp hdi hvi hAs hse htb hnr
+  intro _ _ _ γ sp tbl c g0 γk hc hpfx hrp hdi hvi hAs hse htb hnr hg
   iintro #Hpkg #Hpe #Hst #Hinvs %hne #Htbl #Hrs #HinvK #Hsw #Hwl
   have hcd : CfgD c := ⟨by rw [hc]; rfl, by simp only [StoreCfg.pfx, hpfx, hrp]; rfl⟩
   obtain ⟨s0, hs0⟩ : ∃ s0, s0 ∈ c.ms := by
@@ -191,7 +191,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨Hin, Htt⟩ HAU
   iunfold kInOk at Hin
   icases Hin with ⟨%x, %Hin, #Hca⟩
-  obtain ⟨rfl, HgenA⟩ := Hin
+  obtain ⟨rfl, HgenA, hfl⟩ := Hin
   -- the continuation, with the goroutine's token curried (`lintest`'s post gives it back)
   obtain ⟨Φt, hΦt⟩ : ∃ Φt : val → IProp GF, Φt = fun v => iprop(threadTok -∗ Φ v) := ⟨_, rfl⟩
   -- (stage E of 7f-6) a watch's answer is never `EOther`, its resource version parses small
@@ -204,23 +204,28 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         rw [hn0] at hn; cases hn; word
       · rw [hw.2.2.1 hs] at hn; cases hn; decide
   have hioOk : ∀ y : Output, (x.Kind' = W64 5 → y.Err' ≠ W64 4) →
-      (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y : IProp GF) ⊢
+      ((⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y) ∗
+        (⌜x.Kind' ≠ W64 5⌝ ∨ k8s_correctness.wrawOk g0.st.rv x y) : IProp GF) ⊢
         (k8setcd3S (GF := GF) g0).ioOk (boxIn x) (boxOut y) :=
     fun y hy => by
       simp only [k8setcd3S]
-      iintro Hr
+      iintro ⟨Hr, Hw⟩
       iexists x, y
-      iframe Hr
+      iframe Hr Hw
       ipureintro
-      exact ⟨rfl, rfl, fun h => ⟨hy h, hrv5 h⟩⟩
+      exact ⟨rfl, rfl, fun h => ⟨hy h, hrv5 h⟩, hfl⟩
   have hfinW : ∀ y : Output, (x.Kind' = W64 5 → y.Err' ≠ W64 4) →
       contAt g0 x y Φt ∗ threadTok ∗
-        (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y) ⊢ Φ #(boxOut y) := by
+        (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y) ∗
+        (⌜x.Kind' ≠ W64 5⌝ ∨ k8s_correctness.wrawOk g0.st.rv x y) ⊢ Φ #(boxOut y) := by
     intro y hy
     subst hΦt
-    iintro ⟨HΦc, Htt, Hr⟩
-    ihave HΦc := HΦc $$ %y %rfl [Hr]
-    · iapply hioOk y hy $$ Hr
+    iintro ⟨HΦc, Htt, Hr, Hw⟩
+    ihave HΦc := HΦc $$ %y %rfl [Hr Hw]
+    · iapply hioOk y hy
+      isplitl [Hr]
+      · iexact Hr
+      · iexact Hw
     iapply HΦc
     iexact Htt
   wp_func_call
@@ -265,12 +270,20 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       unfold opKeyMax; simp only [List.length_cons, List.length_nil] at *; omega
     ihave Hl0 := monoListLbOwn_nil (GF := GF) (A := List mvcc.Change) γ.ch
     imod Hl0 with #Hl0
-    wp_apply (wp_runWatch sp c γk x k n (fun lb σ => watchQ γ c lb σ) hc (watchQ_pure γ c)
-      (watchQ_same γ c) hnr htb hok) $$ [] as %y %o %ok Hy
+    -- (k8s 7g) the read updates fire past the seeded revision `s0n`: the watch starts after the seeds
+    obtain ⟨s0n, hs0n⟩ : ∃ s0n, s0n = uint.nat g0.st.rv := ⟨_, rfl⟩
+    imod (kInv_lb_seed γ c g0 γk hg) $$ HinvK with ⟨%ls, #Hls, %hls⟩
+    wp_apply (wp_runWatch sp c γk x k n (fun lb σ => watchQ γ c (max lb s0n) σ) hc
+      (fun lb σ => by
+        iintro H
+        ihave %h := watchQ_pure γ c _ σ $$ H
+        ipureintro
+        exact ⟨le_trans (Nat.le_max_left _ _) h.1, h.2⟩)
+      (fun lb lb' σ σ' => watchQ_same γ c _ _ σ σ') hnr htb hok) $$ [] as %y %o %ok Hy
     · iframe #
       isplitr
       · imodintro
-        iapply watch_readAus γ c g0 γk [] 0 (Nat.le_refl _)
+        iapply watch_readAus γ c g0 γk ls (max 0 s0n) (by rw [Nat.zero_max, hs0n]; exact hls)
         iframe #
       imodintro
       iintro %lb %σ #HQ
@@ -279,35 +292,42 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       imodintro
       have hrev : σ.rev ≤ σ.changes.length := by
         unfold KVState.rev; rw [Hq.2.2.2.2.2.2.1]; simp
+      have hmax : max σ.rev s0n = σ.rev :=
+        Nat.max_eq_left (le_trans (Nat.le_max_right lb s0n) Hq.1)
+      rw [hmax]
       iapply watch_readAus γ c g0 γk σ.changes σ.rev hrev
       iframe #
     -- the commit: the answer is accepted at the state then
-    have Hcommit : ∀ (l : List (List mvcc.Change)),
+    have Hcommit : ∀ (l : List (List mvcc.Change)) (P : Prop),
         (∀ (σe : KVState) (cf : linkv.PCfg HSt Input), l <+: σe.changes → KHistI γ σe →
           kvWfHist c σe → KRelH cf.st σe → cf.st.hist.length = σe.rev →
-          watchOkL x y cf.st = true) → y.Err' ≠ W64 4 →
+          watchOkL x y cf.st = true) →
+        (∀ (σe : KVState) (cf : linkv.PCfg HSt Input), l <+: σe.changes → KHistI γ σe →
+          kvWfHist c σe → KRelH cf.st σe → cf.st.hist.length = σe.rev → P) → y.Err' ≠ W64 4 →
         kInv γ c g0 γk ∗ monoListLbOwn γ.ch l ∗ linU γ g0 (boxIn x) Φt ⊢
-          |={⊤}=> contAt g0 x y Φt := by
-      intro l hw' hE
+          |={⊤}=> contAt g0 x y Φt ∗ ⌜P⌝ := by
+      intro l P hw' hP' hE
       iintro ⟨#Hi, #Hl, HU⟩
-      iapply watch_commit γ c g0 γk x y hk5 hE l Φt hw'
+      iapply watch_commit γ c g0 γk x y hk5 hE l Φt P hw' hP'
       iframe Hi HU Hl
-    icases Hy with (%Hy | ⟨%wes, %kes, %Hy, Hseen⟩)
+    icases Hy with (%Hy | ⟨%wes, %kes, %rs, %rsl, %Hy, #Hrs, Hseen⟩)
     · obtain ⟨rfl, rfl, -⟩ := Hy
       have hE : wFailedOut.Err' ≠ W64 4 := by
         unfold wFailedOut; rw [show (zero_val Output).Err' = W64 0 from rfl]; decide
       iapply fupd_wp
-      imod (Hcommit [] (fun _ cf _ _ _ _ _ => by unfold watchOkL; simp [wFailedOut]) hE)
-        $$ [HU] with HΦc
+      imod (Hcommit [] True (fun _ cf _ _ _ _ _ => by unfold watchOkL; simp [wFailedOut])
+        (fun _ _ _ _ _ _ _ => trivial) hE) $$ [HU] with ⟨HΦc, -⟩
       · iframe HinvK Hl0 HU
       imodintro
       (try wp_auto)
       iapply (hfinW _ (fun _ => hE))
       iframe HΦc Htt
-      ileft; ipureintro; exact Or.inl hk5
-    · obtain ⟨hsk, rfl, hlo, hws, hlen⟩ := Hy
-      have hE : (wEventsOut (encWEventsL wes)).Err' ≠ W64 4 := by
-        unfold wEventsOut; rw [show (zero_val Output).Err' = W64 0 from rfl]; decide
+      isplitr
+      · ileft; ipureintro; exact Or.inl hk5
+      · iright; ileft; ipureintro; exact Or.inr rfl
+    · obtain ⟨hsk, rfl, hwr, hlo, hws, hlen⟩ := Hy
+      have hE : (wEventsRawOut (encWEventsL wes) rsl).Err' ≠ W64 4 := by
+        unfold wEventsRawOut wEventsOut; rw [show (zero_val Output).Err' = W64 0 from rfl]; decide
       obtain ⟨hlk, hpk, -, n0, hn0, -, hin, hb, h1⟩ := hw hsk
       have hnn : n = n0 := by rw [hn, hn0]; rfl
       subst hnn
@@ -329,9 +349,16 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           intro w hw0
           obtain ⟨e, he, hr⟩ := forall₂_mem_right hws w hw0
           exact wevOk_of_rel hr (by have := hall w hw0; rw [hr.1] at this; omega) (hlen w hw0)
+        have hfromE : k8s_correctness.WatchFromL g0.st.rv x wes := by
+          have hne : nonErr wes = [] := by rw [nonErr_rel hws, Herr]; rfl
+          unfold k8s_correctness.WatchFromL
+          rw [hne]
+          split <;> intro e he <;> simp at he
+        have hdec := decWEventsL_enc wes hokw
         iapply fupd_wp
-        imod (Hcommit [] (fun _ cf _ _ _ _ _ =>
-            watchOkL_errs x _ cf.st wes n hn0 rfl hokw hall) hE) $$ [HU] with HΦc
+        imod (Hcommit [] True (fun _ cf _ _ _ _ _ =>
+            watchOkL_errs x _ cf.st wes n hn0 rfl hokw hall) (fun _ _ _ _ _ _ _ => trivial) hE)
+          $$ [HU] with ⟨HΦc, -⟩
         · iframe HinvK Hl0 HU
         imodintro
         (try wp_auto)
@@ -339,7 +366,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         all_goals (try (wp_apply (wp_putW c tbl x.Client' o)))
         all_goals (try (iexact Htbl))
         all_goals (try wp_auto)
-        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt; ileft; ipureintro; exact Or.inl hk5)
+        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt; isplitr;
+          · (ileft; ipureintro; exact Or.inl hk5)
+          iright; iright; iexists rs; iframe Hrs; ipureintro
+          exact ⟨by rw [← hwr]; exact hdec, by rw [← hwr]; exact hfromE⟩)
       · -- a stream from the start firing's state, received at the read firing's
         iunfold watchQ at HQ HQ0
         icases HQ with ⟨%Hq, #Hlb⟩
@@ -357,12 +387,34 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           have e2 : kScopeOf c k x.Recursive' = kInScope (go!"/registry" ++ k) x.Recursive' := by
             unfold kScopeOf; rw [hpfx]
           rw [← e1, ← e2]; exact hs
+        have hst : uint.nat g0.st.rv ≤ st := by
+          have h0r : uint.nat g0.st.rv ≤ σ0.rev := hs0n ▸ le_trans (Nat.le_max_right _ s0n) Hq0.1
+          have hreq : (kModeOf (sieOfL x) x.Bookmarks' n).req = uint.nat n := rfl
+          unfold kStartOk at hstart
+          rw [hreq] at hstart
+          split at hstart
+          · omega
+          · split at hstart
+            · rcases hfl n hn0 with h | h
+              · subst h; simp at *
+              · omega
+            · omega
+        have hdec := decWEventsL_enc wes hokw
         iapply fupd_wp
-        imod (Hcommit σ.changes (fun σe cf hpre hkh hwh hrel hlen' => by
-            obtain ⟨hsame, hle⟩ := sameHist_of_khist Hq.2.2.2.2.2.2 hkh hpre
-            exact watchOkL_stream_commit x k n hk0 hlk hn0 hin hb h1 kes wes hws hokw c.S.zero
-              σ σ0 σe st hsame hle Hq0.2.2.2.2.2.2.2.2.2 hstart hs' cf.st hrel hlen'
-              (khistW_of c hcd γ σe hwh hkh)) hE) $$ [HU] with HΦc
+        imod (Hcommit σ.changes (k8s_correctness.WatchFromL g0.st.rv x wes)
+            (fun σe cf hpre hkh hwh hrel hlen' => by
+              obtain ⟨hsame, hle⟩ := sameHist_of_khist Hq.2.2.2.2.2.2 hkh hpre
+              exact watchOkL_stream_commit x k n hk0 hlk hn0 hin hb h1 kes wes hws hokw c.S.zero
+                σ σ0 σe st hsame hle Hq0.2.2.2.2.2.2.2.2.2 hstart hs' cf.st hrel hlen'
+                (khistW_of c hcd γ σe hwh hkh))
+            (fun σe cf hpre hkh hwh hrel hlen' => by
+              obtain ⟨hsame, hle⟩ := sameHist_of_khist Hq.2.2.2.2.2.2 hkh hpre
+              exact watchFromL_of_kStreamOk g0.st.rv x cf.st σe σ0 k n
+                (kModeOf (sieOfL x) x.Bookmarks' n) (selD x) (predEmptyL x) c.S.zero st kes wes
+                hrel hlen' (khistW_of c hcd γ σe hwh hkh) hk0 hlk (fun _ => rfl)
+                (fun he o => selD_of_empty x he o) (kModeOk_of x n hb h1)
+                Hq0.2.2.2.2.2.2.2.2.2 hstart (kStreamOk_hist hsame hle hs') hws hst) hE)
+          $$ [HU] with ⟨HΦc, %hfromE⟩
         · iframe HinvK Hlb HU
         imodintro
         (try wp_auto)
@@ -370,7 +422,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         all_goals (try (wp_apply (wp_putW c tbl x.Client' o)))
         all_goals (try (iexact Htbl))
         all_goals (try wp_auto)
-        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt; ileft; ipureintro; exact Or.inl hk5)
+        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt; isplitr;
+          · (ileft; ipureintro; exact Or.inl hk5)
+          iright; iright; iexists rs; iframe Hrs; ipureintro
+          exact ⟨by rw [← hwr]; exact hdec, by rw [← hwr]; exact hfromE⟩)
   -- a unary client's operation
   have hk5 : ¬ x.Kind' = W64 5 := Hif
   have Hgen : GenIn x := HgenA.resolve_right (fun h => hk5 h.1)
@@ -380,9 +435,11 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     iintro ⟨H1, H2, H3⟩
     iapply hfinW y (fun h => absurd h hk5)
     iframe H1 H2
-    icases H3 with (%h | #h)
-    · ileft; ipureintro; exact Or.inr h
-    · iright; iexact h
+    isplitl [H3]
+    · icases H3 with (%h | #h)
+      · ileft; ipureintro; exact Or.inr h
+      · iright; iexact h
+    · ileft; ipureintro; exact hk5
   obtain ⟨hx, hkey, hpp⟩ := genIn_ok x Hgen
   have hkey' : prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') := by
     rw [hrp]; exact hkey

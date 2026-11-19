@@ -128,7 +128,7 @@ theorem watchEvents.wp_proof
   wp_auto
   wp_apply (wp_consume c wi γ _ γd (selD x) (predEmptyL x) (kScopeOf c k x.Recursive')
       (kModeOf (sieOfL x) x.Bookmarks' n) Q x hS rfl) $$ [$Hw $Hdt]
-    as %sl ⟨%wes, %kes, Hsl, %Hrel, Hseen, #HSO, Hlive, Hdt⟩
+    as %sl %rsl ⟨%rs, %kes, Hsl, #Hrs, %Hrel, Hseen, #HSO, Hlive, Hdt⟩
   iunfold kStopOk at HSO
   icases HSO with ⟨%wo, %Hwo, #HStop⟩
   subst Hwo
@@ -143,8 +143,9 @@ theorem watchEvents.wp_proof
   (try wp_auto)
   iapply HΦ
   rw [ite_eq_right Bool.false_ne_true]
-  iexists wes, kes
+  iexists rs, kes
   iframe
+  iframe #
   ipureintro; exact Hrel
 
 end proof

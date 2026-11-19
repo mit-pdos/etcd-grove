@@ -166,28 +166,39 @@ theorem consume.wp_proof
       · iapply ownSlice_nil
       · ipureintro; rfl
     isplitr
+    · iapply k8s_correctness.evsRO_nil
+    isplitr
     · ipureintro; exact List.Forall₂.nil
     isplitr
     · iunfold kSeen; ileft; ipureintro; rfl
     iframe
     iexact HSO
   ihave HI : iprop(∃ (iD hD : Bool) (sl : GoSlice) (ws : List WEvent) (recv : List Event)
-      (kes : List (KWEv DObj)),
+      (kes : List (KWEv DObj)) (rsl : GoSlice) (vs : List Event) (rs : List k8s_correctness.REv),
       "initialDone" ∷ initialDone_ptr ↦ iD ∗ "hiccupDone" ∷ hiccupDone_ptr ↦ hD ∗
       "evs" ∷ evs_ptr ↦ sl ∗ "Hsl" ∷ sl ↦* ws ∗ "Hcap" ∷ ownSliceCap WEvent sl (DFrac.own 1) ∗
-      "%Hrel" ∷ ⌜List.Forall₂ kWEvRel kes (ws.map wevOf) ∧ kes.length = recv.length⌝ ∗
+      "raw" ∷ raw_ptr ↦ rsl ∗ "Hrsl" ∷ rsl ↦* vs ∗ "Hrcap" ∷ ownSliceCap Event rsl (DFrac.own 1) ∗
+      "#Hvs" ∷ ([∗list] v;r ∈ vs;rs, k8s_correctness.evRep v r) ∗
+      "%Hrel" ∷ ⌜List.Forall₂ kWEvRel kes (rs.map k8s_correctness.toWEvL) ∧ kes.length = recv.length ∧
+        ws.map wevOf = rs.map k8s_correctness.toWEvL⌝ ∗
       "#Hidx" ∷ ([∗list] j ↦ e ∈ kes, monoListIdxOwn γ.evs j e) ∗
       "Hseen" ∷ kSeen c sel emp inS m Q kes ∗
       "Hcons" ∷ spscConsumer γ.res recv ∗ "Hlive" ∷ kLive γ ∗ "Hdt" ∷ doneTok γd)
-      $$ [initialDone hiccupDone evs Hcons Hlive Hdt]
-  · iexists _, _, slice.nil, [], [], []
+      $$ [initialDone hiccupDone evs raw Hcons Hlive Hdt]
+  · iexists _, _, slice.nil, [], [], [], slice.nil, [], []
     iframe
     isplitl
     · iapply ownSlice_nil
     isplitl
     · iapply ownSliceCap_nil
+    isplitl
+    · iapply ownSlice_nil
+    isplitl
+    · iapply ownSliceCap_nil
     isplitr
-    · ipureintro; exact ⟨List.Forall₂.nil, rfl⟩
+    · iapply BigSepL2.bigSepL2_nil.2; iempintro
+    isplitr
+    · ipureintro; exact ⟨List.Forall₂.nil, rfl, rfl⟩
     isplitr
     · iapply BigSepL.bigSepL_nil.2; itrivial
     iunfold kSeen; ileft; ipureintro; rfl
@@ -199,9 +210,11 @@ theorem consume.wp_proof
   wp_for HI
   wp_join (Q := fun v => iprop(∃ hD' : Bool, "hiccupDone" ∷ hiccupDone_ptr ↦ hD' ∗
       "evs" ∷ evs_ptr ↦ sl ∗ "Hsl" ∷ sl ↦* ws ∗ "Hin" ∷ in_ptr ↦ x ∗ "timer" ∷ timer_ptr ↦ t ∗
-      ((⌜v = executeVal⌝ ∗ "$res0" ∷ «$res0_ptr» ↦ zero_val GoSlice) ∨
-       (⌜v = returnVal #()⌝ ∗ "$res0" ∷ «$res0_ptr» ↦ sl))))
-    at next with [hiccupDone evs Hsl Hin «$res0» timer]
+      "raw" ∷ raw_ptr ↦ rsl ∗
+      ((⌜v = executeVal⌝ ∗ "$res0" ∷ «$res0_ptr» ↦ zero_val GoSlice ∗
+          "$res1" ∷ «$res1_ptr» ↦ zero_val GoSlice) ∨
+       (⌜v = returnVal #()⌝ ∗ "$res0" ∷ «$res0_ptr» ↦ sl ∗ "$res1" ∷ «$res1_ptr» ↦ rsl))))
+    at next with [hiccupDone evs Hsl Hin «$res0» «$res1» raw timer]
   · cases iD
     · wp_auto
       iexists hD
@@ -242,19 +255,22 @@ theorem consume.wp_proof
         try (ipureintro; rfl)
     · iexists hD'
       iframe
-  iintro ⟨%hD', hiccupDone, evs, Hsl, Hin, timer, Hr⟩
-  icases Hr with (⟨%Hv, «$res0»⟩ | ⟨%Hv, «$res0»⟩) <;> subst Hv
+  iintro ⟨%hD', hiccupDone, evs, Hsl, Hin, timer, raw, Hr⟩
+  icases Hr with (⟨%Hv, «$res0», «$res1»⟩ | ⟨%Hv, «$res0», «$res1»⟩) <;> subst Hv
   rotate_left
   · -- the timer fired during the delay: return
     wp_auto
     wp_for_post
+    imod ownSlice_persist rsl _ _ $$ Hrsl with #Hrsl
     wp_apply wp_Stop $$ [] as %_ -
     · ileft; iexists tch, γt; iexact Ht
     (try wp_auto)
     iapply HΦ
-    iexists ws.map wevOf, kes
+    iexists rs, kes
     isplitl [Hsl]
-    · iunfold wevsOwnM; iexists ws; iframe; ipureintro; rfl
+    · iunfold wevsOwnM; iexists ws; iframe; ipureintro; exact Hrel.2.2
+    isplitr
+    · iunfold k8s_correctness.evsRO; iexists vs; iframe #
     isplitr
     · ipureintro; exact Hrel.1
     iframe
@@ -267,13 +283,16 @@ theorem consume.wp_proof
     iintro Hcons %_
     wp_auto
     wp_for_post
+    imod ownSlice_persist rsl _ _ $$ Hrsl with #Hrsl
     wp_apply wp_Stop $$ [] as %_ -
     · ileft; iexists tch, γt; iexact Ht
     (try wp_auto)
     iapply HΦ
-    iexists ws.map wevOf, kes
+    iexists rs, kes
     isplitl [Hsl]
-    · iunfold wevsOwnM; iexists ws; iframe; ipureintro; rfl
+    · iunfold wevsOwnM; iexists ws; iframe; ipureintro; exact Hrel.2.2
+    isplitr
+    · iunfold k8s_correctness.evsRO; iexists vs; iframe #
     isplitr
     · ipureintro; exact Hrel.1
     iframe
@@ -286,13 +305,16 @@ theorem consume.wp_proof
     icases Hv with ⟨-, %Hv0⟩
     wp_auto
     wp_for_post
+    imod ownSlice_persist rsl _ _ $$ Hrsl with #Hrsl
     wp_apply wp_Stop $$ [] as %_ -
     · ileft; iexists tch, γt; iexact Ht
     (try wp_auto)
     iapply HΦ
-    iexists ws.map wevOf, kes
+    iexists rs, kes
     isplitl [Hsl]
-    · iunfold wevsOwnM; iexists ws; iframe; ipureintro; rfl
+    · iunfold wevsOwnM; iexists ws; iframe; ipureintro; exact Hrel.2.2
+    isplitr
+    · iunfold k8s_correctness.evsRO; iexists vs; iframe #
     isplitr
     · ipureintro; exact Hrel.1
     iframe
@@ -324,28 +346,39 @@ theorem consume.wp_proof
   iclear Hseen
   rw [hS] at *
   wp_auto
-  wp_apply wp_toWEvent $$ [$Hwev] as %we %Hwe
+  wp_apply wp_toWEvent $$ [$Hwev] as %we %r ⟨%Hwe, #Hr⟩
   wp_apply wp_slice_literal (V := WEvent) [we]
   isplitr
   · ipureintro; rfl
   iintro %lit ⟨Hlit, -⟩
   wp_apply wp_slice_append $$ [$Hsl $Hcap $Hlit] as %s1 ⟨Hs1, Hc1, -⟩
-  have Hrel' : List.Forall₂ kWEvRel (kes ++ [e]) ((ws ++ [we]).map wevOf) ∧
-      (kes ++ [e]).length = (recv ++ [v]).length := by
-    refine ⟨?_, by simp [Hrel.2]⟩
-    rw [List.map_append]; exact consume_forall₂_snoc Hrel.1 Hwe
+  wp_apply wp_slice_literal (V := Event) [v]
+  isplitr
+  · ipureintro; rfl
+  iintro %rlit ⟨Hrlit, -⟩
+  wp_apply wp_slice_append $$ [$Hrsl $Hrcap $Hrlit] as %rs1 ⟨Hrs1, Hrc1, -⟩
+  ihave #Hvs' : ([∗list] v;r ∈ vs ++ [v];rs ++ [r], k8s_correctness.evRep v r : IProp GF) $$ []
+  · iapply BigSepL2.bigSepL2_snoc.2; iframe #
+  have Hrel' : List.Forall₂ kWEvRel (kes ++ [e]) ((rs ++ [r]).map k8s_correctness.toWEvL) ∧
+      (kes ++ [e]).length = (recv ++ [v]).length ∧
+      (ws ++ [we]).map wevOf = (rs ++ [r]).map k8s_correctness.toWEvL := by
+    refine ⟨?_, by simp [Hrel.2.1], by simp [List.map_append, Hrel.2.2, Hwe.2]⟩
+    rw [List.map_append, ← Hwe.2]; exact consume_forall₂_snoc Hrel.1 Hwe.1
   wp_join iprop(∃ iD' : Bool, initialDone_ptr ↦ iD') with [initialDone] as ⟨%iD', initialDone⟩
   all_goals (try (iexists _; iframe; done))
   wp_if_destruct
   · -- `maxEvents` events: return
     wp_for_post
+    imod ownSlice_persist rs1 _ _ $$ Hrs1 with #Hrs1
     wp_apply wp_Stop $$ [] as %_ -
     · ileft; iexists tch, γt; iexact Ht
     (try wp_auto)
     iapply HΦ
-    iexists (ws ++ [we]).map wevOf, kes ++ [e]
+    iexists rs ++ [r], kes ++ [e]
     isplitl [Hs1]
-    · iunfold wevsOwnM; iexists ws ++ [we]; iframe; ipureintro; rfl
+    · iunfold wevsOwnM; iexists ws ++ [we]; iframe; ipureintro; exact Hrel'.2.2
+    isplitr
+    · iunfold k8s_correctness.evsRO; iexists vs ++ [v]; iframe #
     isplitr
     · ipureintro; exact Hrel'.1
     iframe
@@ -353,8 +386,9 @@ theorem consume.wp_proof
   · -- again
     wp_for_post
     iframe
-    iexists iD', hD', s1, ws ++ [we], recv ++ [v], kes ++ [e]
+    iexists iD', hD', s1, ws ++ [we], recv ++ [v], kes ++ [e], rs1, vs ++ [v], rs ++ [r]
     iframe
+    iframe #
     isplitr
     · ipureintro; exact Hrel'
     iexact Hidx'
