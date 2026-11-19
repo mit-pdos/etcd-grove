@@ -37,7 +37,7 @@ theorem typed.validatingObjectWalker.finished.wp_proof
   unfold typedPoolsAt
   icases HP with ⟨-, -, -, -, -, #Pv, -⟩
   unfold vwOwn vwCore
-  icases Hown with ⟨%sp, %a, ⟨%tr, Hw, -, -, -⟩, Hsp, Ha⟩
+  icases Hown with ⟨%sp, ⟨%tr, Hw, -, -, -⟩, Hsp, Ha⟩
   wp_auto
   wp_apply h_sync_Pool_Put (globalAddr typed.vPool) typed.vwNewV iprop(True)
     (pooledAs typed.validatingObjectWalker.ty vwPooled) $$ [Hw Hsp Ha]

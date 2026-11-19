@@ -136,6 +136,75 @@ theorem isIfaceM_canon : ∀ (M : GMap GoString GoInterface) (kvs : List (GoStri
     simp [UVal.canonM, h1, h2]
 end
 
+/-! ## Field lists -/
+
+instance isVal_pers (v : value.Value) (x : UVal) : Persistent (isValF (GF := GF) v DFrac.discard x) := by
+  unfold isValF; infer_instance
+
+instance isFieldsL_pers (fs : List value.Field) (fl : FieldList) :
+    Persistent (isFieldsL (GF := GF) fs fl) := by
+  induction fs generalizing fl with
+  | nil => cases fl <;> unfold isFieldsL <;> infer_instance
+  | cons f fs ih =>
+    cases fl with
+    | nil => unfold isFieldsL; infer_instance
+    | cons p fl =>
+      obtain ⟨n, x⟩ := p
+      have := ih fl
+      unfold isFieldsL; infer_instance
+
+instance isFieldList_pers (s : GoSlice) (fl : FieldList) : Persistent (isFieldList (GF := GF) s fl) := by
+  unfold isFieldList; infer_instance
+
+theorem isFieldList_val (s : GoSlice) (fl : FieldList) :
+    isFieldList (GF := GF) s fl ⊢ ∃ fs : List value.Field, s ↦*□ fs ∗ isFieldsL (GF := GF) fs fl := by
+  iintro H
+  iunfold isFieldList at H
+  iexact H
+
+theorem isFieldsL_length (fs : List value.Field) (fl : FieldList) :
+    isFieldsL (GF := GF) fs fl ⊢ ⌜fs.length = fl.length⌝ := by
+  induction fs generalizing fl with
+  | nil => cases fl with
+    | nil => iintro -; ipureintro; rfl
+    | cons _ _ => iintro H; iunfold isFieldsL at H; iexfalso; iexact H
+  | cons f fs ih =>
+    cases fl with
+    | nil => iintro H; iunfold isFieldsL at H; iexfalso; iexact H
+    | cons p fl =>
+      obtain ⟨n, x⟩ := p
+      iintro H
+      iunfold isFieldsL at H
+      icases H with ⟨-, -, H⟩
+      ihave %h := ih fl $$ H
+      ipureintro
+      simp [h]
+
+theorem isFieldsL_lookup (fs : List value.Field) (fl : FieldList) (i : Nat) (n : GoString) (x : UVal)
+    (hi : fl[i]? = some (n, x)) :
+    isFieldsL (GF := GF) fs fl ⊢ ∃ f : value.Field, ⌜fs[i]? = some f ∧ f.Name' = n⌝ ∗ isVal (GF := GF) f.Value' x := by
+  induction fs generalizing fl i with
+  | nil => cases fl with
+    | nil => simp at hi
+    | cons _ _ => iintro H; iunfold isFieldsL at H; iexfalso; iexact H
+  | cons f fs ih =>
+    cases fl with
+    | nil => simp at hi
+    | cons p fl =>
+      obtain ⟨n', x'⟩ := p
+      iintro H
+      iunfold isFieldsL at H
+      icases H with ⟨%hn, Hv, H⟩
+      cases i with
+      | zero =>
+        simp at hi; obtain ⟨rfl, rfl⟩ := hi
+        iexists f; iframe; ipureintro; exact ⟨rfl, hn⟩
+      | succ i =>
+        simp at hi
+        simp only [List.getElem?_cons_succ]
+        iapply ih fl i hi
+        iexact H
+
 /-! ## Callback contracts are persistent -/
 
 instance iterFnOk_pers (fn : GoFunc) (kvs : List (GoString × UVal)) (I : List GoString → IProp GF)

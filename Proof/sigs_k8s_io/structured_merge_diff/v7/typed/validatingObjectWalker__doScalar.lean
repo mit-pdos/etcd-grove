@@ -37,7 +37,7 @@ theorem typed.validatingObjectWalker.doScalar.wp_proof
     unfold conforms at Hc
     cases x <;> simp [conformsB, Hfind] at Hc ⊢ <;> exact Hc
   unfold vwOwn vwCore
-  icases Hown with ⟨%sp, %a, ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩, Hsp, Ha⟩
+  icases Hown with ⟨%sp, ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩, Hsp, Ha⟩
   wp_auto
   wp_apply h_validateScalar tp s st.value dq (some x) (go!"") $$ [Hv] as %errs ⟨Hv, Herrs⟩
   · iframe #; unfold isValO; iframe Hv; ipureintro; exact hok
@@ -56,7 +56,7 @@ theorem typed.validatingObjectWalker.doScalar.wp_proof
   · isplitr
     · iapply (ownSlice_nil (V := typed.ValidationError))
     · iapply ownSliceCap_nil
-  iexists sp, a
+  iexists sp
   iframe Hsp Ha
   iexists tr
   iframe Hw

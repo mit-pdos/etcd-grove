@@ -57,9 +57,9 @@ theorem typed.TypedValue.toFieldSetWalker.wp_proof
   wp_apply h_NewFreelistAllocator as %a Ha
   try wp_auto
   iapply HΦ
-  iexists _
+  iexists _, a
   unfold twOwn twCore
-  iexists v0.path', v0.spareWalkers', a
+  iexists v0.path', v0.spareWalkers'
   iframe Hsp Ha
   isplitl [Hw]
   · iexists tv.typeRef'

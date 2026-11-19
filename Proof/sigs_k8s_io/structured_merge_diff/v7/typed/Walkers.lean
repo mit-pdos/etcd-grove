@@ -375,6 +375,8 @@ structure TWSt where
   value : value.Value
   t : TypeRef
   path : Path
+  /-- The allocator (Prove phase, 2026-11-19: kept across a method, as `VWSt.alloc`). -/
+  alloc : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.Allocator
 
 /-- **`twCore w sc S st ps s sp a`**: the field-set walker's struct (owned), the set `s` it adds
 to (shared by the traversal). -/
@@ -387,9 +389,9 @@ def twCore (w sc : Loc) (S : Schema) (st : TWSt) (ps : fieldpath.Path) (s sp : L
 /-- **`twOwn w sc S st s F`**: the active field-set walker, the set at `s` holding `F` so far
 (owned). -/
 def twOwn (w sc : Loc) (S : Schema) (st : TWSt) (s : Loc) (F : PathSet) : IProp GF :=
-  iprop(∃ (ps : fieldpath.Path) (sp : Loc) (a : value.Allocator),
-    twCore w sc S st ps s sp a ∗ ownPath ps st.path ∗ spareWalkers typed.toFieldSetWalker sp ∗
-    isAlloc a ∗ ownSet s F)
+  iprop(∃ (ps : fieldpath.Path) (sp : Loc),
+    twCore w sc S st ps s sp st.alloc ∗ ownPath ps st.path ∗ spareWalkers typed.toFieldSetWalker sp ∗
+    isAlloc st.alloc ∗ ownSet s F)
 
 /-- **`twPooled w`**: a field-set walker in `tPool` (`finished`: path nil; its spare walkers; its
 allocator is replaced at the next `toFieldSetWalker()`). -/
@@ -399,10 +401,14 @@ def twPooled (w : Loc) : IProp GF :=
 
 /-! ### The validating walker -/
 
-/-- The validating walker's state. -/
+/-- The validating walker's state. Its allocator `alloc` is part of it (Prove phase, 2026-11-19):
+a method's post gives the walker back with the same allocator, which a `defer a.Free(x)`
+registered before the call (`doList`, `doMap`, `visitListItems`) and `finishDescent` (the
+child's allocator is the parent's) need. -/
 structure VWSt where
   value : value.Value
   t : TypeRef
+  alloc : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.Allocator
 
 /-- **`vwCore w sc S st sp a`**: the validating walker's struct (owned), duplicates not allowed
 (the scope: no `AllowDuplicates`). -/
@@ -413,8 +419,8 @@ def vwCore (w sc : Loc) (S : Schema) (st : VWSt) (sp : Loc) (a : value.Allocator
 
 /-- **`vwOwn w sc S st`**: the active validating walker. -/
 def vwOwn (w sc : Loc) (S : Schema) (st : VWSt) : IProp GF :=
-  iprop(∃ (sp : Loc) (a : value.Allocator),
-    vwCore w sc S st sp a ∗ spareWalkers typed.validatingObjectWalker sp ∗ isAlloc a)
+  iprop(∃ sp : Loc,
+    vwCore w sc S st sp st.alloc ∗ spareWalkers typed.validatingObjectWalker sp ∗ isAlloc st.alloc)
 
 /-- **`vwPooled w`**: a validating walker in `vPool` (spare walkers; allocator or nil). -/
 def vwPooled (w : Loc) : IProp GF :=

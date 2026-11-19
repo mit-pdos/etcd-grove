@@ -399,6 +399,47 @@ theorem zipLexical_sorted : ∀ (n : Nat) (xs ys : List (GoString × UVal)),
           · exact gsLt_trans hl2 (keysSorted_lt_all hx k' (by simpa [kvKeys] using hm))
         · exact keysSorted_lt_all hy k' hm
 
+/-! ## `strings.Compare` is `gsCompare` (the fieldpath laws' proof, copied: `value` is below it) -/
+
+theorem compareResult_gs : ∀ a b : GoString, (strings.compareResult a b).toInt = gsCompare a b
+  | [], [] => by decide
+  | [], _ :: _ => by
+    simp only [strings.compareResult, gsCompare]
+    rw [if_pos (show go.GoStringLt [] _ from List.Lex.nil)]; decide
+  | _ :: _, [] => by
+    simp only [strings.compareResult, gsCompare]
+    rw [if_neg (by intro h; cases h), if_neg (by simp)]; decide
+  | x :: xs, y :: ys => by
+    have ih := compareResult_gs xs ys
+    simp only [strings.compareResult, gsCompare] at ih ⊢
+    have hlt : go.GoStringLt (x :: xs) (y :: ys) ↔
+        uint.Z x < uint.Z y ∨ (x = y ∧ go.GoStringLt xs ys) := by
+      unfold go.GoStringLt
+      constructor
+      · intro h; cases h with
+        | rel h => exact Or.inl h
+        | cons h => exact Or.inr ⟨rfl, h⟩
+      · rintro (h | ⟨rfl, h⟩)
+        · exact List.Lex.rel h
+        · exact List.Lex.cons h
+    have hz : ∀ a b : w8, uint.Z a < uint.Z b ↔ a.toNat < b.toNat := by
+      intro a b; simp [uint.Z]
+    by_cases h1 : x.toNat < y.toNat
+    · rw [if_pos (hlt.2 (Or.inl ((hz x y).2 h1))), if_pos h1]; decide
+    · by_cases h2 : y.toNat < x.toNat
+      · have : ¬ go.GoStringLt (x :: xs) (y :: ys) := by
+          rw [hlt]; rintro (h | ⟨rfl, -⟩)
+          · exact h1 ((hz x y).1 h)
+          · omega
+        rw [if_neg this, if_neg (by intro h; cases h; omega), if_neg h1, if_pos h2]; decide
+      · have hxy : x = y := BitVec.eq_of_toNat_eq (by omega)
+        subst hxy
+        rw [if_neg h1, if_neg h2]
+        have e1 : go.GoStringLt (x :: xs) (x :: ys) ↔ go.GoStringLt xs ys := by
+          rw [hlt]; simp
+        simp only [e1, List.cons.injEq, _root_.true_and]
+        exact ih
+
 /-! ## The constructor tests -/
 
 theorem isIntB_true {x : UVal} (h : true = x.isIntB) : ∃ n, x = .int n := by

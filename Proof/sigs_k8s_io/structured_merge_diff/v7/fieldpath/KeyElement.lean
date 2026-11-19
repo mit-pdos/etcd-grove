@@ -1,5 +1,5 @@
 /-
-`fieldpath.KeyElement`: not proved yet (`sorry`): the stage's Prove step, after the freeze
+`fieldpath.KeyElement`: proved over its callees' specs
 (notes/smd-plan.md). Lean-first (2026-11-19).
 -/
 module

@@ -32,7 +32,8 @@ variable [package_sem : typed.Assumptions]
 abbrev typed.typeRefAtPath.spec : Prop :=
   ∀ (mp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel)
     (pe : fieldpath.PathElement) (pe' : PE),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isMapRep mp fs e rel ∗ isPE pe pe' }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isMapRep mp fs e rel ∗ isPE pe pe' ∗
+      ⌜(fs.map (·.1)).Nodup⌝ }}
     (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.typeRefAtPath)) (Val #mp)) (Val #pe))
   {{ (tr : schema.TypeRef) (ok : Bool), RET (PairV #tr #ok);
       match (match pe' with

@@ -40,6 +40,17 @@ instance isSetO_pers (p : Loc) : (o : Option PathSet) → Persistent (isSetO (GF
   | none => by unfold isSetO; infer_instance
   | some _ => by unfold isSetO; infer_instance
 
+/-- A path element's field name: set exactly for a field. -/
+theorem isPE_fieldName (e : fieldpath.PathElement) (pe : PE) :
+    isPE (GF := GF) e pe ⊢ match pe with
+      | .field n => e.FieldName' ↦□ n
+      | _ => ⌜e.FieldName' = null⌝ := by
+  rcases pe with n | fl | x | i <;> unfold isPE
+  · iintro H; iexact H
+  · iintro ⟨%h, -⟩; ipureintro; exact h
+  · iintro ⟨%h, -⟩; ipureintro; exact h.1
+  · iintro ⟨%h, -⟩; ipureintro; exact h.1
+
 /-- A set's pointer is not nil (its struct is allocated). -/
 theorem trieRep_not_null (p : Loc) (t : Trie) : trieRep (GF := GF) p t ⊢ ⌜p ≠ null⌝ := by
   rcases t with ⟨ms, cs⟩

@@ -46,13 +46,13 @@ theorem typed.validatingObjectWalker.validate.wp_proofBody
   wp_start as ⟨Hown, Hv, Hf, %Hfind, %Hc⟩
   obtain ⟨A, hA⟩ := Option.isSome_iff_exists.1 Hfind
   iunfold vwOwn at Hown
-  icases Hown with ⟨%sp, %a, Hcore, Hsp, Ha⟩
+  icases Hown with ⟨%sp, Hcore, Hsp, Ha⟩
   iunfold vwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   wp_auto
   ihave Hown : vwOwn w sc S st $$ [Hw Hsp Ha]
   · unfold vwOwn vwCore
-    iexists sp, a
+    iexists sp
     iframe Hsp Ha
     iexists tr
     iframe Hw

@@ -58,8 +58,9 @@ theorem typed.TypedValue.walker.wp_proof
     wp_apply h_NewFreelistAllocator as %a Ha
     try wp_auto
     iapply HΦ
+    iexists a
     unfold vwOwn vwCore
-    iexists v0.spareWalkers', a
+    iexists v0.spareWalkers'
     iframe Hsp Ha
     iexists tv.typeRef'
     iframe Hw
@@ -74,8 +75,9 @@ theorem typed.TypedValue.walker.wp_proof
     rw [hp]
     wp_auto
     iapply HΦ
+    iexists _
     unfold vwOwn vwCore
-    iexists v0.spareWalkers', _
+    iexists v0.spareWalkers'
     iframe Hsp Ha
     iexists tv.typeRef'
     iframe Hw

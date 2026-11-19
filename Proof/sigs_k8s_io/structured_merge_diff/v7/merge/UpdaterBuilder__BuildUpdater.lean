@@ -1,10 +1,11 @@
 /-
-`merge.UpdaterBuilder.BuildUpdater`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Lean-first (2026-11-19).
+`merge.UpdaterBuilder.BuildUpdater`: a fresh `Updater` literal of the builder's fields, made
+read-only (`isUpdater_intro`). Lean-first (2026-11-19).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.UpdaterBuilder__BuildUpdater
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Intro
 
 @[expose] public section
 
@@ -27,8 +28,21 @@ variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
 theorem merge.UpdaterBuilder.BuildUpdater.wp_proof :
-    merge.UpdaterBuilder.BuildUpdater.spec (GF := GF) := by
-  sorry
+    merge.UpdaterBuilder.BuildUpdater.spec (GF := GF) := fun b dq ub => by
+  wp_start as Hb
+  icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %hbnn⟩
+  iStructNamed Hb
+  wp_auto
+  wp_apply (IntoValTyped.wp_alloc (t := merge.Updater.ty)) as %u Hu
+  imod typedPointsto_persist $$ Hu with #Hu
+  wp_auto
+  iapply HΦ
+  isplitr [Hu]
+  · iapply typedPointsto_combine _ _ _ hbnn
+    simp only [typedPointstoDef]
+    iframe
+  iapply isUpdater_intro_law_holds
+  iexact Hu
 
 end proof
 

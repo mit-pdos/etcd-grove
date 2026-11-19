@@ -33,7 +33,7 @@ abbrev typed.TypedValue.toFieldSetWalker.spec : Prop :=
   ∀ (tv : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue) (sc : Loc) (S : Schema) (t : TypeRef) (x : UVal),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isTVv tv sc S t x }}
     (App (Val (tv @!! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue.ty @!! go!"toFieldSetWalker")) (Val #()))
-  {{ (w : Loc), RET #w; ∃ s : Loc, twOwn w sc S ⟨tv.value', t, []⟩ s PathSet.empty }}
+  {{ (w : Loc), RET #w; ∃ (s : Loc) (a : value.Allocator), twOwn w sc S ⟨tv.value', t, [], a⟩ s PathSet.empty }}
 
 end spec
 

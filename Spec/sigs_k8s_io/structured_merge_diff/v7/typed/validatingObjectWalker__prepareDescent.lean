@@ -33,7 +33,7 @@ abbrev typed.validatingObjectWalker.prepareDescent.spec : Prop :=
     (t' : TypeRef),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwCore w sc S st sp a ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker sp ∗ isTypeRef tr t' }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"prepareDescent")) (Val #tr))
-  {{ (w2 : Loc), RET #w2; ∃ sp' : Loc, vwCore w sc S st sp' a ∗ vwCore w2 sc S ⟨st.value, t'⟩ sp' a ∗
+  {{ (w2 : Loc), RET #w2; ∃ sp' : Loc, vwCore w sc S st sp' a ∗ vwCore w2 sc S ⟨st.value, t', a⟩ sp' a ∗
       spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker sp' ∗ ⌜sp' ≠ null⌝ }}
 
 end spec

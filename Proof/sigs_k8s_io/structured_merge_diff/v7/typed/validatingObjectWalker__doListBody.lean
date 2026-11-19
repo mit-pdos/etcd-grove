@@ -8,6 +8,8 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWa
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__Free
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__Free
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.listValue
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofsDispatch
 
 @[expose] public section
 
@@ -34,7 +36,72 @@ theorem typed.validatingObjectWalker.doList.wp_proofBody
     (h_freelistAllocator_Free : value.freelistAllocator.Free.spec (GF := GF))
     (h_listValue : typed.listValue.spec (GF := GF)) :
     typed.validatingObjectWalker.doList.specBody (GF := GF) := by
-  sorry
+  unfold typed.validatingObjectWalker.doList.specBody typed.validatingObjectWalkerRec.specI
+    typed.validatingObjectWalker.validate.specI typed.validatingObjectWalker.doList.specI
+    typed.validatingObjectWalker.doMap.specI typed.validatingObjectWalker.visitListItems.specI
+    typed.validatingObjectWalker.visitMapItems.specI
+  iintro #IH
+  iintro %w %sc %S %st %dq %x %tp %e %rel %ks
+  wp_start as ⟨Hown, Hv, #Hl, %Hfind, %Hc⟩
+  have Hx : x = .null ∨ (listOfO (some x)).isSome := by
+    unfold conforms at Hc
+    cases x <;> simp_all [conformsB, listOfO]
+  iunfold vwOwn at Hown
+  icases Hown with ⟨%sp, Hcore, Hsp, Ha⟩
+  iunfold vwCore at Hcore
+  icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
+  wp_auto
+  wp_bind (App (Val wrapDefer) _)
+  wp_apply wp_with_defer as %defer defer
+  try wp_auto
+  wp_apply h_listValue a st.value dq x $$ [Hv] as %l %err ⟨Hv, Hlo, %Herr⟩
+  · iframe Hv; ipureintro; exact Hx
+  rw [Herr.2 Hx]
+  wp_auto
+  rcases Hx with rfl | Hx
+  · simp only [listOfO, isListO]
+    icases Hlo with %Hlo
+    subst Hlo
+    wp_auto
+    iapply HΦ
+    iframe Hv
+    isplitr
+    · unfold noErrs ownErrs
+      isplitr
+      · iapply (ownSlice_nil (V := typed.ValidationError))
+      · iapply ownSliceCap_nil
+    unfold vwOwn vwCore
+    iexists sp
+    iframe Hsp Ha
+    iexists tr
+    iframe Hw
+    iframe #
+    ipureintro; exact Hwf
+  · obtain ⟨vs, rfl⟩ : ∃ vs, x = .list vs := by
+      cases x <;> simp [listOfO] at Hx ⊢
+    simp only [listOfO, isListO]
+    ihave #Hlv := isListV_persistent_law_holds l vs $$ Hlo
+    ihave %Hlc := isListV_concrete_law_holds l vs $$ Hlv
+    rcases Hlc with ⟨sl, rfl⟩ | ⟨pl, rfl⟩
+    all_goals
+      ihave ⟨Ha, %i, %Hai, #Hfree⟩ := isAlloc_Free h_heapAllocator_Free h_freelistAllocator_Free a $$ [Ha]
+      · iframe Ha; iPkgInit
+      subst Hai
+      wp_auto
+      icases IH with ⟨-, -, -, #HvL, -⟩
+      wp_apply HvL $$ [Hw Hsp Ha] as %errs ⟨Herrs, Hown⟩
+      · iframe #
+        isplitl [Hw Hsp Ha]
+        · unfold vwOwn vwCore
+          iexists sp
+          iframe Hsp Ha
+          iexists tr
+          iframe Hw
+          iframe #
+          ipureintro; exact Hwf
+        ipureintro; exact ⟨Hfind, Hc⟩
+      wp_auto
+      sorry
 
 end proof
 
