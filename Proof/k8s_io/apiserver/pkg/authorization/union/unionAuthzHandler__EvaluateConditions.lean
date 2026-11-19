@@ -129,8 +129,8 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
       wp_apply (wp_ptr_IsDeny_of wp_ConditionsAwareDecision_IsDeny) $$ [$unevaluatedSubDecision]
         as unevaluatedSubDecision
       rw [Hvtag, Dec.tag_deny]
-      cases mk with
-      | deny =>
+      cases mk
+      case deny =>
         simp only [Dec.isDeny]
         wp_auto
         wp_apply (wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason) $$ [$unevaluatedSubDecision]
@@ -150,7 +150,7 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
         rw [hK]; simp only []
         wp_auto
         iapply HΦ; ipureintro; left; rw [PD.has_zero]; exact Dec.pd_child_deny ks _ Hmkin rfl
-      | allow =>
+      case allow =>
         simp only [Dec.isDeny]
         wp_auto
         wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow) $$ [$unevaluatedSubDecision]
@@ -175,7 +175,7 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
         rw [hK]; simp only []
         wp_auto
         iapply HΦ; ipureintro; left; rw [PD.has_one]; exact Dec.pd_child_allow ks _ Hmkin rfl
-      | noOpinion =>
+      case' noOpinion =>
         simp only [Dec.isDeny]
         wp_auto
         wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow) $$ [$unevaluatedSubDecision]
@@ -195,6 +195,110 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
         (try wp_auto)
         generalize v.err' = e0
         generalize v.reason' = r0
+      case' cmap | union =>
+        simp only [Dec.isDeny]
+        wp_auto
+        wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        rw [Hvtag, Dec.tag_allow]
+        simp only [Dec.isAllow]
+        wp_auto
+        wp_apply (wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        rw [Hvtag, Dec.tag_noOpinion]
+        simp only [Dec.isNoOpinion]
+        wp_auto
+        wp_apply (wp_ptr_IsUnion_of wp_ConditionsAwareDecision_IsUnion) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        rw [Hvtag, Dec.tag_union]
+        simp only [Dec.isUnion]
+        wp_auto
+      case' cmap =>
+        wp_apply (wp_ptr_IsConditionsMap_of wp_ConditionsAwareDecision_IsConditionsMap) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        rw [Hvtag, Dec.tag_cmap]
+        simp only [Dec.isCMap]
+        wp_auto
+      case' cmap | union =>
+        wp_apply (wp_ptr_evaluateConditions_of wp_unionAuthzHandler_evaluateConditions) $$ [$authzHandler]
+          as %dw %rr %ee authzHandler
+        · iframe #
+          unfold isWFDecision
+          iexists _
+          iframe #
+          ipureintro; exact Hmkwf
+        (try wp_auto)
+        -- the guard: an impossible decision becomes the child's failure decision
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun bv => iprop(⌜bv = executeVal⌝ ∗ ∃ (dw' : w64) (r' : GoString) (e' : GoInterface),
+            decision_ptr ↦ dw' ∗ reason_ptr ↦ r' ∗ err_ptr ↦ e' ∗ unevaluatedSubDecision_ptr ↦ v ∗
+            ⌜∀ m' : Dec, ks[i]? = some m' → m'.pd.has dw' = true⌝))) $$ [decision reason err unevaluatedSubDecision]
+        · wp_apply (ConditionsAwareDecision.wp_ptr_PossibleDecisions_of wp_ConditionsAwareDecision_PossibleDecisions)
+            $$ [$unevaluatedSubDecision] as %s ⟨⟨%S, HS, %HSm⟩, unevaluatedSubDecision⟩
+          · iexact Hv
+          (try wp_auto)
+          wp_apply (wp_Set__Has s (DFrac.own 1) S dw) $$ [$HS] as HS
+          rw [HSm dw]
+          cases Hhas : (Dec.pd _).has dw
+          · wp_auto
+            wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of wp_ConditionsAwareDecision_FailureDecision)
+              $$ [$unevaluatedSubDecision] as unevaluatedSubDecision
+            · iexact Hv
+            (try wp_auto)
+            wp_apply (ConditionsAwareDecision.wp_ptr_PossibleDecisions_of wp_ConditionsAwareDecision_PossibleDecisions)
+              $$ [$unevaluatedSubDecision] as %s2 ⟨⟨%S2, HS2, -⟩, unevaluatedSubDecision⟩
+            · iexact Hv
+            (try wp_auto)
+            wp_apply (wp_List s2 (DFrac.own 1) S2) $$ [$HS2] as %sl %dws ⟨HS2, Hsl, -⟩
+            (try wp_auto)
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %sp ⟨Hs, -⟩
+            (try wp_auto)
+            wp_apply wp_ErrorfAny $$ [$Hs] as %ferr ⟨Hs, -⟩
+            (try wp_auto)
+            iframe
+            ipureintro
+            refine ⟨rfl, fun m' hm' => ?_⟩; rw [Hmk] at hm'; cases hm'; exact Dec.failure_mem _ Hmkwf rfl
+          · wp_auto
+            iframe
+            ipureintro
+            refine ⟨rfl, fun m' hm' => ?_⟩; rw [Hmk] at hm'; cases hm'; exact Hhas
+        iintro %bv ⟨%Hbv, %dw', %r0, %e0, decision, reason, err, unevaluatedSubDecision, %Hdw⟩
+        subst Hbv
+        have Hdw' := Hdw _ Hmk
+        rcases PD.has_valid _ _ Hdw' with rfl | rfl | rfl
+        · (try wp_auto)
+          unfold k8s.forRangePost
+          iright
+          isplitr
+          · ipureintro; exact Or.inr ⟨_, rfl, by simp⟩
+          iintro HD
+          iapply HΨ
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          iexists #()
+          iframe HD
+          rw [hK]; simp only []
+          wp_auto
+          iapply HΦ; ipureintro; left; rw [PD.has_zero]
+          exact Dec.pd_child_deny ks _ Hmkin (by rw [PD.has_zero] at Hdw'; exact Hdw')
+        · (try wp_auto)
+          unfold k8s.forRangePost
+          iright
+          isplitr
+          · ipureintro; exact Or.inr ⟨_, rfl, by simp⟩
+          iintro HD
+          iapply HΨ
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          iexists #()
+          iframe HD
+          rw [hK]; simp only []
+          wp_auto
+          iapply HΦ; ipureintro; left; rw [PD.has_one]
+          exact Dec.pd_child_allow ks _ Hmkin (by rw [PD.has_one] at Hdw'; exact Hdw')
+        (try wp_auto)
+      all_goals
         -- the error, appended to `errlist` unless `nil`
         wp_bind (If _ _ _)
         iapply (wp_wand (Φ := fun bv => iprop(⌜bv = executeVal⌝ ∗ ∃ (el' : GoSlice) (els' : List GoInterface),
@@ -260,8 +364,13 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
         iexists v, k, rl', el', rls', els'
         iframe
         ipureintro
-        exact cuad_step ks i _ Hcuad Hmk rfl
-      | _ => sorry
+        refine cuad_step ks i _ Hcuad Hmk ?_
+        first
+          | rfl
+          | exact Bool.eq_false_iff.mpr (fun hc => by
+              have h2 := Dec.not_noOpinion_of_cuad _ hc
+              rw [PD.has_two, h2] at Hdw'
+              cases Hdw')
     · -- the state before the first child
       simp only
       iframe HTok
