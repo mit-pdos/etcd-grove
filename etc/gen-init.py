@@ -1289,24 +1289,26 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['errMembe
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HerrMemberNotFound']
 
+_MEMBERSHIP_ERRS = ['ErrIDRemoved', 'ErrIDExists', 'ErrIDNotFound', 'ErrPeerURLexists',
+                    'ErrMemberNotLearner', 'ErrTooManyLearners']
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
     doc='''Its fact (`membershipInit`, `etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a
 fixed pointer (a `*prometheus.GaugeVec`, with its label names: D19l (iii)), and (D43 M4,
 2026-10-26) every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`). Its
-initializer initializes its imports and runs its variables' untranslated initializers; the
-trust-boundary axiom `ClusterVersionMetrics_init` states the one the fact reads (`metrics.go`:
-`prometheus.NewGaugeVec(...)`), `errorsNewVarsInit` the error variables' (`errors.go`: `errors.New`
-calls), `opaqueInitsOk` the others.''',
-    newvars=dict(ErrIDRemoved="membership: ID removed", ErrIDExists="membership: ID exists",
-        ErrIDNotFound="membership: ID not found", ErrPeerURLexists="membership: peerURL exists",
-        ErrMemberNotLearner="membership: can only promote a learner member",
-        ErrTooManyLearners="membership: too many learner members in cluster"),
+initializer allocates its error variables, initializes its imports, runs their translated
+initializers (`errors.go`: `errors.New` calls, Perennial's `errors.wp_New_errorString`; translated
+since 2026-11-19, until then the trust-boundary axiom `errorsNewVarsInit`) and its other variables'
+untranslated initializers; the trust-boundary axiom `ClusterVersionMetrics_init` states the one the
+fact reads (`metrics.go`: `prometheus.NewGaugeVec(...)`), `opaqueInitsOk` the others.''',
+    imports=['Perennial.Proof.errors.NewVar'],
+    alloc_types={x: 'GoInterface' for x in _MEMBERSHIP_ERRS},
+    before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+            for x in _MEMBERSHIP_ERRS},
     custom={
         'ClusterVersionMetrics': promvec('ClusterVersionMetrics', 'Gauge', ['cluster_version']),
     },
     finish=['ipersist HClusterVersionMetrics'] +
-        [f'ipersist H{x}' for x in ['ErrIDRemoved', 'ErrIDExists', 'ErrIDNotFound',
-          'ErrPeerURLexists', 'ErrMemberNotLearner', 'ErrTooManyLearners']] + FIN_PRE[:6] +
+        [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] + FIN_PRE[:6] +
         ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
          'unfold membershipInit membershipErrMsgs',
          'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',

@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.encoding.json
+public import Perennial.GeneratedProof.errors
 public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.notify
