@@ -81,7 +81,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) errMemberNotFound _ as HerrMemberNotFound
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message) linkHeartbeatMessage _ as HlinkHeartbeatMessage
+  wp_apply wp_GlobalAlloc (V := Loc) supportedStream _ as HsupportedStream
+  wp_apply wp_GlobalAlloc (V := w64) snapResponseReadTimeout _ as HsnapResponseReadTimeout
+  wp_apply wp_GlobalAlloc (V := w64) statusErrorInterval _ as HstatusErrorInterval
+  wp_apply wp_GlobalAlloc (V := w64) statusMonitoringInterval _ as HstatusMonitoringInterval
+  wp_apply wp_GlobalAlloc (V := w64) proberInterval _ as HproberInterval
+  wp_apply wp_GlobalAlloc (V := w64) ConnWriteTimeout _ as HConnWriteTimeout
   wp_apply wp_GlobalAlloc (V := w64) ConnReadTimeout _ as HConnReadTimeout
   wp_apply wp_GlobalAlloc (V := w64) readBytesLimit _ as HreadBytesLimit
   wp_apply wp_GlobalAlloc (V := GoString) RaftSnapshotPrefix _ as HRaftSnapshotPrefix
@@ -180,16 +187,71 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ConnReadTimeout))
   simp only [DefaultConnReadTimeout]
   try wp_auto
-  wp_apply (opaqueInitsOk ConnWriteTimeout.init (by mem_tac))
+  -- translated initializer of ConnWriteTimeout))
   wp_apply (errorsNewVarsInit errStopped.init errStopped go!"stopped" (by mem_tac))
     as ⟨%xerrStopped, HerrStopped, #MerrStopped, #CerrStopped⟩
-  wp_apply (opaqueInitsOk proberInterval.init (by mem_tac))
-  wp_apply (opaqueInitsOk statusMonitoringInterval.init (by mem_tac))
-  wp_apply (opaqueInitsOk statusErrorInterval.init (by mem_tac))
-  wp_apply snapResponseReadTimeout_init as ⟨%dsnapResponseReadTimeout, HsnapResponseReadTimeout⟩
+  -- translated initializer of proberInterval))
+  -- translated initializer of statusMonitoringInterval))
+  -- translated initializer of statusErrorInterval))
+  -- translated initializer of snapResponseReadTimeout))
   wp_apply (errorsNewVarsInit errUnsupportedStreamType.init errUnsupportedStreamType go!"unsupported stream type" (by mem_tac))
     as ⟨%xerrUnsupportedStreamType, HerrUnsupportedStreamType, #MerrUnsupportedStreamType, #CerrUnsupportedStreamType⟩
-  wp_apply supportedStream_init as ⟨%msupportedStream, %MsupportedStream, HsupportedStream, #MMsupportedStream, #MEsupportedStream⟩
+  -- translated initializer of supportedStream))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType streamType.ty)) as %mss Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss0 ⟨Sss0, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss1 ⟨Sss1, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss2 ⟨Sss2, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss3 ⟨Sss3, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss4 ⟨Sss4, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss5 ⟨Sss5, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss6 ⟨Sss6, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss7 ⟨Sss7, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss8 ⟨Sss8, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss9 ⟨Sss9, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss10 ⟨Sss10, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss11 ⟨Sss11, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss12 ⟨Sss12, -⟩
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss
+  try wp_auto
   -- translated initializer of linkHeartbeatMessage))
   try wp_auto
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
@@ -200,13 +262,15 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
   wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
     as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩
-  wp_apply errMemberNotFound_init as ⟨%eerrMemberNotFound, HerrMemberNotFound⟩
+  -- translated initializer of errMemberNotFound))
+  wp_apply (_root_.Perennial.fmt.wp_Errorf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -
+  · iframe #; iapply ownSlice_nil
+  try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of ConnReadTimeout))
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))
-  ipersist HerrMemberNotFound
-  ipersist HsnapResponseReadTimeout
   ipersist HsnapshotSend
   ipersist HsnapshotSendInflights
   ipersist HsnapshotSendFailures
@@ -236,6 +300,22 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HreadBytesLimit
   ipersist HerrUnsupportedStreamType
   ipersist HsupportedStream
+  ipersist HsnapResponseReadTimeout
+  ipersist HerrMemberNotFound
+  ipersist Hss
+  ipersist Sss0
+  ipersist Sss1
+  ipersist Sss2
+  ipersist Sss3
+  ipersist Sss4
+  ipersist Sss5
+  ipersist Sss6
+  ipersist Sss7
+  ipersist Sss8
+  ipersist Sss9
+  ipersist Sss10
+  ipersist Sss11
+  ipersist Sss12
   iframe Hown
   imodintro
   isplitr
@@ -258,6 +338,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexact HRaftSnapshotPrefix
   simp only [EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]
   iframe #
+  try (imodintro; iintro %k %sl %Hk; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty] at Hk; split_ifs at Hk <;> (try simp at Hk) <;> subst_vars <;> iexists _ <;> iassumption)
   try (ipureintro; exact BlinkHeartbeatSize)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

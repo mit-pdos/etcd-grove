@@ -89,6 +89,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInUseInBytesMu _ as HreportDbTotalSizeInUseInBytesMu
   wp_apply wp_GlobalAlloc (V := GoFunc) reportDbTotalSizeInBytes _ as HreportDbTotalSizeInBytes
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInBytesMu _ as HreportDbTotalSizeInBytesMu
+  wp_apply wp_GlobalAlloc (V := w64) defaultCompactionSleepInterval _ as HdefaultCompactionSleepInterval
+  wp_apply wp_GlobalAlloc (V := w64) defaultCompactionBatchLimit _ as HdefaultCompactionBatchLimit
   wp_apply wp_GlobalAlloc (V := w64) restoreChunkKeys _ as HrestoreChunkKeys
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrFutureRev _ as HErrFutureRev
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrCompacted _ as HErrCompacted
@@ -131,11 +133,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrCompacted))
   -- translated initializer of ErrFutureRev))
   -- translated initializer of restoreChunkKeys))
+  -- translated initializer of defaultCompactionBatchLimit))
   wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xCP ⟨#MCP, #CCP⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xFR ⟨#MFR, #CFR⟩
-  wp_apply defaultCompactionBatchLimit_init as HdefaultCompactionBatchLimit
-  wp_apply defaultCompactionSleepInterval_init as ⟨%ddefaultCompactionSleepInterval, HdefaultCompactionSleepInterval⟩
+  -- translated initializer of defaultCompactionSleepInterval))
   wp_apply rangeCounter_init as ⟨%mrangeCounter, HrangeCounter, #S0rangeCounter⟩
   wp_apply putCounter_init as ⟨%mputCounter, HputCounter, #S0putCounter⟩
   wp_apply deleteCounter_init as ⟨%mdeleteCounter, HdeleteCounter, #S0deleteCounter⟩

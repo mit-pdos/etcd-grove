@@ -42,7 +42,7 @@ translate = ["!*",
   "store.compact", "store.updateCompactRev", "store.checkPrevCompactionCompleted",
   "store.compactBarrier", "store.Restore", "store.Close", "store.HashStorage", "store.Commit",
   # (restore plan R0, 2026-10-23) the restore from the backend
-  "restoreChunkKeys", "store.restore", "store.setupMetricsReporter", "restoreIntoIndex",
+  "restoreChunkKeys", "defaultCompactionBatchLimit", "defaultCompactionSleepInterval", "store.restore", "store.setupMetricsReporter", "restoreIntoIndex",
   "restoreChunk",
   # (restore plan R2, 2026-10-23) metrics.go: the reporters setupMetricsReporter sets, and their locks
   "reportDbTotalSizeInBytesMu", "reportDbTotalSizeInBytes",

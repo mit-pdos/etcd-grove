@@ -9,6 +9,10 @@ error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-o
 initializer runs its variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New`
 call (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states;
 `linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`); `opaqueInitsOk` the others.
+(const-inits, 2026-11-19) The timeouts and intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`,
+`proberInterval`, `statusMonitoringInterval`, `statusErrorInterval`), `errMemberNotFound`
+(`fmt.Errorf`, its proof) and `supportedStream` (a map literal of slice literals) are translated
+and set (until then the trust-boundary axioms `<X>_init` and `opaqueInitsOk`).
 `RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
 (`path.Join`, proved), `ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds), `readBytesLimit`
 (512 MiB) and (raft-entsize, route H1, 2026-11-10) `linkHeartbeatMessage`
@@ -73,17 +77,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ConnWriteTimeout.init,
-        proberInterval.init,
-        statusMonitoringInterval.init,
-        statusErrorInterval.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
 here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
@@ -110,11 +103,6 @@ axiom errorsNewVarsInit :
 axiom linkHeartbeatSize_init :
     {{ (True : IProp GF) }} (App (Val linkHeartbeatSize.init) (Val #()))
     {{ RET #(); ∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝ }}
-
-/-- `supportedStream = map[string][]streamType{"2.0.0": {}, "2.1.0": {streamTypeMsgAppV2, streamTypeMessage}, ...}` (`stream.go`): a map of slices; nothing writes the map or its slices. -/
-axiom supportedStream_init :
-    {{ (True : IProp GF) }} (App (Val supportedStream.init) (Val #()))
-    {{ RET #(); ∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦ m ∗ m ↦$□ M ∗ □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts }}
 
 /-- `receivedBytes = prometheus.NewCounterVec(..., []string{"From"})`
 (`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
@@ -204,16 +192,6 @@ axiom snapshotReceiveFailures_init :
 axiom snapshotReceiveSeconds_init :
     {{ (True : IProp GF) }} (App (Val snapshotReceiveSeconds.init) (Val #()))
     {{ RET #(); ∃ v : Loc, globalAddr snapshotReceiveSeconds ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
-
-/-- `snapResponseReadTimeout = 5 * time.Second` (`snapshot_sender.go`): some duration, read-only for good. -/
-axiom snapResponseReadTimeout_init :
-    {{ (True : IProp GF) }} (App (Val snapResponseReadTimeout.init) (Val #()))
-    {{ RET #(); ∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦ d }}
-
-/-- `errMemberNotFound = errors.New("member not found")` (`util.go`): some error, read-only for good. -/
-axiom errMemberNotFound_init :
-    {{ (True : IProp GF) }} (App (Val errMemberNotFound.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterface, globalAddr errMemberNotFound ↦ e }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits

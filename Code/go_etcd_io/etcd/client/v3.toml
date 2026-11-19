@@ -14,8 +14,12 @@
 # client's structs whose field types these provide: `authClient`, `kv`, `watcher`, ...).
 # k8s 7f-3a: `WithPrevKV` (the etcd3 watcher's option). `WithRequireLeader` stays names-only (its
 # trust-boundary axiom, `Proof/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`; 7f-3a decision D1).
+# (const-inits, 2026-11-19) the initializers of the integer and duration constants
+# `defaultUnaryMaxRetries`, `defaultStreamMaxRetries`, `defaultBackoffWaitBetween` and
+# `LeaseResponseChSize`.
 translate = [
   "!*",
+  "defaultUnaryMaxRetries", "defaultStreamMaxRetries", "defaultBackoffWaitBetween", "LeaseResponseChSize",
   "WatchResponse.IsProgressNotify",
   "EventTypeDelete",
   "EventTypePut",

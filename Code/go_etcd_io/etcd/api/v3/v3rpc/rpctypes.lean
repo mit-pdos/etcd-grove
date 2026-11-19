@@ -650,27 +650,17 @@ opaque ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 noncomputable def MetadataRequireLeaderKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataRequireLeaderKey"
 
-opaque MetadataRequireLeaderKey.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def MetadataHasLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataHasLeader"
-
-opaque MetadataHasLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetadataClientAPIVersionKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataClientAPIVersionKey"
 
-opaque MetadataClientAPIVersionKey.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def TokenFieldNameGRPC [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameGRPC"
 
-opaque TokenFieldNameGRPC.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def TokenFieldNameSwagger [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameSwagger"
-
-opaque TokenFieldNameSwagger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Error [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.Error"
@@ -959,16 +949,26 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"hasleader"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"true"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"client-api-version"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"token"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"authorization"))
   (App (Val doExecute)
-  (App (Val TokenFieldNameSwagger.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr TokenFieldNameSwagger))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val TokenFieldNameGRPC.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr TokenFieldNameGRPC))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MetadataClientAPIVersionKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetadataClientAPIVersionKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MetadataHasLeader.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetadataHasLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MetadataRequireLeaderKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetadataRequireLeaderKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrNoInflightDowngrade.init) (Val #()))))))
   (App (Val doExecute)
@@ -1218,7 +1218,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.codes.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MetadataRequireLeaderKey go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MetadataHasLeader go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MetadataClientAPIVersionKey go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc TokenFieldNameGRPC go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc TokenFieldNameSwagger go.string)) (Val #()))))))))
 
 structure EtcdError [GooseExts] where
   mk ::

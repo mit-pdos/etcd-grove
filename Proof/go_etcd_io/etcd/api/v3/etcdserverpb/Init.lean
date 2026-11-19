@@ -5,8 +5,10 @@ Package initialization of `go_etcd_io.etcd.api.v3.etcdserverpb`
 Its fact (`etcdserverpbInit`, `cache/v3/Base.lean`): the sort enumerations' name maps. Its
 initializer allocates and sets the translated gRPC service descriptors (`KV_ServiceDesc`, ...:
 `grpc.ServiceDesc` literals), initializes its imports and runs its other variables' untranslated
-initializers (the generated protobuf descriptors and enum maps): the trust-boundary axioms
-`<X>_init` state the two the fact reads, `opaqueInitsOk` the others.
+initializers (the generated protobuf descriptors and enum maps), which the trust-boundary axiom
+`opaqueInitsOk` says run. (const-inits, 2026-11-19) The two sort enumerations' name maps the fact
+reads (`RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: `map[int32]string` literals,
+`rpc.pb.go`) are translated and set; until then the trust-boundary axioms `<X>_init`.
 -/
 module
 
@@ -83,16 +85,6 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `RangeRequest_SortOrder_name = map[int32]string{...}` (`rpc.pb.go`): the enumeration's names, keys `0` to `2`. -/
-axiom RangeRequest_SortOrder_name_init :
-    {{ (True : IProp GF) }} (App (Val RangeRequest_SortOrder_name.init) (Val #()))
-    {{ RET #(); ∃ (mp : Loc) (M : GMap w32 GoString), globalAddr RangeRequest_SortOrder_name ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 2⌝ }}
-
-/-- `RangeRequest_SortTarget_name = map[int32]string{...}` (`rpc.pb.go`): the enumeration's names, keys `0` to `4`. -/
-axiom RangeRequest_SortTarget_name_init :
-    {{ (True : IProp GF) }} (App (Val RangeRequest_SortTarget_name.init) (Val #()))
-    {{ RET #(); ∃ (mp : Loc) (M : GMap w32 GoString), globalAddr RangeRequest_SortTarget_name ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝ }}
-
 end go_etcd_io.etcd.api.v3.etcdserverpb
 end opaqueInits
 
@@ -128,6 +120,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := google_golang_org.grpc.ServiceDesc) Lease_ServiceDesc _ as HLease_ServiceDesc
   wp_apply wp_GlobalAlloc (V := google_golang_org.grpc.ServiceDesc) Watch_ServiceDesc _ as HWatch_ServiceDesc
   wp_apply wp_GlobalAlloc (V := google_golang_org.grpc.ServiceDesc) KV_ServiceDesc _ as HKV_ServiceDesc
+  wp_apply wp_GlobalAlloc (V := Loc) RangeRequest_SortTarget_name _ as HRangeRequest_SortTarget_name
+  wp_apply wp_GlobalAlloc (V := Loc) RangeRequest_SortOrder_name _ as HRangeRequest_SortOrder_name
   wp_apply (_root_.Perennial.google_golang_org.grpc.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
@@ -143,9 +137,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk file_raft_internal_proto_depIdxs.init (by mem_tac))
   wp_apply (opaqueInitsOk AlarmType_name.init (by mem_tac))
   wp_apply (opaqueInitsOk AlarmType_value.init (by mem_tac))
-  wp_apply RangeRequest_SortOrder_name_init as ⟨%mpRangeRequest_SortOrder_name, %MRangeRequest_SortOrder_name, HRangeRequest_SortOrder_name, #SRangeRequest_SortOrder_name, %PRangeRequest_SortOrder_name⟩
+  -- translated initializer of RangeRequest_SortOrder_name))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHso Hso
+  try wp_auto
+  repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hso as Hso; try wp_auto)
   wp_apply (opaqueInitsOk RangeRequest_SortOrder_value.init (by mem_tac))
-  wp_apply RangeRequest_SortTarget_name_init as ⟨%mpRangeRequest_SortTarget_name, %MRangeRequest_SortTarget_name, HRangeRequest_SortTarget_name, #SRangeRequest_SortTarget_name, %PRangeRequest_SortTarget_name⟩
+  -- translated initializer of RangeRequest_SortTarget_name))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHst Hst
+  try wp_auto
+  repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hst as Hst; try wp_auto)
   wp_apply (opaqueInitsOk RangeRequest_SortTarget_value.init (by mem_tac))
   wp_apply (opaqueInitsOk Compare_CompareResult_name.init (by mem_tac))
   wp_apply (opaqueInitsOk Compare_CompareResult_value.init (by mem_tac))
@@ -209,6 +211,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iStructNamedSuffix HAuth_ServiceDesc "Auth"
   ipersist HRangeRequest_SortOrder_name
   ipersist HRangeRequest_SortTarget_name
+  ipersist Hso
+  ipersist Hst
   iframe Hown
   imodintro
   isplitr
@@ -217,11 +221,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   imodintro
   unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs
+  isplitl []
+  · iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; split_ifs <;> subst_vars <;> simp [sint.Z] <;> bv_omega
+  isplitl []
+  · iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; split_ifs <;> subst_vars <;> simp [sint.Z] <;> bv_omega
   iframe #
-  isplitl []
-  · ipureintro; exact PRangeRequest_SortOrder_name
-  isplitl []
-  · ipureintro; exact PRangeRequest_SortTarget_name
   repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

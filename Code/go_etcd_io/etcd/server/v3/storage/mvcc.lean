@@ -309,12 +309,8 @@ noncomputable def restoreChunkKeys [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultCompactionBatchLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.defaultCompactionBatchLimit"
 
-opaque defaultCompactionBatchLimit.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultCompactionSleepInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.defaultCompactionSleepInterval"
-
-opaque defaultCompactionSleepInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rangeCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.rangeCounter"
@@ -9337,6 +9333,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"mvcc: revision not found"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9348,7 +9346,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 10000))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 1000))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 1000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9521,9 +9521,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val rangeCounter.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val defaultCompactionSleepInterval.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultCompactionSleepInterval))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultCompactionBatchLimit.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultCompactionBatchLimit))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr restoreChunkKeys))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -9588,6 +9588,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc ErrFutureRev go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc restoreChunkKeys go.int)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultCompactionBatchLimit go.int)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultCompactionSleepInterval _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc reportDbTotalSizeInBytesMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
   (App (Val doExecute)
