@@ -1,5 +1,22 @@
 # WAL link: handoff
 
+## START HERE (2026-11-19 y, merge of lean e95ce79ce9 STOPPED: not mechanical)
+
+- **Branch** `wal-link`, head 8bd8ae9b55 (+ this note), pin still f551a1b46 (`manifest-f55`). P2 accepted by 03 (questions.md).
+- **The merge** (`git merge lean`, lean = e95ce79ce9, pin 3afd77e35) gives 106 conflicted files (list
+  `/shared/tmp/wallink/merge-lean-e95-conflicts.txt`); ABORTED. Most are routine (PkgTable: regenerate; Results:
+  `_robust` moved by lean to `TopLevelRobustness.lean`, so `HWal` goes there; `local instance` lists; FsExts: take lean's
+  `etcdSQ` = NoIoErr allIo ∧ NoMapLockErr allIo, derive our `etcdFsExts_sat` by `fsStepSat_and_left`).
+- **The non-mechanical part:** lean's bbolt integration is over the pre-L4 call model; L4 (on wal-link only) made the
+  call permission per root and rename same-root. To port onto L4: `TreeSharedSwitchE` (two twins: lean `wp_osShareE`,
+  ours `wp_osShare_e`; keep one), `TreeSharedLog`/`Create` (11 hunks), `NoErrSpecsRename` (351 l.), `NoErrSpecsOpenFile`,
+  `Proof/os/Rename.lean` + `Spec/os/Rename.lean` (lean proved it, cross-directory, one perm: needs `SameRoot` and
+  `osCallPerm r`), `Proof/os/OpenFileS.lean`, `Proof/runtime/StartFiles.lean` (`osCallPerm_split` per root),
+  `backend.fileHoldsF` (InvBbolt), bbolt `Open`/`Spec/go_etcd_io/bbolt/Open.lean`, the snapshot backend
+  (`OpenSnapshotBackend`), and our L4 edits re-applied to lemmas lean moved (`openWALFilesLemmas`, `openAtIndexLemmas`,
+  `TouchDirAllLemmas`, `OpenFileTruncLemmas`). Spec changes on lean-landed statements (os.Rename, fileHoldsF, bbolt Open).
+- **Next:** 03's decision on the route; then the merge, full timed build, tcb, collections, interfaces, gen-link, STATUS.
+
 ## START HERE (2026-11-19 x, P2 written: D1-D8; see "P2 progress")
 
 ### P2 progress (2026-11-19 x)
