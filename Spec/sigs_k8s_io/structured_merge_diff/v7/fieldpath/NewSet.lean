@@ -1,12 +1,15 @@
 /-
-`fieldpath.NewSet(paths...)`: the set of the non-empty paths among `paths`.
+`fieldpath.NewSet(paths...)`: the set of the non-empty paths among `paths`, **owned** (a set under
+construction: `typed.Compare` inserts into the three `NewSet()` of its `Comparison`); a client
+wanting the persistent set applies `ownSet_persist`. The paths are read at any fraction (the
+slice of paths at `dq`, each path persistent).
 
-Lean-first (2026-11-19, notes/smd-plan.md).
+Draft (2026-11-19, notes/smd-plan.md, "The call DAG"): API (round 1's, its post made owned: see the report).
 -/
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
 
 @[expose] public section
 
@@ -31,7 +34,7 @@ abbrev fieldpath.NewSet.spec : Prop :=
   ∀ (s : GoSlice) (dq : DFrac) (ss : List GoSlice) (ps : List Path),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ s ↦*{dq} ss ∗ isPaths ss ps }}
     (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet)) (Val #s))
-  {{ (p : Loc), RET #p; s ↦*{dq} ss ∗ isSet p (PathSet.ofList ps) }}
+  {{ (p : Loc), RET #p; s ↦*{dq} ss ∗ ownSet p (PathSet.ofList ps) }}
 
 end spec
 

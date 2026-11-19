@@ -1,10 +1,11 @@
 /-
-`fieldpath.NewSet`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Lean-first (2026-11-19).
+`fieldpath.NewSet`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
+freeze over its callees' specs (the hypotheses).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Insert
 
 @[expose] public section
 
@@ -26,7 +27,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
-theorem fieldpath.NewSet.wp_proof : fieldpath.NewSet.spec (GF := GF) := by
+theorem fieldpath.NewSet.wp_proof
+    (wp_Set_Insert : fieldpath.Set.Insert.spec (GF := GF)) :
+    fieldpath.NewSet.spec (GF := GF) := by
   sorry
 
 end proof

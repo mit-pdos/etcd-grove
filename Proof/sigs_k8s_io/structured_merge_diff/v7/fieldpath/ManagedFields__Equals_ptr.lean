@@ -1,10 +1,11 @@
 /-
-`fieldpath.ManagedFields.Equals_ptr`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Lean-first (2026-11-19).
+`fieldpath.ManagedFields.Equals_ptr`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
+freeze over its callees' specs (the hypotheses).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields__Equals_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields__Equals
 
 @[expose] public section
 
@@ -26,7 +27,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
-theorem fieldpath.ManagedFields.Equals_ptr.wp_proof : fieldpath.ManagedFields.Equals_ptr.spec (GF := GF) := by
+theorem fieldpath.ManagedFields.Equals_ptr.wp_proof
+    (wp_ManagedFields_Equals : fieldpath.ManagedFields.Equals.spec (GF := GF)) :
+    fieldpath.ManagedFields.Equals_ptr.spec (GF := GF) := by
   sorry
 
 end proof
