@@ -17,6 +17,30 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Adequacy's thread bound is about every execution, so it caps the step count (2026-11-19, the closed theorems' step bounds)
+
+- **Limitation.** `goose_adequacy` (`Perennial/GooseLang/Adequacy.lean`) takes the thread bound as
+  `RealThreadsBelow T n`: *every* execution of at most `n` steps keeps fewer than `T` threads. A
+  program whose goroutine count an adversarial schedule can grow (a ticker that fires while its
+  goroutines are never scheduled: every etcd example, the trace check's harness) can only discharge it
+  as `T = n + 2` (`realThreadsBelow_of_one`), and a proof that needs a constant thread bound (a
+  `WaitGroup` backed by thread tokens: `2^28` for etcd, `2^31` for the trace check) then caps the
+  step count at it. That is why the etcd, k8s and mvccfull closed theorems have `n + 2 ≤ 2^28` and
+  the trace check had `n + 2 ≤ 2^31`. The same holds for the crash and distributed variants
+  (`RealCrashThreadsBelow`, `DistCrashThreadsBelow`), hence `Robust`'s bounds.
+- **Proposed change** (branch `adequacy-along` of Perennial, `3b4acdf9a` on `3afd77e35`, not landed):
+  `Perennial/GooseLang/AdequacyAlong.lean`, `RealNstepsBelow T n ρ κs ρ'` (an execution every
+  configuration of which has fewer than `T` threads) and `goose_adequacy_below`/`goose_invariance_below`,
+  which conclude about every such execution of fewer than `N` steps. The proof of `goose_adequacy`
+  already used the premise only along the given execution; no axiom (`#print axioms`: Lean's three).
+  `goose_adequacy_of_below` derives the old theorem.
+- **Uses.** The trace check (branch `tracecheck-thread-bound`): `init_adequate_below`
+  (`examples/lib/etcdstart/Adequacy.lean`), `raft_tracecheck_safe` at `n + 4 ≤ 2^61` and
+  `RealNstepsBelow (2 ^ 31) n`. To do: the etcd examples (needs `goose_adequacy_start_files`, an axiom
+  here, restated over `RealNstepsBelow`; their step count is then capped by `Main.spec`'s write-back
+  budget `n + 11 ≤ backend.wbInit = 2^40 - 1`), and the crash and distributed variants with a thread
+  parameter in `Robust`.
+
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
 
 - **Limitation.** `modelcheck.Assign` (`docs/design/unsafe-memory.md`, R4) reports every copy of a
