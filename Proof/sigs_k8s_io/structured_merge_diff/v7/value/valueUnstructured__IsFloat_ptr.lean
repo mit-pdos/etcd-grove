@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsFloat_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsFloat
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,16 @@ variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.IsFloat_ptr.wp_proof
     (h_valueUnstructured_IsFloat : value.valueUnstructured.IsFloat.spec (GF := GF)) :
-    value.valueUnstructured.IsFloat_ptr.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.IsFloat_ptr.spec (GF := GF) := fun p dq x => by
+  wp_start as Hv
+  icases isValF_elim $$ Hv with ⟨%i, Hp, #Hi⟩
+  wp_auto
+  wp_apply h_valueUnstructured_IsFloat ⟨i⟩ x as %r %Hr
+  · iexact Hi
+  iapply HΦ
+  isplitl [Hp]
+  · iapply isValF_intro _ _ i; iframe; iexact Hi
+  · ipureintro; exact Hr
 
 end proof
 

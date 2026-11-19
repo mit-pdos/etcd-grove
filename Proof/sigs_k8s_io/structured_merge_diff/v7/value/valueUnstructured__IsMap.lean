@@ -6,6 +6,7 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsMap
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
 
 @[expose] public section
 
@@ -28,8 +29,16 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.IsMap.wp_proof :
-    value.valueUnstructured.IsMap.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.IsMap.spec (GF := GF) := fun ⟨i⟩ x => by
+  wp_start as Hi
+  wp_auto
+  cases x <;> isimp [isIface] at Hi
+  · icases Hi with %rfl; wp_auto; wp_end
+  · icases Hi with %rfl; wp_auto; wp_end
+  · icases Hi with %rfl; wp_auto; wp_end
+  · icases Hi with %rfl; wp_auto; wp_end
+  · icases Hi with ⟨%sl, %xs, %rfl, -⟩; wp_auto; wp_end
+  · icases Hi with ⟨%m, %M, %rfl, -⟩; wp_auto; wp_end
 
 end proof
 

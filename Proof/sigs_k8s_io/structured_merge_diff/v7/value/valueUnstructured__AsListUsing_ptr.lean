@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsListUsing_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsListUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,16 @@ variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.AsListUsing_ptr.wp_proof
     (h_valueUnstructured_AsListUsing : value.valueUnstructured.AsListUsing.spec (GF := GF)) :
-    value.valueUnstructured.AsListUsing_ptr.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.AsListUsing_ptr.spec (GF := GF) := fun p dq vs al => by
+  wp_start as Hv
+  icases isValF_elim $$ Hv with ⟨%i, Hp, #Hi⟩
+  wp_auto
+  wp_apply h_valueUnstructured_AsListUsing ⟨i⟩ vs al as %r Hr
+  · iexact Hi
+  iapply HΦ
+  isplitl [Hp]
+  · iapply isValF_intro _ _ i; iframe; iexact Hi
+  · iexact Hr
 
 end proof
 

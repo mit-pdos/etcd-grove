@@ -30,8 +30,9 @@ variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.AsFloat_ptr.wp_proof
     (h_valueUnstructured_AsFloat : value.valueUnstructured.AsFloat.spec (GF := GF)) :
-    value.valueUnstructured.AsFloat_ptr.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.AsFloat_ptr.spec (GF := GF) := fun _ => by
+  wp_start_folded as %h
+  exact h.elim
 
 end proof
 

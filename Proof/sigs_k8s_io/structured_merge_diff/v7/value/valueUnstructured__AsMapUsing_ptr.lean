@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsMapUsing_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsMapUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,16 @@ variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.AsMapUsing_ptr.wp_proof
     (h_valueUnstructured_AsMapUsing : value.valueUnstructured.AsMapUsing.spec (GF := GF)) :
-    value.valueUnstructured.AsMapUsing_ptr.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.AsMapUsing_ptr.spec (GF := GF) := fun p dq kvs al => by
+  wp_start as Hv
+  icases isValF_elim $$ Hv with ⟨%i, Hp, #Hi⟩
+  wp_auto
+  wp_apply h_valueUnstructured_AsMapUsing ⟨i⟩ kvs al as %r Hr
+  · iexact Hi
+  iapply HΦ
+  isplitl [Hp]
+  · iapply isValF_intro _ _ i; iframe; iexact Hi
+  · iexact Hr
 
 end proof
 

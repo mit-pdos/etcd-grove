@@ -28,8 +28,9 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.AsFloat.wp_proof :
-    value.valueUnstructured.AsFloat.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.AsFloat.spec (GF := GF) := fun _ => by
+  wp_start_folded as %h
+  exact h.elim
 
 end proof
 
