@@ -26,6 +26,9 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.newUse
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Refusals
 public import Spec.go_etcd_io.etcd.client.v3.WithLease
 public import Spec.context.WithTimeoutBackgroundMd
+public import Spec.go_etcd_io.etcd.client.v3.OpPut
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
+public import Proof.go_etcd_io.etcd.client.v3.ResultsOn
 
 @[expose] public section
 
@@ -42,6 +45,46 @@ namespace etcd_authlease
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver etcd_auth etcdstart
 open etcd_authN (Wit akV mod_len_sint srvdW srvdAt serve_member)
 open etcd_auth3 (admStates_same srvAuthAtLog_same srvRLogLb_same srvReqLogLb_same authHistFrozen_same)
+
+section pure
+variable [GooseExts]
+
+/-- **u's leased transaction's shape** (`client_txn_on`'s and `txnUpdAtOn`'s side conditions):
+`Txn().Then(OpPut(k, "v", WithLease(L)))` writes, fits a gRPC message, each permission of the shape the
+cache decides, a leased (not plain) transaction, no zero range end, the nested shape. -/
+theorem leaseTxn_ok (k : GoString) (L : w64) (hk : k ≠ []) (hkl : k.length ≤ 2 ^ 20) :
+    txn.txnReadonly (txnWireOf (leaseTxn k L)) = false ∧ txnSizeOk (txnWireOf (leaseTxn k L)) ∧
+    (∀ tw : txn.TxnModelW, tw.toModel = txnWireOf (leaseTxn k L) → kvShapeAll (irrTxn tw)) ∧
+    txnPlainL (txnWireOf (leaseTxn k L)) ∧ txnNoZeroEnd (txnWireOf (leaseTxn k L)) ∧
+    client.txnNestOk (txnWireOf (leaseTxn k L)) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp [leaseTxn, txnWireOf, opWire, txn.txnReadonly, txn.opIsGet]
+  · refine txnSizeOk_of_bounds (N := 2 ^ 20) (M := 3) ⟨?_, ?_, ?_⟩ ?_ (by decide)
+    · intro c hc; simp [leaseTxn, txnWireOf] at hc
+    · intro o ho
+      simp [leaseTxn, txnWireOf, opWire] at ho
+      subst ho
+      simp only [TxnOp.bytesLe]; exact ⟨hkl, by decide⟩
+    · intro o ho; simp [leaseTxn, txnWireOf] at ho
+    · simp [TxnModel.nodes, leaseTxn, txnWireOf, opWire, TxnOp.nodes]
+  · intro tw htw
+    refine etcd_auth.kvShapeAll_irrTxn tw (by rw [htw]; simp [leaseTxn, txnWireOf]) ?_
+    rw [htw]
+    intro op hop
+    simp [leaseTxn, txnWireOf, opWire] at hop
+    subst hop
+    exact hk
+  · simp [txnPlainL, txn.txnLeased, leaseTxn, txnWireOf, opWire, txn.opsLeased, txn.opLeased]
+  · refine ⟨by simp [leaseTxn, txnWireOf], ?_, by simp [leaseTxn, txnWireOf, txnOpsNoZeroEnd]⟩
+    simp [leaseTxn, txnWireOf, opWire, txnOpsNoZeroEnd, txnOpNoZeroEnd]
+  · simp [client.txnNestOk, leaseTxn, txnWireOf, opWire, txn.OpsNoCut, txn.OpNoCut, client.txnSibSafeL, client.txnSibSafe]
+
+/-- `OpPut(k, "v", WithLease(L))`'s transaction operation. -/
+theorem txnOpOf_leasePut (k : GoString) (L : w64) :
+    txnOpOf (opPutModel k go!"v" [withLeaseM L]) = some (.put k go!"v" L) := by
+  simp [txnOpOf, opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero]
+
+end pure
 
 section barriers
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -146,6 +189,7 @@ theorem run.wp_proof
     (wp_foreign : foreign.spec (GF := GF) (hG := hG))
     (wp_WithTimeout : context.WithTimeoutBackgroundMd.spec (GF := GF) (hG := hG))
     (wp_WithLease : WithLease.spec (GF := GF) (hG := hG))
+    (wp_OpPut : OpPut.spec (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF))
     (hlaw : lessor_keys_of_read_stmt (GF := GF)) :
@@ -645,6 +689,100 @@ theorem run.wp_proof
   · wp_auto
     iapply HΦ; ipureintro; right; rfl
   wp_auto
+  -- u's transaction `Txn().Then(OpPut(txnKey, "v", WithLease(lu))).Commit()` (`cell_txnTAu`)
+  ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
+  · iPkgInit
+  ihave #Hutk0 := Hutk
+  iunfold clientTokAt at Hutk0
+  icases Hutk0 with ⟨%uapi, %uconn, #Hukvf, #Huobj, #Hutok, -, -, %ulp, #Hulf, #Hurem⟩
+  iunfold psAtLeast at HpsU
+  icases HpsU with ⟨%ps2, #Hps2, %hps2⟩
+  ihave #HLc₂ := srvRLogLb_same { x0.2.ρ with wait := w0.γw } { xu.2.ρ with wait := wu.γw } hsu Lc $$ HLc
+  ihave #Hc₂ : committedAtLeast xu.2.ρ.rd (W64 0) $$ []
+  · iapply (committedAtLeast_of_rlog xu.2.ρ.rd (W64 0) Lc (by word))
+    iexact HLc₂
+  obtain ⟨hro, htsz, htsh, htpl, htnz, htnest⟩ := leaseTxn_ok tK lu (by decide) (by decide)
+  ihave #HTx₂ : isGrpcRpcMd xu.1.Client' go!"/etcdserverpb.KV/Txn"
+      (client.etcdTxnSpecOn su wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd wu.cid wu.mid) $$ []
+  · iunfold akKVOn at HKV₂
+    icases HKV₂ with ⟨-, -, -, #H⟩
+    iexact H
+  wp_apply context.wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
+    as %tctx %tcd %tcancel ⟨#Htcancel, #Htctx, #Htce, -, %Htout, -⟩
+  (try wp_auto)
+  wp_apply wp_WithLease lu as %f #Hf
+  (try wp_auto)
+  wp_apply wp_slice_literal (l := [f])
+  isplitr
+  · ipureintro; rfl
+  iintro %slo ⟨Hslo, -⟩
+  ipersist Hslo
+  ihave #Hopts := etcd_auth.optsAt_one (GF := GF) _ f (withLeaseM lu) $$ [Hslo Hf]
+  · iframe #
+  (try wp_auto)
+  wp_apply (wp_OpPut tK go!"v" _ [withLeaseM lu]) as %op1 #Hop1
+  · iframe #
+    ipureintro
+    simp [opPutModel, OpFull.putPanics, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero]
+  (try wp_auto)
+  wp_apply wp_slice_literal (l := [op1])
+  isplitr
+  · ipureintro; rfl
+  iintro %tsl ⟨Htsl, -⟩
+  ipersist Htsl
+  ihave #Hops := etcd_auth.opsAt_one (GF := GF) _ op1 (opPutModel tK go!"v" [withLeaseM lu]) $$ [Htsl Hop1]
+  · iframe #
+  (try wp_auto)
+  wp_apply (etcd_auth.client_Txn_on ucl uapi uconn xu.1.Client' tctx tcd) as %tv ⟨%tp, %Htv, Hobj, #Hkt⟩
+  · iframe #
+  subst Htv
+  (try wp_auto)
+  wp_apply (client.v3.txn.wp_Then_plain tp _ tctx tcd TxnBuild.empty _ _ [.put tK go!"v" lu]) $$ [Hobj] as Hobj
+  · iframe #
+    iframe Hobj
+    ipureintro
+    exact ⟨by simp [txnOpOf_leasePut], rfl, rfl⟩
+  ihave Hobj : txnObjAt (GF := GF) tp [xu.1.Client'] tctx tcd ⟨leaseTxn tK lu, false, true, false⟩ $$ [Hobj]
+  · iExactEq Hobj
+    simp [TxnModel.empty, leaseTxn]
+  (try wp_auto)
+  wp_apply (client.client_txn_on tp uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
+      wu.cid wu.mid (W64 0) i₂ tctx tcd ⟨leaseTxn tK lu, false, true, false⟩ (psAtLeast γc 3) F₂
+      (fun h => by simp [hro] at h) htsz (fun _ => htsh)) $$ [Hobj] as %tresp %terr Ht
+  · iframe Hobj; iframe #
+    ileft
+    imodintro
+    iunfold client.txnUpdAtOn
+    iright; iright
+    isplitl []
+    · ipureintro; exact ⟨hro, Or.inr ⟨hlm xu hxum, htpl⟩, htnz, htnest⟩
+    iunfold client.clientOpAuOn
+    iexists Lset
+    iframe Hll₂
+    ihave #Htx := cell_txnTAu xu.2.ρ.rd.kv γc lz lu ps2 hps2
+      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } uconn (GoInterface.ok tctx)
+        (.txn (txnWireOf (leaseTxn tK lu))) Lset) $$ []
+    · iframe #
+    iexact Htx
+  (try wp_auto)
+  wp_apply Htcancel
+  (try wp_auto)
+  icases Ht with (⟨%Hterr, %mt, -, Hrep, -⟩ | ⟨%Hterr, -⟩)
+  rotate_left
+  · cases terr with
+    | nil => exact absurd rfl Hterr.1
+    | ok ei =>
+      (try wp_auto)
+      iapply HΦ; ipureintro; right; rfl
+  subst Hterr
+  iunfold client.txnReplied at Hrep
+  isimp only [hro, Bool.false_eq_true, ↓reduceIte] at Hrep
+  icases Hrep with ⟨%tw, %hm, %rq', %t', %xa, %xa', %l, %skip, -, -, -, -, -, %ltt, -, #HpsT⟩
+  iunfold psAtLeast at HpsT
+  icases HpsT with ⟨%ps3, #Hps3, %hps3⟩
+  (try wp_auto)
   sorry
 
 end proof
