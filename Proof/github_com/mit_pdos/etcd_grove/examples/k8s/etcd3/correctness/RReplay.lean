@@ -337,6 +337,47 @@ theorem replayL_snoc (init : RM) (ops : List (Input × RResp)) (op : Input × RR
       replayStepL (ops.foldl replayStepL (some (init, {[init.rv := init]}, []))) op := by
   rw [List.foldl_append]; rfl
 
+/-- Along `NewReplay`'s loop, each state is filed under its own resource version. -/
+theorem replayStepL_rv (ops : List (Input × RResp)) (acc : Option (RM × GMap w64 RM × List RChange))
+    (hacc : ∀ st ss cs, acc = some (st, ss, cs) → ∀ rv m, ss !! rv = some m → m.rv = rv) :
+    ∀ st ss cs, ops.foldl replayStepL acc = some (st, ss, cs) → ∀ rv m, ss !! rv = some m → m.rv = rv := by
+  induction ops generalizing acc with
+  | nil => exact hacc
+  | cons op ops ih =>
+    apply ih
+    intro st ss cs h rv m hm
+    cases acc with
+    | none => cases h
+    | some a =>
+      obtain ⟨st0, ss0, cs0⟩ := a
+      simp only [replayStepL] at h
+      split at h
+      · cases h
+        by_cases hr : (rstepL op.1 st0 op.2).2.1.rv = rv
+        · subst hr
+          rw [GMap.lookup_insert _ _ _] at hm
+          cases hm; rfl
+        · rw [GMap.lookup_insert_ne _ _ hr] at hm
+          exact hacc _ _ _ rfl rv m hm
+      · cases h
+
+/-- **A replay's states are filed under their own resource versions.** -/
+theorem replayL_rv {init : RM} {ops : List (Input × RResp)} {R : RReplay} (h : replayL init ops = some R) :
+    ∀ rv m, R.states !! rv = some m → m.rv = rv := by
+  unfold replayL at h
+  cases hf : ops.foldl replayStepL (some (init, {[init.rv := init]}, [])) with
+  | none => rw [hf] at h; cases h
+  | some r =>
+    rw [hf] at h
+    cases h
+    obtain ⟨st, ss, cs⟩ := r
+    refine replayStepL_rv ops _ ?_ st ss cs hf
+    intro st0 ss0 cs0 h0 rv m hm
+    cases h0
+    by_cases hr : init.rv = rv
+    · subst hr; rw [GMap.lookup_singleton _ _] at hm; cases hm; rfl
+    · rw [GMap.lookup_singleton_ne _ hr] at hm; cases hm
+
 end go
 
 end k8s_correctness

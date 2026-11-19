@@ -12,7 +12,7 @@ The predicates the specs of `correctness/replay.go` and `correctness/watch.go` a
   objects read-only);
 - `replayAt rp R`: the `*Replay` `rp` holds `R`, frozen (`NewReplay` builds it and nothing writes it
   after): the driver's `NewFunc` and `Versioner`, the states by resource version (each a frozen
-  `*Model`, `modelAt`), the changes in order;
+  `*Model`, `modelAt`, filed under its own resource version), the changes in order;
 - `listExpOk R x out`: the model's list at a list response's state answers a deep error;
 - `opPre x out`, `stepPre x m out` and `ReplayPre init ops`: an operation's own premises, `Model.Step`'s
   at the state `m`, and `Model.Step`'s along `NewReplay`'s loop (every state the replay reaches, for the
@@ -105,6 +105,7 @@ def replayAt (rp : Loc) (R : RReplay) : IProp GF :=
     rp ↦□ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay.mk newFuncV versionerV
       sm csl ∗
     sm ↦${DFrac.discard} M ∗ ⌜∀ rv, (M !! rv).isSome = (R.states !! rv).isSome⌝ ∗
+    ⌜∀ rv m, R.states !! rv = some m → m.rv = rv⌝ ∗
     ([∗map] rv ↦ mp ∈ M, ∃ m, ⌜R.states !! rv = some m⌝ ∗ modelAt mp m) ∗
     csl ↦*□ cvs ∗ [∗list] cv;c ∈ cvs;R.changes, changeVRep cv c)
 

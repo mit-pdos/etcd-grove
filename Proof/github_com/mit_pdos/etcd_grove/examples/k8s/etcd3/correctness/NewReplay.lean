@@ -255,6 +255,8 @@ theorem NewReplay.wp_proof
     iframe «$r0» Hsm Hcsl Hcvs
     isplitr
     · ipureintro; exact Hn.2.2.2
+    isplitr
+    · ipureintro; exact replayL_rv hR
     iapply BigSepM.bigSepM_forall_elim
     iintro %rv %q %hq
     iapply HM $$ %rv %q %hq
