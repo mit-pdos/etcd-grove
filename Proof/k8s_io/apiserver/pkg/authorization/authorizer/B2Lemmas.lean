@@ -198,6 +198,12 @@ theorem evalCallOk_elim_b2 (f : GoFunc) (ctx cond data : GoInterface) :
         {{ (b : Bool) (e : GoInterface), RET (PairV #b #e); True }} := by
   unfold evalCallOk; exact .rfl
 
+theorem evalFnOk_elim_b2 (f : GoFunc) (ctx cond data : GoInterface) :
+    evalFnOk (GF := GF) f ⊢ evalCallOk f ctx cond data := by
+  unfold evalFnOk
+  iintro #H
+  iexact H
+
 /-- Names the value of a points-to (for a closure held in a local variable: its proof gets the
 closure as an equation, the rest of the proof an abstract value). -/
 theorem pointsto_name_b2 {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
