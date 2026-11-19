@@ -34,18 +34,7 @@ holding `c`, owned; of a nil `*pb.ConfState`, a nil one.
 Against protobuf-go v1.36.12: the four repeated `uint64` fields are copied into fresh slices
 (`mergeUint64Slice`: `append` onto the empty destination's), `AutoLeave` into a fresh cell when
 set (`nil` stays `nil`; either reads as `c.AutoLeave'`), the unknown fields copied (none, as
-`csPts` requires of a conf state); the source is only read.
-
-Since 2026-11-19 (Hm1, option (A), decided by etcd-grove-03), a third conjunct: the clone of a conf
-state whose `AutoLeave` pointer is set (`csPts … true`) has its `AutoLeave` pointer set, to the same
-value. `AutoLeave` is a proto2 `optional bool` (`raftpb/raft.pb.go`, `AutoLeave *bool`): its presence is
-the pointer being non-`nil`, and `Clone`'s merge copies it with `mergeBoolPtr`
-(`internal/impl/merge_gen.go:22-28`: when the source's pointer is non-`nil`, a fresh cell holding its
-value), so a set `false` stays set. As `CloneSnapshot.spec`'s `ownSnapS` conjunct, for a conf state
-cloned on its own: `MemoryStorage.CreateSnapshot` clones the conf state it is given (`storage.go:259`),
-which etcd's apply thread got from `ApplyConfChange` with the pointer set. Tested:
-`examples/pbschema/cloneconfstate_test.go` (`AutoLeave` nil, set false and set true: presence and value
-kept, the cell and the lists' arrays fresh, the lists equal, no unknown fields). -/
+`csPts` requires of a conf state); the source is only read. -/
 abbrev proto.CloneConfState.spec : Prop :=
   (∀ (p : Loc) (dq : DFrac) (c : ConfStateM),
     {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownCSM p dq c }}
@@ -55,12 +44,7 @@ abbrev proto.CloneConfState.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto }}
     (App (Val (@! google_golang_org.protobuf.proto.Clone))
       (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfState.ty) #(null : Loc))))
-  {{ RET #(interface.mkOk (go.GoType.PointerType raftpb.ConfState.ty) #(null : Loc)); True }} ∧
-  (∀ (p : Loc) (dq : DFrac) (c : ConfStateM),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ csPts p dq c true }}
-      (App (Val (@! google_golang_org.protobuf.proto.Clone)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfState.ty) #p)))
-    {{ (p' : Loc), RET #(interface.mkOk (go.GoType.PointerType raftpb.ConfState.ty) #p');
-        csPts p dq c true ∗ csPts p' (DFrac.own 1) c true }})
+  {{ RET #(interface.mkOk (go.GoType.PointerType raftpb.ConfState.ty) #(null : Loc)); True }}
 
 end spec
 

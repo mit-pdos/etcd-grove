@@ -54,7 +54,7 @@ theorem wp_cloneOpt (wp_Clone : proto.CloneConfState.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hpkg, Hc⟩ HΦ
   icases Hc with (⟨%Hnull, %Hc⟩ | #Hc)
   · subst Hnull
-    wp_apply wp_Clone.2.1 $$ [$Hpkg]
+    wp_apply wp_Clone.2 $$ [$Hpkg]
     iapply HΦ
     ileft; ipureintro; exact ⟨rfl, Hc⟩
   · iapply wp_fupd

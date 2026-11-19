@@ -44,7 +44,7 @@ theorem storage.BackendHooks.SetConfState.wp_proof
   (try wp_auto)
   icases Hcs with (%Hnil | ⟨%c, #Hc⟩)
   · subst Hnil
-    wp_apply hClone.2.1
+    wp_apply hClone.2
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hcsf Hd]
     · inext

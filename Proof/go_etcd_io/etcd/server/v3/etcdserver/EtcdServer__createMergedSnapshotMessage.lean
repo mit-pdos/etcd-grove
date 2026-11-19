@@ -44,7 +44,7 @@ theorem wp_clone_csOpt (hClone : proto.CloneConfState.spec (GF := GF) (hG := hG)
   iunfold csOpt at Hc
   icases Hc with (⟨%Hn, %Hce⟩ | #Hc)
   · subst Hn Hce
-    wp_apply hClone.2.1
+    wp_apply hClone.2
     iapply HΦ
     iunfold csOpt
     ileft; ipureintro; exact ⟨rfl, rfl⟩
