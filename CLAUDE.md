@@ -176,8 +176,14 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
   is checked by a program of the deployment that panics, never stated over traces in Lean), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
-  kernel and the harness, never by the program): `notes/robustness.md`. A program's statement lives
-  with its proofs (`Proof/.../examples/raft/kvnet/Robust.lean`).
+  kernel and the harness, never by the program): `notes/robustness.md`. Every example's top-level
+  result is an instance, in two files named `TopLevelRobustness.lean`:
+  `Spec/<example>/TopLevelRobustness.lean` states it (`def <name>.spec : Prop`, nothing else: the
+  file to audit) and `Proof/<example>/TopLevelRobustness.lean` proves it (`theorem <name> :
+  <name>.spec`, from the example's closed theorem); the program and the other definitions the
+  statement names are in `Proof/<example>/TopLevelDefs.lean` (a defs module, so the Spec file
+  imports no proof); a new example gets all three. (kvnet's statement,
+  not proved yet: `Proof/.../examples/raft/kvnet/Robust.lean`.)
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
   reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 
@@ -240,7 +246,8 @@ or lower (`etc/tier-check.py`; `notes/decisions.md`, "Import tiers"):
    (defs are a spec's vocabulary);
 4. **proof**: a `Proof/` module declaring `theorem`/`axiom <F>.wp_proof`, one function's proof: it
    imports specs and defs only (its callees through their specs);
-5. **linking**: `Link`, `Results`, `*Linked` (`Linked`, `MainLinked`, `TracedLinked`, a split's
+5. **linking**: `Link`, `Results`, `TopLevelRobustness` (under `Proof/`: the proofs of the
+   top-level results), `*Linked` (`Linked`, `MainLinked`, `TracedLinked`, a split's
    `<Name>Linked`), `Adequacy*`, and the modules listed in `etc/tier-linking.txt` (each with why: it
    composes linked results under another name). Only a linking module imports a proof or linking
    module.

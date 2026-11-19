@@ -40,6 +40,7 @@ public import RaftTla.Spec.github_com.mit_pdos.etcd_grove.examples.raft.traceche
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Defs
+public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.TopLevelDefs
 
 @[expose] public section
 
@@ -55,21 +56,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 /-! ## The ghost-state bundle -/
 
 attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
-
-/-- The functors: the universal camera (`AllG`) at slot 0, then invariants, later credits,
-GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def tcGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 @[instance_reducible] def tcGF_allG : AllG tcGF := ⟨⟨0, rfl⟩⟩
@@ -94,11 +80,6 @@ abbrev tcMainSpec : Prop :=
   ∀ [hG : HeapGS HasLC.hasLC tcGF] [go.Semantics]
     [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions],
     TraceCheck.Main.spec (GF := tcGF) (hG := hG)
-
-/-- The trace check's program: the package's initialization, then `Main()`. -/
-def tracecheckProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Main) #()
 
 /-- **The trace check never fails**, from `Main`'s spec (at every `HeapGS` of `tcGF` and every
 semantics): every real execution of `tracecheckProgram` (the package's initialization, then

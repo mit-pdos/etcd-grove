@@ -57,7 +57,7 @@ LOCAL_DIRS = ("Code", "TrustedCode", "GeneratedProof", "ManualProof", "Spec", "P
     PART_ROOTS)
 # `MainLinked.lean`: an example's `Main` linked by hand over its callees' Links (no
 # `etc/gen-link.py` mode links several packages); its results are linked results too
-ROOT_FILES = ("Link.lean", "MainLinked.lean", "Results.lean")
+ROOT_FILES = ("Link.lean", "MainLinked.lean", "Results.lean", "TopLevelRobustness.lean")
 IMPORT = re.compile(r"^\s*(?:public\s+)?(?:meta\s+)?import\s+(.*)$", re.M)
 NAMESPACE = re.compile(r"^namespace\s+(\S+)", re.M)
 
