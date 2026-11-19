@@ -179,7 +179,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-theorem valCanon : isValF_canon.law (GF := GF) := sorry
+theorem valCanon : isValF_canon.law (GF := GF) := isValF_canon_law_holds
 theorem flAgree : isFieldList_agree.law (GF := GF) := sorry
 /-- The root's `isValF_agree.law` (`v7/Laws.lean`, which imports every package), restated. -/
 theorem valAgree : ∀ (v : value.Value) dq1 dq2 x y,
