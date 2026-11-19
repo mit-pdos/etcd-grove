@@ -45,7 +45,81 @@ theorem arbConds.wp_proof
     (wp_arbCondition_GetDescription : EtcdGrove.k8s_authz.arbCondition.GetDescription.spec (GF := GF) (hG := hG))
     (wp_arbCondition_Evaluate : EtcdGrove.k8s_authz.arbCondition.Evaluate.spec (GF := GF) (hG := hG)) :
     arbConds.spec (GF := GF) (hG := hG) := by
-  sorry
+  wp_start
+  ihave #Hcond : (∀ c : arbCondition, isCondition (interface.mkOk arbCondition.ty #c) : IProp GF) $$ []
+  · iintro %c
+    iunfold isCondition
+    iexists ⟨arbCondition.ty, #c⟩
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iunfold strMethodOk
+      iintro !> %Ψ _ HΨ
+      wp_apply (wp_arbCondition_GetID c)
+      iapply HΨ; itrivial
+    isplitr
+    · iunfold strMethodOk
+      iintro !> %Ψ _ HΨ
+      wp_apply (wp_arbCondition_GetType c)
+      iapply HΨ; itrivial
+    isplitr
+    · iunfold strMethodOk
+      iintro !> %Ψ _ HΨ
+      wp_apply (wp_arbCondition_GetCondition c)
+      iapply HΨ; itrivial
+    isplitr
+    · iunfold strMethodOk
+      iintro !> %Ψ _ HΨ
+      wp_apply (wp_arbCondition_GetDescription c)
+      iapply HΨ; itrivial
+    iintro %ctx %data
+    iunfold condEvalOk
+    iintro !> %Ψ _ HΨ
+    wp_apply (wp_arbCondition_Evaluate c ctx data) as %r _
+    iapply HΨ; itrivial
+  wp_auto
+  wp_apply wp_Int63n as %n %Hn
+  · ipureintro; decide
+  (try wp_auto)
+  ihave HI : (∃ (j : w64) (s : GoSlice) (cl : List GoInterface),
+      "i" ∷ i_ptr ↦ j ∗ "cs" ∷ cs_ptr ↦ s ∗ "Hs" ∷ s ↦* cl ∗
+      "Hcap" ∷ ownSliceCap GoInterface s (DFrac.own 1) ∗
+      "Hcl" ∷ [∗list] c ∈ cl, isCondition c : IProp GF) $$ [i cs]
+  · iexists W64 0, slice.nil, []
+    iframe
+    isplitl
+    · iapply ownSlice_nil
+    isplitl
+    · iapply ownSliceCap_nil
+    iunfold named
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  wp_for HI
+  by_cases Hlt : sint.Z j < sint.Z n
+  · rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+    (try wp_auto)
+    wp_apply wp_arbID as %id _
+    (try wp_auto)
+    wp_apply wp_arbType as %ty _
+    (try wp_auto)
+    wp_apply (wp_slice_literal (l := [interface.mkOk arbCondition.ty #(arbCondition.mk id ty)]))
+    isplitr
+    · ipureintro; rfl
+    iintro %osl ⟨Hosl, -⟩
+    (try wp_auto)
+    wp_apply wp_slice_append $$ [$Hs $Hcap $Hosl] as %s' ⟨Hs', Hcap', -⟩
+    (try wp_auto)
+    wp_for_post
+    iframe
+    iexists _, s', _
+    iframe
+    iapply BigSepL.bigSepL_singleton.2
+    iapply Hcond
+  · rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
+    (try wp_auto)
+    iapply HΦ
+    iexists cl
+    iframe
 
 end proof
 
