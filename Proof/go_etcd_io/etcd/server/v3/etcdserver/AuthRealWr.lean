@@ -1371,9 +1371,10 @@ theorem lk_claim (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (W Pk Hk X : IProp GF
   iexists st, bs
   isplitr
   · ipureintro; exact Hfree.2.1
-  isplitl [Hl Hrp Hbt Hs1 Hq HW HPk HHk HPost Hr0]
-  · iframe Hl
-    iunfold lkR
+  isplitl [Hl]
+  · iexact Hl
+  isplitl [Hrp Hbt Hs1 Hq HW HPk HHk HPost Hr0]
+  · iunfold lkR
     iexists csT cs, auth.AuthSess.init, 0
     iframe Hrp Hbt Hq HW HPk HHk HPost Hr0
     iunfold bkSw

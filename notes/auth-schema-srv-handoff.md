@@ -1,6 +1,36 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 b, A6: O-a made; STOP 6, F-lend, blocks `authBkLend`)
+## START HERE (2026-11-19 c, A6: K-c, the lend, V-pub, creation drafted; builds pending)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere (`.lake/package-overrides.json` = that manifest; f551a1b46 / manifest-f55 comes with the next lean merge).
+- Decided 2026-11-19 by etcd-grove-03 (questions.md "A6 O-a and STOP 6 decided"): O-a ACCEPTED; STOP 6 -> (K-c).
+- **Done now**: (K-c) in the backend (ce1b9bc920): `rbPartRF` holds ⅛ of `γ.rbk` (an `rbEls` conjunct), `rbClaimC`
+  ⅝; `rbPartRF_rbPart_agree` + corollaries (contents only); independent check done (soundness §7, forbidden laws
+  amended in `rbOwnInR`'s docstring); backend lean-checked clean (InvBackend, TrackedLemmas, ClaimedLemmas).
+  `real_bkLend` (AuthRealWr end). (e) F-pub found and fixed internally by V-pub (43746319cc; questions.md "A6 (e)
+  F-pub"): store vault `pubVault`/`vaultInv`, live branch `liveP`, retired branch the apply quarter at `p`,
+  `real_view` takes the reader's `depT`, `real_retire`/`real_life` take `vaultInv`. `AuthRealNew.lean`:
+  `real_create`, `vault_alloc`, `vault_take`.
+- **Build state** (kc-build2, rc=1 only at AuthRealInv, since fixed): backend, auth (RoleList), schema, ImageOn and
+  everything not under AuthRealInv built. lean-check clean (whole file): AuthRealInv, AuthRealRsv, AuthRealLife,
+  AuthRealRd. **AuthRealWr: 18 errors** (`/shared/tmp/auth-schema-srv/wr-errors.txt`), all in c89577b8ed's never-compiled
+  code: `lk_claim` fixed; left: the `Unlock` clause (l.1882, 2602: `iapply (Hunl st X …)` treats an Iris hypothesis as
+  a term: write `iapply Hunl $$ %st %X %w %(wbTok d.γB)` / `wp_apply (Hunl …)` likewise), `real_forceCommit`-area
+  `▸` (2018), `real_getAllRoles` (2126: `BSess` literal has 12 fields; 2176 `Hrd`, 2206/2229 unsolved, 2243 `Hlock`,
+  2268 a parse error that hides what follows), `real_createAuthBuckets` (2499, 2568-2594: `lkI` counts `0 + 1` vs
+  the goal's form), `real_wAtHook` (2668 `plHookRO`). Then lean-check AuthRealNew (never compiled) and the server
+  Link; regenerate the backend interface again if the backend changes (done for ce1b9bc920's state: 9 files).
+- Next: `⊢ authSchemaSrv` (allocate γt's discarded authority (`ticketN`, R := `ownToks γt 1`), `vault_alloc`, split
+  `authPubQ ½ 0` into the realization's ¼ and the post's `authPubTok`; `real_create` at `bootState`, `r` empty;
+  then the clauses: `real_backendOk`, `real_wAtHook`, `real_wBoot`, `real_createAuthBuckets`, `real_bkLend`,
+  `real_life`, the tickets, `authSchemaSnap` from `vault_take` + `real_create` (needs `viewAt` from `authBucketsAt`,
+  the converse of `viewAt_bucketsAre`)); A6-end report; A7 HARD STOP (trusted list incl. K-c).
+- Pitfalls: (0)-(37) as before (History); (38) questions.md is gitignored (worktree-local), commit the rest; (39) a
+  foreground wait longer than 3 min is moved to the background: watch builds with a background `until grep rc=` loop.
+
+## History (START HERE of 2026-11-19 b, STOP 6, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
   everywhere (`.lake/package-overrides.json` = that manifest; f551a1b46 / manifest-f55 comes with the next lean merge).

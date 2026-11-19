@@ -100,6 +100,41 @@ theorem getLast_len {hs : List auth.AuthState} {st : auth.AuthState} (h : hs.get
   | nil => simp at h
   | cons _ _ => simp
 
+/-! ## The buckets of a snapshot -/
+
+/-- **Buckets holding a state are at its view** (the converse of `viewAt_bucketsAre`, for `authSchemaSnap`'s
+`authBucketsAt`): each user's and role's record chosen from the bucket's value. -/
+theorem bucketsAre_viewAt {st : auth.AuthState} {D : schema.AuthData} (h : schema.authBucketsAre st D)
+    (h64 : st.revision < 2 ^ 64) : viewAt ⟨st, st, st⟩ D := by
+  classical
+  obtain ⟨hwf, hen, hrev, hu1, hu2, hr1, hr2⟩ := h
+  refine ⟨⟨(enabledOf_auth D).symm.trans hen, ?_, hwf.2.2⟩, ?_, ?_⟩
+  · have e : schema.revisionOf ⟨D.auth, ∅, ∅⟩ = W64 st.revision := by
+      simp only [schema.revisionOf]; rw [hrev]; exact beToU64_u64Be _
+    dsimp only
+    rw [e]; word
+  · refine ⟨fun n => if hn : ∃ v, D.users.lookup n = some v then Classical.choose (hu2 n _ hn.choose_spec)
+      else default, hu1, fun n v hl => ?_⟩
+    have hn : ∃ v, D.users.lookup n = some v := ⟨v, hl⟩
+    simp only [dif_pos hn]
+    have hc := Classical.choose_spec (hu2 n _ hn.choose_spec)
+    have hv : hn.choose = v := by have := hn.choose_spec; rw [hl] at this; exact (Option.some.inj this).symm
+    rw [← hv]
+    exact hc
+  · refine ⟨fun n => if hn : ∃ v, D.roles.lookup n = some v then Classical.choose (hr2 n _ hn.choose_spec)
+      else default, hr1, fun n v hl => ?_⟩
+    have hn : ∃ v, D.roles.lookup n = some v := ⟨v, hl⟩
+    simp only [dif_pos hn]
+    have hc := Classical.choose_spec (hr2 n _ hn.choose_spec)
+    have hv : hn.choose = v := by have := hn.choose_spec; rw [hl] at this; exact (Option.some.inj this).symm
+    rw [← hv]
+    exact hc
+
+/-- `authBucketsAt` of the buckets `r` is the view of their auth buckets. -/
+theorem bucketsAt_viewAt {st : auth.AuthState} {r : GMap GoString BktData} (h : authBucketsAt st r) :
+    viewAt ⟨st, st, st⟩ ⟨bktOf r go!"auth", bktOf r go!"authUsers", bktOf r go!"authRoles"⟩ :=
+  bucketsAre_viewAt h.1 h.2
+
 /-! ## The publication vault (V-pub) -/
 
 /-- **The vault at boot**: the succession right deposited, a fresh live token kept. -/

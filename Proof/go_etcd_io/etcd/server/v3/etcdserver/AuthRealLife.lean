@@ -245,8 +245,9 @@ theorem real_release (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (hq : authOpen
       iunfold poolsRel
       iframe Hr1 Hr2
     imodintro
-    isplitl [Hpt]
+    ihave Hpt : auth.authPubTok γ.γa $$ [Hpt]
     · iunfold auth.authPubTok; iexists p; iexact Hpt
+    iframe Hpt
     ihave Hs := rep_add (bOpen d.γB s0) ticketN 1 $$ [$Hs1 $Hs2]
     have hn : ticketN + 1 = authRdN := by unfold ticketN authRdN; omega
     rw [hn]

@@ -448,8 +448,10 @@ theorem real_view (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView → IP
   icases Hc with ⟨Ha, Hu, Hr, #Hsa, #Hsu, #Hsr, %Hv⟩
   iunfold auth.authPubLb at Hlb
   ihave %Hip : ⌜i ≤ p⌝ $$ [Hl Hd]
-  · icases Hl with (⟨⟨Hp, -⟩, -⟩ | ⟨Hp, -⟩ | ⟨Hcur, -, -, HT, -⟩)
-    · iunfold auth.authPubQ at Hp
+  · icases Hl with (⟨Hlp, -⟩ | ⟨Hp, -⟩ | ⟨Hcur, -, -, HT, -⟩)
+    · iunfold liveP at Hlp
+      icases Hlp with ⟨Hp, -⟩
+      iunfold auth.authPubQ at Hp
       ihave %h := monoNatLbOwn_valid γ.γa.pub _ p i $$ Hp Hlb
       ipureintro; exact h.2
     · iunfold auth.authPubQ at Hp

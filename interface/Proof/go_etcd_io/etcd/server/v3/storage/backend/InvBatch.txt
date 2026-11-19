@@ -31,9 +31,9 @@ def backend.btW (γ : backend.BNames) (t : Loc) (st : backend.BSess) : IProp GF 
       typedPointsto (backend.pendOf t) st.pend (DFrac.own 1) ∗ backend.ownWTx st.tx γ.db st.C st.S)
 
 theorem backend.batchLocked_rdB (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st st' :
-    backend.BSess) (s : GoSlice) (v : GoString) : backend.rdB st.tx s v ∗ backend.batchLocked γ P b
-    st' ∗ ⌜st'.tx = st.tx⌝ ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.batchLocked γ P b
-    st')
+    backend.BSess) (s : GoSlice) (v : GoString) (c : Bool := false) : backend.rdB st.tx s v ∗
+    backend.batchLocked γ P b st' c ∗ ⌜st'.tx = st.tx⌝ ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗
+    backend.batchLocked γ P b st' c)
 
 theorem backend.batchLocked_rbOwnIn (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
     backend.BSess) (S : GoString → Prop) (r : GMap GoString backend.BktData) : backend.batchLocked γ

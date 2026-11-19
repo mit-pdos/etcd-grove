@@ -10,6 +10,9 @@ theorem backend.rbPartF_agree (γ : backend.BNames) (S S' : GoString → Prop) (
 theorem backend.gme_excl {V : Type} [Pos.Countable V] (g : GName) (n : GoString) (q1 q2 : Qp) (v1 v2
     : V) (h : 1 < q1.val + q2.val) : n ↪[g]{#q1} v1 ∗ n ↪[g]{#q2} v2 ⊢ False
 
+theorem backend.q_claim : Qp.half 1 + (Qp.half 1).half = Qp.half 1 + (Qp.half 1).half.half +
+    (Qp.half 1).half.half
+
 theorem backend.rbrSide_write (γ : backend.BNames) (P : backend.BParams) (r : GMap GoString
     backend.BktData) (m : GoString) (S : backend.Data) (st st' : backend.BSess) (hC : st'.C = st.C)
     (hR : st'.R = st.R) (_hO : ∀ (n : GoString), n ≠ m → st'.tk n = st.tk n ∧ backend.rbData P st'.S
@@ -68,12 +71,22 @@ theorem backend.rbOwnIn_agree (γ : backend.BNames) (S S' : GoString → Prop) (
 theorem backend.rbPart_none (γ : backend.BNames) (r : GMap GoString backend.BktData) : ⊢
     backend.rbPart γ (fun x => False) r
 
+theorem backend.q58_whole : Qp.half 1 + (Qp.half 1).half.half + (Qp.half 1).half + (Qp.half
+    1).half.half = 1
+
 theorem backend.rbEls_none (γ : backend.BNames) (q : Qp) (v : GoString → Option backend.BktData ×
     Bool) : ⊢ backend.rbEls γ (fun x => False) q v
 
 theorem backend.rbSide_mono (γ : backend.BNames) (P : backend.BParams) (r : GMap GoString
     backend.BktData) (I I' : GoString → Prop) (h : ∀ (n : GoString), I n → I' n) : backend.rbSide γ
     P r I ⊢ backend.rbSide γ P r I'
+
+theorem backend.rbEls_one (γ : backend.BNames) (n : GoString) (q : Qp) (v : GoString → Option
+    backend.BktData × Bool) (hd : γ.rbD !! n ≠ none) : backend.rbEls γ (fun m => m = n) q v ⊣⊢
+    backend.rbElem γ n q (v n)
+
+theorem backend.rbEls_empty (γ : backend.BNames) (S : GoString → Prop) (hS : ∀ (n : GoString), ¬S n)
+    (q : Qp) (v : GoString → Option backend.BktData × Bool) : ⊢ backend.rbEls γ S q v
 
 theorem backend.rbPart_split (γ : backend.BNames) (S S' : GoString → Prop) (r : GMap GoString
     backend.BktData) (hd : ∀ (n : GoString), S n → S' n → False) : backend.rbPart γ (fun n => S n ∨
@@ -99,7 +112,7 @@ theorem backend.trkSide_congr (γ : backend.BNames) (P : backend.BParams) (st st
     backend.cwOk c st') : backend.trkSide γ P st c ⊢ backend.trkSide γ P st' c
 
 theorem backend.q_over : 1 < ((Qp.half 1).half + (Qp.half 1).half).val + (Qp.half 1 + (Qp.half
-    1).half).val
+    1).half.half).val
 
 theorem backend.rbSide_agree_inI (γ : backend.BNames) (P : backend.BParams) (r : GMap GoString
     backend.BktData) (S : GoString → Prop) (r' : GMap GoString backend.BktData) {I : GoString →
