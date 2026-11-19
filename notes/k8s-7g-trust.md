@@ -269,3 +269,24 @@ closed before any caller used the bridge, so no closed statement depended on the
 - (night 20) `StepAgree` for the checker's porcupine model needed `boxReq`/`boxResp` injective: proved
   (`request_intoVal_inj`, `response_intoVal_inj` and the nested struct lemmas, RealGlue) from the generated
   `TypeAssumptions` projections, no new trust text.
+
+## 9. Freeze section: internal lemmas resting on generated type facts (decided by etcd-grove-03, 2026-11-19)
+
+Accepted as internal lemmas (no new trust text), listed here so the user sees them at the Freeze: the
+checker's `Request`/`Response` values are determined by their Go values, proved from the generated
+`TypeAssumptions` projections (`get_<field>`) of each struct type and the basic `intoVal` injectivities:
+`getOptions_intoVal_inj`, `selPred_intoVal_inj`, `listOptions_intoVal_inj`, `createReq_intoVal_inj`,
+`getReq_intoVal_inj`, `listReq_intoVal_inj`, `deleteReq_intoVal_inj`, `updateReq_intoVal_inj`,
+`compactReq_intoVal_inj`, `request_intoVal_inj`, `response_intoVal_inj`, and `boxReq_inj`/`boxResp_inj`
+(`Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/RealGlue.lean`). They rely on the generated type facts
+(`TypeAssumptions`, part of each package's `Assumptions`), not on any 7g axiom.
+
+## 10. Named hypotheses the closed theorems would reach (night 21, STOP)
+
+Linking `realCheck` into `Check` reaches two specs that are named hypotheses today (`?` in
+`etc/link-lean-first-k8scache.txt`; no proof, no axiom): `apimeta.ListAccessor.spec` (widened in place at STOP 2 with
+the `*ObjList` row; Go test `TestListAccessorObjList`) and `apierrors.IsTooManyRequests.spec` (restated by
+apierrors-fix; Go test `TestIsTooManyRequests`). Callers: `Model.Step` (IsTooManyRequests), `Model.equalListResponse`,
+`Model.listResponseRV`, `Replay.validateList` (ListAccessor), hence `NewReplay`, `Replay.Validate`, `realCheck`,
+`Check`, `Main*`. Without a decision the Link puts `wp_Check`/`wp_Main` in `links_pending`, and the closed theorems
+would take the two specs as hypotheses.

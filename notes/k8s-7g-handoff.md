@@ -2,6 +2,35 @@
 
 ## START HERE
 
+**2026-11-19 (night 21; for etcd-grove-03). lean e95ce79ce9 merged (pin 3afd77e35); timed full build
+20261119-162949-742427 (only `Check` failed, expected). realCheck and Check proved, no sorry. STOPPED at the
+link step: two named hypotheses are reached (below).**
+
+- Branch `k8s-7g`, pin 3afd77e35 (`--packages=/shared/tmp/manifest-3af.json`, `.lake/package-overrides.json` = a
+  copy). Check: `/shared/tmp/k8s7g/lc.sh -a FILE` (lean-check, LAKE_OPTS set). Build:
+  `/shared/tmp/build-slot.sh flock /shared/tmp/k8s7g/tree.lock lake --packages=/shared/tmp/manifest-3af.json build T…`.
+- Done night 21 (lean-checked `-a`, not `--fast`):
+  - merge `09b3404b33` (PredOk: lean's PredOkDefs + our `wp_ok` names; `watchEventsLemmas` split for the tier check).
+  - `realCheck.lean` complete (`f7de6a6a2d`): Ok branch, no-unary branch, the shared tail as `local macro rc_tail`
+    (NewReplay, Validate loop, NewWatchValidator, ValidateWatch loop); `opReps_pick`; `maxHeartbeats 1000000`.
+  - `Check` (`fb899755a5`): failureFree + realCheck; `Check.spec` gains `k8s_correctness.RunOk g0`; `SeedRun.lean`
+    (`runOk_g0s`), passed at Main/MainCluster/MainPartition; `opsIoOk_boxes` (RealGlue). Closed statements unchanged.
+  - link list + gen-link (`5790ba404f`): ~70 entries (realCheck, the checker, storage `@`, the 7g axioms as `=`);
+    gen-link's EXTRA_IMPORTS for those axioms. `Change.toWatchEvent`/`splitInitialEvents`/`validateBookmarks` take the
+    helpers' callees (apply `mlistMatchesW.wp_ok`/`annotObj.wp_ok` inside), so the Link can pass results.
+- THE STOP: `apimeta.ListAccessor.spec` and `apierrors.IsTooManyRequests.spec` are named hypotheses (`?` in the
+  k8scache list, no proof, no axiom). `Model.Step`/`validateList`/`equalListResponse`/`listResponseRV`/
+  `Replay.validateList` reach them, so in the Link `wp_Check`/`wp_Main` land in `section links_pending` and
+  `MainLinked`/Adequacy would take two hypotheses (a closed-statement change). Decision needed (see report).
+- NEXT after the decision: apply it (axioms: `Proof/k8s_io/apimachinery/pkg/api/{meta/ListAccessor,errors/
+  IsTooManyRequests}.lean` + entries without `?` in both lists, gen-link `--k8setcd3` and `--k8scache`); build Link,
+  MainLinked, Adequacy, Results; full timed build; tcb `--check`; step-6 prep (trust §Freeze, joint attack).
+- Pitfalls (new): a macro quotation eats `$H` in `$$ [$H]`: write `$$ [H]` + `· iframe H`. A pointer-receiver call of a
+  value method: `wp_method_call` then `wp_auto`. A big proof's heartbeats are per declaration: a second tail copy
+  pushed realCheck over 200000 (showed as a `word` timeout). `--goal` after an edit can show a stale state: `-a`.
+
+### Superseded (night 20)
+
 **2026-11-19 (night 20; for etcd-grove-03). 03's night-19 decisions recorded (questions.md, local file).
 Build n19 (`/shared/tmp/k8s7g/build-n19.log`): only `Check` (expected) and `Apply` failed; Apply fixed (`h1.1`, GenInW's
 Limit), lean-checked. realCheck proof well under way; stopped for context size.**
