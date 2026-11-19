@@ -31,6 +31,7 @@ module
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.encoding.json
+public import GeneratedProof.google_golang_org.grpc.stats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
@@ -781,6 +782,17 @@ end go_etcd_io.etcd.server.v3.etcdserver.api
 -- (D22 S-f, 2026-10-19: moved here from the server's `BaseApply.lean`, unchanged) `config` and
 -- `snap`, which `storage` imports since `OpenSnapshotBackend` is translated, and the packages
 -- `config` imports (`otelgrpc`, `transport` and its `crypto/tls`, `featuregate`, `v3discovery`)
+
+-- grpc's `stats` (types and names only: `stats.Handler`, the type of otelgrpc's
+-- `NewServerHandler`'s result; otelgrpc imports it, 2026-11-19)
+namespace google_golang_org.grpc.stats
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.stats
 
 namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 

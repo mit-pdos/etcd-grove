@@ -1,0 +1,10 @@
+# Types and names only: grpc's stats handler interface `Handler` (and the types its methods name:
+# `RPCTagInfo`, `ConnTagInfo`, `RPCStats`, `ConnStats`), the type of otelgrpc's `NewServerHandler`'s
+# result, which `v3rpc.Server` passes to `grpc.StatsHandler`. Translated so that an implementation
+# of `NewServerHandler` can return one (etcd-refimpl's reference implementation). The imports name
+# the types' field and parameter types (`net.Addr`, `time.Time`, `metadata.MD`, `context.Context`).
+translate = ["!*"]
+imports = ["!*", "context", "net", "time", "google.golang.org/grpc/metadata"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
