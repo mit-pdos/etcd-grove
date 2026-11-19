@@ -256,6 +256,79 @@ theorem opt_ext {α : Type} {a b : Option α} (h : ∀ y, a = some y ↔ b = som
     | some y => exact absurd ((h y).2 rfl) (by simp)
   | some x => exact ((h x).1 rfl).symm
 
+theorem kvFind_set {α : Type} : ∀ (xs : List (PE × α)) (i : Nat) (pe : PE) (y0 x : α),
+    (xs.map (·.1)).Nodup → xs[i]? = some (pe, y0) → ∀ k,
+    kvFind (xs.set i (pe, x)) k = if k = pe then some x else kvFind xs k
+  | [], _, _, _, _, _, h, _ => by simp at h
+  | p :: rest, 0, pe, y0, x, _, h, k => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    unfold kvFind
+    simp only [List.set_cons_zero, List.find?_cons]
+    by_cases hk : k = pe
+    · subst hk; simp
+    · simp [hk, Ne.symm hk]
+  | p :: rest, i + 1, pe, y0, x, hnd, h, k => by
+    simp only [List.getElem?_cons_succ] at h
+    simp only [List.map_cons, List.nodup_cons] at hnd
+    have ih := kvFind_set rest i pe y0 x hnd.2 h k
+    have hp : p.1 ≠ pe := by
+      intro e; apply hnd.1; rw [e]
+      exact List.mem_map_of_mem (f := (·.1)) (List.mem_of_getElem? h)
+    unfold kvFind at ih ⊢
+    simp only [List.set_cons_succ, List.find?_cons]
+    by_cases hk : p.1 = k
+    · have : k ≠ pe := hk ▸ hp
+      simp [hk, this]
+    · simp only [hk, decide_false]
+      exact ih
+
+theorem kvFind_ins {α : Type} (xs : List (PE × α)) (i : Nat) (pe : PE) (x : α)
+    (hnd : (xs.map (·.1)).Nodup) (hn : pe ∉ xs.map (·.1)) (k : PE) :
+    kvFind (xs.take i ++ [(pe, x)] ++ xs.drop i) k = if k = pe then some x else kvFind xs k := by
+  have hnd' : ((xs.take i ++ [(pe, x)] ++ xs.drop i).map (·.1)).Nodup := by
+    have e : (xs.take i ++ [(pe, x)] ++ xs.drop i).map (·.1) =
+        (xs.map (·.1)).take i ++ [pe] ++ (xs.map (·.1)).drop i := by
+      simp [List.map_take, List.map_drop]
+    rw [e]
+    have : ((xs.map (·.1)).take i ++ (xs.map (·.1)).drop i).Nodup := by
+      rw [List.take_append_drop]; exact hnd
+    rw [List.nodup_append] at this ⊢
+    rw [List.nodup_append]
+    refine ⟨⟨this.1, by simp, ?_⟩, this.2.1, ?_⟩
+    · intro a ha b hb; simp at hb; subst hb; intro e; subst e
+      exact hn (List.mem_of_mem_take ha)
+    · intro a ha b hb
+      simp only [List.mem_append, List.mem_singleton] at ha
+      rcases ha with ha | rfl
+      · exact this.2.2 a ha b hb
+      · intro e; subst e; exact hn (List.mem_of_mem_drop hb)
+  apply opt_ext; intro y
+  rw [kvFind_some _ hnd']
+  have hmem : (k, y) ∈ xs.take i ++ [(pe, x)] ++ xs.drop i ↔ (k, y) ∈ xs ∨ (k, y) = (pe, x) := by
+    conv => rhs; rw [← List.take_append_drop i xs]
+    simp only [List.mem_append, List.mem_singleton]
+    constructor
+    · rintro ((h | h) | h)
+      · exact Or.inl (Or.inl h)
+      · exact Or.inr h
+      · exact Or.inl (Or.inr h)
+    · rintro ((h | h) | h)
+      · exact Or.inl (Or.inl h)
+      · exact Or.inr h
+      · exact Or.inl (Or.inr h)
+  rw [hmem]
+  by_cases hk : k = pe
+  · subst hk
+    simp only [↓reduceIte, Option.some.injEq, Prod.mk.injEq, _root_.true_and]
+    constructor
+    · rintro (h | h)
+      · exact absurd (List.mem_map_of_mem (f := (·.1)) h) hn
+      · exact h.symm
+    · intro h; exact Or.inr h.symm
+  · simp only [hk, ↓reduceIte, Prod.mk.injEq, false_and, or_false]
+    rw [kvFind_some _ hnd]
+
 theorem peMap_hasCard {α : Type} (M : PEMap α) (xs : List (PE × α))
     (hnd : (xs.map (·.1)).Nodup) (hM : ∀ k, M k = kvFind xs k) : M.HasCard xs.length := by
   refine ⟨xs.map (·.1), hnd, fun k => ?_, by simp⟩
