@@ -100,4 +100,8 @@
 //	                              (assumed, measured as support:     ErrnoZero "DirReadNext" (ENOENT kept)
 //	                              premise_no_io_err_test.go; user,
 //	                              2026-11-19)
+//	                              + errnos of a failing unlink/rmdir PathErrno (ENOENT, EISDIR, ENOTEMPTY;
+//	                              (assumed, measured as support:     NoIoErr.lean: noIoErr_good)
+//	                              TestNoIoErrPathErrno; user,
+//	                              2026-11-19)
 package semantics

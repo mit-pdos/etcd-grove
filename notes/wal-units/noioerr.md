@@ -368,3 +368,36 @@ a file. **Stopped for the decision** (the coordinator's instruction).
   `noIoErr_keeps`, the excluded/allowed lists, not covering `LstatDir`/`PathKind`/`FdKind`. Nit: add "no LSM
   denies a lock" (`security_file_lock`) to C's environment.
 - No proof uses (a) yet.
+
+## Session 5 (2026-11-19 u, branch `wal-link`): item 3 narrowed (`PathErrno`); F1's approved fix blocked by bbolt; F2 a known gap
+
+**Decided by etcd-grove-03** (`questions.md`): (a)'s form accepted (`LstatDir`/`PathKind`/`FdKind` left out;
+`ENOENT` a success of a directory read); **F2 recorded as a known model gap, no fix now** (below); the nit
+"no security module denies a lock" added to configuration C's environment (`Impl.lean`, `env_config.go`).
+
+**F2, a known model gap** (not fixed, 2026-11-19): `NoIoErr` with `Unlink` covered excludes the runs where
+Go's `os.RemoveAll` of a directory of more than 1024 entries meets a concurrent creation (its chunked passes
+remove the new entry while an original stays, which the model reproduces only by an `Unlink` failing with
+`ENOENT` on an existing entry). Every `RemoveAll` of the WAL runs with no concurrent creation in the directory
+it removes, so no WAL theorem is affected. A fix models the 1024-name chunking (a directory read that stops
+before its end) instead of spurious `ENOENT`. Recorded in `notes/audit.md`.
+
+**Item 3, narrowed (approved by the user 2026-11-19), done:** `PathErrno` (`Premises.lean`): a covered
+`unlink`/`rmdir` with no outcome of errno 0 fails with `ENOENT` (no entry, parent a directory), `EISDIR`
+(`unlink` of a directory) or `ENOTEMPTY` (`rmdir` of a directory with an entry); `NoIoErr` asks it only when
+the semantics has no success (the cases are disjoint from the successes, but the model's `#` is not known
+injective on `w64`, so the guard keeps `noIoErr_keeps` provable). `noIoErr_good` (`NoIoErr.lean`) gives the
+kept step; `noIoErr_pathErrno` (`NoIoErrSpecs.lean`) is what specs use. Go example: `premise_no_io_err.go`
+(`NoIoErrPathErrno`), measurement `TestNoIoErrPathErrno` (passes here, not yet on C).
+
+**F1's approved fix (Close stuck while the description holds a lock and a live mapping exists) breaks bbolt
+non-mechanically: STOPPED, not implemented.** `DB.close` (`Proof/go_etcd_io/bbolt/Open/Close.lean`) runs
+munmap, funlock, close whatever each returns. The model lets `Munmap` fail keeping the mapping
+(`wp_osMunmap`'s second failure disjunct; Linux: a `do_vmi_munmap` allocation failure aborts with no change)
+and `flock(LOCK_UN)` fail keeping the lock (`LockStep`'s unlock failure; Linux: `flock_make_lock`'s allocation,
+`ENOMEM`). In that run the description holds a lock and a mapping is live at `close`: stuck, so
+`DB.close.spec_owned` (any `d`, any errors) has no proof. The same holds for any `d` with an OFD lock (bbolt's
+spec takes any `d`). The WAL closes locked files (`LockedFile.Close`) with no evidence about mappings (it holds
+no `osMeta` of them there), so the stuck form also needs a resource in `wp_osClose`'s precondition ("no
+mapping of the inode": the whole `osMeta` with no maps, or no lock) threaded through ~25 WAL/os proofs.
+Options in the session-u report.

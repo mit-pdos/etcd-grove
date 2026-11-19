@@ -100,3 +100,45 @@ func TestNoIoErrReaddir(t *testing.T) {
 		}
 	}
 }
+
+// The errnos of PathErrno (premise_no_io_err.go), every round: unlink and rmdir of an absent name in
+// an existing directory give ENOENT, unlink of a directory EISDIR, rmdir of a non-empty directory
+// ENOTEMPTY, each with no effect; and os.RemoveAll of an absent path returns nil, of a non-empty
+// directory removes it (wal.Create's renameWAL and a crash's leftover dir.tmp).
+func TestNoIoErrPathErrno(t *testing.T) {
+	base := extDir(t)
+	dir := base + "/wal.tmp"
+	for i := 0; i < noIoErrRounds/10; i++ {
+		absent := base + "/wal"
+		if err := syscall.Unlink(absent); err != syscall.ENOENT {
+			t.Fatalf("round %d: unlink of an absent name: %v", i, err)
+		}
+		if err := syscall.Rmdir(absent); err != syscall.ENOENT {
+			t.Fatalf("round %d: rmdir of an absent name: %v", i, err)
+		}
+		if err := os.RemoveAll(absent); err != nil {
+			t.Fatalf("round %d: RemoveAll of an absent path: %v", i, err)
+		}
+		if err := os.Mkdir(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(dir+"/0.wal", nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := syscall.Unlink(dir); err != syscall.EISDIR {
+			t.Fatalf("round %d: unlink of a directory: %v", i, err)
+		}
+		if err := syscall.Rmdir(dir); err != syscall.ENOTEMPTY {
+			t.Fatalf("round %d: rmdir of a non-empty directory: %v", i, err)
+		}
+		if _, err := os.Stat(dir + "/0.wal"); err != nil {
+			t.Fatalf("round %d: the failed calls changed the tree: %v", i, err)
+		}
+		if err := os.RemoveAll(dir); err != nil {
+			t.Fatalf("round %d: RemoveAll of a non-empty directory: %v", i, err)
+		}
+		if _, err := os.Stat(dir); !os.IsNotExist(err) {
+			t.Fatalf("round %d: RemoveAll left the directory: %v", i, err)
+		}
+	}
+}

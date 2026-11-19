@@ -78,6 +78,28 @@ import (
 // and the Readdirnames of a small directory, succeed every time over many
 // rounds.
 //
+// The errnos of a failing unlink/rmdir (2026-11-19, the user's approval of item 3 of
+// notes/wal-units/noioerr.md, narrowed to the cases wal.Create needs): an unlink
+// or rmdir of a covered path that cannot succeed fails with the errno Linux
+// gives, not any errno: ENOENT for a path with no entry whose parent is a
+// directory (unlink(2), rmdir(2): the last component's lookup finds nothing),
+// EISDIR for an unlink of a directory (may_delete, fs/namei.c), ENOTEMPTY for
+// an rmdir of a directory with an entry (ext4_rmdir, fs/ext4/namei.c; POSIX
+// also allows EEXIST, ext4 never gives it). Lean: PathErrno (Premises.lean),
+// asked by NoIoErr only where the semantics has no outcome with errno 0;
+// NoIoErr.lean: noIoErr_good keeps a step; NoIoErrSpecs.lean: noIoErr_pathErrno.
+// Still allowed: every other failing case (an rmdir of a file, ENOTDIR; a
+// missing parent; ...). Why: os.RemoveAll returns nil for an absent path only
+// when rmdir answers ENOENT (or ENOTDIR after unlink's ENOENT), and walks a
+// directory only after unlink's EISDIR (or EPERM/EACCES); wal.Create's
+// renameWAL starts with RemoveAll(w.dir) of a directory that does not exist at
+// a first start, and RemoveAll of a crash's leftover dir.tmp meets EISDIR and
+// ENOTEMPTY: with any errno allowed, Create's error (on which etcd panics) was
+// not excluded. Evidence: measured on C as support (premise_no_io_err_test.go,
+// TestNoIoErrPathErrno); the further assumptions are the premise's (the
+// process may write the covered directories: a permission check comes first,
+// EACCES/EPERM; no memory pressure, no I/O error on the directory's blocks).
+//
 // Why the locks and the reads (2026-11-19): wal.Create locks its first segment
 // (fileutil.LockFile: F_OFD_SETLKW) and reads its fresh temporary directory
 // (fileutil.CreateDirAll: ReadDir), WAL.cut locks its new tail; with those
@@ -121,4 +143,28 @@ func NoIoErrLocksReads(dir string) {
 	} // still allowed under the premise: EAGAIN (a conflict, no success)
 	g.Close()
 	f.Close()
+}
+
+// NoIoErrPathErrno: the errnos of unlink and rmdir that cannot succeed, under
+// the premise (dir's paths covered).
+func NoIoErrPathErrno(dir string) {
+	if err := os.RemoveAll(dir + "/wal"); err != nil {
+		// the semantics: reachable (rmdir of the absent path may fail with any
+		// errno, and RemoveAll returns nil only on ENOENT)
+		// under the premise: excluded (PathErrno: ENOENT)
+		panic(err)
+	}
+	os.MkdirAll(dir+"/wal.tmp", 0o700)
+	os.WriteFile(dir+"/wal.tmp/0.wal", nil, 0o600)
+	if err := os.RemoveAll(dir + "/wal.tmp"); err != nil {
+		// the semantics: reachable (unlink of the directory, rmdir of it while
+		// non-empty: any errno)
+		// under the premise: excluded (PathErrno: EISDIR, then ENOTEMPTY; the
+		// entries go, the directory then goes)
+		panic(err)
+	}
+	if err := syscall.Rmdir(dir + "/wal.tmp"); err != syscall.ENOENT {
+		// under the premise: excluded (the path is gone)
+		panic(err)
+	}
 }

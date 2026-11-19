@@ -10,7 +10,8 @@ which the theorem states, and which none of the semantics' own rules make.
 `NoIoErr` is a premise on steps: no I/O error on the files a set covers, an environment assumption
 (approved by the user 2026-11-15, `notes/decisions.md`, "fsExt: no I/O errors on chosen files"; the
 lock requests and directory reads added with the user's approval of 2026-11-19, option (a) of
-`notes/wal-units/noioerr.md`, "Blocked").
+`notes/wal-units/noioerr.md`, "Blocked"; the errnos of the `unlink`s and `rmdir`s that cannot succeed,
+`PathErrno`, with the user's approval of 2026-11-19, item 3 narrowed).
 -/
 module
 
@@ -112,6 +113,31 @@ def ErrnoZero (o : String) (e' : Expr) : Prop :=
       (e = 0 ∨ e = ENOENT)
   | _ => e' = Val (#(0 : w64))
 
+/-- `EISDIR`: Linux's errno for an `unlink(2)` of a directory (`may_delete`, `fs/namei.c`). -/
+def EISDIR : w64 := 21
+
+/-- `ENOTEMPTY`: ext4's errno for an `rmdir(2)` of a directory with an entry (`ext4_rmdir`,
+`fs/ext4/namei.c`). -/
+def ENOTEMPTY : w64 := 39
+
+/-- **The errno Linux gives an `unlink`/`rmdir` that cannot succeed**, in the cases a client needs
+(2026-11-19, the user's approval of item 3 of `notes/wal-units/noioerr.md`, narrowed): of the call
+`o` on the path in `v`, from `st`: `ENOENT` when the path has no entry and its parent is a directory
+(the last component's lookup finds nothing: `unlink(2)`, `rmdir(2)`); `EISDIR` for an `unlink` of a
+directory; `ENOTEMPTY` for an `rmdir` of a directory with an entry. Nothing for any other case or
+call. Each case is one where the semantics has no success (`Impl.lean`: `Unlink` succeeds only on a
+file, `Rmdir` only on an empty directory, both only where the entry exists). -/
+def PathErrno (o : String) (v : val) (st : OsState) (e' : Expr) : Prop :=
+  match o with
+  | "Unlink" => ∃ (k : Nat) (p : GoString), v = PairV (osTokV k) (#p) ∧
+      ((st.lookup p = none ∧ st.ParentDir p) → e' = Val (#ENOENT)) ∧
+      ((∃ j, st.lookup p = some (.dir j)) → e' = Val (#EISDIR))
+  | "Rmdir" => ∃ (k : Nat) (p : GoString), v = PairV (osTokV k) (#p) ∧
+      ((st.lookup p = none ∧ st.ParentDir p) → e' = Val (#ENOENT)) ∧
+      ((∃ j b n, st.lookup p = some (.dir j) ∧ st.tree.entry j b = some n) →
+        e' = Val (#ENOTEMPTY))
+  | _ => True
+
 end noIoErr
 
 /-- **No I/O error on the files `S` covers**, a premise on steps: a step of a call on a file or path
@@ -133,7 +159,10 @@ What it does **not** exclude, because the semantics then has no success: `EFBIG`
 in that state (`ENOENT`, `EEXIST`, `ENOTEMPTY`, `EISDIR`, ...), and the failure of a lock request
 that conflicts with a lock another fd of the process holds (`EAGAIN`, ...); `ENOENT` from a read of
 a directory (the semantics gives it only for a removed one); and nothing about a call `IoCovers`
-does not name (`mmap`, `lstat`, ...).
+does not name (`mmap`, `lstat`, ...). But the errno of a failing `unlink`/`rmdir` of a covered path
+that cannot succeed is Linux's (since 2026-11-19, `PathErrno`, asked only where the semantics has no outcome with errno 0): `ENOENT` for an absent entry in an
+existing directory, `EISDIR` for an `unlink` of a directory, `ENOTEMPTY` for an `rmdir` of a
+non-empty directory (no I/O error, no lack of memory, no signal changes it into another).
 
 An environment assumption, not a property of Linux (evidence: assumed): the device returns no I/O
 error, the filesystem has room for these files, the kernel has memory for their locks and reads, and
@@ -146,7 +175,9 @@ WAL error (`Create`, `SaveSnapshot`, `ReleaseLockTo`, `Close`, ...): approved by
 without a step: whenever the semantics has a step, it has one the premise allows (`noIoErr_keeps`,
 `GooseLang/Ext/Fs/NoIoErr.lean`). -/
 def NoIoErr (S : IoSet) : StepPrem := fun o v st e' _ =>
-  IoCovers S o v st → (∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e'') → ErrnoZero o e'
+  IoCovers S o v st →
+    let succ := ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e''
+    (succ → ErrnoZero o e') ∧ (¬ succ → PathErrno o v st e')
 
 end Fs
 end Perennial
