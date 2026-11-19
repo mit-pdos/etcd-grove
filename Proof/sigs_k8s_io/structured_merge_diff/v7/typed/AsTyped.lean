@@ -1,10 +1,11 @@
 /-
 `typed.AsTyped`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Lean-first (2026-11-19).
+(notes/smd-plan.md). Draft (2026-11-19).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.AsTyped
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Validate_ptr
 
 @[expose] public section
 
@@ -26,7 +27,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
-theorem typed.AsTyped.wp_proof : typed.AsTyped.spec (GF := GF) := by
+theorem typed.AsTyped.wp_proof
+    (hTypedValue_Validate_ptr : typed.TypedValue.Validate_ptr.spec (GF := GF)) :
+    typed.AsTyped.spec (GF := GF) := by
   sorry
 
 end proof

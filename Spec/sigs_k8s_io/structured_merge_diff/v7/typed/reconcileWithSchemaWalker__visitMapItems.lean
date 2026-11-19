@@ -1,0 +1,46 @@
+/-
+`reconcileWithSchemaWalker.visitMapItems(t, element)` (internal): at a granular map node with
+child set `element` (`F`), each child path element (`Children`, then `Members`) visited in a child
+walker when the map type has a type for it (`typeRefAtPath`) with its own child set and `isAtomic` (a member without children):
+adds the atomic nodes with children below the node (`reconBelow`).
+
+Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
+-/
+module
+
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Walkers
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace smd
+
+open Iris Iris.BI
+open sigs_k8s_io.structured_merge_diff.v7
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : typed.Assumptions]
+
+/-- See the file header. -/
+abbrev typed.reconcileWithSchemaWalker.visitMapItems.spec : Prop :=
+  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (R A : Option PathSet) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (ep : Loc)
+    (F : PathSet),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A ∗ isMapRep tp fs e rel ∗ isSet ep F ∗
+      ⌜S.find st.t.name = some (.map fs e rel) ∧ rel ≠ .atomic⌝ }}
+    (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"visitMapItems")) (Val #tp)) (Val #ep))
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, rwOwn w sc S st (some F) R' A' ∗
+      ⌜optU R R' = optU R (reconBelow S st.t st.path F) ∧ optU A A' = optU A (reconBelow S st.t st.path F)⌝ }}
+
+end spec
+
+end smd
+end EtcdGrove
+end Perennial
