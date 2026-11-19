@@ -2,7 +2,8 @@
 **The lease services' metadata-indexed specs** (auth-lease S4; moved out of the linking modules
 `LeaseReadServed.lean` and `LeaseGrantServed.lean`, names and statements unchanged, so that specs and
 definitions can name them without importing a linking module: CLAUDE.md, "Import tiers"):
-`etcdLeaseTTLSpecMd`, `etcdLeaseLeasesSpecMd`, `etcdLeaseGrantSpecOn`, `etcdLeaseRevokeSpecOn`.
+`etcdLeaseTTLSpecMd`, `etcdLeaseLeasesSpecMd`, `etcdLeaseGrantSpecOn`, `etcdLeaseRevokeSpecOn`; and the
+permits' unfoldings `kvOpAuOn_leaseGrant`/`kvOpAuOn_leaseRevoke` (out of `ResultsOn.lean`).
 -/
 module
 
@@ -15,6 +16,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseKeepA
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseReqOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
 
@@ -119,6 +121,35 @@ def etcdLeaseRevokeSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
         Φ m)
 
 end specsOn
+
+section permits
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- A lease grant's update at a token is the grant's permit's (`opGrantT`'s lease row, Freeze C1). -/
+theorem kvOpAuOn_leaseGrant (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (id ttl : w64) (Q : KVState → IProp GF) :
+    v3rpc.kvOpAuOn (GF := GF) s E ρ tok (.leaseGrant id ttl) Q ⊢
+      ∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
+        kvAu1G ρ.kv (kvOpStep (.leaseGrant id ttl))
+          (writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) (irrLeaseGrant id ttl) L₀) Q := by
+  unfold v3rpc.kvOpAuOn v3rpc.opGrantT; exact .rfl
+
+/-- A lease revocation's update at a token is the revocation's permit's. -/
+theorem kvOpAuOn_leaseRevoke (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (id : w64) (Q : KVState → IProp GF) :
+    v3rpc.kvOpAuOn (GF := GF) s E ρ tok (.leaseRevoke id) Q ⊢
+      ∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
+        kvAu1G ρ.kv (kvOpStep (.leaseRevoke id))
+          (writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) (irrLeaseRevoke id) L₀) Q := by
+  unfold v3rpc.kvOpAuOn v3rpc.opGrantT; exact .rfl
+
+end permits
 
 end client
 end EtcdGrove

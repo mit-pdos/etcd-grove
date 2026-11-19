@@ -35,10 +35,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A barrier's arguments at one member** (`barrier.spec`'s, but the logger): its client address,
+its client's watch environment (`barrier.spec`'s `V`, which the barrier's client is made with),
 server, environment and request names, ids, auth names, the set-up's frozen history, requested log and
 committed log, its auth state's revision, and the caller's read update. -/
 structure BArgs (GF : BundledGFunctors) where
   addr : GoString
+  V : client.WEnv GF
   s : Loc
   E : apply.AEnv GF
   ρ : ReqNames

@@ -21,6 +21,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.LeaseSpecs
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.KVServiceOn
 public import Proof.go_etcd_io.etcd.client.v3.LeaseGrantServed
@@ -464,24 +465,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
-/-- A lease grant's update at a token is the grant's permit's (`opGrantT`'s lease row, Freeze C1). -/
-theorem kvOpAuOn_leaseGrant (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
-    (id ttl : w64) (Q : KVState → IProp GF) :
-    v3rpc.kvOpAuOn (GF := GF) s E ρ tok (.leaseGrant id ttl) Q ⊢
-      ∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
-        kvAu1G ρ.kv (kvOpStep (.leaseGrant id ttl))
-          (writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) (irrLeaseGrant id ttl) L₀) Q := by
-  unfold v3rpc.kvOpAuOn v3rpc.opGrantT; exact .rfl
-
-/-- A lease revocation's update at a token is the revocation's permit's. -/
-theorem kvOpAuOn_leaseRevoke (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
-    (id : w64) (Q : KVState → IProp GF) :
-    v3rpc.kvOpAuOn (GF := GF) s E ρ tok (.leaseRevoke id) Q ⊢
-      ∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
-        kvAu1G ρ.kv (kvOpStep (.leaseRevoke id))
-          (writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) (irrLeaseRevoke id) L₀) Q := by
-  unfold v3rpc.kvOpAuOn v3rpc.opGrantT; exact .rfl
 
 /-- **`l.Grant(ctx, ttl)` on the client's `*lessor` over `conn` to a member with auth on** (auth-lease S4,
 Freeze §3.1, F3; `client_put_on`'s shape): etcd's `LeaseGrant` with auth on registered at `addr`, the

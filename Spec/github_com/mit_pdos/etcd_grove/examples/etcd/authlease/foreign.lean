@@ -3,7 +3,8 @@
 (`u` against root's lease, `v` against u's) is refused `Revoke(id)`, `TimeToLive(id)` with keys and
 `Leases`, `id` holding a key `who` may not touch; each success panics. Lean-first (no Rocq counterpart).
 
-**The triple:** a client `cli` of the member at `addr` whose attempts carry a token of `who`'s, the
+**The triple:** with auth on (the revocation's result is the caller's only then), a client `cli` of
+the member at `addr` whose attempts carry a token of `who`'s, the
 member's Lease service with auth on, lower bounds `n` of its published auth index and `m` of its
 lessor, the caller's resource `R` (kept), the caller's update of the revocation of `id` (at `who`'s
 attempts) whose result `Qr` is impossible with `R`, and the caller's refutations, with `R`, of a
@@ -37,7 +38,7 @@ abbrev foreign.spec : Prop :=
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cli : Loc) (who addr : GoString) (id : w64) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γa : auth.AuthNames) (n m : Nat) (Qr : KVState → IProp GF) (R : IProp GF),
-  who = go!"u" ∨ who = go!"v" →
+  who = go!"u" ∨ who = go!"v" → E.authOn = true →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗
       clientTokAt cli [addr] (akTokP γa who) ∗ etcdstart.etcdLeaseServedOn addr s E ρ ∗
