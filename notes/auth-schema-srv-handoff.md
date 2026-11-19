@@ -10,8 +10,7 @@
   bbolt=/shared/tmp/auth-schema-srv/bbolt-fork`. Done: aba2aa4634 + next commit: `Bucket.Put.spec` in place, PutWp's
   branches (fresh lean-check clean), backend Put specs drop the premise (`unsafePut`'s post: entry within the bound),
   8 direct callers, issue/nonissue files.
-- Pending after the push: `examples/go.mod` bbolt replace → `github.com/upamanyus/bbolt v0.0.0-20261119194012-3f8520bd7298`
-  (+ go.sum; `etc/goose.py --check` fails until then).
+- Pushed by the user (3f8520b); examples/go.mod bumped (goose.py --check --project bbolt passes without --src).
 - Next: build 4 (`/shared/tmp/auth-schema-srv/build-full4.log`) green → bbolt + backend interfaces, tcb `--check
   --update`, collections, tier-check, gen-link all modes, checkpoint B; C: `stmtdiff2.py lean` (only hD22).
 - Pitfalls: (46) duplicate `Countable Qp` (`attribute [-instance] Perennial.Fs.Qp.countable`); (47) in PutWp, facts
