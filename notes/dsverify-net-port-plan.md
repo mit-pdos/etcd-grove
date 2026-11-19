@@ -174,6 +174,17 @@ From `net-tcp-dsverify-final.md` ("What one admits and the other excludes") and 
 Each with its `Tests.lean` example, a conformance run, and a soundness review (the `axiom` skill)
 of the changed rows.
 
+**Phase 2's state (2026-11-19, branch `net-gaps`, v3.3, not landed: the trusted semantics waits for
+the user's review; `notes/decisions.md`, "The net extension v3.3"):** done: 1 `"tcp4"` (D23),
+2 socket options (D24: `SetKeepAlive`, `SetKeepAlivePeriod`, `SetNoDelay`, `SetLinger`,
+`SetReadBuffer`, `SetWriteBuffer`, specs and proofs `Net/{Spec,Proof}/net/TCPConn__Set*.lean`),
+3 Go's write lock (D25; `Conn.Write.spec` unchanged, the lock inside its proof; the contiguity fact
+for clients left to phase 4), 5 in part (`IP.To4` translated; `SplitHostPort`, `ParseIP`,
+`IP.String`, `IP.Equal` names only, why in `notes/net-tcp.md`, "Address helpers"). Not done: 4
+(not needed by the kits, phase 0), 6 (the kits' ports, phase 6). Evidence:
+`examples/net/semantics/{tcp4,sockopt,writelock}_test.go`; conformance: the checker transcribes the lock, a probe mode
+`concwrite` with a certified sample; review: `notes/axiom-review/tcp-semantics.md`, v3.3.
+
 ### Phase 3: the export
 
 `etc/export-net.sh` and its leak check (Q3); the part's API list `etc/api/net.txt` and generated

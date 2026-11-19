@@ -40786,3 +40786,63 @@ left are `etc/tier-baseline.txt`, which only shrinks.
   namespace (`Perennial.Net.netExt`, `Perennial.Net.NetStep`, `Perennial.Net.netCtx`). No module here
   imports Perennial's (it is reached only from Perennial's root module and `NetPrelude`); a module
   that imported both and opened `Perennial.Net` would have to qualify them.
+
+## The net extension v3.3: `"tcp4"`, socket options, Go's write lock (2026-11-19 · pending the user's review · branch `net-gaps`)
+
+Phase 2 of `notes/dsverify-net-port-plan.md`: the gaps of the net extension the dsverify kits hit.
+Trusted semantics changed, so not landed until the user reviews it. Each decision has its Go example
+in `examples/net/semantics/{tcp4,sockopt,writelock}_test.go` (indexed in `doc.go`), its D-number in `Impl.lean`'s header
+and operations table, `Tests.lean` examples, and its transcription in the conformance checker.
+
+- **D23, `"tcp4"`.** `Listen`, `Dial` and `DialTimeout` accept `"tcp4"` as `"tcp"` (`model.netOk`):
+  the extension sees only the address, and the plan's addresses are IPv4 (`"[::]:p"` with `"tcp4"`
+  listens on every IPv4 address, as D21 has it). Measured (`TestTcp4`): every `*OpError` carries the
+  network string, the call's for `Dial`/`Listen`, the connection's (its `Dial`'s, or its listener's
+  for an accepted one: `netFD.accept`'s `newFD(..., fd.net)`) for the methods. So the network is
+  state of the Go heap: a field `net` of the trusted `conn` and `TCPListener` layouts
+  (`FieldAssumptions` gains its get/set facts), passed to `model.opError`. The specs: `Dial.spec`,
+  `Listen.spec`, `DialTimeout.spec` take the network `nw` and `tcpNet nw` first; `opErr`'s `Net` is
+  any `tcpNet` network (the existential keeps `connAt`, `lisAt`, `resErr` and their clients'
+  statements as they were; no client reads `Net`).
+- **D24, socket options.** `SetKeepAlive`, `SetKeepAlivePeriod`, `SetNoDelay`, `SetLinger`,
+  `SetReadBuffer`, `SetWriteBuffer` (the last two `conn`'s, promoted): one extension operation,
+  `"SetSockopt"` of an option kind and a value, with no state (`SockOptOutcome`): `closed` on a closed
+  end, success otherwise, but `TCP_KEEPIDLE` of a count of seconds outside 1..32767 (`sys`, Linux's
+  `EINVAL`), and no system call (success, even closed) for a negative keepalive period. Go's
+  arithmetic of the period (rounding up to seconds, wrapping, the `int32` of `SetsockoptInt`) is
+  transcribed in `keepIdleValid`, in the trusted `Impl.lean`, rather than computed in the model's
+  GooseLang (a proof of int64 division in GooseLang for one premise); the review checks it. Why no
+  state: what the options change is not observable beyond what the relations allow (keepalive's
+  failure is a cut; buffer sizes decide only when a step waits and how much it counts; a zero
+  linger's reset is a cut of the peer's direction, as `TestResetLingerZero` already shows).
+- **D25, the write lock.** Go's `(*poll.FD).Write` holds the fd's write lock over its whole loop, so
+  two concurrent `Write`s of one end never interleave their bytes (`TestWriteLock`: four 4 MiB
+  `Write`s, each contiguous). v3.1's loop of steps had made the interleaving possible in the model,
+  which a proof keeping its writer protocol in an invariant could not rule out (phase 0's finding).
+  The lock is observable (the order of the bytes), so it is state: `NetConn.dLock`/`aLock`. A
+  `Write` step carries whether it is its call's first (`nn = 0` in `model.writeLoop`); the first
+  takes the lock, which must be free, the last (`writeLast`: a failure, or every byte written)
+  releases it; a later step without the lock is an invalid use (panic, never made by the model).
+  While another `Write` holds the lock, a first step has no outcome: the one exception to D22's
+  "every state has an outcome besides the stutter" (`Tests.lean`'s `isNetStep_total` now excludes
+  `WriteWaits`); it is faithful, since Go's waiter waits too, and the holder's steps always have
+  outcomes. `Close` does not take the lock (`increfAndClose`): the holder's next step fails `closed`
+  and releases it, and the waiter then fails `closed`, as Go's (`(0, ErrClosed)`, measured).
+  Ghost side: the network holds a token per end while its lock is free (`lockCtx`); the token,
+  `netWLock c s`, goes to the caller of a first step that does not end the loop and back at the
+  last (`wp_net_Write`). `Conn.Write.spec` is unchanged: the per-step accessor still sees only the
+  end and the direction, and the lock is the proof's business (`Net/Proof/net/Conn__Write.lean`).
+  Exposing "my bytes are contiguous" to clients needs the token in the client's hands between its
+  steps (a change of the accessor every client would have to follow): left to phase 4, where the
+  kit-facing specs are stated.
+- **Address helpers** (phase 2.5): `IP.To4` (and `isZeros`) translated, pure Go; `SplitHostPort`
+  calls `internal/bytealg.IndexByteString` (assembly on amd64: a trusted model would be needed),
+  `IP.Equal` calls `bytealg.Equal` (Go, but `internal/bytealg` belongs to the etcd project's
+  translation, which translates only `LastIndexByteString`; adding it rebuilds that project's
+  importers), `ParseIP` and `IP.String` go through `net/netip`, whose `Addr` holds a
+  `unique.Handle` made by `unique.Make` at netip's initialization (runtime internals): names only.
+- **The review's F1** (`notes/axiom-review/tcp-semantics.md`, v3.3): Go panics past 2^20 calls
+  waiting on one socket's lock (`fdMutex`), where the model waits. Kept as a stated deployment
+  assumption (D13, prose: "fewer than 2^20 concurrent calls on one socket"), as the closed world is,
+  rather than a per-end waiter count with a `Panic` outcome: no program here comes near it, and a
+  count would be state that only that panic observes. Revisit with the bounds plan's thread tokens.

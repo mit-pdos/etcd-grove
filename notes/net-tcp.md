@@ -12,7 +12,7 @@ grpc-go), each verified end to end with a distributed adequacy theorem.
 
 | What | Where |
 |---|---|
-| the semantics (trusted) | `GooseLang/Ext/Net/Impl.lean`: its header is the semantics in prose, decisions D1–D13 |
+| the semantics (trusted) | `GooseLang/Ext/Net/Impl.lean`: its header is the semantics in prose, decisions D1–D25 |
 | the measured evidence, one Go test per decision | `examples/net/semantics/` (`doc.go` indexes them) |
 | ghost state, its interpretation | `GooseLang/Ext/Net/Ghost.lean` |
 | the extension's WPs | `GooseLang/Ext/Net/Specs.lean` (one generic logically atomic rule, `wp_net_endOp`) |
@@ -136,6 +136,18 @@ checked by `decide`), and the target configuration (Linux 7.0 defaults, Go 1.27.
   return `EINVAL` as Go's do. The extension's and `net`'s specs and `wire` adapted (statements
   unchanged but `ReadRes.wait` gone from `Conn.Read.spec`); the seven examples' proofs are being
   redone over it.
+- **v3.3 (2026-11-19, branch `net-gaps`, pending the user's review)**: phase 2 of
+  `notes/dsverify-net-port-plan.md`, the gaps the dsverify kits hit (`notes/decisions.md`, "The net
+  extension v3.3"): the network `"tcp4"` (D23: as `"tcp"`, the network kept in the `TCPConn` and
+  `TCPListener` and put in their errors' `Net`); socket options (D24: `SetKeepAlive`,
+  `SetKeepAlivePeriod`, `SetNoDelay`, `SetLinger`, `SetReadBuffer`, `SetWriteBuffer`, one stateless
+  `"SetSockopt"`, `closed` on a closed end, `EINVAL` for a keepalive period over 32767 s); Go's write
+  lock (D25: a `Write`'s first step takes the end's lock, its last releases it, so two `Write`s of
+  one end never interleave; v3.1's loop had let them). Measured in `examples/net/semantics/{tcp4,sockopt,writelock}_test.go`
+  (`TestTcp4`, `TestSockOpts`, `TestWriteLock`); the conformance checker transcribes the lock (no more
+  "split" of overlapping `Write`s) and a probe mode `concwrite` adds a certified sample. `IP.To4`
+  translated; `SplitHostPort`, `ParseIP`, `IP.String`, `IP.Equal` stay names only (below,
+  "Address helpers"). Review: `notes/axiom-review/tcp-semantics.md`, v3.3.
 
 ## The resources and specs
 
@@ -229,3 +241,23 @@ verdicts certified in Lean:
 - acceptloop's `wp_Add_many` copies `examples/mvccrand/RunChecksJoin.lean`'s (the part cannot import
   the main tree's): a second copy of the `Add(n)` join spec Perennial lacks
   (`notes/perennial-changes.md`, "The `WaitGroup` join idiom's `Add(n)`").
+
+## Address helpers (v3.3, phase 2.5 of the dsverify port)
+
+go-vsr (`pkg/ipv4port`) calls `net.SplitHostPort`, `net.ParseIP`, `net.IP`'s `To4`, `String`,
+`Equal`: pure Go, to be translated rather than modeled. What goose and Perennial allow (Go 1.27.3):
+
+- `IP.To4` (and `isZeros`): length checks and slicing only. **Translated** (`Net/Code/net.toml`).
+- `SplitHostPort`: `internal/bytealg.IndexByteString`, an assembly function on amd64
+  (`indexbyte_native.go`, no Go body), which goose cannot translate: a trusted model of it would be
+  needed (a loop; small, but a new trusted definition). Names only.
+- `IP.Equal`: `bytealg.Equal` (Go: `string(a) == string(b)`) and the package variable
+  `v4InV6Prefix`. `internal/bytealg` is owned by the etcd project's translation (`etc/goose.py`, the
+  main tree's `Code/internal/bytealg.toml`, which translates only `LastIndexByteString`); adding
+  `Equal` there regenerates that project and rebuilds every importer of `Code.internal.bytealg`, and
+  the part `Net/` does not import it yet. Names only, for now.
+- `ParseIP`, `IP.String`: `net/netip` (`ParseAddr`, `AddrFrom4(...).String()`), whose `Addr` holds a
+  `unique.Handle[addrDetail]` made by `unique.Make` in netip's package initializer (`z4`, `z6noz`):
+  `unique` is runtime internals (weak pointers, a concurrent map), out of goose's reach. Names only;
+  a kit using them needs a trusted model of the few functions (or of netip's parse/format), decided
+  with phase 4.
