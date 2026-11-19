@@ -934,3 +934,13 @@ invariants (`*Pooled`, `ruleKeepRHSOk`, defined over `typed/Defs`, `value/Object
 to a module after `Walkers` (and every `typed` spec file would import it), and the initializer's
 proof would prove the five pools' `New` closures and `ruleKeepRHS`'s closure: function proofs,
 the Prove phase's. To do before the walkers' proofs.
+
+## Post-freeze spec changes (Prove phase)
+
+- `typed` `cmpO_below.law` false when the type does not resolve (`S.find t.name = none`: `cmpO` is
+  `Cmp.none`, the right-hand side inserts `p`; Go errors first): premise `(S.find t.name).isSome`
+  added (D2, proved as `cmpO_below_resolved`; callers: the compare walker's proofs only).
+- `typed` merge/compare walkers' `derefMap`/`derefList`: pre `⌜o = none ∨ o = some .null ∨ (mapOfO o /
+  listOfO o).isSome⌝` (their error branch calls the out-of-scope `errorf`; callers' sides conform).
+- `typed` walkers' `prepareDescent` post `⌜sp' ≠ null⌝`, `finishDescent` pre `⌜sp ≠ null⌝`
+  (`finishDescent` dereferences `*w.spareWalkers`); same for toFieldSet/validating walkers (D1).
