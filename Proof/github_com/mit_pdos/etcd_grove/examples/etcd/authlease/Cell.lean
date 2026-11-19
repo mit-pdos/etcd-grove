@@ -71,14 +71,14 @@ instance cellInv_persistent (γk : KVNames) (γc : CellNames) :
   unfold cellInv; infer_instance
 
 /-- **What the cell's readers know of a state**: the cell holds at it, with lower bounds of its
-ghost state and its revision. -/
-def cellSeen (γc : CellNames) (σ : KVState) : IProp GF :=
-  iprop(∃ (ids : List w64) (ps : List Nat) (gs : List w64) (d : Nat), ⌜CellOk σ ids ps gs d⌝ ∗
+ghost state and its revision, its attachments past the reader's `ps1`. -/
+def cellSeen (γc : CellNames) (ps1 : List Nat) (σ : KVState) : IProp GF :=
+  iprop(∃ (ids : List w64) (ps : List Nat) (gs : List w64) (d : Nat), ⌜CellOk σ ids ps gs d ∧ ps1 <+: ps⌝ ∗
     monoListLbOwn γc.ids ids ∗ monoListLbOwn γc.ps ps ∗ monoListLbOwn γc.gs gs ∗ monoNatLbOwn γc.d d ∗
     monoNatLbOwn γc.v σ.rev)
 
-instance cellSeen_persistent (γc : CellNames) (σ : KVState) :
-    Persistent (cellSeen (GF := GF) γc σ) := by
+instance cellSeen_persistent (γc : CellNames) (ps1 : List Nat) (σ : KVState) :
+    Persistent (cellSeen (GF := GF) γc ps1 σ) := by
   unfold cellSeen; infer_instance
 
 /-- The cell's namespace is inside the updates' outer mask. -/
@@ -173,10 +173,10 @@ theorem cell_writeAu (γk : KVNames) (γc : CellNames) (op : KVOp) (G Q : KVStat
 
 /-- **A read under the cell** (persistent): it fires at a state the cell holds, and tells the reader
 so (`cellSeen`). -/
-theorem cell_readAu (γk : KVNames) (γc : CellNames) :
-    cellInv (GF := GF) γk γc ⊢ kvReadAu γk (cellSeen γc) := by
+theorem cell_readAu (γk : KVNames) (γc : CellNames) (ps1 : List Nat) :
+    cellInv (GF := GF) γk γc ∗ monoListLbOwn γc.ps ps1 ⊢ kvReadAu γk (cellSeen γc ps1) := by
   have Hm := cellN_mask
-  iintro #Hinv
+  iintro ⟨#Hinv, #Hp1⟩
   unfold kvReadAu kvAu
   imodintro
   iauintro
@@ -202,6 +202,7 @@ theorem cell_readAu (γk : KVNames) (γc : CellNames) :
     icases Ha with ⟨Hp, Hg, Hd, Hdo⟩
     ihave #Hidl := monoListLbOwn_get γc.ids _ ids $$ Hids
     ihave #Hpl := monoListLbOwn_get γc.ps 1 ps $$ Hp
+    ihave %Hpp := mono_list_auth_lb_valid γc.ps 1 ps ps1 $$ Hp Hp1
     ihave #Hgl := monoListLbOwn_get γc.gs 1 gs $$ Hg
     ihave #Hdl := monoNatLbOwn_get γc.d 1 d $$ Hd
     ihave #Hvl := monoNatLbOwn_get γc.v 1 σ.rev $$ Hv
@@ -215,7 +216,7 @@ theorem cell_readAu (γk : KVNames) (γc : CellNames) :
     iunfold cellSeen
     iexists ids, ps, gs, d
     iframe Hidl Hpl Hgl Hdl Hvl
-    ipureintro; exact HS
+    ipureintro; exact ⟨HS, Hpp.2⟩
 
 /-- **`id` is one of the grant updates' ids** (persistent; what a grant's update tells the caller). -/
 def gsHas (γc : CellNames) (id : w64) (_σ : KVState) : IProp GF :=
