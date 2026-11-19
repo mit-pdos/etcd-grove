@@ -2,7 +2,8 @@
 **The fields of a merged snapshot message** (`snap.Message`; rafthttp stage 7b, D42, 2026-10-24,
 **D22's interface**: settled by the user for the D22 owner, 2026-10-25, D42). The snapshot sender
 (`snapshotSender.send`, `createSnapBody`) reads `merged.Message`, `merged.TotalSize` and
-`merged.ReadCloser`; `msgIs m ml rc` (`Proof/.../snap/Defs.lean`) is opaque, so this states what
+`merged.ReadCloser`; `msgIs m ml rc` (`Proof/.../snap/Defs.lean`; opaque until 2026-11-19, now defined with
+these facts, which `NewMessage`'s axiom states) is the package's, so this states what
 those reads give: the raft message `ml`, some size, not negative (`proto.Size(ml) + rcSize`, which does not overflow: `NewMessage`'s premise
 bounds `rcSize`, sweep repairs 1, S2; the
 snapshot's size; the sender adds it to a counter, whose `Add` panics on a negative), and the
@@ -11,7 +12,7 @@ around `rc` (`pioutil.NewExactReadCloser(rc, size)`), whose complete streams are
 `io.EOF` only with `rc`'s, every byte passed through; on a short or long stream an error) and
 whose `Close` (closing `rc`, the pipe's reader end: from any goroutine, concurrently with a `Read`,
 more than once) returns: true of every `msgIs` because only `NewMessage` makes it, of a reader whose
-`Close` returns (`io.rcCloseOk`, its premise; sweep repairs 1, S1, 2026-11-08). (Alternatively `msgIs` could be defined with these facts.)
+`Close` returns (`io.rcCloseOk`, its premise; sweep repairs 1, S1, 2026-11-08). (Proved from `msgIs`'s definition since 2026-11-19.)
 -/
 module
 
