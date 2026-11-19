@@ -174,6 +174,105 @@ theorem size_eq {β : Type} (M : GMap GoString β) (l : List (GoString × α)) (
 
 end alist
 
+/-! ## Lists -/
+
+theorem take_succ_of {α : Type} {l : List α} {k : Nat} {x : α} (h : l[k]? = some x) :
+    l.take (k + 1) = l.take k ++ [x] := by
+  rw [List.take_add_one, h]; rfl
+
+theorem not_mem_take_of_nodup {α : Type} {l : List α} {k : Nat} {x : α} (hnd : l.Nodup)
+    (h : l[k]? = some x) : x ∉ l.take k := by
+  intro hx
+  have hd : x ∈ l.drop k := by
+    rw [List.mem_iff_getElem?]; exact ⟨0, by simp [h]⟩
+  rw [← List.take_append_drop k l, List.nodup_append] at hnd
+  exact hnd.2.2 x hx x hd rfl
+
+/-! ## A set's children (`SetNodeMap`) -/
+
+theorem paths_ne : ∀ (t : Trie) (q : Path), Trie.paths t q → q ≠ []
+  | .mk ms cs, q, h => by
+    simp only [Trie.paths] at h
+    rcases h with ⟨e, rfl, -⟩ | h
+    · simp
+    · exact pathsC_ne cs q h
+where pathsC_ne : ∀ (cs : List (PE × Trie)) (q : Path), Trie.pathsC cs q → q ≠ []
+  | [], q, h => by simp [Trie.pathsC] at h
+  | (e, t) :: cs, q, h => by
+    simp only [Trie.pathsC] at h
+    rcases h with ⟨r, rfl, -⟩ | h
+    · simp
+    · exact pathsC_ne cs q h
+
+theorem pathsC_iff : ∀ (cs : List (PE × Trie)) (q : Path),
+    Trie.pathsC cs q ↔ ∃ e t r, (e, t) ∈ cs ∧ q = e :: r ∧ Trie.paths t r
+  | [], q => by simp [Trie.pathsC]
+  | (e, t) :: cs, q => by
+    simp only [Trie.pathsC, pathsC_iff cs q, List.mem_cons, Prod.mk.injEq]
+    constructor
+    · rintro (⟨r, rfl, h⟩ | ⟨e', t', r, h1, h2, h3⟩)
+      · exact ⟨e, t, r, Or.inl ⟨rfl, rfl⟩, rfl, h⟩
+      · exact ⟨e', t', r, Or.inr h1, h2, h3⟩
+    · rintro ⟨e', t', r, (⟨rfl, rfl⟩ | h1), h2, h3⟩
+      · exact Or.inl ⟨r, h2, h3⟩
+      · exact Or.inr ⟨e', t', r, h1, h2, h3⟩
+
+/-- Every child of a canonical children list has a path. -/
+theorem canonicalC_mem : ∀ (cs : List (PE × Trie)), Trie.CanonicalC cs →
+    ∀ e t, (e, t) ∈ cs → Trie.Canonical t ∧ ∃ q, Trie.paths t q
+  | [], _, _, _, h => by simp at h
+  | (e', t') :: cs, h, e, t, hm => by
+    simp only [Trie.CanonicalC] at h
+    rcases List.mem_cons.1 hm with he | hm
+    · cases he; exact ⟨h.1, h.2.1⟩
+    · exact canonicalC_mem cs h.2.2 e t hm
+
+theorem heads_iff (cs : List (PE × Trie)) (D : PathSet) (hc : Trie.CanonicalC cs)
+    (hD : ∀ q, Trie.pathsC cs q ↔ q ∈ D) (e : PE) :
+    e ∈ D.heads ↔ e ∈ cs.map Prod.fst := by
+  rw [PathSet_mem_heads_law_holds]
+  constructor
+  · rintro ⟨q, hq, h⟩
+    obtain ⟨e', t, r, hm, he, -⟩ := (pathsC_iff cs _).1 ((hD _).2 h)
+    cases he
+    exact List.mem_map.2 ⟨(e, t), hm, rfl⟩
+  · intro h
+    obtain ⟨⟨e', t⟩, hm, rfl⟩ := List.mem_map.1 h
+    obtain ⟨-, r, hr⟩ := canonicalC_mem cs hc e' t hm
+    exact ⟨r, paths_ne t r hr, (hD _).1 ((pathsC_iff cs _).2 ⟨e', t, r, hm, rfl, hr⟩)⟩
+
+theorem mem_unique {β : Type} : ∀ (cs : List (PE × β)), (cs.map Prod.fst).Nodup →
+    ∀ e t t', (e, t) ∈ cs → (e, t') ∈ cs → t = t'
+  | [], _, _, _, _, h, _ => by simp at h
+  | c :: cs, hnd, e, t, t', hm, hm' => by
+    simp only [List.map_cons, List.nodup_cons] at hnd
+    rcases List.mem_cons.1 hm with h1 | h1 <;> rcases List.mem_cons.1 hm' with h2 | h2
+    · rw [← h1] at h2; cases h2; rfl
+    · subst h1; exact absurd (List.mem_map.2 ⟨_, h2, rfl⟩) hnd.1
+    · subst h2; exact absurd (List.mem_map.2 ⟨_, h1, rfl⟩) hnd.1
+    · exact mem_unique cs hnd.2 e t t' h1 h2
+
+/-- Strictly sorted well-formed elements are distinct. -/
+theorem sorted_nodup (xs : List PE) (hw : ∀ x ∈ xs, x.wf = true) (hs : PE.Sorted xs) : xs.Nodup :=
+  List.Pairwise.imp_of_mem (fun {a b} ha _ hab e => by
+    subst e
+    have := (PE_compare_eq_zero_law_holds a a (hw a ha) (hw a ha)).2 rfl
+    unfold PE.lt at hab; omega) hs
+
+/-- A child's paths are the paths below its key (keys distinct). -/
+theorem under_iff (cs : List (PE × Trie)) (D : PathSet)
+    (hnd : (cs.map Prod.fst).Nodup) (hD : ∀ q, Trie.pathsC cs q ↔ q ∈ D)
+    (e : PE) (t : Trie) (hm : (e, t) ∈ cs) (r : Path) :
+    Trie.paths t r ↔ r ∈ D.under e := by
+  rw [PathSet_mem_under_law_holds, ← hD, pathsC_iff]
+  constructor
+  · intro h; exact ⟨paths_ne t r h, e, t, r, hm, rfl, h⟩
+  · rintro ⟨-, e', t', r', hm', he, h⟩
+    simp only [List.cons.injEq] at he
+    obtain ⟨rfl, rfl⟩ := he
+    have : t = t' := mem_unique cs hnd e t t' hm hm'
+    subst this; exact h
+
 /-! ## Managed fields' maps -/
 
 section rep
@@ -199,6 +298,56 @@ theorem isMFL_lookup (M : GMap GoString GoInterface) : ∀ (mf : MF) (k : GoStri
         simp only [MF.get, lookupKV, if_neg hk] at h; exact h
       iapply isMFL_lookup M rest k e (List.pairwise_cons.1 hs).2 h'
       iexact Hr
+
+theorem trieRepC_nil_eq : trieRepC (GF := GF) [] [] = iprop(True) := by simp only [trieRepC]
+
+theorem trieRepC_cons_eq (n : fieldpath.setNode) (ns : List fieldpath.setNode) (pe : PE) (t : Trie)
+    (cs : List (PE × Trie)) :
+    trieRepC (GF := GF) (n :: ns) ((pe, t) :: cs) =
+      iprop(isPE n.pathElement' pe ∗ trieRep n.set' t ∗ trieRepC ns cs) := by
+  simp only [trieRepC]
+
+theorem trieRepC_length : ∀ (ns : List fieldpath.setNode) (cs : List (PE × Trie)),
+    trieRepC (GF := GF) ns cs ⊢ ⌜ns.length = cs.length⌝
+  | [], [] => by iintro _; ipureintro; rfl
+  | [], _ :: _ => by unfold trieRepC; iintro %h; exact h.elim
+  | _ :: _, [] => by unfold trieRepC; iintro %h; exact h.elim
+  | n :: ns, (pe, t) :: cs => by
+    rw [trieRepC_cons_eq]; iintro ⟨-, -, H⟩
+    ihave %h := trieRepC_length ns cs $$ H
+    ipureintro; simp [h]
+
+theorem trieRepC_lookup : ∀ (ns : List fieldpath.setNode) (cs : List (PE × Trie)) (k : Nat)
+    (n : fieldpath.setNode), ns[k]? = some n →
+    trieRepC (GF := GF) ns cs ⊢ ∃ c, ⌜cs[k]? = some c⌝ ∗ isPE n.pathElement' c.1 ∗ trieRep n.set' c.2
+  | [], _, _, _, h => by simp at h
+  | _ :: _, [], _, _, _ => by unfold trieRepC; iintro %h; exact h.elim
+  | n' :: ns, (pe, t) :: cs, 0, n, h => by
+    simp at h; subst h
+    rw [trieRepC_cons_eq]; iintro ⟨#He, #Ht, -⟩
+    iexists (pe, t); isplit
+    · ipureintro; rfl
+    · isplit; iexact He; iexact Ht
+  | n' :: ns, (pe, t) :: cs, k + 1, n, h => by
+    simp at h
+    rw [trieRepC_cons_eq]; iintro ⟨-, -, H⟩
+    simp only [List.getElem?_cons_succ]
+    iapply trieRepC_lookup ns cs k n h; iexact H
+
+theorem trieRepC_wf : ∀ (ns : List fieldpath.setNode) (cs : List (PE × Trie)),
+    trieRepC (GF := GF) ns cs ⊢ ⌜∀ x ∈ cs.map Prod.fst, x.wf = true⌝
+  | [], [] => by iintro _; ipureintro; simp
+  | [], _ :: _ => by unfold trieRepC; iintro %h; exact h.elim
+  | _ :: _, [] => by unfold trieRepC; iintro %h; exact h.elim
+  | n :: ns, (pe, t) :: cs => by
+    rw [trieRepC_cons_eq]; iintro ⟨He, -, H⟩
+    ihave %h1 := fpL.isPE_wf' _ pe $$ He
+    ihave %h2 := trieRepC_wf ns cs $$ H
+    ipureintro; intro x hx
+    simp only [List.map_cons, List.mem_cons] at hx
+    rcases hx with rfl | hx
+    · exact h1
+    · exact h2 x hx
 
 theorem isVSet_mk (p : Loc) (e : VSet) :
     isSet (GF := GF) p e.set ⊢
