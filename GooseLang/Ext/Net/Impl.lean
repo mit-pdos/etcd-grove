@@ -137,13 +137,15 @@ so that a `Dial` with no listener cannot connect to itself, and no two plan stri
 (`TestAddressAliases`); `Listen` and `Dial` compare strings, as the kernel then does. *A closed
 world* (stated in prose only): no process outside the system's nodes listens at, or dials, the
 plan's addresses (an outside listener at a server's address would accept its clients:
-`examples/axiomcx/tcp-squat`). *Fewer than 2^20 concurrent calls on one socket* (stated in prose
-only; the v3.3 review's F1): Go's `fdMutex` (`internal/poll/fd_mutex.go`) panics ("too many
-concurrent operations on a single file or socket") when more than 1048575 calls wait for one fd's
-write lock (D25) or read lock, or hold references to it; the model lets them wait (a stutter), so
-every theorem assumes no process gets there. *The target configuration*: Linux 7.0 with its default sysctls,
+`examples/axiomcx/tcp-squat`). *The target configuration*: Linux 7.0 with its default sysctls,
 Go 1.27.3 (its listeners' default, MPTCP when available, behaves as TCP for every decision here),
 measured in `examples/net/semantics/`.
+
+**Known limitation** (the v3.3 review's F1; kept out of the semantics, the user's decision,
+2026-11-19): Go's `fdMutex` (`internal/poll/fd_mutex.go`) panics ("too many concurrent operations on
+a single file or socket") when more than 1048575 calls wait for one fd's write lock (D25) or read
+lock, or hold references to it; the model lets them wait (a stutter). A program with more than 2^20
+goroutines blocked on one socket can panic in Go where the model says it cannot.
 
 **What is not modeled** (D12). Memory exhaustion in the kernel (`ENOMEM`/`ENOBUFS`: a failure of a
 live connection that is not a cut, and the bare `Errno` of a failed `epoll_ctl` registration in

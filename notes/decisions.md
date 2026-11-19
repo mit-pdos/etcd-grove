@@ -40787,10 +40787,10 @@ left are `etc/tier-baseline.txt`, which only shrinks.
   imports Perennial's (it is reached only from Perennial's root module and `NetPrelude`); a module
   that imported both and opened `Perennial.Net` would have to qualify them.
 
-## The net extension v3.3: `"tcp4"`, socket options, Go's write lock (2026-11-19 · pending the user's review · branch `net-gaps`)
+## The net extension v3.3: `"tcp4"`, socket options, Go's write lock (2026-11-19 · approved by the user 2026-11-19 · branch `net-gaps`)
 
 Phase 2 of `notes/dsverify-net-port-plan.md`: the gaps of the net extension the dsverify kits hit.
-Trusted semantics changed, so not landed until the user reviews it. Each decision has its Go example
+Trusted semantics changed; reviewed and approved by the user 2026-11-19. Each decision has its Go example
 in `examples/net/semantics/{tcp4,sockopt,writelock}_test.go` (indexed in `doc.go`), its D-number in `Impl.lean`'s header
 and operations table, `Tests.lean` examples, and its transcription in the conformance checker.
 
@@ -40826,7 +40826,8 @@ and operations table, `Tests.lean` examples, and its transcription in the confor
   While another `Write` holds the lock, a first step has no outcome: the one exception to D22's
   "every state has an outcome besides the stutter" (`Tests.lean`'s `isNetStep_total` now excludes
   `WriteWaits`); it is faithful, since Go's waiter waits too, and the holder's steps always have
-  outcomes. `Close` does not take the lock (`increfAndClose`): the holder's next step fails `closed`
+  outcomes. **Approved by the user (2026-11-19):** "stuttering is ok for Write because it's sound to
+  do so". `Close` does not take the lock (`increfAndClose`): the holder's next step fails `closed`
   and releases it, and the waiter then fails `closed`, as Go's (`(0, ErrClosed)`, measured).
   Ghost side: the network holds a token per end while its lock is free (`lockCtx`); the token,
   `netWLock c s`, goes to the caller of a first step that does not end the loop and back at the
@@ -40843,10 +40844,11 @@ and operations table, `Tests.lean` examples, and its transcription in the confor
   importers), `ParseIP` and `IP.String` go through `net/netip`, whose `Addr` holds a
   `unique.Handle` made by `unique.Make` at netip's initialization (runtime internals): names only.
 - **The review's F1** (`notes/axiom-review/tcp-semantics.md`, v3.3): Go panics past 2^20 calls
-  waiting on one socket's lock (`fdMutex`), where the model waits. Kept as a stated deployment
-  assumption (D13, prose: "fewer than 2^20 concurrent calls on one socket"), as the closed world is,
-  rather than a per-end waiter count with a `Panic` outcome: no program here comes near it, and a
-  count would be state that only that panic observes. Revisit with the bounds plan's thread tokens.
+  waiting on one socket's lock (`fdMutex`), where the model waits. **The user's decision
+  (2026-11-19): a known limitation, not in the semantics** ("keep the semantics simple ... it would
+  require more than 2^20 goroutines waiting"): recorded in `Impl.lean`'s header, not as a D13
+  assumption and not as a per-end waiter count with a `Panic` outcome. Revisit with the bounds
+  plan's thread tokens.
 
 ## The kits' network vocabulary: a library of laws, not second specs (2026-11-19 · the user's rule, one canonical spec per function · branch `net-kitlib`, on `net-gaps`, pending the user's review)
 
@@ -40907,3 +40909,76 @@ bridges `safeDist_of_bootAt` and `safeDist_of_proto`; `echo_safeDist` shows it i
 **Not done.** The bufio-over-a-connection law (`Conn.Read.spec`'s count is `sint.nat`, from
 Perennial's `copy` spec; `io.readerStream` needs `sint.Z`: `notes/perennial-changes.md`,
 2026-11-19); `bufio.Writer` is not translated (cost in the plan, phase 4).
+
+## Shared Go runtime under a neutral module path (2026-11-19 · phase 5 item 1 of `notes/dsverify-net-port-plan.md` · branch `worktree-agent-acfe43339741d934f`)
+
+*Superseded in part (2026-11-19, "Trusted generated code: the generator is the trusted artifact" and
+"`models/`: the home of the trusted models", below): the module is now `models.lab` in `models/`
+(Lean `models_lab`), the generators live in it (`models/protobuf/`, `models/json/`), and pbgen's input
+names root types only.*
+
+- **Decision.** The Go code that the network library models share between etcd's proofs and the
+  dsverify kits (now the codecs' helpers `pbcodec`, `jsoncodec`; later the models' added files) is
+  one Go module, `netmodels.lab`, in `netmodels/` at the repository root, with its own `go.mod`.
+  Not a package of `github.com/mit-pdos/etcd-grove/examples` (the examples' module) and not under
+  `dsverify.lab/...`.
+- **Why a module path that names neither project.** The part `Net/` is exported to dsverify-lab
+  (Q3 of the plan), whose runs must not see this repository: a path under
+  `github.com/mit-pdos/etcd-grove` would appear in every kit's generated codec (`import
+  "…/pbcodec"`), in its translation (`Code.github_com.mit_pdos.etcd_grove…`) and in its statements,
+  and fail the export's leak check. A path under `dsverify.lab` would make this repository's models
+  name the lab. `netmodels.lab` names neither; like `dsverify.lab` it has a dot in its first element
+  (Go treats it as a non-standard-library path) and no host that resolves (it is always replaced or
+  local, never fetched). The Lean modules follow (`-lean-root netmodels.lab=Net`:
+  `Net.Code.netmodels_lab.*`, namespace `netmodels_lab`).
+- **Why a module of its own.** The examples' module requires etcd, raft and their forks' pins;
+  the lab must build the runtime with only protobuf-go (a test dependency). The examples' module
+  imports it by a `replace` (`examples/netmodels/pbetcd`, the generator's test on etcd's messages);
+  its go line is 1.27 (the examples') with `toolchain go1.27.3` (`etc/goose.py`'s), since a
+  dependency's go line above the importer's makes Go rewrite the importer's module graph.
+- **The generators** (`etc/pbgen.py`, `etc/jsongen.py`) live in `etc/` (they are tools of the
+  repository, exported with the part) and name no kit: a [protobuf] or [json] table in any toml file.
+
+## Trusted generated code: the generator is the trusted artifact (2026-11-19 · the user's decision · branch `pbgen-trust`)
+
+- **The user (2026-11-19):** "it's pbgen.py that's the trusted protobuf implementation (though it
+  only supports some types)... I don't want to think of mechanically created output as individually
+  trusted in this case; I'd rather make sure the generator is high quality and can be trusted."
+- **Why the generator, not its outputs.** Nothing in Lean fixes protobuf's wire format: a program's
+  proof proves its generated codec meets whatever `PbCodec` instance it chooses, and the program's
+  final statement does not mention it. What is trusted is that running the program with
+  `proto.Marshal`/`Unmarshal` replaced by the generated code behaves as with real protobuf-go
+  v1.36.12, for every type the generator accepts: a claim about the generator, argued once, not per
+  output.
+- **What that requires of the generator** (`models/protobuf/`): (1) no trusted hand-written input:
+  the `[protobuf]` table names only the root message types; every reachable message's and enum's
+  fields come from the descriptors protoc-gen-go registered (the ones protobuf-go runs on) and the
+  generated Go structs, dumped by `models.lab/pbdesc`; (2) a hard refusal of everything outside the
+  subset, naming message and field, before any code is emitted; (3) a small trusted core,
+  `pbgen_core.py` (the input check, the refusals, the emitter, and in its doc the encoding emitted
+  per field kind with citations to the encoding spec's sections and to protobuf-go's source),
+  separate from the untrusted command line, schema dump runner and test generation; (4) evidence
+  about the generator, not only per output: a differential test over random schemas of the subset,
+  compiled by the real protoc-gen-go (`models/internal/pbgenrand`); (5) an independent review
+  (`notes/axiom-review/pbgen.md`); (6) the gate: every codec in the tree is exactly the generator's
+  output for its derived input.
+- **Where the claim stops** (pbgen_core's doc): unknown fields are dropped, not kept for re-marshal
+  (the emitted code cannot reach the struct's unexported `unknownFields`); error values are not
+  modeled (error-or-not is), nor what comes with an error (the message after a failed Unmarshal,
+  the partial bytes of a failed Marshal); slice capacities and aliasing differ (the review,
+  `notes/axiom-review/pbgen.md`); only `Marshal`/`Unmarshal` with default options.
+- **The same for the other generated models** when they are reworked (`jsongen.py` next: the plan
+  note, phase 5.1, says what carries over), and for the patches of real packages (Q1): the
+  program that makes the model is what is reviewed and tested.
+
+## `models/`: the home of the trusted models (2026-11-19 · the user's decision · branch `pbgen-trust`)
+
+- **Decision (the user's naming).** `netmodels/` becomes `models/`, the Go module `models.lab`
+  (neutral: no project's name), goose project `models` (lean root `models.lab=Net`): the home of all
+  our trusted models in general, an executable stand-in for a real library, verified where it is
+  code, trusted only in its claim to behave like the library. Each model sits with its evidence: its
+  generator beside the helpers it generates for (`models/protobuf/pbgen.py`, `models/json/jsongen.py`),
+  its differential tests in `models/internal/`; `models/README.md` lists, per model, what is verified,
+  what is trusted and its evidence, and points to the trusted models kept where Perennial's layout
+  puts them (`TrustedCode/`, `GooseLang/Ext/*/Impl.lean`). The patches of real packages (gRPC,
+  net/http, net/rpc; Q1 of the plan) will live under `models/` too, not `etc/model-patches/`.

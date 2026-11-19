@@ -178,8 +178,9 @@
 //	                                  keepalive period over 32767 s (int32 of the rounded-up seconds:
 //	                                  (2^32+10) s is 10 s); a negative period: nil, no system call,
 //	                                  even closed; the zero value: bare EINVAL
-//	(2^20 waiters)               D13,D25 fewer than 2^20 calls wait on one socket's lock: Go's fdMutex assumed    (prose: Impl.lean D13; the
-//	                                  panics past 1048575 (fd_mutex.go), the model waits (review F1)                v3.3 review)
+//	(2^20 waiters)               D25  a known limitation, not modeled: Go's fdMutex panics past         not modeled (Impl.lean's "Known
+//	                                  1048575 calls waiting on one socket's lock (fd_mutex.go); the                 limitation"; review F1)
+//	                                  model lets them wait (review F1)
 //	(no other state)             D24  the options change nothing a Read or Write result shows beyond     assumed    (no state: SockOptOutcome)
 //	                                  what the relations already allow (keepalive's effect is a cut;
 //	                                  buffer sizes only change when a step blocks: a stutter)
