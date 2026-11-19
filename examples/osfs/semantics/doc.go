@@ -96,4 +96,8 @@
 //	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
 //	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
 //	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
+//	                              + lock requests, directory reads   IoCovers "Flock"/"OfdLock"/"DirReadNext",
+//	                              (assumed, measured as support:     ErrnoZero "DirReadNext" (ENOENT kept)
+//	                              premise_no_io_err_test.go; user,
+//	                              2026-11-19)
 package semantics

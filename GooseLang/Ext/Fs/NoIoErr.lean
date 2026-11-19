@@ -77,6 +77,15 @@ theorem openEffect_maps {st : OsState} {p : GoString} {acc : Nat} {creat trunc :
     split <;> rfl
   · obtain ⟨-, j, b, -, rfl, -⟩ := h; rfl
 
+/-- A lock request's step leaves the mappings. -/
+theorem lockStep_maps {st : OsState} {k : LockKind} {fd : w64} {d : OsFd} {req : Option Bool}
+    {nb : Bool} {e' : Expr} {st' : OsState} (h : LockStep st k fd d req nb e' st') :
+    st'.proc.maps = st.proc.maps := by
+  unfold LockStep at h
+  cases req with
+  | some ex => rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩⟩ <;> rfl
+  | none => rcases h with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩ <;> rfl
+
 /-- Every operation `IoCovers` names leaves the mappings as they were. -/
 theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Expr} {st' : OsState}
     (hc : IoCovers S o v st) (hs : IsFsStep o v st e' st') : st'.proc.maps = st.proc.maps := by
@@ -121,6 +130,13 @@ theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Ex
   · -- Rmdir
     obtain ⟨p, k, start, -, -, -, h⟩ := hs
     rcases h with ⟨j', j, b, -, -, ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩⟩ | ⟨e, -, -, rfl⟩ <;> rfl
+  · -- Flock
+    obtain ⟨fd, how, d, req, nb, -, -, -, h⟩ := hs; exact lockStep_maps h
+  · -- OfdLock
+    obtain ⟨fd, cmd, typ, d, req, -, -, -, -, -, -, h⟩ := hs; exact lockStep_maps h
+  · -- DirReadNext
+    obtain ⟨fd, df, u, s, r, -, -, -, h⟩ := hs
+    rcases h with ⟨b, -, -, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩ <;> rfl
   · exact hc.elim
 
 end keeps
