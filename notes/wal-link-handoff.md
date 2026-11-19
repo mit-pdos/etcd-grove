@@ -1,6 +1,33 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 p, clients in progress: raft-loop side done, snapshot/apply/boot side next)
+## START HERE (2026-11-19 q, lean merged (pin f551); clients edited, NOT yet checked; first full build queued)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean df37bd5157 merged (9bdb9cc03f): pin f551a1b46,
+  `--packages=/shared/tmp/manifest-f55.json` everywhere, `.lake/package-overrides.json` = its copy; gen-init
+  with `PERENNIAL_DIR=/shared/perennial-f551a1b46`. Full build: `/shared/tmp/build-slot.sh etc/timed-build.py
+  --packages=/shared/tmp/manifest-f55.json` (log `/shared/tmp/wallink/b-merge1.log`).
+- **Merge notes:** lean moved `isRNMemStor_of_memstorage`/`raftNode_of_{Start,Restart}Node` to
+  `NodeBridgeLinked`/`NodeStartLinked` (our edits applied there); tier-baseline gained `RaftModel.Laws ->
+  proto.SizePb` (defs->proof, as MarshalPb/UnmarshalPb).
+- **Edited in ef3559e6a8 (unchecked):** applySnapshot spec/walk/proof (`(γw : RNNames GF) (q : Qp)` last,
+  `rnWalTokA` in and out, payload `walSnapRec`, `∃ h, isWalStorage (mkOk stp) h ss` premise, Release via
+  `walRelease_spec`+`rnDur_read_au`, `hRel`/`hstp` gone), ApplyAllSnap (srvSnapRO's last conjunct `#Hsws`),
+  StopApi (`γrn.wal.h.dir = …`), StopShutdown (srvFiles' `∃ a`), NewServer/NewServerR (bootOk/restartOk_start's
+  `h`, `Hνh` from rnDurInv, NodeStart's `#Hsws Hrd1 Hrd2`, `Hrnss`, `isWalStorage_ptr`).
+- **F2:** membership bound needs NO new premise: `srvRaftLogInv` now carries `γ.raft.vs.length < 2^16` (from
+  `BootCore`'s `idPfxsOf_ok`, at both allocs); `srvRaftLogInv_cfg`, `srv_csF2`, `srv_snapshotValid_F2`
+  (RaftLoopFreeze), `walSnapCanon_enc_len` (Codec). raftNode__start's two sorries and snapshot's HF2z/e/i gone.
+  **Left: one sorry `Hm1` in EtcdServer__snapshot** (metaRoC canonical: `ep.confState`'s AutoLeave pointer set;
+  needs `epCsVoters` at `csPts … true` from applyConfChange (node.ApplyConfChange gives true), received snapshots
+  (rnApSnap: ownSnapS), restart (raft's Snapshot spec after InitialState), and raft's CreateSnapshot spec to keep
+  it through `proto.Clone`).
+- **Next:** build errors in order; examples (drop `rnNewStorageOk` from etcdstart.premises via
+  `rnNewStorageOk_holds`, linked by hand), P2, tcb/collections/interfaces/Links, examples' Go, closed-statement STOP.
+- **Pitfalls:** never two lean-check files needing rebuilds at once; `--split` spurious kernel error on raftNode__start.
+
+## History
+
+### START HERE (2026-11-19 p, clients in progress: raft-loop side done, snapshot/apply/boot side next)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere
   (lean now HAS the f551 merge, df37bd5157: merge it next, then manifest-f55 + package-overrides, full timed rebuild). Full builds: `/shared/tmp/build-slot.sh etc/timed-build.py --packages=<manifest>`.
@@ -31,7 +58,6 @@
   `--split` gave a spurious kernel error (`_proof_1_34`) on raftNode__start: check it without `--split` (0 errors, 142 s); `rnWalTok_open γ r q $$ Hwt`
   (no storage argument now).
 
-## History
 
 ### START HERE (2026-11-19 o, 0009 proved through the server's Save law; InvRaftNode done; clients next)
 
