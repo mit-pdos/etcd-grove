@@ -28,22 +28,14 @@ attribute [irreducible] Versions.ty
 noncomputable def MinClusterVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.MinClusterVersion"
 
-opaque MinClusterVersion.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Version [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.Version"
-
-opaque Version.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def APIVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.APIVersion"
 
-opaque APIVersion.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def GitSHA [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.GitSHA"
-
-opaque GitSHA.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_0"
@@ -133,6 +125,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"3.0.0"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"3.8.0-alpha.0"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"unknown"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"Not provided (use ./build instead of go build)"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -172,13 +172,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val V3_0.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val GitSHA.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr GitSHA))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val APIVersion.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr APIVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Version.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr Version))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MinClusterVersion.init) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr MinClusterVersion))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MinClusterVersion go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Version go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc APIVersion go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc GitSHA go.string)) (Val #()))))))))
 
 structure Versions [GooseExts] where
   mk ::

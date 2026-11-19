@@ -143,7 +143,7 @@ THIRD_PARTY = (
 # the scanned axioms' count may not fall below this (a tree or package gone, or the layout's
 # mapping broken, would move axioms out of the scan): when axioms are added and the count rises,
 # raise it to the count `reader-slot: ok (...)` prints; lower it only with a reason in the commit
-MIN_SCANNED = 185  # 2026-11-18, S4b: `snapshot.WriteTo`/`Size`/`Close` proved; 2026-11-18, S5: `os.Rename` proved; 2026-11-17, bbolt S1: the backend's bbolt predicates and 17 `_kv` specs are no longer axioms; 2026-11-17, S1b: `Bucket.Put_kv` too; 2026-11-18, S3e: `Open_kv`, `DB.Close_kv` too (the `_kv` layer deleted)
+MIN_SCANNED = 183  # 2026-11-19, prove-membership: `RaftCluster.SetVersionChangedNotifier` proved; 2026-11-19, prove-stdlib: `time.Duration.Nanoseconds_ptr` proved; 2026-11-18, S4b: `snapshot.WriteTo`/`Size`/`Close` proved; 2026-11-18, S5: `os.Rename` proved; 2026-11-17, bbolt S1: the backend's bbolt predicates and 17 `_kv` specs are no longer axioms; 2026-11-17, S1b: `Bucket.Put_kv` too; 2026-11-18, S3e: `Open_kv`, `DB.Close_kv` too (the `_kv` layer deleted)
 
 
 def under(a, prefix):

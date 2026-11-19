@@ -222,9 +222,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imodintro
   unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs
   isplitl []
-  · iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; split_ifs <;> subst_vars <;> simp [sint.Z] <;> bv_omega
+  · iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; constructor; (· intro h; repeat' (split at h); all_goals (first | (subst_vars; decide) | simp at h)); (· intro h; rcases (show k = W32 0 ∨ k = W32 1 ∨ k = W32 2 from (by word)) with rfl | rfl | rfl <;> simp (config := {decide := true}))
   isplitl []
-  · iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; split_ifs <;> subst_vars <;> simp [sint.Z] <;> bv_omega
+  · iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; constructor; (· intro h; repeat' (split at h); all_goals (first | (subst_vars; decide) | simp at h)); (· intro h; rcases (show k = W32 0 ∨ k = W32 1 ∨ k = W32 2 ∨ k = W32 3 ∨ k = W32 4 from (by word)) with rfl | rfl | rfl | rfl | rfl <;> simp (config := {decide := true}))
   iframe #
   repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))
 
