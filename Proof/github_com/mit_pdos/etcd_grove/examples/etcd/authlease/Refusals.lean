@@ -264,6 +264,17 @@ theorem opChecksLease_put (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (o : OpF
   iunfold v3rpc.opGrantT at H
   iexact H
 
+/-- A revocation's grant checks its lease. -/
+theorem opChecksLease_revoke (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (id : w64) :
+    opChecksLease s E ρ (.leaseRevoke id) id := by
+  intro tok L₀ σ
+  iintro H
+  iexists irrLeaseRevoke id
+  isplitl []
+  · ipureintro; exact fun r I hm h => leaseGranted_revoke r I id hm h
+  iunfold v3rpc.opGrantT at H
+  iexact H
+
 /-- **A transaction's lease check covers its put**: the wire transaction `tw` of
 `Txn().Then(OpPut(k, "v", WithLease(L)))` (`tw.toModel = txnWireOf (leaseTxn k L)`) has a put
 with lease `L` (`txnPutsW`), whose lease check is of `L`. -/

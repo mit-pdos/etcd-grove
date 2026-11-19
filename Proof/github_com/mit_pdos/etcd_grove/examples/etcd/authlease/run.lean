@@ -163,6 +163,73 @@ theorem barrierPre_all (x0 : GMember × MemberG GF) (w0 : Wit GF) (γz : GName) 
       iframe Hs
       iframe #
 
+/-- **A linearizable get of one key** (`absent`'s and root's reads of `run`, with the read update `Q`):
+the reply's key-values are those of `k` at a sorted state where `Q` fired. -/
+theorem getReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64) (F : mvcc.Log) (k : GoString)
+    (Q : KVState → IProp GF) (m : RangeRespM) :
+    client.rangeReplyOk E γr c F (rangeWireOf (opGetModel k [])) cid mid Q m ⊢
+      ∃ σ : KVState, □ Q σ ∗ ⌜m.kvs = σ.kvs.filter (fun v => decide (v.key = k)) ∧
+        σ.kvs.Pairwise etcdKvLess⌝ := by
+  iintro #H
+  iunfold client.rangeReplyOk at H
+  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  have hs : (rangeWireOf (opGetModel k [])).base.serializable = false := rfl
+  have hr : (rangeWireOf (opGetModel k [])).base.rev = W64 0 := rfl
+  isimp only [hs, Bool.false_eq_true, ↓reduceIte] at HQ
+  icases HQ with ⟨%lt, -, #HQ⟩
+  obtain ⟨hlen, hlen', hrev, -, -, -, -, hsel, -⟩ := Hl
+  have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision
+      (rangeWireOf (opGetModel k [])).base.rev)) = mvcc.stateAfter l := by
+    have h1 : mvcc.rangeRev m.hdr.revision (rangeWireOf (opGetModel k [])).base.rev = m.hdr.revision := by
+      simp [mvcc.rangeRev, hr]
+    rw [h1, hrev]
+    have h2 : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by
+      unfold sint.nat; word
+    rw [h2, mvcc.stateAt_last]
+  rw [hst] at hsel
+  iexists kvStateOf l lt
+  iframe HQ
+  ipureintro
+  rw [kvStateOf_kvs]
+  exact ⟨(client.srvRangeOk_getKey k _ _ _ (by exact hsel)).1, mvcc.stateAfter_sorted l⟩
+
+/-- What a state the cell saw satisfies. -/
+theorem seen_cell (γc : CellNames) (ps1 : List Nat) (d1 : Nat) (σ : KVState) :
+    cellSeen (GF := GF) γc ps1 d1 σ ⊢ ⌜∃ ids ps gs d, CellOk σ ids ps gs d ∧ ps1 <+: ps ∧ d1 ≤ d⌝ := by
+  iintro H
+  iunfold cellSeen at H
+  icases H with ⟨%ids, %ps, %gs, %d, %h, -⟩
+  ipureintro; exact ⟨ids, ps, gs, d, h⟩
+
+/-- **A state the cell saw after root's attachment has `z/lease` on `Lz`.** -/
+theorem seen_z (γc : CellNames) (ps1 : List Nat) (d1 : Nat) (σ : KVState) (lz : w64) (h1 : 1 ≤ ps1.length) :
+    cellSeen (GF := GF) γc ps1 d1 σ ∗ monoListLbOwn γc.ids [lz] ⊢ ⌜leaseOf zK σ.kvs = some lz⌝ := by
+  iintro ⟨H, #Hl⟩
+  iunfold cellSeen at H
+  icases H with ⟨%ids, %ps, %gs, %d, %h, #Hil, -⟩
+  ihave %Hc := mono_list_lb_valid γc.ids ids [lz] $$ Hil Hl
+  ipureintro
+  obtain ⟨hok, hps, -⟩ := h
+  have hp1 : 1 ≤ ps.length := Nat.le_trans h1 hps.length_le
+  have hz := hok.1.z_at hp1
+  have hi1 := hok.1.ps_ids.2.1 hp1
+  have hl : lzOf ids = lz := by
+    rcases Hc with ⟨t, ht⟩ | ⟨t, ht⟩
+    · cases ids with
+      | nil => simp at hi1
+      | cons a r => simp at ht; simp [lzOf, ht.1]
+    · subst ht; simp [lzOf]
+  rw [hz, hl]
+
+/-- **A state the cell saw after u's revocation has neither `a/lease` nor `a/txn`.** -/
+theorem seen_gone (γc : CellNames) (ps1 : List Nat) (σ : KVState) :
+    cellSeen (GF := GF) γc ps1 1 σ ⊢ ⌜mvcc.findKey aK σ.kvs = none ∧ mvcc.findKey tK σ.kvs = none⌝ := by
+  iintro H
+  ihave %Hc := seen_cell γc ps1 1 σ $$ H
+  ipureintro
+  obtain ⟨ids, ps, gs, d, hok, -, hd⟩ := Hc
+  exact hok.1.gone (by have := hok.1.d_le; omega)
+
 end barriers
 
 section proof
@@ -827,6 +894,257 @@ theorem run.wp_proof
   imod (cell_holds hlaw sv wv.E xv.2.ρ.rd γc Fv₂ ltv₂ lz lu lu aK ps3 0 hps3
       (by rw [hsv.2.2.2.2.2.1]; exact hns) (Or.inr ⟨rfl, rfl⟩)) $$ [] with ⟨%mu, #Hlbu, #Hhu⟩
   · iframe #
+  -- `noAuth(cli, "anon", lu)` at member 0, `noAuth(bcli, "bad", lu)` at member `1 % k`: member 0's
+  -- lessor bound from the lessor law at its second barrier's floor
+  ihave #G0 := BigSepL.bigSepL_lookup hy0 $$ Hbq2'
+  iunfold barrierPost at G0
+  icases G0 with ⟨-, %F0₂, %lt0₂, #HF0₂, -⟩
+  ihave #Hrd0 : isServerReadM w0.E.authOn s0 w0.E x0.2.ρ.rd $$ []
+  · rw [hon₁]; iexact Hrd₁
+  imod (hlaw s0 w0.E x0.2.ρ.rd F0₂ lz zK hns) $$ [] with ⟨%m0, #Hlb0, -⟩
+  · iframe Hrd0 HF0₂
+  have hpa : akTokP (GF := GF) w0.γa go!"anon" = fun _ => iprop(False) := by
+    unfold akTokP; rw [if_neg (by decide)]
+  ihave #HLS0 : etcdstart.etcdLeaseServedOn x0.1.Client' s0 w0.E { x0.2.ρ with wait := w0.γw } $$ []
+  · iunfold etcdstart.etcdLeaseServedOn; iframe #
+  ihave #Hna0 := noAuth_refutes s0 w0.E w0.γa _ Lset i₁ go!"anon" HR₁.1 (Or.inl rfl) $$ [Hfix₁ Htls₁]
+  · iframe #
+  ihave #Hrv0 := revokeLu_update s0 w0.E w0.γa { x0.2.ρ with wait := w0.γw } Lset i₁ go!"anon" γc lz lu ps3
+    hps3 hlu0 HR₁.1 (Or.inl rfl) $$ [Hinv HlbU Hps3 Hfix₁ Htls₁]
+  · iframe #
+  wp_apply (wp_noAuth cl go!"anon" x0.1.Client' lu s0 w0.E { x0.2.ρ with wait := w0.γw } w0.γa i₁ m0
+      (fun id => gsHas γc id) (revoked γc) (Or.inl rfl) hAs)
+  · rw [hpa]; iframe #
+    iintro !> %conn %ctx %id
+    iunfold client.clientOpAuOn
+    iexists Lset
+    iframe Hll₁
+    ihave #Hg := cell_grantAu s0 w0.E { x0.2.ρ with wait := w0.γw } conn ctx γc grantTTLv Lset
+      (by decide) (hlm x0 hx0m) $$ Hinv
+    iapply Hg
+  (try wp_auto)
+  have hpb : akTokP (GF := GF) wu.γa go!"bad" = fun _ => iprop(False) := by
+    unfold akTokP; rw [if_neg (by decide)]
+  ihave #HLSu : etcdstart.etcdLeaseServedOn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } $$ []
+  · iunfold etcdstart.etcdLeaseServedOn; iframe #
+  ihave #Hnau := noAuth_refutes su wu.E wu.γa _ Lset i₂ go!"bad" HR₂.1 (Or.inr rfl) $$ [Hfix₂ Htls₂]
+  · iframe #
+  ihave #Hrvu := revokeLu_update su wu.E wu.γa { xu.2.ρ with wait := wu.γw } Lset i₂ go!"bad" γc lz lu ps3
+    hps3 hlu0 HR₂.1 (Or.inr (Or.inl rfl)) $$ [Hinvu HlbU Hps3 Hfix₂ Htls₂]
+  · iframe #
+  wp_apply (wp_noAuth bcl go!"bad" xu.1.Client' lu su wu.E { xu.2.ρ with wait := wu.γw } wu.γa i₂ mz
+      (fun id => gsHas γc id) (revoked γc) (Or.inr rfl) hAs)
+  · rw [hpb]; iframe #
+    iintro !> %conn %ctx %id
+    iunfold client.clientOpAuOn
+    iexists Lset
+    iframe Hll₂
+    ihave #Hg := cell_grantAu su wu.E { xu.2.ρ with wait := wu.γw } conn ctx γc grantTTLv Lset
+      (by decide) (hlm xu hxum) $$ Hinvu
+    iapply Hg
+  (try wp_auto)
+  -- u's put of `a/x` with root's lease `Lz`, refused (`refused_update`: `Lz` holds `z/lease`)
+  have hcellZ : ∀ σ ids ps gs d, CellOk σ ids ps gs d → [lz] <+: ids → ps1.length ≤ ps.length →
+      leaseOf zK σ.kvs = some lz ∧ lz ≠ W64 0 := by
+    intro σ ids ps gs d h hpre hps
+    obtain ⟨t, rfl⟩ := hpre
+    have hz := h.1.z_at (by omega)
+    simp [lzOf] at hz
+    exact ⟨hz, hlz0⟩
+  ihave #Hrfp := refused_update su wu.E wu.γa { xu.2.ρ with wait := wu.γw } Lset i₂ go!"u" γc
+      (.put (leasePutOp xK lz)) zK lz [lz] ps1 (fun _ => iprop(False)) HR₂.1
+      (opChecksLease_put su wu.E _ (leasePutOp xK lz)) hcellZ
+      (Or.inr (Or.inr (Or.inr ⟨rfl, not_inRangeK_zK⟩))) $$ [Hinvu HlbZ Hps1 Hfix₂ Htls₂]
+  · iframe #
+  wp_apply context.wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
+    as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -, %Hpout, -⟩
+  (try wp_auto)
+  wp_apply wp_WithLease lz as %f2 #Hf2
+  (try wp_auto)
+  wp_apply wp_slice_literal (l := [f2])
+  isplitr
+  · ipureintro; rfl
+  iintro %slo2 ⟨Hslo2, -⟩
+  ipersist Hslo2
+  ihave #Hopts2 := etcd_auth.optsAt_one (GF := GF) _ f2 (withLeaseM lz) $$ [Hslo2 Hf2]
+  · iframe #
+  (try wp_auto)
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  wp_pures
+  (try wp_auto)
+  have hokx : ¬ (opPutModel xK go!"v" [withLeaseM lz]).putPanics ∧
+      (opPutModel xK go!"v" [withLeaseM lz]).t = W64 2 :=
+    ⟨by simp [opPutModel, OpFull.putPanics, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero],
+      rfl⟩
+  wp_apply (client.client_put_on uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid
+      pctx pcd xK go!"v" _ [withLeaseM lz] (fun _ => iprop(False)) F₂
+      (hszL xK lz (by decide)) hokx.1 hokx.2 (Or.inr (hlm xu hxum))) as %presp %perr Hp
+  · iframe #
+    ileft
+    imodintro
+    rw [leasePut_wire]
+    iapply Hrfp
+    · iexact Hutok
+    · ipureintro; rw [hau]; exact Hpout
+  (try wp_auto)
+  wp_apply Hpcancel
+  (try wp_auto)
+  icases Hp with (⟨%Hperr, %mp, -, Hrep, -⟩ | ⟨%Hperr, -⟩)
+  · iunfold client.putReplied at Hrep
+    icases Hrep with ⟨%hm', %x, %x', %l, %skip, -, -, -, -, -, %lt, -, Hf⟩
+    iexfalso
+    iexact Hf
+  wp_apply (wp_refused go!"u" _ perr Hperr.1)
+  (try wp_auto)
+  -- u's transaction putting `a/x` with `Lz`, refused (`refused_update`, `opChecksLease_txn`)
+  ihave #Hrft := refused_update su wu.E wu.γa { xu.2.ρ with wait := wu.γw } Lset i₂ go!"u" γc
+      (.txn (txnWireOf (leaseTxn xK lz))) zK lz [lz] ps1 (fun _ => iprop(False)) HR₂.1
+      (opChecksLease_txn su wu.E _ xK lz) hcellZ
+      (Or.inr (Or.inr (Or.inr ⟨rfl, not_inRangeK_zK⟩))) $$ [Hinvu HlbZ Hps1 Hfix₂ Htls₂]
+  · iframe #
+  obtain ⟨hro', htsz', htsh', htpl', htnz', htnest'⟩ := leaseTxn_ok xK lz (by decide) (by decide)
+  wp_apply context.wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
+    as %xctx %xcd %xcancel ⟨#Hxcancel, #Hxctx, #Hxce, -, %Hxout, -⟩
+  (try wp_auto)
+  wp_apply wp_WithLease lz as %f3 #Hf3
+  (try wp_auto)
+  wp_apply wp_slice_literal (l := [f3])
+  isplitr
+  · ipureintro; rfl
+  iintro %slo3 ⟨Hslo3, -⟩
+  ipersist Hslo3
+  ihave #Hopts3 := etcd_auth.optsAt_one (GF := GF) _ f3 (withLeaseM lz) $$ [Hslo3 Hf3]
+  · iframe #
+  (try wp_auto)
+  wp_apply (wp_OpPut xK go!"v" _ [withLeaseM lz]) as %op3 #Hop3
+  · iframe #
+    ipureintro
+    simp [opPutModel, OpFull.putPanics, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero]
+  (try wp_auto)
+  wp_apply wp_slice_literal (l := [op3])
+  isplitr
+  · ipureintro; rfl
+  iintro %tsl3 ⟨Htsl3, -⟩
+  ipersist Htsl3
+  ihave #Hops3 := etcd_auth.opsAt_one (GF := GF) _ op3 (opPutModel xK go!"v" [withLeaseM lz]) $$ [Htsl3 Hop3]
+  · iframe #
+  (try wp_auto)
+  wp_apply (etcd_auth.client_Txn_on ucl uapi uconn xu.1.Client' xctx xcd) as %tv3 ⟨%tp3, %Htv3, Hobj3, #Hkt3⟩
+  · iframe #
+  subst Htv3
+  (try wp_auto)
+  wp_apply (client.v3.txn.wp_Then_plain tp3 _ xctx xcd TxnBuild.empty _ _ [.put xK go!"v" lz]) $$ [Hobj3]
+    as Hobj3
+  · iframe #
+    iframe Hobj3
+    ipureintro
+    exact ⟨by simp [txnOpOf_leasePut], rfl, rfl⟩
+  ihave Hobj3 : txnObjAt (GF := GF) tp3 [xu.1.Client'] xctx xcd ⟨leaseTxn xK lz, false, true, false⟩ $$ [Hobj3]
+  · iExactEq Hobj3
+    simp [TxnModel.empty, leaseTxn]
+  (try wp_auto)
+  wp_apply (client.client_txn_on tp3 uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
+      wu.cid wu.mid (W64 0) i₂ xctx xcd ⟨leaseTxn xK lz, false, true, false⟩ (fun _ => iprop(False)) F₂
+      (fun h => by simp [hro'] at h) htsz' (fun _ => htsh')) $$ [Hobj3] as %xresp %xerr Hx
+  · iframe Hobj3; iframe #
+    ileft
+    imodintro
+    iunfold client.txnUpdAtOn
+    iright; iright
+    isplitl []
+    · ipureintro; exact ⟨hro', Or.inr ⟨hlm xu hxum, htpl'⟩, htnz', htnest'⟩
+    iapply Hrft
+    · iexact Hutok
+    · ipureintro; rw [hau]; exact Hxout
+  (try wp_auto)
+  wp_apply Hxcancel
+  (try wp_auto)
+  icases Hx with (⟨%Hxerr, %mx, -, Hrepx, -⟩ | ⟨%Hxerr, -⟩)
+  · iunfold client.txnReplied at Hrepx
+    isimp only [hro', Bool.false_eq_true, ↓reduceIte] at Hrepx
+    icases Hrepx with ⟨%tw', %hm', %rq'', %t'', %xb, %xb', %l', %skip', -, -, -, -, -, %ltt', -, Hf⟩
+    iexfalso
+    iexact Hf
+  wp_apply (wp_refused go!"u" _ xerr Hxerr.1)
+  (try wp_auto)
+  -- `absent(root, xKey, ...)` at member 0 (the read update `cellSeen`: `a/x` is never written)
+  ihave #Hc₁ : committedAtLeast x0.2.ρ.rd (W64 0) $$ []
+  · iapply (committedAtLeast_of_rlog x0.2.ρ.rd (W64 0) Lc (by word))
+    iexact HLc
+  ihave #Hrng₁ : isGrpcRpcMd x0.1.Client' go!"/etcdserverpb.KV/Range"
+      (client.etcdRangeSpecOn s0 w0.E x0.2.ρ.rd w0.cid w0.mid) $$ []
+  · iunfold akKVOn at HKV₁
+    icases HKV₁ with ⟨-, #H, -⟩
+    iexact H
+  have hszG : ∀ k : GoString, k.length ≤ 2 ^ 20 → opSizeOk (opGetModel k []) := fun k hk =>
+    opSizeOk_opGetModel (K := 2 ^ 28) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by omega) (by decide)
+  wp_apply (wp_absent rcl xK _ x0.1.Client' s0 w0.E x0.2.ρ.rd w0.cid w0.mid (W64 0) i₁ F0₂
+      (fun t => auth.tokIssued w0.γa t go!"root") (cellSeen γc ps3 0) (hszG xK (by decide)) hAs)
+    as %okx -
+  · iframe #
+    isplitl []
+    · iintro !>
+      iright
+      iapply (cell_readAu x0.2.ρ.rd.kv γc ps3 0)
+      iframe #
+    iintro !> %m Hm
+    ihave ⟨%σ, #HQ, %Hk⟩ := getReply_state w0.E x0.2.ρ.rd (W64 0) w0.cid w0.mid F0₂ xK _ m $$ Hm
+    ihave %Hc := seen_cell γc ps3 0 σ $$ HQ
+    obtain ⟨ids, ps, gs, d, hok, -, -⟩ := Hc
+    ipureintro
+    rw [Hk.1]
+    exact client.filter_key_of_findKey_none _ _ hok.1.x_none
+  cases okx
+  · wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  (try wp_auto)
+  -- `foreign(ucli, "u", lz)` at member `1 % k`: its revocation refused (`Lz` holds `z/lease`), its
+  -- lessor reads refuted while the main thread holds u's revocation unpermitted (`R`, `holdsFrom`)
+  ihave #Hrfr := refused_update su wu.E wu.γa { xu.2.ρ with wait := wu.γw } Lset i₂ go!"u" γc
+      (.leaseRevoke lz) zK lz [lz] ps1 (fun _ => iprop(False)) HR₂.1
+      (opChecksLease_revoke su wu.E _ lz) hcellZ
+      (Or.inr (Or.inr (Or.inr ⟨rfl, not_inRangeK_zK⟩))) $$ [Hinvu HlbZ Hps1 Hfix₂ Htls₂]
+  · iframe #
+  ihave ⟨#Hfu1, #Hfu2⟩ := foreign_reads_refuted su wu.E wu.γa _ Lset i₂ go!"u" γc
+      (mvcc.api.mvccLeases wu.E.γ) mz lz zK HR₂.1 (by decide) (Or.inl ⟨rfl, not_inRangeK_zK⟩)
+      $$ [Hfix₂ Htls₂ Hhz]
+  · iframe #
+  wp_apply (wp_foreign ucl go!"u" xu.1.Client' lz su wu.E { xu.2.ρ with wait := wu.γw } wu.γa i₂ mz
+      (fun _ => iprop(False)) (monoNatAuthOwn γc.a (1 : Qp).half 0) (Or.inl rfl) hon₂ hAs) $$ [Ha] as Ha
+  · iframe Ha; iframe #
+    iintro !> %σ Hf _
+    iexfalso; iexact Hf
+  (try wp_auto)
+  -- `foreign(vcli, "v", lu)` at member `2 % k`: a revocation of `Lu` tells `revoked`, refuted while
+  -- the main thread holds u's revocation unpermitted (`cell_not_revoked`)
+  ihave #Hpub₃ : auth.authPubLbM wv.E.authMode i₃ $$ []
+  · rw [HR₃.1]
+    iunfold akAuthFixed at Hfix₃
+    icases Hfix₃ with ⟨#H, -⟩
+    iunfold auth.authPubLbM
+    iexact H
+  iunfold etcd_authN.leaseSrvd at HLS₃
+  iunfold etcdstart.etcdLeaseServedOn at HLS₃
+  icases HLS₃ with ⟨#HLG₃, #HLR₃, #HLT₃, #HLL₃⟩
+  ihave #HLSv : etcdstart.etcdLeaseServedOn xv.1.Client' sv wv.E { xv.2.ρ with wait := wv.γw } $$ []
+  · iunfold etcdstart.etcdLeaseServedOn; iframe #
+  ihave #Hrvv := revokeLu_update sv wv.E wv.γa { xv.2.ρ with wait := wv.γw } Lset i₃ go!"v" γc lz lu ps3
+    hps3 hlu0 HR₃.1 (Or.inr (Or.inr rfl)) $$ [Hinvv HlbU Hps3 Hfix₃ Htls₃]
+  · iframe #
+  ihave ⟨#Hfv1, #Hfv2⟩ := foreign_reads_refuted sv wv.E wv.γa _ Lset i₃ go!"v" γc
+      (mvcc.api.mvccLeases wv.E.γ) mu lu aK HR₃.1 (by decide) (Or.inr rfl) $$ [Hfix₃ Htls₃ Hhu]
+  · iframe #
+  wp_apply (wp_foreign vcl go!"v" xv.1.Client' lu sv wv.E { xv.2.ρ with wait := wv.γw } wv.γa i₃ mu
+      (revoked γc) (monoNatAuthOwn γc.a (1 : Qp).half 0) (Or.inr rfl) hon₃ hAs) $$ [Ha] as Ha
+  · iframe Ha; iframe #
+    iintro !> %σ #Hr Ha
+    iapply (cell_not_revoked xv.2.ρ.rd.kv γc σ ⊤ (by simp))
+    iframe Ha; iframe #
+  (try wp_auto)
   sorry
 
 end proof
