@@ -240,7 +240,7 @@ def iterBodyPost (P : Nat → IProp GF) (R : val → IProp GF) (i : Nat) (bv : v
 def iterExit (P : Nat → IProp GF) (R : val → IProp GF) (n : Nat) (Φ : val → IProp GF) :
     IProp GF :=
   iprop((P n -∗ Φ executeVal) ∧ (R breakVal -∗ Φ executeVal) ∧
-    (∀ w, R (returnVal w) -∗ Φ (returnVal w)))
+    (∀ w, ⌜w.isPanic = false⌝ -∗ R (returnVal w) -∗ Φ (returnVal w)))
 
 /-- **`for x := range f`** over an iterator `seqOk f xs` (see the file header). -/
 theorem wp_forRange_seqOk {V : Type} (f : GoFunc) (xs : List V) (body : val)
@@ -304,7 +304,7 @@ theorem wp_forRange_seqOk {V : Type} (f : GoFunc) (xs : List V) (body : val)
       iexists w
       iframe
       icases Hexit with ⟨-, -, Hexit⟩
-      iapply Hexit
+      iapply Hexit $$ %w %hw
       iexact HR
 
 /-- **`for k, v := range f`** over an iterator `seq2Ok f xs` (see the file header). -/
@@ -369,7 +369,7 @@ theorem wp_forRange_seq2Ok {K V : Type} (f : GoFunc) (xs : List (K × V)) (body 
       iexists w
       iframe
       icases Hexit with ⟨-, -, Hexit⟩
-      iapply Hexit
+      iapply Hexit $$ %w %hw
       iexact HR
 
 end forRange
