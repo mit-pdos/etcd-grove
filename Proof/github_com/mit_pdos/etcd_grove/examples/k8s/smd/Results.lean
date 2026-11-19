@@ -18,6 +18,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.PkgTable
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.TopLevelDefs
 public import Proof.runtime.Threads
 public import Perennial.GooseLang.Adequacy

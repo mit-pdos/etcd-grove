@@ -38,7 +38,16 @@ Lean-first (2026-11-19, notes/smd-plan.md); round 1's repairs 2026-11-19.
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
+-- (not `typed.Base`: the package fact, `typedPools`, is over `Walkers`' predicates, so `Base`
+-- imports this module's cone; Prove phase, 2026-11-19)
+public import GeneratedProof.sigs_k8s_io.structured_merge_diff.v7.typed
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strings.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.sync.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Base
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Defs
 

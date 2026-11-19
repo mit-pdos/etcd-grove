@@ -26,7 +26,9 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+-- (`HasLC.hasLC`: `typed`'s instance is at it, its fact `typedPools` being over `typed`'s
+-- walker predicates; Prove phase, 2026-11-19)
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 instance isPkgInit_inst :

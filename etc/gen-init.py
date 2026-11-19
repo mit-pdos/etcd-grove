@@ -2432,17 +2432,52 @@ initializes its imports, sets them (`AssociativeListCandidateFieldNames`, a `[]s
             **{f'pe{x}SepBytes': ['try wp_auto'] + _SMD_SLICE for x in ['Field', 'Value', 'Index', 'Key']},
             '$end': ['try wp_auto']},
 )
+# `typed`'s closures its fact names (`typedPools`): `ruleKeepRHS`'s func literal and the five pools'
+# `New` (`Closures.lean`, with `gen_closures`)
+SMD_TYPED_CLOSURES = [
+    ('ruleKeepRHSV', 'ruleKeepRHS', None, '`ruleKeepRHS`: the right side if present, else the left.'),
+    ('mwNewV', 'mwPool', '$v0', '`mwPool.New`: `&mergingWalker{}`.'),
+    ('cwNewV', 'cmpwPool', '$v0', '`cmpwPool.New`: `&compareWalker{}`.'),
+    ('twNewV', 'tPool', '$v0', '`tPool.New`: `&toFieldSetWalker{}`.'),
+    ('vwNewV', 'vPool', '$v0', '`vPool.New`: `&validatingObjectWalker{}`.'),
+    ('rwNewV', 'fmPool', '$v0', '`fmPool.New`: `&reconcileWithSchemaWalker{}`.')]
 SPECIAL[_SMD + 'typed'] = dict(
-    doc='''Its fact is `True` (`Base.lean`). Its initializer allocates its translated variables,
-initializes its imports, sets them (`ruleKeepRHS`, a function value; the walker pools `fmPool`,
-`tPool`, `cmpwPool`, `mwPool`, `vPool`, `sync.Pool` literals with a `New` function) and runs the
-trusted initializers of `ssParser` and `DeducedParseableType`
+    doc='''Its fact is `typedPools` (`Base.lean`, over `Walkers.lean`; the Prove phase, 2026-11-19):
+`ruleKeepRHS` holds its closure, which meets `ruleKeepRHSOk`, and the five walker pools are
+`sync.isPool`s of pooled walkers, each `New` making a zero walker (`InitClosures.lean`, over the
+closures of `Closures.lean`). Its initializer allocates its translated variables, initializes its
+imports, sets them (`ruleKeepRHS`, a function value; the walker pools `fmPool`, `tPool`,
+`cmpwPool`, `mwPool`, `vPool`, `sync.Pool` literals with a `New` function) and runs the trusted
+initializers of `ssParser` and `DeducedParseableType`
 (`TrustedCode/sigs_k8s_io/structured_merge_diff/v7/typed.lean`: models that do nothing).''',
+    imports=['Proof.sigs_k8s_io.structured_merge_diff.v7.typed.InitClosures',
+             'Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured',
+             'Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured_ptr'],
     alloc_types=_ALLOC_ANY,
-    # the pools' literals: their `New` function value, rewritten to `func.mk` for `wp_auto` (as
-    # `os`'s `dirBufPool`), all five at once
+    # the pools' literals: their `New` function values, folded to `Closures.lean`'s names
     before={'ruleKeepRHS': ['try wp_auto'],
-            'fmPool': ['repeat (first | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto) | wp_auto)']},
+            'fmPool': ['repeat (first' + ''.join(f' | (rw [← {c[0]}_val]; wp_auto)'
+                                                  for c in SMD_TYPED_CLOSURES[1:]) + ' | wp_auto)']},
+    # `ruleKeepRHS`'s closure (over `Value.Unstructured`'s proof), the pools' `isPool`s
+    finish=(['ihave #HR := EtcdGrove.smd.ruleKeepRHSV_ok',
+             '    (EtcdGrove.smd.value.valueUnstructured.Unstructured_ptr.wp_proof',
+             '      EtcdGrove.smd.value.valueUnstructured.Unstructured.wp_proof)',
+             '    (by sorry) $$ {Hd:sigs_k8s_io.structured_merge_diff.v7.value}',
+             'ipersist HruleKeepRHS'] +
+            [l for pool, (n, w, pr) in [('mwPool', ('mwNewV', 'mergingWalker', 'mwPooled')),
+                                       ('cmpwPool', ('cwNewV', 'compareWalker', 'cwPooled')),
+                                       ('tPool', ('twNewV', 'toFieldSetWalker', 'twPooled')),
+                                       ('vPool', ('vwNewV', 'validatingObjectWalker', 'vwPooled')),
+                                       ('fmPool', ('rwNewV', 'reconcileWithSchemaWalker', 'rwPooled'))]
+             for l in [f'imod EtcdGrove.smd.init_typedPool _ _ (EtcdGrove.smd.newSpec_{n} _) _ _ '
+                       f'$$ [H{pool}] with #P{pool}',
+                       f'· iframe H{pool}; ipureintro; exact ⟨rfl, rfl⟩']] +
+            FIN_PRE[:6] +
+            ['try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'unfold EtcdGrove.smd.typedPools',
+             'isplitr', '· iexists _; iframe HruleKeepRHS; iExactEq HR; unfold ruleKeepRHSV; rfl'] +
+            [l for pool in ['mwPool', 'cmpwPool', 'tPool', 'vPool']
+             for l in ['isplitr', f'· iexists _; iexact P{pool}']] +
+            ['iexists _; iexact PfmPool']),
 )
 SPECIAL[_SMD + 'merge'] = dict(
     doc='''Its fact is `True` (`Base.lean`). Its initializer initializes its imports and evaluates
@@ -3384,18 +3419,19 @@ def gen_closures(root, pkg, closures, fact, cfg_name):
         if field is not None:
             k = init.index(f'(Let "{field}" ') + len(f'(Let "{field}" ')
             init = init[k:sexp_end(init, k)]
-        m = re.match(r'\(Lam "([^"]*)"\n', init)
+        # (2026-11-19) a closure without a named parameter (`func() T`: `Lam BAnon`) too
+        m = re.match(r'\(Lam (BAnon|"[^"]*")\n', init)
         assert m and init.endswith(')'), (name, init[:60])
         arg = m.group(1)
         inner = init[m.end():-1]
         L.append(f'/-- {doc} -/')
         L.append(f'noncomputable def {name} [GooseExts] [GoGlobalContext] : GoFunc :=')
-        L.append(f'  func.mk BAnon "{arg}"')
+        L.append(f'  func.mk BAnon {arg}')
         L.append('  ' + inner.replace('\n', '\n  '))
         L.append('')
         L.append(f'/-- `{name}` as the value its func literal evaluates to (to fold it in a goal). -/')
         L.append(f'theorem {name}_val [GooseExts] [GoLocalContext] [GoGlobalContext] [GoSemanticsFunctions]\n    [go.Semantics] :')
-        L.append(f'    (#{name} : val) = RecV BAnon "{arg}"')
+        L.append(f'    (#{name} : val) = RecV BAnon {arg}')
         L.append('  ' + inner.replace('\n', '\n  ') + ' := by')
         L.append('  rw [go.intoVal_unfold GoFunc]; rfl')
         L.append('')
@@ -3636,7 +3672,9 @@ def main(argv):
              for path, txt in outs if path in part_paths(inits)]
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures()] + dag_init() + [
-                 gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
+                 gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES'),
+                 gen_closures('', _SMD + 'typed', SMD_TYPED_CLOSURES, 'typedPools',
+                              'SMD_TYPED_CLOSURES')]
         outs += tla_outs()
         outs += wt_inits()
         outs += noax_inits()

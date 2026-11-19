@@ -17,6 +17,7 @@ are the invariant work of the next phase: what the walkers' proofs and the `Type
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Walkers
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
 
 @[expose] public section
 
