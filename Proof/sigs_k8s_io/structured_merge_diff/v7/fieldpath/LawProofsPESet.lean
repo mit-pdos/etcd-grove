@@ -208,12 +208,209 @@ theorem ofList_insert (xs : List PE) (k : Nat) (pe : PE) :
     · exact Or.inr h
     · exact Or.inl (Or.inr h)
 
+/-! ## Association lists keyed by path elements (`PathElementMap`) -/
+
+/-- The value at `k` (`ownPEMapV`'s reading). -/
+abbrev kvFind {α : Type} (xs : List (PE × α)) (k : PE) : Option α :=
+  (xs.find? (fun kv => decide (kv.1 = k))).map (·.2)
+
+theorem kvFind_some {α : Type} (xs : List (PE × α)) (hnd : (xs.map (·.1)).Nodup) (k : PE) (y : α) :
+    kvFind xs k = some y ↔ (k, y) ∈ xs := by
+  induction xs with
+  | nil => simp [kvFind]
+  | cons p rest ih =>
+    obtain ⟨k', y'⟩ := p
+    simp only [List.map_cons, List.nodup_cons] at hnd
+    have ih := ih hnd.2
+    unfold kvFind at ih ⊢
+    rw [List.find?_cons]
+    by_cases hk : k' = k
+    · subst hk
+      simp only [decide_true, Option.map_some, Option.some.injEq, List.mem_cons, Prod.mk.injEq,
+        _root_.true_and]
+      constructor
+      · rintro rfl; exact Or.inl rfl
+      · rintro (h | h)
+        · exact h.symm
+        · exact absurd (List.mem_map_of_mem (f := (·.1)) h) hnd.1
+    · simp only [hk, decide_false, List.mem_cons, Prod.mk.injEq]
+      rw [ih]
+      constructor
+      · intro h; exact Or.inr h
+      · rintro (⟨h, -⟩ | h)
+        · exact absurd h.symm hk
+        · exact h
+
+theorem kvFind_none {α : Type} (xs : List (PE × α)) (k : PE) :
+    kvFind xs k = none ↔ k ∉ xs.map (·.1) := by
+  unfold kvFind
+  simp only [Option.map_eq_none_iff, List.find?_eq_none, decide_eq_true_eq, List.mem_map]
+  constructor
+  · rintro h ⟨p, hp, rfl⟩; exact h p hp rfl
+  · intro h p hp he; exact h ⟨p, hp, he⟩
+
+theorem opt_ext {α : Type} {a b : Option α} (h : ∀ y, a = some y ↔ b = some y) : a = b := by
+  cases a with
+  | none => cases b with
+    | none => rfl
+    | some y => exact absurd ((h y).2 rfl) (by simp)
+  | some x => exact ((h x).1 rfl).symm
+
+theorem peMap_hasCard {α : Type} (M : PEMap α) (xs : List (PE × α))
+    (hnd : (xs.map (·.1)).Nodup) (hM : ∀ k, M k = kvFind xs k) : M.HasCard xs.length := by
+  refine ⟨xs.map (·.1), hnd, fun k => ?_, by simp⟩
+  rw [hM]
+  constructor
+  · intro hk
+    cases h : kvFind xs k with
+    | none => exact absurd hk ((kvFind_none xs k).1 h)
+    | some _ => rfl
+  · intro hs
+    refine Classical.byContradiction fun hk => ?_
+    have := (kvFind_none xs k).2 hk
+    rw [this] at hs; exact absurd hs (by simp)
+
+/-! ## The merge loops (`Union`, `Intersection`, `Difference`) -/
+
+theorem take_succ' {α : Type} (xs : List α) (i : Nat) (h : i < xs.length) :
+    xs.take (i + 1) = xs.take i ++ [xs[i]] := by
+  rw [List.take_add_one, List.getElem?_eq_getElem h]; rfl
+
+theorem drop_cons' {α : Type} (xs : List α) (i : Nat) (h : i < xs.length) :
+    xs.drop i = xs[i] :: xs.drop (i + 1) :=
+  List.drop_eq_getElem_cons h
+
+theorem sorted_drop_lt {xs : List PE} (hs : PE.Sorted xs) (i : Nat) (h : i < xs.length) :
+    ∀ b ∈ xs.drop (i + 1), PE.lt xs[i] b := by
+  have hs' := hs
+  unfold PE.Sorted at hs'
+  rw [← List.take_append_drop i xs, List.pairwise_append, drop_cons' xs i h,
+    List.pairwise_cons] at hs'
+  exact hs'.2.1.1
+
+theorem mem_drop_of_succ {α : Type} {xs : List α} {i : Nat} (hi : i < xs.length) {b : α}
+    (hb : b ∈ xs.drop (i + 1)) : b ∈ xs.drop i := by
+  rw [drop_cons' xs i hi]; exact List.mem_cons_of_mem _ hb
+
+/-- The merge's frontier: what was consumed is below what is left. -/
+def Front (xs ys : List PE) (i j : Nat) : Prop :=
+  ∀ a ∈ xs.take i ++ ys.take j, ∀ b ∈ xs.drop i ++ ys.drop j, PE.lt a b
+
+theorem front_zero (xs ys : List PE) : Front xs ys 0 0 := by
+  intro a ha; simp at ha
+
+theorem front_step_x {xs ys : List PE} {i j : Nat} (hs : PE.Sorted xs) (hf : Front xs ys i j)
+    (hi : i < xs.length) (hlt : ∀ b ∈ ys.drop j, PE.lt xs[i] b) : Front xs ys (i + 1) j := by
+  intro a ha b hb
+  rw [take_succ' xs i hi] at ha
+  simp only [List.mem_append, List.mem_singleton] at ha hb
+  rcases ha with (ha | rfl) | ha
+  · refine hf a (by simp [ha]) b ?_
+    rcases hb with hb | hb
+    · exact List.mem_append.2 (Or.inl (mem_drop_of_succ hi hb))
+    · exact List.mem_append.2 (Or.inr hb)
+  · rcases hb with hb | hb
+    · exact sorted_drop_lt hs i hi b hb
+    · exact hlt b hb
+  · refine hf a (by simp [ha]) b ?_
+    rcases hb with hb | hb
+    · exact List.mem_append.2 (Or.inl (mem_drop_of_succ hi hb))
+    · exact List.mem_append.2 (Or.inr hb)
+
+theorem front_step_y {xs ys : List PE} {i j : Nat} (hs : PE.Sorted ys) (hf : Front xs ys i j)
+    (hj : j < ys.length) (hlt : ∀ b ∈ xs.drop i, PE.lt ys[j] b) : Front xs ys i (j + 1) := by
+  intro a ha b hb
+  rw [take_succ' ys j hj] at ha
+  simp only [List.mem_append, List.mem_singleton] at ha hb
+  rcases ha with ha | (ha | rfl)
+  · refine hf a (by simp [ha]) b ?_
+    rcases hb with hb | hb
+    · exact List.mem_append.2 (Or.inl hb)
+    · exact List.mem_append.2 (Or.inr (mem_drop_of_succ hj hb))
+  · refine hf a (by simp [ha]) b ?_
+    rcases hb with hb | hb
+    · exact List.mem_append.2 (Or.inl hb)
+    · exact List.mem_append.2 (Or.inr (mem_drop_of_succ hj hb))
+  · rcases hb with hb | hb
+    · exact hlt b hb
+    · exact sorted_drop_lt hs j hj b hb
+
+theorem front_step_eq {xs ys : List PE} {i j : Nat} (hsx : PE.Sorted xs) (hsy : PE.Sorted ys)
+    (hf : Front xs ys i j) (hi : i < xs.length) (hj : j < ys.length) (he : xs[i] = ys[j]) :
+    Front xs ys (i + 1) (j + 1) := by
+  intro a ha b hb
+  rw [take_succ' xs i hi, take_succ' ys j hj] at ha
+  simp only [List.mem_append, List.mem_singleton] at ha hb
+  have old : ∀ a, (a ∈ xs.take i ∨ a ∈ ys.take j) → PE.lt a b := by
+    intro a ha
+    refine hf a (by simp only [List.mem_append]; exact ha) b ?_
+    rcases hb with hb | hb
+    · exact List.mem_append.2 (Or.inl (mem_drop_of_succ hi hb))
+    · exact List.mem_append.2 (Or.inr (mem_drop_of_succ hj hb))
+  have new : PE.lt xs[i] b := by
+    rcases hb with hb | hb
+    · exact sorted_drop_lt hsx i hi b hb
+    · rw [he]; exact sorted_drop_lt hsy j hj b hb
+  rcases ha with (ha | rfl) | (ha | rfl)
+  · exact old a (Or.inl ha)
+  · exact new
+  · exact old a (Or.inr ha)
+  · rw [← he]; exact new
+
+/-- The heads of what is left, when `xs[i] < ys[j]`: `xs[i]` is below all of `ys`'s rest. -/
+theorem lt_rest {ys : List PE} (hw : AllWf ys) (hs : PE.Sorted ys) (j : Nat) (hj : j < ys.length)
+    (x : PE) (hx : x.wf = true) (hlt : PE.lt x ys[j]) : ∀ b ∈ ys.drop j, PE.lt x b := by
+  intro b hb
+  rw [drop_cons' ys j hj] at hb
+  rcases List.mem_cons.1 hb with rfl | hb
+  · exact hlt
+  · exact lt_trans' hx (hw _ (List.getElem_mem hj)) (hw b (List.mem_of_mem_drop hb)) hlt
+      (sorted_drop_lt hs j hj b hb)
+
+/-- A consumed element is not left. -/
+theorem front_not_left {xs ys : List PE} {i j : Nat} (hf : Front xs ys i j) (hwx : AllWf xs)
+    (hwy : AllWf ys) (a : PE) (ha : a ∈ xs.take i ++ ys.take j)
+    (hb : a ∈ xs.drop i ++ ys.drop j) : False := by
+  have hwa : a.wf = true := by
+    rcases List.mem_append.1 hb with h | h
+    · exact hwx a (List.mem_of_mem_drop h)
+    · exact hwy a (List.mem_of_mem_drop h)
+  exact lt_irrefl a hwa (hf a ha a hb)
+
 section rep
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
+
+/-- A `PathElementMap`'s one field, and the way back with any new value. -/
+theorem pemap_members_upd (l : Loc) (v : fieldpath.PathElementMap) (dq : DFrac) :
+    (l ↦{dq} v : IProp GF) ⊢ l.[fieldpath.PathElementMap, go!"members"] ↦{dq} v.members' ∗
+      (∀ w, l.[fieldpath.PathElementMap, go!"members"] ↦{dq} w -∗
+        l ↦{dq} ({ members' := w } : fieldpath.PathElementMap)) := by
+  iintro Hl
+  icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %hn⟩
+  iStructNamed Hl
+  iframe members
+  iintro %w Hm
+  iapply typedPointsto_combine _ _ _ hn
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe Hm
+
+/-- A `PathElementValueMap`'s one field, and the way back with any new value. -/
+theorem pevmap_valueMap_upd (l : Loc) (v : fieldpath.PathElementValueMap) (dq : DFrac) :
+    (l ↦{dq} v : IProp GF) ⊢ l.[fieldpath.PathElementValueMap, go!"valueMap"] ↦{dq} v.valueMap' ∗
+      (∀ w, l.[fieldpath.PathElementValueMap, go!"valueMap"] ↦{dq} w -∗
+        l ↦{dq} ({ valueMap' := w } : fieldpath.PathElementValueMap)) := by
+  iintro Hl
+  icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %hn⟩
+  iStructNamed Hl
+  iframe valueMap
+  iintro %w Hm
+  iapply typedPointsto_combine _ _ _ hn
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe Hm
 
 /-- A `PathElementSet`'s one field, and the way back. -/
 theorem peset_members_acc (l : Loc) (v : fieldpath.PathElementSet) (dq : DFrac) :
