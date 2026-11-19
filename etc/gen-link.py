@@ -723,8 +723,9 @@ LEAN_FIRST["--k8s-authz"] = ("link-lean-first-k8s-authz.txt",
                              [""])
 NAMESPACED["--k8s-authz"] = "k8s_authz"
 EXTRA_IMPORTS["--k8s-authz"] = ["Perennial.Proof.errors.Link", "Perennial.Proof.context.Link",
-                                "Perennial.Proof.strings.Link", "Perennial.Proof.fmt.Link"]
-mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
+                                "Perennial.Proof.strings.Link", "Perennial.Proof.fmt.Link",
+                                "Perennial.Proof.slices.Link"]
+mode =LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)} {' '.join(PART_ALIASES)})")
 if ALIAS:

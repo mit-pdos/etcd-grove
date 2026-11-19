@@ -107,6 +107,7 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.slices.Link
 
 @[expose] public section
 
@@ -358,7 +359,7 @@ theorem authorizer.ConditionsAwareDecision.wp_UnconditionalPartsOrError :
 
 theorem sets.wp_List'W :
     EtcdGrove.sets.List'.specW (GF := GF) (hG := hG) :=
-  EtcdGrove.sets.List'.wp_proofW
+  EtcdGrove.sets.List'.wp_proofW sets.Set.wp_UnsortedList _root_.Perennial.slices.wp_Sort
 
 theorem authorizer.Decision.wp_String :
     EtcdGrove.authorizer.Decision.String.spec (GF := GF) (hG := hG) :=

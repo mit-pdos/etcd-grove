@@ -22,7 +22,7 @@ validation_IsDNS1123Subdomain:
 field_NewPath:
 field_ErrorList__ToAggregate:
 sets_Set__Clone:
-sets_List+W:
+sets_List+W: sets_Set__UnsortedList =_root_.Perennial.slices.wp_Sort
 fmt_SprintfDecisions:
 #
 # the authorizer package
