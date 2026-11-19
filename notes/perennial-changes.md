@@ -2875,3 +2875,12 @@ parameter.
 - **Proposed (general).** A Perennial notion of a closure's captured cells (e.g. `func.captures f ls`, produced
   by `wp_auto` when it evaluates a `Lam` under allocated variables), with agreement for equal values.
   **Status.** Recorded only.
+
+## 2026-11-19: `GMap.ofList`'s docstring says the opposite of its definition (k8s 7g, `initialModel`)
+
+- **The gap.** `Perennial/Std/GMap.lean`: `ofList` and `listToMap` are documented as "later bindings win",
+  but `ofList ((k, v) :: l) = insert k v (ofList l)` inserts the head last, so the FIRST binding of a key wins.
+- **Worked around locally.** None needed: `initialModel`'s spec takes distinct store keys
+  (`(st.items.map (storeKeyL ∘ key)).Nodup`), so the order does not matter there.
+- **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
+  **Status.** Recorded only.
