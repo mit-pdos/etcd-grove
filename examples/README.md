@@ -45,6 +45,7 @@ names).
 |---|---|---|---|
 | `k8s/etcd3` | `k8setcd3` | porcupine over Kubernetes' etcd3 storage backend | `k8s_etcd3_safe` |
 | `k8s/daemonset` | `k8sdaemonset` | a DaemonSet controller over an API-server model | – |
+| `k8s/authz` | – | Kubernetes' conditional authorization (KEP-5681, the fork github.com/luxas/kubernetes `c67a81026c8b`) as kube-apiserver runs it: phase 1 (`ConditionsAwareAuthorize`) and phase 2 (`EvaluateConditions`) of a union of leaf authorizers that behave arbitrarily, including lying in phase 2; `Main` panics if phase 2 returns an unknown decision or one phase 1 excluded (projects `k8s-authz`, `k8s-authz-driver`) | – (translated; no proof yet) |
 | `k8s/compactor` | – | Kubernetes' etcd compactor as API servers run it: five API servers (three compactors of their own, two sharing one) and a writer on one member compacting only at its clients' requests (K3, K4 of `notes/k8s-compactor-plan.md`), and on three members under network partitions, any schedule (`MainPartition`, K6) | `k8s_compactor_safe`, `k8s_compactor_partition_safe` |
 
 ## `bbolt/`: bbolt (`go.etcd.io/bbolt`, the fork with its bodies; the part `Bbolt/`)
