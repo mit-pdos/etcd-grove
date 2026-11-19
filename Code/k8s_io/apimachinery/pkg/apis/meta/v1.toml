@@ -13,7 +13,17 @@ translate = ["!*", "StatusFailure", "StatusReasonTimeout", "CauseTypeResourceVer
   # (DaemonSet plan phase 4) `ListAllByNamespace` compares the namespace with it
   "NamespaceAll",
   # (DaemonSet plan phase 5) the daemon pods' node affinity and `GetTargetNodeName` use it
-  "ObjectNameField"]
+  "ObjectNameField",
+  # BEGIN etc/gen-k8s-deep.py: the deep copies the proofs need (generated; do not edit)
+  "LabelSelector.DeepCopyInto",
+  "LabelSelectorRequirement.DeepCopyInto",
+  "ManagedFieldsEntry.DeepCopyInto",
+  "ObjectMeta.DeepCopyInto",
+  "OwnerReference.DeepCopyInto",
+  "Time.DeepCopy",
+  "Time.DeepCopyInto",
+  # END etc/gen-k8s-deep.py
+  ]
 imports = ["!*", "k8s.io/apimachinery/pkg/types", "k8s.io/apimachinery/pkg/runtime",
   "k8s.io/apimachinery/pkg/runtime/schema", "time"]
 
