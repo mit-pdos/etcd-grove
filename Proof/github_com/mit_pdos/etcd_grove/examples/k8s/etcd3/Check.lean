@@ -7,6 +7,9 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.RunLin2
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.failureFree
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.realCheck
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealGlue
 
 @[expose] public section
 
@@ -60,10 +63,12 @@ theorem Check.wp_proof
     (wp_Model : Model.spec (GF := GF) (hG := hG))
     (wp_newCache : newWCache.spec (GF := GF) (hG := hG))
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
-    (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
+    (wp_Apply : Apply.spec (GF := GF) (hG := hG))
+    (wp_failureFree : failureFree.spec (GF := GF) (hG := hG))
+    (wp_realCheck : realCheck.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
   intro _ _ _ γ sp c g0 γk s0 hsl hs clients ops watchers wops dur hc hpfx hrp hdi hvi hAs hse htb
-    hnr hne Hrb H0 Hw0 H31 Hops Hwops Hmul Hg0 Hrv0
+    hnr hne Hrb H0 Hw0 H31 Hops Hwops Hmul Hg0 Hrv0 hrun0
   wp_start as ⟨#Hcc, #Hst, #Hrs, #Hinvs, Hks, #HinvK, #Hsw, #Hwl, #Hs0, #Hsl, #Hhs⟩
   ihave %Hs0rv : ⌜s0.rv' = g0.st.rv⌝ $$ [Hs0]
   · iunfold storeOwn at Hs0; icases Hs0 with ⟨-, %h⟩; ipureintro; exact h
@@ -126,10 +131,33 @@ theorem Check.wp_proof
       iframe Hcx
       ipureintro; exact ⟨rfl, Hx.1, Hs0rv ▸ Hx.2⟩
     · iExactEq Hks; rfl
-  iintro %r %lsl ⟨%Hr, -⟩
+  iintro %r %lsl ⟨%Hr, Hok⟩
   wp_auto
-  iapply HΦ
-  ipureintro; exact Hr
+  by_cases hr : r = go!"Ok"
+  · subst hr
+    ihave ⟨%lops, Hl, #Hio, %Hlops⟩ := Hok $$ %rfl
+    obtain ⟨Hlen, Hlin, Hhist⟩ := Hlops
+    ihave %Hbox := k8s_correctness.opsIoOk_boxes g0 lops $$ Hio
+    simp only [decide_true, Bool.not_true]
+    wp_auto
+    wp_apply wp_failureFree lsl lops (DFrac.own 1) Hbox $$ [Hl] as %b ⟨Hl, %Hb⟩
+    · iframe
+    cases b
+    · wp_auto
+      iapply HΦ
+      ipureintro; exact Hr
+    · wp_auto
+      have hbound : uint.nat g0.st.rv + lops.length < 2 ^ 63 := by
+        have h1 : (lops.length : Int) < 2 ^ 60 := by rw [Hlen]; exact Hmul
+        omega
+      wp_apply wp_realCheck s0 g0 lsl lops dur Hlin Hhist (Hb.1 rfl) hrun0 hbound $$ [Hl] as %r' %Hr'
+      · iframe Hl Hcc Hs0 Hio
+      iapply HΦ
+      ipureintro; exact Hr'
+  · simp only [hr, decide_false, Bool.not_false]
+    wp_auto
+    iapply HΦ
+    ipureintro; exact Hr
 
 end proof
 

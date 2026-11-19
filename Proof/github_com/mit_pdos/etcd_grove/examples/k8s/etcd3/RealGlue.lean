@@ -465,6 +465,30 @@ theorem gOks_collect (g0 : HSt) : ∀ (lops : List github_com.anishathalye.porcu
         · iexact Hrs1
       · iexact Hvs
 
+open Iris.BI Iris.ProofMode in
+/-- **Every operation of a history `RunLin2` answered `Ok` on is boxed** (`failureFree`'s premise). -/
+theorem opsIoOk_boxes (g0 : HSt) : ∀ (lops : List github_com.anishathalye.porcupine.Operation),
+    github_com.anishathalye.porcupine.opsIoOk (k8setcd3S (GF := GF) g0) lops ⊢
+      ⌜∀ o ∈ lops, ∃ x y, o.Input' = boxIn x ∧ o.Output' = boxOut y⌝
+  | [] => by
+    iintro -
+    ipureintro
+    intro o ho; cases ho
+  | o :: lops => by
+    iintro #H
+    iunfold github_com.anishathalye.porcupine.opsIoOk at H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨#Ho, #Hr⟩
+    ihave #Hr : github_com.anishathalye.porcupine.opsIoOk (k8setcd3S g0) lops $$ [Hr]
+    · iunfold github_com.anishathalye.porcupine.opsIoOk; iexact Hr
+    ihave %hr := opsIoOk_boxes g0 lops $$ Hr
+    unfold k8setcd3S
+    icases Ho with ⟨%x, %y, ⟨%hi, %ho, -⟩, -, -⟩
+    ipureintro
+    intro o' ho'
+    rcases List.mem_cons.1 ho' with rfl | ho'
+    · exact ⟨x, y, hi, ho⟩
+    · exact hr o' ho'
+
 /-- **The checker's model's entries** (`realMS`'s `L`): each checker operation's boxes with its unary value. -/
 def Lof (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
     (U : List (Op (Input × RResp))) : List (github_com.anishathalye.porcupine.OpV × (Input × RResp)) :=
