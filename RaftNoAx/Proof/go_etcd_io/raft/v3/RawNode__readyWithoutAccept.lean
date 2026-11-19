@@ -222,18 +222,17 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_call
   wp_auto
   ihave Hlog := Hlb $$ Hl
-  imod cellRO_alloc $$ «$v0» with #cT
-  imod cellRO_alloc $$ «$v1» with #cV
-  imod cellRO_alloc $$ «$v2» with #cC
   irename «$r0» => Hp
   generalize «$r0_ptr» = hp at *
-  imod hsRO_of_struct hp (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0)
-    (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp] with #Hhp
+  -- (2026-11-17, wal-link L1b) canonical (`hsROC`): fresh cells, no unknown fields
+  imod hsROC_of_struct hp (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0)
+    (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp «$v0» «$v1» «$v2»] with #HhpC
   · iframe Hp
     rw [Hlv.1]
     simp only [hardstateVal, nodeHardstate]
-    iframe cT cV cC
+    iframe
   clear Hlv
+  ihave #Hhp := hsROC_hsRO _ _ $$ HhpC
   ihave #Hhp' := hsOpt_of_hsRO _ _ $$ Hhp
   -- (D22l) `prevHardSt`: its record `rs.phs` and its witness
   ihave %Hphe := prevHS_eq γ _ _ _ $$ Hhard
@@ -285,7 +284,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- committed log lies: equal to the node's, or (an empty hard state) the node's is `0`
   -- (2026-10-31, `lean`'s #7) of `prevHardSt` itself (`phsWit`), at the node's commit index, so that
   -- it bounds every committed log handed out within it, the snapshot's too (`Hhsw` below)
-  ihave #HHP : iprop(∃ h, hsOpt HP h ∗ phsWit γ (phsNext rs.phs h) ∗
+  ihave #HHP : iprop(∃ h, hsOptC HP h ∗ phsWit γ (phsNext rs.phs h) ∗
       -- (2026-11-01, durability stage II (k), fix C) the hard state after it is the node's
       ⌜phsNext rs.phs h = HardStateM.mk s.term s.vote s.logst.committed⌝)
     $$ []
@@ -293,7 +292,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     by_cases He : nodeHardstate s = hsAbs hprev
     · rw [ite_pos' He]; iexists HardStateM.mk (W64 0) (W64 0) (W64 0)
       isplitr
-      · unfold hsOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
+      · unfold hsOptC; ileft; ipureintro; exact ⟨rfl, rfl⟩
       isplitr
       rotate_left
       · ipureintro
@@ -305,7 +304,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       iexact Hphsw
     · rw [ite_neg' He]; iexists hardstateVal (nodeHardstate s)
       isplitr
-      · iexact Hhp'
+      · iapply hsROC_hsOptC; iexact HhpC
       by_cases Hz : (hardstateVal (nodeHardstate s)).Term' = W64 0 ∧
           (hardstateVal (nodeHardstate s)).Vote' = W64 0 ∧
           (hardstateVal (nodeHardstate s)).Commit' = W64 0
@@ -594,7 +593,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases HHP with ⟨%hrd, #HHP, #Hphn, %Hhseq⟩
   have Hcge : uint.Z s.logst.committed ≤ uint.Z (phsNext rs.phs hrd).Commit' := by
     rw [Hhseq]; exact Int.le_refl _
-  ihave #Hrdhard : iprop(∃ h, hsOpt HP h ∗ phsWit γ h ∗
+  ihave #Hrdhard : iprop(∃ h, hsOptC HP h ∗ phsWit γ h ∗
       ⌜phsNext rs.phs h = HardStateM.mk s.term s.vote s.logst.committed⌝) $$ []
   · iexists hrd; iframe HHP
     isplitl

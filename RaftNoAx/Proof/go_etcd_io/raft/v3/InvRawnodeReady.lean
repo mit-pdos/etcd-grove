@@ -1481,7 +1481,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   -- the `Ready`, as `acceptReady` reads it
   "#Hrdsoft" ∷ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
   -- (D22l) with its witness (`phsWit`), for `prevHardSt`'s
-  "#Hrdhard" ∷ (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd ∗
+  "#Hrdhard" ∷ (∃ hrd : HardStateM, hsOptC rd.HardState' hrd ∗ phsWit γ hrd ∗
     -- (2026-11-01, durability stage II (k), fix C) the hard state after it is the node's (the cut
     -- batch enters it, `ownRaftGhost_cut`)
     ⌜phsNext rs.phs hrd = HardStateM.mk s.term s.vote s.logst.committed⌝) ∗
@@ -2461,7 +2461,8 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   -- the commit index, its full log the node's (`durTie`, `PersistCut`)
   ihave #Hrdhard' := Hrdhard
   icases Hrdhard' with ⟨%hrd0, #Hrdh0, #Hrdw0, %Hhseq⟩
-  ihave %Hhh := hsOpt_agree rd.HardState' hrd0 hrd $$ [Hrdh0 Hh]
+  ihave #Hrdh0o := hsOptC_hsOpt _ _ $$ Hrdh0
+  ihave %Hhh := hsOpt_agree rd.HardState' hrd0 hrd $$ [Hrdh0o Hh]
   · isplitl [] <;> iassumption
   subst Hhh
   ihave #Hrdlead' := Hrdlead
@@ -2618,7 +2619,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     iexact Hrdz
   ihave #Hdur2 : durTie γ { rs with bw := W } s $$ []
   · iapply durTie_congr γ (rs := rs) (rs' := { rs with bw := W }) (s := s) rfl rfl rfl rfl rfl $$ Hdur
-  ihave #Hrdhard2 : iprop(∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd ∗
+  ihave #Hrdhard2 : iprop(∃ hrd : HardStateM, hsOptC rd.HardState' hrd ∗ phsWit γ hrd ∗
       ⌜phsNext rs.phs hrd = HardStateM.mk s.term s.vote s.logst.committed⌝) $$ []
   · iexists hrd0; iframe Hrdh0 Hrdw0; ipureintro; exact Hhseq
   ihave #Hrdlead2 : iprop(∃ ss' : Option (w64 × StateType), softStateIs rd.SoftState' ss' ∗
@@ -2833,7 +2834,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     -- (`ownRawNodeReady_abandon_keep` raised it to the node's hard state then), above `prevHardSt`'s
     (Hhlb : phsNext rs.phs hrd = rs.hlb) (Hphl : HsLe rs.phs rs.hlb) :
     ⊢ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) -∗
-      hsOpt rd.HardState' hrd -∗
+      hsOptC rd.HardState' hrd -∗
       -- (D22l) its witness (as `readyWithoutAccept` computed it)
       phsWit γ hrd -∗
       entsRO rd.CommittedEntries' ce -∗
@@ -2894,7 +2895,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Hob, Hown1, Hown2⟩
   icases (qOwns_self_split id ms2).1 $$ Hown2 with ⟨Hself, Hoth⟩
   icases (qOwns_other_halves id ms2).2 $$ Hoth with ⟨Hhalf, Hother⟩
-  ihave #Hrdhard : iprop(∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd ∗
+  ihave #Hrdhard : iprop(∃ hrd : HardStateM, hsOptC rd.HardState' hrd ∗ phsWit γ hrd ∗
       ⌜phsNext rs.phs hrd = HardStateM.mk s.term s.vote s.logst.committed⌝) $$ []
   · iexists hrd; iframe Hrdh Hrdw
     ipureintro

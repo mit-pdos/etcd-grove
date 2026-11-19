@@ -806,7 +806,7 @@ state `st` (today's `readyDataL` without them; the storage's part in the storage
 vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages `ms` (each owned
 as `Ready` hands it out, `readyDq`, with its credits; (2026-11-01, durability stage I-3) their
 `sentMsg` no longer here: `readyEnter` gives it, and at role leader `readyLeaderMsgs`), the hard
-state `h` (`nil` or not: `hsOpt`) and the soft state `ss` (`softStateIs`; until 2026-11-01
+state `h` (`nil` or not: `hsOptC`, canonical when not `nil`, 2026-11-17) and the soft state `ss` (`softStateIs`; until 2026-11-01
 `softStateRO`, which `softStateIs_RO` gives), the indices' bound, and the storage's part
 (`readySnap`, by the snapshot's loan `L`). -/
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
@@ -817,7 +817,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
     ([∗list] q ∈ ms, msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
     -- (restart S7.3, 2026-11-14) each message's `MsgSnap` facts (`snapToOk`, `readyRest_snapTo`)
     ([∗list] q ∈ ms, snapTo γ id q.st) ∗
-    hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
+    hsOptC rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧ Lx < (receiptBound GF : Int) + γ.bootLen⌝ ∗

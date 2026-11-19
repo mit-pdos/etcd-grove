@@ -170,6 +170,7 @@ theorem RawNode.HasReady.wp_proof
   icases ownRaftPhysC_core cf rnv.raft' id s $$ Hphys with ⟨Hcore, Hpb⟩
   wp_apply wp_raft_hardState rnv.raft' id s $$ Hcore as %hp ⟨#Hhp, Hcore⟩
   ihave Hphys := Hpb $$ Hcore
+  ihave #Hhp := hsROC_hsRO _ _ $$ Hhp
   ihave #Hhp' := hsRO_to_hsOpt _ _ $$ Hhp
   ihave #Hhard' := prevHS_hsRO γ _ _ _ $$ Hhard
   ihave #Hhard' := hsRO_to_hsOpt _ _ $$ Hhard'

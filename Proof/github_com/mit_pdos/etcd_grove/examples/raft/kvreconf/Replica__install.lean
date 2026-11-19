@@ -216,7 +216,7 @@ theorem Replica.install.wp_proof
     ihave Hsm := Hback $$ []
     · unfold csOptA; ileft; ipureintro; exact ⟨rfl, Hc⟩
     try wp_auto
-    wp_apply wp_Clone.2 $$ [$Hproto]
+    wp_apply wp_Clone.2.1 $$ [$Hproto]
     obtain ⟨csn, Hcsn⟩ : ∃ csn : Loc, csn = null := ⟨_, rfl⟩
     rw [← Hcsn]
     ihave #HcsN : csOpt csn DFrac.discard md.ConfState' $$ []
