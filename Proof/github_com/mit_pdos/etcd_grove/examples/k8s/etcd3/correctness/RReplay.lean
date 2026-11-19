@@ -378,6 +378,75 @@ theorem replayL_rv {init : RM} {ops : List (Input × RResp)} {R : RReplay} (h : 
     · subst hr; rw [GMap.lookup_singleton _ _] at hm; cases hm; rfl
     · rw [GMap.lookup_singleton_ne _ hr] at hm; cases hm
 
+/-- **A write's change has an object or the one before it** (`toWatchEvent` panics on neither). -/
+def chgOk (c : RChange) : Prop := c.obj.isSome ∨ c.prev.isSome
+
+theorem rexecL_chgOk (x : Input) (m : RM) (c : RChange) (h : (rexecL x m).2.2 = some c) : chgOk c := by
+  unfold rexecL at h
+  split at h
+  · cases h
+  split at h
+  · unfold rcreateL failR at h; dsimp only at h; (repeat' split at h) <;> first | (cases h; left; rfl) | (cases h; right; rfl) | cases h
+  split at h
+  · unfold rdeleteL failR at h; dsimp only at h; (repeat' split at h) <;> first | (cases h; left; rfl) | (cases h; right; rfl) | cases h
+  split at h
+  · unfold rupdateL updWriteL failR at h; dsimp only at h
+    (repeat' split at h) <;> first | (cases h; left; rfl) | (cases h; right; rfl) | cases h
+  · cases h
+
+theorem rstepL_chgOk (x : Input) (m : RM) (out : RResp) (c : RChange)
+    (h : (rstepL x m out).2.2 = some c) : chgOk c := by
+  unfold rstepL at h
+  split at h
+  · cases h
+  split at h
+  · split at h
+    · exact rexecL_chgOk x m c h
+    · cases h
+  · cases h
+
+/-- Along `NewReplay`'s loop, every change has an object or the one before it. -/
+theorem replayStepL_chgOk (ops : List (Input × RResp)) (acc : Option (RM × GMap w64 RM × List RChange))
+    (hacc : ∀ st ss cs, acc = some (st, ss, cs) → ∀ c ∈ cs, chgOk c) :
+    ∀ st ss cs, ops.foldl replayStepL acc = some (st, ss, cs) → ∀ c ∈ cs, chgOk c := by
+  induction ops generalizing acc with
+  | nil => exact hacc
+  | cons op ops ih =>
+    apply ih
+    intro st ss cs h c hc
+    cases acc with
+    | none => cases h
+    | some a =>
+      obtain ⟨st0, ss0, cs0⟩ := a
+      simp only [replayStepL] at h
+      split at h
+      · cases h
+        rcases List.mem_append.1 hc with hc | hc
+        · exact hacc _ _ _ rfl c hc
+        · cases hch : (rstepL op.1 st0 op.2).2.2 with
+          | none => rw [hch] at hc; cases hc
+          | some c' =>
+            rw [hch] at hc
+            simp only [Option.toList, List.mem_singleton] at hc
+            subst hc
+            exact rstepL_chgOk _ _ _ _ hch
+      · cases h
+
+/-- **A replay's changes each have an object or the one before it.** -/
+theorem replayL_chgOk {init : RM} {ops : List (Input × RResp)} {R : RReplay} (h : replayL init ops = some R) :
+    ∀ c ∈ R.changes, chgOk c := by
+  unfold replayL at h
+  cases hf : ops.foldl replayStepL (some (init, {[init.rv := init]}, [])) with
+  | none => rw [hf] at h; cases h
+  | some r =>
+    rw [hf] at h
+    cases h
+    obtain ⟨st, ss, cs⟩ := r
+    refine replayStepL_chgOk ops _ ?_ st ss cs hf
+    intro st0 ss0 cs0 h0 c hc
+    cases h0
+    cases hc
+
 end go
 
 end k8s_correctness

@@ -2,6 +2,33 @@
 
 ## START HERE
 
+**2026-11-19 (night 15; for etcd-grove-03). `Replay.validateGet` specified+proved, `Replay.Validate` proved
+(`a63f96f8ff`); `keyFunc` specified+proved; watch.go's spec FIXED (two panics were reachable: forms below);
+watch.go's 15 functions in progress (a sub-agent's drafts, see the commit after `a63f96f8ff`).**
+
+- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`). lean not yet moved to 3afd77e35
+  (origin/lean has it): merge when local `lean` gets it, then a timed full build.
+- Forms this night (questions.md "Step 5 night 15"): validateGet/Validate take `keyOkL` of a get's key;
+  `replayAt` carries each state's own rv (`replayL_rv`) and `chgOk` of every change (`replayL_chgOk`);
+  `wInPre` gains `x.Limit' = 0` (checkWatch panics on a limit; genWatchFrom never sets one: `GenInW` must
+  gain it and flow to realCheck). Model.listItems.spec generalized in place (initialEvents' options).
+- Next, in order: finish watch.go (ValidateWatch.wp_proof); realcheck.go; Check; the discharge list.
+- realCheck DESIGN (not started; decide first): porcupine runs over boxed `Request`/`Response` VALUES (OpV),
+  whose views (reqRep/respRep) need the heap. Plan: a ModelSpec for toPorcupineModel with `M := realS`
+  lifted through `decR : OpV → Option (Input × RResp)` = the view of the FIRST pOp with those values
+  (classical, fixed after the ops are built); needs (i) deepRep agreement (equal values ⇒ equal response
+  views; no lemma yet) and (ii) "rstepL x m out depends on x only through realRequest(x)" per kind (create's
+  `op ↦□ createObjL x` agreement; get/list fields). Then B2 transfers through the lift (porcupine Filter /
+  fmapH lemmas), partLins gives the one linearization, B4/B5 give realOkL on it.
+- Discharge: ioOk (k8setcd3S) must gain the input facts realCheck needs (OpOk's request facts from GenIn,
+  wInPre from GenInW+Skip=false), from Apply's kInOk.
+- realCheck's proof never uses a rejecting run (03's condition); NewReplay/validate*/Validate comply.
+- Pitfalls (new): lean-check `-a` after a lake-rebuilding edit can exceed the Bash 120 s timeout: run it
+  with run_in_background. `first | (cases h; left; rfl) | cases h` (not the reverse: `cases h` on
+  `some c = some ⟨…⟩` leaves the goal).
+
+### Superseded (night 14)
+
 **2026-11-19 (night 14; for etcd-grove-03). Night 13's drafts lean-checked and fixed (`efa0a5d726`); targeted
 build `build-n14` (log `/shared/tmp/k8s7g/build-n14.log`, rc 1) fails ONLY `k8s.etcd3.Check` (needs realCheck,
 expected). `NewReplay` proved (`27c8086bb2`); `Replay.validateList` specified and proved (`ee58711406`).**

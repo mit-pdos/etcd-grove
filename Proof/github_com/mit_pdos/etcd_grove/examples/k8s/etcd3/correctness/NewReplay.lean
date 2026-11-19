@@ -257,6 +257,8 @@ theorem NewReplay.wp_proof
     · ipureintro; exact Hn.2.2.2
     isplitr
     · ipureintro; exact replayL_rv hR
+    isplitr
+    · ipureintro; exact replayL_chgOk hR
     iapply BigSepM.bigSepM_forall_elim
     iintro %rv %q %hq
     iapply HM $$ %rv %q %hq

@@ -9,7 +9,8 @@ watchOptions(in)}`:
 - `wreqRep req x`: the request `req` is that one (its `SendInitialEvents` a frozen cell, `sendInitIs`;
   persistent);
 - `wInPre x`: what `checkWatch` needs not to panic and to accept, and what the validator's range
-  computation needs (B5's `hreq`): the key one `PrepareKey` takes, the resource version parsed below
+  computation needs (B5's `hreq`): the key one `PrepareKey` takes, no limit (`checkWatch` panics on
+  pagination; the driver's watches never set one), the resource version parsed below
   `2^63`, the match and initial-events options as the driver draws them (`WatchInOk`), a watch-list
   asking for bookmarks, any other watch either `SendInitialEvents = false` or from a positive revision
   (not the legacy initial events).
@@ -37,7 +38,7 @@ variable [GooseExts]
 
 /-- **The driver's watch as `checkWatch` accepts it** (see the file header). -/
 def wInPre (x : Input) : Prop :=
-  (k8s.prepareKeyM [] x.WKey' x.Recursive').isSome ∧
+  (k8s.prepareKeyM [] x.WKey' x.Recursive').isSome ∧ x.Limit' = 0 ∧
   ∃ n, parseRVD x.MinRV' = some n ∧ uint.nat n < 2 ^ 63 ∧ WatchInOk x (uint.nat n) ∧
     (x.SendInit' = W64 2 → x.Bookmarks' = true) ∧
     (x.SendInit' ≠ W64 2 → x.SendInit' = W64 1 ∨ 0 < uint.nat n)

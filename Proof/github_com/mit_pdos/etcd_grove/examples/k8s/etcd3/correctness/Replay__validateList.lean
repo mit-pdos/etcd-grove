@@ -48,7 +48,7 @@ theorem Replay.validateList.wp_proof
   intro rp R r ro x out hk hpre hlx hok
   wp_start as ⟨#HR, #Hreq, #Hresp⟩
   unfold replayAt
-  icases HR with ⟨#Hdrv, %sm, %M, %csl, %cvs, #Hrp, #Hsm, %HMs, %HMrv, #HMm, #Hcsl, #Hcvs⟩
+  icases HR with ⟨#Hdrv, %sm, %M, %csl, %cvs, #Hrp, #Hsm, %HMs, %HMrv, %HMch, #HMm, #Hcsl, #Hcvs⟩
   iStructNamed Hrp
   unfold reqRep
   rw [if_pos hk]

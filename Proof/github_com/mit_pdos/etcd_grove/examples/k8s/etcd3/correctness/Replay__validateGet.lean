@@ -66,7 +66,7 @@ theorem Replay.validateGet.wp_proof
   intro rp R r ro x out h4 h0 h1 h2 hpre hkey hok
   wp_start as ⟨#HR, #Hreq, #Hresp⟩
   unfold replayAt
-  icases HR with ⟨#Hdrv, %sm, %M, %csl, %cvs, #Hrp, #Hsm, %HMs, %HMrv, #HMm, #Hcsl, #Hcvs⟩
+  icases HR with ⟨#Hdrv, %sm, %M, %csl, %cvs, #Hrp, #Hsm, %HMs, %HMrv, %HMch, #HMm, #Hcsl, #Hcvs⟩
   iStructNamed Hrp
   unfold reqRep
   simp only [h4, h0, h1, h2, ↓reduceIte]
