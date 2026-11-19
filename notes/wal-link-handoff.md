@@ -1,6 +1,34 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 j, step 3 done, full build green; L3 next (not started); stopped for context)
+## START HERE (2026-11-18 k, L3 started: vocabulary + Release in place; STOP: server-statement stop)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 1b298c1e70 (fmt soundness) merged (61f263bef2: Close's
+  unnamed arm gained `fmtErrorOk`/`fmtErrorOkOrNil`, cleanupWAL/RenameAny resolved); pin 6d365ee1a,
+  `/shared/tmp/manifest-6d3.json` everywhere (also `LAKE_OPTS` for `etc/gen-link.py`), `.lake/package-overrides.json` = a copy.
+  The origin merge (pin f551a1b46, manifest-f55) is still to come: merge it when it lands on lean.
+- **Decided (etcd-grove-03, questions.md 2026-11-18):** step 3, fixes 0007/0008, Create at `P` ACCEPTED; meaning changes
+  to the server-statement stop.
+- **Done (this commit, WIP):** `St/WalRecs.lean` rewritten over layer 1 (`WalA`, `WalH`, `storage.walOpen` moved from
+  `InvOpen`, `walRecs`/`walBaseLb`/`walSnapRec`/`walFiles`/`walPurgeRight`/`walMetaIs` defined, laws re-proved; the axiom
+  `walFiles` and the opaques `walRecGName`/`walBaseGName`/`walDirOf`/`walMetaRaw`/`walGName` gone);
+  `storage.storage.Release.spec` := ReleaseNext's statement, its proof = `wp_proofNext` renamed, the axiom gone,
+  `ReleaseNext.lean` deleted. **The branch does not build past these two** (WalApi and the server clients use the old
+  vocabulary) until the statements are approved and applied. The wal Link must be regenerated after a build
+  (gen-link reads the build: the committed one is pre-merge).
+- **STOP:** `notes/wal-link-l3-statements.md` (exact old → new: vocabulary, isWalStorage's five laws, Release, rnNewStorageOk,
+  diskOk, step 3's meaning changes, tcb delta, decisions incl. F2).
+- **Next after the go:** apply §2-§5 in WalApi/InvOpen/InvNodeStart; prove rnNewStorageOk from NewStorage + the storage specs
+  (instances from `h`); `walRecs_open`/`walRecs_save`/`walRecs_saveSnap` (AU from the server's AU); re-prove the clients
+  (`raftNode__start`, `raftNode__onStop`, `EtcdServer__snapshot`, `applySnapshot`, `InvWal`, `InvRaftNode`, `InvRestart`,
+  StopApi), the slots, the area allocation (P2), the examples' Go (absolute dirs, `--wal-dir`), then the closed-statement stop.
+- **Check/Build:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a FILE`;
+  `LEAN_NUM_THREADS=4 /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build [TARGET]` with
+  run_in_background (slots were busy for hours on 2026-11-18).
+- **Pitfalls:** History i; `ihave #H := lemma $$ Ha` keeps `Ha` when the result is persistent (monoList lb).
+
+## History
+
+### START HERE (2026-11-18 j, step 3 done, full build green; L3 next (not started); stopped for context)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 merged; pin 6d365ee1a,
   `/shared/tmp/manifest-6d3.json` everywhere (also as `LAKE_OPTS` for `etc/gen-link.py`, which finds Perennial's
@@ -21,8 +49,6 @@
   `LEAN_NUM_THREADS=4 /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build [TARGET]`.
   Wait on builds with run_in_background/Monitor, never `pgrep -f` loops (they match themselves).
 - **Pitfalls:** History i.
-
-## History
 
 ### START HERE (2026-11-18 i, step 3 done (SaveSnapshot re-proved, budget removed); STOPPED: fork fix 0008)
 

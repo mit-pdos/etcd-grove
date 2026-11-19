@@ -83,11 +83,6 @@ the program's environment, as `walSaveOk`): `wal.Close`'s sync and closes of its
 (I/O). -/
 opaque walCloseOk : Prop
 
-/-- (2026-10-31, the user's decision: `notes/decisions.md`, "The WAL's readiness and one disk
-premise") **The ghost name of the WAL `w`'s open token** (opaque): one per WAL, not per storage
-over it, so that every `NewStorage` over `w` shares its token (`walOpen`). -/
-opaque walGName (w : Loc) : GName
-
 /-- (2026-10-31) **The WAL a server storage writes** (opaque; `storage.st.w`, names-only: the
 struct is not translated): `NewStorage(lg, w, ss)`'s result's is `w` (`rnNewStorageOk`). -/
 opaque walOf [GooseExts] (st : GoInterface) : Loc
@@ -183,24 +178,6 @@ theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : 
   imod Hmk $$ %γ Hk with ⟨HW, HPk⟩
   imodintro
   iframe HW HPk Hf
-
-/-- (2026-10-31) **The WAL `w` open, at the fraction `q`** (`walGName w`'s ghost variable): every
-fraction lets the storages over `w` write it (`Save`, `SaveSnap`, `Sync`), the whole closes it
-(`Close`), so no write follows a close (`wal.Save` past its shortcut `cut()`s through `w.fp`, nil
-after `Close`). `bootstrap`'s contract (`bootOk`) gives the whole of the WAL it opens. -/
-def walOpen (w : Loc) (q : Qp) : IProp GF :=
-  dghostVar (walGName w) (.own q) ()
-
-instance walOpen_fractional (w : Loc) : Fractional (fun q => walOpen (GF := GF) w q) := by
-  unfold walOpen; infer_instance
-
-instance walOpen_as_fractional (w : Loc) (q : Qp) :
-    AsFractional (walOpen (GF := GF) w q) ioΦ (fun q => walOpen w q) ioq q where
-  as_fractional := .rfl
-  as_fractional_fractional := walOpen_fractional w
-
-instance walOpen_timeless (w : Loc) (q : Qp) : Timeless (walOpen (GF := GF) w q) := by
-  unfold walOpen; infer_instance
 
 end preds
 
