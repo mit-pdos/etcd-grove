@@ -27,8 +27,11 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.TypeRef.wp_proof :
-    typed.TypedValue.TypeRef.spec (GF := GF) := by
-  sorry
+    typed.TypedValue.TypeRef.spec (GF := GF) := fun tv => by
+  wp_start as #Hpkg
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

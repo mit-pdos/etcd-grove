@@ -7,6 +7,8 @@ module
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue
 
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
+
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
@@ -29,8 +31,16 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.AsValue_ptr.wp_proof
     (h_TypedValue_AsValue : typed.TypedValue.AsValue.spec (GF := GF)) :
-    typed.TypedValue.AsValue_ptr.spec (GF := GF) := by
-  sorry
+    typed.TypedValue.AsValue_ptr.spec (GF := GF) := fun p sc S t x => by
+  wp_start as Htv
+  ihave H2 := (isTV_isTVv_law_holds p sc S t x).mp $$ Htv
+  icases H2 with ⟨%tv, #Hp, #Htv⟩
+  wp_auto
+  wp_apply h_TypedValue_AsValue tv
+  unfold isTVv
+  icases Htv with ⟨-, #Hv, -⟩
+  iapply HΦ
+  iexact Hv
 
 end proof
 
