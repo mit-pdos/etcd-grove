@@ -379,12 +379,11 @@ theorem srvSnapDir_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm
   iintro #Hro
   iunfold srvSnapRO at Hro
   icases Hro with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d, %Hp,
-    #HL, #Hzl, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv, -⟩
+    #HL, #Hzl, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv,
+    -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsws⟩
   iunfold srvSnapDir
   iexists stp, ss, γd, srvImageM γr.raft.raft.authOn γr.raft.raft, snapRmM γm
-  iframe HSt Hinv
-  isplitr
-  · ipureintro; exact Hp.2.1
+  iframe HSt Hinv Hsws
   iintro !> %j #Hj
   iunfold snapRmM
   iexact Hj

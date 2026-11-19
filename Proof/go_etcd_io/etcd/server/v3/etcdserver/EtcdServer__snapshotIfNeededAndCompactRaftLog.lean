@@ -39,7 +39,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nk γp w TM ρ sa q γn γm hok hci hrel hsz
-    hwso hγn hpre
+    hγn hpre
   wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hsdir, #Hrmlb, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
     Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh, Htt⟩
   ihave #Hsa' := Hsa
@@ -92,7 +92,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     icases srvApplyKVM_core E.authOn s E γw x sa $$ HKV with ⟨%ua, HKV, HKVk⟩
     first
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nk (W64 0) γp ua q γn γm
-            hok hci hrel (by omega) hsz hwso hγn hpre
+            hok hci hrel (by omega) hsz hγn hpre
             $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
           as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
          · iframe #
@@ -100,7 +100,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
            iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
            ipureintro; exact Hdm)
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nk (W64 0) γp ua q γn γm
-            hok hci hrel (by omega) hsz hwso hγn hpre
+            hok hci hrel (by omega) hsz hγn hpre
             $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
           as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
          · iframe #

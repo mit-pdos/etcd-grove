@@ -893,7 +893,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     -- dropped (the snapshot's replaces it)
     icases Hcerr with ⟨%Dc, -, (⟨%h, -⟩ | %h)⟩
     rotate_left
-    · exact absurd hsop.2.2.2 h
+    · exact absurd hsop.2.2 h
     have hcerr : cerr = GoInterface.nil := h
     subst hcerr
     (try wp_auto)
@@ -1123,6 +1123,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · rw [hP']; iexact HnSC
   iunfold snapWalkPost
   rw [hlb]
+  isplitr [HwT]
+  rotate_left
+  · iexact HwT
   iexists d', π0, g, up', opts', L, spc, jf, γcf, w0, RD0, up, sfv.lg, ua
   isplitr
   · ipureintro

@@ -513,7 +513,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     -, -, #Hddo, -, -, -, -, -, -, -, -, -, -, #Hmidm, #Hsdinv, -⟩
   icombine Hmidr Hmidm gives %hidm
   have hloc : C.γr.raft.raft.snapLoc C.rn.id = some γdo := by
-    rw [hidm]; exact Hsrop.2.2.2.2.2.1
+    rw [hidm]; exact Hsrop.2.2.2.2.1
   iunfold srvSnapRes at Hsr
   icases Hsr with ⟨%d2, %al2, %dd2, %hd2, #Hsch, Hhalf, -, #Hdd2, Hpath, #Hbf⟩
   have hd2' : d2 = d := srvBkTie_inj d2 d (hd2.symm.trans hBT)
@@ -716,7 +716,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   subst hddeq
   icases Hfile with (⟨%path, #Hbf2, Hfh⟩ | %hbad)
   rotate_left
-  · exact absurd hdisk.2.1.2.2.2 hbad
+  · exact absurd hdisk.2.2.2 hbad
   ihave %hpath := backend.bFile_agree d.γB (config.backendPathOf dd) path $$ [Hbf Hbf2]
   · iframe Hbf Hbf2
   subst hpath
@@ -754,7 +754,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   -- `bootOk`'s `Hssp`) at the configuration's `DataDir`, which is the stop's `dd`
   icombine Hdd1 Hddo gives %hddo
   have hsp : snap.snapDBPath sso = snap.snapDBPathOf dd := by
-    rw [hddo]; exact Hsrop.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+    rw [hddo]; exact Hsrop.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
   iexists sso, γdo, γm, cm
   isplitr
   · ipureintro; exact ⟨hloc, hsp, by omega⟩
