@@ -82,6 +82,56 @@ theorem setIs_insertAll (S P : GMap w64 sets.Elem) (ks : List Dec) (m : Dec) (ps
   · have h' : (P !! k).isSome = false := by simpa using h
     rw [h']; exact decide_eq_false (fun hk => h ((hps k).1 hk))
 
+/-- A Go set of decisions has as many elements as its `PD` (`Len()`). -/
+theorem setIs_size (S : GMap w64 sets.Elem) (p : PD) (h : setIs S p) :
+    GMap.size S = p.card := by
+  rw [GMap.size_eq_length S ([W64 0, W64 1, W64 2].filter (fun k => p.has k)) ?_ ?_]
+  · obtain ⟨a, b, c⟩ := p
+    cases a <;> cases b <;> cases c <;> rfl
+  · exact List.Pairwise.sublist List.filter_sublist (by decide)
+  · intro k
+    rw [h k, List.mem_filter]
+    constructor
+    · exact fun hk => hk.2
+    · intro hk
+      refine ⟨?_, hk⟩
+      rcases PD.has_valid p k hk with rfl | rfl | rfl <;> simp
+
+mutual
+/-- A decision containing an unconditional Allow or Deny may evaluate to Allow or Deny. -/
+theorem Dec.cuad_pd : ∀ m : Dec, m.cuad = true → m.pd.deny = true ∨ m.pd.allow = true
+  | .deny, _ => Or.inl rfl
+  | .allow, _ => Or.inr rfl
+  | .noOpinion, h => by simp [Dec.cuad] at h
+  | .cmap _ _ _, h => by simp [Dec.cuad] at h
+  | .union ks, h => by
+    simp only [Dec.pd]
+    exact Dec.cuadL_subL ks h
+theorem Dec.cuadL_subL : ∀ ks : List Dec, Dec.cuadL ks = true →
+    (Dec.subL ks).deny = true ∨ (Dec.subL ks).allow = true
+  | [], h => by simp [Dec.cuadL] at h
+  | k :: ks, h => by
+    simp only [Dec.cuadL, Bool.or_eq_true] at h
+    simp only [Dec.subL, PD.or, Bool.or_eq_true]
+    rcases h with h | h
+    · rcases Dec.cuad_pd k h with h' | h'
+      · exact Or.inl (Or.inl h')
+      · exact Or.inr (Or.inl h')
+    · rcases Dec.cuadL_subL ks h with h' | h'
+      · exact Or.inl (Or.inr h')
+      · exact Or.inr (Or.inr h')
+end
+
+/-- A union may evaluate to some decision. -/
+theorem Dec.union_card_pos (ks : List Dec) : 1 ≤ (Dec.pd (.union ks)).card := by
+  have key : ∀ a b c : Bool, (c = true ∨ a = true ∨ b = true) → 1 ≤ (PD.mk a b c).card := by
+    decide
+  simp only [Dec.pd]
+  apply key
+  cases hc : Dec.cuadL ks
+  · exact Or.inl rfl
+  · exact Or.inr (Dec.cuadL_subL ks hc)
+
 end pure
 
 section decs

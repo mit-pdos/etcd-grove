@@ -14,6 +14,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Error
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__UnionedDecisions
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__ContainsUnconditionalAllowOrDeny
+public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__UnsortedList
+public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Clone
 
 @[expose] public section
 
@@ -125,6 +127,45 @@ theorem ConditionsAwareDecision.wp_ptr_ContainsUnconditionalAllowOrDeny_of
   iapply HΦ; iframe
 
 end wps
+
+section setwps
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.apimachinery.pkg.util.sets.Assumptions]
+variable {K : Type} [ZeroVal K] [DecidableEq K] [go.IntoValInj K] [TypedPointsto (GF := GF) K]
+  {T : go.GoType} [IntoValTyped (GF := GF) K T]
+
+open k8s_io.apimachinery.pkg.util.sets in
+/-- `(*Set[T]).UnsortedList` on the set `*l`. -/
+theorem sets_wp_ptr_UnsortedList_of (wp_UnsortedList : sets.Set.UnsortedList.spec (GF := GF) (hG := hG))
+    (l : Loc) (dl : DFrac) (m : Loc) (dq : DFrac) (s : GMap K sets.Elem) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗
+        l ↦{dl} (m : Set' K) ∗ m ↦${dq} s }}
+      (App (Val (l @!! go.GoType.PointerType (Set'.ty T) @!! go!"UnsortedList")) (Val #()))
+    {{ (sl : GoSlice) (ks : List K), RET #sl; l ↦{dl} (m : Set' K) ∗ m ↦${dq} s ∗ sl ↦* ks ∗
+        ⌜(∀ k, k ∈ ks ↔ (s !! k).isSome) ∧ ks.Nodup ∧ ks.length = GMap.size s⌝ }} := by
+  wp_start as ⟨Hl, Hm⟩
+  wp_auto
+  wp_apply wp_UnsortedList (T := T) $$ [$Hm] as %sl %ks ⟨Hm, Hsl, %Hks⟩
+  iapply HΦ; iframe; ipureintro; exact Hks
+
+open k8s_io.apimachinery.pkg.util.sets in
+/-- `(*Set[T]).Clone` on the set `*l`. -/
+theorem sets_wp_ptr_Clone_of (wp_Clone : sets.Set.Clone.spec (GF := GF) (hG := hG))
+    [∀ k : K, SafeMapKey (GF := GF) T k]
+    (l : Loc) (dl : DFrac) (m : Loc) (dq : DFrac) (s : GMap K sets.Elem) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗
+        l ↦{dl} (m : Set' K) ∗ m ↦${dq} s }}
+      (App (Val (l @!! go.GoType.PointerType (Set'.ty T) @!! go!"Clone")) (Val #()))
+    {{ (r : Loc), RET #r; l ↦{dl} (m : Set' K) ∗ m ↦${dq} s ∗ r ↦$ s }} := by
+  wp_start as ⟨Hl, Hm⟩
+  wp_auto
+  wp_apply wp_Clone (T := T) $$ [$Hm] as %r ⟨Hm, Hr⟩
+  iapply HΦ; iframe
+
+end setwps
 
 end authorizer
 end EtcdGrove
