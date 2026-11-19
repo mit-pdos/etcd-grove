@@ -40,7 +40,6 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hCtxLb : auth.authStore.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
     (hAdminLbO : auth.authStore.IsAdminPermitted.specLbO (GF := GF) (hG := hG))
     (hTLS : auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG))
     (hPut : auth.authStore.IsPutPermitted.spec (GF := GF) (hG := hG))
@@ -149,7 +148,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro
     exact ⟨rfl, fun _ => ⟨γa, rfl⟩, fun γa' h => by cases h; rfl⟩
-  iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hCtxLb hAdminLbO hTLS hPut hRange
+  iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hAdminLbO hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hRangeLbR hEnLb hRevLb hAdminLb hPutLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
     hRoleGrantPermissionB hAuthnB hCP hGT
     rLk rUn rPU rDU rPR rDR rSE rSR rGU rGR rEn rRev rGA rBTs rFCs rGUb rGRb rGAb rGARs rBT rFC rRT rRL rRU

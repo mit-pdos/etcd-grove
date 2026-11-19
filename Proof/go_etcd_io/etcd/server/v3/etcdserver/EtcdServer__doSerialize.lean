@@ -46,11 +46,11 @@ theorem authInfoIs_ptsto (a : Loc) (user : GoString) (rev : w64) :
 
 /-- `AuthInfoFromCtx`'s error is the request side's reason (`serialWhy`'s first case). -/
 theorem serialWhy_of_ctxErr (s : Loc) (M : auth.AuthMode) (on : Bool) (hon : M.isOn = true → on = true)
-    (n : Nat) (ctx err : GoInterface)
+    (n : Nat) (tok : Option GoString) (err : GoInterface)
     (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF) (herr : err ≠ GoInterface.nil) :
     □ (⌜on = true⌝ → ∀ _ : err ≠ GoInterface.nil,
         auth.authErrOf .invalidAuthToken err ∗ auth.enabledVerdictFrom M n true ∗
-          auth.tokRefusedFrom M n ctx) ⊢ serialWhy (GF := GF) s M n ctx err R := by
+          auth.tokRefusedFrom M n tok) ⊢ serialWhy (GF := GF) s M n tok err R := by
   cases M with
   | on γa =>
     iintro #H
@@ -60,11 +60,11 @@ theorem serialWhy_of_ctxErr (s : Loc) (M : auth.AuthMode) (on : Bool) (hon : M.i
   | _ => iintro -; unfold serialWhy; itrivial
 
 /-- `chk`'s refusal of the auth info the request side gave (`serialWhy`'s second case). -/
-theorem serialWhy_of_chk (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+theorem serialWhy_of_chk (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) (err : GoInterface)
     (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    □ (⌜M.isOn = true⌝ → infoWhy s M n ctx info) ∗ R info err ⊢
-      serialWhy (GF := GF) s M n ctx err R := by
+    □ (⌜M.isOn = true⌝ → infoWhy s M n tok info) ∗ R info err ⊢
+      serialWhy (GF := GF) s M n tok err R := by
   cases M with
   | on γa =>
     iintro ⟨#Hi, HR⟩
@@ -75,14 +75,14 @@ theorem serialWhy_of_chk (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoIn
 
 /-- The revision re-check's refusal (`serialWhy`'s third case): the auth info's non-zero revision,
 not the revision read at a state no older than `n`. -/
-theorem serialWhy_of_oldRev (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+theorem serialWhy_of_oldRev (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) (err : GoInterface)
     (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (x : w64) (h0 : info.Revision' ≠ W64 0)
     (hx : info.Revision' ≠ x) :
-    □ (⌜M.isOn = true⌝ → ⌜info.Revision' ≠ W64 0⌝ → principalBound s M ctx (some info) ∗
+    □ (⌜M.isOn = true⌝ → ⌜info.Revision' ≠ W64 0⌝ → principalBound s M tok (some info) ∗
         (auth.enabledVerdictFrom M n true ∨ srvTLSId s)) ∗
       auth.revisionVerdictFrom M n x ∗ auth.authErrOf .authOldRevision err ⊢
-      serialWhy (GF := GF) s M n ctx err R := by
+      serialWhy (GF := GF) s M n tok err R := by
   cases M with
   | on γa =>
     iintro ⟨#Hb, #Hv, #He⟩
@@ -105,11 +105,11 @@ set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.doSerialize.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
-    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd chk get G Q C R t e n
-  wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, #Hctx, #Hlib, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
+  intro s E ρ γr ctx cd tok chk get G Q C R t e n
+  wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, #Hctx, #Hlib, #HtokC, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,
@@ -125,7 +125,7 @@ theorem EtcdServer.doSerialize.wp_proof
   wp_auto
   wp_apply hGet ctx (some t) $$ [$Hct] as %tr ⟨%Htr, %Hteq⟩
   subst tr
-  wp_apply EtcdServer.AuthInfoFromCtx.wpMLb E.authOn hAI s E v.auth v.cca ctx cd n $$ [Hard]
+  wp_apply EtcdServer.AuthInfoFromCtx.wpMLb E.authOn hAI s E v.auth v.cca ctx cd n tok $$ [Hard]
     as %a %err ⟨Hard, Ha, #HaE, #Hab, #Hz, #Hne, #Hnn⟩
   · iframe; iframe #
   cases err with
@@ -143,10 +143,10 @@ theorem EtcdServer.doSerialize.wp_proof
   | nil =>
     wp_auto
     wp_join iprop(∃ (a' : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
-        ai_ptr ↦ a' ∗ a' ↦{dq} info ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
-        □ (⌜E.authMode.isOn = true⌝ → infoWhy s E.authMode n (GoInterface.ok ctx) info) ∗
+        ai_ptr ↦ a' ∗ a' ↦{dq} info ∗ infoBoundM E.authOn s E tok info ∗
+        □ (⌜E.authMode.isOn = true⌝ → infoWhy s E.authMode n tok info) ∗
         □ (⌜E.authMode.isOn = true⌝ → ⌜info.Revision' ≠ W64 0⌝ →
-          principalBound s E.authMode (GoInterface.ok ctx) (some info) ∗
+          principalBound s E.authMode tok (some info) ∗
           (auth.enabledVerdictFrom E.authMode n true ∨ srvTLSId s)))
       with [ai Ha] as ⟨%a', %info, %dq, ai, Hai, #Hib, #Hiw, #Hio⟩
     · iexists «$r0_ptr», _, DFrac.own 1

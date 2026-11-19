@@ -119,7 +119,6 @@ axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
-axiom incomingOf_cancelCtx
 axiom lease.lessor.Renew.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
@@ -171,7 +170,6 @@ axiom txn.RangeSecObserve.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
-axiom v3rpc.incomingOf_cancellableContext
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg

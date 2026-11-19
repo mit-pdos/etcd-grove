@@ -269,10 +269,6 @@ theorem api.wp_IsCapabilityEnabled :
     EtcdGrove.api.IsCapabilityEnabled.spec (GF := GF) (hG := hG) :=
   EtcdGrove.api.IsCapabilityEnabled.wp_proof
 
-theorem metadata.wp_FromIncomingContext :
-    EtcdGrove.metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.metadata.FromIncomingContext.wp_proof
-
 theorem metadata.MD.wp_Get :
     EtcdGrove.metadata.MD.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metadata.MD.Get.wp_proof
@@ -394,11 +390,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 theorem AuthAdmin.wp_isPermitted :
     EtcdGrove.v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.AuthAdmin.isPermitted.wp_proof EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
+  EtcdGrove.v3rpc.AuthAdmin.isPermitted.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
 
 theorem AuthAdmin.wp_requireAuthInfo :
     EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
+  EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
 
 theorem AuthServer.wp_AuthDisable :
     EtcdGrove.v3rpc.AuthServer.AuthDisable.spec (GF := GF) (hG := hG) :=
@@ -636,6 +632,10 @@ theorem wp_isRPCSupportedForLearner :
     EtcdGrove.v3rpc.isRPCSupportedForLearner.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.isRPCSupportedForLearner.wp_proof
 
+theorem metadata.wp_FromIncomingContext :
+    EtcdGrove.metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metadata.FromIncomingContext.wp_proof
+
 theorem wp_newUnaryInterceptor :
     EtcdGrove.v3rpc.newUnaryInterceptor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.newUnaryInterceptor.wp_proof api.wp_IsCapabilityEnabled EtcdServer.wp_MemberID EtcdServer.wp_IsMemberExist EtcdServer.wp_IsLearner wp_isRPCSupportedForLearner metadata.wp_FromIncomingContext metadata.MD.wp_Get utf8.wp_ValidString prometheus.CounterVec.wp_WithLabelValues EtcdServer.wp_Leader
@@ -862,7 +862,7 @@ theorem serverWatchStream.wp_close [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem serverWatchStream.wp_isWatchPermitted :
     EtcdGrove.v3rpc.serverWatchStream.isWatchPermitted.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.serverWatchStream.isWatchPermitted.wp_proof EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
+  EtcdGrove.v3rpc.serverWatchStream.isWatchPermitted.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
 
 theorem serverWatchStream.wp_newResponseHeader :
     EtcdGrove.v3rpc.serverWatchStream.newResponseHeader.spec (GF := GF) (hG := hG) :=

@@ -18,7 +18,7 @@ server's merged linked specs (`EtcdServer.{Put,DeleteRange,Range,Txn}.spec`):
   `txnReadAnsOn`), with its check's class: the permissions it saw granted at states recorded at an
   index `m ≥ n` (`apply.rangeClassFrom`, `txnClassFrom`), and for a linearizable read no older than
   the auth state the committed log through the read index left (`authFloorAt`);
-- a call is at a context carrying the token `tok` (`auth.ctxTokenOf`; the parameter is the
+- a call is at a context carrying the token `tok` (`auth.ctxToken`, gated by the mode; perheap C1a; the parameter is the
   caller's, as the deposit `d` is);
 - a successful write's answer is `srvKVAns`'s and the grant (`writeGrantOn`, 2026-10-28): the
   request with the header the server stamped (`hm`) was granted at the committed log `L` before
@@ -92,10 +92,10 @@ abbrev txnReadAnsOn (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Lo
     (Q : List EntryModel → IProp GF) (resp : Loc) (r : w64) : IProp GF :=
   txnReadAnsM true E γr c F t Q resp r
 
-/-- An auth info bound to the context `ctx` is bound to its token. -/
-theorem infoBoundM_tok (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+/-- An auth info bound to the token (`infoBoundM` with auth on) is `infoBoundT`'s. -/
+theorem infoBoundM_tok (s : Loc) (E : apply.AEnv GF) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    infoBoundM (GF := GF) true s E ctx info ⊢ infoBoundT s E.authMode (auth.ctxTokenOf ctx) info := by
+    infoBoundM (GF := GF) true s E tok info ⊢ infoBoundT s E.authMode tok info := by
   unfold infoBoundM infoBoundT principalBound
   iintro H; iexact H
 
@@ -152,9 +152,9 @@ instance writeGrantOn_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     Persistent (writeGrantOn (GF := GF) s E ρ tok rq0) := by
   unfold writeGrantOn; infer_instance
 
-/-- A header bound to the context `ctx` is bound to its token (`hdrBoundT`). -/
-theorem hdrBoundM_tok (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (hm : apply.HeaderModel) :
-    hdrBoundM (GF := GF) true s E ctx hm ⊢ hdrBoundT s E.authMode (auth.ctxTokenOf ctx) hm := by
+/-- A header bound to the token (`hdrBoundM` with auth on) is `hdrBoundT`'s. -/
+theorem hdrBoundM_tok (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (hm : apply.HeaderModel) :
+    hdrBoundM (GF := GF) true s E tok hm ⊢ hdrBoundT s E.authMode tok hm := by
   unfold hdrBoundM hdrBoundT principalBound
   iintro H; iexact H
 
@@ -211,7 +211,7 @@ the caller's lower bound `n` of the published auth index, and a write's deposit 
 def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (d : KVDep GF) (n : Nat) (tok : Option GoString) : KVAns GF where
   call ctx := iprop(srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnOn s E ρ γr tok d ∗
-    srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ ⌜auth.ctxTokenOf ctx = tok⌝)
+    srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ □ auth.ctxToken ctx tok)
   pre q := (match q with
     | .txn cs ts es => txnInModel cs ts es
     | _ => True) ∧ kvDepPreOn d q
@@ -317,7 +317,8 @@ row is gated (`⌜on = true⌝ → …`) or reads the model at the mode. The gat
 def srvKVAnsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (d : KVDep GF) (n : Nat) (tok : Option GoString) : KVAns GF where
   call ctx := iprop(srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM on s E ρ γr tok d ∗
-    srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ ⌜on = true → auth.ctxTokenOf ctx = tok⌝)
+    srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
+    □ (⌜on = true⌝ → auth.ctxToken ctx tok))
   pre q := (match q with
     | .txn cs ts es => txnInModel cs ts es
     | _ => True) ∧ kvDepPreM on d q
@@ -471,16 +472,16 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   iintro %ctx %r %o !> %Φ ⟨Hcall, #Hr, %Hok⟩ HΦ
   have hd : kvDepPreM E.authOn d (.put o) := Hok.2.2
   simp only [srvKVAnsM]
-  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, -, %Htok⟩
+  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, -, #HtokK⟩
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, -, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
-  wp_apply hPut s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
+  wp_apply hPut s E ρ ci cd tok r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe #; iframe Hrd Hard Hcred
     -- the gate is `Put.spec`'s, found by unification (off, the permit ignores it)
     iapply putPermitM_of_dep E.authOn s E ρ γr tok d o _ ?hGb Hok.1 hd $$ Hdep
-    case hGb => intro h hm; rw [← Htok h]; exact hdrBoundM_tok s E _ hm
+    case hGb => intro h hm; exact hdrBoundM_tok s E _ hm
   ihave Hrc := Hrc $$ Hard
   iapply HΦ
   iunfold kvAnswer
@@ -516,7 +517,6 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact Hga
       rw [hon]
-      rw [← Htok hon]
       iapply hdrBoundM_tok $$ Hhb
     iunfold putAppliedOk
     iframe Hrd
@@ -559,7 +559,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
   have Hnz0 : o.base.rangeEnd ≠ [W8 0] := by
     have h1 := hd.1; simp only [kvDepPre] at h1; exact h1.2
   simp only [srvKVAnsM]
-  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, -, %Htok⟩
+  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, -, #HtokK⟩
   have HnzW : irrNoZeroEnd (irrDeleteRange o) := by
     refine ⟨?_, ?_, ?_⟩
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
@@ -569,11 +569,11 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, #Hst, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
-  wp_apply hDel s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
+  wp_apply hDel s E ρ ci cd tok r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe #; iframe Hrd Hard Hcred
     -- the gate is `DeleteRange.spec`'s, as in the put
     iapply deletePermitM_of_dep E.authOn s E ρ γr tok d o _ ?hGb hd $$ Hdep
-    case hGb => intro h hm; rw [← Htok h]; exact hdrBoundM_tok s E _ hm
+    case hGb => intro h hm; exact hdrBoundM_tok s E _ hm
   ihave Hrc := Hrc $$ Hard
   iapply HΦ
   iunfold kvAnswer
@@ -608,7 +608,6 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
       isplitr
       · ipureintro; exact Hga
       rw [hon]
-      rw [← Htok hon]
       iapply hdrBoundM_tok $$ Hhb
     iunfold deleteAppliedOk
     iframe Hrd
@@ -1095,13 +1094,13 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
   iunfold kvRangeOk
   iintro %ctx %r %o !> %Φ ⟨Hcall, #Hr, %Hok⟩ HΦ
   simp only [srvKVAnsM]
-  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
+  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, #HtokK⟩
   ihave #Hdep' := kvDep_of_depM E.authOn s E ρ γr tok d $$ Hdep
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
   subst Hci
   iapply wp_fupd
-  wp_apply hRange s E ρ γr c ci cd r o none false (rangeDepQM E.authOn γr.kv d) F n Hany $$ [Hrc]
+  wp_apply hRange s E ρ γr c ci cd tok r o none false (rangeDepQM E.authOn γr.kv d) F n Hany $$ [Hrc]
     as %resp %err ⟨Hrc, Hres⟩
   · iframe #; iframe Hrc
     isplitr
@@ -1150,7 +1149,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     isplitr
     · ipureintro; exact Hm
     rw [hon]
-    rw [← Htok hon]; iapply infoBoundM_tok $$ Hib
+    iapply infoBoundM_tok $$ Hib
   · obtain ⟨rfl, Hne⟩ := Hre
     imodintro
     iapply HΦ
@@ -1185,14 +1184,14 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   obtain ⟨ts', es', hts, hes, hm⟩ := txnModelOf_of_check Hck
   simp only [srvKVAnsM] at Hin ⊢
   simp only [kvDepPre] at Hro
-  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
+  icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, #HtokK⟩
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
   subst Hci
   ihave #Hrt := txnReqIs_txnRequestIs r cs ts es ts' es' hts hes $$ Hr
   generalize ht : ({ cmps := cs, thenOps := ts', elseOps := es' } : TxnModel) = t at hm ⊢
   have hg := txnGetsOk_of_check _ _ _ _ _ Hck hm Hin
-  have hT := hTxn s E ρ γr c ci cd r t (opDepQ d) (rangeDepQM E.authOn γr.kv d) none false F n
+  have hT := hTxn s E ρ γr c ci cd tok r t (opDepQ d) (rangeDepQM E.authOn γr.kv d) none false F n
   cases hro : txn.txnReadonly t
   · -- a writing transaction: through raft, as `Put`
     have hdp' : (∃ Q, d = .op1 (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧
@@ -1207,8 +1206,8 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       exact txnShape_of_check n' cs ts es ts' es' hts hes Hck HivT HivE ⟨hz.2.1, hz.2.2⟩
         ⟨hsT, hsE⟩ hpl ⟨hnT, hnE⟩
     ihave Hdep := txnPermitM_of_dep E.authOn s E ρ γr tok d t
-      (hdrBoundM E.authOn s E (GoInterface.ok ci))
-      (fun h hm => by rw [h, ← Htok h]; exact hdrBoundM_tok s E _ hm) ⟨hq, hpl, hz⟩ hsh
+      (hdrBoundM E.authOn s E tok)
+      (fun h hm => by rw [h]; exact hdrBoundM_tok s E _ hm) ⟨hq, hpl, hz⟩ hsh
       (fun h => Hsh h t hm hro) $$ Hdep
     simp only [hro, Bool.false_eq_true, ↓reduceIte] at hT
     wp_apply hT $$ [Hlt Hcred Hrc Hdep] as %resp %err ⟨Hlt, Hrc, Hres⟩
@@ -1251,7 +1250,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       isplitl; rotate_left
       · iintro %hon
         ihave ⟨%tw2, %hm2, %L2, %Hg2, #Hhb2, #HpAf2⟩ := Hgate $$ %hon
-        rw [hon, ← Htok hon]
+        rw [hon]
         iexists tw2
         isplitr
         · ipureintro; exact Hg2.1
@@ -1338,7 +1337,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iframe Hc Hf
       isplitr
       · ipureintro; exact Hm
-      rw [hon, ← Htok hon]
+      rw [hon]
       iapply infoBoundM_tok $$ Hib
     · imodintro
       iapply HΦ
@@ -1578,7 +1577,7 @@ theorem raftKV_srvKVAnsM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
       imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
       imodintro
       iframe Hc Hrc Hdep HF Hn
-      ipureintro; exact fun h => by cases h)
+      iintro !> %h; cases h)
     (fun q h => ⟨h.1, h.2, fun h' => by cases h'⟩)
     (fun q resp h r => by
       cases q with
@@ -1610,12 +1609,12 @@ theorem raftKV_srvKVAnsM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   raftKV_mono s _ _ rfl
     (fun ctx => by
       simp only [srvKVAnsOn, srvKVAnsM]
-      iintro ⟨Hc, Hrc, Hdep, #HF, #Hn, %Ht⟩
+      iintro ⟨Hc, Hrc, Hdep, #HF, #Hn, #Ht⟩
       imodintro
       iframe Hc Hrc HF Hn
       isplitl [Hdep]
       · iapply (kvDepOwnM_true s E ρ γr tok d).2 $$ Hdep
-      ipureintro; exact fun _ => Ht)
+      iintro !> -; iexact Ht)
     (fun q h => ⟨h.1, kvDepPreM_of_on _ d q h.2⟩)
     (fun q resp h r => by
       cases q with

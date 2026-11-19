@@ -48,9 +48,9 @@ theorem EtcdServer.LeaseRevoke.wp_proof
     (hWA : trace.WithAttributes.spec (GF := GF) (hG := hG))
     (hI64 : «attribute».Int64.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r id Q
+  intro s E ρ ctx cd tok r id Q
   have hRR := hRR0 s E ρ
-  wp_start as ⟨%hlm, #Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #Hspc, #Hst, #Hreq, Hperm⟩
+  wp_start as ⟨%hlm, #Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #HtokC, #Hspc, #Hst, #Hreq, Hperm⟩
   iunfold leaseRevokeReqRO at Hreq
   icases Hreq with ⟨%hr, #HID⟩
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
@@ -78,7 +78,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1, #Hlibw, -⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hmd1, #Hsp, #Hspw, #Hst1, #Hlibw, -⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
@@ -91,9 +91,11 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   subst Hsi
   (try wp_auto)
   -- `requireAuthInfo`: `nil` with auth off; with auth on, its error is returned
-  wp_apply hAuth s E ctx1 _ $$ [Hrd] as %aerr ⟨Hrd, #Hae, -⟩
+  ihave #HtokE := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+  · iintro !> %h; iapply HtokE; ipureintro; exact h
+  wp_apply hAuth s E ctx1 _ tok $$ [Hrd] as %aerr ⟨Hrd, #Hae, -⟩
   · iframe #; iframe Hrd
-  ihave #Hae0 := authedOutB_ctx s E.authMode _ _ aerr Hinc1 $$ Hae
   (try wp_auto)
   rcases aerr with ae | _
   · -- refused
@@ -171,8 +173,10 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   cases hon : E.authOn
   · -- auth off
     rw [hon] at hRR
+    ihave #HtokR : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+    · iintro !> %h; cases h
     imod Hcred with Hc
-    wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
+    wp_apply hRR ctx1 _ tok «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
         (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hlt Hrd Hc Header] as %resp %err ⟨Hlt, Hrd, Hres⟩
     · iframe # Hlt Hrd Hc
@@ -235,7 +239,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
         iframe Hic Hcok
         ipureintro; omega
       isplitr
-      · iexact Hae0
+      · iexact Hae
       iunfold leaseRevokeResM; itrivial
     · obtain ⟨rfl, Hne⟩ := Hre
       (try wp_auto)
@@ -251,16 +255,18 @@ theorem EtcdServer.LeaseRevoke.wp_proof
       · exact absurd rfl Hne
   · -- auth on (auth-lease S3b)
     rw [hon] at hRR
+    ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+    · iintro !> -; iapply HtokA; ipureintro; first | rfl | exact hon
     -- (auth-lease S3b) the client's update, fired at the commit when granted
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
     imod Hcred with Hc
-    wp_apply hRR ctx1 _ «$a1_ptr» rq (revokeQhOn ρ.kv id γc Q) [] rfl
+    wp_apply hRR ctx1 _ tok «$a1_ptr» rq (revokeQhOn ρ.kv id γc Q) [] rfl
         (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hlt Hrd Hc Header Hperm] as %resp %err ⟨Hlt, Hrd, Hres⟩
     · iframe # Hlt Hrd Hc
       isplitl [Hperm]
       · iapply leaseRevokePermit_reqPropOk ρ.raft ρ.kv _ _ id Q γc
-          (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc1) ⟨hlm, Hrk⟩ $$ Hperm
+          (fun _ => BIBase.Entails.rfl) ⟨hlm, Hrk⟩ $$ Hperm
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, -, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, -⟩)
@@ -332,12 +338,12 @@ theorem EtcdServer.LeaseRevoke.wp_proof
         iframe Hic Hcok
         ipureintro; omega
       isplitr
-      · iexact Hae0
+      · iexact Hae
       iunfold leaseRevokeResM
       iexists hm, Lq
       iframe HpAf HQ
       isplitr
-      · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+      · iexact Hhb
       ipureintro; exact Hga
     · obtain ⟨rfl, Hne⟩ := Hre
       (try wp_auto)
