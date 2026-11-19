@@ -220,7 +220,7 @@ theorem Tx.WriteTo.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF)
           fmt_args_ok
           iunfold fmtErrorOk at Hwe'
           icases Hwe' with ⟨%hwe, #Hwm⟩
-          iright; ileft; iframe Hwm; ipureintro; exact hwe.1
+          iright; ileft; iframe Hwm; ipureintro; exact hwe
         try wp_auto
         wp_for_post
         try wp_auto
