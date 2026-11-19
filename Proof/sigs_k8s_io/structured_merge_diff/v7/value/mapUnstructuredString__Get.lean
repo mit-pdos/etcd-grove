@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Get
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__GetUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,15 @@ variable [package_sem : value.Assumptions]
 
 theorem value.mapUnstructuredString.Get.wp_proof
     (h_mapUnstructuredString_GetUsing : value.mapUnstructuredString.GetUsing.spec (GF := GF)) :
-    value.mapUnstructuredString.Get.spec (GF := GF) := by
-  sorry
+    value.mapUnstructuredString.Get.spec (GF := GF) := fun m kvs k => by
+  wp_start as Hm
+  icases valuePkg_globals $$ Hpkg with ⟨%ha, %er, #Hha, -⟩
+  wp_auto
+  wp_method_call
+  wp_auto
+  wp_apply h_mapUnstructuredString_GetUsing m kvs _ k $$ [Hm] as %v %ok ⟨-, Hr⟩
+  · iframe; iapply isAlloc_heap_intro
+  wp_end
 
 end proof
 

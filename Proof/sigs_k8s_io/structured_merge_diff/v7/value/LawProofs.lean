@@ -7,6 +7,7 @@ it unfolds the sealed predicates (`import all` of the package's own modules).
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Objects
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofsPure
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Objects
 
@@ -150,6 +151,68 @@ theorem isMapV_intro (gm : GoMap) (kvs : List (GoString × UVal)) :
   iframe
   ipureintro
   rfl
+
+/-! ## Allocators -/
+
+theorem isAlloc_heap_intro (p : Loc) :
+    ⊢ isAlloc (GF := GF) (interface.mkOk (go.GoType.PointerType value.heapAllocator.ty) #p) := by
+  iunfold isAlloc
+  ileft
+  iexists p
+  ipureintro
+  rfl
+
+/-! ## Maps -/
+
+theorem isIface_map_val (gm : GoMap) (kvs : List (GoString × UVal)) :
+    isIface (GF := GF) (interface.mkOk mapStrIfaceTy #gm) (.map kvs) ⊢
+      ∃ M : GMap GoString GoInterface, gm ↦$□ M ∗
+        ⌜keysSorted kvs = true ∧ ∀ k, (M !! k).isSome = (lookupKV k kvs).isSome⌝ ∗
+        isIfaceM (GF := GF) M kvs := by
+  iintro Hi
+  iunfold isIface at Hi
+  icases Hi with ⟨%gm', %M, %Heq, Hm, %Hk, HM⟩
+  simp [intoVal_eq_iff] at Heq
+  subst Heq
+  iexists M
+  iframe
+  ipureintro
+  exact Hk
+
+theorem isMapV_val (gm : GoMap) (kvs : List (GoString × UVal)) :
+    isMapV (GF := GF) (interface.mkOk value.mapUnstructuredString.ty #gm) kvs ⊢
+      isIface (GF := GF) (interface.mkOk mapStrIfaceTy #gm) (.map kvs) := by
+  iintro Hm
+  iunfold isMapV at Hm
+  icases Hm with ⟨%gm', %Heq, Hi⟩
+  simp [intoVal_eq_iff] at Heq
+  subst Heq
+  iexact Hi
+
+theorem isIfaceM_lookup (M : GMap GoString GoInterface) (k : GoString) (x : UVal) :
+    ∀ (kvs : List (GoString × UVal)), lookupKV k kvs = some x →
+    isIfaceM (GF := GF) M kvs ⊢ ∃ i, ⌜M !! k = some i⌝ ∗ isIface (GF := GF) i x
+  | [], h => by simp [lookupKV] at h
+  | (k', v') :: rest, h => by
+    iintro H
+    iunfold isIfaceM at H
+    icases H with ⟨%i, %Hi, Hv, H⟩
+    unfold lookupKV at h
+    by_cases hk : k' = k
+    · subst hk
+      simp at h; subst h
+      iexists i; iframe; ipureintro; exact Hi
+    · simp only [hk, ite_false] at h
+      iapply isIfaceM_lookup M k x rest h
+      iexact H
+
+theorem map_size_kvs (M : GMap GoString GoInterface) (kvs : List (GoString × UVal))
+    (hs : keysSorted kvs = true) (hk : ∀ k, (M !! k).isSome = (lookupKV k kvs).isSome) :
+    GMap.size M = kvs.length := by
+  rw [GMap.size_eq_length M (kvKeys kvs) (ValuePure.keysSorted_nodup kvs hs)]
+  · simp [kvKeys]
+  · intro k
+    rw [← ValuePure.lookupKV_isSome_iff, hk]
 
 /-! ## Ranges -/
 

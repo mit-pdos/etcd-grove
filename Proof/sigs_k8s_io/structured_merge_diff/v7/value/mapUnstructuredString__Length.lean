@@ -6,6 +6,7 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Length
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -28,8 +29,17 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.mapUnstructuredString.Length.wp_proof :
-    value.mapUnstructuredString.Length.spec (GF := GF) := by
-  sorry
+    value.mapUnstructuredString.Length.spec (GF := GF) := fun m kvs => by
+  wp_start as Hm
+  ihave Hi := isMapV_val $$ Hm
+  icases isIface_map_val $$ Hi with ⟨%M, #HM, %Hk, -⟩
+  have hsz := map_size_kvs M kvs Hk.1 Hk.2
+  wp_auto
+  wp_apply wp_map_len_lt m M DFrac.discard as ⟨-, %Hlt⟩
+  · iexact HM
+  wp_end
+  ipureintro
+  word
 
 end proof
 
