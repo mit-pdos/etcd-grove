@@ -13,3 +13,4 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Schema
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Maps
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Sets
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Kwi
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Recon
