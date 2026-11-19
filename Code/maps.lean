@@ -56,7 +56,7 @@ noncomputable def DeleteFunc [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.maps where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
