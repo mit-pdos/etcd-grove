@@ -35,7 +35,31 @@ theorem value.CompareUsingRec.wp_proof
     (h_ListCompareUsing_body : value.ListCompareUsing.specBody (GF := GF))
     (h_MapCompareUsing_body : value.MapCompareUsing.specBody (GF := GF)) :
     value.CompareUsingRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ value.CompareUsingRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H0 := h_CompareUsing_body $$ IH
+    ihave H1 := h_ListCompareUsing_body $$ IH
+    ihave H2 := h_MapCompareUsing_body $$ IH
+    unfold value.CompareUsingRec.specI
+    isplit
+    · iexact H0
+    isplit
+    · iexact H1
+    iexact H2
+  unfold value.CompareUsingRec.specI value.CompareUsing.specI value.ListCompareUsing.specI value.MapCompareUsing.specI at H
+  refine ⟨?_, ?_, ?_⟩
+  · intro a0 a1 a2 a3 a4 a5 a6
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

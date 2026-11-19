@@ -39,7 +39,45 @@ theorem value.EqualsUsingRec.wp_proof
     (h_listUnstructured_EqualsUsing_ptr_body : value.listUnstructured.EqualsUsing_ptr.specBody (GF := GF))
     (h_mapUnstructuredString_EqualsUsing_body : value.mapUnstructuredString.EqualsUsing.specBody (GF := GF)) :
     value.EqualsUsingRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ value.EqualsUsingRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H0 := h_EqualsUsing_body $$ IH
+    ihave H1 := h_ListEqualsUsing_body $$ IH
+    ihave H2 := h_listUnstructured_EqualsUsing_body $$ IH
+    ihave H3 := h_listUnstructured_EqualsUsing_ptr_body $$ IH
+    ihave H4 := h_mapUnstructuredString_EqualsUsing_body $$ IH
+    unfold value.EqualsUsingRec.specI
+    isplit
+    · iexact H0
+    isplit
+    · iexact H1
+    isplit
+    · iexact H2
+    isplit
+    · iexact H3
+    iexact H4
+  unfold value.EqualsUsingRec.specI value.EqualsUsing.specI value.ListEqualsUsing.specI value.listUnstructured.EqualsUsing.specI value.listUnstructured.EqualsUsing_ptr.specI value.mapUnstructuredString.EqualsUsing.specI at H
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro a0 a1 a2 a3 a4 a5 a6
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -, -, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH, -, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, HH, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, -, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, -, -, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 
