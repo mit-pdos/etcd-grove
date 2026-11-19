@@ -95,6 +95,15 @@ def isMapRep_elim.law : Prop :=
       m.[schema.Map, go!"ElementType"] ↦□ etv ∗ isTypeRefOpt etv e ∗
       m.[schema.Map, go!"ElementRelationship"] ↦□ rel.goName
 
+/-- A map type's pointer is non-nil (Prove phase, 2026-11-19: `typed`'s `handleAtom`/`resolveSchema`
+compare it with nil). -/
+def isMapRep_nonnull.law : Prop :=
+  ∀ m fs e rel, isMapRep (GF := GF) m fs e rel ⊢ ⌜m ≠ null⌝
+
+/-- A list type's pointer is non-nil. -/
+def isListRep_nonnull.law : Prop :=
+  ∀ l e rel ks, isListRep (GF := GF) l e rel ks ⊢ ⌜l ≠ null⌝
+
 /-- A field's name, default (none) and type. -/
 def isStructField_elim.law : Prop :=
   ∀ sf f, isStructField (GF := GF) sf f ⊣⊢

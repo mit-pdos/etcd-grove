@@ -68,13 +68,15 @@ theorem LawProofs.isFields_of_sepL : ∀ (sfs : List schema.StructField) (fs : L
         iexact Hr
 
 theorem freshAtom_map_law_holds : freshAtom_map.law (GF := GF) :=
-  fun a fsl sfs fs etv e rel h1 h2 h3 h4 => by
+  fun a fsl sfs fs etv e rel h1 h2 hnn h3 h4 => by
   unfold freshAtom isAtom mapRep lazyIndex
   simp only [↓reduceIte]
   iintro #Hf #Hs Hl #Hu #He He' #Hr Ho Hm
   ihave Hl := LawProofs.isFields_of_sepL sfs fs h3 h4 $$ Hl
   isplitr
   · ipureintro; exact ⟨h1, h2⟩
+  isplitr
+  · ipureintro; exact hnn
   iexists fsl, sfs, slice.nil, etv
   iframe
   iframe #
@@ -169,9 +171,11 @@ theorem LawProofs.mapRep_init (m : Loc) (fs : List (GoString × TypeRef)) (e : O
     (rel : ElemRel) :
     mapRep (GF := GF) true m fs e rel ⊢ |={⊤}=> mapRep false m fs e rel := by
   unfold mapRep
-  iintro ⟨%fsl, %sfs, %us, %etv, #Hf, #Hs, #Hd, #Hu, %hu, #He, #Het, #Hr, Hl⟩
+  iintro ⟨%hnn, %fsl, %sfs, %us, %etv, #Hf, #Hs, #Hd, #Hu, %hu, #He, #Het, #Hr, Hl⟩
   imod LawProofs.lazyIndex_init _ _ _ $$ Hl with #Hl
   imodintro
+  isplitr
+  · ipureintro; exact hnn
   iexists fsl, sfs, us, etv
   iframe #
   ipureintro; exact hu

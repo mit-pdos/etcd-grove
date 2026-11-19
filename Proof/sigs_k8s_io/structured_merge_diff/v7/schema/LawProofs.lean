@@ -156,7 +156,7 @@ theorem LawProofs.isFields_elim : ∀ (sfs : List schema.StructField) (fs : List
 
 theorem isMapRep_elim_law_holds : isMapRep_elim.law (GF := GF) := fun m fs e rel => by
   unfold isMapRep mapRep
-  iintro ⟨%fsl, %sfs, %us, %etv, #Hf, #Hs, Hfs, #Hu, %hu, #He, #Het, #Hr, _⟩
+  iintro ⟨%_, %fsl, %sfs, %us, %etv, #Hf, #Hs, Hfs, #Hu, %hu, #He, #Het, #Hr, _⟩
   ihave ⟨%hl, #Hfs⟩ := isFields_elim sfs fs $$ Hfs
   subst hu
   iexists fsl, sfs, etv
@@ -169,6 +169,17 @@ theorem LawProofs.isTypeRefOpt_er (tr : schema.TypeRef) (ot : Option TypeRef) :
   cases ot with
   | none => unfold isTypeRefOpt; iintro %h; ipureintro; exact h.2.2.1
   | some t => unfold isTypeRefOpt isTypeRef; iintro ⟨_, %h⟩; ipureintro; exact h.2.1
+
+theorem isMapRep_nonnull_law_holds : isMapRep_nonnull.law (GF := GF) := fun m fs e rel => by
+  unfold isMapRep mapRep
+  iintro ⟨%h, -⟩
+  ipureintro; exact h
+
+theorem isListRep_nonnull_law_holds : isListRep_nonnull.law (GF := GF) := fun l e rel ks => by
+  unfold isListRep
+  iintro ⟨%v, %ksl, #Hl, -⟩
+  iapply typedPointsto_not_null
+  iexact Hl
 
 theorem isStructField_elim_law_holds : isStructField_elim.law (GF := GF) := fun sf f => by
   unfold isStructField; exact .rfl
@@ -306,7 +317,7 @@ theorem LawProofs.isMapRep_open (m : Loc) (fs : List (GoString × TypeRef)) (e :
             mp ↦□ mm ∗ mm ↦$□ M ∗ ⌜∀ n, M !! n = lastNamed (·.Name') n sfs⌝) := by
   unfold isMapRep mapRep lazyIndex
   simp only [Bool.false_eq_true, ite_false]
-  iintro ⟨%fsl, %sfs, %us, %etv, #Hf, #Hs, #Hd, -, -, -, -, -, #Ho⟩
+  iintro ⟨%_, %fsl, %sfs, %us, %etv, #Hf, #Hs, #Hd, -, -, -, -, -, #Ho⟩
   iexists fsl, sfs
   iframe #
   imodintro

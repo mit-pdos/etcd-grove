@@ -207,10 +207,12 @@ relationship `rel` and key field names `ks` (persistent). -/
     v.Keys' = ksl⌝ ∗ ksl ↦*{DFrac.discard} ks ∗ isTypeRef v.ElementType' e)
 
 /-- The `*schema.Map` at `m` (read-only fields) with declared fields `fs`, element type `e`,
-relationship `rel`, no unions, and its `FindField` index (`fresh`: still zero). -/
+relationship `rel`, no unions, and its `FindField` index (`fresh`: still zero); `m` non-nil (a
+field's points-to does not give it: `structFieldRef` of nil is unconstrained; Prove phase,
+2026-11-19, for `isMapRep_nonnull`). -/
 @[no_expose] def mapRep (fresh : Bool) (m : Loc) (fs : List (GoString × TypeRef))
     (e : Option TypeRef) (rel : ElemRel) : IProp GF :=
-  iprop(∃ (fsl : GoSlice) (sfs : List schema.StructField) (us : GoSlice) (etv : schema.TypeRef),
+  iprop(⌜m ≠ null⌝ ∗ ∃ (fsl : GoSlice) (sfs : List schema.StructField) (us : GoSlice) (etv : schema.TypeRef),
       m.[schema.Map, go!"Fields"] ↦□ fsl ∗ fsl ↦*{DFrac.discard} sfs ∗ isFields sfs fs ∗
       m.[schema.Map, go!"Unions"] ↦□ us ∗ ⌜us = slice.nil⌝ ∗
       m.[schema.Map, go!"ElementType"] ↦□ etv ∗ isTypeRefOpt etv e ∗

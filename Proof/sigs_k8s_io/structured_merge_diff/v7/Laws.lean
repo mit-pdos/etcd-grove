@@ -187,7 +187,7 @@ def freshAtom_list.law : Prop :=
 def freshAtom_map.law : Prop :=
   ∀ (a : schema.Atom) (fsl : GoSlice) (sfs : List schema.StructField)
     (fs : List (GoString × TypeRef)) (etv : schema.TypeRef) (e : Option TypeRef) (rel : ElemRel),
-    a.Scalar' = null → a.List' = null → sfs.length = fs.length →
+    a.Scalar' = null → a.List' = null → a.Map' ≠ null → sfs.length = fs.length →
     (∀ sf ∈ sfs, sf.Default' = interface.nil) →
     a.Map'.[schema.Map, go!"Fields"] ↦□ fsl -∗ fsl ↦*{DFrac.discard} sfs -∗
     sepL (fun sf => iprop(⌜sf.1.Name' = sf.2.1⌝ ∗ isTypeRef (GF := GF) sf.1.Type' sf.2.2)) (sfs.zip fs) -∗

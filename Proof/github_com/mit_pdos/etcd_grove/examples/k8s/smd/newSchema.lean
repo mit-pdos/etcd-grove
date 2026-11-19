@@ -57,13 +57,14 @@ theorem freshAtom_mapLit (hMap : freshAtom_map.law (GF := GF)) (p : Loc) (fsl : 
     |==> freshAtom (schema.Atom.mk null null p) (.map fs e rel) := by
   subst hrn
   iintro Hp #Hfs Hsf He
+  ihave %Hpn := typedPointsto_not_null $$ Hp
   iStructNamed Hp
   ipersist Fields
   ipersist Unions
   ipersist ElementType
   ipersist ElementRelationship
   imodintro
-  iapply (hMap (schema.Atom.mk null null p) fsl sfs fs etv e rel rfl rfl hlen hdef) $$ Fields Hfs Hsf
+  iapply (hMap (schema.Atom.mk null null p) fsl sfs fs etv e rel rfl rfl Hpn hlen hdef) $$ Fields Hfs Hsf
     Unions ElementType He ElementRelationship once m
 
 theorem newSchema.wp_proof_of (hTR : isTypeRef_intro.law (GF := GF))
