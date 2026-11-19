@@ -87,10 +87,10 @@ member whose floor is `F` and which saw the cell past the three attachments (`ps
 and `a/lease` on `Lu`. -/
 theorem cell_holds (hlaw : lessor_keys_of_read_stmt (GF := GF)) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (γc : CellNames) (F : mvcc.Log) (lt : LeaseTable) (Lz Lu id : w64) (k : GoString)
-    (ps1 : List Nat) (h3 : 3 ≤ ps1.length) (hns : clusterNoSnap γr.raft.raft.cl)
+    (ps1 : List Nat) (d1 : Nat) (h3 : 3 ≤ ps1.length) (hns : clusterNoSnap γr.raft.raft.cl)
     (hk : (id = Lz ∧ k = zK) ∨ (id = Lu ∧ k = aK)) :
     isServerReadM E.authOn s E γr ∗ srvApi.kvLogLb E.γs F ∗ cellInv γr.kv γc ∗
-        cellSeen γc ps1 (kvStateOf F lt) ∗ monoListLbOwn γc.ids [Lz, Lu] ⊢ |={⊤}=>
+        cellSeen γc ps1 d1 (kvStateOf F lt) ∗ monoListLbOwn γc.ids [Lz, Lu] ⊢ |={⊤}=>
       ∃ m : Nat, lease.lessorLb (mvcc.api.mvccLeases E.γ) m ∗
         holdsFrom γc (mvcc.api.mvccLeases E.γ) m id k := by
   iintro ⟨#Hrd, #HF, #Hinv, #Hseen, #Hi0⟩
@@ -118,7 +118,7 @@ theorem cell_holds (hlaw : lessor_keys_of_read_stmt (GF := GF)) (s : Loc) (E : a
   rotate_left
   · ihave %Hbad := monoNatLbOwn_valid γc.a _ 0 1 $$ Ham Ha1
     exfalso; omega
-  have hp3 : 3 ≤ ps0.length := by have := HF0.2.length_le; omega
+  have hp3 : 3 ≤ ps0.length := by have := HF0.2.1.length_le; omega
   have hkept : leaseKeptIn σ (F.length - 1) id k := by
     rw [← kvStateOf_rev F (lt := lt)]
     rcases hk with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
