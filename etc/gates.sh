@@ -421,9 +421,11 @@ fi
 # K8S_KVSOWN_CONTROL=1), so that a passing TestDefaultNoRace means something
 # A run may miss the race under the gates' parallel load (it did once, 2026-11-11): retry a run
 # that misses it, up to 3 attempts; pass once one attempt fails with a data race reported.
+# Always -count=1: Go caches a passing test, so one missed race (a pass) was replayed as
+# `ok (cached)` by every later run and attempt, failing every landing (2026-11-19).
 kvc_ok=0; kvc_miss=""
 for kvc_try in 1 2 3; do
-  if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off gotest -race -timeout 10m \
+  if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off gotest -count=1 -race -timeout 10m \
       -run '^TestTracingRace$' . > "$tmp/kvc.$kvc_try.log" 2>&1); then
     kvc_miss="$kvc_miss attempt $kvc_try: passed (no race detected);"
   elif grep -q 'WARNING: DATA RACE' "$tmp/kvc.$kvc_try.log"; then
