@@ -132,3 +132,21 @@ The lend takes `⌜1 ≤ st.revision⌝`. The realization proves the law from it
 as revision `0`, so the `auth` bucket of a state of revision ≥ 1 holds the key, 8 bytes, the revision's `u64Be`);
 the consumer proves `1 ≤ st.revision` of the apply thread's latest state (`bump bootState`, then steps that bump or
 keep the revision).
+
+## Fifth refutation (2026-11-19, auth-schema-srv A6): the roles bucket in the history's order (F-order)
+
+Found while starting `authBkLend`'s realization (questions.md "A6 STOP 5"). The lend's law gives
+`⌜authBucketsAt st r⌝` of the latest state, whose roles clause (`schema.authBucketsAre`) was exact: the record a role's
+key holds has `rr.toRole = ` the recorded role. Go's `RoleGrantPermission` appends the permission and sorts the list by
+key (`server/auth/store.go:844-845`); the model's `grantPerms` appends without sorting. After granting key `b` then key
+`a` the history's role is `[b, a]` while the bucket encodes `[a, b]`: a client holding the write token and the history's
+half lends and runs `backend.Snapshot` with the law as `Q`; Snapshot's post claims an `authBucketsAt` that the real
+committed data contradicts. Not a Go bug: a gap between trusted texts (the write contract's `UnsafePutRole` already
+allows a permutation, `rolesAt` reads up to order since A6 (c)). No sorting model order matches Go (an unstable sort,
+equal keys with different range ends).
+
+### The fix (decided by etcd-grove-03, 2026-11-19: (O-a))
+
+`authBucketsAre`'s roles clause up to permutation of each role's permissions (as `rolesAt`). Every consumer moves the
+fact between bucket maps without reading it (survey in questions.md); permission checks are order-independent. Ledger:
+`notes/specs-only/ledger.md`, 2026-11-19 (F-order).

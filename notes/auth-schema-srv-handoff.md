@@ -1,6 +1,28 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19, A6: R-c, GetAllRoles, the hook/boot contracts, CreateAuthBuckets written; STOP 5, F-order)
+## START HERE (2026-11-19 b, A6: O-a made; STOP 6, F-lend, blocks `authBkLend`)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere (`.lake/package-overrides.json` = that manifest; f551a1b46 / manifest-f55 comes with the next lean merge).
+- Done before: A1-A5, A6.1-A6.2, fix (A), F-enc/F-acc, pool, L-rev/P2, read side, reserved reads, lifecycle, P1', (c),
+  (R-c), `real_getAllRoles`, `real_wAtHook`, `real_wBoot`, `real_createAuthBuckets` (c89577b8ed; all ACCEPTED,
+  questions.md "A6 R-c, A6 (d) forms and STOP 5 decided").
+- **Done now**: (O-a) `schema.authBucketsAre`'s roles clause up to permutation (InvAuthBackend.lean); survey of its
+  consumers in questions.md (all opaque; ~5 lines); ledger entry and the fifth refutation in
+  `notes/auth-schema-srv-refuted.md`.
+- **Build state**: c89577b8ed + O-a NOT yet compiled. Targeted build queued detached (setsid nohup):
+  `/shared/tmp/auth-schema-srv/rc-build4.log` (backend Link, auth RoleList, AuthRealWr, AuthRealRd, ImageOn, server
+  Link; ends with an `rc=` line). Then fix errors with lean-check (expect them in the new AuthRealWr code), regenerate
+  the backend, schema and etcdserver interfaces (`etc/gen-interface.py etc/api/<pkg>.txt`, LAKE_OPTS).
+- **STOP 6 (questions.md "A6 STOP 6")**: `authBkLend`'s law is fupd-free (Snapshot's observation is), the auth buckets
+  are claimed, and only the claim invariant relates `rbOwn r` to claimed contents. Recommended (K-c): `rbPartRF` keeps
+  ⅛ of `γ.rbk`, `rbClaimC` ⅝; a pure agreement law `rbPartR` vs `rbPart`; then `authBkLend` from a borrowed `bkIdle`.
+- Next after the decision: (K-c) in the backend, `authBkLend`, (e) creation, `⊢ authSchemaSrv`, `authSchemaSnap`;
+  A6-end report; A7 (HARD STOP; trusted list incl. R-c, O-a and STOP 6's item).
+- Pitfalls: (0)-(36) as before (History); (37) a nohup build from a session can die with it: launch with `setsid nohup`.
+
+## History (START HERE of 2026-11-19 a, STOP 5, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
   everywhere (`.lake/package-overrides.json` = that manifest). lean 1b298c1e70 merged.

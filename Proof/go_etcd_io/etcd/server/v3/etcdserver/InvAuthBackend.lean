@@ -178,7 +178,10 @@ theorem roleOutDX_persist (E : CoPset) (r : Loc) (m : backend.BktData) (name : G
 /-- **The auth buckets `D` hold the state `st`**: well formed; the enabled flag `st.enabled`; the
 revision `st.revision`, big-endian; a user's value, for each user of `st` and no other, the
 encoding of a record of its name whose roles are the state's, sorted; a role's value likewise,
-its permissions of a known type the state's. -/
+its permissions of a known type the state's, up to order (auth-schema-srv A6's O-a, decided by etcd-grove-03,
+2026-11-19, the fifth refutation F-order: Go's `RoleGrantPermission` sorts a role's permissions by key, the model's
+`grantPerms` appends, so the bucket holds a permutation of the recorded state's; as `rolesAt`; until then exactly
+the state's). -/
 def authBucketsAre (st : auth.AuthState) (D : AuthData) : Prop :=
   authWf D ∧ enabledOf D = st.enabled ∧
   D.auth.lookup authRevisionKey = some (u64Be (W64 st.revision)) ∧
@@ -187,7 +190,7 @@ def authBucketsAre (st : auth.AuthState) (D : AuthData) : Prop :=
     ur.name = n ∧ st.users.lookup n = some ur.roles ∧ ur.roles.Pairwise go.GoStringLt) ∧
   (∀ n, (D.roles.lookup n).isSome ↔ (st.roles.lookup n).isSome) ∧
   (∀ n v, D.roles.lookup n = some v → ∃ rr : auth.RoleRec, v = auth.roleEncode rr ∧
-    rr.name = n ∧ st.roles.lookup n = some rr.toRole)
+    rr.name = n ∧ ∃ ps, st.roles.lookup n = some ps ∧ rr.toRole.Perm ps)
 
 /-- **The users bucket `m` holds the state `st`'s users with the records `dU`** (F-enc): a name
 is in `m` iff a user of `st`; its value is `dU n`'s encoding, a record of that name whose roles are
@@ -231,16 +234,14 @@ theorem authBucketsAre_rolesAt {st : auth.AuthState} {D : AuthData} (h : authBuc
     ∃ dR, rolesAt st D.roles dR := by
   obtain ⟨-, -, -, -, -, hu1, hu2⟩ := h
   have H : ∀ n, ∃ x : auth.RoleRec, ∀ v, D.roles.lookup n = some v →
-      v = auth.roleEncode x ∧ x.name = n ∧ st.roles.lookup n = some x.toRole := by
+      v = auth.roleEncode x ∧ x.name = n ∧ ∃ ps, st.roles.lookup n = some ps ∧ x.toRole.Perm ps := by
     intro n
     cases hl : D.roles.lookup n with
     | none => exact ⟨default, fun v hv => by cases hv⟩
     | some v0 =>
       obtain ⟨x, hx⟩ := hu2 n v0 hl
       exact ⟨x, fun v hv => by cases hv; exact hx⟩
-  exact ⟨fun n => Classical.choose (H n), hu1, fun n v hl => by
-    obtain ⟨h1, h2, h3⟩ := Classical.choose_spec (H n) v hl
-    exact ⟨h1, h2, _, h3, List.Perm.refl _⟩⟩
+  exact ⟨fun n => Classical.choose (H n), hu1, fun n v hl => Classical.choose_spec (H n) v hl⟩
 
 /-- A bucket's read of a user is the state's (`auth.userOut`): the record read is the one `dU`
 names (F-enc; until then the record was recovered from the bytes, which needed `userEncode`'s

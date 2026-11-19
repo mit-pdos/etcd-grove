@@ -2904,3 +2904,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **SpecPlan.** W0's model answers `.roleList` with every role (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, ~l.1262),
   stronger than the code in two ways (F3's `0xff` names, this cap); not changed here (a SpecPlan entry for convergence).
 - **Decision.** Approved by etcd-grove-03, 2026-11-19 (on the A7 list for the user); made on branch `auth-schema-srv`.
+
+## 2026-11-19: `schema.authBucketsAre` holds a role's permissions in the state's order (auth-schema-srv A6, STOP 5, F-order)
+
+- **Spec.** `schema.authBucketsAre` (etcdserver/InvAuthBackend.lean), through `authBucketsAt` (ImageOn.lean) in the trusted
+  `authBkLend` (AuthBkHook.lean), `authSchemaSnap`'s premise (AuthSnapKit.lean) and the image certificates.
+- **Defect.** False of ordinary runs: its roles clause said `st.roles.lookup n = some rr.toRole`, the bucket's record exactly
+  the recorded state's role. Go's `RoleGrantPermission` appends and `sort.Sort`s by key (`server/auth/store.go:844-845`), the
+  model's `grantPerms` (Steps.lean:222) appends: grant key `b` then `a`, the history says `[b, a]`, the bucket `[a, b]`. The
+  write contract (`UnsafePutRole`) already allows a permutation; so the realization cannot prove `authBkLend` (the fifth
+  refutation of `authSchemaSrv`'s text, `notes/auth-schema-srv-refuted.md`).
+- **Evidence.** `questions.md` "A6 STOP 5" and its survey.
+- **Proposed change.** (O-a) up to permutation: `∃ ps, st.roles.lookup n = some ps ∧ rr.toRole.Perm ps` (as `rolesAt`).
+  (O-b, a sorting model) is not viable (Go's sort is unstable, equal keys); (O-c, a nondeterministic model order) is larger.
+- **Decision.** (O-a), decided by etcd-grove-03, 2026-11-19 (on the A7 list for the user); made on branch `auth-schema-srv`.
