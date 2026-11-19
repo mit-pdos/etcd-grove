@@ -285,6 +285,120 @@ theorem kvs_eq_of_lookups {α : Type} (kvs kvs' : List (GoString × α))
     rw [Option.isSome_eq_false_iff, Option.isNone_iff_eq_none] at e1 e2
     rw [e1, e2]
 
+/-! ## The keys of a lexical zip -/
+
+theorem zipLexical_mem (k : GoString) : ∀ (n : Nat) (xs ys : List (GoString × UVal)),
+    xs.length + ys.length < n →
+    (k ∈ (zipLexical n xs ys).map (·.1) ↔ k ∈ kvKeys xs ∨ k ∈ kvKeys ys)
+  | 0, _, _, h => by omega
+  | n + 1, [], [], _ => by simp [zipLexical, kvKeys]
+  | n + 1, (k1, a) :: xs, [], _ => by
+    simp only [zipLexical, kvKeys, List.map_cons, List.map_map, List.mem_cons, List.map_nil,
+      List.not_mem_nil, or_false]
+    simp [Function.comp_def]
+  | n + 1, [], (k1, b) :: ys, _ => by
+    simp only [zipLexical, kvKeys, List.map_cons, List.map_map, List.mem_cons, List.map_nil,
+      List.not_mem_nil, false_or]
+    simp [Function.comp_def]
+  | n + 1, (k1, a) :: xs, (k2, b) :: ys, h => by
+    simp only [zipLexical]
+    by_cases e : k1 = k2
+    · subst e
+      simp only [↓reduceIte, List.map_cons, List.mem_cons]
+      rw [zipLexical_mem k n xs ys (by simp at h; omega)]
+      simp only [kvKeys, List.map_cons, List.mem_cons]
+      constructor
+      · rintro (h | h | h) <;> simp [h]
+      · rintro ((h | h) | (h | h)) <;> simp [h]
+    · by_cases hl : gsLt k1 k2 = true
+      · simp only [e, hl, ↓reduceIte, List.map_cons, List.mem_cons]
+        rw [zipLexical_mem k n xs ((k2, b) :: ys) (by simp at h ⊢; omega)]
+        simp only [kvKeys, List.map_cons, List.mem_cons]
+        constructor
+        · rintro (h | h | h | h) <;> simp [h]
+        · rintro ((h | h) | (h | h)) <;> simp [h]
+      · simp only [e, hl, ↓reduceIte, List.map_cons, List.mem_cons, Bool.false_eq_true]
+        rw [zipLexical_mem k n ((k1, a) :: xs) ys (by simp at h ⊢; omega)]
+        simp only [kvKeys, List.map_cons, List.mem_cons]
+        constructor
+        · rintro (h | (h | h) | h) <;> simp [h]
+        · rintro ((h | h) | (h | h)) <;> simp [h]
+
+theorem keysSorted_lt_all {k : GoString} {v : UVal} {rest : List (GoString × UVal)}
+    (h : keysSorted ((k, v) :: rest) = true) : ∀ k' ∈ kvKeys rest, gsLt k k' = true := by
+  intro k' hk'
+  obtain ⟨⟨k'', v'⟩, hm, he⟩ := List.mem_map.1 hk'
+  simp only at he; subst he
+  exact keysSorted_head_lt h k'' v' hm
+
+theorem zipLexical_sorted : ∀ (n : Nat) (xs ys : List (GoString × UVal)),
+    xs.length + ys.length < n → keysSorted xs = true → keysSorted ys = true →
+    ((zipLexical n xs ys).map (·.1)).Pairwise (fun a b => gsLt a b = true)
+  | 0, _, _, h, _, _ => by omega
+  | n + 1, [], [], _, _, _ => by simp [zipLexical]
+  | n + 1, (k1, a) :: xs, [], hlen, hx, hy => by
+    clear hlen hy
+    have : (((k1, a) :: xs).map (·.1)).Pairwise (fun a b => gsLt a b = true) := by
+      induction xs generalizing k1 a with
+      | nil => simp
+      | cons kv xs ih =>
+        obtain ⟨k2, b⟩ := kv
+        simp only [List.map_cons, List.pairwise_cons] at ih ⊢
+        refine ⟨?_, ih k2 b (keysSorted_tail hx)⟩
+        intro k' hk'
+        exact keysSorted_lt_all hx k' (by simpa [kvKeys] using hk')
+    simp only [zipLexical]
+    simpa [Function.comp_def] using this
+  | n + 1, [], (k2, b) :: ys, hlen, hx, hy => by
+    clear hlen hx
+    have : (((k2, b) :: ys).map (·.1)).Pairwise (fun a b => gsLt a b = true) := by
+      induction ys generalizing k2 b with
+      | nil => simp
+      | cons kv ys ih =>
+        obtain ⟨k3, c⟩ := kv
+        simp only [List.map_cons, List.pairwise_cons] at ih ⊢
+        refine ⟨?_, ih k3 c (keysSorted_tail hy)⟩
+        intro k' hk'
+        exact keysSorted_lt_all hy k' (by simpa [kvKeys] using hk')
+    simp only [zipLexical]
+    simpa [Function.comp_def] using this
+  | n + 1, (k1, a) :: xs, (k2, b) :: ys, h, hx, hy => by
+    simp only [zipLexical]
+    by_cases e : k1 = k2
+    · subst e
+      simp only [↓reduceIte, List.map_cons, List.pairwise_cons]
+      refine ⟨?_, zipLexical_sorted n xs ys (by simp at h; omega) (keysSorted_tail hx)
+        (keysSorted_tail hy)⟩
+      intro k' hk'
+      rcases (zipLexical_mem k' n xs ys (by simp at h; omega)).1 hk' with hm | hm
+      · exact keysSorted_lt_all hx k' hm
+      · exact keysSorted_lt_all hy k' hm
+    · by_cases hl : gsLt k1 k2 = true
+      · simp only [e, hl, ↓reduceIte, List.map_cons, List.pairwise_cons]
+        refine ⟨?_, zipLexical_sorted n xs ((k2, b) :: ys) (by simp at h ⊢; omega)
+          (keysSorted_tail hx) hy⟩
+        intro k' hk'
+        rcases (zipLexical_mem k' n xs ((k2, b) :: ys) (by simp at h ⊢; omega)).1 hk' with hm | hm
+        · exact keysSorted_lt_all hx k' hm
+        · simp only [kvKeys, List.map_cons, List.mem_cons] at hm
+          rcases hm with rfl | hm
+          · exact hl
+          · exact gsLt_trans hl (keysSorted_lt_all hy k' (by simpa [kvKeys] using hm))
+      · have hl2 : gsLt k2 k1 = true := by
+          cases h2 : gsLt k2 k1
+          · exact absurd (gsLt_total (by simpa using hl) h2) e
+          · rfl
+        simp only [e, hl, ↓reduceIte, List.map_cons, List.pairwise_cons, Bool.false_eq_true]
+        refine ⟨?_, zipLexical_sorted n ((k1, a) :: xs) ys (by simp at h ⊢; omega)
+          hx (keysSorted_tail hy)⟩
+        intro k' hk'
+        rcases (zipLexical_mem k' n ((k1, a) :: xs) ys (by simp at h ⊢; omega)).1 hk' with hm | hm
+        · simp only [kvKeys, List.map_cons, List.mem_cons] at hm
+          rcases hm with rfl | hm
+          · exact hl2
+          · exact gsLt_trans hl2 (keysSorted_lt_all hx k' (by simpa [kvKeys] using hm))
+        · exact keysSorted_lt_all hy k' hm
+
 /-! ## The constructor tests -/
 
 theorem isIntB_true {x : UVal} (h : true = x.isIntB) : ∃ n, x = .int n := by
@@ -301,6 +415,32 @@ theorem isNullB_true {x : UVal} (h : true = x.isNullB) : x = .null := by
   cases x <;> simp [UVal.isNullB] at h ⊢
 
 end ValuePure
+
+open ValuePure in
+theorem zipKeys_mem_law_holds : zipKeys_mem.law := by
+  intro ol or_ k
+  unfold zipKeys
+  simp only
+  rw [zipLexical_mem k _ _ _ (by omega), ← lookupKV_isSome_iff, ← lookupKV_isSome_iff]
+
+open ValuePure in
+theorem zipKeys_nodup_law_holds : zipKeys_nodup.law := by
+  intro ol or_ hl hr
+  unfold zipKeys
+  simp only
+  have hsl : keysSorted (kvsOrEmpty ol) = true := by
+    cases ol with
+    | none => rfl
+    | some kvs => exact hl kvs rfl
+  have hsr : keysSorted (kvsOrEmpty or_) = true := by
+    cases or_ with
+    | none => rfl
+    | some kvs => exact hr kvs rfl
+  refine (zipLexical_sorted _ _ _ (by omega) hsl hsr).imp ?_
+  intro a b hab he
+  subst he
+  rw [gsLt_irrefl] at hab
+  cases hab
 
 end smd
 end EtcdGrove

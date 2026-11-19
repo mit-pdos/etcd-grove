@@ -88,6 +88,54 @@ theorem valuePkg_globals :
   ihave H := isPkgInit_access $$ Hpkg
   iexact H
 
+/-! ## An interface's value is canonical -/
+
+mutual
+theorem isIface_canon : ∀ (i : GoInterface) (x : UVal), isIface (GF := GF) i x ⊢ ⌜x.canon = true⌝
+  | i, .null => by iintro -; ipureintro; rfl
+  | i, .bool _ => by iintro -; ipureintro; rfl
+  | i, .int _ => by iintro -; ipureintro; rfl
+  | i, .str _ => by iintro -; ipureintro; rfl
+  | i, .list vs => by
+    iintro Hi
+    iunfold isIface at Hi
+    icases Hi with ⟨%sl, %xs, -, -, HL⟩
+    ihave %h := isIfaceL_canon xs vs $$ HL
+    ipureintro
+    simpa [UVal.canon] using h
+  | i, .map kvs => by
+    iintro Hi
+    iunfold isIface at Hi
+    icases Hi with ⟨%m, %M, -, -, %Hk, HM⟩
+    ihave %h := isIfaceM_canon M kvs $$ HM
+    ipureintro
+    simp [UVal.canon, Hk.1, h]
+theorem isIfaceL_canon : ∀ (xs : List GoInterface) (vs : List UVal),
+    isIfaceL (GF := GF) xs vs ⊢ ⌜UVal.canonL vs = true⌝
+  | [], [] => by iintro -; ipureintro; rfl
+  | x :: xs, v :: vs => by
+    iintro H
+    iunfold isIfaceL at H
+    icases H with ⟨Hx, H⟩
+    ihave %h1 := isIface_canon x v $$ Hx
+    ihave %h2 := isIfaceL_canon xs vs $$ H
+    ipureintro
+    simp [UVal.canonL, h1, h2]
+  | [], _ :: _ => by iintro H; iunfold isIfaceL at H; iexfalso; iexact H
+  | _ :: _, [] => by iintro H; iunfold isIfaceL at H; iexfalso; iexact H
+theorem isIfaceM_canon : ∀ (M : GMap GoString GoInterface) (kvs : List (GoString × UVal)),
+    isIfaceM (GF := GF) M kvs ⊢ ⌜UVal.canonM kvs = true⌝
+  | M, [] => by iintro -; ipureintro; rfl
+  | M, (k, v) :: kvs => by
+    iintro H
+    iunfold isIfaceM at H
+    icases H with ⟨%x, -, Hx, H⟩
+    ihave %h1 := isIface_canon x v $$ Hx
+    ihave %h2 := isIfaceM_canon M kvs $$ H
+    ipureintro
+    simp [UVal.canonM, h1, h2]
+end
+
 /-! ## Callback contracts are persistent -/
 
 instance iterFnOk_pers (fn : GoFunc) (kvs : List (GoString × UVal)) (I : List GoString → IProp GF)
@@ -505,6 +553,24 @@ theorem freeable_view_law_holds : freeable_view.law (GF := GF) := by
       itrivial
   · iunfold freeable
     itrivial
+
+theorem isMapV_sorted_law_holds : isMapV_sorted.law (GF := GF) := by
+  intro m kvs
+  iintro Hm
+  iunfold isMapV at Hm
+  icases Hm with ⟨%gm, -, Hi⟩
+  iunfold isIface at Hi
+  icases Hi with ⟨%gm', %M, -, -, %Hk, -⟩
+  ipureintro
+  exact Hk.1
+
+theorem isValF_canon_law_holds : isValF_canon.law (GF := GF) := by
+  intro v dq x
+  iintro Hv
+  iunfold isValF at Hv
+  icases Hv with ⟨%p, %i, -, -, Hi⟩
+  iapply isIface_canon
+  iexact Hi
 
 theorem isAlloc_concrete_law_holds : isAlloc_concrete.law (GF := GF) := by
   intro a
