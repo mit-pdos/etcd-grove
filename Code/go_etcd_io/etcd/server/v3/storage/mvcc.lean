@@ -274,7 +274,7 @@ noncomputable def watcherGroup.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] watcherGroup.ty
 
-axiom hashStorageMaxSize [GooseExts] [GoGlobalContext] : val
+opaque hashStorageMaxSize [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def ConcurrentReadTxMode [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
@@ -309,92 +309,92 @@ noncomputable def restoreChunkKeys [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultCompactionBatchLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.defaultCompactionBatchLimit"
 
-axiom defaultCompactionBatchLimit.init [GooseExts] [GoGlobalContext] : val
+opaque defaultCompactionBatchLimit.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultCompactionSleepInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.defaultCompactionSleepInterval"
 
-axiom defaultCompactionSleepInterval.init [GooseExts] [GoGlobalContext] : val
+opaque defaultCompactionSleepInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rangeCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.rangeCounter"
 
-axiom rangeCounter.init [GooseExts] [GoGlobalContext] : val
+opaque rangeCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def putCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.putCounter"
 
-axiom putCounter.init [GooseExts] [GoGlobalContext] : val
+opaque putCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def deleteCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.deleteCounter"
 
-axiom deleteCounter.init [GooseExts] [GoGlobalContext] : val
+opaque deleteCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def txnCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.txnCounter"
 
-axiom txnCounter.init [GooseExts] [GoGlobalContext] : val
+opaque txnCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def keysGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.keysGauge"
 
-axiom keysGauge.init [GooseExts] [GoGlobalContext] : val
+opaque keysGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def watchStreamGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchStreamGauge"
 
-axiom watchStreamGauge.init [GooseExts] [GoGlobalContext] : val
+opaque watchStreamGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def watcherGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.watcherGauge"
 
-axiom watcherGauge.init [GooseExts] [GoGlobalContext] : val
+opaque watcherGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def slowWatcherGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.slowWatcherGauge"
 
-axiom slowWatcherGauge.init [GooseExts] [GoGlobalContext] : val
+opaque slowWatcherGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def totalEventsCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.totalEventsCounter"
 
-axiom totalEventsCounter.init [GooseExts] [GoGlobalContext] : val
+opaque totalEventsCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def pendingEventsGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.pendingEventsGauge"
 
-axiom pendingEventsGauge.init [GooseExts] [GoGlobalContext] : val
+opaque pendingEventsGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def indexCompactionPauseMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.indexCompactionPauseMs"
 
-axiom indexCompactionPauseMs.init [GooseExts] [GoGlobalContext] : val
+opaque indexCompactionPauseMs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dbCompactionPauseMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionPauseMs"
 
-axiom dbCompactionPauseMs.init [GooseExts] [GoGlobalContext] : val
+opaque dbCompactionPauseMs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dbCompactionTotalMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionTotalMs"
 
-axiom dbCompactionTotalMs.init [GooseExts] [GoGlobalContext] : val
+opaque dbCompactionTotalMs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dbCompactionLast [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionLast"
 
-axiom dbCompactionLast.init [GooseExts] [GoGlobalContext] : val
+opaque dbCompactionLast.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dbCompactionKeysCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionKeysCounter"
 
-axiom dbCompactionKeysCounter.init [GooseExts] [GoGlobalContext] : val
+opaque dbCompactionKeysCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dbTotalSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbTotalSize"
 
-axiom dbTotalSize.init [GooseExts] [GoGlobalContext] : val
+opaque dbTotalSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def reportDbTotalSizeInBytesMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbTotalSizeInBytesMu"
@@ -405,7 +405,7 @@ noncomputable def reportDbTotalSizeInBytes [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def dbTotalSizeInUse [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbTotalSizeInUse"
 
-axiom dbTotalSizeInUse.init [GooseExts] [GoGlobalContext] : val
+opaque dbTotalSizeInUse.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def reportDbTotalSizeInUseInBytesMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbTotalSizeInUseInBytesMu"
@@ -416,7 +416,7 @@ noncomputable def reportDbTotalSizeInUseInBytes [GooseExts] [GoGlobalContext] : 
 noncomputable def dbOpenReadTxN [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbOpenReadTxN"
 
-axiom dbOpenReadTxN.init [GooseExts] [GoGlobalContext] : val
+opaque dbOpenReadTxN.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def reportDbOpenReadTxNMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbOpenReadTxNMu"
@@ -427,17 +427,17 @@ noncomputable def reportDbOpenReadTxN [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def hashSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.hashSec"
 
-axiom hashSec.init [GooseExts] [GoGlobalContext] : val
+opaque hashSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hashRevSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.hashRevSec"
 
-axiom hashRevSec.init [GooseExts] [GoGlobalContext] : val
+opaque hashRevSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def currentRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.currentRev"
 
-axiom currentRev.init [GooseExts] [GoGlobalContext] : val
+opaque currentRev.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def reportCurrentRevMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportCurrentRevMu"
@@ -448,7 +448,7 @@ noncomputable def reportCurrentRev [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def compactRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.compactRev"
 
-axiom compactRev.init [GooseExts] [GoGlobalContext] : val
+opaque compactRev.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def reportCompactRevMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportCompactRevMu"
@@ -459,7 +459,7 @@ noncomputable def reportCompactRev [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def totalPutSizeGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.totalPutSizeGauge"
 
-axiom totalPutSizeGauge.init [GooseExts] [GoGlobalContext] : val
+opaque totalPutSizeGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def chanBufLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.chanBufLen"
@@ -9286,7 +9286,7 @@ noncomputable def watcherGroup.watcherSetByKey.impl [GooseExts] [GoGlobalContext
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc where
   pkgImportedPkgs := [pkg_id.hash, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.k8s_io.utils.third_party.forked.golang.btree, pkg_id.bytes, pkg_id.errors, pkg_id.fmt, pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.math, pkg_id.time, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.encoding.binary, pkg_id.github_com.dustin.go_humanize, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.pkg.v3.adt]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

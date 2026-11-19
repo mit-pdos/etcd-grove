@@ -110,41 +110,41 @@ noncomputable def serviceCIDRs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] serviceCIDRs.ty
 
-axiom IPAddressExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IPAddressExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceCIDRExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServiceCIDRExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ingresses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ingresses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ingressClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ingressClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IPAddressesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IPAddressesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IPAddressInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IPAddressInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom iPAddresses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque iPAddresses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkingV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NetworkingV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkingV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NetworkingV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceCIDRsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServiceCIDRsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceCIDRInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServiceCIDRInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serviceCIDRs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serviceCIDRs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newIngresses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/networking/v1beta1.newIngresses"
@@ -176,7 +176,7 @@ noncomputable def newServiceCIDRs [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.networking.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -185,8 +185,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom IPAddressExpansion : Type
-axiom IPAddressExpansion.zero_val : ZeroVal IPAddressExpansion
+opaque IPAddressExpansion.nonempty_type : NonemptyType.{0}
+def IPAddressExpansion : Type := IPAddressExpansion.nonempty_type.type
+instance IPAddressExpansion.nonempty : Nonempty IPAddressExpansion := IPAddressExpansion.nonempty_type.property
+opaque IPAddressExpansion.zero_val : ZeroVal IPAddressExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] IPAddressExpansion.zero_val
 
 class IPAddressExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -202,8 +204,10 @@ attribute [instance] IPAddressExpansion.TypeAssumptions.type_repr
   IPAddressExpansion.TypeAssumptions.method_set
   IPAddressExpansion.TypeAssumptions.ptr_method_set
 
-axiom IngressExpansion : Type
-axiom IngressExpansion.zero_val : ZeroVal IngressExpansion
+opaque IngressExpansion.nonempty_type : NonemptyType.{0}
+def IngressExpansion : Type := IngressExpansion.nonempty_type.type
+instance IngressExpansion.nonempty : Nonempty IngressExpansion := IngressExpansion.nonempty_type.property
+opaque IngressExpansion.zero_val : ZeroVal IngressExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressExpansion.zero_val
 
 class IngressExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -219,8 +223,10 @@ attribute [instance] IngressExpansion.TypeAssumptions.type_repr
   IngressExpansion.TypeAssumptions.method_set
   IngressExpansion.TypeAssumptions.ptr_method_set
 
-axiom IngressClassExpansion : Type
-axiom IngressClassExpansion.zero_val : ZeroVal IngressClassExpansion
+opaque IngressClassExpansion.nonempty_type : NonemptyType.{0}
+def IngressClassExpansion : Type := IngressClassExpansion.nonempty_type.type
+instance IngressClassExpansion.nonempty : Nonempty IngressClassExpansion := IngressClassExpansion.nonempty_type.property
+opaque IngressClassExpansion.zero_val : ZeroVal IngressClassExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressClassExpansion.zero_val
 
 class IngressClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -236,8 +242,10 @@ attribute [instance] IngressClassExpansion.TypeAssumptions.type_repr
   IngressClassExpansion.TypeAssumptions.method_set
   IngressClassExpansion.TypeAssumptions.ptr_method_set
 
-axiom ServiceCIDRExpansion : Type
-axiom ServiceCIDRExpansion.zero_val : ZeroVal ServiceCIDRExpansion
+opaque ServiceCIDRExpansion.nonempty_type : NonemptyType.{0}
+def ServiceCIDRExpansion : Type := ServiceCIDRExpansion.nonempty_type.type
+instance ServiceCIDRExpansion.nonempty : Nonempty ServiceCIDRExpansion := ServiceCIDRExpansion.nonempty_type.property
+opaque ServiceCIDRExpansion.zero_val : ZeroVal ServiceCIDRExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ServiceCIDRExpansion.zero_val
 
 class ServiceCIDRExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -253,8 +261,10 @@ attribute [instance] ServiceCIDRExpansion.TypeAssumptions.type_repr
   ServiceCIDRExpansion.TypeAssumptions.method_set
   ServiceCIDRExpansion.TypeAssumptions.ptr_method_set
 
-axiom IngressesGetter : Type
-axiom IngressesGetter.zero_val : ZeroVal IngressesGetter
+opaque IngressesGetter.nonempty_type : NonemptyType.{0}
+def IngressesGetter : Type := IngressesGetter.nonempty_type.type
+instance IngressesGetter.nonempty : Nonempty IngressesGetter := IngressesGetter.nonempty_type.property
+opaque IngressesGetter.zero_val : ZeroVal IngressesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressesGetter.zero_val
 
 class IngressesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -270,8 +280,10 @@ attribute [instance] IngressesGetter.TypeAssumptions.type_repr
   IngressesGetter.TypeAssumptions.method_set
   IngressesGetter.TypeAssumptions.ptr_method_set
 
-axiom IngressInterface : Type
-axiom IngressInterface.zero_val : ZeroVal IngressInterface
+opaque IngressInterface.nonempty_type : NonemptyType.{0}
+def IngressInterface : Type := IngressInterface.nonempty_type.type
+instance IngressInterface.nonempty : Nonempty IngressInterface := IngressInterface.nonempty_type.property
+opaque IngressInterface.zero_val : ZeroVal IngressInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressInterface.zero_val
 
 class IngressInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -287,8 +299,10 @@ attribute [instance] IngressInterface.TypeAssumptions.type_repr
   IngressInterface.TypeAssumptions.method_set
   IngressInterface.TypeAssumptions.ptr_method_set
 
-axiom ingresses : Type
-axiom ingresses.zero_val : ZeroVal ingresses
+opaque ingresses.nonempty_type : NonemptyType.{0}
+def ingresses : Type := ingresses.nonempty_type.type
+instance ingresses.nonempty : Nonempty ingresses := ingresses.nonempty_type.property
+opaque ingresses.zero_val : ZeroVal ingresses := ⟨Classical.ofNonempty⟩
 attribute [instance] ingresses.zero_val
 
 class ingresses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -304,8 +318,10 @@ attribute [instance] ingresses.TypeAssumptions.type_repr
   ingresses.TypeAssumptions.method_set
   ingresses.TypeAssumptions.ptr_method_set
 
-axiom IngressClassesGetter : Type
-axiom IngressClassesGetter.zero_val : ZeroVal IngressClassesGetter
+opaque IngressClassesGetter.nonempty_type : NonemptyType.{0}
+def IngressClassesGetter : Type := IngressClassesGetter.nonempty_type.type
+instance IngressClassesGetter.nonempty : Nonempty IngressClassesGetter := IngressClassesGetter.nonempty_type.property
+opaque IngressClassesGetter.zero_val : ZeroVal IngressClassesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressClassesGetter.zero_val
 
 class IngressClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -321,8 +337,10 @@ attribute [instance] IngressClassesGetter.TypeAssumptions.type_repr
   IngressClassesGetter.TypeAssumptions.method_set
   IngressClassesGetter.TypeAssumptions.ptr_method_set
 
-axiom IngressClassInterface : Type
-axiom IngressClassInterface.zero_val : ZeroVal IngressClassInterface
+opaque IngressClassInterface.nonempty_type : NonemptyType.{0}
+def IngressClassInterface : Type := IngressClassInterface.nonempty_type.type
+instance IngressClassInterface.nonempty : Nonempty IngressClassInterface := IngressClassInterface.nonempty_type.property
+opaque IngressClassInterface.zero_val : ZeroVal IngressClassInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressClassInterface.zero_val
 
 class IngressClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -338,8 +356,10 @@ attribute [instance] IngressClassInterface.TypeAssumptions.type_repr
   IngressClassInterface.TypeAssumptions.method_set
   IngressClassInterface.TypeAssumptions.ptr_method_set
 
-axiom ingressClasses : Type
-axiom ingressClasses.zero_val : ZeroVal ingressClasses
+opaque ingressClasses.nonempty_type : NonemptyType.{0}
+def ingressClasses : Type := ingressClasses.nonempty_type.type
+instance ingressClasses.nonempty : Nonempty ingressClasses := ingressClasses.nonempty_type.property
+opaque ingressClasses.zero_val : ZeroVal ingressClasses := ⟨Classical.ofNonempty⟩
 attribute [instance] ingressClasses.zero_val
 
 class ingressClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -355,8 +375,10 @@ attribute [instance] ingressClasses.TypeAssumptions.type_repr
   ingressClasses.TypeAssumptions.method_set
   ingressClasses.TypeAssumptions.ptr_method_set
 
-axiom IPAddressesGetter : Type
-axiom IPAddressesGetter.zero_val : ZeroVal IPAddressesGetter
+opaque IPAddressesGetter.nonempty_type : NonemptyType.{0}
+def IPAddressesGetter : Type := IPAddressesGetter.nonempty_type.type
+instance IPAddressesGetter.nonempty : Nonempty IPAddressesGetter := IPAddressesGetter.nonempty_type.property
+opaque IPAddressesGetter.zero_val : ZeroVal IPAddressesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] IPAddressesGetter.zero_val
 
 class IPAddressesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -372,8 +394,10 @@ attribute [instance] IPAddressesGetter.TypeAssumptions.type_repr
   IPAddressesGetter.TypeAssumptions.method_set
   IPAddressesGetter.TypeAssumptions.ptr_method_set
 
-axiom IPAddressInterface : Type
-axiom IPAddressInterface.zero_val : ZeroVal IPAddressInterface
+opaque IPAddressInterface.nonempty_type : NonemptyType.{0}
+def IPAddressInterface : Type := IPAddressInterface.nonempty_type.type
+instance IPAddressInterface.nonempty : Nonempty IPAddressInterface := IPAddressInterface.nonempty_type.property
+opaque IPAddressInterface.zero_val : ZeroVal IPAddressInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] IPAddressInterface.zero_val
 
 class IPAddressInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -389,8 +413,10 @@ attribute [instance] IPAddressInterface.TypeAssumptions.type_repr
   IPAddressInterface.TypeAssumptions.method_set
   IPAddressInterface.TypeAssumptions.ptr_method_set
 
-axiom iPAddresses : Type
-axiom iPAddresses.zero_val : ZeroVal iPAddresses
+opaque iPAddresses.nonempty_type : NonemptyType.{0}
+def iPAddresses : Type := iPAddresses.nonempty_type.type
+instance iPAddresses.nonempty : Nonempty iPAddresses := iPAddresses.nonempty_type.property
+opaque iPAddresses.zero_val : ZeroVal iPAddresses := ⟨Classical.ofNonempty⟩
 attribute [instance] iPAddresses.zero_val
 
 class iPAddresses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -406,8 +432,10 @@ attribute [instance] iPAddresses.TypeAssumptions.type_repr
   iPAddresses.TypeAssumptions.method_set
   iPAddresses.TypeAssumptions.ptr_method_set
 
-axiom NetworkingV1beta1Interface : Type
-axiom NetworkingV1beta1Interface.zero_val : ZeroVal NetworkingV1beta1Interface
+opaque NetworkingV1beta1Interface.nonempty_type : NonemptyType.{0}
+def NetworkingV1beta1Interface : Type := NetworkingV1beta1Interface.nonempty_type.type
+instance NetworkingV1beta1Interface.nonempty : Nonempty NetworkingV1beta1Interface := NetworkingV1beta1Interface.nonempty_type.property
+opaque NetworkingV1beta1Interface.zero_val : ZeroVal NetworkingV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] NetworkingV1beta1Interface.zero_val
 
 class NetworkingV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -423,8 +451,10 @@ attribute [instance] NetworkingV1beta1Interface.TypeAssumptions.type_repr
   NetworkingV1beta1Interface.TypeAssumptions.method_set
   NetworkingV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom NetworkingV1beta1Client : Type
-axiom NetworkingV1beta1Client.zero_val : ZeroVal NetworkingV1beta1Client
+opaque NetworkingV1beta1Client.nonempty_type : NonemptyType.{0}
+def NetworkingV1beta1Client : Type := NetworkingV1beta1Client.nonempty_type.type
+instance NetworkingV1beta1Client.nonempty : Nonempty NetworkingV1beta1Client := NetworkingV1beta1Client.nonempty_type.property
+opaque NetworkingV1beta1Client.zero_val : ZeroVal NetworkingV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] NetworkingV1beta1Client.zero_val
 
 class NetworkingV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -440,8 +470,10 @@ attribute [instance] NetworkingV1beta1Client.TypeAssumptions.type_repr
   NetworkingV1beta1Client.TypeAssumptions.method_set
   NetworkingV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom ServiceCIDRsGetter : Type
-axiom ServiceCIDRsGetter.zero_val : ZeroVal ServiceCIDRsGetter
+opaque ServiceCIDRsGetter.nonempty_type : NonemptyType.{0}
+def ServiceCIDRsGetter : Type := ServiceCIDRsGetter.nonempty_type.type
+instance ServiceCIDRsGetter.nonempty : Nonempty ServiceCIDRsGetter := ServiceCIDRsGetter.nonempty_type.property
+opaque ServiceCIDRsGetter.zero_val : ZeroVal ServiceCIDRsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ServiceCIDRsGetter.zero_val
 
 class ServiceCIDRsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -457,8 +489,10 @@ attribute [instance] ServiceCIDRsGetter.TypeAssumptions.type_repr
   ServiceCIDRsGetter.TypeAssumptions.method_set
   ServiceCIDRsGetter.TypeAssumptions.ptr_method_set
 
-axiom ServiceCIDRInterface : Type
-axiom ServiceCIDRInterface.zero_val : ZeroVal ServiceCIDRInterface
+opaque ServiceCIDRInterface.nonempty_type : NonemptyType.{0}
+def ServiceCIDRInterface : Type := ServiceCIDRInterface.nonempty_type.type
+instance ServiceCIDRInterface.nonempty : Nonempty ServiceCIDRInterface := ServiceCIDRInterface.nonempty_type.property
+opaque ServiceCIDRInterface.zero_val : ZeroVal ServiceCIDRInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ServiceCIDRInterface.zero_val
 
 class ServiceCIDRInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -474,8 +508,10 @@ attribute [instance] ServiceCIDRInterface.TypeAssumptions.type_repr
   ServiceCIDRInterface.TypeAssumptions.method_set
   ServiceCIDRInterface.TypeAssumptions.ptr_method_set
 
-axiom serviceCIDRs : Type
-axiom serviceCIDRs.zero_val : ZeroVal serviceCIDRs
+opaque serviceCIDRs.nonempty_type : NonemptyType.{0}
+def serviceCIDRs : Type := serviceCIDRs.nonempty_type.type
+instance serviceCIDRs.nonempty : Nonempty serviceCIDRs := serviceCIDRs.nonempty_type.property
+opaque serviceCIDRs.zero_val : ZeroVal serviceCIDRs := ⟨Classical.ofNonempty⟩
 attribute [instance] serviceCIDRs.zero_val
 
 class serviceCIDRs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

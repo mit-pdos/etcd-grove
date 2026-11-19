@@ -22,6 +22,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetAnn
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetAnnotations
 public import Spec.k8s_io.apimachinery.pkg.runtime.Decode
 public import Spec.k8s_io.apiserver.pkg.storage.AnnotateInitialEventsEndBookmark
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

@@ -12,6 +12,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.NewCompactor
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.StartCompactorPerEndpoint
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Aus
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

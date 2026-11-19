@@ -71,11 +71,11 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Requests
 public import Proof.go_etcd_io.etcd.server.v3.lease.MvccShapes
 public import Proof.go_etcd_io.etcd.server.v3.auth.Tokens
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
-public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.server.v3.auth.CtxDone
 public import Spec.go_uber_org.zap.Defs
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
 
 @[expose] public section
 

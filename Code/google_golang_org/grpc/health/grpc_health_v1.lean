@@ -72,13 +72,13 @@ noncomputable def UnsafeHealthServer.ty [GooseExts] [GoGlobalContext] : go.GoTyp
 
 attribute [irreducible] UnsafeHealthServer.ty
 
-axiom HealthCheckRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HealthCheckRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HealthCheckResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HealthCheckResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HealthListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HealthListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HealthListResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HealthListResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def Health_WatchClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty HealthCheckResponse.ty)
@@ -86,32 +86,32 @@ axiom HealthListResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 @[reducible] noncomputable def Health_WatchServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty HealthCheckResponse.ty)
 
-axiom HealthCheckResponse_UNKNOWN [GooseExts] [GoGlobalContext] : val
+opaque HealthCheckResponse_UNKNOWN [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def HealthCheckResponse_SERVING [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-axiom HealthCheckResponse_NOT_SERVING [GooseExts] [GoGlobalContext] : val
+opaque HealthCheckResponse_NOT_SERVING [GooseExts] [GoGlobalContext] : val
 
-axiom HealthCheckResponse_SERVICE_UNKNOWN [GooseExts] [GoGlobalContext] : val
+opaque HealthCheckResponse_SERVICE_UNKNOWN [GooseExts] [GoGlobalContext] : val
 
-axiom file_grpc_health_v1_health_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_grpc_health_v1_health_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-axiom Health_Check_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Health_Check_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Health_List_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Health_List_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Health_Watch_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Health_Watch_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 noncomputable def HealthCheckResponse_ServingStatus_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus_name"
 
-axiom HealthCheckResponse_ServingStatus_name.init [GooseExts] [GoGlobalContext] : val
+opaque HealthCheckResponse_ServingStatus_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def HealthCheckResponse_ServingStatus_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus_value"
 
-axiom HealthCheckResponse_ServingStatus_value.init [GooseExts] [GoGlobalContext] : val
+opaque HealthCheckResponse_ServingStatus_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_grpc_health_v1_health_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.File_grpc_health_v1_health_proto"
@@ -125,27 +125,27 @@ noncomputable def file_grpc_health_v1_health_proto_rawDescData [GooseExts] [GoGl
 noncomputable def file_grpc_health_v1_health_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_enumTypes"
 
-axiom file_grpc_health_v1_health_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_grpc_health_v1_health_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_grpc_health_v1_health_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_msgTypes"
 
-axiom file_grpc_health_v1_health_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_grpc_health_v1_health_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_grpc_health_v1_health_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_goTypes"
 
-axiom file_grpc_health_v1_health_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_grpc_health_v1_health_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_grpc_health_v1_health_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_depIdxs"
 
-axiom file_grpc_health_v1_health_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_grpc_health_v1_health_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Health_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.Health_ServiceDesc"
 
-axiom Health_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
+opaque Health_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_grpc_health_v1_health_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_rawDescGZIP"
@@ -174,7 +174,7 @@ noncomputable def _Health_Watch_Handler [GooseExts] [GoGlobalContext] : GoString
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health.grpc_health_v1 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -224,8 +224,10 @@ attribute [instance] HealthCheckResponse_ServingStatus.TypeAssumptions.underlyin
   HealthCheckResponse_ServingStatus.TypeAssumptions.method_set
   HealthCheckResponse_ServingStatus.TypeAssumptions.ptr_method_set
 
-axiom HealthCheckRequest : Type
-axiom HealthCheckRequest.zero_val : ZeroVal HealthCheckRequest
+opaque HealthCheckRequest.nonempty_type : NonemptyType.{0}
+def HealthCheckRequest : Type := HealthCheckRequest.nonempty_type.type
+instance HealthCheckRequest.nonempty : Nonempty HealthCheckRequest := HealthCheckRequest.nonempty_type.property
+opaque HealthCheckRequest.zero_val : ZeroVal HealthCheckRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] HealthCheckRequest.zero_val
 
 class HealthCheckRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -241,8 +243,10 @@ attribute [instance] HealthCheckRequest.TypeAssumptions.type_repr
   HealthCheckRequest.TypeAssumptions.method_set
   HealthCheckRequest.TypeAssumptions.ptr_method_set
 
-axiom HealthCheckResponse : Type
-axiom HealthCheckResponse.zero_val : ZeroVal HealthCheckResponse
+opaque HealthCheckResponse.nonempty_type : NonemptyType.{0}
+def HealthCheckResponse : Type := HealthCheckResponse.nonempty_type.type
+instance HealthCheckResponse.nonempty : Nonempty HealthCheckResponse := HealthCheckResponse.nonempty_type.property
+opaque HealthCheckResponse.zero_val : ZeroVal HealthCheckResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] HealthCheckResponse.zero_val
 
 class HealthCheckResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -258,8 +262,10 @@ attribute [instance] HealthCheckResponse.TypeAssumptions.type_repr
   HealthCheckResponse.TypeAssumptions.method_set
   HealthCheckResponse.TypeAssumptions.ptr_method_set
 
-axiom HealthListRequest : Type
-axiom HealthListRequest.zero_val : ZeroVal HealthListRequest
+opaque HealthListRequest.nonempty_type : NonemptyType.{0}
+def HealthListRequest : Type := HealthListRequest.nonempty_type.type
+instance HealthListRequest.nonempty : Nonempty HealthListRequest := HealthListRequest.nonempty_type.property
+opaque HealthListRequest.zero_val : ZeroVal HealthListRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] HealthListRequest.zero_val
 
 class HealthListRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -275,8 +281,10 @@ attribute [instance] HealthListRequest.TypeAssumptions.type_repr
   HealthListRequest.TypeAssumptions.method_set
   HealthListRequest.TypeAssumptions.ptr_method_set
 
-axiom HealthListResponse : Type
-axiom HealthListResponse.zero_val : ZeroVal HealthListResponse
+opaque HealthListResponse.nonempty_type : NonemptyType.{0}
+def HealthListResponse : Type := HealthListResponse.nonempty_type.type
+instance HealthListResponse.nonempty : Nonempty HealthListResponse := HealthListResponse.nonempty_type.property
+opaque HealthListResponse.zero_val : ZeroVal HealthListResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] HealthListResponse.zero_val
 
 class HealthListResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

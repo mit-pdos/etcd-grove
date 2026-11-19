@@ -40,15 +40,15 @@ noncomputable def Sometimes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Sometimes.ty
 
-axiom Limiter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Limiter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Reservation.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Reservation.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Sometimes.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Sometimes.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Inf [GooseExts] [GoGlobalContext] : val
+opaque Inf [GooseExts] [GoGlobalContext] : val
 
-axiom InfDuration [GooseExts] [GoGlobalContext] : val
+opaque InfDuration [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Every [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/time/rate.Every"
@@ -59,7 +59,7 @@ noncomputable def NewLimiter [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.golang_org.x.time.rate where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -82,8 +82,10 @@ attribute [instance] Limit.TypeAssumptions.underlying
   Limit.TypeAssumptions.method_set
   Limit.TypeAssumptions.ptr_method_set
 
-axiom Limiter : Type
-axiom Limiter.zero_val : ZeroVal Limiter
+opaque Limiter.nonempty_type : NonemptyType.{0}
+def Limiter : Type := Limiter.nonempty_type.type
+instance Limiter.nonempty : Nonempty Limiter := Limiter.nonempty_type.property
+opaque Limiter.zero_val : ZeroVal Limiter := ⟨Classical.ofNonempty⟩
 attribute [instance] Limiter.zero_val
 
 class Limiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -99,8 +101,10 @@ attribute [instance] Limiter.TypeAssumptions.type_repr
   Limiter.TypeAssumptions.method_set
   Limiter.TypeAssumptions.ptr_method_set
 
-axiom Reservation : Type
-axiom Reservation.zero_val : ZeroVal Reservation
+opaque Reservation.nonempty_type : NonemptyType.{0}
+def Reservation : Type := Reservation.nonempty_type.type
+instance Reservation.nonempty : Nonempty Reservation := Reservation.nonempty_type.property
+opaque Reservation.zero_val : ZeroVal Reservation := ⟨Classical.ofNonempty⟩
 attribute [instance] Reservation.zero_val
 
 class Reservation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -116,8 +120,10 @@ attribute [instance] Reservation.TypeAssumptions.type_repr
   Reservation.TypeAssumptions.method_set
   Reservation.TypeAssumptions.ptr_method_set
 
-axiom Sometimes : Type
-axiom Sometimes.zero_val : ZeroVal Sometimes
+opaque Sometimes.nonempty_type : NonemptyType.{0}
+def Sometimes : Type := Sometimes.nonempty_type.type
+instance Sometimes.nonempty : Nonempty Sometimes := Sometimes.nonempty_type.property
+opaque Sometimes.zero_val : ZeroVal Sometimes := ⟨Classical.ofNonempty⟩
 attribute [instance] Sometimes.zero_val
 
 class Sometimes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

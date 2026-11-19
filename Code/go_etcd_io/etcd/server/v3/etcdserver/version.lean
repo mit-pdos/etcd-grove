@@ -40,26 +40,26 @@ noncomputable def Manager.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Manager.ty
 
-axiom Monitor.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Monitor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Manager.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Manager.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def ErrInvalidDowngradeTargetVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.ErrInvalidDowngradeTargetVersion"
 
-axiom ErrInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrDowngradeInProcess [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.ErrDowngradeInProcess"
 
-axiom ErrDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
+opaque ErrDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoInflightDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.ErrNoInflightDowngrade"
 
-axiom ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def isValidDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.isValidDowngrade"
@@ -85,7 +85,7 @@ noncomputable def NewManager [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -141,8 +141,10 @@ attribute [instance] DowngradeInfo.TypeAssumptions.type_repr
   DowngradeInfo.TypeAssumptions.method_set
   DowngradeInfo.TypeAssumptions.ptr_method_set
 
-axiom Monitor : Type
-axiom Monitor.zero_val : ZeroVal Monitor
+opaque Monitor.nonempty_type : NonemptyType.{0}
+def Monitor : Type := Monitor.nonempty_type.type
+instance Monitor.nonempty : Nonempty Monitor := Monitor.nonempty_type.property
+opaque Monitor.zero_val : ZeroVal Monitor := ⟨Classical.ofNonempty⟩
 attribute [instance] Monitor.zero_val
 
 class Monitor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -158,8 +160,10 @@ attribute [instance] Monitor.TypeAssumptions.type_repr
   Monitor.TypeAssumptions.method_set
   Monitor.TypeAssumptions.ptr_method_set
 
-axiom Server : Type
-axiom Server.zero_val : ZeroVal Server
+opaque Server.nonempty_type : NonemptyType.{0}
+def Server : Type := Server.nonempty_type.type
+instance Server.nonempty : Nonempty Server := Server.nonempty_type.property
+opaque Server.zero_val : ZeroVal Server := ⟨Classical.ofNonempty⟩
 attribute [instance] Server.zero_val
 
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -175,8 +179,10 @@ attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
 
-axiom Manager : Type
-axiom Manager.zero_val : ZeroVal Manager
+opaque Manager.nonempty_type : NonemptyType.{0}
+def Manager : Type := Manager.nonempty_type.type
+instance Manager.nonempty : Nonempty Manager := Manager.nonempty_type.property
+opaque Manager.zero_val : ZeroVal Manager := ⟨Classical.ofNonempty⟩
 attribute [instance] Manager.zero_val
 
 class Manager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

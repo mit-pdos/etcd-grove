@@ -18,6 +18,7 @@ public import Spec.k8s_io.klog.v2.V
 public import Spec.k8s_io.klog.v2.Verbose__Infof
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticDelete
 public import Perennial.Proof.time.Link
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

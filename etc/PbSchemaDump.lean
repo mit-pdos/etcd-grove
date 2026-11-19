@@ -66,7 +66,7 @@ partial def chain (e : Expr) : List (Name × Name) :=
 
 def isProject (env : Environment) (n : Name) : Bool :=
   match env.getModuleIdxFor? n with
-  | some i => let r := env.header.moduleNames[i.toNat]!.getRoot; r == `Proof || r == `Spec
+  | some i => let r := env.header.modules[i.toNat]!.module.getRoot; r == `Proof || r == `Spec
   | none => false
 
 /-- The `FieldSchema`-typed constants reached from `c` through this repository's definitions. -/

@@ -21,6 +21,7 @@ public import Spec.strings.TrimSuffix
 public import Spec.go_etcd_io.etcd.client.v3.Client__Ctx
 public import Spec.reflect.TypeOf
 public import Perennial.Proof.strings.HasPrefix
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

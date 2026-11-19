@@ -8,6 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.PermTreeLemmas
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffineInterval
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 
 @[expose] public section
 

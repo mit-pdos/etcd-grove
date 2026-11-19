@@ -40,22 +40,22 @@ noncomputable def dumper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] dumper.ty
 
-axiom encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom dumper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque dumper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom hextable [GooseExts] [GoGlobalContext] : val
+opaque hextable [GooseExts] [GoGlobalContext] : val
 
-axiom reverseHexTable [GooseExts] [GoGlobalContext] : val
+opaque reverseHexTable [GooseExts] [GoGlobalContext] : val
 
-axiom bufferSize [GooseExts] [GoGlobalContext] : val
+opaque bufferSize [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.ErrLength"
 
-axiom ErrLength.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLength.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def EncodedLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.EncodedLen"
@@ -99,7 +99,7 @@ noncomputable def toChar [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.encoding.hex where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -122,8 +122,10 @@ attribute [instance] InvalidByteError.TypeAssumptions.underlying
   InvalidByteError.TypeAssumptions.method_set
   InvalidByteError.TypeAssumptions.ptr_method_set
 
-axiom encoder : Type
-axiom encoder.zero_val : ZeroVal encoder
+opaque encoder.nonempty_type : NonemptyType.{0}
+def encoder : Type := encoder.nonempty_type.type
+instance encoder.nonempty : Nonempty encoder := encoder.nonempty_type.property
+opaque encoder.zero_val : ZeroVal encoder := ⟨Classical.ofNonempty⟩
 attribute [instance] encoder.zero_val
 
 class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -139,8 +141,10 @@ attribute [instance] encoder.TypeAssumptions.type_repr
   encoder.TypeAssumptions.method_set
   encoder.TypeAssumptions.ptr_method_set
 
-axiom decoder : Type
-axiom decoder.zero_val : ZeroVal decoder
+opaque decoder.nonempty_type : NonemptyType.{0}
+def decoder : Type := decoder.nonempty_type.type
+instance decoder.nonempty : Nonempty decoder := decoder.nonempty_type.property
+opaque decoder.zero_val : ZeroVal decoder := ⟨Classical.ofNonempty⟩
 attribute [instance] decoder.zero_val
 
 class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -156,8 +160,10 @@ attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.method_set
   decoder.TypeAssumptions.ptr_method_set
 
-axiom dumper : Type
-axiom dumper.zero_val : ZeroVal dumper
+opaque dumper.nonempty_type : NonemptyType.{0}
+def dumper : Type := dumper.nonempty_type.type
+instance dumper.nonempty : Nonempty dumper := dumper.nonempty_type.property
+opaque dumper.zero_val : ZeroVal dumper := ⟨Classical.ofNonempty⟩
 attribute [instance] dumper.zero_val
 
 class dumper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

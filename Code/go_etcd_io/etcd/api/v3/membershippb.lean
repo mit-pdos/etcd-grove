@@ -51,7 +51,7 @@ noncomputable def DowngradeInfoSetRequest.ty [GooseExts] [GoGlobalContext] : go.
 
 attribute [irreducible] DowngradeInfoSetRequest.ty
 
-axiom file_membership_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_membership_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_membership_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.File_membership_proto"
@@ -65,17 +65,17 @@ noncomputable def file_membership_proto_rawDescData [GooseExts] [GoGlobalContext
 noncomputable def file_membership_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_msgTypes"
 
-axiom file_membership_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_membership_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_membership_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_goTypes"
 
-axiom file_membership_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_membership_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_membership_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_depIdxs"
 
-axiom file_membership_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_membership_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_membership_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_rawDescGZIP"
@@ -89,7 +89,7 @@ noncomputable def file_membership_proto_init [GooseExts] [GoGlobalContext] : GoS
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.membershippb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

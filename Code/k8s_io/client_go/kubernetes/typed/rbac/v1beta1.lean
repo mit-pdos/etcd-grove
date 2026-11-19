@@ -110,41 +110,41 @@ noncomputable def roleBindings.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] roleBindings.ty
 
-axiom ClusterRolesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterRolesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterRoleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clusterRoles.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clusterRoles.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterRoleBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterRoleBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clusterRoleBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clusterRoleBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterRoleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterRoleBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterRoleBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RoleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RoleBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RbacV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RbacV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RbacV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RbacV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RolesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RolesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RoleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom roles.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque roles.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RoleBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RoleBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RoleBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom roleBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque roleBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newClusterRoles [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/rbac/v1beta1.newClusterRoles"
@@ -176,7 +176,7 @@ noncomputable def newRoleBindings [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.rbac.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -185,8 +185,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom ClusterRolesGetter : Type
-axiom ClusterRolesGetter.zero_val : ZeroVal ClusterRolesGetter
+opaque ClusterRolesGetter.nonempty_type : NonemptyType.{0}
+def ClusterRolesGetter : Type := ClusterRolesGetter.nonempty_type.type
+instance ClusterRolesGetter.nonempty : Nonempty ClusterRolesGetter := ClusterRolesGetter.nonempty_type.property
+opaque ClusterRolesGetter.zero_val : ZeroVal ClusterRolesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterRolesGetter.zero_val
 
 class ClusterRolesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -202,8 +204,10 @@ attribute [instance] ClusterRolesGetter.TypeAssumptions.type_repr
   ClusterRolesGetter.TypeAssumptions.method_set
   ClusterRolesGetter.TypeAssumptions.ptr_method_set
 
-axiom ClusterRoleInterface : Type
-axiom ClusterRoleInterface.zero_val : ZeroVal ClusterRoleInterface
+opaque ClusterRoleInterface.nonempty_type : NonemptyType.{0}
+def ClusterRoleInterface : Type := ClusterRoleInterface.nonempty_type.type
+instance ClusterRoleInterface.nonempty : Nonempty ClusterRoleInterface := ClusterRoleInterface.nonempty_type.property
+opaque ClusterRoleInterface.zero_val : ZeroVal ClusterRoleInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterRoleInterface.zero_val
 
 class ClusterRoleInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -219,8 +223,10 @@ attribute [instance] ClusterRoleInterface.TypeAssumptions.type_repr
   ClusterRoleInterface.TypeAssumptions.method_set
   ClusterRoleInterface.TypeAssumptions.ptr_method_set
 
-axiom clusterRoles : Type
-axiom clusterRoles.zero_val : ZeroVal clusterRoles
+opaque clusterRoles.nonempty_type : NonemptyType.{0}
+def clusterRoles : Type := clusterRoles.nonempty_type.type
+instance clusterRoles.nonempty : Nonempty clusterRoles := clusterRoles.nonempty_type.property
+opaque clusterRoles.zero_val : ZeroVal clusterRoles := ⟨Classical.ofNonempty⟩
 attribute [instance] clusterRoles.zero_val
 
 class clusterRoles.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -236,8 +242,10 @@ attribute [instance] clusterRoles.TypeAssumptions.type_repr
   clusterRoles.TypeAssumptions.method_set
   clusterRoles.TypeAssumptions.ptr_method_set
 
-axiom ClusterRoleBindingsGetter : Type
-axiom ClusterRoleBindingsGetter.zero_val : ZeroVal ClusterRoleBindingsGetter
+opaque ClusterRoleBindingsGetter.nonempty_type : NonemptyType.{0}
+def ClusterRoleBindingsGetter : Type := ClusterRoleBindingsGetter.nonempty_type.type
+instance ClusterRoleBindingsGetter.nonempty : Nonempty ClusterRoleBindingsGetter := ClusterRoleBindingsGetter.nonempty_type.property
+opaque ClusterRoleBindingsGetter.zero_val : ZeroVal ClusterRoleBindingsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterRoleBindingsGetter.zero_val
 
 class ClusterRoleBindingsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -253,8 +261,10 @@ attribute [instance] ClusterRoleBindingsGetter.TypeAssumptions.type_repr
   ClusterRoleBindingsGetter.TypeAssumptions.method_set
   ClusterRoleBindingsGetter.TypeAssumptions.ptr_method_set
 
-axiom ClusterRoleBindingInterface : Type
-axiom ClusterRoleBindingInterface.zero_val : ZeroVal ClusterRoleBindingInterface
+opaque ClusterRoleBindingInterface.nonempty_type : NonemptyType.{0}
+def ClusterRoleBindingInterface : Type := ClusterRoleBindingInterface.nonempty_type.type
+instance ClusterRoleBindingInterface.nonempty : Nonempty ClusterRoleBindingInterface := ClusterRoleBindingInterface.nonempty_type.property
+opaque ClusterRoleBindingInterface.zero_val : ZeroVal ClusterRoleBindingInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterRoleBindingInterface.zero_val
 
 class ClusterRoleBindingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -270,8 +280,10 @@ attribute [instance] ClusterRoleBindingInterface.TypeAssumptions.type_repr
   ClusterRoleBindingInterface.TypeAssumptions.method_set
   ClusterRoleBindingInterface.TypeAssumptions.ptr_method_set
 
-axiom clusterRoleBindings : Type
-axiom clusterRoleBindings.zero_val : ZeroVal clusterRoleBindings
+opaque clusterRoleBindings.nonempty_type : NonemptyType.{0}
+def clusterRoleBindings : Type := clusterRoleBindings.nonempty_type.type
+instance clusterRoleBindings.nonempty : Nonempty clusterRoleBindings := clusterRoleBindings.nonempty_type.property
+opaque clusterRoleBindings.zero_val : ZeroVal clusterRoleBindings := ⟨Classical.ofNonempty⟩
 attribute [instance] clusterRoleBindings.zero_val
 
 class clusterRoleBindings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -287,8 +299,10 @@ attribute [instance] clusterRoleBindings.TypeAssumptions.type_repr
   clusterRoleBindings.TypeAssumptions.method_set
   clusterRoleBindings.TypeAssumptions.ptr_method_set
 
-axiom ClusterRoleExpansion : Type
-axiom ClusterRoleExpansion.zero_val : ZeroVal ClusterRoleExpansion
+opaque ClusterRoleExpansion.nonempty_type : NonemptyType.{0}
+def ClusterRoleExpansion : Type := ClusterRoleExpansion.nonempty_type.type
+instance ClusterRoleExpansion.nonempty : Nonempty ClusterRoleExpansion := ClusterRoleExpansion.nonempty_type.property
+opaque ClusterRoleExpansion.zero_val : ZeroVal ClusterRoleExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterRoleExpansion.zero_val
 
 class ClusterRoleExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -304,8 +318,10 @@ attribute [instance] ClusterRoleExpansion.TypeAssumptions.type_repr
   ClusterRoleExpansion.TypeAssumptions.method_set
   ClusterRoleExpansion.TypeAssumptions.ptr_method_set
 
-axiom ClusterRoleBindingExpansion : Type
-axiom ClusterRoleBindingExpansion.zero_val : ZeroVal ClusterRoleBindingExpansion
+opaque ClusterRoleBindingExpansion.nonempty_type : NonemptyType.{0}
+def ClusterRoleBindingExpansion : Type := ClusterRoleBindingExpansion.nonempty_type.type
+instance ClusterRoleBindingExpansion.nonempty : Nonempty ClusterRoleBindingExpansion := ClusterRoleBindingExpansion.nonempty_type.property
+opaque ClusterRoleBindingExpansion.zero_val : ZeroVal ClusterRoleBindingExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterRoleBindingExpansion.zero_val
 
 class ClusterRoleBindingExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -321,8 +337,10 @@ attribute [instance] ClusterRoleBindingExpansion.TypeAssumptions.type_repr
   ClusterRoleBindingExpansion.TypeAssumptions.method_set
   ClusterRoleBindingExpansion.TypeAssumptions.ptr_method_set
 
-axiom RoleExpansion : Type
-axiom RoleExpansion.zero_val : ZeroVal RoleExpansion
+opaque RoleExpansion.nonempty_type : NonemptyType.{0}
+def RoleExpansion : Type := RoleExpansion.nonempty_type.type
+instance RoleExpansion.nonempty : Nonempty RoleExpansion := RoleExpansion.nonempty_type.property
+opaque RoleExpansion.zero_val : ZeroVal RoleExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] RoleExpansion.zero_val
 
 class RoleExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -338,8 +356,10 @@ attribute [instance] RoleExpansion.TypeAssumptions.type_repr
   RoleExpansion.TypeAssumptions.method_set
   RoleExpansion.TypeAssumptions.ptr_method_set
 
-axiom RoleBindingExpansion : Type
-axiom RoleBindingExpansion.zero_val : ZeroVal RoleBindingExpansion
+opaque RoleBindingExpansion.nonempty_type : NonemptyType.{0}
+def RoleBindingExpansion : Type := RoleBindingExpansion.nonempty_type.type
+instance RoleBindingExpansion.nonempty : Nonempty RoleBindingExpansion := RoleBindingExpansion.nonempty_type.property
+opaque RoleBindingExpansion.zero_val : ZeroVal RoleBindingExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] RoleBindingExpansion.zero_val
 
 class RoleBindingExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -355,8 +375,10 @@ attribute [instance] RoleBindingExpansion.TypeAssumptions.type_repr
   RoleBindingExpansion.TypeAssumptions.method_set
   RoleBindingExpansion.TypeAssumptions.ptr_method_set
 
-axiom RbacV1beta1Interface : Type
-axiom RbacV1beta1Interface.zero_val : ZeroVal RbacV1beta1Interface
+opaque RbacV1beta1Interface.nonempty_type : NonemptyType.{0}
+def RbacV1beta1Interface : Type := RbacV1beta1Interface.nonempty_type.type
+instance RbacV1beta1Interface.nonempty : Nonempty RbacV1beta1Interface := RbacV1beta1Interface.nonempty_type.property
+opaque RbacV1beta1Interface.zero_val : ZeroVal RbacV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] RbacV1beta1Interface.zero_val
 
 class RbacV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -372,8 +394,10 @@ attribute [instance] RbacV1beta1Interface.TypeAssumptions.type_repr
   RbacV1beta1Interface.TypeAssumptions.method_set
   RbacV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom RbacV1beta1Client : Type
-axiom RbacV1beta1Client.zero_val : ZeroVal RbacV1beta1Client
+opaque RbacV1beta1Client.nonempty_type : NonemptyType.{0}
+def RbacV1beta1Client : Type := RbacV1beta1Client.nonempty_type.type
+instance RbacV1beta1Client.nonempty : Nonempty RbacV1beta1Client := RbacV1beta1Client.nonempty_type.property
+opaque RbacV1beta1Client.zero_val : ZeroVal RbacV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] RbacV1beta1Client.zero_val
 
 class RbacV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -389,8 +413,10 @@ attribute [instance] RbacV1beta1Client.TypeAssumptions.type_repr
   RbacV1beta1Client.TypeAssumptions.method_set
   RbacV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom RolesGetter : Type
-axiom RolesGetter.zero_val : ZeroVal RolesGetter
+opaque RolesGetter.nonempty_type : NonemptyType.{0}
+def RolesGetter : Type := RolesGetter.nonempty_type.type
+instance RolesGetter.nonempty : Nonempty RolesGetter := RolesGetter.nonempty_type.property
+opaque RolesGetter.zero_val : ZeroVal RolesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] RolesGetter.zero_val
 
 class RolesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -406,8 +432,10 @@ attribute [instance] RolesGetter.TypeAssumptions.type_repr
   RolesGetter.TypeAssumptions.method_set
   RolesGetter.TypeAssumptions.ptr_method_set
 
-axiom RoleInterface : Type
-axiom RoleInterface.zero_val : ZeroVal RoleInterface
+opaque RoleInterface.nonempty_type : NonemptyType.{0}
+def RoleInterface : Type := RoleInterface.nonempty_type.type
+instance RoleInterface.nonempty : Nonempty RoleInterface := RoleInterface.nonempty_type.property
+opaque RoleInterface.zero_val : ZeroVal RoleInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] RoleInterface.zero_val
 
 class RoleInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -423,8 +451,10 @@ attribute [instance] RoleInterface.TypeAssumptions.type_repr
   RoleInterface.TypeAssumptions.method_set
   RoleInterface.TypeAssumptions.ptr_method_set
 
-axiom roles : Type
-axiom roles.zero_val : ZeroVal roles
+opaque roles.nonempty_type : NonemptyType.{0}
+def roles : Type := roles.nonempty_type.type
+instance roles.nonempty : Nonempty roles := roles.nonempty_type.property
+opaque roles.zero_val : ZeroVal roles := ⟨Classical.ofNonempty⟩
 attribute [instance] roles.zero_val
 
 class roles.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -440,8 +470,10 @@ attribute [instance] roles.TypeAssumptions.type_repr
   roles.TypeAssumptions.method_set
   roles.TypeAssumptions.ptr_method_set
 
-axiom RoleBindingsGetter : Type
-axiom RoleBindingsGetter.zero_val : ZeroVal RoleBindingsGetter
+opaque RoleBindingsGetter.nonempty_type : NonemptyType.{0}
+def RoleBindingsGetter : Type := RoleBindingsGetter.nonempty_type.type
+instance RoleBindingsGetter.nonempty : Nonempty RoleBindingsGetter := RoleBindingsGetter.nonempty_type.property
+opaque RoleBindingsGetter.zero_val : ZeroVal RoleBindingsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] RoleBindingsGetter.zero_val
 
 class RoleBindingsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -457,8 +489,10 @@ attribute [instance] RoleBindingsGetter.TypeAssumptions.type_repr
   RoleBindingsGetter.TypeAssumptions.method_set
   RoleBindingsGetter.TypeAssumptions.ptr_method_set
 
-axiom RoleBindingInterface : Type
-axiom RoleBindingInterface.zero_val : ZeroVal RoleBindingInterface
+opaque RoleBindingInterface.nonempty_type : NonemptyType.{0}
+def RoleBindingInterface : Type := RoleBindingInterface.nonempty_type.type
+instance RoleBindingInterface.nonempty : Nonempty RoleBindingInterface := RoleBindingInterface.nonempty_type.property
+opaque RoleBindingInterface.zero_val : ZeroVal RoleBindingInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] RoleBindingInterface.zero_val
 
 class RoleBindingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -474,8 +508,10 @@ attribute [instance] RoleBindingInterface.TypeAssumptions.type_repr
   RoleBindingInterface.TypeAssumptions.method_set
   RoleBindingInterface.TypeAssumptions.ptr_method_set
 
-axiom roleBindings : Type
-axiom roleBindings.zero_val : ZeroVal roleBindings
+opaque roleBindings.nonempty_type : NonemptyType.{0}
+def roleBindings : Type := roleBindings.nonempty_type.type
+instance roleBindings.nonempty : Nonempty roleBindings := roleBindings.nonempty_type.property
+opaque roleBindings.zero_val : ZeroVal roleBindings := ⟨Classical.ofNonempty⟩
 attribute [instance] roleBindings.zero_val
 
 class roleBindings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

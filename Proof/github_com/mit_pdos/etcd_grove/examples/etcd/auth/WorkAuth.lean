@@ -13,6 +13,8 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
 public import Proof.go_etcd_io.etcd.client.v3.StreamKey
+public import Proof.go_etcd_io.etcd.client.v3.WatchCheck
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

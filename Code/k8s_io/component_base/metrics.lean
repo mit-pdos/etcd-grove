@@ -290,146 +290,146 @@ noncomputable def GaugeFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] GaugeFunc.ty
 
-axiom StableCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StableCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BaseStableCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BaseStableCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Counter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Counter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exemplarCounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque exemplarCounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CounterVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CounterVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Desc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Desc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Gauge.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Gauge.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GaugeVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GaugeVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Histogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Histogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exemplarHistogramMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque exemplarHistogramMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exemplarHistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque exemplarHistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HistogramVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HistogramVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HandlerOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HandlerOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Labels.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Labels.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom kubeCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque kubeCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyKubeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque lazyKubeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque lazyMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom selfCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque selfCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque noopMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Options.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Options.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricLabelAllowList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MetricLabelAllowList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KubeOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque KubeOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StabilityLevel.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StabilityLevel.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CounterOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GaugeOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HistogramOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HistogramOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimingHistogramOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TimingHistogramOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SummaryOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SummaryOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Registerable.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Registerable.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resettable.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resettable.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KubeRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque KubeRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom kubeRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque kubeRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Summary.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Summary.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SummaryVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SummaryVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SummaryVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SummaryVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PrometheusTimingHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PrometheusTimingHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimingHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TimingHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimingHistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TimingHistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimingHistogramVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TimingHistogramVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValueType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValueType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Collector.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Collector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Metric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Metric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterVecMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CounterVecMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GaugeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeVecMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GaugeVecMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObserverMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ObserverMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PromRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PromRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Gatherer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Gatherer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Registerer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Registerer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GaugeFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HTTPErrorOnError [GooseExts] [GoGlobalContext] : val
+opaque HTTPErrorOnError [GooseExts] [GoGlobalContext] : val
 
-axiom ContinueOnError [GooseExts] [GoGlobalContext] : val
+opaque ContinueOnError [GooseExts] [GoGlobalContext] : val
 
-axiom PanicOnError [GooseExts] [GoGlobalContext] : val
+opaque PanicOnError [GooseExts] [GoGlobalContext] : val
 
-axiom INTERNAL [GooseExts] [GoGlobalContext] : val
+opaque INTERNAL [GooseExts] [GoGlobalContext] : val
 
-axiom ALPHA [GooseExts] [GoGlobalContext] : val
+opaque ALPHA [GooseExts] [GoGlobalContext] : val
 
-axiom BETA [GooseExts] [GoGlobalContext] : val
+opaque BETA [GooseExts] [GoGlobalContext] : val
 
-axiom STABLE [GooseExts] [GoGlobalContext] : val
+opaque STABLE [GooseExts] [GoGlobalContext] : val
 
-axiom DefAgeBuckets [GooseExts] [GoGlobalContext] : val
+opaque DefAgeBuckets [GooseExts] [GoGlobalContext] : val
 
-axiom DefBufCap [GooseExts] [GoGlobalContext] : val
+opaque DefBufCap [GooseExts] [GoGlobalContext] : val
 
-axiom DefMaxAge [GooseExts] [GoGlobalContext] : val
+opaque DefMaxAge [GooseExts] [GoGlobalContext] : val
 
-axiom CounterValue [GooseExts] [GoGlobalContext] : val
+opaque CounterValue [GooseExts] [GoGlobalContext] : val
 
-axiom GaugeValue [GooseExts] [GoGlobalContext] : val
+opaque GaugeValue [GooseExts] [GoGlobalContext] : val
 
-axiom UntypedValue [GooseExts] [GoGlobalContext] : val
+opaque UntypedValue [GooseExts] [GoGlobalContext] : val
 
-axiom versionRegexpString [GooseExts] [GoGlobalContext] : val
+opaque versionRegexpString [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.DefBuckets"
 
-axiom DefBuckets.init [GooseExts] [GoGlobalContext] : val
+opaque DefBuckets.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def processStartedAt [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.processStartedAt"
@@ -437,27 +437,27 @@ noncomputable def processStartedAt [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def noopCounterVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noopCounterVec"
 
-axiom noopCounterVec.init [GooseExts] [GoGlobalContext] : val
+opaque noopCounterVec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noopHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noopHistogramVec"
 
-axiom noopHistogramVec.init [GooseExts] [GoGlobalContext] : val
+opaque noopHistogramVec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noopTimingHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noopTimingHistogramVec"
 
-axiom noopTimingHistogramVec.init [GooseExts] [GoGlobalContext] : val
+opaque noopTimingHistogramVec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noopGaugeVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noopGaugeVec"
 
-axiom noopGaugeVec.init [GooseExts] [GoGlobalContext] : val
+opaque noopGaugeVec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noop [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noop"
 
-axiom noop.init [GooseExts] [GoGlobalContext] : val
+opaque noop.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def disabledMetricsLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.disabledMetricsLock"
@@ -465,7 +465,7 @@ noncomputable def disabledMetricsLock [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def disabledMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.disabledMetrics"
 
-axiom disabledMetrics.init [GooseExts] [GoGlobalContext] : val
+opaque disabledMetrics.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def showHiddenOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.showHiddenOnce"
@@ -476,22 +476,22 @@ noncomputable def showHidden [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def disabledMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.disabledMetricsTotal"
 
-axiom disabledMetricsTotal.init [GooseExts] [GoGlobalContext] : val
+opaque disabledMetricsTotal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hiddenMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.hiddenMetricsTotal"
 
-axiom hiddenMetricsTotal.init [GooseExts] [GoGlobalContext] : val
+opaque hiddenMetricsTotal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cardinalityEnforcementUnexpectedCategorizationsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.cardinalityEnforcementUnexpectedCategorizationsTotal"
 
-axiom cardinalityEnforcementUnexpectedCategorizationsTotal.init [GooseExts] [GoGlobalContext] : val
+opaque cardinalityEnforcementUnexpectedCategorizationsTotal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def labelValueAllowLists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.labelValueAllowLists"
 
-axiom labelValueAllowLists.init [GooseExts] [GoGlobalContext] : val
+opaque labelValueAllowLists.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def allowListLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.allowListLock"
@@ -499,12 +499,12 @@ noncomputable def allowListLock [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defObjectives [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.defObjectives"
 
-axiom defObjectives.init [GooseExts] [GoGlobalContext] : val
+opaque defObjectives.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def processStartTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.processStartTime"
 
-axiom processStartTime.init [GooseExts] [GoGlobalContext] : val
+opaque processStartTime.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def registries [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.registries"
@@ -515,27 +515,27 @@ noncomputable def registriesLock [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def registeredMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.registeredMetricsTotal"
 
-axiom registeredMetricsTotal.init [GooseExts] [GoGlobalContext] : val
+opaque registeredMetricsTotal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BuildVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.BuildVersion"
 
-axiom BuildVersion.init [GooseExts] [GoGlobalContext] : val
+opaque BuildVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def buildInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.buildInfo"
 
-axiom buildInfo.init [GooseExts] [GoGlobalContext] : val
+opaque buildInfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def versionRe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.versionRe"
 
-axiom versionRe.init [GooseExts] [GoGlobalContext] : val
+opaque versionRe.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNotRegistered [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.errNotRegistered"
 
-axiom errNotRegistered.init [GooseExts] [GoGlobalContext] : val
+opaque errNotRegistered.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def LinearBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.LinearBuckets"
@@ -678,7 +678,7 @@ noncomputable def ErrIsNotRegistered [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.metrics where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -789,8 +789,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val DefBuckets.init) (Val #()))))))))
 
-axiom StableCollector : Type
-axiom StableCollector.zero_val : ZeroVal StableCollector
+opaque StableCollector.nonempty_type : NonemptyType.{0}
+def StableCollector : Type := StableCollector.nonempty_type.type
+instance StableCollector.nonempty : Nonempty StableCollector := StableCollector.nonempty_type.property
+opaque StableCollector.zero_val : ZeroVal StableCollector := ⟨Classical.ofNonempty⟩
 attribute [instance] StableCollector.zero_val
 
 class StableCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -806,8 +808,10 @@ attribute [instance] StableCollector.TypeAssumptions.type_repr
   StableCollector.TypeAssumptions.method_set
   StableCollector.TypeAssumptions.ptr_method_set
 
-axiom BaseStableCollector : Type
-axiom BaseStableCollector.zero_val : ZeroVal BaseStableCollector
+opaque BaseStableCollector.nonempty_type : NonemptyType.{0}
+def BaseStableCollector : Type := BaseStableCollector.nonempty_type.type
+instance BaseStableCollector.nonempty : Nonempty BaseStableCollector := BaseStableCollector.nonempty_type.property
+opaque BaseStableCollector.zero_val : ZeroVal BaseStableCollector := ⟨Classical.ofNonempty⟩
 attribute [instance] BaseStableCollector.zero_val
 
 class BaseStableCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -823,8 +827,10 @@ attribute [instance] BaseStableCollector.TypeAssumptions.type_repr
   BaseStableCollector.TypeAssumptions.method_set
   BaseStableCollector.TypeAssumptions.ptr_method_set
 
-axiom Counter : Type
-axiom Counter.zero_val : ZeroVal Counter
+opaque Counter.nonempty_type : NonemptyType.{0}
+def Counter : Type := Counter.nonempty_type.type
+instance Counter.nonempty : Nonempty Counter := Counter.nonempty_type.property
+opaque Counter.zero_val : ZeroVal Counter := ⟨Classical.ofNonempty⟩
 attribute [instance] Counter.zero_val
 
 class Counter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -840,8 +846,10 @@ attribute [instance] Counter.TypeAssumptions.type_repr
   Counter.TypeAssumptions.method_set
   Counter.TypeAssumptions.ptr_method_set
 
-axiom exemplarCounterMetric : Type
-axiom exemplarCounterMetric.zero_val : ZeroVal exemplarCounterMetric
+opaque exemplarCounterMetric.nonempty_type : NonemptyType.{0}
+def exemplarCounterMetric : Type := exemplarCounterMetric.nonempty_type.type
+instance exemplarCounterMetric.nonempty : Nonempty exemplarCounterMetric := exemplarCounterMetric.nonempty_type.property
+opaque exemplarCounterMetric.zero_val : ZeroVal exemplarCounterMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] exemplarCounterMetric.zero_val
 
 class exemplarCounterMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -857,8 +865,10 @@ attribute [instance] exemplarCounterMetric.TypeAssumptions.type_repr
   exemplarCounterMetric.TypeAssumptions.method_set
   exemplarCounterMetric.TypeAssumptions.ptr_method_set
 
-axiom CounterVec : Type
-axiom CounterVec.zero_val : ZeroVal CounterVec
+opaque CounterVec.nonempty_type : NonemptyType.{0}
+def CounterVec : Type := CounterVec.nonempty_type.type
+instance CounterVec.nonempty : Nonempty CounterVec := CounterVec.nonempty_type.property
+opaque CounterVec.zero_val : ZeroVal CounterVec := ⟨Classical.ofNonempty⟩
 attribute [instance] CounterVec.zero_val
 
 class CounterVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -874,8 +884,10 @@ attribute [instance] CounterVec.TypeAssumptions.type_repr
   CounterVec.TypeAssumptions.method_set
   CounterVec.TypeAssumptions.ptr_method_set
 
-axiom CounterVecWithContext : Type
-axiom CounterVecWithContext.zero_val : ZeroVal CounterVecWithContext
+opaque CounterVecWithContext.nonempty_type : NonemptyType.{0}
+def CounterVecWithContext : Type := CounterVecWithContext.nonempty_type.type
+instance CounterVecWithContext.nonempty : Nonempty CounterVecWithContext := CounterVecWithContext.nonempty_type.property
+opaque CounterVecWithContext.zero_val : ZeroVal CounterVecWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] CounterVecWithContext.zero_val
 
 class CounterVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -891,8 +903,10 @@ attribute [instance] CounterVecWithContext.TypeAssumptions.type_repr
   CounterVecWithContext.TypeAssumptions.method_set
   CounterVecWithContext.TypeAssumptions.ptr_method_set
 
-axiom Desc : Type
-axiom Desc.zero_val : ZeroVal Desc
+opaque Desc.nonempty_type : NonemptyType.{0}
+def Desc : Type := Desc.nonempty_type.type
+instance Desc.nonempty : Nonempty Desc := Desc.nonempty_type.property
+opaque Desc.zero_val : ZeroVal Desc := ⟨Classical.ofNonempty⟩
 attribute [instance] Desc.zero_val
 
 class Desc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -908,8 +922,10 @@ attribute [instance] Desc.TypeAssumptions.type_repr
   Desc.TypeAssumptions.method_set
   Desc.TypeAssumptions.ptr_method_set
 
-axiom Gauge : Type
-axiom Gauge.zero_val : ZeroVal Gauge
+opaque Gauge.nonempty_type : NonemptyType.{0}
+def Gauge : Type := Gauge.nonempty_type.type
+instance Gauge.nonempty : Nonempty Gauge := Gauge.nonempty_type.property
+opaque Gauge.zero_val : ZeroVal Gauge := ⟨Classical.ofNonempty⟩
 attribute [instance] Gauge.zero_val
 
 class Gauge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -925,8 +941,10 @@ attribute [instance] Gauge.TypeAssumptions.type_repr
   Gauge.TypeAssumptions.method_set
   Gauge.TypeAssumptions.ptr_method_set
 
-axiom GaugeVec : Type
-axiom GaugeVec.zero_val : ZeroVal GaugeVec
+opaque GaugeVec.nonempty_type : NonemptyType.{0}
+def GaugeVec : Type := GaugeVec.nonempty_type.type
+instance GaugeVec.nonempty : Nonempty GaugeVec := GaugeVec.nonempty_type.property
+opaque GaugeVec.zero_val : ZeroVal GaugeVec := ⟨Classical.ofNonempty⟩
 attribute [instance] GaugeVec.zero_val
 
 class GaugeVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -942,8 +960,10 @@ attribute [instance] GaugeVec.TypeAssumptions.type_repr
   GaugeVec.TypeAssumptions.method_set
   GaugeVec.TypeAssumptions.ptr_method_set
 
-axiom GaugeVecWithContext : Type
-axiom GaugeVecWithContext.zero_val : ZeroVal GaugeVecWithContext
+opaque GaugeVecWithContext.nonempty_type : NonemptyType.{0}
+def GaugeVecWithContext : Type := GaugeVecWithContext.nonempty_type.type
+instance GaugeVecWithContext.nonempty : Nonempty GaugeVecWithContext := GaugeVecWithContext.nonempty_type.property
+opaque GaugeVecWithContext.zero_val : ZeroVal GaugeVecWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] GaugeVecWithContext.zero_val
 
 class GaugeVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -959,8 +979,10 @@ attribute [instance] GaugeVecWithContext.TypeAssumptions.type_repr
   GaugeVecWithContext.TypeAssumptions.method_set
   GaugeVecWithContext.TypeAssumptions.ptr_method_set
 
-axiom Histogram : Type
-axiom Histogram.zero_val : ZeroVal Histogram
+opaque Histogram.nonempty_type : NonemptyType.{0}
+def Histogram : Type := Histogram.nonempty_type.type
+instance Histogram.nonempty : Nonempty Histogram := Histogram.nonempty_type.property
+opaque Histogram.zero_val : ZeroVal Histogram := ⟨Classical.ofNonempty⟩
 attribute [instance] Histogram.zero_val
 
 class Histogram.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -976,8 +998,10 @@ attribute [instance] Histogram.TypeAssumptions.type_repr
   Histogram.TypeAssumptions.method_set
   Histogram.TypeAssumptions.ptr_method_set
 
-axiom exemplarHistogramMetric : Type
-axiom exemplarHistogramMetric.zero_val : ZeroVal exemplarHistogramMetric
+opaque exemplarHistogramMetric.nonempty_type : NonemptyType.{0}
+def exemplarHistogramMetric : Type := exemplarHistogramMetric.nonempty_type.type
+instance exemplarHistogramMetric.nonempty : Nonempty exemplarHistogramMetric := exemplarHistogramMetric.nonempty_type.property
+opaque exemplarHistogramMetric.zero_val : ZeroVal exemplarHistogramMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] exemplarHistogramMetric.zero_val
 
 class exemplarHistogramMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -993,8 +1017,10 @@ attribute [instance] exemplarHistogramMetric.TypeAssumptions.type_repr
   exemplarHistogramMetric.TypeAssumptions.method_set
   exemplarHistogramMetric.TypeAssumptions.ptr_method_set
 
-axiom exemplarHistogramVec : Type
-axiom exemplarHistogramVec.zero_val : ZeroVal exemplarHistogramVec
+opaque exemplarHistogramVec.nonempty_type : NonemptyType.{0}
+def exemplarHistogramVec : Type := exemplarHistogramVec.nonempty_type.type
+instance exemplarHistogramVec.nonempty : Nonempty exemplarHistogramVec := exemplarHistogramVec.nonempty_type.property
+opaque exemplarHistogramVec.zero_val : ZeroVal exemplarHistogramVec := ⟨Classical.ofNonempty⟩
 attribute [instance] exemplarHistogramVec.zero_val
 
 class exemplarHistogramVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1010,8 +1036,10 @@ attribute [instance] exemplarHistogramVec.TypeAssumptions.type_repr
   exemplarHistogramVec.TypeAssumptions.method_set
   exemplarHistogramVec.TypeAssumptions.ptr_method_set
 
-axiom HistogramVec : Type
-axiom HistogramVec.zero_val : ZeroVal HistogramVec
+opaque HistogramVec.nonempty_type : NonemptyType.{0}
+def HistogramVec : Type := HistogramVec.nonempty_type.type
+instance HistogramVec.nonempty : Nonempty HistogramVec := HistogramVec.nonempty_type.property
+opaque HistogramVec.zero_val : ZeroVal HistogramVec := ⟨Classical.ofNonempty⟩
 attribute [instance] HistogramVec.zero_val
 
 class HistogramVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1027,8 +1055,10 @@ attribute [instance] HistogramVec.TypeAssumptions.type_repr
   HistogramVec.TypeAssumptions.method_set
   HistogramVec.TypeAssumptions.ptr_method_set
 
-axiom HistogramVecWithContext : Type
-axiom HistogramVecWithContext.zero_val : ZeroVal HistogramVecWithContext
+opaque HistogramVecWithContext.nonempty_type : NonemptyType.{0}
+def HistogramVecWithContext : Type := HistogramVecWithContext.nonempty_type.type
+instance HistogramVecWithContext.nonempty : Nonempty HistogramVecWithContext := HistogramVecWithContext.nonempty_type.property
+opaque HistogramVecWithContext.zero_val : ZeroVal HistogramVecWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] HistogramVecWithContext.zero_val
 
 class HistogramVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1044,8 +1074,10 @@ attribute [instance] HistogramVecWithContext.TypeAssumptions.type_repr
   HistogramVecWithContext.TypeAssumptions.method_set
   HistogramVecWithContext.TypeAssumptions.ptr_method_set
 
-axiom HandlerOpts : Type
-axiom HandlerOpts.zero_val : ZeroVal HandlerOpts
+opaque HandlerOpts.nonempty_type : NonemptyType.{0}
+def HandlerOpts : Type := HandlerOpts.nonempty_type.type
+instance HandlerOpts.nonempty : Nonempty HandlerOpts := HandlerOpts.nonempty_type.property
+opaque HandlerOpts.zero_val : ZeroVal HandlerOpts := ⟨Classical.ofNonempty⟩
 attribute [instance] HandlerOpts.zero_val
 
 class HandlerOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1061,8 +1093,10 @@ attribute [instance] HandlerOpts.TypeAssumptions.type_repr
   HandlerOpts.TypeAssumptions.method_set
   HandlerOpts.TypeAssumptions.ptr_method_set
 
-axiom Labels : Type
-axiom Labels.zero_val : ZeroVal Labels
+opaque Labels.nonempty_type : NonemptyType.{0}
+def Labels : Type := Labels.nonempty_type.type
+instance Labels.nonempty : Nonempty Labels := Labels.nonempty_type.property
+opaque Labels.zero_val : ZeroVal Labels := ⟨Classical.ofNonempty⟩
 attribute [instance] Labels.zero_val
 
 class Labels.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1078,8 +1112,10 @@ attribute [instance] Labels.TypeAssumptions.type_repr
   Labels.TypeAssumptions.method_set
   Labels.TypeAssumptions.ptr_method_set
 
-axiom kubeCollector : Type
-axiom kubeCollector.zero_val : ZeroVal kubeCollector
+opaque kubeCollector.nonempty_type : NonemptyType.{0}
+def kubeCollector : Type := kubeCollector.nonempty_type.type
+instance kubeCollector.nonempty : Nonempty kubeCollector := kubeCollector.nonempty_type.property
+opaque kubeCollector.zero_val : ZeroVal kubeCollector := ⟨Classical.ofNonempty⟩
 attribute [instance] kubeCollector.zero_val
 
 class kubeCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1095,8 +1131,10 @@ attribute [instance] kubeCollector.TypeAssumptions.type_repr
   kubeCollector.TypeAssumptions.method_set
   kubeCollector.TypeAssumptions.ptr_method_set
 
-axiom lazyKubeMetric : Type
-axiom lazyKubeMetric.zero_val : ZeroVal lazyKubeMetric
+opaque lazyKubeMetric.nonempty_type : NonemptyType.{0}
+def lazyKubeMetric : Type := lazyKubeMetric.nonempty_type.type
+instance lazyKubeMetric.nonempty : Nonempty lazyKubeMetric := lazyKubeMetric.nonempty_type.property
+opaque lazyKubeMetric.zero_val : ZeroVal lazyKubeMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] lazyKubeMetric.zero_val
 
 class lazyKubeMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1112,8 +1150,10 @@ attribute [instance] lazyKubeMetric.TypeAssumptions.type_repr
   lazyKubeMetric.TypeAssumptions.method_set
   lazyKubeMetric.TypeAssumptions.ptr_method_set
 
-axiom lazyMetric : Type
-axiom lazyMetric.zero_val : ZeroVal lazyMetric
+opaque lazyMetric.nonempty_type : NonemptyType.{0}
+def lazyMetric : Type := lazyMetric.nonempty_type.type
+instance lazyMetric.nonempty : Nonempty lazyMetric := lazyMetric.nonempty_type.property
+opaque lazyMetric.zero_val : ZeroVal lazyMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] lazyMetric.zero_val
 
 class lazyMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1129,8 +1169,10 @@ attribute [instance] lazyMetric.TypeAssumptions.type_repr
   lazyMetric.TypeAssumptions.method_set
   lazyMetric.TypeAssumptions.ptr_method_set
 
-axiom selfCollector : Type
-axiom selfCollector.zero_val : ZeroVal selfCollector
+opaque selfCollector.nonempty_type : NonemptyType.{0}
+def selfCollector : Type := selfCollector.nonempty_type.type
+instance selfCollector.nonempty : Nonempty selfCollector := selfCollector.nonempty_type.property
+opaque selfCollector.zero_val : ZeroVal selfCollector := ⟨Classical.ofNonempty⟩
 attribute [instance] selfCollector.zero_val
 
 class selfCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1146,8 +1188,10 @@ attribute [instance] selfCollector.TypeAssumptions.type_repr
   selfCollector.TypeAssumptions.method_set
   selfCollector.TypeAssumptions.ptr_method_set
 
-axiom noopMetric : Type
-axiom noopMetric.zero_val : ZeroVal noopMetric
+opaque noopMetric.nonempty_type : NonemptyType.{0}
+def noopMetric : Type := noopMetric.nonempty_type.type
+instance noopMetric.nonempty : Nonempty noopMetric := noopMetric.nonempty_type.property
+opaque noopMetric.zero_val : ZeroVal noopMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] noopMetric.zero_val
 
 class noopMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1163,8 +1207,10 @@ attribute [instance] noopMetric.TypeAssumptions.type_repr
   noopMetric.TypeAssumptions.method_set
   noopMetric.TypeAssumptions.ptr_method_set
 
-axiom Options : Type
-axiom Options.zero_val : ZeroVal Options
+opaque Options.nonempty_type : NonemptyType.{0}
+def Options : Type := Options.nonempty_type.type
+instance Options.nonempty : Nonempty Options := Options.nonempty_type.property
+opaque Options.zero_val : ZeroVal Options := ⟨Classical.ofNonempty⟩
 attribute [instance] Options.zero_val
 
 class Options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1180,8 +1226,10 @@ attribute [instance] Options.TypeAssumptions.type_repr
   Options.TypeAssumptions.method_set
   Options.TypeAssumptions.ptr_method_set
 
-axiom MetricLabelAllowList : Type
-axiom MetricLabelAllowList.zero_val : ZeroVal MetricLabelAllowList
+opaque MetricLabelAllowList.nonempty_type : NonemptyType.{0}
+def MetricLabelAllowList : Type := MetricLabelAllowList.nonempty_type.type
+instance MetricLabelAllowList.nonempty : Nonempty MetricLabelAllowList := MetricLabelAllowList.nonempty_type.property
+opaque MetricLabelAllowList.zero_val : ZeroVal MetricLabelAllowList := ⟨Classical.ofNonempty⟩
 attribute [instance] MetricLabelAllowList.zero_val
 
 class MetricLabelAllowList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1197,8 +1245,10 @@ attribute [instance] MetricLabelAllowList.TypeAssumptions.type_repr
   MetricLabelAllowList.TypeAssumptions.method_set
   MetricLabelAllowList.TypeAssumptions.ptr_method_set
 
-axiom KubeOpts : Type
-axiom KubeOpts.zero_val : ZeroVal KubeOpts
+opaque KubeOpts.nonempty_type : NonemptyType.{0}
+def KubeOpts : Type := KubeOpts.nonempty_type.type
+instance KubeOpts.nonempty : Nonempty KubeOpts := KubeOpts.nonempty_type.property
+opaque KubeOpts.zero_val : ZeroVal KubeOpts := ⟨Classical.ofNonempty⟩
 attribute [instance] KubeOpts.zero_val
 
 class KubeOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1214,8 +1264,10 @@ attribute [instance] KubeOpts.TypeAssumptions.type_repr
   KubeOpts.TypeAssumptions.method_set
   KubeOpts.TypeAssumptions.ptr_method_set
 
-axiom StabilityLevel : Type
-axiom StabilityLevel.zero_val : ZeroVal StabilityLevel
+opaque StabilityLevel.nonempty_type : NonemptyType.{0}
+def StabilityLevel : Type := StabilityLevel.nonempty_type.type
+instance StabilityLevel.nonempty : Nonempty StabilityLevel := StabilityLevel.nonempty_type.property
+opaque StabilityLevel.zero_val : ZeroVal StabilityLevel := ⟨Classical.ofNonempty⟩
 attribute [instance] StabilityLevel.zero_val
 
 class StabilityLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1231,8 +1283,10 @@ attribute [instance] StabilityLevel.TypeAssumptions.type_repr
   StabilityLevel.TypeAssumptions.method_set
   StabilityLevel.TypeAssumptions.ptr_method_set
 
-axiom CounterOpts : Type
-axiom CounterOpts.zero_val : ZeroVal CounterOpts
+opaque CounterOpts.nonempty_type : NonemptyType.{0}
+def CounterOpts : Type := CounterOpts.nonempty_type.type
+instance CounterOpts.nonempty : Nonempty CounterOpts := CounterOpts.nonempty_type.property
+opaque CounterOpts.zero_val : ZeroVal CounterOpts := ⟨Classical.ofNonempty⟩
 attribute [instance] CounterOpts.zero_val
 
 class CounterOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1248,8 +1302,10 @@ attribute [instance] CounterOpts.TypeAssumptions.type_repr
   CounterOpts.TypeAssumptions.method_set
   CounterOpts.TypeAssumptions.ptr_method_set
 
-axiom GaugeOpts : Type
-axiom GaugeOpts.zero_val : ZeroVal GaugeOpts
+opaque GaugeOpts.nonempty_type : NonemptyType.{0}
+def GaugeOpts : Type := GaugeOpts.nonempty_type.type
+instance GaugeOpts.nonempty : Nonempty GaugeOpts := GaugeOpts.nonempty_type.property
+opaque GaugeOpts.zero_val : ZeroVal GaugeOpts := ⟨Classical.ofNonempty⟩
 attribute [instance] GaugeOpts.zero_val
 
 class GaugeOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1265,8 +1321,10 @@ attribute [instance] GaugeOpts.TypeAssumptions.type_repr
   GaugeOpts.TypeAssumptions.method_set
   GaugeOpts.TypeAssumptions.ptr_method_set
 
-axiom HistogramOpts : Type
-axiom HistogramOpts.zero_val : ZeroVal HistogramOpts
+opaque HistogramOpts.nonempty_type : NonemptyType.{0}
+def HistogramOpts : Type := HistogramOpts.nonempty_type.type
+instance HistogramOpts.nonempty : Nonempty HistogramOpts := HistogramOpts.nonempty_type.property
+opaque HistogramOpts.zero_val : ZeroVal HistogramOpts := ⟨Classical.ofNonempty⟩
 attribute [instance] HistogramOpts.zero_val
 
 class HistogramOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1282,8 +1340,10 @@ attribute [instance] HistogramOpts.TypeAssumptions.type_repr
   HistogramOpts.TypeAssumptions.method_set
   HistogramOpts.TypeAssumptions.ptr_method_set
 
-axiom TimingHistogramOpts : Type
-axiom TimingHistogramOpts.zero_val : ZeroVal TimingHistogramOpts
+opaque TimingHistogramOpts.nonempty_type : NonemptyType.{0}
+def TimingHistogramOpts : Type := TimingHistogramOpts.nonempty_type.type
+instance TimingHistogramOpts.nonempty : Nonempty TimingHistogramOpts := TimingHistogramOpts.nonempty_type.property
+opaque TimingHistogramOpts.zero_val : ZeroVal TimingHistogramOpts := ⟨Classical.ofNonempty⟩
 attribute [instance] TimingHistogramOpts.zero_val
 
 class TimingHistogramOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1299,8 +1359,10 @@ attribute [instance] TimingHistogramOpts.TypeAssumptions.type_repr
   TimingHistogramOpts.TypeAssumptions.method_set
   TimingHistogramOpts.TypeAssumptions.ptr_method_set
 
-axiom SummaryOpts : Type
-axiom SummaryOpts.zero_val : ZeroVal SummaryOpts
+opaque SummaryOpts.nonempty_type : NonemptyType.{0}
+def SummaryOpts : Type := SummaryOpts.nonempty_type.type
+instance SummaryOpts.nonempty : Nonempty SummaryOpts := SummaryOpts.nonempty_type.property
+opaque SummaryOpts.zero_val : ZeroVal SummaryOpts := ⟨Classical.ofNonempty⟩
 attribute [instance] SummaryOpts.zero_val
 
 class SummaryOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1316,8 +1378,10 @@ attribute [instance] SummaryOpts.TypeAssumptions.type_repr
   SummaryOpts.TypeAssumptions.method_set
   SummaryOpts.TypeAssumptions.ptr_method_set
 
-axiom Registerable : Type
-axiom Registerable.zero_val : ZeroVal Registerable
+opaque Registerable.nonempty_type : NonemptyType.{0}
+def Registerable : Type := Registerable.nonempty_type.type
+instance Registerable.nonempty : Nonempty Registerable := Registerable.nonempty_type.property
+opaque Registerable.zero_val : ZeroVal Registerable := ⟨Classical.ofNonempty⟩
 attribute [instance] Registerable.zero_val
 
 class Registerable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1333,8 +1397,10 @@ attribute [instance] Registerable.TypeAssumptions.type_repr
   Registerable.TypeAssumptions.method_set
   Registerable.TypeAssumptions.ptr_method_set
 
-axiom resettable : Type
-axiom resettable.zero_val : ZeroVal resettable
+opaque resettable.nonempty_type : NonemptyType.{0}
+def resettable : Type := resettable.nonempty_type.type
+instance resettable.nonempty : Nonempty resettable := resettable.nonempty_type.property
+opaque resettable.zero_val : ZeroVal resettable := ⟨Classical.ofNonempty⟩
 attribute [instance] resettable.zero_val
 
 class resettable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1350,8 +1416,10 @@ attribute [instance] resettable.TypeAssumptions.type_repr
   resettable.TypeAssumptions.method_set
   resettable.TypeAssumptions.ptr_method_set
 
-axiom KubeRegistry : Type
-axiom KubeRegistry.zero_val : ZeroVal KubeRegistry
+opaque KubeRegistry.nonempty_type : NonemptyType.{0}
+def KubeRegistry : Type := KubeRegistry.nonempty_type.type
+instance KubeRegistry.nonempty : Nonempty KubeRegistry := KubeRegistry.nonempty_type.property
+opaque KubeRegistry.zero_val : ZeroVal KubeRegistry := ⟨Classical.ofNonempty⟩
 attribute [instance] KubeRegistry.zero_val
 
 class KubeRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1367,8 +1435,10 @@ attribute [instance] KubeRegistry.TypeAssumptions.type_repr
   KubeRegistry.TypeAssumptions.method_set
   KubeRegistry.TypeAssumptions.ptr_method_set
 
-axiom kubeRegistry : Type
-axiom kubeRegistry.zero_val : ZeroVal kubeRegistry
+opaque kubeRegistry.nonempty_type : NonemptyType.{0}
+def kubeRegistry : Type := kubeRegistry.nonempty_type.type
+instance kubeRegistry.nonempty : Nonempty kubeRegistry := kubeRegistry.nonempty_type.property
+opaque kubeRegistry.zero_val : ZeroVal kubeRegistry := ⟨Classical.ofNonempty⟩
 attribute [instance] kubeRegistry.zero_val
 
 class kubeRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1384,8 +1454,10 @@ attribute [instance] kubeRegistry.TypeAssumptions.type_repr
   kubeRegistry.TypeAssumptions.method_set
   kubeRegistry.TypeAssumptions.ptr_method_set
 
-axiom Summary : Type
-axiom Summary.zero_val : ZeroVal Summary
+opaque Summary.nonempty_type : NonemptyType.{0}
+def Summary : Type := Summary.nonempty_type.type
+instance Summary.nonempty : Nonempty Summary := Summary.nonempty_type.property
+opaque Summary.zero_val : ZeroVal Summary := ⟨Classical.ofNonempty⟩
 attribute [instance] Summary.zero_val
 
 class Summary.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1401,8 +1473,10 @@ attribute [instance] Summary.TypeAssumptions.type_repr
   Summary.TypeAssumptions.method_set
   Summary.TypeAssumptions.ptr_method_set
 
-axiom SummaryVec : Type
-axiom SummaryVec.zero_val : ZeroVal SummaryVec
+opaque SummaryVec.nonempty_type : NonemptyType.{0}
+def SummaryVec : Type := SummaryVec.nonempty_type.type
+instance SummaryVec.nonempty : Nonempty SummaryVec := SummaryVec.nonempty_type.property
+opaque SummaryVec.zero_val : ZeroVal SummaryVec := ⟨Classical.ofNonempty⟩
 attribute [instance] SummaryVec.zero_val
 
 class SummaryVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1418,8 +1492,10 @@ attribute [instance] SummaryVec.TypeAssumptions.type_repr
   SummaryVec.TypeAssumptions.method_set
   SummaryVec.TypeAssumptions.ptr_method_set
 
-axiom SummaryVecWithContext : Type
-axiom SummaryVecWithContext.zero_val : ZeroVal SummaryVecWithContext
+opaque SummaryVecWithContext.nonempty_type : NonemptyType.{0}
+def SummaryVecWithContext : Type := SummaryVecWithContext.nonempty_type.type
+instance SummaryVecWithContext.nonempty : Nonempty SummaryVecWithContext := SummaryVecWithContext.nonempty_type.property
+opaque SummaryVecWithContext.zero_val : ZeroVal SummaryVecWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] SummaryVecWithContext.zero_val
 
 class SummaryVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1435,8 +1511,10 @@ attribute [instance] SummaryVecWithContext.TypeAssumptions.type_repr
   SummaryVecWithContext.TypeAssumptions.method_set
   SummaryVecWithContext.TypeAssumptions.ptr_method_set
 
-axiom PrometheusTimingHistogram : Type
-axiom PrometheusTimingHistogram.zero_val : ZeroVal PrometheusTimingHistogram
+opaque PrometheusTimingHistogram.nonempty_type : NonemptyType.{0}
+def PrometheusTimingHistogram : Type := PrometheusTimingHistogram.nonempty_type.type
+instance PrometheusTimingHistogram.nonempty : Nonempty PrometheusTimingHistogram := PrometheusTimingHistogram.nonempty_type.property
+opaque PrometheusTimingHistogram.zero_val : ZeroVal PrometheusTimingHistogram := ⟨Classical.ofNonempty⟩
 attribute [instance] PrometheusTimingHistogram.zero_val
 
 class PrometheusTimingHistogram.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1452,8 +1530,10 @@ attribute [instance] PrometheusTimingHistogram.TypeAssumptions.type_repr
   PrometheusTimingHistogram.TypeAssumptions.method_set
   PrometheusTimingHistogram.TypeAssumptions.ptr_method_set
 
-axiom TimingHistogram : Type
-axiom TimingHistogram.zero_val : ZeroVal TimingHistogram
+opaque TimingHistogram.nonempty_type : NonemptyType.{0}
+def TimingHistogram : Type := TimingHistogram.nonempty_type.type
+instance TimingHistogram.nonempty : Nonempty TimingHistogram := TimingHistogram.nonempty_type.property
+opaque TimingHistogram.zero_val : ZeroVal TimingHistogram := ⟨Classical.ofNonempty⟩
 attribute [instance] TimingHistogram.zero_val
 
 class TimingHistogram.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1469,8 +1549,10 @@ attribute [instance] TimingHistogram.TypeAssumptions.type_repr
   TimingHistogram.TypeAssumptions.method_set
   TimingHistogram.TypeAssumptions.ptr_method_set
 
-axiom TimingHistogramVec : Type
-axiom TimingHistogramVec.zero_val : ZeroVal TimingHistogramVec
+opaque TimingHistogramVec.nonempty_type : NonemptyType.{0}
+def TimingHistogramVec : Type := TimingHistogramVec.nonempty_type.type
+instance TimingHistogramVec.nonempty : Nonempty TimingHistogramVec := TimingHistogramVec.nonempty_type.property
+opaque TimingHistogramVec.zero_val : ZeroVal TimingHistogramVec := ⟨Classical.ofNonempty⟩
 attribute [instance] TimingHistogramVec.zero_val
 
 class TimingHistogramVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1486,8 +1568,10 @@ attribute [instance] TimingHistogramVec.TypeAssumptions.type_repr
   TimingHistogramVec.TypeAssumptions.method_set
   TimingHistogramVec.TypeAssumptions.ptr_method_set
 
-axiom TimingHistogramVecWithContext : Type
-axiom TimingHistogramVecWithContext.zero_val : ZeroVal TimingHistogramVecWithContext
+opaque TimingHistogramVecWithContext.nonempty_type : NonemptyType.{0}
+def TimingHistogramVecWithContext : Type := TimingHistogramVecWithContext.nonempty_type.type
+instance TimingHistogramVecWithContext.nonempty : Nonempty TimingHistogramVecWithContext := TimingHistogramVecWithContext.nonempty_type.property
+opaque TimingHistogramVecWithContext.zero_val : ZeroVal TimingHistogramVecWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] TimingHistogramVecWithContext.zero_val
 
 class TimingHistogramVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1503,8 +1587,10 @@ attribute [instance] TimingHistogramVecWithContext.TypeAssumptions.type_repr
   TimingHistogramVecWithContext.TypeAssumptions.method_set
   TimingHistogramVecWithContext.TypeAssumptions.ptr_method_set
 
-axiom ValueType : Type
-axiom ValueType.zero_val : ZeroVal ValueType
+opaque ValueType.nonempty_type : NonemptyType.{0}
+def ValueType : Type := ValueType.nonempty_type.type
+instance ValueType.nonempty : Nonempty ValueType := ValueType.nonempty_type.property
+opaque ValueType.zero_val : ZeroVal ValueType := ⟨Classical.ofNonempty⟩
 attribute [instance] ValueType.zero_val
 
 class ValueType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1520,8 +1606,10 @@ attribute [instance] ValueType.TypeAssumptions.type_repr
   ValueType.TypeAssumptions.method_set
   ValueType.TypeAssumptions.ptr_method_set
 
-axiom Collector : Type
-axiom Collector.zero_val : ZeroVal Collector
+opaque Collector.nonempty_type : NonemptyType.{0}
+def Collector : Type := Collector.nonempty_type.type
+instance Collector.nonempty : Nonempty Collector := Collector.nonempty_type.property
+opaque Collector.zero_val : ZeroVal Collector := ⟨Classical.ofNonempty⟩
 attribute [instance] Collector.zero_val
 
 class Collector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1537,8 +1625,10 @@ attribute [instance] Collector.TypeAssumptions.type_repr
   Collector.TypeAssumptions.method_set
   Collector.TypeAssumptions.ptr_method_set
 
-axiom Metric : Type
-axiom Metric.zero_val : ZeroVal Metric
+opaque Metric.nonempty_type : NonemptyType.{0}
+def Metric : Type := Metric.nonempty_type.type
+instance Metric.nonempty : Nonempty Metric := Metric.nonempty_type.property
+opaque Metric.zero_val : ZeroVal Metric := ⟨Classical.ofNonempty⟩
 attribute [instance] Metric.zero_val
 
 class Metric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1554,8 +1644,10 @@ attribute [instance] Metric.TypeAssumptions.type_repr
   Metric.TypeAssumptions.method_set
   Metric.TypeAssumptions.ptr_method_set
 
-axiom CounterMetric : Type
-axiom CounterMetric.zero_val : ZeroVal CounterMetric
+opaque CounterMetric.nonempty_type : NonemptyType.{0}
+def CounterMetric : Type := CounterMetric.nonempty_type.type
+instance CounterMetric.nonempty : Nonempty CounterMetric := CounterMetric.nonempty_type.property
+opaque CounterMetric.zero_val : ZeroVal CounterMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] CounterMetric.zero_val
 
 class CounterMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1571,8 +1663,10 @@ attribute [instance] CounterMetric.TypeAssumptions.type_repr
   CounterMetric.TypeAssumptions.method_set
   CounterMetric.TypeAssumptions.ptr_method_set
 
-axiom CounterVecMetric : Type
-axiom CounterVecMetric.zero_val : ZeroVal CounterVecMetric
+opaque CounterVecMetric.nonempty_type : NonemptyType.{0}
+def CounterVecMetric : Type := CounterVecMetric.nonempty_type.type
+instance CounterVecMetric.nonempty : Nonempty CounterVecMetric := CounterVecMetric.nonempty_type.property
+opaque CounterVecMetric.zero_val : ZeroVal CounterVecMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] CounterVecMetric.zero_val
 
 class CounterVecMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1588,8 +1682,10 @@ attribute [instance] CounterVecMetric.TypeAssumptions.type_repr
   CounterVecMetric.TypeAssumptions.method_set
   CounterVecMetric.TypeAssumptions.ptr_method_set
 
-axiom GaugeMetric : Type
-axiom GaugeMetric.zero_val : ZeroVal GaugeMetric
+opaque GaugeMetric.nonempty_type : NonemptyType.{0}
+def GaugeMetric : Type := GaugeMetric.nonempty_type.type
+instance GaugeMetric.nonempty : Nonempty GaugeMetric := GaugeMetric.nonempty_type.property
+opaque GaugeMetric.zero_val : ZeroVal GaugeMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] GaugeMetric.zero_val
 
 class GaugeMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1605,8 +1701,10 @@ attribute [instance] GaugeMetric.TypeAssumptions.type_repr
   GaugeMetric.TypeAssumptions.method_set
   GaugeMetric.TypeAssumptions.ptr_method_set
 
-axiom GaugeVecMetric : Type
-axiom GaugeVecMetric.zero_val : ZeroVal GaugeVecMetric
+opaque GaugeVecMetric.nonempty_type : NonemptyType.{0}
+def GaugeVecMetric : Type := GaugeVecMetric.nonempty_type.type
+instance GaugeVecMetric.nonempty : Nonempty GaugeVecMetric := GaugeVecMetric.nonempty_type.property
+opaque GaugeVecMetric.zero_val : ZeroVal GaugeVecMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] GaugeVecMetric.zero_val
 
 class GaugeVecMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1622,8 +1720,10 @@ attribute [instance] GaugeVecMetric.TypeAssumptions.type_repr
   GaugeVecMetric.TypeAssumptions.method_set
   GaugeVecMetric.TypeAssumptions.ptr_method_set
 
-axiom ObserverMetric : Type
-axiom ObserverMetric.zero_val : ZeroVal ObserverMetric
+opaque ObserverMetric.nonempty_type : NonemptyType.{0}
+def ObserverMetric : Type := ObserverMetric.nonempty_type.type
+instance ObserverMetric.nonempty : Nonempty ObserverMetric := ObserverMetric.nonempty_type.property
+opaque ObserverMetric.zero_val : ZeroVal ObserverMetric := ⟨Classical.ofNonempty⟩
 attribute [instance] ObserverMetric.zero_val
 
 class ObserverMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1639,8 +1739,10 @@ attribute [instance] ObserverMetric.TypeAssumptions.type_repr
   ObserverMetric.TypeAssumptions.method_set
   ObserverMetric.TypeAssumptions.ptr_method_set
 
-axiom PromRegistry : Type
-axiom PromRegistry.zero_val : ZeroVal PromRegistry
+opaque PromRegistry.nonempty_type : NonemptyType.{0}
+def PromRegistry : Type := PromRegistry.nonempty_type.type
+instance PromRegistry.nonempty : Nonempty PromRegistry := PromRegistry.nonempty_type.property
+opaque PromRegistry.zero_val : ZeroVal PromRegistry := ⟨Classical.ofNonempty⟩
 attribute [instance] PromRegistry.zero_val
 
 class PromRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1656,8 +1758,10 @@ attribute [instance] PromRegistry.TypeAssumptions.type_repr
   PromRegistry.TypeAssumptions.method_set
   PromRegistry.TypeAssumptions.ptr_method_set
 
-axiom Gatherer : Type
-axiom Gatherer.zero_val : ZeroVal Gatherer
+opaque Gatherer.nonempty_type : NonemptyType.{0}
+def Gatherer : Type := Gatherer.nonempty_type.type
+instance Gatherer.nonempty : Nonempty Gatherer := Gatherer.nonempty_type.property
+opaque Gatherer.zero_val : ZeroVal Gatherer := ⟨Classical.ofNonempty⟩
 attribute [instance] Gatherer.zero_val
 
 class Gatherer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1673,8 +1777,10 @@ attribute [instance] Gatherer.TypeAssumptions.type_repr
   Gatherer.TypeAssumptions.method_set
   Gatherer.TypeAssumptions.ptr_method_set
 
-axiom Registerer : Type
-axiom Registerer.zero_val : ZeroVal Registerer
+opaque Registerer.nonempty_type : NonemptyType.{0}
+def Registerer : Type := Registerer.nonempty_type.type
+instance Registerer.nonempty : Nonempty Registerer := Registerer.nonempty_type.property
+opaque Registerer.zero_val : ZeroVal Registerer := ⟨Classical.ofNonempty⟩
 attribute [instance] Registerer.zero_val
 
 class Registerer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1690,8 +1796,10 @@ attribute [instance] Registerer.TypeAssumptions.type_repr
   Registerer.TypeAssumptions.method_set
   Registerer.TypeAssumptions.ptr_method_set
 
-axiom GaugeFunc : Type
-axiom GaugeFunc.zero_val : ZeroVal GaugeFunc
+opaque GaugeFunc.nonempty_type : NonemptyType.{0}
+def GaugeFunc : Type := GaugeFunc.nonempty_type.type
+instance GaugeFunc.nonempty : Nonempty GaugeFunc := GaugeFunc.nonempty_type.property
+opaque GaugeFunc.zero_val : ZeroVal GaugeFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] GaugeFunc.zero_val
 
 class GaugeFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -462,15 +462,6 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iapply BigSepL.bigSepL_nil.2
   itrivial
 
-/-- **etcd's lease reads registered at `addr`** (persistent): what `examples/etcd/lease`'s client
-calls. -/
-def etcdLeaseReadAt (addr : GoString) : IProp GF :=
-  iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" etcdLeaseTTLSpec ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" etcdLeaseLeasesSpecAny)
-
-instance etcdLeaseReadAt_persistent (addr : GoString) :
-    Persistent (etcdLeaseReadAt (GF := GF) addr) := by
-  unfold etcdLeaseReadAt; infer_instance
 
 end served
 

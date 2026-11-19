@@ -135,211 +135,211 @@ noncomputable def ExternalMetricStatus.ty [GooseExts] [GoGlobalContext] : go.GoT
 
 attribute [irreducible] ExternalMetricStatus.ty
 
-axiom CrossVersionObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CrossVersionObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Scale.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Scale.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScaleSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScaleStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricSourceType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MetricSourceType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MetricSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObjectMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ObjectMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodsMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodsMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerResourceMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerResourceMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExternalMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExternalMetricSource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerConditionType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObjectMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ObjectMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodsMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodsMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerResourceMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerResourceMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExternalMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExternalMetricStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom ObjectMetricSourceType [GooseExts] [GoGlobalContext] : val
+opaque ObjectMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom PodsMetricSourceType [GooseExts] [GoGlobalContext] : val
+opaque PodsMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceMetricSourceType [GooseExts] [GoGlobalContext] : val
+opaque ResourceMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerResourceMetricSourceType [GooseExts] [GoGlobalContext] : val
+opaque ContainerResourceMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom ExternalMetricSourceType [GooseExts] [GoGlobalContext] : val
+opaque ExternalMetricSourceType [GooseExts] [GoGlobalContext] : val
 
-axiom ScalingActive [GooseExts] [GoGlobalContext] : val
+opaque ScalingActive [GooseExts] [GoGlobalContext] : val
 
-axiom AbleToScale [GooseExts] [GoGlobalContext] : val
+opaque AbleToScale [GooseExts] [GoGlobalContext] : val
 
-axiom ScalingLimited [GooseExts] [GoGlobalContext] : val
+opaque ScalingLimited [GooseExts] [GoGlobalContext] : val
 
-axiom ScaledToZero [GooseExts] [GoGlobalContext] : val
+opaque ScaledToZero [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.AddToScheme"
 
-axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
+opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerResourceMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ContainerResourceMetricSource"
 
-axiom map_ContainerResourceMetricSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerResourceMetricSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerResourceMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ContainerResourceMetricStatus"
 
-axiom map_ContainerResourceMetricStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerResourceMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_CrossVersionObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_CrossVersionObjectReference"
 
-axiom map_CrossVersionObjectReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_CrossVersionObjectReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ExternalMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ExternalMetricSource"
 
-axiom map_ExternalMetricSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ExternalMetricSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ExternalMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ExternalMetricStatus"
 
-axiom map_ExternalMetricStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ExternalMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HorizontalPodAutoscaler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscaler"
 
-axiom map_HorizontalPodAutoscaler.init [GooseExts] [GoGlobalContext] : val
+opaque map_HorizontalPodAutoscaler.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HorizontalPodAutoscalerCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscalerCondition"
 
-axiom map_HorizontalPodAutoscalerCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_HorizontalPodAutoscalerCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HorizontalPodAutoscalerList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscalerList"
 
-axiom map_HorizontalPodAutoscalerList.init [GooseExts] [GoGlobalContext] : val
+opaque map_HorizontalPodAutoscalerList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HorizontalPodAutoscalerSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscalerSpec"
 
-axiom map_HorizontalPodAutoscalerSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_HorizontalPodAutoscalerSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HorizontalPodAutoscalerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_HorizontalPodAutoscalerStatus"
 
-axiom map_HorizontalPodAutoscalerStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_HorizontalPodAutoscalerStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_MetricSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_MetricSpec"
 
-axiom map_MetricSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_MetricSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_MetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_MetricStatus"
 
-axiom map_MetricStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_MetricStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ObjectMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ObjectMetricSource"
 
-axiom map_ObjectMetricSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ObjectMetricSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ObjectMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ObjectMetricStatus"
 
-axiom map_ObjectMetricStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ObjectMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodsMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_PodsMetricSource"
 
-axiom map_PodsMetricSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodsMetricSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodsMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_PodsMetricStatus"
 
-axiom map_PodsMetricStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodsMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceMetricSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ResourceMetricSource"
 
-axiom map_ResourceMetricSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceMetricSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceMetricStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ResourceMetricStatus"
 
-axiom map_ResourceMetricStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceMetricStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Scale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_Scale"
 
-axiom map_Scale.init [GooseExts] [GoGlobalContext] : val
+opaque map_Scale.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ScaleSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ScaleSpec"
 
-axiom map_ScaleSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_ScaleSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ScaleStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.map_ScaleStatus"
 
-axiom map_ScaleStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ScaleStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/autoscaling/v1.encodeVarintGenerated"
@@ -365,7 +365,7 @@ noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.autoscaling.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -455,8 +455,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))))
 
-axiom CrossVersionObjectReference : Type
-axiom CrossVersionObjectReference.zero_val : ZeroVal CrossVersionObjectReference
+opaque CrossVersionObjectReference.nonempty_type : NonemptyType.{0}
+def CrossVersionObjectReference : Type := CrossVersionObjectReference.nonempty_type.type
+instance CrossVersionObjectReference.nonempty : Nonempty CrossVersionObjectReference := CrossVersionObjectReference.nonempty_type.property
+opaque CrossVersionObjectReference.zero_val : ZeroVal CrossVersionObjectReference := ⟨Classical.ofNonempty⟩
 attribute [instance] CrossVersionObjectReference.zero_val
 
 class CrossVersionObjectReference.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -472,8 +474,10 @@ attribute [instance] CrossVersionObjectReference.TypeAssumptions.type_repr
   CrossVersionObjectReference.TypeAssumptions.method_set
   CrossVersionObjectReference.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerSpec : Type
-axiom HorizontalPodAutoscalerSpec.zero_val : ZeroVal HorizontalPodAutoscalerSpec
+opaque HorizontalPodAutoscalerSpec.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerSpec : Type := HorizontalPodAutoscalerSpec.nonempty_type.type
+instance HorizontalPodAutoscalerSpec.nonempty : Nonempty HorizontalPodAutoscalerSpec := HorizontalPodAutoscalerSpec.nonempty_type.property
+opaque HorizontalPodAutoscalerSpec.zero_val : ZeroVal HorizontalPodAutoscalerSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerSpec.zero_val
 
 class HorizontalPodAutoscalerSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -489,8 +493,10 @@ attribute [instance] HorizontalPodAutoscalerSpec.TypeAssumptions.type_repr
   HorizontalPodAutoscalerSpec.TypeAssumptions.method_set
   HorizontalPodAutoscalerSpec.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerStatus : Type
-axiom HorizontalPodAutoscalerStatus.zero_val : ZeroVal HorizontalPodAutoscalerStatus
+opaque HorizontalPodAutoscalerStatus.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerStatus : Type := HorizontalPodAutoscalerStatus.nonempty_type.type
+instance HorizontalPodAutoscalerStatus.nonempty : Nonempty HorizontalPodAutoscalerStatus := HorizontalPodAutoscalerStatus.nonempty_type.property
+opaque HorizontalPodAutoscalerStatus.zero_val : ZeroVal HorizontalPodAutoscalerStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerStatus.zero_val
 
 class HorizontalPodAutoscalerStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -506,8 +512,10 @@ attribute [instance] HorizontalPodAutoscalerStatus.TypeAssumptions.type_repr
   HorizontalPodAutoscalerStatus.TypeAssumptions.method_set
   HorizontalPodAutoscalerStatus.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscaler : Type
-axiom HorizontalPodAutoscaler.zero_val : ZeroVal HorizontalPodAutoscaler
+opaque HorizontalPodAutoscaler.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscaler : Type := HorizontalPodAutoscaler.nonempty_type.type
+instance HorizontalPodAutoscaler.nonempty : Nonempty HorizontalPodAutoscaler := HorizontalPodAutoscaler.nonempty_type.property
+opaque HorizontalPodAutoscaler.zero_val : ZeroVal HorizontalPodAutoscaler := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscaler.zero_val
 
 class HorizontalPodAutoscaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -523,8 +531,10 @@ attribute [instance] HorizontalPodAutoscaler.TypeAssumptions.type_repr
   HorizontalPodAutoscaler.TypeAssumptions.method_set
   HorizontalPodAutoscaler.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerList : Type
-axiom HorizontalPodAutoscalerList.zero_val : ZeroVal HorizontalPodAutoscalerList
+opaque HorizontalPodAutoscalerList.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerList : Type := HorizontalPodAutoscalerList.nonempty_type.type
+instance HorizontalPodAutoscalerList.nonempty : Nonempty HorizontalPodAutoscalerList := HorizontalPodAutoscalerList.nonempty_type.property
+opaque HorizontalPodAutoscalerList.zero_val : ZeroVal HorizontalPodAutoscalerList := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerList.zero_val
 
 class HorizontalPodAutoscalerList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -540,8 +550,10 @@ attribute [instance] HorizontalPodAutoscalerList.TypeAssumptions.type_repr
   HorizontalPodAutoscalerList.TypeAssumptions.method_set
   HorizontalPodAutoscalerList.TypeAssumptions.ptr_method_set
 
-axiom Scale : Type
-axiom Scale.zero_val : ZeroVal Scale
+opaque Scale.nonempty_type : NonemptyType.{0}
+def Scale : Type := Scale.nonempty_type.type
+instance Scale.nonempty : Nonempty Scale := Scale.nonempty_type.property
+opaque Scale.zero_val : ZeroVal Scale := ⟨Classical.ofNonempty⟩
 attribute [instance] Scale.zero_val
 
 class Scale.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -557,8 +569,10 @@ attribute [instance] Scale.TypeAssumptions.type_repr
   Scale.TypeAssumptions.method_set
   Scale.TypeAssumptions.ptr_method_set
 
-axiom ScaleSpec : Type
-axiom ScaleSpec.zero_val : ZeroVal ScaleSpec
+opaque ScaleSpec.nonempty_type : NonemptyType.{0}
+def ScaleSpec : Type := ScaleSpec.nonempty_type.type
+instance ScaleSpec.nonempty : Nonempty ScaleSpec := ScaleSpec.nonempty_type.property
+opaque ScaleSpec.zero_val : ZeroVal ScaleSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] ScaleSpec.zero_val
 
 class ScaleSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -574,8 +588,10 @@ attribute [instance] ScaleSpec.TypeAssumptions.type_repr
   ScaleSpec.TypeAssumptions.method_set
   ScaleSpec.TypeAssumptions.ptr_method_set
 
-axiom ScaleStatus : Type
-axiom ScaleStatus.zero_val : ZeroVal ScaleStatus
+opaque ScaleStatus.nonempty_type : NonemptyType.{0}
+def ScaleStatus : Type := ScaleStatus.nonempty_type.type
+instance ScaleStatus.nonempty : Nonempty ScaleStatus := ScaleStatus.nonempty_type.property
+opaque ScaleStatus.zero_val : ZeroVal ScaleStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] ScaleStatus.zero_val
 
 class ScaleStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -591,8 +607,10 @@ attribute [instance] ScaleStatus.TypeAssumptions.type_repr
   ScaleStatus.TypeAssumptions.method_set
   ScaleStatus.TypeAssumptions.ptr_method_set
 
-axiom MetricSourceType : Type
-axiom MetricSourceType.zero_val : ZeroVal MetricSourceType
+opaque MetricSourceType.nonempty_type : NonemptyType.{0}
+def MetricSourceType : Type := MetricSourceType.nonempty_type.type
+instance MetricSourceType.nonempty : Nonempty MetricSourceType := MetricSourceType.nonempty_type.property
+opaque MetricSourceType.zero_val : ZeroVal MetricSourceType := ⟨Classical.ofNonempty⟩
 attribute [instance] MetricSourceType.zero_val
 
 class MetricSourceType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -608,8 +626,10 @@ attribute [instance] MetricSourceType.TypeAssumptions.type_repr
   MetricSourceType.TypeAssumptions.method_set
   MetricSourceType.TypeAssumptions.ptr_method_set
 
-axiom MetricSpec : Type
-axiom MetricSpec.zero_val : ZeroVal MetricSpec
+opaque MetricSpec.nonempty_type : NonemptyType.{0}
+def MetricSpec : Type := MetricSpec.nonempty_type.type
+instance MetricSpec.nonempty : Nonempty MetricSpec := MetricSpec.nonempty_type.property
+opaque MetricSpec.zero_val : ZeroVal MetricSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] MetricSpec.zero_val
 
 class MetricSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -625,8 +645,10 @@ attribute [instance] MetricSpec.TypeAssumptions.type_repr
   MetricSpec.TypeAssumptions.method_set
   MetricSpec.TypeAssumptions.ptr_method_set
 
-axiom ObjectMetricSource : Type
-axiom ObjectMetricSource.zero_val : ZeroVal ObjectMetricSource
+opaque ObjectMetricSource.nonempty_type : NonemptyType.{0}
+def ObjectMetricSource : Type := ObjectMetricSource.nonempty_type.type
+instance ObjectMetricSource.nonempty : Nonempty ObjectMetricSource := ObjectMetricSource.nonempty_type.property
+opaque ObjectMetricSource.zero_val : ZeroVal ObjectMetricSource := ⟨Classical.ofNonempty⟩
 attribute [instance] ObjectMetricSource.zero_val
 
 class ObjectMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -642,8 +664,10 @@ attribute [instance] ObjectMetricSource.TypeAssumptions.type_repr
   ObjectMetricSource.TypeAssumptions.method_set
   ObjectMetricSource.TypeAssumptions.ptr_method_set
 
-axiom PodsMetricSource : Type
-axiom PodsMetricSource.zero_val : ZeroVal PodsMetricSource
+opaque PodsMetricSource.nonempty_type : NonemptyType.{0}
+def PodsMetricSource : Type := PodsMetricSource.nonempty_type.type
+instance PodsMetricSource.nonempty : Nonempty PodsMetricSource := PodsMetricSource.nonempty_type.property
+opaque PodsMetricSource.zero_val : ZeroVal PodsMetricSource := ⟨Classical.ofNonempty⟩
 attribute [instance] PodsMetricSource.zero_val
 
 class PodsMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -659,8 +683,10 @@ attribute [instance] PodsMetricSource.TypeAssumptions.type_repr
   PodsMetricSource.TypeAssumptions.method_set
   PodsMetricSource.TypeAssumptions.ptr_method_set
 
-axiom ResourceMetricSource : Type
-axiom ResourceMetricSource.zero_val : ZeroVal ResourceMetricSource
+opaque ResourceMetricSource.nonempty_type : NonemptyType.{0}
+def ResourceMetricSource : Type := ResourceMetricSource.nonempty_type.type
+instance ResourceMetricSource.nonempty : Nonempty ResourceMetricSource := ResourceMetricSource.nonempty_type.property
+opaque ResourceMetricSource.zero_val : ZeroVal ResourceMetricSource := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceMetricSource.zero_val
 
 class ResourceMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -676,8 +702,10 @@ attribute [instance] ResourceMetricSource.TypeAssumptions.type_repr
   ResourceMetricSource.TypeAssumptions.method_set
   ResourceMetricSource.TypeAssumptions.ptr_method_set
 
-axiom ContainerResourceMetricSource : Type
-axiom ContainerResourceMetricSource.zero_val : ZeroVal ContainerResourceMetricSource
+opaque ContainerResourceMetricSource.nonempty_type : NonemptyType.{0}
+def ContainerResourceMetricSource : Type := ContainerResourceMetricSource.nonempty_type.type
+instance ContainerResourceMetricSource.nonempty : Nonempty ContainerResourceMetricSource := ContainerResourceMetricSource.nonempty_type.property
+opaque ContainerResourceMetricSource.zero_val : ZeroVal ContainerResourceMetricSource := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerResourceMetricSource.zero_val
 
 class ContainerResourceMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -693,8 +721,10 @@ attribute [instance] ContainerResourceMetricSource.TypeAssumptions.type_repr
   ContainerResourceMetricSource.TypeAssumptions.method_set
   ContainerResourceMetricSource.TypeAssumptions.ptr_method_set
 
-axiom ExternalMetricSource : Type
-axiom ExternalMetricSource.zero_val : ZeroVal ExternalMetricSource
+opaque ExternalMetricSource.nonempty_type : NonemptyType.{0}
+def ExternalMetricSource : Type := ExternalMetricSource.nonempty_type.type
+instance ExternalMetricSource.nonempty : Nonempty ExternalMetricSource := ExternalMetricSource.nonempty_type.property
+opaque ExternalMetricSource.zero_val : ZeroVal ExternalMetricSource := ⟨Classical.ofNonempty⟩
 attribute [instance] ExternalMetricSource.zero_val
 
 class ExternalMetricSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -710,8 +740,10 @@ attribute [instance] ExternalMetricSource.TypeAssumptions.type_repr
   ExternalMetricSource.TypeAssumptions.method_set
   ExternalMetricSource.TypeAssumptions.ptr_method_set
 
-axiom MetricStatus : Type
-axiom MetricStatus.zero_val : ZeroVal MetricStatus
+opaque MetricStatus.nonempty_type : NonemptyType.{0}
+def MetricStatus : Type := MetricStatus.nonempty_type.type
+instance MetricStatus.nonempty : Nonempty MetricStatus := MetricStatus.nonempty_type.property
+opaque MetricStatus.zero_val : ZeroVal MetricStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] MetricStatus.zero_val
 
 class MetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -727,8 +759,10 @@ attribute [instance] MetricStatus.TypeAssumptions.type_repr
   MetricStatus.TypeAssumptions.method_set
   MetricStatus.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerConditionType : Type
-axiom HorizontalPodAutoscalerConditionType.zero_val : ZeroVal HorizontalPodAutoscalerConditionType
+opaque HorizontalPodAutoscalerConditionType.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerConditionType : Type := HorizontalPodAutoscalerConditionType.nonempty_type.type
+instance HorizontalPodAutoscalerConditionType.nonempty : Nonempty HorizontalPodAutoscalerConditionType := HorizontalPodAutoscalerConditionType.nonempty_type.property
+opaque HorizontalPodAutoscalerConditionType.zero_val : ZeroVal HorizontalPodAutoscalerConditionType := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerConditionType.zero_val
 
 class HorizontalPodAutoscalerConditionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -744,8 +778,10 @@ attribute [instance] HorizontalPodAutoscalerConditionType.TypeAssumptions.type_r
   HorizontalPodAutoscalerConditionType.TypeAssumptions.method_set
   HorizontalPodAutoscalerConditionType.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerCondition : Type
-axiom HorizontalPodAutoscalerCondition.zero_val : ZeroVal HorizontalPodAutoscalerCondition
+opaque HorizontalPodAutoscalerCondition.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerCondition : Type := HorizontalPodAutoscalerCondition.nonempty_type.type
+instance HorizontalPodAutoscalerCondition.nonempty : Nonempty HorizontalPodAutoscalerCondition := HorizontalPodAutoscalerCondition.nonempty_type.property
+opaque HorizontalPodAutoscalerCondition.zero_val : ZeroVal HorizontalPodAutoscalerCondition := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerCondition.zero_val
 
 class HorizontalPodAutoscalerCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -761,8 +797,10 @@ attribute [instance] HorizontalPodAutoscalerCondition.TypeAssumptions.type_repr
   HorizontalPodAutoscalerCondition.TypeAssumptions.method_set
   HorizontalPodAutoscalerCondition.TypeAssumptions.ptr_method_set
 
-axiom ObjectMetricStatus : Type
-axiom ObjectMetricStatus.zero_val : ZeroVal ObjectMetricStatus
+opaque ObjectMetricStatus.nonempty_type : NonemptyType.{0}
+def ObjectMetricStatus : Type := ObjectMetricStatus.nonempty_type.type
+instance ObjectMetricStatus.nonempty : Nonempty ObjectMetricStatus := ObjectMetricStatus.nonempty_type.property
+opaque ObjectMetricStatus.zero_val : ZeroVal ObjectMetricStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] ObjectMetricStatus.zero_val
 
 class ObjectMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -778,8 +816,10 @@ attribute [instance] ObjectMetricStatus.TypeAssumptions.type_repr
   ObjectMetricStatus.TypeAssumptions.method_set
   ObjectMetricStatus.TypeAssumptions.ptr_method_set
 
-axiom PodsMetricStatus : Type
-axiom PodsMetricStatus.zero_val : ZeroVal PodsMetricStatus
+opaque PodsMetricStatus.nonempty_type : NonemptyType.{0}
+def PodsMetricStatus : Type := PodsMetricStatus.nonempty_type.type
+instance PodsMetricStatus.nonempty : Nonempty PodsMetricStatus := PodsMetricStatus.nonempty_type.property
+opaque PodsMetricStatus.zero_val : ZeroVal PodsMetricStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] PodsMetricStatus.zero_val
 
 class PodsMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -795,8 +835,10 @@ attribute [instance] PodsMetricStatus.TypeAssumptions.type_repr
   PodsMetricStatus.TypeAssumptions.method_set
   PodsMetricStatus.TypeAssumptions.ptr_method_set
 
-axiom ResourceMetricStatus : Type
-axiom ResourceMetricStatus.zero_val : ZeroVal ResourceMetricStatus
+opaque ResourceMetricStatus.nonempty_type : NonemptyType.{0}
+def ResourceMetricStatus : Type := ResourceMetricStatus.nonempty_type.type
+instance ResourceMetricStatus.nonempty : Nonempty ResourceMetricStatus := ResourceMetricStatus.nonempty_type.property
+opaque ResourceMetricStatus.zero_val : ZeroVal ResourceMetricStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceMetricStatus.zero_val
 
 class ResourceMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -812,8 +854,10 @@ attribute [instance] ResourceMetricStatus.TypeAssumptions.type_repr
   ResourceMetricStatus.TypeAssumptions.method_set
   ResourceMetricStatus.TypeAssumptions.ptr_method_set
 
-axiom ContainerResourceMetricStatus : Type
-axiom ContainerResourceMetricStatus.zero_val : ZeroVal ContainerResourceMetricStatus
+opaque ContainerResourceMetricStatus.nonempty_type : NonemptyType.{0}
+def ContainerResourceMetricStatus : Type := ContainerResourceMetricStatus.nonempty_type.type
+instance ContainerResourceMetricStatus.nonempty : Nonempty ContainerResourceMetricStatus := ContainerResourceMetricStatus.nonempty_type.property
+opaque ContainerResourceMetricStatus.zero_val : ZeroVal ContainerResourceMetricStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerResourceMetricStatus.zero_val
 
 class ContainerResourceMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -829,8 +873,10 @@ attribute [instance] ContainerResourceMetricStatus.TypeAssumptions.type_repr
   ContainerResourceMetricStatus.TypeAssumptions.method_set
   ContainerResourceMetricStatus.TypeAssumptions.ptr_method_set
 
-axiom ExternalMetricStatus : Type
-axiom ExternalMetricStatus.zero_val : ZeroVal ExternalMetricStatus
+opaque ExternalMetricStatus.nonempty_type : NonemptyType.{0}
+def ExternalMetricStatus : Type := ExternalMetricStatus.nonempty_type.type
+instance ExternalMetricStatus.nonempty : Nonempty ExternalMetricStatus := ExternalMetricStatus.nonempty_type.property
+opaque ExternalMetricStatus.zero_val : ZeroVal ExternalMetricStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] ExternalMetricStatus.zero_val
 
 class ExternalMetricStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

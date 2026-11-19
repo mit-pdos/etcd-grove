@@ -119,8 +119,7 @@ theorem init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
       progOk0 (hG := heapWith hG lctx) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  apply adequate_of_unrecovered
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy (GF := GF) (n + 1) (n + 2) _ σ g φ hφ Hinitg Hinitw ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
@@ -166,8 +165,7 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
           iprop((([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
             ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  apply adequate_of_unrecovered
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
     [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs hAsLit HNs HAs HDs HEnv ?_
@@ -219,8 +217,7 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
           ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  apply adequate_of_unrecovered
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
     [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs hAsLit HNs HAs HDs HEnv ?_

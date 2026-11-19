@@ -49,6 +49,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequa
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -124,8 +125,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  apply adequate_of_unrecovered
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start_files (GF := mvccrandGF) (n + 1) (n + 2) mvccrandProgram σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial⟩
     ⟨trivial, trivial⟩ [] [] [] [go!"mvccrand.db"] List.nodup_nil List.nodup_nil List.nodup_nil
@@ -158,6 +158,26 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe Hfile Htok Hvoff
   ipureintro
   rfl
+
+/-- **`mvccrand_adequate` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that never crashes,
+a fresh Go process (`Robust`'s premise), under `mvccrand_adequate`'s other hypotheses: in every
+execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
+theorem mvccrand_robust
+    [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
+    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
+      sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
+    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
+    (HFs : dbFilesAbsent mvccrandProgram [go!"mvccrand.db"]) (HEnv : verifyEnvOff mvccrandProgram)
+    (σ : state) (g : GlobalState) :
+    Robustness.Robust [] [(mvccrandProgram, σ)] g (2 ^ 28 - 1) :=
+  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
+    (mvccrand_adequate
+      Hsort Hdbo Hdbc HFs HEnv σ g hf.1 hf.2.1 hf.2.2 n κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 

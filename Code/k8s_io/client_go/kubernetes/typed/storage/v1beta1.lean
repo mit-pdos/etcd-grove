@@ -150,57 +150,57 @@ noncomputable def volumeAttributesClasses.ty [GooseExts] [GoGlobalContext] : go.
 
 attribute [irreducible] volumeAttributesClasses.ty
 
-axiom CSIDriversGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSIDriversGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIDriverInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSIDriverInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cSIDrivers.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cSIDrivers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSINodesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSINodesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSINodeInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSINodeInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cSINodes.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cSINodes.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIStorageCapacitiesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSIStorageCapacitiesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIStorageCapacityInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSIStorageCapacityInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cSIStorageCapacities.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cSIStorageCapacities.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIDriverExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSIDriverExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSINodeExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSINodeExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIStorageCapacityExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSIStorageCapacityExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttachmentExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeAttachmentExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttributesClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeAttributesClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom storageClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque storageClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttachmentsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeAttachmentsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttachmentInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeAttachmentInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom volumeAttachments.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque volumeAttachments.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttributesClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeAttributesClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeAttributesClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeAttributesClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom volumeAttributesClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque volumeAttributesClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newCSIDrivers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storage/v1beta1.newCSIDrivers"
@@ -238,7 +238,7 @@ noncomputable def newVolumeAttributesClasses [GooseExts] [GoGlobalContext] : GoS
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.storage.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -247,8 +247,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom CSIDriversGetter : Type
-axiom CSIDriversGetter.zero_val : ZeroVal CSIDriversGetter
+opaque CSIDriversGetter.nonempty_type : NonemptyType.{0}
+def CSIDriversGetter : Type := CSIDriversGetter.nonempty_type.type
+instance CSIDriversGetter.nonempty : Nonempty CSIDriversGetter := CSIDriversGetter.nonempty_type.property
+opaque CSIDriversGetter.zero_val : ZeroVal CSIDriversGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] CSIDriversGetter.zero_val
 
 class CSIDriversGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -264,8 +266,10 @@ attribute [instance] CSIDriversGetter.TypeAssumptions.type_repr
   CSIDriversGetter.TypeAssumptions.method_set
   CSIDriversGetter.TypeAssumptions.ptr_method_set
 
-axiom CSIDriverInterface : Type
-axiom CSIDriverInterface.zero_val : ZeroVal CSIDriverInterface
+opaque CSIDriverInterface.nonempty_type : NonemptyType.{0}
+def CSIDriverInterface : Type := CSIDriverInterface.nonempty_type.type
+instance CSIDriverInterface.nonempty : Nonempty CSIDriverInterface := CSIDriverInterface.nonempty_type.property
+opaque CSIDriverInterface.zero_val : ZeroVal CSIDriverInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] CSIDriverInterface.zero_val
 
 class CSIDriverInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -281,8 +285,10 @@ attribute [instance] CSIDriverInterface.TypeAssumptions.type_repr
   CSIDriverInterface.TypeAssumptions.method_set
   CSIDriverInterface.TypeAssumptions.ptr_method_set
 
-axiom cSIDrivers : Type
-axiom cSIDrivers.zero_val : ZeroVal cSIDrivers
+opaque cSIDrivers.nonempty_type : NonemptyType.{0}
+def cSIDrivers : Type := cSIDrivers.nonempty_type.type
+instance cSIDrivers.nonempty : Nonempty cSIDrivers := cSIDrivers.nonempty_type.property
+opaque cSIDrivers.zero_val : ZeroVal cSIDrivers := ⟨Classical.ofNonempty⟩
 attribute [instance] cSIDrivers.zero_val
 
 class cSIDrivers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -298,8 +304,10 @@ attribute [instance] cSIDrivers.TypeAssumptions.type_repr
   cSIDrivers.TypeAssumptions.method_set
   cSIDrivers.TypeAssumptions.ptr_method_set
 
-axiom CSINodesGetter : Type
-axiom CSINodesGetter.zero_val : ZeroVal CSINodesGetter
+opaque CSINodesGetter.nonempty_type : NonemptyType.{0}
+def CSINodesGetter : Type := CSINodesGetter.nonempty_type.type
+instance CSINodesGetter.nonempty : Nonempty CSINodesGetter := CSINodesGetter.nonempty_type.property
+opaque CSINodesGetter.zero_val : ZeroVal CSINodesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] CSINodesGetter.zero_val
 
 class CSINodesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -315,8 +323,10 @@ attribute [instance] CSINodesGetter.TypeAssumptions.type_repr
   CSINodesGetter.TypeAssumptions.method_set
   CSINodesGetter.TypeAssumptions.ptr_method_set
 
-axiom CSINodeInterface : Type
-axiom CSINodeInterface.zero_val : ZeroVal CSINodeInterface
+opaque CSINodeInterface.nonempty_type : NonemptyType.{0}
+def CSINodeInterface : Type := CSINodeInterface.nonempty_type.type
+instance CSINodeInterface.nonempty : Nonempty CSINodeInterface := CSINodeInterface.nonempty_type.property
+opaque CSINodeInterface.zero_val : ZeroVal CSINodeInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] CSINodeInterface.zero_val
 
 class CSINodeInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -332,8 +342,10 @@ attribute [instance] CSINodeInterface.TypeAssumptions.type_repr
   CSINodeInterface.TypeAssumptions.method_set
   CSINodeInterface.TypeAssumptions.ptr_method_set
 
-axiom cSINodes : Type
-axiom cSINodes.zero_val : ZeroVal cSINodes
+opaque cSINodes.nonempty_type : NonemptyType.{0}
+def cSINodes : Type := cSINodes.nonempty_type.type
+instance cSINodes.nonempty : Nonempty cSINodes := cSINodes.nonempty_type.property
+opaque cSINodes.zero_val : ZeroVal cSINodes := ⟨Classical.ofNonempty⟩
 attribute [instance] cSINodes.zero_val
 
 class cSINodes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -349,8 +361,10 @@ attribute [instance] cSINodes.TypeAssumptions.type_repr
   cSINodes.TypeAssumptions.method_set
   cSINodes.TypeAssumptions.ptr_method_set
 
-axiom CSIStorageCapacitiesGetter : Type
-axiom CSIStorageCapacitiesGetter.zero_val : ZeroVal CSIStorageCapacitiesGetter
+opaque CSIStorageCapacitiesGetter.nonempty_type : NonemptyType.{0}
+def CSIStorageCapacitiesGetter : Type := CSIStorageCapacitiesGetter.nonempty_type.type
+instance CSIStorageCapacitiesGetter.nonempty : Nonempty CSIStorageCapacitiesGetter := CSIStorageCapacitiesGetter.nonempty_type.property
+opaque CSIStorageCapacitiesGetter.zero_val : ZeroVal CSIStorageCapacitiesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] CSIStorageCapacitiesGetter.zero_val
 
 class CSIStorageCapacitiesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -366,8 +380,10 @@ attribute [instance] CSIStorageCapacitiesGetter.TypeAssumptions.type_repr
   CSIStorageCapacitiesGetter.TypeAssumptions.method_set
   CSIStorageCapacitiesGetter.TypeAssumptions.ptr_method_set
 
-axiom CSIStorageCapacityInterface : Type
-axiom CSIStorageCapacityInterface.zero_val : ZeroVal CSIStorageCapacityInterface
+opaque CSIStorageCapacityInterface.nonempty_type : NonemptyType.{0}
+def CSIStorageCapacityInterface : Type := CSIStorageCapacityInterface.nonempty_type.type
+instance CSIStorageCapacityInterface.nonempty : Nonempty CSIStorageCapacityInterface := CSIStorageCapacityInterface.nonempty_type.property
+opaque CSIStorageCapacityInterface.zero_val : ZeroVal CSIStorageCapacityInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] CSIStorageCapacityInterface.zero_val
 
 class CSIStorageCapacityInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -383,8 +399,10 @@ attribute [instance] CSIStorageCapacityInterface.TypeAssumptions.type_repr
   CSIStorageCapacityInterface.TypeAssumptions.method_set
   CSIStorageCapacityInterface.TypeAssumptions.ptr_method_set
 
-axiom cSIStorageCapacities : Type
-axiom cSIStorageCapacities.zero_val : ZeroVal cSIStorageCapacities
+opaque cSIStorageCapacities.nonempty_type : NonemptyType.{0}
+def cSIStorageCapacities : Type := cSIStorageCapacities.nonempty_type.type
+instance cSIStorageCapacities.nonempty : Nonempty cSIStorageCapacities := cSIStorageCapacities.nonempty_type.property
+opaque cSIStorageCapacities.zero_val : ZeroVal cSIStorageCapacities := ⟨Classical.ofNonempty⟩
 attribute [instance] cSIStorageCapacities.zero_val
 
 class cSIStorageCapacities.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -400,8 +418,10 @@ attribute [instance] cSIStorageCapacities.TypeAssumptions.type_repr
   cSIStorageCapacities.TypeAssumptions.method_set
   cSIStorageCapacities.TypeAssumptions.ptr_method_set
 
-axiom CSIDriverExpansion : Type
-axiom CSIDriverExpansion.zero_val : ZeroVal CSIDriverExpansion
+opaque CSIDriverExpansion.nonempty_type : NonemptyType.{0}
+def CSIDriverExpansion : Type := CSIDriverExpansion.nonempty_type.type
+instance CSIDriverExpansion.nonempty : Nonempty CSIDriverExpansion := CSIDriverExpansion.nonempty_type.property
+opaque CSIDriverExpansion.zero_val : ZeroVal CSIDriverExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] CSIDriverExpansion.zero_val
 
 class CSIDriverExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -417,8 +437,10 @@ attribute [instance] CSIDriverExpansion.TypeAssumptions.type_repr
   CSIDriverExpansion.TypeAssumptions.method_set
   CSIDriverExpansion.TypeAssumptions.ptr_method_set
 
-axiom CSINodeExpansion : Type
-axiom CSINodeExpansion.zero_val : ZeroVal CSINodeExpansion
+opaque CSINodeExpansion.nonempty_type : NonemptyType.{0}
+def CSINodeExpansion : Type := CSINodeExpansion.nonempty_type.type
+instance CSINodeExpansion.nonempty : Nonempty CSINodeExpansion := CSINodeExpansion.nonempty_type.property
+opaque CSINodeExpansion.zero_val : ZeroVal CSINodeExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] CSINodeExpansion.zero_val
 
 class CSINodeExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -434,8 +456,10 @@ attribute [instance] CSINodeExpansion.TypeAssumptions.type_repr
   CSINodeExpansion.TypeAssumptions.method_set
   CSINodeExpansion.TypeAssumptions.ptr_method_set
 
-axiom CSIStorageCapacityExpansion : Type
-axiom CSIStorageCapacityExpansion.zero_val : ZeroVal CSIStorageCapacityExpansion
+opaque CSIStorageCapacityExpansion.nonempty_type : NonemptyType.{0}
+def CSIStorageCapacityExpansion : Type := CSIStorageCapacityExpansion.nonempty_type.type
+instance CSIStorageCapacityExpansion.nonempty : Nonempty CSIStorageCapacityExpansion := CSIStorageCapacityExpansion.nonempty_type.property
+opaque CSIStorageCapacityExpansion.zero_val : ZeroVal CSIStorageCapacityExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] CSIStorageCapacityExpansion.zero_val
 
 class CSIStorageCapacityExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -451,8 +475,10 @@ attribute [instance] CSIStorageCapacityExpansion.TypeAssumptions.type_repr
   CSIStorageCapacityExpansion.TypeAssumptions.method_set
   CSIStorageCapacityExpansion.TypeAssumptions.ptr_method_set
 
-axiom StorageClassExpansion : Type
-axiom StorageClassExpansion.zero_val : ZeroVal StorageClassExpansion
+opaque StorageClassExpansion.nonempty_type : NonemptyType.{0}
+def StorageClassExpansion : Type := StorageClassExpansion.nonempty_type.type
+instance StorageClassExpansion.nonempty : Nonempty StorageClassExpansion := StorageClassExpansion.nonempty_type.property
+opaque StorageClassExpansion.zero_val : ZeroVal StorageClassExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageClassExpansion.zero_val
 
 class StorageClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -468,8 +494,10 @@ attribute [instance] StorageClassExpansion.TypeAssumptions.type_repr
   StorageClassExpansion.TypeAssumptions.method_set
   StorageClassExpansion.TypeAssumptions.ptr_method_set
 
-axiom VolumeAttachmentExpansion : Type
-axiom VolumeAttachmentExpansion.zero_val : ZeroVal VolumeAttachmentExpansion
+opaque VolumeAttachmentExpansion.nonempty_type : NonemptyType.{0}
+def VolumeAttachmentExpansion : Type := VolumeAttachmentExpansion.nonempty_type.type
+instance VolumeAttachmentExpansion.nonempty : Nonempty VolumeAttachmentExpansion := VolumeAttachmentExpansion.nonempty_type.property
+opaque VolumeAttachmentExpansion.zero_val : ZeroVal VolumeAttachmentExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeAttachmentExpansion.zero_val
 
 class VolumeAttachmentExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -485,8 +513,10 @@ attribute [instance] VolumeAttachmentExpansion.TypeAssumptions.type_repr
   VolumeAttachmentExpansion.TypeAssumptions.method_set
   VolumeAttachmentExpansion.TypeAssumptions.ptr_method_set
 
-axiom VolumeAttributesClassExpansion : Type
-axiom VolumeAttributesClassExpansion.zero_val : ZeroVal VolumeAttributesClassExpansion
+opaque VolumeAttributesClassExpansion.nonempty_type : NonemptyType.{0}
+def VolumeAttributesClassExpansion : Type := VolumeAttributesClassExpansion.nonempty_type.type
+instance VolumeAttributesClassExpansion.nonempty : Nonempty VolumeAttributesClassExpansion := VolumeAttributesClassExpansion.nonempty_type.property
+opaque VolumeAttributesClassExpansion.zero_val : ZeroVal VolumeAttributesClassExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeAttributesClassExpansion.zero_val
 
 class VolumeAttributesClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -502,8 +532,10 @@ attribute [instance] VolumeAttributesClassExpansion.TypeAssumptions.type_repr
   VolumeAttributesClassExpansion.TypeAssumptions.method_set
   VolumeAttributesClassExpansion.TypeAssumptions.ptr_method_set
 
-axiom StorageV1beta1Interface : Type
-axiom StorageV1beta1Interface.zero_val : ZeroVal StorageV1beta1Interface
+opaque StorageV1beta1Interface.nonempty_type : NonemptyType.{0}
+def StorageV1beta1Interface : Type := StorageV1beta1Interface.nonempty_type.type
+instance StorageV1beta1Interface.nonempty : Nonempty StorageV1beta1Interface := StorageV1beta1Interface.nonempty_type.property
+opaque StorageV1beta1Interface.zero_val : ZeroVal StorageV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageV1beta1Interface.zero_val
 
 class StorageV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -519,8 +551,10 @@ attribute [instance] StorageV1beta1Interface.TypeAssumptions.type_repr
   StorageV1beta1Interface.TypeAssumptions.method_set
   StorageV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom StorageV1beta1Client : Type
-axiom StorageV1beta1Client.zero_val : ZeroVal StorageV1beta1Client
+opaque StorageV1beta1Client.nonempty_type : NonemptyType.{0}
+def StorageV1beta1Client : Type := StorageV1beta1Client.nonempty_type.type
+instance StorageV1beta1Client.nonempty : Nonempty StorageV1beta1Client := StorageV1beta1Client.nonempty_type.property
+opaque StorageV1beta1Client.zero_val : ZeroVal StorageV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageV1beta1Client.zero_val
 
 class StorageV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -536,8 +570,10 @@ attribute [instance] StorageV1beta1Client.TypeAssumptions.type_repr
   StorageV1beta1Client.TypeAssumptions.method_set
   StorageV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom StorageClassesGetter : Type
-axiom StorageClassesGetter.zero_val : ZeroVal StorageClassesGetter
+opaque StorageClassesGetter.nonempty_type : NonemptyType.{0}
+def StorageClassesGetter : Type := StorageClassesGetter.nonempty_type.type
+instance StorageClassesGetter.nonempty : Nonempty StorageClassesGetter := StorageClassesGetter.nonempty_type.property
+opaque StorageClassesGetter.zero_val : ZeroVal StorageClassesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageClassesGetter.zero_val
 
 class StorageClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -553,8 +589,10 @@ attribute [instance] StorageClassesGetter.TypeAssumptions.type_repr
   StorageClassesGetter.TypeAssumptions.method_set
   StorageClassesGetter.TypeAssumptions.ptr_method_set
 
-axiom StorageClassInterface : Type
-axiom StorageClassInterface.zero_val : ZeroVal StorageClassInterface
+opaque StorageClassInterface.nonempty_type : NonemptyType.{0}
+def StorageClassInterface : Type := StorageClassInterface.nonempty_type.type
+instance StorageClassInterface.nonempty : Nonempty StorageClassInterface := StorageClassInterface.nonempty_type.property
+opaque StorageClassInterface.zero_val : ZeroVal StorageClassInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageClassInterface.zero_val
 
 class StorageClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -570,8 +608,10 @@ attribute [instance] StorageClassInterface.TypeAssumptions.type_repr
   StorageClassInterface.TypeAssumptions.method_set
   StorageClassInterface.TypeAssumptions.ptr_method_set
 
-axiom storageClasses : Type
-axiom storageClasses.zero_val : ZeroVal storageClasses
+opaque storageClasses.nonempty_type : NonemptyType.{0}
+def storageClasses : Type := storageClasses.nonempty_type.type
+instance storageClasses.nonempty : Nonempty storageClasses := storageClasses.nonempty_type.property
+opaque storageClasses.zero_val : ZeroVal storageClasses := ⟨Classical.ofNonempty⟩
 attribute [instance] storageClasses.zero_val
 
 class storageClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -587,8 +627,10 @@ attribute [instance] storageClasses.TypeAssumptions.type_repr
   storageClasses.TypeAssumptions.method_set
   storageClasses.TypeAssumptions.ptr_method_set
 
-axiom VolumeAttachmentsGetter : Type
-axiom VolumeAttachmentsGetter.zero_val : ZeroVal VolumeAttachmentsGetter
+opaque VolumeAttachmentsGetter.nonempty_type : NonemptyType.{0}
+def VolumeAttachmentsGetter : Type := VolumeAttachmentsGetter.nonempty_type.type
+instance VolumeAttachmentsGetter.nonempty : Nonempty VolumeAttachmentsGetter := VolumeAttachmentsGetter.nonempty_type.property
+opaque VolumeAttachmentsGetter.zero_val : ZeroVal VolumeAttachmentsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeAttachmentsGetter.zero_val
 
 class VolumeAttachmentsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -604,8 +646,10 @@ attribute [instance] VolumeAttachmentsGetter.TypeAssumptions.type_repr
   VolumeAttachmentsGetter.TypeAssumptions.method_set
   VolumeAttachmentsGetter.TypeAssumptions.ptr_method_set
 
-axiom VolumeAttachmentInterface : Type
-axiom VolumeAttachmentInterface.zero_val : ZeroVal VolumeAttachmentInterface
+opaque VolumeAttachmentInterface.nonempty_type : NonemptyType.{0}
+def VolumeAttachmentInterface : Type := VolumeAttachmentInterface.nonempty_type.type
+instance VolumeAttachmentInterface.nonempty : Nonempty VolumeAttachmentInterface := VolumeAttachmentInterface.nonempty_type.property
+opaque VolumeAttachmentInterface.zero_val : ZeroVal VolumeAttachmentInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeAttachmentInterface.zero_val
 
 class VolumeAttachmentInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -621,8 +665,10 @@ attribute [instance] VolumeAttachmentInterface.TypeAssumptions.type_repr
   VolumeAttachmentInterface.TypeAssumptions.method_set
   VolumeAttachmentInterface.TypeAssumptions.ptr_method_set
 
-axiom volumeAttachments : Type
-axiom volumeAttachments.zero_val : ZeroVal volumeAttachments
+opaque volumeAttachments.nonempty_type : NonemptyType.{0}
+def volumeAttachments : Type := volumeAttachments.nonempty_type.type
+instance volumeAttachments.nonempty : Nonempty volumeAttachments := volumeAttachments.nonempty_type.property
+opaque volumeAttachments.zero_val : ZeroVal volumeAttachments := ⟨Classical.ofNonempty⟩
 attribute [instance] volumeAttachments.zero_val
 
 class volumeAttachments.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -638,8 +684,10 @@ attribute [instance] volumeAttachments.TypeAssumptions.type_repr
   volumeAttachments.TypeAssumptions.method_set
   volumeAttachments.TypeAssumptions.ptr_method_set
 
-axiom VolumeAttributesClassesGetter : Type
-axiom VolumeAttributesClassesGetter.zero_val : ZeroVal VolumeAttributesClassesGetter
+opaque VolumeAttributesClassesGetter.nonempty_type : NonemptyType.{0}
+def VolumeAttributesClassesGetter : Type := VolumeAttributesClassesGetter.nonempty_type.type
+instance VolumeAttributesClassesGetter.nonempty : Nonempty VolumeAttributesClassesGetter := VolumeAttributesClassesGetter.nonempty_type.property
+opaque VolumeAttributesClassesGetter.zero_val : ZeroVal VolumeAttributesClassesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeAttributesClassesGetter.zero_val
 
 class VolumeAttributesClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -655,8 +703,10 @@ attribute [instance] VolumeAttributesClassesGetter.TypeAssumptions.type_repr
   VolumeAttributesClassesGetter.TypeAssumptions.method_set
   VolumeAttributesClassesGetter.TypeAssumptions.ptr_method_set
 
-axiom VolumeAttributesClassInterface : Type
-axiom VolumeAttributesClassInterface.zero_val : ZeroVal VolumeAttributesClassInterface
+opaque VolumeAttributesClassInterface.nonempty_type : NonemptyType.{0}
+def VolumeAttributesClassInterface : Type := VolumeAttributesClassInterface.nonempty_type.type
+instance VolumeAttributesClassInterface.nonempty : Nonempty VolumeAttributesClassInterface := VolumeAttributesClassInterface.nonempty_type.property
+opaque VolumeAttributesClassInterface.zero_val : ZeroVal VolumeAttributesClassInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeAttributesClassInterface.zero_val
 
 class VolumeAttributesClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -672,8 +722,10 @@ attribute [instance] VolumeAttributesClassInterface.TypeAssumptions.type_repr
   VolumeAttributesClassInterface.TypeAssumptions.method_set
   VolumeAttributesClassInterface.TypeAssumptions.ptr_method_set
 
-axiom volumeAttributesClasses : Type
-axiom volumeAttributesClasses.zero_val : ZeroVal volumeAttributesClasses
+opaque volumeAttributesClasses.nonempty_type : NonemptyType.{0}
+def volumeAttributesClasses : Type := volumeAttributesClasses.nonempty_type.type
+instance volumeAttributesClasses.nonempty : Nonempty volumeAttributesClasses := volumeAttributesClasses.nonempty_type.property
+opaque volumeAttributesClasses.zero_val : ZeroVal volumeAttributesClasses := ⟨Classical.ofNonempty⟩
 attribute [instance] volumeAttributesClasses.zero_val
 
 class volumeAttributesClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

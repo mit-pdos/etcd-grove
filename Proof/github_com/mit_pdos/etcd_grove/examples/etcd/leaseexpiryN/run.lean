@@ -30,6 +30,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLease
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorHist
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseLinked
 
 @[expose] public section
 

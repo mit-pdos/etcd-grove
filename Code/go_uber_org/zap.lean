@@ -236,57 +236,57 @@ noncomputable def invalidPairs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] invalidPairs.ty
 
-axiom durations.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque durations.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom times.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque times.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def Field.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.go_uber_org.zap.zapcore.Field.ty
 
-axiom AtomicLevel.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AtomicLevel.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Sink.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Sink.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sinkRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sinkRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _stdLogDefaultDepth [GooseExts] [GoGlobalContext] : val
+opaque _stdLogDefaultDepth [GooseExts] [GoGlobalContext] : val
 
-axiom _loggerWriterDepth [GooseExts] [GoGlobalContext] : val
+opaque _loggerWriterDepth [GooseExts] [GoGlobalContext] : val
 
-axiom _programmerErrorTemplate [GooseExts] [GoGlobalContext] : val
+opaque _programmerErrorTemplate [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DebugLevel [GooseExts] [GoGlobalContext] : val :=
   #(W8 (-1))
 
-axiom InfoLevel [GooseExts] [GoGlobalContext] : val
+opaque InfoLevel [GooseExts] [GoGlobalContext] : val
 
-axiom WarnLevel [GooseExts] [GoGlobalContext] : val
+opaque WarnLevel [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorLevel [GooseExts] [GoGlobalContext] : val
+opaque ErrorLevel [GooseExts] [GoGlobalContext] : val
 
-axiom DPanicLevel [GooseExts] [GoGlobalContext] : val
+opaque DPanicLevel [GooseExts] [GoGlobalContext] : val
 
-axiom PanicLevel [GooseExts] [GoGlobalContext] : val
+opaque PanicLevel [GooseExts] [GoGlobalContext] : val
 
-axiom FatalLevel [GooseExts] [GoGlobalContext] : val
+opaque FatalLevel [GooseExts] [GoGlobalContext] : val
 
-axiom schemeFile [GooseExts] [GoGlobalContext] : val
+opaque schemeFile [GooseExts] [GoGlobalContext] : val
 
-axiom _oddNumberErrMsg [GooseExts] [GoGlobalContext] : val
+opaque _oddNumberErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom _nonStringKeyErrMsg [GooseExts] [GoGlobalContext] : val
+opaque _nonStringKeyErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom _multipleErrMsg [GooseExts] [GoGlobalContext] : val
+opaque _multipleErrMsg [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoEncoderNameSpecified [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.errNoEncoderNameSpecified"
 
-axiom errNoEncoderNameSpecified.init [GooseExts] [GoGlobalContext] : val
+opaque errNoEncoderNameSpecified.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _encoderNameToConstructor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._encoderNameToConstructor"
 
-axiom _encoderNameToConstructor.init [GooseExts] [GoGlobalContext] : val
+opaque _encoderNameToConstructor.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _encoderMutex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._encoderMutex"
@@ -294,17 +294,17 @@ noncomputable def _encoderMutex [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def _errArrayElemPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._errArrayElemPool"
 
-axiom _errArrayElemPool.init [GooseExts] [GoGlobalContext] : val
+opaque _errArrayElemPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _minTimeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._minTimeInt64"
 
-axiom _minTimeInt64.init [GooseExts] [GoGlobalContext] : val
+opaque _minTimeInt64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _maxTimeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._maxTimeInt64"
 
-axiom _maxTimeInt64.init [GooseExts] [GoGlobalContext] : val
+opaque _maxTimeInt64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _globalMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._globalMu"
@@ -312,17 +312,17 @@ noncomputable def _globalMu [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def _globalL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._globalL"
 
-axiom _globalL.init [GooseExts] [GoGlobalContext] : val
+opaque _globalL.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _globalS [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._globalS"
 
-axiom _globalS.init [GooseExts] [GoGlobalContext] : val
+opaque _globalS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _sinkRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._sinkRegistry"
 
-axiom _sinkRegistry.init [GooseExts] [GoGlobalContext] : val
+opaque _sinkRegistry.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Array [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.Array"
@@ -723,7 +723,7 @@ noncomputable def CombineWriteSyncers [GooseExts] [GoGlobalContext] : GoString :
 noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap where
   pkgImportedPkgs := [pkg_id.go_uber_org.zap.zapcore]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -871,8 +871,10 @@ attribute [instance] complex64s.TypeAssumptions.underlying
   complex64s.TypeAssumptions.method_set
   complex64s.TypeAssumptions.ptr_method_set
 
-axiom durations : Type
-axiom durations.zero_val : ZeroVal durations
+opaque durations.nonempty_type : NonemptyType.{0}
+def durations : Type := durations.nonempty_type.type
+instance durations.nonempty : Nonempty durations := durations.nonempty_type.property
+opaque durations.zero_val : ZeroVal durations := ⟨Classical.ofNonempty⟩
 attribute [instance] durations.zero_val
 
 class durations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1000,8 +1002,10 @@ attribute [instance] stringArray.TypeAssumptions.underlying
   stringArray.TypeAssumptions.method_set
   stringArray.TypeAssumptions.ptr_method_set
 
-axiom times : Type
-axiom times.zero_val : ZeroVal times
+opaque times.nonempty_type : NonemptyType.{0}
+def times : Type := times.nonempty_type.type
+instance times.nonempty : Nonempty times := times.nonempty_type.property
+opaque times.zero_val : ZeroVal times := ⟨Classical.ofNonempty⟩
 attribute [instance] times.zero_val
 
 class times.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1148,8 +1152,10 @@ attribute [instance] SamplingConfig.TypeAssumptions.type_repr
   SamplingConfig.TypeAssumptions.method_set
   SamplingConfig.TypeAssumptions.ptr_method_set
 
-axiom AtomicLevel : Type
-axiom AtomicLevel.zero_val : ZeroVal AtomicLevel
+opaque AtomicLevel.nonempty_type : NonemptyType.{0}
+def AtomicLevel : Type := AtomicLevel.nonempty_type.type
+instance AtomicLevel.nonempty : Nonempty AtomicLevel := AtomicLevel.nonempty_type.property
+opaque AtomicLevel.zero_val : ZeroVal AtomicLevel := ⟨Classical.ofNonempty⟩
 attribute [instance] AtomicLevel.zero_val
 
 class AtomicLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1497,8 +1503,10 @@ attribute [instance] optionFunc.TypeAssumptions.underlying
   optionFunc.TypeAssumptions.method_set
   optionFunc.TypeAssumptions.ptr_method_set
 
-axiom Sink : Type
-axiom Sink.zero_val : ZeroVal Sink
+opaque Sink.nonempty_type : NonemptyType.{0}
+def Sink : Type := Sink.nonempty_type.type
+instance Sink.nonempty : Nonempty Sink := Sink.nonempty_type.property
+opaque Sink.zero_val : ZeroVal Sink := ⟨Classical.ofNonempty⟩
 attribute [instance] Sink.zero_val
 
 class Sink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1584,8 +1592,10 @@ attribute [instance] nopCloserSink.TypeAssumptions.type_repr
   nopCloserSink.TypeAssumptions.method_set
   nopCloserSink.TypeAssumptions.ptr_method_set
 
-axiom sinkRegistry : Type
-axiom sinkRegistry.zero_val : ZeroVal sinkRegistry
+opaque sinkRegistry.nonempty_type : NonemptyType.{0}
+def sinkRegistry : Type := sinkRegistry.nonempty_type.type
+instance sinkRegistry.nonempty : Nonempty sinkRegistry := sinkRegistry.nonempty_type.property
+opaque sinkRegistry.zero_val : ZeroVal sinkRegistry := ⟨Classical.ofNonempty⟩
 attribute [instance] sinkRegistry.zero_val
 
 class sinkRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -41,25 +41,25 @@ noncomputable def slicing8Table.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] slicing8Table.ty
 
-axiom Size [GooseExts] [GoGlobalContext] : val
+opaque Size [GooseExts] [GoGlobalContext] : val
 
-axiom IEEE [GooseExts] [GoGlobalContext] : val
+opaque IEEE [GooseExts] [GoGlobalContext] : val
 
-axiom Castagnoli [GooseExts] [GoGlobalContext] : val
+opaque Castagnoli [GooseExts] [GoGlobalContext] : val
 
-axiom Koopman [GooseExts] [GoGlobalContext] : val
+opaque Koopman [GooseExts] [GoGlobalContext] : val
 
-axiom magic [GooseExts] [GoGlobalContext] : val
+opaque magic [GooseExts] [GoGlobalContext] : val
 
-axiom marshaledSize [GooseExts] [GoGlobalContext] : val
+opaque marshaledSize [GooseExts] [GoGlobalContext] : val
 
-axiom offsetX86HasAVX512VPCLMULQDQL [GooseExts] [GoGlobalContext] : val
+opaque offsetX86HasAVX512VPCLMULQDQL [GooseExts] [GoGlobalContext] : val
 
-axiom castagnoliK1 [GooseExts] [GoGlobalContext] : val
+opaque castagnoliK1 [GooseExts] [GoGlobalContext] : val
 
-axiom castagnoliK2 [GooseExts] [GoGlobalContext] : val
+opaque castagnoliK2 [GooseExts] [GoGlobalContext] : val
 
-axiom slicing8Cutoff [GooseExts] [GoGlobalContext] : val
+opaque slicing8Cutoff [GooseExts] [GoGlobalContext] : val
 
 noncomputable def castagnoliTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/crc32.castagnoliTable"
@@ -76,12 +76,12 @@ noncomputable def haveCastagnoli [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def castagnoliInitOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/crc32.castagnoliInitOnce"
 
-axiom castagnoliInitOnce.init [GooseExts] [GoGlobalContext] : val
+opaque castagnoliInitOnce.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IEEETable [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/crc32.IEEETable"
 
-axiom IEEETable.init [GooseExts] [GoGlobalContext] : val
+opaque IEEETable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ieeeTable8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/crc32.ieeeTable8"
@@ -92,7 +92,7 @@ noncomputable def updateIEEE [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ieeeInitOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/crc32.ieeeInitOnce"
 
-axiom ieeeInitOnce.init [GooseExts] [GoGlobalContext] : val
+opaque ieeeInitOnce.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def castagnoliSSE42TableK1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/crc32.castagnoliSSE42TableK1"
@@ -175,7 +175,7 @@ noncomputable def slicingUpdate [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.hash.crc32 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

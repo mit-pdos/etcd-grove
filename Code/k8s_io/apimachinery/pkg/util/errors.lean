@@ -43,7 +43,7 @@ attribute [irreducible] Matcher.ty
 noncomputable def ErrPreconditionViolated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.ErrPreconditionViolated"
 
-axiom ErrPreconditionViolated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrPreconditionViolated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewAggregate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.NewAggregate"
@@ -72,7 +72,7 @@ noncomputable def AggregateGoroutines [GooseExts] [GoGlobalContext] : GoString :
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.errors where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

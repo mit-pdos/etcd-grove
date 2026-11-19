@@ -144,8 +144,14 @@ unsafe def main (args : List String) : IO UInt32 := do
     let imports := mods.toArray.map fun m => ({ module := m.toName } : Import)
     let pub ← importModules imports {} (loadExts := mode == "full") (level := .exported)
     let priv ← importModules imports {} (loadExts := false) (level := .private)
-    for m in mods do
+    -- one task per module (each writes its own file; the pretty-printing, about a second a
+    -- module, was the whole run: raft's 30s, one after another, 2026-11-18)
+    let tasks ← mods.toArray.mapM fun m => IO.asTask (prio := .dedicated) do
       if mode == "full" then dumpModule pub priv outDir m.toName
       else namesModule pub priv outDir m.toName
-    return 0
+    let mut rc : UInt32 := 0
+    for (m, t) in mods.toArray.zip tasks do
+      if let .error e ← IO.wait t then
+        IO.eprintln s!"interface: {m}: {e}"; rc := 1
+    return rc
   | _ => IO.eprintln "usage: lake env lean --run etc/interface.lean (full|names) OUTDIR MODULE..."; return 1

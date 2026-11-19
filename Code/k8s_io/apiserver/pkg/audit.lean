@@ -55,51 +55,51 @@ noncomputable def union.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] union.ty
 
-axiom AuditContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuditContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RequestAuditConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RequestAuditConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PolicyRuleEvaluator.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PolicyRuleEvaluator.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Sink.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Sink.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom auditKey [GooseExts] [GoGlobalContext] : val
+opaque auditKey [GooseExts] [GoGlobalContext] : val
 
-axiom subsystem [GooseExts] [GoGlobalContext] : val
+opaque subsystem [GooseExts] [GoGlobalContext] : val
 
-axiom maxUserAgentLength [GooseExts] [GoGlobalContext] : val
+opaque maxUserAgentLength [GooseExts] [GoGlobalContext] : val
 
-axiom userAgentTruncateSuffix [GooseExts] [GoGlobalContext] : val
+opaque userAgentTruncateSuffix [GooseExts] [GoGlobalContext] : val
 
 noncomputable def eventCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.eventCounter"
 
-axiom eventCounter.init [GooseExts] [GoGlobalContext] : val
+opaque eventCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errorCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.errorCounter"
 
-axiom errorCounter.init [GooseExts] [GoGlobalContext] : val
+opaque errorCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def levelCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.levelCounter"
 
-axiom levelCounter.init [GooseExts] [GoGlobalContext] : val
+opaque levelCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ApiserverAuditDroppedCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.ApiserverAuditDroppedCounter"
 
-axiom ApiserverAuditDroppedCounter.init [GooseExts] [GoGlobalContext] : val
+opaque ApiserverAuditDroppedCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Scheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.Scheme"
 
-axiom Scheme.init [GooseExts] [GoGlobalContext] : val
+opaque Scheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Codecs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.Codecs"
 
-axiom Codecs.init [GooseExts] [GoGlobalContext] : val
+opaque Codecs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddAuditAnnotation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.AddAuditAnnotation"
@@ -185,7 +185,7 @@ noncomputable def Union [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.audit where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -229,8 +229,10 @@ attribute [instance] key.TypeAssumptions.underlying
   key.TypeAssumptions.method_set
   key.TypeAssumptions.ptr_method_set
 
-axiom AuditContext : Type
-axiom AuditContext.zero_val : ZeroVal AuditContext
+opaque AuditContext.nonempty_type : NonemptyType.{0}
+def AuditContext : Type := AuditContext.nonempty_type.type
+instance AuditContext.nonempty : Nonempty AuditContext := AuditContext.nonempty_type.property
+opaque AuditContext.zero_val : ZeroVal AuditContext := ⟨Classical.ofNonempty⟩
 attribute [instance] AuditContext.zero_val
 
 class AuditContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -246,8 +248,10 @@ attribute [instance] AuditContext.TypeAssumptions.type_repr
   AuditContext.TypeAssumptions.method_set
   AuditContext.TypeAssumptions.ptr_method_set
 
-axiom RequestAuditConfig : Type
-axiom RequestAuditConfig.zero_val : ZeroVal RequestAuditConfig
+opaque RequestAuditConfig.nonempty_type : NonemptyType.{0}
+def RequestAuditConfig : Type := RequestAuditConfig.nonempty_type.type
+instance RequestAuditConfig.nonempty : Nonempty RequestAuditConfig := RequestAuditConfig.nonempty_type.property
+opaque RequestAuditConfig.zero_val : ZeroVal RequestAuditConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] RequestAuditConfig.zero_val
 
 class RequestAuditConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -263,8 +267,10 @@ attribute [instance] RequestAuditConfig.TypeAssumptions.type_repr
   RequestAuditConfig.TypeAssumptions.method_set
   RequestAuditConfig.TypeAssumptions.ptr_method_set
 
-axiom PolicyRuleEvaluator : Type
-axiom PolicyRuleEvaluator.zero_val : ZeroVal PolicyRuleEvaluator
+opaque PolicyRuleEvaluator.nonempty_type : NonemptyType.{0}
+def PolicyRuleEvaluator : Type := PolicyRuleEvaluator.nonempty_type.type
+instance PolicyRuleEvaluator.nonempty : Nonempty PolicyRuleEvaluator := PolicyRuleEvaluator.nonempty_type.property
+opaque PolicyRuleEvaluator.zero_val : ZeroVal PolicyRuleEvaluator := ⟨Classical.ofNonempty⟩
 attribute [instance] PolicyRuleEvaluator.zero_val
 
 class PolicyRuleEvaluator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -280,8 +286,10 @@ attribute [instance] PolicyRuleEvaluator.TypeAssumptions.type_repr
   PolicyRuleEvaluator.TypeAssumptions.method_set
   PolicyRuleEvaluator.TypeAssumptions.ptr_method_set
 
-axiom Sink : Type
-axiom Sink.zero_val : ZeroVal Sink
+opaque Sink.nonempty_type : NonemptyType.{0}
+def Sink : Type := Sink.nonempty_type.type
+instance Sink.nonempty : Nonempty Sink := Sink.nonempty_type.property
+opaque Sink.zero_val : ZeroVal Sink := ⟨Classical.ofNonempty⟩
 attribute [instance] Sink.zero_val
 
 class Sink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -219,49 +219,49 @@ noncomputable def ControllerRevisionList.ty [GooseExts] [GoGlobalContext] : go.G
 
 attribute [irreducible] ControllerRevisionList.ty
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def ControllerRevisionHashLabelKey [GooseExts] [GoGlobalContext] : val :=
   #(go!"controller-revision-hash")
 
-axiom StatefulSetRevisionLabel [GooseExts] [GoGlobalContext] : val
+opaque StatefulSetRevisionLabel [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedRollbackTo [GooseExts] [GoGlobalContext] : val
+opaque DeprecatedRollbackTo [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DeprecatedTemplateGeneration [GooseExts] [GoGlobalContext] : val :=
   #(go!"deprecated.daemonset.template.generation")
 
-axiom StatefulSetPodNameLabel [GooseExts] [GoGlobalContext] : val
+opaque StatefulSetPodNameLabel [GooseExts] [GoGlobalContext] : val
 
-axiom PodIndexLabel [GooseExts] [GoGlobalContext] : val
+opaque PodIndexLabel [GooseExts] [GoGlobalContext] : val
 
-axiom OrderedReadyPodManagement [GooseExts] [GoGlobalContext] : val
+opaque OrderedReadyPodManagement [GooseExts] [GoGlobalContext] : val
 
-axiom ParallelPodManagement [GooseExts] [GoGlobalContext] : val
+opaque ParallelPodManagement [GooseExts] [GoGlobalContext] : val
 
-axiom RollingUpdateStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
+opaque RollingUpdateStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom OnDeleteStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
+opaque OnDeleteStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom RecreateStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
+opaque RecreateStatefulSetStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom RetainPersistentVolumeClaimRetentionPolicyType [GooseExts] [GoGlobalContext] : val
+opaque RetainPersistentVolumeClaimRetentionPolicyType [GooseExts] [GoGlobalContext] : val
 
-axiom DeletePersistentVolumeClaimRetentionPolicyType [GooseExts] [GoGlobalContext] : val
+opaque DeletePersistentVolumeClaimRetentionPolicyType [GooseExts] [GoGlobalContext] : val
 
-axiom StatefulSetProgressing [GooseExts] [GoGlobalContext] : val
+opaque StatefulSetProgressing [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultDeploymentUniqueLabelKey [GooseExts] [GoGlobalContext] : val
+opaque DefaultDeploymentUniqueLabelKey [GooseExts] [GoGlobalContext] : val
 
-axiom RecreateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
+opaque RecreateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom RollingUpdateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
+opaque RollingUpdateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentAvailable [GooseExts] [GoGlobalContext] : val
+opaque DeploymentAvailable [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentProgressing [GooseExts] [GoGlobalContext] : val
+opaque DeploymentProgressing [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentReplicaFailure [GooseExts] [GoGlobalContext] : val
+opaque DeploymentReplicaFailure [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def RollingUpdateDaemonSetStrategyType [GooseExts] [GoGlobalContext] : val :=
   #(go!"RollingUpdate")
@@ -272,192 +272,192 @@ axiom DeploymentReplicaFailure [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def DefaultDaemonSetUniqueLabelKey [GooseExts] [GoGlobalContext] : val :=
   #(go!"controller-revision-hash")
 
-axiom ReplicaSetReplicaFailure [GooseExts] [GoGlobalContext] : val
+opaque ReplicaSetReplicaFailure [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.AddToScheme"
 
-axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
+opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ControllerRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ControllerRevision"
 
-axiom map_ControllerRevision.init [GooseExts] [GoGlobalContext] : val
+opaque map_ControllerRevision.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ControllerRevisionList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ControllerRevisionList"
 
-axiom map_ControllerRevisionList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ControllerRevisionList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSet"
 
-axiom map_DaemonSet.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetCondition"
 
-axiom map_DaemonSetCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetList"
 
-axiom map_DaemonSetList.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetSpec"
 
-axiom map_DaemonSetSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetStatus"
 
-axiom map_DaemonSetStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DaemonSetUpdateStrategy"
 
-axiom map_DaemonSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Deployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_Deployment"
 
-axiom map_Deployment.init [GooseExts] [GoGlobalContext] : val
+opaque map_Deployment.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentCondition"
 
-axiom map_DeploymentCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentList"
 
-axiom map_DeploymentList.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentSpec"
 
-axiom map_DeploymentSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentStatus"
 
-axiom map_DeploymentStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_DeploymentStrategy"
 
-axiom map_DeploymentStrategy.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentStrategy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSet"
 
-axiom map_ReplicaSet.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSetCondition"
 
-axiom map_ReplicaSetCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSetCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSetList"
 
-axiom map_ReplicaSetList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSetList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSetSpec"
 
-axiom map_ReplicaSetSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSetSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_ReplicaSetStatus"
 
-axiom map_ReplicaSetStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSetStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RollingUpdateDaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_RollingUpdateDaemonSet"
 
-axiom map_RollingUpdateDaemonSet.init [GooseExts] [GoGlobalContext] : val
+opaque map_RollingUpdateDaemonSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RollingUpdateDeployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_RollingUpdateDeployment"
 
-axiom map_RollingUpdateDeployment.init [GooseExts] [GoGlobalContext] : val
+opaque map_RollingUpdateDeployment.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RollingUpdateStatefulSetStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_RollingUpdateStatefulSetStrategy"
 
-axiom map_RollingUpdateStatefulSetStrategy.init [GooseExts] [GoGlobalContext] : val
+opaque map_RollingUpdateStatefulSetStrategy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatefulSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSet"
 
-axiom map_StatefulSet.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatefulSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatefulSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetCondition"
 
-axiom map_StatefulSetCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatefulSetCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatefulSetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetList"
 
-axiom map_StatefulSetList.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatefulSetList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatefulSetOrdinals [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetOrdinals"
 
-axiom map_StatefulSetOrdinals.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatefulSetOrdinals.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatefulSetPersistentVolumeClaimRetentionPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetPersistentVolumeClaimRetentionPolicy"
 
-axiom map_StatefulSetPersistentVolumeClaimRetentionPolicy.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatefulSetPersistentVolumeClaimRetentionPolicy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatefulSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetSpec"
 
-axiom map_StatefulSetSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatefulSetSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatefulSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetStatus"
 
-axiom map_StatefulSetStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatefulSetStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatefulSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.map_StatefulSetUpdateStrategy"
 
-axiom map_StatefulSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatefulSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/apps/v1.encodeVarintGenerated"
@@ -483,7 +483,7 @@ noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.apps.v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.util.intstr, pkg_id.k8s_io.apimachinery.pkg.runtime]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

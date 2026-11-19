@@ -23,6 +23,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__getStateFromObject
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__deleteOnce
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.refreshOnError
 public import Spec.k8s_io.apiserver.pkg.storage.Preconditions__Check
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

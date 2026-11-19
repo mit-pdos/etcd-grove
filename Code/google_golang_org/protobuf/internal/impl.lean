@@ -593,217 +593,217 @@ noncomputable instance «equals_unfold_struct#15a64e1b» [GooseExts] [GoGlobalCo
 @[reducible] noncomputable def «struct#15a64e1b».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType «struct#15a64e1b».fields)
 
-axiom Export.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Export.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom enum [GooseExts] [GoGlobalContext] : go.GoType
+opaque enum [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom message [GooseExts] [GoGlobalContext] : go.GoType
+opaque message [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyMessageWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque legacyMessageWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RaceDetectHookData.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RaceDetectHookData.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom extensionFieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque extensionFieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyExtensionValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque lazyExtensionValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionField.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExtensionField.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom errInvalidUTF8.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque errInvalidUTF8.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mapInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom coderMessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque coderMessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom coderFieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque coderFieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pointerCoderFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque pointerCoderFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom valueCoderFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque valueCoderFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unwrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque unwrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom boolConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque boolConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom int32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque int32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom int64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque int64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom uint32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque uint32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom uint64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque uint64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom float32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque float32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom float64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque float64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom stringConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque stringConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom bytesConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque bytesConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom enumConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque enumConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque messageConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque listConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listPtrConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque listPtrConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listReflect.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque listReflect.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mapConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapReflect.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mapReflect.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unmarshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque unmarshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unmarshalOutput.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque unmarshalOutput.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom marshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque marshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnumInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EnumInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExtensionInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom extensionTypeDescriptor.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque extensionTypeDescriptor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyEnumType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque legacyEnumType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyEnumWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque legacyEnumWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom placeholderExtension.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque placeholderExtension.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom enumV1.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque enumV1.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageV1.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque messageV1.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resolverOnly.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resolverOnly.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom placeholderEnumValues.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque placeholderEnumValues.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyMarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque legacyMarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyUnmarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque legacyUnmarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyMerger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque legacyMerger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aberrantMessageType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque aberrantMessageType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aberrantMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque aberrantMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mergeOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mergeOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exporter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque exporter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SizeCache [GooseExts] [GoGlobalContext] : go.GoType
+opaque SizeCache [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WeakFields [GooseExts] [GoGlobalContext] : go.GoType
+opaque WeakFields [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnknownFields [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnknownFields [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unknownFieldsA [GooseExts] [GoGlobalContext] : go.GoType
+opaque unknownFieldsA [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unknownFieldsB [GooseExts] [GoGlobalContext] : go.GoType
+opaque unknownFieldsB [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionFields [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExtensionFields [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom structInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque structInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapEntryType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mapEntryType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom opaqueStructInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque opaqueStructInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom presenceList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque presenceList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pvalueList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque pvalueList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom reflectMessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque reflectMessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom extensionMap.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque extensionMap.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageState.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque messageState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageDataType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque messageDataType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageReflectWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque messageReflectWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageIfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque messageIfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque fieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom oneofInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque oneofInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Pointer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Pointer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom offset.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque offset.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pointer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque pointer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom atomicNilMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque atomicNilMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom atomicV1MessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque atomicV1MessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom presenceSize.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque presenceSize.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom presence.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque presence.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidationStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidationStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom validationInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque validationInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom validationType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque validationType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapKeyTagSize [GooseExts] [GoGlobalContext] : val
+opaque mapKeyTagSize [GooseExts] [GoGlobalContext] : val
 
-axiom mapValTagSize [GooseExts] [GoGlobalContext] : val
+opaque mapValTagSize [GooseExts] [GoGlobalContext] : val
 
-axiom noPresence [GooseExts] [GoGlobalContext] : val
+opaque noPresence [GooseExts] [GoGlobalContext] : val
 
-axiom extensionInfoUninitialized [GooseExts] [GoGlobalContext] : val
+opaque extensionInfoUninitialized [GooseExts] [GoGlobalContext] : val
 
-axiom extensionInfoDescInit [GooseExts] [GoGlobalContext] : val
+opaque extensionInfoDescInit [GooseExts] [GoGlobalContext] : val
 
-axiom extensionInfoFullInit [GooseExts] [GoGlobalContext] : val
+opaque extensionInfoFullInit [GooseExts] [GoGlobalContext] : val
 
-axiom UnsafeEnabled [GooseExts] [GoGlobalContext] : val
+opaque UnsafeEnabled [GooseExts] [GoGlobalContext] : val
 
-axiom ValidationUnknown [GooseExts] [GoGlobalContext] : val
+opaque ValidationUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom ValidationInvalid [GooseExts] [GoGlobalContext] : val
+opaque ValidationInvalid [GooseExts] [GoGlobalContext] : val
 
-axiom ValidationValid [GooseExts] [GoGlobalContext] : val
+opaque ValidationValid [GooseExts] [GoGlobalContext] : val
 
-axiom ValidationWrongWireType [GooseExts] [GoGlobalContext] : val
+opaque ValidationWrongWireType [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeOther [GooseExts] [GoGlobalContext] : val
+opaque validationTypeOther [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeMessage [GooseExts] [GoGlobalContext] : val
+opaque validationTypeMessage [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeGroup [GooseExts] [GoGlobalContext] : val
+opaque validationTypeGroup [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeMap [GooseExts] [GoGlobalContext] : val
+opaque validationTypeMap [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeRepeatedVarint [GooseExts] [GoGlobalContext] : val
+opaque validationTypeRepeatedVarint [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeRepeatedFixed32 [GooseExts] [GoGlobalContext] : val
+opaque validationTypeRepeatedFixed32 [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeRepeatedFixed64 [GooseExts] [GoGlobalContext] : val
+opaque validationTypeRepeatedFixed64 [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeVarint [GooseExts] [GoGlobalContext] : val
+opaque validationTypeVarint [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeFixed32 [GooseExts] [GoGlobalContext] : val
+opaque validationTypeFixed32 [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeFixed64 [GooseExts] [GoGlobalContext] : val
+opaque validationTypeFixed64 [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeBytes [GooseExts] [GoGlobalContext] : val
+opaque validationTypeBytes [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeUTF8String [GooseExts] [GoGlobalContext] : val
+opaque validationTypeUTF8String [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeMessageSetItem [GooseExts] [GoGlobalContext] : val
+opaque validationTypeMessageSetItem [GooseExts] [GoGlobalContext] : val
 
 noncomputable def needsInitCheckMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.needsInitCheckMu"
@@ -3461,8 +3461,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.internal.pragma.initialize') (Val #()))))))))
 
-axiom Export : Type
-axiom Export.zero_val : ZeroVal Export
+opaque Export.nonempty_type : NonemptyType.{0}
+def Export : Type := Export.nonempty_type.type
+instance Export.nonempty : Nonempty Export := Export.nonempty_type.property
+opaque Export.zero_val : ZeroVal Export := ⟨Classical.ofNonempty⟩
 attribute [instance] Export.zero_val
 
 class Export.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3478,8 +3480,10 @@ attribute [instance] Export.TypeAssumptions.type_repr
   Export.TypeAssumptions.method_set
   Export.TypeAssumptions.ptr_method_set
 
-axiom legacyMessageWrapper : Type
-axiom legacyMessageWrapper.zero_val : ZeroVal legacyMessageWrapper
+opaque legacyMessageWrapper.nonempty_type : NonemptyType.{0}
+def legacyMessageWrapper : Type := legacyMessageWrapper.nonempty_type.type
+instance legacyMessageWrapper.nonempty : Nonempty legacyMessageWrapper := legacyMessageWrapper.nonempty_type.property
+opaque legacyMessageWrapper.zero_val : ZeroVal legacyMessageWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] legacyMessageWrapper.zero_val
 
 class legacyMessageWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3495,8 +3499,10 @@ attribute [instance] legacyMessageWrapper.TypeAssumptions.type_repr
   legacyMessageWrapper.TypeAssumptions.method_set
   legacyMessageWrapper.TypeAssumptions.ptr_method_set
 
-axiom RaceDetectHookData : Type
-axiom RaceDetectHookData.zero_val : ZeroVal RaceDetectHookData
+opaque RaceDetectHookData.nonempty_type : NonemptyType.{0}
+def RaceDetectHookData : Type := RaceDetectHookData.nonempty_type.type
+instance RaceDetectHookData.nonempty : Nonempty RaceDetectHookData := RaceDetectHookData.nonempty_type.property
+opaque RaceDetectHookData.zero_val : ZeroVal RaceDetectHookData := ⟨Classical.ofNonempty⟩
 attribute [instance] RaceDetectHookData.zero_val
 
 class RaceDetectHookData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3512,8 +3518,10 @@ attribute [instance] RaceDetectHookData.TypeAssumptions.type_repr
   RaceDetectHookData.TypeAssumptions.method_set
   RaceDetectHookData.TypeAssumptions.ptr_method_set
 
-axiom extensionFieldInfo : Type
-axiom extensionFieldInfo.zero_val : ZeroVal extensionFieldInfo
+opaque extensionFieldInfo.nonempty_type : NonemptyType.{0}
+def extensionFieldInfo : Type := extensionFieldInfo.nonempty_type.type
+instance extensionFieldInfo.nonempty : Nonempty extensionFieldInfo := extensionFieldInfo.nonempty_type.property
+opaque extensionFieldInfo.zero_val : ZeroVal extensionFieldInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] extensionFieldInfo.zero_val
 
 class extensionFieldInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3529,8 +3537,10 @@ attribute [instance] extensionFieldInfo.TypeAssumptions.type_repr
   extensionFieldInfo.TypeAssumptions.method_set
   extensionFieldInfo.TypeAssumptions.ptr_method_set
 
-axiom lazyExtensionValue : Type
-axiom lazyExtensionValue.zero_val : ZeroVal lazyExtensionValue
+opaque lazyExtensionValue.nonempty_type : NonemptyType.{0}
+def lazyExtensionValue : Type := lazyExtensionValue.nonempty_type.type
+instance lazyExtensionValue.nonempty : Nonempty lazyExtensionValue := lazyExtensionValue.nonempty_type.property
+opaque lazyExtensionValue.zero_val : ZeroVal lazyExtensionValue := ⟨Classical.ofNonempty⟩
 attribute [instance] lazyExtensionValue.zero_val
 
 class lazyExtensionValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3546,8 +3556,10 @@ attribute [instance] lazyExtensionValue.TypeAssumptions.type_repr
   lazyExtensionValue.TypeAssumptions.method_set
   lazyExtensionValue.TypeAssumptions.ptr_method_set
 
-axiom ExtensionField : Type
-axiom ExtensionField.zero_val : ZeroVal ExtensionField
+opaque ExtensionField.nonempty_type : NonemptyType.{0}
+def ExtensionField : Type := ExtensionField.nonempty_type.type
+instance ExtensionField.nonempty : Nonempty ExtensionField := ExtensionField.nonempty_type.property
+opaque ExtensionField.zero_val : ZeroVal ExtensionField := ⟨Classical.ofNonempty⟩
 attribute [instance] ExtensionField.zero_val
 
 class ExtensionField.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3563,8 +3575,10 @@ attribute [instance] ExtensionField.TypeAssumptions.type_repr
   ExtensionField.TypeAssumptions.method_set
   ExtensionField.TypeAssumptions.ptr_method_set
 
-axiom errInvalidUTF8 : Type
-axiom errInvalidUTF8.zero_val : ZeroVal errInvalidUTF8
+opaque errInvalidUTF8.nonempty_type : NonemptyType.{0}
+def errInvalidUTF8 : Type := errInvalidUTF8.nonempty_type.type
+instance errInvalidUTF8.nonempty : Nonempty errInvalidUTF8 := errInvalidUTF8.nonempty_type.property
+opaque errInvalidUTF8.zero_val : ZeroVal errInvalidUTF8 := ⟨Classical.ofNonempty⟩
 attribute [instance] errInvalidUTF8.zero_val
 
 class errInvalidUTF8.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3580,8 +3594,10 @@ attribute [instance] errInvalidUTF8.TypeAssumptions.type_repr
   errInvalidUTF8.TypeAssumptions.method_set
   errInvalidUTF8.TypeAssumptions.ptr_method_set
 
-axiom mapInfo : Type
-axiom mapInfo.zero_val : ZeroVal mapInfo
+opaque mapInfo.nonempty_type : NonemptyType.{0}
+def mapInfo : Type := mapInfo.nonempty_type.type
+instance mapInfo.nonempty : Nonempty mapInfo := mapInfo.nonempty_type.property
+opaque mapInfo.zero_val : ZeroVal mapInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] mapInfo.zero_val
 
 class mapInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3597,8 +3613,10 @@ attribute [instance] mapInfo.TypeAssumptions.type_repr
   mapInfo.TypeAssumptions.method_set
   mapInfo.TypeAssumptions.ptr_method_set
 
-axiom coderMessageInfo : Type
-axiom coderMessageInfo.zero_val : ZeroVal coderMessageInfo
+opaque coderMessageInfo.nonempty_type : NonemptyType.{0}
+def coderMessageInfo : Type := coderMessageInfo.nonempty_type.type
+instance coderMessageInfo.nonempty : Nonempty coderMessageInfo := coderMessageInfo.nonempty_type.property
+opaque coderMessageInfo.zero_val : ZeroVal coderMessageInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] coderMessageInfo.zero_val
 
 class coderMessageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3614,8 +3632,10 @@ attribute [instance] coderMessageInfo.TypeAssumptions.type_repr
   coderMessageInfo.TypeAssumptions.method_set
   coderMessageInfo.TypeAssumptions.ptr_method_set
 
-axiom coderFieldInfo : Type
-axiom coderFieldInfo.zero_val : ZeroVal coderFieldInfo
+opaque coderFieldInfo.nonempty_type : NonemptyType.{0}
+def coderFieldInfo : Type := coderFieldInfo.nonempty_type.type
+instance coderFieldInfo.nonempty : Nonempty coderFieldInfo := coderFieldInfo.nonempty_type.property
+opaque coderFieldInfo.zero_val : ZeroVal coderFieldInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] coderFieldInfo.zero_val
 
 class coderFieldInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3631,8 +3651,10 @@ attribute [instance] coderFieldInfo.TypeAssumptions.type_repr
   coderFieldInfo.TypeAssumptions.method_set
   coderFieldInfo.TypeAssumptions.ptr_method_set
 
-axiom pointerCoderFuncs : Type
-axiom pointerCoderFuncs.zero_val : ZeroVal pointerCoderFuncs
+opaque pointerCoderFuncs.nonempty_type : NonemptyType.{0}
+def pointerCoderFuncs : Type := pointerCoderFuncs.nonempty_type.type
+instance pointerCoderFuncs.nonempty : Nonempty pointerCoderFuncs := pointerCoderFuncs.nonempty_type.property
+opaque pointerCoderFuncs.zero_val : ZeroVal pointerCoderFuncs := ⟨Classical.ofNonempty⟩
 attribute [instance] pointerCoderFuncs.zero_val
 
 class pointerCoderFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3648,8 +3670,10 @@ attribute [instance] pointerCoderFuncs.TypeAssumptions.type_repr
   pointerCoderFuncs.TypeAssumptions.method_set
   pointerCoderFuncs.TypeAssumptions.ptr_method_set
 
-axiom valueCoderFuncs : Type
-axiom valueCoderFuncs.zero_val : ZeroVal valueCoderFuncs
+opaque valueCoderFuncs.nonempty_type : NonemptyType.{0}
+def valueCoderFuncs : Type := valueCoderFuncs.nonempty_type.type
+instance valueCoderFuncs.nonempty : Nonempty valueCoderFuncs := valueCoderFuncs.nonempty_type.property
+opaque valueCoderFuncs.zero_val : ZeroVal valueCoderFuncs := ⟨Classical.ofNonempty⟩
 attribute [instance] valueCoderFuncs.zero_val
 
 class valueCoderFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3665,8 +3689,10 @@ attribute [instance] valueCoderFuncs.TypeAssumptions.type_repr
   valueCoderFuncs.TypeAssumptions.method_set
   valueCoderFuncs.TypeAssumptions.ptr_method_set
 
-axiom unwrapper : Type
-axiom unwrapper.zero_val : ZeroVal unwrapper
+opaque unwrapper.nonempty_type : NonemptyType.{0}
+def unwrapper : Type := unwrapper.nonempty_type.type
+instance unwrapper.nonempty : Nonempty unwrapper := unwrapper.nonempty_type.property
+opaque unwrapper.zero_val : ZeroVal unwrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] unwrapper.zero_val
 
 class unwrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3682,8 +3708,10 @@ attribute [instance] unwrapper.TypeAssumptions.type_repr
   unwrapper.TypeAssumptions.method_set
   unwrapper.TypeAssumptions.ptr_method_set
 
-axiom Converter : Type
-axiom Converter.zero_val : ZeroVal Converter
+opaque Converter.nonempty_type : NonemptyType.{0}
+def Converter : Type := Converter.nonempty_type.type
+instance Converter.nonempty : Nonempty Converter := Converter.nonempty_type.property
+opaque Converter.zero_val : ZeroVal Converter := ⟨Classical.ofNonempty⟩
 attribute [instance] Converter.zero_val
 
 class Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3699,8 +3727,10 @@ attribute [instance] Converter.TypeAssumptions.type_repr
   Converter.TypeAssumptions.method_set
   Converter.TypeAssumptions.ptr_method_set
 
-axiom boolConverter : Type
-axiom boolConverter.zero_val : ZeroVal boolConverter
+opaque boolConverter.nonempty_type : NonemptyType.{0}
+def boolConverter : Type := boolConverter.nonempty_type.type
+instance boolConverter.nonempty : Nonempty boolConverter := boolConverter.nonempty_type.property
+opaque boolConverter.zero_val : ZeroVal boolConverter := ⟨Classical.ofNonempty⟩
 attribute [instance] boolConverter.zero_val
 
 class boolConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3716,8 +3746,10 @@ attribute [instance] boolConverter.TypeAssumptions.type_repr
   boolConverter.TypeAssumptions.method_set
   boolConverter.TypeAssumptions.ptr_method_set
 
-axiom int32Converter : Type
-axiom int32Converter.zero_val : ZeroVal int32Converter
+opaque int32Converter.nonempty_type : NonemptyType.{0}
+def int32Converter : Type := int32Converter.nonempty_type.type
+instance int32Converter.nonempty : Nonempty int32Converter := int32Converter.nonempty_type.property
+opaque int32Converter.zero_val : ZeroVal int32Converter := ⟨Classical.ofNonempty⟩
 attribute [instance] int32Converter.zero_val
 
 class int32Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3733,8 +3765,10 @@ attribute [instance] int32Converter.TypeAssumptions.type_repr
   int32Converter.TypeAssumptions.method_set
   int32Converter.TypeAssumptions.ptr_method_set
 
-axiom int64Converter : Type
-axiom int64Converter.zero_val : ZeroVal int64Converter
+opaque int64Converter.nonempty_type : NonemptyType.{0}
+def int64Converter : Type := int64Converter.nonempty_type.type
+instance int64Converter.nonempty : Nonempty int64Converter := int64Converter.nonempty_type.property
+opaque int64Converter.zero_val : ZeroVal int64Converter := ⟨Classical.ofNonempty⟩
 attribute [instance] int64Converter.zero_val
 
 class int64Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3750,8 +3784,10 @@ attribute [instance] int64Converter.TypeAssumptions.type_repr
   int64Converter.TypeAssumptions.method_set
   int64Converter.TypeAssumptions.ptr_method_set
 
-axiom uint32Converter : Type
-axiom uint32Converter.zero_val : ZeroVal uint32Converter
+opaque uint32Converter.nonempty_type : NonemptyType.{0}
+def uint32Converter : Type := uint32Converter.nonempty_type.type
+instance uint32Converter.nonempty : Nonempty uint32Converter := uint32Converter.nonempty_type.property
+opaque uint32Converter.zero_val : ZeroVal uint32Converter := ⟨Classical.ofNonempty⟩
 attribute [instance] uint32Converter.zero_val
 
 class uint32Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3767,8 +3803,10 @@ attribute [instance] uint32Converter.TypeAssumptions.type_repr
   uint32Converter.TypeAssumptions.method_set
   uint32Converter.TypeAssumptions.ptr_method_set
 
-axiom uint64Converter : Type
-axiom uint64Converter.zero_val : ZeroVal uint64Converter
+opaque uint64Converter.nonempty_type : NonemptyType.{0}
+def uint64Converter : Type := uint64Converter.nonempty_type.type
+instance uint64Converter.nonempty : Nonempty uint64Converter := uint64Converter.nonempty_type.property
+opaque uint64Converter.zero_val : ZeroVal uint64Converter := ⟨Classical.ofNonempty⟩
 attribute [instance] uint64Converter.zero_val
 
 class uint64Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3784,8 +3822,10 @@ attribute [instance] uint64Converter.TypeAssumptions.type_repr
   uint64Converter.TypeAssumptions.method_set
   uint64Converter.TypeAssumptions.ptr_method_set
 
-axiom float32Converter : Type
-axiom float32Converter.zero_val : ZeroVal float32Converter
+opaque float32Converter.nonempty_type : NonemptyType.{0}
+def float32Converter : Type := float32Converter.nonempty_type.type
+instance float32Converter.nonempty : Nonempty float32Converter := float32Converter.nonempty_type.property
+opaque float32Converter.zero_val : ZeroVal float32Converter := ⟨Classical.ofNonempty⟩
 attribute [instance] float32Converter.zero_val
 
 class float32Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3801,8 +3841,10 @@ attribute [instance] float32Converter.TypeAssumptions.type_repr
   float32Converter.TypeAssumptions.method_set
   float32Converter.TypeAssumptions.ptr_method_set
 
-axiom float64Converter : Type
-axiom float64Converter.zero_val : ZeroVal float64Converter
+opaque float64Converter.nonempty_type : NonemptyType.{0}
+def float64Converter : Type := float64Converter.nonempty_type.type
+instance float64Converter.nonempty : Nonempty float64Converter := float64Converter.nonempty_type.property
+opaque float64Converter.zero_val : ZeroVal float64Converter := ⟨Classical.ofNonempty⟩
 attribute [instance] float64Converter.zero_val
 
 class float64Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3818,8 +3860,10 @@ attribute [instance] float64Converter.TypeAssumptions.type_repr
   float64Converter.TypeAssumptions.method_set
   float64Converter.TypeAssumptions.ptr_method_set
 
-axiom stringConverter : Type
-axiom stringConverter.zero_val : ZeroVal stringConverter
+opaque stringConverter.nonempty_type : NonemptyType.{0}
+def stringConverter : Type := stringConverter.nonempty_type.type
+instance stringConverter.nonempty : Nonempty stringConverter := stringConverter.nonempty_type.property
+opaque stringConverter.zero_val : ZeroVal stringConverter := ⟨Classical.ofNonempty⟩
 attribute [instance] stringConverter.zero_val
 
 class stringConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3835,8 +3879,10 @@ attribute [instance] stringConverter.TypeAssumptions.type_repr
   stringConverter.TypeAssumptions.method_set
   stringConverter.TypeAssumptions.ptr_method_set
 
-axiom bytesConverter : Type
-axiom bytesConverter.zero_val : ZeroVal bytesConverter
+opaque bytesConverter.nonempty_type : NonemptyType.{0}
+def bytesConverter : Type := bytesConverter.nonempty_type.type
+instance bytesConverter.nonempty : Nonempty bytesConverter := bytesConverter.nonempty_type.property
+opaque bytesConverter.zero_val : ZeroVal bytesConverter := ⟨Classical.ofNonempty⟩
 attribute [instance] bytesConverter.zero_val
 
 class bytesConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3852,8 +3898,10 @@ attribute [instance] bytesConverter.TypeAssumptions.type_repr
   bytesConverter.TypeAssumptions.method_set
   bytesConverter.TypeAssumptions.ptr_method_set
 
-axiom enumConverter : Type
-axiom enumConverter.zero_val : ZeroVal enumConverter
+opaque enumConverter.nonempty_type : NonemptyType.{0}
+def enumConverter : Type := enumConverter.nonempty_type.type
+instance enumConverter.nonempty : Nonempty enumConverter := enumConverter.nonempty_type.property
+opaque enumConverter.zero_val : ZeroVal enumConverter := ⟨Classical.ofNonempty⟩
 attribute [instance] enumConverter.zero_val
 
 class enumConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3869,8 +3917,10 @@ attribute [instance] enumConverter.TypeAssumptions.type_repr
   enumConverter.TypeAssumptions.method_set
   enumConverter.TypeAssumptions.ptr_method_set
 
-axiom messageConverter : Type
-axiom messageConverter.zero_val : ZeroVal messageConverter
+opaque messageConverter.nonempty_type : NonemptyType.{0}
+def messageConverter : Type := messageConverter.nonempty_type.type
+instance messageConverter.nonempty : Nonempty messageConverter := messageConverter.nonempty_type.property
+opaque messageConverter.zero_val : ZeroVal messageConverter := ⟨Classical.ofNonempty⟩
 attribute [instance] messageConverter.zero_val
 
 class messageConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3886,8 +3936,10 @@ attribute [instance] messageConverter.TypeAssumptions.type_repr
   messageConverter.TypeAssumptions.method_set
   messageConverter.TypeAssumptions.ptr_method_set
 
-axiom listConverter : Type
-axiom listConverter.zero_val : ZeroVal listConverter
+opaque listConverter.nonempty_type : NonemptyType.{0}
+def listConverter : Type := listConverter.nonempty_type.type
+instance listConverter.nonempty : Nonempty listConverter := listConverter.nonempty_type.property
+opaque listConverter.zero_val : ZeroVal listConverter := ⟨Classical.ofNonempty⟩
 attribute [instance] listConverter.zero_val
 
 class listConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3903,8 +3955,10 @@ attribute [instance] listConverter.TypeAssumptions.type_repr
   listConverter.TypeAssumptions.method_set
   listConverter.TypeAssumptions.ptr_method_set
 
-axiom listPtrConverter : Type
-axiom listPtrConverter.zero_val : ZeroVal listPtrConverter
+opaque listPtrConverter.nonempty_type : NonemptyType.{0}
+def listPtrConverter : Type := listPtrConverter.nonempty_type.type
+instance listPtrConverter.nonempty : Nonempty listPtrConverter := listPtrConverter.nonempty_type.property
+opaque listPtrConverter.zero_val : ZeroVal listPtrConverter := ⟨Classical.ofNonempty⟩
 attribute [instance] listPtrConverter.zero_val
 
 class listPtrConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3920,8 +3974,10 @@ attribute [instance] listPtrConverter.TypeAssumptions.type_repr
   listPtrConverter.TypeAssumptions.method_set
   listPtrConverter.TypeAssumptions.ptr_method_set
 
-axiom listReflect : Type
-axiom listReflect.zero_val : ZeroVal listReflect
+opaque listReflect.nonempty_type : NonemptyType.{0}
+def listReflect : Type := listReflect.nonempty_type.type
+instance listReflect.nonempty : Nonempty listReflect := listReflect.nonempty_type.property
+opaque listReflect.zero_val : ZeroVal listReflect := ⟨Classical.ofNonempty⟩
 attribute [instance] listReflect.zero_val
 
 class listReflect.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3937,8 +3993,10 @@ attribute [instance] listReflect.TypeAssumptions.type_repr
   listReflect.TypeAssumptions.method_set
   listReflect.TypeAssumptions.ptr_method_set
 
-axiom mapConverter : Type
-axiom mapConverter.zero_val : ZeroVal mapConverter
+opaque mapConverter.nonempty_type : NonemptyType.{0}
+def mapConverter : Type := mapConverter.nonempty_type.type
+instance mapConverter.nonempty : Nonempty mapConverter := mapConverter.nonempty_type.property
+opaque mapConverter.zero_val : ZeroVal mapConverter := ⟨Classical.ofNonempty⟩
 attribute [instance] mapConverter.zero_val
 
 class mapConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3954,8 +4012,10 @@ attribute [instance] mapConverter.TypeAssumptions.type_repr
   mapConverter.TypeAssumptions.method_set
   mapConverter.TypeAssumptions.ptr_method_set
 
-axiom mapReflect : Type
-axiom mapReflect.zero_val : ZeroVal mapReflect
+opaque mapReflect.nonempty_type : NonemptyType.{0}
+def mapReflect : Type := mapReflect.nonempty_type.type
+instance mapReflect.nonempty : Nonempty mapReflect := mapReflect.nonempty_type.property
+opaque mapReflect.zero_val : ZeroVal mapReflect := ⟨Classical.ofNonempty⟩
 attribute [instance] mapReflect.zero_val
 
 class mapReflect.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3971,8 +4031,10 @@ attribute [instance] mapReflect.TypeAssumptions.type_repr
   mapReflect.TypeAssumptions.method_set
   mapReflect.TypeAssumptions.ptr_method_set
 
-axiom unmarshalOptions : Type
-axiom unmarshalOptions.zero_val : ZeroVal unmarshalOptions
+opaque unmarshalOptions.nonempty_type : NonemptyType.{0}
+def unmarshalOptions : Type := unmarshalOptions.nonempty_type.type
+instance unmarshalOptions.nonempty : Nonempty unmarshalOptions := unmarshalOptions.nonempty_type.property
+opaque unmarshalOptions.zero_val : ZeroVal unmarshalOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] unmarshalOptions.zero_val
 
 class unmarshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3988,8 +4050,10 @@ attribute [instance] unmarshalOptions.TypeAssumptions.type_repr
   unmarshalOptions.TypeAssumptions.method_set
   unmarshalOptions.TypeAssumptions.ptr_method_set
 
-axiom unmarshalOutput : Type
-axiom unmarshalOutput.zero_val : ZeroVal unmarshalOutput
+opaque unmarshalOutput.nonempty_type : NonemptyType.{0}
+def unmarshalOutput : Type := unmarshalOutput.nonempty_type.type
+instance unmarshalOutput.nonempty : Nonempty unmarshalOutput := unmarshalOutput.nonempty_type.property
+opaque unmarshalOutput.zero_val : ZeroVal unmarshalOutput := ⟨Classical.ofNonempty⟩
 attribute [instance] unmarshalOutput.zero_val
 
 class unmarshalOutput.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4005,8 +4069,10 @@ attribute [instance] unmarshalOutput.TypeAssumptions.type_repr
   unmarshalOutput.TypeAssumptions.method_set
   unmarshalOutput.TypeAssumptions.ptr_method_set
 
-axiom marshalOptions : Type
-axiom marshalOptions.zero_val : ZeroVal marshalOptions
+opaque marshalOptions.nonempty_type : NonemptyType.{0}
+def marshalOptions : Type := marshalOptions.nonempty_type.type
+instance marshalOptions.nonempty : Nonempty marshalOptions := marshalOptions.nonempty_type.property
+opaque marshalOptions.zero_val : ZeroVal marshalOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] marshalOptions.zero_val
 
 class marshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4022,8 +4088,10 @@ attribute [instance] marshalOptions.TypeAssumptions.type_repr
   marshalOptions.TypeAssumptions.method_set
   marshalOptions.TypeAssumptions.ptr_method_set
 
-axiom EnumInfo : Type
-axiom EnumInfo.zero_val : ZeroVal EnumInfo
+opaque EnumInfo.nonempty_type : NonemptyType.{0}
+def EnumInfo : Type := EnumInfo.nonempty_type.type
+instance EnumInfo.nonempty : Nonempty EnumInfo := EnumInfo.nonempty_type.property
+opaque EnumInfo.zero_val : ZeroVal EnumInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] EnumInfo.zero_val
 
 class EnumInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4039,8 +4107,10 @@ attribute [instance] EnumInfo.TypeAssumptions.type_repr
   EnumInfo.TypeAssumptions.method_set
   EnumInfo.TypeAssumptions.ptr_method_set
 
-axiom ExtensionInfo : Type
-axiom ExtensionInfo.zero_val : ZeroVal ExtensionInfo
+opaque ExtensionInfo.nonempty_type : NonemptyType.{0}
+def ExtensionInfo : Type := ExtensionInfo.nonempty_type.type
+instance ExtensionInfo.nonempty : Nonempty ExtensionInfo := ExtensionInfo.nonempty_type.property
+opaque ExtensionInfo.zero_val : ZeroVal ExtensionInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] ExtensionInfo.zero_val
 
 class ExtensionInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4056,8 +4126,10 @@ attribute [instance] ExtensionInfo.TypeAssumptions.type_repr
   ExtensionInfo.TypeAssumptions.method_set
   ExtensionInfo.TypeAssumptions.ptr_method_set
 
-axiom extensionTypeDescriptor : Type
-axiom extensionTypeDescriptor.zero_val : ZeroVal extensionTypeDescriptor
+opaque extensionTypeDescriptor.nonempty_type : NonemptyType.{0}
+def extensionTypeDescriptor : Type := extensionTypeDescriptor.nonempty_type.type
+instance extensionTypeDescriptor.nonempty : Nonempty extensionTypeDescriptor := extensionTypeDescriptor.nonempty_type.property
+opaque extensionTypeDescriptor.zero_val : ZeroVal extensionTypeDescriptor := ⟨Classical.ofNonempty⟩
 attribute [instance] extensionTypeDescriptor.zero_val
 
 class extensionTypeDescriptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4073,8 +4145,10 @@ attribute [instance] extensionTypeDescriptor.TypeAssumptions.type_repr
   extensionTypeDescriptor.TypeAssumptions.method_set
   extensionTypeDescriptor.TypeAssumptions.ptr_method_set
 
-axiom legacyEnumType : Type
-axiom legacyEnumType.zero_val : ZeroVal legacyEnumType
+opaque legacyEnumType.nonempty_type : NonemptyType.{0}
+def legacyEnumType : Type := legacyEnumType.nonempty_type.type
+instance legacyEnumType.nonempty : Nonempty legacyEnumType := legacyEnumType.nonempty_type.property
+opaque legacyEnumType.zero_val : ZeroVal legacyEnumType := ⟨Classical.ofNonempty⟩
 attribute [instance] legacyEnumType.zero_val
 
 class legacyEnumType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4090,8 +4164,10 @@ attribute [instance] legacyEnumType.TypeAssumptions.type_repr
   legacyEnumType.TypeAssumptions.method_set
   legacyEnumType.TypeAssumptions.ptr_method_set
 
-axiom legacyEnumWrapper : Type
-axiom legacyEnumWrapper.zero_val : ZeroVal legacyEnumWrapper
+opaque legacyEnumWrapper.nonempty_type : NonemptyType.{0}
+def legacyEnumWrapper : Type := legacyEnumWrapper.nonempty_type.type
+instance legacyEnumWrapper.nonempty : Nonempty legacyEnumWrapper := legacyEnumWrapper.nonempty_type.property
+opaque legacyEnumWrapper.zero_val : ZeroVal legacyEnumWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] legacyEnumWrapper.zero_val
 
 class legacyEnumWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4107,8 +4183,10 @@ attribute [instance] legacyEnumWrapper.TypeAssumptions.type_repr
   legacyEnumWrapper.TypeAssumptions.method_set
   legacyEnumWrapper.TypeAssumptions.ptr_method_set
 
-axiom placeholderExtension : Type
-axiom placeholderExtension.zero_val : ZeroVal placeholderExtension
+opaque placeholderExtension.nonempty_type : NonemptyType.{0}
+def placeholderExtension : Type := placeholderExtension.nonempty_type.type
+instance placeholderExtension.nonempty : Nonempty placeholderExtension := placeholderExtension.nonempty_type.property
+opaque placeholderExtension.zero_val : ZeroVal placeholderExtension := ⟨Classical.ofNonempty⟩
 attribute [instance] placeholderExtension.zero_val
 
 class placeholderExtension.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4124,8 +4202,10 @@ attribute [instance] placeholderExtension.TypeAssumptions.type_repr
   placeholderExtension.TypeAssumptions.method_set
   placeholderExtension.TypeAssumptions.ptr_method_set
 
-axiom enumV1 : Type
-axiom enumV1.zero_val : ZeroVal enumV1
+opaque enumV1.nonempty_type : NonemptyType.{0}
+def enumV1 : Type := enumV1.nonempty_type.type
+instance enumV1.nonempty : Nonempty enumV1 := enumV1.nonempty_type.property
+opaque enumV1.zero_val : ZeroVal enumV1 := ⟨Classical.ofNonempty⟩
 attribute [instance] enumV1.zero_val
 
 class enumV1.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4141,8 +4221,10 @@ attribute [instance] enumV1.TypeAssumptions.type_repr
   enumV1.TypeAssumptions.method_set
   enumV1.TypeAssumptions.ptr_method_set
 
-axiom messageV1 : Type
-axiom messageV1.zero_val : ZeroVal messageV1
+opaque messageV1.nonempty_type : NonemptyType.{0}
+def messageV1 : Type := messageV1.nonempty_type.type
+instance messageV1.nonempty : Nonempty messageV1 := messageV1.nonempty_type.property
+opaque messageV1.zero_val : ZeroVal messageV1 := ⟨Classical.ofNonempty⟩
 attribute [instance] messageV1.zero_val
 
 class messageV1.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4158,8 +4240,10 @@ attribute [instance] messageV1.TypeAssumptions.type_repr
   messageV1.TypeAssumptions.method_set
   messageV1.TypeAssumptions.ptr_method_set
 
-axiom resolverOnly : Type
-axiom resolverOnly.zero_val : ZeroVal resolverOnly
+opaque resolverOnly.nonempty_type : NonemptyType.{0}
+def resolverOnly : Type := resolverOnly.nonempty_type.type
+instance resolverOnly.nonempty : Nonempty resolverOnly := resolverOnly.nonempty_type.property
+opaque resolverOnly.zero_val : ZeroVal resolverOnly := ⟨Classical.ofNonempty⟩
 attribute [instance] resolverOnly.zero_val
 
 class resolverOnly.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4175,8 +4259,10 @@ attribute [instance] resolverOnly.TypeAssumptions.type_repr
   resolverOnly.TypeAssumptions.method_set
   resolverOnly.TypeAssumptions.ptr_method_set
 
-axiom placeholderEnumValues : Type
-axiom placeholderEnumValues.zero_val : ZeroVal placeholderEnumValues
+opaque placeholderEnumValues.nonempty_type : NonemptyType.{0}
+def placeholderEnumValues : Type := placeholderEnumValues.nonempty_type.type
+instance placeholderEnumValues.nonempty : Nonempty placeholderEnumValues := placeholderEnumValues.nonempty_type.property
+opaque placeholderEnumValues.zero_val : ZeroVal placeholderEnumValues := ⟨Classical.ofNonempty⟩
 attribute [instance] placeholderEnumValues.zero_val
 
 class placeholderEnumValues.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4192,8 +4278,10 @@ attribute [instance] placeholderEnumValues.TypeAssumptions.type_repr
   placeholderEnumValues.TypeAssumptions.method_set
   placeholderEnumValues.TypeAssumptions.ptr_method_set
 
-axiom legacyMarshaler : Type
-axiom legacyMarshaler.zero_val : ZeroVal legacyMarshaler
+opaque legacyMarshaler.nonempty_type : NonemptyType.{0}
+def legacyMarshaler : Type := legacyMarshaler.nonempty_type.type
+instance legacyMarshaler.nonempty : Nonempty legacyMarshaler := legacyMarshaler.nonempty_type.property
+opaque legacyMarshaler.zero_val : ZeroVal legacyMarshaler := ⟨Classical.ofNonempty⟩
 attribute [instance] legacyMarshaler.zero_val
 
 class legacyMarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4209,8 +4297,10 @@ attribute [instance] legacyMarshaler.TypeAssumptions.type_repr
   legacyMarshaler.TypeAssumptions.method_set
   legacyMarshaler.TypeAssumptions.ptr_method_set
 
-axiom legacyUnmarshaler : Type
-axiom legacyUnmarshaler.zero_val : ZeroVal legacyUnmarshaler
+opaque legacyUnmarshaler.nonempty_type : NonemptyType.{0}
+def legacyUnmarshaler : Type := legacyUnmarshaler.nonempty_type.type
+instance legacyUnmarshaler.nonempty : Nonempty legacyUnmarshaler := legacyUnmarshaler.nonempty_type.property
+opaque legacyUnmarshaler.zero_val : ZeroVal legacyUnmarshaler := ⟨Classical.ofNonempty⟩
 attribute [instance] legacyUnmarshaler.zero_val
 
 class legacyUnmarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4226,8 +4316,10 @@ attribute [instance] legacyUnmarshaler.TypeAssumptions.type_repr
   legacyUnmarshaler.TypeAssumptions.method_set
   legacyUnmarshaler.TypeAssumptions.ptr_method_set
 
-axiom legacyMerger : Type
-axiom legacyMerger.zero_val : ZeroVal legacyMerger
+opaque legacyMerger.nonempty_type : NonemptyType.{0}
+def legacyMerger : Type := legacyMerger.nonempty_type.type
+instance legacyMerger.nonempty : Nonempty legacyMerger := legacyMerger.nonempty_type.property
+opaque legacyMerger.zero_val : ZeroVal legacyMerger := ⟨Classical.ofNonempty⟩
 attribute [instance] legacyMerger.zero_val
 
 class legacyMerger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4243,8 +4335,10 @@ attribute [instance] legacyMerger.TypeAssumptions.type_repr
   legacyMerger.TypeAssumptions.method_set
   legacyMerger.TypeAssumptions.ptr_method_set
 
-axiom aberrantMessageType : Type
-axiom aberrantMessageType.zero_val : ZeroVal aberrantMessageType
+opaque aberrantMessageType.nonempty_type : NonemptyType.{0}
+def aberrantMessageType : Type := aberrantMessageType.nonempty_type.type
+instance aberrantMessageType.nonempty : Nonempty aberrantMessageType := aberrantMessageType.nonempty_type.property
+opaque aberrantMessageType.zero_val : ZeroVal aberrantMessageType := ⟨Classical.ofNonempty⟩
 attribute [instance] aberrantMessageType.zero_val
 
 class aberrantMessageType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4260,8 +4354,10 @@ attribute [instance] aberrantMessageType.TypeAssumptions.type_repr
   aberrantMessageType.TypeAssumptions.method_set
   aberrantMessageType.TypeAssumptions.ptr_method_set
 
-axiom aberrantMessage : Type
-axiom aberrantMessage.zero_val : ZeroVal aberrantMessage
+opaque aberrantMessage.nonempty_type : NonemptyType.{0}
+def aberrantMessage : Type := aberrantMessage.nonempty_type.type
+instance aberrantMessage.nonempty : Nonempty aberrantMessage := aberrantMessage.nonempty_type.property
+opaque aberrantMessage.zero_val : ZeroVal aberrantMessage := ⟨Classical.ofNonempty⟩
 attribute [instance] aberrantMessage.zero_val
 
 class aberrantMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4277,8 +4373,10 @@ attribute [instance] aberrantMessage.TypeAssumptions.type_repr
   aberrantMessage.TypeAssumptions.method_set
   aberrantMessage.TypeAssumptions.ptr_method_set
 
-axiom mergeOptions : Type
-axiom mergeOptions.zero_val : ZeroVal mergeOptions
+opaque mergeOptions.nonempty_type : NonemptyType.{0}
+def mergeOptions : Type := mergeOptions.nonempty_type.type
+instance mergeOptions.nonempty : Nonempty mergeOptions := mergeOptions.nonempty_type.property
+opaque mergeOptions.zero_val : ZeroVal mergeOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] mergeOptions.zero_val
 
 class mergeOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4294,8 +4392,10 @@ attribute [instance] mergeOptions.TypeAssumptions.type_repr
   mergeOptions.TypeAssumptions.method_set
   mergeOptions.TypeAssumptions.ptr_method_set
 
-axiom MessageInfo : Type
-axiom MessageInfo.zero_val : ZeroVal MessageInfo
+opaque MessageInfo.nonempty_type : NonemptyType.{0}
+def MessageInfo : Type := MessageInfo.nonempty_type.type
+instance MessageInfo.nonempty : Nonempty MessageInfo := MessageInfo.nonempty_type.property
+opaque MessageInfo.zero_val : ZeroVal MessageInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] MessageInfo.zero_val
 
 class MessageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4311,8 +4411,10 @@ attribute [instance] MessageInfo.TypeAssumptions.type_repr
   MessageInfo.TypeAssumptions.method_set
   MessageInfo.TypeAssumptions.ptr_method_set
 
-axiom exporter : Type
-axiom exporter.zero_val : ZeroVal exporter
+opaque exporter.nonempty_type : NonemptyType.{0}
+def exporter : Type := exporter.nonempty_type.type
+instance exporter.nonempty : Nonempty exporter := exporter.nonempty_type.property
+opaque exporter.zero_val : ZeroVal exporter := ⟨Classical.ofNonempty⟩
 attribute [instance] exporter.zero_val
 
 class exporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4328,8 +4430,10 @@ attribute [instance] exporter.TypeAssumptions.type_repr
   exporter.TypeAssumptions.method_set
   exporter.TypeAssumptions.ptr_method_set
 
-axiom structInfo : Type
-axiom structInfo.zero_val : ZeroVal structInfo
+opaque structInfo.nonempty_type : NonemptyType.{0}
+def structInfo : Type := structInfo.nonempty_type.type
+instance structInfo.nonempty : Nonempty structInfo := structInfo.nonempty_type.property
+opaque structInfo.zero_val : ZeroVal structInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] structInfo.zero_val
 
 class structInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4345,8 +4449,10 @@ attribute [instance] structInfo.TypeAssumptions.type_repr
   structInfo.TypeAssumptions.method_set
   structInfo.TypeAssumptions.ptr_method_set
 
-axiom mapEntryType : Type
-axiom mapEntryType.zero_val : ZeroVal mapEntryType
+opaque mapEntryType.nonempty_type : NonemptyType.{0}
+def mapEntryType : Type := mapEntryType.nonempty_type.type
+instance mapEntryType.nonempty : Nonempty mapEntryType := mapEntryType.nonempty_type.property
+opaque mapEntryType.zero_val : ZeroVal mapEntryType := ⟨Classical.ofNonempty⟩
 attribute [instance] mapEntryType.zero_val
 
 class mapEntryType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4362,8 +4468,10 @@ attribute [instance] mapEntryType.TypeAssumptions.type_repr
   mapEntryType.TypeAssumptions.method_set
   mapEntryType.TypeAssumptions.ptr_method_set
 
-axiom opaqueStructInfo : Type
-axiom opaqueStructInfo.zero_val : ZeroVal opaqueStructInfo
+opaque opaqueStructInfo.nonempty_type : NonemptyType.{0}
+def opaqueStructInfo : Type := opaqueStructInfo.nonempty_type.type
+instance opaqueStructInfo.nonempty : Nonempty opaqueStructInfo := opaqueStructInfo.nonempty_type.property
+opaque opaqueStructInfo.zero_val : ZeroVal opaqueStructInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] opaqueStructInfo.zero_val
 
 class opaqueStructInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4379,8 +4487,10 @@ attribute [instance] opaqueStructInfo.TypeAssumptions.type_repr
   opaqueStructInfo.TypeAssumptions.method_set
   opaqueStructInfo.TypeAssumptions.ptr_method_set
 
-axiom presenceList : Type
-axiom presenceList.zero_val : ZeroVal presenceList
+opaque presenceList.nonempty_type : NonemptyType.{0}
+def presenceList : Type := presenceList.nonempty_type.type
+instance presenceList.nonempty : Nonempty presenceList := presenceList.nonempty_type.property
+opaque presenceList.zero_val : ZeroVal presenceList := ⟨Classical.ofNonempty⟩
 attribute [instance] presenceList.zero_val
 
 class presenceList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4396,8 +4506,10 @@ attribute [instance] presenceList.TypeAssumptions.type_repr
   presenceList.TypeAssumptions.method_set
   presenceList.TypeAssumptions.ptr_method_set
 
-axiom pvalueList : Type
-axiom pvalueList.zero_val : ZeroVal pvalueList
+opaque pvalueList.nonempty_type : NonemptyType.{0}
+def pvalueList : Type := pvalueList.nonempty_type.type
+instance pvalueList.nonempty : Nonempty pvalueList := pvalueList.nonempty_type.property
+opaque pvalueList.zero_val : ZeroVal pvalueList := ⟨Classical.ofNonempty⟩
 attribute [instance] pvalueList.zero_val
 
 class pvalueList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4413,8 +4525,10 @@ attribute [instance] pvalueList.TypeAssumptions.type_repr
   pvalueList.TypeAssumptions.method_set
   pvalueList.TypeAssumptions.ptr_method_set
 
-axiom reflectMessageInfo : Type
-axiom reflectMessageInfo.zero_val : ZeroVal reflectMessageInfo
+opaque reflectMessageInfo.nonempty_type : NonemptyType.{0}
+def reflectMessageInfo : Type := reflectMessageInfo.nonempty_type.type
+instance reflectMessageInfo.nonempty : Nonempty reflectMessageInfo := reflectMessageInfo.nonempty_type.property
+opaque reflectMessageInfo.zero_val : ZeroVal reflectMessageInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] reflectMessageInfo.zero_val
 
 class reflectMessageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4430,8 +4544,10 @@ attribute [instance] reflectMessageInfo.TypeAssumptions.type_repr
   reflectMessageInfo.TypeAssumptions.method_set
   reflectMessageInfo.TypeAssumptions.ptr_method_set
 
-axiom extensionMap : Type
-axiom extensionMap.zero_val : ZeroVal extensionMap
+opaque extensionMap.nonempty_type : NonemptyType.{0}
+def extensionMap : Type := extensionMap.nonempty_type.type
+instance extensionMap.nonempty : Nonempty extensionMap := extensionMap.nonempty_type.property
+opaque extensionMap.zero_val : ZeroVal extensionMap := ⟨Classical.ofNonempty⟩
 attribute [instance] extensionMap.zero_val
 
 class extensionMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4500,8 +4616,10 @@ attribute [instance] MessageState.TypeAssumptions.type_repr
   MessageState.TypeAssumptions.method_set
   MessageState.TypeAssumptions.ptr_method_set
 
-axiom messageState : Type
-axiom messageState.zero_val : ZeroVal messageState
+opaque messageState.nonempty_type : NonemptyType.{0}
+def messageState : Type := messageState.nonempty_type.type
+instance messageState.nonempty : Nonempty messageState := messageState.nonempty_type.property
+opaque messageState.zero_val : ZeroVal messageState := ⟨Classical.ofNonempty⟩
 attribute [instance] messageState.zero_val
 
 class messageState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4517,8 +4635,10 @@ attribute [instance] messageState.TypeAssumptions.type_repr
   messageState.TypeAssumptions.method_set
   messageState.TypeAssumptions.ptr_method_set
 
-axiom messageDataType : Type
-axiom messageDataType.zero_val : ZeroVal messageDataType
+opaque messageDataType.nonempty_type : NonemptyType.{0}
+def messageDataType : Type := messageDataType.nonempty_type.type
+instance messageDataType.nonempty : Nonempty messageDataType := messageDataType.nonempty_type.property
+opaque messageDataType.zero_val : ZeroVal messageDataType := ⟨Classical.ofNonempty⟩
 attribute [instance] messageDataType.zero_val
 
 class messageDataType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4534,8 +4654,10 @@ attribute [instance] messageDataType.TypeAssumptions.type_repr
   messageDataType.TypeAssumptions.method_set
   messageDataType.TypeAssumptions.ptr_method_set
 
-axiom messageReflectWrapper : Type
-axiom messageReflectWrapper.zero_val : ZeroVal messageReflectWrapper
+opaque messageReflectWrapper.nonempty_type : NonemptyType.{0}
+def messageReflectWrapper : Type := messageReflectWrapper.nonempty_type.type
+instance messageReflectWrapper.nonempty : Nonempty messageReflectWrapper := messageReflectWrapper.nonempty_type.property
+opaque messageReflectWrapper.zero_val : ZeroVal messageReflectWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] messageReflectWrapper.zero_val
 
 class messageReflectWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4551,8 +4673,10 @@ attribute [instance] messageReflectWrapper.TypeAssumptions.type_repr
   messageReflectWrapper.TypeAssumptions.method_set
   messageReflectWrapper.TypeAssumptions.ptr_method_set
 
-axiom messageIfaceWrapper : Type
-axiom messageIfaceWrapper.zero_val : ZeroVal messageIfaceWrapper
+opaque messageIfaceWrapper.nonempty_type : NonemptyType.{0}
+def messageIfaceWrapper : Type := messageIfaceWrapper.nonempty_type.type
+instance messageIfaceWrapper.nonempty : Nonempty messageIfaceWrapper := messageIfaceWrapper.nonempty_type.property
+opaque messageIfaceWrapper.zero_val : ZeroVal messageIfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] messageIfaceWrapper.zero_val
 
 class messageIfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4568,8 +4692,10 @@ attribute [instance] messageIfaceWrapper.TypeAssumptions.type_repr
   messageIfaceWrapper.TypeAssumptions.method_set
   messageIfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom fieldInfo : Type
-axiom fieldInfo.zero_val : ZeroVal fieldInfo
+opaque fieldInfo.nonempty_type : NonemptyType.{0}
+def fieldInfo : Type := fieldInfo.nonempty_type.type
+instance fieldInfo.nonempty : Nonempty fieldInfo := fieldInfo.nonempty_type.property
+opaque fieldInfo.zero_val : ZeroVal fieldInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] fieldInfo.zero_val
 
 class fieldInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4585,8 +4711,10 @@ attribute [instance] fieldInfo.TypeAssumptions.type_repr
   fieldInfo.TypeAssumptions.method_set
   fieldInfo.TypeAssumptions.ptr_method_set
 
-axiom oneofInfo : Type
-axiom oneofInfo.zero_val : ZeroVal oneofInfo
+opaque oneofInfo.nonempty_type : NonemptyType.{0}
+def oneofInfo : Type := oneofInfo.nonempty_type.type
+instance oneofInfo.nonempty : Nonempty oneofInfo := oneofInfo.nonempty_type.property
+opaque oneofInfo.zero_val : ZeroVal oneofInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] oneofInfo.zero_val
 
 class oneofInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4602,8 +4730,10 @@ attribute [instance] oneofInfo.TypeAssumptions.type_repr
   oneofInfo.TypeAssumptions.method_set
   oneofInfo.TypeAssumptions.ptr_method_set
 
-axiom Pointer : Type
-axiom Pointer.zero_val : ZeroVal Pointer
+opaque Pointer.nonempty_type : NonemptyType.{0}
+def Pointer : Type := Pointer.nonempty_type.type
+instance Pointer.nonempty : Nonempty Pointer := Pointer.nonempty_type.property
+opaque Pointer.zero_val : ZeroVal Pointer := ⟨Classical.ofNonempty⟩
 attribute [instance] Pointer.zero_val
 
 class Pointer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4619,8 +4749,10 @@ attribute [instance] Pointer.TypeAssumptions.type_repr
   Pointer.TypeAssumptions.method_set
   Pointer.TypeAssumptions.ptr_method_set
 
-axiom offset : Type
-axiom offset.zero_val : ZeroVal offset
+opaque offset.nonempty_type : NonemptyType.{0}
+def offset : Type := offset.nonempty_type.type
+instance offset.nonempty : Nonempty offset := offset.nonempty_type.property
+opaque offset.zero_val : ZeroVal offset := ⟨Classical.ofNonempty⟩
 attribute [instance] offset.zero_val
 
 class offset.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4636,8 +4768,10 @@ attribute [instance] offset.TypeAssumptions.type_repr
   offset.TypeAssumptions.method_set
   offset.TypeAssumptions.ptr_method_set
 
-axiom pointer : Type
-axiom pointer.zero_val : ZeroVal pointer
+opaque pointer.nonempty_type : NonemptyType.{0}
+def pointer : Type := pointer.nonempty_type.type
+instance pointer.nonempty : Nonempty pointer := pointer.nonempty_type.property
+opaque pointer.zero_val : ZeroVal pointer := ⟨Classical.ofNonempty⟩
 attribute [instance] pointer.zero_val
 
 class pointer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4653,8 +4787,10 @@ attribute [instance] pointer.TypeAssumptions.type_repr
   pointer.TypeAssumptions.method_set
   pointer.TypeAssumptions.ptr_method_set
 
-axiom atomicNilMessage : Type
-axiom atomicNilMessage.zero_val : ZeroVal atomicNilMessage
+opaque atomicNilMessage.nonempty_type : NonemptyType.{0}
+def atomicNilMessage : Type := atomicNilMessage.nonempty_type.type
+instance atomicNilMessage.nonempty : Nonempty atomicNilMessage := atomicNilMessage.nonempty_type.property
+opaque atomicNilMessage.zero_val : ZeroVal atomicNilMessage := ⟨Classical.ofNonempty⟩
 attribute [instance] atomicNilMessage.zero_val
 
 class atomicNilMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4670,8 +4806,10 @@ attribute [instance] atomicNilMessage.TypeAssumptions.type_repr
   atomicNilMessage.TypeAssumptions.method_set
   atomicNilMessage.TypeAssumptions.ptr_method_set
 
-axiom atomicV1MessageInfo : Type
-axiom atomicV1MessageInfo.zero_val : ZeroVal atomicV1MessageInfo
+opaque atomicV1MessageInfo.nonempty_type : NonemptyType.{0}
+def atomicV1MessageInfo : Type := atomicV1MessageInfo.nonempty_type.type
+instance atomicV1MessageInfo.nonempty : Nonempty atomicV1MessageInfo := atomicV1MessageInfo.nonempty_type.property
+opaque atomicV1MessageInfo.zero_val : ZeroVal atomicV1MessageInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] atomicV1MessageInfo.zero_val
 
 class atomicV1MessageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4687,8 +4825,10 @@ attribute [instance] atomicV1MessageInfo.TypeAssumptions.type_repr
   atomicV1MessageInfo.TypeAssumptions.method_set
   atomicV1MessageInfo.TypeAssumptions.ptr_method_set
 
-axiom presenceSize : Type
-axiom presenceSize.zero_val : ZeroVal presenceSize
+opaque presenceSize.nonempty_type : NonemptyType.{0}
+def presenceSize : Type := presenceSize.nonempty_type.type
+instance presenceSize.nonempty : Nonempty presenceSize := presenceSize.nonempty_type.property
+opaque presenceSize.zero_val : ZeroVal presenceSize := ⟨Classical.ofNonempty⟩
 attribute [instance] presenceSize.zero_val
 
 class presenceSize.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4704,8 +4844,10 @@ attribute [instance] presenceSize.TypeAssumptions.type_repr
   presenceSize.TypeAssumptions.method_set
   presenceSize.TypeAssumptions.ptr_method_set
 
-axiom presence : Type
-axiom presence.zero_val : ZeroVal presence
+opaque presence.nonempty_type : NonemptyType.{0}
+def presence : Type := presence.nonempty_type.type
+instance presence.nonempty : Nonempty presence := presence.nonempty_type.property
+opaque presence.zero_val : ZeroVal presence := ⟨Classical.ofNonempty⟩
 attribute [instance] presence.zero_val
 
 class presence.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4721,8 +4863,10 @@ attribute [instance] presence.TypeAssumptions.type_repr
   presence.TypeAssumptions.method_set
   presence.TypeAssumptions.ptr_method_set
 
-axiom ValidationStatus : Type
-axiom ValidationStatus.zero_val : ZeroVal ValidationStatus
+opaque ValidationStatus.nonempty_type : NonemptyType.{0}
+def ValidationStatus : Type := ValidationStatus.nonempty_type.type
+instance ValidationStatus.nonempty : Nonempty ValidationStatus := ValidationStatus.nonempty_type.property
+opaque ValidationStatus.zero_val : ZeroVal ValidationStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidationStatus.zero_val
 
 class ValidationStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4738,8 +4882,10 @@ attribute [instance] ValidationStatus.TypeAssumptions.type_repr
   ValidationStatus.TypeAssumptions.method_set
   ValidationStatus.TypeAssumptions.ptr_method_set
 
-axiom validationInfo : Type
-axiom validationInfo.zero_val : ZeroVal validationInfo
+opaque validationInfo.nonempty_type : NonemptyType.{0}
+def validationInfo : Type := validationInfo.nonempty_type.type
+instance validationInfo.nonempty : Nonempty validationInfo := validationInfo.nonempty_type.property
+opaque validationInfo.zero_val : ZeroVal validationInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] validationInfo.zero_val
 
 class validationInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4755,8 +4901,10 @@ attribute [instance] validationInfo.TypeAssumptions.type_repr
   validationInfo.TypeAssumptions.method_set
   validationInfo.TypeAssumptions.ptr_method_set
 
-axiom validationType : Type
-axiom validationType.zero_val : ZeroVal validationType
+opaque validationType.nonempty_type : NonemptyType.{0}
+def validationType : Type := validationType.nonempty_type.type
+instance validationType.nonempty : Nonempty validationType := validationType.nonempty_type.property
+opaque validationType.zero_val : ZeroVal validationType := ⟨Classical.ofNonempty⟩
 attribute [instance] validationType.zero_val
 
 class validationType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4772,8 +4920,10 @@ attribute [instance] validationType.TypeAssumptions.type_repr
   validationType.TypeAssumptions.method_set
   validationType.TypeAssumptions.ptr_method_set
 
-axiom «struct#5c765bdc» : Type
-axiom «struct#5c765bdc».zero_val : ZeroVal «struct#5c765bdc»
+opaque «struct#5c765bdc».nonempty_type : NonemptyType.{0}
+def «struct#5c765bdc» : Type := «struct#5c765bdc».nonempty_type.type
+instance «struct#5c765bdc».nonempty : Nonempty «struct#5c765bdc» := «struct#5c765bdc».nonempty_type.property
+opaque «struct#5c765bdc».zero_val : ZeroVal «struct#5c765bdc» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#5c765bdc».zero_val
 
 class «struct#5c765bdc».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4802,8 +4952,10 @@ attribute [instance] «struct#09ab9bd9».TypeAssumptions.type_repr
   «struct#09ab9bd9».TypeAssumptions.get_Size
   «struct#09ab9bd9».TypeAssumptions.set_Size
 
-axiom «struct#8d354e5a» : Type
-axiom «struct#8d354e5a».zero_val : ZeroVal «struct#8d354e5a»
+opaque «struct#8d354e5a».nonempty_type : NonemptyType.{0}
+def «struct#8d354e5a» : Type := «struct#8d354e5a».nonempty_type.type
+instance «struct#8d354e5a».nonempty : Nonempty «struct#8d354e5a» := «struct#8d354e5a».nonempty_type.property
+opaque «struct#8d354e5a».zero_val : ZeroVal «struct#8d354e5a» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#8d354e5a».zero_val
 
 class «struct#8d354e5a».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4832,8 +4984,10 @@ attribute [instance] «struct#69fc66c6».TypeAssumptions.type_repr
   «struct#69fc66c6».TypeAssumptions.get_Buf
   «struct#69fc66c6».TypeAssumptions.set_Buf
 
-axiom «struct#b984c7d3» : Type
-axiom «struct#b984c7d3».zero_val : ZeroVal «struct#b984c7d3»
+opaque «struct#b984c7d3».nonempty_type : NonemptyType.{0}
+def «struct#b984c7d3» : Type := «struct#b984c7d3».nonempty_type.type
+instance «struct#b984c7d3».nonempty : Nonempty «struct#b984c7d3» := «struct#b984c7d3».nonempty_type.property
+opaque «struct#b984c7d3».zero_val : ZeroVal «struct#b984c7d3» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#b984c7d3».zero_val
 
 class «struct#b984c7d3».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4841,8 +4995,10 @@ class «struct#b984c7d3».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#b984c7d3».TypeAssumptions.type_repr
 
-axiom «struct#f9d6c4b8» : Type
-axiom «struct#f9d6c4b8».zero_val : ZeroVal «struct#f9d6c4b8»
+opaque «struct#f9d6c4b8».nonempty_type : NonemptyType.{0}
+def «struct#f9d6c4b8» : Type := «struct#f9d6c4b8».nonempty_type.type
+instance «struct#f9d6c4b8».nonempty : Nonempty «struct#f9d6c4b8» := «struct#f9d6c4b8».nonempty_type.property
+opaque «struct#f9d6c4b8».zero_val : ZeroVal «struct#f9d6c4b8» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#f9d6c4b8».zero_val
 
 class «struct#f9d6c4b8».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4850,8 +5006,10 @@ class «struct#f9d6c4b8».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#f9d6c4b8».TypeAssumptions.type_repr
 
-axiom «struct#07f26e0d» : Type
-axiom «struct#07f26e0d».zero_val : ZeroVal «struct#07f26e0d»
+opaque «struct#07f26e0d».nonempty_type : NonemptyType.{0}
+def «struct#07f26e0d» : Type := «struct#07f26e0d».nonempty_type.type
+instance «struct#07f26e0d».nonempty : Nonempty «struct#07f26e0d» := «struct#07f26e0d».nonempty_type.property
+opaque «struct#07f26e0d».zero_val : ZeroVal «struct#07f26e0d» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#07f26e0d».zero_val
 
 class «struct#07f26e0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4859,8 +5017,10 @@ class «struct#07f26e0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#07f26e0d».TypeAssumptions.type_repr
 
-axiom «struct#9992dc58» : Type
-axiom «struct#9992dc58».zero_val : ZeroVal «struct#9992dc58»
+opaque «struct#9992dc58».nonempty_type : NonemptyType.{0}
+def «struct#9992dc58» : Type := «struct#9992dc58».nonempty_type.type
+instance «struct#9992dc58».nonempty : Nonempty «struct#9992dc58» := «struct#9992dc58».nonempty_type.property
+opaque «struct#9992dc58».zero_val : ZeroVal «struct#9992dc58» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#9992dc58».zero_val
 
 class «struct#9992dc58».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4868,8 +5028,10 @@ class «struct#9992dc58».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#9992dc58».TypeAssumptions.type_repr
 
-axiom «struct#dc47f379» : Type
-axiom «struct#dc47f379».zero_val : ZeroVal «struct#dc47f379»
+opaque «struct#dc47f379».nonempty_type : NonemptyType.{0}
+def «struct#dc47f379» : Type := «struct#dc47f379».nonempty_type.type
+instance «struct#dc47f379».nonempty : Nonempty «struct#dc47f379» := «struct#dc47f379».nonempty_type.property
+opaque «struct#dc47f379».zero_val : ZeroVal «struct#dc47f379» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#dc47f379».zero_val
 
 class «struct#dc47f379».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4893,8 +5055,10 @@ attribute [instance] «struct#26ca81e8».TypeAssumptions.type_repr
   «struct#26ca81e8».TypeAssumptions.get_NoUnkeyedLiterals
   «struct#26ca81e8».TypeAssumptions.set_NoUnkeyedLiterals
 
-axiom «struct#9d8af3ce» : Type
-axiom «struct#9d8af3ce».zero_val : ZeroVal «struct#9d8af3ce»
+opaque «struct#9d8af3ce».nonempty_type : NonemptyType.{0}
+def «struct#9d8af3ce» : Type := «struct#9d8af3ce».nonempty_type.type
+instance «struct#9d8af3ce».nonempty : Nonempty «struct#9d8af3ce» := «struct#9d8af3ce».nonempty_type.property
+opaque «struct#9d8af3ce».zero_val : ZeroVal «struct#9d8af3ce» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#9d8af3ce».zero_val
 
 class «struct#9d8af3ce».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4923,8 +5087,10 @@ attribute [instance] «struct#f228ed0d».TypeAssumptions.type_repr
   «struct#f228ed0d».TypeAssumptions.get_Equal
   «struct#f228ed0d».TypeAssumptions.set_Equal
 
-axiom «struct#15a64e1b» : Type
-axiom «struct#15a64e1b».zero_val : ZeroVal «struct#15a64e1b»
+opaque «struct#15a64e1b».nonempty_type : NonemptyType.{0}
+def «struct#15a64e1b» : Type := «struct#15a64e1b».nonempty_type.type
+instance «struct#15a64e1b».nonempty : Nonempty «struct#15a64e1b» := «struct#15a64e1b».nonempty_type.property
+opaque «struct#15a64e1b».zero_val : ZeroVal «struct#15a64e1b» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#15a64e1b».zero_val
 
 class «struct#15a64e1b».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

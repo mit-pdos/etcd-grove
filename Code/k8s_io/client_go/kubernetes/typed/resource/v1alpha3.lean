@@ -70,25 +70,25 @@ noncomputable def resourcePoolStatusRequests.ty [GooseExts] [GoGlobalContext] : 
 
 attribute [irreducible] resourcePoolStatusRequests.ty
 
-axiom DeviceTaintRulesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeviceTaintRulesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeviceTaintRuleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeviceTaintRuleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deviceTaintRules.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque deviceTaintRules.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeviceTaintRuleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeviceTaintRuleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePoolStatusRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourcePoolStatusRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceV1alpha3Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceV1alpha3Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceV1alpha3Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceV1alpha3Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePoolStatusRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourcePoolStatusRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePoolStatusRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourcePoolStatusRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourcePoolStatusRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resourcePoolStatusRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newDeviceTaintRules [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1alpha3.newDeviceTaintRules"
@@ -114,7 +114,7 @@ noncomputable def newResourcePoolStatusRequests [GooseExts] [GoGlobalContext] : 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1alpha3 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -123,8 +123,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom DeviceTaintRulesGetter : Type
-axiom DeviceTaintRulesGetter.zero_val : ZeroVal DeviceTaintRulesGetter
+opaque DeviceTaintRulesGetter.nonempty_type : NonemptyType.{0}
+def DeviceTaintRulesGetter : Type := DeviceTaintRulesGetter.nonempty_type.type
+instance DeviceTaintRulesGetter.nonempty : Nonempty DeviceTaintRulesGetter := DeviceTaintRulesGetter.nonempty_type.property
+opaque DeviceTaintRulesGetter.zero_val : ZeroVal DeviceTaintRulesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] DeviceTaintRulesGetter.zero_val
 
 class DeviceTaintRulesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -140,8 +142,10 @@ attribute [instance] DeviceTaintRulesGetter.TypeAssumptions.type_repr
   DeviceTaintRulesGetter.TypeAssumptions.method_set
   DeviceTaintRulesGetter.TypeAssumptions.ptr_method_set
 
-axiom DeviceTaintRuleInterface : Type
-axiom DeviceTaintRuleInterface.zero_val : ZeroVal DeviceTaintRuleInterface
+opaque DeviceTaintRuleInterface.nonempty_type : NonemptyType.{0}
+def DeviceTaintRuleInterface : Type := DeviceTaintRuleInterface.nonempty_type.type
+instance DeviceTaintRuleInterface.nonempty : Nonempty DeviceTaintRuleInterface := DeviceTaintRuleInterface.nonempty_type.property
+opaque DeviceTaintRuleInterface.zero_val : ZeroVal DeviceTaintRuleInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] DeviceTaintRuleInterface.zero_val
 
 class DeviceTaintRuleInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -157,8 +161,10 @@ attribute [instance] DeviceTaintRuleInterface.TypeAssumptions.type_repr
   DeviceTaintRuleInterface.TypeAssumptions.method_set
   DeviceTaintRuleInterface.TypeAssumptions.ptr_method_set
 
-axiom deviceTaintRules : Type
-axiom deviceTaintRules.zero_val : ZeroVal deviceTaintRules
+opaque deviceTaintRules.nonempty_type : NonemptyType.{0}
+def deviceTaintRules : Type := deviceTaintRules.nonempty_type.type
+instance deviceTaintRules.nonempty : Nonempty deviceTaintRules := deviceTaintRules.nonempty_type.property
+opaque deviceTaintRules.zero_val : ZeroVal deviceTaintRules := ⟨Classical.ofNonempty⟩
 attribute [instance] deviceTaintRules.zero_val
 
 class deviceTaintRules.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -174,8 +180,10 @@ attribute [instance] deviceTaintRules.TypeAssumptions.type_repr
   deviceTaintRules.TypeAssumptions.method_set
   deviceTaintRules.TypeAssumptions.ptr_method_set
 
-axiom DeviceTaintRuleExpansion : Type
-axiom DeviceTaintRuleExpansion.zero_val : ZeroVal DeviceTaintRuleExpansion
+opaque DeviceTaintRuleExpansion.nonempty_type : NonemptyType.{0}
+def DeviceTaintRuleExpansion : Type := DeviceTaintRuleExpansion.nonempty_type.type
+instance DeviceTaintRuleExpansion.nonempty : Nonempty DeviceTaintRuleExpansion := DeviceTaintRuleExpansion.nonempty_type.property
+opaque DeviceTaintRuleExpansion.zero_val : ZeroVal DeviceTaintRuleExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] DeviceTaintRuleExpansion.zero_val
 
 class DeviceTaintRuleExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -191,8 +199,10 @@ attribute [instance] DeviceTaintRuleExpansion.TypeAssumptions.type_repr
   DeviceTaintRuleExpansion.TypeAssumptions.method_set
   DeviceTaintRuleExpansion.TypeAssumptions.ptr_method_set
 
-axiom ResourcePoolStatusRequestExpansion : Type
-axiom ResourcePoolStatusRequestExpansion.zero_val : ZeroVal ResourcePoolStatusRequestExpansion
+opaque ResourcePoolStatusRequestExpansion.nonempty_type : NonemptyType.{0}
+def ResourcePoolStatusRequestExpansion : Type := ResourcePoolStatusRequestExpansion.nonempty_type.type
+instance ResourcePoolStatusRequestExpansion.nonempty : Nonempty ResourcePoolStatusRequestExpansion := ResourcePoolStatusRequestExpansion.nonempty_type.property
+opaque ResourcePoolStatusRequestExpansion.zero_val : ZeroVal ResourcePoolStatusRequestExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourcePoolStatusRequestExpansion.zero_val
 
 class ResourcePoolStatusRequestExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -208,8 +218,10 @@ attribute [instance] ResourcePoolStatusRequestExpansion.TypeAssumptions.type_rep
   ResourcePoolStatusRequestExpansion.TypeAssumptions.method_set
   ResourcePoolStatusRequestExpansion.TypeAssumptions.ptr_method_set
 
-axiom ResourceV1alpha3Interface : Type
-axiom ResourceV1alpha3Interface.zero_val : ZeroVal ResourceV1alpha3Interface
+opaque ResourceV1alpha3Interface.nonempty_type : NonemptyType.{0}
+def ResourceV1alpha3Interface : Type := ResourceV1alpha3Interface.nonempty_type.type
+instance ResourceV1alpha3Interface.nonempty : Nonempty ResourceV1alpha3Interface := ResourceV1alpha3Interface.nonempty_type.property
+opaque ResourceV1alpha3Interface.zero_val : ZeroVal ResourceV1alpha3Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceV1alpha3Interface.zero_val
 
 class ResourceV1alpha3Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -225,8 +237,10 @@ attribute [instance] ResourceV1alpha3Interface.TypeAssumptions.type_repr
   ResourceV1alpha3Interface.TypeAssumptions.method_set
   ResourceV1alpha3Interface.TypeAssumptions.ptr_method_set
 
-axiom ResourceV1alpha3Client : Type
-axiom ResourceV1alpha3Client.zero_val : ZeroVal ResourceV1alpha3Client
+opaque ResourceV1alpha3Client.nonempty_type : NonemptyType.{0}
+def ResourceV1alpha3Client : Type := ResourceV1alpha3Client.nonempty_type.type
+instance ResourceV1alpha3Client.nonempty : Nonempty ResourceV1alpha3Client := ResourceV1alpha3Client.nonempty_type.property
+opaque ResourceV1alpha3Client.zero_val : ZeroVal ResourceV1alpha3Client := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceV1alpha3Client.zero_val
 
 class ResourceV1alpha3Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -242,8 +256,10 @@ attribute [instance] ResourceV1alpha3Client.TypeAssumptions.type_repr
   ResourceV1alpha3Client.TypeAssumptions.method_set
   ResourceV1alpha3Client.TypeAssumptions.ptr_method_set
 
-axiom ResourcePoolStatusRequestsGetter : Type
-axiom ResourcePoolStatusRequestsGetter.zero_val : ZeroVal ResourcePoolStatusRequestsGetter
+opaque ResourcePoolStatusRequestsGetter.nonempty_type : NonemptyType.{0}
+def ResourcePoolStatusRequestsGetter : Type := ResourcePoolStatusRequestsGetter.nonempty_type.type
+instance ResourcePoolStatusRequestsGetter.nonempty : Nonempty ResourcePoolStatusRequestsGetter := ResourcePoolStatusRequestsGetter.nonempty_type.property
+opaque ResourcePoolStatusRequestsGetter.zero_val : ZeroVal ResourcePoolStatusRequestsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourcePoolStatusRequestsGetter.zero_val
 
 class ResourcePoolStatusRequestsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -259,8 +275,10 @@ attribute [instance] ResourcePoolStatusRequestsGetter.TypeAssumptions.type_repr
   ResourcePoolStatusRequestsGetter.TypeAssumptions.method_set
   ResourcePoolStatusRequestsGetter.TypeAssumptions.ptr_method_set
 
-axiom ResourcePoolStatusRequestInterface : Type
-axiom ResourcePoolStatusRequestInterface.zero_val : ZeroVal ResourcePoolStatusRequestInterface
+opaque ResourcePoolStatusRequestInterface.nonempty_type : NonemptyType.{0}
+def ResourcePoolStatusRequestInterface : Type := ResourcePoolStatusRequestInterface.nonempty_type.type
+instance ResourcePoolStatusRequestInterface.nonempty : Nonempty ResourcePoolStatusRequestInterface := ResourcePoolStatusRequestInterface.nonempty_type.property
+opaque ResourcePoolStatusRequestInterface.zero_val : ZeroVal ResourcePoolStatusRequestInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourcePoolStatusRequestInterface.zero_val
 
 class ResourcePoolStatusRequestInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -276,8 +294,10 @@ attribute [instance] ResourcePoolStatusRequestInterface.TypeAssumptions.type_rep
   ResourcePoolStatusRequestInterface.TypeAssumptions.method_set
   ResourcePoolStatusRequestInterface.TypeAssumptions.ptr_method_set
 
-axiom resourcePoolStatusRequests : Type
-axiom resourcePoolStatusRequests.zero_val : ZeroVal resourcePoolStatusRequests
+opaque resourcePoolStatusRequests.nonempty_type : NonemptyType.{0}
+def resourcePoolStatusRequests : Type := resourcePoolStatusRequests.nonempty_type.type
+instance resourcePoolStatusRequests.nonempty : Nonempty resourcePoolStatusRequests := resourcePoolStatusRequests.nonempty_type.property
+opaque resourcePoolStatusRequests.zero_val : ZeroVal resourcePoolStatusRequests := ⟨Classical.ofNonempty⟩
 attribute [instance] resourcePoolStatusRequests.zero_val
 
 class resourcePoolStatusRequests.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

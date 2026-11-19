@@ -23,12 +23,12 @@ namespace k8s_io.apimachinery.pkg.api.equality
 noncomputable def Semantic [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/equality.Semantic"
 
-axiom Semantic.init [GooseExts] [GoGlobalContext] : val
+opaque Semantic.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.equality where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -100,135 +100,135 @@ noncomputable def fastLookup.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] fastLookup.ty
 
-axiom infDecAmount.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque infDecAmount.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Nano [GooseExts] [GoGlobalContext] : val
+opaque Nano [GooseExts] [GoGlobalContext] : val
 
-axiom Micro [GooseExts] [GoGlobalContext] : val
+opaque Micro [GooseExts] [GoGlobalContext] : val
 
-axiom Milli [GooseExts] [GoGlobalContext] : val
+opaque Milli [GooseExts] [GoGlobalContext] : val
 
-axiom Kilo [GooseExts] [GoGlobalContext] : val
+opaque Kilo [GooseExts] [GoGlobalContext] : val
 
-axiom Mega [GooseExts] [GoGlobalContext] : val
+opaque Mega [GooseExts] [GoGlobalContext] : val
 
-axiom Giga [GooseExts] [GoGlobalContext] : val
+opaque Giga [GooseExts] [GoGlobalContext] : val
 
-axiom Tera [GooseExts] [GoGlobalContext] : val
+opaque Tera [GooseExts] [GoGlobalContext] : val
 
-axiom Peta [GooseExts] [GoGlobalContext] : val
+opaque Peta [GooseExts] [GoGlobalContext] : val
 
-axiom Exa [GooseExts] [GoGlobalContext] : val
+opaque Exa [GooseExts] [GoGlobalContext] : val
 
-axiom nanoInfScale [GooseExts] [GoGlobalContext] : val
+opaque nanoInfScale [GooseExts] [GoGlobalContext] : val
 
-axiom maxScaleGap [GooseExts] [GoGlobalContext] : val
+opaque maxScaleGap [GooseExts] [GoGlobalContext] : val
 
-axiom maxInt64Factors [GooseExts] [GoGlobalContext] : val
+opaque maxInt64Factors [GooseExts] [GoGlobalContext] : val
 
-axiom mostNegative [GooseExts] [GoGlobalContext] : val
+opaque mostNegative [GooseExts] [GoGlobalContext] : val
 
-axiom mostPositive [GooseExts] [GoGlobalContext] : val
+opaque mostPositive [GooseExts] [GoGlobalContext] : val
 
-axiom log10MaxInt64 [GooseExts] [GoGlobalContext] : val
+opaque log10MaxInt64 [GooseExts] [GoGlobalContext] : val
 
-axiom DecimalExponent [GooseExts] [GoGlobalContext] : val
+opaque DecimalExponent [GooseExts] [GoGlobalContext] : val
 
-axiom BinarySI [GooseExts] [GoGlobalContext] : val
+opaque BinarySI [GooseExts] [GoGlobalContext] : val
 
-axiom DecimalSI [GooseExts] [GoGlobalContext] : val
+opaque DecimalSI [GooseExts] [GoGlobalContext] : val
 
-axiom formatCodeUnknown [GooseExts] [GoGlobalContext] : val
+opaque formatCodeUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom formatCodeDecimalExponent [GooseExts] [GoGlobalContext] : val
+opaque formatCodeDecimalExponent [GooseExts] [GoGlobalContext] : val
 
-axiom formatCodeBinarySI [GooseExts] [GoGlobalContext] : val
+opaque formatCodeBinarySI [GooseExts] [GoGlobalContext] : val
 
-axiom formatCodeDecimalSI [GooseExts] [GoGlobalContext] : val
+opaque formatCodeDecimalSI [GooseExts] [GoGlobalContext] : val
 
-axiom splitREString [GooseExts] [GoGlobalContext] : val
+opaque splitREString [GooseExts] [GoGlobalContext] : val
 
-axiom int64QuantityExpectedBytes [GooseExts] [GoGlobalContext] : val
+opaque int64QuantityExpectedBytes [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.Zero"
 
-axiom Zero.init [GooseExts] [GoGlobalContext] : val
+opaque Zero.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def zeroBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.zeroBytes"
 
-axiom zeroBytes.init [GooseExts] [GoGlobalContext] : val
+opaque zeroBytes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bigTen [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigTen"
 
-axiom bigTen.init [GooseExts] [GoGlobalContext] : val
+opaque bigTen.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bigZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigZero"
 
-axiom bigZero.init [GooseExts] [GoGlobalContext] : val
+opaque bigZero.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bigOne [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigOne"
 
-axiom bigOne.init [GooseExts] [GoGlobalContext] : val
+opaque bigOne.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bigThousand [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.bigThousand"
 
-axiom bigThousand.init [GooseExts] [GoGlobalContext] : val
+opaque bigThousand.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def big1024 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.big1024"
 
-axiom big1024.init [GooseExts] [GoGlobalContext] : val
+opaque big1024.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def decZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.decZero"
 
-axiom decZero.init [GooseExts] [GoGlobalContext] : val
+opaque decZero.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def decOne [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.decOne"
 
-axiom decOne.init [GooseExts] [GoGlobalContext] : val
+opaque decOne.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxAllowed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.maxAllowed"
 
-axiom maxAllowed.init [GooseExts] [GoGlobalContext] : val
+opaque maxAllowed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MaxMilliValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.MaxMilliValue"
 
-axiom MaxMilliValue.init [GooseExts] [GoGlobalContext] : val
+opaque MaxMilliValue.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrFormatWrong [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrFormatWrong"
 
-axiom ErrFormatWrong.init [GooseExts] [GoGlobalContext] : val
+opaque ErrFormatWrong.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNumeric [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrNumeric"
 
-axiom ErrNumeric.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNumeric.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrSuffix [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrSuffix"
 
-axiom ErrSuffix.init [GooseExts] [GoGlobalContext] : val
+opaque ErrSuffix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def intPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.intPool"
@@ -236,17 +236,17 @@ noncomputable def intPool [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def maxInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.maxInt64"
 
-axiom maxInt64.init [GooseExts] [GoGlobalContext] : val
+opaque maxInt64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def minInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.minInt64"
 
-axiom minInt64.init [GooseExts] [GoGlobalContext] : val
+opaque minInt64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def quantitySuffixer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.quantitySuffixer"
 
-axiom quantitySuffixer.init [GooseExts] [GoGlobalContext] : val
+opaque quantitySuffixer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def widenScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.widenScale"
@@ -368,7 +368,7 @@ noncomputable def newSuffixer [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.resource where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -503,8 +503,10 @@ attribute [instance] int64Amount.TypeAssumptions.type_repr
   int64Amount.TypeAssumptions.method_set
   int64Amount.TypeAssumptions.ptr_method_set
 
-axiom infDecAmount : Type
-axiom infDecAmount.zero_val : ZeroVal infDecAmount
+opaque infDecAmount.nonempty_type : NonemptyType.{0}
+def infDecAmount : Type := infDecAmount.nonempty_type.type
+instance infDecAmount.nonempty : Nonempty infDecAmount := infDecAmount.nonempty_type.property
+opaque infDecAmount.zero_val : ZeroVal infDecAmount := ⟨Classical.ofNonempty⟩
 attribute [instance] infDecAmount.zero_val
 
 class infDecAmount.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

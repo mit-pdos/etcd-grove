@@ -24,6 +24,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Proof.go_etcd_io.etcd.client.v3.ChanCtx
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.LoopSelect
 import all Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
