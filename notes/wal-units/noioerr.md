@@ -459,3 +459,35 @@ Then the user split the work: these go to the follow-up branch `wal-fsfix` (brie
   written: `TestNoIoErrNameTooLong` (ENAMETOOLONG for 256-byte names and 4096-byte paths, passes here).
 - **Attack:** an independent read-only attack on F1 (a), A2, A3 was launched from `wal-link`'s working tree
   (programs under `/shared/tmp/wallink-attack3/`); its result belongs to this branch.
+
+## Session 7 (2026-11-19 w, branch `wal-fsfix`): the user's decisions on the attack on 9017eb196d
+
+**Decided by the user (via etcd-grove-03)** on the attack's findings (`notes/wal-fsfix-brief.md` on `wal-link`,
+"The attack on 9017eb196d"):
+
+- **(1) The lock refutation, option (b)** (trusted, `Impl.lean`): `LockStep`'s failure arm no longer ties `EAGAIN` to
+  `LockConflict`: a non-blocking request may fail with `EAGAIN` whatever the model's locks (true of Linux: another
+  process reading `/proc/<pid>/fdinfo/N`, `readlink /proc/<pid>/fd/N`, `pidfd_getfd`, ptrace holds a reference to a
+  closed description, so its locks outlive `close(2)`; no environment assumption). Texts: the header's "Locks",
+  `LockStep`, `EAGAIN`, `Close`'s comment, `TrustedCode/syscall.lean` (`Flock.impl`, `FcntlFlock.impl`),
+  `locks_close_crash.go` ("Excluded"), `locks_ofd.go`, `locks_flock.go`, `locks_blocking.go`. Go example
+  `locks_spurious_eagain.go`; measurement `TestLocksProcReaderEagain` (a child reading the fdinfo file; EAGAIN within
+  a few rounds here, 0 in 5000 rounds without the reader). `LockStep` keeps its `nb` argument (unused now; the
+  calls name the request whole). Proofs: mechanical (`Locks.lean`, `CommitMono.lean`, `NoIoErr.lean`: one conjunct
+  fewer). **`wal.Open`'s `TryLockFile`**: no proof used the old clause (`fileutil.lockPost`'s error arm and
+  `lockOut` already allow any errno); `TryLockFile.spec`, `Open.spec` unchanged.
+- **NoIoErr's lock clause, the form decided** (trusted, `Premises.lean`): `IoCovers "Flock"` only when `how` has no
+  `LOCK_NB` (`how.toNat / 4 % 2 = 0`), `IoCovers "OfdLock"` only for `cmd = F_OFD_SETLKW`: blocking lock requests and
+  blocking unlocks. Enough for the WAL (`fileutil.LockFile`: `F_OFD_SETLKW` or `flock(LOCK_EX)`); the non-blocking
+  `TryLockFile` (wal.Open) keeps its error arm.
+- **(2) Permissions** (trusted text): `Impl.lean`'s Environment, `NoIoErr`'s docstring, `env_config.go`,
+  `premise_no_io_err.go` extended with each gap: search of the roots' ancestors, read/write of the covered files,
+  `fs.protected_symlinks` (a trailing symlink only: measured that an inner symlink component is followed) and
+  `fs.protected_regular`, the idmapped mount's `EOVERFLOW`, seccomp, fanotify. Contrasts: `TestNoIoErrPermAncestor`,
+  `TestNoIoErrPermFileWrite`, `TestNoIoErrProtectedSymlinks` (pass here on tmpfs; `/shared` is idmapped, so `lchown`
+  fails there), `TestNoIoErrProtectedRegular` (skipped here: the sysctl is 0).
+- **A3 reverted** to the old sentence ("RemoveAll returns nil for an absent path only when rmdir answers ENOENT (or
+  ENOTDIR after unlink's ENOENT)").
+- **A1 as "outside IoCovers"** (trusted, `Premises.lean`): `PathFits p` (`p.length < 4096`, every 256-byte infix holds
+  a `/`); the path calls are covered only on paths that fit (both of `rename`'s). No stuck, no premise on the WP
+  specs; the no-error specs will need the WAL paths to fit.

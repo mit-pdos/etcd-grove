@@ -39,14 +39,30 @@ import (
 //     (security_file_lock, called by flock(2) and fcntl's lock commands
 //     before any lock; 2026-11-19): a lock request that the lock rule lets
 //     succeed is refused only by an error NoIoErr names (premise_no_io_err.go).
-//   - permissions (2026-11-19, the user's approval via etcd-grove-03): the
-//     process may search and write every directory of the roots' trees; no
+//   - permissions (2026-11-19, the user's approvals via etcd-grove-03, after
+//     the attack A2 on PathErrno and the attack on its fix): the process may
+//     search every ancestor of every root, search and write every directory
+//     of the roots' trees, and read and write every file in them (no EACCES
+//     from inode_permission on the walk, nor on an open for writing); no
 //     directory's sticky bit denies a removal or rename in it; no entry has
-//     the immutable or append-only attribute; and no Linux security module
-//     denies a path call on them (may_delete, may_create, inode_permission
-//     and the LSM path hooks return no EPERM/EACCES): the errnos PathErrno
-//     names come from the lookup, not from a permission check that precedes
-//     it (premise_no_io_err.go; contrast measured: TestNoIoErrPermissions).
+//     the immutable or append-only attribute; the sysctls
+//     fs.protected_symlinks and fs.protected_regular deny nothing (a
+//     symlink named as a call's last component in a sticky world-writable
+//     directory, such as a root's ancestor that Open's outside case opens;
+//     an O_CREAT open of a file in one); if the filesystem is reached through an
+//     idmapped mount, the mount maps the process's fsuid and fsgid (else
+//     may_create gives EOVERFLOW); and no Linux security module, seccomp
+//     filter or fanotify permission event denies or fails a call on them
+//     (may_delete, may_create, inode_permission and the LSM hooks return no
+//     EPERM/EACCES; no SECCOMP_RET_ERRNO; no FAN_DENY): the errnos PathErrno
+//     names come from the lookup, not from a check that precedes it, and a
+//     call NoIoErr lets succeed is refused by none of these
+//     (premise_no_io_err.go; contrasts measured: TestNoIoErrPermissions,
+//     TestNoIoErrPermAncestor, TestNoIoErrPermFileWrite,
+//     TestNoIoErrProtectedSymlinks, TestNoIoErrProtectedRegular; the
+//     idmapped mount, seccomp and fanotify: from the kernel source
+//     (fs/namei.c may_create's fsuidgid_has_mapping; kernel/seccomp.c;
+//     fs/notify/fanotify), not measured).
 //
 // Outside C (xfs, data=journal, 1-2 KiB blocks, other kernels): not
 // described until tested on their own.

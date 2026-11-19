@@ -11,7 +11,9 @@ import (
 
 // NoIoErr: a client premise, an environment assumption (approved by the user,
 // 2026-11-15; the lock requests and the directory reads added with the user's
-// approval of 2026-11-19, option (a) of notes/wal-units/noioerr.md).
+// approval of 2026-11-19, option (a) of notes/wal-units/noioerr.md; narrowed to
+// the blocking lock requests and to the paths that fit, the user's decisions of
+// 2026-11-19 after the attack on F1's fix, noioerr.md session 7).
 //
 // Decision: not part of the semantics. A theorem may assume, of its steps, that
 // the calls on a chosen set of files and paths have no I/O error: whenever the
@@ -32,18 +34,21 @@ import (
 // where at least one byte could land (offset below maxBytes); ftruncate or
 // fallocate failing on a size up to maxBytes; fstat, pread or close failing;
 // fsync or close of a covered directory failing; open, rename, mkdir, unlink
-// or rmdir of a covered path failing where the call can succeed (the path
+// or rmdir of a covered path that fits (shorter than 4096 bytes, no component
+// longer than 255: PathFits) failing where the call can succeed (the path
 // resolves as the call needs; a free fd for open). Since 2026-11-19 also: a
-// lock request on a covered file (flock LOCK_SH/LOCK_EX, with or without
-// LOCK_NB, or fcntl F_OFD_SETLK/F_OFD_SETLKW with F_RDLCK/F_WRLCK) failing
-// although no other description holds a conflicting lock (another fd's, or
-// one a live mapping keeps after its fd's close, locks_mmap_close.go; ENOLCK,
-// EINTR, ...), an unlock (LOCK_UN, F_UNLCK) failing; a step of Readdirnames
-// (getdents64) on a covered directory failing with an errno other than ENOENT
-// (EIO, ...) while the directory has a name left to return or is at its end.
-// Lean: IoCovers "Flock", "OfdLock" (an fd of a covered inode), "DirReadNext"
-// (a directory fd of a covered inode); ErrnoZero "DirReadNext" (errno 0, or
-// ENOENT: a removed directory, meta_enoent.go, is no I/O error).
+// blocking lock request on a covered file (flock LOCK_SH/LOCK_EX without
+// LOCK_NB, or fcntl F_OFD_SETLKW with F_RDLCK/F_WRLCK) failing although no
+// other description holds a conflicting lock (another fd's, or one a live
+// mapping keeps after its fd's close, locks_mmap_close.go; ENOLCK, EINTR,
+// ...), a blocking unlock (LOCK_UN, F_OFD_SETLKW with F_UNLCK) failing; a step
+// of Readdirnames (getdents64) on a covered directory failing with an errno
+// other than ENOENT (EIO, ...) while the directory has a name left to return
+// or is at its end. Lean: IoCovers "Flock" (no LOCK_NB), "OfdLock" (cmd
+// F_OFD_SETLKW) (an fd of a covered inode), "DirReadNext" (a directory fd of a
+// covered inode), "Open"/"Rename"/"Mkdir"/"Unlink"/"Rmdir" (PathFits);
+// ErrnoZero "DirReadNext" (errno 0, or ENOENT: a removed directory,
+// meta_enoent.go, is no I/O error).
 //
 // Still allowed under the premise (the semantics has no success there): EFBIG
 // at or past maxBytes (data_maxbytes.go), EMFILE with no free fd, the failures
@@ -51,7 +56,12 @@ import (
 // EEXIST, ENOTEMPTY, EISDIR, ...), a lock request that conflicts with a lock
 // another description holds (another fd's, or a mapping's: EAGAIN, or for a blocking request any
 // errno: locks_blocking.go), ENOENT from a read of a removed directory, and
-// anything on a call the premise does not name: mmap/munmap, fallocate with
+// anything on a call the premise does not name: a non-blocking lock request
+// (flock with LOCK_NB, F_OFD_SETLK), which may fail with EAGAIN while another
+// process holds a reference to a description the program closed
+// (locks_spurious_eagain.go: a /proc/<pid>/fdinfo reader; a blocking request
+// waits for it instead), a path call on a path that does not fit (ENAMETOOLONG
+// whatever the tree holds: TestNoIoErrNameTooLong), mmap/munmap, fallocate with
 // KEEP_SIZE, lstat (LstatDir: its outcome does not tell a failed lstat of a
 // directory from a non-directory, so it has no success to name), the model's
 // queries PathKind and FdKind (one answer from each state: nothing to
@@ -73,18 +83,37 @@ import (
 // covered files (the lock rule already takes the roots' files to be the
 // process's own, locks_ofd.go), and no fatal signal is pending (iterate_dir's
 // killable lock, EINTR). An uncontended request does not sleep, so no signal
-// can interrupt it (fs/locks.c: the wait is only on a conflict). And
-// configuration C's permissions (Impl.lean's "Environment", 2026-11-19, the
-// user's approval after the attack A2 on PathErrno): the process may search
-// and write every covered directory (no EACCES); no directory's sticky bit
-// denies a removal or a rename; no covered file or directory has the
-// immutable or append-only attribute (EPERM from may_delete, fs/namei.c, even
-// for root); and no Linux security module denies a path call on them
-// (security_path_*/security_inode_* hooks). Measured as a contrast
-// (TestNoIoErrPermissions): a child running as nobody gets EACCES from unlink
-// in a directory it may not write; with the immutable or append-only
-// attribute (where the attribute can be set: CAP_LINUX_IMMUTABLE), unlink and
-// rename get EPERM. Measured on
+// can interrupt it (fs/locks.c: the wait is only on a conflict; a blocking
+// request that meets a description another process keeps alive past close
+// waits, uninterrupted, for its last reference). And configuration C's
+// permissions (Impl.lean's "Environment", 2026-11-19, the user's approvals
+// after the attack A2 on PathErrno and the attack on its fix): the process may
+// search every ancestor of a root, search and write every covered directory,
+// and read and write every covered file (no EACCES, on the walk or on an open
+// for writing); no directory's sticky bit denies a removal or a rename; no
+// covered file or directory has the immutable or append-only attribute (EPERM
+// from may_delete, fs/namei.c, even for root); the sysctls
+// fs.protected_symlinks and fs.protected_regular deny nothing (may_follow_link
+// for a trailing symlink, may_create_in_sticky for an O_CREAT open, both in
+// sticky world-writable directories, the latter even for root); an idmapped
+// mount, if the filesystem is reached through one, maps the process's fsuid
+// and fsgid (may_create: EOVERFLOW otherwise; measured by the attack on this
+// host's idmapped /shared as nobody, not on C, which has no idmapped mount);
+// and no Linux security module, seccomp filter or fanotify permission event
+// denies or fails a call on them (security_path_*/security_inode_* hooks;
+// SECCOMP_RET_ERRNO, kernel/seccomp.c; FAN_DENY, fs/notify/fanotify: from the
+// kernel source, not measured). Measured as contrasts: TestNoIoErrPermissions
+// (a child running as nobody gets EACCES from unlink in a directory it may not
+// search or write; with the immutable or append-only attribute, where it can
+// be set: CAP_LINUX_IMMUTABLE, unlink and rename get EPERM),
+// TestNoIoErrPermAncestor (EACCES for unlink, rmdir and an O_CREAT open as
+// nobody under a 0700 ancestor, ENOENT once it is 0755),
+// TestNoIoErrPermFileWrite (EACCES for an O_RDWR open of a 0444 file as
+// nobody), TestNoIoErrProtectedSymlinks (EACCES for nobody's open of a symlink
+// owned by another user in a sticky world-writable directory, where the
+// sysctl is set), TestNoIoErrProtectedRegular (EACCES for root's O_CREAT open
+// of another user's file in a sticky world-writable directory, where the
+// sysctl is set; skipped where it is 0). Measured on
 // C, as support only (premise_no_io_err_test.go, run by run-models-on-c.sh):
 // uncontended OFD (F_OFD_SETLKW) and flock (LOCK_EX) locks and their unlocks,
 // and the Readdirnames of a small directory, succeed every time over many
@@ -101,10 +130,8 @@ import (
 // asked by NoIoErr only where the semantics has no outcome with errno 0;
 // NoIoErr.lean: noIoErr_good keeps a step; NoIoErrSpecs.lean: noIoErr_pathErrno.
 // Still allowed: every other failing case (an rmdir of a file, ENOTDIR; a
-// missing parent; ...). Why: of the errnos rmdir may give for an absent path,
-// only ENOENT guarantees that os.RemoveAll returns nil (another, such as
-// ENOTDIR after unlink's ENOENT, makes it open the parent and try again, which
-// may also end in nil or not), and it walks a
+// missing parent; ...). Why: os.RemoveAll returns nil for an absent path only
+// when rmdir answers ENOENT (or ENOTDIR after unlink's ENOENT), and walks a
 // directory only after unlink's EISDIR (or EPERM/EACCES); wal.Create's
 // renameWAL starts with RemoveAll(w.dir) of a directory that does not exist at
 // a first start, and RemoveAll of a crash's leftover dir.tmp meets EISDIR and
@@ -113,9 +140,12 @@ import (
 // TestNoIoErrPathErrno); the further assumptions are the premise's (the
 // permissions above: a permission check comes before the lookup's ENOENT,
 // EACCES/EPERM; no memory pressure, no I/O error on the directory's blocks).
-// Not covered by this decision (finding A1 of the attack, pending): a name
-// longer than 255 bytes or a path of 4096 bytes or more fails with
-// ENAMETOOLONG whatever the tree holds (TestNoIoErrNameTooLong).
+// A path that does not fit (a name longer than 255 bytes, or a path of 4096
+// bytes or more) fails with ENAMETOOLONG whatever the tree holds
+// (TestNoIoErrNameTooLong): such a path is not covered (PathFits; 2026-11-19,
+// the user's decision on the attack's finding A1), so neither PathErrno nor
+// the success clause speaks of it; the semantics, which bounds no length,
+// gives it a short path's outcomes, failures with any errno included.
 //
 // Why the locks and the reads (2026-11-19): wal.Create locks its first segment
 // (fileutil.LockFile: F_OFD_SETLKW) and reads its fresh temporary directory
@@ -149,7 +179,8 @@ func NoIoErrLocksReads(dir string) {
 	lk := syscall.Flock_t{Type: syscall.F_WRLCK, Whence: 0, Start: 0, Len: 0}
 	if err := syscall.FcntlFlock(f.Fd(), unix.F_OFD_SETLKW, &lk); err != nil {
 		// the semantics: reachable (any errno, e.g. ENOLCK)
-		// under the premise: excluded (no other fd of the file holds a lock)
+		// under the premise: excluded (a blocking request; no other
+		// description of the file holds a lock)
 		panic(err)
 	}
 	g, _ := os.OpenFile(dir+"/wal.tmp/0.wal", os.O_WRONLY, 0o600)
@@ -160,6 +191,14 @@ func NoIoErrLocksReads(dir string) {
 	} // still allowed under the premise: EAGAIN (a conflict, no success)
 	g.Close()
 	f.Close()
+	h, _ := os.OpenFile(dir+"/wal.tmp/0.wal", os.O_WRONLY, 0o600)
+	if err := syscall.FcntlFlock(h.Fd(), unix.F_OFD_SETLK, &lk); err != nil {
+		// still allowed under the premise, though no description the
+		// program has holds a lock: a non-blocking request is not covered
+		// (EAGAIN while another process reads /proc/self/fdinfo of f's
+		// closed fd: locks_spurious_eagain.go)
+	}
+	h.Close()
 }
 
 // NoIoErrPathErrno: the errnos of unlink and rmdir that cannot succeed, under

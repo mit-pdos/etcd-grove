@@ -372,7 +372,7 @@ theorem lockStep_fail_ex {st : OsState} {k : LockKind} {fd : w64}
     LockStep st k fd d req nb (Val (#(1 : w64))) st := by
   unfold LockStep
   cases req with
-  | some ex => exact ⟨hfree (by simp), .inr ⟨1, by decide, fun _ h => absurd h (by decide), rfl, rfl⟩⟩
+  | some ex => exact ⟨hfree (by simp), .inr ⟨1, by decide, rfl, rfl⟩⟩
   | none => exact .inr ⟨1, by decide, rfl, .inl rfl⟩
 
 /-- **The lock rule's spec**: the step of an operation `o` whose steps from `st` are, for the open
@@ -464,7 +464,7 @@ theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd
   unfold LockStep at hl
   split at hl
   · rename_i ex
-    obtain ⟨hnone, ⟨hnc, hst', he'⟩ | ⟨e, he, -, hst', he'⟩⟩ := hl
+    obtain ⟨hnone, ⟨hnc, hst', he'⟩ | ⟨e, he, hst', he'⟩⟩ := hl
     · iapply hdone (some ex) 0 hst' he' (fun ex' h => by cases h; exact ⟨hnone, hnc⟩)
         ⟨.inr rfl, fun _ => rfl, fun _ h => absurd rfl h⟩ $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
     · iapply hsame e hst' he' (fun h => absurd h he) $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ

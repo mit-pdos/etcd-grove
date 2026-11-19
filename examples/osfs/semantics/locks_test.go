@@ -8,7 +8,9 @@ package semantics
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"testing"
@@ -370,4 +372,114 @@ func TestLocksMmapKeepsDescription(t *testing.T) {
 			b.Close()
 		}
 	}
+}
+
+// locks_spurious_eagain.go: a non-blocking request may get EAGAIN although the process holds no
+// other fd or mapping of the file, while another process reads /proc/<pid>/fdinfo/<fd> of the fd
+// it closed (the reader's reference keeps the description, and its lock, alive past close(2)).
+// For each kind: a locks exclusively (non-blocking) and closes; b, a fresh open, asks for the same
+// lock, non-blocking. With the reader (a child process: this test binary, as
+// TestLocksProcReaderHelper), some round's b gets EAGAIN; at most 200000 rounds per kind. The
+// control (no reader) is only logged: the claim is that EAGAIN happens, not how often.
+func TestLocksProcReaderEagain(t *testing.T) {
+	if os.Getenv("LOCKS_PROC_READER") != "" {
+		t.Skip("helper's own run")
+	}
+	name := extDir(t) + "/f"
+	if err := os.WriteFile(name, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	type kind struct {
+		name string
+		lock func(int) error
+	}
+	kinds := []kind{
+		{"ofd", func(fd int) error {
+			lk := syscall.Flock_t{Type: syscall.F_WRLCK}
+			return syscall.FcntlFlock(uintptr(fd), unix.F_OFD_SETLK, &lk)
+		}},
+		{"flock", func(fd int) error { return syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB) }},
+	}
+	// rounds runs up to n rounds, stopping at the first EAGAIN when stop; it returns the count.
+	rounds := func(k kind, n int, stop bool) (eagain, done int) {
+		for i := 0; i < n; i++ {
+			a, err := syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := k.lock(a); err != nil {
+				// the previous round's b, or a lingering description: try again
+				syscall.Close(a)
+				continue
+			}
+			if err := syscall.Close(a); err != nil {
+				t.Fatal(err)
+			}
+			b, err := syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = k.lock(b)
+			syscall.Close(b)
+			done++
+			switch err {
+			case nil:
+			case syscall.EAGAIN:
+				eagain++
+				if stop {
+					return
+				}
+			default:
+				t.Fatalf("%s: b's lock: %v", k.name, err)
+			}
+		}
+		return
+	}
+	// the fd number a gets each round: the lowest free one
+	fd0, err := syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syscall.Close(fd0)
+	for _, k := range kinds {
+		e, n := rounds(k, 5000, false)
+		t.Logf("%s, no reader: EAGAIN in %d of %d rounds", k.name, e, n)
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestLocksProcReaderHelper$", "-test.count=1")
+	cmd.Env = append(os.Environ(), fmt.Sprintf("LOCKS_PROC_READER=/proc/%d/fdinfo/%d", os.Getpid(), fd0))
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { cmd.Process.Kill(); cmd.Wait() }()
+	time.Sleep(300 * time.Millisecond)
+	for _, k := range kinds {
+		e, n := rounds(k, 200000, true)
+		if e == 0 {
+			t.Fatalf("%s, with the reader: no EAGAIN in %d rounds", k.name, n)
+		}
+		t.Logf("%s, with the reader: EAGAIN after %d rounds (a closed, no mapping)", k.name, n)
+	}
+}
+
+// The reader of TestLocksProcReaderEagain (runs only with LOCKS_PROC_READER set): 8 goroutines
+// open, read and close the fdinfo file, forever.
+func TestLocksProcReaderHelper(t *testing.T) {
+	path := os.Getenv("LOCKS_PROC_READER")
+	if path == "" {
+		t.Skip("helper")
+	}
+	buf := make([]byte, 4096)
+	for k := 0; k < 8; k++ {
+		go func() {
+			for {
+				fd, err := syscall.Open(path, syscall.O_RDONLY, 0)
+				if err != nil {
+					continue
+				}
+				syscall.Read(fd, buf)
+				syscall.Close(fd)
+			}
+		}()
+	}
+	select {}
 }

@@ -89,7 +89,7 @@ theorem lockStep_cases [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKin
     (h : LockStep st k fd d req nb e' st') : st' = st ∨ ∃ x, st' = st.setFd fd (d.setLk k x) := by
   unfold LockStep at h
   split at h
-  · rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩⟩
+  · rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩
     · exact .inr ⟨_, rfl⟩
     · exact .inl rfl
   · rcases h with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩
@@ -103,7 +103,7 @@ theorem lockStep_val [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKind}
     (h : LockStep st k fd d req nb e' st') : (toVal e').isSome := by
   unfold LockStep at h
   split at h
-  · rcases h with ⟨-, ⟨-, -, rfl⟩ | ⟨e, -, -, -, rfl⟩⟩ <;> rfl
+  · rcases h with ⟨-, ⟨-, -, rfl⟩ | ⟨e, -, -, rfl⟩⟩ <;> rfl
   · rcases h with ⟨-, rfl⟩ | ⟨e, -, rfl, -⟩ <;> rfl
 
 theorem setLk_ino (d : OsFd) (k : LockKind) (x : Option Bool) : (d.setLk k x).ino = d.ino := by

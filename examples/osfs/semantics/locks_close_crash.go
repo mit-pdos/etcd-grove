@@ -24,8 +24,12 @@ import (
 //
 // Allowed: below, after the crash the restarted program's lock succeeds (or
 // fails with an errno).
-// Excluded: a lock surviving a crash, or its fd's close when no mapping made
-// through the fd is live.
+// Excluded: a lock surviving a crash. Not excluded (since 2026-11-19, the
+// user's decision, option (b)): a lock seeming to survive its fd's close with
+// no mapping made through the fd live (another process reading
+// /proc/<pid>/fdinfo of the fd keeps the description a moment longer): a
+// non-blocking request may get EAGAIN then, which LockStep allows at any time
+// (locks_spurious_eagain.go); the model itself drops the lock at the close.
 //
 // Why: measured on C (locks_test.go: TestLocksOFDConflict and TestLocksFlock:
 // closing the holder's only fd releases its lock; TestLocksOFDRemoveThenClose:

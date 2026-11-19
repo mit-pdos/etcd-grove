@@ -11,7 +11,9 @@ which the theorem states, and which none of the semantics' own rules make.
 (approved by the user 2026-11-15, `notes/decisions.md`, "fsExt: no I/O errors on chosen files"; the
 lock requests and directory reads added with the user's approval of 2026-11-19, option (a) of
 `notes/wal-units/noioerr.md`, "Blocked"; the errnos of the `unlink`s and `rmdir`s that cannot succeed,
-`PathErrno`, with the user's approval of 2026-11-19, item 3 narrowed).
+`PathErrno`, with the user's approval of 2026-11-19, item 3 narrowed; the lock requests narrowed to the
+blocking ones and the over-long paths left out, the user's decisions of 2026-11-19 after the attack on
+F1's fix, `notes/wal-units/noioerr.md`, session 7).
 -/
 module
 
@@ -73,6 +75,16 @@ structure IoSet where
   ino : OsState → Ino → Prop
   path : GoString → Prop
 
+/-- **A path Linux accepts by its length**: shorter than `PATH_MAX` (4096 bytes, the terminating NUL
+included: `getname` fails with `ENAMETOOLONG` at 4096), and no component longer than `NAME_MAX` (255
+bytes: every run of 256 bytes holds a `/`; the walk fails with `ENAMETOOLONG` on a longer component,
+whatever the tree holds). The semantics does not bound lengths (a longer path is given the outcomes of
+a short one, a success included, which Linux never takes: more behaviours, sound); `NoIoErr` covers
+only the paths that fit (2026-11-19, the user's decision on the attack's finding A1;
+`examples/osfs/semantics/premise_no_io_err.go`, measured: `TestNoIoErrNameTooLong`). -/
+def PathFits (p : GoString) : Prop :=
+  p.length < 4096 ∧ ∀ q : GoString, q <:+: p → q.length = 256 → slashB ∈ q
+
 section noIoErr
 variable [GooseExts] [GoGlobalContext]
 
@@ -82,7 +94,10 @@ other operation is: not the first steps of a change (which make no system call a
 `lstat` of a directory from a non-directory, so there is no success to name), the model's queries
 (`PathKind`, `FdKind`: one answer from each state, nothing to exclude), or the calls on a directory
 outside the roots' trees. The lock requests (`Flock`, `OfdLock`) and the directory reads
-(`DirReadNext`) are covered on an fd of a covered inode (since 2026-11-19). -/
+(`DirReadNext`) are covered on an fd of a covered inode (since 2026-11-19), a lock call only when it is
+blocking (`flock` without `LOCK_NB`, `fcntl(F_OFD_SETLKW)`): a non-blocking one may fail with `EAGAIN`
+whatever the model's locks (`LockStep`, `locks_spurious_eagain.go`). A path call is covered only on
+paths that fit (`PathFits`, each of `rename`'s two). -/
 def IoCovers (S : IoSet) (o : String) (v : val) (st : OsState) : Prop :=
   match o with
   | "Fsync" | "Close" | "Fstat" =>
@@ -92,13 +107,16 @@ def IoCovers (S : IoSet) (o : String) (v : val) (st : OsState) : Prop :=
       ∃ (t : Nat) (c : OsChange), v = osTokV t ∧ st.proc.inflight !! t = some c ∧ S.ino st c.ino
   | "DirSync" | "DirClose" =>
       ∃ (fd : w64) (df : OsDirFd), v = #fd ∧ st.proc.dfds !! fd = some df ∧ S.ino st df.ino
-  | "Open" => ∃ (t : Nat) (p : GoString) (fl : w64), v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ S.path p
+  | "Open" => ∃ (t : Nat) (p : GoString) (fl : w64), v = PairV (osTokV t) (PairV (#p) (#fl)) ∧
+      S.path p ∧ PathFits p
   | "Rename" => ∃ (k : Nat) (s t : GoString), v = PairV (osTokV k) (PairV (#s) (#t)) ∧
-      (S.path s ∨ S.path t)
-  | "Mkdir" | "Unlink" | "Rmdir" => ∃ (k : Nat) (p : GoString), v = PairV (osTokV k) (#p) ∧ S.path p
-  | "Flock" => ∃ (fd how : w64) (d : OsFd), v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧ S.ino st d.ino
+      (S.path s ∨ S.path t) ∧ PathFits s ∧ PathFits t
+  | "Mkdir" | "Unlink" | "Rmdir" => ∃ (k : Nat) (p : GoString), v = PairV (osTokV k) (#p) ∧
+      S.path p ∧ PathFits p
+  | "Flock" => ∃ (fd how : w64) (d : OsFd), v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧ S.ino st d.ino ∧
+      how.toNat / 4 % 2 = 0
   | "OfdLock" => ∃ (fd cmd typ : w64) (d : OsFd), v = PairV (#fd) (PairV (#cmd) (#typ)) ∧
-      FdOpen st fd d ∧ S.ino st d.ino
+      FdOpen st fd d ∧ S.ino st d.ino ∧ cmd.toNat = F_OFD_SETLKW
   | "DirReadNext" => ∃ (fd : w64) (df : OsDirFd), v = #fd ∧ st.proc.dfds !! fd = some df ∧
       S.ino st df.ino
   | _ => False
@@ -147,12 +165,13 @@ from that state (`ErrnoZero`). It excludes, on those files: a failing `fsync`/`f
 of at least one byte could land (its offset below `maxBytes`, or no data); a failing `ftruncate` or
 `fallocate` of a size up to `maxBytes`; a failing `fstat`, `pread` or `close` of a covered file, or
 `fsync`/`close` of a covered directory; and a failing `open`, `rename`, `mkdir`, `unlink` or `rmdir`
-on a covered path where the call can succeed (the path resolves as the call needs, a free fd for
-`open`). Since 2026-11-19 also: a failing lock request (`flock`, or `fcntl` with `F_OFD_SETLK`/
-`F_OFD_SETLKW`) on a covered file that no other description conflicts with (`LockConflict`: another
-fd's, or one a live mapping holds after its fd's close, `MapDesc`; `ENOLCK`, `EINTR`, ...), and a failing unlock; a directory read (`getdents64`, a step of
-`Readdirnames`) of a covered directory ending with an errno other than `ENOENT` (`EIO`, `EINTR`, ...)
-while the directory has a name to return or is at its end.
+on a covered path that fits (`PathFits`) where the call can succeed (the path resolves as the call
+needs, a free fd for `open`). Since 2026-11-19 also: a failing blocking lock request (`flock` without
+`LOCK_NB`, or `fcntl` with `F_OFD_SETLKW`) on a covered file that no other description conflicts with
+(`LockConflict`: another fd's, or one a live mapping holds after its fd's close, `MapDesc`; `ENOLCK`,
+`EINTR`, ...), and a failing blocking unlock (`LOCK_UN`, `F_OFD_SETLKW` with `F_UNLCK`); a directory
+read (`getdents64`, a step of `Readdirnames`) of a covered directory ending with an errno other than
+`ENOENT` (`EIO`, `EINTR`, ...) while the directory has a name to return or is at its end.
 
 What it does **not** exclude, because the semantics then has no success: `EFBIG` at `maxBytes`
 (ext4's `s_maxbytes`), `EMFILE` with no free fd, the failures of a path call that cannot succeed
@@ -160,7 +179,9 @@ in that state (`ENOENT`, `EEXIST`, `ENOTEMPTY`, `EISDIR`, ...), and the failure 
 that conflicts with a lock another description holds (another fd's, or one a live mapping keeps
 after its fd's close: `EAGAIN`, ...); `ENOENT` from a read of
 a directory (the semantics gives it only for a removed one); and nothing about a call `IoCovers`
-does not name (`mmap`, `lstat`, ...). But the errno of a failing `unlink`/`rmdir` of a covered path
+does not name (`mmap`, `lstat`, ...), a non-blocking lock request (which may fail with `EAGAIN` while
+another process holds a reference to a description the program closed, a `/proc/<pid>/fdinfo` read:
+`locks_spurious_eagain.go`), or a path that does not fit (`ENAMETOOLONG`). But the errno of a failing `unlink`/`rmdir` of a covered path
 that cannot succeed is Linux's (since 2026-11-19, `PathErrno`, asked only where the semantics has no outcome with errno 0): `ENOENT` for an absent entry in an
 existing directory, `EISDIR` for an `unlink` of a directory, `ENOTEMPTY` for an `rmdir` of a
 non-empty directory (no I/O error, no lack of memory, no signal changes it into another).
@@ -170,11 +191,16 @@ error, the filesystem has room for these files, the kernel has memory for their 
 no signal interrupts these calls; and no other process locks them (as the semantics' lock rule
 already takes the roots' files to be the process's own, `examples/osfs/semantics/locks_ofd.go`)
 (`examples/osfs/semantics/premise_no_io_err.go`). **Permissions** (configuration C's environment,
-`Impl.lean`'s "Environment"; 2026-11-19, the user's approval via etcd-grove-03): the process may search
-and write every covered directory (no `EACCES`), no covered directory's sticky bit denies a removal or
-rename, no covered file or directory has the immutable or append-only attribute, and no Linux security
-module denies a path call on them (no `EPERM`/`EACCES` from `may_delete`, `may_create`, `inode_permission`
-or an LSM hook); measured as a contrast in `premise_no_io_err_test.go`'s `TestNoIoErrPermissions`.
+`Impl.lean`'s "Environment"; 2026-11-19, the user's approvals via etcd-grove-03): the process may search
+every ancestor of a root and search and write every covered directory, and read and write every covered
+file (no `EACCES`, on the walk or on an `open` for writing), no covered directory's sticky bit denies a
+removal or rename, no covered file or directory has the immutable or append-only attribute, the sysctls
+`fs.protected_symlinks` and `fs.protected_regular` deny nothing, an idmapped mount (if any) maps the
+process's fsuid and fsgid (no `EOVERFLOW` from `may_create`), and no Linux security module, seccomp
+filter or fanotify permission event denies or fails a call on them (no `EPERM`/`EACCES` from
+`may_delete`, `may_create`, `inode_permission` or an LSM hook; no `SECCOMP_RET_ERRNO`; no `FAN_DENY`);
+measured as contrasts in `premise_no_io_err_test.go` (`TestNoIoErrPermissions`, `TestNoIoErrPermAncestor`,
+`TestNoIoErrPermFileWrite`, `TestNoIoErrProtectedSymlinks`, `TestNoIoErrProtectedRegular`).
 It is the condition under which etcd's server is shown not to panic where it calls `lg.Panic` on a
 WAL error (`Create`, `SaveSnapshot`, `ReleaseLockTo`, `Close`, ...): approved by the user
 2026-11-15 (`notes/decisions.md`, "fsExt: no I/O errors on chosen files"). It never leaves a state

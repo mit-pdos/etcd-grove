@@ -30,11 +30,18 @@ filesystem has no error or shutdown event (then an `fsync` may return 0 without 
 tree at boot is their trees' entries. No Linux security module denies a file lock on them
 (`security_file_lock`, which `flock(2)` and `fcntl`'s lock commands call before any lock is taken;
 2026-11-19, decided by etcd-grove-03 after the attack on `NoIoErr`'s lock coverage). **Permissions**: the process
-may search and write every directory of the roots' trees (no `EACCES` from `inode_permission`); no
-directory's sticky bit denies a removal or a rename in it; no entry has the immutable or append-only
-attribute; and no Linux security module denies a path call on them (`may_delete`, `may_create` and the
-LSM path hooks return no `EPERM`/`EACCES`) (2026-11-19, the user's approval via etcd-grove-03, after the
-attack A2 on `PathErrno`; `examples/osfs/semantics/env_config.go`). The journal (jbd2) commits whole transactions, in order; a
+may search every ancestor of every root, search and write every directory of the roots' trees, and read
+and write every file in them (no `EACCES` from `inode_permission`, on the walk or on an `open` for
+writing); no directory's sticky bit denies a removal or a rename in it; no entry has the immutable or
+append-only attribute; the sysctls `fs.protected_symlinks` and `fs.protected_regular` deny nothing (a
+symlink named as a call's last component in a sticky world-writable directory, such as a root's ancestor
+that `Open`'s outside case opens; an `O_CREAT` open of a file in one); if the
+filesystem is reached through an idmapped mount, the mount maps the process's fsuid and fsgid (else
+`may_create` fails with `EOVERFLOW`); and no Linux security module, seccomp filter or fanotify permission
+event denies or fails a call on them (`may_delete`, `may_create` and the LSM hooks return no
+`EPERM`/`EACCES`, no seccomp `SECCOMP_RET_ERRNO`, no `FAN_DENY`) (2026-11-19, the user's approvals via
+etcd-grove-03, after the attack A2 on `PathErrno` and the attack on its fix;
+`examples/osfs/semantics/env_config.go`). The journal (jbd2) commits whole transactions, in order; a
 metadata call joins a transaction no earlier than those of the calls that returned before it
 began (measured, `notes/axiom-review/fs-v2-r5.md`, B1); an `fsync` of a directory commits the
 whole journal (`ext4_force_commit` for a file that is not regular, `fs/ext4/fsync.c`).
@@ -123,8 +130,13 @@ mapping made through that fd keeps the description open: then the description, w
 holds at the `close`, lives until the last such mapping is unmapped (`MapDesc`; 2026-11-19, the
 user's approval via etcd-grove-03, after the attack F1 on `NoIoErr`). A request succeeds only with no
 conflicting lock on another description, an fd's or one a mapping keeps (a blocking one waits for
-that), and may fail with any errno and no change, `EAGAIN` from a non-blocking one only on a conflict
-(`LockStep`).
+that), and may fail with any errno and no change (`LockStep`), `EAGAIN` from a non-blocking one
+included **even with no conflict in the model**: another process may hold a short reference to a
+description the program has closed (a read of `/proc/<pid>/fd/N` or `/proc/<pid>/fdinfo/N`,
+`pidfd_getfd`, ptrace: `get_file` … `fput`), which keeps the description, and its locks, alive past
+the `close`, a fact of Linux the model does not track (2026-11-19, the user's decision, option (b) of the
+attack on F1's fix; `examples/osfs/semantics/locks_spurious_eagain.go`). A blocking request then only
+waits.
 Classic per-process POSIX locks (`F_SETLK[W]`) are not modelled (the trusted models panic).
 
 **Heap.** The steps never touch user memory except through `HeapRendered`: after every step, the
@@ -413,7 +425,8 @@ def O_TRUNC : Nat := 0x200
 def O_CLOEXEC : Nat := 0x80000
 
 def EINTR : w64 := 4
-/-- `EAGAIN` (= `EWOULDBLOCK`): what a non-blocking lock request returns on a conflict (`LockStep`). -/
+/-- `EAGAIN` (= `EWOULDBLOCK`): what a non-blocking lock request returns on a conflict, or on a
+description another process keeps alive past its `close` (`LockStep`, which allows it at any time). -/
 def EAGAIN : w64 := 11
 def F_OFD_SETLK : Nat := 37
 def F_OFD_SETLKW : Nat := 38
@@ -796,26 +809,32 @@ def LockConflict (st : OsState) (k : LockKind) (fd : w64) (i : Ino) (ex : Bool) 
     ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true))
 
 /-- **The lock rule**, of a request of kind `k` through the fd `fd` (description `d`): `req` is
-`some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking.
+`some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking (the rule's outcomes
+are the same for both: a blocking request only waits where a non-blocking one fails; kept as an argument
+so that the calls name the request whole).
 * A lock, only on a description with no lock of the kind (re-locking, a conversion included, is
   stuck: Linux accepts it; etcd never does it): success (errno 0) only when there is no conflict
   (`LockConflict`), and the description holds the lock; or any nonzero errno and **no change**,
-  `EAGAIN` from a non-blocking request only on a conflict. A blocking request so takes no successful
-  step while another description holds a conflicting lock: it waits, or fails (any errno, at any
-  time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded).
+  `EAGAIN` from a non-blocking request included whether or not the model sees a conflict: a
+  description the program closed may still hold its locks while another process holds a short
+  reference to it (a read of `/proc/<pid>/fdinfo/N` or `/proc/<pid>/fd/N`, `pidfd_getfd`, ptrace;
+  measured on C: `examples/osfs/semantics/locks_spurious_eagain.go`, `locks_test.go`'s
+  `TestLocksProcReaderEagain`; 2026-11-19, the user's decision, option (b)). A blocking request so
+  takes no successful step while another description holds a conflicting lock: it waits, or fails (any
+  errno, at any time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded).
 * An unlock: success, the description's lock of the kind gone (none before: no change); or any
   nonzero errno, the lock gone or kept.
 Measured on C (`examples/osfs/semantics/locks_ofd.go`, `locks_flock.go`, `locks_blocking.go`,
 `locks_test.go`); `fs/locks.c` (`posix_lock_inode`, `flock_lock_inode`: `-EAGAIN` only on a conflict
-when the request may not sleep, the lock inserted only on success). -/
+with a lock some description holds, when the request may not sleep, the lock inserted only on success;
+`locks_remove_file` releases a description's locks only at its last reference's `__fput`). -/
 def LockStep (st : OsState) (k : LockKind) (fd : w64) (d : OsFd) (req : Option Bool) (nb : Bool)
     (e' : Expr) (st' : OsState) : Prop :=
   match req with
   | some ex => d.lk k = none ∧
       ((¬ LockConflict st k fd d.ino ex ∧ st' = st.setFd fd (d.setLk k (some ex)) ∧
           e' = Val (#(0 : w64))) ∨
-       (∃ e : w64, e ≠ 0 ∧ (nb = true → e = EAGAIN → LockConflict st k fd d.ino ex) ∧ st' = st ∧
-          e' = Val (#e)))
+       (∃ e : w64, e ≠ 0 ∧ st' = st ∧ e' = Val (#e)))
   | none => (st' = st.setFd fd (d.setLk k none) ∧ e' = Val (#(0 : w64))) ∨
       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.setFd fd (d.setLk k none)))
 
@@ -955,7 +974,9 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       LockStep st .flock fd d req nb e' st'
   /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno; never stuck. A live
   mapping made through `fd` keeps its description, as it is now, locks included (`MapDesc.close`;
-  `locks_mmap_close.go`); otherwise the description and its locks go. -/
+  `locks_mmap_close.go`); otherwise the description and its locks go from the model (on Linux another
+  process's short reference, a `/proc/<pid>/fdinfo` read, may keep them a moment longer: only a
+  non-blocking lock request can tell, and its `EAGAIN` is allowed at any time, `LockStep`). -/
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
       st' = st.setProc { st.proc with
         fds := GMap.delete fd st.proc.fds,

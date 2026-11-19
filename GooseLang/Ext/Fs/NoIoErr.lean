@@ -83,7 +83,7 @@ theorem lockStep_maps {st : OsState} {k : LockKind} {fd : w64} {d : OsFd} {req :
     st'.proc.maps = st.proc.maps := by
   unfold LockStep at h
   cases req with
-  | some ex => rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩⟩ <;> rfl
+  | some ex => rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩ <;> rfl
   | none => rcases h with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩ <;> rfl
 
 /-- Every operation `IoCovers` names leaves the mappings as they were. -/
