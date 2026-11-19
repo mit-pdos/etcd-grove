@@ -21,7 +21,14 @@ Scope restrictions of the representation (`notes/smd-plan.md`, "Scope", (R)): a 
 The representation's internals (`schemaRep`, `isAtom`, `lazyIndex`, ...) are sealed
 (`@[no_expose]`): `newSchema`-style literals become `freshSchema` by `freshSchema_intro`.
 
-Lean-first (2026-11-19, notes/smd-plan.md); round 1's repairs 2026-11-19.
+The views of a shared schema's pieces that the `schema` package's own specs take and give
+(`FindNamedType`, `Map.FindField`, `Resolve`, the `Equals` methods; their clients are `typed` and
+`fieldpath`): `isAtomOpt` (an atom value, or the zero atom), `isListRep`, `isMapRep` (a `*List`,
+a `*Map` with its `FindField` index), `isStructField` (a `StructField`), beside `isTypeRef`/
+`isTypeRefOpt`. Sealed, with laws (`schema/Laws.lean`) to persist them and read their fields.
+
+Lean-first (2026-11-19, notes/smd-plan.md); round 1's repairs 2026-11-19; the piece views added
+with the `schema` package's per-function specs (Draft, 2026-11-19).
 -/
 module
 
@@ -78,6 +85,19 @@ def Schema.find (S : Schema) (n : GoString) : Option Atom := lookupKV n S.types
 
 /-- A reference resolves. -/
 def Schema.resolves (S : Schema) (t : TypeRef) : Bool := (S.find t.name).isSome
+
+/-- **`S.resolveRef ot`**: the atom `Schema.Resolve` returns for a reference without override:
+the named type's (`ot = some t`), or the zero atom (`none`) for an unknown name or the empty
+`TypeRef` (`ot = none`, whose `Inlined` atom is zero). -/
+def Schema.resolveRef (S : Schema) : Option TypeRef → Option Atom
+  | none => none
+  | some t => S.find t.name
+
+/-- Whether `Schema.Resolve` succeeds on a reference without override: the empty `TypeRef`
+always (its zero `Inlined` atom), a named one when the name is defined. -/
+def Schema.resolvesRef (S : Schema) : Option TypeRef → Bool
+  | none => true
+  | some t => S.resolves t
 
 /-- The type of key `k` in a map type: its declared field's, else the element type
 (`Map.FindField`, then `ElementType`). -/
@@ -169,27 +189,54 @@ to an index `M` with `ok M`. -/
         sync.atomic.ownPointer (T' := GoMap) u DFrac.discard mp ∗
         mp ↦□ mm ∗ mm ↦$□ M ∗ ⌜ok M⌝)
 
+/-- **`isStructField sf f`**: the `schema.StructField` `sf` is the declared field `f` (its name and
+named type), without a default (scope: `Default` the nil interface; persistent). -/
+@[no_expose] def isStructField (sf : schema.StructField) (f : GoString × TypeRef) : IProp GF :=
+  iprop(⌜sf.Name' = f.1 ∧ sf.Default' = interface.nil⌝ ∗ isTypeRef sf.Type' f.2)
+
 /-- A map type's `schema.StructField`s (no default). -/
 @[no_expose] def isFields : List schema.StructField → List (GoString × TypeRef) → IProp GF
   | [], [] => iprop(True)
-  | f :: fs, (n, t) :: rest => iprop(⌜f.Name' = n ∧ f.Default' = interface.nil⌝ ∗
-      isTypeRef f.Type' t ∗ isFields fs rest)
+  | f :: fs, nt :: rest => iprop(isStructField f nt ∗ isFields fs rest)
   | _, _ => iprop(False)
+
+/-- **`isListRep l e rel ks`**: the `*schema.List` at `l` (read-only) has element type `e`,
+relationship `rel` and key field names `ks` (persistent). -/
+@[no_expose] def isListRep (l : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString) : IProp GF :=
+  iprop(∃ (v : schema.List') (ksl : GoSlice), l ↦□ v ∗ ⌜v.ElementRelationship' = rel.goName ∧
+    v.Keys' = ksl⌝ ∗ ksl ↦*{DFrac.discard} ks ∗ isTypeRef v.ElementType' e)
+
+/-- The `*schema.Map` at `m` (read-only fields) with declared fields `fs`, element type `e`,
+relationship `rel`, no unions, and its `FindField` index (`fresh`: still zero). -/
+@[no_expose] def mapRep (fresh : Bool) (m : Loc) (fs : List (GoString × TypeRef))
+    (e : Option TypeRef) (rel : ElemRel) : IProp GF :=
+  iprop(∃ (fsl : GoSlice) (sfs : List schema.StructField) (us : GoSlice) (etv : schema.TypeRef),
+      m.[schema.Map, go!"Fields"] ↦□ fsl ∗ fsl ↦*{DFrac.discard} sfs ∗ isFields sfs fs ∗
+      m.[schema.Map, go!"Unions"] ↦□ us ∗ ⌜us = slice.nil⌝ ∗
+      m.[schema.Map, go!"ElementType"] ↦□ etv ∗ isTypeRefOpt etv e ∗
+      m.[schema.Map, go!"ElementRelationship"] ↦□ rel.goName ∗
+      lazyIndex (T := schema.StructField) fresh m.[schema.Map, go!"once"]
+        m.[schema.Map, go!"m"] (fun M => ∀ n, M !! n = lastNamed (·.Name') n sfs))
+
+/-- **`isMapRep m fs e rel`**: the `*schema.Map` at `m`, a map type of a shared schema
+(`isSchema`): declared fields `fs`, element type `e`, relationship `rel`, no unions, its
+`FindField` index under its once (persistent). -/
+@[no_expose] def isMapRep (m : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef)
+    (rel : ElemRel) : IProp GF := mapRep false m fs e rel
 
 /-- The `schema.Atom` `a` of a named type holding `A`, with its map's `FindField` index. -/
 @[no_expose] def isAtom (fresh : Bool) (a : schema.Atom) : Atom → IProp GF
   | .scalar s => iprop(a.Scalar' ↦□ s.goName ∗ ⌜a.List' = null ∧ a.Map' = null⌝)
-  | .list e rel ks => iprop(⌜a.Scalar' = null ∧ a.Map' = null⌝ ∗
-      ∃ (v : schema.List') (ksl : GoSlice), a.List' ↦□ v ∗ ⌜v.ElementRelationship' = rel.goName ∧
-        v.Keys' = ksl⌝ ∗ ksl ↦*{DFrac.discard} ks ∗ isTypeRef v.ElementType' e)
-  | .map fs e rel => iprop(⌜a.Scalar' = null ∧ a.List' = null⌝ ∗
-      ∃ (fsl : GoSlice) (sfs : List schema.StructField) (us : GoSlice) (etv : schema.TypeRef),
-      a.Map'.[schema.Map, go!"Fields"] ↦□ fsl ∗ fsl ↦*{DFrac.discard} sfs ∗ isFields sfs fs ∗
-      a.Map'.[schema.Map, go!"Unions"] ↦□ us ∗ ⌜us = slice.nil⌝ ∗
-      a.Map'.[schema.Map, go!"ElementType"] ↦□ etv ∗ isTypeRefOpt etv e ∗
-      a.Map'.[schema.Map, go!"ElementRelationship"] ↦□ rel.goName ∗
-      lazyIndex (T := schema.StructField) fresh a.Map'.[schema.Map, go!"once"]
-        a.Map'.[schema.Map, go!"m"] (fun M => ∀ n, M !! n = lastNamed (·.Name') n sfs))
+  | .list e rel ks => iprop(⌜a.Scalar' = null ∧ a.Map' = null⌝ ∗ isListRep a.List' e rel ks)
+  | .map fs e rel => iprop(⌜a.Scalar' = null ∧ a.List' = null⌝ ∗ mapRep fresh a.Map' fs e rel)
+
+/-- **`isAtomOpt a oA`**: the `schema.Atom` value `a` (a copy of a shared schema's atom: its
+pointers shared) holds `A` when `oA = some A`, and is the zero atom `schema.Atom{}` when
+`oA = none` (an empty `TypeRef`'s `Inlined`, `Resolve`'s result for the empty `TypeRef` or an
+unknown name). Persistent. What `Schema.Resolve` returns and `Atom.Equals` compares. -/
+@[no_expose] def isAtomOpt (a : schema.Atom) : Option Atom → IProp GF
+  | none => iprop(⌜atomZero a⌝)
+  | some A => isAtom false a A
 
 /-- **`freshAtom a A`**: a schema literal's atom holding `A`, its `FindField` index still zero
 (the piece of a `freshSchema` its intro law takes: `freshAtom_*`, `freshSchema_intro`). -/

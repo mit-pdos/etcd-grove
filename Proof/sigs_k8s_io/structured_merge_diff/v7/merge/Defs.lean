@@ -30,7 +30,16 @@ excluded by `Apply`'s premise `keysWithItems`.)
 The pure definitions are computable (review round 1, P1): `decide` evaluates `applyResult` and
 `updateResult` on literals.
 
-Lean-first (2026-11-19, notes/smd-plan.md).
+The internal specs of `merge` (`Updater.update`, `prune`, `addBackOwnedItems`,
+`addBackOwnedItemsForVersion`, `addBackDanglingItems`, `reconcileManagedFieldsWithSchemaChanges`,
+`ConflictsFromManagers`, `Conflict.Equals`) are stated over the stages of `applyResult`:
+`addBackOwned`/`addBackOwnedMF`/`addBackDangling` (`prune`'s second and third passes:
+`prune_stages`), `conflictsMF` and `mfPairs` (the conflicts `update` collects: `mfPairs_conflictsMF`),
+and the owned managed fields `ownMF` that `Apply`/`Update` thread between them (laws in
+`merge/Laws.lean`).
+
+Lean-first (2026-11-19, notes/smd-plan.md); the stages added with `merge`'s per-function specs
+(Draft, 2026-11-19).
 -/
 module
 
@@ -97,6 +106,43 @@ def conflictsOf (mf : MF) (mgr : GoString) (c : Cmp) : FSet (GoString × Path) :
     if me.1 = mgr then acc
     else FSet.union ((me.2.set.inter (c.modified.union c.added)).map (fun p => (me.1, p))) acc)
     FSet.empty
+
+/-! ## The stages, for the internal specs (`Updater.prune`'s passes, `Updater.update`'s maps) -/
+
+/-- **`addBackOwned S t merged pruned managed`**: `addBackOwnedItemsForVersion`'s result: the merged
+object less what it has and neither the pruned object nor the managed set has (each closed by
+`ensureNamed`): the second pass of `prune`. -/
+def addBackOwned (S : Schema) (t : TypeRef) (merged pruned : UVal) (managed : PathSet) : UVal :=
+  removeItems S t merged
+    ((ensureNamed S t (fieldSet S t merged)).diff
+      ((ensureNamed S t (fieldSet S t pruned)).union (ensureNamed S t managed)))
+
+/-- `addBackOwnedItems` with every manager at the pruned version: one pass over the union of the
+managers' sets; no manager, no pass (the pruned object itself). -/
+def addBackOwnedMF (S : Schema) (t : TypeRef) (merged pruned : UVal) (mf : MF) : UVal :=
+  match mf with
+  | [] => pruned
+  | _ :: _ => addBackOwned S t merged pruned (mfUnion mf)
+
+/-- **`addBackDangling S t merged pruned last`**: `addBackDanglingItems`'s result: the merged
+object less what the pruned object lost of the manager's last applied set `last` (each closed by
+`ensureNamed`): the third pass of `prune`. -/
+def addBackDangling (S : Schema) (t : TypeRef) (merged pruned : UVal) (last : PathSet) : UVal :=
+  removeItems S t merged
+    (((ensureNamed S t (fieldSet S t merged)).diff (ensureNamed S t (fieldSet S t pruned))).inter
+      (ensureNamed S t last))
+
+/-- The `conflicts` map `Updater.update` builds: each manager but `mgr` with a non-empty
+intersection of its set with what the change modifies or adds, at its version, not applied. -/
+def conflictsMF (mf : MF) (mgr : GoString) (c : Cmp) : MF :=
+  mf.filterMap fun (m, e) =>
+    if m = mgr then none else
+    let s := e.set.inter (c.modified.union c.added)
+    if s.IsEmpty then none else some (m, ⟨s, e.version, false⟩)
+
+/-- Every (manager, path) pair of managed fields (`ConflictsFromManagers`' conflicts). -/
+def mfPairs (mf : MF) : FSet (GoString × Path) :=
+  mf.foldr (fun me acc => FSet.union (me.2.set.map (fun p => (me.1, p))) acc) FSet.empty
 
 /-- The outcome of `Updater.Apply`. -/
 inductive ApplyOutcome where
@@ -221,6 +267,34 @@ it). Built by `BuildUpdater`, or a client's literal (`isUpdater_intro`: Kubernet
 manager and a path, in order (persistent). -/
 @[no_expose] def isConflicts (s : merge.Conflicts) (cs : List (GoString × Path)) : IProp GF :=
   iprop(∃ xs : List merge.Conflict, s ↦*{DFrac.discard} xs ∗ isConflictL xs cs)
+
+/-- **`ownMF m mf`**: the `fieldpath.ManagedFields` map `m` (non-nil) holds `mf`, **owned**: a
+map `merge` builds and then updates in place (`reconcileManagedFieldsWithSchemaChanges`' result,
+which `Apply`, `Update` and `Updater.update` write); its entries are persistent `isVSet`s.
+`ownMF_persist` (`merge/Laws.lean`) hands it out as an `isMF`. (Internal to `merge`; it may move
+beside `isMF` in `fieldpath/Defs.lean`.) -/
+@[no_expose] def ownMF (m : fieldpath.ManagedFields) (mf : MF) : IProp GF :=
+  iprop(∃ M : GMap GoString GoInterface, m ↦$ M ∗
+    ⌜keysSorted mf = true ∧ ∀ k, (M !! k).isSome = (mf.get k).isSome⌝ ∗ isMFL M mf)
+
+/-- **`isVSetOpt i o`**: a manager's entry read from a `ManagedFields` map: the nil interface
+(no entry) for `none`, else an `isVSet` (persistent). -/
+@[no_expose] def isVSetOpt (i : fieldpath.VersionedSet) : Option VSet → IProp GF
+  | none => iprop(⌜i = interface.nil⌝)
+  | some e => isVSet i e
+
+/-- **`isCmpResult c C`**: the `*typed.Comparison` at `c` holds `C` (its three sets; persistent).
+What `Updater.update` returns from `TypedValue.Compare` (through `FilterFields(nil)`). A stand-in
+for the `typed` package's own description of a `Comparison`, to be replaced by it when
+`TypedValue.Compare`'s spec lands (Draft). -/
+@[no_expose] def isCmpResult (c : Loc) (C : Cmp) : IProp GF :=
+  iprop(∃ (r m a : Loc), c ↦□ (typed.Comparison.mk r m a) ∗
+    isSet r C.removed ∗ isSet m C.modified ∗ isSet a C.added)
+
+/-- **`isConflict x c`**: the `merge.Conflict` `x` is the conflict `c`, a manager and a path
+(persistent). -/
+@[no_expose] def isConflict (x : merge.Conflict) (c : GoString × Path) : IProp GF :=
+  iprop(⌜x.Manager' = c.1⌝ ∗ isPath x.Path' c.2)
 
 end own
 
