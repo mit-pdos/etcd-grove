@@ -100,6 +100,9 @@ def errIs (err : GoInterface) (y : Output) : IProp GF :=
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
       ⌜ErrOther eD eU err⌝))
 
+instance errIs_persistent (err : GoInterface) (y : Output) : Persistent (errIs (GF := GF) err y) := by
+  unfold errIs storageErrIs; infer_instance
+
 /-- **A client's error is not the driver's** (see the file header): not the sentinels `errors.New`
 made at `lD` and `lU` (their cells hold the driver's messages, none among the client's), not a
 `*StorageError` (a leaf error, `*StorageError` has `Unwrap`: `storageErrTyOk`), and a pointer if
@@ -265,17 +268,21 @@ def NoOddErr {E : Type} : KResp DObj E → Prop
   | _ => True
 
 /-- **`call`'s output of the store's answer** (see the file header): an error `errOut` places as
-the answer's `outOf`, or the object `out` points to, whose `objOut` is it. -/
+the answer's `outOf`, or the object `out` points to, whose `objOut` is it (k8s 7g step 5: a
+rejection's error is the callback's, `eR`; the object is never `Annotated`). -/
 theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     (r : KResp DObj E) (err out eD eU : GoInterface) (hodd : NoOddErr r)
-    (hu : ∀ e err', r = .err (.user e) → KUserErr.is e err' → err' = eD ∨ err' = eU) :
+    (hu : ∀ e err', r = .err (.user e) → KUserErr.is e err' → err' = eD ∨ err' = eU)
+    (eR : GoInterface) (hR : ∀ e err', r = .err (.user e) → KUserErr.is e err' → err' = eR) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
       respIs c r err out ⊢
-      (⌜err ≠ GoInterface.nil⌝ ∗ errIs err (outOf r)) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ errIs err (outOf r) ∗
+        ⌜(outOf r).Err' = W64 3 → err = eR⌝) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
-        ⌜out = interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = outOf r⌝ ∗ p ↦ o) := by
+        ⌜out = interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = outOf r ∧
+          o.Annotated' = false⌝ ∗ p ↦ o) := by
   iintro ⟨#Hpkg, #HD, #HU, Hr⟩
   cases r with
   | obj o rv =>
@@ -293,7 +300,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
     iexists p, _
     iframe Hp
     ipureintro
-    exact ⟨hout, rfl⟩
+    exact ⟨hout, rfl, rfl⟩
   | zero =>
     unfold respIs
     rw [hc]
@@ -309,7 +316,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
     iexists p, _
     iframe Hp
     ipureintro
-    exact ⟨hout, rfl⟩
+    exact ⟨hout, rfl, rfl⟩
   | err e =>
     cases e with
     | notFound k rv =>
@@ -320,6 +327,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       ileft
       isplitr
       · ipureintro; rw [He]; nofun
+      isplitl
       iunfold errIs
       ileft
       iexists k, _
@@ -329,6 +337,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
         iframe Hp
         ipureintro; exact He
       ipureintro; rfl
+      ipureintro; intro h; simp [outOf, errOutL, invalidOutL, tooLargeL] at h
     | keyExists k =>
       unfold respIs
       icases Hr with ⟨Hse, -⟩
@@ -337,6 +346,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       ileft
       isplitr
       · ipureintro; rw [He]; nofun
+      isplitl
       iunfold errIs
       iright; ileft
       iexists k, _
@@ -346,12 +356,14 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
         iframe Hp
         ipureintro; exact He
       ipureintro; rfl
+      ipureintro; intro h; simp [outOf, errOutL, invalidOutL, tooLargeL] at h
     | user e =>
       unfold respIs
       icases Hr with ⟨%He, -⟩
       ileft
       isplitr
       · ipureintro; exact He.1
+      isplitl
       iunfold errIs
       iright; iright; iright; iright; ileft
       isplitl
@@ -359,6 +371,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
         · rw [h]; ileft; iexact HD
         · rw [h]; iright; iexact HU
       ipureintro; rfl
+      ipureintro; intro _; exact hR e err rfl He.2
     | rvSetOnCreate => exact hodd.elim
     | invalidObj k m =>
       unfold respIs
@@ -370,11 +383,13 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       ileft
       isplitr
       · ipureintro; exact Hne
+      isplitl
       iunfold errIs
       iright; iright; ileft
       iexists k, m
       iframe Hse
       ipureintro; rfl
+      ipureintro; intro h; simp [outOf, errOutL, invalidOutL, tooLargeL] at h
     | tooLarge _ _ =>
       unfold respIs
       icases Hr with ⟨#Ht, -⟩
@@ -382,10 +397,12 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       ileft
       isplitr
       · ipureintro; obtain ⟨l, rfl⟩ := Hp; nofun
+      isplitl
       iunfold errIs
       iright; iright; iright; ileft
       iframe Ht
       ipureintro; rfl
+      ipureintro; intro h; simp [outOf, errOutL, invalidOutL, tooLargeL] at h
 
 theorem create_noOdd {E : Type} (s : KSt DObj) (k : GoString) (o : DObj) :
     NoOddErr (s.create (E := E) k o 0).2 := by

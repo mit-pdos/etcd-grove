@@ -74,7 +74,7 @@ abbrev call.spec : Prop :=
         #sp))) (Val #x))
   {{ (y : Output), RET #y; threadTok ∗ (⌜plainOut y = otherL⌝ ∨
       ∃ σ : KVState, (if x.Kind' = W64 4 then
-          iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
+          iprop(∃ R : w64, □ QL R σ ∗ ⌜plainOut y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
         else callAt x Φ Q σ) ∗
         ⌜plainOut y = callOut c eD eU x σ⌝ ∗ k8s_correctness.rawOk x y) }}
 

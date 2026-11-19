@@ -59,10 +59,13 @@ set_option hygiene false in
 /-- `call`'s end, from the answer `Hy` (see the file header): an error `errOut` places, or the
 object `out` points to, `objOut`'s. -/
 local macro "call_tail" : tactic => `(tactic| (
-  icases Hy with ⟨%y, (⟨%Hne, Hey⟩ | ⟨%He, %p, %o, %Ho, Hp⟩), HQ⟩
+  icases Hy with ⟨%y, (⟨%Hne, #Hey, %H3⟩ | ⟨%He, %p, %o, %Ho, Hp⟩), HQ⟩
   · cases err0 with
     | nil => exact absurd rfl Hne
     | ok ei =>
+      ihave %Hz := errIs_raw _ y $$ Hey
+      ihave #Hi2 : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hpkg
       wp_auto
       wp_apply wp_errOut _ _ $$ [Hey]
       · iframe Hey
@@ -71,18 +74,37 @@ local macro "call_tail" : tactic => `(tactic| (
       iapply HΦ
       isplitl [Htt]
       · iexact Htt
-      iexact HQ
+      isimp only [if_neg h4] at HQ
+      isimp only [if_neg h4]
+      iapply (call_post c eD eU x y)
+      isplitr
+      · ipureintro; exact plainOut_setRaw y _ Hz
+      isplitl [HQ]
+      · iexact HQ
+      iapply (rawOk_errIs x eD eU _ y ⟨GoInterface.nil, GoInterface.ok ei, slice.nil⟩ ⟨rfl, rfl⟩ H3)
+      iframe Hi2 HD HU Hey
   · subst He
-    obtain ⟨hp, ho⟩ := Ho
+    obtain ⟨hp, ho, ha⟩ := Ho
     subst ho
     simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, _root_.true_and] at hp
     cases GoGlobalContext.intoVal_inj_loc hp
+    ipersist Hp
     wp_auto
     wp_apply wp_objOut
     iapply HΦ
     isplitl [Htt]
     · iexact Htt
-    iexact HQ))
+    isimp only [if_neg h4] at HQ
+    isimp only [if_neg h4]
+    iapply (call_post c eD eU x (objOutL o))
+    isplitr
+    · ipureintro; rfl
+    isplitl [HQ]
+    · iexact HQ
+    iright
+    iapply (rawOk_obj x h4 _ o ha)
+    iframe Hp
+    ipureintro; exact ⟨rfl, rfl, rfl⟩))
 
 /-- The cached object `cachedObj(in)` passes the store: the input's (`dobjOf`), at its resource
 version, if it uses one. -/
@@ -191,21 +213,37 @@ local macro "list_tl" : tactic => `(tactic| (
   · iexists R'
     iframe HQ1
     ipureintro; exact Or.inl rfl
+  isplitr
+  · ipureintro
+    rw [callOut, if_pos h4, hout, if_pos hlt]; rfl
+  unfold k8s_correctness.rawOk
+  iexists ⟨.nil, .tooLarge false⟩
+  isplitl
+  · unfold k8s_correctness.respRep k8s_correctness.rawResp
+    isplitr
+    · unfold k8s_correctness.deepRO k8sDeep.deepRep; ipureintro; rfl
+    iapply k8s_correctness.errRep_tooLarge_of_is $$ Htl
   ipureintro
-  rw [callOut, if_pos h4, hout, if_pos hlt]))
+  simp [k8s_correctness.RawRel, plainOut, tooLargeL, errOutL, k8s_correctness.tooLargeE]))
 
 set_option hygiene false in
 /-- A list's answer (`Hl`, at `σ` with `hlt`, `he`): `listOut`'s, `lOut`'s. -/
 local macro "list_ok" : tactic => `(tactic| (
   subst he
+  ihave %hqv := hQL R' σ $$ HQ1
   iunfold listIs at Hl
-  iunfold ListSpec.listAt at Hl
-  icases Hl with ⟨%pl, %hpl, Hl⟩
+  icases Hl with ⟨%pl, %sl, %hpl, %hpn, %hsn, Hit, Hits, Hm⟩
   simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, _root_.true_and] at hpl
   cases GoGlobalContext.intoVal_inj_loc hpl.2
   wp_auto
-  wp_apply wp_listOut $$ [Hl] as %y %Hy
-  · iframe #; iexact Hl
+  wp_apply wp_listOut $$ [Hit Hits Hm] as %y ⟨%vs, %Hy, #Hdeep⟩
+  · isplitr
+    · ipureintro; exact ⟨hpn, hsn⟩
+    isplitl [Hit]
+    · iexact Hit
+    isplitl [Hits]
+    · iunfold driverListSpec at Hits; iexact Hits
+    iunfold driverListSpec at Hm; iexact Hm
   (try wp_auto)
   iapply HΦ
   iframe Htt
@@ -216,10 +254,268 @@ local macro "list_ok" : tactic => `(tactic| (
   · iexists R'
     iframe HQ1
     ipureintro; exact Or.inr (HR'.resolve_left hlt)
+  obtain ⟨hf, rfl⟩ := Hy
+  rw [hc, hpre] at hf
+  isplitr
+  rotate_left
+  · iapply (rawOk_list x h4 _ _ (kListL_vals σ hqv.2.2.2 _ hst _ _ _ _) vs hf)
+    iframe Hdeep
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
   ipureintro
-  rw [callOut, if_pos h4, hout, if_neg hlt]
-  obtain ⟨vs, hf, rfl⟩ := Hy
-  rw [hc, hpre] at hf ⊢))
+  rw [callOut, if_pos h4, hout, if_neg hlt, plainOut_setRaw _ _ rfl]
+  rw [hc, hpre]))
+
+/-! ## The output's `Raw` (k8s 7g step 5) -/
+
+/-- An object of a short value is one `encodeItems` reads back (`itemOk`). -/
+private theorem itemOk_toObj (o : DObj) (n : w64) (hv : o.val.length ≤ 2 ^ 20) :
+    itemOk (o.toObj n) := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := o.fits
+  refine ⟨⟨h1, h2, h3, h4, h5⟩, rfl, ?_⟩
+  simp [encodeWith, putF, tagV1]; omega
+
+/-- **A list's items are the store's decoded values** at a revision `valsOk` covers: short. -/
+private theorem kListL_vals (σ : KVState) (hv : valsOk σ) (s : KVStore)
+    (hs : ∃ r ≤ σ.rev, s = σ.at r) (sel : DObj → Bool) (lim : Nat) (kp : GoString) (recur : Bool) :
+    ∀ p ∈ (kListL driverCodec.dec sel lim kp recur s).items, p.1.val.length ≤ 2 ^ 20 := by
+  obtain ⟨r, hr, rfl⟩ := hs
+  intro p hp
+  have hm := ListModel.loop_items_mem _ _ _ _ hp
+  simp only [List.mem_map, List.mem_filterMap, List.mem_filter, Option.map_eq_some_iff] at hm
+  obtain ⟨⟨k, q⟩, ⟨v, ⟨hv1, -⟩, d, hd, hq⟩, rfl⟩ := hm
+  cases hq
+  exact hv r hr v hv1 d hd
+
+/-- **An error's output and its `Raw`** (`o.Raw = Raw{Err: err}`): `EOther`'s, or `rawOk` (the error the
+store returned for the output's error kind; a rejection the input kind's sentinel, `drvInit`'s cell). -/
+private theorem rawOk_errIs (x : Input) (eD eU err : GoInterface) (y : Output)
+    (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw)
+    (hr : r.Object' = GoInterface.nil ∧ r.Err' = err)
+    (hy3 : y.Err' = W64 3 → err = if x.Kind' = W64 1 then eD else eU) :
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) ∗
+      globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
+      globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
+      errIs err y ⊢ ⌜y = otherL⌝ ∨ k8s_correctness.rawOk x { y with Raw' := r } := by
+  obtain ⟨hro, hre⟩ := hr
+  iintro ⟨#Hi, #HD, #HU, He⟩
+  iunfold errIs at He
+  icases He with (⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, %m, #Hse, %Hy⟩ | ⟨#Ht, %Hy⟩ |
+    ⟨-, %Hy⟩ | ⟨%Hy, -⟩)
+  · subst Hy
+    iright
+    unfold k8s_correctness.rawOk
+    iexists ⟨.nil, .deep (.storageErr (W64 1) k rv .nil)⟩
+    isplitl
+    · unfold k8s_correctness.respRep k8s_correctness.rawResp k8s_correctness.errRep
+        k8s_correctness.deepRO
+      simp only [hro, hre]
+      isplitr
+      · unfold k8sDeep.deepRep; ipureintro; rfl
+      iunfold storageErrIs at Hse
+      icases Hse with ⟨%p, %hp, #Hp⟩
+      unfold k8sDeep.deepRep
+      iexists p, GoInterface.nil
+      iframe Hp
+      isplitr
+      · ipureintro; exact hp
+      unfold k8sDeep.deepRep; ipureintro; rfl
+    ipureintro
+    simp [k8s_correctness.RawRel, plainOut, errOutL]
+  · subst Hy
+    iright
+    unfold k8s_correctness.rawOk
+    iexists ⟨.nil, .deep (.storageErr (W64 2) k rv .nil)⟩
+    isplitl
+    · unfold k8s_correctness.respRep k8s_correctness.rawResp k8s_correctness.errRep
+        k8s_correctness.deepRO
+      simp only [hro, hre]
+      isplitr
+      · unfold k8sDeep.deepRep; ipureintro; rfl
+      iunfold storageErrIs at Hse
+      icases Hse with ⟨%p, %hp, #Hp⟩
+      unfold k8sDeep.deepRep
+      iexists p, GoInterface.nil
+      iframe Hp
+      isplitr
+      · ipureintro; exact hp
+      unfold k8sDeep.deepRep; ipureintro; rfl
+    ipureintro
+    simp [k8s_correctness.RawRel, plainOut, errOutL]
+  · subst Hy
+    iright
+    unfold k8s_correctness.rawOk
+    iexists ⟨.nil, .deep (.storageErr (W64 4) k (W64 0) (.errString m))⟩
+    isplitl
+    · unfold k8s_correctness.respRep k8s_correctness.rawResp k8s_correctness.errRep
+        k8s_correctness.deepRO
+      simp only [hro, hre]
+      isplitr
+      · unfold k8sDeep.deepRep; ipureintro; rfl
+      iunfold invalidErrMsg at Hse
+      icases Hse with ⟨%l, %xl, %hl, #Hl, #Hx⟩
+      unfold k8sDeep.deepRep
+      iexists l, interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xl
+      isplitr
+      · ipureintro; exact hl
+      isplitr
+      · iexact Hl
+      unfold k8sDeep.deepRep
+      iexists xl
+      iframe Hx
+      ipureintro; rfl
+    ipureintro
+    simp [k8s_correctness.RawRel, plainOut, invalidOutL]
+  · subst Hy
+    iright
+    unfold k8s_correctness.rawOk
+    iexists ⟨.nil, .tooLarge false⟩
+    isplitl
+    · unfold k8s_correctness.respRep k8s_correctness.rawResp
+      simp only [hro, hre]
+      isplitr
+      · unfold k8s_correctness.deepRO k8sDeep.deepRep; ipureintro; rfl
+      iapply k8s_correctness.errRep_tooLarge_of_is $$ Ht
+    ipureintro
+    simp [k8s_correctness.RawRel, plainOut, tooLargeL, errOutL, k8s_correctness.tooLargeE]
+  · subst Hy
+    have he := hy3 (by simp [rejectedL, errOutL])
+    iright
+    icases Hi with ⟨-, -, -, ⟨%lD, #HD', -, #CD⟩, ⟨%lU, #HU', -, #CU⟩⟩
+    unfold k8s_correctness.rawOk
+    by_cases h1 : x.Kind' = W64 1
+    · rw [if_pos h1] at he
+      subst he
+      icombine HD HD' gives %Heq
+      subst Heq
+      iexists ⟨.nil, k8s_correctness.delRejE⟩
+      isplitl
+      · unfold k8s_correctness.respRep k8s_correctness.rawResp
+        simp only [hro, hre]
+        isplitr
+        · unfold k8s_correctness.deepRO k8sDeep.deepRep; ipureintro; rfl
+        unfold k8s_correctness.errRep k8s_correctness.delRejE k8s_correctness.deepRO k8sDeep.deepRep
+        iexists lD
+        iframe CD
+        ipureintro; rfl
+      ipureintro
+      simp [k8s_correctness.RawRel, plainOut, rejectedL, errOutL, h1]
+    · rw [if_neg h1] at he
+      subst he
+      icombine HU HU' gives %Heq
+      subst Heq
+      iexists ⟨.nil, k8s_correctness.updRejE⟩
+      isplitl
+      · unfold k8s_correctness.respRep k8s_correctness.rawResp
+        simp only [hro, hre]
+        isplitr
+        · unfold k8s_correctness.deepRO k8sDeep.deepRep; ipureintro; rfl
+        unfold k8s_correctness.errRep k8s_correctness.updRejE k8s_correctness.deepRO k8sDeep.deepRep
+        iexists lU
+        iframe CU
+        ipureintro; rfl
+      ipureintro
+      simp [k8s_correctness.RawRel, plainOut, rejectedL, errOutL, h1]
+      exact fun h => absurd h h1
+  · ileft; ipureintro; exact Hy
+
+/-- **A list answer's output and its `Raw`** (`lo.Raw = Raw{Object: l}`): the list's items are the
+store's, short (`kListL_vals`), so `encodeItems` reads them back (`itemOk`). -/
+private theorem rawRel_list (x : Input) (h4 : x.Kind' = W64 4) (a : ListModel.LState w8 (DObj × Nat))
+    (ha : ∀ p ∈ a.items, p.1.val.length ≤ 2 ^ 20) (vs : List Obj)
+    (hf : List.Forall₂ itemRelD (a.items.reverse.map fun p => (p.1, rvStr (W64 (p.2 : Int)))) vs)
+    (rv : w64) (cont : GoString) (rem : Option w64)
+ :
+    k8s_correctness.RawRel x (listObjOutL vs rv cont rem) ⟨.list (some vs) rv cont rem, .none⟩ := by
+  have hv := forall2_itemRelD _ _ hf
+  subst hv
+  unfold k8s_correctness.RawRel
+  simp only [listObjOutL, if_pos h4, ↓reduceIte]
+  refine ⟨_, ?_, rfl, ?_⟩
+  · intro o ho
+    simp only [List.mem_map, List.mem_reverse] at ho
+    obtain ⟨p, hp, rfl⟩ := ho
+    exact itemOk_toObj _ _ (ha p hp)
+  · cases rem <;> rfl
+
+/-- **A list's output and its `Raw`** (`lo.Raw = Raw{Object: l}`): the list read-only (`listOut`'s post). -/
+private theorem rawOk_list (x : Input) (h4 : x.Kind' = W64 4) (pl : Loc)
+    (a : ListModel.LState w8 (DObj × Nat)) (ha : ∀ p ∈ a.items, p.1.val.length ≤ 2 ^ 20) (vs : List Obj)
+    (hf : List.Forall₂ itemRelD (a.items.reverse.map fun p => (p.1, rvStr (W64 (p.2 : Int)))) vs)
+    (rv : w64) (cont : GoString) (rem : Option w64) (y : Output) :
+    (⌜plainOut y = listObjOutL vs rv cont rem ∧ y.Raw'.Object' = interface.mkOk (go.GoType.PointerType
+        github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList.ty) #pl ∧ y.Raw'.Err' = GoInterface.nil⌝ ∗
+      k8sDeep.deepRep DFrac.discard (interface.mkOk (go.GoType.PointerType
+        github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList.ty) #pl) (.list (some vs) rv cont rem) :
+      IProp GF) ⊢ k8s_correctness.rawOk x y := by
+  iintro ⟨%hh, #Hd⟩
+  obtain ⟨hy, hro, hre⟩ := hh
+  unfold k8s_correctness.rawOk
+  iexists ⟨.list (some vs) rv cont rem, .none⟩
+  isplitl
+  · unfold k8s_correctness.respRep k8s_correctness.rawResp k8s_correctness.errRep
+      k8s_correctness.deepRO
+    simp only [hro, hre]
+    isplitl
+    · iexact Hd
+    iclear Hd
+    unfold k8sDeep.deepRep; ipureintro; rfl
+  ipureintro
+  rw [hy]
+  exact rawRel_list x h4 a ha vs hf rv cont rem
+
+/-- `errOut`'s outputs have no `Raw`. -/
+private theorem errIs_raw (err : GoInterface) (y : Output) :
+    errIs (GF := GF) err y ⊢ ⌜y.Raw' = zeroValDef⌝ := by
+  iintro He
+  iunfold errIs at He
+  icases He with (⟨%k, %rv, -, %Hy⟩ | ⟨%k, %rv, -, %Hy⟩ | ⟨%k, %m, -, %Hy⟩ | ⟨-, %Hy⟩ | ⟨-, %Hy⟩ |
+    ⟨%Hy, -⟩) <;> ipureintro <;> subst Hy <;> rfl
+
+/-- An output with a zero `Raw`, its `Raw` set, has it as its plain value. -/
+private theorem plainOut_setRaw (y : Output) (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw)
+    (h : y.Raw' = zeroValDef) : plainOut { y with Raw' := r } = y := by
+  cases y; simp only at h; subst h; rfl
+
+/-- **An object's output and its `Raw`** (`o.Raw = Raw{Object: out}`): the object read-only. -/
+private theorem rawOk_obj (x : Input) (h4 : ¬x.Kind' = W64 4) (p : Loc) (o : Obj)
+    (ha : o.Annotated' = false) (y : Output) :
+    (⌜plainOut y = objOutL o ∧ y.Raw'.Object' = interface.mkOk (go.GoType.PointerType objTyD) #p ∧
+      y.Raw'.Err' = GoInterface.nil⌝ ∗ p ↦□ o : IProp GF) ⊢ k8s_correctness.rawOk x y := by
+  iintro ⟨%hh, #Hp⟩
+  obtain ⟨hy, hro, hre⟩ := hh
+  unfold k8s_correctness.rawOk
+  iexists ⟨.obj o, .none⟩
+  isplitl
+  · unfold k8s_correctness.respRep k8s_correctness.rawResp k8s_correctness.errRep
+      k8s_correctness.deepRO
+    simp only [hro, hre]
+    isplitl
+    · unfold k8sDeep.deepRep
+      iexists p
+      iframe Hp
+      ipureintro; rfl
+    unfold k8sDeep.deepRep; ipureintro; rfl
+  ipureintro
+  rw [hy]
+  unfold k8s_correctness.RawRel
+  simp only [objOutL, if_neg h4, ↓reduceIte]
+  cases o; simp only at ha; subst ha; rfl
+
+/-- **`call`'s post from the answer's facts**: `HQ`'s plain output (`EOther`'s, or the model's at a
+state) and the `Raw`'s (`rawOk`, unless `EOther`). -/
+private theorem call_post (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (y y' : Output)
+    (A : KVState → IProp GF) :
+    ⌜plainOut y' = y⌝ ∗ (⌜y = otherL⌝ ∨ ∃ σ, A σ ∗ ⌜y = callOut c eD eU x σ⌝) ∗
+      (⌜y = otherL⌝ ∨ k8s_correctness.rawOk x y') ⊢
+      ⌜plainOut y' = otherL⌝ ∨ ∃ σ, A σ ∗ ⌜plainOut y' = callOut c eD eU x σ⌝ ∗
+        k8s_correctness.rawOk x y' := by
+  iintro ⟨%hpl, HQ, Hr⟩
+  rw [hpl]
+  icases HQ with (%h | ⟨%σ, HA, %h⟩)
+  · ileft; ipureintro; exact h
+  icases Hr with (%h' | #Hr)
+  · ileft; ipureintro; exact h'
+  iright; iexists σ; iframe HA Hr; ipureintro; exact h
 
 /-- The background context is never done (its `Done` returns `nil`). -/
 private theorem background_neverDone :
@@ -328,7 +624,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     ihave #Hk8bg : k8sctx.k8sCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal $$ []
     · iapply k8sctx.k8sCtxOk_background; iPkgInit
     wp_apply (wp_GetList DObj sp c driverListSpec context.backgroundCtxVal cd x.ListKey' (listOptsV x)
-        _ 0 [] none k n (selD x) (predEmptyL x) QL PL hQL hQLP hnr) $$ [Hlist Htt HQm] as %err0 ⟨Htt, Hres⟩
+        _ 0 [] none k n (selD x) (predEmptyL x) QL PL
+        (fun R σ => (hQL R σ).trans (by iintro %h; ipureintro; exact ⟨h.1, h.2.1, h.2.2.1⟩)) hQLP hnr) $$ [Hlist Htt HQm] as %err0 ⟨Htt, Hres⟩
     · rw [hc]
       iframe #
       iframe Htt Hlist HQm
@@ -384,6 +681,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         list_tl
       · isimp only [if_neg hlt] at Hr
         icases Hr with ⟨%he, Hl⟩
+        have hst : ∃ r ≤ σ.rev, σ.store = σ.at r := ⟨σ.rev, Nat.le_refl _, rfl⟩
         list_ok
         simp only [if_pos hR0]
         exact listObjOut_eq x _ k hk _ vs hf
@@ -395,6 +693,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         list_tl
       · isimp only [if_neg hlt] at Hr
         icases Hr with ⟨%he, Hl⟩
+        have hst : ∃ r ≤ σ.rev, σ.at (uint.nat n) = σ.at r := ⟨_, by omega, rfl⟩
         list_ok
         simp only [if_neg hR0]
         rw [hRn hR0]
@@ -441,10 +740,12 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       rw [hpp]
       iexact Hpre
     -- the answer, as an error `errOut` places or the object `out` points to
-    ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y) ∨
+    ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y ∗
+          ⌜y.Err' = W64 3 → err0 = if x.Kind' = W64 1 then eD else eU⌝) ∨
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
-            interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y⌝ ∗ p ↦ o)) ∗
+            interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y ∧
+            o.Annotated' = false⌝ ∗ p ↦ o)) ∗
         (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then
           iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
           else callAt x Φu Q σ) ∗ ⌜y = callOut c eD eU x σ⌝) : IProp GF)
@@ -457,11 +758,12 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         isplitl [Hy]
         · ileft
           iframe Hy
-          ipureintro; exact Hne
+          ipureintro; exact ⟨Hne, fun h => absurd h (by simp [otherL, errOutL])⟩
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
           ((c.abs σ).create (E := Empty) (c.pathPrefix ++ storeKeyL x.Key') (mkObj x) 0).2 err0 _
-          eD eU (create_noOdd _ _ _) (fun e _ _ _ => nomatch e) $$ [HD HU Hr]
+          eD eU (create_noOdd _ _ _) (fun e _ _ _ => nomatch e)
+          (if x.Kind' = W64 1 then eD else eU) (fun e _ _ _ => nomatch e) $$ [HD HU Hr]
         · iframe Hpkg HD HU Hr
         iexists _
         iframe Hy
@@ -469,7 +771,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         iexists σ
         rw [if_neg h4]
         unfold callAt
-        simp only [h0, true_or, ↓reduceIte]
+        simp only [h0, _root_.true_or, ↓reduceIte]
         iframe HΦ1
         ipureintro
         simp [callOut, h4, kStep, h0, hpp]
@@ -509,10 +811,12 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       rw [hpp, hc, show (driverSpec (GF := GF)).preF (kpreOf x) = preD x from rfl]
       iexact Haus
     iunfold delOut at Hres
-    ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y) ∨
+    ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y ∗
+          ⌜y.Err' = W64 3 → err0 = if x.Kind' = W64 1 then eD else eU⌝) ∨
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
-            interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y⌝ ∗ p ↦ o)) ∗
+            interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y ∧
+            o.Annotated' = false⌝ ∗ p ↦ o)) ∗
         (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then
           iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
           else callAt x Φu Q σ) ∗ ⌜y = callOut c eD eU x σ⌝) : IProp GF)
@@ -525,12 +829,15 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         isplitl [Hy]
         · ileft
           iframe Hy
-          ipureintro; exact Hne
+          ipureintro; exact ⟨Hne, fun h => absurd h (by simp [otherL, errOutL])⟩
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
           ((c.abs σ).delete (c.pathPrefix ++ storeKeyL x.Key') (c.S.preF (kpreOf x))
             (rejD eD x.HasReject' x.Reject')).2 err0 _ eD eU (delete_noOdd _ _ _ _ _ _)
           (fun e e' h he => Or.inl ((show e' = e from he).trans (delete_user _ _ _ _ _ _ _ h)))
+          (if x.Kind' = W64 1 then eD else eU)
+          (fun e e' h he => by
+            rw [if_pos h1]; exact (show e' = e from he).trans (delete_user _ _ _ _ _ _ _ h))
           $$ [HD HU Hr]
         · iframe Hpkg HD HU Hr
         iexists _
@@ -636,10 +943,12 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       iexact Haus
     iunfold updOut at Hres
     rw [hz0] at *
-    ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y) ∨
+    ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y ∗
+          ⌜y.Err' = W64 3 → err0 = if x.Kind' = W64 1 then eD else eU⌝) ∨
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
-            interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y⌝ ∗ p ↦ o)) ∗
+            interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y ∧
+            o.Annotated' = false⌝ ∗ p ↦ o)) ∗
         (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then
           iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
           else callAt x Φu Q σ) ∗ ⌜y = callOut c eD eU x σ⌝) : IProp GF)
@@ -652,12 +961,15 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         isplitl [Hy]
         · ileft
           iframe Hy
-          ipureintro; exact Hne
+          ipureintro; exact ⟨Hne, fun h => absurd h (by simp [otherL, errOutL])⟩
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
           ((c.abs σ).update (c.pathPrefix ++ storeKeyL x.Key') x.IgnoreNotFound' dzero
             (c.S.preF (kpreOf x)) (updD eU x)).2 err0 _ eD eU (update_noOdd _ _ _ _ _ _)
           (fun e e' h he => Or.inr ((show e' = e from he).trans (update_user _ _ _ _ _ _ _ h)))
+          (if x.Kind' = W64 1 then eD else eU)
+          (fun e e' h he => by
+            rw [if_neg h1]; exact (show e' = e from he).trans (update_user _ _ _ _ _ _ _ h))
           $$ [HD HU Hr]
         · iframe Hpkg HD HU Hr
         iexists _
@@ -692,10 +1004,12 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · iframe #
       iframe Hout Hpre
       ipureintro; exact ⟨hkey, hkl, hparse⟩
-    ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y) ∨
+    ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y ∗
+          ⌜y.Err' = W64 3 → err0 = if x.Kind' = W64 1 then eD else eU⌝) ∨
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
-            interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y⌝ ∗ p ↦ o)) ∗
+            interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = y ∧
+            o.Annotated' = false⌝ ∗ p ↦ o)) ∗
         (⌜y = otherL⌝ ∨ ∃ σ, (if x.Kind' = W64 4 then
           iprop(∃ R : w64, □ QL R σ ∗ ⌜y = tooLargeL ∨ R = W64 (σ.rev : Int)⌝)
           else callAt x Φu Q σ) ∗ ⌜y = callOut c eD eU x σ⌝) : IProp GF)
@@ -708,12 +1022,13 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         isplitl [Hy]
         · ileft
           iframe Hy
-          ipureintro; exact Hne
+          ipureintro; exact ⟨Hne, fun h => absurd h (by simp [otherL, errOutL])⟩
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
           ((c.abs σ).get (E := Empty) (c.pathPrefix ++ storeKeyL x.Key') (uint.nat (minOf x))
             x.IgnoreNotFound') err0 _
-          eD eU (get_noOdd _ _ _ _) (fun e _ _ _ => nomatch e) $$ [HD HU Hr]
+          eD eU (get_noOdd _ _ _ _) (fun e _ _ _ => nomatch e)
+          (if x.Kind' = W64 1 then eD else eU) (fun e _ _ _ => nomatch e) $$ [HD HU Hr]
         · iframe Hpkg HD HU Hr
         iexists _
         iframe Hy

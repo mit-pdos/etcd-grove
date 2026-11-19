@@ -357,7 +357,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
   have hQp : ∀ (R m : w64) (σ : KVState), (fun _ _ => plainQ c) R m σ ⊢ (⌜kvWf c σ⌝ : IProp GF) :=
     fun _ _ σ => by iintro %h; ipureintro; exact h.1
   have hQL0 : ∀ (R : w64) (σ : KVState), (fun (_ : w64) σ => plainL (GF := GF) c γ σ) R σ ⊢
-      ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝ := fun _ σ => plainL_pure c γ σ
+      ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ valsOk σ⌝ := fun _ σ => plainL_pure c γ σ
   have hQLP0 : ∀ (R : w64) (σ σ' : KVState), (fun (_ : w64) σ => plainL (GF := GF) c γ σ) R σ ∗
       listP σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝ := fun _ σ σ' => plainLP_pure c γ σ σ'
   by_cases Hok : xs.head? = some (W64 4)
@@ -367,7 +367,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       have hw : isWriteL x = true := by simp only [isWriteL, h0]; decide
       have h4k : ¬ x.Kind' = W64 4 := by rw [h0]; decide
       iapply fupd_wp
-      imod (write_err_commit γ c g0 s0.γr.kv x hx hw Φt) $$ [HU] with ⟨%n, HΦc, Htok⟩
+      imod (write_err_commit γ c g0 s0.γr.kv x hx Hgen.2.2.1 hw Φt) $$ [HU] with ⟨%n, HΦc, Htok⟩
       · iframe Hinv HU
       imodintro
       have hau := client.bigAndL_of_sep c.ms (pendTok γ n x)
@@ -404,7 +404,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       have hw : isWriteL x = true := by simp only [isWriteL, h1]; decide
       have h4k : ¬ x.Kind' = W64 4 := by rw [h1]; decide
       iapply fupd_wp
-      imod (write_err_commit γ c g0 s0.γr.kv x hx hw Φt) $$ [HU] with ⟨%n, HΦc, Htok⟩
+      imod (write_err_commit γ c g0 s0.γr.kv x hx Hgen.2.2.1 hw Φt) $$ [HU] with ⟨%n, HΦc, Htok⟩
       · iframe Hinv HU
       imodintro
       have hstep : ∀ ks, delStep (mkeyL x.Key') (preD x) (rejD (sentV lD) x.HasReject' x.Reject') ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
@@ -437,7 +437,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       have hw : isWriteL x = true := by simp only [isWriteL, h2]; decide
       have h4k : ¬ x.Kind' = W64 4 := by rw [h2]; decide
       iapply fupd_wp
-      imod (write_err_commit γ c g0 s0.γr.kv x hx hw Φt) $$ [HU] with ⟨%n, HΦc, Htok⟩
+      imod (write_err_commit γ c g0 s0.γr.kv x hx Hgen.2.2.1 hw Φt) $$ [HU] with ⟨%n, HΦc, Htok⟩
       · iframe Hinv HU
       imodintro
       have hstep : ∀ ks, updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD (sentV lU) x) ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
@@ -544,7 +544,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φt ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2)))
         (fun sv _ => by
           iintro ⟨HU', #Hi⟩
-          iapply create_au γ c hcd g0 sv.γr.kv (sentV lD) (sentV lU) x hx h0 Φt
+          iapply create_au γ c hcd g0 sv.γr.kv (sentV lD) (sentV lU) x hx Hgen.2.2.1 h0 Φt
           iframe HU' Hi)
       ihave Hau := hau $$ [HU]
       · iframe Hinvs HU
@@ -588,7 +588,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave Haus := Haus $$ []
       · imodintro
         iintro %k %sv %_ #Hi
-        iapply rw_au γ c hcd g0 sv.γr.kv (sentV lD) (sentV lU) x hx (Or.inl h1) _ hstep γt Φt
+        iapply rw_au γ c hcd g0 sv.γr.kv (sentV lD) (sentV lU) x hx Hgen.2.2.1 (Or.inl h1) _ hstep γt Φt
         iframe Hi Hc
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (dghostVar γt (DFrac.own 1) ())
           (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φt ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2))
@@ -630,7 +630,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave Haus := Haus $$ []
       · imodintro
         iintro %k %sv %_ #Hi
-        iapply rw_au γ c hcd g0 sv.γr.kv (sentV lD) (sentV lU) x hx (Or.inr h2) _ hstep γt Φt
+        iapply rw_au γ c hcd g0 sv.γr.kv (sentV lD) (sentV lU) x hx Hgen.2.2.1 (Or.inr h2) _ hstep γt Φt
         iframe Hi Hc
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (dghostVar γt (DFrac.own 1) ())
           (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φt ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2))
@@ -676,7 +676,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iframe Hlc1 Hγc HU
       ihave #Hc : getCall γ c g0 (sentV lD) (sentV lU) γc γt γp x Φt $$ []
       · iunfold getCall; iexact Hci
-      ihave Hmk := get_maker γ c hcd g0 c.ms (sentV lD) (sentV lU) γc γt γp x hx h3 Φt $$ [Hγp]
+      ihave Hmk := get_maker γ c hcd g0 c.ms (sentV lD) (sentV lU) γc γt γp x hx Hgen.2.2.1 h3 Φt $$ [Hγp]
       · iframe Hinvs Hc Hγp
       have hQr : ∀ (R m : w64) (σ : KVState),
           (fun (R : w64) (_ : w64) σ => readQ c γc R σ) R m σ ⊢ (⌜kvWf c σ⌝ : IProp GF) := by
