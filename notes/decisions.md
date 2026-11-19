@@ -40799,6 +40799,15 @@ cluster or member start (`cluster3.StartMember`) composes the started server's s
 calls, and only its `MainLinked`/`Link` imports it. Taking each served theorem as a law would move
 the composition into a hypothesis without making the proof any less a composition.
 
+**defs->proof** (branch `tiers3/defs`): a lemma or definition a defs module needed from a proof file
+moved, unchanged, to a `<F>Lemmas`/`<F>Defs` module beside it; a defs module that applies a
+`wp_proof` itself and that only linking modules import is listed as linking (bbolt's freelist
+contracts, `FreepagesLink`, wal `ImportCheck`/`RaftModel.Laws`, RaftTla `TracedConfChangeHook`).
+Left: the generated `Init.lean`s (each `wp_initialize'` applies its callees' `wp_proof`s, and specs
+import Init for the package facts: a gen-init split into a facts module and an initializer proof
+would fix them), and a few defs lemmas that apply a `wp_proof` (bbolt `Write/CreateBktWp`, `PutWp`,
+auth `TokenKeeperRun`, `SnapRecvFacts`), which only a statement change fixes.
+
 **Checked:** every exported result (`Link`/`Results`/`MainLinked` root) has the same statement; every
 declaration reachable from the roots has the same type and value hash except the changed `wp_proof`s
 (and helpers) and the new laws; `etc/tcb-report.py --check` and every collection unchanged.
