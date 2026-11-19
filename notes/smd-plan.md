@@ -954,3 +954,6 @@ the Prove phase's. To do before the walkers' proofs.
   `isMapRep_nonnull` was not derivable); `freshAtom_map.law` takes `a.Map' ≠ null` (only caller: the
   driver's `newSchema`, discharged from the literal's points-to). Makes `Atom.Equals`/`Map.Equals`
   provable (agent A, d6005ea076).
+- Tooling hazard (agent A): `etc/lean-check.py -a` reported 0 errors on a `first | … | skip` proof
+  that `lake build` rejects; every proof is confirmed by `lake build` and `#print axioms` before it
+  counts as proved.

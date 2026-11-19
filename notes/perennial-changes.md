@@ -2941,3 +2941,11 @@ parameter.
 - **Proposed change.** A general `ownSliceCap`/`↦*` lemma for `s[:k]` (`k ≤ len s`): the prefix's
   points-to and capacity from the slice's, the dropped cells absorbed into the capacity. Status: not
   proposed (found by the SMD Draft's integration, 2026-11-19).
+
+## `sync.init_Once` takes an unused `[sync.Assumptions]` (2026-11-19, smd)
+
+`sync.init_Once` picks up `[sync.Assumptions]` from its section's variables though its proof never
+uses it, so a law module with no such instance in scope cannot apply it. Worked around locally in
+`Proof/sigs_k8s_io/structured_merge_diff/v7/LawProofs.lean` (`LawProofs.init_Once'`, the same
+statement without the instance). Fix in Perennial: `omit [sync.Assumptions] in` (or `include` only
+where used) on `init_Once`.
