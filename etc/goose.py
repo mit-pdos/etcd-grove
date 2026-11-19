@@ -549,6 +549,9 @@ PROJECTS = [
             "google.golang.org/grpc/health",
             "google.golang.org/grpc/health/grpc_health_v1",
             "google.golang.org/grpc/reflection",
+            # types and names only: grpc's stats handler interface, the type of otelgrpc's
+            # `NewServerHandler`'s result (so that an implementation can return one: etcd-refimpl)
+            "google.golang.org/grpc/stats",
             # (and go.uber.org/zap, above)
             # names only: the types of rafthttp.Transport's fields, so that its struct is
             # translated (NewServer builds one; unit N4, 2026-10-17)

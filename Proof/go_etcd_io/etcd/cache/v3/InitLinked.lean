@@ -123,7 +123,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   isplitr
   · iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")
     iexact MUR
-  · ipureintro; fmt_method_none
+  · ipureintro; fmt_method_facts
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

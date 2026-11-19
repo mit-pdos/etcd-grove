@@ -8,7 +8,7 @@ counterpart); the vocabulary is `Proof/.../snap/Defs.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
-public import Spec.fmt.Errorf
+public import Spec.fmt.ErrorOk
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
@@ -33,7 +33,9 @@ an error `fmt` can format, the directory's read having failed (`¬ dirReadOk ss`
 epochs, S8d, 2026-10-24; with the file there, `ErrNoDBSnapshot` is not returned). (wal-link,
 2026-11-19, approved by the user via etcd-grove-03: over the directory `sd` of the snapshotter's
 `dir` field, `isSnapshotter ss sd`; until then over the opaque `snapDBPath ss`,
-`notes/snapdir-crossworld.md`.) -/
+`notes/snapdir-crossworld.md`.) The error is
+`fmtErrorOk` (fmt soundness 2, 2026-11-18: until then `fmt.argOk`, which no longer says it has
+`Error() string`, what `Errorf`'s `%w` of it needs). -/
 abbrev snap.Snapshotter.DBFilePath.spec : Prop :=
   ∀ (ss : Loc) (sd : GoString) (id : w64) (D : backend.Data),
   {{ isSnapshotter (GF := GF) ss sd ∗ backend.fileAt (snapDBPath sd id) D }}
@@ -43,7 +45,7 @@ abbrev snap.Snapshotter.DBFilePath.spec : Prop :=
   {{ (p : GoString) (err : GoInterface), RET (PairV #p #err);
       backend.fileAt (snapDBPath sd id) D ∗
       (⌜err = GoInterface.nil ∧ p = snapDBPath sd id⌝ ∨
-        (⌜err ≠ GoInterface.nil ∧ ¬ dirReadOk ss⌝ ∗ fmt.argOk err)) }}
+        (⌜err ≠ GoInterface.nil ∧ ¬ dirReadOk ss⌝ ∗ fmtErrorOk err)) }}
 
 end spec
 
