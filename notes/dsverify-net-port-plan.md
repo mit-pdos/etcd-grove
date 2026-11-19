@@ -77,9 +77,11 @@ extension and their scripts as a standalone Lake package, with a leak check fail
 module, path or name, run in `etc/gates.sh`). The home stays here.
 
 **Q4. No restart in the kits' statement.** Most kits keep no durable state, so they are not safe
-under crash *and restart*: `SafeDist` over the net extension with `goose_dist_adequacy`, as today;
+under crash *and restart*: their statement has no crashing machine, over `goose_dist_adequacy`;
 a process's death without restart is already a cut for its peers (D10/D11). Crash-restart
-statements (`goose_dist_crash_adequacy`, later `Robust`) only for kits with durable state.
+statements (`goose_dist_crash_adequacy`) only for kits with durable state. (The statement itself is
+`Robust [] nodes g bound`, this repository's, not the lab's `SafeDist`: the user's decision,
+2026-11-19; phase 4.)
 
 **Q5. Kit proofs port by editing.** The kit-facing vocabulary is kept (phase 4, as a library of
 laws over the canonical `net` specs, not as second specs: revised 2026-11-19) so that each kit's
@@ -242,7 +244,7 @@ counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
 |---|---|
 | `addrProto a P Q`, `addrProtoG` | `addrProto a P Q` (same shape; `cn : Nat`, not `cid : w64`) |
 | `addrTok a`, `addrTokG` (exclusive; `Listen` needs it) | `addrTok a` (persistent); `Listen.spec` needs `ListenAt`: `addrTok_listenAt` with the node's host |
-| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (`SafeDist`'s bridge) |
+| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (the kits' bridge, `robust_of_kitBoot`) |
 | `addr_set_proto` (`==∗`), `addrs_set_proto` | `addr_set_proto`, `addrs_set_proto` (`={E}=∗`, with `regCtx`) |
 | `sendTok`, `recvTok`, `connEnd` | the same; a `Read` gives `recvTokL` (`recvTokL_later`, or a credit) |
 | `connFresh`, `connFresh_excl` | the same (timeless, `⊢ False`) |
@@ -252,7 +254,7 @@ counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
 | `connErr`, `opErr`, `opResult` (codes) | the specs' `resErr`/`ReadErr` (kinds `closed`, `timeout`, `sys`; EOF a `ReadRes`) |
 | `ownTCPConn c cid side` | `connAt t cn s a la ra`/`isConn c cn s a` (`Net/Proof/net/Base.lean`) with `connIs cn` |
 | `ownListener l lid a`, `listening` | `isListener`/`lisAt` with `netLisAt`, and `netLis` (owned) or `lisInv` (shared) |
-| `nodeIp ip` | the node's host in `NodeBootWpAt` (`Net/Statement/SafeDist.lean`) |
+| `nodeIp ip` | the machine's host in `KitBootWp` (`Net/Statement/KitBridge.lean`) |
 | `net.TCPConn.Read.wp_proof` | `net.Conn.Read.wp_proof` + `read_au` |
 | `net.TCPConn.Write.wp_proof` | `net.Conn.Write.wp_proof` + `writeP`, `writeP_init`, `write_acc` |
 | `net.TCPConn.Close.wp_proof` | `net.Conn.Close.wp_proof` + `close_au` |
@@ -264,7 +266,7 @@ counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
 | `net.Listen.wp_proof`, `ListenWild`, `ListenNet` | `net.Listen.wp_proof` (`ListenAt`: an address itself or a wildcard, D21) + `addrTok_listenAt` |
 | `isConnP`, `isListener`, `connEnd_isConnP`, `listening` (no visible use) | `connIs`, `sendTok_connIs` |
 | `ownSlice_take_acc` (`NetLib.lean`, netprobe) | not ported (a slice lemma: Perennial's, or the kit's) |
-| `safeDist_of_wp`, `safeDist_of_bootAt`, `NodeBootWpAt`, `addrs_set_proto` (`SafeDist.lean`) | `Net/Statement/SafeDist.lean`: `safeDist_of_bootAt`, `safeDist_of_proto`, `NodeBootWpAt` |
+| `safeDist_of_wp`, `safeDist_of_bootAt`, `NodeBootWpAt`, `addrs_set_proto` (`SafeDist.lean`) | `Net/Statement/KitBridge.lean`: `robust_of_kitBoot`, `robust_of_kitProto`, `KitBootWp` (the statement `Robust`, below) |
 
 The facts `NetConn` gives and the net extension does not: "a `Dial` succeeds only with an open
 listener" and "a read error only after the bytes are drained". The lab's exported specs do not
@@ -289,15 +291,32 @@ WriteByte,WriteString,Flush,Available,Buffered}` in `Code/bufio.toml`, a regener
 `etc/importers.py --count`); its spec and proof are the lab's `Proof/bufio/Writer.lean` (706 lines)
 over a writer contract like `io.readerStream`.
 
-**The statement** (`Net/Statement/SafeDist.lean`, module `Net.Statement.SafeDist`): `SafeDist nodes
-pl hosts`, the lab's over `netExts`, `PlanWellFormed pl` in place of `NetConfig.WellFormed`, node
-`i` on `hosts[i]`, over `goose_dist_adequacy` (Q4); bridges `safeDist_of_bootAt` (from every plan
-address `addrUnset` and the ghost state's plan) and `safeDist_of_proto` (the library's names made
-first). Not vacuous: `echo_safeDist`
-(`Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/SafeDistLinked.lean`) is the three-node echo
-system as a `SafeDist` (plan `[(SrvAddr, "h")]`, every node on `"h"`), closed, `#print axioms`:
-`propext`, `Classical.choice`, `Quot.sound`; its proof keeps echo's own protocol (`echoInvs`), so the
-bridge serves a program that does not use the library too.
+**The statement: `Robust`** (the user's decision, 2026-11-19: `SafeDist` replaced by this
+repository's `Robust`; `notes/decisions.md`, "The kits' statement is `Robust`"). A kit's theorem is
+
+    KitDeploy plan hosts nodes g → Robust [] nodes g bound
+
+`Robust` (`Robustness/Statement.lean`, unchanged) with every machine in `stable` (none crashes, Q4),
+under the **kit deployment premise** `KitDeploy` (`Net/Statement/KitDeploy.lean`, trusted, generic
+over any extensions with the net extension, no etcd name): the plan is well formed
+(`PlanWellFormed`, D20) and is the network's plan, the network has no connection, machine `i` is
+on `hosts[i]` (its net-extension local state) with no listener. `Robust`'s own premise (each
+machine a fresh Go process, `Fresh`) is not repeated. `Robust` does not state the main thread's
+result (the lab's `SafeDist` did: `#()`); a kit's check is a panic.
+
+The bridge (`Net/Statement/KitBridge.lean`, proved): `distNsteps_of_crash_nil` (with no boot
+program, `DistCrashNsteps []` is `DistNsteps`), so `goose_dist_adequacy` proves `Robust [] …`;
+`robust_of_kitBoot` (from every plan address `addrUnset` and the ghost state's plan, a share per
+machine and its boot WP `KitBootWp`, under any ghost state whose Go context is `Robust`'s `lctx`)
+and `robust_of_kitProto` (the library's names made first). The bridge covers the all-stable case
+only (`notes/robustness.md`, "Next"). Not vacuous: `echo_kit_robust`
+(`Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/RobustLinked.lean`) is the three-node echo
+system in this form (plan `[(SrvAddr, "h")]`, `PlanWellFormed` by `decide`, every machine on `"h"`),
+through `robust_of_kitBoot`, closed, `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`;
+its proof keeps echo's own protocol (`echoInvs`), so the bridge serves a program that does not use
+the library too. (It also follows from `echo_crash_robust` by `Robust.of_all_crashing`: a run with
+no crashing machine is a run in which every machine may crash.) `Net/Statement/SafeDist.lean` and
+`echo_safeDist` (this phase's first statement) are deleted.
 
 **Open, for phase 6:** a kit proof using the library end to end (dsverify's `netprobe` is the
 first client, once its proof is copied here); the bufio laws above.
@@ -480,14 +499,15 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
 
 ### Phase 6: the statement and the kits
 
-- `Net/Statement/SafeDist.lean`: dsverify's `SafeDist` over `netExts` with `PlanWellFormed` (Q4),
-  written in phase 4 (above), and `driver_dist_safe`; the lab's goal template and checks follow (the
-  lab's change).
+- The statement: `KitDeploy plan hosts nodes g → Robust [] nodes g bound` (phase 4, above; the
+  user's decision, 2026-11-19, in place of the lab's `SafeDist`), proved through `robust_of_kitBoot`
+  or `robust_of_kitProto`; the lab's `driver_dist_safe`, goal template and checks follow (the lab's
+  change).
 - The kits' Go (the forks at their pins) and proofs copied into a part `Dsverify/` (modules
   `Dsverify.*`, nothing outside it imports it), ported by editing (Q5), in order of transport:
   paxos-net-3 (raw TCP), vsr-net-1 (JSON), rabia-net-1, epaxos-net-1/2, gryff-net-2 (bufio, net/rpc
-  master), craq-net-2 (net/rpc over http), quepaxa-net-2 (gRPC); each `goal` restated over phase 6's
-  `SafeDist`, `#print axioms` checked, a TCB collection per kit.
+  master), craq-net-2 (net/rpc over http), quepaxa-net-2 (gRPC); each `goal` restated as `KitDeploy … → Robust [] …`,
+  `#print axioms` checked, a TCB collection per kit.
 - The lab's rig traces of the kits checked with this repository's certified conformance checker
   (`examples/net/conform`).
 

@@ -40852,6 +40852,10 @@ and operations table, `Tests.lean` examples, and its transcription in the confor
 
 ## The kits' network vocabulary: a library of laws, not second specs (2026-11-19 · the user's rule, one canonical spec per function · branch `net-kitlib`, on `net-gaps`, pending the user's review)
 
+*Superseded in part (2026-11-19, "The kits' statement is `Robust`", below): "The statement"
+(`SafeDist`) is deleted; the kits' statement is `Robust` with no crashing machine under
+`KitDeploy`.*
+
 **Context.** Phase 4 of `notes/dsverify-net-port-plan.md` was to prove dsverify-lab's Hoare triples of
 `net`'s functions (over its `addrProto`/`sendTok`/`recvTok` vocabulary) over the net extension, so
 that the kits' proofs port by renaming. That would give `net.Dial`, `Conn.Read`, ... a second spec
@@ -40982,3 +40986,44 @@ names root types only.*
   what is trusted and its evidence, and points to the trusted models kept where Perennial's layout
   puts them (`TrustedCode/`, `GooseLang/Ext/*/Impl.lean`). The patches of real packages (gRPC,
   net/http, net/rpc; Q1 of the plan) will live under `models/` too, not `etc/model-patches/`.
+
+## The kits' statement is `Robust` (2026-11-19 · the user's decision · branch `kit-robust`, on `net-kitlib`)
+
+**Context.** Phase 4 (`net-kitlib`, the entry above) restated the lab's `SafeDist` over the net
+extension (`Net/Statement/SafeDist.lean`): a second top-level statement beside this repository's
+`Robust` (`Robustness/Statement.lean`, `notes/robustness.md`), with its own start (`NodeStart`,
+`NetStart`), node structure and conclusion (`Ok`: the main thread returned `#()`).
+
+**Decision (the user's, 2026-11-19).** `SafeDist` is replaced by `Robust`; `SafeDist.lean` and
+echo's `SafeDistLinked.lean` are deleted. A kit's theorem is
+
+    KitDeploy plan hosts nodes g → Robust [] nodes g bound
+
+- **Every kit machine is in `stable`** (no boot program, so no crash and no restart: Q4 of the
+  plan).
+- **The kit deployment premise** `KitDeploy` (`Net/Statement/KitDeploy.lean`, trusted, a neutral
+  module for the export) is data about `g` and the machines' initial local states, in the style of
+  kvnet's `FreshNet`: the plan well formed (`PlanWellFormed`) and the network's plan, no
+  connection, machine `i` on `hosts[i]` (its net-extension local state), no listener. Generic over
+  the extensions (`[HasExt netExt]`), so a kit with files states the same premise. `Robust`'s own
+  premise (`Fresh`: the Go context, no package initialized, one thread) is not repeated. No
+  listener is not needed by the bridge (the start resources would hand any listeners over); it is
+  there because a fresh process has none.
+- **What is lost**: `SafeDist`'s "a finished main thread returned `#()`". Nothing a kit checks: its
+  checks are panics, as every example's (`notes/robustness.md`, "What `Robust` does not say").
+- **The bridge** (`Net/Statement/KitBridge.lean`, proved): `DistCrashNsteps []` is `DistNsteps`
+  (`distNsteps_of_crash_nil`), so `goose_dist_adequacy` gives `Robust [] …`; `robust_of_kitBoot`
+  and `robust_of_kitProto` are `safeDist_of_bootAt`/`safeDist_of_proto` over it. A machine's
+  obligation, `KitBootWp e h P`, quantifies over the ghost state `hG` with the global part `G` and
+  the Go context `lctx` (`Robust`'s), the WP's post `v = #()`: the kit's proof destructs `hG` and
+  substitutes the context so that its `[go.Semantics]` and packages' `Assumptions`, instances over
+  `lctx`, apply (echo's proof does). A first version bound a `GooseLocalGS` and rebuilt the
+  `HeapGS` with `lctx` in a `let`: the bound `L`, itself an instance, was what the WP was
+  elaborated over, so the obligation said nothing of `lctx` (caught by echo's instance not going
+  through).
+- **Only the all-stable case**: a deployment with crashing and stable machines needs an adequacy
+  theorem with boot programs for some nodes only (`notes/robustness.md`, "Next").
+- **Non-vacuity**: `echo_kit_robust` (`Net/…/examples/net/echo/RobustLinked.lean`) through
+  `robust_of_kitBoot`, `#print axioms` Lean's three. It also follows from `echo_crash_robust` by
+  `Robust.of_all_crashing` (a run with no crashing machine is a run in which every machine may
+  crash, `distCrashNsteps_more_boots`); it goes through the bridge to show the bridge applies.
