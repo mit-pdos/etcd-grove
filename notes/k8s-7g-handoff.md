@@ -2,6 +2,47 @@
 
 ## START HERE
 
+**2026-11-19 (night 17; for etcd-grove-03). 03's night-16 decisions recorded (questions.md). Done, each file
+lean-checked `-a` (not `--fast`): `realMS` + `toPorcupineModel` (`b32da0e0a4`), gap 1 (RunLin2's post exports
+`HistOk lops`, same commit), `failureFree` + `orderByLinearization` (`89d6640bf7`), `initialModel` (`01b4e563ac`).
+NO build ran: the queued targeted build sat behind 4 full builds; I cancelled my own queued job so lean-check
+could rebuild imports alone. Next build: `targets-n17.txt` (n16's + the new modules).**
+
+- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`; lean still pins f551 at 23d3bae205,
+  not merged into the branch: merge it, and switch to manifest-3af when lean moves to 3afd77e35). Build:
+  `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-f55.json build $(cat /shared/tmp/k8s7g/targets-n17.txt)`.
+- New vocabulary (`RealMS.lean`): `rexecL_notOther` (the model's answer is never `.other` given keyOk / a list's
+  `listConsL` + `prepareKeyM []` some), `itemsFitL_step`, `stepIn x r` (opPre ∧ crFits ∧ the not-other facts),
+  `okOut`, `boxReq`/`boxResp`/`boxM`, `realMS L init` (rep: `∃ mp, v = boxM mp ∧ itemsFitL m ∗ modelAt mp m`; ioOk: boxes,
+  `decR L (i,o) = some (x,r)`, `stepIn x r`, `reqRep`, `respRep`).
+- NEXT, in order:
+  1. Gap 2 (ioOk facts): `listConsL x` some and `0 < Limit → MinRV ≠ "0"` are NOT derivable from `GenIn` today
+     (genList keeps the input's Match/Limit when MinRV is ""/zero). Proposed form: `GenIn` gains, for a list,
+     `(MinRV = [] → Match = 0) ∧ (Match = 2 → parseRVD MinRV ≠ some 0) ∧ (0 < Limit → MinRV ≠ "0")`; genList's
+     premise `Match = 0 ∧ Limit = 0` (genFrom passes a fresh input); then `k8setcd3S.ioOk` gains `GenInA x`
+     (Apply's `hioOk` has `HgenA`; Model.lean's `⟨rfl, rfl, Hxk, -⟩` absorbs it). The response facts of `stepIn`
+     (flatE, listOrNil, objOrNil) come from `rawOk`/`RawRel`.
+  2. `ReplayPre` lemma: from `stepIn` of every op (`stepIn_stepPre`) and itemsFitL along the replay (`itemsFitL_step`).
+  3. Specs+proofs: `realRequest` (post `reqRep r x ∗ reqPin r x`; calls listOptions, storeKey, splitKey,
+     preconditions, validateFor, tryUpdateFor, cachedObj), `realEvents` (post `evsRO r (realEventsL x rs)`;
+     template `firstBookmark.lean`; needs a sub-slice lemma for `↦*□`), `realCheck` (porcupine over `realMS L init`
+     with `L` from the ops' entries; Illegal refuted via `isLinearization_map` + `realS_isLinearization` + `realM_step`
+     (StepAgree from `reqRep_agree`/`respRep_agree`); then B4 `realReplay_ok`, Validate, NewWatchValidator,
+     ValidateWatch with B5); `Check` (initialModel's premise: distinct store keys from `StOk g0.st`); gen-link
+     (`LAKE_OPTS` needed); timed full build.
+- Pitfalls (new): `RealBridge` and `ErrViews` both declared `rexecL_write_deep` (renamed RealBridge's
+  `rexecL_write_deepV`): RealMS imports both. A `by word` inside a `have` whose statement mentions a
+  section-variable abbrev (`opGood`) gave a KERNEL "application type mismatch" (lean-check without `-a` passes):
+  hoist arithmetic into its own top-level `have`. `wp_start` consumes BOTH packages' `isPkgInit` (names `Hpkg`,
+  `Hpkg2`): pattern only the rest. A leftover `if decide True = true` needs `decide_True_any` (not
+  `decide_true`). `wp_if_destruct` refuses `#y.WFailed'`: `cases hw : y.WFailed'`. In a slice range loop, keep
+  `wp_load_slice_index` (the element is not loaded by wp_auto). `realMS`'s fields: `iunfold realMS at H`, and
+  `rw [show (realMS L init).M = realM L init from rfl]`. `GMap.ofList`'s docstring says later bindings win; the
+  definition keeps the FIRST (Perennial doc bug, candidate).
+
+### Superseded (night 16)
+
+
 **2026-11-19 (night 16; for etcd-grove-03). 03 accepted night 15 (questions.md "Step 5 night 15: decided"; findings
 in k8s-7g-trust.md §7). realCheck's foundations done, lean-checked (`-a`, not `--fast`): closure pins (`5acda50d4c`),
 RealModel + RealAgree (`5569275b5b`), RealAgreeReq (`b989613346`). NO build this night: df 36 GB (< 40) and slots
