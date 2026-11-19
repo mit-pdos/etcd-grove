@@ -13,6 +13,7 @@ The predicates the specs of `correctness/replay.go` and `correctness/watch.go` a
 - `replayAt rp R`: the `*Replay` `rp` holds `R`, frozen (`NewReplay` builds it and nothing writes it
   after): the driver's `NewFunc` and `Versioner`, the states by resource version (each a frozen
   `*Model`, `modelAt`), the changes in order;
+- `listExpOk R x out`: the model's list at a list response's state answers a deep error;
 - `opPre x out`, `stepPre x m out` and `ReplayPre init ops`: an operation's own premises, `Model.Step`'s
   at the state `m`, and `Model.Step`'s along `NewReplay`'s loop (every state the replay reaches, for the
   operation it steps).
@@ -59,6 +60,14 @@ def ReplayPre (init : RM) (ops : List (Input × RResp)) : Prop :=
   ∀ (i : Nat) (acc : RM × GMap w64 RM × List RChange) (op : Input × RResp),
     (ops.take i).foldl replayStepL (some (init, {[init.rv := init]}, [])) = some acc →
     ops[i]? = some op → stepPre op.1 acc.1 op.2
+
+/-- **The model's list at the response's state answers a deep error** (`Replay.validateList`'s
+premise: `equalListResponse` compares the expected response with `reflect.DeepEqual`, whose spec
+covers deep errors only): for a list response at resource version `rv`, the model's own list on
+the replay's state at `rv` is neither too large nor an internal error. -/
+def listExpOk (R : RReplay) (x : Input) (out : RResp) : Prop :=
+  ∀ items rv c r st, out.obj = .list items rv c r → R.states !! rv = some st →
+    deepErrE (rlistL x st).err
 
 end pure
 

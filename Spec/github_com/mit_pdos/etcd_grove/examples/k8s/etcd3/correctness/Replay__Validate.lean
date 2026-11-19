@@ -35,7 +35,7 @@ variable [driver_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumpt
 abbrev Replay.Validate.spec : Prop :=
   ∀ (rp : Loc) (R : RReplay) (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request)
     (ro : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (x : Input) (out : RResp),
-  opPre x out → rvalidateL R x out = true →
+  opPre x out → (x.Kind' = W64 4 → listExpOk R x out) → rvalidateL R x out = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness ∗
       replayAt rp R ∗ reqRep r x ∗ respRep ro out }}
     (App (App (Val #(methods (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay.ty) go!"Validate" #rp))
