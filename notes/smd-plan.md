@@ -827,3 +827,12 @@ standard-library axioms already listed.
 - Freeze: the coordinator tags `smd-stage1-frozen` once the internal drafts and review round 2's
   first-tier findings are repaired; proofs start after the tag. Later spec changes found by proofs
   are made by the coordinator without asking, recorded here.
+- D9 (fieldpath draft, size bounds): Go's `int` counts (`Set.Size`, `slices.Insert`'s length,
+  `make`'s capacity in `EnsureNamedFieldsAreMembers`) need fewer than ~2^63 paths, and a trie
+  sharing children through `Union` can hold exponentially many paths in little memory, so the
+  fieldpath specs take `CardLt` premises. Decided: `Updater.Apply`/`Update` (and the typed API they
+  call) take one workload premise, every input value's size and every managed set's cardinality
+  below a named constant `smdSizeMax` (`@[word_unfold]`, 2^32), from which the inner `CardLt`
+  premises follow (a value's field set is bounded by its size; unions and results stay below a
+  small multiple); the driver discharges it by `decide`. Real Go runs out of memory long before;
+  this is the margin, recorded at the API, not a law of the state (PRINCIPLES "A workload premise").
