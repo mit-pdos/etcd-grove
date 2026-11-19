@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncSuffix
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
 public import GooseLang.Ext.Fs.NamesGhost
 public import GooseLang.Ext.Fs.CrashFiles
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Hex16
 
 @[expose] public section
 
@@ -57,11 +58,7 @@ structure SegG where
   om : OsMeta
   bs : List ByteG
 
-/-- A hex digit, lower case (`%x`). -/
-def hexDigit (n : Nat) : w8 := if n < 10 then BitVec.ofNat 8 (48 + n) else BitVec.ofNat 8 (87 + n)
-
-/-- `%016x` of `n` (`n < 2^64`). -/
-def hex16 (n : Nat) : GoString := ((List.range 16).reverse).map (fun i => hexDigit (n / 16 ^ i % 16))
+-- `hexDigit`, `hex16`: `Hex16.lean`.
 
 /-- **A segment's name** (`walName`, S/util.go: `fmt.Sprintf("%016x-%016x.wal", seq, index)`). -/
 def walFileName (sq ix : Nat) : GoString := hex16 sq ++ go!"-" ++ hex16 ix ++ go!".wal"

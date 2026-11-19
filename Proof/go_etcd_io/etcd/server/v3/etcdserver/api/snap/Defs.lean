@@ -32,6 +32,8 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Golang.Theory
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import Spec.go_uber_org.zap.Defs
+public import Proof.go_etcd_io.etcd.server.v3.config.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Hex16
 
 @[expose] public section
 
@@ -47,23 +49,32 @@ open Iris Iris.BI
 file header). -/
 opaque snapDBPath [GooseExts] (ss : Loc) (i : w64) : GoString
 
-/-- **The path of the database snapshot of index `i` in the data directory `dd`** (opaque; restart
-S6a, approved by the user 2026-11-13 via etcd-grove-81): `<dd>/member/snap/<i as 16 hex
-digits>.snap.db`, a function of `dd` alone. `i` is the snapshot's index (Go's `dbFilePath(id)`
-names it `id`); the member enters only through its data directory `dd`. The bootstrap contracts (`bootOk`, `bootOkR`) say that
-the snapshotter `bootstrap` returns has `snapDBPath ss = snapDBPathOf cfg.DataDir`, so that two
-incarnations of a member over one data directory write their snapshots to the same files. Go:
-`bootstrapSnapshot` returns `snap.New(cfg.Logger, cfg.SnapDir())` (`server/etcdserver/bootstrap.go:252`);
-`SnapDir()` is `filepath.Join(c.MemberDir(), "snap")` and `MemberDir()` is
-`datadir.ToMemberDir(c.DataDir)` (`server/config/config.go:300,309`); `dbFilePath(id)` is
-`filepath.Join(s.dir, fmt.Sprintf("%016x.snap.db", id))` (`server/etcdserver/api/snap/db.go:117-119`),
-and `s.dir` is written only by `New` (`snapshotter.go:34-40`). `filepath.Join` is lexical, so the
-equation is about strings; that equal path strings name the same file (no change of working
-directory between incarnations under a relative `DataDir`, no symbolic link or other alias of the
-directory, and a restart under the same `DataDir` string) is the file-system model's assumption that a
-path string names one file, as for `config.backendPathOf` and `backend.bPath`. No law: only the
-equation of the contracts relates it to `snapDBPath`. -/
-opaque snapDBPathOf [GooseExts] (dd : GoString) (i : w64) : GoString
+/-- **The name of the database snapshot of index `i`** (`fmt.Sprintf("%016x.snap.db", id)`,
+`server/etcdserver/api/snap/db.go:118`; wal-link, 2026-11-19). -/
+def snapDBName (i : w64) : GoString := WalFs.hex16 (uint.nat i) ++ go!".snap.db"
+
+/-- **The path of the database snapshot of index `i` in the data directory `dd`** (restart
+S6a, approved by the user 2026-11-13 via etcd-grove-81; wal-link, 2026-11-19, decided by
+etcd-grove-03, option B1: a definition, until then opaque): `<dd>/member/snap/<i as 16 hex
+digits>.snap.db`, the name `snapDBName i` in the snapshot directory `config.snapDirOf dd` (the
+backend's file, `config.backendPathOf dd`, is the name `db` there), a function of `dd` alone. `i` is
+the snapshot's index (Go's `dbFilePath(id)` names it `id`); the member enters only through its data
+directory `dd`. The bootstrap contracts (`bootOk`, `bootOkR`) say that the snapshotter `bootstrap`
+returns has `snapDBPath ss = snapDBPathOf cfg.DataDir`, so that two incarnations of a member over one
+data directory write their snapshots to the same files. Go: `bootstrapSnapshot` returns
+`snap.New(cfg.Logger, cfg.SnapDir())` (`server/etcdserver/bootstrap.go:252`); `SnapDir()` is
+`filepath.Join(c.MemberDir(), "snap")` and `MemberDir()` is `datadir.ToMemberDir(c.DataDir)`
+(`server/config/config.go:300,309`); `dbFilePath(id)` is `filepath.Join(s.dir,
+fmt.Sprintf("%016x.snap.db", id))` (`server/etcdserver/api/snap/db.go:117-119`), and `s.dir` is
+written only by `New` (`snapshotter.go:34-40`). `filepath.Join` is lexical and cleans; `s.dir` is
+already clean and does not end in `/` (it ends in `snap`), and the name is clean, so the join is
+`s.dir ++ "/" ++ name` (the Go test `examples/etcd/snappaths/snappaths_test.go`). The equation is
+about strings; that equal path strings name the same file (no change of working directory between
+incarnations under a relative `DataDir`, no symbolic link or other alias of the directory, and a
+restart under the same `DataDir` string) is the file-system model's assumption that a path string
+names one file, as for `config.backendPathOf` and `backend.bPath`. -/
+def snapDBPathOf [GooseExts] (dd : GoString) (i : w64) : GoString :=
+  config.snapDirOf dd ++ slashB :: snapDBName i
 
 /-- The address of the snapshotter `ss`'s logger field (`s.lg`; `snap.Snapshotter` is an
 axiomatized type, so the field is named, not modeled). -/

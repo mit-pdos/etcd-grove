@@ -117,7 +117,7 @@ theorem osNames_keys_ne [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (j j' : In
 /-- See the file header. -/
 theorem os.Rename.wp_proof [os.Assumptions] :
     os.Rename.spec (GF := GF) (hG := hG) := by
-  intro src dst D γ
+  intro src dst D γ hpar
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.fileAt, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
@@ -132,15 +132,21 @@ theorem os.Rename.wp_proof [os.Assumptions] :
     icases Hd with ⟨%R', %d', %bt, %dq', %j', %qc', %hh, %hp', -, #Hsh', Hp', Hcp', Hn'⟩
     obtain ⟨rfl, hbs, hi⟩ := hp
     obtain ⟨rfl, hbt, hi'⟩ := hp'
+    -- (B1) one directory: the two spines are of `d`, whose spine puts both names in one root
+    have hdd : d = d' := by
+      rw [Fs.parentOf_child' _ _ hbs, Fs.parentOf_child' _ _ hbt] at hpar
+      exact Option.some.inj hpar
+    subst hdd
     icases osNames_keys_ne j j' bs bt h hh $$ [Hn Hn'] with ⟨%hkey, Hn, Hn'⟩
     · iframe Hn Hn'
     -- the two invariants' roots, at the call's first step
     iapply Fs.wp_osSharedAgree (L := hG.goose_localGS) R R' _ rfl CoPset.subseteq_top Φ $$ Hsh Hsh'
     iintro %hR
     subst hR
-    wp_apply (h' Sio hpath d bs d' bt j j' i (.only [bs]) (.only [bt]) R dq dq' h hh qc hbs hbt
+    icases Fs.osPathS_sameRoot R d bs bt _ j $$ Hp with ⟨Hp, %hsr⟩
+    wp_apply (h' Sio hpath d bs d bt j j' i (.only [bs]) (.only [bt]) R dq dq' h hh qc hbs hbt
       (by simp [Fs.NameSet.Mem]) (by simp [Fs.NameSet.Mem]) hkey hi
-      (fun J hJ => by rw [hi'] at hJ; cases hJ))
+      (fun J hJ => by rw [hi'] at hJ; cases hJ) hsr)
       $$ [$Hinv $Hsh $Hp $Hp' $Hcp $Hn $Hn'] as ⟨Hp, Hp', Hcp, %h1, %h2, %hc, Hn1, Hn2⟩
     iapply HΦ
     isplitr
@@ -148,7 +154,7 @@ theorem os.Rename.wp_proof [os.Assumptions] :
     isplitl [Hp' Hcp' Hn2 Hf]
     · iexists i
       iframe Hf
-      iexists R, d', bt, dq', j', qc', h2
+      iexists R, d, bt, dq', j', qc', h2
       iframe Hinv Hsh Hp' Hcp' Hn2
       ipureintro
       refine ⟨rfl, hbt, ?_⟩

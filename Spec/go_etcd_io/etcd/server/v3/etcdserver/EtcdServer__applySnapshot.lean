@@ -99,6 +99,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
+    -- (wal-link, 2026-11-19, B1) the snapshotter's files the data directory's (`srvSnapRO`'s, from
+    -- `bootOk`'s `Hssp`): `OpenSnapshotBackend`'s rename stays in the snapshot directory
+    (hssp : snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir')
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))

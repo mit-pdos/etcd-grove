@@ -1,6 +1,28 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 z, lean 5f94c44bee MERGED; fs-library checkpoint; os.Rename STOPPED)
+## START HERE (2026-11-19 z2, B1 written, UNBUILT; STOPPED: cross-world finding on `snap.snapDBPath`)
+
+- **Branch** `wal-link` (this commit), pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`; 03's decisions
+  (merge, forms, proved-statement changes ACCEPTED; os.Rename option B1) recorded in questions.md.
+- **Done (this commit, NOT built: the targeted build was cancelled in its slot queue):** `config.snapDirOf` (new
+  opaque), `config.backendPathOf dd := snapDirOf dd ++ "/db"`, `snap.snapDBName i := hex16 i ++ ".snap.db"`,
+  `snap.snapDBPathOf dd i := snapDirOf dd ++ "/" ++ snapDBName i` (definitions; until now opaque); `wal/Hex16.lean`
+  (hex16 and its two lemmas moved, names kept); `os.Rename.spec` takes `parentOf src = parentOf dst` (proof:
+  `child_eq` via `parentOf_child'`, then `osPathS_sameRoot`); `OpenSnapshotBackend.spec`, `applySnapshot.specSnapM`,
+  `applySnapshot_walk` take `snapDBPath ss = snapDBPathOf cfg.DataDir'` (from `srvSnapRO`, ApplyAllSnap);
+  `storage/OpenSnapshotBackendLemmas.lean` (`snapDBName_nameOk`, `snapDBPathOf_parent`); BackendPath axiom docstring;
+  Go test `examples/etcd/snappaths/snappaths_test.go` (PASSES: real etcd SnapDir/BackendPath/DBFilePath).
+- **Attack** (fresh read-only agent, axiom skill): `/shared/tmp/wallink/attack-b1.md`. Path equations true for every
+  DataDir (200k random strings); no new overlap/false contract. **SUSPECT, pre-existing (S5), widened by B1:**
+  `snap.snapDBPath : Loc → …` is opaque in the snapshotter's run-allocated location; `bootOk`'s `Hssp` pins it per
+  run, so across runs with the same location for different members, `snapDirOf d1 = snapDirOf d2`, and the
+  exclusive `Hsfree` (S5) and now `Hpath` (B1) claims of 3 members collide: the multi-member bootstrap premises
+  unsatisfiable, the N-member theorems vacuous. Proposed fix: the snapshotter's directory as a per-execution
+  persistent cell/fact (`isSnapshotter`), specs over that string. Awaiting 03's decision.
+- **Next after the decision:** build the B1 cone (start with `Proof.os.Rename`, `OpenSnapshotBackend`, `ApplyAllSnap`),
+  then the list in z below (full timed build, tcb, collections, interfaces, gen-link modes, tier baseline, STATUS).
+
+### (2026-11-19 z, lean 5f94c44bee MERGED; fs-library checkpoint; os.Rename STOPPED)
 
 - **Branch** `wal-link`, merge commit of lean 5f94c44bee (pin 3afd77e35): `--packages=/shared/tmp/manifest-3af.json`
   everywhere, `.lake/package-overrides.json` its copy, `PERENNIAL_DIR=/shared/perennial-3afd77e35` for gen-init/gen-link.

@@ -35,9 +35,13 @@ shared mode (`fileAt`, `bPath`, `fileFree`: the claims on the two names), from t
 (`Proof/os/Rename.lean`'s `rename_fileNE`, a lemma, not a spec): no error, the semantics having no I/O error where a success exists
 (`theFs`'s `FsNoErrAll`). The file at `dst` it replaces is the open database's, which keeps its
 inode (`bClosed` after its `Close`). Until S5 an axiom over the abstract `srvFileHolds` and
-`pathOwn`, with an error case `¬ renameOk src dst`. -/
+`pathOwn`, with an error case `¬ renameOk src dst`. (wal-link, 2026-11-19, decided by etcd-grove-03,
+option B1) The two names in one directory (`parentOf src = parentOf dst`): the model's rename needs
+both in one root's tree (`SameRootR`, the per-root call model), which a spine of their common
+directory gives (`osPathS_sameRoot`); the server's rename is in the snapshot directory
+(`snap.snapDBPathOf`, `config.backendPathOf`). -/
 abbrev os.Rename.spec : Prop :=
-  ∀ (src dst : GoString) (D : Data) (γ : DBNames),
+  ∀ (src dst : GoString) (D : Data) (γ : DBNames), parentOf src = parentOf dst →
   {{ fileAt (GF := GF) src D ∗ bPath γ dst }}
     (App (App (Val (@! _root_.Perennial.os.Rename)) (Val #src)) (Val #dst))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ fileAt dst D ∗ fileFree src }}

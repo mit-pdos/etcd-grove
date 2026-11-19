@@ -11,6 +11,7 @@ public import Spec.fmt.Errorf
 public import Spec.os.Rename
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Spec.go_etcd_io.etcd.server.v3.storage.OpenBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackendLemmas
 -- (wal-link L2, T1) the only opener of the sealed take token
 import all Proof.go_etcd_io.etcd.server.v3.storage.SnapHeld
 
@@ -52,7 +53,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
   intro _ cfg ss sn mp hk dq dq' md P D W Pk K γo R'
-  wp_start as ⟨#Hss, Hmdp, Hsm, Hhd, Hpo, Hpre⟩
+  wp_start as ⟨#Hss, Hmdp, Hsm, %hssp, Hhd, Hpo, Hpre⟩
   iunfold snapHeld at Hhd
   icases Hhd with ⟨Hf, HR'⟩
   ihave #Hraftpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -70,7 +71,9 @@ theorem storage.OpenSnapshotBackend.wp_proof
     iStructNamed Hcf
     wp_apply wp_BackendPath $$ [$DataDir] as -
     -- (S5) the rename, with no error: the file at the backend path, the snapshot's name free
-    wp_apply wp_Rename $$ [$Hf $Hpo] as %err2 ⟨%Hr, Hf, -⟩
+    have hpar := snap.snapDBPathOf_parent cfg.DataDir' md.Index'
+    rw [← hssp] at hpar
+    wp_apply (wp_Rename _ _ _ _ hpar) $$ [$Hf $Hpo] as %err2 ⟨%Hr, Hf, -⟩
     subst Hr
     wp_auto
     ihave Hf := backend.fileAt_fileHolds _ _ $$ Hf

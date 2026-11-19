@@ -51,7 +51,9 @@ the creator's `K` for the fresh backend's payment rights, `OpenBackend`'s.) (202
 `notes/begin-tok-plan.md`) Under `[ThreadBoundLe GF (2 ^ 29)]`, `OpenBackend`'s. (S5, 2026-11-18) The
 backend path's entry is the claim on its name, naming the old backend `γo`'s file (`bPath`, until then
 the opaque `pathOwn`); on success the new backend's claim (`OpenBackend`'s), on an error the old one
-back. -/
+back. (wal-link, 2026-11-19, option B1) The snapshotter's files are the data directory's
+(`snapDBPath ss = snapDBPathOf cfg.DataDir`, `bootOk`'s `Hssp`): the snapshot's file and the backend's
+are then names of one directory, which `os.Rename` needs. -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)]
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss sn mp hk : Loc) (dq dq' : DFrac)
@@ -59,6 +61,7 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
     (R' : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ snap.isSnapshotter ss ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
+      ⌜snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir'⌝ ∗
       snapHeld (snap.snapDBPath ss md.Index') D R' ∗ bPath γo (config.backendPathOf cfg.DataDir') ∗
       openPre cfg (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty) #hk)
         P D W Pk K }}
