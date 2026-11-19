@@ -1,11 +1,13 @@
 /-
-`fieldpath.PathElement.Less`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.PathElement.Less`: proved over its callees' specs (the hypotheses).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Less
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Compare
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
+import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsRep
 
 @[expose] public section
 
@@ -29,8 +31,16 @@ variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.PathElement.Less.wp_proof
     (h_PathElement_Compare : fieldpath.PathElement.Compare.spec (GF := GF)) :
-    fieldpath.PathElement.Less.spec (GF := GF) := by
-  sorry
+    fieldpath.PathElement.Less.spec (GF := GF) := fun e e' a b => by
+  wp_start as ⟨#Ha, #Hb⟩
+  wp_auto
+  wp_method_call; wp_call; wp_auto
+  wp_apply (h_PathElement_Compare e e' a b) $$ [$Ha $Hb] as %r %hr
+  wp_end
+  ipureintro
+  unfold PE.lt
+  rw [← hr]
+  simp
 
 end proof
 

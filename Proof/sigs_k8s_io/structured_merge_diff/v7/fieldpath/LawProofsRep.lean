@@ -8,7 +8,7 @@ Prove phase (2026-11-19, notes/smd-plan.md).
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofs
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Persist
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
@@ -26,6 +26,109 @@ namespace smd
 
 open Iris Iris.BI Iris.ProofMode
 open sigs_k8s_io.structured_merge_diff.v7
+
+/-! ## Persistence (the package's own instances: `v7/LawProofs/Persist.lean` has the root's, but
+imports every package; these import `value`'s only) -/
+
+namespace fpL
+section pers
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+instance isValD_pers (v : value.Value) (x : UVal) :
+    Persistent (isValF (GF := GF) v DFrac.discard x) := by
+  unfold isValF; infer_instance
+
+instance isFieldsL_pers' : (fs : List value.Field) → (fl : FieldList) →
+    Persistent (isFieldsL (GF := GF) fs fl)
+  | [], [] => by unfold isFieldsL; infer_instance
+  | [], _ :: _ => by unfold isFieldsL; infer_instance
+  | _ :: _, [] => by unfold isFieldsL; infer_instance
+  | f :: fs, (n, x) :: rest => by
+      unfold isFieldsL
+      have := isFieldsL_pers' fs rest
+      infer_instance
+
+instance isFieldList_pers' (s : GoSlice) (fl : FieldList) :
+    Persistent (isFieldList (GF := GF) s fl) := by
+  unfold isFieldList; infer_instance
+
+instance isPE_pers' (e : fieldpath.PathElement) : (pe : PE) → Persistent (isPE (GF := GF) e pe)
+  | .field _ => by unfold isPE; infer_instance
+  | .key _ => by unfold isPE; infer_instance
+  | .value _ => by unfold isPE; infer_instance
+  | .index _ => by unfold isPE; infer_instance
+
+instance isPEL_pers' : (es : List fieldpath.PathElement) → (pes : List PE) →
+    Persistent (isPEL (GF := GF) es pes)
+  | [], [] => by unfold isPEL; infer_instance
+  | [], _ :: _ => by unfold isPEL; infer_instance
+  | _ :: _, [] => by unfold isPEL; infer_instance
+  | e :: es, pe :: pes => by
+      unfold isPEL
+      have := isPEL_pers' es pes
+      infer_instance
+
+instance isPEs_pers' (es : List fieldpath.PathElement) (p : Path) :
+    Persistent (isPEs (GF := GF) es p) := by
+  unfold isPEs; infer_instance
+
+instance isPath_pers' (s : GoSlice) (p : Path) : Persistent (isPath (GF := GF) s p) := by
+  unfold isPath; infer_instance
+
+instance isPaths_pers' : (ss : List GoSlice) → (ps : List Path) →
+    Persistent (isPaths (GF := GF) ss ps)
+  | [], [] => by unfold isPaths; infer_instance
+  | [], _ :: _ => by unfold isPaths; infer_instance
+  | _ :: _, [] => by unfold isPaths; infer_instance
+  | s :: ss, p :: ps => by
+      unfold isPaths
+      have := isPaths_pers' ss ps
+      infer_instance
+
+mutual
+theorem trieRep_pers' (p : Loc) : (t : Trie) → Persistent (trieRep (GF := GF) p t)
+  | .mk ms cs => by
+      unfold trieRep
+      have := fun ns => trieRepC_pers' ns cs
+      infer_instance
+  termination_by structural t => t
+theorem trieRepC_pers' : (ns : List fieldpath.setNode) → (cs : List (PE × Trie)) →
+    Persistent (trieRepC (GF := GF) ns cs)
+  | [], [] => by unfold trieRepC; infer_instance
+  | [], _ :: _ => by unfold trieRepC; infer_instance
+  | _ :: _, [] => by unfold trieRepC; infer_instance
+  | n :: ns, (pe, t) :: cs => by
+      unfold trieRepC
+      have := trieRep_pers' n.set' t
+      have := trieRepC_pers' ns cs
+      infer_instance
+  termination_by structural _ cs => cs
+end
+
+attribute [instance] trieRep_pers' trieRepC_pers'
+
+instance isSet_pers' (p : Loc) (S : PathSet) : Persistent (isSet (GF := GF) p S) := by
+  unfold isSet; infer_instance
+
+instance isVSet_pers' (i : fieldpath.VersionedSet) (e : VSet) :
+    Persistent (isVSet (GF := GF) i e) := by
+  unfold isVSet; infer_instance
+
+instance isMFL_pers' (M : GMap GoString GoInterface) : (mf : MF) → Persistent (isMFL (GF := GF) M mf)
+  | [] => by unfold isMFL; infer_instance
+  | (k, e) :: rest => by
+      unfold isMFL
+      have := isMFL_pers' M rest
+      infer_instance
+
+instance isMF_pers' (m : fieldpath.ManagedFields) (mf : MF) : Persistent (isMF (GF := GF) m mf) := by
+  unfold isMF; infer_instance
+
+end pers
+end fpL
 
 namespace fpL
 
@@ -78,7 +181,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 theorem valCanon : isValF_canon.law (GF := GF) := sorry
 theorem flAgree : isFieldList_agree.law (GF := GF) := sorry
-theorem valAgree : isValF_agree.law (GF := GF) := sorry
+/-- The root's `isValF_agree.law` (`v7/Laws.lean`, which imports every package), restated. -/
+theorem valAgree : ∀ (v : value.Value) dq1 dq2 x y,
+    isValF (GF := GF) v dq1 x ∗ isValF v dq2 y ⊢ ⌜x = y⌝ := sorry
 end
 end fpL
 
