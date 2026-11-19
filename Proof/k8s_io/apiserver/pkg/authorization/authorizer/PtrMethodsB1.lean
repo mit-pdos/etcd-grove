@@ -2,7 +2,8 @@
 Lean-first (no Rocq counterpart).
 
 More wrappers of `ConditionsAwareDecision`'s value methods in the `*ConditionsAwareDecision` method
-set, as `PtrMethods.lean` (`IsDeny`, `IsNoOpinion`, `IsConditionsMap`, `IsUnion`, `ConditionsMap`), for the proofs of batch 1.
+set, as `PtrMethods.lean` (`IsDeny`, `IsNoOpinion`, `IsConditionsMap`, `IsUnion`, `ConditionsMap`, `Reason`, `Error`;
+`Decision.String`), for the proofs of batch 1.
 -/
 module
 
@@ -11,6 +12,9 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsConditionsMap
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsUnion
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__ConditionsMap
+public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Reason
+public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Error
+public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.Decision__String
 
 @[expose] public section
 
@@ -94,6 +98,51 @@ theorem ConditionsAwareDecision.wp_ptr_ConditionsMap_of
   wp_auto
   wp_apply (wp_ConditionsMap d)
   iapply HΦ; iframe
+
+/-- `(*ConditionsAwareDecision).Reason` on the decision `*l`. -/
+theorem ConditionsAwareDecision.wp_ptr_Reason_of
+    (wp_Reason : ConditionsAwareDecision.Reason.spec (GF := GF) (hG := hG))
+    (l : Loc) (dl : DFrac) (d : ConditionsAwareDecision) :
+    {{ (l ↦{dl} d : IProp GF) }}
+      (App (Val (l @!! go.GoType.PointerType ConditionsAwareDecision.ty @!! go!"Reason"))
+        (Val #()))
+    {{ RET #(d.reason'); l ↦{dl} d }} := by
+  wp_start as Hl
+  wp_auto
+  wp_apply (wp_Reason d)
+  iapply HΦ; iframe
+
+/-- `(*ConditionsAwareDecision).Error` on the decision `*l`. -/
+theorem ConditionsAwareDecision.wp_ptr_Error_of
+    (wp_Error : ConditionsAwareDecision.Error.spec (GF := GF) (hG := hG))
+    (l : Loc) (dl : DFrac) (d : ConditionsAwareDecision) :
+    {{ (l ↦{dl} d : IProp GF) }}
+      (App (Val (l @!! go.GoType.PointerType ConditionsAwareDecision.ty @!! go!"Error"))
+        (Val #()))
+    {{ RET #(d.err'); l ↦{dl} d }} := by
+  wp_start as Hl
+  wp_auto
+  wp_apply (wp_Error d)
+  iapply HΦ; iframe
+
+/-- `int` is not an interface type (Perennial has the instance for the type constructors but not
+for the predeclared named types): for method calls on a `Decision` (`type Decision int`). -/
+instance b1_notInterface_int : go.NotInterface go.int := ⟨trivial⟩
+
+/-- `(*Decision).String` on the decision word `*l`. -/
+theorem Decision.wp_ptr_String_of
+    (wp_String : Decision.String.spec (GF := GF) (hG := hG))
+    (l : Loc) (dl : DFrac) (k : w64) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗
+        l ↦{dl} k }}
+      (App (Val (l @!! go.GoType.PointerType Decision.ty @!! go!"String")) (Val #()))
+    {{ (s : GoString), RET #s; l ↦{dl} k }} := by
+  iintro %Φ ⟨#Hpkg, Hl⟩ HΦ
+  wp_method_call; (try wp_call)
+  wp_auto
+  wp_apply (wp_String k) as %s -
+  iapply HΦ
+  iframe
 
 end wps
 
