@@ -72,7 +72,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
   become theorems with the same statements. Not yet proposed.
 
-### `wp_auto`'s free-variable checks were exponential on struct values: landed, awaiting a pin bump (2026-11-18, perf2)
+### `wp_auto`'s free-variable checks were exponential on struct values: landed, in the pin since `3afd77e35` (2026-11-18, perf2; pin bump 2026-11-19)
 
 `k8s.etcd3.genFrom` (326s on CI): after `wp_apply wp_uidOf`, one `wp_auto` took 147s (202s profiled
 under load), in no step of a second or more. Cause (gdb stack samples: 22 of 26 in
@@ -91,7 +91,7 @@ against the pin `6d365ee1a` with the two changed modules' `.olean`s overlaid (`l
 the base): `genFrom` 211s to 124s CPU (227s to 134s wall); `NewServer` (389s) and `NewServerR` (458s)
 unchanged: their slow `wp_auto` steps are not this. Take it with the next pin bump.
 
-### `solve_pkg_init` searched the package DAG without memoization: landed, awaiting a pin bump (2026-11-18)
+### `solve_pkg_init` searched the package DAG without memoization: landed, in the pin since `3afd77e35` (2026-11-18; pin bump 2026-11-19)
 
 Perennial `cb8e7bc67` (on `lean`): `pkgInitChain` remembers the packages whose dependencies were searched
 without reaching the target (the same proof found). `EtcdServer.LeaseRenew` 220s to 175s (14 calls, 3.5s
