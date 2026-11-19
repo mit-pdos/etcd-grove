@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `rt.UnsafeForEach(bucket, visitor)` of the held shared read transaction, with any share `p` of
 bbolt's transaction and no open share (as `readTx.UnsafeRange`): `baseReadTx.UnsafeForEach` of the
-embedded base, the visitor, on the `i`-th entry `e` of `rtForEach rv bi`, getting half of the share
-and the slices as `UnsafeRange` returns them (`rdB`). -/
+embedded base, the visitor, on the `i`-th entry `e` of `rtForEach rv bi`, getting the share `p` at the
+readers' view (given back at the same view) and the slices as `UnsafeRange` returns them (`rdB`). -/
 abbrev backend.readTx.UnsafeForEach.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (rtx : Loc) (rv : RView)
     (p : Qp) (bk : GoInterface) (bi : BucketInfo) (fn : GoFunc) (I : Nat → IProp GF)
@@ -34,9 +34,9 @@ abbrev backend.readTx.UnsafeForEach.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rtHeldF γ P b rtx rv p ∗ isBucket bk bi ∗ I 0 ∗
       □ (∀ (i : Nat) (e : Ent) (k v : GoSlice), ⌜(rtForEach rv bi)[i]? = some e⌝ →
-          {{ I i ∗ txLive rtx p.half ∗ rdB rtx k e.1 ∗ rdB rtx v e.2 }}
+          {{ I i ∗ txLive rtx γ.db p (bbolt.TxView.ro rv.1) ∗ rdB γ.db rtx k e.1 ∗ rdB γ.db rtx v e.2 }}
             (App (App (Val #fn) (Val #k)) (Val #v))
-          {{ (err : GoInterface), RET #err; txLive rtx p.half ∗
+          {{ (err : GoInterface), RET #err; txLive rtx γ.db p (bbolt.TxView.ro rv.1) ∗
               ((⌜err = GoInterface.nil⌝ ∗ I (i + 1)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ E i err)) }}) }}
     (App (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"UnsafeForEach")) (Val #bk)) (Val #fn))
   {{ (err : GoInterface), RET #err; rtHeldF γ P b rtx rv p ∗

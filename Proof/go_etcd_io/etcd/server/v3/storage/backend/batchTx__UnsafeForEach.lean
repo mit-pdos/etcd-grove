@@ -32,14 +32,19 @@ theorem backend.batchTx.UnsafeForEach.wp_proof
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, HI, #Hf⟩
   unfold btW
   icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩
+  iunfold ownWTxG at Hwtx
   wp_auto
-  wp_apply (hfe st.tx (.wr γ.db st.C st.S G) bk bi fn I E) $$ [Hwtx HI]
+  wp_apply (hfe st.tx γ.db 1 (wView st.C st.S G) bk bi fn I E (fun _ => rfl)) $$ [Hwtx HI]
     as %err ⟨Hwtx, Hres⟩
-  · simp only [feOwn, FeSide.data, FeSide.q]; iframe; iframe #
+  · iframe Hwtx HI; iframe #
+    iintro !> %i %e %k %v %He
+    ihave #H := Hf $$ %G %i %e %k %v %He
+    iunfold ownWTxG at H
+    iexact H
   iapply HΦ
-  simp only [feOwn, FeSide.data]
   iframe
   iexists G
+  iunfold ownWTxG
   iexact Hwtx
 
 end proof

@@ -84,8 +84,7 @@ theorem backend.baseReadTx.UnsafeForEach.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   unfold baseRd
-  icases Hrd with ⟨%m, %Pb, %cm, %tm, Hrb, Hrtx, Hcm, #Htm, Hown, #Hg, Hlive, #Hsnap, #Hintv,
-    %Hwf⟩
+  icases Hrd with ⟨%m, %Pb, %cm, %tm, Hrb, Hrtx, Hcm, #Htm, Hown, #Hg, Hlive, #Hintv, %Hwf⟩
   generalize hbf : bkOf rv.2.bks bi.id = bf
   generalize hes : bktEnts (bktOf rv.1 bi.name) = es
   have hrt : rtForEach rv bi = es.filter (fun e => !decide (e.1 ∈ bf.map Prod.fst)) ++ bf := by
@@ -127,26 +126,21 @@ theorem backend.baseReadTx.UnsafeForEach.wp_proof
   rw [hbf, List.take_length] at HMk
   wp_auto
   -- bbolt's entries not in the buffer, under `txMu`
-  wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hwl, HP⟩
-  unfold tmTok
-  icases HP with ⟨Hta, Htb⟩
-  imod stats_take γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Htb] with Hst
-  have hsplit := (txLive_fractional (GF := GF) rtx).fractional q.half q.half
-  rw [Qp.half_add_half] at hsplit
-  wp_apply (hfe rtx (.rd q rv.1) bk bi _
+  wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hwl, Hta⟩
+  wp_apply (hfe rtx γ.db q (bbolt.TxView.ro rv.1) bk bi _
       (fun j => iprop(visitor_ptr ↦ fn ∗ dups_ptr ↦ dm ∗ dm ↦$ M ∗
         I (((es.take j).filter (fun e => !decide (e.1 ∈ bf.map Prod.fst))).length)))
       (fun _ err => iprop(∃ i : Nat,
         ⌜i < (es.filter (fun e => !decide (e.1 ∈ bf.map Prod.fst)) ++ bf).length⌝ ∗ E i err)))
-    $$ [Hlive Hst visitor dups HM HI] as %err ⟨Hfo, Hres⟩
-  · simp only [feOwn, FeSide.data, FeSide.q]
-    rw [hes]
+    (fun h => absurd h (by simp [bbolt.TxView.ro]))
+    $$ [Hlive visitor dups HM HI] as %err ⟨Hlive, Hres⟩
+  · rw [show bktOf (bbolt.TxView.ro rv.1).cur bi.name = bktOf rv.1 bi.name from rfl, hes]
     iframe; iframe #
     imodintro
     iintro %j %e %k %v %He
     wp_start as ⟨⟨visitor, dups, HM, HI⟩, Hl, %Hk, #Hkb, #Hvb⟩
     wp_auto
-    icases txBytes_acc rtx k e.1 q.half $$ [$Hkb $Hl] with ⟨%dk, Hkp, Hkback⟩
+    icases txBytes_acc rtx γ.db k e.1 q _ $$ [$Hkb $Hl] with ⟨%dk, Hkp, Hkback⟩
     wp_apply wp_bytes_to_string $$ Hkp as Hkp
     ispecialize Hkback $$ Hkp
     wp_apply wp_map_lookup2 $$ HM as HM
@@ -192,13 +186,10 @@ theorem backend.baseReadTx.UnsafeForEach.wp_proof
         iframe
         ipureintro
         exact cnt_lt He hp bf
-  simp only [feOwn, FeSide.data]
   rw [hes] at *
-  icases Hfo with ⟨Hlive, -, Hst⟩
-  imod stats_give γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Hst] with Htb
   try wp_auto
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hta Htb]
-  · iframe
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hta]
+  · unfold tmTok; iframe
   icases Hres with (⟨%Hnil, visitor, dups, HM, HI⟩ | ⟨%i, ⟨%Hn, -⟩, %i', %Hi', HE⟩)
   rotate_left
   · obtain ⟨eo, rfl⟩ : ∃ eo, err = GoInterface.ok eo := by
@@ -218,13 +209,12 @@ theorem backend.baseReadTx.UnsafeForEach.wp_proof
   rw [cnt_all]
   try wp_auto
   -- the buffer's entries
-  icases hsplit.1 $$ Hlive with ⟨Hl1, Hl2⟩
   wp_apply (hFE (rbufOf base) dq m Pb rv.2 bk bi fn
       (fun i => iprop(I ((es.filter (fun e => !decide (e.1 ∈ bf.map Prod.fst))).length + i) ∗
-        txLive rtx q.half))
-      (fun err => iprop(txLive rtx q.half ∗ ∃ i : Nat,
+        txLive rtx γ.db q (bbolt.TxView.ro rv.1)))
+      (fun err => iprop(txLive rtx γ.db q (bbolt.TxView.ro rv.1) ∗ ∃ i : Nat,
         ⌜i < (es.filter (fun e => !decide (e.1 ∈ bf.map Prod.fst)) ++ bf).length⌝ ∗ E i err)))
-    $$ [$Hrb HI Hl1] as %err ⟨Hrb, Hres⟩
+    $$ [$Hrb HI Hlive] as %err ⟨Hrb, Hres⟩
   · rw [hbf]
     iframe #
     isplitr
@@ -253,11 +243,9 @@ theorem backend.baseReadTx.UnsafeForEach.wp_proof
   rw [hbf]
   icases Hres with (⟨%Hnil, HI, Hl1⟩ | ⟨%Hn, Hl1, %i, %Hi, HE⟩)
   · iapply HΦ
-    isplitl [Hrb Hrtx Hcm Hown Hl1 Hl2]
+    isplitl [Hrb Hrtx Hcm Hown Hl1]
     · iexists m, Pb, cm, tm
       iframe; iframe #
-      isplitl [Hl1 Hl2]
-      · iapply hsplit.2; iframe
       ipureintro; exact Hwf
     ileft
     isplitr
@@ -265,11 +253,9 @@ theorem backend.baseReadTx.UnsafeForEach.wp_proof
     rw [List.length_append]
     iframe
   · iapply HΦ
-    isplitl [Hrb Hrtx Hcm Hown Hl1 Hl2]
+    isplitl [Hrb Hrtx Hcm Hown Hl1]
     · iexists m, Pb, cm, tm
       iframe; iframe #
-      isplitl [Hl1 Hl2]
-      · iapply hsplit.2; iframe
       ipureintro; exact Hwf
     iright
     iexists i

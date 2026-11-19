@@ -56,7 +56,7 @@ theorem backend.readTx.UnsafeForEach.wp_proof
     icases Hiv with ⟨%Hnull, -⟩
     exact absurd Hnull Hnn
   simp only [↓reduceIte]
-  icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo⟩
+  icases Hiv with ⟨Hlive, #Hintv, #Hwgi, Hwo⟩
   wp_apply hbase γ P (baseOf rt) (DFrac.own sync.rfrac) rd.rtx rv p bk bi fn I E
       $$ [Hrb Hrtxf Hcm Hown Hlive $HI]
     as %err ⟨Hbr, Hres⟩
@@ -69,7 +69,7 @@ theorem backend.readTx.UnsafeForEach.wp_proof
     · unfold isBucket; iexact Hbk
     iexact Hvis
   unfold baseRd
-  icases Hbr with ⟨%m', %Pb', %cm', %tm', Hrb, Hrtxf, Hcm, #Htm', Hown, -, Hlive, -, #Hintv', %Hwf'⟩
+  icases Hbr with ⟨%m', %Pb', %cm', %tm', Hrb, Hrtxf, Hcm, #Htm', Hown, -, Hlive, #Hintv', %Hwf'⟩
   icombine Htm Htm' gives %Heq
   subst Heq
   have Hok' : bksOk Pb' rv.2.bks := by
