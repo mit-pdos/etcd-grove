@@ -24,6 +24,9 @@ public import Spec.fmt.ErrorfAny
 public import Perennial.Spec.fmt.Sprintf
 public import Perennial.Spec.strings.Join
 public import Spec.k8s_io.apimachinery.pkg.util.errors.NewAggregate
+public import Proof.k8s_io.apiserver.pkg.authorization.union.B5Lemmas
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ForRange
 
 @[expose] public section
 
@@ -65,7 +68,252 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
     (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG))
     (wp_NewAggregate : EtcdGrove.utilerrors.NewAggregate.spec (GF := GF) (hG := hG)) :
     unionAuthzHandler.EvaluateConditions.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro h ctx d m data
+  wp_start as ⟨#Hu, #Hd, %Hwf⟩
+  wp_auto
+  wp_apply (wp_ptr_IsUnion_of wp_ConditionsAwareDecision_IsUnion) $$ [$unevaluatedDecision] as unevaluatedDecision
+  icases isDecision_tag d m $$ Hd with %Htag
+  rw [Htag, Dec.tag_union]
+  cases m with
+  | union ks =>
+    simp only [Dec.isUnion]
+    icases isDecision_union d ks $$ Hd with ⟨%nds, #Hnds, #HL⟩
+    wp_auto
+    wp_apply (wp_ptr_UnionedDecisions_of wp_ConditionsAwareDecision_UnionedDecisions)
+      $$ [$unevaluatedDecision] as %f ⟨#Hf, unevaluatedDecision⟩
+    · iexact Hnds
+    (try wp_auto)
+    wp_bind (App (App (Val (func.forRange 2)) _) _)
+    iapply wp_post_named
+    iintro %K %hK
+    iapply k8s.wp_forRange2 _ _ _ (by simp) rfl
+    iintro %y %Tok %Done HTok #Hy
+    iunfold seq2Ok at Hf
+    ispecialize Hf $$ %y
+      %(fun i => iprop(Tok ∗ ∃ (sd : ConditionsAwareDecision) (nm : GoString) (rl el : GoSlice)
+        (rls : List GoString) (els : List GoInterface),
+        unevaluatedSubDecision_ptr ↦ sd ∗ currentAuthorizerName_ptr ↦ nm ∗
+        reasonlist_ptr ↦ rl ∗ rl ↦* rls ∗ ownSliceCap GoString rl (DFrac.own 1) ∗
+        errlist_ptr ↦ el ∗ el ↦* els ∗ ownSliceCap GoInterface el (DFrac.own 1) ∗
+        «$res0_ptr» ↦ zero_val w64 ∗ «$res1_ptr» ↦ zero_val GoString ∗ «$res2_ptr» ↦ GoInterface.nil ∗
+        authzHandler_ptr ↦ h ∗ data_ptr ↦ data ∗ ctx_ptr ↦ ctx ∗
+        (∀ (dec : w64) (r : GoString) (e : GoInterface),
+          ⌜(Dec.union ks).pd.has dec = true ∨ dec = (Dec.union ks).pd.failure⌝ -∗ Φ (PairV (PairV #dec #r) #e)) ∗
+        ⌜∀ j k, j < i → ks[j]? = some k → k.cuad = false⌝))
+      %(iprop(∃ r, Done (returnVal r) ∗ K (returnVal r)))
+    iunfold iterRunOk at Hf
+    ihave %Hlen := isDecisionL_length $$ HL
+    simp only [List.length_map] at Hlen
+    iapply Hf $$ [] [HTok HΦ «$res0» «$res1» «$res2» reasonlist errlist unevaluatedSubDecision
+      currentAuthorizerName authzHandler data ctx]
+    · -- a child
+      iintro !> %i %k %v %Hi
+      iunfold yield2Ok
+      iintro %Ψ !> HI HΨ
+      simp only
+      icases HI with ⟨HTok, %sd, %nm, %rl, %el, %rls, %els, unevaluatedSubDecision, currentAuthorizerName,
+        reasonlist, Hrl, Hrlc, errlist, Hel, Helc, «$res0», «$res1», «$res2», authzHandler, data, ctx, HΦ,
+        %Hcuad⟩
+      have Hv : (nds.map (·.d'))[i]? = some v := by
+        rw [List.getElem?_map] at Hi ⊢
+        cases hnd : nds[i]? with
+        | none => rw [hnd] at Hi; simp at Hi
+        | some nd => rw [hnd] at Hi; simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at Hi ⊢; exact Hi.2
+      icases isDecisionL_lookup _ ks i v Hv $$ HL with ⟨%mk, %Hmk, #Hv⟩
+      have Hmkwf : mk.WF := Dec.WFL_get ks i mk Hwf.1 Hmk
+      have Hmkin : mk ∈ ks := List.mem_of_getElem? Hmk
+      icases isDecision_tag v mk $$ Hv with %Hvtag
+      iapply Hy $$ %_ %_ %_ [] HTok
+      · ipureintro; exact ⟨by simp, by simp⟩
+      wp_auto
+      wp_apply (wp_ptr_IsDeny_of wp_ConditionsAwareDecision_IsDeny) $$ [$unevaluatedSubDecision]
+        as unevaluatedSubDecision
+      rw [Hvtag, Dec.tag_deny]
+      cases mk with
+      | deny =>
+        simp only [Dec.isDeny]
+        wp_auto
+        wp_apply (wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        wp_apply (wp_ptr_Error_of wp_ConditionsAwareDecision_Error) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        (try wp_auto)
+        unfold k8s.forRangePost
+        iright
+        isplitr
+        · ipureintro; exact Or.inr ⟨_, rfl, by simp⟩
+        iintro HD
+        iapply HΨ
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iexists #()
+        iframe HD
+        rw [hK]; simp only []
+        wp_auto
+        iapply HΦ; ipureintro; left; rw [PD.has_zero]; exact Dec.pd_child_deny ks _ Hmkin rfl
+      | allow =>
+        simp only [Dec.isDeny]
+        wp_auto
+        wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        rw [Hvtag, Dec.tag_allow]
+        simp only [Dec.isAllow]
+        wp_auto
+        wp_apply (wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        wp_apply (wp_ptr_Error_of wp_ConditionsAwareDecision_Error) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        (try wp_auto)
+        unfold k8s.forRangePost
+        iright
+        isplitr
+        · ipureintro; exact Or.inr ⟨_, rfl, by simp⟩
+        iintro HD
+        iapply HΨ
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iexists #()
+        iframe HD
+        rw [hK]; simp only []
+        wp_auto
+        iapply HΦ; ipureintro; left; rw [PD.has_one]; exact Dec.pd_child_allow ks _ Hmkin rfl
+      | noOpinion =>
+        simp only [Dec.isDeny]
+        wp_auto
+        wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        rw [Hvtag, Dec.tag_allow]
+        simp only [Dec.isAllow]
+        wp_auto
+        wp_apply (wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        rw [Hvtag, Dec.tag_noOpinion]
+        simp only [Dec.isNoOpinion]
+        wp_auto
+        wp_apply (wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        wp_apply (wp_ptr_Error_of wp_ConditionsAwareDecision_Error) $$ [$unevaluatedSubDecision]
+          as unevaluatedSubDecision
+        (try wp_auto)
+        generalize v.err' = e0
+        generalize v.reason' = r0
+        -- the error, appended to `errlist` unless `nil`
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun bv => iprop(⌜bv = executeVal⌝ ∗ ∃ (el' : GoSlice) (els' : List GoInterface),
+            errlist_ptr ↦ el' ∗ el' ↦* els' ∗ ownSliceCap GoInterface el' (DFrac.own 1)))) $$ [errlist Hel Helc err]
+        · cases e0 with
+          | nil =>
+            wp_auto
+            iframe
+            ipureintro; rfl
+          | ok ei =>
+            wp_auto
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %sp ⟨Hs, -⟩
+            (try wp_auto)
+            wp_apply wp_slice_append $$ [$Hel $Helc $Hs] as %el' ⟨Hel, Helc, -⟩
+            (try wp_auto)
+            iframe
+            ipureintro; rfl
+        iintro %bv ⟨%Hbv, %el', %els', errlist, Hel, Helc⟩
+        subst Hbv
+        wp_auto
+        -- the reason, appended to `reasonlist` unless empty
+        wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hrl0
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun bv => iprop(⌜bv = executeVal⌝ ∗ ∃ (rl' : GoSlice) (rls' : List GoString),
+            reasonlist_ptr ↦ rl' ∗ rl' ↦* rls' ∗ ownSliceCap GoString rl' (DFrac.own 1) ∗
+            currentAuthorizerName_ptr ↦ k))) $$ [reasonlist Hrl Hrlc reason currentAuthorizerName]
+        · wp_if_destruct
+          · iframe
+          · (try wp_auto)
+            wp_apply (wp_slice_literal (l := [interface.mkOk go.string #k, interface.mkOk go.string #r0]))
+            isplitr
+            · ipureintro; rfl
+            iintro %sp ⟨Hs, -⟩
+            (try wp_auto)
+            wp_apply (wp_Sprintf _ _ [interface.mkOk go.string #k, interface.mkOk go.string #r0] (DFrac.own 1)
+              (_root_.Perennial.fmt.ArgsWf.cons_string _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
+                _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hs] as %str ⟨Hs, -⟩
+            (try wp_auto)
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %sp' ⟨Hs', -⟩
+            (try wp_auto)
+            wp_apply wp_slice_append $$ [$Hrl $Hrlc $Hs'] as %rl' ⟨Hrl, Hrlc, -⟩
+            (try wp_auto)
+            iframe
+            ipureintro; rfl
+        iintro %bv ⟨%Hbv, %rl', %rls', reasonlist, Hrl, Hrlc, currentAuthorizerName⟩
+        subst Hbv
+        (try wp_auto)
+        -- on to the next child
+        unfold k8s.forRangePost
+        ileft
+        isplitr
+        · ipureintro; exact Or.inl rfl
+        iintro HTok
+        iapply HΨ
+        simp only [↓reduceIte]
+        iframe HTok
+        iexists v, k, rl', el', rls', els'
+        iframe
+        ipureintro
+        exact cuad_step ks i _ Hcuad Hmk rfl
+      | _ => sorry
+    · -- the state before the first child
+      simp only
+      iframe HTok
+      iexists _, _, _, _, [], []
+      iframe
+      isplitr
+      · iapply ownSlice_nil
+      isplitr
+      · iapply ownSliceCap_nil
+      isplitr
+      · iapply ownSlice_nil
+      isplitr
+      · iapply ownSliceCap_nil
+      ipureintro
+      intro j k hj; omega
+    · -- after the loop
+      iintro !> HI
+      isplitr
+      · ipureintro; simp
+      icases HI with (⟨HTok, %sd, %nm, %rl, %el, %rls, %els, unevaluatedSubDecision, currentAuthorizerName,
+        reasonlist, Hrl, Hrlc, errlist, Hel, Helc, «$res0», «$res1», «$res2», authzHandler, data, ctx, HΦ,
+        %Hcuad⟩ | HD)
+      · ileft
+        iframe HTok
+        rw [hK]
+        simp only []
+        wp_auto
+        wp_apply wp_Join $$ [$Hrl] as Hrl
+        (try wp_auto)
+        wp_apply wp_NewAggregate $$ [$Hel] as %agg Hel
+        (try wp_auto)
+        iapply HΦ
+        ipureintro
+        left
+        rw [PD.has_two]
+        apply Dec.noOpinion_of_not_cuad
+        intro k hk
+        obtain ⟨j, hj, hjk⟩ := List.getElem_of_mem hk
+        exact Hcuad j k (by simp only [List.length_map]; omega) (by rw [List.getElem?_eq_getElem hj, hjk])
+      · iright; iright
+        iexact HD
+  | _ =>
+    simp only [Dec.isUnion]
+    wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of wp_ConditionsAwareDecision_FailureDecision)
+      $$ [$unevaluatedDecision] as unevaluatedDecision
+    · iexact Hd
+    (try wp_auto)
+    wp_apply wp_errors_New as %err -
+    (try wp_auto)
+    iapply HΦ
+    ipureintro; exact Or.inr rfl
 
 end proof
 
