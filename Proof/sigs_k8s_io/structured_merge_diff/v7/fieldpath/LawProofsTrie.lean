@@ -9,6 +9,7 @@ Prove phase (2026-11-19, notes/smd-plan.md).
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsRep
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsPESet
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
 
@@ -218,6 +219,227 @@ theorem nl_isEmpty (l : NL) (hl : NLok l) (D : PathSet) (hD : ∀ q, q ∈ D ↔
       exact absurd ((hD _).2 ((mem_nlPaths _ _).2 ⟨k, S, r, List.mem_cons_self .., hr, rfl⟩))
         (h (k :: r))
   · rintro rfl q hq; exact mem_nlPaths_nil q ((hD q).1 hq)
+
+/-! ## Node lists: columns, appends -/
+
+/-- A node list's keys. -/
+abbrev keys (l : NL) : List PE := l.map (·.1)
+
+theorem nlok_wf {l : NL} (hl : NLok l) : fpA.AllWf (keys l) := by
+  intro k hk
+  simp only [keys, List.mem_map] at hk
+  obtain ⟨⟨k', S⟩, hm, rfl⟩ := hk
+  exact (hl.2 k' S hm).1
+
+theorem nl_unique : ∀ {l : NL}, NLok l → ∀ {k S S'}, (k, S) ∈ l → (k, S') ∈ l → S = S'
+  | [], _, _, _, _, h, _ => by simp at h
+  | (k0, S0) :: l, hl, k, S, S', h1, h2 => by
+    have hs := hl.1
+    simp only [List.map_cons, PE.Sorted, List.pairwise_cons] at hs
+    have hl' : NLok l := ⟨hs.2, fun k S h => hl.2 k S (List.mem_cons_of_mem _ h)⟩
+    have hw0 := (hl.2 k0 S0 (List.mem_cons_self ..)).1
+    rcases List.mem_cons.1 h1 with h1 | h1 <;> rcases List.mem_cons.1 h2 with h2 | h2
+    · cases h1; cases h2; rfl
+    · cases h1
+      exact absurd (hs.1 _ (List.mem_map_of_mem (f := (·.1)) h2)) (fpA.lt_irrefl _ hw0)
+    · cases h2
+      exact absurd (hs.1 _ (List.mem_map_of_mem (f := (·.1)) h1)) (fpA.lt_irrefl _ hw0)
+    · exact nl_unique hl' h1 h2
+
+/-- A node's column: the paths below its key are its set's. -/
+theorem nl_col {l : NL} (hl : NLok l) {k : PE} {S : PathSet} (h : (k, S) ∈ l) (r : Path) :
+    k :: r ∈ nlPaths l ↔ r ∈ S := by
+  rw [mem_nlPaths]
+  constructor
+  · rintro ⟨k', S', r', h', hr', he⟩
+    simp only [List.cons.injEq] at he
+    obtain ⟨rfl, rfl⟩ := he
+    rw [nl_unique hl h h']; exact hr'
+  · intro hr; exact ⟨k, S, r, h, hr, rfl⟩
+
+theorem nl_nokey {l : NL} {k : PE} (h : k ∉ keys l) (r : Path) : k :: r ∉ nlPaths l := by
+  rw [mem_nlPaths]
+  rintro ⟨k', S', r', h', -, he⟩
+  simp only [List.cons.injEq] at he
+  obtain ⟨rfl, rfl⟩ := he
+  exact h (List.mem_map_of_mem (f := (·.1)) h')
+
+theorem nl_heads {l : NL} (q : Path) (h : q ∈ nlPaths l) :
+    ∃ k r, q = k :: r ∧ k ∈ keys l := by
+  rw [mem_nlPaths] at h
+  obtain ⟨k, S, r, hm, -, rfl⟩ := h
+  exact ⟨k, r, rfl, List.mem_map_of_mem (f := (·.1)) hm⟩
+
+theorem nlPaths_append (l l' : NL) (q : Path) :
+    q ∈ nlPaths (l ++ l') ↔ q ∈ nlPaths l ∨ q ∈ nlPaths l' := by
+  simp only [mem_nlPaths, List.mem_append]
+  constructor
+  · rintro ⟨k, S, r, (h | h), hr, rfl⟩
+    · exact Or.inl ⟨k, S, r, h, hr, rfl⟩
+    · exact Or.inr ⟨k, S, r, h, hr, rfl⟩
+  · rintro (⟨k, S, r, h, hr, rfl⟩ | ⟨k, S, r, h, hr, rfl⟩)
+    · exact ⟨k, S, r, Or.inl h, hr, rfl⟩
+    · exact ⟨k, S, r, Or.inr h, hr, rfl⟩
+
+theorem nlPaths_single (k : PE) (S : PathSet) (q : Path) :
+    q ∈ nlPaths [(k, S)] ↔ ∃ r, r ∈ S ∧ q = k :: r := by
+  simp only [mem_nlPaths, List.mem_singleton, Prod.mk.injEq]
+  constructor
+  · rintro ⟨k', S', r, ⟨rfl, rfl⟩, hr, rfl⟩; exact ⟨r, hr, rfl⟩
+  · rintro ⟨r, hr, rfl⟩; exact ⟨k, S, r, ⟨rfl, rfl⟩, hr, rfl⟩
+
+theorem nlok_snoc {lo : NL} (hl : NLok lo) {k : PE} {S : PathSet} (hlt : ∀ a ∈ keys lo, PE.lt a k)
+    (hk : k.wf = true) (hne : ∃ r, r ∈ S) (hnil : [] ∉ S) : NLok (lo ++ [(k, S)]) := by
+  refine ⟨?_, ?_⟩
+  · simp only [List.map_append, List.map_cons, List.map_nil, PE.Sorted]
+    rw [List.pairwise_append]
+    exact ⟨hl.1, List.pairwise_singleton _ _, fun a ha b hb => by
+      simp at hb; subst hb; exact hlt a ha⟩
+  · intro k' S' h
+    rcases List.mem_append.1 h with h | h
+    · exact hl.2 k' S' h
+    · simp at h; obtain ⟨rfl, rfl⟩ := h; exact ⟨hk, hne, hnil⟩
+
+/-! ## The merge loops' invariant over node lists -/
+
+/-- A key consumed by the merge of `l1` (up to `i`) and `l2` (up to `j`). -/
+def proc (l1 l2 : NL) (i j : Nat) (k : PE) : Prop :=
+  k ∈ (keys l1).take i ∨ k ∈ (keys l2).take j
+
+/-- **The output of a merge so far**: a well-formed node list of the consumed keys, whose paths are
+those of `R` below a consumed key. -/
+def OInv (l1 l2 : NL) (i j : Nat) (lo : NL) (R : Path → Prop) : Prop :=
+  NLok lo ∧ (∀ k ∈ keys lo, proc l1 l2 i j k) ∧
+    ∀ q, q ∈ nlPaths lo ↔ R q ∧ ∃ k r, q = k :: r ∧ proc l1 l2 i j k
+
+theorem oinv_zero (l1 l2 : NL) (R : Path → Prop) : OInv l1 l2 0 0 [] R := by
+  refine ⟨⟨List.Pairwise.nil, fun _ _ h => by simp at h⟩, fun k h => by simp at h, fun q => ?_⟩
+  simp only [mem_nlPaths_nil, false_iff, proc, List.take_zero, List.not_mem_nil, or_self]
+  simp
+
+/-- Consume a key `k`, appending the node `(k, S)`. -/
+theorem oinv_add {l1 l2 : NL} {i j i' j' : Nat} {lo : NL} {R : Path → Prop} {k : PE} {S : PathSet}
+    (h : OInv l1 l2 i j lo R) (hp : ∀ a, proc l1 l2 i' j' a ↔ proc l1 l2 i j a ∨ a = k)
+    (hlt : ∀ a, proc l1 l2 i j a → PE.lt a k) (hk : k.wf = true) (hne : ∃ r, r ∈ S)
+    (hnil : [] ∉ S) (hcol : ∀ r, R (k :: r) ↔ r ∈ S) : OInv l1 l2 i' j' (lo ++ [(k, S)]) R := by
+  obtain ⟨hok, hkeys, hmem⟩ := h
+  refine ⟨nlok_snoc hok (fun a ha => hlt a (hkeys a ha)) hk hne hnil, ?_, fun q => ?_⟩
+  · intro a ha
+    simp only [keys, List.map_append, List.mem_append, List.map_cons, List.map_nil,
+      List.mem_singleton] at ha
+    rw [hp]
+    rcases ha with ha | rfl
+    · exact Or.inl (hkeys a ha)
+    · exact Or.inr rfl
+  · rw [nlPaths_append, hmem, nlPaths_single]
+    constructor
+    · rintro (⟨hR, k', r, rfl, hpr⟩ | ⟨r, hr, rfl⟩)
+      · exact ⟨hR, k', r, rfl, (hp k').2 (Or.inl hpr)⟩
+      · exact ⟨(hcol r).2 hr, k, r, rfl, (hp k).2 (Or.inr rfl)⟩
+    · rintro ⟨hR, k', r, rfl, hpr⟩
+      rcases (hp k').1 hpr with hpr | rfl
+      · exact Or.inl ⟨hR, k', r, rfl, hpr⟩
+      · exact Or.inr ⟨r, (hcol r).1 hR, rfl⟩
+
+/-- Consume a key `k` with nothing of `R` below it. -/
+theorem oinv_skip {l1 l2 : NL} {i j i' j' : Nat} {lo : NL} {R : Path → Prop} {k : PE}
+    (h : OInv l1 l2 i j lo R) (hp : ∀ a, proc l1 l2 i' j' a ↔ proc l1 l2 i j a ∨ a = k)
+    (hcol : ∀ r, ¬ R (k :: r)) : OInv l1 l2 i' j' lo R := by
+  obtain ⟨hok, hkeys, hmem⟩ := h
+  refine ⟨hok, fun a ha => (hp a).2 (Or.inl (hkeys a ha)), fun q => ?_⟩
+  rw [hmem]
+  constructor
+  · rintro ⟨hR, k', r, rfl, hpr⟩; exact ⟨hR, k', r, rfl, (hp k').2 (Or.inl hpr)⟩
+  · rintro ⟨hR, k', r, rfl, hpr⟩
+    rcases (hp k').1 hpr with hpr | rfl
+    · exact ⟨hR, k', r, rfl, hpr⟩
+    · exact absurd hR (hcol r)
+
+/-- At the end (both lists consumed), the output's paths are `R`'s. -/
+theorem oinv_final {l1 l2 : NL} {lo : NL} {R : Path → Prop}
+    (h : OInv l1 l2 l1.length l2.length lo R)
+    (hR : ∀ q, R q → ∃ k r, q = k :: r ∧ (k ∈ keys l1 ∨ k ∈ keys l2)) :
+    ∀ q, q ∈ nlPaths lo ↔ R q := by
+  intro q
+  rw [h.2.2]
+  constructor
+  · exact fun h => h.1
+  · intro hq
+    obtain ⟨k, r, rfl, hk⟩ := hR q hq
+    refine ⟨hq, k, r, rfl, ?_⟩
+    unfold proc
+    have e1 : (keys l1).take l1.length = keys l1 := List.take_of_length_le (by simp [keys])
+    have e2 : (keys l2).take l2.length = keys l2 := List.take_of_length_le (by simp [keys])
+    rw [e1, e2]; exact hk
+
+theorem proc_succ1 {l1 l2 : NL} {i j : Nat} (hi : i < l1.length) (a : PE) :
+    proc l1 l2 (i + 1) j a ↔ proc l1 l2 i j a ∨ a = l1[i].1 := by
+  unfold proc
+  rw [fpA.take_succ' (keys l1) i (by simp [hi])]
+  simp only [List.mem_append, List.mem_singleton, keys, List.getElem_map]
+  constructor
+  · rintro ((h | h) | h)
+    · exact Or.inl (Or.inl h)
+    · exact Or.inr h
+    · exact Or.inl (Or.inr h)
+  · rintro ((h | h) | h)
+    · exact Or.inl (Or.inl h)
+    · exact Or.inr h
+    · exact Or.inl (Or.inr h)
+
+theorem proc_succ2 {l1 l2 : NL} {i j : Nat} (hj : j < l2.length) (a : PE) :
+    proc l1 l2 i (j + 1) a ↔ proc l1 l2 i j a ∨ a = l2[j].1 := by
+  unfold proc
+  rw [fpA.take_succ' (keys l2) j (by simp [hj])]
+  simp only [List.mem_append, List.mem_singleton, keys, List.getElem_map]
+  constructor
+  · rintro (h | (h | h))
+    · exact Or.inl (Or.inl h)
+    · exact Or.inl (Or.inr h)
+    · exact Or.inr h
+  · rintro ((h | h) | h)
+    · exact Or.inl h
+    · exact Or.inr (Or.inl h)
+    · exact Or.inr (Or.inr h)
+
+theorem proc_succ12 {l1 l2 : NL} {i j : Nat} (hi : i < l1.length) (hj : j < l2.length)
+    (he : l1[i].1 = l2[j].1) (a : PE) :
+    proc l1 l2 (i + 1) (j + 1) a ↔ proc l1 l2 i j a ∨ a = l1[i].1 := by
+  rw [proc_succ2 hj, proc_succ1 hi, he, or_assoc, or_self]
+
+/-- Consumed keys are below the next key of either list. -/
+theorem proc_lt1 {l1 l2 : NL} {i j : Nat} (hf : fpA.Front (keys l1) (keys l2) i j)
+    (hi : i < l1.length) (a : PE) (ha : proc l1 l2 i j a) : PE.lt a l1[i].1 := by
+  refine hf a (List.mem_append.2 ha) _ (List.mem_append.2 (Or.inl ?_))
+  rw [fpA.drop_cons' (keys l1) i (by simp [hi])]
+  simp [keys]
+
+theorem proc_lt2 {l1 l2 : NL} {i j : Nat} (hf : fpA.Front (keys l1) (keys l2) i j)
+    (hj : j < l2.length) (a : PE) (ha : proc l1 l2 i j a) : PE.lt a l2[j].1 := by
+  refine hf a (List.mem_append.2 ha) _ (List.mem_append.2 (Or.inr ?_))
+  rw [fpA.drop_cons' (keys l2) j (by simp [hj])]
+  simp [keys]
+
+/-- The next key of `l1`, below the rest of `l2`, is not a key of `l2`. -/
+theorem fresh1 {l1 l2 : NL} {i j : Nat} (h1 : NLok l1)
+    (hf : fpA.Front (keys l1) (keys l2) i j) (hi : i < l1.length)
+    (hlt : ∀ b ∈ (keys l2).drop j, PE.lt l1[i].1 b) : l1[i].1 ∉ keys l2 := by
+  intro hm
+  have hw : l1[i].1.wf = true := nlok_wf h1 _ (List.mem_map_of_mem (f := (·.1)) (List.getElem_mem hi))
+  rw [← List.take_append_drop j (keys l2)] at hm
+  rcases List.mem_append.1 hm with hm | hm
+  · exact fpA.lt_irrefl _ hw (proc_lt1 hf hi _ (Or.inr hm))
+  · exact fpA.lt_irrefl _ hw (hlt _ hm)
+
+theorem fresh2 {l1 l2 : NL} {i j : Nat} (h2 : NLok l2)
+    (hf : fpA.Front (keys l1) (keys l2) i j) (hj : j < l2.length)
+    (hlt : ∀ b ∈ (keys l1).drop i, PE.lt l2[j].1 b) : l2[j].1 ∉ keys l1 := by
+  intro hm
+  have hw : l2[j].1.wf = true := nlok_wf h2 _ (List.mem_map_of_mem (f := (·.1)) (List.getElem_mem hj))
+  rw [← List.take_append_drop i (keys l1)] at hm
+  rcases List.mem_append.1 hm with hm | hm
+  · exact fpA.lt_irrefl _ hw (proc_lt2 hf hj _ (Or.inl hm))
+  · exact fpA.lt_irrefl _ hw (hlt _ hm)
 
 end fpC
 
