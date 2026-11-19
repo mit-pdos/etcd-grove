@@ -299,9 +299,9 @@ registered `raftpb.Entry`. -/
 theorem walSrvP_size (wp_Size : proto.SizePb.spec (GF := GF) (hG := hG)) :
     WalPbIn.SizeLaw (walSrvP (GF := GF)) walSrvMr := by
   intro l e
-  simp only [walSrvP]
-  wp_start as ⟨#Hpk, #He⟩
-  unfold walEntInW
+  rw [show (walSrvP (GF := GF)).entIn = walEntInW from rfl]
+  wp_start_folded as #He
+  iunfold walEntInW at He
   icases He with ⟨%c, #Hro, %Hce⟩
   obtain ⟨rfl, hu, hpos, hs⟩ := Hce
   have henc := walEncEntW_W hu hpos hs

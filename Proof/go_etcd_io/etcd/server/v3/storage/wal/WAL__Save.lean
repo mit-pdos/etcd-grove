@@ -136,7 +136,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   · iexists W64 0, W64 0, _
     iframe
     ipureintro
-    simp [saveBatchBytes, maxSaveBatch]
+    simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, saveBatchBytes, maxSaveBatch]
+    simp
   wp_for HL
   by_cases Hlt : sint.Z j < sint.Z sl.len
   · -- an entry: its `proto.Size` added
@@ -152,7 +153,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     ihave #Hel := BigSepL2.bigSepL2_lookup hl he $$ Hes
     have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := ⟨Hj.1, Hlt⟩
     (try wp_auto)
-    (try simp only [hb, _root_.and_self, ↓reduceIte])
+    (try simp only [hb, _root_.and_self, decide_true, ↓reduceIte])
     wp_apply wp_load_slice_index sl (sint.Z j) esL DFrac.discard l Hj.1 $$ [Hsl] as -
     · iframe #; ipureintro; exact hl
     (try wp_auto)
@@ -164,7 +165,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     have htake : saveBatchBytes Mr (es.take (sint.nat j + 1)) =
         saveBatchBytes Mr (es.take (sint.nat j)) + ((Mr.encEntry e).length + 64) := by
       unfold saveBatchBytes
-      rw [List.take_succ, he]
+      rw [List.take_add_one, he]
       simp
     have hn1 : sint.Z (nb + (sz + W64 64)) = saveBatchBytes Mr (es.take (sint.nat j + 1)) := by
       rw [htake]
@@ -174,7 +175,26 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     rw [show sz + W64 64 = sz + W64 64 from rfl]
     wp_if_destruct
     · -- refused: nothing committed, the share back
-      sorry
+      have hbig : maxSaveBatch < saveBatchBytes Mr es := by
+        have h1 := Hif
+        rw [hn1, show sint.Z (W64 4398046511104) = 4398046511104 from rfl] at h1
+        have h2 := congrArg List.sum
+          (List.take_append_drop (sint.nat j + 1) (es.map (fun e => (Mr.encEntry e).length + 64)))
+        rw [List.sum_append] at h2
+        unfold saveBatchBytes maxSaveBatch at *
+        rw [List.map_take] at h1
+        omega
+      iunfold wal.errVar at Hbl
+      icases Hbl with ⟨%eb, #Heb, -, -⟩
+      (try wp_auto)
+      wp_for_post
+      (try wp_auto)
+      iapply HΦ
+      iright
+      iright
+      iframe Hw
+      ipureintro
+      exact ⟨by simp, hbig⟩
     · wp_for_post
       iframe
       iexists j + W64 1, _, _
@@ -183,7 +203,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       ipureintro
       refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
       · rw [hj1, ← hn1]
-      · rw [hj1, ← hn1]; unfold maxSaveBatch; word
+      · have h1 := Hif
+        rw [hn1, show sint.Z (W64 4398046511104) = 4398046511104 from rfl] at h1
+        rw [hj1]; unfold maxSaveBatch; omega
       · word
       · omega
   rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
@@ -191,13 +213,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     have : sint.nat j = (sint.Z j).toNat := rfl
     have : sint.nat sl.len = (sint.Z sl.len).toNat := rfl
     omega
-  have hk : walCov Sio → saveRoom Mr hs es ≤ walFreshRoom := fun _ => by
+  have hfit : saveBatchBytes Mr es ≤ maxSaveBatch := by
     have h1 := Hn.2
-    rw [hje0, List.take_length] at h1
+    rwa [hje0, List.take_length] at h1
+  have hk : walCov Sio → saveRoom Mr hs es ≤ walFreshRoom := fun _ => by
+    have h1 := hfit
     have h2 := hS hs
     unfold saveRoom walFreshRoom maxBytes
     unfold saveBatchBytes maxSaveBatch at h1
     omega
+  ispecialize Hau $$ %hfit
   (try wp_auto)
   wp_apply +noauto sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
   -- the deferred `w.mu.Unlock`'s resolution: its later credit takes the handle out of the share
@@ -372,11 +397,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     ihave #Hel := BigSepL2.bigSepL2_lookup hl he $$ Hes
     have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := ⟨Hj.1, Hlt⟩
     (try wp_auto)
-    (try simp only [hb, _root_.and_self, ↓reduceIte])
+    (try simp only [hb, _root_.and_self, decide_true, ↓reduceIte])
     wp_apply wp_load_slice_index sl (sint.Z j) esL DFrac.discard l Hj.1 $$ [Hsl] as -
     · iframe #; ipureintro; exact hl
     (try wp_auto)
-    (try simp only [hb, _root_.and_self, ↓reduceIte])
+    (try simp only [hb, _root_.and_self, decide_true, ↓reduceIte])
     wp_apply wp_load_slice_index sl (sint.Z j) esL DFrac.discard l Hj.1 $$ [Hsl] as -
     · iframe #; ipureintro; exact hl
     (try wp_auto)
