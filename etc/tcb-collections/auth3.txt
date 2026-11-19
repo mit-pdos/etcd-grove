@@ -34,9 +34,7 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
-axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom NewMaintenance.wp_proof
 axiom Perennial.bufio.opaqueInitsOk
 axiom Perennial.crypto.tls.opaqueInitsOk
 axiom Perennial.encoding.base64.RawURLEncoding_init
@@ -272,7 +270,6 @@ axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
-axiom apply.memberKey_inj
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
@@ -359,7 +356,6 @@ axiom clockwork.stampAt
 axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
-axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackgroundMd.wp_proof
@@ -503,7 +499,6 @@ axiom lease.lessorStopTok
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
-axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
@@ -523,7 +518,6 @@ axiom mvcc.newKVHasher.wp_proof
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt
-axiom newCorruptionChecker.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom os.Rename.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
@@ -592,7 +586,6 @@ axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
-axiom rafthttp.waitSchedule.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
@@ -656,8 +649,6 @@ axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
-axiom types.ID.String.wp_proof
-axiom types.ID.String_ptr.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom types.URLs.StringSlice.wp_proof
@@ -680,7 +671,6 @@ axiom v3rpc.pbWatchResponseT_reg
 axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof
-axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom walFiles
 axiom withVersion.wp_proof
