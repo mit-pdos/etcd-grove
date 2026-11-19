@@ -1,6 +1,28 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 t, noioerr (a) written + attacked: REFUTATION F1 (pre-existing); STOPPED)
+## START HERE (2026-11-19 u, item 3 done; F1's approved form STOPPED: bbolt unprovable)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`, head a50580df93 (+ handoff commit); pin f551a1b46,
+  `--packages=/shared/tmp/manifest-f55.json` (`.lake/package-overrides.json` its copy). Last green full build
+  `20261119-080329-2994864` (b5ba70baa2); since then only lean-checks (NoIoErr, NoIoErrSpecs: 0 errors).
+- **Done (a50580df93):** item 3 narrowed: `PathErrno` (`Premises.lean`; ENOENT/EISDIR/ENOTEMPTY, asked only
+  when no errno-0 outcome exists), `noIoErr_good`/`noIoErr_keeps` (`NoIoErr.lean`), `noIoErr_pathErrno`
+  (`NoIoErrSpecs.lean`); Go example `NoIoErrPathErrno` + `TestNoIoErrPathErrno` (passes here, not on C), doc.go;
+  C's environment: no LSM denies a lock (`Impl.lean`, `env_config.go`); F1/F2 rows in `notes/audit.md`; F2 a known
+  gap (noioerr.md session 5). questions.md: the user's approval, 03's decisions, the form of (2), the OPEN F1 item.
+- **STOPPED (F1):** the approved form (Close stuck while the description holds a lock and a mapping of the file
+  is live) makes `DB.close.spec_owned` unprovable (munmap fails keeping the map, funlock fails keeping the lock,
+  close stuck) and needs a no-mapping resource at every WAL Close of a locked file. NOT implemented. noioerr.md
+  session 5; options in the report. Independent attack on (2) (and a check of the bbolt claim) was launched.
+- **Next after the F1 decision:** implement F1 (+ its Go example/measurement, false texts), attack (1); then
+  cut.specNoErr, Create.specNoErr (uses `noIoErr_pathErrno` for renameWAL's RemoveAll), rnNewStorageOk_holds,
+  Hm1 (B: move `WalOpG` out of `AbsDisk/Impl.lean` first; note `etc/tier-baseline.txt` lists `AbsDisk.Impl ->
+  PbModel` (base->defs): a new module carrying that import is a new violation unless it replaces the line), P2,
+  merge lean (pin 3afd77e35), full timed build, tcb, collections, interfaces, Links, examples' Go.
+- **Pitfalls:** model `#` is not known injective (`IntoValInj` is a class): state premises with the step's own
+  existential witnesses; `questions.md` is git-ignored (worktree-local); others as in s below.
+
+### (2026-11-19 t, noioerr (a) written + attacked: REFUTATION F1 (pre-existing); STOPPED)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`, head after d9fd3d9ae6; pin f551a1b46,
   `--packages=/shared/tmp/manifest-f55.json` (`.lake/package-overrides.json` its copy). Last green full build
