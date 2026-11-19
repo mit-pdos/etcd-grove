@@ -31,7 +31,21 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 theorem ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.wp_proof
     (wp_ContainsFunc : EtcdGrove.slices.ContainsFunc.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro p dq u dq' nds name
+  wp_start as ⟨Hp, Hs⟩
+  icases (ConditionsAwareDecisionUnion.ConditionsAwareDecisionUnion_access_load_inner p u dq).access_strict
+    $$ Hp with ⟨Hi, Hclose⟩
+  wp_auto
+  ipersist conditionalAuthorizerName
+  wp_apply (wp_ContainsFunc u.inner' dq' nds) $$ [$Hs] as %b Hs
+  · iintro !> %x %Hx
+    wp_start
+    wp_auto
+    iapply HΦ
+    itrivial
+  iapply HΦ
+  iframe Hs
+  iapply Hclose $$ Hi
 
 end proof
 
