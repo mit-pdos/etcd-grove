@@ -210,8 +210,8 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
       · iintro %hle
         exact absurd hle hfit
     icases Hpost with (⟨-, -, %d, HF, -, -⟩ | ⟨-, %d, HF⟩ | ⟨%Hbig, Hws⟩)
-    · icases HF with %[]
-    · icases HF with %[]
+    · icases HF with %hF; exact hF.elim
+    · icases HF with %hF; exact hF.elim
     · iapply HΦ
       iright
       iframe HAU
@@ -386,7 +386,6 @@ theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := 
   iintro !> %lg %ss %h
   iintro !> %Φ #Hss HΦ
   wp_apply (wpNew lg h.w ss) as %p ⟨#Hover, Hr1, Hr2⟩
-  · iexact Hpkg
   iapply HΦ
   isplitr
   · iapply (isWalStorage_intro

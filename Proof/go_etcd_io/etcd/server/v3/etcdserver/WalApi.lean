@@ -297,7 +297,7 @@ theorem walSaveRn_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInter
   iapply HS $$ [Ho Hr Hh HAU]
   · iframe Ho Hr Hh Hsl Hb HAU
     ipureintro; exact Hcs.2
-  iintro %err Hpost
+  iintro %err !> Hpost
   iapply HΦ
   icases Hpost with (Hok | ⟨⟨%Herr, -⟩, Ho, Hr, HAU⟩)
   · ileft; iexact Hok

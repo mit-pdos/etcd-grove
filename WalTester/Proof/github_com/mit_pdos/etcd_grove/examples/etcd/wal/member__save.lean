@@ -175,12 +175,14 @@ macro "save_main" : tactic => `(tactic| (
         · iapply (show walHsIn (GF := GF) hp (absHs h) ⊢ (walRaftP (GF := GF)).hsIn hp (absHs h) from .rfl)
           iexact Hhp
         isplitr
-        · ipureintro; exact ⟨hidx, henc⟩
+        · ipureintro; exact hidx
+        isplitr
+        · ipureintro; exact henc
         iintro %hle
         exact absurd hle hfit
       icases Hr with (⟨-, -, %d0, HF, -⟩ | ⟨-, %d0, HF⟩ | ⟨%Herr, -⟩)
-      · icases HF with %[]
-      · icases HF with %[]
+      · icases HF with %hF; exact hF.elim
+      · icases HF with %hF; exact hF.elim
       cases err with
       | nil => exact absurd rfl Herr.1
       | ok ie =>
@@ -212,7 +214,9 @@ macro "save_main" : tactic => `(tactic| (
       · iapply (show walHsIn (GF := GF) hp (absHs h) ⊢ (walRaftP (GF := GF)).hsIn hp (absHs h) from .rfl)
         iexact Hhp
       isplitr
-      · ipureintro; exact ⟨hidx, henc⟩
+      · ipureintro; exact hidx
+      isplitr
+      · ipureintro; exact henc
       iintro %_
       iexact Hau
     icases Hr with (⟨%Herr, Hws, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩ |
