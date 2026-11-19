@@ -18,6 +18,7 @@ set_option pp.fullNames true
 
 #print axioms Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor
 #print axioms Perennial.EtcdGrove.bbolt.Bucket.wp_Delete
+#print axioms Perennial.EtcdGrove.bbolt.Bucket.wp_ForEach
 #print axioms Perennial.EtcdGrove.bbolt.Bucket.wp_Get
 #print axioms Perennial.EtcdGrove.bbolt.Bucket.wp_Put
 #print axioms Perennial.EtcdGrove.bbolt.Cursor.wp_First
@@ -39,4 +40,5 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.bbolt.Tx.wp_Rollback
 #print axioms Perennial.EtcdGrove.bbolt.Tx.wp_Size
 #print axioms Perennial.EtcdGrove.bbolt.Tx.wp_Stats
+#print axioms Perennial.EtcdGrove.bbolt.Tx.wp_WriteTo
 #print axioms Perennial.EtcdGrove.bbolt.wp_Open

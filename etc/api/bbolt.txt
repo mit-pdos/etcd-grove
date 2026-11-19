@@ -49,8 +49,7 @@ importable Spec.go_etcd_io.bbolt.Bucket__Get
 importable Spec.go_etcd_io.bbolt.Bucket__Put
 importable Spec.go_etcd_io.bbolt.Bucket__Delete
 importable Spec.go_etcd_io.bbolt.Bucket__Cursor
-importable Spec.go_etcd_io.bbolt.Bucket__ForEach_kvr
-importable Spec.go_etcd_io.bbolt.Bucket__ForEach_kvw
+importable Spec.go_etcd_io.bbolt.Bucket__ForEach
 importable Spec.go_etcd_io.bbolt.Cursor__Seek
 importable Spec.go_etcd_io.bbolt.Cursor__First
 importable Spec.go_etcd_io.bbolt.Cursor__Last
