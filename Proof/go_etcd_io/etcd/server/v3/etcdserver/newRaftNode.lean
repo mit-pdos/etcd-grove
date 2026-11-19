@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `rnApP` depends on the names through `cum`, (D19i part 1) the storage and the start log, and
 (D22 S-b) the node's names (`rnRtOk`) only. -/
-theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
+theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames GF) (h : γ1.cum = γ2.cum)
     (_hms : γ1.ms = γ2.ms) (hγs : γ1.γs = γ2.γs) (hpre : γ1.pre = γ2.pre)
     (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) (hkey : γ1.key = γ2.key)
     (hwal : γ1.wal = γ2.wal) (ha : γ1.a0 = γ2.a0) :

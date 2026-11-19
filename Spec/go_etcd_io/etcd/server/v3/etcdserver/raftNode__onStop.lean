@@ -27,7 +27,7 @@ stops the node, the ticker and the transport, closes the WAL (which succeeds, th
 `storage.walCloseOk`: else `lg.Panic`) and then `done`, (2026-11-03, R2b-3b) with the stop's image
 escrowed (`rnDoneEsc`: the id vacant, the durable state, the WAL's files holding it). -/
 abbrev raftNode.onStop.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
+  ∀ (E : RNEnv GF) (γ : RNNames GF) (r : Loc),
   -- (2026-10-31, `notes/axiom-review/savesnap.md`) `Close` not failing (I/O)
   storage.walCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ rnDoneTok γ r ∗

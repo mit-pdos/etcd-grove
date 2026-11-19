@@ -131,7 +131,7 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     -- (this member's sends); (restart3 A1, 2026-11-15, D-A0-2) the wrapper's node
     -- and its inbound methods (`rnStepIfc`, `srvProcOk`'s), which `ReportSnapshot` of a deferred or
     -- dropped merged snapshot reads
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
+    (∃ γm : RNNames GF, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
       rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γm ∗ rnStepIfc γm (rnNodeIface γm)) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`

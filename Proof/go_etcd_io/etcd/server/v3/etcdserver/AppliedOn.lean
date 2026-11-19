@@ -280,7 +280,7 @@ theorem isServerM_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → 
 applied index's invariant over the mode's model is allocated at the boot (`srvIndices_allocM`), so
 `isServerBuiltOn` carries `srvAtomicsM true`'s three invariants. -/
 theorem srvAtomicsM_of_builtOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     isServerBuiltOn (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ⊢
       srvAtomicsM true s E γr := by

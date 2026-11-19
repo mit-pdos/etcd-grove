@@ -239,7 +239,7 @@ structure ApplyCtx (GF : BundledGFunctors) where
   /-- (D22 receiver epochs, S7f) the request path's names (`isServer`'s) -/
   ρ : ReqNames
   /-- (2026-11-03, R2b-1 stage 5) the raft wrapper's names (its WAL's, `rnWalTokA`) -/
-  rn : RNNames
+  rn : RNNames GF
 
 /-- **The apply thread's current backend** (D22 receiver epochs, S7f, 2026-10-23): the protocol's
 names at its physical names, its batch lock's meta-keys resource, the apply environment on it and

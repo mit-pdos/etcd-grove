@@ -258,7 +258,7 @@ components, independent of where the struct lives (`NewServer` copies `*newRaftN
 `EtcdServer.r` by value): the logger a zap logger (premise-fixes-6: until then non-nil), `msgSnapC`'s bag, `applyc`'s SPSC channel,
 `readStateC`'s bag of answered read states, the ticker, the detector, `stopped`'s bag and `done`'s
 broadcast channel (its `Unknown` view). -/
-def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
+def rnParts (E : RNEnv GF) (γ : RNNames GF) (rv : raftNode) : IProp GF :=
   iprop("#Hlgnn" ∷ zapLoggerOk rv.lg' ∗
     "#Hmsci" ∷ isRNMsgSnapC γ rv.msgSnapC' ∗
     "#Hapci" ∷ isRNApplyc E γ rv.applyc' ∗
@@ -269,7 +269,7 @@ def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
     "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done
       (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Unknown)
 
-instance rnParts_persistent (E : RNEnv GF) (γ : RNNames) (rv : raftNode) :
+instance rnParts_persistent (E : RNEnv GF) (γ : RNNames GF) (rv : raftNode) :
     Persistent (rnParts E γ rv) := by
   unfold rnParts; infer_instance
 
@@ -281,7 +281,7 @@ components' predicates (`rnParts`), `applyc`'s two halves with `cum` at `[L₀]`
 the start log `L₀`, `[]` at a first start; until then `[[]]`) (the loop's and
 the apply side's ghost state, `rnLoopTok`/`rnApplyTok`), the right to close `done`, and the
 claim on the stop's escrow (`rnStopClaim`). -/
-def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) (L₀ : List EntryModel) :
+def rnBuilt (E : RNEnv GF) (γ : RNNames GF) (r : Loc) (cv : raftNodeConfig) (L₀ : List EntryModel) :
     IProp GF :=
   iprop(∃ rv : raftNode,
     "Hr" ∷ r ↦ rv ∗

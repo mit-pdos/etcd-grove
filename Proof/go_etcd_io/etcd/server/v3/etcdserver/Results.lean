@@ -257,7 +257,7 @@ request path's unit 4b; `ReadState` and `ReadIndex` linked): over the node contr
 (`isRaftNodeIfc`, discharged from raft's node specs since stage R7b, `node_contract_ifc`:
 `ReadIndex` registers at a committed bound, the `Ready`'s read states answer the registrations),
 at the read names `E.γr` and registrations `E.RQ`. -/
-theorem read_raft (E : RNEnv GF) (γ : RNNames) (r : Loc) :
+theorem read_raft (E : RNEnv GF) (γ : RNNames GF) (r : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ⊢
       isReadRaft (interface.mkOk (go.GoType.PointerType raftNode.ty) #r) E.γr E.RQ :=
   isReadRaft_of_raftNode raftNode.wp_ReadState raftNode.wp_ReadIndex E γ r
@@ -271,7 +271,7 @@ bound is read from); `Stop` from raft's `node.Stop` (2026-10-30, the repair; unt
 `rnStopOk`), `ApplyConfChange` from `node.ApplyConfChange` (`raftApplyCC`). The context's
 error is one the gRPC layer takes since stage R7c (raft's `ctxErr` names it, by the trust-boundary
 spec `context.ErrDone`; until then the premise `rnCtxErrOk`). -/
-theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued : GName) :
+theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issued : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvCommittedInv s E.γr ∗
       rnMemStorReg γ ∗ srvRdCtxInv E.γr.raft issued ⊢
@@ -286,7 +286,7 @@ theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued : GNam
 errors are raft's since stage R7c (`propErr`: `nil`, `ErrStopped`, the context's `Canceled` or
 `DeadlineExceeded`, the proposal's `ErrProposalDropped`), each one the gRPC layer takes
 (`applyErrIs_of_propErr`, by the server's and the read package's facts). -/
-theorem node_contract_propose (E : RNEnv GF) (γ : RNNames) :
+theorem node_contract_propose (E : RNEnv GF) (γ : RNNames GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) :=
@@ -295,7 +295,7 @@ theorem node_contract_propose (E : RNEnv GF) (γ : RNNames) :
 /-- **The `MemoryStorage` meets the wrapper's `isRNMemStor`** (stage R7b, D10; 2026-10-30, the
 repair: over the linked `MemoryStorage.wp_Append`, under the storage's lock invariant), for a
 registered storage. -/
-theorem node_contract_memstor (γ : RNNames) :
+theorem node_contract_memstor (γ : RNNames GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnMemStorReg γ ∗
       memStorLock γ.ms γ.γs ⊢
       isRNMemStor γ γ.ms :=
@@ -2266,7 +2266,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
 rows, the apply thread's KV ghost state over the mode-`on` model) with auth on. -/
 theorem server_built_gap_on (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
-    (γn : RNNames) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    (γn : RNNames GF) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     srvBuiltG on s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ⊢
       isServerBuiltM on s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N :=
   isServerBuilt_of_gapM on s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
@@ -2312,7 +2312,7 @@ resources). The slot is what `NewServer` keeps for the stop (`NewServer.specG`'s
 `srvStop.keep`), at the raft environment `Er` whose transport stop right is that slot's
 (`srvEr`'s `ST`, `srvTrStopK γk`; `srvStop.slot_intro`). -/
 theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
     (Hrb : receiptBound GF ≤ N + 1) (Hrb48 : receiptBound GF ≤ 2 ^ 48) (Hai0 : ai₀ = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

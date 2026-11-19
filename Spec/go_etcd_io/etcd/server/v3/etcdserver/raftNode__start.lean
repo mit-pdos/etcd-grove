@@ -31,7 +31,7 @@ the node; it stops (`onStop`) on `stopped`. The loop owns the ready handler's re
 unit 4c), and (2026-10-24, rafthttp stage 6d) what the transport's `Send` borrows (`E.S`); (2026-10-31,
 #3) the `MemoryStorage`'s invariant, for a snapshot `Ready`'s `ApplySnapshot`. -/
 abbrev raftNode.start.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r rh : Loc) (L : List EntryModel) (R : IProp GF),
+  ∀ (E : RNEnv GF) (γ : RNNames GF) (r rh : Loc) (L : List EntryModel) (R : IProp GF),
   -- (2026-11-03, R2b-1 stage 4) the WAL's writes not failing (I/O: a failed `Save`, the user's
   -- choice), as `SaveSnap`'s
   storage.walSaveOk →

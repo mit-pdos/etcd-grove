@@ -163,7 +163,7 @@ def srvApplyAllBuilt (s : Loc) (γr : ReadNames) : IProp GF :=
     -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`); (R2d'a A7,
     -- 2026-11-06, DRAFT) its node's id the server's member id (`isServerApplyAll`'s); (restart3 A1,
     -- 2026-11-15) the wrapper's node and its inbound methods, for `ReportSnapshot`
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
+    (∃ γm : RNNames GF, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
       rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γm ∗ rnStepIfc γm (rnNodeIface γm)) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s ∗
@@ -257,7 +257,7 @@ def srvTpPend (s : Loc) (M : auth.AuthMode) : IProp GF :=
 /-- **The construction premise** (see the file header; named conjuncts, what a `NewServer` proof
 discharges). -/
 def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     IProp GF :=
   iprop(-- the server's views but the fields `start` sets

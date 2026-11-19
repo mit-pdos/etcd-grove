@@ -86,7 +86,7 @@ log `A` it got so far, and its token moves to `A ++ ce`; its term is good for th
 member's `nodeSnapLocal` of the snapshot's index).
 (R2d'a swap batch 2, 2026-11-06: until then without the snapshot's last conjunct, `rnApSnap`'s
 A8 bound, which `rnApplyTok_recvR` passed through: a snapshot above the restart point.) -/
-theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
+theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A : List EntryModel)
     (ap : toApply) :
     ⊢ sspscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
       rnApP E γ (rcv.length : Int) ap -∗
@@ -218,7 +218,7 @@ start the ghost log is the handed one; at a restart (`pre = []`) the batch's log
 are prefix-comparable (`srvRLogLb_prefix`) and the ghost log grows by a suffix of the batch
 (`ghost_batch`). (Restart S3 item 7, 2026-11-11: the restart data a premise, `isRaftNode`'s; until
 then in the view.) -/
-theorem rnCfgAt_normal (γ : RNNames) (γs : ServerRaftNames) (L ce : List EntryModel)
+theorem rnCfgAt_normal (γ : RNNames GF) (γs : ServerRaftNames) (L ce : List EntryModel)
     (hnm : γs.raft = γ.node ∧ γs.pre = γ.pre ∧ uint.Z γs.ai0 = γ.pre.length)
     (h : ∀ m, m ∈ ce → m.typ = W32 0) :
     rnRestartOk γ ∗ srvRLogLb γs (L ++ ce) ∗ rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ ce) := by
@@ -263,7 +263,7 @@ theorem ccIn_false_normal (ai₀ : w64) (L ce : List EntryModel) (hidx : srvIdxO
 
 /-- (D43 M3) **The view after a batch with no `ConfChange` entry**: the loop kept it (`rnHands`
 is false), and the batch, of the server's committed log, is normal entries. -/
-theorem rnCfgAt_back_false (γ : RNNames) (γs : ServerRaftNames) (ai₀ : w64) (L ce : List EntryModel)
+theorem rnCfgAt_back_false (γ : RNNames GF) (γs : ServerRaftNames) (ai₀ : w64) (L ce : List EntryModel)
     (hnm : γs.raft = γ.node ∧ γs.pre = γ.pre ∧ uint.Z γs.ai0 = γ.pre.length)
     (hidx : srvIdxOkW ai₀ (L ++ ce)) (hcc : ccIn ce = false) :
     rnRestartOk γ ∗ srvRLogLb γs (L ++ ce) ∗
@@ -275,7 +275,7 @@ theorem rnCfgAt_back_false (γ : RNNames) (γs : ServerRaftNames) (ai₀ : w64) 
 
 /-- (D43 M3) **The view after a batch with a `ConfChange` entry**: the second `notifyc` send's
 (`rnApR`; 2026-10-30, the repair: one mode, until then in the static mode the one the loop kept). -/
-theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce = true) :
+theorem rnCfgAt_back_true (γ : RNNames GF) (L ce : List EntryModel) (hcc : ccIn ce = true) :
     (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
       rnCfgAt γ (L ++ ce) := by
   have hh : rnHands γ ce = true := hcc
@@ -286,13 +286,13 @@ theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce
 
 /-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
 (`rnHands`). -/
-def rnDv (γ : RNNames) (ce : List EntryModel) : Option Loc :=
+def rnDv (γ : RNNames GF) (ce : List EntryModel) : Option Loc :=
   if rnHands γ ce then some γ.nl else none
 
 /-- (D43 M3) The server's node meets the conf-change contract: the wrapper's node contract's
 (`isRaftNodeIfc`). (2026-10-30, the repair: in every cluster; until then `srvRaftNodeDyn`, in the
 dynamic mode.) -/
-theorem srvRaftNodeCC_of_isRaftNode (E : RNEnv GF) (γ : RNNames) (s : Loc) :
+theorem srvRaftNodeCC_of_isRaftNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) :
     isRaftNode E γ (srvRAddr s) ⊢ srvRaftNodeCC s γ.srv γ.nl := by
   iintro #H
   iunfold isRaftNode at H

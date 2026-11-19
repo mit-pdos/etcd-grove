@@ -193,7 +193,7 @@ prefix of the KV invariant's, whose indices its own are, `srvRLogLb_idx`, and it
 the workload clause's `logShape` and `batchWaitOk`, and back from `srvC`. (2026-10-27: over the node
 API; no budget names, no raft modes.) -/
 theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (γw : RNNames)
+    (x₀ : apply.ApplyKV) (γw : RNNames GF)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     -- (D43 M3, 2026-10-25) the cluster at the server's rule (2026-10-30, the repair: in every
@@ -263,7 +263,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
 completed with its own (the uber-applier's field and contracts into `#Hfb` and `Happ`, `srv.kv`
 and its store handle into `#Hrdb`), and the residual's snapshot contract. -/
 theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ⊢
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by

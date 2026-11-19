@@ -336,7 +336,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-          (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
+          (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
           -- (per-type stage B2, 2026-11-11, r5 §4.2) the raw serving stocks: the revocation's built

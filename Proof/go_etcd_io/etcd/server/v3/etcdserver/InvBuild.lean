@@ -306,7 +306,7 @@ parts, which `#Hkv` and `HWB` give in part: `srv.kv` with its read view and the 
 moved from the residual by unit N4's `NewServer` proof, 2026-10-17; `#Hsmall`, `#HNR`, `#Hcv`,
 `%Hbound` since D17, from `NewServer.spec`'s lifetime premises and the cluster's contract). -/
 def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
   iprop("#Hci" ∷ isServerCI s γ ci ∗
     "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuiltNA s γ ci TM E v) ∗
@@ -399,7 +399,7 @@ read view and the write budget `txn.storeWTs` were rows here until unit N4's `Ne
 2026-10-17; the uber-applier's `applierFor`/`applyKV` until D14i; `storeSmall`, the id budget,
 `clusterVersionOk` and the thread bound until D17, the same day: `srvBuilt`, from
 `NewServer.spec`'s workload premises and the cluster's `Version` contract.) -/
-def srvBuildGap (s : Loc) (γn : RNNames) (ai₀ at₀ : w64) : IProp GF :=
+def srvBuildGap (s : Loc) (γn : RNNames GF) (ai₀ at₀ : w64) : IProp GF :=
   iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀))
 
 end defs

@@ -71,7 +71,7 @@ is `ghostOf ⟨b, γ.a0⟩ (γ.pre ++ L)` for any `b`); the apply side's `pre` i
 
 /-- **What the apply thread's `notifyc` receive deposits, as the apply side states it**: the view
 after the batch over the ghost log, if it went along (no `γ.a0 = []`). -/
-theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (b : Nat) (hpre : γs.pre = [])
+theorem rnApR_dv (γ : RNNames GF) (γs : ServerRaftNames) (b : Nat) (hpre : γs.pre = [])
     (hraft : γs.raft = γ.node) (F ce : List EntryModel) :
     rnApR (GF := GF) γ F ce = dvView γs (rnDv γ ce) (ghostOf ⟨b, γ.a0⟩ (γ.pre ++ F ++ ce)) := by
   have hv : ∀ L, rnView (GF := GF) γ L =
@@ -86,7 +86,7 @@ theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (b : Nat) (hpre : γs.pr
 /-- **What goes along with a batch, as the apply side states it** (with the node's conf-change
 contract, `isRaftNodeIfc`'s): the view over the ghost log of Go's log before the batch, the
 delivered log over Go's log through it (no `γ.a0 = []`). -/
-theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (b : Nat)
+theorem rnApGive_dv (s : Loc) (γ : RNNames GF) (γs : ServerRaftNames) (b : Nat)
     (hpre : γs.pre = []) (hraft : γs.raft = γ.node) (F ce : List EntryModel) :
     srvRaftNodeCC (GF := GF) s γ.srv γ.nl ∗ rnApGive γ F ce ⊢
       dvView γs (rnDv γ ce) (ghostOf ⟨b, γ.a0⟩ (γ.pre ++ F)) ∗
@@ -187,7 +187,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     -- (2026-10-31, S1: `applyAll`'s merged snapshot) the batch's raft term, good for its log
     -- (`rnApplyTok_recv`'s `rnRtOk`), at the raft node `γn` of the server's raft; the start's
     -- consistent index at most its applied one (`isServerRunC`'s)
-    (γn : RNNames) (rt : w64) (hγn : γn.node = C.γr.raft.raft) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀)
+    (γn : RNNames GF) (rt : w64) (hγn : γn.node = C.γr.raft.raft) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀)
     -- (2026-11-03, R2b-1 stage 5) a fresh start's log, the context's raft names `γn` (the WAL's)
     (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -417,7 +417,7 @@ theorem run_job_body_match (γs : ServerRaftNames) (dv : Option Loc) :
 
 /-- **The apply side's half of the running token, lent to a job** (2026-10-30, the repair): the
 job's view `rnDv γn ce` is the node's or none; with the node's, the half is `srvRunH`'s. -/
-theorem srvRunH_lend (γn : RNNames) (γs : ServerRaftNames) (hnd : γs.raft = γn.node)
+theorem srvRunH_lend (γn : RNNames GF) (γs : ServerRaftNames) (hnd : γs.raft = γn.node)
     (ce : List EntryModel) :
     (letI := srvStor (GF := GF) γn.node; nodeRunning (GF := GF) γn.nl γn.node.cl srvClusterN (1 : Qp).half) ⊢
       srvRunH (GF := GF) γs (rnDv γn ce) ∗
@@ -508,7 +508,7 @@ ghost log (`hwin`). After, Go is past the window (`applyResR … A'`). -/
 theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (rp : RestartPt) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
-    (γn : RNNames) (rt : w64) (K : AuthC) (hM : C.E.authMode = K.mode)
+    (γn : RNNames GF) (rt : w64) (K : AuthC) (hM : C.E.authMode = K.mode)
     (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
     (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
     (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)

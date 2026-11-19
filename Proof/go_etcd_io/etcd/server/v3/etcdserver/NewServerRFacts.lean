@@ -608,7 +608,7 @@ index `σ.b = |A.take σ.b|`, the base's term, the conf state `cs` the voters' (
 token was generalized to the attached snapshot, approved by etcd-grove-81; until then over the
 records' certificate and the server's log, from which the exact answer did not follow.) -/
 theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (σ : StorContents)
+    (E : RNEnv GF) (γ : RNNames GF) (r ms0 : Loc) (γs : MemStorNames) (σ : StorContents)
     (cs : ConfStateM) (γr : ServerRaftNames) (A : List EntryModel) (Hms0 : γ.ms = ms0)
     (hb : σ.b ≤ A.length) (hcs : confStateIs cs (Membership.simple γr.raft.cfg)) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗

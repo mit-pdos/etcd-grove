@@ -46,7 +46,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The raft side of the stop (sealed): the raft loop's stop claim, and the server the transport's
 key names. -/
-@[no_expose] def srvStop.raftPart (s : Loc) (γrn : RNNames) (γk : GName) : IProp GF :=
+@[no_expose] def srvStop.raftPart (s : Loc) (γrn : RNNames GF) (γk : GName) : IProp GF :=
   iprop(rnStopClaim γrn ∗ srvTrKeyOf s γk)
 
 /-- `Cleanup`'s part of the stop (sealed): the lessor's stop right, and with auth off the auth
@@ -68,7 +68,7 @@ merge, 2026-11-06: reader tokens of mvcc's API, `mvccReaders`, in place of mvcc'
 /-- The image's part (sealed): the storage registry's authority, the configuration's data and WAL
 directories, read-only, and the raft wrapper's storage writing the WAL in the latter. -/
 @[no_expose] def srvStop.imagePart (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (γrn : RNNames) : IProp GF :=
+    (γrn : RNNames GF) : IProp GF :=
   iprop((letI : MemStorReg GF := ⟨γrn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
     srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' ∗
@@ -77,13 +77,13 @@ directories, read-only, and the raft wrapper's storage writing the WAL in the la
 
 /-- **What `NewServer` keeps for the server's stop** (sealed; see the file header). -/
 @[no_expose] def srvStop.keep (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) : IProp GF :=
+    (E : apply.AEnv GF) (γrn : RNNames GF) (γk : GName) : IProp GF :=
   iprop(srvStop.raftPart s γrn γk ∗ srvStop.cleanupPart s E ∗ srvStop.censusPart s E ∗
     srvStop.imagePart s cfg γrn)
 
 /-- **The slot, from what `NewServer` holds at its return.** -/
 theorem srvStop.keep_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) :
+    (E : apply.AEnv GF) (γrn : RNNames GF) (γk : GName) :
     rnStopClaim γrn ∗ srvTrKeyOf s γk ∗
       (∃ lp : Loc, srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp) ∗
       □ (⌜E.authOn = false⌝ → srvCleanupOwn s) ∗
@@ -103,7 +103,7 @@ theorem srvStop.keep_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.Ser
 
 /-- **The slot, split into its consumers' parts.** -/
 theorem srvStop.keep_split (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) :
+    (E : apply.AEnv GF) (γrn : RNNames GF) (γk : GName) :
     srvStop.keep (GF := GF) s cfg E γrn γk ⊢
       srvStop.raftPart s γrn γk ∗ srvStop.cleanupPart s E ∗ srvStop.censusPart s E ∗
         srvStop.imagePart s cfg γrn := by
@@ -112,7 +112,7 @@ theorem srvStop.keep_split (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.Ser
 /-- **`raftNode.stop`'s pieces**: with the server's live transport (the apply thread's, `srvApRes`),
 the raft loop's stop claim and the transport's stop right at the key (`srvTrStopK γk`, the server's
 raft environment's `ST`). -/
-theorem srvStop.raft_stop (s : Loc) (γrn : RNNames) (γk : GName) :
+theorem srvStop.raft_stop (s : Loc) (γrn : RNNames GF) (γk : GName) :
     srvStop.raftPart (GF := GF) s γrn γk ∗ srvTrStop s ⊢ rnStopClaim γrn ∗ srvTrStopK γk := by
   unfold srvStop.raftPart
   iintro ⟨⟨Hc, #Hk⟩, Ht⟩
@@ -161,7 +161,7 @@ theorem srvStop.census_readers (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
 (`srvDataDir`): the storage registry's authority, and the raft wrapper's storage writing the WAL in
 `<dd>/member/wal`. -/
 theorem srvStop.image_inputs (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (γrn : RNNames) (dd : GoString) :
+    (γrn : RNNames GF) (dd : GoString) :
     srvStop.imagePart (GF := GF) s cfg γrn ∗ srvDataDir s dd ⊢
       (letI : MemStorReg GF := ⟨γrn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
       ∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗
@@ -186,14 +186,14 @@ the raft environment's transport stop right `Er.ST` names (a fact of the constru
 D1, until then `run.specStop`'s premise). A conjunct of `start`'s construction premise
 (`isServerBuiltC`) and, R2c-4, of `run`'s (`isServerRunC`), so that no caller of `Start` hands it
 separately. -/
-def srvStop.slot (s : Loc) (E : apply.AEnv GF) (γrn : RNNames) (Er : RNEnv GF) : IProp GF :=
+def srvStop.slot (s : Loc) (E : apply.AEnv GF) (γrn : RNNames GF) (Er : RNEnv GF) : IProp GF :=
   iprop(∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γk : GName),
     srvStop.keep s cfg E γrn γk ∗ ⌜Er.ST = srvTrStopK γk⌝)
 
 /-- **The slot from what `NewServer` kept** (R2c review F4): its `srvStop.keep`, at the transport
 key the raft environment's stop right names. -/
 theorem srvStop.slot_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) (Er : RNEnv GF) (h : Er.ST = srvTrStopK γk) :
+    (E : apply.AEnv GF) (γrn : RNNames GF) (γk : GName) (Er : RNEnv GF) (h : Er.ST = srvTrStopK γk) :
     srvStop.keep s cfg E γrn γk ⊢ srvStop.slot (GF := GF) s E γrn Er := by
   iintro H
   iunfold srvStop.slot
@@ -204,7 +204,7 @@ theorem srvStop.slot_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.Ser
 /-- **The configuration's data directory field** (persistent; R2c-4): the slot's `DataDir`, which
 `start` records in the stop right (`srvStopRight`) so that the stop's image names it. -/
 theorem srvStop.dataDirField (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) :
+    (E : apply.AEnv GF) (γrn : RNNames GF) (γk : GName) :
     srvStop.keep (GF := GF) s cfg E γrn γk ⊢
       srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗ srvStop.keep s cfg E γrn γk := by
   unfold srvStop.keep srvStop.imagePart
@@ -217,7 +217,7 @@ theorem srvStop.dataDirField (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.S
 directory, the slot's configuration fields are the data directory's record (`srvDataDir`), which
 the stop request carries and the image names. -/
 theorem srvStop.dataDir (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) (dd : GoString) (hdd : cfg.DataDir' = dd)
+    (E : apply.AEnv GF) (γrn : RNNames GF) (γk : GName) (dd : GoString) (hdd : cfg.DataDir' = dd)
     (hw : cfg.DedicatedWALDir' = (go!"" : GoString)) :
     srvStop.keep (GF := GF) s cfg E γrn γk ⊢ srvDataDir s dd ∗ srvStop.keep s cfg E γrn γk := by
   subst hdd

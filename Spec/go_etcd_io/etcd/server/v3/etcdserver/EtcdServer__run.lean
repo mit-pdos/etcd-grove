@@ -98,7 +98,7 @@ dropped as stale): the stop branch rests on the three axioms of the image's conf
 backed by it (`isServerRunC`'s `#Hrvk`). -/
 abbrev EtcdServer.run.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
+    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF) (γg : GoNames)
     (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (dd : GoString) (c : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

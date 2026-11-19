@@ -1,6 +1,30 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 m, the four laws proved; STOPPED: the Save batch's room)
+## START HERE (2026-11-19 n, fix 0009 in; InvRaftNode's definitions moved; clients next)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere.
+  Merge the origin merge (pin f551a1b46, manifest-f55) when it lands on lean.
+- **Fork fix 0009 (approved by the user 2026-11-19):** commit `d3feef9bc` on branch `goose-lean-walfs3-fp9` of
+  `/shared/tmp/wal-fork/etcd` (on `34dea163a`), NOT PUSHED; `etc/goose.py` pins it (`--src etcd=/shared/tmp/wal-fork/etcd`
+  until the push; `etc/goose.py --check` warns that the examples' go.mod are still at 0008 until `bump-go-mod.sh`
+  with `NEW` = 0009's pseudo-version); README 0009, `notes/wal-fsext-fork/0009-*.patch`, the nonissue's Fix.
+- **Done (bd06269e62 + this commit):** layer 1 `WAL.Save.spec`: room premise gone, update as
+  `⌜saveBatchBytes Mr es ≤ maxSaveBatch⌝ -∗ AU`, refused arm (share back); `WalPbIn.SizeLaw` (+ `walRaftP_size`,
+  `walSrvP_size`, in `WalPbLaws`); `wal.walInit` + gen-init (MaxSaveBatchBytes, ErrSaveBatchTooLarge); storage Save;
+  WalApi's Save law error arm (share, token, AU back); `walSave_law` (split on the size); `isWalStorage_intro`;
+  `rnNewStorageOk_holds`; WalTester `member__save`; InvRaftNode definitions (questions.md, forms of 2026-11-19 0009).
+  Check state of each: see the checkpoint report / last build log `/shared/tmp/wallink/b-save*.log`.
+- **Next, in order:** InvRaftNode's proofs (lean-check); the clients (list:
+  `grep -rlE "rnWalTok|rnStopBag|rnDoneEsc|rnWalClosedW|storage\.walOf|walDirOf|walBaseLb|isWalStorage|rnStopImage|rnStorageOf|storageSnap" Proof Spec`:
+  ~50 files; raftNode__start's two Save sites: the new error arm → `lg.Fatal`, as the Sync error), F2, P2, merge,
+  full build, tcb/collections/interfaces, examples' Go, closed-statement STOP.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a -q FILE`.
+- **Pitfalls:** gen-init needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`; build slots were busy for hours on
+  2026-11-19 (full builds queued); handoff m's AU pitfalls still apply.
+
+## History
+
+### START HERE (2026-11-19 m, the four laws proved; STOPPED: the Save batch's room)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 1b298c1e70 merged (lean had not moved); pin 6d365ee1a,
   `/shared/tmp/manifest-6d3.json` everywhere. Merge the origin merge (pin f551a1b46, manifest-f55) when it lands.
@@ -29,8 +53,6 @@
   imod Hacc; isimp only [texist_cons, …] at Hacc`; an AU from held resources: `iapply fupd_mask_intro
   Iris.Std.LawfulSet.empty_subset`, abort gives back the context; `(walSrvP).hsIn` vs `walHsIn`: state the
   entailment with `have … := walHsIn_of_hsOptC` (iexact does not unfold the projection).
-
-## History
 
 ### START HERE (2026-11-19 l, L3 applying the approved statements; stopped for context)
 

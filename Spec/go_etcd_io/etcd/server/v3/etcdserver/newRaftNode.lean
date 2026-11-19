@@ -65,7 +65,7 @@ abbrev newRaftNode.spec : Prop :=
       ⌜L₀ <+: a0⌝ }}
     (App (Val (@! newRaftNode)) (Val #cv))
   {{ (r : Loc), RET #r;
-      ∃ γ : RNNames,
+      ∃ γ : RNNames GF,
         ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs ∧
           γ.key = key ∧ γ.wal = wal ∧ γ.a0 = a0 ∧ γ.t0 = t0 ∧ γ.commit0 = commit0 ∧ γ.snap0 = snap0⌝ ∗
         rnBuilt E γ r cv L₀ }}

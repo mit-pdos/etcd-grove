@@ -44,7 +44,7 @@ loop handed is the apply side's `A` (review M2). The image's order is at the bac
 index, which equals `|pre ++ A|` once every job ran and the backend's last commit saved the index:
 R2b-3c's. -/
 abbrev raftNode.stop.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (A : List EntryModel),
+  ∀ (E : RNEnv GF) (γ : RNNames GF) (r : Loc) (A : List EntryModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
       E.ST ∗
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗

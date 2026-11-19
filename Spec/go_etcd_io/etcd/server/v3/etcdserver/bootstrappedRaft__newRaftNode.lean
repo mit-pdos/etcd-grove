@@ -100,7 +100,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
     (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
       (Val #ss)) (Val #wal)) (Val #cl))
   {{ (r : Loc), RET #r;
-      ∃ (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
+      ∃ (n : Loc) (γw : RNNames GF) (f : GoFunc) (st : GoInterface),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs ∧ γw.wal = ν ∧ γw.a0 = bt.a0 ∧ γw.t0 = bt.t0 ∧ γw.commit0 = bt.commit0 ∧
           γw.snap0 = bt.snap0⌝ ∗

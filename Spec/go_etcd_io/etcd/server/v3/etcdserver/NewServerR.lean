@@ -127,7 +127,7 @@ abbrev NewServer.specR : Prop :=
       (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-          (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF) (at₀ : w64),
+          (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF) (at₀ : w64),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
           srvServeStock srv E ∗
           srvWatchBuilt srv E ∗

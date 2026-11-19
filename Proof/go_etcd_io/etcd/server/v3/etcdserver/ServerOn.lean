@@ -159,7 +159,7 @@ def srvUberRowM (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV)
 /-- **The built part in the auth mode `on`** (`srvBuilt` with `srvReqBuiltM`, `srvKVInvsM` and
 `srvCM`; the other rows `srvBuilt`'s). -/
 def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
   iprop("#Hci" ∷ isServerCI s γ ci ∗
     "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuiltNA s γ ci TM E v) ∗
@@ -236,7 +236,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
 
 theorem srvBuiltG_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     srvBuiltG (GF := GF) false s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N =
       srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N := rfl
@@ -508,7 +508,7 @@ theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
 /-- **The server's raft environment meets the wrapper's discharge in the mode `on`**
 (`rnEnvOk_of_cluster`'s, from `kvInvOn`). -/
 theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (γw : RNNames) (st₀ : auth.AuthState)
+    (x₀ : apply.ApplyKV) (γw : RNNames GF) (st₀ : auth.AuthState)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     -- (2026-10-30, the repair) the cluster at the server's rule (until then, in a dynamic
@@ -572,7 +572,7 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
 
 /-- **The server's raft environment meets the wrapper's discharge in the auth mode `on`**. -/
 theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (γw : RNNames)
+    (x₀ : apply.ApplyKV) (γw : RNNames GF)
     (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     -- (2026-10-30, the repair) the cluster at the server's rule (until then, in a dynamic

@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 wrapper**: the bundle's storage over the snapshotter (`srvSnapRO`) is the wrapper's, whose WAL
 contract is `isRaftNode`'s (`isRNWal`). (Restart S6a: the directory is `srvSnapDir_of_RO`'s.) -/
 theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName)
-    (Er : RNEnv GF) (γn : RNNames) :
+    (Er : RNEnv GF) (γn : RNNames GF) :
     srvSnapRO (GF := GF) s ci E γr γm ∗ isRaftNode Er γn (srvRAddr s) ⊢ srvSnapDisk s γr := by
   iintro ⟨#Hro, #Hrn⟩
   iunfold srvSnapRO at Hro

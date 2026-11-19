@@ -42,7 +42,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
     (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : WTNames) (w : Nat)
     (TM : MetaCI → IProp GF) (ρ : ReqNames)
-    (sa : auth.AuthState) (q : Qp) (γn : RNNames) (γm : GName),
+    (sa : auth.AuthState) (q : Qp) (γn : RNNames GF) (γm : GName),
   loopOk γ st ai →
   -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
   -- `specFull`): the consistent index past `ai`, `Release` not failing

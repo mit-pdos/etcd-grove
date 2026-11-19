@@ -118,7 +118,7 @@ theorem rnFixed_split (a : Loc) (rv : raftNode) :
 `r` field, after the copy and the transport set), its fresh `tickMu`, the components' predicates
 and what the node and the server provide give `isRaftNode E γ a` and the right to close `done`.
 A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RWMutex`). -/
-theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raftNode) :
+theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : raftNode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnLogFits γ ∗ rnReadStateBridge E γ ∗
       -- (restart S3 item 7) the restart data
@@ -176,7 +176,7 @@ in every cluster), the loop's half of the running token, and `applyc`'s halves w
 `[[]]` (`newRaftNode`'s). (2026-10-27: over the node API. 2026-11-01, durability layer 4: the
 driver at the storage's key `γ.key`, and the node's durable state at `RaftState.init`, which goes
 into the loop's token beside the driver.) -/
-theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = []) (ha : γ.a0 = []) (ht : γ.t0 = W64 0)
+theorem rnToks_of_start (γ : RNNames GF) (hpre : γ.pre = []) (ha : γ.a0 = []) (ht : γ.t0 = W64 0)
     (hc0 : γ.commit0 = 0) (hs0 : γ.snap0 = 0)
     (hcfg : srvCfgOk γ.node.cfg [] ⟨0, Membership.simple γ.node.cfg⟩) :
     (letI := srvStor (GF := GF) γ.node;
@@ -252,7 +252,7 @@ restored hard state `p`; the durable state `S`; a follower), its view `v` after 
 (`newRaftNode`'s at `L₀ = P`), the loop's WAL view at `⟨S, p, none, srvLE γ.srv P⟩`, `P`'s frozen terms
 (the restarted storage's, `srvFrozenTerms_restart`), `P`'s indices from `1`, and the loop's fact
 (`commit0 ≤ p.Commit'`). -/
-theorem rnToks_of_restart (γ : RNNames) (P : List EntryModel) (p : HardStateM) (S : RaftState)
+theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardStateM) (S : RaftState)
     (v : ConfigView) (hpre : γ.pre = []) (hidx : srvIdxOkW (W64 0) P)
     (hc0 : γ.commit0 ≤ uint.nat p.Commit')
     (hcfg : srvCfgOk γ.node.cfg (rnGhost γ P) v) :
@@ -742,7 +742,7 @@ abbrev NodeStartSpec : Prop :=
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
-        ∃ (γw : RNNames) (rv : raftNode),
+        ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
             γw.wal = ν ∧ γw.a0 = [] ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
@@ -1025,7 +1025,7 @@ abbrev NodeStartSpecR : Prop :=
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
-        ∃ (γw : RNNames) (rv : raftNode),
+        ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
             γw.wal = ν ∧ γw.a0 = A₀ ∧ γw.t0 = σ.hs.Term' ∧ γw.commit0 = σ.commit ∧
             γw.snap0 = σ.b ∧

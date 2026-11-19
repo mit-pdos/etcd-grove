@@ -571,7 +571,7 @@ empty snapshot (index and term `0`), whole (metadata and conf state set), frozen
 reported): `Snapshot.spec` admits `ErrSnapshotTemporarilyUnavailable` for any storage, on which
 `run` panics; the bare `MemoryStorage` never returns it, but its spec does not say so. -/
 theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
+    (E : RNEnv GF) (γ : RNNames GF) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs memSnapEmpty -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs (W64 0) (W64 0) := by

@@ -186,7 +186,7 @@ restart cannot give: the counter's authority is the stopped incarnation's (its i
 member's snapshot directory's, which the restart reuses), and a mono-nat authority does not go down.
 A first start is the instance `P = []`, `γn.a0 = []`, the counter at `0` (`srvBuiltRestartR_first`). -/
 def srvBuiltRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
-    (E : apply.AEnv GF) (γr : ReadNames) (γn : RNNames) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
+    (E : apply.AEnv GF) (γr : ReadNames) (γn : RNNames GF) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
     IProp GF :=
   iprop(∃ P : List EntryModel, ⌜P <+: γn.a0 ∧ lastTermIs P at₀⌝ ∗
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
@@ -203,7 +203,7 @@ the apply thread's resources the component's, at the restart point (`HBr`, which
 the snapshot path's resources, `srvSnapOwn` at the ghost index `ai₀ + |γn.a0|`, in place of the first-start row
 `Hsnapb`). (`N`, unused, as before.) -/
 def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     IProp GF :=
   iprop("#Hci" ∷ isServerCI s γ ci ∗
@@ -287,7 +287,7 @@ def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
 `isServerBuilt` off and `isServerBuiltOn` on with the stop's slot (`isServerBuiltM_C`, a first start
 at `P = []`), and strictly weaker since S4 (until then equivalent). -/
 def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     IProp GF :=
   iprop(srvBuiltRC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
@@ -343,7 +343,7 @@ at `673da07c8`), the loop's and the apply side's tokens at `P`; the backend's gh
 - `rnLoopTok γn P`, `rnApplyTok γn P` (until S4 `isServerRunC`'s, at `[]`).
 At `A₀ = P = []` they are a first start's (`srvRunRestartR_first`). -/
 def srvRunRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
   iprop(∃ (A₀ P : List EntryModel),
     ⌜Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
@@ -362,7 +362,7 @@ at any WAL snapshot index, with Go's start log `P` and the tokens at it in `HRr`
 2026-11-07). The stop
 requests' `SP` and the done channel's `DQ`, and (R2c-4) the stop's slot, `srvStop.slot`. -/
 def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (SP : IProp GF := iprop(False)) (DQ : IProp GF := iprop(True)) : IProp GF :=
@@ -620,7 +620,7 @@ theorem applyBuiltR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b 
 /-- **A first start's construction conjuncts give the built restart form** at `P = []` (restart S4):
 `Hsnap` (`rnSnapOnce` at `ai₀ = 0`), the tokens at `[]` and `applyBuiltC`, with `γn.a0 = []`. -/
 theorem srvBuiltRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
-    (E : apply.AEnv GF) (γr : ReadNames) (γn : RNNames) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
+    (E : apply.AEnv GF) (γr : ReadNames) (γn : RNNames GF) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (ha0 : γn.a0 = []) (hai : ai₀ = W64 0) (hc : c₀ = ai₀) :
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
         rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
@@ -648,7 +648,7 @@ theorem srvBuiltRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc
 `isServerBuiltOn` on; restart S4, 2026-11-12: one way, a first start's construction gives the restart
 form at `P = []`, `srvBuiltRestartR_first`; until then `⊣⊢`). -/
 theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
     (hC : E.authMode = C.mode) :
     isServerBuiltM (GF := GF) C.isOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
@@ -750,7 +750,7 @@ theorem applyStartOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
 /-- `isServerBuilt_mid`'s, over the component: the member id field, a voter. -/
 theorem isServerBuiltC_mid (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
-    (γn : RNNames) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    (γn : RNNames GF) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     isServerBuiltC (GF := GF) C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ⊢
       isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
         srvMemberIDAddr s ↦□ γn.id ∗ ⌜γn.id ∈ ρ.raft.raft.cfg⌝ := by
@@ -772,7 +772,7 @@ theorem isServerBuiltC_mid (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
 (`isServerBuilt_of_gapM` and the bridge). -/
 theorem isServerBuiltC_of_gap (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
-    (γn : RNNames) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
+    (γn : RNNames GF) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
     (hC : E.authMode = C.mode) :
     srvBuiltG C.isOn s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ∗
         srvStop.slot s E γn Er ⊢
@@ -1034,7 +1034,7 @@ theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (
 /-- **A first start's conjuncts give A9's** (`A₀ = P = []`): today's `%HEr` (with A6's `γn.a0 = []`),
 `Hsnap`, `Hstart` and (restart S4) the tokens at `[]`. -/
 theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName)
     (hEr : Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧ γn.a0 = []) :
@@ -1064,7 +1064,7 @@ theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) 
 /-- **Rows 6 and 7 from row 8** (restart S4, Q38 (a)): the raft node's restart log `γn.a0`
 (`rnRestartOk`'s `srvRLogLb`, or empty) has normal or v1 conf entries (`srvIdxOkW`) and room past it
 (`isCommittedLogLb_length`, with `readyFits` from `rnEnvOk`'s `srvClusterOk`). -/
-theorem srvRunRows_of_rn (E : RNEnv GF) (γn : RNNames) (r : Loc) :
+theorem srvRunRows_of_rn (E : RNEnv GF) (γn : RNNames GF) (r : Loc) :
     isRaftNode E γn r ⊢
       ⌜(∀ m ∈ γn.a0, m.typ = W32 0 ∨ m.typ = W32 1) ∧
         uint.Z (W64 0) + γn.a0.length + 1 < 2 ^ 64⌝ := by
