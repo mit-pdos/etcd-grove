@@ -1,6 +1,6 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-19, item 9: Cell compiles; helpers' specs written; absent proved (unbuilt))
+## START HERE (S4, 2026-11-19, item 9: Cell compiles; helpers' specs checked; absent, grantPut proved)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a** (`--packages=/shared/tmp/manifest-6d3.json`,
   `.lake/package-overrides.json` its copy). lean's f551a1b46 merge ("Merge origin/lean (d52bb9be66)") NOT on lean yet: when it
@@ -11,13 +11,12 @@
   `holdsFrom γc γl m id k`, for (Lz, z/lease) and (Lu, a/lease), needs the main thread's `monoNatAuthOwn γc.a ½ 0`;
   `holds_refutes_keys` (TTL verdict), `holds_listed` (a listing at i ≥ m lists the lease)); `cellSeen γc ps1 d1 σ` records
   `ps1 <+: ps ∧ d1 ≤ d` (`cell_readAu` takes the reader's lbs). All checked with `lean-check --fast -a` (0 errors).
-- **Written, NOT yet built** (next commit): `authlease/Env.lean` (`grantTTLv`, `BArgs`, `barrierPre`, `barrierPost`), Specs
-  `barriers`, `grantPut`, `noAuth`, `foreign`, `absent` (designs in their headers: updates as `□ ∀ conn ctx, … clientOpAuOn`,
-  refutations as caller premises, `R` threaded through `foreign`/`grantPut`'s `Fix` ghost step = `cell_fix`), proof
-  `authlease/absent.lean`. Build: `/shared/tmp/auth-lease-s4/specs-build1.log`.
-- **Next, in order:** fix those; proofs `grantPut` (pattern: `leasecatchup/grant.lean` for `cli.Lease.Grant` through wp_auto,
-  `client_lease_grant_on`; one-option slice as `txnlin/Calls.lean`'s `optsAt sl [withRangeM …]`; `cli.Put` via `client_put_on`
-  + `Client.ptr_Put_unfold` as `auth/ClientOn.lean` `client_Put_onG`; `leasePut_wire`), `noAuth`, `foreign` (TTL/Leases via
+- `22383e4f6f`/`ba5d5b4f55`: `authlease/Env.lean` (`grantTTLv`, `BArgs`, `barrierPre`, `barrierPost`), Specs `barriers`,
+  `grantPut`, `noAuth`, `foreign`, `absent` (designs in their headers: updates as `□ ∀ conn ctx, … clientOpAuOn`, refutations
+  as caller premises, `R` threaded through `foreign`; `grantPut`'s `Fix` ghost step = where `run` does `cell_fix`), all
+  `lean-check -a` 0 errors; `absent` proved. `5ebad1c6c6`: `grantPut` proved (kernel-checked by lean-check). Nothing of this
+  session is in a `lake build` yet (all slots were held by full builds): build the authlease modules first.
+- **Next, in order:** `noAuth`, `foreign` (TTL/Leases via
   `lessor.TimeToLive/Leases.spec` with `etcdLeaseTTLSpecMd`/`…LeasesSpecMd`: choose `n`, `m` in attemptPre; refutation premises
   discharged in `run` by `holds_refutes_keys`/`holds_listed` + `akAuthFixed`), `barriers` (authN run's barrier loop), then
   `run` (authN's skeleton + the lease steps; cell alloc after SetUp via `cell_alloc`), `Main` (`allocNOnM … .revocable …
