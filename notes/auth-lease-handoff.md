@@ -8,16 +8,18 @@
   no key had lease `g` at any revision ≤ σ.rev); server proof `GrantFresh.lean` (+ `kv_prop_au_on`), client law
   `writeGrantG_grant_fresh` (`LeaseReqOn.lean`). Recorded: `notes/auth-lease-s4-freeze.md` "Thaw 1" (old/new text,
   independent attack: no refutation, X1-X3 named in the docstring), ledger 2026-11-18. No compaction premise needed.
-- **Build of the thaw's leaves**: `etc/importers.py --leaves` also lists non-lake targets (`Scratch.*`,
-  `notes.*`): pass only the `Proof.*` ones. Third run (38 targets, `/shared/tmp/auth-lease-s4/thaw-leaves3.txt`, log
-  `thaw-build3.log`, ends with an `rc=` line). Check it first; `tcb-report --check` after. Cell/CellModel are not in it
-  (build them with `etc/lean-check.py` once it is green).
+- **Thaw build GREEN** (2026-11-19): the 38 `Proof.*` leaves of `ProposeOn`/`LeaseReqOn`
+  (`/shared/tmp/auth-lease-s4/thaw-leaves3.txt`, log `thaw-build3.log`: 9946 jobs, rc=0). (`etc/importers.py --leaves`
+  also lists non-lake targets, `Scratch.*` and `notes.*`: pass only `Proof.*`.) `tcb-report --check` NOT run: it wants every
+  root built (it stopped at `txn.Results`, untouched by the thaw); run it after the next full build (no axiom change
+  expected: the thaw adds none). Cell/CellModel are not in that build: compile them next with `etc/lean-check.py --fast`.
 - **Cell**: `authlease/CellModel.lean` (pure, CHECKED 0 errors: `CellOk` and its preservation by grant/putZ/putA/txnT/
   revokeU, `cellOk_fix`, `cellOk_fresh`, `not_leaseOk_setupSt`). `authlease/Cell.lean` (Iris, WRITTEN, NOT COMPILED: needs
   the build): `cellInv` (ids ½ main, ps, gs, d with `⌜d=0⌝ ∨ lb a 1`, v = rev lb, a ½ main = revocation permit),
   `cell_writeAu`/`cell_readAu`/`cellSeen`, per-update AUs, `cell_fix`, `cell_permit`, `cell_not_revoked`.
   Design change vs the earlier sketch: the leases live in `ids` (fixed by the main thread), `ps` holds only revisions;
   the permit `a` lets the main thread refute `revoked` (foreign Revoke(Lu) successes) before u's revocation.
+- **Decided (etcd-grove-03, 2026-11-18):** thaw 1 as written, the X1-X3 docstring and the Cell forms ACCEPTED.
 - **Next, in order:** compile Cell (`etc/lean-check.py --fast`), fix; refutation lemma from `clientGrant` (lease-aware
   `akOpGranted_of_grant`: `writeGrantG_granted` + `akAuthFixed_write` + `akUser_hdr` → `kvGrantedL (setupSt r)
   (leaseItemsOf σ.kvs) …`, then `not_leaseOk_setupSt` with zK↦Lz (u) / aK↦Lu (v, anon, bad)); then barriers/grantPut/
