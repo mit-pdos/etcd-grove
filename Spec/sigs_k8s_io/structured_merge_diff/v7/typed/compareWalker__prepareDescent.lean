@@ -2,6 +2,8 @@
 `compareWalker.prepareDescent(pe, tr, cmp)` (internal): a child walker for the child at `pe` of
 type `tr`, adding to the comparison `cmp` (the parent's): as `mergingWalker.prepareDescent`.
 
+The spare list is non-nil after (Prove phase, 2026-11-19: `finishDescent` dereferences it).
+
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
 module
@@ -36,7 +38,7 @@ abbrev typed.compareWalker.prepareDescent.spec : Prop :=
     (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker.ty @!! go!"prepareDescent")) (Val #pe)) (Val #tr)) (Val #c'))
   {{ (w2 : Loc), RET #w2; ∃ (sp' : Loc) (ps2 : fieldpath.Path), cwCore w sc S st ps c sp' a ∗
       cwCore w2 sc S ⟨interface.nil, interface.nil, t', st.path ++ [pe'], st.inLeaf⟩ ps2 c' sp' a ∗
-      ownPath ps2 (st.path ++ [pe']) ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker sp' }}
+      ownPath ps2 (st.path ++ [pe']) ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker sp' ∗ ⌜sp' ≠ null⌝ }}
 
 end spec
 

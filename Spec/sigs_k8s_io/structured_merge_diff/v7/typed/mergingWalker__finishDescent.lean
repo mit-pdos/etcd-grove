@@ -3,6 +3,8 @@
 child's without its last element (the buffer, perhaps reallocated by the child's append), and
 the child goes to the spare list (its struct, junk).
 
+The spare list is non-nil (Prove phase, 2026-11-19: `prepareDescent` made it).
+
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
 module
@@ -33,7 +35,7 @@ abbrev typed.mergingWalker.finishDescent.spec : Prop :=
   ∀ (w w2 sc : Loc) (S : Schema) (st st2 : MWSt) (ps ps2 : fieldpath.Path) (sp : Loc)
     (a : value.Allocator) (pe : PE),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwCore w sc S st ps sp a ∗ mwCore w2 sc S st2 ps2 sp a ∗ ownPath ps2 (st.path ++ [pe]) ∗
-      spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker sp }}
+      spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker sp ∗ ⌜sp ≠ null⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"finishDescent")) (Val #w2))
   {{ RET #(); ∃ ps' : fieldpath.Path, mwCore w sc S st ps' sp a ∗ ownPath ps' st.path ∗
       spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker sp }}

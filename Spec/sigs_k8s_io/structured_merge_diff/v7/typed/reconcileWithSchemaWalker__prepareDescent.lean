@@ -5,6 +5,8 @@ which the caller and the child overwrite), its path the parent's with `pe` appen
 pe)`: the parent's path is not reassigned after, so the child's path buffer is given back to the
 parent by the wand, Go's `append` leaving the old elements in place).
 
+The spare list is non-nil after (Prove phase, 2026-11-19: `finishDescent` dereferences it).
+
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
 module
@@ -41,7 +43,7 @@ abbrev typed.reconcileWithSchemaWalker.prepareDescent.spec : Prop :=
       rwCore w sc S st ps fs tv rem add sp' ∗
       rwCore w2 sc S ⟨t', st.path ++ [pe'], st.isAtomic⟩ ps2 fs tv rem add sp' ∗
       ownPath ps2 (st.path ++ [pe']) ∗ (ownPath ps2 (st.path ++ [pe']) -∗ ownPath ps st.path) ∗
-      spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker sp' }}
+      spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker sp' ∗ ⌜sp' ≠ null⌝ }}
 
 end spec
 

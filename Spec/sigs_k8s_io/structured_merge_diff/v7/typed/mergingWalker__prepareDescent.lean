@@ -5,6 +5,8 @@ spare list, `inLeaf`), its path the parent's with `pe` appended (in the parent's
 sides, no output. The parent keeps its struct (`mwCore`, its spare list now allocated: `sp'`);
 the descent's resources (path buffer, spare walkers) go to the child.
 
+The spare list is non-nil after (Prove phase, 2026-11-19: `finishDescent` dereferences it).
+
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
 module
@@ -39,7 +41,7 @@ abbrev typed.mergingWalker.prepareDescent.spec : Prop :=
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"prepareDescent")) (Val #pe)) (Val #tr))
   {{ (w2 : Loc), RET #w2; ∃ (sp' : Loc) (ps2 : fieldpath.Path), mwCore w sc S st ps sp' a ∗
       mwCore w2 sc S ⟨interface.nil, interface.nil, t', st.path ++ [pe'], none, st.inLeaf⟩ ps2 sp' a ∗
-      ownPath ps2 (st.path ++ [pe']) ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker sp' }}
+      ownPath ps2 (st.path ++ [pe']) ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker sp' ∗ ⌜sp' ≠ null⌝ }}
 
 end spec
 

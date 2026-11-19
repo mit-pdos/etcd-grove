@@ -88,6 +88,28 @@ theorem noErrs_len (s : GoSlice) : noErrs (GF := GF) s ⊢ ⌜sint.Z s.len = 0�
   simp only [List.length_nil] at h1
   word
 
+/-- Dropping a slice's last element into its capacity (`s[:len(s)-1]`). -/
+theorem ownSlice_pop {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (sl : GoSlice) (ws' : List V) (x : V) :
+    (sl ↦* (ws' ++ [x]) ∗ ownSliceCap V sl (DFrac.own 1) : IProp GF) ⊢
+      slice.slice sl V (W64 0) (sl.len - W64 1) ↦* ws' ∗
+      ownSliceCap V (slice.slice sl V (W64 0) (sl.len - W64 1)) (DFrac.own 1) := by
+  iintro ⟨H, Hc⟩
+  ihave %Hlen := ownSlice_len _ _ _ $$ H
+  ihave %Hwf := ownSlice_wf _ _ _ $$ H
+  simp only [List.length_append, List.length_singleton] at Hlen
+  have e := slice_slice_trivial (V := V) sl
+  have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (sl.len - W64 1) ∧
+      sint.Z (sl.len - W64 1) ≤ sint.Z sl.len := by word
+  ihave H := (show (sl ↦* (ws' ++ [x]) : IProp GF) ⊢ slice.slice sl V (W64 0) sl.len ↦* (ws' ++ [x]) by
+    rw [← e]) $$ H
+  icases (ownSlice_split (sl.len - W64 1) sl (DFrac.own 1) (ws' ++ [x]) (W64 0) sl.len hb).1 $$ H
+    with ⟨H1, H2⟩
+  have h1 : sint.nat (sl.len - W64 1) - sint.nat (W64 0) = ws'.length := by word
+  rw [h1, List.take_left, List.drop_left]
+  iframe H1
+  iapply ownSlice_slice_absorb_capacity sl [x] (W64 0) (sl.len - W64 1) hb
+  iframe
+
 /-- Calling `ruleKeepRHS`'s closure (the persistent spec read at one call). -/
 theorem ruleKeepRHSOk_call (f : GoFunc) (w : Loc) (v : typed.mergingWalker) (dql dqr : DFrac)
     (l r : Option UVal) :

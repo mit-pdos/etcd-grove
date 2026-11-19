@@ -1,6 +1,8 @@
 /-
 `compareWalker.finishDescent(w2)` (internal): as `mergingWalker.finishDescent`.
 
+The spare list is non-nil (Prove phase, 2026-11-19: `prepareDescent` made it).
+
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
 module
@@ -31,7 +33,7 @@ abbrev typed.compareWalker.finishDescent.spec : Prop :=
   ∀ (w w2 sc : Loc) (S : Schema) (st st2 : CWSt) (ps ps2 : fieldpath.Path) (c c2 sp : Loc)
     (a : value.Allocator) (pe : PE),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ cwCore w sc S st ps c sp a ∗ cwCore w2 sc S st2 ps2 c2 sp a ∗ ownPath ps2 (st.path ++ [pe]) ∗
-      spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker sp }}
+      spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker sp ∗ ⌜sp ≠ null⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker.ty @!! go!"finishDescent")) (Val #w2))
   {{ RET #(); ∃ ps' : fieldpath.Path, cwCore w sc S st ps' c sp a ∗ ownPath ps' st.path ∗
       spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker sp }}
