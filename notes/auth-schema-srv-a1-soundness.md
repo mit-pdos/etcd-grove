@@ -225,3 +225,60 @@ and before K-c no `γ.rbk` share was outside it for a claimed bucket but the bat
   `Close`, stale ¼ + ⅛ + ⅝ make a whole element.
 - **Trusted text.** The body of the sealed `rbPartRF`/`rbClaimC` under `isBackend` (so `backend.Snapshot`'s and
   `newPostK`'s meaning) and of `rbOwnInR` in `authSchemaSrv`/`authSchemaSnap`'s texts: on the A7 list.
+
+## 8. After the port onto lean's backend (2026-11-19; Scope `notes/auth-schema-srv-port-scope.md` §5)
+
+The port (staging branch `auth-schema-port`: merge b0a40c1277 of lean e95ce79ce9, bbolt-integrate S3e-S5) replaced the
+backend's bbolt-facing vocabulary (`txLive tx γ.db q T` over bbolt's proved `boltTx`, `txBytes`, `rdB γ.db`, ...) and
+left the claim layer (`γ.rbk`, `γ.rbr`, `γ.rbc`, `rbClaimInv`, the tokens) as it was. The re-check is of what lean
+**added** that could produce or consume a tracked-bucket share, item by item (§5's list):
+
+1. **No new law on the claim layer.** `git diff 1e4cb38613 lean -- Spec Proof` (the merge base to lean) adds no line
+   naming `rbOwn*`, `rbPart*`, `.rbk`, `.rbr`, `.rbc`, `rbSide`, `rbClaim*`, `bStopView` or `rbData`, except one moved
+   line (`authBucketsAt_rbData`, `ApplyAllSnap` → `ApplyAllSnapLemmas`). Lean adds no axiom over the backend (its new
+   axioms: `io.CopyN`, `io.NewSectionReader`, `goose_adequacy_start`); it removes the `_kv` layer's twelve
+   (`bbolt.*_kv`) and the options axioms. So every law on `γ.rbk`/`γ.rbr`/`γ.rbc` is still one of this branch's
+   (`TrackedLemmas`, `ClaimedLemmas`, `InvBackend`), checked in §6-§7.
+2. **(iii) re-opening under the same names.** Lean's `Close` gives `bClosed γ.db D` (bbolt's names), `bPath ∗ bClosed`
+   joins into `fileHolds` (`Spec/os/Rename.lean`, `EtcdServer.Cleanup`'s post), and the only way to a backend is
+   `backend.New` (or `storage.OpenBackend`, whose post is exactly `New`'s, and `storage.OpenSnapshotBackend`, proved
+   over `OpenBackend`, which takes the old database's `bPath γo` only), whose post is `∃ γ : BNames`: the proof
+   allocates `γ.rbr`, `γ.rbc` and the claim invariant fresh (`NewAlloc.lean`: `rbr_alloc`, `rbc_alloc`, `inv_alloc
+   rbClaimN`, `rbClaimToks_init`). No spec takes a `γ : BNames` in and hands back a backend at it (mvcc's
+   `EtcdBackend` close and `EtcdServer.Cleanup` give `bStopView` at the γ they hold, and nothing re-opens from it).
+3. **(iv) stale shares after `Close`.** Lean's new bbolt-side laws (`boltState_read_au`, `commit_au`, `bClosed`,
+   `bPath`) are over `γ.db : DBNames` (`bbolt.BoltName`), a different ghost record from `γ.rbk`; none of them names
+   `γ.rbk`, so none of them updates a tracked bucket's element from `bStopView`'s quarter + a claimed part's ⅛ + the
+   invariant's ⅝.
+4. **`OpenBackend`'s strict soundness (S5) with the tokens.** `newPostK` (InvNew.lean) still ends with `rbClaimToks γ
+   P (fun _ => True)`; `New.spec`'s post is `newPostK γ P W Pk K b D ∗ hooksAt ∗ bFile ∗ bPath γ.db ∗ threadTok` and
+   `OpenBackend.spec`'s is the same without the thread token, so `OpenBackend`'s argument ("its post is exactly what
+   `New` gives for what it consumed") covers the tokens: `New`'s proof allocates them (`NewAlloc.lean` l.551, 633, 643).
+5. **`backend.Snapshot`.** Lean's S4b made `snapOpen` a definition (the snapshot's fields, the whole read transaction
+   `txLive tx γ.db 1 (ro D)`, the channels) and reworded the axiom's justification; the spec's text (the observation
+   `Q` over `isBackend`'s shares and the lock's view) is unchanged but for its header and `HasLC`. K-c's argument (§7:
+   the observation sees shares that coexist in a valid state; the lock's ¼ is client-reachable only there, after
+   `Close`, or through `bStopView`) reads the same against it. The whole bbolt read transaction it now hands out is
+   bbolt's (`γ.db`), not a `γ.rbk` share.
+6. **ForEach.** A2's two `_kv` axioms (`Bucket.ForEach_kvr/kvw`, the visitor at half the transaction) are gone; the
+   canonical `bbolt.Bucket.ForEach` is proved (P2), so the walk's soundness is `Cursor.First`/`Cursor.Next`'s. The
+   visitor now gets the walk's whole share at the walk's view and gives it back at that view (checkpoint A), so it
+   cannot change the bucket; the backend's four `UnsafeForEach` specs pass that on (read side `txLive rtx γ.db q (ro
+   rv.1)`, batch side `ownWTxG st.tx γ.db st.C st.S G` for every `G`). None of them names the claim layer.
+
+Verdict: OK; no change to the claim layer's argument.
+
+**Independent check** (fresh read-only subagent, 2026-11-19, given the code and §6-§7, not this section): all five items
+OK. (1) Every update of `γ.rbk`/`γ.rbr`/`γ.rbc` takes the sealed authority (`rbSide`, `rbClaimInv`, the readers'
+`γ.rbr` authority); `import all InvBackend` only in TrackedLemmas, ClaimedLemmas, NewAlloc, ReadLemmas (agreement under
+a held read lock); bbolt's own `n.rbk` is a field of `DBNames`, a different record; the axioms taking `isBackend` are
+NewAuthStore, RaftCluster Recover/SetBackend, NewAlarmStore, NewLessor, NewBackendQuota, mvcc `Api`, OpenBackend,
+Snapshot, of which lean changed only mvcc `Api` (an `etcdKeyMax` premise). (2) Every producer of `isBackend` (`New`,
+`newBackend`, `OpenBackend`, `OpenSnapshotBackend`, `runner.openBackend`) posts `∃ γ`; the claim ghost is fresh even if
+bbolt's `γd` were reused. (3) `OpenBackend`'s post = `New`'s success branch minus `threadTok`; `backend_init` allocates
+the claim ghost and tokens before the creator's continuation. (4) `snapOpen` takes no `BNames`; the observation is a
+plain wand (cannot open `inv rbClaimN`); §7's counting holds. (5) The ForEach visitors get bbolt-level resources only,
+returned at the same view; the caller's backend predicates stay framed out. MINORs (none about the claim layer): the
+batch visitor may make net-zero bbolt writes (bbolt's proved spec allows it, invisible to the backend); `snapOpenQ`
+hides `γd` existentially where the axiom's text says `γ.db` (weaker, harmless); `rbPartR_idle`'s unused idle premise
+(known).
