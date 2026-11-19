@@ -280,6 +280,7 @@ axiom Perennial.k8s_io.component_base.featuregate.opaqueInitsOk
 axiom Perennial.k8s_io.klog.v2.initFuncsOk
 axiom Perennial.k8s_io.klog.v2.opaqueInitsOk
 axiom Perennial.k8s_io.utils.clock.opaqueInitsOk
+axiom Perennial.k8s_io.utils.trace.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
@@ -540,10 +541,8 @@ axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.Register.wp_proof
 axiom prometheus.collectorName
-axiom prometheus.counterOpts
 axiom prometheus.nameFree
 axiom prometheus.nameUnclaimed
-axiom prometheus.wp_counterOptsLit
 axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof

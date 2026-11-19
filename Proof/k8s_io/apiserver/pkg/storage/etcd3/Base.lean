@@ -385,6 +385,14 @@ instance k8s_io_apiserver_pkg_storage_feature_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.feature :=
   build_get_is_pkg_init_wf
 
+-- `k8s.io/utils/trace` (names only), which `tracing` imports (its `Span`'s field type)
+instance k8s_io_utils_trace_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.utils.trace :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_utils_trace_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.utils.trace :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_component_base_tracing_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.component_base.tracing :=
   define_is_pkg_init iprop(True)

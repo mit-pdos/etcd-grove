@@ -11,7 +11,7 @@ package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), in
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
 reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
-axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), which
+axiom `NewCounter.wp_proof`), which
 `revokeExpiredLeases` increments.
 -/
 module
@@ -359,9 +359,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply proposalsFailed_init as ⟨%mproposalsFailed, HproposalsFailed, #S0proposalsFailed⟩
   wp_apply requestDurationSec_init as ⟨%vrequestDurationSec, HrequestDurationSec, #LrequestDurationSec⟩
   -- translated initializer of leaseExpired))
-  wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %oLE %HoLE
-  try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ HoLE (by decide) as %cLE ⟨#CLE, -⟩
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩
   try wp_auto
   wp_apply (opaqueInitsOk currentVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk currentGoVersion.init (by mem_tac))

@@ -493,10 +493,8 @@ axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.Register.wp_proof
 axiom prometheus.collectorName
-axiom prometheus.counterOpts
 axiom prometheus.nameFree
 axiom prometheus.nameUnclaimed
-axiom prometheus.wp_counterOptsLit
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
