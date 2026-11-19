@@ -151,8 +151,10 @@ theorem backend.batchTx.unsafePut.wp_proof
   rotate_left
   · -- an entry above bbolt's bound: `Put` refuses it and the backend exits (`lg.Fatal`)
     obtain ⟨-, Hne⟩ := Hbig
-    wp_auto
-    rw [decide_eq_false (by intro h; exact Hne (by cases err <;> simp_all))]
+    obtain ⟨eo, rfl⟩ : ∃ eo, err = GoInterface.ok eo := by
+      cases err with
+      | nil => exact absurd rfl Hne
+      | ok eo => exact ⟨eo, rfl⟩
     wp_auto
     wp_apply hStringer as %f1 -
     wp_apply _hError as %f2 -
