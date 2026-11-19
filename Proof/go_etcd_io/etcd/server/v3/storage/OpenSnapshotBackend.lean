@@ -91,7 +91,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
     wp_apply wp_Errorf $$ [$Hfmt $Hsl Hok] as %e -
     · fmt_args_intro
       isplitl [Hok]
-      · fmt_arg_method; iexact Hok
+      · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+        isplitr
+        · ipureintro; decide
+        · iapply fmtErrorOkOrNil_of $$ Hok
       · itrivial
     iapply HΦ
     iframe Hmdp Hsm
