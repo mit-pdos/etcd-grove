@@ -1,4 +1,9 @@
 # Names only (item 4, the server start): grpc's health service, which `v3rpc.Server` registers
-# (`NewServer`, `Server.SetServingStatus`). Types axiomatized.
+# (`NewServer`, `Server.SetServingStatus`). Its types are translated (importing their field types'
+# packages), so that an implementation can allocate a `Server` (etcd-refimpl's reference
+# implementation).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "sync", "google.golang.org/grpc/health/grpc_health_v1"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
