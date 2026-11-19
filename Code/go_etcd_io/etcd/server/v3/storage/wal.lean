@@ -110,6 +110,9 @@ attribute [irreducible] WAL.ty
 @[reducible] noncomputable def warnSyncDuration [GooseExts] [GoGlobalContext] : val :=
   #(W64 1000000000)
 
+@[reducible] noncomputable def saveEntryOverhead [GooseExts] [GoGlobalContext] : val :=
+  #(64 : Int)
+
 noncomputable def walFsyncSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.walFsyncSec"
 
@@ -157,6 +160,12 @@ noncomputable def ErrDecoderNotFound [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def crcTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.crcTable"
+
+noncomputable def MaxSaveBatchBytes [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/wal.MaxSaveBatchBytes"
+
+noncomputable def ErrSaveBatchTooLarge [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/wal.ErrSaveBatchTooLarge"
 
 noncomputable def NewDecoderAdvanced [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.NewDecoderAdvanced"
@@ -6411,7 +6420,7 @@ noncomputable def WAL.saveState.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1104:15 -/
+/-- go: wal.go:1115:15 -/
 noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "st"
@@ -6422,6 +6431,8 @@ noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WAL.ty)))) (Var "w"))
   (Let "ents" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
   (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "st"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6561,10 +6572,34 @@ noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (GlobalVarAddr MaxSaveBatchBytes))) (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrSaveBatchTooLarge))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "n")) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "e")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Size []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val saveEntryOverhead))))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (Var "e") (Var "$value")))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: wal.go:1148:15 -/
+/-- go: wal.go:1167:15 -/
 noncomputable def WAL.SaveSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "e"
@@ -6696,7 +6731,7 @@ noncomputable def WAL.SaveSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1188:15 -/
+/-- go: wal.go:1207:15 -/
 noncomputable def WAL.saveCrc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "prevCrc"
@@ -6715,7 +6750,7 @@ noncomputable def WAL.saveCrc.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1192:15 -/
+/-- go: wal.go:1211:15 -/
 noncomputable def WAL.tail.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6742,7 +6777,7 @@ noncomputable def WAL.tail.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Var "$res0"))))))
 
-/-- go: wal.go:1199:15 -/
+/-- go: wal.go:1218:15 -/
 noncomputable def WAL.seq.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6805,7 +6840,7 @@ noncomputable def WAL.seq.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Pair (Var "t") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: wal.go:1211:6 -/
+/-- go: wal.go:1230:6 -/
 noncomputable def closeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "rcs"
@@ -6917,6 +6952,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"bad wal name"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6947,8 +6984,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(W32 2197175160))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.hash.crc32.MakeTable []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 4398046511104))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"wal: batch exceeds MaxSaveBatchBytes"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrSaveBatchTooLarge))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (GlobalVarAddr MaxSaveBatchBytes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.hash.crc32.Table.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr crcTable))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -7044,7 +7090,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrDecoderNotFound go.error)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc crcTable (go.GoType.PointerType _root_.Perennial.hash.crc32.Table.ty))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc crcTable (go.GoType.PointerType _root_.Perennial.hash.crc32.Table.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MaxSaveBatchBytes go.int64)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrSaveBatchTooLarge go.error)) (Val #()))))))))
 
 abbrev Decoder [GooseExts] : Type := GoInterface
 

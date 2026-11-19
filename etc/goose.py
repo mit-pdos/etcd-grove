@@ -318,11 +318,15 @@ PROJECTS = [
         # f01ae14c9; then 0008 (34dea163a, branch `goose-lean-walfs3-fp`): `SaveSnapshot` does not cut
         # while `w.fp` is nil (`Create`'s call, before the pipeline exists; 0007 alone made a `Create`
         # whose first segment passes `SegmentSizeBytes` panic in `cut`).
+        # Then 0009 (wal-link, 2026-11-19, approved by the user via etcd-grove-03; d3feef9bc, branch
+        # `goose-lean-walfs3-fp9`): `WAL.Save` refuses a batch whose sum of `proto.Size(e)+64` passes
+        # `MaxSaveBatchBytes` (4 TiB) with `ErrSaveBatchTooLarge`, before `w.mu.Lock()`
+        # (nonissues/etcd-wal-save-batch-efbig.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="34dea163a76cc68a02e9a6ae1e86df0cec069be7",
+        rev="d3feef9bcdddb9ad15ee5fc8bf725050395debb4",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

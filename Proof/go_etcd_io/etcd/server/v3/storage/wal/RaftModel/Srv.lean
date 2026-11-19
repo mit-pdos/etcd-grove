@@ -294,6 +294,28 @@ theorem walSrvP_marshalEnt (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := 
   rw [← hlen, Hlen.1] at hpos
   simp [slice.nil] at hpos
 
+/-- **`SizeLaw`** (`Save`'s pre-lock check, fix 0009), over `proto.Size`'s trust-boundary spec at the
+registered `raftpb.Entry`. -/
+theorem walSrvP_size (wp_Size : proto.SizePb.spec (GF := GF) (hG := hG)) :
+    WalPbIn.SizeLaw (walSrvP (GF := GF)) walSrvMr := by
+  intro l e
+  simp only [walSrvP]
+  wp_start as ⟨#Hpk, #He⟩
+  unfold walEntInW
+  icases He with ⟨%c, #Hro, %Hce⟩
+  obtain ⟨rfl, hu, hpos, hs⟩ := Hce
+  have henc := walEncEntW_W hu hpos hs
+  have hlen := (walEntW_enc hu hs).2
+  have wpS := wp_Size pbEntryC pbEntryC_reg l c
+  simp only [pbEntryC_ty, pbEntryC_roC, pbEntryC_size] at wpS
+  wp_apply wpS $$ [] as %n %Hn
+  · iframe #
+  iapply HΦ
+  ipureintro
+  simp only [walSrvMr]
+  rw [henc, hlen]
+  exact Hn
+
 /-- **`pbutil.MustUnmarshalMessage(e, d)` into a fresh `raftpb.Entry`, of a content's bytes** (valid
 unknown fields): the entry holds that content, owned (`proto.Unmarshal`'s decoded content is the only
 one with those bytes). -/
@@ -362,6 +384,7 @@ theorem walSrvPb_laws : WalPbLaws (walSrvP (GF := GF)) walSrvMr walSrvU where
   getIndex := walSrvP_getIndex
   getTerm := walSrvP_getTerm
   marshalEnt := walSrvP_marshalEnt proto.MarshalPb.wp_proof
+  size := walSrvP_size proto.SizePb.wp_proof
   unmarshalEnt := walSrvP_unmarshalEnt proto.UnmarshalPb.wp_proof
   uOk := walSrvU_ok
   snapCoh := walSrvU_snapCoh

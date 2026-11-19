@@ -94,11 +94,25 @@ theorem walEntsIn_of_entRoC (esL : List Loc) (cs : List EntryC)
   iframe H
   ipureintro; exact ⟨rfl, hc c hcm⟩
 
-/-- **`Save`'s law** from the storage's `Save` (the records' update as layer 1's, `walRecs_saveAU`; no error
-under `h.cov`). The batch fits a fresh tail (`hroom`: OPEN, wal-link L3 stop of 2026-11-19). -/
+/-- The bytes `Save`'s pre-lock check counts for wrapped contents (fix 0009): each content's encoding plus 64. -/
+theorem saveBatchBytes_walEntW (cs : List EntryC)
+    (hc : ∀ c ∈ cs, ufWire entrySchema c.uf ∧ 0 < entrySize c ∧ entrySize c < 2 ^ 48) :
+    saveBatchBytes walSrvMr (cs.map walEntW) = (cs.map (fun c => entrySize c + 64)).sum := by
+  unfold saveBatchBytes
+  rw [List.map_map]
+  congr 1
+  apply List.map_congr_left
+  intro c hcm
+  show (walEncEntW (walEntW c)).length + 64 = entrySize c + 64
+  rw [walEncEntW_W (hc c hcm).1 (hc c hcm).2.1 (hc c hcm).2.2, (walEntW_enc (hc c hcm).1 (hc c hcm).2.2).2]
+
+/-- **`Save`'s law** from the storage's `Save` (the records' update as layer 1's, `walRecs_saveAU`; no I/O
+error under `h.cov`). A batch above `MaxSaveBatchBytes` (fork fix 0009) is refused with the share, the token
+and the update back: split on the batch's size first, the update passed to layer 1 only for a batch that
+fits (where the refusal is impossible); for a larger one, layer 1's update is vacuous (its `Q` false, so its
+other arms are impossible) and the caller's stays here. -/
 theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bool) (q : Qp) (hp : Loc)
-    (hs : HardStateM) (sl : GoSlice) (esL : List Loc) (cs : List EntryC) (Q : IProp GF)
-    (hroom : saveRoom walSrvMr hs (cs.map walEntW) ≤ WalFs.walFreshRoom) :
+    (hs : HardStateM) (sl : GoSlice) (esL : List Loc) (cs : List EntryC) (Q : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ⊢
       {{ storage.walOpen h q ∗
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
@@ -107,9 +121,15 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }> }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) go!"Save" #p))
           (Val #hp)) (Val #sl))
-      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗
-          walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
-          Q }} := by
+      {{ (err : GoInterface), RET #err;
+          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗
+            walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
+            Q) ∨
+          (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
+            storage.walOpen h q ∗
+            walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
+            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+              @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }} := by
   letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat
   obtain ⟨hSave, -, -, -, -⟩ := hS
   iintro ⟨#Hpkg, #Hover⟩
@@ -124,47 +144,86 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
   subst hp'
   have hc' : ∀ c ∈ cs, ufWire entrySchema c.uf ∧ 0 < entrySize c ∧ entrySize c < 2 ^ 48 :=
     fun c hcm => ⟨(hc c hcm).1, (hc c hcm).2.1, by have := (hc c hcm).2.2.1; omega⟩
-  ihave HAU := walRecs_saveAU h sized hs cs Q
-    (fun c hcm => ⟨(hc c hcm).1, by have := (hc c hcm).2.2.1; omega, (hc c hcm).2.2.2.1⟩) $$ HAU
+  have hbytes := saveBatchBytes_walEntW cs hc'
   have hhs : (hsOptC hp hs : IProp GF) ⊢ (walSrvP (GF := GF)).hsIn hp hs := walHsIn_of_hsOptC hp hs
   ihave #Hhs' := hhs $$ Hhs
   ihave #Hes := walEntsIn_of_entRoC esL cs hc' $$ Hb
-  wp_apply (hSave p' ss h.R h.jr h.r h.w h.dir h.γ q hp hs sl esL (cs.map walEntW) true (fun _ => Q))
-    $$ [Hrd Hws HAU] as %err ⟨Hrd, Hpost⟩
-  · iframe Hover Hrd Harea Hws Hsl HAU
-    isplitr
-    · ipureintro; exact Or.inl h.cov
-    isplitr
-    · iexact Hhs'
-    isplitr
-    · iexact Hes
-    isplitr
-    · ipureintro
-      intro e he
-      obtain ⟨c, hcm, rfl⟩ := List.mem_map.mp he
-      exact (hc c hcm).2.2.2.2
-    isplitr
-    · ipureintro
-      intro e he
-      obtain ⟨c, hcm, rfl⟩ := List.mem_map.mp he
-      show (walEncEntW (walEntW c)).length < 2 ^ 40
-      rw [walEncEntW_W (hc' c hcm).1 (hc' c hcm).2.1 (hc' c hcm).2.2,
-        (walEntW_enc (hc' c hcm).1 (hc' c hcm).2.2).2]
-      exact (hc c hcm).2.2.1
-    · ipureintro; exact fun _ => hroom
-  icases Hpost with (⟨%he, Hws, %d, HQ, -, -⟩ | ⟨%Hbad, -⟩)
-  · iapply HΦ
-    iframe HQ
-    isplitr
-    · ipureintro; exact he
-    isplitl [Hws]
-    · iunfold storage.walOpen
-      iframe Hws Harea Hlen
-    · iunfold walStorRd
-      iexists p'
-      iframe Hrd
-      ipureintro; rfl
-  · exact absurd h.cov Hbad.2
+  have hidx : ∀ e ∈ cs.map walEntW, uint.nat e.Index' < 2 ^ 64 - 1 := by
+    intro e he
+    obtain ⟨c, hcm, rfl⟩ := List.mem_map.mp he
+    exact (hc c hcm).2.2.2.2
+  have hsz : ∀ e ∈ cs.map walEntW, (walSrvMr.encEntry e).length < 2 ^ 40 := by
+    intro e he
+    obtain ⟨c, hcm, rfl⟩ := List.mem_map.mp he
+    show (walEncEntW (walEntW c)).length < 2 ^ 40
+    rw [walEncEntW_W (hc' c hcm).1 (hc' c hcm).2.1 (hc' c hcm).2.2,
+      (walEntW_enc (hc' c hcm).1 (hc' c hcm).2.2).2]
+    exact (hc c hcm).2.2.1
+  by_cases hfit : saveBatchBytes walSrvMr (cs.map walEntW) ≤ maxSaveBatch
+  · -- the batch fits: the update passed down, the refusal impossible
+    ihave HAU := walRecs_saveAU h sized hs cs Q
+      (fun c hcm => ⟨(hc c hcm).1, by have := (hc c hcm).2.2.1; omega, (hc c hcm).2.2.2.1⟩) $$ HAU
+    wp_apply (hSave p' ss h.R h.jr h.r h.w h.dir h.γ q hp hs sl esL (cs.map walEntW) true (fun _ => Q))
+      $$ [Hrd Hws HAU] as %err ⟨Hrd, Hpost⟩
+    · iframe Hover Hrd Harea Hws Hsl
+      isplitr
+      · ipureintro; exact Or.inl h.cov
+      isplitr
+      · iexact Hhs'
+      isplitr
+      · iexact Hes
+      isplitr
+      · ipureintro; exact hidx
+      isplitr
+      · ipureintro; exact hsz
+      · iintro %_
+        iexact HAU
+    icases Hpost with (⟨%he, Hws, %d, HQ, -, -⟩ | ⟨%Hbad, -⟩ | ⟨%Hbig, -⟩)
+    · iapply HΦ
+      ileft
+      iframe HQ
+      isplitr
+      · ipureintro; exact he
+      isplitl [Hws]
+      · iunfold storage.walOpen
+        iframe Hws Harea Hlen
+      · iunfold walStorRd
+        iexists p'
+        iframe Hrd
+        ipureintro; rfl
+    · exact absurd h.cov Hbad.2
+    · exfalso; have := Hbig.2; omega
+  · -- too large: layer 1's update vacuous, the caller's kept
+    wp_apply (hSave p' ss h.R h.jr h.r h.w h.dir h.γ q hp hs sl esL (cs.map walEntW) true
+        (fun _ => iprop(False))) $$ [Hrd Hws] as %err ⟨Hrd, Hpost⟩
+    · iframe Hover Hrd Harea Hws Hsl
+      isplitr
+      · ipureintro; exact Or.inl h.cov
+      isplitr
+      · iexact Hhs'
+      isplitr
+      · iexact Hes
+      isplitr
+      · ipureintro; exact hidx
+      isplitr
+      · ipureintro; exact hsz
+      · iintro %hle
+        exact absurd hle hfit
+    icases Hpost with (⟨-, -, %d, HF, -, -⟩ | ⟨-, %d, HF⟩ | ⟨%Hbig, Hws⟩)
+    · icases HF with %[]
+    · icases HF with %[]
+    · iapply HΦ
+      iright
+      iframe HAU
+      isplitr
+      · ipureintro; exact ⟨Hbig.1, by rw [← hbytes]; exact Hbig.2⟩
+      isplitl [Hws]
+      · iunfold storage.walOpen
+        iframe Hws Harea Hlen
+      · iunfold walStorRd
+        iexists p'
+        iframe Hrd
+        ipureintro; rfl
 
 /-- **`SaveSnap`'s law** from the storage's `SaveSnap` (the records' update as layer 1's,
 `walRecs_saveSnapAU`; the record's bytes the canonical ones, F2; the synced record's witness from the
@@ -315,6 +374,49 @@ theorem walClose_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : B
     · iapply Hf
       iframe Hsy Hu Hp
   · exact absurd h.cov Hbad.2
+
+/-- **`NewStorage`'s contract** (`rnNewStorageOk`, wal-link L3): `NewStorage` gives the storage's facts
+(`storageOver`) and two reader tokens; each of the contract's laws is the storage method's (`walSave_law`, ...,
+under `hS`), with the snapshotter for `Release`. -/
+theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := hG))
+    (hS : ∀ h : WalH GF, walStorSpecs h) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ⊢ rnNewStorageOk := by
+  iintro #Hpkg
+  unfold rnNewStorageOk
+  iintro !> %lg %ss %h
+  iintro !> %Φ #Hss HΦ
+  wp_apply (wpNew lg h.w ss) as %p ⟨#Hover, Hr1, Hr2⟩
+  · iexact Hpkg
+  iapply HΦ
+  isplitr
+  · iapply (isWalStorage_intro
+      iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
+        storage.storageOver p h.w ss ∗ snap.isSnapshotter ss)
+      _ h ss (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) rfl
+      (fun sized q hp hs sl esL cs Q => by
+        iintro ⟨#H1, #H2, -⟩
+        iapply (walSave_law h (hS h) p ss sized q hp hs sl esL cs Q)
+        iframe H1 H2)
+      (fun sized q sn mp dq m Q => by
+        iintro ⟨#H1, #H2, -⟩
+        iapply (walSaveSnap_law h (hS h) p ss sized q sn mp dq m Q)
+        iframe H1 H2)
+      (fun q => by
+        iintro ⟨#H1, #H2, -⟩
+        iapply (walSync_law h (hS h) p ss q)
+        iframe H1 H2)
+      (fun q sn mp dq dq' md γd img Rm i m Q => by
+        iintro ⟨#H1, #H2, #H3⟩ %hm
+        iapply (walRelease_law h (hS h) p ss q sn mp dq dq' md γd img Rm i m Q hm)
+        iframe H1 H2 H3)
+      (fun sized σ id cid => by
+        iintro ⟨#H1, #H2, -⟩
+        iapply (walClose_law h (hS h) p ss sized σ id cid)
+        iframe H1 H2))
+    iframe Hpkg Hover Hss
+  isplitl [Hr1]
+  · iunfold walStorRd; iexists p; iframe Hr1; ipureintro; rfl
+  · iunfold walStorRd; iexists p; iframe Hr2; ipureintro; rfl
 
 end proof
 

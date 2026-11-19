@@ -6,7 +6,8 @@ error arm honest (Q6)). One spec since wal-link L1a (2026-11-17, `notes/wal-link
 `Save.spec` and `Save.specNoErr` merged), over a share of the handle (`walOpenWS`, `HandleShared.lean`: the
 server's raft loop and apply thread use the WAL at once, serialized by `w.mu`), parameterised by the files
 with no I/O error (`Sio`, `FsStepSat (NoIoErr Sio)`): the error arm only when `Sio` does not cover every
-inode (`walCov`), and then only for the whole share; the room premise (`saveRoom`) only when it does. S/ =
+inode (`walCov`), and then only for the whole share; a batch above `MaxSaveBatchBytes` refused before the
+lock (fork fix 0009, 2026-11-19: the former room premise `walCov Sio → saveRoom … ≤ walFreshRoom` gone). S/ =
 `server/storage/wal/` at the pin with the local fork patches. Proved in
 `Proof/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean`. Lean-first.
 -/
@@ -33,6 +34,14 @@ variable [GooseExts]
 def saveRoom (Mr : WalMarshal) (hs : HardStateM) (es : List EntryM) : Nat :=
   (es.map (fun e => (Mr.encEntry e).length + 64)).sum + ((Mr.encState hs).length + 64)
 
+/-- **The bytes `Save`'s pre-lock check counts** (fix 0009, S/wal.go `Save`'s first loop): each entry's
+`proto.Size` (its encoding, `SizeLaw`) plus `saveEntryOverhead` (64). -/
+def saveBatchBytes (Mr : WalMarshal) (es : List EntryM) : Nat :=
+  (es.map (fun e => (Mr.encEntry e).length + 64)).sum
+
+/-- **`MaxSaveBatchBytes`** (fix 0009: `1 << 42`, a `var` only tests assign; `wal.walInit`). -/
+def maxSaveBatch : Nat := 2 ^ 42
+
 end pure
 
 section spec
@@ -53,6 +62,17 @@ abbrev WalPbIn.MustSyncLaw (P : WalPbIn GF) : Prop :=
     (App (App (App (Val (@! go_etcd_io.raft.v3.MustSync)) (Val #p1)) (Val #p2)) (Val #n))
   {{ (b : Bool), RET #b; ⌜b = true ↔ (n ≠ W64 0 ∨ h1.Vote' ≠ h2.Vote' ∨ h1.Term' ≠ h2.Term')⌝ }}
 
+/-- **`proto.Size(e)` of an entry** (`Save`'s pre-lock check, fix 0009): the length of its encoding as
+`MustMarshalMessage` writes it (`MarshalEntLaw`), when below `2^63` (Go's `int` sum wraps above, as
+`proto.SizePb.spec` says). A law of `P` (as `MarshalEntLaw`); discharged for raft's entries from
+`proto.SizePb.spec` (`RaftModel/LawsEnt.lean`). -/
+abbrev WalPbIn.SizeLaw (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
+  ∀ (l : Loc) (e : EntryM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ P.entIn l e }}
+    (App (Val (@! google_golang_org.protobuf.proto.Size))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.Entry.ty) #l)))
+  {{ (n : w64), RET #n; ⌜(Mr.encEntry e).length < 2 ^ 63 → sint.Z n = (Mr.encEntry e).length⌝ }}
+
 /-- **A nil hard state, a fresh zero one** (`Save`'s `st == nil`/`w.state == nil` cases, S/wal.go:1100-1105):
 a nil pointer holds only the zero state (`WalPbIn`'s "nil read as the zero state"), and a freshly
 allocated `raftpb.HardState{}` holds it (a law of `P`: its hidden fields are the client's to keep). -/
@@ -61,12 +81,16 @@ abbrev WalPbIn.ZeroLaw (P : WalPbIn GF) : Prop :=
   ∀ (p : Loc) (E : CoPset),
     p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ |={E}=> P.hsIn p hsZero
 
-/-- **`w.Save(st, ents)`** (S/wal.go:1075-1117): every entry index below `2^64-1` (a cut's name
+/-- **`w.Save(st, ents)`** (S/wal.go:1115-1160): every entry index below `2^64-1` (a cut's name
 would wrap, as the main tree's spec says), and each entry's encoding below `2^40` bytes (each record
 must fit a frame, whose length field has 56 bits, and the encoder's `2^47`; ledger 2026-11-14, "no
-bound on the records' size"). When `Sio` covers every inode, the batch's frames fit the handle's room
-(`saveRoom … ≤ walFreshRoom`, the room a fresh tail leaves: a write past ext4's `s_maxbytes`, `fsExt`'s
-`maxBytes`, fails with `EFBIG` whatever the premise). The update commits right after `w.mu.Lock()`, before any record is encoded (a
+bound on the records' size"). First (fix 0009) the batch's bytes (`saveBatchBytes`: each entry's
+`proto.Size` plus 64) are summed; past `MaxSaveBatchBytes` (`maxSaveBatch`, 4 TiB) `Save` returns
+`ErrSaveBatchTooLarge` before `w.mu.Lock()`: nothing committed or written, the share back (*Refused*);
+the update is needed only for a batch that passes (`⌜saveBatchBytes … ≤ maxSaveBatch⌝ -∗ AU`), so a
+caller holding one keeps it when the batch is too large (it splits on the size first, and passes the
+update only for a batch that fits: there the refusal is impossible). A batch that passes fits the room a fresh tail leaves (`saveRoom … ≤ walFreshRoom`:
+a write past ext4's `s_maxbytes`, `fsExt`'s `maxBytes`, fails with `EFBIG`). The update commits right after `w.mu.Lock()`, before any record is encoded (a
 crash mid-call leaves an image of `H ++ [op]` past the mark, `walImg`); then the entries' records, `st`'s
 unless empty (`saveState`), then a `sync` if `MustSync`, or a `cut` if the tail reached
 `SegmentSizeBytes` (which syncs). `Save` of an empty state and no entries writes nothing (S/wal.go:1079)
@@ -83,15 +107,17 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (P : WalPbIn GF) (Mr 
     (Q : WalDur → IProp GF),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
       P.hsIn hp hs ∗ sl ↦*□ esL ∗ walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
-      ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗ ⌜walCov Sio → saveRoom Mr hs es ≤ walFreshRoom⌝ ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }> }}
+      ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗
+      (⌜saveBatchBytes Mr es ≤ maxSaveBatch⌝ -∗
+        AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+          <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }>) }}
     (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Save")) (Val #hp)) (Val #sl))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗
           WalFs.walLenLb w dir (d.H.length + 1) ∗
           (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (d.H.length + 1))) ∨
-      (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d) }}
+      (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d) ∨
+      (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < saveBatchBytes Mr es⌝ ∗ walOpenWS Sio P Mr w dir γ q) }}
 
 end spec
 

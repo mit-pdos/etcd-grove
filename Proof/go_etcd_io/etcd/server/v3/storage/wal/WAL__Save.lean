@@ -105,10 +105,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P)
     (wp_mustSync : WalPbIn.MustSyncLaw (GF := GF) (hG := hG) P)
-    (hzero : WalPbIn.ZeroLaw (GF := GF) (hG := hG) P) :
+    (hzero : WalPbIn.ZeroLaw (GF := GF) (hG := hG) P)
+    (wp_size : WalPbIn.SizeLaw (GF := GF) (hG := hG) P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (Sio := Sio) (W := W) P Mr := by
   intro R jr r w dir γ q hp hs sl esL es sized Q
-  wp_start as ⟨#Harea, Hw, %hq, #Hhs, #Hsl, Hes, %hidx, %hsz, %hk, Hau⟩
+  wp_start as ⟨#Harea, Hw, %hq, #Hhs, #Hsl, Hes, %hidx, %hsz, Hau⟩
   icases walOpenWS_pers Sio P Mr w dir γ q $$ Hw with ⟨Hw, #Hpers⟩
   icases walShPers_facts Sio P Mr w dir γ $$ Hpers with ⟨#Hmu, #Hsync, #Hseg⟩
   ihave %hS := walAreaOk_encState walCodec Mr R jr r $$ Harea
@@ -118,6 +119,85 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   ihave %hlen2 := BigSepL2.bigSepL2_length $$ Hes
   wp_auto
   wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  -- fix 0009: the batch's bytes (`saveBatchBytes`), summed before the lock; past `MaxSaveBatchBytes`, refused
+  ihave #Hwpk := walShPers_pkgInit Sio P Mr w dir γ $$ Hpers
+  ihave #Hwi : (wal.walInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hwpk
+  ihave #Hmax := wal.walInit_maxSaveBatch $$ Hwi
+  ihave #Hbl := wal.walInit_ErrSaveBatchTooLarge $$ Hwi
+  ihave #Hpr : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave HL : (∃ (j : w64) (nb : w64) (ep : Loc),
+      "i" ∷ i_ptr ↦ j ∗ "n" ∷ n_ptr ↦ nb ∗ "e" ∷ e_ptr ↦ ep ∗
+      "%Hn" ∷ ⌜sint.Z nb = saveBatchBytes Mr (es.take (sint.nat j)) ∧
+        saveBatchBytes Mr (es.take (sint.nat j)) ≤ maxSaveBatch⌝ ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ es.length⌝ : IProp GF) $$ [i n e]
+  · iexists W64 0, W64 0, _
+    iframe
+    ipureintro
+    simp [saveBatchBytes, maxSaveBatch]
+  wp_for HL
+  by_cases Hlt : sint.Z j < sint.Z sl.len
+  · -- an entry: its `proto.Size` added
+    rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+    have hjl : sint.nat j < es.length := by
+      have : sint.nat j = (sint.Z j).toNat := rfl
+      have : sint.nat sl.len = (sint.Z sl.len).toNat := rfl
+      omega
+    obtain ⟨l, hl⟩ : ∃ l, esL[sint.nat j]? = some l :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    obtain ⟨e, he⟩ : ∃ e, es[sint.nat j]? = some e :=
+      ⟨_, List.getElem?_eq_getElem hjl⟩
+    ihave #Hel := BigSepL2.bigSepL2_lookup hl he $$ Hes
+    have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := ⟨Hj.1, Hlt⟩
+    (try wp_auto)
+    (try simp only [hb, _root_.and_self, ↓reduceIte])
+    wp_apply wp_load_slice_index sl (sint.Z j) esL DFrac.discard l Hj.1 $$ [Hsl] as -
+    · iframe #; ipureintro; exact hl
+    (try wp_auto)
+    wp_apply (wp_size l e) $$ [] as %sz %Hsz
+    · iframe #
+    (try wp_auto)
+    have hesz := hsz e (List.mem_of_getElem? he)
+    have hszv : sint.Z sz = (Mr.encEntry e).length := Hsz (by omega)
+    have htake : saveBatchBytes Mr (es.take (sint.nat j + 1)) =
+        saveBatchBytes Mr (es.take (sint.nat j)) + ((Mr.encEntry e).length + 64) := by
+      unfold saveBatchBytes
+      rw [List.take_succ, he]
+      simp
+    have hn1 : sint.Z (nb + (sz + W64 64)) = saveBatchBytes Mr (es.take (sint.nat j + 1)) := by
+      rw [htake]
+      have := Hn.1; have := Hn.2
+      unfold maxSaveBatch at *
+      word
+    rw [show sz + W64 64 = sz + W64 64 from rfl]
+    wp_if_destruct
+    · -- refused: nothing committed, the share back
+      sorry
+    · wp_for_post
+      iframe
+      iexists j + W64 1, _, _
+      iframe
+      have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+      ipureintro
+      refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+      · rw [hj1, ← hn1]
+      · rw [hj1, ← hn1]; unfold maxSaveBatch; word
+      · word
+      · omega
+  rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
+  have hje0 : sint.nat j = es.length := by
+    have : sint.nat j = (sint.Z j).toNat := rfl
+    have : sint.nat sl.len = (sint.Z sl.len).toNat := rfl
+    omega
+  have hk : walCov Sio → saveRoom Mr hs es ≤ walFreshRoom := fun _ => by
+    have h1 := Hn.2
+    rw [hje0, List.take_length] at h1
+    have h2 := hS hs
+    unfold saveRoom walFreshRoom maxBytes
+    unfold saveBatchBytes maxSaveBatch at h1
+    omega
   (try wp_auto)
   wp_apply +noauto sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
   -- the deferred `w.mu.Unlock`'s resolution: its later credit takes the handle out of the share
@@ -337,6 +417,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       (try wp_auto)
       iapply HΦ
       iright
+      ileft
       isplitr
       · ipureintro; exact herr
       icases HQ with ⟨%d, HQ, -⟩
@@ -381,6 +462,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (try wp_auto)
     iapply HΦ
     iright
+    ileft
     isplitr
     · ipureintro; exact herr
     icases HQ with ⟨%d, HQ, -⟩
@@ -485,6 +567,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
         (try wp_auto)
         iapply HΦ
         iright
+        ileft
         isplitr
         · ipureintro; exact herr
         icases HQ with ⟨%d, HQ, -⟩
@@ -541,6 +624,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       (try wp_auto)
       iapply HΦ
       iright
+      ileft
       isplitr
       · ipureintro; exact herr
       icases HQ with ⟨%d, HQ, -⟩

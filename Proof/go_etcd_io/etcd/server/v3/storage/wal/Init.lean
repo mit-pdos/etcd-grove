@@ -4,7 +4,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.wal`
 
 Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
-`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, `MaxSaveBatchBytes`
+`2^42` (fix 0009), every error
 variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
 `openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
@@ -106,6 +107,7 @@ variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.storage.wal
 
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.wal get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
@@ -118,6 +120,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSaveBatchTooLarge _ as HErrSaveBatchTooLarge
+  wp_apply wp_GlobalAlloc (V := w64) MaxSaveBatchBytes _ as HMaxSaveBatchBytes
   wp_apply wp_GlobalAlloc (V := Loc) crcTable _ as HcrcTable
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrDecoderNotFound _ as HErrDecoderNotFound
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrSliceOutOfRange _ as HErrSliceOutOfRange
@@ -207,6 +211,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]
   wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab
   try wp_auto
+  -- translated initializer of MaxSaveBatchBytes))
+  -- translated initializer of ErrSaveBatchTooLarge))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBL #EBL
+  try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch))
   ipersist HerrBadWALName
@@ -217,8 +226,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrSnapshotNotFound
   ipersist HErrSliceOutOfRange
   ipersist HErrDecoderNotFound
+  ipersist HErrSaveBatchTooLarge
   ipersist HcrcTable
   ipersist HSegmentSizeBytes
+  ipersist HMaxSaveBatchBytes
   ipersist HwalFsyncSec
   ipersist HwalWriteSec
   ipersist HwalWriteBytes
@@ -279,6 +290,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     · iapply EtcdGrove.errorString_errOk
       iexact EDN
     · iapply EtcdGrove.errIsTerm_errorString xDN; iexact Hd2
+  ihave #VErrSaveBatchTooLarge : (EtcdGrove.wal.errVar ErrSaveBatchTooLarge : IProp GF) $$ []
+  · unfold EtcdGrove.wal.errVar
+    iexists _
+    iframe HErrSaveBatchTooLarge
+    isplitl []
+    · iapply EtcdGrove.errorString_errOk
+      iexact EBL
+    · iapply EtcdGrove.errIsTerm_errorString xBL; iexact Hd2
   ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
