@@ -43,18 +43,18 @@ success also carries `requireAuthInfo`'s check at the request context's token re
 (`leaseCheckT … n (fun _ => True)`). -/
 abbrev v3rpc.LeaseServer.LeaseRevoke.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
-    (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64)
+    (S : IProp GF) (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64)
     (Q : KVState → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorRevokeOkM on s E ρ S ∗ S ∗
       auth.authPubLbM E.authMode n ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseRevokeReqIs r m ∗
-      leaseRevokePermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m Q }}
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ □ (⌜on = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ v3rpc.leaseRevokeReqIs r m ∗
+      leaseRevokePermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode tok) m Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseRevoke"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseRevokeOut E cid mid resp err ∗
-      (⌜err ≠ GoInterface.nil⌝ ∨ (v3rpc.leaseRevokeResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m Q ∗
-        v3rpc.leaseCheckT s E (auth.ctxTokenOf (GoInterface.ok ci)) n (fun _ => iprop(True)))) ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ (v3rpc.leaseRevokeResT on s E ρ tok m Q ∗
+        v3rpc.leaseCheckT s E tok n (fun _ => iprop(True)))) ∗
       go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec

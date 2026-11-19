@@ -46,7 +46,7 @@ abbrev v3rpc.quotaLeaseServer.LeaseGrant.spec : Prop :=
       grpcHandlerOwnOkMd #(methods ls.ty go!"LeaseGrant" ls.v) iprop(S ∗ srvLgReader s) Spec ∗
       S ∗ v3rpc.quotaRd s ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗
-      Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+      grpcSpecAt Spec ci m Φ Ψe }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗

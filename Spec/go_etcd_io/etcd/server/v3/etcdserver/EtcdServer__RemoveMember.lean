@@ -39,16 +39,18 @@ auth info, over the caller's `Pin`, answering `Qin`. The result is `configure`'s
 store's published index: the guard's error is refused for the admin class's reason (`adminWhy`). -/
 abbrev EtcdServer.RemoveMember.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString)
     (id : w64) (Pin Pm : IProp GF) (Qm : GoInterface → IProp GF)
     (Qin : GoSlice → GoInterface → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAuthAt s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗ Pm ∗
+      srvAuthAt s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD ∗ Pin ∗ Pm ∗
       mayRemoveOk s id Pm Qm ∗ configureRemoveOk s E ctx id Pin Qm Qin }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RemoveMember"))
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); E.RD ∗
       (Qin sl err ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Pin ∗
-        ((applyErrIs err ∗ adminWhy s E.authMode n (GoInterface.ok ctx) err ∗ Pm) ∨ Qm err))) }}
+        ((applyErrIs err ∗ adminWhy s E.authMode n tok err ∗ Pm) ∨ Qm err))) }}
 
 end spec
 

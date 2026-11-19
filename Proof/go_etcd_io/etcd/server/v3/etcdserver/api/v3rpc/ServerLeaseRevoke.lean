@@ -52,15 +52,15 @@ theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (
       lessorRevokeOkM E.authOn s E ρ S := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
   unfold lessorRevokeOkM
-  iintro %ci %cd %r %id %Q %n !> %Φ ⟨HSr, #Hn, #Hctx, #Hrun, #Hreq, Hp⟩ HΦ
+  iintro %ci %tok %cd %r %id %Q %n !> %Φ ⟨HSr, #Hn, #Hctx, #Hrun, #HtokC, #Hreq, Hp⟩ HΦ
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   -- the permit at the server's context form (`hdrBoundM_tok`)
-  ihave Hp := leaseRevokePermitM_mono E.authOn ρ.raft ρ.kv _ (hdrBoundM true s E (GoInterface.ok ci)) id Q
-    (fun hm => hdrBoundM_tok s E (GoInterface.ok ci) hm) $$ Hp
-  wp_apply (hLR s E ρ ci cd r id Q n) $$ [Hlt HRD Hp] as %resp %err ⟨Hlt, HRD, Hans⟩
+  ihave Hp := leaseRevokePermitM_mono E.authOn ρ.raft ρ.kv _ (hdrBoundM true s E tok) id Q
+    (fun hm => hdrBoundM_tok s E tok hm) $$ Hp
+  wp_apply (hLR s E ρ ci cd tok r id Q n) $$ [Hlt HRD Hp] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD
     isplitr
     · ipureintro; exact h
@@ -80,11 +80,10 @@ theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (
     · iright
       isplitl [Hres]
       rotate_left
-      · iapply leaseCheckT_of_from s E (GoInterface.ok ci) n
-        iapply leaseCheckFrom_of_authedFrom $$ Hfr
+      · iapply leaseCheckFrom_of_authedFrom $$ Hfr
       cases hon : E.authOn
       · iapply leaseRevokeResT_false
-      · iapply leaseRevokeResT_true s E ρ ci id Q $$ Hres
+      · iapply leaseRevokeResT_true s E ρ tok id Q $$ Hres
     iunfold leaseRevokedResp at Hresp
     icases Hresp with ⟨%hh, %rv, #Hh, #Hrv, %Hrv0, #Hlb, Hown⟩
     iunfold txn.respHdrOwn at Hown

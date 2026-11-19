@@ -44,18 +44,20 @@ The ids are listed in the order of `Leases()`' sort (by remaining time: none sta
 re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
 abbrev EtcdServer.LeaseLeases.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (mid cid : w64) (n m : Nat),
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (mid cid : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReadM E.authOn s E γr ∗ srvHeaderFacts s cid mid ∗ levelTok lease.lessorLvl ∗ mvcc.api.mvccReaders E.γ 1 ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD ∗ lease.lessorRdPool γl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 62⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseLeases"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok lease.lessorLvl ∗ mvcc.api.mvccReaders E.γ 1 ∗ E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (ids : List w64), ⌜m ≤ i⌝ ∗
           lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cid mid ids ∗
-          leaseCheckFrom s E (GoInterface.ok ctx) n (fun info => iprop([∗list] id ∈ ids,
+          leaseCheckFrom s E tok n (fun info => iprop([∗list] id ∈ ids,
             leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err ∗
           □ (∀ e : GoInterfaceOk,

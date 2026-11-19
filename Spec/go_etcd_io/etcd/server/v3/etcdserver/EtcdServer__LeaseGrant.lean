@@ -72,21 +72,23 @@ A weaker spec (a premise more); the other modes as before. (Auth-lease S4, Freez
 state no older than `n`, or a principal bound to the context). -/
 abbrev EtcdServer.LeaseGrant.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (ttl id0 : w64) (Q : w64 → KVState → IProp GF) (n : Nat),
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (ttl id0 : w64) (Q : w64 → KVState → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜srvGrantsLeases E ρ ∧ (ρ.rd.kv.lm = .revocable → id0 = W64 0)⌝ ∗
       isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ auth.authPubLbM E.authMode n ∗
       srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
-      context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
+      context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
       leaseGrantReqOwn r ttl id0 ∗
-      leaseGrantPermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) ttl Q }}
+      leaseGrantPermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E tok) ttl Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp ttl ∗
-          authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
-          authedFrom s E.authMode n (GoInterface.ok ctx) ∗
-          leaseGrantResM E.authOn s E ρ ctx ttl resp Q) ∨
+          authedOutB s E.authMode tok GoInterface.nil ∗
+          authedFrom s E.authMode n tok ∗
+          leaseGrantResM E.authOn s E ρ tok ttl resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

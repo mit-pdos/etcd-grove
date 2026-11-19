@@ -46,7 +46,8 @@ B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what 
 `Value(StartTimeKey{})` is type-asserted from). -/
 abbrev EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (p : Loc) (rq : apply.IRRModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
   -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
@@ -55,7 +56,8 @@ abbrev EtcdServer.raftRequest.spec : Prop :=
   apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
+      context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E tok) rq Qh ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
       srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
@@ -65,11 +67,11 @@ abbrev EtcdServer.raftRequest.spec : Prop :=
           (L : List EntryModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ srvRLogLb ρ.raft L ∗
           appliedOkM E.authOn E ρ rq' F resp L ∗ pubAfterM E.authOn E ρ rq' L ∗ □ Qh hm L ∗
-          hdrBoundM E.authOn s E (GoInterface.ok ctx) hm) ∨
+          hdrBoundM E.authOn s E tok hm) ∨
        (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' F err ∗
-            hdrBoundM E.authOn s E (GoInterface.ok ctx) hm) ∨
+            hdrBoundM E.authOn s E tok hm) ∨
           srvMaybeDeposited ρ rq))) }}
 
 end spec

@@ -64,20 +64,22 @@ response's `ID` with `G` of it and the caller's result `leaseGrantResT`. The req
 lease-expiry plan's E3, 2026-11-04; `True` by default): the requests the contract covers, by their
 `(TTL, ID)`; in the revocable lease mode those with `ID = 0` only (`EtcdServer.LeaseGrant.spec`'s
 premise there). `G` takes the request `m` before the id (E3/R5: the live fact `grantLiveG` bounds the
-lease's TTL by the request's). -/
+lease's TTL by the request's). At the token `tok` the request context carries (`auth.ctxToken`, gated
+by the mode; perheap C1a, 2026-11-18: until then the pure `auth.ctxTokenOf ci`). -/
 def lessorGrantOkGM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
     (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop := fun _ => True) : IProp GF :=
-  iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64)
-      (Q : w64 → KVState → IProp GF) (n : Nat),
-    {{ S ∗ auth.authPubLbM E.authMode n ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m ∗
+  iprop(∀ (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (r : Loc)
+      (m : w64 × w64) (Q : w64 → KVState → IProp GF) (n : Nat),
+    {{ S ∗ auth.authPubLbM E.authMode n ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
+        □ (⌜on = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ leaseGrantReqIs r m ∗
         leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ ∗
-        leaseGrantPermitM on ρ.raft ρ.kv (hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m.1 Q }}
+        leaseGrantPermitM on ρ.raft ρ.kv (hdrBoundT s E.authMode tok) m.1 Q }}
       (App (App (Val (srvM s go!"LeaseGrant")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseGrantAns E resp err ∗
         (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
           structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id ∗
-          leaseGrantResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m.1 id Q ∗
-          leaseCheckT s E (auth.ctxTokenOf (GoInterface.ok ci)) n (fun _ => iprop(True))) }})
+          leaseGrantResT on s E ρ tok m.1 id Q ∗
+          leaseCheckFrom s E tok n (fun _ => iprop(True))) }})
 
 instance lessorGrantOkGM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) :
@@ -89,16 +91,18 @@ def lessorGrantOkM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S 
   lessorGrantOkGM on s E ρ S (fun _ _ => iprop(True))
 
 /-- **The server's `LeaseRevoke` in the auth mode `on`**: the answer `leaseRevokeAns` and, on success,
-the caller's result `leaseRevokeResT`. -/
+the caller's result `leaseRevokeResT`, at the token `tok` the request context carries (as
+`lessorGrantOkGM`). -/
 def lessorRevokeOkM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) : IProp GF :=
-  iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (id : w64)
-      (Q : KVState → IProp GF) (n : Nat),
-    {{ S ∗ auth.authPubLbM E.authMode n ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseRevokeReqIs r id ∗
-        leaseRevokePermitM on ρ.raft ρ.kv (hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) id Q }}
+  iprop(∀ (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (r : Loc)
+      (id : w64) (Q : KVState → IProp GF) (n : Nat),
+    {{ S ∗ auth.authPubLbM E.authMode n ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
+        □ (⌜on = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ leaseRevokeReqIs r id ∗
+        leaseRevokePermitM on ρ.raft ρ.kv (hdrBoundT s E.authMode tok) id Q }}
       (App (App (Val (srvM s go!"LeaseRevoke")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseRevokeAns E resp err ∗
-        (⌜err ≠ GoInterface.nil⌝ ∨ (leaseRevokeResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) id Q ∗
-          leaseCheckT s E (auth.ctxTokenOf (GoInterface.ok ci)) n (fun _ => iprop(True)))) }})
+        (⌜err ≠ GoInterface.nil⌝ ∨ (leaseRevokeResT on s E ρ tok id Q ∗
+          leaseCheckFrom s E tok n (fun _ => iprop(True)))) }})
 
 instance lessorGrantOkM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (S : IProp GF) : Persistent (lessorGrantOkM on s E ρ S) := by
@@ -140,11 +144,11 @@ theorem leaseRevokeResT_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok
 
 /-- **A grant's result with auth on, at the request context's token** (the server's `leaseGrantResM
 true` gives the response's `ID` and `leaseGrantResT` at it, by `hdrBoundM_tok`). -/
-theorem leaseGrantResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseGrantResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (ttl : w64) (resp : Loc) (Q : w64 → KVState → IProp GF) :
-    leaseGrantResM (GF := GF) true s E ρ ctx ttl resp Q ⊢
+    leaseGrantResM (GF := GF) true s E ρ tok ttl resp Q ⊢
       ∃ id : w64, structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗
-        leaseGrantResT true s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) ttl id Q := by
+        leaseGrantResT true s E ρ tok ttl id Q := by
   unfold leaseGrantResM leaseGrantResT
   iintro ⟨%id, %hm, %L, #Hid, #Hb, Hp, HQ⟩
   iexists id
@@ -152,19 +156,19 @@ theorem leaseGrantResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx :
   iintro -
   iexists hm, L
   iframe Hp HQ
-  iapply hdrBoundM_tok s E (GoInterface.ok ctx) hm $$ Hb
+  iapply hdrBoundM_tok s E tok hm $$ Hb
 
 /-- **A revocation's result with auth on, at the request context's token.** -/
-theorem leaseRevokeResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseRevokeResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (id : w64) (Q : KVState → IProp GF) :
-    leaseRevokeResM (GF := GF) true s E ρ ctx id Q ⊢
-      leaseRevokeResT true s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) id Q := by
+    leaseRevokeResM (GF := GF) true s E ρ tok id Q ⊢
+      leaseRevokeResT true s E ρ tok id Q := by
   unfold leaseRevokeResM leaseRevokeResT
   iintro ⟨%hm, %L, #Hb, %Hg, Hp, HQ⟩ -
   iexists hm, L
   iframe Hp HQ
   isplitl
-  · iapply hdrBoundM_tok s E (GoInterface.ok ctx) hm $$ Hb
+  · iapply hdrBoundM_tok s E tok hm $$ Hb
   ipureintro; exact Hg
 
 /-- **`raftLessorM`'s grant conjunct, at no success fact** (`lessorGrantOkM`'s unfolding). -/
@@ -189,9 +193,9 @@ theorem lessorGrantOkGM_mono (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
       lessorGrantOkGM on s E ρ S G' R' := by
   iintro ⟨#HGG, #HL⟩
   unfold lessorGrantOkGM
-  iintro %ci %cd %r %m %Q %n !> %Φ ⟨HS0, Hn, Hctx, Hrc, Hreq, Hid, %HR', Hp⟩ HΦ
-  wp_apply HL $$ %ci %cd %r %m %Q %n [HS0 Hn Hctx Hrc Hreq Hid Hp] as %resp %err ⟨HSr, Hans, Hg⟩
-  · iframe; ipureintro; exact hR m HR'
+  iintro %ci %tok %cd %r %m %Q %n !> %Φ ⟨HS0, Hn, Hctx, Hrc, #Htk, Hreq, Hid, %HR', Hp⟩ HΦ
+  wp_apply HL $$ %ci %tok %cd %r %m %Q %n [HS0 Hn Hctx Hrc Hreq Hid Hp] as %resp %err ⟨HSr, Hans, Hg⟩
+  · iframe; iframe #; ipureintro; exact hR m HR'
   iapply HΦ
   iframe HSr Hans
   icases Hg with (%Hne | ⟨%id, #Hid, Hg, Hres, Hck⟩)

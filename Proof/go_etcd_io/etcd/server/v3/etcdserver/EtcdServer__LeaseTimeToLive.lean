@@ -41,8 +41,10 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     (hTTL : EtcdServer.leaseTimeToLive.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
-  intro Hpeers s E ρ γr γl ctx cd r dq v n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #Hnet, #Hcause, HRD, #Hpool, Htok, %Hbound, Hreq⟩
+  intro Hpeers s E ρ γr γl ctx cd tok r dq v n m
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #HtokC, #Hnet, #Hcause, HRD, #Hpool, Htok, %Hbound, Hreq⟩
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) $$ []
+  · iintro !> %h; iapply HtokC; ipureintro; exact h
   ihave ⟨%st, %cca, #Has, #Hreqa, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, -, -, -⟩
@@ -66,7 +68,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   (try wp_auto)
-  wp_apply (hReq s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC, #Hfrom, #Hav⟩
+  wp_apply (hReq s E ctx cd n tok) $$ [$HRD] as %err ⟨HRD, #HoutC, #Hfrom, #Hav⟩
   · iframe #
   ihave #Hout := authedOutB_of_C s E.authMode n _ err $$ HoutC
   ihave #Hout' := Hout
@@ -83,7 +85,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     · ipureintro; exact ⟨rfl, by intro h; cases h⟩
     iapply authErrVarIs_leaseNotFound_absurd $$ [$Hap $Hlp $Hav]
   ihave #Hfr := Hfrom $$ %rfl
-  ihave #Hcf := leaseCheckFrom_of_authedFrom s E (GoInterface.ok ctx) n $$ Hfr
+  ihave #Hcf := leaseCheckFrom_of_authedFrom s E tok n $$ Hfr
   (try wp_auto)
   ihave ⟨Hreq, %Hrn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
   iStructNamed Hreq
@@ -91,7 +93,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
   | true =>
     (try wp_auto)
     -- `rev, err = s.checkLeaseTimeToLive(ctx, lease.LeaseID(r.ID))`
-    wp_apply (hChk s E γl ctx cd v.ID' n m) $$ [$HRD $Htok] as %rev0 %err1
+    wp_apply (hChk s E γl ctx cd tok v.ID' n m) $$ [$HRD $Htok] as %rev0 %err1
         ⟨HRD, Htok, #He1, Hok⟩
     · iframe #; ipureintro; exact Hbound
     (try wp_auto)

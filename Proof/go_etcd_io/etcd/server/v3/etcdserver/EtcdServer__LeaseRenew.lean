@@ -56,20 +56,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- The key check over the span's context is one over the caller's: the span keeps the context's
-incoming metadata (`Tracer.Start`), which is all the principal's bound reads. -/
-private theorem leaseCheckFrom_ctx (s : Loc) (E : apply.AEnv GF) (c c' : GoInterface) (n : Nat)
-    (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF)
-    (h : metadata.incomingOf c = metadata.incomingOf c') :
-    leaseCheckFrom s E c n K ⊢ leaseCheckFrom s E c' n K := by
-  unfold leaseCheckFrom
-  iintro (H | ⟨%info, #Hb, Hk⟩)
-  · ileft; iexact H
-  · iright; iexists info; iframe Hk
-    iintro !> %ho
-    iapply (principalBound_ctx s E.authMode c c' info h)
-    iapply Hb $$ %ho
-
 /-- The lessor's error variables `LeaseRenew` returns or compares with (`leaseInit`). -/
 private theorem renewErrs [_root_.Perennial.errors.Assumptions] :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ⊢
@@ -265,7 +251,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   subst Hln
   (try wp_auto)
   -- `if err := s.checkLeaseRenew(ctx, id); err != nil { return 0, err }`
-  wp_apply (hChk s E γl ctx1 _ id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
+  wp_apply (hChk s E γl ctx1 _ tok id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
   · iframe #; iframe HRD Htok; ipureintro; exact Hbound
   rcases cerr with cei | _
   · renew_err Hce
@@ -320,7 +306,7 @@ local macro "renew_forward" : tactic => `(tactic| (
       ileft
       isplitr
       · ipureintro; rfl
-      iapply leaseCheckFrom_ctx _ _ _ _ _ _ Hinc1; iexact Hchk1
+      iexact Hchk1
     rcases herr with hei | _
     rotate_left
     · exact absurd rfl Hhn
@@ -367,7 +353,7 @@ set_option hygiene false in
 /-- The leader's tail: `checkLeaseRenew`, then the lessor's `Renew`; on `ErrNotPrimary`, the
 forwarding. -/
 local macro "renew_leader_tail" : tactic => `(tactic| (
-  wp_apply (hChk s E γl ctx1 _ id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
+  wp_apply (hChk s E γl ctx1 _ tok id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
   · iframe #; iframe HRD Htok; ipureintro; exact Hbound
   rcases cerr with cei | _
   · renew_err Hce
@@ -386,7 +372,7 @@ local macro "renew_leader_tail" : tactic => `(tactic| (
     ileft
     isplitr
     · ipureintro; rfl
-    iapply leaseCheckFrom_ctx _ _ _ _ _ _ Hinc1; iexact Hchk1
+    iexact Hchk1
   all_goals (
     subst Hre
     first
@@ -430,8 +416,8 @@ theorem EtcdServer.LeaseRenew.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr γl ctx cd id n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, Hetok, #Hlib, #Hnet, #Hcause, HRD, #Hpool,
+  intro s E ρ γr γl ctx cd tok id n m
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, Hetok, #Hlib, #HtokC, #Hnet, #Hcause, HRD, #Hpool,
     Htok, Hlgr, Hrrd, %Hbound, #Hprt⟩
   ihave #Hr' := Hr
   iunfold isServerReadM at Hr'
@@ -468,12 +454,15 @@ theorem EtcdServer.LeaseRenew.wp_proof
   iunfold context.libCtxOk at Hlib'
   icases Hlib' with ⟨-, -, -, #Hspv⟩
   wp_apply (hStart tr ctx cd _ _) $$ [] as %ctx1 %sp
-    ⟨-, #Hwkw, -, %Hinc1, #Hsp, -, -, #Hlibw, #Hnetw, #Hcausew⟩
+    ⟨-, #Hwkw, -, #Hmd1, #Hsp, -, -, #Hlibw, #Hnetw, #Hcausew⟩
   · iframe #
   ihave #Hctx1 := Hwkw $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib
   ihave #Hnet1 := Hnetw $$ Hnet
   ihave #Hcause1 := Hcausew $$ Hcause
+  ihave #HtokE := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+  · iintro !> %h; iapply HtokE; ipureintro; exact h
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi

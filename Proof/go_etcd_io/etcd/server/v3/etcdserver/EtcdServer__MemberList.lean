@@ -30,8 +30,8 @@ theorem EtcdServer.MemberList.wp_proof
     (hReq : EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd r lin dq c g Q n
-  wp_start as ⟨#Hq, #Hr, #Hlb, #Hctx, #Hlib, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
+  intro s E ρ γr ctx cd tok r lin dq c g Q n
+  wp_start as ⟨#Hq, #Hr, #Hlb, #Hctx, #Hlib, #HtokC, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
   ihave #Hau : srvAuthAt s E $$ []
   · iapply (srvAuthAt_of_views s E ρ γr); iframe #
   ihave #Hr' := Hr
@@ -55,7 +55,7 @@ theorem EtcdServer.MemberList.wp_proof
   (try wp_auto)
   cases lin
   · (try wp_auto)
-    wp_apply (hReq s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC, -, -⟩
+    wp_apply (hReq s E ctx cd n tok) $$ [$HRD] as %err ⟨HRD, #HoutC, -, -⟩
     · iframe #
     ihave #Hout := authedOut_of_C _ _ _ _ _ $$ HoutC
     iunfold authedOut at Hout
@@ -114,7 +114,7 @@ theorem EtcdServer.MemberList.wp_proof
     · (try wp_auto)
       ihave Hri' : (readIndexOk γr c ∗ readServed γr c g) $$ [Hri]
       · iapply Hri; ipureintro; rfl
-      wp_apply (hReq s E ctx cd n) $$ [$HRD] as %err2 ⟨HRD, #HoutC, -, -⟩
+      wp_apply (hReq s E ctx cd n tok) $$ [$HRD] as %err2 ⟨HRD, #HoutC, -, -⟩
       · iframe #
       ihave #Hout := authedOut_of_C _ _ _ _ _ $$ HoutC
       iunfold authedOut at Hout

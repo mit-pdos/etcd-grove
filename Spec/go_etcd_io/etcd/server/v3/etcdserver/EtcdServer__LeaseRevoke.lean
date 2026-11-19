@@ -64,20 +64,22 @@ not live commits nothing); no error branch carries a client result (D4). (Auth-l
 state no older than `n`, or a principal bound to the context). -/
 abbrev EtcdServer.LeaseRevoke.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (id : w64) (Q : KVState → IProp GF) (n : Nat),
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (id : w64) (Q : KVState → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜srvRevokesLeases E ρ⌝ ∗
       isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ auth.authPubLbM E.authMode n ∗
       srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
-      context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
+      context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
       leaseRevokeReqRO r id ∗
-      leaseRevokePermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) id Q }}
+      leaseRevokePermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E tok) id Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRevoke"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseRevokedResp E resp ∗
-          authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
-          authedFrom s E.authMode n (GoInterface.ok ctx) ∗
-          leaseRevokeResM E.authOn s E ρ ctx id Q) ∨
+          authedOutB s E.authMode tok GoInterface.nil ∗
+          authedFrom s E.authMode n tok ∗
+          leaseRevokeResM E.authOn s E ρ tok id Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

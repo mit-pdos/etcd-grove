@@ -32,10 +32,10 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 member ids, the revision `rev`, some term and leader. -/
 abbrev v3rpc.serverWatchStream.newResponseHeader.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
-    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk) (tok : Option GoString)
     (cd : context.ContextDesc (IProp GF)) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.swsIs sws r Up Dn st ci cd }}
+      v3rpc.swsIs sws r Up Dn st ci tok cd }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"newResponseHeader"))
       (Val #rev))
   {{ (h : Loc), RET #h; ∃ t l : w64, hdrFull h ⟨r.srv.cid, r.srv.mid, rev, t, l⟩ }}

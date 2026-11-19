@@ -99,7 +99,10 @@ theorem etcd_leaseTTLHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hnetc := netCtxOk_of_runCtx ci $$ Hrc
   ihave #Hcausec := ctxCauseOk_of_runCtx ci $$ Hrc
-  iapply (v3rpc.LeaseServer.wp_LeaseTimeToLive lp s A cid mid E γl S ci cd r DFrac.discard v n m)
+  ihave ⟨%tok, #HtokC0⟩ := auth.ctxToken_of_libCtxOk ci $$ Hlibc
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok)) $$ []
+  · iintro !> -; iexact HtokC0
+  iapply (v3rpc.LeaseServer.wp_LeaseTimeToLive lp s A cid mid E γl S ci cd tok r DFrac.discard v n m)
     $$ [HS Hrev]
   · iframe; iframe #
   inext
@@ -179,7 +182,10 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iintro %req %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, Hspec⟩ HΨ
   iapply wp_fupd
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
-  iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd r n m) $$ [HS Hrev]
+  ihave ⟨%tok, #HtokC0⟩ := auth.ctxToken_of_libCtxOk ci $$ Hlibc
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok)) $$ []
+  · iintro !> -; iexact HtokC0
+  iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd tok r n m) $$ [HS Hrev]
   · iframe; iframe #
   inext
   iintro %resp %err ⟨HS, Hrev, Hout, #HSe⟩
