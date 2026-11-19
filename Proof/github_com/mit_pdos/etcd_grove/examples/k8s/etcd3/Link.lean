@@ -111,6 +111,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__Matches
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__RequiresExactMatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.firstBookmark
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.floored
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genWatch
@@ -437,7 +438,7 @@ theorem storage.wp_AnnotateInitialEventsEndBookmark :
 
 theorem storage.wp_HasInitialEventsEndBookmarkAnnotation :
     EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.wp_proof
+  EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.wp_proof apimeta.wp_Accessor
 
 theorem storage.wp_isErrCode :
     EtcdGrove.storage.isErrCode.spec (GF := GF) (hG := hG) :=
@@ -995,9 +996,13 @@ theorem wp_withPre :
     EtcdGrove.k8s_etcd3.withPre.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.withPre.wp_proof wp_rvString
 
+theorem wp_floored :
+    EtcdGrove.k8s_etcd3.floored.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.floored.wp_proof
+
 theorem wp_minRV :
     EtcdGrove.k8s_etcd3.minRV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.minRV.wp_proof wp_rvBytes
+  EtcdGrove.k8s_etcd3.minRV.wp_proof wp_rvBytes wp_floored
 
 theorem wp_genList :
     EtcdGrove.k8s_etcd3.genList.spec (GF := GF) (hG := hG) :=
@@ -1009,7 +1014,7 @@ theorem wp_genFrom :
 
 theorem wp_genWatchFrom :
     EtcdGrove.k8s_etcd3.genWatchFrom.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.genWatchFrom.wp_proof wp_pick wp_rvBytes wp_rvString wp_workloadKeys wp_splitKey wp_workloadNodes wp_storeKey wp_workloadApps wp_parseRV
+  EtcdGrove.k8s_etcd3.genWatchFrom.wp_proof wp_pick wp_rvBytes wp_rvString wp_workloadKeys wp_splitKey wp_workloadNodes wp_storeKey wp_workloadApps wp_parseRV wp_floored
 
 theorem wp_genWatch :
     EtcdGrove.k8s_etcd3.genWatch.spec (GF := GF) (hG := hG) :=

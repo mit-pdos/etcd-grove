@@ -153,13 +153,14 @@ workloadVals:
 pick:
 uidOf:
 withPre: rvString
-minRV: rvBytes
+floored:
+minRV: rvBytes floored
 workloadNodes:
 workloadApps:
 genList: splitKey storeKey pick workloadNodes workloadApps minRV parseRV
 genFrom: workloadKeys workloadVals workloadNodes workloadApps pick uidOf withPre minRV genList
 # (7f-6 stage E) the watch generator
-genWatchFrom: pick rvBytes rvString workloadKeys splitKey workloadNodes storeKey workloadApps parseRV
+genWatchFrom: pick rvBytes rvString workloadKeys splitKey workloadNodes storeKey workloadApps parseRV floored
 genWatch: genWatchFrom
 etcd3_Gen: cache__get cache__getW genFrom genWatch
 RunLin2: @
@@ -220,7 +221,7 @@ strconv_FormatUint:
 isErrCode:
 IsNotFound: isErrCode
 StorageError__Unwrap:
-HasInitialEventsEndBookmarkAnnotation:
+HasInitialEventsEndBookmarkAnnotation: meta_Accessor
 SuggestsClientDelay:
 meta_ListAccessor: ?
 errors_IsTooManyRequests: ?
