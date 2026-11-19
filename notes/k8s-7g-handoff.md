@@ -4,7 +4,9 @@
 
 **2026-11-19 (night 15; for etcd-grove-03). `Replay.validateGet` specified+proved, `Replay.Validate` proved
 (`a63f96f8ff`); `keyFunc` specified+proved; watch.go's spec FIXED (two panics were reachable: forms below);
-watch.go's 15 functions in progress (a sub-agent's drafts, see the commit after `a63f96f8ff`).**
+watch.go: 12 of 17 functions specified+proved (`89b5f62aef`, a sub-agent; each `-a` checked); the other 7
+(splitInitialEvents, validateInitialEvents, Change.toWatchEvent, Replay.EventsForRVs, validateReliable,
+checkWatch, ValidateWatch) with a second sub-agent.**
 
 - Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`). lean not yet moved to 3afd77e35
   (origin/lean has it): merge when local `lean` gets it, then a timed full build.
