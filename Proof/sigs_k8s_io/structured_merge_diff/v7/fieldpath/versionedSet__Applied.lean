@@ -1,10 +1,11 @@
 /-
-`fieldpath.versionedSet.Applied`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.versionedSet.Applied`: a projection of the `versionedSet` struct.
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__Applied
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
+import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsRep
 
 @[expose] public section
 
@@ -27,8 +28,16 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.versionedSet.Applied.wp_proof :
-    fieldpath.versionedSet.Applied.spec (GF := GF) := by
-  sorry
+    fieldpath.versionedSet.Applied.spec (GF := GF) := fun v e => by
+  wp_start as Hv
+  unfold isVSet
+  iNamed Hv
+  icases Hv with ⟨%Heq, Hs⟩
+  simp only [interface_mkOk_inj, true_and] at Heq
+  have Heq := fpL.versionedSet_inj (package_sem := package_sem) Heq
+  subst Heq
+  wp_auto
+  wp_end
 
 end proof
 
