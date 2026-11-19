@@ -1,6 +1,28 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-19 late night, item 9: run.wp_proof half done)
+## START HERE (S4, 2026-11-19, item 9 done to Main.wp_proof; STOP before linking)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`,
+  `.lake/package-overrides.json` its copy).
+- **Done:** `run.wp_proof` complete, no `sorry` (`4fb60bd872`, `8a02fada61`; lean-check full, 0 errors);
+  `Main.spec` + `Main.wp_proof` (`a29e120143`; lean-check full 0 errors). Forms: questions.md, last entry.
+- **lean has moved: perheap landed** (`1e4cb38613`, the auth chain re-keyed from the context to its token `tok`).
+  NOT merged: `git merge lean` conflicts in 26 files, all the lease/auth specs this branch froze (Thaw 1 and the
+  Freeze's T1/H1: `authedFrom … ctx`, `requireAuthInfo.specC`, `EtcdServer.Lease*`, v3rpc `LeaseServer.*`,
+  `LeaseOn`, `InvLeaseRead`, client `LeaseGrantServed`/`Results`). The merge restates the frozen texts by perheap's
+  transformation (ctx → tok): for the coordinator's decision. Aborted cleanly; `git merge-tree --write-tree HEAD lean`
+  lists the files.
+- **Next, in order:** (after the decision) merge lean, restate the frozen texts by token, repair; linking of
+  `etcd_authlease_safe` (authN's `MainLinked`/`Adequacy` pattern; `hrev` by `srvRevokeOpen_intro
+  EtcdServer.wp_revokeExpiredLeases`, `hlaw` by `lessor_keys_of_read`); gates; land stop.
+- **Cleanup items (debt):** authN run's `served` section → a defs module (removes the authlease.run → authN.run
+  edge); auth3's own `serve_member` copy (no-twins). `Scratch/` (untracked) makes `etc/tier-check.py --check` fail
+  locally: not tracked, ignore or move.
+- **Pitfalls:** `#!b` Bool conditions: `cases b`, not `wp_if_destruct`. `--goal` prints `⋯` for deep goals: insert
+  `set_option pp.deepTerms true in set_option pp.deepTerms.threshold 2000 in trace_state` temporarily. In run.lean,
+  `optsAt_nil`/`optsAt_res` are at `EtcdGrove` level (not `client.`).
+
+## Previous START HERE (S4, 2026-11-19 late night, item 9: run.wp_proof half done)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`,
   `.lake/package-overrides.json` its copy); 3afd77e35 arrives with the next lean merge (switch then). lean not moved.
