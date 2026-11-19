@@ -63,6 +63,15 @@ end
 
 attribute [instance] isIface_pers isIfaceL_pers isIfaceM_pers
 
+/-! ## The package's globals -/
+
+theorem valuePkg_globals :
+    isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ⊢
+      ∃ p q : Loc, globalAddr value.HeapAllocator ↦□ p ∗ globalAddr value.EmptyRange ↦□ q := by
+  iintro #Hpkg
+  ihave H := isPkgInit_access $$ Hpkg
+  iexact H
+
 /-! ## Wrappers -/
 
 /-- The wrapper type. -/
@@ -87,6 +96,45 @@ theorem isValF_elim (p : Loc) (dq : DFrac) (x : UVal) :
   obtain rfl : p = p' := by simpa [intoVal_eq_iff] using Heq
   iexists i
   iframe
+
+/-! ## Interfaces' shapes, the views' introduction -/
+
+theorem isIface_list_shape (i : GoInterface) (vs : List UVal) :
+    isIface (GF := GF) i (.list vs) ⊢ ⌜∃ sl : GoSlice, i = interface.mkOk sliceIfaceTy #sl⌝ := by
+  iintro Hi
+  iunfold isIface at Hi
+  icases Hi with ⟨%sl, %xs, %Heq, -⟩
+  ipureintro
+  exact ⟨sl, Heq⟩
+
+theorem isIface_map_shape (i : GoInterface) (kvs : List (GoString × UVal)) :
+    isIface (GF := GF) i (.map kvs) ⊢ ⌜∃ m : GoMap, i = interface.mkOk mapStrIfaceTy #m⌝ := by
+  iintro Hi
+  iunfold isIface at Hi
+  icases Hi with ⟨%m, %M, %Heq, -⟩
+  ipureintro
+  exact ⟨m, Heq⟩
+
+theorem isListV_intro (sl : GoSlice) (vs : List UVal) :
+    isIface (GF := GF) (interface.mkOk sliceIfaceTy #sl) (.list vs) ⊢
+      isListV (interface.mkOk value.listUnstructured.ty #sl) vs := by
+  iintro Hi
+  iunfold isListV
+  iexists sl
+  iframe
+  ileft
+  ipureintro
+  rfl
+
+theorem isMapV_intro (gm : GoMap) (kvs : List (GoString × UVal)) :
+    isIface (GF := GF) (interface.mkOk mapStrIfaceTy #gm) (.map kvs) ⊢
+      isMapV (interface.mkOk value.mapUnstructuredString.ty #gm) kvs := by
+  iintro Hi
+  iunfold isMapV
+  iexists gm
+  iframe
+  ipureintro
+  rfl
 
 end lemmas
 

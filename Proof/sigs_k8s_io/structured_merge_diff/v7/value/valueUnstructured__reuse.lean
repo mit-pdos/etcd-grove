@@ -6,6 +6,9 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__reuse
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Objects
 
 @[expose] public section
 
@@ -28,8 +31,15 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.reuse.wp_proof :
-    value.valueUnstructured.reuse.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.reuse.spec (GF := GF) := fun p i x => by
+  wp_start as ⟨Hw, #Hi⟩
+  iunfold wrapperOwn at Hw
+  icases Hw with ⟨%i0, Hp⟩
+  wp_auto
+  iapply HΦ
+  isplitr
+  · ipureintro; rfl
+  · iapply isValF_intro _ _ i; iframe; iexact Hi
 
 end proof
 

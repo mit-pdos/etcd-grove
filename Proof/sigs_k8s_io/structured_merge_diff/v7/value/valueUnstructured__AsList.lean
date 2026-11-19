@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsList
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsListUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,15 @@ variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.AsList.wp_proof
     (wp_AsListUsing : value.valueUnstructured.AsListUsing.spec (GF := GF)) :
-    value.valueUnstructured.AsList.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.AsList.spec (GF := GF) := fun ⟨i⟩ vs => by
+  wp_start as #Hi
+  icases valuePkg_globals $$ Hpkg with ⟨%ha, %er, #Hha, -⟩
+  wp_auto
+  wp_method_call
+  wp_auto
+  wp_apply wp_AsListUsing ⟨i⟩ vs as %lv Hlv
+  · iexact Hi
+  wp_end
 
 end proof
 

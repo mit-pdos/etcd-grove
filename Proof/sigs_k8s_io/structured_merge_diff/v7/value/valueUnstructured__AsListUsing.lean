@@ -6,6 +6,7 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsListUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -28,8 +29,14 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.AsListUsing.wp_proof :
-    value.valueUnstructured.AsListUsing.spec (GF := GF) := by
-  sorry
+    value.valueUnstructured.AsListUsing.spec (GF := GF) := fun ⟨i⟩ vs al => by
+  wp_start as #Hi
+  ihave %Hsh := isIface_list_shape $$ Hi
+  obtain ⟨sl, rfl⟩ := Hsh
+  wp_auto
+  iapply HΦ
+  iapply isListV_intro
+  iexact Hi
 
 end proof
 
