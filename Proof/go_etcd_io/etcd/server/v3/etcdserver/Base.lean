@@ -24,6 +24,9 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 -- schema imports auth, etcdserverpb and zap since N4c (2026-10-17: `NewAuthBackend`, `alarmBackend`)
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Perennial.Proof.sync.RWMutexGuard
+-- schema imports leasepb since 2026-11-19 (`UnsafeDeleteLease`)
+public import Code.go_etcd_io.etcd.server.v3.lease.leasepb
+public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
 
 @[expose] public section
 
@@ -41,6 +44,18 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+-- `server/v3/lease/leasepb` (types only: the lease's protobuf message; schema imports it since
+-- 2026-11-19, `UnsafeDeleteLease`; until then in the lessor's `Base.lean`)
+namespace go_etcd_io.etcd.server.v3.lease.leasepb
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.lease.leasepb
 
 namespace go_etcd_io.etcd.server.v3.storage.schema
 
