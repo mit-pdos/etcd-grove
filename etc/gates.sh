@@ -215,6 +215,20 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
+# the network models' shared Go code (netmodels/, notes/dsverify-net-port-plan.md phase 5): the
+# generated codecs current (etc/pbgen.py, etc/jsongen.py --check), the codec helpers against
+# protowire, unicode/utf8 and encoding/json, the generated codecs against protobuf-go and
+# encoding/json, and pbgen's codec of etcd's messages (examples/netmodels)
+nm=0
+python3 etc/pbgen.py netmodels/internal/pbdifftest/protobuf.toml netmodels/internal/pbdifftest/codec \
+  --pkg codec --check > "$tmp/nm.log" 2>&1 || nm=1
+python3 etc/jsongen.py netmodels/internal/jsondifftest/json.toml netmodels/internal/jsondifftest/codec \
+  --pkg codec --check >> "$tmp/nm.log" 2>&1 || nm=1
+python3 etc/pbgen.py examples/netmodels/pbetcd/protobuf.toml examples/netmodels/pbetcd --pkg pbetcd \
+  --check >> "$tmp/nm.log" 2>&1 || nm=1
+(cd netmodels && GOWORK=off go vet ./... && GOWORK=off gotest ./...) >> "$tmp/nm.log" 2>&1 || nm=1
+(cd examples && GOWORK=off gotest ./netmodels/...) >> "$tmp/nm.log" 2>&1 || nm=1
+if [ $nm = 0 ]; then echo "netmodels: ok"; else echo "netmodels: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
 # deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
 # selftest

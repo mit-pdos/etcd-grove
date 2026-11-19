@@ -205,6 +205,73 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
    model etcd decided on: `etc/pbgen.py` for etcd's and raft's `.proto` files too (used by etcd in
    phase 7). The same for JSON (`jsongen.py`, `jsoncodec`, E3). gob: names-only plus the generated
    codec, net/rpc's only user.
+
+   **Done (2026-11-19).** *Where.* The shared Go code is the Go module `netmodels.lab` in
+   `netmodels/` (its own `go.mod`; `toolchain go1.27.3`, `etc/goose.py`'s `GO_TOOLCHAIN`, with the go
+   line at 1.27 so that the examples' module, on go 1.27, can import it: a dependency's go line above
+   the main module's makes Go rewrite the importer's module graph): `netmodels.lab/pbcodec` and
+   `netmodels.lab/jsoncodec`, dsverify's `harness/pbcodec`, `harness/jsoncodec` with their comments
+   made neutral (no kit, no harness path) and pbcodec's protowire tests no longer behind a build tag
+   (the module requires protobuf-go v1.36.12 for its tests only). The path names neither etcd-grove
+   nor dsverify-lab: the part is exported to the lab (Q3), whose runs must not see this repository,
+   and a kit's generated codec imports it by that path in both places (`notes/decisions.md`, "Shared
+   Go runtime under a neutral module path"). Translated by goose project `netmodels` into the part
+   `Net/` (`-lean-root netmodels.lab=Net`: `Net/Code/netmodels_lab/{pbcodec,jsoncodec}.lean`, with
+   their bodies, nothing trusted); their `Init.lean` from `etc/gen-init.py` (`NET_PKGS`).
+   *Generators.* `etc/pbgen.py` and `etc/jsongen.py`, from `harness/kitgen/`: generic (a [protobuf]
+   or [json] table in any toml file, `SECTION.toml OUTDIR --pkg NAME`), the registration with the
+   protobuf/encoding-json model optional (`--register`: those models are later items), `--check`;
+   jsongen gained its command line (kitgen called it as a module). What they generate is unchanged
+   but the helpers' import path and the messages. Use in each script's docstring.
+   *What is proved* (`Net/Proof/netmodels_lab/`, `Results.lean`; TCB collection
+   `etc/tcb-collections/netmodels.txt`, no axiom of ours): `jsoncodec`'s `IsSpace`, `AppendRaw`,
+   `AppendBool` (dsverify's `wp_IsSpace`, `wp_AppendRaw`, `wp_AppendBool`, now `X.spec` +
+   `X.wp_proof`), both packages' `wp_initialize'` (generated), and, new, both `(*Error).Error`
+   (`Error.Error.spec`, of an error kept for good, `↦□`) with `Error_is_error` and `Error_errAny` (over the `Error()` spec, a premise, as vocabulary files import specs only; linked in `Results.lean`) (a kept `*pbcodec.Error` or
+   `*jsoncodec.Error` is `errAny`: what a program's proof of `marshalOk`/`unmarshalOk` needs of its
+   generated codec's errors). The codec vocabulary: `pbcodec/Codec.lean` (`PbCodec`, `marshalOk`,
+   `unmarshalOk`, from `Proof/grpc/Pb.lean`), `jsoncodec/Codec.lean` (`JsonCodec`, `jsonValid`,
+   `marshalOk`, `unmarshalOk`, `scanOk`, `scanFn`, from `Proof/encoding/json/Defs.lean`),
+   `Errors.lean` (`errAny`). Left to the protobuf and encoding/json models' items: `kitCodecOk`,
+   `codecSet`, `codecFns`, `kitFn`, `PbKit`/`JsonKit`, the registries' `SetCodec`/`getCodec`/`Marshal`/
+   `Unmarshal`/`Valid` specs (`Pb.lean`'s proofs, `Proof/encoding/json/{Codec,Valid,Raw,Stream}.lean`,
+   `json.lean`), which are about the models, not the codec. The pbcodec helpers' own specs (varints,
+   tags, `SkipField`, `ValidUTF8`) were proved per kit in the runs (`codec.helpersOk`), not in the
+   harness, and are not here yet: a kit port proves them (or they move here when the first port
+   needs them).
+   *Statement changes* (each a rename; the bodies are dsverify's): `google_golang_org.protobuf.proto.
+   {PbCodec, marshalOk, unmarshalOk}` → `netmodels_lab.pbcodec.*` (the protobuf model's namespace
+   keeps what is about the model); `encoding.json.{JsonCodec, jsonValid, marshalOk, unmarshalOk,
+   scanOk, scanFn}` → `netmodels_lab.jsoncodec.*`; `encoding.json.isSpaceB` merged into
+   `jsoncodec.spaceB` (the same definition; `jsonValid` uses it); `scanFn` names
+   `netmodels.lab/jsoncodec.Scan` (was `dsverify.lab/harness/jsoncodec.Scan`); `net.rpc.errAny` →
+   `netmodels_lab.errAny` (net/rpc's port will use it); `dsverify_lab.harness.jsoncodec.wp_X` →
+   `netmodels_lab.jsoncodec.X.wp_proof : X.spec` (the same triples); jsoncodec's `wp_initialize'` is
+   gen-init's (Perennial's form, at `HeapGS HasLC.hasLC`, where dsverify's was at any `hlc`).
+   *Evidence* (`go vet`, `go test` in `netmodels/` and `examples/netmodels/`): pbcodec against
+   protowire and `unicode/utf8`, jsoncodec against `encoding/json` (dsverify's tests); the
+   generated protobuf codec of `netmodels/internal/pbdifftest` (dsverify's grpcdifftest messages
+   `pb` and `xpb`: every supported field kind, packed repeated scalars, negative enums, two-byte
+   tags, recursion) byte-exact against protobuf-go v1.36.12's `proto.Marshal` and its `Unmarshal`
+   (value and error-or-not, on encodings and their mutations); the generated JSON codec of
+   `netmodels/internal/jsondifftest` (dsverify's difftest types plus a named basic type and an
+   `any` field) against `encoding/json`, byte for byte, and its scanner on validity and value ends;
+   and the generated protobuf codec of 16 of **etcd's message types**
+   (`examples/netmodels/pbetcd`: `etcdserverpb` Range/Put/DeleteRange/LeaseGrant requests and
+   responses, `LeaseTimeToLiveResponse`, `WatchCreateRequest` (a repeated enum), `WatchResponse`,
+   `Member`, `MemberListResponse`, `ResponseHeader`; `mvccpb.KeyValue`, `Event`) byte-exact against
+   protobuf-go v1.36.12 (the version `examples/go.mod` pins) at the examples' etcd pin.
+   *What the generator cannot handle in etcd's `.proto` files* (`etc/pbgen.py --from-pb`, E2 (b)
+   needs them): **all of raftpb** (proto2: every scalar and enum field has explicit presence, a
+   `*T` in Go, written when non-nil even if zero; proto2 enums are closed, an unknown value goes to
+   the unknown fields instead of the field; proto2 `bytes` fields keep presence (`Data`, `Context`);
+   `ConfState.{Voters,Learners,VotersOutgoing,LearnersNext}` are unpacked repeated scalars; proto2
+   strings are not UTF-8-checked); `etcdserverpb.Metadata` (proto2, the same); the **oneofs**
+   `RequestOp.Request`, `ResponseOp.Response`, `Compare.TargetUnion`, `WatchRequest.RequestUnion`,
+   so also every message reaching them (`TxnRequest`, `TxnResponse`, `InternalRaftRequest` through
+   `Txn`). Maps, floats, groups and extensions: none in etcd's messages. (`--from-pb` drafts a oneof's
+   holder as an empty message; the refusal lines say why.) Extending pbgen to proto2 presence,
+   closed enums, unpacked repeated fields and oneofs is E2 (b)'s work, with the same tests.
 2. **net/rpc** (kits only): dsverify's model as a patch of Go's `net/rpc` (overlay), its proofs
    (5.3k lines) ported over phase 4's specs; `rpcgen.py` with it.
 3. **net/http**: from dsverify's server and `ReadResponse` (net/rpc's CONNECT, craq), then option B

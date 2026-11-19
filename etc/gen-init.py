@@ -3357,6 +3357,9 @@ NET_ROOT = 'Net'
 NET_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire'] + \
     [f'github_com.mit_pdos.etcd_grove.examples.net.{p}' for p in
      ['echo', 'framed', 'acceptloop', 'duplex', 'halfclose', 'shutdown', 'preface']]
+# The network library models' shared Go code (`netmodels/`, project netmodels, phase 5 of
+# notes/dsverify-net-port-plan.md).
+NET_PKGS += ['netmodels_lab.pbcodec', 'netmodels_lab.jsoncodec']
 # Each example's nodes, a command each (`examples/net/<ex>/cmd/<node>`): the programs.
 NET_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
             'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],

@@ -16,13 +16,15 @@ replace (
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 )
 
-// The driver (a module of its own, which kvwitness shares), the vendored porcupine
+// The driver (a module of its own, which kvwitness shares), the shared network models (netmodels/:
+// examples/netmodels tests etc/pbgen.py on etcd's messages), the vendored porcupine
 // (third_party/porcupine/UPSTREAM.md) and etcd's test bridge (third_party/bridge/UPSTREAM.md),
 // as translated.
 replace (
 	github.com/anishathalye/porcupine => ../third_party/porcupine
 	github.com/mit-pdos/etcd-grove/examples/lib/lintest => ./lib/lintest
 	github.com/mit-pdos/etcd-grove/third_party/bridge => ../third_party/bridge
+	netmodels.lab => ../netmodels
 )
 
 require (
@@ -38,6 +40,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/cache/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
+	netmodels.lab v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0

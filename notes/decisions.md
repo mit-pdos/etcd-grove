@@ -40786,3 +40786,27 @@ left are `etc/tier-baseline.txt`, which only shrinks.
   namespace (`Perennial.Net.netExt`, `Perennial.Net.NetStep`, `Perennial.Net.netCtx`). No module here
   imports Perennial's (it is reached only from Perennial's root module and `NetPrelude`); a module
   that imported both and opened `Perennial.Net` would have to qualify them.
+
+## Shared Go runtime under a neutral module path (2026-11-19 · phase 5 item 1 of `notes/dsverify-net-port-plan.md` · branch `worktree-agent-acfe43339741d934f`)
+
+- **Decision.** The Go code that the network library models share between etcd's proofs and the
+  dsverify kits (now the codecs' helpers `pbcodec`, `jsoncodec`; later the models' added files) is
+  one Go module, `netmodels.lab`, in `netmodels/` at the repository root, with its own `go.mod`.
+  Not a package of `github.com/mit-pdos/etcd-grove/examples` (the examples' module) and not under
+  `dsverify.lab/...`.
+- **Why a module path that names neither project.** The part `Net/` is exported to dsverify-lab
+  (Q3 of the plan), whose runs must not see this repository: a path under
+  `github.com/mit-pdos/etcd-grove` would appear in every kit's generated codec (`import
+  "…/pbcodec"`), in its translation (`Code.github_com.mit_pdos.etcd_grove…`) and in its statements,
+  and fail the export's leak check. A path under `dsverify.lab` would make this repository's models
+  name the lab. `netmodels.lab` names neither; like `dsverify.lab` it has a dot in its first element
+  (Go treats it as a non-standard-library path) and no host that resolves (it is always replaced or
+  local, never fetched). The Lean modules follow (`-lean-root netmodels.lab=Net`:
+  `Net.Code.netmodels_lab.*`, namespace `netmodels_lab`).
+- **Why a module of its own.** The examples' module requires etcd, raft and their forks' pins;
+  the lab must build the runtime with only protobuf-go (a test dependency). The examples' module
+  imports it by a `replace` (`examples/netmodels/pbetcd`, the generator's test on etcd's messages);
+  its go line is 1.27 (the examples') with `toolchain go1.27.3` (`etc/goose.py`'s), since a
+  dependency's go line above the importer's makes Go rewrite the importer's module graph.
+- **The generators** (`etc/pbgen.py`, `etc/jsongen.py`) live in `etc/` (they are tools of the
+  repository, exported with the part) and name no kit: a [protobuf] or [json] table in any toml file.

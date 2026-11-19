@@ -1,0 +1,63 @@
+# The differential test of the protobuf codec generator (etc/pbgen.py's format): every message type
+# of pb (arith.pb.go) and xpb (x.pb.go: the field kinds pb lacks), copied with their .pb.go files
+# from dsverify-lab's harness/rpcmodel/grpcdifftest (348a866; their embedded descriptors keep that
+# Go package path, which nothing reads). Generate from the repository root:
+#     etc/pbgen.py netmodels/internal/pbdifftest/protobuf.toml netmodels/internal/pbdifftest/codec --pkg codec
+# codec/pb_gen_test.go checks the codec against the messages' descriptors and the real module.
+[protobuf]
+imports = { pb = "netmodels.lab/internal/pbdifftest/pb", xpb = "netmodels.lab/internal/pbdifftest/xpb" }
+enums = ["pb.Op", "xpb.Color"]
+[protobuf.messages]
+"pb.Args" = [["A", 1, "int64"],
+    ["B", 2, "int64"],
+    ["Id", 3, "uint64"],
+    ["Op", 4, "pb.Op"],
+    ["Tag", 5, "string"],
+    ["Blob", 6, "bytes"],
+    ["Flag", 7, "bool"],
+    ["Xs", 8, "[]int64"],
+    ["Names", 9, "[]string"],
+    ["Inner", 10, "pb.Inner"],
+    ["Inners", 11, "[]pb.Inner"],
+    ["Small", 12, "int32"],
+    ["Usmall", 13, "uint32"],
+    ["Big", 536870911, "int64"]]
+"pb.Inner" = [["K", 1, "string"],
+    ["V", 2, "int64"],
+    ["Sub", 3, "pb.Inner"]]
+"pb.Reply" = [["C", 1, "int64"],
+    ["Echo", 2, "pb.Args"]]
+"pb.Empty" = []
+"xpb.Kinds" = [["I32", 1, "int32"],
+    ["Ri32", 16, "[]int32"],
+    ["I64", 2, "int64"],
+    ["Ri64", 17, "[]int64"],
+    ["U32", 3, "uint32"],
+    ["Ru32", 18, "[]uint32"],
+    ["U64", 4, "uint64"],
+    ["Ru64", 19, "[]uint64"],
+    ["S32", 5, "sint32"],
+    ["Rs32", 20, "[]sint32"],
+    ["S64", 6, "sint64"],
+    ["Rs64", 21, "[]sint64"],
+    ["F32", 7, "fixed32"],
+    ["Rf32", 22, "[]fixed32"],
+    ["F64", 8, "fixed64"],
+    ["Rf64", 23, "[]fixed64"],
+    ["Sf32", 9, "sfixed32"],
+    ["Rsf32", 24, "[]sfixed32"],
+    ["Sf64", 10, "sfixed64"],
+    ["Rsf64", 25, "[]sfixed64"],
+    ["B", 11, "bool"],
+    ["Rb", 26, "[]bool"],
+    ["S", 12, "string"],
+    ["Rs", 27, "[]string"],
+    ["By", 13, "bytes"],
+    ["Rby", 28, "[]bytes"],
+    ["E", 14, "xpb.Color"],
+    ["Re", 29, "[]xpb.Color"],
+    ["M", 15, "xpb.Other"],
+    ["Rm", 30, "[]xpb.Other"]]
+"xpb.Other" = [["Back", 1, "xpb.Kinds"],
+    ["N", 2047, "sint32"],
+    ["W", 2048, "[]string"]]
