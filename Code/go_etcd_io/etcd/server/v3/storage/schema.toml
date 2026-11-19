@@ -10,7 +10,8 @@
 # membership backend's constructor (`NewMembershipBackend`, with its struct), for `applySnapshot`'s
 # `cluster.SetBackend`. The lessor's `Lease` bucket and its name (2026-10-25, leases T3:
 # notes/leases-plan.md); (2026-11-04, the lease-expiry plan's S1) `UnsafeCreateLeaseBucket`, for
-# `lessor.Recover`.
+# `lessor.Recover`. (2026-11-19) the rest of `bucket.go`'s variables and `emptyStorageVersion`, so that
+# their initializers are translated (`etc/gen-init.py`), not trust-boundary axioms.
 translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend",
   "NewMembershipBackend",
   "UnsafeCreateAuthRolesBucket", "revBytesLen", "authEnabled", "authDisabled",
@@ -25,7 +26,11 @@ translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUp
   "authBatchTx.UnsafeGetRole", "authBatchTx.UnsafeGetAllRoles", "authBatchTx.UnsafePutRole", "authBatchTx.UnsafeDeleteRole",
   "authReadTx.UnsafeReadAuthEnabled", "authReadTx.UnsafeReadAuthRevision", "authReadTx.RLock", "authReadTx.RUnlock",
   "authReadTx.UnsafeGetUser", "authReadTx.UnsafeGetAllUsers", "authReadTx.UnsafeGetRole", "authReadTx.UnsafeGetAllRoles",
-  "unsafeReadAuthEnabled", "unsafeReadAuthRevision", "unsafeGetUser", "unsafeGetAllUsers", "unsafeGetRole", "unsafeGetAllRoles"]
+  "unsafeReadAuthEnabled", "unsafeReadAuthRevision", "unsafeGetUser", "unsafeGetAllUsers", "unsafeGetRole", "unsafeGetAllRoles",
+  "alarmBucketName", "clusterBucketName", "membersBucketName", "membersRemovedBucketName", "testBucketName",
+  "Alarm", "Cluster", "Members", "MembersRemoved", "Test", "AllBuckets",
+  "ScheduledCompactKeyName", "FinishedCompactKeyName", "MetaConfStateName", "ClusterClusterVersionKeyName",
+  "ClusterDowngradeKeyName", "MetaStorageVersionName", "emptyStorageVersion"]
 imports = ["!*", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.uber.org/zap", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/api/v3/etcdserverpb"]
 
