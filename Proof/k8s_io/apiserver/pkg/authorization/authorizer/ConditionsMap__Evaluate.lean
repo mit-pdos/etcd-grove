@@ -10,6 +10,7 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.partiallyEvalua
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResultError
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResultBoolean
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__UnconditionalPartsOrError
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B2Lemmas
 
 @[expose] public section
 
@@ -37,7 +38,41 @@ theorem ConditionsMap.Evaluate.wp_proof
     (wp_ConditionEvaluationResultBoolean : EtcdGrove.authorizer.ConditionEvaluationResultBoolean.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_UnconditionalPartsOrError : EtcdGrove.authorizer.ConditionsAwareDecision.UnconditionalPartsOrError.spec (GF := GF) (hG := hG)) :
     ConditionsMap.Evaluate.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro c dn no al ctx data f
+  wp_start as ⟨#Hc, #Hf⟩
+  wp_auto
+  ipersist evaluateConditionFn
+  wp_apply (wp_partiallyEvaluateConditionsMapInternal ctx c dn no al data) as %d #Hd
+  · iframe #
+    unfold maybeEvalFnOk
+    iright
+    iintro %ctx' %cond %data'
+    unfold maybeEvalCallOk
+    iintro !> %Ψ #Hcond HΨ
+    rw [go.intoVal_unfold GoFunc]
+    wp_auto
+    ihave #Hf1 := evalFnOk_elim_b2 f ctx' cond data' $$ Hf
+    ihave #Hcall := evalCallOk_elim_b2 f ctx' cond data' $$ Hf1
+    wp_apply Hcall as %b %e -
+    · iexact Hcond
+    rcases e with ei | _
+    · wp_auto
+      wp_apply wp_ConditionEvaluationResultError as %e' -
+      (try wp_auto)
+      iapply HΨ
+      itrivial
+    · wp_auto
+      wp_apply wp_ConditionEvaluationResultBoolean
+      (try wp_auto)
+      iapply HΨ
+      itrivial
+  unfold isWFDecision
+  icases Hd with ⟨%m, #Hdm, -⟩
+  wp_apply (wp_ConditionsAwareDecision_UnconditionalPartsOrError d m) as %dec %r %e -
+  · iframe #
+  (try wp_auto)
+  iapply HΦ
+  itrivial
 
 end proof
 
