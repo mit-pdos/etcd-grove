@@ -325,6 +325,193 @@ theorem realCheck_pure (g0 : HSt) (lops : List github_com.anishathalye.porcupine
       (histWf_of_histGood v.1 _ hrun'.2.2.2.1 (by rw [hlenv]; exact hrun'.2.2.2.2)) hrun'.2.2.1
       (by have := hrun0.1.2.2.2.1; omega) hle hR' (fun n hn => by have := (hwk h5).2 n hn; word) hsk hfail hdec hfrom hok
 
+/-! ## `realCheck`'s first loop -/
+
+/-- The unary operations among the first `j`. -/
+abbrev Uj (lops : List github_com.anishathalye.porcupine.Operation) (vs : List GOp) (j : Nat) :
+    List (Op (Input × RResp)) :=
+  fmapH unaryOf ((histR lops vs).take j)
+
+theorem Uj_succ (lops : List github_com.anishathalye.porcupine.Operation) (vs : List GOp) (j : Nat)
+    (o : github_com.anishathalye.porcupine.Operation) (v : GOp) (ho : lops[j]? = some o) (hv : vs[j]? = some v) :
+    Uj lops vs (j + 1) = Uj lops vs j ++
+      (if v.1.Kind' = W64 5 then [] else [⟨(v.1, v.2.2.1), sint.Z o.Call', sint.Z o.Return'⟩]) := by
+  unfold Uj
+  rw [List.take_add_one, histR_getElem? lops vs j o v ho hv]
+  unfold fmapH
+  rw [List.filterMap_append]
+  congr 1
+  simp only [Option.toList_some, List.filterMap_cons, List.filterMap_nil, unaryOf, ropOf]
+  by_cases h5 : v.1.Kind' = W64 5
+  · rw [if_pos h5, if_pos h5]; rfl
+  · rw [if_neg h5, if_neg h5]; rfl
+
+theorem Uj_full (lops : List github_com.anishathalye.porcupine.Operation) (vs : List GOp)
+    (h : vs.length = lops.length) : Uj lops vs lops.length = fmapH unaryOf (histR lops vs) := by
+  unfold Uj; rw [List.take_of_length_le (Nat.le_of_eq (histR_length lops vs h))]
+
+/-! ## The ghost values, from `opsIoOk` -/
+
+/-- **A ghost value's persistent facts**: a unary operation's answer is its raw response's (`rawOk`), a watch
+that ran has its events (`wrawOk`). -/
+def gRep (v : GOp) : IProp GF :=
+  iprop((⌜v.1.Kind' = W64 5⌝ ∨ respRep (rawResp v.2.1) v.2.2.1) ∗
+    (⌜v.1.Kind' ≠ W64 5 ∨ v.1.Skip' = true⌝ ∨ evsRO v.2.1.Raw'.Events' v.2.2.2))
+
+instance gRep_persistent (v : GOp) : Iris.BI.Persistent (gRep (GF := GF) v) := by unfold gRep; infer_instance
+
+open Iris.BI Iris.ProofMode in
+include sem package_sem in
+/-- **The ghost values of a history `RunLin2` answered `Ok` on, with `failureFree`'s answer.** -/
+theorem gOks_collect (g0 : HSt) : ∀ (lops : List github_com.anishathalye.porcupine.Operation),
+    (∀ o ∈ lops, ∀ x y, o.Input' = boxIn x → o.Output' = boxOut y → okOut x y = true) →
+    github_com.anishathalye.porcupine.opsIoOk (k8setcd3S g0) lops ⊢
+      ∃ vs : List GOp, ⌜GOks g0.st.rv lops vs⌝ ∗ [∗list] v ∈ vs, gRep (GF := GF) v
+  | [], _ => by
+    iintro -
+    iexists []
+    isplitr
+    · ipureintro; exact ⟨rfl, fun k o v h => by simp at h⟩
+    · iapply BigSepL.bigSepL_nil.2
+      itrivial
+  | o :: lops, hok => by
+    iintro #H
+    iunfold github_com.anishathalye.porcupine.opsIoOk at H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨#Ho, #Hr⟩
+    ihave #Hr : github_com.anishathalye.porcupine.opsIoOk (k8setcd3S g0) lops $$ [Hr]
+    · iunfold github_com.anishathalye.porcupine.opsIoOk; iexact Hr
+    ihave ⟨%vs, %Hvs, #Hvs⟩ := gOks_collect g0 lops (fun o' ho' => hok o' (List.mem_cons_of_mem _ ho')) $$ Hr
+    unfold k8setcd3S
+    icases Ho with ⟨%x, %y, ⟨%hi, %ho, %hw, %hA, %hF⟩, #Hraw, #Hwraw⟩
+    have hokO := hok o List.mem_cons_self x y hi ho
+    -- the unary answer
+    ihave ⟨%r, #Hr1, %Hr2⟩ : ∃ r : RResp, (⌜x.Kind' = W64 5⌝ ∨ respRep (rawResp y) r) ∗
+        ⌜x.Kind' ≠ W64 5 → RawRel x (plainOut y) r⌝ $$ [Hraw]
+    · icases Hraw with (%h | Hraw)
+      · iexists ⟨.nil, .none⟩
+        isplitl
+        · ileft; ipureintro
+          rcases h with h | h
+          · exact h
+          · by_cases h5 : x.Kind' = W64 5
+            · exact h5
+            · exfalso
+              unfold okOut at hokO; rw [if_neg h5] at hokO
+              have : y.Err' = W64 4 := by
+                have := congrArg Output.Err' h; simpa [otherL, errOutL] using this
+              simp [this] at hokO
+        · ipureintro; intro h5
+          rcases h with h | h
+          · exact absurd h h5
+          · exfalso; unfold okOut at hokO; rw [if_neg h5] at hokO
+            have : y.Err' = W64 4 := by
+              have := congrArg Output.Err' h; simpa [otherL, errOutL] using this
+            simp [this] at hokO
+      · iunfold rawOk at Hraw
+        icases Hraw with ⟨%r, #Hr1, %Hr2⟩
+        iexists r
+        isplitl
+        · iright; iexact Hr1
+        · ipureintro; exact fun _ => Hr2
+    -- the watch's events
+    ihave ⟨%rs, #Hrs1, %Hrs2⟩ : ∃ rs : List REv, (⌜x.Kind' ≠ W64 5 ∨ x.Skip' = true⌝ ∨ evsRO y.Raw'.Events' rs) ∗
+        ⌜x.Kind' = W64 5 → x.Skip' = false →
+          decWEventsL y.WEvents' = some (rs.map toWEvL) ∧ WatchFromL g0.st.rv x (rs.map toWEvL)⌝ $$ [Hwraw]
+    · icases Hwraw with (%h | Hwraw)
+      · iexists []
+        isplitl
+        · ileft; ipureintro; left; exact h
+        · ipureintro; intro h5; exact absurd h5 h
+      · iunfold wrawOk at Hwraw
+        icases Hwraw with (%h | ⟨%rs, #He, %hd, %hf⟩)
+        · iexists []
+          isplitl
+          · ileft; ipureintro
+            by_cases h5 : x.Kind' = W64 5
+            · right
+              cases hs : x.Skip'
+              · exfalso
+                rcases h with h | h
+                · rw [hs] at h; cases h
+                · unfold okOut at hokO; rw [if_pos h5, h, hs] at hokO; simp at hokO
+              · rfl
+            · left; exact h5
+          · ipureintro; intro h5 hs
+            rcases h with h | h
+            · rw [hs] at h; cases h
+            · exfalso; unfold okOut at hokO; rw [if_pos h5, h, hs] at hokO; simp at hokO
+        · iexists rs
+          isplitl
+          · iright; iexact He
+          · ipureintro; exact fun _ _ => ⟨hd, hf⟩
+    iexists (x, y, r, rs) :: vs
+    isplitr
+    · ipureintro
+      refine ⟨by simp [Hvs.1], fun k o' v ho' hv => ?_⟩
+      cases k with
+      | zero =>
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at ho' hv
+        subst ho' hv
+        exact ⟨hi, ho, hA, hF, hokO, hw, Hr2, Hrs2⟩
+      | succ k =>
+        simp only [List.getElem?_cons_succ] at ho' hv
+        exact Hvs.2 k o' v ho' hv
+    · iapply BigSepL.bigSepL_cons.2
+      isplitl
+      · iunfold gRep
+        isplitl
+        · iexact Hr1
+        · iexact Hrs1
+      · iexact Hvs
+
+/-- **The checker's model's entries** (`realMS`'s `L`): each checker operation's boxes with its unary value. -/
+def Lof (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (U : List (Op (Input × RResp))) : List (github_com.anishathalye.porcupine.OpV × (Input × RResp)) :=
+  List.zipWith (fun c u => ((boxReq c.Request', boxResp c.Response'), u.val)) os U
+
+/-- **A watch `realCheck` validates**: one that ran, its request and its (cut) events. -/
+def wRep (vs : List GOp) (w : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) :
+    IProp GF :=
+  iprop(∃ (k : Nat) (v : GOp), ⌜vs[k]? = some v ∧ v.1.Kind' = W64 5 ∧ v.1.Skip' = false ∧
+    w.Response'.Err' = GoInterface.nil⌝ ∗ wreqRep w.Request' v.1 ∗
+    evsRO w.Response'.Events' (realEventsL v.1 v.2.2.2))
+
+instance wRep_persistent (vs : List GOp) (w : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) :
+    Iris.BI.Persistent (wRep (GF := GF) vs w) := by unfold wRep; infer_instance
+
+open Iris.BI Iris.ProofMode in
+/-- **Picking entries of two related lists by the same indices** keeps them related (persistent relation). -/
+theorem bigSepL2_pick {A B C : Type} (Φ : A → B → IProp GF) [∀ a b, Persistent (Φ a b)]
+    (l1 : List A) (l2 : List B) (idx : C → Nat) : ∀ π : List C,
+    ([∗list] a;b ∈ l1;l2, Φ a b) ⊢
+      [∗list] a;b ∈ π.filterMap (fun c => l1[idx c]?);π.filterMap (fun c => l2[idx c]?), Φ a b
+  | [] => by
+    iintro -
+    simp only [List.filterMap_nil]
+    iapply BigSepL2.bigSepL2_nil.2
+    itrivial
+  | c :: π => by
+    iintro #H
+    ihave %hlen := BigSepL2.bigSepL2_length $$ H
+    ihave #Hr := bigSepL2_pick Φ l1 l2 idx π $$ H
+    simp only [List.filterMap_cons]
+    cases h1 : l1[idx c]? with
+    | none =>
+      have h2 : l2[idx c]? = none := by
+        rw [List.getElem?_eq_none_iff] at h1 ⊢; omega
+      simp only [h2]
+      iexact Hr
+    | some a =>
+      obtain ⟨b, h2⟩ : ∃ b, l2[idx c]? = some b := by
+        have : idx c < l2.length := by rw [← hlen]; exact (List.getElem?_eq_some_iff.1 h1).1
+        exact ⟨_, List.getElem?_eq_getElem this⟩
+      simp only [h2]
+      ihave #Hab := BigSepL2.bigSepL2_lookup (Φ := fun _ a b => Φ a b) h1 h2 $$ H
+      iapply BigSepL2.bigSepL2_cons.2
+      isplitl
+      · iexact Hab
+      · iexact Hr
+
 end go
 
 end k8s_correctness

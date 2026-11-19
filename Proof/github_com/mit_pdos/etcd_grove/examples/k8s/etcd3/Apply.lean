@@ -410,7 +410,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         imod (Hcommit σ.changes (k8s_correctness.WatchFromL g0.st.rv x wes)
             (fun σe cf hpre hkh hwh hrel hlen' => by
               obtain ⟨hsame, hle⟩ := sameHist_of_khist Hq.2.2.2.2.2.2 hkh hpre
-              exact watchOkL_stream_commit x k n hk0 hlk hn0 hin hb h1 kes wes hws hokw c.S.zero
+              exact watchOkL_stream_commit x k n hk0 hlk hn0 hin hb h1.1 kes wes hws hokw c.S.zero
                 σ σ0 σe st hsame hle Hq0.2.2.2.2.2.2.2.2.2 hstart hs' cf.st hrel hlen'
                 (khistW_of c hcd γ σe hwh hkh))
             (fun σe cf hpre hkh hwh hrel hlen' => by
@@ -418,7 +418,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
               exact watchFromL_of_kStreamOk g0.st.rv x cf.st σe σ0 k n
                 (kModeOf (sieOfL x) x.Bookmarks' n) (selD x) (predEmptyL x) c.S.zero st kes wes
                 hrel hlen' (khistW_of c hcd γ σe hwh hkh) hk0 hlk (fun _ => rfl)
-                (fun he o => selD_of_empty x he o) (kModeOk_of x n hb h1)
+                (fun he o => selD_of_empty x he o) (kModeOk_of x n hb h1.1)
                 Hq0.2.2.2.2.2.2.2.2.2 hstart (kStreamOk_hist hsame hle hs') hws hst) hE)
           $$ [HU] with ⟨HΦc, %hfromE⟩
         · iframe HinvK Hlb HU
