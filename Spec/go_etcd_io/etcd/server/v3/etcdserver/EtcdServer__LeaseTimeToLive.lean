@@ -86,8 +86,8 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
               globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
               errIsTrue err (GoInterface.ok e) -∗
               (leaseTTLRow s γl -∗ lease.leaseAbsentFrom γl m v.ID') ∗
-              authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
-              leaseCheckFrom s E (GoInterface.ok ctx) n
+              authedOutB s E.authMode tok GoInterface.nil ∗
+              leaseCheckFrom s E tok n
                 (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
                   else iprop(True))))) }}
 

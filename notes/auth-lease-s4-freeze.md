@@ -817,3 +817,63 @@ same id" (a restart with the clock stepped back breaks it in Go; already in the 
 the reviewer's suggestion to also state table freshness (`g` never granted along `L`) not taken: check 6 needs only
 the keys' history (narrowest form), and the table is `leaseGrantOk`'s; the `kv.lease ≠ 0 →` guard kept (the model does
 not know a drawn id is nonzero).
+
+## Thaw 2 (2026-11-19): perheap re-keying (approved as a form change by etcd-grove-03)
+
+**Why.** lean's perheap (`1e4cb38613`) re-keyed the auth chain from the request context to the token it
+carries: `principalBound s M ctx info` → `principalBound s M tok info` (`auth.ctxTokenOf ctx` gone), a new
+parameter `tok : Option GoString` on every spec that took the context for its token, with the gated premise
+`□ (⌜on⌝ → auth.ctxToken (GoInterface.ok ctx) tok)` (`on` the spec's mode: `E.authOn`, `E.authMode.isOn` or
+the contract's `on`), and v3rpc's `leaseCheckT s E tok n K` merged into `leaseCheckFrom s E tok n K`
+(`principalBoundT` into `principalBound … (some info)`). The merge of lean into this branch restates this
+branch's frozen texts by exactly that transformation, nothing else (each text keeps its Freeze/Thaw 1 content:
+`authPubLbM … n`, `authedFrom`, `leaseCheckFrom … n`, the F4 arms, the revocable `id0 = 0` premise).
+
+**The restated texts (old → new; `ctx`/`ci` the request context, `md` the attempt's metadata):**
+
+- `authedFrom` (`AuthWhy.lean`, T1/H1): `authedFrom (s) (M) (n) (ctx : GoInterface)` → `authedFrom (s) (M) (n)
+  (tok : Option GoString)`; its body's `principalBound s M ctx (some info)` → `principalBound s M tok (some info)`.
+  `authedFrom_ctx` (transport along equal incoming metadata) deleted, as perheap deleted `authedOutB_ctx` /
+  `principalBound_ctx`; `leaseCheckFrom_of_authedFrom` now at `tok`.
+- `EtcdServer.requireAuthInfo.specC` (T1/H1): binder `(n : Nat)` → `(n : Nat) (tok : Option GoString)`; pre
+  `+ □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok)`; post `authedOutC … n
+  (GoInterface.ok ctx) err ∗ (⌜err = nil⌝ -∗ authedFrom … n (GoInterface.ok ctx))` → `authedOutC … n tok err ∗
+  (⌜err = nil⌝ -∗ authedFrom … n tok)`.
+- `EtcdServer.LeaseGrant.spec` / `LeaseRevoke.spec`: binder `+ (tok : Option GoString)` after `cd`; pre `+ □
+  (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok)`; `hdrBoundM true s E (GoInterface.ok ctx)` →
+  `hdrBoundM true s E tok`; post `authedOutB … (GoInterface.ok ctx) nil ∗ authedFrom … n (GoInterface.ok ctx) ∗
+  leaseGrantResM/leaseRevokeResM … ctx …` → `authedOutB … tok nil ∗ authedFrom … n tok ∗ leaseGrantResM/
+  leaseRevokeResM … tok …`.
+- `EtcdServer.LeaseTimeToLive.spec` (F4): binder `+ tok`; pre `+ □ (⌜E.authOn⌝ → ctxToken ctx tok)`; post
+  `authedOutB … (GoInterface.ok ctx) nil ∗ leaseCheckFrom s E (GoInterface.ok ctx) n (fun info => if v.Keys' then
+  … else True)` → the same at `tok` (the F4 shape, `leaseCheckFrom` outside the `if`, kept).
+- `EtcdServer.checkLeaseLeases.spec`, `EtcdServer.LeaseLeases.spec` (F4): binder `+ tok`; pre `+ □ (⌜…isOn⌝ →
+  ctxToken ctx tok)`; `leaseCheckFrom s E (GoInterface.ok ctx) n …` → `leaseCheckFrom s E tok n …` (the
+  `authApplyErrIs` / never-`ErrLeaseNotFound` arms kept).
+- v3rpc `LeaseServer.LeaseGrant.spec` / `LeaseRevoke.spec`: binder `+ (tok : Option GoString)` after `ci`; pre
+  `+ □ (⌜on = true⌝ → auth.ctxToken (GoInterface.ok ci) tok)`; every `auth.ctxTokenOf (GoInterface.ok ci)` →
+  `tok`; `v3rpc.leaseCheckT s E (…) n (fun _ => True)` → `leaseCheckFrom s E tok n (fun _ => True)`.
+- `LeaseOn.lean`'s `lessorGrantOkGM` / `lessorRevokeOkM` (the C5′ merge's contracts): binder `+ (tok)` after `ci`
+  (perheap's order), `(n : Nat)` kept last; pre `+ □ (⌜on = true⌝ → ctxToken ci tok)` after `grpcRunCtx ci`;
+  `ctxTokenOf ci` → `tok`; `leaseCheckT … n` → `leaseCheckFrom s E tok n`.
+- `InvLeaseRead.lean`'s `ttlAns`, `leasesAns`, `leaseTTLOut`, `leaseLeasesOut` (F4): `(ctx : GoInterfaceOk)` →
+  `(tok : Option GoString)`, `leaseCheckFrom/authedOutB … (GoInterface.ok ctx)` → `… tok` (F4's shapes kept: the
+  check on both TTL arms, no empty-listing arm); `lessorTTLOk`/`lessorLeasesOk` are lean's (tok, premise).
+- client `LeaseSpecs.lean` (`etcdLeaseTTLSpecMd`, `etcdLeaseLeasesSpecMd`, `etcdLeaseGrantSpecOn`,
+  `etcdLeaseRevokeSpecOn`) and `ResultsOn.lean` (`client_lease_grant_on`, `client_lease_revoke_on`): `v3rpc.leaseCheckT
+  s E (auth.mdTokenOf md) n K` → `leaseCheckFrom s E (auth.mdTokenOf md) n K` (same body: `leaseCheckT` was
+  `leaseCheckFrom` over the token). `LeaseGrantServed.lean`/`LeaseReadServed.lean` handlers: the metadata now
+  from `grpcSpecAt`'s `∃ md, ctxInMD ci md` (lean's `grpcHandler…Md`), the token premise by
+  `auth.ctxToken_of_ctxInMD` (proofs only).
+- `etcdserverpb._Lease_LeaseTimeToLive_Handler.spec`, `_Lease_LeaseLeases_Handler.spec` (Freeze §4, metadata-indexed
+  as `_Lease_LeaseRevoke_Handler`'s): pre `Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe` → `grpcSpecAt Spec
+  ci m Φ Ψe` (perheap 1b's transformation of `_Lease_LeaseRevoke_Handler.spec`, word for word).
+- authlease's own specs `noAuth.spec`, `foreign.spec` (Spec) and the Refusals/LeaseAttempts lemmas:
+  `v3rpc.leaseCheckT` → `leaseCheckFrom`; `princ_who`'s `v3rpc.principalBoundT s (.on γa) tok info` →
+  `principalBound s (.on γa) tok (some info)`.
+- v3rpc `Results.lean`: `put_end_to_endML`/`txn_end_to_endML` (+ their `…M` corollaries) take lean's `(tok)` and
+  `□ (⌜E.authOn⌝ → auth.ctxToken ctx tok)`, at `kvDepPreML`; `ServerKVOn`'s `kvTxnOk_of_serverM` keeps
+  `kvDepPreL` and the `⟨hsh, hkn⟩` shape at `tok`.
+
+Not restated (kept from this branch): the `_false` bridges of `LeaseOn` stay deleted (C5′ merge, D5); lean's edits
+to them dropped. No axiom, opaque, `sorry` or trusted text touched.

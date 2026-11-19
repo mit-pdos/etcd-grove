@@ -2902,6 +2902,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.authN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.authlease':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
