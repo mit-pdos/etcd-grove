@@ -24,6 +24,10 @@ set_option linter.unusedSectionVars false
 
 noncomputable section
 
+/- As in `AuthRealInv`: the pool receipts' ghost maps use iris's `Pos.Countable Qp`, not the file extension's
+duplicate. -/
+attribute [-instance] Perennial.Fs.Qp.countable
+
 namespace Perennial
 namespace EtcdGrove
 namespace authReal
