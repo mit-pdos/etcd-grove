@@ -15,7 +15,8 @@ link step: two named hypotheses are reached (below).**
     (NewReplay, Validate loop, NewWatchValidator, ValidateWatch loop); `opReps_pick`; `maxHeartbeats 1000000`.
   - `Check` (`fb899755a5`): failureFree + realCheck; `Check.spec` gains `k8s_correctness.RunOk g0`; `SeedRun.lean`
     (`runOk_g0s`), passed at Main/MainCluster/MainPartition; `opsIoOk_boxes` (RealGlue). Closed statements unchanged.
-  - link list + gen-link (`5790ba404f`): ~70 entries (realCheck, the checker, storage `@`, the 7g axioms as `=`);
+  - link list + gen-link (`5790ba404f`, `f86744df93`: also the stale `minRV`/`genWatchFrom` (`floored`) and
+    `HasInitialEventsEndBookmarkAnnotation` entries; Link lean-checks with 0 errors): ~70 entries (realCheck, the checker, storage `@`, the 7g axioms as `=`);
     gen-link's EXTRA_IMPORTS for those axioms. `Change.toWatchEvent`/`splitInitialEvents`/`validateBookmarks` take the
     helpers' callees (apply `mlistMatchesW.wp_ok`/`annotObj.wp_ok` inside), so the Link can pass results.
 - THE STOP: `apimeta.ListAccessor.spec` and `apierrors.IsTooManyRequests.spec` are named hypotheses (`?` in the
