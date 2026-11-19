@@ -31,7 +31,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (hBT : backend.batchTx.UnsafeSeqPut.spec (GF := GF) (hG := hG))
     (hBuf : backend.txWriteBuffer.putSeq.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hkv Hlt Hp Hhk Hrb Hfk Hsb c
+  intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hlt Hp Hhk Hrb Hfk Hsb c
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
@@ -42,8 +42,8 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   icombine Ht Ht' gives %Heq
   subst Heq
   wp_auto
-  wp_apply (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1 Hkv)
-    $$ [Htxf Hpend Hwtx] as ⟨Hw, -⟩
+  wp_apply (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1)
+    $$ [Htxf Hpend Hwtx] as ⟨%Hkv, Hw, -⟩
   · iframe #
     unfold btW
     iframe

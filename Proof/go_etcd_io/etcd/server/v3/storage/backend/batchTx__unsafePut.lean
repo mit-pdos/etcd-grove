@@ -69,11 +69,13 @@ private theorem bbolt.kvGlue_Bucket__Put_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs
   ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (b : Loc) (n : GoString) (g : Nat)
     (m : backend.BktData) (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
   G n = g → S.lookup n = some m → 0 < kb.length → kb.length ≤ backend.maxKeySize →
-  kb.length + vb.length ≤ bbolt.bboltEntryMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ wBkt tx γ b n g ∗ key ↦*{dk} kb ∗ value ↦*□ vb }}
     (App (App (Val (b @!! go.GoType.PointerType go_etcd_io.bbolt.Bucket.ty @!! go!"Put")) (Val #key)) (Val #value))
-  {{ RET #GoInterface.nil; key ↦*{dk} kb ∗ ownWTxG tx γ D (S.insert n (m.insert kb vb)) G }} := by
-  intro tx γ D S G b n g m key value kb vb dk hg hm hk0 hk1 hkv
+  {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗
+      ((⌜kb.length + vb.length ≤ bbolt.bboltEntryMax ∧ err = GoInterface.nil⌝ ∗
+          ownWTxG tx γ D (S.insert n (m.insert kb vb)) G) ∨
+       (⌜bbolt.bboltEntryMax < kb.length + vb.length ∧ err ≠ GoInterface.nil⌝ ∗ ownWTxG tx γ D S G)) }} := by
+  intro tx γ D S G b n g m key value kb vb dk hg hm hk0 hk1
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax⟩
   · simp only [backend.ownWTxG, backend.txLive, backend.wBkt, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
@@ -84,13 +86,16 @@ private theorem bbolt.kvGlue_Bucket__Put_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs
     have h' := h tx γ (wView D S G) b n m key value kb vb dk
     try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, wView_setBkt] at h'
     wp_apply h' $$ [$Hl $Hb $Hk $Hv] as %err ⟨Hk, Hres⟩
-    · ipureintro; exact ⟨trivial, hm, hkv⟩
-    have hne : ¬ (kb.length = 0 ∨ bbolt.maxKeySize < kb.length) := by
+    · ipureintro; exact ⟨trivial, hm⟩
+    by_cases hbig : bbolt.bboltEntryMax < kb.length + vb.length
+    · rw [if_pos (Or.inr (Or.inr hbig))]
+      icases Hres with ⟨%He, Hl⟩
+      iapply HΦ; iframe Hk; iright; iframe Hl; ipureintro; exact ⟨hbig, He⟩
+    have hne : ¬ (kb.length = 0 ∨ bbolt.maxKeySize < kb.length ∨ bbolt.bboltEntryMax < kb.length + vb.length) := by
       unfold backend.maxKeySize at hk1; unfold bbolt.maxKeySize; omega
     rw [if_neg hne]
     icases Hres with ⟨%He, Hl⟩
-    subst He
-    iapply HΦ; iframe
+    iapply HΦ; iframe Hk; ileft; iframe Hl; ipureintro; exact ⟨by omega, He⟩
 
 theorem backend.batchTx.unsafePut.wp_proof
     (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
@@ -104,7 +109,7 @@ theorem backend.batchTx.unsafePut.wp_proof
     backend.batchTx.unsafePut.spec (GF := GF) (hG := hG) := by
   replace hBucket := bbolt.kvGlue_Tx__Bucket_kvw hBucket
   replace hPut := bbolt.kvGlue_Bucket__Put_kv hPut
-  intro γ P W Pk b t st bk bi key value kb vb dk seq Hk0 Hk1 Hkv
+  intro γ P W Pk b t st bk bi key value kb vb dk seq Hk0 Hk1
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey, #Hval⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, #Hlgn, #-, #-, #-, #-, #-, %HP⟩
@@ -140,10 +145,30 @@ theorem backend.batchTx.unsafePut.wp_proof
     wp_auto
     ispecialize Hback $$ %_ %(by decide : ¬ bbolt.float64IsNaN (W64 4606281698874543309)) Hf
     wp_join_done
-  wp_apply (hPut st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key value kb vb dk rfl Hm Hk0 Hk1 Hkv)
-    $$ [$Hwtx $Hwb $Hkey $Hval] as ⟨Hkey, Hwtx⟩
+  wp_apply (hPut st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key value kb vb dk rfl Hm Hk0 Hk1)
+    $$ [$Hwtx $Hwb $Hkey $Hval] as %err ⟨Hkey, Hres⟩
+  icases Hres with (⟨%Hok, Hwtx⟩ | ⟨%Hbig, -⟩)
+  rotate_left
+  · -- an entry above bbolt's bound: `Put` refuses it and the backend exits (`lg.Fatal`)
+    obtain ⟨-, Hne⟩ := Hbig
+    wp_auto
+    rw [decide_eq_false (by intro h; exact Hne (by cases err <;> simp_all))]
+    wp_auto
+    wp_apply hStringer as %f1 -
+    wp_apply _hError as %f2 -
+    wp_apply wp_slice_literal
+    try (isplitr; (ipureintro; rfl))
+    try iintro %_ ⟨_, -⟩
+    try wp_auto
+    wp_apply hFatal lg $$ [] as %v Hf
+    · iexact Hlgn
+    iexfalso
+    iexact Hf
+  obtain ⟨Hfit, rfl⟩ := Hok
   (try wp_auto)
   iapply HΦ
+  isplitr
+  · ipureintro; exact Hfit
   unfold BSess.put bktOf
   rw [Hm]
   iframe

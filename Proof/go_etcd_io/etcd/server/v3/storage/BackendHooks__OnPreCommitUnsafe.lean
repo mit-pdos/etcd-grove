@@ -79,12 +79,9 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
       as ⟨%st2, Hl, %Hs2⟩
     · iframe Hcok
       iintro !> %bk %key %val %vb %Φ' !> ⟨#HM, #Hkey, #Hval, %Hvb, Hl⟩ HΦ'
-      have hkv : schema.confStateKeyBytes.length + vb.length ≤ bbolt.bboltEntryMax := by
-        have : schema.confStateKeyBytes.length = 9 := by decide
-        unfold csIdMax at Hvb; unfold bbolt.bboltEntryMax; omega
       ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hpkg3 $HM]
       wp_apply (hPut γ P W Pk b t st1 bk mvcc.metaBI key val schema.confStateKeyBytes vb hP.1
-          (by decide) (by decide) hkv hpend hSB (fun h => absurd h (by decide)) false false)
+          (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)) false false)
         $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -, -, -⟩
       · iframe #
         rw [fkPut_eq γ _ _ (by decide)]

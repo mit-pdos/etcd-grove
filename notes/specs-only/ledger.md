@@ -3058,3 +3058,9 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `authRecordsFit` gets content as a bound on the auth state the store keeps (a size field in `authSmall`, kept by every
   writer). Its concrete form: pending (questions.md "Option (1): concrete form").
 - **Decision.** Option (1) chosen by the user, 2026-11-19, via etcd-grove-03.
+- **Decision, revised.** Route (d') chosen by the user, 2026-11-19, via etcd-grove-03 (in place of option (1), whose
+  parameterless content would have been false): the goosed bbolt fork's `Put` refuses an entry above `2^28` bytes
+  (3f8520bd, branch `goose-lean-entrymax`, with a Go test); `bbolt.Bucket.Put.spec` in place (the size premise dropped,
+  an oversized-error branch); `backend.batchTx.unsafePut`/`UnsafePut`/`UnsafeSeqPut` drop the premise and their posts
+  say the entry was within the bound (else `lg.Fatal`); `batchTxBuffered.UnsafePut`/`UnsafeSeqPut` drop the premise.
+  `authRecordsFit` and the schema contracts unchanged; A7 stays "only `hD22` removed".
