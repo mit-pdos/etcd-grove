@@ -56,6 +56,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.InitLinked
 
 @[expose] public section
 
@@ -71,27 +73,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors: putget's (`putgetGF`: the universal camera `AllG` at slot 0, then invariants,
-later credits, GooseLang's heap, prophecies and package state), and
-iris-lean's non-atomic invariants at slot 11 (as the counter's `counterGF`). Every other slot is
-the unit functor. -/
-def k8setcd3GF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 11 => ⟨NaInvF, inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def k8setcd3GF_allG : AllG k8setcd3GF := ⟨⟨0, rfl⟩⟩
@@ -108,23 +92,10 @@ instance k8setcd3GF_gooseGpreS : GooseGpreS k8setcd3GF where
 take. -/
 instance k8setcd3GF_naInvG : NaInvG k8setcd3GF := ⟨⟨11, rfl⟩⟩
 
-/-- **A ghost-state instance at the local context `lctx`** (as putget's `heapAt`). -/
-abbrev k8setcd3HeapAt (hG : HeapGS .hasLC k8setcd3GF) (lctx : GoLocalContext) : HeapGS .hasLC k8setcd3GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `k8setcd3`'s initialization, then `Main(clients, ops, watchers, wops)`. -/
-def k8setcd3Program [GoSemanticsFunctions] (clients ops watchers wops : w64) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main) #clients #ops #watchers #wops
-
-/-- The read package's two metric names, which `k8setcd3`'s initialization registers (`readRegPerm`,
-D16). -/
-def k8setcd3Names : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The Kubernetes etcd3 store's linearizability instance is safe** (see the file header): every real execution of
 `k8setcd3Program clients ops watchers wops` from a fresh state with one thread, of `n` steps: if the main thread has
@@ -230,13 +201,6 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · exact Or.inr rfl
 
 
-/-- The program with `k` members: `k8setcd3`'s initialization, then
-`MainCluster(k, clients, ops, watchers, wops)`. -/
-def k8setcd3CProgram [GoSemanticsFunctions] (k : Nat) (clients ops watchers wops : w64) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize' #() ;;
-  App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster))
-    (Val #(W64 (k : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops)
-
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members is safe** (see the
 file header): for every member count `1 ≤ k ≤ 1000`, every real execution of
 `k8setcd3CProgram k clients ops watchers wops` from a fresh state with one thread, of `n` steps: if the main thread
@@ -320,15 +284,6 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   rcases Hr with rfl | rfl
   · exact Or.inl rfl
   · exact Or.inr rfl
-
-/-- The program with `k` members under a partition schedule: `k8setcd3`'s initialization, then
-`MainPartition(k, clients, ops, watchers, wops, sched)` with the schedule `steps` built as a slice
-literal (`schedLit`, as the k8s compactor's `k8scompactorPProgram`). -/
-def k8setcd3PProgram [GoSemanticsFunctions] (k : Nat) (clients ops watchers wops : w64)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize' #() ;;
-  App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
-    (Val #(W64 (k : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops)) (schedLit steps)
 
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members under any partition
 schedule is safe** (see the file header): `k8s_etcd3_cluster_adequate`'s conclusion for every real

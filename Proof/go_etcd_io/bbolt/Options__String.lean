@@ -1,8 +1,12 @@
 /-
-The trust boundary: `Spec/go_etcd_io/bbolt/Options__String.lean` (`Options` is axiomatized:
-`Proof/go_etcd_io/bbolt/Options.lean`'s header). True of Go: `String` only reads the 15 fields
-and formats them with `fmt.Sprintf`, which cannot fail. It becomes a proof once `Options` is
-translated (with a `fmt.Sprintf` spec over arguments with lent resources).
+The trust boundary: `Spec/go_etcd_io/bbolt/Options__String.lean`. True of Go: `String` only reads
+the 15 fields and formats them with `fmt.Sprintf`, which cannot fail. (2026-11-17, S2 of
+`notes/bbolt-integration-plan.md`) `Options` is translated and its fields' reads are lemmas
+(`Proof/go_etcd_io/bbolt/Options.lean`), but the call to `fmt.Sprintf` has no spec here: its format
+has `%p` of the `OpenFile` func and of the `Logger` interface, and `%s` of a `time.Duration` (a
+`Stringer`), and every `fmt.Sprintf` spec of this repository (`Spec/fmt/Sprintf*.lean`, over
+Perennial's `fmt.ArgWf`) takes under a verb other than `v s x X q` only predeclared basic types or
+named integers. So it stays an axiom until a `fmt.Sprintf` spec covers `%p` (a Perennial change).
 -/
 module
 

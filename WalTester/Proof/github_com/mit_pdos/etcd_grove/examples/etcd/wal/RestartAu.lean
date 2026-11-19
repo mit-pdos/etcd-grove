@@ -7,7 +7,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__close
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__closeLemmas
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.RestartOk
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSnap
 

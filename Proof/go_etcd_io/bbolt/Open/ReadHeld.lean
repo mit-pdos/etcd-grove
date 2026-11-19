@@ -13,7 +13,7 @@ returns `io.EOF` only when a `pread` reads nothing with `len(b) > 0`, so `n < le
 -/
 module
 
-public import Spec.os.File__ReadAt
+public import Proof.os.ReadAtOwn
 public import Proof.os.Base
 
 @[expose] public section
@@ -35,8 +35,9 @@ variable [osA : os.Assumptions]
 
 omit osA in
 /-- **A read of held bytes**: `f.ReadAt(b, off)` inside bytes `xs` of the file held from offset
-`0` (no `OsMeta`): all of them, exactly (`n = len(b)`), or a `*PathError` (`fmt` formats it). -/
-theorem os.File.ReadAt.wp_held (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
+`0` (no `OsMeta`): all of them, exactly (`n = len(b)`), or a `*PathError` (`fmt` formats it), which
+witnesses that the file system can fail (session S3f; S6: `specRacyLt` carries the witness). -/
+theorem os.File.ReadAt.wp_heldW (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
     (off : w64) (dq dqb : DFrac) (d : OsFd) (xs : List ByteG) (eof : GoInterface)
     (hrd : d.readable = true) (hoff : 0 ≤ off.toInt) (hn : vs.length ≤ 0x40000000)
@@ -51,11 +52,12 @@ theorem os.File.ReadAt.wp_held (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG
         ∃ vs' : List w8, sl ↦* vs' ∗
           ⌜(err = interface.nil ∧ n = W64 (vs.length : Int) ∧
               vs' = ((xs.map Prod.fst).drop off.toNat).take vs.length) ∨
-            (∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)⌝ ∗
+            (∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe ∧
+              ¬ FsNoErr)⌝ ∗
         fmtErrorOkOrNil err }} := by
   iintro %Φ ⟨#Hinv, Hfo, Hsl, Hfd, Hb, #Heof⟩ HΦ
-  iapply hRead f fd name dqf sl vs off dq d [(0, dqb, xs)] eof hrd hoff hn (by omega)
-    $$ [Hfo Hsl Hfd Hb]
+  iapply os.File.ReadAt.wp_racyLtOwn hRead f fd name dqf sl vs off dq d [(0, dqb, xs)] eof hrd
+    hoff hn (by omega) $$ [Hfo Hsl Hfd Hb]
   · iframe; iframe #
     iapply BigSepL.bigSepL_nil.2; iempintro
   inext
@@ -65,7 +67,7 @@ theorem os.File.ReadAt.wp_held (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG
   have held : ∀ i, i < xs.length → ∀ b, (xs[i]?).map Prod.fst = some b →
       os.heldByte [(0, dqb, xs)] i b := fun i _ b hb =>
     ⟨_, List.Mem.head _, Nat.zero_le _, by simpa using hb⟩
-  icases Hr with (%hc | ⟨%pe, %hpe, #Hek⟩)
+  icases Hr with (%hc | ⟨%pe, %hpe, #Hek, %hne⟩)
   · rcases hc with ⟨rfl, hfull⟩ | ⟨rfl, hlt, hall⟩
     · iapply HΦ
       iframe Hfo Hfd Hb
@@ -99,7 +101,7 @@ theorem os.File.ReadAt.wp_held (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG
     iexists vs'
     iframe Hsl
     isplitr
-    · ipureintro; right; exact ⟨pe, rfl⟩
+    · ipureintro; right; exact ⟨pe, rfl, hne⟩
     simp only [fmtErrorOkOrNil, interface.mkOk]
     iexact Hek
 

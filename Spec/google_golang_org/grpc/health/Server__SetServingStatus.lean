@@ -24,12 +24,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `hs.SetServingStatus(service, status)` on grpc's health server returns. -/
+/-- `hs.SetServingStatus(service, status)` on grpc's health server returns; `status` is a
+`HealthCheckResponse_ServingStatus` (an `int32`: 2026-11-18, it was any `val`, a panic value
+included, to which the application unwinds, so the triple could not hold). -/
 abbrev health.Server.SetServingStatus.spec : Prop :=
-  ∀ (hs : Loc) (service : GoString) (status : val),
+  ∀ (hs : Loc) (service : GoString) (status : w32),
   {{ grpcHealthSrv (GF := GF) hs }}
     (App (App (Val (hs @!! go.GoType.PointerType google_golang_org.grpc.health.Server.ty @!! go!"SetServingStatus"))
-      (Val #service)) (Val status))
+      (Val #service)) (Val #status))
   {{ RET #(); True }}
 
 end spec

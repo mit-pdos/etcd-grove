@@ -157,6 +157,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadNo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVals
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
@@ -750,7 +751,7 @@ theorem wp_Check :
 
 theorem wp_seedOne :
     EtcdGrove.k8s_etcd3.seedOne.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.seedOne.wp_proof wp_splitKey wp_storeKey wp_encodeV0 wp_setItem
+  EtcdGrove.k8s_etcd3.seedOne.wp_proof wp_splitKey wp_storeKey wp_encodeV0 wp_setItem client.client_Put_st_law_holds
 
 theorem wp_seed :
     EtcdGrove.k8s_etcd3.seed.spec (GF := GF) (hG := hG) :=

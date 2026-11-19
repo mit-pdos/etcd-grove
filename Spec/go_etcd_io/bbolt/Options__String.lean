@@ -1,9 +1,8 @@
 /-
 `(*Options).String` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03,
-`notes/bbolt-spec-decisions.md`, D13's family). `Options` is axiomatized (a translator gap,
-`Proof/go_etcd_io/bbolt/Options.lean`'s header), so its proof,
-`Proof/go_etcd_io/bbolt/Options__String.lean`, is a trust-boundary axiom until `Options` is
-translated.
+`notes/bbolt-spec-decisions.md`, D13's family). Its proof, `Proof/go_etcd_io/bbolt/Options__String.lean`,
+is a trust-boundary axiom: `Options` is translated since 2026-11-17, but no spec of `fmt.Sprintf`
+covers `String`'s `%p` of a func and of an interface (that file's header).
 -/
 module
 
@@ -33,8 +32,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **`(*Options).String()` reads the options and returns a string** (round 7, D13's family:
-`Options` is axiomatized). True: `String` only reads the 15 fields and formats them with
+/-- **`(*Options).String()` reads the options and returns a string** (round 7, D13's family). True: `String` only reads the 15 fields and formats them with
 `fmt.Sprintf` (`Duration`'s `String`, `FreelistType` as a string, `%p` of a func and an interface),
 which cannot fail. With it, `Open` proves `logArgOk (optsAt opts dq o) 's' (*Options)`. -/
 abbrev Options.String.spec : Prop :=

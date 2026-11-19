@@ -121,7 +121,8 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (Hp : mvcc.api.persistent.law (GF := GF))
-    (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (s ep : Loc) (sv : SnapshotM)
+    (hcsz : storage.csIdCount sv.Metadata'.ConfState' ≤ storage.csIdMax) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (ss hk : Loc) (d : mvcc.KBReal) (D : backend.Data)
     (hP : ciKeys d.P ∧ storage.hooksParams d.P)
@@ -238,7 +239,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb HLt2 HGI HRqT HEv
   -- step 7: the rest, framed
   icases Hcso with #Hcso
-  ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' $$ Hcso
+  ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' hcsz $$ Hcso
   -- (R2b-3d stage 3) the new backend's stop channels at the server's own resources
   ihave #HSCs : srvStopChans (GF := GF) (snapγ γ π0 d'.γB) d' $$ []
   · iunfold srvStopChans; rw [← hP']; iframe HB HSC

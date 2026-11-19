@@ -47,6 +47,12 @@ theorem DB.munmap.wp_proof (wp_Munmap : golang_org.x.sys.unix.Munmap.spec (GF :=
     wp_apply wp_Munmap base len p m vf Hlen Hb $$ [Hinv Hm Hc] as %e He
     · iframe; iframe #
     (try wp_auto)
+    ihave He : (⌜e = 0⌝ ∗ osMeta p (DFrac.own 1) { m with maps := GMap.delete base m.maps }) ∨
+        (⌜e ≠ 0⌝ ∗ (osMeta p (DFrac.own 1) { m with maps := GMap.delete base m.maps } ∨
+          (osMeta p (DFrac.own 1) m ∗ cellsR base 0 len.toNat vf))) $$ [He]
+    · icases He with (He | ⟨%he, He⟩)
+      · ileft; iexact He
+      · iright; iframe He; ipureintro; exact he.1
     iapply HΦ
     simp only [hne, ↓reduceIte]
     iframe

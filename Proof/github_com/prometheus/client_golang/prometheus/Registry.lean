@@ -17,21 +17,20 @@ one right.
 
 **What is axiomatized** (each true of prometheus's Go code, client_golang v1.24.1, the version
 etcd's `server/go.mod` pins):
-- `counterOpts o ns sub name help`: `o` is the `CounterOpts` value with those four fields and
-  the others zero (`Opts` is an axiomatized type, so its values are opaque);
 - `collectorName c n`: the collector `c` describes exactly one descriptor, valid, named `n`,
   without labels (what `NewCounter` makes);
 - `nameFree n` (abstract resource): the right to register a collector whose one descriptor is
   `n`'s, without labels, in the default registry: no collector registered there (now, or
   later by anyone but the holder) has a descriptor named `n`, nor one whose ID is that
   descriptor's ID (`xxhash(n + "\xff")`), nor a collector ID equal to it;
-- `wp_counterOptsLit`: the composite literal `prometheus.CounterOpts{Namespace: ns, Subsystem:
-  sub, Name: name, Help: help}` returns such a value.
 
-Each is about uninterpreted constants (`Opts`, `CompositeLiteral` of its type, the names-only
-functions), so a model in which they diverge satisfies them: they cannot make the logic
-inconsistent. The specs of `NewCounter` and `MustRegister` are in
-`Spec/github_com/prometheus/client_golang/prometheus/`.
+`counterOpts o ns sub name help` (`o` is the `CounterOpts` literal with those four fields, the
+others zero) is a definition: `Opts` is translated (until 2026-11-18 it was an axiomatized type,
+and `counterOpts` and the literal's spec `wp_counterOptsLit` were axioms).
+
+Each axiom is about uninterpreted constants (the names-only functions), so a model in which they
+diverge satisfies them: they cannot make the logic inconsistent. The specs of `NewCounter` and
+`MustRegister` are in `Spec/github_com/prometheus/client_golang/prometheus/`.
 -/
 module
 
@@ -68,9 +67,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The `CounterOpts` value `o` is `prometheus.CounterOpts{Namespace: ns, Subsystem: sub, Name:
-name, Help: help}` (its other fields zero: no const labels, no unit). -/
-axiom counterOpts (o : github_com.prometheus.client_golang.prometheus.CounterOpts)
-  (ns sub name help : GoString) : Prop
+name, Help: help}` (its other fields zero: no const labels, no unit). The value such a literal
+evaluates to (`Opts` is translated). -/
+def counterOpts (o : github_com.prometheus.client_golang.prometheus.CounterOpts)
+    (ns sub name help : GoString) : Prop :=
+  o = { Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Unit' := [],
+        ConstLabels' := null, now' := func.nil }
 
 /-- The collector `c` describes exactly one descriptor: valid, of fully-qualified name `n`,
 without const or variable labels (a counter `NewCounter` made). -/
@@ -81,20 +83,6 @@ no collector registered there, now or later by anyone but the holder, has a desc
 `n`, or whose ID (or collector ID) is the ID of `n`'s label-free descriptor. Given at program
 start, once per name. -/
 axiom nameFree {GF : BundledGFunctors} (n : GoString) : IProp GF
-
-/-- **Trust boundary: a `CounterOpts` literal** (`read/metrics.go`'s two): it evaluates to the
-value with the four fields given, the others zero (a Go composite literal does not panic). -/
-axiom wp_counterOptsLit (ns sub name help : GoString) :
-  {{ (True : IProp GF) }}
-    (App (Val (GoInstruction (CompositeLiteral
-      github_com.prometheus.client_golang.prometheus.CounterOpts.ty)))
-      (Val (LiteralValueV [
-        KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Val #ns)),
-        KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Val #sub)),
-        KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Val #name)),
-        KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Val #help))])))
-  {{ (o : github_com.prometheus.client_golang.prometheus.CounterOpts), RET #o;
-      ⌜counterOpts o ns sub name help⌝ }}
 
 end preds
 

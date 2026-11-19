@@ -47,8 +47,8 @@ abbrev backend.newBatchTxBuffered.spec : Prop :=
       bF go!"hooks" b ↦ (GoInterface.nil : Hooks) ∗ rtxOf (baseOf rt) ↦ rtx ∗
       sync.rwmutex.ownRWMutex γrw (rwmutex.RLocked 0) ∗
       sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-      ownDB db γd D ∗ ownWTx wtx γd D D ∗ txDB wtx db ∗
-      txLive rtx 1 ∗ rtxSnap rtx D ∗ rtxStats rtx ∗ txDB rtx db }}
+      ownDB db γd D ∗ ownWTx wtx γd D D ∗ txDB wtx γd db ∗
+      txLive rtx γd 1 (bbolt.TxView.ro D) ∗ txDB rtx γd db }}
 
 end spec
 

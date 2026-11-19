@@ -40,7 +40,7 @@ abbrev v3rpc.quotaKVServer.Txn.spec : Prop :=
       v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOkMd #(methods kv.ty go!"Txn" kv.v) iprop(S ∗ srvLgReader s) Spec ∗
       S ∗ v3rpc.quotaRd s ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗
-      Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+      grpcSpecAt Spec ci m Φ Ψe }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗

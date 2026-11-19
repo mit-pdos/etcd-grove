@@ -5,13 +5,15 @@ is the extension's `Mmap` (`wp_osMmap`), whose base it makes a slice of `length`
 `unsafe.Slice`. With the whole of the file's `OsMeta` (no change in flight on it): on success, a
 slice of fresh cells, whose client halves hold the file's bytes, then holes past its end (a
 `length` past the file's size is allowed), and the mapping is recorded in the `OsMeta`; on
-failure, `nil` and an `Errno`. Proved in `Proof/golang_org/x/sys/unix/Mmap.lean`. Lean-first (no
+failure, `nil` and an `Errno`, which witnesses that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr` names,
+`mmap` returns 0; session S6 folded the former `specNoErr`/`specW` into this spec). Proved in `Proof/golang_org/x/sys/unix/Mmap.lean`. Lean-first (no
 Rocq counterpart).
 -/
 module
 
 public import GeneratedProof.golang_org.x.sys.unix
 public import Proof.syscall.Base
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -44,7 +46,7 @@ abbrev golang_org.x.sys.unix.Mmap.spec : Prop :=
           osMeta d.ino (DFrac.own 1) ({ m with maps := <[base := len.toNat]> m.maps }) ∗
           ∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
             cellsR base 0 len.toNat (fun i => toCellVal bs[i]?)) ∨
-       (⌜e ≠ 0 ∧ sl = slice.nil⌝ ∗ osMeta d.ino (DFrac.own 1) m)) }}
+       (⌜e ≠ 0 ∧ sl = slice.nil ∧ ¬ FsNoErr⌝ ∗ osMeta d.ino (DFrac.own 1) m)) }}
 
 end spec
 

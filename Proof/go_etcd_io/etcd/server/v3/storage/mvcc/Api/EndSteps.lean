@@ -181,7 +181,7 @@ theorem endCb_nil_of_au (γ : StoreNames) (σ₀ : MvccState) (crev : Int) (Q : 
 /-- **The commit's step from the client's update** (a store without watchers; see the header). -/
 theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : List Change) (crev : Int)
     (Q : IProp GF) (hw : γ.watchQ = false) (hl : σ₀.log = ilog)
-    (hp : σ₀.pending = none) :
+    (hp : σ₀.pending = none) (hc : ChPutsLe etcdKeyMax pend) :
     endAU γ σ₀ pend Q ⊢ endCb γ ilog pend crev (Yat γ σ₀) Q := by
   have hpw : pndW γ = (1 : Qp).half := by
     unfold pndW; rw [hw]; rfl
@@ -232,7 +232,7 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
     have e1 : σ.notify pend = ⟨σ.log, σ.crev, some pend⟩ :=
       MvccState.ext' rfl rfl (notify_cons_pending hpe)
     have hreach1 : MvccReachable (⟨σ.log, σ.crev, some pend⟩ : MvccState) :=
-      e1 ▸ MvccReachable.notify σ pend Hreach hp hwf
+      e1 ▸ MvccReachable.notify σ pend Hreach hp hwf hc
     imod Hcommit $$ [Ha Hp Hcr Hnl] with Hau2
     · isplitr
       · ipureintro; rfl

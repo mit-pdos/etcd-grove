@@ -14,8 +14,7 @@ def backend.backend.Close.spec : Prop :=
                 (Y ∗
                     ∃ D,
                       backend.bStopView γ P W Pk D ∗
-                        ((⌜err = GoInterface.nil⌝ ∗ ∃ path, backend.bFile γ path ∗ backend.fileHolds path D) ∨
-                          ⌜¬backend.dbCloseOk⌝)) -∗
+                        (⌜err = GoInterface.nil⌝ ∗ backend.bClosed γ.db D ∨ ⌜¬backend.dbCloseOk⌝)) -∗
                   Φ (intoVal err)) -∗
             WP
               ((intoVal

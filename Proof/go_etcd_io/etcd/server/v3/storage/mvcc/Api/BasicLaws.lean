@@ -43,7 +43,7 @@ theorem reach_len (σ : MvccState) (h : MvccReachable σ) :
     σ.log.length ≤ logCh σ.log + 2 ∧ σ.pending ≠ some [] := by
   induction h with
   | start => exact ⟨by simp [mvccStart, logCh], by simp [mvccStart]⟩
-  | notify σ pend _ _ _ ih =>
+  | notify σ pend _ _ _ _ ih =>
     refine ⟨ih.1, ?_⟩
     simp only [MvccState.notify]
     split

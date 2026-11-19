@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_opentelemetry_io.otel.trace
+public import GeneratedProof.k8s_io.utils.trace
 public import Perennial.Golang.Theory
 public import Code.k8s_io.component_base.tracing
 
@@ -25,12 +27,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.tracing.Assumptions]
 
 noncomputable instance Span_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.component_base.tracing.Span :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.component_base.tracing.Span where
+  typedPointstoDef l v dq := iprop(
+    "otelSpan" ∷ typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"otelSpan" l) v.otelSpan' dq ∗
+    "utilSpan" ∷ typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"utilSpan" l) v.utilSpan' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Span_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.tracing.Span k8s_io.component_base.tracing.Span.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.tracing.Span k8s_io.component_base.tracing.Span.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Span_access_load_otelSpan (l : Loc) (v : k8s_io.component_base.tracing.Span) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"otelSpan" l) v.otelSpan' dq)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"otelSpan" l) v.otelSpan' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Span_access_store_otelSpan (l : Loc) (v : k8s_io.component_base.tracing.Span) (otelSpan' : go_opentelemetry_io.otel.trace.Span) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"otelSpan" l) v.otelSpan' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"otelSpan" l) otelSpan' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with otelSpan' := otelSpan' } : k8s_io.component_base.tracing.Span) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Span_access_load_utilSpan (l : Loc) (v : k8s_io.component_base.tracing.Span) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"utilSpan" l) v.utilSpan' dq)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"utilSpan" l) v.utilSpan' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Span_access_store_utilSpan (l : Loc) (v : k8s_io.component_base.tracing.Span) (utilSpan' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"utilSpan" l) v.utilSpan' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"utilSpan" l) utilSpan' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with utilSpan' := utilSpan' } : k8s_io.component_base.tracing.Span) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Span
@@ -63,12 +103,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.tracing.Assumptions]
 
 noncomputable instance noopTracerProvider_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.component_base.tracing.noopTracerProvider :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.component_base.tracing.noopTracerProvider where
+  typedPointstoDef l v dq := iprop(
+    "TracerProvider" ∷ typedPointsto (structFieldRef k8s_io.component_base.tracing.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance noopTracerProvider_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.tracing.noopTracerProvider k8s_io.component_base.tracing.noopTracerProvider.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.tracing.noopTracerProvider k8s_io.component_base.tracing.noopTracerProvider.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance noopTracerProvider_access_load_TracerProvider (l : Loc) (v : k8s_io.component_base.tracing.noopTracerProvider) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance noopTracerProvider_access_store_TracerProvider (l : Loc) (v : k8s_io.component_base.tracing.noopTracerProvider) (TracerProvider' : go_opentelemetry_io.otel.trace.TracerProvider) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.noopTracerProvider go!"TracerProvider" l) TracerProvider' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerProvider' := TracerProvider' } : k8s_io.component_base.tracing.noopTracerProvider) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end noopTracerProvider

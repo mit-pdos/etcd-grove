@@ -8,7 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Spec.go_opentelemetry_io.otel.trace.SpanFromContext
-public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.context.ReqKeys
 public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
@@ -36,9 +36,14 @@ variable [package_sem : context.Assumptions]
 context like `ctx` (the same deadline and `Done`, other values: otel's `ContextWithSpan` is a
 `context.WithValue`), a context (`context.isContext`) if `ctx` is one (2026-10-12, unit 2: the
 request path's `WithTimeout`), carrying `ctx`'s trace (2026-10-14, unit P1b: otel's key is not
-`traceutil.TraceKey`) and its incoming gRPC metadata (`metadata.incomingOf`, 2026-10-28, the auth
-plan's E3zb: otel's key is not grpc's `mdIncomingKey{}`, so `metadata.FromIncomingContext` reads
-`ctx`'s), and a span (`trace.isSpan`); and (2026-11-06, the fix of `trace.SpanFromContext`'s axiom,
+`traceutil.TraceKey`) and its incoming gRPC metadata (2026-10-28, the auth plan's E3zb: otel's key
+is not grpc's `mdIncomingKey{}`, so `metadata.FromIncomingContext` reads `ctx`'s; since perheap C1a,
+2026-11-18, the per-heap relation `metadata.ctxInMD` carried over, `□ ∀ md, ctxInMD ctx md -∗ ctxInMD
+ctx' md`, in place of the pure equation on `metadata.incomingOf`: the context returned is `ctx` itself
+(the no-op tracer), or `ContextWithSpan(ctx, s)`, a `*valueCtx` at otel's `currentSpanKey`, under one more
+`*valueCtx` at `runtime/trace`'s `traceContextKey{}` when the SDK's span records and Go's execution tracer is
+on (`NewTask`); neither key has `mdIncomingKey`'s type, so the `context.value` walk goes on to `ctx`
+(Perennial's `ctxValue_valueCtx`; independent attack, `/shared/tmp/perheap/attack-tracer.md`)), and a span (`trace.isSpan`); and (2026-11-06, the fix of `trace.SpanFromContext`'s axiom,
 `notes/axiom-review/otel-spanfromcontext-todo.md`) a context whose span is a span if `ctx`'s is
 (`trace.spanCtxOk`): otel's tracers return `ContextWithSpan(ctx, s)` (a `valueCtx` whose
 `Value(currentSpanKey)` is `s`) with the span `s` they return (the SDK's `tracer.Start`, a new SDK
@@ -51,7 +56,8 @@ does (checked against the noop and the SDK tracer, `examples/sweeprepairs/tracer
 grpc's keys (`mdIncomingKey{}`, `mdOutgoingKey{}`, `peerKey{}`, not otel's key's type) it answers as
 `ctx` does, and at otel's `currentSpanKey` either `ctx`'s value or the span the tracer made, one of
 otel's (`trace.otelSpan`) (checked against the noop and the SDK tracers,
-`examples/premisefix/tracerctx`). The SDK claims hold with Go's execution tracer off: with it on
+`examples/premisefix/tracerctx`). The SDK's library-value claims at otel's key hold with Go's execution
+tracer off (the incoming transfer and the causes' hold with it on too): with it on
 (`runtime/trace.Start`, e.g. pprof's `/debug/pprof/trace`), the SDK tracer's `Start` also reads
 `ctx.Value(runtime/trace.traceContextKey{})` (`runtime/trace.NewTask`, sdk/trace v1.47.0
 `span.go:844-856`), a key the premise does not constrain. Not reachable in the model: the `Tracer`
@@ -102,7 +108,7 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
       □ (srvCtxWeak ctx cd -∗ srvCtxWeak ctx' cd) ∗
       □ (∀ o : Option Loc, traceutil.ctxTraceIs ctx o -∗ traceutil.ctxTraceIs ctx' o) ∗
-      ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
+      □ (∀ md, metadata.ctxInMD ctx md -∗ metadata.ctxInMD ctx' md) ∗
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
       □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') ∗

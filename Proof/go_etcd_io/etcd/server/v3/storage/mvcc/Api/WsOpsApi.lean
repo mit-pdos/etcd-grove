@@ -41,13 +41,13 @@ theorem pt_open (t0 : Loc) (γ : StoreNames) (trace : Loc) (σ : MvccState) (pen
     mvccTxnI (GF := GF) (interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #t0) γ trace
         (.write σ pend) ⊢
       ∃ (mw s : Loc) (p : PhysNames) (puts deletes putSize : w64) (sw : Loc),
-        ⌜σ.pending = none ∧ MvccReachable σ⌝ ∗
+        ⌜σ.pending = none ∧ MvccReachable σ ∧ ChPutsLe etcdKeyMax pend⌝ ∗
         isTxnWriteT mw s (γ.withPhys p) trace σ.log pend puts deletes putSize σ.crev iprop(True) false
           iprop(True) ∗
         tokBack s (γ.withPhys p) ∗ certFree (γ.withPhys p) ∗
         t0 ↦□ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
                  s' := sw } : watchableStoreTxnWrite) ∗
-        (∀ (pend' : List Change) (puts' deletes' putSize' : w64),
+        (∀ (pend' : List Change) (puts' deletes' putSize' : w64), ⌜ChPutsLe etcdKeyMax pend'⌝ -∗
           isTxnWriteT mw s (γ.withPhys p) trace σ.log pend' puts' deletes' putSize' σ.crev iprop(True)
             false iprop(True) -∗ tokBack s (γ.withPhys p) -∗
           mvccTxnI (interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #t0) γ trace
@@ -61,11 +61,11 @@ theorem pt_open (t0 : Loc) (γ : StoreNames) (trace : Loc) (σ : MvccState) (pen
   iframe Htx Hback Hfree Htw
   isplitr
   · ipureintro; exact Hk0
-  iintro %pend' %puts' %deletes' %putSize' Htx Hback
+  iintro %pend' %puts' %deletes' %putSize' %Hpl' Htx Hback
   iexists mw, s, p, puts', deletes', putSize'
   iframe Htx Hback Hfree
   isplitr
-  · ipureintro; exact Hk0
+  · ipureintro; exact ⟨Hk0.1, Hk0.2.1, Hpl'⟩
   iunfold wrWrap
   iright
   iexists t0, sw, γw
@@ -102,10 +102,10 @@ theorem watchableStoreTxnWrite.Rev.wp_api
     inext
     iintro Htx
     simp only [TxnKind.beginRev, MTxn.state]
-    rw [← reach_rev Hk0.2]
+    rw [← reach_rev Hk0.2.1]
     iapply HΦ
     iunfold mvccTxn
-    iapply Hclose $$ [Htx] Hback
+    iapply Hclose $$ %_ %_ %_ %_ %(Hk0.2.2) [Htx] Hback
     simp only [isTxnT]; iexact Htx
 
 /-- **`Txn.FirstRev.contract` at `*watchableStoreTxnWrite`** (`0`). -/
@@ -134,7 +134,7 @@ theorem watchableStoreTxnWrite.FirstRev.wp_api :
     iintro Htx
     iapply HΦ
     iunfold mvccTxn
-    iapply Hclose $$ [Htx] Hback
+    iapply Hclose $$ %_ %_ %_ %_ %(Hk0.2.2) [Htx] Hback
     iexact Htx
 
 /-- **`Txn.Changes.contract` at `*watchableStoreTxnWrite`.** -/
@@ -167,7 +167,7 @@ theorem watchableStoreTxnWrite.Changes.wp_api
     iapply HΦ
     isplitl
     · iunfold mvccTxn
-      iapply Hclose $$ [Htx] Hback
+      iapply Hclose $$ %_ %_ %_ %_ %(Hk0.2.2) [Htx] Hback
       iexact Htx
     ipureintro
     simp only [MTxn.pend]
@@ -212,7 +212,7 @@ theorem watchableStoreTxnWrite.Range.wp_api
     · ipureintro; exact Htodo
     isplitl
     · iunfold mvccTxn
-      iapply Hclose $$ [Htx] Hback
+      iapply Hclose $$ %_ %_ %_ %_ %(Hk0.2.2) [Htx] Hback
       simp only [isTxnT]; iexact Htx
     ipureintro; exact range_facts _ _ Hsm
 
@@ -221,7 +221,7 @@ theorem watchableStoreTxnWrite.Put.wp_api
     (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG)) :
     watchableStoreTxnWrite.Put.spec (GF := GF) := by
   intro t0 (γ : mvcc.StoreNames) trace te σ pend key value k vv leaseID L
-  iintro %Φ ⟨#Hpkg, Htx, Hte, #Hkey, #Hval, %Hklen, Hown, %Hlease⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Htx, Hte, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease⟩ HΦ
   iunfold mvccTxn at Htx
   icases pt_open t0 γ trace σ pend $$ Htx
     with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %sw, %Hk0, Htx, Hback, #Hfree, #Htw, Hclose⟩
@@ -233,13 +233,13 @@ theorem watchableStoreTxnWrite.Put.wp_api
   iapply (metricsTxnWrite_PutT hPut trace mw s (γ.withPhys p) σ.log pend puts deletes putSize key value
       k vv leaseID L σ.crev te) $$ [Htx Hte Hown] [HΦ Hback Hclose]
   · iframe Hpkg Htx Hte Hkey Hval Hown
-    ipureintro; exact ⟨Hklen, Hlease⟩
+    ipureintro; exact ⟨Hklen, Hkvb, Hlease⟩
   inext
   iintro ⟨Htx, Hte, Hown⟩
   iapply HΦ
   iframe Hte Hown
   iunfold mvccTxn
-  iapply Hclose $$ [Htx] Hback
+  iapply Hclose $$ %_ %_ %_ %_ %(Hk0.2.2.append_put leaseID Hkvb.1 Hkvb.2) [Htx] Hback
   iexact Htx
 
 /-- **`Txn.DeleteRange.contract` at `*watchableStoreTxnWrite`.** -/
@@ -261,6 +261,7 @@ theorem watchableStoreTxnWrite.DeleteRange.wp_api
   iapply (hDel trace mw s (γ.withPhys p) σ.log pend puts deletes putSize key endk k e L σ.crev
       iprop(True) iprop(True)) $$ [Htx Hown] [HΦ Hback Hclose]
   · iframe Hpkg Htx Hkey Hend Hown
+    ipureintro; exact ⟨(reach_putsLe σ Hk0.2.1).1, Hk0.2.2⟩
   inext
   iintro %n %rev ⟨Htx, Hown, %Hnr⟩
   ihave %Hsm := isTxnWriteT_small _ _ _ _ _ _ _ _ _ _ _ _ _ $$ [$Htx]
@@ -268,7 +269,7 @@ theorem watchableStoreTxnWrite.DeleteRange.wp_api
   iframe Hown
   isplitl
   · iunfold mvccTxn
-    iapply Hclose $$ [Htx] Hback
+    iapply Hclose $$ %_ %_ %_ %_ %(Hk0.2.2.append_dels _) [Htx] Hback
     iexact Htx
   ipureintro
   exact ⟨by rw [List.length_map]; exact Hnr, Hsm.1, Hsm.2.2.1⟩

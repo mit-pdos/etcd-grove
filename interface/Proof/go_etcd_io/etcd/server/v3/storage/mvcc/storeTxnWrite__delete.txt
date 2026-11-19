@@ -16,7 +16,8 @@ theorem mvcc.storeTxnWrite.delete.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions
               ownSlice key k DFrac.discard ∗
                 lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗
                   ⌜(mvcc.findKey k (mvcc.applyChanges (W64 ↑(List.length ilog)) (mvcc.stateAfter ilog) pend)).isSome =
-                      true⌝ -∗
+                        true⌝ ∗
+                    ⌜List.length k ≤ etcdKeyMax⌝ -∗
           ▷
               (mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [mvcc.Change.del k]) crev Z ∗
                   lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [mvcc.Change.del k])) -∗

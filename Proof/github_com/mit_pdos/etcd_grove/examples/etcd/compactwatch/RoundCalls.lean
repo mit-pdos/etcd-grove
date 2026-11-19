@@ -8,6 +8,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Rounds
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundLaws
 
 @[expose] public section
 
@@ -123,6 +124,9 @@ theorem client_Get_rev (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     rw [Hrev]; exact_mod_cast Hσ
   · iright
     ipureintro; exact Herr
+
+theorem client_Get_rev_law_holds : client_Get_rev.law (GF := GF) (hG := hG) :=
+  client_Get_rev
 
 end e2e
 

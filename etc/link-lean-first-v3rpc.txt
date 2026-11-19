@@ -66,9 +66,11 @@ LeaseServer__LeaseLeases: =_root_.Perennial.errors.wp_Is togRPCError header__fil
 # cluster's). Trust boundary (axioms): the apply package's
 # `storage.NewBackendQuota` (under `apply.backendUnderQuota`; since audit B3 no `EtcdServer.Alarm`),
 # `api.IsCapabilityEnabled`, grpc's
-# `metadata.FromIncomingContext`/`MD.Get`, prometheus's `CounterVec.WithLabelValues`, and
+# `metadata.FromIncomingContext`, prometheus's `CounterVec.WithLabelValues`, and
 # `logUnaryRequestStats` (zap, peer, proto.Size). `utf8.ValidString` is proved (2026-10-26; until
-# then an axiom), over `utf8.word`.
+# then an axiom), over `utf8.word`; `metadata.MD.Get` (2026-11-18; until then an axiom), over
+# `strings.ToLower`'s (an axiom). otel's `trace.WithAttributes` and `attribute.{String,Int64,Bool}`
+# below are proved over their real bodies (2026-11-18).
 _KV_Put_Handler:
 _KV_Range_Handler:
 _KV_Compact_Handler:
@@ -100,7 +102,8 @@ storage_NewBackendQuota:
 EtcdServer__IsMemberExist: @
 EtcdServer__IsLearner: @
 api_IsCapabilityEnabled:
-metadata_MD__Get:
+metadata_MD__Get: strings_ToLower
+strings_ToLower:
 utf8_word:
 utf8_ValidString: utf8_word
 prometheus_CounterVec__WithLabelValues:
@@ -126,7 +129,6 @@ newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__Is
 # `sendLoop` (unreachable: the requests are restricted, `watchReqOk`), `_Watch_Watch_Handler`.
 mvcc_ReportEventReceived: @
 EtcdServer__AuthInfoFromCtx: @
-EtcdServer__AuthInfoFromCtx+Lb: @
 EtcdServer__AuthStore: @
 EtcdServer__Watchable: @
 config_ServerConfig__MaxRequestBytesWithOverhead:
@@ -155,7 +157,7 @@ FiltersFromRequest:
 GetProgressReportInterval: rand_Int63n
 SetProgressReportInterval:
 serverWatchStream__newResponseHeader:
-serverWatchStream__isWatchPermitted: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
+serverWatchStream__isWatchPermitted: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 NewWatchServer: zap_NewNop zap_Logger__Warn zap_Duration config_ServerConfig__MaxRequestBytesWithOverhead EtcdServer__Watchable SetProgressReportInterval
 serverWatchStream__recvLoop: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds serverWatchStream__isWatchPermitted serverWatchStream__newResponseHeader FiltersFromRequest errors_Is traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool zap_Logger__Error zap_Error
 serverWatchStream__sendLoop: serverWatchStream__newResponseHeader GetProgressReportInterval isClientCtxErr =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds IsCreateEvent context_TODO =mvcc.api.mvccApi_wsChan_recv_law_holds =mvcc.api.mvccApi_wsRecv_ok_law_holds =mvcc.api.mvccApi_wsSentLb_zero_law_holds verify_Assert =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop time_Duration__Seconds time_Duration__Seconds_ptr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues mvcc_ReportEventReceived
@@ -224,8 +226,8 @@ NewQuotaLeaseServer: NewLeaseServer
 # the auth plan's A2 (2026-10-23): auth.go's AuthAdmin guards, maintenance.go's guarded wrappers
 # (their inner maintenanceServer methods, names only, are the specs' contracts) and key.go's
 # kvServer.Compact (`InvAuthAdmin.lean`)
-AuthAdmin__isPermitted: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
-AuthAdmin__requireAuthInfo: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
+AuthAdmin__isPermitted: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+AuthAdmin__requireAuthInfo: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 authMaintenanceServer__isPermitted: AuthAdmin__isPermitted
 authMaintenanceServer__requireAuthInfo: AuthAdmin__requireAuthInfo
 authMaintenanceServer__Defragment: authMaintenanceServer__isPermitted togRPCError

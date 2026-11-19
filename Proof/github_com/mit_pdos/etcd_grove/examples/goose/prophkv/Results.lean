@@ -30,6 +30,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Perennial.GooseLang.CrashLang
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.TopLevelDefs
 
 @[expose] public section
 
@@ -79,12 +80,6 @@ instance prophkvGF_gooseGpreS : GooseGpreS prophkvGF where
 
 section program
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: initialize the package, then call `Main` (as goose calls a function), which runs
-`Test` and panics unless its answer is `"a"` or `"b"`. -/
-def prog : Expr :=
-  Seq (App (Val initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve Main []))) (Val #())) (Val #()))
 
 /-- The `get_is_pkg_init` of the program: the package and `primitive`. -/
 def getIsPkgInit {GF : BundledGFunctors} [HeapGS .hasLC GF] (p : GoString) : IProp GF :=
@@ -183,20 +178,6 @@ theorem goose_prophkv_safe [lctx : GoLocalContext] [sem : go.Semantics]
     iintro !>
     iapply BigSepM.bigSepM_empty.2
     iempintro
-
-/-- **`goose_prophkv_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `goose_prophkv_safe`'s other hypotheses: in every
-execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic, so
-`GetAny`'s answer is `"a"` or `"b"` (`Main` panics otherwise). -/
-theorem goose_prophkv_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Assumptions] (σ : state)
-    (g : GlobalState) (bound : Nat) :
-    Robustness.Robust [] [(prog, σ)] g bound :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 _ Hsteps =>
-    (goose_prophkv_safe
-      σ g hf.1 hf.2.1 hf.2.2 n κs t2 σ2 Hsteps).2
 
 end program
 

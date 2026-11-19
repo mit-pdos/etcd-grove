@@ -122,10 +122,11 @@ theorem authkv_SetUp : etcd_auth.SetUp.spec (GF := GF) (hG := hG) :=
 /-- **The bad principal's request has no principal** (`ClientAuth.lean`'s `badCtx_unbound`;
 E2f). -/
 theorem authkv_bad_unbound (γa : auth.AuthNames) (c h : GoInterface) (a : Loc)
-    (hd : etcd_auth.deliversOutgoing c h)
-    (ht : metadata.mdVals (metadata.outgoingOf c) go!"token" = [etcd_auth.badToken]) :
-    auth.ctxBound (GF := GF) (.on γa) h a ⊢ ⌜a = null⌝ :=
-  etcd_auth.badCtx_unbound γa c h a hd ht
+    (md : Option (GoString → Option (List GoString)))
+    (ht : metadata.mdVals md go!"token" = [etcd_auth.badToken]) :
+    etcd_auth.deliversOutgoing (GF := GF) c h md ∗
+      auth.ctxBound (GF := GF) (.on γa) (auth.mdTokenOf md) a ⊢ ⌜a = null⌝ :=
+  etcd_auth.badCtx_unbound γa c h a md ht
 
 end results
 
@@ -152,7 +153,7 @@ theorem authkv_token_one_user {GF : BundledGFunctors} [AllG GF] (γa : auth.Auth
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 variable [go_gctx : GoGlobalContext]
 
 /-- **The authentication example is safe, in the operational semantics** (`etcd_auth_adequate`,
@@ -221,34 +222,6 @@ theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_auth_adequate Hctx Hcec hD22 id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem
     σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-/-- **`etcd_auth_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_auth_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_auth_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget.BootFacts id ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (HNs : prometheus.namesUnclaimed authkvProgram authkvNames)
-    (HAs : addrsUnclaimed authkvProgram [go!"127.0.0.1:23916"])
-    (HDs : dataDirsAbsent authkvProgram [go!"authkv.etcd"]) (HEnv : verifyEnvOff authkvProgram)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcd_auth.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(authkvProgram, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_auth_safe
-      Hctx Hcec hD22 id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n (Hprem n (by omega)) σ
-      g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 

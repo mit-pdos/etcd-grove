@@ -14,7 +14,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness
 public import Spec.github_com.anishathalye.porcupine.CheckOperationsVerbose
 public import Spec.github_com.anishathalye.porcupine.LinearizationInfo__PartialLinearizations
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealGlue
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEventsLemmas
 
 @[expose] public section
 

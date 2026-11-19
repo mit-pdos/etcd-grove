@@ -157,6 +157,39 @@ theorem wSlots_carve (b : Loc) (len : Nat) (p : BFile) (W S : List Nat) (wb : Na
   · iapply (wBytes_eq (GF := GF) p (wMinus W S) wb size).2
     iexact HbR
 
+/-- **Carving the target slots' cells only out of the `W` slots' cells** (session S4: the synced
+freelist page, whose page-cache bytes the writer holds half of outside `wBytes`, `wBytesX`). -/
+theorem wCells_carveS (b : Loc) (len : Nat) (W S : List Nat) (hnd : S.Nodup) (hsub : ∀ s ∈ S, s ∈ W)
+    (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ len) :
+    wCells (GF := GF) (some (b, len)) W ⊢
+      ([∗list] s ∈ S, ∃ vf, cellsR b (4096 * s) 4096 vf) ∗ wCells (some (b, len)) (wMinus W S) := by
+  obtain ⟨T, hT⟩ := sub_split W S hnd hsub
+  have hW := perm_split W S
+  iintro Hc
+  icases (wCells_eq (GF := GF) b len W).1 $$ Hc with ⟨Hc, Hpart⟩
+  icases bsplit (Φ := wcF b len) hW $$ Hc with ⟨HcA, HcR⟩
+  icases bsplit (Φ := wcF b len) hT.symm $$ HcA with ⟨HcS, -⟩
+  isplitl [HcS]
+  · iapply (BigSepL.bigSepL_mono (Φ := fun _ s => wcF (GF := GF) b len s)
+      (Ψ := fun _ s => iprop(∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf)) ?_) $$ HcS
+    intro k x hx
+    have h := hin x (List.mem_of_getElem? hx)
+    simp only [wcF, h, ite_true]
+    exact .rfl
+  · iapply (wCells_eq (GF := GF) b len (wMinus W S)).2
+    iframe
+
+/-- `wBytesX` with no synced freelist page's slots is `wBytes`. -/
+theorem wBytesX_nil (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) :
+    wBytesX (GF := GF) p W [] wb size ⊣⊢ wBytes p W wb size := by
+  unfold wBytesX
+  have : W.filter (fun s => decide (s ∉ ([] : List Nat))) = W := by
+    rw [List.filter_eq_self]; intro a _; simp
+  rw [this]
+  constructor
+  · iintro ⟨H, -⟩; iexact H
+  · iintro H; iframe H; iapply BigSepL.bigSepL_nil.2; iempintro
+
 /-- The bytes after a write to the slots `S`: `wb'` there, `wb` elsewhere. -/
 def wbUpd (S : List Nat) (wb' wb : Nat → List w8) (s : Nat) : List w8 :=
   if s ∈ S then wb' s else wb s
@@ -400,6 +433,51 @@ theorem wrSlots_agree (e : Expr) (htv : toVal e = none) (p : BFile) (dqm : DFrac
       iframe Hcx
       iapply (show (∃ xs : List ByteG, osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = wb t⌝) ⊢ osSlot (GF := GF) p t (wb t) by unfold osSlot; exact .rfl)
+      iexists xs; iframe; ipureintro; exact Hxs
+    · iexact Ho
+
+/-- **The synced freelist page's slots read back** (session S4; `wrSlots_agree` with half of the
+page-cache bytes, `osSlotH`): `slotsOwnH`, around any step `e`. -/
+theorem wrSlotsH_agree (e : Expr) (htv : toVal e = none) (p : BFile) (dqm : DFrac) (m : OsMeta)
+    (b : Loc) (len : Nat) (hb : m.maps !! b = some len) (hE : ↑osN ⊆ E) (wb : Nat → List w8)
+    (Φ : val → IProp GF) :
+    ∀ (S : List Nat), (∀ t ∈ S, 4096 * (t + 1) ≤ len ∧ (wb t).length = 4096) →
+    ⊢ osInv (GF := GF) -∗ osMeta p.ino dqm m -∗
+      ([∗list] s ∈ S, osSlotH p s (wb s) ∗ ∃ vf, cellsR b (4096 * s) 4096 vf) -∗
+      (osMeta p.ino dqm m -∗ slotsOwnH (some (b, len)) p S wb -∗ WP e @ s; E {{ Φ }}) -∗
+      WP e @ s; E {{ Φ }}
+  | [], _ => by
+    iintro #Hinv Hm _ HΦ
+    iapply HΦ $$ Hm
+    unfold slotsOwnH
+    iapply BigSepL.bigSepL_nil.2; iempintro
+  | t :: S, hS => by
+    iintro #Hinv Hm Hs HΦ
+    icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨⟨Hx, %vf, Hcx⟩, Hs⟩
+    icases (show osSlotH (GF := GF) p t (wb t) ⊢ ∃ xs : List ByteG,
+        osBytes p.ino (4096 * t) (DFrac.own (1 : Qp).half) xs ∗ ⌜xs.map Prod.fst = wb t⌝ by
+        unfold osSlotH; exact .rfl) $$ Hx with ⟨%xs, Hx, %Hxs⟩
+    obtain ⟨ht1, ht2⟩ := hS t (List.mem_cons_self ..)
+    have hxl : xs.length = 4096 := by rw [← ht2, ← Hxs, List.length_map]
+    have hc : cellsR (GF := GF) b (4096 * t) 4096 vf ⊢ cellsR b (4096 * t) xs.length vf := by
+      rw [hxl]
+    ihave Hcx := hc $$ Hcx
+    iapply cellsR_agree_bytes e htv p dqm m b len hb (DFrac.own (1 : Qp).half) hE Φ xs (4096 * t) vf
+      (by omega) $$ Hinv Hm Hx Hcx
+    iintro Hm Hx Hcx
+    ihave Hcx := cellsR_bytes b (xs.map Prod.fst) (4096 * t) $$ [Hcx]
+    · simp only [List.length_map]; iexact Hcx
+    iapply wrSlotsH_agree e htv p dqm m b len hb hE wb Φ S
+      (fun u hu => hS u (List.mem_cons_of_mem _ hu)) $$ Hinv Hm Hs
+    iintro Hm Ho
+    iapply HΦ $$ Hm
+    unfold slotsOwnH
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hx Hcx]
+    · rw [Hxs]
+      iframe Hcx
+      iapply (show (∃ xs : List ByteG, osBytes p.ino (4096 * t) (DFrac.own (1 : Qp).half) xs ∗
+          ⌜xs.map Prod.fst = wb t⌝) ⊢ osSlotH (GF := GF) p t (wb t) by unfold osSlotH; exact .rfl)
       iexists xs; iframe; ipureintro; exact Hxs
     · iexact Ho
 

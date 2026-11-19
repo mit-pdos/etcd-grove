@@ -6,7 +6,7 @@ and `os.Remove.specFileS` (with the trivial update). Lean-first.
 module
 
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteableFile
-public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteableLemmas
 
 @[expose] public section
 

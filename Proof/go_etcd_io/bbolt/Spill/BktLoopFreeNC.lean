@@ -27,6 +27,8 @@ namespace Spill
 
 section freenc
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **The steps only shrink the free list.** -/
 theorem free_applySteps_sub (fl : FLPg) (txid : w64) (st : List FLStep) :

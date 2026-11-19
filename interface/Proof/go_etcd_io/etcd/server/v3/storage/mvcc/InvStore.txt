@@ -919,7 +919,7 @@ theorem mvcc.muInvAt_withPhys (s : Loc) (γ : mvcc.StoreNames) (p : mvcc.PhysNam
 theorem mvcc.kbNoDelOff_persistent (kb : Option mvcc.KBReal) : Persistent (mvcc.kbNoDelOff kb)
 
 def mvcc.dbNames_countable : Pos.Countable backend.DBNames :=
-  countableOfLeftInverse (fun x => (x.db, x.wr)) (fun p => { db := p.fst, wr := p.snd }) mvcc.dbNames_countable._proof_1
+  bbolt.boltName_countable
 
 theorem mvcc.muHeld_crev (s : Loc) (γ : mvcc.StoreNames) (c : Int) (ti : Loc) : mvcc.muHeld s γ c ti
     ⊢ mvcc.crevUB γ.idx sync.rfrac.half.half c ∗ (mvcc.crevUB γ.idx sync.rfrac.half.half c -∗
@@ -1511,12 +1511,13 @@ theorem mvcc.StoreNames.withPhys_tkw (γ : mvcc.StoreNames) (p : mvcc.PhysNames)
 
 theorem mvcc.kbSRM_of_kbSR (kb : Option mvcc.KBReal) : mvcc.kbSR kb ⊢ mvcc.kbSRM kb
 
-def mvcc.keyPutOk (m : mvcc.Bucket) (l : mvcc.Puts) (k _v : GoString) : Prop :=
+def mvcc.keyPutOk (m : mvcc.Bucket) (l : mvcc.Puts) (k v : GoString) : Prop :=
   List.length l < 2 ^ 56 ∧
     0 < List.length k ∧
       List.length k ≤ backend.maxKeySize ∧
         (∀ (k' v' : GoString), m !! k' = some v' → go.GoStringLt k' k) ∧
-          ∀ (p : GoString × GoString), p ∈ l → go.GoStringLt p.fst k
+          (∀ (p : GoString × GoString), p ∈ l → go.GoStringLt p.fst k) ∧
+            List.length k + List.length v ≤ bbolt.bboltEntryMax
 
 theorem mvcc.rep_nReaders (P : IProp GF) : ([∗list] _x ∈ List.replicate
     sync.rwmutex.actualMaxReaders.toNat (), P) ⊢ [∗list] _x ∈ List.replicate mvcc.nReaders (), P
@@ -2514,9 +2515,9 @@ def mvcc.kbReal_countable : Pos.Countable mvcc.KBReal :=
 
 theorem mvcc.storePutOk_next (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (t :
     Bool) (d : GoString) (hlen : List.length ilog < 2 ^ 63) (hcs : ∀ (cs : List mvcc.Change), cs ∈
-    ilog → cs.length < 2 ^ 63) (hp : pend.length + 1 < mvcc.putMax γ) : mvcc.storePutOk γ
-    (mvcc.bucketMap ilog) (mvcc.pendPuts ilog pend) (mvcc.revBytes { main := W64 ↑(List.length
-    ilog), sub := W64 ↑pend.length } t) d
+    ilog → cs.length < 2 ^ 63) (hp : pend.length + 1 < mvcc.putMax γ) (hd : List.length d + 18 ≤
+    bbolt.bboltEntryMax) : mvcc.storePutOk γ (mvcc.bucketMap ilog) (mvcc.pendPuts ilog pend)
+    (mvcc.revBytes { main := W64 ↑(List.length ilog), sub := W64 ↑pend.length } t) d
 
 theorem mvcc.revMuBodyL_noLag (s : Loc) (γ γp : mvcc.StoreNames) (q : Qp) : mvcc.revMuBodyL s γ γp q
     ⊢ ghostVar γ.wsd q.half.half () ∨ mvcc.revMuBody s γ γp q

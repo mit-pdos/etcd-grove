@@ -922,27 +922,59 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
     iapply HΦ $$ [Hm] Hfd
     iright; iframe; ipureintro; exact ⟨he, hEINTR⟩
 
-/-- `mmap(nil, len, PROT_READ, MAP_SHARED[|MAP_POPULATE], fd, 0)`, with the whole of the file's
-`OsMeta`, so that no change is in flight on it: on success, fresh cells at `base`, whose client
-halves hold the file's bytes, then holes past its end, inside the address space; on failure,
-`nil`. -/
-theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
-    (hrd : d.readable = true) (hoff : off = 0) (hlen : 0 < len.toInt)
+/-- What an `mmap` of `len` bytes of the file of `d`, whose `OsMeta` is `m`, gives back to
+`wp_osMmapG`'s accessor: the `OsMeta` as it was when the call did not return (`none`, the step to
+itself, `MmapStall`); on success (`some (base, 0)`), fresh cells at `base`, whose client halves hold
+the file's bytes, then holes past its end, inside the address space, and the mapping in the
+`OsMeta`; on failure (`some (null, e)`), `e ≠ 0` with `Fail e`. -/
+def mmapRes (Fail : w64 → Prop) (d : OsFd) (len : w64) (m : OsMeta) :
+    Option (Loc × w64) → IProp GF
+  | none => osMeta (L := L) d.ino (DFrac.own 1) m
+  | some (base, e) => iprop(
+      (⌜e = 0 ∧ 0 < base.addr ∧ base.addr + len.toNat ≤ maxAddr⌝ ∗
+          osMeta (L := L) d.ino (DFrac.own 1) ({ m with maps := <[base := len.toNat]> m.maps }) ∗
+          ∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
+            cellsR base 0 len.toNat (fun i => toCellVal bs[i]?)) ∨
+       (⌜e ≠ 0 ∧ base = null ∧ Fail e⌝ ∗ osMeta (L := L) d.ino (DFrac.own 1) m))
+
+/-- What `wp_osMmapG`'s accessor gives back: its resource `R` when the call did not return, `Ψ` of
+the result when it did. -/
+def mmapPost (R : IProp GF) (Ψ : Loc → w64 → IProp GF) : Option (Loc × w64) → IProp GF
+  | none => R
+  | some (base, e) => Ψ base e
+
+/-- **`mmap`, through an accessor of the file's whole `OsMeta`**: `mmap(nil, len, PROT_READ,
+MAP_SHARED[|MAP_POPULATE], fd, 0)`, with the whole `OsMeta` of the file (so that no change is in
+flight on it) from the accessor `R ={E \ ↑osN, E'}=∗ …`, opened at each step of the call, closed
+again with `R` back when the call does not return (`MmapStall`: no room for the mapping, the step
+to itself; Löb induction), with the result otherwise (`mmapRes`). The accessor may open an
+invariant that holds the `OsMeta`, which an atomic step could not: the call need not return.
+A failure's errno has `Fail` (`hfail`: what the semantics' step says of it, from a state where
+`fd` is open as `d`; `True` with no premise, `False` under `NoMapLockErr`). -/
+theorem wp_osMmapG (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (E' : CoPset)
+    (hE : ↑osN ⊆ E) (hrd : d.readable = true) (hoff : off = 0) (hlen : 0 < len.toInt)
     (hprot : prot.toNat = PROT_READ)
-    (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) (m) -∗
-      (∀ base : Loc, ∀ e : w64,
-        ((⌜e = 0 ∧ 0 < base.addr ∧ base.addr + len.toNat ≤ maxAddr⌝ ∗
-            osMeta (L := L) d.ino (DFrac.own 1) ({ m with maps := <[base := len.toNat]> m.maps }) ∗
-            ∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
-              cellsR base 0 len.toNat (fun i => toCellVal bs[i]?)) ∨
-         (⌜e ≠ 0 ∧ base = null⌝ ∗ osMeta (L := L) d.ino (DFrac.own 1) (m))) -∗
-        osFd (L := L) fd dq d -∗ Φ (PairV (#base) (#e))) -∗
+    (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (Fail : w64 → Prop)
+    (hfail : ∀ h st e h' st', st.proc.fds !! fd = some d →
+      ExtSemantics.step (E := fsExt) "Mmap"
+        (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))) h st ()
+        (osRes (#null) e) h' st' () → e ≠ 0 → Fail e)
+    (R : IProp GF) (Ψ : Loc → w64 → IProp GF) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗
+      □ (R ={E \ ↑osN, E'}=∗ osMeta (L := L) d.ino (DFrac.own 1) m ∗
+          ∀ r, mmapRes (L := L) Fail d len m r ={E', E \ ↑osN}=∗ mmapPost R Ψ r) -∗
+      (∀ base e, Ψ base e -∗ osFd (L := L) fd dq d -∗ Φ (PairV (#base) (#e))) -∗
+      osFd (L := L) fd dq d -∗ R -∗
       WP (ExternalOp fsExt.name "Mmap"
         (Val (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))))) @ s; E {{ Φ }} := by
-  iintro #Hinv Hfd Hm HΦ
-  iapply wp_os_step "Mmap" _ Φ (by simp [val.isPanic]) hE (by simp [DataOp]) $$ Hinv
+  iintro #Hinv #Hacc
+  iloeb as IH
+  iintro HΦ Hfd HR
+  iapply wp_os_stepXF "Mmap" _ Φ (by simp [val.isPanic]) hE (by simp [DataOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
+  imod Hacc $$ HR with ⟨Hm, Hcl⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ E' from Std.LawfulSet.empty_subset)
+  iintro Hclose2
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
@@ -956,14 +988,26 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
   have hnt := noInfl_of_noTok hcoh Hnt
   have hnoI : ∀ i, ¬ InflightAt st d.ino i := by
     rintro i ⟨t, c, ht, hcp, -⟩; exact hnt t c ht hcp
-  imodintro
   isplitr
   · ipureintro
-    exact ⟨_, h, st, ⟨fd, off, len, prot, fl, d, rfl, hfd, hrd, hoff, hlen, hprot, hfl,
-      .inr ⟨1, by decide, rfl, rfl⟩⟩, mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+    exact ⟨_, h, st, .inl ⟨⟨fd, off, len, prot, fl, d, rfl, hfd, hrd, hoff, hlen, hprot, hfl,
+      .inr ⟨1, by decide, rfl, rfl⟩⟩, mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩⟩
   inext
   iintro %e' %h' %st' %Hst
-  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  obtain ⟨Hst, Hsem⟩ := Hst
+  imod Hclose2
+  rcases Hst with ⟨Hst, Hfr, Hr⟩ | ⟨-, -, -, rfl, rfl, rfl⟩
+  rotate_left
+  · -- no room for the mapping: the step to itself, then the call again
+    imod Hcl $$ %none [Hm] with HR
+    · unfold mmapRes osMeta; iexact Hm
+    imodintro
+    iexists Γb, Γm, Γf, Γt
+    isplitl [HAb HAm HAf HAt Htok Hcells Hσ]
+    · iframe
+      ipureintro; exact ⟨hwf, hcoh⟩
+    unfold mmapPost
+    iapply IH $$ HΦ Hfd HR
   simp only [IsFsStep] at Hst
   obtain ⟨fd', off', len', prot', fl', d', hv, hfd', -, -, hlen', -, -, hres⟩ := Hst
   injection hv with h1 h2; injection h2 with h3 h4; injection h4 with h5 h6
@@ -1072,6 +1116,17 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
     · iframe; unfold halves; iapply BigSepM.bigSepM_empty.2; iempintro
     imod gAuth_update _ _ _ _ _ ({ m with maps := <[base := n]> m.maps }) $$ HAm Hm
       with ⟨HAm, Hm⟩
+    imod Hcl $$ %(some (base, (0 : w64))) [Hm Hout] with HΨ
+    · unfold mmapRes osMeta
+      rw [hn]
+      ileft
+      iframe Hm
+      isplitr
+      · ipureintro; exact ⟨rfl, hpos, by simpa [hn] using hmax⟩
+      iexists f.contents
+      isplitr
+      · ipureintro; rw [contents_length]; exact hmo.size.symm
+      iapply (cellsR_halves base 0 vf n).2 $$ Hout
     imodintro
     iexists Γb, _, Γf, Γt
     iframe
@@ -1102,28 +1157,63 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
             intro h; cases h; exact hpq rfl
           · rfl
     iapply wp_value'
-    iapply HΦ $$ [Hm Hout] Hfd
-    ileft
-    iframe Hm
-    isplitr
-    · ipureintro; exact ⟨rfl, hpos, by simpa using hmax⟩
-    iexists f.contents
-    isplitr
-    · ipureintro; rw [contents_length]; exact hmo.size.symm
-    iapply (cellsR_halves base 0 vf n).2 $$ Hout
+    unfold mmapPost
+    iapply HΦ $$ %base %(0 : w64) HΨ Hfd
   · -- failure
     imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
     · iframe
+    imod Hcl $$ %(some (null, e)) [Hm] with HΨ
+    · unfold mmapRes osMeta
+      iright
+      iframe Hm
+      ipureintro; exact ⟨he, rfl, hfail _ _ e _ _ hfd Hsem he⟩
     imodintro
     iexists Γb, Γm, Γf, Γt
     iframe
     isplitr
     · ipureintro; exact ⟨hwf, hcoh⟩
     iapply wp_value'
-    iapply HΦ $$ [Hm] Hfd
-    iright
-    iframe
-    ipureintro; exact ⟨he, rfl⟩
+    unfold mmapPost
+    iapply HΦ $$ %null %e HΨ Hfd
+
+/-- `mmap(nil, len, PROT_READ, MAP_SHARED[|MAP_POPULATE], fd, 0)`, with the whole of the file's
+`OsMeta`, so that no change is in flight on it: on success, fresh cells at `base`, whose client
+halves hold the file's bytes, then holes past its end, inside the address space; on failure,
+`nil`. (With no room for the mapping, the call does not return: `wp_osMmapG`.) -/
+theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
+    (hrd : d.readable = true) (hoff : off = 0) (hlen : 0 < len.toInt)
+    (hprot : prot.toNat = PROT_READ)
+    (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) (m) -∗
+      (∀ base : Loc, ∀ e : w64,
+        ((⌜e = 0 ∧ 0 < base.addr ∧ base.addr + len.toNat ≤ maxAddr⌝ ∗
+            osMeta (L := L) d.ino (DFrac.own 1) ({ m with maps := <[base := len.toNat]> m.maps }) ∗
+            ∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
+              cellsR base 0 len.toNat (fun i => toCellVal bs[i]?)) ∨
+         (⌜e ≠ 0 ∧ base = null⌝ ∗ osMeta (L := L) d.ino (DFrac.own 1) (m))) -∗
+        osFd (L := L) fd dq d -∗ Φ (PairV (#base) (#e))) -∗
+      WP (ExternalOp fsExt.name "Mmap"
+        (Val (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Hm HΦ
+  iapply wp_osMmapG fd off len prot fl dq d m (E \ ↑osN) hE hrd hoff hlen hprot hfl (fun _ => True)
+    (fun _ _ _ _ _ _ _ _ => trivial) (osMeta (L := L) d.ino (DFrac.own 1) m)
+    (fun base e => mmapRes (L := L) (fun _ => True) d len m (some (base, e))) Φ $$ Hinv [] [HΦ]
+    Hfd Hm
+  · imodintro
+    iintro Hm
+    imodintro
+    iframe Hm
+    iintro %r Hr
+    imodintro
+    rcases r with _ | ⟨base, e⟩
+    · unfold mmapRes mmapPost; iexact Hr
+    · unfold mmapPost; iexact Hr
+  · iintro %base %e Hr Hfd
+    iapply HΦ $$ [Hr] Hfd
+    unfold mmapRes
+    icases Hr with (⟨%he, Hm, Hc⟩ | ⟨%he, Hm⟩)
+    · ileft; iframe; ipureintro; exact he
+    · iright; iframe; ipureintro; exact ⟨he.1, he.2.1⟩
 
 /-- `munmap` of a whole mapping (`unix.Munmap(b)`), with the whole of the file's `OsMeta` and
 the client halves of all the mapping's cells. On success the mapping and its cells are gone; on

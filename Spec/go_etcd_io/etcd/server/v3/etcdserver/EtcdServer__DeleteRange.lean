@@ -36,12 +36,14 @@ the proposal's. Its clients take it at `E.authOn` (the auth component's stage 4 
 modes' former specs). -/
 abbrev EtcdServer.DeleteRange.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull) (Q : KVState → IProp GF)
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (op : OpFull) (Q : KVState → IProp GF)
     (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗
+      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ trace.spanCtxOk ctx ∗
       context.startTimeOk ctx ∗
-      txn.deleteRangeRequestIs r op ∗ deletePermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ srvApi.kvLogLb E.γs F }}
+      txn.deleteRangeRequestIs r op ∗ deletePermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E tok) op Q ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -56,12 +58,12 @@ abbrev EtcdServer.DeleteRange.spec : Prop :=
           srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
           E.Nx x'.log ∗
           ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
-          (∃ lt, ⌜E.authOn = false ∨ ρ.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)) ∗ hdrBoundM E.authOn s E (GoInterface.ok ctx) hm ∗
+          (∃ lt, ⌜E.authOn = false ∨ ρ.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)) ∗ hdrBoundM E.authOn s E tok hm ∗
           □ (⌜E.authOn = true⌝ → ∃ L, ⌜grantedAt ρ.kv srvAuthSt0 rq' L⌝ ∗ pubAfterM true E ρ rq' L)) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq'⌝ ∗ appliedErr E rq' F err ∗
-            hdrBoundM E.authOn s E (GoInterface.ok ctx) hm) ∨
+            hdrBoundM E.authOn s E tok hm) ∨
           srvMaybeDeposited ρ (irrDeleteRange op)))) }}
 
 end spec

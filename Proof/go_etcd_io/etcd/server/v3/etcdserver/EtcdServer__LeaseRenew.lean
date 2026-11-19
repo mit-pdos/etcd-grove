@@ -56,20 +56,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- The key check over the span's context is one over the caller's: the span keeps the context's
-incoming metadata (`Tracer.Start`), which is all the principal's bound reads. -/
-private theorem leaseCheckFrom_ctx (s : Loc) (E : apply.AEnv GF) (c c' : GoInterface) (n : Nat)
-    (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF)
-    (h : metadata.incomingOf c = metadata.incomingOf c') :
-    leaseCheckFrom s E c n K ⊢ leaseCheckFrom s E c' n K := by
-  unfold leaseCheckFrom
-  iintro (H | ⟨%info, #Hb, Hk⟩)
-  · ileft; iexact H
-  · iright; iexists info; iframe Hk
-    iintro !> %ho
-    iapply (principalBound_ctx s E.authMode c c' info h)
-    iapply Hb $$ %ho
-
 /-- The lessor's error variables `LeaseRenew` returns or compares with (`leaseInit`). -/
 private theorem renewErrs [_root_.Perennial.errors.Assumptions] :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ⊢
@@ -120,6 +106,22 @@ local macro "renew_err" Herr:ident : tactic => `(tactic| (
   (try wp_auto)
   iapply HΦ
   iframe HRD Htok Hetok Hlgr Hrrd
+  iright
+  isplitr
+  · ipureintro; nofun
+  iexact $Herr))
+
+set_option hygiene false in
+/-- A return of the leader's block (`err ≠ nil`, `Herr : applyErrIs err`) at the join after it
+(`wp_join` at `if s.isLeader()`): the join's return disjunct. -/
+local macro "renew_ret" Herr:ident : tactic => `(tactic| (
+  (try wp_auto)
+  iright
+  isplitr
+  · ipureintro; first | rfl | trivial
+  iexists _, _
+  iframe HRD Htok Hlgr Hrrd
+  iframe
   iright
   isplitr
   · ipureintro; nofun
@@ -265,7 +267,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   subst Hln
   (try wp_auto)
   -- `if err := s.checkLeaseRenew(ctx, id); err != nil { return 0, err }`
-  wp_apply (hChk s E γl ctx1 _ id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
+  wp_apply (hChk s E γl ctx1 _ tok id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
   · iframe #; iframe HRD Htok; ipureintro; exact Hbound
   rcases cerr with cei | _
   · renew_err Hce
@@ -320,7 +322,7 @@ local macro "renew_forward" : tactic => `(tactic| (
       ileft
       isplitr
       · ipureintro; rfl
-      iapply leaseCheckFrom_ctx _ _ _ _ _ _ Hinc1; iexact Hchk1
+      iexact Hchk1
     rcases herr with hei | _
     rotate_left
     · exact absurd rfl Hhn
@@ -352,6 +354,15 @@ local macro "renew_forward" : tactic => `(tactic| (
     iframe))
 
 set_option hygiene false in
+/-- The leader's block falls through to the forwarding: the join's first disjunct. -/
+local macro "renew_fall" : tactic => `(tactic| (
+  (try wp_auto)
+  ileft
+  isplitr
+  · ipureintro; first | rfl | trivial
+  iframe))
+
+set_option hygiene false in
 /-- `if err := s.waitAppliedIndex(); err != nil { return 0, err }`. -/
 local macro "renew_wait" : tactic => `(tactic| (
   wp_apply (hWai s E ρ γr) as %werr Hw
@@ -359,18 +370,18 @@ local macro "renew_wait" : tactic => `(tactic| (
   rcases werr with wei | _
   · icases Hw with (%Hwn | ⟨%Hwn, #Hwe⟩)
     · cases Hwn
-    renew_err Hwe
+    renew_ret Hwe
   iclear Hw
   (try wp_auto)))
 
 set_option hygiene false in
-/-- The leader's tail: `checkLeaseRenew`, then the lessor's `Renew`; on `ErrNotPrimary`, the
-forwarding. -/
+/-- The leader's tail: `checkLeaseRenew`, then the lessor's `Renew`; on `ErrNotPrimary`, the fall
+through to the forwarding (the join's first disjunct). -/
 local macro "renew_leader_tail" : tactic => `(tactic| (
-  wp_apply (hChk s E γl ctx1 _ id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
+  wp_apply (hChk s E γl ctx1 _ tok id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
   · iframe #; iframe HRD Htok; ipureintro; exact Hbound
   rcases cerr with cei | _
-  · renew_err Hce
+  · renew_ret Hce
   ihave #Hchk1 := Hcok $$ %rfl
   (try wp_auto)
   wp_apply (hRen lp γl id) $$ [Htok] as %ttl %rerr ⟨Htok, Hre⟩
@@ -379,14 +390,16 @@ local macro "renew_leader_tail" : tactic => `(tactic| (
   icases Hre with (%Hrn | ⟨%e, #He, %Hre⟩ | ⟨%e, #He, %Hre⟩)
   · subst Hrn
     (try wp_auto)
-    wp_apply HEnd
-    (try wp_auto)
-    iapply HΦ
-    iframe HRD Htok Hetok Hlgr Hrrd
+    iright
+    isplitr
+    · ipureintro; first | rfl | trivial
+    iexists _, _
+    iframe HRD Htok Hlgr Hrrd
+    iframe
     ileft
     isplitr
     · ipureintro; rfl
-    iapply leaseCheckFrom_ctx _ _ _ _ _ _ Hinc1; iexact Hchk1
+    iexact Hchk1
   all_goals (
     subst Hre
     first
@@ -403,10 +416,10 @@ local macro "renew_leader_tail" : tactic => `(tactic| (
     · iframe #; ipureintro; exact HS.1
     (try wp_auto)
     cases b with
-    | false => renew_err Hre'
+    | false => renew_ret Hre'
     | true =>
       (try wp_auto)
-      renew_forward)))
+      renew_fall)))
 
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.LeaseRenew.wp_proof
@@ -430,8 +443,8 @@ theorem EtcdServer.LeaseRenew.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr γl ctx cd id n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, Hetok, #Hlib, #Hnet, #Hcause, HRD, #Hpool,
+  intro s E ρ γr γl ctx cd tok id n m
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, Hetok, #Hlib, #HtokC, #Hnet, #Hcause, HRD, #Hpool,
     Htok, Hlgr, Hrrd, %Hbound, #Hprt⟩
   ihave #Hr' := Hr
   iunfold isServerReadM at Hr'
@@ -468,12 +481,15 @@ theorem EtcdServer.LeaseRenew.wp_proof
   iunfold context.libCtxOk at Hlib'
   icases Hlib' with ⟨-, -, -, #Hspv⟩
   wp_apply (hStart tr ctx cd _ _) $$ [] as %ctx1 %sp
-    ⟨-, #Hwkw, -, %Hinc1, #Hsp, -, -, #Hlibw, #Hnetw, #Hcausew⟩
+    ⟨-, #Hwkw, -, #Hmd1, #Hsp, -, -, #Hlibw, #Hnetw, #Hcausew⟩
   · iframe #
   ihave #Hctx1 := Hwkw $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib
   ihave #Hnet1 := Hnetw $$ Hnet
   ihave #Hcause1 := Hcausew $$ Hcause
+  ihave #HtokE := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+  · iintro !> %h; iapply HtokE; ipureintro; exact h
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
@@ -498,9 +514,21 @@ theorem EtcdServer.LeaseRenew.wp_proof
   ihave #Htx1 : (mvcc.txnCtx (GF := GF) ctx1 cd ∨ srvCtxWeak ctx1 cd) $$ []
   · iright; iexact Hctx1
   (try wp_auto)
-  cases isl with
-  | true =>
-    (try wp_auto)
+  -- `if s.isLeader() { ... }`, joined before the forwarding (proved once, not once per way the
+  -- leader's block falls through): the block falls through with the locals and resources, or
+  -- returns with the results in `$res0`/`$res1` and the postcondition's facts
+  wp_join (Q := fun v => iprop(
+      (⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ zero_val w64 ∗ «$res1_ptr» ↦ GoInterface.nil ∗ s_ptr ↦ s ∗
+        id_ptr ↦ id ∗ ctx_ptr ↦ GoInterface.ok ctx1 ∗ E.RD ∗ levelTok lease.lessorLvl ∗
+        srvLgReader s ∗ srvReadReader s γr) ∨
+      (⌜v = returnVal #()⌝ ∗ ∃ (ttl : w64) (err : GoInterface), «$res0_ptr» ↦ ttl ∗
+        «$res1_ptr» ↦ err ∗ E.RD ∗ levelTok lease.lessorLvl ∗ srvLgReader s ∗ srvReadReader s γr ∗
+        ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E tok n
+            (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
+         (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))))
+    with [«$res0» «$res1» s id ctx HRD Htok Hlgr Hrrd]
+  · renew_fall
+  · (try wp_auto)
     -- `if !s.ensureLeadership() { return -1, lease.ErrNotPrimary }`
     -- (revoke-open Q5, 2026-11-06) `ensureLeadership` takes a level of the thread token: level 0,
     -- the one the spec takes (`lessorLvl`), returned before the check and `Renew`
@@ -510,7 +538,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
     cases b with
     | false =>
       (try wp_auto)
-      renew_err HNPe
+      renew_ret HNPe
     | true =>
     (try wp_auto)
     -- `if s.FeatureEnabled(features.FastLeaseKeepAlive)`
@@ -549,9 +577,19 @@ theorem EtcdServer.LeaseRenew.wp_proof
       (try wp_auto)
       renew_wait
       renew_leader_tail
-  | false =>
-    (try wp_auto)
-    renew_forward
+  · iintro HQ
+    icases HQ with (⟨%Hv, Hr0, Hr1, Hs, Hid, Hc, HRD, Htok, Hlgr, Hrrd⟩ |
+      ⟨%Hv, %ttl, %err, Hr0, Hr1, HRD, Htok, Hlgr, Hrrd, Hpost⟩)
+    · subst Hv
+      (try wp_auto)
+      renew_forward
+    · subst Hv
+      (try wp_auto)
+      wp_apply HEnd
+      (try wp_auto)
+      iapply HΦ
+      iframe HRD Htok Hetok Hlgr Hrrd
+      iexact Hpost
 
 end proof
 

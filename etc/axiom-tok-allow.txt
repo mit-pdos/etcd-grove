@@ -20,7 +20,7 @@
 # stale.
 
 # --- rule 2: the one token mint ---
-entry Perennial.EtcdGrove.goose_adequacy_start_files 2:*:produced1/consumed0  the first thread's token, from `σ.threads = 1` at the start of the run (Proof/runtime/Start.lean); the adequacy theorem's own premise
+entry Perennial.EtcdGrove.goose_adequacy_start 2:*:produced1/consumed0  the first thread's token, from `σ.threads = 1` at the start of the run (Proof/runtime/Start.lean); the adequacy theorem's own premise
 
 # --- the grpc pair (Scope r5 §2.2, "The pair"; InvGrpcRun.lean's header) ---
 pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof
@@ -137,3 +137,18 @@ entry Perennial.EtcdGrove.v3rpc.wp_WithTimeout_weak 2:L:v3rpc.ctxErrLvl:handedto
 entry Perennial.EtcdGrove.io.ReadFull.wp_proof 3:E:produced1/consumed0  `E` is the caller's error-evidence predicate (`io.readerStream ri S E`), persistent (`□ E`): the post's `□ E (r0 ++ ys) e` (`io.readFullRes`) is the evidence the last `Read` returned for its error `e` (`io.readerStream`'s triple, in the consumed handle, posts `io.errAt E (r ++ ys) err` = `⌜err = nil⌝ ∨ □ E ...`, which the walk counts as consuming 0, the min over the disjunction's branches); `ReadAtLeast` (go1.27 io.go) returns that `Read`'s error unchanged unless it substitutes `ErrUnexpectedEOF` (then no `E` is claimed of the result, only of `e`): a copy of a persistent fact the caller's reader gave, nothing minted
 # The ratchet's exception (the section above says none may be added): `MarshalAppendCachedRecord` is `proto.MarshalAppendPb`'s spec (listed above) at one type, with the same post `b' ↦* (xs ++ pbEncC I c)` over the registered `I`, and its walk stops at the same place (`ownSlice` of a value the walk cannot open); it was written before the gate saw it
 trunc Perennial.EtcdGrove.proto.MarshalAppendCachedRecord.wp_proof
+# The ratchet's exception (bbolt S1, 2026-11-17; for the coordinator's review): the backend's bbolt
+# predicates (`ownDB`, `txLive`, `isDB`, ... in `InvBbolt.lean`) are no longer opaque axioms but `onFs` of
+# bbolt's sealed API, whose definitions (`isBoltDef`, `boltTxDef`: invariants, `sync.isPool`, the logger)
+# the walk now opens and truncates in; no statement of these axioms changed but their vocabulary, and the
+# definitions are bbolt's proved ones (`Proof/go_etcd_io/bbolt/Inv/`), not trusted text.
+trunc Perennial.EtcdGrove.auth.NewAuthStore.wp_proof
+trunc Perennial.EtcdGrove.backend.backend.Snapshot.wp_proof
+trunc Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof
+trunc Perennial.EtcdGrove.membership.RaftCluster.SetBackend.wp_proof
+trunc Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
+trunc Perennial.EtcdGrove.schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
+trunc Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof
+trunc Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof
+trunc Perennial.EtcdGrove.v3alarm.AlarmStore.restore.wp_proof
+trunc Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof

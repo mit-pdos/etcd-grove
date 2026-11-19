@@ -9,7 +9,7 @@ that can hold it (`rd_get_lookup`). A writer (`wp_writer`, at any fraction): `se
 module
 
 public import Spec.go_etcd_io.bbolt.Bucket__Get
-public import Spec.go_etcd_io.bbolt.Bucket__Cursor_i
+public import Proof.go_etcd_io.bbolt.Bucket__Cursor_i
 public import Spec.go_etcd_io.bbolt.Cursor__seek_r
 public import Spec.go_etcd_io.bbolt.Cursor__seek_w
 public import Proof.go_etcd_io.bbolt.Read.PubWGet

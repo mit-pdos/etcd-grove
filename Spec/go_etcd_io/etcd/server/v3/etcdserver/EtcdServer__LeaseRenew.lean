@@ -62,11 +62,13 @@ the model), so the switch's default arm is reachable: it logs "Unexpected lease 
 and returns `ErrCanceled`. -/
 abbrev EtcdServer.LeaseRenew.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
       lease.lessorLb γl m ∗ srvCtxWeak ctx cd ∗ levelTok v3rpc.ctxErrLvl ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗
       http.netCtxOkC ctx ∗ v3rpc.ctxCauseOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       srvLgReader s ∗ srvReadReader s γr ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       srvPeerRt s }}
@@ -74,7 +76,7 @@ abbrev EtcdServer.LeaseRenew.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); E.RD ∗
       levelTok lease.lessorLvl ∗ levelTok v3rpc.ctxErrLvl ∗ srvLgReader s ∗ srvReadReader s γr ∗
-      ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E (GoInterface.ok ctx) n
+      ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E tok n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
        (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 

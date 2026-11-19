@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SnapPure
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.StreamBound
 public import Perennial.Proof.sync.Results
 public import Proof.ReceiptTactics
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotLemmas
 
 @[expose] public section
 
@@ -39,16 +40,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
-
-/-- The snapshot record's size, from its encoding's bound. -/
-theorem snap_recSize (c : w32) (d : List w8) (hd : d.length < 2 ^ 40) :
-    recSize (recOf ⟨snapshotType, hash.crc32.crc32c c d, d⟩) < 2 ^ 47 := by
-  have := recSize_le snapshotType (hash.crc32.crc32c c d) d (by decide)
-  omega
-
-theorem walLastHS_snap (H : WalHist) (md : SnapshotMetadataM) :
-    walLastHS (H ++ [WalOpG.snap md]) = walLastHS H := by
-  simp [walLastHS, List.foldl_append]
 
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)

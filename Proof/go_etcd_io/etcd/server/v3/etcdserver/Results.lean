@@ -676,7 +676,11 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   have hoff : E.authMode = .off := by
     unfold apply.AEnv.authOn at hon
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
-  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F 0
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  ihave #HtokF : □ (False → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd none r o ot te (fun _ => iprop(True)) F 0
     (by rw [hoff]; intro h; cases h)
   rw [hon] at h'
   rw [isServerReqM_false, isServerReadM_false, kvStM_false] at h'
@@ -737,7 +741,11 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   have hoff : E.authMode = .off := by
     unfold apply.AEnv.authOn at hon
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
-  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F 0
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  ihave #HtokF : □ (False → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd none r o ot te (fun _ => iprop(True)) F 0
     (by rw [hoff]; intro h; cases h)
   rw [hon] at h'
   rw [isServerReqM_false, isServerReadM_false, kvStM_false] at h'
@@ -793,7 +801,11 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
     unfold apply.AEnv.authOn at hon
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
   ihave #Hlb := srvAuthLb_off s E ρ $$ Hq
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t (fun _ => iprop(True)) (fun _ => iprop(True))
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  ihave #HtokF : □ (False → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd none r t (fun _ => iprop(True)) (fun _ => iprop(True))
     ot te F 0
   rw [hon] at hT
   simp only [hro, ↓reduceIte, txnReadOkM_false, isServerReqM_false, isServerReadM_false,
@@ -834,8 +846,12 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, #Hlib, #Hspc, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
   ihave %hon := isServerReq_authOn s E ρ $$ Hq
-  imod txnPermitM_false ρ.raft ρ.kv (hdrBoundM false s E (GoInterface.ok ctx)) t Q $$ Hnp with Hnp
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q (fun _ => iprop(True)) ot te F 0
+  imod txnPermitM_false ρ.raft ρ.kv (hdrBoundM false s E none) t Q $$ Hnp with Hnp
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  ihave #HtokF : □ (False → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd none r t Q (fun _ => iprop(True)) ot te F 0
   rw [hon] at hT
   simp only [hw, Bool.false_eq_true, ↓reduceIte, isServerReqM_false, isServerReadM_false] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot Hnp]
@@ -1467,13 +1483,12 @@ theorem auth_admin_permitted_lb : auth.authStore.IsAdminPermitted.specLb (GF := 
   auth.authStore.IsAdminPermitted.wp_lb auth_enabled_lb auth_locked_read_tx_lb auth.wp_hasRootRole
 
 /-- **The guards' store calls no older than a reader's lower bound** (auth-guard-completeness G1,
-`auth/FreshCtx.lean`, `auth/FreshAdmin.lean`): `AuthInfoFromCtx` with why it gave no principal
+`auth/FreshAdmin.lean`; since perheap C1a the one `AuthInfoFromCtx.spec`): `AuthInfoFromCtx` with why it gave no principal
 (no token, or auth disabled at a state no older than the bound) or an error (a token the context
 carries), and `IsAdminPermitted` of a `nil` auth info or not with its refusal half, every callee
 linked. -/
-theorem auth_ctx_lb : auth.authStore.AuthInfoFromCtx.specLb (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromCtx.wp_lb auth_enabled_lb metadata.wp_FromIncomingContext
-    auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
+theorem auth_ctx_lb : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
+  auth.authStore.wp_AuthInfoFromCtx
 
 theorem auth_op_permitted_lbR : auth.authStore.isOpPermitted.specLbR (GF := GF) :=
   auth.authStore.isOpPermitted.wp_lbR auth_enabled_lb auth_revision_lb zap.wp_Uint64
@@ -2067,7 +2082,7 @@ theorem srv_auth_bound_of_inv (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ auth.authIface stp ∗
       auth.authInv stp R E.authMode ∗ auth.tpReady E.authMode ⊢ srvAuthBound s E :=
-  srvAuthBound_of_authInv auth.authStore.wp_AuthInfoFromCtx auth_enabled_lb auth_ctx_lb auth_admin_permitted_lbO s stp R E hRD
+  srvAuthBound_of_authInv auth_enabled_lb auth.authStore.wp_AuthInfoFromCtx auth_admin_permitted_lbO s stp R E hRD
 
 end tokens
 
@@ -2100,7 +2115,7 @@ theorem srv_auth_tp_on
     auth.tokenSimple.wp_genTokenPrefix
     zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
     auth.authStore.wp_setupMetricsReporter auth.authStore.wp_refreshRangePermCache
-    auth.authStore.wp_AuthInfoFromCtx auth_ctx_lb auth_admin_permitted_lbO
+    auth.authStore.wp_AuthInfoFromCtx auth_admin_permitted_lbO
     auth.authStore.wp_AuthInfoFromTLS auth.authStore.wp_IsPutPermitted auth.authStore.wp_IsRangePermitted
     auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
     auth.authStore.wp_IsAuthEnabled auth_put_permitted_latest auth_range_permitted_latest
@@ -2188,7 +2203,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     backend.batchTxBuffered.wp_UnsafeDelete 
     
     lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get
-    bootstrappedServer.wp_Close
+    bootstrappedServer.wp_Close raftNode_of_StartNode_law_holds
 
 end serverAuth
 

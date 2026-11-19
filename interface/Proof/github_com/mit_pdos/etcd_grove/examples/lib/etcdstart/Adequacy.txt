@@ -23,14 +23,6 @@ def progOk [GoGlobalContext] (R B : IProp GF) (init : val) (body : Expr) (φ : v
             ▷ (ownInitializing getInit ∗ I -∗ Φ (intoVal ())) -∗ WP (init (intoVal ())) {{ Φ }}) ∧
       (⊢ I -∗ threadTok -∗ B -∗ WP body {{ v, ⌜φ v⌝ }})
 
-def heapWith (hG : HeapGS HasLC.hasLC GF) (lctx : GoLocalContext) : HeapGS HasLC.hasLC GF :=
-  { goose_globalGS := HeapGS.goose_globalGS,
-    goose_localGS :=
-      have __src := HeapGS.goose_localGS;
-      { gooseExtsLocalGS := gooseExtsLocalGS, goose_go_local_context := lctx,
-        goose_na_heapGS := GooseLocalGS.goose_na_heapGS, goose_go_stateGS := GooseLocalGS.goose_go_stateGS,
-        goose_threadGS := GooseLocalGS.goose_threadGS, goose_crashGS := GooseLocalGS.goose_crashGS } }
-
 theorem wp_of_progOk [GoGlobalContext] (R B : IProp GF) (init : val) (body : Expr) (φ : val → Prop)
     (h : progOk R B init body φ) : ⊢ ownGoState ∅ -∗ threadTok -∗ R -∗ B ={⊤}=∗ WP (init (intoVal
     ()) ;; body) {{ v, ⌜φ v⌝ }}

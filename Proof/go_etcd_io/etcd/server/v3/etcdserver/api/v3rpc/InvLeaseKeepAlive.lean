@@ -17,7 +17,7 @@ server meets it with `S' := E.RD ∗ levelTok 0 ∗ srvLgReader s ∗ srvReadRea
 **The stream specification** (`kaStreamSpec`, K4): the `j`th response `(id, ttl)` answers the `j`th
 request `q` (`id = q.id`) and, unless its TTL is `0`, carries the renewal's verdict at the
 request's ghost bounds (`q.nb`, `q.mb`, vouched for by the client's content `kaUp`) for the run's
-token (`leaseCheckT`, the check over a token, as the watch stream's `watchAuthed`: registrable at
+token (`leaseCheckFrom`, the check over a token, as the watch stream's `watchAuthed`: registrable at
 the stream's metadata). **Margins**: the response's header is not stated (the shared wire model
 keeps none of it, so nothing of its revision); a TTL of `0` carries nothing; nothing of the
 renewal itself (that the lease was renewed, its TTL); the verdict is the local member's lessor's,
@@ -54,37 +54,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-! ## The check over a token -/
-
-/-- **A principal bound to the token `tok`** (persistent; `principalBound`'s over the token, the lease
-checks' `leaseCheckFrom`): the user `tok` was issued to, or the server's TLS fallback is on. Unlike
-`infoBoundT`, not the empty user (auth-lease S1, 2026-11-14: until then `infoBoundTM`, `infoBoundT`
-with auth on). -/
-def principalBoundT (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
-  iprop((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token info.Username') ∨ srvTLSId s)
-
-instance principalBoundT_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    Persistent (principalBoundT (GF := GF) s M tok info) := by
-  unfold principalBoundT; infer_instance
-
-/-- **What a passed lease check establishes, for the token `tok`** (persistent; `leaseCheckFrom`
-over the context's token, as a stream specification can state it): auth disabled at a state no
-older than `n`; or an info that, with auth on, is bound to the token (`principalBoundT`) an admin at
-such a state, or `K info`. -/
-def leaseCheckT (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
-    (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) : IProp GF :=
-  iprop(auth.enabledVerdictFrom E.authMode n false ∨
-    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
-      □ (⌜E.authOn = true⌝ → principalBoundT s E.authMode tok info) ∗
-      (adminVerdictFrom E.authMode n info GoInterface.nil ∨ K info))
-
-instance leaseCheckT_persistent (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
-    (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) [hK : ∀ info, Persistent (K info)] :
-    Persistent (leaseCheckT (GF := GF) s E tok n K) := by
-  unfold leaseCheckT; infer_instance
-
 /-! ## The stream -/
 
 /-- **The client's content of a keep-alive request** (the registration's `Up`, persistent): its
@@ -111,7 +80,7 @@ token `tok`. -/
 def kaDn (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamNames) (tok : Option GoString)
     (j : Nat) (r : w64 × w64) : IProp GF :=
   iprop(∃ q : KaReqM, upAt (Req := pbLeaseKeepAliveRequest) γs j q ∗ ⌜r.1 = q.id⌝ ∗
-    (⌜r.2 = W64 0⌝ ∨ leaseCheckT s E tok q.nb
+    (⌜r.2 = W64 0⌝ ∨ leaseCheckFrom s E tok q.nb
       (fun info => leaseKeysVerdictFrom E.authMode q.nb info γl q.mb q.id .write)))
 
 instance kaDn_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamNames)
@@ -131,12 +100,12 @@ instance kaStreamSpec_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (γ
 
 /-! ## The contract -/
 
-/-- **The server's `LeaseRenew` answer** at the context `ctx`, with the lower bounds `n`, `m`, for
+/-- **The server's `LeaseRenew` answer** for a caller with the token `tok`, with the lower bounds `n`, `m`, for
 the lease `id`: `nil` and the key check's verdict (`.write`), or a non-nil `applyErrIs` error
 (`EtcdServer.LeaseRenew.spec`'s). -/
-def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (n m : Nat)
+def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (tok : Option GoString) (n m : Nat)
     (id : w64) (err : GoInterface) : IProp GF :=
-  iprop((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E (GoInterface.ok ctx) n
+  iprop((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E tok n
       (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
     (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
 
@@ -145,12 +114,14 @@ def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (
 returned) whose causes are context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`), as
 `EtcdServer.LeaseRenew.spec`. -/
 def raftLeaseRenew (s : Loc) (E : apply.AEnv GF) (γl : GName) (S' : IProp GF) : IProp GF :=
-  iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
-    {{ S' ∗ srvCtxWeak ci cd ∗ levelTok v3rpc.ctxErrLvl ∗ context.libCtxOk ci ∗ http.netCtxOkC ci ∗
+  iprop(∀ (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (id : w64)
+      (n m : Nat),
+    {{ S' ∗ srvCtxWeak ci cd ∗ levelTok v3rpc.ctxErrLvl ∗ context.libCtxOk ci ∗
+        □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ http.netCtxOkC ci ∗
         v3rpc.ctxCauseOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseRenew")) (Val #(GoInterface.ok ci))) (Val #id))
     {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); S' ∗ levelTok v3rpc.ctxErrLvl ∗
-        renewAns s E γl ci n m id err }})
+        renewAns s E γl tok n m id err }})
 
 instance raftLeaseRenew_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (S' : IProp GF) :
     Persistent (raftLeaseRenew s E γl S') := by
@@ -166,27 +137,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 open Iris.ProofMode
-
-/-- A principal bound to the context is bound to its token. -/
-theorem principalBoundT_of_principalBound (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    principalBound (GF := GF) s M ctx (some info) ⊢ principalBoundT s M (auth.ctxTokenOf ctx) info := by
-  unfold principalBound principalBoundT
-  iintro H; iexact H
-
-/-- **A passed lease check, over the context's token** (`leaseCheckFrom` gives `leaseCheckT`). -/
-theorem leaseCheckT_of_from (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (n : Nat)
-    (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) :
-    leaseCheckFrom (GF := GF) s E ctx n K ⊢ leaseCheckT s E (auth.ctxTokenOf ctx) n K := by
-  unfold leaseCheckFrom leaseCheckT
-  iintro (H | ⟨%info, #Hb, HK⟩)
-  · ileft; iexact H
-  · iright
-    iexists info
-    iframe HK
-    iintro !> %ho
-    iapply principalBoundT_of_principalBound
-    iapply Hb $$ %ho
 
 end lemmas
 

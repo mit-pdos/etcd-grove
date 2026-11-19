@@ -47,13 +47,16 @@ def View.data (v : View) : Data :=
 /-- A view is a committed state's at its mapping (so its tree is `treeOK`). -/
 def viewWF (v : View) : Prop := ∃ C, treeOK C ∧ View.ofC v.base C = v
 
-/-- A registered reader (`pagesInv`'s registry): its view. -/
+/-- A registered reader (`pagesInv`'s registry): its view, and (session S4, for `Tx.WriteTo`) its
+committed state's synced freelist page and that page's bytes, if any (the store keeps them while
+the reader is registered). -/
 structure RdInfo where
   v : View
+  fx : Option (Nat × List w8) := none
   deriving Inhabited
 
 instance RdInfo.countable : Pos.Countable RdInfo :=
-  countableOfLeftInverse (fun r => r.v) (fun v => ⟨v⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun r => (r.v, r.fx)) (fun x => ⟨x.1, x.2⟩) (fun _ => rfl)
 
 /-- The slots of every pending page (`Free` records each slot of an extent). -/
 def pendSlots (fl : FLPg) : List Nat := fl.pendingIds.map BitVec.toNat

@@ -60,7 +60,7 @@ theorem pndPart_halves (a : AbsNames) (p : Option (List Change)) :
 
 /-- **The watchable `End`'s step from the client's update** (see the header). -/
 theorem wsEndCbY_of_au (γw : WsNames) (σ₀ : MvccState) (pend : List Change) (Q : IProp GF)
-    (hw : γw.st.watchQ = true) (hp : σ₀.pending = none) :
+    (hw : γw.st.watchQ = true) (hp : σ₀.pending = none) (hc : ChPutsLe etcdKeyMax pend) :
     endAU γw.st σ₀ pend Q ⊢ wsEndCbY γw σ₀.log pend σ₀.crev Q := by
   have hpw : pndW γw.st = (1 : Qp).half.half := by
     unfold pndW; rw [hw]; rfl
@@ -113,7 +113,7 @@ theorem wsEndCbY_of_au (γw : WsNames) (σ₀ : MvccState) (pend : List Change) 
   have e1 : σ.notify pend = ⟨σ.log, σ.crev, some pend⟩ :=
     MvccState.ext' rfl rfl (notify_cons_pending hpe)
   have hreach1 : MvccReachable (⟨σ.log, σ.crev, some pend⟩ : MvccState) :=
-    e1 ▸ MvccReachable.notify σ pend Hreach hp hwf
+    e1 ▸ MvccReachable.notify σ pend Hreach hp hwf hc
   imod Hcommit $$ [Ha Hp Hcr Hnl] with Hau2
   · isplitr
     · ipureintro; rfl

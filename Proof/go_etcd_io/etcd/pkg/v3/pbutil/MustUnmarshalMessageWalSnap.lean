@@ -12,7 +12,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCallees
 public import Spec.google_golang_org.protobuf.proto.UnmarshalPb
-public import Proof.google_golang_org.protobuf.proto.CloneWalSnap
+public import Proof.google_golang_org.protobuf.proto.CloneWalSnapLemmas
 
 @[expose] public section
 

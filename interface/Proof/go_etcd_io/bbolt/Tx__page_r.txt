@@ -16,3 +16,8 @@ theorem bbolt.Tx.page_r.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : Has
                 ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"page" (intoVal tx)))
                   (intoVal id))
                 {{ Φ }}
+
+theorem bbolt.rdx.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (B B✝ : bbolt.BNs) (e_B
+    : B = B✝) (r r✝ : bbolt.TxReg) (e_r : r = r✝) (q q✝ : Qp) (e_q : q = q✝) (v v✝ : bbolt.View)
+    (e_v : v = v✝) (mv mv✝ : go_etcd_io.bbolt.internal.common.Meta) (e_mv : mv = mv✝) (k k✝ : Nat)
+    (e_k : k = k✝) : bbolt.rdx B r q v mv k = bbolt.rdx B✝ r✝ q✝ v✝ mv✝ k✝

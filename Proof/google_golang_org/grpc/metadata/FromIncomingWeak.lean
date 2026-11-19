@@ -20,7 +20,7 @@ open Iris Iris.BI Iris.ProofMode google_golang_org.grpc
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `metadata.FromIncomingContext(ctx)`: `(md, ok)`; if `ok`, `md` is a fresh map, each of its
@@ -38,8 +38,10 @@ theorem metadata.FromIncomingContext.weaken
     (h : metadata.FromIncomingContext.spec (GF := GF) (hG := hG)) :
     metadata.FromIncomingContext.weakSpec (GF := GF) (hG := hG) := by
   intro ctx
-  iintro %Φ Hpre HΦ
-  iapply h ctx $$ Hpre
+  iintro %Φ ⟨#Hpkg, #Hinc⟩ HΦ
+  iunfold metadata.incomingCtxOk at Hinc
+  icases Hinc with ⟨%md, #Hmd⟩
+  iapply h ctx md $$ [$Hpkg $Hmd]
   inext
   iintro %md %ok Hpost
   iapply HΦ

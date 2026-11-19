@@ -15,7 +15,10 @@ translate = ["!*", "FileInfo", "FileMode", "PathError",
   # (2026-11-13, os.MkdirAll's proof) the constant FileMode.IsDir tests
   "ModeDir",
   # (2026-11-14, wal-leaf5: fileutil.CheckDirPermission's proof) the constant FileMode.Perm masks with
-  "ModePerm"]
+  "ModePerm",
+  # (2026-11-18, S3g: bbolt's `Open` logs its mode with `%s`) with its body, so that its spec
+  # (`Spec/io/fs/FileMode__String.lean`) is proved, not a hypothesis of bbolt's linked `Open`
+  "FileMode.String"]
 imports = ["!*", "errors", "internal/oserror", "io", "time"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`

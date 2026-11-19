@@ -194,7 +194,10 @@ def bkKeep (bk : mvcc.KBReal) (path : GoString) (k : Nat) : IProp GF :=
   iprop(⌜bk.P = mvccrand.rcP bk.limit ∧ bk.cm = true⌝ ∗
     □ backend.isBackend bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
     □ backend.isStopChans bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
-    backend.bFile bk.γB path ∗ backend.bOpen bk.γB (1 : Qp).half ∗ apply.bkRT bk ∗
+    backend.bFile bk.γB path ∗
+    -- (S5, 2026-11-18) the claim on its file's name, which `Close`'s `bClosed` joins back
+    backend.bPath bk.γB.db path ∗
+    backend.bOpen bk.γB (1 : Qp).half ∗ apply.bkRT bk ∗
     ownToks bk.γB.wb k ∗ bkCensus bk)
 
 /-- **The writer's lessor of a member** (`lp`, the store `γk`'s, on the backend `bk`, the hook `f`),
@@ -305,7 +308,19 @@ def writerCtx (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h :
     ctrInv (readersN .@ "compactions") (rF go!"compactions" x) ∗
     ctrInv (readersN .@ "restores") (rF go!"restores" x) ∗
     ctrInv (readersN .@ "restarts") (rF go!"restarts" x) ∗
-    ⌜0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38 ∧ ks.length < 2 ^ 60⌝)
+    ⌜0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38 ∧ ks.length < 2 ^ 60 ∧
+      (∀ k ∈ ks, k.length ≤ etcdKeyMax) ∧ 0 ≤ sint.Z cfg.MaxVal' ∧ sint.Z cfg.MaxVal' ≤ 2 ^ 20⌝)
+
+/-- (S1b, 2026-11-17) **The writer's sizes**: its keys of at most `etcdKeyMax` bytes, its values'
+padding of at most `2 ^ 20` (`Run`'s `runCfgOk`). -/
+theorem writerCtx_bounds (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc)
+    (γh : HistNames) :
+    writerCtx (GF := GF) x ks cfg wr h γh ⊢
+      ⌜(∀ k ∈ ks, k.length ≤ etcdKeyMax) ∧ 0 ≤ sint.Z cfg.MaxVal' ∧ sint.Z cfg.MaxVal' ≤ 2 ^ 20⌝ := by
+  iintro H
+  iunfold writerCtx at H
+  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hc⟩
+  ipureintro; exact Hc.2.2.2
 
 instance writerCtx_persistent (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64)
     (h : Loc) (γh : HistNames) : Persistent (writerCtx (GF := GF) x ks cfg wr h γh) := by
@@ -464,10 +479,11 @@ theorem inc_census (hCR : mvcc.api.mvccClosed_rest.law (GF := GF)) (γk : MvccNa
       mvccBackend γk 1 (etcdStorage bk) iprop(True) ∗ bkKeep bk path k ={⊤}=∗
     mvccBackend γk 1 (etcdStorage bk) iprop(True) ∗ backend.bOpen bk.γB 1 ∗
       □ backend.isBackend bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
-      □ backend.isStopChans bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗ backend.bFile bk.γB path := by
+      □ backend.isStopChans bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗ backend.bFile bk.γB path ∗
+      backend.bPath bk.γB.db path := by
   iintro ⟨Hcl, Hrd, Hmb, Hbk⟩
   iunfold bkKeep at Hbk
-  icases Hbk with ⟨%HP, #Hisb, #Hsc, Hbf, Hoh, HRT, -, Hcen⟩
+  icases Hbk with ⟨%HP, #Hisb, #Hsc, Hbf, Hbp, Hoh, HRT, -, Hcen⟩
   imod hCR γk 1 _ _ $$ [Hcl Hrd Hmb] with ⟨Hrest, Hmb⟩
   · iframe
   icases (apply.bkRT_eq bk).1 $$ HRT with ⟨-, Hor⟩
@@ -567,7 +583,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     (γB : backend.BNames) (be : Loc) (gx : GName) (lim : w64) (path : GoString) (D : backend.Data)
     (L : Log) (c : Int) (u : Bool) (k : Nat) (hk : receiptBound GF + k + 4 ≤ backend.wbInit) :
     let bk := mvccrand.rcKB γB be gx lim
-    mvccWReg gx ∗ mvccImage D L c u ∗ backend.bFile γB path ∗
+    mvccWReg gx ∗ mvccImage D L c u ∗ backend.bFile γB path ∗ backend.bPath γB.db path ∗
       backend.newPostK γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
         (backend.bFresh (GF := GF)) be D ={⊤}=∗
     mvccStorageFor (etcdStorage bk) iprop(True) L c u ∗ bkKeep bk path k ∗
@@ -576,7 +592,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   intro bk
   have hT : threadBound GF ≤ backend.rdPoolN :=
     ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq backend.rdPoolN_val.symm)
-  iintro ⟨Hreg, Himg, Hbf, Hnew⟩
+  iintro ⟨Hreg, Himg, Hbf, Hbp, Hnew⟩
   ihave #Hks := mvcc.keySized_all (GF := GF)
   icases backend.newPostK_named γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
     backend.bFresh be D $$ Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
@@ -639,7 +655,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   icases (backend.rbOwn_split γB (· = leaseName) _).1 $$ Hrbo with ⟨Hrbl, -⟩
   imodintro
   iframe Hsf Hhk Hrbl
-  isplitl [Hbf Hoh Hor Hrt Hwk Ho2 Hpl]
+  isplitl [Hbf Hbp Hoh Hor Hrt Hwk Ho2 Hpl]
   · iunfold bkKeep
     isplitr
     · ipureintro; exact ⟨mvccrand.rcKB_P γB be gx lim, rfl⟩

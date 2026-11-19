@@ -29,11 +29,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.AuthAdmin.isPermitted.wp_proof
-    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) := by
-  intro aa s E ctx cd n
-  wp_start as ⟨#Haa, #Hlb, #Hctx, #Hlib, HRD⟩
+  intro aa s E ctx cd tok n
+  wp_start as ⟨#Haa, #Hlb, #Hctx, #Hlib, #HtokC, HRD⟩
   iunfold v3rpc.authAdminIs at Haa
   icases Haa with ⟨%Hann0, #Hag, #Hau⟩
   ihave #Hnil := srvAdminNilOk_of_srvAuthAt s E $$ Hau
@@ -53,7 +53,7 @@ theorem v3rpc.AuthAdmin.isPermitted.wp_proof
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n)
+  wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n tok)
     $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -, #Hz, #Hne, -⟩
   · iframe #
   ihave #Herr := authApplyErrIs_apply _ $$ Herr0
@@ -102,7 +102,7 @@ theorem v3rpc.AuthAdmin.isPermitted.wp_proof
           iintro !> -; iunfold principalBound; itrivial
         · iintro %_; iapply (adminWhy_off s E.authMode n _ _ hon)
       · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-        ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
+        ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode tok a user rev $$ [$Hb $Hau]
         iunfold authInfoIs at Hau
         icases Hau with ⟨%Hann, -, -⟩
         (try wp_auto)
@@ -151,7 +151,7 @@ theorem v3rpc.AuthAdmin.isPermitted.wp_proof
           iapply (adminWhy_none s E.authMode n _ _ hne) $$ [] Hv
           iapply Hz'; exact ⟨rfl, rfl⟩
       · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-        ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
+        ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode tok a user rev $$ [$Hb $Hau]
         ihave #Hpb' := Hpb $$ %hon
         iunfold authInfoIs at Hau
         icases Hau with ⟨%Hann, -, -⟩

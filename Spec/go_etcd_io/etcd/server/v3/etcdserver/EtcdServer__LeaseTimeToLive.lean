@@ -55,12 +55,14 @@ context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`, `leaseTimeToLive`'
 abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
   leasePeersOk →
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (dq : DFrac)
     (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ http.netCtxOk ctx ∗ v3rpc.ctxCauseOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ http.netCtxOk ctx ∗ v3rpc.ctxCauseOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ r ↦{dq} v }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #r))
@@ -72,8 +74,8 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
             □ (leaseTTLRow s γl -∗
                 (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
                 lease.leaseAbsentFrom γl m v.ID')) ∗
-          authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
-          (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
+          authedOutB s E.authMode tok GoInterface.nil ∗
+          (if v.Keys' then leaseCheckFrom s E tok n
               (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)
             else iprop(True))) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗

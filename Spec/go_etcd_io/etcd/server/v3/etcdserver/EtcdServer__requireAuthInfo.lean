@@ -33,18 +33,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `s.requireAuthInfo(ctx)`: `nil` unless auth is enabled and the request carries no auth info
 (`AuthInfoFromCtx` returned `nil`: `auth.ErrUserEmpty`) or `AuthInfoFromCtx` failed (its error);
 the outcome `authedOut` (`AuthGuard.lean`): never an error with auth off, on `nil` the token
-`authedRes`, on an error auth enabled at a recorded state. With auth on (the store's request side then bound, `srvAuthAt`'s row), a passed check's auth
+`authedRes`, on an error auth enabled at a recorded state. The token `tok` the context carries is a
+parameter, its metadata needed only with auth on (perheap C1a, 2026-11-18).
+ With auth on (the store's request side then bound, `srvAuthAt`'s row), a passed check's auth
 info is moreover bound (`authedOutB`, gated by the mode; the auth-mode merge, 2026-10-29: `spec` and
 `boundSpec` one spec). Its error is `nil` or one of the auth package's error variables
 (`authErrVarIs`: `ErrUserEmpty`, or the store's `ErrInvalidAuthToken`; the lease-expiry plan's E3,
 2026-11-05, so that a caller tells it apart from `lease.ErrLeaseNotFound`). -/
 abbrev EtcdServer.requireAuthInfo.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAuthAt s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD }}
+      srvAuthAt s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err ∗
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode tok err ∗
       authErrVarIs err }}
 
 /-- `s.requireAuthInfo(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14;
@@ -62,13 +66,13 @@ on, auth enabled and a token in the context, only `ErrInvalidAuthToken` remains
 (`authed_served_of_frozen`). `spec` follows (`wp_proof`). -/
 abbrev EtcdServer.requireAuthInfo.specC : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (n : Nat),
+    (n : Nat) (tok : Option GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
-      E.RD }}
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutC s E.authMode n (GoInterface.ok ctx) err ∗
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutC s E.authMode n tok err ∗
       authErrVarIs err }}
 
 end spec

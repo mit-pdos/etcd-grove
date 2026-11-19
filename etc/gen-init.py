@@ -399,13 +399,12 @@ SPECIAL['go_etcd_io.bbolt'] = dict(
 `DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
-`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
-which the fact records: a `*nopLogger`).
-And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
-`Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.''',
+`errors`' variables (loads of them), `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
+which the fact records: a `*nopLogger`), and `DefaultOptions` (`&Options{...}`, an allocation;
+translated since 2026-11-17, `Code/go_etcd_io/bbolt.toml`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
-                     discardLogger='GoInterface'),
+                     discardLogger='GoInterface', DefaultOptions='Loc'),
     before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
@@ -413,6 +412,8 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
                 '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
                 'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar',
                 'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}, %_, #-⟩' for x in _BBOLT_VARS) + ', -⟩'],
+            # `&Options{...}`: a literal of the translated struct, allocated (2026-11-17)
+            'DefaultOptions': ['try wp_auto'],
             # `&nopLogger{}`: an allocation (of a zero-size struct), which `wp_auto` leaves
             'discardLogger': ['try wp_auto', 'wp_alloc lg as Hlg', 'try wp_auto'],
             '$end': ['try wp_auto']},
@@ -1718,8 +1719,8 @@ _E['finish'] = ([f'ipersist H{x}' for x in _E['newvars']] + FIN_PRE[:6] +
 
 _B = SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']
 _B['custom']['boltOpenOptions'] = dict(
-    doc='/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems): read-write options with the default page size and `OpenFile`. -/',
-    post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ (⌜p = Loc.null⌝ ∨ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝)',
+    doc='/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems, but the file model is Linux\'s, configuration C): read-write options with the default page size and `OpenFile`, `NoFreelistSync`, no `Timeout`. (S3e, 2026-11-18: until then possibly nil.) -/',
+    post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok ∧ o.noFreelistSync = true ∧ o.timeout = W64 0⌝',
     pat='⟨%p@, H@, #S@⟩')
 _B['doc'] = _B['doc'].replace("hold `Histogram`s whose `Observe` returns.", "hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`).")
 # (2026-11-07, R10) the defaults `DefaultBackendConfig` loads (translated stores of constants)
@@ -2085,7 +2086,7 @@ package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), in
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
 reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
-axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), which
+axiom `NewCounter.wp_proof`), which
 `revokeExpiredLeases` increments.""",
     imports=['Proof.github_com.prometheus.client_golang.prometheus.NewCounter'],
     custom=_srv_custom,
@@ -2093,8 +2094,7 @@ axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), whic
                  'leaseExpired': 'GoInterface'},
     # (revoke-open, 2026-11-06) `leaseExpired`'s translated initializer: the literal, `NewCounter`
     before={'leaseExpired': [
-        'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %oLE %HoLE', 'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ HoLE (by decide) as %cLE ⟨#CLE, -⟩',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩',
         'try wp_auto']},
     finish=([f'ipersist H{x}' for x in _srv_custom] + ['ipersist HleaseExpired'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
@@ -2318,7 +2318,7 @@ _RD_PROM = 'EtcdGrove.prometheus'
 SPECIAL[_RD] = dict(
     doc="""Its fact (`readInit`, `BaseApply.lean`): its counters `slowReadIndex` and `readIndexFailed`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
-axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), `readIndexRetryTime`,
+axiom `NewCounter.wp_proof`), `readIndexRetryTime`,
 the error variables it returns or compares with, from their packages' facts (`etcdserver/errors`'
 and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
 (`EtcdGrove.ContextReadErrs`, a premise: Perennial's `context` fact lacks them). Its translated
@@ -2334,11 +2334,9 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
     alloc_types={'slowReadIndex': 'GoInterface', 'readIndexFailed': 'GoInterface',
                  'readIndexRetryTime': '_root_.Perennial.time.Duration'},
     before={'$inits': [
-        'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %o1 %Ho1', 'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ Ho1 (by decide) as %c1 ⟨#C1, %N1⟩',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c1 ⟨#C1, %N1⟩',
         'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %o2 %Ho2', 'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ Ho2 (by decide) as %c2 ⟨#C2, %N2⟩',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c2 ⟨#C2, %N2⟩',
         'try wp_auto'], '$end': [
         'iunfold EtcdGrove.read.readRegPerm at HR',
         'icases HR with ⟨HR1, HR2⟩',
@@ -2491,6 +2489,67 @@ def exec_order(p):
     items.reverse()
     return items
 
+def _tier_mod():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'tier_check', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tier-check.py'))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+_TIER = None
+_PROOFISH = {}
+
+
+def proofish(m):
+    """Whether the module `m` of this repository is a proof or linking module
+    (`etc/tier-check.py`): an import only a linking module may have."""
+    global _TIER
+    if m not in _PROOFISH:
+        f = m.replace('.', '/') + '.lean'
+        if m.endswith('.InitLinked'):
+            _PROOFISH[m] = True
+        elif not os.path.exists(f):
+            _PROOFISH[m] = False
+        else:
+            if _TIER is None:
+                _TIER = _tier_mod()
+            _PROOFISH[m] = _TIER.tier(m, open(f).read(), _TIER.linking_list()) in ('proof', 'linking')
+    return _PROOFISH[m]
+
+
+_SPLIT = {}
+# the configurations of the tree being generated, over `SPECIAL` (a part's: `WT_SPECIAL`, ...)
+CFG_OVERRIDE = {}
+
+
+def split(p):
+    """Whether `p`'s `Init.lean` is split into its facts (`Init`, defs tier) and its
+    `wp_initialize'` (`InitLinked`, linking; import tiers, 2026-11-19): when the proof applies a
+    proof or linking module's theorem, its own imports' or (through an import's `InitLinked`) one
+    below. A key of `inv` at the time of the call (the parts' trees replace `inv`)."""
+    key = (p, id(inv), id(CFG_OVERRIDE))
+    if key not in _SPLIT:
+        _SPLIT[key] = False
+        cfg = CFG_OVERRIDE.get(p) or SPECIAL.get(p) or {}
+        imps = [x for (kind, x) in exec_order(p) if kind == 'import']
+        _SPLIT[key] = (any(proofish(m) for m in cfg.get('imports', []))
+                       or any(q not in ASSUMED and (proofish(init_module(q))
+                                                     or (not external(q) and split(q)))
+                              for q in imps))
+    return _SPLIT[key]
+
+
+def linked_module(q):
+    """The module of `q`'s `wp_initialize'`."""
+    if q in ASSUMED:
+        return ASSUMED[q][0]
+    if not external(q) and split(q):
+        return 'Proof.' + plain(q) + '.InitLinked'
+    return init_module(q)
+
+
 def gen(p, cfg=None):
     cfg = cfg or {}
     newvars = cfg.get('newvars', {})
@@ -2513,6 +2572,17 @@ def gen(p, cfg=None):
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg.get('imports', [])
     if newvars: mods.append('Proof.errors.NewVarCell')
     mods.append('Proof.runtime.PkgInitExt')
+    sp = split(p)
+    if sp:
+        # (import tiers, 2026-11-19) the facts module imports no proof or linking module: the
+        # imports' facts (`Init`), not their `InitLinked`; the proofs the `wp_initialize'` applies
+        # go to the linking module
+        facts_mods = [inst_mod] + sorted({init_module(q) for q in imps
+                                          if not proofish(init_module(q))}) + \
+            [m for m in cfg.get('imports', []) if not proofish(m)]
+        if newvars: facts_mods.append('Proof.errors.NewVarCell')
+        linked_mods = [f'Proof.{plain(p)}.Init'] + sorted({linked_module(q) for q in imps}) + \
+            [m for m in cfg.get('imports', []) if proofish(m)] + ['Proof.runtime.PkgInitExt']
     lines = []
     A = lines.append
     A('/-')
@@ -2543,8 +2613,10 @@ def gen(p, cfg=None):
     A('-/')
     A('module')
     A('')
+    i_imports = len(lines)
     for m in mods:
         A(f'public import {m}')
+    j_imports = len(lines)
     A('')
     A('@[expose] public section')
     A('')
@@ -2622,6 +2694,7 @@ def gen(p, cfg=None):
         A('')
     for l in cfg.get('pre', []):
         A(l)
+    i_init = len(lines)
     A('section init')
     A('variable [GooseExts] [GooseSemantics] [GooseInterp]')
     A('variable [go_gctx : GoGlobalContext]')
@@ -2770,7 +2843,31 @@ def gen(p, cfg=None):
     A('')
     A('end Perennial')
     path = f'Proof/{dirof(p)}/Init.lean'
-    return path, '\n'.join(lines) + '\n'
+    if not sp:
+        return [(path, '\n'.join(lines) + '\n')]
+    # (import tiers, 2026-11-19) split: `Init` (defs tier) keeps the facts and the trust-boundary
+    # axioms, `InitLinked` (linking) the `wp_initialize'` proof, which applies other packages'
+    # `wp_initialize'` and functions' `wp_proof`s (CLAUDE.md, "Import tiers")
+    head = lines[:i_imports]
+    prelude = lines[j_imports:]
+    k = prelude.index('open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode') + 2
+    body_start = i_init - j_imports
+    assert head[1:3] == [f'Package initialization of `{p}`', '(item 8, 2026-10-17): its `wp_initialize\'`.'] \
+        and head[-3:] == ['-/', 'module', ''], head
+    facts = (head[:2] + ['(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize\'` is in',
+                         '`InitLinked.lean` (2026-11-19: the proof applies other packages\' `wp_initialize\'` and',
+                         'functions\' proofs, so it is a linking module, CLAUDE.md "Import tiers").']
+             + head[3:-3] + ['-/', 'module', '']
+             + [f'public import {m}' for m in facts_mods]
+             + prelude[:body_start] + ['end Perennial'])
+    linked = (['/-', f'Package initialization of `{p}`: its `wp_initialize\'` (item 8, 2026-10-17;',
+               'split from its facts and trust-boundary axioms, `Init.lean`, 2026-11-19: this proof',
+               'applies other packages\' `wp_initialize\'` and functions\' proofs, so it is a linking',
+               'module, CLAUDE.md "Import tiers"). Generated by `etc/gen-init.py`.', '-/', 'module', '']
+              + [f'public import {m}' for m in linked_mods]
+              + prelude[:k] + prelude[body_start:])
+    return [(path, '\n'.join(facts) + '\n'),
+            (f'Proof/{dirof(p)}/InitLinked.lean', '\n'.join(linked) + '\n')]
 
 
 
@@ -3014,7 +3111,9 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
 
 
 def part_paths(inits):
-    return {f'Proof/{dirof(p)}/Init.lean' for p in inits} | {'Proof/runtime/PkgInitExt.lean'}
+    return ({f'Proof/{dirof(p)}/Init.lean' for p in inits}
+            | {f'Proof/{dirof(p)}/InitLinked.lean' for p in inits if split(p)}
+            | {'Proof/runtime/PkgInitExt.lean'})
 
 
 # Every such part: its packages, and the module prefixes (besides its copies of these files) whose
@@ -3219,17 +3318,20 @@ def dag_closures():
 
 
 def dag_init():
-    """The part's `Init.lean`, generated as the main tree's from the part's files."""
-    global inv, inst
-    saved = inv, inst
+    """The part's `Init.lean` (and `InitLinked.lean`, if split), generated as the main tree's from
+    the part's files."""
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
     try:
         inv = inventory(f'{DAG_ROOT}/Code')
         inst = instances(f'{DAG_ROOT}/Proof/')
-        path, txt = gen(DAG_PKG, DAG_SPECIAL)
+        CFG_OVERRIDE = {DAG_PKG: DAG_SPECIAL}
+        raw = gen(DAG_PKG, DAG_SPECIAL)
     finally:
-        inv, inst = saved
-    txt = re.sub(r'(?m)^(public import )(Proof\.' + re.escape(plain(DAG_PKG)) + r'\.)', r'\1' + DAG_ROOT + r'.\2', txt)
-    return f'{DAG_ROOT}/{path}', txt
+        inv, inst, CFG_OVERRIDE = saved
+    return [(f'{DAG_ROOT}/{path}',
+             re.sub(r'(?m)^(public import )(Proof\.' + re.escape(plain(DAG_PKG)) + r'\.)', r'\1' + DAG_ROOT + r'.\2', txt))
+            for path, txt in raw]
 
 
 
@@ -3257,7 +3359,7 @@ def tla_outs():
         inv.update({q: d for q, d in inventory(f'{TLA_ROOT}/Code').items() if not d['perennial']})
         inst = dict(inst)
         inst.update(instances(f'{TLA_ROOT}/Proof/'))
-        outs = [gen(TLA_PROGRAM, SPECIAL.get(TLA_PROGRAM)),
+        outs = gen(TLA_PROGRAM, SPECIAL.get(TLA_PROGRAM)) + [
                 gen_table(TLA_PROGRAM, f'Proof/{dirof(TLA_PROGRAM)}/PkgTable.lean')]
     finally:
         inv, inst = saved
@@ -3288,17 +3390,18 @@ def wt_inventory():
 
 def wt_inits():
     """The part's `Init.lean` files."""
-    global inv, inst
-    saved = inv, inst
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
     raw = []
     try:
         inv = wt_inventory()
         inst = {**inst, **{k: [(f'{WT_ROOT}/Proof/' + f, fact) for f, fact in v]
                            for k, v in instances(f'{WT_ROOT}/Proof/').items()}}
+        CFG_OVERRIDE = WT_SPECIAL
         for p in WT_PKGS:
-            raw.append(gen(p, WT_SPECIAL.get(p, SPECIAL.get(p))))
+            raw += gen(p, WT_SPECIAL.get(p, SPECIAL.get(p)))
     finally:
-        inv, inst = saved
+        inv, inst, CFG_OVERRIDE = saved
     part_mods = {path[:-len('.lean')].replace('/', '.') for path, _ in raw}
 
     def imp(m):
@@ -3328,18 +3431,19 @@ NOAX_MAIN_PATHS = [f'Proof/{dirof(NOAX_MAIN_PKG)}/Init.lean', f'Proof/{dirof(NOA
 
 def noax_inits():
     """The part's kvdurable's `Init.lean` and `PkgTable.lean`."""
-    global inv, inst
-    saved = inv, inst
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
     try:
         inv = dict(inv)
         for q, d in inventory(f'{NOAX_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
         inst = {**inst, **instances(f'{NOAX_ROOT}/Proof/')}
-        raw = [gen(NOAX_PKG, SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))),
+        CFG_OVERRIDE = {NOAX_PKG: SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))}
+        raw = gen(NOAX_PKG, SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))) + [
                gen_table(NOAX_PKG, f'Proof/{dirof(NOAX_PKG)}/PkgTable.lean')]
     finally:
-        inv, inst = saved
+        inv, inst, CFG_OVERRIDE = saved
     made = {path for path, _ in raw}
 
     def imp(m):
@@ -3392,10 +3496,11 @@ def nt_prefix(txt, made=()):
 
 def nt_inits(ext_txt):
     """The part's `Init.lean` files and `PkgInitExt.lean`."""
-    global inv, inst
-    saved = inv, inst
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
     outs = []
     try:
+        CFG_OVERRIDE = NT_SPECIAL
         inv = inventory(f'{NT_ROOT}/Code')
         inst = instances(f'{NT_ROOT}/Proof/')
         # (v3, 2026-11-14) the main tree's `os` and the packages it imports, which `net` imports
@@ -3405,20 +3510,20 @@ def nt_inits(ext_txt):
             inst[p] = saved[1][p]
         # their `Init.lean` copied into the part, over the part's `PkgInitExt` (the main tree's
         # imports raft's translation, and declares the same names)
-        nt_main = [(f'{NT_ROOT}/{path}', txt) for path, txt in
-                   (gen(p, SPECIAL.get(p)) for p in NT_MAIN)]
+        nt_main = [(f'{NT_ROOT}/{path}', txt) for p in NT_MAIN for path, txt in gen(p, SPECIAL.get(p))]
         made = {path for path, _ in nt_main}
         outs += [(path, nt_prefix(txt, made)) for path, txt in nt_main]
-        for p in NT_PKGS:
-            if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean'):
-                path, txt = gen(p, NT_SPECIAL.get(p, SPECIAL.get(p)))
-                outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
+        raw = [(f'{NT_ROOT}/{path}', txt) for p in NT_PKGS
+               if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean')
+               for path, txt in gen(p, NT_SPECIAL.get(p, SPECIAL.get(p)))]
+        made = made | {path for path, _ in raw}
+        outs += [(path, nt_prefix(txt, made)) for path, txt in raw]
         made = {path for path, _ in outs}
         for p, path in NT_PROGRAMS.items():
             path, txt = gen_table(p, path)
             outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
     finally:
-        inv, inst = saved
+        inv, inst, CFG_OVERRIDE = saved
     drop = ('go_etcd_io.raft', 'go_etcd_io_raft', 'google_golang_org', 'k8s_io')
     ext = '\n'.join(l for l in ext_txt.split('\n') if not any(d in l for d in drop))
     i = ext.index('\nmodule\n') + 1
@@ -3432,14 +3537,14 @@ def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
     bad = []
-    outs = [gen(p, SPECIAL.get(p)) for p in pkgs]
+    outs = [o for p in pkgs for o in gen(p, SPECIAL.get(p))]
     if not [a for a in argv if not a.startswith('--')]:
         outs.append(gen_ext())
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]
     outs += [part_copy(path, txt, root) for root, (inits, _) in PARTS.items()
              for path, txt in outs if path in part_paths(inits)]
     if not [a for a in argv if not a.startswith('--')]:
-        outs += [dag_closures(), dag_init(),
+        outs += [dag_closures()] + dag_init() + [
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
         outs += tla_outs()
         outs += wt_inits()

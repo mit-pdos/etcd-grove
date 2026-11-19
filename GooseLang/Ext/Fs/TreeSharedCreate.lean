@@ -254,13 +254,23 @@ def ocGift (fl : w64) (cur : Ents) (b : GoString) (n : Nat) (w : val) (lg : Bool
      (⌜lg = false⌝ ∗ ((∃ i, ⌜cur !! b = some (.file i)⌝ ∗ ocFd (L := L) fl fd e i) ∨
        ⌜e ≠ 0 ∧ fd = -1⌝))))
 
-theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
+/-- **`open(2)` with `O_CREAT`, without `O_TRUNC`, of `d/b`** (shared mode, the claim whole), generic
+in what a failure's errno is (`Pe`, from the semantics' own step: `hpe`; session S3d): as
+`wp_osOpenCreateS'`, each failure's errno satisfying `Pe`. -/
+theorem wp_osOpenCreateSQ (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
     (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat) (hcr : fl.toNat / O_CREAT % 2 = 1)
     (htr : fl.toNat / O_TRUNC % 2 = 0 ∨ h.cur !! b = none) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
-    (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
+    (Pe : w64 → Prop)
+    (hpe : ∀ st e' st', FsTreeWf st → st.proc.calls !! k = some s0 → st.lookup d = some (.dir j) →
+      st.tree.entry j b = h.cur !! b →
+      IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
+      (∃ hh hh', ExtSemantics.step (E := fsExt) "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
+        hh st () e' hh' st' ()) →
+      ∀ fd e : w64, e' = osRes (#fd) e → e ≠ 0 → Pe e) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
-      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ fd : w64, ∀ e : w64, ⌜e ≠ 0 → Pe e⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         ((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h ∗
             (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
          (⌜h.cur !! b = none⌝ ∗ ∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
@@ -277,7 +287,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
   let cl : List ClaimW := [(j, .only [b], h, ∅)]
   let curF : Nat → ClaimW → Ents := fun n _ => <[b := .file n]> h.cur
   let W : val → Bool → Prop := fun w lg =>
-    ∃ fd e : w64, w = PairV (#fd) (#e) ∧ (lg = true → h.cur !! b = none)
+    ∃ fd e : w64, w = PairV (#fd) (#e) ∧ (lg = true → h.cur !! b = none) ∧ (e ≠ 0 → Pe e)
   have hentE : ∀ st, ClaimsAt st cl → st.tree.entry j b = h.cur !! b := fun st hat =>
     hat.ent _ (List.mem_singleton_self _) b hbN
   have hndE : ∀ st, ClaimsAt st cl → ∀ J, st.tree.entry j b ≠ some (.dir J) := by
@@ -303,20 +313,25 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
+      (∃ hh hh', ExtSemantics.step (E := fsExt) "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
+        hh st () e' hh' st' ()) →
       ∃ w, e' = Val w ∧ FsTreeWf st' ∧
         ((EndedT st st' k ∧ W w false) ∨ (LoggedT st st' k s0 (oF st.fs.nextIno) ∧ W w true)) := by
-    intro st e' st' hw _ hcall _ hp hat Hst
+    intro st e' st' hw _ hcall _ hp hat Hst Hsem
+    have hPe := hpe st e' st' hw hcall hp (hentE st hat) Hst Hsem
     rcases openCreateStep_cases hcr (htrE st hat) hw hcall hp hb (hndE st hat) Hst with
       ⟨e, -, rfl, rfl⟩ | ⟨i, fd, -, hfree, rfl, rfl⟩ | ⟨hen, e, -, rfl, rfl⟩ | ⟨hen, fd, hfree, rfl, rfl⟩
     · exact ⟨_, rfl, fsTreeWf_metaEnd hw k,
-        .inl ⟨endedT_metaEnd st k, _, _, rfl, fun h => by cases h⟩⟩
+        .inl ⟨endedT_metaEnd st k, _, _, rfl, (fun h => by cases h), hPe _ _ rfl⟩⟩
     · exact ⟨_, rfl, fsTreeWf_addFd (fsTreeWf_metaEnd hw k) hfree.2.2.1,
-        .inl ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun h => by cases h⟩⟩
+        .inl ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, (fun h => by cases h), fun h => absurd rfl h⟩⟩
     · exact ⟨_, rfl, fsTreeWf_created hw k s0 (reach_of_lookup hp) hb hen,
-        .inr ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun _ => (hentE st hat).symm.trans hen⟩⟩
+        .inr ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun _ => (hentE st hat).symm.trans hen,
+          hPe _ _ rfl⟩⟩
     · exact ⟨_, rfl, fsTreeWf_addFd (fsTreeWf_created hw k s0 (reach_of_lookup hp) hb hen)
           (createdSt_dfds_none hfree.2.2.1),
-        .inr ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun _ => (hentE st hat).symm.trans hen⟩⟩
+        .inr ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun _ => (hentE st hat).symm.trans hen,
+          fun h => absurd rfl h⟩⟩
   have hworld : ∀ st e' st' (hh hh' : GMap Loc (NonAtomic val)) Γb Γm Γf Γt w lg, FsTreeWf st →
       st.fs.roots = R → st.proc.calls !! k = some s0 →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
@@ -466,7 +481,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
         rw [GMap.lookup_insert_ne _ _ hne]
         exact (hat.out _ (List.mem_singleton_self _) b' hb').symm
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_logStepSW "Open" _ (by simp [val.isPanic]) R k s0 q oF cl curF
+  iapply wp_logStepSWQ "Open" _ (by simp [val.isPanic]) R k s0 q oF cl curF
     (osPathS (L := L) R d dq j) (fun st => st.lookup d = some (.dir j)) W (ocGift (L := L) fl h.cur b)
     (by simp [cl]) (fun _ c hc => by
       rw [List.mem_singleton] at hc; subst hc
@@ -480,7 +495,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
   · iapply (BigSepL.bigSepL_singleton).2; iexact Hn
   iintro %w Hq Hp Hpost
   icases Hpost with (⟨%hW, ⟨%n, HG⟩, Hl⟩ | ⟨%hW, %n, %x, HG, Hlg, Hl, -⟩)
-  · obtain ⟨fd, e, rfl, -⟩ := hW
+  · obtain ⟨fd, e, rfl, -, hPe⟩ := hW
     unfold ocGift
     icases HG with ⟨%fd', %e', %hfe, HG⟩
     injection hfe with h1 h2
@@ -488,7 +503,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
     obtain rfl := go.intoVal_inj h2
     icases HG with (⟨%hlg, -⟩ | ⟨-, HG⟩)
     · cases hlg
-    iapply HΦ $$ %fd %e Hq Hp
+    iapply HΦ $$ %fd %e %hPe Hq Hp
     icases HG with (⟨%i, %hi, HG⟩ | %hf)
     · ileft
       iexists i
@@ -501,14 +516,14 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       isplitr
       · ipureintro; exact hf
       iapply (BigSepL.bigSepL_singleton).1 $$ Hl
-  · obtain ⟨fd, e, rfl, hnone⟩ := hW
+  · obtain ⟨fd, e, rfl, hnone, hPe⟩ := hW
     unfold ocGift
     icases HG with ⟨%fd', %e', %hfe, HG⟩
     injection hfe with h1 h2
     obtain rfl := go.intoVal_inj h1
     obtain rfl := go.intoVal_inj h2
     icases HG with (⟨-, Hm, HG⟩ | ⟨%hlg, -⟩)
-    · iapply HΦ $$ %fd %e Hq Hp
+    · iapply HΦ $$ %fd %e %hPe Hq Hp
       iright; ileft
       isplitr
       · ipureintro; exact hnone rfl
@@ -522,22 +537,52 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       unfold ocFd; iexact HG
     · cases hlg
 
-/-- **`open(2)` of `d/b`, a name holding the file `i`, without `O_TRUNC`** (shared mode), with a
-fraction of a claim on names containing `b`: no entry; on success a fresh fd on `i`. -/
-theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
+theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
+    (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat) (hcr : fl.toNat / O_CREAT % 2 = 1)
+    (htr : fl.toNat / O_TRUNC % 2 = 0 ∨ h.cur !! b = none) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
+    (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        ((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h ∗
+            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
+         (⌜h.cur !! b = none⌝ ∗ ∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
+            osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.create j b i, s0⟩ : LogEntry) (<[b := .file i]> h.cur)) ∗
+            osMeta (L := L) i (DFrac.own 1) newMeta ∗
+            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
+         (⌜e ≠ 0 ∧ fd = -1⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h)) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
+        @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn Hk HΦ
+  iapply wp_osOpenCreateSQ R d b j dq h k s0 q fl hfl hcr htr hb hnd hs hE hE' Φ (fun _ => True)
+    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ => trivial) $$ Hinv Hsi Hp Hn Hk
+  iintro %fd %e - Hq Hp Hr
+  iapply HΦ $$ %fd %e Hq Hp Hr
+
+/-- `wp_osOpenFileS'` generic in what a failure's errno is (`Pe`, from the semantics' own step:
+`hpe`; session S3d). -/
+theorem wp_osOpenFileSQ (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
     (h : NamesH) (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat)
     (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
-    (hi : h.cur !! b = some (.file i)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hi : h.cur !! b = some (.file i)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
+    (Pe : w64 → Prop)
+    (hpe : ∀ st e' st', FsTreeWf st → st.proc.calls !! k = some s0 →
+      st.lookup (child d b) = some (.file i) →
+      IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
+      (∃ hh hh', ExtSemantics.step (E := fsExt) "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
+        hh st () e' hh' st' ()) →
+      ∀ fd e : w64, e' = osRes (#fd) e → e ≠ 0 → Pe e) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
-      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1 ∧ Pe e)⌝ -∗
         osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
         (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
         @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_fs_stepM "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_fs_stepMX "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h0 Hw Ht
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
@@ -578,7 +623,8 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   inext
   iintro %e' %h' %st' %Hst
   imod Hclose2
-  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  obtain ⟨⟨Hst, Hfr, Hr⟩, Hsem⟩ := Hst
+  have hPe := hpe st e' st' hw hcall hl' Hst ⟨_, _, Hsem⟩
   simp only [IsFsStep] at Hst
   replace Hst := open_inTree Hst (treePath_of_lookup hl')
   obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
@@ -654,9 +700,29 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
       iframe
       ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
     iapply wp_value'
-    iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp Hn
+    iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl, hPe _ _ rfl he⟩) [Hq] Hp Hn
     · unfold osCallPerm; iexact Hq
     rw [if_neg he]; iempintro
+
+/-- **`open(2)` of `d/b`, a name holding the file `i`, without `O_TRUNC`** (shared mode), with a
+fraction of a claim on names containing `b`: no entry; on success a fresh fd on `i`. -/
+theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
+    (h : NamesH) (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat)
+    (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
+    (hi : h.cur !! b = some (.file i)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
+        @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn Hk HΦ
+  iapply wp_osOpenFileSQ R d b j i N dq dqn h k s0 q fl hfl htr hb hN hi hE hE' Φ (fun _ => True)
+    (fun _ _ _ _ _ _ _ _ _ _ _ _ => trivial) $$ Hinv Hsi Hp Hn Hk
+  iintro %fd %e %hr Hq Hp Hn Hfd
+  iapply HΦ $$ %fd %e %(hr.imp id (fun h => ⟨h.1, h.2.1⟩)) Hq Hp Hn Hfd
 
 end specs
 

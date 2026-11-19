@@ -81,7 +81,7 @@ theorem apply.applierV3backend.Put.wp_proof
   -- the writer's facts: its floor, its log's witness and reachability
   imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
   imod Hfacts $$ %log %c Hw with ⟨Hw, -, #Hnx0, -, %Hreach⟩
-  have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
+  have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2.1
   have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   ihave #Hlok := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
   -- the put's updates (only for a live lease; else the writer's half kept)
@@ -154,7 +154,9 @@ theorem apply.applierV3backend.Put.wp_proof
     · iapply mvcc.txnCtx_todo
     isplitr
     · iapply traceutil.ctxTraceIs_todo
-    simp only [traceutil.ownTraceOpt]; itrivial
+    isplitr
+    · simp only [traceutil.ownTraceOpt]; itrivial
+    ipureintro; exact Hrq.2.2.2
   iunfold txn.kvBackend at Hkb
   icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ

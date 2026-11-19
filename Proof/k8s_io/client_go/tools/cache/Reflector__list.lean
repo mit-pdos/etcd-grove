@@ -98,7 +98,7 @@ theorem Reflector.list.wp_proof
   · ipureintro; rfl
   iintro %sl0 ⟨-, -⟩
   (try wp_auto)
-  wp_apply wp_traceNew as %tr -
+  wp_apply wp_traceNew as %tr %Htr
   (try wp_auto)
   wp_apply (chan.wp_make2 (V := Unit) (W64 1)) as %lch %γl ⟨#Hlch, -, Hlown⟩
   · ipureintro; decide
@@ -309,7 +309,8 @@ theorem Reflector.list.wp_proof
     iapply stableCtx_recv $$ Hctx
     iintro #Hseen
     wp_auto
-    wp_apply (wp_LogIfLong tr _)
+    wp_apply (wp_LogIfLong tr _) $$ []
+    · ipureintro; exact Htr
     (try wp_auto)
     iapply HΦ
     iright; iright
@@ -359,7 +360,8 @@ theorem Reflector.list.wp_proof
         · ipureintro; rfl
         iintro %sl1 ⟨-, -⟩
         (try wp_auto)
-        wp_apply (wp_Step tr _ _)
+        wp_apply (wp_Step tr _ _) $$ []
+        · ipureintro; exact Htr
         (try wp_auto)
         cases e with
         | nil => exact absurd rfl hne
@@ -380,7 +382,8 @@ theorem Reflector.list.wp_proof
           · fmt_arg_method; iexact Hae
           itrivial
         (try wp_auto)
-        wp_apply (wp_LogIfLong tr _)
+        wp_apply (wp_LogIfLong tr _) $$ []
+        · ipureintro; exact Htr
         (try wp_auto)
         iapply HΦ
         iright; ileft
@@ -412,7 +415,8 @@ theorem Reflector.list.wp_proof
         · ipureintro; rfl
         iintro %sl1 ⟨-, -⟩
         (try wp_auto)
-        wp_apply (wp_Step tr _ _)
+        wp_apply (wp_Step tr _ _) $$ []
+        · ipureintro; exact Htr
         (try wp_auto)
         iunfold reflMisc at Hmisc
         icases Hmisc with ⟨%pr, %mn, %mx, Hpr, Hmn, Hmx⟩
@@ -428,12 +432,14 @@ theorem Reflector.list.wp_proof
           (try wp_auto)
           wp_apply HrvM $$ Hl as Hl
           (try wp_auto)
-          wp_apply (wp_Step tr _ _)
+          wp_apply (wp_Step tr _ _) $$ []
+          · ipureintro; exact Htr
           (try wp_auto)
           wp_apply (wp_Extract res q os (rvStr σ.rev)) $$ [$Hmeta $Hl] as %isl %xerr ⟨%hxerr, %xs, Hxs, Hobjs⟩
           subst hxerr
           (try wp_auto)
-          wp_apply (wp_Step tr _ _)
+          wp_apply (wp_Step tr _ _) $$ []
+          · ipureintro; exact Htr
           (try wp_auto)
           ihave #Hσ' := Hσ
           iunfold pastSt at Hσ'
@@ -456,13 +462,16 @@ theorem Reflector.list.wp_proof
             $$ Hinv Hσ HR0 Hlast
           iintro Hlast - -
           (try wp_auto)
-          wp_apply (wp_Step tr _ _)
+          wp_apply (wp_Step tr _ _) $$ []
+          · ipureintro; exact Htr
           (try wp_auto)
           wp_apply (wp_setLastSyncResourceVersion r v false _) $$ [$Hpkg $Hown] as Hown
           (try wp_auto)
-          wp_apply (wp_Step tr _ _)
+          wp_apply (wp_Step tr _ _) $$ []
+          · ipureintro; exact Htr
           (try wp_auto)
-          wp_apply (wp_LogIfLong tr _)
+          wp_apply (wp_LogIfLong tr _) $$ []
+          · ipureintro; exact Htr
           (try wp_auto)
           iapply HΦ
           ileft

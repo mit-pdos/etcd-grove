@@ -167,7 +167,8 @@ CounterClock: @
 etcd3_Check: RunLin2 CounterClock etcd3_Model newWCache etcd3_Gen etcd3_Apply
 #
 # the seeding and `Main` (over the shared start's, the clients' and the store's, `@`)
-seedOne: splitKey storeKey encodeV0 setItem
+# (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
+seedOne: splitKey storeKey encodeV0 setItem =client.client_Put_st_law_holds
 seed: seedOne
 etcdstart_StartServer: @
 etcdstart_Serve: @

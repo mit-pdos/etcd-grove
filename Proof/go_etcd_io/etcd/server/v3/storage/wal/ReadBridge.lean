@@ -285,7 +285,7 @@ theorem walDecFile_ok
         wp_apply wp_Name $$ Hfs as %s -
         iapply HΦ'
         ipureintro; trivial
-    · obtain ⟨hne, rfl⟩ := Herr
+    · obtain ⟨hne, rfl, -⟩ := Herr
       icases Hep with (%h | ⟨%e, %he, #Hep⟩)
       · exact absurd h hne
       ihave #Hep2 := Hep
