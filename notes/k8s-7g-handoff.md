@@ -2,26 +2,31 @@
 
 ## START HERE
 
-**2026-11-19 (night 14; for etcd-grove-03). Night 13's drafts all lean-checked and fixed (`efa0a5d726`);
-etcd-grove-03 accepted night 13's forms (questions.md "Step 5 night 13: decided by etcd-grove-03"),
-including porcupine's exactly-one `partLins` (its proof went through: `checkParallel.lean` ~l.661).
-Targeted build `/shared/tmp/k8s7g/build-n14.sh` (log `build-n14.log`).**
+**2026-11-19 (night 14; for etcd-grove-03). Night 13's drafts lean-checked and fixed (`efa0a5d726`); targeted
+build `build-n14` (log `/shared/tmp/k8s7g/build-n14.log`, rc 1) fails ONLY `k8s.etcd3.Check` (needs realCheck,
+expected). `NewReplay` proved (`27c8086bb2`); `Replay.validateList` specified and proved (`ee58711406`).**
 
 - Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`); lean is about to move
   (merge-origin4, manifest-3af): merge it when it lands, mechanical repairs only.
-- lean-check (`/shared/tmp/k8s7g/lc.sh [-a] [--fast] FILE...`): 0 errors on EvRep, RealWatchFrom, RawOk, MDefs,
-  Calls, toWEvent, consume, watchEvents, runWatch, WatchQ, Apply, Model, porcupine Defs/checkParallel,
-  CheckOperationsVerbose, RunLin2, ReplayRep, WatchRep, NewReplay/Replay.Validate/ValidateWatch specs.
-  `Check` still fails (needs realCheck), as expected. Model's l.328/377 errors were gone on re-check.
-- Next, in order: proofs of NewReplay (started: `correctness/NewReplay.lean`, skeleton with `sorry`),
-  Replay.Validate (validateGet/validateList), ValidateWatch (watch.go's 15), realcheck.go (failureFree,
-  realRequest, realEvents, keyFunc, newObjList, initialModel, toPorcupineModel's closures, orderByLinearization,
-  realCheck), Check, the discharge list (night 6); report at step 5's end; step 6 prep, STOP for the Freeze.
+- etcd-grove-03 accepted night 13's forms (questions.md "Step 5 night 13: decided by etcd-grove-03"),
+  incl. porcupine's exactly-one `partLins` (its proof went through, `checkParallel.lean` ~l.661).
+- Forms this night (questions.md "Step 5 night 14"): new `listExpOk R x out` premise on `Replay.validateList`
+  and `Replay.Validate` (equalListResponse needs a deep expected error); realCheck must discharge it.
+- Next, in order: `Replay.validateGet` (spec + proof: map range over `states` with early return, the
+  `stateWithoutPrefix` copy; follow `Model__validateGet.lean`'s `get_tail`: wp_Parse, wp_GRC, wp_DeepEqual_resp,
+  wp_IsTooLarge), then `Replay.Validate` (dispatch on `req.Op`); ValidateWatch (watch.go's 15); realcheck.go
+  (failureFree, realRequest, realEvents, keyFunc, newObjList, initialModel, toPorcupineModel's closures,
+  orderByLinearization, realCheck); Check; the discharge list (night 6); report at step 5's end; step 6 prep,
+  STOP for the Freeze.
 - realCheck's proof must never use a rejecting validator run: each rejecting branch is shown unreachable
-  from B4/B5 (etcd-grove-03's condition).
-- Pitfalls (new): `lean-check` sometimes reports a stale error after an edit; `-a` re-check settles it.
-  `iframe #` splits a `[∗list]` over `l ++ [x]` (`bigSepL_append`) and leaves the tail: give it with
-  `BigSepL.bigSepL_append.1`. `RealWatchFrom` lives in `k8s_etcd3` but its vocabulary is `k8s_correctness`'s.
+  from B4/B5 (etcd-grove-03's condition). NewReplay does this already (`replay_step_ok`).
+- Pitfalls (new): lean-check's incremental report MISSES errors after the first changed declaration
+  ("0 errors" with an unknown identifier later): always `-a` before trusting a file. `wp_auto` at the end
+  leaves `Φ v` with no update: to persist a fresh allocation, `iapply wp_fupd` before `wp_auto`, then
+  `ipersist`, `imodintro`. `iframe #` splits a `[∗list]` over `l ++ [x]` and leaves the tail
+  (`BigSepL.bigSepL_append.1`). `simp (config := { decide := true }) only [rconsStr]` decides the
+  consistency-string comparison (a plain `rw [decide_eq_false _]` does not match under the WP).
+  `RealWatchFrom` lives in `k8s_etcd3` but its vocabulary is `k8s_correctness`'s.
 
 ### Superseded (night 13)
 
