@@ -67,7 +67,7 @@ theorem driver_listContractOk' (wp_GetItemsPtr : apimeta.GetItemsPtr.spec (GF :=
     wp_apply (wp_MakeSlice rt (W64 0) m) $$ [] as %w ⟨%s, %Hs, Hsl, Hcap⟩
     · iframe #
       ipureintro; exact ⟨Hh.1, by decide, Hh.2.1, Hh.2.2⟩
-    iapply HΦ $$ %w %s %Hs.1
+    iapply HΦ $$ %w %s %Hs.1 %Hs.2.2.2
     simp only [driverListSpec, itemsAtD]
     iexists []
     iframe

@@ -83,7 +83,7 @@ theorem store.finalizeList.wp_proof
     iframe
     ipureintro; rfl
   · icases persistent_entails_left (L.itemsAt_len s os) $$ Hit with ⟨Hit, %Hlen⟩
-    have hos : os = [] := List.eq_nil_of_length_eq_zero (by rw [← Hlen]; have := hb rfl; word)
+    have hos : os = [] := List.eq_nil_of_length_eq_zero (by rw [← Hlen]; have := hb.1 rfl; word)
     subst hos
     wp_auto
     wp_apply (wp_Type v_ptr _ v _ _) $$ [$v] as %rt ⟨v, %hrt⟩
@@ -92,7 +92,7 @@ theorem store.finalizeList.wp_proof
     iapply HM0 $$ %rt %(W64 0)
     · ipureintro; refine ⟨hrt, ?_, ?_⟩ <;> word
     inext
-    iintro %w %s' %hw Hit'
+    iintro %w %s' %hw %hnn Hit'
     (try wp_auto)
     wp_apply (wp_Set v_ptr _ v w (go.GoType.SliceType c.S.objTy) (L.itemsRef pl) GoSlice s s')
       $$ [$v $Hp] as ⟨v, Hp⟩

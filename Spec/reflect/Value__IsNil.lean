@@ -1,10 +1,15 @@
 /-
 `v.IsNil()` of the addressable `Value` of the slice variable at `p`: true only of an empty slice
-(revised after the attack, change 4).
+(revised after the attack, change 4), false only of a non-nil slice.
 
 Faithful: `IsNil` of a slice is `Data == nil`, which only a nil slice has, whose length is 0
 (`reflect/value.go`; this repository's attack test `TestKindLenCapIsNil`,
 `examples/k8s7e2attack/attack_test.go`).
+False only of a non-nil slice (`b = false → s ≠ slice.nil`, added 2026-11-19, stage 7g,
+`notes/k8s-7g-trust.md`): `false` means `Data != nil`, and the model's `slice.nil` (`⟨null, 0, 0⟩`) is Go's
+nil slice, the one slice with a nil `Data`; a non-nil `Data` (`&zerobase` too) is a non-null location in
+the model. Needed by `finalizeList`, whose `if v.IsNil() { v.Set(MakeSlice(…, 0, 0)) }` leaves the items
+non-nil on both branches. Go: `examples/k8s/etcd3/trustspecs_test.go` `TestIsNilFalseNonNil`.
 
 The trust boundary: an axiom, `Proof/reflect/Value__IsNil.lean` (`reflect` is names-only; the reasoning principles of `Proof/reflect/Values.lean`; stage 7e-2, `notes/k8s-7e-2-draft.md` §5.2, attacked in `notes/k8s-7e-2-attack.md`). Lean-first (no Rocq counterpart).
 -/
@@ -37,7 +42,7 @@ abbrev reflect.Value.IsNil.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect ∗ vp ↦{dq} v ∗
       ⌜reflElem v (go.GoType.SliceType T) p⌝ ∗ p ↦{dq'} s }}
     (App (Val #(methods (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"IsNil" #vp)) (Val #()))
-  {{ (b : Bool), RET #b; ⌜b = true → uint.Z s.len = 0⌝ ∗ vp ↦{dq} v ∗ p ↦{dq'} s }}
+  {{ (b : Bool), RET #b; ⌜(b = true → uint.Z s.len = 0) ∧ (b = false → s ≠ slice.nil)⌝ ∗ vp ↦{dq} v ∗ p ↦{dq'} s }}
 
 end spec
 

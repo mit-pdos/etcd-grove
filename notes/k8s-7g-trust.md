@@ -49,6 +49,21 @@ clause 4 SURVIVES (11 attacks, Go under `-race`) and is ACCEPTED. m2 applied (th
 `DeepV` being a `*StatusError` is what makes clause 4 true; a constructor for one must revisit it). m1
 recorded: one orientation only (model's response first), which every use is.
 
+**2026-11-19 (night 10): MakeSlice attack passed** (`/shared/tmp/makeslice-attack/report.md`; decided by
+etcd-grove-03): `s ≠ slice.nil` SURVIVES and is ACCEPTED. Minor 2 applied (header: implied by `s.cap = m` for
+`m > 0`; amounts to `s.ptr ≠ null`; only `[]Obj`). Minor 1 recorded: cap-0 results share `&zerobase`, so no
+freshness or distinctness of the location may ever be claimed for capacity 0.
+
+**2026-11-19 (night 10): `reflect.Value.IsNil.spec` gains `b = false → s ≠ slice.nil`, PENDING the independent
+attack** (hard stop; no proof uses the new conjunct; `finalizeList` reads `hb.1`). `Spec/reflect/Value__IsNil.lean`
+(header: "False only of a non-nil slice"); the axiom `Proof/reflect/Value__IsNil.lean` is unchanged. Why:
+`finalizeList`'s `if v.IsNil() { v.Set(MakeSlice(t, 0, 0)) }` must leave the items non-nil on the `false`
+branch too, and the old post said nothing there. Faithful: `IsNil` of a slice is `Data == nil`; Go's nil slice
+is the model's `slice.nil` and the only slice with a nil `Data`; a non-nil `Data` (`&zerobase` included) is a
+non-null location (as in the MakeSlice attack, item 4). Go test: `examples/k8s/etcd3/trustspecs_test.go`
+`TestIsNilFalseNonNil` (IsNil iff `== nil` over nil, empty literal, make 0 / cap 4 / 2, reslices to 0,
+MakeSlice 0 0): PASS.
+
 **2026-11-19 (night 9): `reflect.MakeSlice.spec` gains `s ≠ slice.nil` in its post, PENDING the independent
 attack** (hard stop; option 1, decided by etcd-grove-03; no proof uses the new conjunct yet; the one existing
 user, `ListContract.lean`, reads only `Hs.1`). `Spec/reflect/MakeSlice.lean` (header: "Never nil"); the axiom

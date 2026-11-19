@@ -712,3 +712,37 @@ func TestMakeSliceZeroNonNil(t *testing.T) {
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------------------------
+// reflect.Value.IsNil (Spec/reflect/Value__IsNil.lean: `b = false → s ≠ slice.nil`)
+
+// IsNil of the addressable Value of a slice variable is false exactly for a non-nil slice, empty
+// ones included (Data != nil), and true for the nil slice (2026-11-19, stage 7g).
+func TestIsNilFalseNonNil(t *testing.T) {
+	base := make([]Obj, 3)
+	cases := []struct {
+		name string
+		s    []Obj
+		nil_ bool
+	}{
+		{"nil", nil, true},
+		{"var nil", []Obj(nil), true},
+		{"literal empty", []Obj{}, false},
+		{"make 0", make([]Obj, 0), false},
+		{"make 0 cap 4", make([]Obj, 0, 4), false},
+		{"reslice to 0", base[:0], false},
+		{"reslice end", base[3:], false},
+		{"MakeSlice 0 0", reflect.MakeSlice(reflect.TypeOf([]Obj{}), 0, 0).Interface().([]Obj), false},
+		{"make 2", make([]Obj, 2), false},
+	}
+	for _, c := range cases {
+		x := c.s
+		b := reflect.ValueOf(&x).Elem().IsNil()
+		if b != c.nil_ {
+			t.Fatalf("%s: IsNil = %v", c.name, b)
+		}
+		if b != (x == nil) {
+			t.Fatalf("%s: IsNil = %v but x == nil is %v", c.name, b, x == nil)
+		}
+	}
+}

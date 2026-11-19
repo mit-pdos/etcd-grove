@@ -216,7 +216,7 @@ def ListSpec.listAt (L : ListSpec GF Obj) (lx : GoInterface) (os : List (Obj × 
 
 /-- **The reflect calls on the items** (Draft §6, #9 at the store's abstract element type; the
 `…` spots filled at Prove, one clause per call): `meta.GetItemsPtr` of a list; `MakeSlice(rt, 0,
-m)`, an empty items slice; `MakeSlice(rt, n, m)` for `n` items, whose `Copy(w, v)` then moves the
+m)`, an empty items slice, never nil (2026-11-19, stage 7g: `reflect.MakeSlice.spec`'s `s ≠ slice.nil`); `MakeSlice(rt, n, m)` for `n` items, whose `Copy(w, v)` then moves the
 items of `v`'s slice into it (`growSlice`); `Append(v, [e])` of an object, one item more
 (`processListItem`). -/
 def listContractOk' (S : ObjSpec GF Obj) (L : ListSpec GF Obj) : IProp GF :=
@@ -229,7 +229,7 @@ def listContractOk' (S : ObjSpec GF Obj) (L : ListSpec GF Obj) : IProp GF :=
     (□ ∀ (rt : _root_.Perennial.reflect.Type') (m : w64) (Φ : val → IProp GF),
       ⌜reflType rt (go.GoType.SliceType S.objTy) ∧ 0 ≤ sint.Z m ∧ sint.Z m ≤ 2 ^ 41⌝ -∗
       ▷ (∀ (w : _root_.Perennial.reflect.Value) (s' : GoSlice), ⌜reflSliceV w S.objTy s'⌝ -∗
-          L.itemsAt s' [] -∗ Φ #w) -∗
+          ⌜s' ≠ slice.nil⌝ -∗ L.itemsAt s' [] -∗ Φ #w) -∗
       WP (App (App (App (Val (@! _root_.Perennial.reflect.MakeSlice)) (Val #rt)) (Val #(W64 0)))
         (Val #m)) {{ Φ }}) ∗
     (□ ∀ (rt : _root_.Perennial.reflect.Type') (n m : w64) (os : List (Obj × GoString))

@@ -2,6 +2,21 @@
 
 ## START HERE
 
+**2026-11-19 (night 10b; for etcd-grove-03). MakeSlice attack ACCEPTED (minor 2 applied, minor 1 recorded).
+STOP: `reflect.Value.IsNil.spec` needs `b = false → s ≠ slice.nil` (trusted text, pending attack).**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`; switch to manifest-f55 on lean's
+  f551a1b46 merge). Why IsNil: `finalizeList`'s `false` branch keeps the caller's slice, and the old post said
+  nothing about it, so an empty list's items could be `slice.nil` (questions.md "Night 10"; trust.md top entry).
+  Written: `Spec/reflect/Value__IsNil.lean` post `… ∧ (b = false → s ≠ slice.nil)`; Go `TestIsNilFalseNonNil` PASS.
+- Done with the accepted MakeSlice fact: `listContractOk'`'s MakeSlice-0 clause gives `⌜s' ≠ slice.nil⌝`
+  (ListContract discharges `Hs.2.2.2`; growSlice/finalizeList take it).
+- Build: `/shared/tmp/k8s7g/build-optA.sh` (log `build-optA.log`), ran this night: see the report / log.
+- Next after the IsNil attack: `finalizeList`'s post and `listIs` (GetList's success post) in a non-nil-items form
+  (`∃ pl s, … ⌜s ≠ slice.nil⌝ …`, in place), then step 5 in the order below (night 10).
+
+### Superseded (night 10)
+
 **2026-11-19 (night 10; for etcd-grove-03). Option A ACCEPTED; empty-list blocker: option 1 (questions.md
 "Step 5 night 9 decided"). `reflect.MakeSlice.spec` gains `s ≠ slice.nil`: STOP for its independent attack.**
 

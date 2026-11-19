@@ -12,6 +12,11 @@ slice header with `Data: unsafe_NewArray(...)`, and `unsafe_NewArray` (`mallocgc
 pointer even for zero bytes (`&zerobase`), so `MakeSlice(rt, 0, m)` is a non-nil empty slice for every `m`,
 `m = 0` included. Go: `examples/k8s/etcd3/trustspecs_test.go` `TestMakeSliceZeroNonNil` (`IsNil` false,
 `!= nil`, not `DeepEqual` to a nil `[]Obj`, for capacities 0, 1, 5).
+What the conjunct adds: for `m > 0` it already follows from `s.cap = m`; for `m = 0` it says only
+`s.ptr ≠ null` (equivalently, given the post's `ownSlice`). Only `[]Obj` (112 bytes) is in scope, so a
+zero-byte allocation, and the zero-size-element case, arise only at `m = 0`. It claims nothing about the
+address: cap-0 results all share `&zerobase` (attack 2026-11-19, `TestZeroCapSharesAddress`), so never add
+freshness or distinctness of the location for capacity 0.
 
 The trust boundary: an axiom, `Proof/reflect/MakeSlice.lean` (`reflect` is names-only; the reasoning principles of `Proof/reflect/Values.lean`; stage 7e-2, `notes/k8s-7e-2-draft.md` §5.2, attacked in `notes/k8s-7e-2-attack.md`). Lean-first (no Rocq counterpart).
 -/

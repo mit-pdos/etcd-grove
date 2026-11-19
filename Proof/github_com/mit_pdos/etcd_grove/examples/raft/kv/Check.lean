@@ -240,7 +240,7 @@ theorem Check.wp_proof
           Hk $$ [$HrKV $HAU'] as %v HΨ
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨fun _ => trivial, ⟨x, rfl⟩, v, rfl⟩
+        ipureintro; exact ⟨fun _ => rfl, ⟨x, rfl⟩, v, rfl⟩
       replace Hng : ¬ x.Kind' = opGetB := Hif
       wp_if_destruct
       · -- Put
@@ -257,7 +257,7 @@ theorem Check.wp_proof
           Hk Hv $$ [$HrKV $HAU'] as HΨ
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨fun _ => trivial, ⟨x, rfl⟩, [], rfl⟩
+        ipureintro; exact ⟨fun _ => rfl, ⟨x, rfl⟩, [], rfl⟩
       · -- Append
         replace Hif : ¬ x.Kind' = opPutB := Hif
         ihave HAU' := kvAu_of_run γr γd x (fun s => kvUpd s x.Key' (s x.Key' ++ x.Val')) (fun _ => [])
@@ -272,7 +272,7 @@ theorem Check.wp_proof
           Hk Hv $$ [$HrKV $HAU'] as HΨ
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨fun _ => trivial, ⟨x, rfl⟩, [], rfl⟩
+        ipureintro; exact ⟨fun _ => rfl, ⟨x, rfl⟩, [], rfl⟩
     isplitr
     · -- `gen`
       unfold lintest.genSpec
