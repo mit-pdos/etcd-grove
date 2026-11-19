@@ -40834,7 +40834,8 @@ and operations table, `Tests.lean` examples, and its transcription in the confor
   end and the direction, and the lock is the proof's business (`Net/Proof/net/Conn__Write.lean`).
   Exposing "my bytes are contiguous" to clients needs the token in the client's hands between its
   steps (a change of the accessor every client would have to follow): left to phase 4, where the
-  kit-facing specs are stated.
+  kit-facing specs are stated. (Phase 4, 2026-11-19: not needed, `Conn.Write.spec` stays as it is;
+  "The kits' network vocabulary: a library of laws".)
 - **Address helpers** (phase 2.5): `IP.To4` (and `isZeros`) translated, pure Go; `SplitHostPort`
   calls `internal/bytealg.IndexByteString` (assembly on amd64: a trusted model would be needed),
   `IP.Equal` calls `bytealg.Equal` (Go, but `internal/bytealg` belongs to the etcd project's
