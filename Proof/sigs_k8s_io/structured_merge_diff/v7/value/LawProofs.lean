@@ -88,6 +88,19 @@ theorem valuePkg_globals :
   ihave H := isPkgInit_access $$ Hpkg
   iexact H
 
+/-! ## Callback contracts are persistent -/
+
+instance iterFnOk_pers (fn : GoFunc) (kvs : List (GoString × UVal)) (I : List GoString → IProp GF)
+    (Q : IProp GF) : Persistent (iterFnOk fn kvs I Q) := by
+  unfold iterFnOk; infer_instance
+instance iterUFnOk_pers (a : value.Allocator) (fn : GoFunc) (kvs : List (GoString × UVal))
+    (I : List GoString → IProp GF) (Q : IProp GF) : Persistent (iterUFnOk a fn kvs I Q) := by
+  unfold iterUFnOk; infer_instance
+instance zipFnOk_pers (a : value.Allocator) (o : Bool) (fn : GoFunc)
+    (ol or_ : Option (List (GoString × UVal))) (I : List GoString → IProp GF) (Q : IProp GF) :
+    Persistent (zipFnOk a o fn ol or_ I Q) := by
+  unfold zipFnOk; infer_instance
+
 /-! ## Wrappers -/
 
 /-- The wrapper type. -/
@@ -102,6 +115,26 @@ theorem isValF_intro (p : Loc) (dq : DFrac) (i : GoInterface) (x : UVal) :
   iframe
   ipureintro
   rfl
+
+theorem wrapperOwn_freeable (q : Loc) :
+    wrapperOwn (GF := GF) q ⊢ freeable (interface.mkOk vuPtrTy #q) := by
+  iintro Hw
+  iunfold freeable
+  simp only [↓reduceIte]
+  iexists q
+  iframe
+  ipureintro
+  rfl
+
+theorem isValF_wrapperOwn (p : Loc) (x : UVal) :
+    isValF (GF := GF) (interface.mkOk vuPtrTy #p) (DFrac.own 1) x ⊢ wrapperOwn p := by
+  iintro Hv
+  iunfold isValF at Hv
+  icases Hv with ⟨%p', %i, %Heq, Hp, -⟩
+  obtain rfl : p = p' := by simpa [intoVal_eq_iff] using Heq
+  iunfold wrapperOwn
+  iexists i
+  iexact Hp
 
 theorem isValF_elim (p : Loc) (dq : DFrac) (x : UVal) :
     isValF (GF := GF) (interface.mkOk vuPtrTy #p) dq x ⊢

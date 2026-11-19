@@ -223,6 +223,28 @@ theorem keysSorted_nodup {α : Type} : ∀ (kvs : List (GoString × α)), keysSo
     have := keysSorted_head_lt h k' v' hm'
     rw [gsLt_irrefl] at this; cases this
 
+/-! ## Iterating a list of distinct keys -/
+
+theorem nodup_not_mem_take {α : Type} : ∀ (l : List α), l.Nodup → ∀ (j : Nat) (a : α),
+    l[j]? = some a → a ∉ l.take j
+  | [], _, j, a, h => by simp at h
+  | b :: l, hl, 0, a, h => by simp
+  | b :: l, hl, j + 1, a, h => by
+    simp only [List.getElem?_cons_succ] at h
+    simp only [List.take_succ_cons, List.mem_cons, not_or]
+    rw [List.nodup_cons] at hl
+    constructor
+    · rintro rfl; exact hl.1 (List.mem_of_getElem? h)
+    · exact nodup_not_mem_take l hl.2 j a h
+
+theorem take_succ_of_getElem? {α : Type} (l : List α) (j : Nat) (a : α) (h : l[j]? = some a) :
+    l.take (j + 1) = l.take j ++ [a] := by
+  rw [List.take_add_one, h]; rfl
+
+theorem perm_of_nodup_mem {α : Type} [DecidableEq α] (l l' : List α) (h1 : l.Nodup) (h2 : l'.Nodup)
+    (h : ∀ a, a ∈ l ↔ a ∈ l') : l.Perm l' :=
+  (List.perm_ext_iff_of_nodup h1 h2).2 h
+
 end ValuePure
 
 end smd
