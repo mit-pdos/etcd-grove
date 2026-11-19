@@ -12,6 +12,8 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.CellModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkAuth
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseReqOn
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
@@ -33,6 +35,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- The cell's ghost names. -/
 structure CellNames where
@@ -51,6 +55,10 @@ def cellN : Namespace := nroot .@ "authlease_cell"
 def cellAuth (γc : CellNames) (ps : List Nat) (gs : List w64) (d : Nat) : IProp GF :=
   iprop(monoListAuthOwn γc.ps 1 ps ∗ monoListAuthOwn γc.gs 1 gs ∗ monoNatAuthOwn γc.d 1 d ∗
     (⌜d = 0⌝ ∨ monoNatLbOwn γc.a 1))
+
+instance cellAuth_timeless (γc : CellNames) (ps : List Nat) (gs : List w64) (d : Nat) :
+    Timeless (cellAuth (GF := GF) γc ps gs d) := by
+  unfold cellAuth; infer_instance
 
 /-- **The cell** (persistent; see the file header). -/
 def cellInv (γk : KVNames) (γc : CellNames) : IProp GF :=
@@ -85,9 +93,9 @@ abbrev cellM : CoPset := ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑cellN
 
 /-- **The cell's allocation**, from the client's half at a state without `a/x`. -/
 theorem cell_alloc (γk : KVNames) (σ : KVState) (hx : mvcc.findKey xK σ.kvs = none) :
-    etcdKV (GF := GF) γk σ ⊢ |={⊤}=> ∃ γc : CellNames, cellInv γk γc ∗ monoListLbOwn γc.ids [] ∗
-      monoListLbOwn γc.ps [] ∗ monoListLbOwn γc.gs [] ∗ monoNatLbOwn γc.d 0 ∗
-      monoNatAuthOwn γc.a (1 : Qp).half 0 ∗ monoListAuthOwn γc.ids (1 : Qp).half [] := by
+    etcdKV (GF := GF) γk σ ⊢ |={⊤}=> ∃ γc : CellNames, cellInv γk γc ∗ monoListLbOwn γc.ids ([] : List w64) ∗
+      monoListLbOwn γc.ps ([] : List Nat) ∗ monoListLbOwn γc.gs ([] : List w64) ∗ monoNatLbOwn γc.d 0 ∗
+      monoNatAuthOwn γc.a (1 : Qp).half 0 ∗ monoListAuthOwn γc.ids (1 : Qp).half ([] : List w64) := by
   iintro Hσ
   imod (mono_list_own_alloc (GF := GF) ([] : List w64)) with ⟨%γi, Hi, #Hil⟩
   ihave ⟨Hi, Hi2⟩ : monoListAuthOwn (GF := GF) γi (1 : Qp).half ([] : List w64) ∗
@@ -108,7 +116,7 @@ theorem cell_alloc (γk : KVNames) (σ : KVState) (hx : mvcc.findKey xK σ.kvs =
     etcdKV γk σ ∗ monoListAuthOwn γi (1 : Qp).half ids ∗
       cellAuth ⟨γi, γp, γg, γd, γv, γa⟩ ps gs d ∗ monoNatAuthOwn γv 1 σ.rev ∗
       (∃ a : Nat, monoNatAuthOwn γa (1 : Qp).half a) ∗
-    ⌜CellOk σ ids ps gs d⌝) $$ [Hσ Hi Hp Hg Hd Hv Ha1]) with #Hinv
+    ⌜CellOk σ ids ps gs d⌝)) $$ [Hσ Hi Hp Hg Hd Hv Ha1] with #Hinv
   · inext
     iexists σ, [], [], [], 0
     iframe Hσ Hi Hv
@@ -120,6 +128,7 @@ theorem cell_alloc (γk : KVNames) (σ : KVState) (hx : mvcc.findKey xK σ.kvs =
   imodintro
   iexists ⟨γi, γp, γg, γd, γv, γa⟩
   iframe Hil Hpl Hgl Hdl Ha2 Hi2
+  iunfold cellInv
   iexact Hinv
 
 /-- **An update under the cell**: an update whose step, given the cell at the state it fires at and
@@ -273,7 +282,11 @@ theorem cell_grantAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) 
     iintro !> %σ %ids %ps %gs %d %HS Hids Ha HG
     iunfold clientGrant at HG
     icases HG with ⟨%md, -, HG⟩
-    ihave %Hf := writeGrantG_grant_fresh ρ.kv srvAuthSt0 _ id ttl L₀ σ hrev $$ HG
+    ihave HG : writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md))
+        (irrLeaseGrant id ttl) L₀ σ $$ [HG]
+    · iunfold v3rpc.opGrantT at HG; iexact HG
+    ihave %Hf := writeGrantG_grant_fresh ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md))
+      id ttl L₀ σ hrev $$ HG
     iunfold cellAuth at Ha
     icases Ha with ⟨Hp, Hg, Hd, Hdo⟩
     imod (monoListAuthOwn_update_app (GF := GF) (γ := γc.gs) (l := gs) [id]) $$ Hg with ⟨Hg, #Hgl⟩
@@ -321,8 +334,9 @@ theorem cell_putZAu (γk : KVNames) (γc : CellNames) (Lz : w64) (gs0 : List w64
   iexists _
   iframe Hpl
   ipureintro
-  split <;> simp_all
-  exact List.length_pos_iff.2 ‹_›
+  split
+  · simp
+  · exact List.length_pos_iff.2 ‹_›
 
 /-- **u's put of `a/lease` with `Lu` under the cell** (after root's put; `Lu` fixed, a grant id): its
 grant, told `z/lease` holds `Lz`, gives `Lu ≠ Lz` (`hne`: u may not write `z/lease`). -/
@@ -385,10 +399,10 @@ theorem cell_txnTAu (γk : KVNames) (γc : CellNames) (Lz Lu : w64) (ps0 : List 
   ihave %Hps := len_of_lb γc ps ps0 $$ Hp Hp0
   subst hu
   imod (monoListAuthOwn_update (GF := GF) (γ := γc.ps) (l := ps)
-    (if ps.length = 2 then ps ++ [(kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids))))) σ).rev] else ps)
+    (if ps.length = 2 then ps ++ [(kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids)))) σ).rev] else ps)
     (by split <;> simp)) $$ Hp with ⟨Hp, #Hpl⟩
   imodintro
-  iexists (if ps.length = 2 then ps ++ [(kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids))))) σ).rev] else ps),
+  iexists (if ps.length = 2 then ps ++ [(kvOpStep (.txn (txnWireOf (leaseTxn tK (luOf ids)))) σ).rev] else ps),
     gs, d
   iframe Hids
   isplitr
@@ -445,7 +459,7 @@ theorem cell_refusedAu (γk : KVNames) (γc : CellNames) (op : KVOp) (G Q : KVSt
   isplitl []
   · iexact Hinv
   iintro !> %σ %ids %ps %gs %d %HS Hids Ha HG
-  imod HF $$ %σ %ids %ps %gs %d %HS Hids Ha HG with []
+  imod HF $$ %σ %ids %ps %gs %d %HS Hids Ha HG with ⟨⟩
 
 /-- **A revocation of `Lu` refused while `a/lease` holds it** (v's, the no-token client's, the invalid
 token's): before u's revocation its grant is refuted (`a/lease` holds `Lu`, which the principal may not
@@ -481,7 +495,7 @@ theorem cell_revokeLuAu (γk : KVNames) (γc : CellNames) (Lz Lu : w64) (ps0 : L
     iexact Hdl
   · have hd0 : d = 0 := by have := HS.d_le; omega
     have ha : leaseOf aK σ.kvs = some Lu := by rw [← hu]; exact HS.a_at (by have := HS.ps_len; omega) hd0
-    imod HF $$ %σ %ha HG with []
+    imod HF $$ %σ %ha HG with ⟨⟩
 
 /-- **Before u's revocation is permitted, no update's `revoked` holds** (the main thread's half of
 the permission at `0`). -/
@@ -628,12 +642,13 @@ theorem not_akGrantedL_lease (who : GoString) (σ : KVState) (rq : apply.IRRMode
   unfold etcd_auth.akUser at hu
   rcases hu with h0 | ⟨hw, hw'⟩
   · exact Or.inl h0
-  · subst hw
-    rcases hwho with rfl | rfl | rfl | ⟨rfl, hk'⟩
-    · rcases hw' with h | h <;> cases h
-    · rcases hw' with h | h <;> cases h
-    · exact Or.inr (Or.inr rfl)
-    · exact Or.inr (Or.inl ⟨rfl, hk'⟩)
+  · rcases hw' with rfl | rfl
+    · rcases hwho with h | h | h | ⟨-, hk'⟩
+      · exact absurd h (by decide)
+      · exact absurd h (by decide)
+      · exact absurd h (by decide)
+      · exact Or.inr (Or.inl ⟨hw, hk'⟩)
+    · exact Or.inr (Or.inr hw)
 
 /-- A put's lease check is of its lease. -/
 theorem leaseGranted_put (r : Nat) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (o : OpFull)
