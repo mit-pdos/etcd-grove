@@ -8,12 +8,8 @@ def smd.typed.AsTyped.spec : Prop :=
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗
-            smd.isVal v x ∗ smd.isSchema sc S ∗ smd.isTypeRef tr t ∗ ⌜S.WF⌝ -∗
-          (▷
-              ∀ p err,
-                ⌜smd.conforms S t x ∧ err = GoInterface.nil⌝ ∗ smd.isTV p sc S t x ∨
-                    ⌜¬smd.conforms S t x ∧ p = null ∧ err ≠ GoInterface.nil⌝ -∗
-                  Φ (intoVal p, intoVal err)) -∗
+            smd.isVal v x ∗ smd.isSchema sc S ∗ smd.isTypeRef tr t ∗ ⌜S.WF ∧ smd.conforms S t x⌝ -∗
+          (▷ ∀ p err, ⌜err = GoInterface.nil⌝ ∗ smd.isTV p sc S t x -∗ Φ (intoVal p, intoVal err)) -∗
             WP
               (((((intoVal (functions sigs_k8s_io.structured_merge_diff.v7.typed.AsTyped [])) (intoVal v)) (intoVal sc))
                   (intoVal tr))

@@ -2,7 +2,10 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem smd.fieldpath.ManagedFields.Equals.wp_proof : smd.fieldpath.ManagedFields.Equals.spec
+theorem smd.fieldpath.ManagedFields.Equals.wp_proof (h_Set_Equals : smd.fieldpath.Set.Equals.spec)
+    (h_versionedSet_APIVersion : smd.fieldpath.versionedSet.APIVersion.spec) (h_versionedSet_Applied
+    : smd.fieldpath.versionedSet.Applied.spec) (h_versionedSet_Set :
+    smd.fieldpath.versionedSet.Set.spec) : smd.fieldpath.ManagedFields.Equals.spec
   -- `Perennial.EtcdGrove.smd.fieldpath.ManagedFields.Equals.spec`, unfolded:
   ∀ (m1 m2 : sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields) (a b : smd.MF),
     ⊢

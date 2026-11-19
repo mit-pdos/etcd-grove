@@ -7,11 +7,16 @@ def (sealed) smd.isIfaceM (M : GMap GoString GoInterface) : List (GoString × sm
 def smd.UVal.sizeM : List (GoString × smd.UVal) → Nat :=
   smd.UVal.brecOn_2 x✝ smd.UVal.size._f smd.UVal.sizeL._f smd.UVal.sizeM._f fun t f => PUnit.unit
 
+def (sealed) smd.isFieldList (s : GoSlice) (fl : smd.FieldList) : IProp GF
+
 def smd.keysSorted {α : Type} : List (GoString × α) → Bool :=
   List.brecOn x✝ smd.keysSorted._f
 
 def smd.UVal.size : smd.UVal → Nat :=
   x✝.brecOn smd.UVal.size._f smd.UVal.sizeL._f smd.UVal.sizeM._f fun t f => PUnit.unit
+
+def smd.FieldList : Type :=
+  List (GoString × smd.UVal)
 
 def smd.gsLt (a b : GoString) : Bool :=
   smd.gsCompare a b == -1
@@ -54,6 +59,9 @@ def smd.UVal.brecOn.go.{u} {motive_1 : smd.UVal → Sort u} {motive_2 : List smd
     (fun head tail head_ih tail_ih => ⟨F_3 (head :: tail) ⟨head_ih, tail_ih⟩, head_ih, tail_ih⟩)
     (fun fst snd snd_ih => ⟨F_4 (fst, snd) snd_ih, snd_ih⟩) t
 
+def smd.flCompare : smd.FieldList → smd.FieldList → Int :=
+  List.brecOn (motive := fun x => smd.FieldList → Int) x✝¹ smd.flCompare._f x✝
+
 def smd.UVal.decEqL (a b : List smd.UVal) : Decidable (a = b) :=
   smd.UVal.brecOn_1 x✝¹ smd.UVal.decEq._f smd.UVal.decEqL._f smd.UVal.decEqM._f (fun t f => PUnit.unit) x✝
 
@@ -75,6 +83,9 @@ def smd.instInhabitedUVal : Inhabited smd.UVal :=
 
 def smd.gsCompare : GoString → GoString → Int :=
   List.brecOn (motive := fun x => GoString → Int) x✝¹ smd.gsCompare._f x✝
+
+def smd.UVal.canon : smd.UVal → Bool :=
+  x✝.brecOn smd.UVal.canon._f smd.UVal.canonL._f smd.UVal.canonM._f fun t f => PUnit.unit
 
 theorem smd.UVal.brecOn_2.eq.{u} {motive_1 : smd.UVal → Sort u} {motive_2 : List smd.UVal → Sort u}
     {motive_3 : List (GoString × smd.UVal) → Sort u} {motive_4 : GoString × smd.UVal → Sort u} (t :
@@ -136,6 +147,12 @@ def smd.UVal.brecOn_2.go.{u} {motive_1 : smd.UVal → Sort u} {motive_2 : List s
     (fun head tail head_ih tail_ih => ⟨F_3 (head :: tail) ⟨head_ih, tail_ih⟩, head_ih, tail_ih⟩)
     (fun fst snd snd_ih => ⟨F_4 (fst, snd) snd_ih, snd_ih⟩) t
 
+def (sealed) smd.isFieldsL : List sigs_k8s_io.structured_merge_diff.v7.value.Field → smd.FieldList →
+    IProp GF
+
+def smd.UVal.canonL : List smd.UVal → Bool :=
+  smd.UVal.brecOn_1 x✝ smd.UVal.canon._f smd.UVal.canonL._f smd.UVal.canonM._f fun t f => PUnit.unit
+
 def (sealed) smd.isValF (v : sigs_k8s_io.structured_merge_diff.v7.value.Value) (dq : DFrac) (x :
     smd.UVal) : IProp GF
 
@@ -172,6 +189,9 @@ def smd.UVal.brecOn_3.go.{u} {motive_1 : smd.UVal → Sort u} {motive_2 : List s
 def smd.UVal.ofMap (kvs : List (GoString × smd.UVal)) : smd.UVal :=
   smd.UVal.map (smd.kvsOf kvs)
 
+def smd.UVal.canonM : List (GoString × smd.UVal) → Bool :=
+  smd.UVal.brecOn_2 x✝ smd.UVal.canon._f smd.UVal.canonL._f smd.UVal.canonM._f fun t f => PUnit.unit
+
 def smd.instDecidableEqUVal : DecidableEq smd.UVal :=
   smd.UVal.decEq
 
@@ -186,6 +206,9 @@ def smd.intCompare (a b : w64) : Int :=
 
 def smd.instInhabitedUVal.default : smd.UVal :=
   smd.UVal.null
+
+def smd.smdSizeMax : Nat :=
+  2 ^ 32
 
 def smd.isVal (v : sigs_k8s_io.structured_merge_diff.v7.value.Value) (x : smd.UVal) : IProp GF :=
   smd.isValF v DFrac.discard x

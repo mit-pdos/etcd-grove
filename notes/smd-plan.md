@@ -841,3 +841,96 @@ standard-library axioms already listed.
   (c) `Validate`/`AsTyped` are specified on conforming values only (post `err = nil`): rejection is
   outside the scope, so their error paths need no stronger `fmt` spec (no new axiom). The driver
   only types conforming literals.
+
+## Draft integrated (2026-11-19, the coordinator's integration session)
+
+The four per-package drafts (`44b1522b90` value, `569f134a8d` schema+merge, `8fc8585593`
+fieldpath, `a0c3bc71e4` typed) integrated into one building Draft. No function proof (every
+`wp_proof` stays `sorry` but the two kept ones and the cluster members' projections), no law proved.
+
+**Cross-package moves.** `FieldList`, `flCompare`, `isFieldsL`, `isFieldList`, `UVal.canon` into
+`value/Defs.lean`; `ownMF` beside `isMF` (`fieldpath/Defs.lean`, its laws `ownMF_persist`,
+`ownMF_empty`, `ownMF_access` in `fieldpath/Vocab.lean`: `merge` no longer unfolds it);
+`childType`/`typeAlong`/`namedAlong`/`ensureNamed` into `fieldpath/NamedVocab.lean` (no fieldpath →
+typed import); `isCmpResult` replaced by typed's `isComparison`. Requested laws stated:
+`UVal.compare_*` (strict total order on canonical values), `isValF_canon`, `isFieldList_agree`,
+`isValF_isValuePtr`, `FSet.cardLt_mono`, `card_union`, `PathSet.card_nodes`, `ownPath_truncate`
+(a Perennial slice fact, `notes/perennial-changes.md`), the dispatch laws `isValF_concrete`,
+`isMapV_concrete`, `isListV_concrete`, `ownRange_concrete`, `isAlloc_concrete`. Schema's
+`isTypeRefOpt_some` and `Schema.WF_types_nodup` were already there. `value`'s package fact:
+`HeapAllocator`/`EmptyRange` hold their pointers (`value/Base.lean`, proved at initialization by
+`etc/gen-init.py`, no `sorry`).
+
+**D9/D10.** One constant `smdSizeMax` (`value/Defs.lean`, `@[word_unfold]`, 2^32); `typedSizeMax`
+gone. `inputsSmall xs mf` (`merge/Defs.lean`, decided): the objects' sizes together and the trie
+nodes of the managers' union (`PathSet.nodes`: every non-empty prefix; stronger than the
+cardinality D9 named, because `ensureNamed` adds prefixes, so a cardinality bound alone would not
+bound its count) below `smdSizeMax`; `Apply` takes `inputsSmall [live, config] mf`, `Update`
+`inputsSmall [live, new] mf`. The typed API (`ToFieldSet`, `Compare`) takes each value below
+`smdSizeMax`; the internal counts keep Go's `int` bound `2 ^ 63 - 1` (`FSet.CardLt`, now over the
+decided `FSet.card`). `prune`, its passes and `update` take the size and conformance premises they
+pass on (D10 (b): `RemoveItems`' result conforms, from `keysWithItems`), the laws deriving them
+stated in `merge/Laws.lean` (`prune_conforms`, `merge_size`, `removeItems_size`, `prune_size`,
+`ensureNamed_nodes`, `fieldSet_nodes`, `mfUnion_nodes`, `inputsSmall_prune`). D10 (c): `AsTyped`,
+`Validate` (and `_ptr`), the validating walker and `validateScalar` on conforming values only
+(post: no error), so no proof takes `errorf` or a `fmt` spec.
+
+**Callee hypotheses.** Every function `Main` reaches takes exactly its Go callees' specs, computed
+from the translated bodies (`FuncResolve`/`MethodResolve`) under one policy: a value-receiver
+method called through a pointer takes its `_ptr` spec if there is one, else the value method's (the
+proof steps through the deref); an interface call of `value`'s takes the concrete methods of the
+dynamic types the representation fixes (`*_concrete` laws: `*valueUnstructured`,
+`mapUnstructuredString`, `listUnstructured` or a pointer to one, `*listUnstructuredRange`/
+`*emptyRange`, `*heapAllocator`/`*freelistAllocator`), as `VersionedSet`'s (`isVSet_concrete`); the
+`Converter` is `isIdentityConverter`'s; `atomHandler` is `handleAtom`'s contract (the walker method
+calling `handleAtom`/`resolveSchema` takes its own `doScalar`/`doList`/`doMap`); the standard
+library: Perennial's `sync.Pool.Get/Put`, `sync.Once.Do`, `sort.Strings`, `strings.Compare` and the
+three axioms `reflect.DeepEqual`(nil), `slices.BinarySearchFunc`, `slices.Insert`. Not taken (on
+branches the premises exclude): error construction (`fmt.*`, `errors.New`, `error.Error`,
+`typed.errorf`, `ValidationErrors.Error`), `NewExcludeSetFilter`/`Filter` (nil fields), the
+override path of `Schema.Resolve` (`Map.CopyInto`, the mutex), `Union.Equals` (no unions), and
+`PathElement.String` (a method value given as a lazy prefix, called only on an error). No callee
+without a spec: no new trust boundary. `sort.SliceStable` is no longer reached (only
+`FieldList.Sort`, not in scope, calls it).
+
+**Recursion clusters: the linking form.** The link is acyclic, so a cycle of specs is proved
+together. A cluster `C` (18: `value` `EqualsUsingRec` (5) and `CompareUsingRec` (3); `schema`
+`EqualsRec` (5); `fieldpath` `{Union,Intersection,Difference,RecursiveDifference,Empty,Size,
+Equals,EnsureNamedFieldsAreMembers,iteratePrefix}Rec` (`Set.X`/`SetNodeMap.X`, 2 each); `typed`
+`mergingWalkerRec` (7), `compareWalkerRec` (7), `toFieldSetWalkerRec`,
+`reconcileWithSchemaWalkerRec`, `validatingObjectWalkerRec` (5 each), `removingWalkerRec` (3)) has
+`Spec/.../<pkg>/<C>.lean`: each member's spec inside the logic (`<F>.specI`, its spec's text under
+`iprop`), `<C>.specI` (their conjunction) and `<C>.spec` (the members' specs); per member
+`Spec/.../<F>Body.lean`: `<F>.specBody := ⊢ ▷ <C>.specI -∗ <F>.specI`, proved by
+`Proof/.../<F>Body.lean`'s `<F>.wp_proofBody` from its callees outside the cluster (the body proof:
+strip the later at the call's first step); `Proof/.../<C>.lean`: `<C>.wp_proof` from the bodies (Löb
+induction, then each `specI` read back as its spec); each member's `wp_proof` is the projection
+of `<C>.spec` (proved, no `sorry`). `etc/gen-link.py` links them as `<F>+Body` and `<pkg>_<C>`
+entries. A self-recursive function proves itself by Löb in its own file (bbolt's
+`node.rebalance`). The fieldpath draft's `Set.X` proofs had inlined `SetNodeMap.X`'s bodies; they now
+take it through the cluster.
+
+**Counts.** Reachable from `Main`: 267 functions (+ 18 clusters, 64 bodies) of 288 specs;
+the spec files by package: value 92, fieldpath 58 (+ 9 Rec + 18 bodies), schema 9 (+1 +5), typed 99
+(+6 +32), merge 13; one proof file each (`Proof/.../<pkg>/`), plus the driver's 17. `Link.lean`: 314
+results reach 281 `sorry`s (computed from the Link's closure of `wp_Main`: `etc/tcb-collections/
+smd.txt`, `etc/tcb-baseline.txt`; `etc/tcb-report.py --check` needs the whole repository built) and
+the axioms `Perennial.reflect.opaqueInitsOk`, `reflect.DeepEqual.wp_proofNil`,
+`slices.BinarySearchFunc.wp_proof`, `slices.Insert.wp_proof`. `Steps.lean` also proves the version
+premise (`version_all`) and D9's (`small_all`) of every step by `decide`.
+
+**Build.** Every module of `Spec|Proof/sigs_k8s_io/structured_merge_diff/` and of the driver
+(`Spec|Proof/github_com/mit_pdos/etcd_grove/examples/k8s/smd/`, `Link`, `Steps`, `Results`,
+`TopLevelRobustness`): 770 modules, `lake build` clean. Checks: `etc/api-check.py etc/api/smd.txt
+--check` (the vocabulary modules now importable: `value.Objects`, `fieldpath.Vocab`/`NamedVocab`,
+`schema.Laws`, `typed.Walkers`/`WalkerLaws`, `merge.Laws`), `etc/gen-interface.py` (regenerated,
+`--check --layout` clean), `etc/tier-check.py --check`, `etc/gen-init.py --check`, `etc/goose.py
+--check --project smd --project k8s-smd`: all pass.
+
+**Not integrated.** `typed`'s package fact `typedPools` stays a stated law
+(`typedPkgInit_pools.law`; `isPkgInit typed` is still `True`): it needs the walkers' pooled
+invariants (`*Pooled`, `ruleKeepRHSOk`, defined over `typed/Defs`, `value/Objects` and
+`fieldpath/Vocab`) below `typed/Base.lean`, which `typed/Defs` imports, so the instance would move
+to a module after `Walkers` (and every `typed` spec file would import it), and the initializer's
+proof would prove the five pools' `New` closures and `ruleKeepRHS`'s closure: function proofs,
+the Prove phase's. To do before the walkers' proofs.

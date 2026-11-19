@@ -2930,3 +2930,14 @@ parameter.
   exactly when the error's dynamic type is the target's element type (or implements it, for an
   interface target), and then stores the error's value into the target. Status: not proposed (found by
   the refimpl session, 2026-11-18).
+
+## 2026-11-19: no lemma for truncating an owned slice to a prefix, keeping its capacity (SMD's walkers)
+
+- **Where.** structured-merge-diff's walkers drop the last element of their path buffer
+  (`w.path = w.path[:len(w.path)-1]`, `finishDescent`), keeping ownership of the whole capacity.
+- **Workaround here.** Stated as a local law, `ownPath_truncate.law`
+  (`Proof/sigs_k8s_io/structured_merge_diff/v7/typed/WalkerLaws.lean`), to be proved from
+  `ownSlice_slice` and `ownSlice_slice_absorb_capacity` when the walkers are proved.
+- **Proposed change.** A general `ownSliceCap`/`↦*` lemma for `s[:k]` (`k ≤ len s`): the prefix's
+  points-to and capacity from the slice's, the dropped cells absorbed into the capacity. Status: not
+  proposed (found by the SMD Draft's integration, 2026-11-19).

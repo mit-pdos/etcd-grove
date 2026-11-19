@@ -24,8 +24,17 @@ def smd.keysWithItems (S : smd.Schema) (t : smd.TypeRef) (s : smd.PathSet) : Pro
         ∀ (n : GoString) (v : smd.UVal) (r : List smd.PE),
           (n, v) ∈ fl → r ≠ [] → ¬p ++ [smd.PE.key fl, smd.PE.field n] ++ r ∈ s
 
+def smd.inputsSmall (xs : List smd.UVal) (mf : smd.MF) : Prop :=
+  (List.map smd.UVal.size xs).sum < smd.smdSizeMax ∧ smd.FSet.card (smd.mfUnion mf).nodes < smd.smdSizeMax
+
 def (sealed) smd.isIdentityConverter (cv : sigs_k8s_io.structured_merge_diff.v7.merge.Converter) :
     IProp GF
+
+def smd.addBackOwned (S : smd.Schema) (t : smd.TypeRef) (merged pruned : smd.UVal) (managed :
+    smd.PathSet) : smd.UVal :=
+  smd.removeItems S t merged
+    ((smd.ensureNamed S t (smd.fieldSet S t merged)).diff
+      ((smd.ensureNamed S t (smd.fieldSet S t pruned)).union (smd.ensureNamed S t managed)))
 
 def smd.applyResult (S : smd.Schema) (t : smd.TypeRef) (rion : Bool) (live config : smd.UVal) (ver :
     GoString) (mf : smd.MF) (mgr : GoString) (force : Bool) : smd.ApplyOutcome :=
@@ -43,6 +52,12 @@ def smd.applyResult (S : smd.Schema) (t : smd.TypeRef) (rion : Bool) (live confi
 inductive smd.ApplyOutcome : Type
   | smd.ApplyOutcome.ok (obj : Option smd.UVal) (mf : smd.MF) : smd.ApplyOutcome
   | smd.ApplyOutcome.conflicts (cs : smd.FSet (GoString × smd.Path)) : smd.ApplyOutcome
+
+def smd.addBackOwnedMF (S : smd.Schema) (t : smd.TypeRef) (merged pruned : smd.UVal) (mf : smd.MF) :
+    smd.UVal :=
+  match mf with
+  | [] => pruned
+  | head :: tail => smd.addBackOwned S t merged pruned (smd.mfUnion mf)
 
 def (sealed) smd.isConflicts (s : sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts) (cs : List
     (GoString × smd.Path)) : IProp GF
@@ -83,6 +98,20 @@ def smd.afterUpdate (mf : smd.MF) (mgr : GoString) (confl : smd.FSet (GoString �
         if s.IsEmpty then none else some (m, { set := s, version := e.version, applied := e.applied }))
     mf
 
+def smd.conflictsMF (mf : smd.MF) (mgr : GoString) (c : smd.Cmp) : smd.MF :=
+  List.filterMap
+    (fun x =>
+      match x with
+      | (m, e) =>
+        if m = mgr then none
+        else
+          have s := e.set.inter (c.modified.union c.added);
+          if s.IsEmpty then none else some (m, { set := s, version := e.version, applied := false }))
+    mf
+
+def (sealed) smd.isConflict (x : sigs_k8s_io.structured_merge_diff.v7.merge.Conflict) (c : GoString
+    × smd.Path) : IProp GF
+
 def smd.updateResult (S : smd.Schema) (t : smd.TypeRef) (live new : smd.UVal) (ver : GoString) (mf :
     smd.MF) (mgr : GoString) : smd.MF :=
   have mf0 := smd.reconcileMF S t mf;
@@ -96,11 +125,27 @@ def smd.updateResult (S : smd.Schema) (t : smd.TypeRef) (live new : smd.UVal) (v
   if s.IsEmpty then List.filter (fun me => me.fst != mgr) mf2
   else mf2.set mgr { set := s, version := ver, applied := false }
 
+def smd.mfPairs (mf : smd.MF) : smd.FSet (GoString × smd.Path) :=
+  List.foldr (fun me acc => (smd.FSet.map (fun p => (me.fst, p)) me.snd.set).union acc) smd.FSet.empty mf
+
+def (sealed) smd.isVSetOpt (i : sigs_k8s_io.structured_merge_diff.v7.fieldpath.VersionedSet) :
+    Option smd.VSet → IProp GF
+
+def smd.instDecidableInputsSmall (xs : List smd.UVal) (mf : smd.MF) : Decidable (smd.inputsSmall xs
+    mf) :=
+  smd.instDecidableInputsSmall._aux_1 xs mf
+
 def smd.conflictsOfMgr (cs : smd.FSet (GoString × smd.Path)) (m : GoString) : smd.PathSet :=
   smd.FSet.bind (fun mp => if mp.fst = m then [mp.snd] else []) cs
 
 def (sealed) smd.isUpdater (u : Loc) (cv : sigs_k8s_io.structured_merge_diff.v7.merge.Converter)
     (igf igfl : GoMap) (rion : Bool) : IProp GF
+
+def smd.addBackDangling (S : smd.Schema) (t : smd.TypeRef) (merged pruned : smd.UVal) (last :
+    smd.PathSet) : smd.UVal :=
+  smd.removeItems S t merged
+    (((smd.ensureNamed S t (smd.fieldSet S t merged)).diff (smd.ensureNamed S t (smd.fieldSet S t pruned))).inter
+      (smd.ensureNamed S t last))
 
 def smd.conflictsOf (mf : smd.MF) (mgr : GoString) (c : smd.Cmp) : smd.FSet (GoString × smd.Path) :=
   List.foldr

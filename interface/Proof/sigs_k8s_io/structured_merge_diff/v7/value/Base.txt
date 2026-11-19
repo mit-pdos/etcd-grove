@@ -27,4 +27,7 @@ def Perennial.sigs_k8s_io.structured_merge_diff.v7.value.isPkgInit_inst : IsPkgI
               isPkgInit pkg_id.sort ∗
                 isPkgInit pkg_id.strings ∗
                   isPkgInit pkg_id.errors ∗ isPkgInit pkg_id.sync ∗ isPkgInit pkg_id.sync.atomic ∗ True),
-    isPkgInitDef := iprop(True) }
+    isPkgInitDef :=
+      iprop(∃ p q,
+          typedPointsto (globalAddr sigs_k8s_io.structured_merge_diff.v7.value.HeapAllocator) p DFrac.discard ∗
+            typedPointsto (globalAddr sigs_k8s_io.structured_merge_diff.v7.value.EmptyRange) q DFrac.discard) }

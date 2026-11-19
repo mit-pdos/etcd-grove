@@ -16,9 +16,6 @@ def smd.conformsM (S : smd.Schema) (fs : List (GoString × smd.TypeRef)) (e : Op
 def smd.Cmp.unionAll (cs : List smd.Cmp) : smd.Cmp :=
   List.foldr smd.Cmp.union smd.Cmp.none cs
 
-def smd.ensureNamed (S : smd.Schema) (t : smd.TypeRef) (s : smd.PathSet) : smd.PathSet :=
-  smd.FSet.union s (smd.FSet.bind (smd.namedAlong S [] (some t)) s)
-
 def smd.conformsL (S : smd.Schema) (e : smd.TypeRef) : List smd.UVal → Bool :=
   smd.UVal.brecOn_1 x✝ (smd.conformsB._f S) (smd.conformsL._f S) (smd.conformsM._f S) (fun t f => PUnit.unit) e
 
@@ -29,9 +26,6 @@ def smd.reconcile (S : smd.Schema) (t : smd.TypeRef) (s : smd.PathSet) : smd.Pat
   have ns := smd.atomicNodes S t s;
   (smd.FSet.filter (fun q => !smd.FSet.any (fun p => List.isPrefixOf p q) ns) s).union ns
 
-def smd.typeAlong (S : smd.Schema) (t : Option smd.TypeRef) : smd.Path → Option smd.TypeRef :=
-  List.brecOn (motive := fun x => Option smd.TypeRef → Option smd.TypeRef) x✝ (smd.typeAlong._f S) t
-
 def smd.instDecidableSchemaConsistent (S : smd.Schema) (t : smd.TypeRef) (s : smd.PathSet) :
     Decidable (smd.schemaConsistent S t s) :=
   smd.instDecidableSchemaConsistent._aux_1 S t s
@@ -41,12 +35,6 @@ def smd.strictPrefixes : smd.Path → List smd.Path :=
 
 def smd.conformsB (S : smd.Schema) (t : smd.TypeRef) : smd.UVal → Bool :=
   x✝.brecOn (smd.conformsB._f S) (smd.conformsL._f S) (smd.conformsM._f S) (fun t f => PUnit.unit) t
-
-def smd.childType (S : smd.Schema) (t : Option smd.TypeRef) (pe : smd.PE) : Option smd.TypeRef :=
-  match t.bind fun t => S.find t.name, pe with
-  | some (smd.Atom.map fs e rel), smd.PE.field n => smd.fieldType fs e n
-  | some (smd.Atom.list e rel keys), smd.PE.key fl => some e
-  | x, x_1 => none
 
 def smd.Cmp.union (a b : smd.Cmp) : smd.Cmp :=
   { removed := a.removed.union b.removed, modified := a.modified.union b.modified, added := a.added.union b.added }
@@ -200,10 +188,6 @@ def smd.merge (S : smd.Schema) (t : smd.TypeRef) (l r : smd.UVal) : smd.UVal :=
 def smd.instDecidableConforms (S : smd.Schema) (t : smd.TypeRef) (x : smd.UVal) : Decidable
     (smd.conforms S t x) :=
   smd.instDecidableConforms._aux_1 S t x
-
-def smd.namedAlong (S : smd.Schema) (acc : smd.Path) (ty : Option smd.TypeRef) : smd.Path → List
-    smd.Path :=
-  List.brecOn (motive := fun x => smd.Path → Option smd.TypeRef → List smd.Path) x✝ (smd.namedAlong._f S) acc ty
 
 def smd.empty : smd.PathSet :=
   smd.PathSet.empty

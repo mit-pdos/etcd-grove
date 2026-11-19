@@ -165,6 +165,13 @@ def outRep_persistent.law : Prop := ∀ o x, outRep (GF := GF) o x ⊢ □ outRe
 def spareWalkers_nil.law : Prop :=
   ∀ (V : Type) [TypedPointsto (GF := GF) V], ⊢ spareWalkers (GF := GF) V null
 def ownPath_nil.law : Prop := ⊢ ownPath (GF := GF) slice.nil []
+/-- **Truncating a walker's path** (`finishDescent`'s `w.path = w.path[:len(w.path)-1]`; requested by
+`fieldpath`'s Draft): the prefix slice, owned with the original capacity (the dropped element's cell
+absorbed into it). A slice fact of Perennial's (`ownSlice_slice_absorb_capacity`'s case of a prefix),
+stated locally: `notes/perennial-changes.md`. -/
+def ownPath_truncate.law : Prop :=
+  ∀ (s : fieldpath.Path) (p : Path) (pe : PE), ownPath (GF := GF) s (p ++ [pe]) ⊢
+    ownPath (slice.slice s fieldpath.PathElement (W64 0) (s.len - W64 1)) p
 
 /-- A pool's `New` makes a pooled walker (the zero struct). -/
 def mw_zero_pooled.law : Prop :=

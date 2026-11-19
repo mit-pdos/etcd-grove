@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem smd.merge.Conflicts.Equals_ptr.wp_proof : smd.merge.Conflicts.Equals_ptr.spec
+theorem smd.merge.Conflicts.Equals_ptr.wp_proof (h_Conflicts_Equals :
+    smd.merge.Conflicts.Equals.spec) : smd.merge.Conflicts.Equals_ptr.spec
   -- `Perennial.EtcdGrove.smd.merge.Conflicts.Equals_ptr.spec`, unfolded:
   ∀ (p : Loc) (dq : DFrac) (s1 s2 : sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts)
     (a b : List (GoString × smd.Path)),

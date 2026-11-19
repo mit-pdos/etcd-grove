@@ -31,6 +31,16 @@ importable Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Defs
 importable Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
 importable Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
 importable Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+# (the Draft's integration, 2026-11-19) the per-package vocabulary the per-function specs are written
+# in, and their laws: the objects and interfaces of `value`, `fieldpath`'s order, counts, set halves
+# and named fields, `typed`'s walkers, the laws of `schema`, `typed` and `merge`
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.value.Objects
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NamedVocab
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Laws
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Walkers
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Laws
 
 ## The specs (one per function)
 importable Spec.sigs_k8s_io.structured_merge_diff.v7.*

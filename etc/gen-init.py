@@ -2396,7 +2396,8 @@ _SMD = 'sigs_k8s_io.structured_merge_diff.v7.'
 _SMD_SLICE = ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩',
               'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto']
 SPECIAL[_SMD + 'value'] = dict(
-    doc='''Its fact is `True` (`Base.lean`). Its initializer allocates its translated variables,
+    doc='''Its fact (`Base.lean`; the SMD Draft's integration, 2026-11-19): `HeapAllocator` and
+`EmptyRange` hold their pointers, read-only. Its initializer allocates its translated variables,
 initializes its imports, sets them (`HeapAllocator`, `EmptyRange`: pointers to empty structs;
 `nullBytes`, `trueBytes`, `falseBytes`: `[]byte` conversions of constants) and runs the trusted
 initializers of the others (`TrustedCode/sigs_k8s_io/structured_merge_diff/v7/value.lean`: models
@@ -2406,6 +2407,8 @@ that do nothing).''',
             **{x + 'Bytes': ['try wp_auto', f'wp_apply wp_string_to_bytes go!"{x}" as %_ ⟨-, -⟩',
                              'try wp_auto'] for x in ['null', 'true', 'false']},
             '$end': ['try wp_auto']},
+    finish=['ipersist HHeapAllocator', 'ipersist HEmptyRange'] + FIN_PRE[:6] +
+           ['try (iexists _, _; iframe #)'],
 )
 SPECIAL[_SMD + 'schema'] = dict(
     doc='''Its fact is `True` (`Base.lean`). Its initializer allocates `SchemaSchemaYAML`, initializes

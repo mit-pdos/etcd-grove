@@ -2,7 +2,15 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem smd.merge.Updater.Apply.wp_proof : smd.merge.Updater.Apply.spec
+theorem smd.merge.Updater.Apply.wp_proof (h_NewVersionedSet : smd.fieldpath.NewVersionedSet.spec)
+    (h_Updater_prune : smd.merge.Updater.prune.spec)
+    (h_Updater_reconcileManagedFieldsWithSchemaChanges :
+    smd.merge.Updater.reconcileManagedFieldsWithSchemaChanges.spec) (h_Updater_update :
+    smd.merge.Updater.update.spec) (h_TypedValue_AsValue_ptr :
+    smd.typed.TypedValue.AsValue_ptr.spec) (h_TypedValue_Merge_ptr :
+    smd.typed.TypedValue.Merge_ptr.spec) (h_TypedValue_ToFieldSet_ptr :
+    smd.typed.TypedValue.ToFieldSet_ptr.spec) (h_EqualsUsing : smd.value.EqualsUsing.spec)
+    (h_NewFreelistAllocator : smd.value.NewFreelistAllocator.spec) : smd.merge.Updater.Apply.spec
   -- `Perennial.EtcdGrove.smd.merge.Updater.Apply.spec`, unfolded:
   ∀ (u : Loc) (cv : sigs_k8s_io.structured_merge_diff.v7.merge.Converter) (rion : Bool) (sc : Loc) (S : smd.Schema)
     (t : smd.TypeRef) (lp cp : Loc) (live config : smd.UVal) (ver : GoString) (mfm : GoMap) (mf : smd.MF) (mgr : GoString)
@@ -16,7 +24,8 @@ theorem smd.merge.Updater.Apply.wp_proof : smd.merge.Updater.Apply.spec
                   smd.isTV cp sc S t config ∗
                     smd.isMF mfm mf ∗
                       ⌜∀ (m : GoString) (e : smd.VSet),
-                          mf.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set⌝ -∗
+                            mf.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set⌝ ∗
+                        ⌜smd.inputsSmall [live, config] mf⌝ -∗
           (▷
               ∀ op mfm' err,
                 (match smd.applyResult S t rion live config ver mf mgr force with

@@ -2,7 +2,8 @@
 Package initialization of `sigs_k8s_io.structured_merge_diff.v7.value`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True` (`Base.lean`). Its initializer allocates its translated variables,
+Its fact (`Base.lean`; the SMD Draft's integration, 2026-11-19): `HeapAllocator` and
+`EmptyRange` hold their pointers, read-only. Its initializer allocates its translated variables,
 initializes its imports, sets them (`HeapAllocator`, `EmptyRange`: pointers to empty structs;
 `nullBytes`, `trueBytes`, `falseBytes`: `[]byte` conversions of constants) and runs the trusted
 initializers of the others (`TrustedCode/sigs_k8s_io/structured_merge_diff/v7/value.lean`: models
@@ -57,6 +58,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _) falseBytes _ as HfalseBytes
   wp_apply wp_GlobalAlloc (V := _) trueBytes _ as HtrueBytes
   wp_apply wp_GlobalAlloc (V := _) nullBytes _ as HnullBytes
@@ -103,8 +105,15 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_call  -- nilType: its trusted initializer does nothing
   try wp_auto
+  ipersist HHeapAllocator
+  ipersist HEmptyRange
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try (iexists _, _; iframe #)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

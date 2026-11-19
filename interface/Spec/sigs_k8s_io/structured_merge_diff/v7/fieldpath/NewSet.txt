@@ -7,5 +7,5 @@ def smd.fieldpath.NewSet.spec : Prop :=
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ ownSlice s ss dq ∗ smd.isPaths ss ps -∗
-          (▷ ∀ p, ownSlice s ss dq ∗ smd.isSet p (smd.PathSet.ofList ps) -∗ Φ (intoVal p)) -∗
+          (▷ ∀ p, ownSlice s ss dq ∗ smd.ownSet p (smd.PathSet.ofList ps) -∗ Φ (intoVal p)) -∗
             WP ((intoVal (functions sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet [])) (intoVal s)) {{ Φ }}

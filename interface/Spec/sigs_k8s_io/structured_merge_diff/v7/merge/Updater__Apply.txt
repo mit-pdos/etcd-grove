@@ -15,7 +15,8 @@ def smd.merge.Updater.Apply.spec : Prop :=
                   smd.isTV cp sc S t config ∗
                     smd.isMF mfm mf ∗
                       ⌜∀ (m : GoString) (e : smd.VSet),
-                          mf.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set⌝ -∗
+                            mf.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set⌝ ∗
+                        ⌜smd.inputsSmall [live, config] mf⌝ -∗
           (▷
               ∀ op mfm' err,
                 (match smd.applyResult S t rion live config ver mf mgr force with

@@ -2,11 +2,12 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem smd.fieldpath.NewSet.wp_proof : smd.fieldpath.NewSet.spec
+theorem smd.fieldpath.NewSet.wp_proof (h_Set_Insert : smd.fieldpath.Set.Insert.spec) :
+    smd.fieldpath.NewSet.spec
   -- `Perennial.EtcdGrove.smd.fieldpath.NewSet.spec`, unfolded:
   ∀ (s : GoSlice) (dq : DFrac) (ss : List GoSlice) (ps : List smd.Path),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ ownSlice s ss dq ∗ smd.isPaths ss ps -∗
-          (▷ ∀ p, ownSlice s ss dq ∗ smd.isSet p (smd.PathSet.ofList ps) -∗ Φ (intoVal p)) -∗
+          (▷ ∀ p, ownSlice s ss dq ∗ smd.ownSet p (smd.PathSet.ofList ps) -∗ Φ (intoVal p)) -∗
             WP ((intoVal (functions sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet [])) (intoVal s)) {{ Φ }}

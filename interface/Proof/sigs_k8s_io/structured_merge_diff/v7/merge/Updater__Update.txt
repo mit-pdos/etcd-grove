@@ -2,7 +2,13 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem smd.merge.Updater.Update.wp_proof : smd.merge.Updater.Update.spec
+theorem smd.merge.Updater.Update.wp_proof (h_NewSet : smd.fieldpath.NewSet.spec) (h_NewVersionedSet
+    : smd.fieldpath.NewVersionedSet.spec) (h_Set_Difference : smd.fieldpath.Set.Difference.spec)
+    (h_Set_Empty : smd.fieldpath.Set.Empty.spec) (h_Set_Union : smd.fieldpath.Set.Union.spec)
+    (h_versionedSet_Set : smd.fieldpath.versionedSet.Set.spec)
+    (h_Updater_reconcileManagedFieldsWithSchemaChanges :
+    smd.merge.Updater.reconcileManagedFieldsWithSchemaChanges.spec) (h_Updater_update :
+    smd.merge.Updater.update.spec) : smd.merge.Updater.Update.spec
   -- `Perennial.EtcdGrove.smd.merge.Updater.Update.spec`, unfolded:
   ∀ (u : Loc) (cv : sigs_k8s_io.structured_merge_diff.v7.merge.Converter) (rion : Bool) (sc : Loc) (S : smd.Schema)
     (t : smd.TypeRef) (lp np : Loc) (live new : smd.UVal) (ver : GoString) (mfm : GoMap) (mf : smd.MF) (mgr : GoString),
@@ -10,7 +16,8 @@ theorem smd.merge.Updater.Update.wp_proof : smd.merge.Updater.Update.spec
       ∀ Φ,
         isPkgInit pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗
             smd.isUpdater u cv (zero_val GoMap) (zero_val GoMap) rion ∗
-              smd.isIdentityConverter cv ∗ smd.isTV lp sc S t live ∗ smd.isTV np sc S t new ∗ smd.isMF mfm mf -∗
+              smd.isIdentityConverter cv ∗
+                smd.isTV lp sc S t live ∗ smd.isTV np sc S t new ∗ smd.isMF mfm mf ∗ ⌜smd.inputsSmall [live, new] mf⌝ -∗
           (▷
               ∀ op mfm' err,
                 ⌜op = np ∧ err = GoInterface.nil⌝ ∗ smd.isMF mfm' (smd.updateResult S t live new ver mf mgr) -∗

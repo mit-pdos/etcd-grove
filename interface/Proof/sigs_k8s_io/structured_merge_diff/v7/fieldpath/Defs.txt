@@ -7,13 +7,14 @@ def (sealed) smd.isPaths : List GoSlice → List smd.Path → IProp GF
 def smd.FSet (α : Type) : Type :=
   Quotient (smd.FSet.setoid α)
 
-def (sealed) smd.isFieldList (s : GoSlice) (fl : smd.FieldList) : IProp GF
-
 def smd.FSet.ofList {α : Type} (l : List α) : smd.FSet α :=
   Quotient.mk (smd.FSet.setoid α) l
 
 def smd.FSet.instDecidableEq {α : Type} [DecidableEq α] : DecidableEq (smd.FSet α) :=
   decidable_of_iff ((smd.FSet.all b.mem a && smd.FSet.all a.mem b) = true) ⋯
+
+def (sealed) smd.ownMF (m : sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields) (mf :
+    smd.MF) : IProp GF
 
 def smd.MF : Type :=
   List (GoString × smd.VSet)
@@ -27,9 +28,6 @@ def smd.Trie.brecOn_2.go.{u} {motive_1 : smd.Trie → Sort u} {motive_2 : List (
     ⟨F_2 [] PUnit.unit, PUnit.unit⟩
     (fun head tail head_ih tail_ih => ⟨F_2 (head :: tail) ⟨head_ih, tail_ih⟩, head_ih, tail_ih⟩)
     (fun fst snd snd_ih => ⟨F_3 (fst, snd) snd_ih, snd_ih⟩) t
-
-def smd.FieldList : Type :=
-  List (GoString × smd.UVal)
 
 theorem smd.Trie.brecOn_1.eq.{u} {motive_1 : smd.Trie → Sort u} {motive_2 : List (smd.PE × smd.Trie)
     → Sort u} {motive_3 : smd.PE × smd.Trie → Sort u} (t : List (smd.PE × smd.Trie)) (F_1 : (t :
@@ -98,6 +96,9 @@ def smd.PathSet.under (a : smd.PathSet) (e : smd.PE) : smd.PathSet :=
       | x => [])
     a
 
+def smd.FSet.card {α : Type} [DecidableEq α] (s : smd.FSet α) : Nat :=
+  Quotient.lift (fun l => (smd.FSet.dedupL l).length) ⋯ s
+
 def smd.PathSet.IsEmpty (a : smd.PathSet) : Prop :=
   smd.FSet.isEmpty a = true
 
@@ -112,9 +113,6 @@ def (sealed) smd.isPE (e : sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathEl
 
 def smd.FSet.mem {α : Type} [DecidableEq α] (s : smd.FSet α) (x : α) : Bool :=
   Quotient.lift (fun l => decide (x ∈ l)) ⋯ s
-
-def smd.flCompare : smd.FieldList → smd.FieldList → Int :=
-  List.brecOn (motive := fun x => smd.FieldList → Int) x✝¹ smd.flCompare._f x✝
 
 def smd.Trie.brecOn_1.go.{u} {motive_1 : smd.Trie → Sort u} {motive_2 : List (smd.PE × smd.Trie) →
     Sort u} {motive_3 : smd.PE × smd.Trie → Sort u} (t : List (smd.PE × smd.Trie)) (F_1 : (t :
@@ -155,6 +153,9 @@ def smd.FSet.instDecidableMem {α : Type} [DecidableEq α] (x : α) (s : smd.FSe
 def smd.PathSet.empty : smd.PathSet :=
   smd.FSet.empty
 
+theorem smd.FSet.mem_dedupL {α : Type} [DecidableEq α] (l : List α) (x : α) : x ∈ smd.FSet.dedupL l
+    ↔ x ∈ l
+
 def smd.FSet.instInhabited {α : Type} : Inhabited (smd.FSet α) :=
   { default := smd.FSet.empty }
 
@@ -175,9 +176,6 @@ def (sealed) smd.isMF (m : sigs_k8s_io.structured_merge_diff.v7.fieldpath.Manage
 def smd.FSet.lift1 {α β : Type} (f : List α → List β) (hf : ∀ (a b : List α), smd.FSet.Same a b →
     smd.FSet.Same (f a) (f b)) (s : smd.FSet α) : smd.FSet β :=
   Quotient.lift (fun l => Quotient.mk (smd.FSet.setoid β) (f l)) ⋯ s
-
-def (sealed) smd.isFieldsL : List sigs_k8s_io.structured_merge_diff.v7.value.Field → smd.FieldList →
-    IProp GF
 
 def smd.Trie.Canonical : smd.Trie → Prop :=
   x✝.brecOn smd.Trie.Canonical._f smd.Trie.CanonicalC._f fun t f => PUnit.unit
@@ -218,6 +216,9 @@ def smd.Trie.brecOn.go.{u} {motive_1 : smd.Trie → Sort u} {motive_2 : List (sm
 def smd.FSet.setoid (α : Type) : Setoid (List α) :=
   { r := smd.FSet.Same, iseqv := ⋯ }
 
+def smd.FSet.dedupL {α : Type} [DecidableEq α] : List α → List α :=
+  List.brecOn x✝ smd.FSet.dedupL._f
+
 def smd.FSet.any {α : Type} (p : α → Bool) (s : smd.FSet α) : Bool :=
   Quotient.lift (fun l => l.any p) ⋯ s
 
@@ -229,6 +230,8 @@ def smd.FSet.bind {α β : Type} (f : α → List β) (s : smd.FSet α) : smd.FS
 
 def (sealed) smd.trieOwnC : List sigs_k8s_io.structured_merge_diff.v7.fieldpath.setNode → List
     (smd.PE × smd.Trie) → IProp GF
+
+theorem smd.FSet.nodup_dedupL {α : Type} [DecidableEq α] (l : List α) : (smd.FSet.dedupL l).Nodup
 
 def smd.FSet.Same {α : Type} (a b : List α) : Prop :=
   ∀ (x : α), x ∈ a ↔ x ∈ b
@@ -276,3 +279,6 @@ def smd.instDecidableEqVSet : DecidableEq smd.VSet :=
   decidable_of_iff (a.set = b.set ∧ a.version = b.version ∧ a.applied = b.applied) ⋯
 
 def (sealed) smd.ownSet (p : Loc) (S : smd.PathSet) : IProp GF
+
+theorem smd.FSet.dedupL.eq_def {α : Type} [DecidableEq α] (x✝ : List α) : smd.FSet.dedupL x✝ = match
+    x✝ with | [] => [] | x :: xs => if x ∈ xs then smd.FSet.dedupL xs else x :: smd.FSet.dedupL xs

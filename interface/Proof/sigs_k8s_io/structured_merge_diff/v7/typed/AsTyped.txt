@@ -2,19 +2,16 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem smd.typed.AsTyped.wp_proof : smd.typed.AsTyped.spec
+theorem smd.typed.AsTyped.wp_proof (h_TypedValue_Validate_ptr :
+    smd.typed.TypedValue.Validate_ptr.spec) : smd.typed.AsTyped.spec
   -- `Perennial.EtcdGrove.smd.typed.AsTyped.spec`, unfolded:
   ∀ (v : sigs_k8s_io.structured_merge_diff.v7.value.Value) (x : smd.UVal) (sc : Loc) (S : smd.Schema)
     (tr : sigs_k8s_io.structured_merge_diff.v7.schema.TypeRef) (t : smd.TypeRef),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗
-            smd.isVal v x ∗ smd.isSchema sc S ∗ smd.isTypeRef tr t ∗ ⌜S.WF⌝ -∗
-          (▷
-              ∀ p err,
-                ⌜smd.conforms S t x ∧ err = GoInterface.nil⌝ ∗ smd.isTV p sc S t x ∨
-                    ⌜¬smd.conforms S t x ∧ p = null ∧ err ≠ GoInterface.nil⌝ -∗
-                  Φ (intoVal p, intoVal err)) -∗
+            smd.isVal v x ∗ smd.isSchema sc S ∗ smd.isTypeRef tr t ∗ ⌜S.WF ∧ smd.conforms S t x⌝ -∗
+          (▷ ∀ p err, ⌜err = GoInterface.nil⌝ ∗ smd.isTV p sc S t x -∗ Φ (intoVal p, intoVal err)) -∗
             WP
               (((((intoVal (functions sigs_k8s_io.structured_merge_diff.v7.typed.AsTyped [])) (intoVal v)) (intoVal sc))
                   (intoVal tr))

@@ -2,6 +2,11 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def smd.Schema.resolveRef (S : smd.Schema) : Option smd.TypeRef → Option smd.Atom :=
+  match x✝ with
+  | none => none
+  | some t => S.find t.name
+
 def (sealed) smd.isFields : List sigs_k8s_io.structured_merge_diff.v7.schema.StructField → List
     (GoString × smd.TypeRef) → IProp GF
 
@@ -74,6 +79,12 @@ def smd.keyFieldOk (S : smd.Schema) (fs : List (GoString × smd.TypeRef)) (k : G
 def smd.Schema.find (S : smd.Schema) (n : GoString) : Option smd.Atom :=
   smd.lookupKV n S.types
 
+def (sealed) smd.mapRep (fresh : Bool) (m : Loc) (fs : List (GoString × smd.TypeRef)) (e : Option
+    smd.TypeRef) (rel : smd.ElemRel) : IProp GF
+
+def (sealed) smd.isListRep (l : Loc) (e : smd.TypeRef) (rel : smd.ElemRel) (ks : List GoString) :
+    IProp GF
+
 def (sealed) smd.freshAtom (a : sigs_k8s_io.structured_merge_diff.v7.schema.Atom) (A : smd.Atom) :
     IProp GF
 
@@ -94,11 +105,19 @@ inductive smd.ElemRel : Type
   | smd.ElemRel.separable : smd.ElemRel
   | smd.ElemRel.unset : smd.ElemRel
 
+def (sealed) smd.isAtomOpt (a : sigs_k8s_io.structured_merge_diff.v7.schema.Atom) : Option smd.Atom
+    → IProp GF
+
 structure smd.TypeRef : Type where
   name : GoString
   nullable : Bool
 
 theorem smd.ElemRel.ofNat_ctorIdx (x : smd.ElemRel) : smd.ElemRel.ofNat x.ctorIdx = x
+
+def smd.Schema.resolvesRef (S : smd.Schema) : Option smd.TypeRef → Bool :=
+  match x✝ with
+  | none => true
+  | some t => S.resolves t
 
 def smd.instInhabitedElemRel.default : smd.ElemRel :=
   smd.ElemRel.atomic
@@ -109,6 +128,9 @@ def smd.Scalar.ofNat : Nat → smd.Scalar :=
 
 def smd.instDecidableWF (S : smd.Schema) : Decidable S.WF :=
   smd.instDecidableWF._aux_1 S
+
+def (sealed) smd.isStructField (sf : sigs_k8s_io.structured_merge_diff.v7.schema.StructField) (f :
+    GoString × smd.TypeRef) : IProp GF
 
 def smd.instInhabitedSchema : Inhabited smd.Schema :=
   { default := smd.instInhabitedSchema.default }
@@ -124,6 +146,9 @@ inductive smd.Scalar : Type
 
 def (sealed) smd.isTypeRefOpt (tr : sigs_k8s_io.structured_merge_diff.v7.schema.TypeRef) : Option
     smd.TypeRef → IProp GF
+
+def (sealed) smd.isMapRep (m : Loc) (fs : List (GoString × smd.TypeRef)) (e : Option smd.TypeRef)
+    (rel : smd.ElemRel) : IProp GF
 
 def smd.instInhabitedElemRel : Inhabited smd.ElemRel :=
   { default := smd.instInhabitedElemRel.default }

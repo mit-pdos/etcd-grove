@@ -2,7 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem smd.value.NewValueInterface.wp_proof : smd.value.NewValueInterface.spec
+theorem smd.value.NewValueInterface.wp_proof (h_heapAllocator_allocValueUnstructured :
+    smd.value.heapAllocator.allocValueUnstructured.spec) (h_valueUnstructured_reuse :
+    smd.value.valueUnstructured.reuse.spec) : smd.value.NewValueInterface.spec
   -- `Perennial.EtcdGrove.smd.value.NewValueInterface.spec`, unfolded:
   ∀ (i : GoInterface) (x : smd.UVal),
     ⊢

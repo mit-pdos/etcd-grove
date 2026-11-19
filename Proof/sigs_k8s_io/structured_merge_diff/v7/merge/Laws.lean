@@ -9,7 +9,7 @@ How the stages compose (`notes/smd-plan.md`, "The call DAG", `merge`):
 - `Apply`: `reconcileManagedFieldsWithSchemaChanges` gives `ownMF m (reconcileMF S t mf)` (`mf0`);
   `TypedValue.Merge` gives `merged`; `managers[manager]` read gives `isVSetOpt ls (mf0.get mgr)`;
   the write of the applier's new entry gives `ownMF m (mf0.set mgr ⟨fieldSet S t config, ver,
-  true⟩)` (`mf1`; a map write, unfolding `ownMF`); `prune` gives `prune S t merged mf1 (mf0.get mgr)` (its premises
+  true⟩)` (`mf1`; a map write, `ownMF_access`); `prune` gives `prune S t merged mf1 (mf0.get mgr)` (its premises
   from `Apply`'s one-version premise, `reconcileMF_get`, `MF.get_set`); `update` gives the
   conflicts or `afterUpdate mf1 mgr (conflictsOf mf1 mgr c) c.removed`: `applyResult` line by line.
 - `Update`: `mf0`, then `update` forced, then the manager's own entry (`MF.get_set`, a map write
@@ -39,19 +39,9 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-! ## Owned managed fields -/
-
-/-- A finished map of managed fields is handed out persistently (`Apply`'s and `Update`'s
-result). -/
-def ownMF_persist.law : Prop := ∀ m mf, ownMF (GF := GF) m mf ⊢ |==> isMF m mf
-
-/-- `fieldpath.ManagedFields{}`: an owned empty map. -/
-def ownMF_empty.law : Prop :=
-  ∀ m, m ↦$ (∅ : GMap GoString GoInterface) ⊢ ownMF (GF := GF) m MF.none
-
--- The map operations on an owned map (`managers[m]`, `managers[m] = i`, `delete(managers, m)`)
--- are proved inside `merge`'s own proofs by unfolding `ownMF` (`import all`), over
--- `MF.get_set`, `MF.set_sorted` and Perennial's map rules: no law.
+/-! ## Owned managed fields: `ownMF` is `fieldpath`'s (`fieldpath/Defs.lean`, beside `isMF`); its
+laws (`ownMF_persist`, `ownMF_empty`, `ownMF_access`: the map operations `managers[m]`,
+`managers[m] = i`, `delete(managers, m)` over Perennial's map rules) are `fieldpath/Vocab.lean`'s. -/
 
 end laws
 

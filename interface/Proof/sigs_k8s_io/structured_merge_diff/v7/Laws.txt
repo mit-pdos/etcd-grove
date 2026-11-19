@@ -27,11 +27,12 @@ def smd.applyResult_premise.law : Prop :=
     S.WF →
       smd.conforms S t live →
         smd.conforms S t config →
-          (∀ (m : GoString) (e : smd.VSet), mf.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set) →
-            smd.applyResult S t rion live config ver mf mgr force = smd.ApplyOutcome.ok obj mf' →
-              smd.keysSorted mf' = true ∧
-                ∀ (m : GoString) (e : smd.VSet),
-                  mf'.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set ∧ smd.schemaConsistent S t e.set
+          smd.keysSorted mf = true →
+            (∀ (m : GoString) (e : smd.VSet), mf.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set) →
+              smd.applyResult S t rion live config ver mf mgr force = smd.ApplyOutcome.ok obj mf' →
+                smd.keysSorted mf' = true ∧
+                  ∀ (m : GoString) (e : smd.VSet),
+                    mf'.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set ∧ smd.schemaConsistent S t e.set
 
 def smd.ownSet_empty.law : Prop :=
   ∀ (p : Loc),
@@ -48,6 +49,25 @@ def smd.isConflicts_persistent.law : Prop :=
 def smd.isIface_agree.law : Prop :=
   ∀ (i : GoInterface) (x y : smd.UVal), smd.isIface i x ∗ smd.isIface i y ⊢ ⌜x = y⌝
 
+def smd.isIdentityConverter_intro.law : Prop :=
+  ∀ (T : go.GoType) (v : val),
+    ((□
+          ∀ p ver Φ,
+            ▷ Φ (intoVal p, intoVal GoInterface.nil) -∗
+              WP (((intoVal (methods T go!"Convert" v)) (intoVal p)) (intoVal ver))
+                {{ Φ }}) ∗
+        □
+          ∀ e Φ,
+            ▷ Φ (intoVal false) -∗
+              WP
+                ((intoVal
+                    (methods T
+                      go!"IsMissingVersionError"
+                      v))
+                  (intoVal e))
+                {{ Φ }}) ⊢
+      smd.isIdentityConverter (interface.mkOk T v)
+
 def smd.isVal_persistent.law : Prop :=
   ∀ (v : sigs_k8s_io.structured_merge_diff.v7.value.Value) (x : smd.UVal), smd.isVal v x ⊢ □ smd.isVal v x
 
@@ -56,11 +76,12 @@ def smd.updateResult_premise.law : Prop :=
     S.WF →
       smd.conforms S t live →
         smd.conforms S t new →
-          (∀ (m : GoString) (e : smd.VSet), mf.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set) →
-            smd.keysSorted (smd.updateResult S t live new ver mf mgr) = true ∧
-              ∀ (m : GoString) (e : smd.VSet),
-                (smd.updateResult S t live new ver mf mgr).get m = some e →
-                  e.version = ver ∧ smd.keysWithItems S t e.set ∧ smd.schemaConsistent S t e.set
+          smd.keysSorted mf = true →
+            (∀ (m : GoString) (e : smd.VSet), mf.get m = some e → e.version = ver ∧ smd.keysWithItems S t e.set) →
+              smd.keysSorted (smd.updateResult S t live new ver mf mgr) = true ∧
+                ∀ (m : GoString) (e : smd.VSet),
+                  (smd.updateResult S t live new ver mf mgr).get m = some e →
+                    e.version = ver ∧ smd.keysWithItems S t e.set ∧ smd.schemaConsistent S t e.set
 
 def smd.isValF_agree.law : Prop :=
   ∀ (v : sigs_k8s_io.structured_merge_diff.v7.value.Value) (dq1 dq2 : DFrac) (x y : smd.UVal),
@@ -266,6 +287,10 @@ def smd.isIdentityConverter_persistent.law : Prop :=
 
 def smd.isVSet_persistent.law : Prop :=
   ∀ (i : sigs_k8s_io.structured_merge_diff.v7.fieldpath.VersionedSet) (e : smd.VSet), smd.isVSet i e ⊢ □ smd.isVSet i e
+
+def smd.isMF_sorted.law : Prop :=
+  ∀ (m : sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields) (mf : smd.MF),
+    smd.isMF m mf ⊢ ⌜smd.keysSorted mf = true⌝
 
 def smd.keysWithItemsB_iff.law : Prop :=
   ∀ (S : smd.Schema) (t : smd.TypeRef) (s : smd.PathSet), smd.keysWithItemsB S t s = true ↔ smd.keysWithItems S t s

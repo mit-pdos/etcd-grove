@@ -343,6 +343,25 @@ def ownPESetV_persist.law : Prop :=
 def ownPESetV_zero.law : Prop :=
   iprop(True) ⊢ ownPESetV (GF := GF) (zero_val fieldpath.PathElementSet) FSet.empty
 
+/-- A finished map of managed fields is handed out persistently (`merge`'s `Apply`/`Update`
+result; moved here with `ownMF` at the Draft's integration, 2026-11-19). -/
+def ownMF_persist.law : Prop := ∀ m mf, ownMF (GF := GF) m mf ⊢ |==> isMF m mf
+
+/-- `fieldpath.ManagedFields{}`: an owned empty map. -/
+def ownMF_empty.law : Prop :=
+  ∀ m, m ↦$ (∅ : GMap GoString GoInterface) ⊢ ownMF (GF := GF) m MF.none
+
+/-- **Reading and writing an owned map** (`merge`'s `managers[m]`, `managers[m] = i`,
+`delete(managers, m)`, over Perennial's map rules): the map's points-to and its entries' views,
+and the way back to any managed fields the new map holds. -/
+def ownMF_access.law : Prop :=
+  ∀ m mf, ownMF (GF := GF) m mf ⊢ ∃ M : GMap GoString GoInterface, m ↦$ M ∗
+    ⌜keysSorted mf = true ∧ ∀ k, (M !! k).isSome = (mf.get k).isSome⌝ ∗
+    □ (∀ k i e, ⌜M !! k = some i ∧ mf.get k = some e⌝ -∗ isVSet i e) ∗
+    (∀ (M' : GMap GoString GoInterface) (mf' : MF), m ↦$ M' -∗
+      ⌜keysSorted mf' = true ∧ ∀ k, (M' !! k).isSome = (mf'.get k).isSome⌝ -∗
+      □ (∀ k i e, ⌜M' !! k = some i ∧ mf'.get k = some e⌝ -∗ isVSet i e) -∗ ownMF m mf')
+
 /-- A wrapper is what `PathElementValueMap.Get`'s type assertion accepts (requested by
 `fieldpath`'s Draft of `value`). -/
 def isValF_isValuePtr.law : Prop := ∀ v dq x, isValF (GF := GF) v dq x ⊢ ⌜isValuePtr v⌝

@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem smd.typed.TypedValue.AsValue_ptr.wp_proof : smd.typed.TypedValue.AsValue_ptr.spec
+theorem smd.typed.TypedValue.AsValue_ptr.wp_proof (h_TypedValue_AsValue :
+    smd.typed.TypedValue.AsValue.spec) : smd.typed.TypedValue.AsValue_ptr.spec
   -- `Perennial.EtcdGrove.smd.typed.TypedValue.AsValue_ptr.spec`, unfolded:
   ∀ (p sc : Loc) (S : smd.Schema) (t : smd.TypeRef) (x : smd.UVal),
     ⊢

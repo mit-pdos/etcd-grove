@@ -9,7 +9,8 @@ def smd.merge.Updater.Update.spec : Prop :=
       ∀ Φ,
         isPkgInit pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗
             smd.isUpdater u cv (zero_val GoMap) (zero_val GoMap) rion ∗
-              smd.isIdentityConverter cv ∗ smd.isTV lp sc S t live ∗ smd.isTV np sc S t new ∗ smd.isMF mfm mf -∗
+              smd.isIdentityConverter cv ∗
+                smd.isTV lp sc S t live ∗ smd.isTV np sc S t new ∗ smd.isMF mfm mf ∗ ⌜smd.inputsSmall [live, new] mf⌝ -∗
           (▷
               ∀ op mfm' err,
                 ⌜op = np ∧ err = GoInterface.nil⌝ ∗ smd.isMF mfm' (smd.updateResult S t live new ver mf mgr) -∗

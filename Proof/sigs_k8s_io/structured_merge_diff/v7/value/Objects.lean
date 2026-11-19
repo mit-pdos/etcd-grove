@@ -427,6 +427,29 @@ def isValF_canon.law : Prop := ∀ v dq x, isValF (GF := GF) v dq x ⊢ ⌜x.can
 def isFieldList_agree.law : Prop :=
   ∀ s a b, isFieldList (GF := GF) s a ∗ isFieldList s b ⊢ ⌜a = b⌝
 
+/-- **The dynamic types in scope** (the Draft's integration, 2026-11-19): a proof calling a method
+of one of `value`'s interfaces resolves its dynamic type with these and takes the concrete
+method's spec (`<T>.<M>`, or `<T>.<M>_ptr` for a pointer to a value receiver) as a hypothesis, as
+`fieldpath`'s `isVSet_concrete`; the bundles above (`*_methods`) are what a client outside the
+package may use instead. -/
+def isValF_concrete.law : Prop :=
+  ∀ v dq x, isValF (GF := GF) v dq x ⊢
+    ∃ p : Loc, ⌜v = interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #p⌝
+def isMapV_concrete.law : Prop :=
+  ∀ m kvs, isMapV (GF := GF) m kvs ⊢ ∃ gm : GoMap, ⌜m = interface.mkOk value.mapUnstructuredString.ty #gm⌝
+def isListV_concrete.law : Prop :=
+  ∀ l vs, isListV (GF := GF) l vs ⊢
+    (∃ sl : GoSlice, ⌜l = interface.mkOk value.listUnstructured.ty #sl⌝) ∨
+    (∃ p : Loc, ⌜l = interface.mkOk (go.GoType.PointerType value.listUnstructured.ty) #p⌝)
+def ownRange_concrete.law : Prop :=
+  ∀ r vs n, ownRange (GF := GF) r vs n ⊢ ownRange r vs n ∗
+    ((∃ q : Loc, ⌜r = interface.mkOk (go.GoType.PointerType value.emptyRange.ty) #q⌝) ∨
+     (∃ q : Loc, ⌜r = interface.mkOk (go.GoType.PointerType value.listUnstructuredRange.ty) #q⌝))
+def isAlloc_concrete.law : Prop :=
+  ∀ a, isAlloc (GF := GF) a ⊢ isAlloc a ∗
+    ((∃ p : Loc, ⌜a = interface.mkOk (go.GoType.PointerType value.heapAllocator.ty) #p⌝) ∨
+     (∃ p : Loc, ⌜a = interface.mkOk (go.GoType.PointerType value.freelistAllocator.ty) #p⌝))
+
 /-- The pure facts the zips' clients use. -/
 def zipKeys_nodup.law : Prop :=
   ∀ ol or_, (∀ kvs, ol = some kvs → keysSorted kvs = true) →
