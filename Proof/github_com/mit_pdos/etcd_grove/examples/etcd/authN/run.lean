@@ -191,20 +191,11 @@ theorem mod_len_sint (len : w64) (L c : Nat) (hkl : uint.nat len = L) (hL : 0 < 
   generalize (W64 (c : Int) % len) = x at h3 ⊢
   word
 
-end served
-
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions]
-
 /-- **A member served** (auth3's, copied; `Run`'s `Serve` step): `etcdstart.Serve(s, addr)` with the ghost steps
 `ak_served_kv`, `ak_served_watch` and, for the member in lease mode `m`, `leaseSrvd_intro`; on success,
 the member's served facts at its environment and the thread token (from the `GoAttach` resources
 `grpcUpOn` holds). authN's members are in mode `.none`, authlease's in `.revocable`. -/
-theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF))
@@ -317,6 +308,15 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
   · ipureintro; exact ⟨HEo, HRQ⟩
   rw [← HEo]; iexact Htag
 
+
+end served
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions]
 
 set_option maxHeartbeats 3200000 in
 set_option maxRecDepth 10000 in
