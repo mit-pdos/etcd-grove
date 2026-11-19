@@ -94,13 +94,13 @@ theorem Main.wp_proof
     · ipureintro; rfl
     isplitr
     · iintro !> %p %ver %Φ' HΦ'
-      iapply (wp_Convert _ p ver Φ')
+      iapply (wp_Convert _ p ver)
       iframe #
       inext
       iintro _
       iexact HΦ'
     · iintro !> %e %Φ' HΦ'
-      iapply (wp_IsMissing _ e Φ')
+      iapply (wp_IsMissing _ e)
       iframe #
       inext
       iintro _
@@ -113,7 +113,8 @@ theorem Main.wp_proof
     isplitr
     · iexact Hupd
     isplitr
-    · iexact Hlv0
+    · rw [show S0.live = ⟨some (.map (mkKVs [])), rootRef⟩ from rfl]
+      iexact Hlv0
     · unfold ownMF
       iexists ∅
       iframe Hmf0
