@@ -194,7 +194,8 @@ theorem Model.list.wp_proof
       by_cases hlt : uint.Z m.rv < uint.Z rv
       · rw [decide_eq_true hlt]
         wp_auto
-        wp_apply (wp_TooLarge rv m.rv (W64 0)) as %e ⟨#Htl, %l, %st, %dv, %Hst, #Hl, #Hd⟩
+        wp_apply (wp_TooLarge rv m.rv (W64 0)) as %e ⟨Htl0, %l, %st, %dv, %Hst, #Hl, #Hd⟩
+        ihave #Htl := Htl0 $$ %(by trivial)
         iapply HΦ
         have : rlistL x m = ⟨.nil, tooLargeE⟩ := by
           unfold rlistL; simp [hk, hc]; intro h; exfalso; word

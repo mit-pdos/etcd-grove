@@ -87,10 +87,9 @@ theorem errOut.wp_proof
     itrivial
   · -- too large (stage 7e-4): a `*StatusError`, recognized
     subst Hy
+    ihave %Hp := apierrors.tooLargeErrIs_ptr err $$ Ht
     iunfold apierrors.tooLargeErrIs at Ht
-    icases Ht with ⟨%st, %cs, #Hv, %Hst⟩
-    ihave %Hp := apierrors.tooLargeErrIs_ptr err $$ [Hv]
-    · iunfold apierrors.tooLargeErrIs; iexists st, cs; iframe Hv; ipureintro; exact Hst
+    icases Ht with ⟨%st, %cs, #Hv, %Hst, -⟩
     obtain ⟨l, rfl⟩ := Hp
     wp_auto
     wp_apply wp_IsTooLarge _ (.status st cs) $$ [Hv]

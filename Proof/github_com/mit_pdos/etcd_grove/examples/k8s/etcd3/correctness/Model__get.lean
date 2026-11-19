@@ -87,7 +87,8 @@ theorem Model.get.wp_proof
     case pos =>
       rw [decide_eq_true hlt]
       wp_auto
-      wp_apply (wp_TooLarge n m.rv (W64 0)) as %e ⟨#Htl, %l, %st, %dv, %Hst, #Hl, #Hd⟩
+      wp_apply (wp_TooLarge n m.rv (W64 0)) as %e ⟨Htl0, %l, %st, %dv, %Hst, #Hl, #Hd⟩
+      ihave #Htl := Htl0 $$ %(by trivial)
       iapply HΦ
       have : rgetL x m = ⟨.nil, tooLargeE⟩ := by
         unfold rgetL; simp [hk, hp]; intro h; exfalso; word

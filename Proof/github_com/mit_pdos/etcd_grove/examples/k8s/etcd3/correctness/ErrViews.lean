@@ -309,7 +309,7 @@ theorem errRep_apiErrAt (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF)
     · iapply deepRO_plain wp_Unwrap x d hf $$ H
     · ipureintro; rfl
   · simp only [errRep, apierrors.tooLargeErrIs]
-    iintro ⟨⟨%st, %cs, #Ha, %hst⟩, -⟩
+    iintro ⟨⟨%st, %cs, #Ha, %hst, -⟩, -⟩
     iexists .status st cs
     iframe Ha
     ipureintro
@@ -327,7 +327,7 @@ theorem errRep_apiErrOk (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF)
     iright
     iapply deepRO_plain wp_Unwrap x d hf $$ H
   · simp only [errRep, apierrors.tooLargeErrIs, apierrors.apiErrAt]
-    iintro ⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hd⟩, -⟩, -⟩
+    iintro ⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hd⟩, -, -⟩, -⟩
     ileft
     iexists l, st
     iframe Hl
@@ -354,7 +354,7 @@ theorem errRep_delay (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF) (h
     ihave %Hr := Hq $$ Hp
     ipureintro; simp [delayE, Hr.2]
   · simp only [errRep, apierrors.tooLargeErrIs, apierrors.apiErrAt]
-    iintro ⟨⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hds⟩, -⟩, %l', %st', %dv, ⟨%h', -, %hd⟩, #Hl', #Hdv⟩, #Hq⟩
+    iintro ⟨⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hds⟩, -, -⟩, %l', %st', %dv, ⟨%h', -, %hd⟩, #Hl', #Hdv⟩, #Hq⟩
     rw [h] at h'
     have hll : l = l' := by
       simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h'
@@ -434,7 +434,7 @@ theorem errRep_notTooMany (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := G
     ihave %Hr := Hq $$ Hp
     ipureintro; exact Hr
   · simp only [errRep, apierrors.tooLargeErrIs, apierrors.apiErrAt]
-    iintro ⟨⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hds⟩, %hst⟩, %l', %st', %dv, ⟨%h', %hc, -⟩, #Hl', -⟩, #Hq⟩
+    iintro ⟨⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hds⟩, %hst, -⟩, %l', %st', %dv, ⟨%h', %hc, -⟩, #Hl', -⟩, #Hq⟩
     rw [h] at h'
     have hll : l = l' := by
       simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h'

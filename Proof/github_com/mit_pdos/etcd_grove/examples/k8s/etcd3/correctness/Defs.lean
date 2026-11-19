@@ -184,6 +184,26 @@ theorem errRep_tooLarge_of (x : GoInterface) (l : Loc)
   rw [hr, hd]
   simp
 
+/-- **The store's too-large error is `RErr.tooLarge false`** (`tooLargeErrIs` holds its code 504 and its
+details with no retry: `SuggestsClientDelay` answers `false`; k8s 7g option (b1)). -/
+theorem errRep_tooLarge_of_is (x : GoInterface) :
+    apierrors.tooLargeErrIs (GF := GF) x ⊢ errRep x (.tooLarge false) := by
+  iintro #Ht
+  simp only [errRep]
+  isplitr
+  · iexact Ht
+  iunfold apierrors.tooLargeErrIs at Ht
+  icases Ht with ⟨%st, %cs, #Ha, %hst, %dv, #Hd, %hcr⟩
+  iunfold apierrors.apiErrAt at Ha
+  icases Ha with ⟨%l, %h, #Hl, -⟩
+  iexists l, st, dv
+  iframe Hl Hd
+  ipureintro
+  refine ⟨h, hcr.1, ?_⟩
+  unfold apierrors.delayV
+  rw [hst.1, hcr.2]
+  simp
+
 /-- **The `Response` `r` has the view `rr`** (persistent). -/
 def respRep (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response)
     (rr : RResp) : IProp GF :=

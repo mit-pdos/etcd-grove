@@ -190,11 +190,17 @@ theorem apiErrAt_ok (err : GoInterface) (w : ApiErrView) :
     iintro #H
     iright; iexact H
 
-/-- **The error `IsTooLargeResourceVersion` recognizes** (`errors.go:259-265`): a timeout (`Timeout`
-reason) `*StatusError` whose details list the `ResourceVersionTooLarge` cause. -/
+/-- **The store's too-large error (retry 0)**: `storage.NewTooLargeResourceVersionError(_, _, 0)`'s,
+one `IsTooLargeResourceVersion` recognizes (`errors.go:259-265`): a timeout (`Timeout` reason)
+`*StatusError` whose details list the `ResourceVersionTooLarge` cause, of code 504, its details held
+read-only with `RetryAfterSeconds` 0 (so `SuggestsClientDelay` answers `false`). Not every error
+`IsTooLargeResourceVersion` recognizes: the watcher's (`watchChan.startWatching`) and the cacher's
+(`watchCache.waitUntilFreshLocked`) ask for a retry and are not this (k8s 7g, option (b1)). -/
 def tooLargeErrIs (err : GoInterface) : IProp GF :=
   iprop(∃ st cs, apiErrAt err (.status st cs) ∗
-    ⌜st.Reason' = go!"Timeout" ∧ go!"ResourceVersionTooLarge" ∈ cs.map (·.Type')⌝)
+    ⌜st.Reason' = go!"Timeout" ∧ go!"ResourceVersionTooLarge" ∈ cs.map (·.Type')⌝ ∗
+    ∃ dv : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails, st.Details' ↦□ dv ∗
+      ⌜st.Code' = W32 504 ∧ dv.RetryAfterSeconds' = W32 0⌝)
 
 instance tooLargeErrIs_persistent (err : GoInterface) :
     Persistent (tooLargeErrIs (GF := GF) err) := by
@@ -205,7 +211,7 @@ theorem tooLargeErrIs_ptr (err : GoInterface) :
     tooLargeErrIs (GF := GF) err ⊢ ⌜∃ l : Loc, err = interface.mkOk
       (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ := by
   unfold tooLargeErrIs apiErrAt
-  iintro ⟨%st, %cs, ⟨%l, %h, -⟩, -⟩
+  iintro ⟨%st, %cs, ⟨%l, %h, -⟩, -, -⟩
   ipureintro; exact ⟨l, h⟩
 
 end defs

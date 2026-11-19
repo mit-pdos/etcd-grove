@@ -237,3 +237,6 @@ the InvSteps `hval` premises and `call.spec`'s new post ACCEPTED. Too large: opt
 `NewTooLargeResourceVersionError(_, _, 0)`. **Night 12 STOP:** it is not: `watchChan.startWatching` (retry
 `Jitter(1s, 3.0).Seconds()`) and cacher `waitUntilFreshLocked` (retry 1) call it too, so
 `NewTooLargeResourceVersionError.spec`'s post would have to change (questions.md "Night 12 STOP", options b1/b2).
+**Night 12 STOP decided by etcd-grove-03: option (b1)** (`NewTooLargeResourceVersionError.spec`'s first conjunct
+`⌜retry = W64 0⌝ → tooLargeErrIs err`; `tooLargeErrIs` gains `Code = 504 ∧ RetryAfterSeconds = 0`, "the store's
+too-large error (retry 0)"). Both 7e-frozen texts: Freeze list.
