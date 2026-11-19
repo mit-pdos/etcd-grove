@@ -30,13 +30,14 @@ theorem backend.wg_wgi_mask_r : (↑(bN.@"wg") : CoPset) ⊆ ⊤ \ ↑(bN.@"wgi"
 
 /-- A reader's `txWg.Done()`: its share given back to the interval's protocol, for its budget
 token. -/
-theorem backend.wp_rdDone (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) (k : Nat) (q : Qp) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ □ wgInv γ rtx wg γw γo γt ∗ rdShare rtx γo k q }}
+theorem backend.wp_rdDone (γ : BNames) (rtx : Loc) (D : Data) (wg : Loc) (γw γo γt : GName) (k : Nat)
+    (q : Qp) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ □ wgInv γ rtx D wg γw γo γt ∗ rdShare γ rtx D γo k q }}
       (App (Val (wg @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
     {{ RET #(); ownToks γ.rdt 1 }} := by
   iintro %Φ ⟨#Hsync, #Hwgi, Hsh⟩ HΦ
   unfold wgInv
-  icases Hwgi with ⟨%γwg, #Hisw, #Hi, #Hauth⟩
+  icases Hwgi with ⟨%γwg, %db, #Hisw, #Hi, #Hauth, #Hdb⟩
   unfold rdShare
   icases Hsh with ⟨Hlive, Hrc⟩
   iapply sync.WaitGroup.wp_Done wg γwg (bN.@"wg") $$ [] [Hlive Hrc HΦ]
@@ -65,7 +66,7 @@ theorem backend.wp_rdDone (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) (k 
   iintro Hwgo
   imod Hmask with -
   imod ghost_map_delete $$ Hoa Hrc with Hoa
-  ihave Hpool := (txLive_fractional rtx).fractional pool q |>.2 $$ [Hpool Hlive]
+  ihave Hpool := (txLive_fractional rtx γ.db (bbolt.TxView.ro D)).fractional pool q |>.2 $$ [Hpool Hlive]
   · iframe
   imod Hclose $$ [Hwgo Hoa Hpool Htoks Hw] with -
   · inext
@@ -93,9 +94,9 @@ theorem backend.concurrentReadTx.RUnlock.wp_proof :
   · iPkgInit
   unfold crtSnap
   icases H with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, #Hrt, #Htm, -, -, -,
-    -, #Hwg, Hown, #Hg, Hsh, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
+    -, #Hwg, Hown, #Hg, Hsh, #Hintv, #Hwgi, %Hwf⟩
   wp_auto
-  wp_apply wp_rdDone γ rtx wg γw γo γt k q $$ [$Hsync $Hwgi $Hsh] as Htok
+  wp_apply wp_rdDone γ rtx rv.1 wg γw γo γt k q $$ [$Hsync $Hwgi $Hsh] as Htok
   iapply HΦ
   unfold crTok
   iexists rt, tm

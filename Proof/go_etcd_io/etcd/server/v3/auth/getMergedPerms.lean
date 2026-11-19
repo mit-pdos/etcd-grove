@@ -8,7 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.PermTreeLemmas
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffineInterval
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint
-public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert_bytes
 
 @[expose] public section
 
@@ -31,7 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.getMergedPerms.wp_proof
     (h_NewIntervalTree : adt.NewIntervalTree.spec (GF := GF) (hG := hG))
     (h_NewBytesAffineInterval : adt.NewBytesAffineInterval.spec (GF := GF) (hG := hG))
-    (h_NewBytesAffinePoint : adt.NewBytesAffinePoint.spec (GF := GF) (hG := hG)) :
+    (h_NewBytesAffinePoint : adt.NewBytesAffinePoint.spec (GF := GF) (hG := hG))
+    (h_Insert_bytes : adt.intervalTree.Insert_bytes.spec (GF := GF) (hG := hG)) :
     auth.getMergedPerms.spec (GF := GF) (hG := hG) := by
   intro ti Hs st name
   wp_start as ⟨#Hrd, Htok, %Hfit⟩
@@ -331,12 +332,12 @@ theorem auth.getMergedPerms.wp_proof
                 have hpw := permOfWire_readwrite Hif
                 imod ownSlice_persist _ _ _ $$ He' with #He'
                 (try wp_auto)
-                wp_apply (adt.intervalTree.wp_Insert_bytes tr Lr' kk e' w.key es' _) $$ [$Htr $Hkk $He']
+                wp_apply (h_Insert_bytes tr Lr' kk e' w.key es' _) $$ [$Htr $Hkk $He']
                   as Htr
                 · ipureintro
                   exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ hpw _ Hm.2.2.1
                 (try wp_auto)
-                wp_apply (adt.intervalTree.wp_Insert_bytes tw Lw' kk e' w.key es' _) $$ [$Htw $Hkk $He']
+                wp_apply (h_Insert_bytes tw Lw' kk e' w.key es' _) $$ [$Htw $Hkk $He']
                   as Htw
                 · ipureintro
                   exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ hpw _ Hm.2.2.2
@@ -358,7 +359,7 @@ theorem auth.getMergedPerms.wp_proof
                   have hpw := permOfWire_read Hif
                   imod ownSlice_persist _ _ _ $$ He' with #He'
                   (try wp_auto)
-                  wp_apply (adt.intervalTree.wp_Insert_bytes tr Lr' kk e' w.key es' _) $$ [$Htr $Hkk $He']
+                  wp_apply (h_Insert_bytes tr Lr' kk e' w.key es' _) $$ [$Htr $Hkk $He']
                     as Htr
                   · ipureintro
                     exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ hpw _ Hm.2.2.1
@@ -380,7 +381,7 @@ theorem auth.getMergedPerms.wp_proof
                     have hpw := permOfWire_write Hif
                     imod ownSlice_persist _ _ _ $$ He' with #He'
                     (try wp_auto)
-                    wp_apply (adt.intervalTree.wp_Insert_bytes tw Lw' kk e' w.key es' _) $$ [$Htw $Hkk $He']
+                    wp_apply (h_Insert_bytes tw Lw' kk e' w.key es' _) $$ [$Htw $Hkk $He']
                       as Htw
                     · ipureintro
                       exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ hpw _ Hm.2.2.2

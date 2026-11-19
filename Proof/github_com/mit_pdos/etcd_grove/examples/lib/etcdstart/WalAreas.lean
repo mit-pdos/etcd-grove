@@ -5,8 +5,8 @@
 `notes/wal-link-scope.md` §3.4 P2 (approved by the user 2026-11-17): each member's WAL is in a
 dedicated WAL directory (`srvWalDirOf dd`, `WalLayout.lean`), the `wal` of an area of its own, a root
 of the Linux file extension (`walAreaOf dd`) that exists at start and holds nothing a WAL function may
-touch (`etcdWalAreasInit`, the closed theorems' premise). Before the program's first step its proof
-switches the file extension to the shared mode (`wp_osShare_e`) and allocates each area's WAL invariant
+touch (`etcdWalAreasInit`, the closed theorems' premise, `WalAreasInit.lean`). Before the program's first step its proof
+switches the file extension to the shared mode (`wp_osShareE`) and allocates each area's WAL invariant
 (`walBoot0`, `Proof/.../storage/wal/Boot0.lean`), from which it builds each member's `walAreaFresh`
 (what `bootstrap`'s contract takes for the WAL, `wal.bootRes`): `walAreasFresh_boot`, `wp_walAreas`.
 Untrusted, but for `etcdWalAreasInit`, a premise of the closed theorems (a world premise, as
@@ -18,6 +18,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.WalAreaFresh
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Boot0
 public import GooseLang.Ext.Fs.TreeSharedSwitchE
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 
 @[expose] public section
 
@@ -30,21 +31,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section premise
-variable [GooseExts]
-
-/-- **The members' WAL areas exist at start and hold no WAL** (a premise of the closed theorems on
-the file extension's initial state `st`, a world premise as `dataDirsAbsent`; wal-link P2): for each
-data directory `d` of `Ds`, the path `walAreaOf d` (`/tmp/etcd-grove-wal/<d>`) is one of the file
-extension's roots, a directory `j` with no entry at any name a WAL function may create, rename or
-remove (`AreaSlot`: a WAL directory's name, no `.` or `/`, or such a name followed by `.` and anything;
-so no WAL is found there and `wal.Create` finds its names free). The examples' Go tests make the
-areas so (each removed, then created empty, before the program runs). -/
-def etcdWalAreasInit (st : Fs.OsState) (Ds : List GoString) : Prop :=
-  ∀ d ∈ Ds, ∃ j : Fs.Ino, (walAreaOf d, j) ∈ st.fs.roots ∧
-    ∀ b, WalFs.AreaSlot b → st.fs.treeDur.entry j b = none
-
-end premise
 
 /-! ## Pure facts -/
 
@@ -77,13 +63,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF]
 
 /-- **The WAL area `r` (the directory `j` under the roots `R`) with the WAL directory `dir`**, over the
 program's file system instances, at the WAL ghost state `W`, every inode in the no-I/O-error set. -/
-abbrev etcdWalArea (W : WalFs.WalGS GF) (hsat : Fs.FsStepSat (Fs.NoIoErr etcdIoAll)) (R : Fs.Roots)
+abbrev etcdWalArea (W : WalFs.WalGS GF) (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (R : Fs.Roots)
     (j : Fs.Ino) (r dir : GoString) : WalA GF where
   ext := inferInstance
   semOk := inferInstance
   has := inferInstance
   W := W
-  Sio := etcdIoAll
+  Sio := allIo
   sat := hsat
   cov := fun _ _ => trivial
   R := R
@@ -106,7 +92,7 @@ file header): from the shared mode's resources, the whole claims of the director
 among them) and the whole call permissions of the keys of `M` (the areas' roots among them), each data
 directory `d` of `Ds` gives its `walAreaFresh (srvWalDirOf d)`. -/
 theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
-    (hsat : Fs.FsStepSat (Fs.NoIoErr etcdIoAll)) (R : Fs.Roots) (V : Fs.Hist) (hV : V.2 = [])
+    (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (R : Fs.Roots) (V : Fs.Hist) (hV : V.2 = [])
     (hR : Fs.RootsOk R) (hrb : ReceiptBoundLe GF (2 ^ 62)) :
     ∀ (Ds : List GoString) (Js : List Fs.Ino) (M : GMap GoString Unit), Ds.Nodup →
       (∀ d ∈ Ds, ∃ j, (walAreaOf d, j) ∈ R ∧ j ∈ Js ∧
@@ -184,7 +170,7 @@ extension's initial state `st` (`FsInit`, no I/O error assumed: `hsat`) with the
 invariant of the mapped cells and the tree's whole legacy history) follows from its WP given each data
 directory's `walAreaFresh`. -/
 theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
-    (hsat : Fs.FsStepSat (Fs.NoIoErr etcdIoAll)) (st : Fs.OsState) (hfs : Fs.FsInit st)
+    (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (st : Fs.OsState) (hfs : Fs.FsInit st)
     (Ds : List GoString) (hDs : Ds.Nodup) (hW : etcdWalAreasInit st Ds)
     (hrb : ReceiptBoundLe GF (2 ^ 62))
     (e : Expr) (he : toVal e = none) (Φ : val → IProp GF) :
@@ -196,7 +182,7 @@ theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
   have hR : Fs.RootsOk st.fs.roots := hfs.2.2.2.1
   have htw : Fs.TreeWf st.fs.roots st.fs.treeDur := hfs.2.2.2.2.1
   iintro #Hinv Ht Hk
-  iapply Fs.wp_osShare_e (L := hG.goose_localGS) st.fs.roots (st.fs.treeDur, []) e he
+  iapply Fs.wp_osShareE (L := hG.goose_localGS) st.fs.roots (st.fs.treeDur, []) e he
     CoPset.subseteq_top Φ $$ Hinv Ht
   iintro #Hsh #Hab Hperms #- Hall
   unfold Fs.osCallPerms

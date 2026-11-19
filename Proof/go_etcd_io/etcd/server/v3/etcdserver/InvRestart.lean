@@ -138,9 +138,10 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
   etcd copes with and these statements do not; `restart3`'s stop must provide it);
 - the storage registry's authority (R2c review F3: the restart registers its new `MemoryStorage`
   in the same registry, `restartNames` keeping raft's names), handed back by the stop;
-- the files holding `σ` and `D` (`srvFiles`) and the backend file's directory entry (`pathOwn`,
-  which a first start's `bootOk` gives and the stop returns), in the directory `dd` the right to
-  stop records (`srvStopRight`; R2c review F2). (R2c review F5: the KV names' `c0` is `0`, as
+- the files holding `σ` and `D` (`srvFiles`; S5, 2026-11-18: the backend file's with the claim
+  on its name, until then also the opaque `pathOwn` of the entry, which a first start's `bootOk`
+  gave and the stop returned), in the directory `dd` the right to stop records (`srvStopRight`;
+  R2c review F2). (R2c review F5: the KV names' `c0` is `0`, as
   `restModel (W64 0)` reads the image's buckets.)
 
 (#7-cmp's Freeze, 2026-11-02, the user's approval: `imageAt` restated in place, by the KV names'
@@ -175,7 +176,7 @@ def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S 
     -- and the records' snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
     wal.stopImage γ.cl S σ i ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
-    srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    srvFiles dd id σ D ∗
     -- (restart S6a, (b′)) the member's snapshot directory: the invariant its first start allocated
     -- (at raft's names for the member, its images' certificate the cluster's auth mode's), and the
     -- member's removal counter, at most one past the image's index; (S6a-2) the invariant's
@@ -600,7 +601,9 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
     -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
-    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+    -- (S5, 2026-11-18) the claim on that name, naming the backend's file (`backend.bPath`, made of
+    -- the stopped image's `srvFiles` file, which the restart's `bootstrap` opens)
+    "Hpath" ∷ backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
     -- (restart S6 B2, 2026-11-14) the backend's file at the backend path (`bootOk`'s; Go: both paths
     -- open the backend in the shared `bootstrapBackend(cfg, haveWAL)` at `cfg.BackendPath()`), for
     -- the snapshot path's `srvSnapRes`
@@ -613,8 +616,8 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
 
 /-- **`bootstrap`'s contract on a stopped member's data directory** (DRAFT, R2c; L3; a premise, as
 `bootstrapContract`): with the configuration's URLs, the storage registry's authority, and the
-directory's files holding the WAL's records `σ` and the backend's data `D` (`srvFiles`, its path's
-entry `pathOwn`) of an image (`imageAt` at `L`, the index `i` between the WAL's snapshot and
+directory's files holding the WAL's records `σ` and the backend's data `D` (`srvFiles`, with the
+claim on the backend path's name; S5: until then also its entry's opaque `pathOwn`) of an image (`imageAt` at `L`, the index `i` between the WAL's snapshot and
 commit, the bootstrap log applied), `bootstrap` returns an error, or the record of a restart
 (`bootOkR`). (2026-11-03, the whole-`bootOk` review) For the configurations it covers (`bootCfgOk`,
 not forcing a new cluster, `bootstrapWALFromSnapshot`'s `ForceNewCluster` rewriting the WAL's log,
@@ -688,7 +691,9 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`bootstrapContract`'s)
         envVerifyOff ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
-        srvFiles cfg.DataDir' id σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
+        -- (S5, 2026-11-18: no longer also the opaque `pathOwn` of the backend path, the claim on
+        -- its name being `srvFiles`' file's)
+        srvFiles cfg.DataDir' id σ D }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }})

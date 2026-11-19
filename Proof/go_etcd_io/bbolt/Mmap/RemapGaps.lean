@@ -30,8 +30,8 @@ variable [sem : go.Semantics]
 /-- **Gap 1 (`wdbOK`): the file is below `2 ^ 63` bytes** (`DB.fileSize`'s `Stat` reports an
 `int64`; `DB.fileSize.spec` takes it). Fix: a `wdbOK` clause `w.m.size < 2 ^ 63` (`Open` reads the
 size with `Stat`; `DB.grow` truncates to an `int64`). -/
-theorem wdbOK_size_lt (w : WDb) (hok : wdbOK w) : w.m.size < 2 ^ 63 :=
-  hok.2.2.2.2.2.2.2.2.2.2.2.2.1
+theorem wdbOK_size_lt (w : WDb) (hok : wdbOK w) : w.m.size < 2 ^ 63 := by
+  have := (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).lt; omega
 
 /-- **Gap 2 (`wdbOK`): a file past the mapping ends on a page.** `wdbOK`'s `W` holds the slots
 below `max (mapLen w.ms) w.m.size / 4096` (rounded down), so the page-cache bytes of a partial last
@@ -45,8 +45,8 @@ theorem wdbOK_size_page (w : WDb) (hok : wdbOK w) (b : Loc) (l : Nat) (hms : w.m
   hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 b l hms
 
 /-- `wdbOK_size_lt` over the flagged facts. -/
-theorem wdbOK'_size_lt (fr : Bool) (w : WDb) (hok : wdbOK' fr w) : w.m.size < 2 ^ 63 :=
-  hok.2.2.2.2.2.2.2.2.2.2.2.2.1
+theorem wdbOK'_size_lt (fr : Bool) (w : WDb) (hok : wdbOK' fr w) : w.m.size < 2 ^ 63 := by
+  have := (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).lt; omega
 
 /-- `wdbOK_size_page` over the flagged facts. -/
 theorem wdbOK'_size_page (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (l : Nat)

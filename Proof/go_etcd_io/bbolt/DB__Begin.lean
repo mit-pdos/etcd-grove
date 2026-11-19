@@ -5,7 +5,7 @@ internal `DB.Begin_err.spec` (the same function), its error branch's `fmtErrorOk
 module
 
 public import Spec.go_etcd_io.bbolt.DB__Begin
-public import Spec.go_etcd_io.bbolt.DB__Begin_err
+public import Proof.go_etcd_io.bbolt.DB__Begin_err
 
 @[expose] public section
 
@@ -30,13 +30,7 @@ theorem DB.Begin.wp_proof
     (wp_Begin_err : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.Begin_err.spec (GF := GF) (hG := hG)) :
     DB.Begin.spec (GF := GF) (hG := hG) := by
   intro _ _ _ db γ w Q
-  wp_start_folded as Hpre
-  wp_apply wp_Begin_err db γ w Q $$ [Hpre] as %tx %err Hpost
-  · iexact Hpre
-  iapply HΦ
-  icases Hpost with (H | ⟨%Hne, -, H⟩)
-  · ileft; iexact H
-  · iright; iframe; ipureintro; exact Hne.1
+  exact wp_Begin_err db γ w Q
 
 end proof
 

@@ -15,7 +15,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Pipe
-public import Proof.os.OpenFileTruncS
+public import Proof.os.OpenFileTruncLemmas
 public import Proof.path.filepath.Names
 public import Spec.os.Remove
 

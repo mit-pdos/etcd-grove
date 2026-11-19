@@ -20,6 +20,8 @@ open go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **`rebalance`'s post is `spill`'s pre** (the leaves at one depth: `rtOK`). -/
 theorem spillPre_of_rebalOK (X X1 : WX) (fl fl1 : FLPg) (txid : w64)

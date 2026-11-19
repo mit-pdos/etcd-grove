@@ -30,10 +30,10 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- See the file header. -/
 abbrev runner.newVal.spec : Prop :=
   ∀ (x : Loc) (cfg : Config) (n : w64),
-  0 ≤ sint.Z n → sint.Z n + 1 < 2 ^ 63 →
+  0 ≤ sint.Z n → sint.Z n + 1 < 2 ^ 63 → 0 ≤ sint.Z cfg.MaxVal' → sint.Z cfg.MaxVal' ≤ 2 ^ 20 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗ rF go!"cfg" x ↦□ cfg ∗ rF go!"vals" x ↦ n }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"newVal") (Val #()))
-  {{ (v : GoString), RET #v; rF go!"vals" x ↦ (n + W64 1) }}
+  {{ (v : GoString), RET #v; rF go!"vals" x ↦ (n + W64 1) ∗ ⌜v.length ≤ etcdKeyMax⌝ }}
 
 end spec
 

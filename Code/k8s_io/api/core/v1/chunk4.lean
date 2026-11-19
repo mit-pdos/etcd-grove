@@ -16,6 +16,112 @@ noncomputable section
 
 namespace k8s_io.api.core.v1
 
+class ResourceStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ResourceStatus.underlying ResourceStatus
+  underlying : go.UnderlyingDirectedEq ResourceStatus.ty ResourceStatus.underlying
+  get_Name : ∀ (x : ResourceStatus), go.IsGoStepPureDetTagged under (StructFieldGet ResourceStatus.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : ResourceStatus) (y : ResourceName), go.IsGoStepPureDetTagged under (StructFieldSet ResourceStatus.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ResourceStatus)))
+  get_Resources : ∀ (x : ResourceStatus), go.IsGoStepPureDetTagged under (StructFieldGet ResourceStatus.underlying go!"Resources") #x (Val #(x.Resources'))
+  set_Resources : ∀ (x : ResourceStatus) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResourceStatus.underlying go!"Resources") (PairV #x #y) (Val #(({ x with Resources' := y } : ResourceStatus)))
+  method_set : go.MethodSetIs ResourceStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ResourceStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ResourceStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType ResourceStatus.ty) go!"DeepCopyInto" ResourceStatus.DeepCopyInto.impl
+
+attribute [instance] ResourceStatus.TypeAssumptions.type_repr
+  ResourceStatus.TypeAssumptions.underlying
+  ResourceStatus.TypeAssumptions.get_Name
+  ResourceStatus.TypeAssumptions.set_Name
+  ResourceStatus.TypeAssumptions.get_Resources
+  ResourceStatus.TypeAssumptions.set_Resources
+  ResourceStatus.TypeAssumptions.method_set
+  ResourceStatus.TypeAssumptions.ptr_method_set
+  ResourceStatus.TypeAssumptions.ptr_DeepCopyInto_unfold
+
+class ResourceHealthStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ResourceHealthStatus.ty ResourceHealthStatus.underlying
+  method_set : go.MethodSetIs ResourceHealthStatus.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceHealthStatus.ty) []
+
+attribute [instance] ResourceHealthStatus.TypeAssumptions.underlying
+  ResourceHealthStatus.TypeAssumptions.method_set
+  ResourceHealthStatus.TypeAssumptions.ptr_method_set
+
+class ResourceID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ResourceID.ty ResourceID.underlying
+  method_set : go.MethodSetIs ResourceID.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceID.ty) []
+
+attribute [instance] ResourceID.TypeAssumptions.underlying
+  ResourceID.TypeAssumptions.method_set
+  ResourceID.TypeAssumptions.ptr_method_set
+
+class ResourceHealth.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ResourceHealth.underlying ResourceHealth
+  underlying : go.UnderlyingDirectedEq ResourceHealth.ty ResourceHealth.underlying
+  get_ResourceID : ∀ (x : ResourceHealth), go.IsGoStepPureDetTagged under (StructFieldGet ResourceHealth.underlying go!"ResourceID") #x (Val #(x.ResourceID'))
+  set_ResourceID : ∀ (x : ResourceHealth) (y : ResourceID), go.IsGoStepPureDetTagged under (StructFieldSet ResourceHealth.underlying go!"ResourceID") (PairV #x #y) (Val #(({ x with ResourceID' := y } : ResourceHealth)))
+  get_Health : ∀ (x : ResourceHealth), go.IsGoStepPureDetTagged under (StructFieldGet ResourceHealth.underlying go!"Health") #x (Val #(x.Health'))
+  set_Health : ∀ (x : ResourceHealth) (y : ResourceHealthStatus), go.IsGoStepPureDetTagged under (StructFieldSet ResourceHealth.underlying go!"Health") (PairV #x #y) (Val #(({ x with Health' := y } : ResourceHealth)))
+  get_Message : ∀ (x : ResourceHealth), go.IsGoStepPureDetTagged under (StructFieldGet ResourceHealth.underlying go!"Message") #x (Val #(x.Message'))
+  set_Message : ∀ (x : ResourceHealth) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResourceHealth.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : ResourceHealth)))
+  method_set : go.MethodSetIs ResourceHealth.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceHealth.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ResourceHealth.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ResourceHealth.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType ResourceHealth.ty) go!"DeepCopyInto" ResourceHealth.DeepCopyInto.impl
+
+attribute [instance] ResourceHealth.TypeAssumptions.type_repr
+  ResourceHealth.TypeAssumptions.underlying
+  ResourceHealth.TypeAssumptions.get_ResourceID
+  ResourceHealth.TypeAssumptions.set_ResourceID
+  ResourceHealth.TypeAssumptions.get_Health
+  ResourceHealth.TypeAssumptions.set_Health
+  ResourceHealth.TypeAssumptions.get_Message
+  ResourceHealth.TypeAssumptions.set_Message
+  ResourceHealth.TypeAssumptions.method_set
+  ResourceHealth.TypeAssumptions.ptr_method_set
+  ResourceHealth.TypeAssumptions.ptr_DeepCopyInto_unfold
+
+class ContainerUser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ContainerUser.underlying ContainerUser
+  underlying : go.UnderlyingDirectedEq ContainerUser.ty ContainerUser.underlying
+  get_Linux : ∀ (x : ContainerUser), go.IsGoStepPureDetTagged under (StructFieldGet ContainerUser.underlying go!"Linux") #x (Val #(x.Linux'))
+  set_Linux : ∀ (x : ContainerUser) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ContainerUser.underlying go!"Linux") (PairV #x #y) (Val #(({ x with Linux' := y } : ContainerUser)))
+  method_set : go.MethodSetIs ContainerUser.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerUser.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ContainerUser.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ContainerUser.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType ContainerUser.ty) go!"DeepCopyInto" ContainerUser.DeepCopyInto.impl
+
+attribute [instance] ContainerUser.TypeAssumptions.type_repr
+  ContainerUser.TypeAssumptions.underlying
+  ContainerUser.TypeAssumptions.get_Linux
+  ContainerUser.TypeAssumptions.set_Linux
+  ContainerUser.TypeAssumptions.method_set
+  ContainerUser.TypeAssumptions.ptr_method_set
+  ContainerUser.TypeAssumptions.ptr_DeepCopyInto_unfold
+
+class LinuxContainerUser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying LinuxContainerUser.underlying LinuxContainerUser
+  underlying : go.UnderlyingDirectedEq LinuxContainerUser.ty LinuxContainerUser.underlying
+  get_UID : ∀ (x : LinuxContainerUser), go.IsGoStepPureDetTagged under (StructFieldGet LinuxContainerUser.underlying go!"UID") #x (Val #(x.UID'))
+  set_UID : ∀ (x : LinuxContainerUser) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LinuxContainerUser.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : LinuxContainerUser)))
+  get_GID : ∀ (x : LinuxContainerUser), go.IsGoStepPureDetTagged under (StructFieldGet LinuxContainerUser.underlying go!"GID") #x (Val #(x.GID'))
+  set_GID : ∀ (x : LinuxContainerUser) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LinuxContainerUser.underlying go!"GID") (PairV #x #y) (Val #(({ x with GID' := y } : LinuxContainerUser)))
+  get_SupplementalGroups : ∀ (x : LinuxContainerUser), go.IsGoStepPureDetTagged under (StructFieldGet LinuxContainerUser.underlying go!"SupplementalGroups") #x (Val #(x.SupplementalGroups'))
+  set_SupplementalGroups : ∀ (x : LinuxContainerUser) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LinuxContainerUser.underlying go!"SupplementalGroups") (PairV #x #y) (Val #(({ x with SupplementalGroups' := y } : LinuxContainerUser)))
+  method_set : go.MethodSetIs LinuxContainerUser.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LinuxContainerUser.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType LinuxContainerUser.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType LinuxContainerUser.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType LinuxContainerUser.ty) go!"DeepCopyInto" LinuxContainerUser.DeepCopyInto.impl
+
+attribute [instance] LinuxContainerUser.TypeAssumptions.type_repr
+  LinuxContainerUser.TypeAssumptions.underlying
+  LinuxContainerUser.TypeAssumptions.get_UID
+  LinuxContainerUser.TypeAssumptions.set_UID
+  LinuxContainerUser.TypeAssumptions.get_GID
+  LinuxContainerUser.TypeAssumptions.set_GID
+  LinuxContainerUser.TypeAssumptions.get_SupplementalGroups
+  LinuxContainerUser.TypeAssumptions.set_SupplementalGroups
+  LinuxContainerUser.TypeAssumptions.method_set
+  LinuxContainerUser.TypeAssumptions.ptr_method_set
+  LinuxContainerUser.TypeAssumptions.ptr_DeepCopyInto_unfold
+
 class PodPhase.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodPhase.ty PodPhase.underlying
   method_set : go.MethodSetIs PodPhase.ty []
@@ -53,6 +159,7 @@ class PodCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_Message : ∀ (x : PodCondition) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodCondition.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : PodCondition)))
   method_set : go.MethodSetIs PodCondition.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodCondition.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodCondition.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodCondition.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodCondition.ty) go!"DeepCopyInto" PodCondition.DeepCopyInto.impl
 
 attribute [instance] PodCondition.TypeAssumptions.type_repr
   PodCondition.TypeAssumptions.underlying
@@ -72,6 +179,7 @@ attribute [instance] PodCondition.TypeAssumptions.type_repr
   PodCondition.TypeAssumptions.set_Message
   PodCondition.TypeAssumptions.method_set
   PodCondition.TypeAssumptions.ptr_method_set
+  PodCondition.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PodResizeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodResizeStatus.ty PodResizeStatus.underlying
@@ -97,6 +205,7 @@ class VolumeMountStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_VolumeStatus : ∀ (x : VolumeMountStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeMountStatus.underlying go!"VolumeStatus") (PairV #x #y) (Val #(({ x with VolumeStatus' := y } : VolumeMountStatus)))
   method_set : go.MethodSetIs VolumeMountStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeMountStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeMountStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeMountStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType VolumeMountStatus.ty) go!"DeepCopyInto" VolumeMountStatus.DeepCopyInto.impl
 
 attribute [instance] VolumeMountStatus.TypeAssumptions.type_repr
   VolumeMountStatus.TypeAssumptions.underlying
@@ -112,6 +221,7 @@ attribute [instance] VolumeMountStatus.TypeAssumptions.type_repr
   VolumeMountStatus.TypeAssumptions.set_VolumeStatus
   VolumeMountStatus.TypeAssumptions.method_set
   VolumeMountStatus.TypeAssumptions.ptr_method_set
+  VolumeMountStatus.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class VolumeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VolumeStatus.underlying VolumeStatus
@@ -120,6 +230,7 @@ class VolumeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_Image : ∀ (x : VolumeStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet VolumeStatus.underlying go!"Image") (PairV #x #y) (Val #(({ x with Image' := y } : VolumeStatus)))
   method_set : go.MethodSetIs VolumeStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType VolumeStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType VolumeStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType VolumeStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType VolumeStatus.ty) go!"DeepCopyInto" VolumeStatus.DeepCopyInto.impl
 
 attribute [instance] VolumeStatus.TypeAssumptions.type_repr
   VolumeStatus.TypeAssumptions.underlying
@@ -127,6 +238,7 @@ attribute [instance] VolumeStatus.TypeAssumptions.type_repr
   VolumeStatus.TypeAssumptions.set_Image
   VolumeStatus.TypeAssumptions.method_set
   VolumeStatus.TypeAssumptions.ptr_method_set
+  VolumeStatus.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class ImageVolumeStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ImageVolumeStatus.underlying ImageVolumeStatus
@@ -179,6 +291,7 @@ class ContainerRestartRule.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_ExitCodes : ∀ (x : ContainerRestartRule) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ContainerRestartRule.underlying go!"ExitCodes") (PairV #x #y) (Val #(({ x with ExitCodes' := y } : ContainerRestartRule)))
   method_set : go.MethodSetIs ContainerRestartRule.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerRestartRule.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ContainerRestartRule.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ContainerRestartRule.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType ContainerRestartRule.ty) go!"DeepCopyInto" ContainerRestartRule.DeepCopyInto.impl
 
 attribute [instance] ContainerRestartRule.TypeAssumptions.type_repr
   ContainerRestartRule.TypeAssumptions.underlying
@@ -188,6 +301,7 @@ attribute [instance] ContainerRestartRule.TypeAssumptions.type_repr
   ContainerRestartRule.TypeAssumptions.set_ExitCodes
   ContainerRestartRule.TypeAssumptions.method_set
   ContainerRestartRule.TypeAssumptions.ptr_method_set
+  ContainerRestartRule.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class ContainerRestartRuleOnExitCodesOperator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ContainerRestartRuleOnExitCodesOperator.ty ContainerRestartRuleOnExitCodesOperator.underlying
@@ -207,6 +321,7 @@ class ContainerRestartRuleOnExitCodes.TypeAssumptions [GooseExts] [GoGlobalConte
   set_Values : ∀ (x : ContainerRestartRuleOnExitCodes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ContainerRestartRuleOnExitCodes.underlying go!"Values") (PairV #x #y) (Val #(({ x with Values' := y } : ContainerRestartRuleOnExitCodes)))
   method_set : go.MethodSetIs ContainerRestartRuleOnExitCodes.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContainerRestartRuleOnExitCodes.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ContainerRestartRuleOnExitCodes.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ContainerRestartRuleOnExitCodes.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType ContainerRestartRuleOnExitCodes.ty) go!"DeepCopyInto" ContainerRestartRuleOnExitCodes.DeepCopyInto.impl
 
 attribute [instance] ContainerRestartRuleOnExitCodes.TypeAssumptions.type_repr
   ContainerRestartRuleOnExitCodes.TypeAssumptions.underlying
@@ -216,6 +331,7 @@ attribute [instance] ContainerRestartRuleOnExitCodes.TypeAssumptions.type_repr
   ContainerRestartRuleOnExitCodes.TypeAssumptions.set_Values
   ContainerRestartRuleOnExitCodes.TypeAssumptions.method_set
   ContainerRestartRuleOnExitCodes.TypeAssumptions.ptr_method_set
+  ContainerRestartRuleOnExitCodes.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class DNSPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DNSPolicy.ty DNSPolicy.underlying
@@ -233,6 +349,7 @@ class NodeSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_NodeSelectorTerms : ∀ (x : NodeSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelector.underlying go!"NodeSelectorTerms") (PairV #x #y) (Val #(({ x with NodeSelectorTerms' := y } : NodeSelector)))
   method_set : go.MethodSetIs NodeSelector.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelector.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NodeSelector.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NodeSelector.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType NodeSelector.ty) go!"DeepCopyInto" NodeSelector.DeepCopyInto.impl
 
 attribute [instance] NodeSelector.TypeAssumptions.type_repr
   NodeSelector.TypeAssumptions.underlying
@@ -240,6 +357,7 @@ attribute [instance] NodeSelector.TypeAssumptions.type_repr
   NodeSelector.TypeAssumptions.set_NodeSelectorTerms
   NodeSelector.TypeAssumptions.method_set
   NodeSelector.TypeAssumptions.ptr_method_set
+  NodeSelector.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class NodeSelectorTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NodeSelectorTerm.underlying NodeSelectorTerm
@@ -250,6 +368,7 @@ class NodeSelectorTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_MatchFields : ∀ (x : NodeSelectorTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelectorTerm.underlying go!"MatchFields") (PairV #x #y) (Val #(({ x with MatchFields' := y } : NodeSelectorTerm)))
   method_set : go.MethodSetIs NodeSelectorTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelectorTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NodeSelectorTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NodeSelectorTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType NodeSelectorTerm.ty) go!"DeepCopyInto" NodeSelectorTerm.DeepCopyInto.impl
 
 attribute [instance] NodeSelectorTerm.TypeAssumptions.type_repr
   NodeSelectorTerm.TypeAssumptions.underlying
@@ -259,6 +378,7 @@ attribute [instance] NodeSelectorTerm.TypeAssumptions.type_repr
   NodeSelectorTerm.TypeAssumptions.set_MatchFields
   NodeSelectorTerm.TypeAssumptions.method_set
   NodeSelectorTerm.TypeAssumptions.ptr_method_set
+  NodeSelectorTerm.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class NodeSelectorOperator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NodeSelectorOperator.ty NodeSelectorOperator.underlying
@@ -280,6 +400,7 @@ class NodeSelectorRequirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   set_Values : ∀ (x : NodeSelectorRequirement) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSelectorRequirement.underlying go!"Values") (PairV #x #y) (Val #(({ x with Values' := y } : NodeSelectorRequirement)))
   method_set : go.MethodSetIs NodeSelectorRequirement.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeSelectorRequirement.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NodeSelectorRequirement.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NodeSelectorRequirement.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType NodeSelectorRequirement.ty) go!"DeepCopyInto" NodeSelectorRequirement.DeepCopyInto.impl
 
 attribute [instance] NodeSelectorRequirement.TypeAssumptions.type_repr
   NodeSelectorRequirement.TypeAssumptions.underlying
@@ -291,6 +412,7 @@ attribute [instance] NodeSelectorRequirement.TypeAssumptions.type_repr
   NodeSelectorRequirement.TypeAssumptions.set_Values
   NodeSelectorRequirement.TypeAssumptions.method_set
   NodeSelectorRequirement.TypeAssumptions.ptr_method_set
+  NodeSelectorRequirement.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class TopologySelectorTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TopologySelectorTerm.underlying TopologySelectorTerm
@@ -337,6 +459,7 @@ class Affinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_PodAntiAffinity : ∀ (x : Affinity) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Affinity.underlying go!"PodAntiAffinity") (PairV #x #y) (Val #(({ x with PodAntiAffinity' := y } : Affinity)))
   method_set : go.MethodSetIs Affinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Affinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Affinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Affinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType Affinity.ty) go!"DeepCopyInto" Affinity.DeepCopyInto.impl
 
 attribute [instance] Affinity.TypeAssumptions.type_repr
   Affinity.TypeAssumptions.underlying
@@ -348,6 +471,7 @@ attribute [instance] Affinity.TypeAssumptions.type_repr
   Affinity.TypeAssumptions.set_PodAntiAffinity
   Affinity.TypeAssumptions.method_set
   Affinity.TypeAssumptions.ptr_method_set
+  Affinity.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PodAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodAffinity.underlying PodAffinity
@@ -358,6 +482,7 @@ class PodAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAffinity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with PreferredDuringSchedulingIgnoredDuringExecution' := y } : PodAffinity)))
   method_set : go.MethodSetIs PodAffinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodAffinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodAffinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodAffinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodAffinity.ty) go!"DeepCopyInto" PodAffinity.DeepCopyInto.impl
 
 attribute [instance] PodAffinity.TypeAssumptions.type_repr
   PodAffinity.TypeAssumptions.underlying
@@ -367,6 +492,7 @@ attribute [instance] PodAffinity.TypeAssumptions.type_repr
   PodAffinity.TypeAssumptions.set_PreferredDuringSchedulingIgnoredDuringExecution
   PodAffinity.TypeAssumptions.method_set
   PodAffinity.TypeAssumptions.ptr_method_set
+  PodAffinity.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PodAntiAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodAntiAffinity.underlying PodAntiAffinity
@@ -377,6 +503,7 @@ class PodAntiAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : PodAntiAffinity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAntiAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with PreferredDuringSchedulingIgnoredDuringExecution' := y } : PodAntiAffinity)))
   method_set : go.MethodSetIs PodAntiAffinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodAntiAffinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodAntiAffinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodAntiAffinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodAntiAffinity.ty) go!"DeepCopyInto" PodAntiAffinity.DeepCopyInto.impl
 
 attribute [instance] PodAntiAffinity.TypeAssumptions.type_repr
   PodAntiAffinity.TypeAssumptions.underlying
@@ -386,6 +513,7 @@ attribute [instance] PodAntiAffinity.TypeAssumptions.type_repr
   PodAntiAffinity.TypeAssumptions.set_PreferredDuringSchedulingIgnoredDuringExecution
   PodAntiAffinity.TypeAssumptions.method_set
   PodAntiAffinity.TypeAssumptions.ptr_method_set
+  PodAntiAffinity.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PodAffinityTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodAffinityTerm.underlying PodAffinityTerm
@@ -404,6 +532,7 @@ class PodAffinityTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_MismatchLabelKeys : ∀ (x : PodAffinityTerm) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodAffinityTerm.underlying go!"MismatchLabelKeys") (PairV #x #y) (Val #(({ x with MismatchLabelKeys' := y } : PodAffinityTerm)))
   method_set : go.MethodSetIs PodAffinityTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodAffinityTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodAffinityTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodAffinityTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodAffinityTerm.ty) go!"DeepCopyInto" PodAffinityTerm.DeepCopyInto.impl
 
 attribute [instance] PodAffinityTerm.TypeAssumptions.type_repr
   PodAffinityTerm.TypeAssumptions.underlying
@@ -421,6 +550,7 @@ attribute [instance] PodAffinityTerm.TypeAssumptions.type_repr
   PodAffinityTerm.TypeAssumptions.set_MismatchLabelKeys
   PodAffinityTerm.TypeAssumptions.method_set
   PodAffinityTerm.TypeAssumptions.ptr_method_set
+  PodAffinityTerm.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class WeightedPodAffinityTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WeightedPodAffinityTerm.underlying WeightedPodAffinityTerm
@@ -431,6 +561,7 @@ class WeightedPodAffinityTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   set_PodAffinityTerm : ∀ (x : WeightedPodAffinityTerm) (y : PodAffinityTerm), go.IsGoStepPureDetTagged under (StructFieldSet WeightedPodAffinityTerm.underlying go!"PodAffinityTerm") (PairV #x #y) (Val #(({ x with PodAffinityTerm' := y } : WeightedPodAffinityTerm)))
   method_set : go.MethodSetIs WeightedPodAffinityTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType WeightedPodAffinityTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType WeightedPodAffinityTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType WeightedPodAffinityTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType WeightedPodAffinityTerm.ty) go!"DeepCopyInto" WeightedPodAffinityTerm.DeepCopyInto.impl
 
 attribute [instance] WeightedPodAffinityTerm.TypeAssumptions.type_repr
   WeightedPodAffinityTerm.TypeAssumptions.underlying
@@ -440,6 +571,7 @@ attribute [instance] WeightedPodAffinityTerm.TypeAssumptions.type_repr
   WeightedPodAffinityTerm.TypeAssumptions.set_PodAffinityTerm
   WeightedPodAffinityTerm.TypeAssumptions.method_set
   WeightedPodAffinityTerm.TypeAssumptions.ptr_method_set
+  WeightedPodAffinityTerm.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class NodeAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NodeAffinity.underlying NodeAffinity
@@ -450,6 +582,7 @@ class NodeAffinity.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_PreferredDuringSchedulingIgnoredDuringExecution : ∀ (x : NodeAffinity) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeAffinity.underlying go!"PreferredDuringSchedulingIgnoredDuringExecution") (PairV #x #y) (Val #(({ x with PreferredDuringSchedulingIgnoredDuringExecution' := y } : NodeAffinity)))
   method_set : go.MethodSetIs NodeAffinity.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType NodeAffinity.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType NodeAffinity.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType NodeAffinity.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType NodeAffinity.ty) go!"DeepCopyInto" NodeAffinity.DeepCopyInto.impl
 
 attribute [instance] NodeAffinity.TypeAssumptions.type_repr
   NodeAffinity.TypeAssumptions.underlying
@@ -459,6 +592,7 @@ attribute [instance] NodeAffinity.TypeAssumptions.type_repr
   NodeAffinity.TypeAssumptions.set_PreferredDuringSchedulingIgnoredDuringExecution
   NodeAffinity.TypeAssumptions.method_set
   NodeAffinity.TypeAssumptions.ptr_method_set
+  NodeAffinity.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PreferredSchedulingTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PreferredSchedulingTerm.underlying PreferredSchedulingTerm
@@ -469,6 +603,7 @@ class PreferredSchedulingTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   set_Preference : ∀ (x : PreferredSchedulingTerm) (y : NodeSelectorTerm), go.IsGoStepPureDetTagged under (StructFieldSet PreferredSchedulingTerm.underlying go!"Preference") (PairV #x #y) (Val #(({ x with Preference' := y } : PreferredSchedulingTerm)))
   method_set : go.MethodSetIs PreferredSchedulingTerm.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PreferredSchedulingTerm.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PreferredSchedulingTerm.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PreferredSchedulingTerm.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PreferredSchedulingTerm.ty) go!"DeepCopyInto" PreferredSchedulingTerm.DeepCopyInto.impl
 
 attribute [instance] PreferredSchedulingTerm.TypeAssumptions.type_repr
   PreferredSchedulingTerm.TypeAssumptions.underlying
@@ -478,6 +613,7 @@ attribute [instance] PreferredSchedulingTerm.TypeAssumptions.type_repr
   PreferredSchedulingTerm.TypeAssumptions.set_Preference
   PreferredSchedulingTerm.TypeAssumptions.method_set
   PreferredSchedulingTerm.TypeAssumptions.ptr_method_set
+  PreferredSchedulingTerm.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class TaintEffect.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TaintEffect.ty TaintEffect.underlying
@@ -501,6 +637,7 @@ class Taint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_TimeAdded : ∀ (x : Taint) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Taint.underlying go!"TimeAdded") (PairV #x #y) (Val #(({ x with TimeAdded' := y } : Taint)))
   method_set : go.MethodSetIs Taint.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Taint.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Taint.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Taint.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MatchTaint", (some (go.signature.Signature [(go.GoType.PointerType Taint.ty)] false [go.bool]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"ToString", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType Taint.ty) go!"DeepCopyInto" Taint.DeepCopyInto.impl
 
 attribute [instance] Taint.TypeAssumptions.type_repr
   Taint.TypeAssumptions.underlying
@@ -514,6 +651,7 @@ attribute [instance] Taint.TypeAssumptions.type_repr
   Taint.TypeAssumptions.set_TimeAdded
   Taint.TypeAssumptions.method_set
   Taint.TypeAssumptions.ptr_method_set
+  Taint.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class TolerationOperator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TolerationOperator.ty TolerationOperator.underlying
@@ -539,6 +677,7 @@ class Toleration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_TolerationSeconds : ∀ (x : Toleration) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Toleration.underlying go!"TolerationSeconds") (PairV #x #y) (Val #(({ x with TolerationSeconds' := y } : Toleration)))
   method_set : go.MethodSetIs Toleration.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Toleration.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Toleration.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Toleration.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MatchToleration", (some (go.signature.Signature [(go.GoType.PointerType Toleration.ty)] false [go.bool]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"ToleratesTaint", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.PointerType Taint.ty), go.bool] false [go.bool]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType Toleration.ty) go!"DeepCopyInto" Toleration.DeepCopyInto.impl
 
 attribute [instance] Toleration.TypeAssumptions.type_repr
   Toleration.TypeAssumptions.underlying
@@ -554,6 +693,7 @@ attribute [instance] Toleration.TypeAssumptions.type_repr
   Toleration.TypeAssumptions.set_TolerationSeconds
   Toleration.TypeAssumptions.method_set
   Toleration.TypeAssumptions.ptr_method_set
+  Toleration.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PodReadinessGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodReadinessGate.underlying PodReadinessGate
@@ -764,6 +904,7 @@ class PodResourceClaim.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_ResourceClaimTemplateName : ∀ (x : PodResourceClaim) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodResourceClaim.underlying go!"ResourceClaimTemplateName") (PairV #x #y) (Val #(({ x with ResourceClaimTemplateName' := y } : PodResourceClaim)))
   method_set : go.MethodSetIs PodResourceClaim.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodResourceClaim.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodResourceClaim.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodResourceClaim.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodResourceClaim.ty) go!"DeepCopyInto" PodResourceClaim.DeepCopyInto.impl
 
 attribute [instance] PodResourceClaim.TypeAssumptions.type_repr
   PodResourceClaim.TypeAssumptions.underlying
@@ -775,6 +916,7 @@ attribute [instance] PodResourceClaim.TypeAssumptions.type_repr
   PodResourceClaim.TypeAssumptions.set_ResourceClaimTemplateName
   PodResourceClaim.TypeAssumptions.method_set
   PodResourceClaim.TypeAssumptions.ptr_method_set
+  PodResourceClaim.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PodResourceClaimStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodResourceClaimStatus.underlying PodResourceClaimStatus
@@ -785,6 +927,7 @@ class PodResourceClaimStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   set_ResourceClaimName : ∀ (x : PodResourceClaimStatus) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodResourceClaimStatus.underlying go!"ResourceClaimName") (PairV #x #y) (Val #(({ x with ResourceClaimName' := y } : PodResourceClaimStatus)))
   method_set : go.MethodSetIs PodResourceClaimStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodResourceClaimStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodResourceClaimStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodResourceClaimStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodResourceClaimStatus.ty) go!"DeepCopyInto" PodResourceClaimStatus.DeepCopyInto.impl
 
 attribute [instance] PodResourceClaimStatus.TypeAssumptions.type_repr
   PodResourceClaimStatus.TypeAssumptions.underlying
@@ -794,6 +937,7 @@ attribute [instance] PodResourceClaimStatus.TypeAssumptions.type_repr
   PodResourceClaimStatus.TypeAssumptions.set_ResourceClaimName
   PodResourceClaimStatus.TypeAssumptions.method_set
   PodResourceClaimStatus.TypeAssumptions.ptr_method_set
+  PodResourceClaimStatus.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PodExtendedResourceClaimStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PodExtendedResourceClaimStatus.underlying PodExtendedResourceClaimStatus
@@ -804,6 +948,7 @@ class PodExtendedResourceClaimStatus.TypeAssumptions [GooseExts] [GoGlobalContex
   set_ResourceClaimName : ∀ (x : PodExtendedResourceClaimStatus) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodExtendedResourceClaimStatus.underlying go!"ResourceClaimName") (PairV #x #y) (Val #(({ x with ResourceClaimName' := y } : PodExtendedResourceClaimStatus)))
   method_set : go.MethodSetIs PodExtendedResourceClaimStatus.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodExtendedResourceClaimStatus.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodExtendedResourceClaimStatus.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodExtendedResourceClaimStatus.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodExtendedResourceClaimStatus.ty) go!"DeepCopyInto" PodExtendedResourceClaimStatus.DeepCopyInto.impl
 
 attribute [instance] PodExtendedResourceClaimStatus.TypeAssumptions.type_repr
   PodExtendedResourceClaimStatus.TypeAssumptions.underlying
@@ -813,6 +958,7 @@ attribute [instance] PodExtendedResourceClaimStatus.TypeAssumptions.type_repr
   PodExtendedResourceClaimStatus.TypeAssumptions.set_ResourceClaimName
   PodExtendedResourceClaimStatus.TypeAssumptions.method_set
   PodExtendedResourceClaimStatus.TypeAssumptions.ptr_method_set
+  PodExtendedResourceClaimStatus.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class ContainerExtendedResourceRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ContainerExtendedResourceRequest.underlying ContainerExtendedResourceRequest
@@ -883,6 +1029,7 @@ class PodSchedulingGroup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_PodGroupName : ∀ (x : PodSchedulingGroup) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSchedulingGroup.underlying go!"PodGroupName") (PairV #x #y) (Val #(({ x with PodGroupName' := y } : PodSchedulingGroup)))
   method_set : go.MethodSetIs PodSchedulingGroup.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodSchedulingGroup.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodSchedulingGroup.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodSchedulingGroup.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodSchedulingGroup.ty) go!"DeepCopyInto" PodSchedulingGroup.DeepCopyInto.impl
 
 attribute [instance] PodSchedulingGroup.TypeAssumptions.type_repr
   PodSchedulingGroup.TypeAssumptions.underlying
@@ -890,6 +1037,7 @@ attribute [instance] PodSchedulingGroup.TypeAssumptions.type_repr
   PodSchedulingGroup.TypeAssumptions.set_PodGroupName
   PodSchedulingGroup.TypeAssumptions.method_set
   PodSchedulingGroup.TypeAssumptions.ptr_method_set
+  PodSchedulingGroup.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class UnsatisfiableConstraintAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsatisfiableConstraintAction.ty UnsatisfiableConstraintAction.underlying
@@ -930,6 +1078,7 @@ class TopologySpreadConstraint.TypeAssumptions [GooseExts] [GoGlobalContext] [Go
   set_MatchLabelKeys : ∀ (x : TopologySpreadConstraint) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TopologySpreadConstraint.underlying go!"MatchLabelKeys") (PairV #x #y) (Val #(({ x with MatchLabelKeys' := y } : TopologySpreadConstraint)))
   method_set : go.MethodSetIs TopologySpreadConstraint.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TopologySpreadConstraint.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType TopologySpreadConstraint.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType TopologySpreadConstraint.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType TopologySpreadConstraint.ty) go!"DeepCopyInto" TopologySpreadConstraint.DeepCopyInto.impl
 
 attribute [instance] TopologySpreadConstraint.TypeAssumptions.type_repr
   TopologySpreadConstraint.TypeAssumptions.underlying
@@ -951,6 +1100,7 @@ attribute [instance] TopologySpreadConstraint.TypeAssumptions.type_repr
   TopologySpreadConstraint.TypeAssumptions.set_MatchLabelKeys
   TopologySpreadConstraint.TypeAssumptions.method_set
   TopologySpreadConstraint.TypeAssumptions.ptr_method_set
+  TopologySpreadConstraint.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class HostAlias.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HostAlias.underlying HostAlias
@@ -961,6 +1111,7 @@ class HostAlias.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_Hostnames : ∀ (x : HostAlias) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet HostAlias.underlying go!"Hostnames") (PairV #x #y) (Val #(({ x with Hostnames' := y } : HostAlias)))
   method_set : go.MethodSetIs HostAlias.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType HostAlias.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HostAlias.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HostAlias.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType HostAlias.ty) go!"DeepCopyInto" HostAlias.DeepCopyInto.impl
 
 attribute [instance] HostAlias.TypeAssumptions.type_repr
   HostAlias.TypeAssumptions.underlying
@@ -970,6 +1121,7 @@ attribute [instance] HostAlias.TypeAssumptions.type_repr
   HostAlias.TypeAssumptions.set_Hostnames
   HostAlias.TypeAssumptions.method_set
   HostAlias.TypeAssumptions.ptr_method_set
+  HostAlias.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 class PodFSGroupChangePolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PodFSGroupChangePolicy.ty PodFSGroupChangePolicy.underlying
@@ -1029,6 +1181,7 @@ class PodSecurityContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_SELinuxChangePolicy : ∀ (x : PodSecurityContext) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodSecurityContext.underlying go!"SELinuxChangePolicy") (PairV #x #y) (Val #(({ x with SELinuxChangePolicy' := y } : PodSecurityContext)))
   method_set : go.MethodSetIs PodSecurityContext.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodSecurityContext.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodSecurityContext.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodSecurityContext.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_DeepCopyInto_unfold : MethodUnfold (go.GoType.PointerType PodSecurityContext.ty) go!"DeepCopyInto" PodSecurityContext.DeepCopyInto.impl
 
 attribute [instance] PodSecurityContext.TypeAssumptions.type_repr
   PodSecurityContext.TypeAssumptions.underlying
@@ -1060,143 +1213,7 @@ attribute [instance] PodSecurityContext.TypeAssumptions.type_repr
   PodSecurityContext.TypeAssumptions.set_SELinuxChangePolicy
   PodSecurityContext.TypeAssumptions.method_set
   PodSecurityContext.TypeAssumptions.ptr_method_set
-
-class SeccompProfileType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq SeccompProfileType.ty SeccompProfileType.underlying
-  method_set : go.MethodSetIs SeccompProfileType.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SeccompProfileType.ty) []
-
-attribute [instance] SeccompProfileType.TypeAssumptions.underlying
-  SeccompProfileType.TypeAssumptions.method_set
-  SeccompProfileType.TypeAssumptions.ptr_method_set
-
-class SeccompProfile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying SeccompProfile.underlying SeccompProfile
-  underlying : go.UnderlyingDirectedEq SeccompProfile.ty SeccompProfile.underlying
-  get_Type : ∀ (x : SeccompProfile), go.IsGoStepPureDetTagged under (StructFieldGet SeccompProfile.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : SeccompProfile) (y : SeccompProfileType), go.IsGoStepPureDetTagged under (StructFieldSet SeccompProfile.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : SeccompProfile)))
-  get_LocalhostProfile : ∀ (x : SeccompProfile), go.IsGoStepPureDetTagged under (StructFieldGet SeccompProfile.underlying go!"LocalhostProfile") #x (Val #(x.LocalhostProfile'))
-  set_LocalhostProfile : ∀ (x : SeccompProfile) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SeccompProfile.underlying go!"LocalhostProfile") (PairV #x #y) (Val #(({ x with LocalhostProfile' := y } : SeccompProfile)))
-  method_set : go.MethodSetIs SeccompProfile.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SeccompProfile.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType SeccompProfile.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType SeccompProfile.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-
-attribute [instance] SeccompProfile.TypeAssumptions.type_repr
-  SeccompProfile.TypeAssumptions.underlying
-  SeccompProfile.TypeAssumptions.get_Type
-  SeccompProfile.TypeAssumptions.set_Type
-  SeccompProfile.TypeAssumptions.get_LocalhostProfile
-  SeccompProfile.TypeAssumptions.set_LocalhostProfile
-  SeccompProfile.TypeAssumptions.method_set
-  SeccompProfile.TypeAssumptions.ptr_method_set
-
-class AppArmorProfileType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq AppArmorProfileType.ty AppArmorProfileType.underlying
-  method_set : go.MethodSetIs AppArmorProfileType.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AppArmorProfileType.ty) []
-
-attribute [instance] AppArmorProfileType.TypeAssumptions.underlying
-  AppArmorProfileType.TypeAssumptions.method_set
-  AppArmorProfileType.TypeAssumptions.ptr_method_set
-
-class AppArmorProfile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AppArmorProfile.underlying AppArmorProfile
-  underlying : go.UnderlyingDirectedEq AppArmorProfile.ty AppArmorProfile.underlying
-  get_Type : ∀ (x : AppArmorProfile), go.IsGoStepPureDetTagged under (StructFieldGet AppArmorProfile.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : AppArmorProfile) (y : AppArmorProfileType), go.IsGoStepPureDetTagged under (StructFieldSet AppArmorProfile.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : AppArmorProfile)))
-  get_LocalhostProfile : ∀ (x : AppArmorProfile), go.IsGoStepPureDetTagged under (StructFieldGet AppArmorProfile.underlying go!"LocalhostProfile") #x (Val #(x.LocalhostProfile'))
-  set_LocalhostProfile : ∀ (x : AppArmorProfile) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AppArmorProfile.underlying go!"LocalhostProfile") (PairV #x #y) (Val #(({ x with LocalhostProfile' := y } : AppArmorProfile)))
-  method_set : go.MethodSetIs AppArmorProfile.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AppArmorProfile.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType AppArmorProfile.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType AppArmorProfile.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-
-attribute [instance] AppArmorProfile.TypeAssumptions.type_repr
-  AppArmorProfile.TypeAssumptions.underlying
-  AppArmorProfile.TypeAssumptions.get_Type
-  AppArmorProfile.TypeAssumptions.set_Type
-  AppArmorProfile.TypeAssumptions.get_LocalhostProfile
-  AppArmorProfile.TypeAssumptions.set_LocalhostProfile
-  AppArmorProfile.TypeAssumptions.method_set
-  AppArmorProfile.TypeAssumptions.ptr_method_set
-
-class PodQOSClass.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq PodQOSClass.ty PodQOSClass.underlying
-  method_set : go.MethodSetIs PodQOSClass.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodQOSClass.ty) []
-
-attribute [instance] PodQOSClass.TypeAssumptions.underlying
-  PodQOSClass.TypeAssumptions.method_set
-  PodQOSClass.TypeAssumptions.ptr_method_set
-
-class PodDNSConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PodDNSConfig.underlying PodDNSConfig
-  underlying : go.UnderlyingDirectedEq PodDNSConfig.ty PodDNSConfig.underlying
-  get_Nameservers : ∀ (x : PodDNSConfig), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfig.underlying go!"Nameservers") #x (Val #(x.Nameservers'))
-  set_Nameservers : ∀ (x : PodDNSConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfig.underlying go!"Nameservers") (PairV #x #y) (Val #(({ x with Nameservers' := y } : PodDNSConfig)))
-  get_Searches : ∀ (x : PodDNSConfig), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfig.underlying go!"Searches") #x (Val #(x.Searches'))
-  set_Searches : ∀ (x : PodDNSConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfig.underlying go!"Searches") (PairV #x #y) (Val #(({ x with Searches' := y } : PodDNSConfig)))
-  get_Options : ∀ (x : PodDNSConfig), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfig.underlying go!"Options") #x (Val #(x.Options'))
-  set_Options : ∀ (x : PodDNSConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfig.underlying go!"Options") (PairV #x #y) (Val #(({ x with Options' := y } : PodDNSConfig)))
-  method_set : go.MethodSetIs PodDNSConfig.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDNSConfig.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodDNSConfig.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodDNSConfig.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-
-attribute [instance] PodDNSConfig.TypeAssumptions.type_repr
-  PodDNSConfig.TypeAssumptions.underlying
-  PodDNSConfig.TypeAssumptions.get_Nameservers
-  PodDNSConfig.TypeAssumptions.set_Nameservers
-  PodDNSConfig.TypeAssumptions.get_Searches
-  PodDNSConfig.TypeAssumptions.set_Searches
-  PodDNSConfig.TypeAssumptions.get_Options
-  PodDNSConfig.TypeAssumptions.set_Options
-  PodDNSConfig.TypeAssumptions.method_set
-  PodDNSConfig.TypeAssumptions.ptr_method_set
-
-class PodDNSConfigOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PodDNSConfigOption.underlying PodDNSConfigOption
-  underlying : go.UnderlyingDirectedEq PodDNSConfigOption.ty PodDNSConfigOption.underlying
-  get_Name : ∀ (x : PodDNSConfigOption), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfigOption.underlying go!"Name") #x (Val #(x.Name'))
-  set_Name : ∀ (x : PodDNSConfigOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfigOption.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : PodDNSConfigOption)))
-  get_Value : ∀ (x : PodDNSConfigOption), go.IsGoStepPureDetTagged under (StructFieldGet PodDNSConfigOption.underlying go!"Value") #x (Val #(x.Value'))
-  set_Value : ∀ (x : PodDNSConfigOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PodDNSConfigOption.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : PodDNSConfigOption)))
-  method_set : go.MethodSetIs PodDNSConfigOption.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodDNSConfigOption.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodDNSConfigOption.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodDNSConfigOption.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-
-attribute [instance] PodDNSConfigOption.TypeAssumptions.type_repr
-  PodDNSConfigOption.TypeAssumptions.underlying
-  PodDNSConfigOption.TypeAssumptions.get_Name
-  PodDNSConfigOption.TypeAssumptions.set_Name
-  PodDNSConfigOption.TypeAssumptions.get_Value
-  PodDNSConfigOption.TypeAssumptions.set_Value
-  PodDNSConfigOption.TypeAssumptions.method_set
-  PodDNSConfigOption.TypeAssumptions.ptr_method_set
-
-class PodIP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PodIP.underlying PodIP
-  underlying : go.UnderlyingDirectedEq PodIP.ty PodIP.underlying
-  get_IP : ∀ (x : PodIP), go.IsGoStepPureDetTagged under (StructFieldGet PodIP.underlying go!"IP") #x (Val #(x.IP'))
-  set_IP : ∀ (x : PodIP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PodIP.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : PodIP)))
-  method_set : go.MethodSetIs PodIP.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PodIP.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PodIP.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PodIP.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-
-attribute [instance] PodIP.TypeAssumptions.type_repr
-  PodIP.TypeAssumptions.underlying
-  PodIP.TypeAssumptions.get_IP
-  PodIP.TypeAssumptions.set_IP
-  PodIP.TypeAssumptions.method_set
-  PodIP.TypeAssumptions.ptr_method_set
-
-class HostIP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying HostIP.underlying HostIP
-  underlying : go.UnderlyingDirectedEq HostIP.ty HostIP.underlying
-  get_IP : ∀ (x : HostIP), go.IsGoStepPureDetTagged under (StructFieldGet HostIP.underlying go!"IP") #x (Val #(x.IP'))
-  set_IP : ∀ (x : HostIP) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet HostIP.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : HostIP)))
-  method_set : go.MethodSetIs HostIP.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HostIP.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType HostIP.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType HostIP.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
-
-attribute [instance] HostIP.TypeAssumptions.type_repr
-  HostIP.TypeAssumptions.underlying
-  HostIP.TypeAssumptions.get_IP
-  HostIP.TypeAssumptions.set_IP
-  HostIP.TypeAssumptions.method_set
-  HostIP.TypeAssumptions.ptr_method_set
+  PodSecurityContext.TypeAssumptions.ptr_DeepCopyInto_unfold
 
 end k8s_io.api.core.v1
 

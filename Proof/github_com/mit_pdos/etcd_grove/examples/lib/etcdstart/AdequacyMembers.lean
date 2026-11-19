@@ -34,7 +34,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsSem
-  etcdFsExts_hasIdIssue etcdFsExts_hasFs etcdFsExts_semOk
+  etcdFsExts_hasIdIssue etcdFsExts_hasFs etcdFsSemOk etcdFsNoErr
 variable [GoGlobalContext]
 variable {GF : BundledGFunctors}
 

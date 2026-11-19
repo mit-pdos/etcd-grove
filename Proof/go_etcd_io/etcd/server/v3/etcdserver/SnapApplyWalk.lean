@@ -164,7 +164,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        snap.isSnapshotter ss ∗
        -- (wal-link L2, T1) the file taken from the directory with the removal counter sealed in
        storage.snapHeld (snap.snapDBPath ss sv.Metadata'.Index') D (monoNatAuthOwn γt 1 nt) ∗
-       backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+       backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
        envVerifyOff ∗
@@ -335,7 +335,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨by unfold backend.rdPoolN at Htb0; omega⟩
   wp_apply hOSB cfg ss sn smp hk DFrac.discard DFrac.discard sv.Metadata' d.P D
       (fun _ => mvcc.api.mvccW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
-      (snapOpenK γ π0 d.P) (monoNatAuthOwn γt 1 nt) $$ [Hfile Hpath Hcreate]
+      (snapOpenK γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) $$ [Hfile Hpath Hcreate]
     as %be %err ⟨-, -, Hres⟩
   · iframe #; iframe Hfile Hpath
     iunfold storage.openPre

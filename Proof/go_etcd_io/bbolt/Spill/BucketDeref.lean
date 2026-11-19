@@ -6,7 +6,7 @@ nothing but node records changed (`derefStep`).
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Spill.NodeDeref
+public import Proof.go_etcd_io.bbolt.Spill.NodeDerefDefs
 public import Spec.go_etcd_io.bbolt.node__root
 
 @[expose] public section

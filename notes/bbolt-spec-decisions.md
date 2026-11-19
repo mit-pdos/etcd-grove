@@ -1893,3 +1893,285 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   post (`ErrBucketNotFound` for every absent name) was false there. The real behaviour is stated, no
   premise added; no bucket has the empty name (`CreateBucket` refuses it), so `T.cur.lookup [] =
   none` always, and a caller that never deletes the empty name sees the old two cases.
+
+## API additions for the integration (S1a, 2026-11-17; `notes/bbolt-integration-plan.md`)
+
+Two changes asked for by the integration's coordinator (session bbolt-integrate), so that the
+backend's `rtxSnap_size` axiom and `DB.Stats_kv` become corollaries of the proved bbolt:
+
+- **`boltTx_size`** (new law): `boltTx tx γ q (TxView.ro D) ⊢ ⌜∀ n m, D.lookup n = some m →
+  m.size < 2 ^ 61⌝`. For read transactions only: a reader's snapshot is the data of a well-formed
+  view whose pages lie inside the mapping (`rtxFrac`: `(id + 1) · 4096 ≤ l`; `mapFields`:
+  `l ≤ maxMapSize`), so its page ids are below `2 ^ 36`; a bucket's leaves are distinct pages of
+  the view (`viewUnique`, through the walk's ids `TxSize.leafIdsF`), each with at most `2 ^ 16`
+  elements (the header's `count` is a `uint16`): at most `2 ^ 52` entries
+  (`Proof/go_etcd_io/bbolt/Inv/TxSize.lean`). A writer's `T.cur` is its nodes' entries
+  (`wtxData X`), which no clause of the invariant counts (a node's inodes are a heap slice, and
+  the nodes are not bounded in number), so the law does not cover it; the backend needs it only
+  for its read transactions (`rtHeld_sizes`). Not SpecPlan's `boltTx_size` (`tx.Size()`'s value,
+  `txSize`): same name, a different law.
+- **`statSlot γ : Option (Loc × TxView) → IProp GF`** (was `Option (Loc × Data)`, the `some`
+  case `boltTx tx γ 1 (TxView.ro D)`): `some (tx, T) ↦ boltTx tx γ 1 T` for any view, as
+  SpecPlan's `statSlot`. A write transaction's `statlock` token is the spare pair's: the writer's
+  exclusive part (`txExcl`'s `wr` branch, in `txsInv` while no operation runs) holds `wdbLive`,
+  hence `sparePair` and its `statlock` reader token, which `freepages` borrows only inside
+  `Commit`, when the caller no longer holds `boltTx` (`Txn/StatSlot.statSlot_tok`). `DB.Stats.spec`
+  is otherwise unchanged and re-proved. No new axiom.
+
+## S3a: the file extension's premise, `Close` with no error, `Open` in the shared mode (2026-11-17)
+
+Session `bbolt-files` (`notes/bbolt-integration-plan.md`, Log, "S3a"). Decided by the session, **for
+the user's review** where marked.
+
+- **D-S1. `flock`, `mmap`, `munmap` errors: a premise of their own, `NoMapLockErr`** (for the user's
+  review), not `NoIoErr` extended: `NoIoErr` is trusted and approved, and its `ErrnoZero` is errno 0
+  only, where these calls need other outcomes kept (`EAGAIN` of a non-blocking lock on a conflict,
+  which is no error; `mmap`'s `ENOMEM`). The two name disjoint operations, so their conjunction keeps
+  steps (`noIoErr_noMapLockErr_keeps`). Coverage as the WAL's: every inode (`∀ st i, Sio.ino st i`),
+  one `IoSet` for both.
+- **D-S2. `mmap`'s `ENOMEM` stays** (for the user): a premise on steps sees the extension's state
+  and not the heap, and the heap and the mappings share the address space; excluding `ENOMEM` breaks
+  `StepKeeps` at a full heap. Consequence: `Open` and a remap can fail under the premises; the
+  backend's panics on those errors need another premise (one that sees the heap, or a named one).
+  So `Open_shared.spec`'s error-free variant (`Open.specSNoErr`) is not stated: it would be
+  `err = nil ∨ (an ENOMEM)`, and it needs error-free specs of every call of `Open` (`fstat`,
+  `pread`, `init`'s `pwrite`/`fdatasync`, `flock`'s loop, `mmap`, `loadFreelist`, `Begin`/`Commit`
+  for a file with no synced freelist): its own unit.
+- **D-S3. Names.** The package's layout rule (`etc/api/bbolt-layout.txt`: a spec file declares
+  `<F>.spec`, its proof file proves only `<F>.wp_proof`; no new violations) names the second specs
+  as `DB.Begin_err`'s: `DB.Close_noErr.spec`, `Open_shared.spec` (the task's `DB.Close.specNoErr`,
+  `Open.specS`). The generic proofs (`Open.wp_proofG`, `DB.Close.wp_proofQ`) are private, read by
+  the second proofs with `import all`.
+- **D-S4. `Close.specOwn` (D9's alternative) is not done**; what it needs, found here:
+  1. *The store slots' page-cache bytes* are in `pagesInv`, an invariant (`osSlot` per store
+     slot): `Close` can only take them if `pagesInv` has a closed alternative, e.g. `B.cls`'s
+     halves split as `rwR` ½, `metaR` ¼, `pagesInv` ¼, with `pagesInv`'s slot part
+     `(ghostVar B.cls ¼ false ∗ [∗list] osSlot …) ∨ ghostVar B.cls ¼ true`; the store lemmas that
+     move slots (`store_free_core`, `store_publish`, `store_rollback`, `store_carve`,
+     `store_setFl`, `store_reload`) then take the writer's `ghostVar B.cls ½ false`.
+  2. *The inode*: `boltIno γ i`, a discarded ghost fragment (a new `BNs` name, allocated in
+     `Open/Core`), in `isBoltCoreP` and `Open`'s post.
+  3. *A failed remap*: after a failed `munmap` the mapping is leaked (`WDb.junk`), so the file's
+     `OsMeta` has a mapping and `fileHolds` cannot be given back; the post then needs a pure
+     witness of the failed step (`∃` a `Munmap` step with an errno, which `NoMapLockErr` refutes),
+     carried in `wdbCoreG`'s junk clause from `unix.Munmap`'s failure (a spec variant with it). After
+     a failed `mmap` (no mapping, `WDb.lost`) the partial last page of an unaligned file is owned by
+     no one (`W` is the slots below `size / 4096`): `lost` must keep its bytes (in the junk clause).
+  4. *The image*: `fileOK` of the gathered bytes from the store's `pagesFromBytes`, `storeOK` and
+     `wdbOK` (`fileImage` by `treeHas_agree`; `flFileOK` from `flClause`); `wdbOK`'s
+     `size < 2 ^ 63` must become `< 2 ^ 62` (`fileHolds`' bound; `grow` keeps it).
+  No client needs the file back now (D9: etcd renames a new file in and opens it); `applySnapshot`
+  needs `Close`'s `nil`, which `DB.Close_noErr.spec` gives.
+
+## bbolt-inv: `Close` gives the file back; what `Tx.WriteTo` still needs (2026-11-17)
+
+Session `bbolt-inv` (`notes/bbolt-integration-plan.md`, Log, "bbolt-inv"). Decided by the session, for
+the coordinator's review.
+
+- **D-V1. The file's txid is bounded by a persistent time receipt, not a constant.** `fileHolds`
+  asks `C.txid < 2 ^ 62` and `Open`'s receipts bound a session's commits by `receiptBound GF ≤
+  2 ^ 62` from the opened txid `t0 < 2 ^ 62`: a file opened at `t0` close to `2 ^ 62`, one commit,
+  then a hand-back would give a `fileHolds` of txid `≥ 2 ^ 62`, so **no `Close` spec handing back
+  `fileHolds` is provable with the old definitions** (and `Tx.WriteTo`'s `boltImage`, which asks
+  the same bound, neither). The fix links the txid to the program's step count: `metaR` holds
+  `⧖ C.txid` (Perennial's persistent receipt: at least `C.txid` counted steps were taken; `⧖ n ⊢
+  n < receiptBound GF`), raised by `Commit`'s meta write (`commitStep` gives `⧖ m` and takes
+  `⧖ (m + 1)`, `wp_take_receipt as … raising …`); `fileHoldsDef` holds `fileRcpt` (`⧖` of a bound
+  on the txid of every well-formed image of its bytes, or none is one: an empty file), which `Open`
+  puts in `metaR` (`init`'s file: `⧖ 1` from the `init` call's step). Api: `boltImageRcpt bs`
+  (sealed, persistent), a new premise of `fileHolds_of_image` (S4a's law; no client yet): a
+  receiver of an image needs its txid's receipt, which `Tx.WriteTo` can give (`metaR`'s `⧖`).
+- **D-V2. A file given back is whole pages.** `fileHolds` and `boltImage` ask `size % 4096 = 0`
+  (every file bbolt writes is: `init`'s 4 pages, `DB.grow`'s truncates to whole pages, `Tx.WriteTo`'s
+  `hwm` pages), and `wdbOK`'s size clause is `size < 2 ^ 62` (was `< 2 ^ 63`; `DB.grow`'s premise
+  `sz + AllocSize < 2 ^ 62`, `Commit` proves it from the mapping's bound). Whole pages is no
+  invariant: a commit's write that fails part way past the file's end can leave a partial last page
+  (`Tx.write` writes in chunks of `maxAllocSize - 1` bytes, so a chunk boundary can be unaligned),
+  so `Close` gives the file back only when it is whole pages, and otherwise gives it up
+  (`boltNoFile`, D-V5). Whole pages also make every byte of the file someone's at `Close`: the
+  partial last page of a file is no one's after a failed `mmap` (`WDb.lost`, `W` the slots below
+  `size / 4096`) or at a mapping of `maxMapSize` (`2 ^ 48 - 1` bytes, not whole pages).
+- **D-V3. `pagesInv` releases the store slots' bytes on `Close`** (S3a's D-S4 item 1): `cls` is
+  ½ `rwR`, ¼ `metaR`, ¼ `pagesInv`; the slots' `osSlot`s are `slotsOs`: `cls` ¼ at `false` with
+  them, or `cls` ¼ at `true` with no live writer. A transition that moves slots opens it with the
+  live writer's txid (`free`, `publish`, `rollback`, `cells_agree`) or with `rwR`'s `cls` half
+  (`release`, `wbegin`, which take and give it back); `store_close` sets `cls` in its three places
+  and hands the slots out.
+- **D-V4. The inode** (D-S4 item 2): `t0At B t0 i` (the receipts' base's discarded fragment) now
+  records the file's inode too; `boltIno γ i := ∃ t0, t0At … t0 i` (Api, persistent), in both
+  `Open` posts (`isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D`).
+- **D-V5. When the file cannot be given back.** (1) `close` may fail (`munmap`, `flock`, the file's
+  `close`): the spec's escape is the pure `¬ FsNoErr` (`GooseLang/Ext/Fs/FsNoErr.lean`, untrusted:
+  the steps satisfy `NoIoErr` and `NoMapLockErr` for an `IoSet` covering every file); the proof
+  cases on it, using the error-free specs when it holds (`DB.close.spec_ownedNoErrM`, the `OsMeta`
+  back), so no failure witness is threaded. (2) The database was closed by `DB.Close`, which does
+  not give the file back, or a mapping leaked (a remap's `munmap` failed, or `madvise` after its
+  `mmap`, which bbolt does not unmap): `boltNoFile γ` (Api, persistent): a new name `B.nf`
+  (`dghostVar Bool`), `false` at 1 in `wdbCoreG`'s junk clause while no mapping leaked, discarded
+  at `true` at a leak (`junkRes_leak`) or by `DB.Close` (`junkRes_shut`, kept in `closedR`).
+  **`madvise` is the reason the no-error variant keeps this escape**: the model of `unix.Madvise`
+  (`TrustedCode/golang_org/x/sys/unix.lean`) returns any errno, not through a step of `fsExt`, so no
+  premise on the file system's steps excludes it; Linux's `madvise(MADV_RANDOM)` on a fresh mapping
+  does not fail, so a model of it as an `fsExt` operation (or a premise on it) would close the gap.
+  (3) The file is not whole pages at `Close` (D-V2): given up the same way (`junkRes_shut`).
+  (4) `Close_own` twice: the first keeps the caller's validity token `bq` in `closedR`, which a
+  later caller's `boltState γ 1` excludes.
+- **D-V6. The statements.** `DB.Close_own.spec`: `{isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D}
+  db.Close() {err. (⌜err = nil⌝ ∗ fileHolds i D) ∨ (boltState γ 1 D ∗ (⌜¬ FsNoErr⌝ ∨ (⌜err = nil⌝ ∗
+  boltNoFile γ)))}`; `DB.Close_ownNoErr.spec` (`DB.Close_noErr.spec`'s premises): `{same} …
+  {err. ⌜err = nil⌝ ∗ (fileHolds i D ∨ (boltState γ 1 D ∗ boltNoFile γ))}` (the task's
+  "the no-error variant must hand it back", but for D-V5 (2) and (3): (3) cannot happen under the
+  premises, since the writes do not fail, but the proof does not use the premises there).
+- **D-V7. `Tx.WriteTo` (S4a's blockers 1-6) is not done here.** What this session changes for it:
+  blocker 4's txid bound is D-V1 (`metaR`'s `⧖`, which `Begin` can copy into a reader's part), and
+  `boltImageRcpt` is the receipt its post can give. Blockers 1 (the file handle's share for
+  readers), 2 (the synced freelist page a store slot), 3 (`pread` of store slots inside
+  `pagesInv`: a `ReadAt` spec whose held bytes are opened from an invariant around each `pread`),
+  5 (`WriteFlag`), 6 (`io.CopyN`/`SectionReader` specs) stand as S4a recorded them.
+
+## S3d: `open` and `madvise` without errors; what `Open`/`Close` with no error still need (2026-11-17)
+
+Session `bbolt-open-noerr` (`notes/bbolt-integration-plan.md`, Log, "S3d"). Decided by the session, **for
+the user's review** where marked.
+
+- **D-N1. `open` with no free fd: a premise clause, not a stall rule** (for the user's review;
+  `notes/decisions.md`, "fsExt: `open` with no free fd does not return"). `NoMapLockErr` asks a covered
+  `open` with no free fd to fail with `EINTR`, which the models retry: the call does not return. Kept
+  `open` atomic and every proof of it unchanged.
+- **D-N2. `madvise` a step of `fsExt`** (for the user's review): the model's outcomes kept (any errno, no
+  change), the premise covers a mapping of a covered file. `unix.Madvise.spec` takes `osInv` and
+  `0 ≤ sl.len.toInt` (its three callers updated); `unix.Madvise.specNoErr` new.
+- **D-N3. `os.OpenFile.specCreateSNoErr` covers one path** (`Sio.path (child d b)`), not every path:
+  the premise is only needed on the name opened.
+- **D-N4. `DB.Close_ownNoErr.spec` keeps its statement** (for the coordinator): the requested post
+  `⌜err = nil⌝ ∗ fileHolds i D` is unprovable while a plain `DB.Close` (pre `isBolt db γ` only) can give
+  the file up under the caller's `boltState`; and a remap's leaks and a partial last page carry no
+  evidence of a failed step. The design of the fix is in the Log.
+- **D-N5. `Open_sharedNoErr.spec` not stated** (for the coordinator): with `Timeout`, `InitialMmapSize`,
+  `NoFreelistSync` untracked by `OptsM` and the file's size bounded only by `2 ^ 62`, `Open` returns
+  `ErrTimeout`, `mmap too large`, or `Commit`'s errors without any error of the environment, so
+  `err = nil` is false for some states its pre allows. The provable statement is in the Log.
+
+## S3f: the closer token, error-free `Open`, the mappable file (2026-11-18)
+
+Session `bbolt-noerr-final` (`notes/bbolt-integration-plan.md`, Log, "S3f"). The coordinator's
+decisions after S3d (D-N4, D-N5), implemented; deviations marked.
+
+- **D-F1. The closer token** (decision 2). `boltCloser γ` (Api, sealed, timeless, exclusive:
+  `boltCloser_excl`) is `ghostVar B.clo 1 ()`, a new ghost name `clo` (`Inv/Names.lean`, allocated by
+  `Open/Core.open_core_fl`, threaded through `lfPost`). `Open.spec`, `Open_shared.spec` and
+  `Open_sharedNoErr.spec` give it on success; `DB.Close.spec`, `DB.Close_noErr.spec`,
+  `DB.Close_own.spec`, `DB.Close_ownNoErr.spec` take it. Every `Close` deposits it in `closedR`
+  (which no longer holds `nf true ∨ bq 1`), so its holder knows the database open: `Close_own`'s
+  closed case is now a contradiction, and "an earlier plain `DB.Close`" is no longer a source of
+  `boltNoFile`. Go lets any goroutine close a database any number of times; the specs do not (no
+  client closes twice: the backend closes once, in `Close` or `applySnapshot`).
+- **D-F2. The file's size bound is a separate predicate, `fileHoldsM`** (deviation: the coordinator
+  asked for `size ≤ maxMapSize` inside `fileHolds`). It is *false* of files bbolt writes: `DB.grow`
+  truncates to `growSize + AllocSize`, past `maxMapSize` once the high-water mark nears a mapping of
+  `maxMapSize` (`nonissues/bbolt-grow-past-max-map-size.md`); such a file fails every reopen with
+  "mmap too large". So `fileHolds` (what `Close_own` gives back) keeps `< 2 ^ 62`, and
+  `fileHoldsM i D` (Api, sealed: `fileHolds` with `size ≤ boltMaxMapSize`) is what
+  `Open_sharedNoErr.spec` takes, through `nameHoldsM` (ApiS). Laws: `fileHoldsM_fileHolds`,
+  `fileHoldsM_new`, `fileHoldsM_of_image` (an image no longer than `boltMaxMapSize`: `Tx.WriteTo`'s
+  are, its pages lie below the high-water mark inside the mapping), `nameHoldsM_nameHolds`,
+  `nameHoldsM_new`. Also: `maxBytes` (`0xffffffff000`, 16 TiB) is below `maxMapSize`, so a write past
+  it fails with `EFBIG` whatever the premises; `Open` writes only `init`'s 16 KiB, so this does not
+  touch `Open_sharedNoErr`, but it does `Close_ownNoErr` (D-F5).
+- **D-F3. The options: `optsAtNoErr`** (Options.lean): `optsAt` with `optsNoErr v` (`Timeout = 0`,
+  `NoFreelistSync`, `sint.Z InitialMmapSize ≤ maxMapSize`) on the struct value; `optsAtNoErr_optsAt`.
+  `OptsM` is unchanged (tracking the fields there would change the backend's `toBolt` and every store
+  law). In the proof, half of the options' points-to is a witness that agrees with the three fields
+  `Open` reads through `optsAt` (whose value `Options.String`'s axiom forgets in between).
+- **D-F4. Error-free `Open`: the error arms witness `¬ FsNoErr`.** Leaf "W" specs, each proved by
+  cases on `FsNoErr` from the spec and its `…NoErr` variant: `os.File.ReadAt.specRacyLtW`,
+  `os.File.Stat.specW`, `os.File.WriteAt.specW` (ending by `maxBytes`), `syscall.Flock.specW`,
+  `syscall.Fdatasync.specBW`, `unix.Mmap.specW`, `unix.Madvise.specW`, bbolt's `fdatasync.specW`,
+  `DB.munmap.specW`. bbolt's internal specs strengthened in place (error arm: `¬ FsNoErr`, or the
+  non-environment cause): `flock.spec` (`¬ FsNoErr ∨ tmo ≠ 0`), `DB.metasZero.spec_own`,
+  `DB.init.spec`, `DB.getPageSize.spec_own` (and `FromFirstMeta`/`FromSecondMeta`),
+  `DB.fileSize.spec` (`¬ FsNoErr ∨ size < 8192`), `mmapF.spec`, `DB.mmapUnlocked.spec_own`
+  (`¬ FsNoErr ∨ size < 8192 ∨ mmapSizeOf (max size minsz) = none`). `Open.wp_proofG` is generic in
+  `Ek` (the error arm's witness), a size bound `B` on the opened file, and the options' witness `W`;
+  `Open.spec`/`Open_shared.spec` are its instance at `Ek := True`, `Open_sharedNoErr.spec` at
+  `Ek := False`.
+- **D-F5. `DB.Close_ownNoErr.spec` keeps one escape** (deviation from "no escape"): `boltNoFile`
+  now has a single source, a file that is not whole pages at `Close` (a write that failed part way
+  past the file's end). Leaked mappings record `¬ FsNoErr` (`junkRes`; `DB.munmap.specW`,
+  `mmapF.spec`), so under the premises they are refuted. The partial page is not refutable from the
+  premises alone: a chunked write (`Tx.write`'s chunks of `maxAllocSize - 1` bytes end unaligned)
+  past `maxBytes` fails with `EFBIG` under `NoIoErr`, and whole pages would need `wdbOK` to carry
+  `size % 4096 = 0 ∨ ¬ FsNoErr` with a bound on writes below `maxBytes` (a file below 16 TiB),
+  threaded through `Commit`'s write and rollback proofs. Not done here.
+- **D-F6. One canonical spec per bbolt function** (the user, via the coordinator, during S3f;
+  supersedes the variants of D-S3, D-V6, D-F1's list and D-F4's `Open_sharedNoErr`). Error-free
+  outcomes are not separate specs: the error arm carries `⌜¬ FsNoErr⌝` (persistent, pure; `FsNoErr`
+  now also covers every path, and `Fs.fsNoErr_of` builds it from `FsStepSat (NoIoErr Sio)`,
+  `FsStepSat (NoMapLockErr Sio)` and full coverage), which a client under the premises refutes.
+  - `Open.spec` is the shared mode's `Open` (whole claim on the name, `osPathS`, `osSharedInv`,
+    `osCallPerm`), `nameHolds` over `fileHoldsM` (mappable file: the one non-environment error,
+    "mmap too large", constrained away), `optsAtNoErr` (no `Timeout`, `NoFreelistSync`,
+    `InitialMmapSize ≤ maxMapSize`: `ErrTimeout` and `Commit`'s errors constrained away); success
+    `isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ`; error `⌜err ≠ nil ∧ ¬ FsNoErr⌝`.
+    Deleted: `Open_shared.spec`, `Open_sharedNoErr.spec`, the whole-tree `Open.spec` (and `pathHolds`).
+  - `DB.Close.spec`: pre `isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ`; post
+    `(⌜err = nil⌝ ∗ fileHolds i D) ∨ ⌜¬ FsNoErr⌝ ∨ (⌜err = nil⌝ ∗ boltNoFile γ)`. Deviation from the
+    requested `(err = nil ∗ fileHolds) ∨ (err ≠ nil ∗ witness)`: a failure of an earlier remap's
+    `munmap`/`madvise` (a leaked mapping) is recorded but `Close` still returns `nil`, so the witness
+    arm cannot claim `err ≠ nil`; and the partial-last-page case (D-F5) is no environment error under
+    the premises (`EFBIG` past `maxBytes`). Deleted: `DB.Close_noErr.spec`, `DB.Close_own.spec`,
+    `DB.Close_ownNoErr.spec`. The old "close with the token, nothing about the file" is an internal
+    spec, `DB.Close.specTok` (`Proof/go_etcd_io/bbolt/Open/CloseTok.lean`), which `Open`'s error exits
+    use (they keep the client's `boltState` for the page pool's protocol).
+  - `DB.Begin.spec` takes `DB.Begin_err.spec`'s error arm (`tx = null`, `fmtErrorOk err`);
+    `DB.Begin_err.spec` is now an internal helper (in its proof file), `DB.Begin.wp_proof` its instance.
+  - The leaf W specs (`os.File.Stat.specW`, ...) are second specs of stdlib/`os` functions, not of
+    bbolt's; they stay (outside the rule's scope as stated; report).
+
+## S3g: `Close` gives back what `Open` takes (2026-11-18)
+
+Session `bbolt-close-bound` (`notes/bbolt-integration-plan.md`, Log, "S3g"). Supersedes D-F2's "the
+bound is not in what `Close` gives back" and D-F5 (the partial-page escape).
+
+- **D-G1. The file's size bound in the invariant, from the model's address space.** In the model a
+  mapping's cells are heap cells, each below `maxAddr = 2 ^ 47` (Perennial's `heapPointsto`), so a
+  successful `mmap` is at most `2 ^ 47` bytes; `Commit` grows the file to `(pgid + 1)·4096`, at most
+  the mapping plus a page, and `DB.grow` adds at most `AllocSize`. So the file never exceeds
+  `2 ^ 47 + 2 ^ 12 + 2 ^ 24 < maxMapSize`, and `DB.Close.spec` gives `fileHoldsM`. On real hardware
+  `nonissues/bbolt-grow-past-max-map-size.md` still holds (it needs a mapping near 256 TiB, which the
+  model's address space excludes); the nonissue stays as the record of the real behavior. The bound is
+  `wdbOK`'s clause `wdbSz` (one clause, replacing `size < 2 ^ 62`), with the mapping's bound beside it
+  (taken from the cells when `Open` and the remap map), not in `mapFields` (fewer proofs touched).
+- **D-G2. Whole pages under the premises.** `wdbSz` carries `FsNoErr → size % 4096 = 0`. The only
+  partial last page bbolt can leave is from a chunked write that fails part way past the end; under
+  `NoIoErr` a `pwrite` fails only when it starts at or past `maxBytes` (page-aligned, every earlier
+  chunk ended at or below it), so the file ends at its old size or at `maxBytes`. The fact lives in
+  `os.File.WriteAt.specExt`'s failure arm (strengthened in place rather than a new spec), proved from
+  `wp_pwFinish_postNE`.
+- **D-G3. `boltNoFile` deleted.** With leaks witnessing `¬ FsNoErr` (D-F5) and the partial page
+  refuted (D-G2), `DB.Close.spec`'s post is `(⌜err = nil⌝ ∗ fileHoldsM i D) ∨ ⌜¬ FsNoErr⌝`; the
+  internal ghost name `nf` stays (the junk clause and `closedR`).
+- **D-G4. `wdbSz` mentions `FsNoErr`, which takes `[ExtSemantics fsExt]`.** Every section that states
+  `wdbOK`/`wdbOK'` now has that instance (and `FsSemOk`) as a variable: a section without it would
+  silently elaborate `wdbOK` at the global `fs_semantics` instance and mismatch its users.
+
+## S4: `Tx.WriteTo` (2026-11-18)
+
+Session `bbolt-snapshot` (`notes/bbolt-integration-plan.md`, "S4").
+
+- **D-W1. The synced freelist page is half the store's.** Etcd's `NoFreelistSync` (now recorded by
+  `isBolt`) means a committed state names a synced freelist page only when it is the opened file's; making
+  it a full store slot would need the writer to borrow its cells for `Free`, so the store holds half its
+  page-cache bytes (`flxS`) and the writer half (`wBytesX`, cells whole): the writer cannot write it, a
+  reader reads it through `store_rd_acc`, `Free` agrees the halves (`wrSlotsH_agree`).
+- **D-W2. A reader records its page** (`RdInfo.fx`, `rdFlOK`) so that the release spares it as `mvccView`
+  spares a view's pages; `rdFlOK` needed four facts the first design lacked (freed only by the live writer,
+  allocating transactions bounded, never free, pending in the writer's entry only while current).
+- **D-W3. The file handle in halves**, `mmaplock`'s half shared by readers (`pmFile`, `rdxFile`).
+- **D-W4. `specRacyLt` over an accessor** (in place; the held-bytes form is `wp_racyLtOwn`).
+- **D-W5. `io.CopyN`/`io.NewSectionReader` as trust-boundary axioms**, generic in a `ReadAt` contract
+  (`io.readerAtOk`, a per-byte relation) and the writer's (`io.writerOk`), requiring no `ReadFrom`
+  (`io.writerPlain`); `err = nil ↔` all `n` bytes written.
+- **D-W6. The writer's errors are formattable** (`io.writerOk`'s post): `WriteTo` wraps a meta write's error
+  with `fmt.Errorf("%s")`, whose spec asks it.
+- **D-W7. `Tx.Size.spec`** gains the reader's bound (`snapshot.Size`'s promise); the writer case stays open.

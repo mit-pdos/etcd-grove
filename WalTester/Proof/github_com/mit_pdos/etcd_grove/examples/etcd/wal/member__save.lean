@@ -10,7 +10,7 @@ public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.to
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.toRaft
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Save
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SaveAu
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__sync
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__syncLemmas
 
 @[expose] public section
 

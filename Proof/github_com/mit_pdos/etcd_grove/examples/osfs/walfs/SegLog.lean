@@ -242,10 +242,10 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   | nil =>
   obtain ⟨hj, hys, ⟨rfl, -, -⟩ | hne⟩ := Hres
   rotate_left
-  · exact absurd rfl hne
+  · exact absurd rfl (by first | exact hne | exact hne.1)
   icases Ho with (⟨-, Ho⟩ | ⟨%hne, -⟩)
   rotate_left
-  · exact absurd rfl hne
+  · exact absurd rfl (by first | exact hne | exact hne.1)
   rw [show W64 0 + W64 (dataC.length : Int) = W64 8 from rfl]
   (try wp_auto)
   -- the blocks
@@ -508,7 +508,7 @@ theorem wp_readFull (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : G
       iexact Ho
     · obtain ⟨rfl, hne⟩ := hr
       cases err with
-      | nil => exact absurd rfl hne
+      | nil => exact absurd rfl (by first | exact hne | exact hne.1)
       | ok ie =>
       (try wp_auto)
       wp_for_post

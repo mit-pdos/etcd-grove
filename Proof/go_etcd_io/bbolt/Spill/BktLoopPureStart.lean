@@ -32,6 +32,8 @@ namespace Spill
 
 section start
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **What the start needs beside the spill's pure premises**: the committed state's tree
 well-formed, its high-water mark at most the transaction's (`beginRWTx` copies it, nothing

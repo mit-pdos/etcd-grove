@@ -1,6 +1,31 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 y, merge of lean e95ce79ce9 STOPPED: not mechanical)
+## START HERE (2026-11-19 z, lean 5f94c44bee MERGED; fs-library checkpoint; os.Rename STOPPED)
+
+- **Branch** `wal-link`, merge commit of lean 5f94c44bee (pin 3afd77e35): `--packages=/shared/tmp/manifest-3af.json`
+  everywhere, `.lake/package-overrides.json` its copy, `PERENNIAL_DIR=/shared/perennial-3afd77e35` for gen-init/gen-link.
+- **Done (route decided by 03, questions.md "session z"):** all 106 conflicts resolved (list
+  `/shared/tmp/wallink/merge-5f9-conflicts.txt`): `wp_osShareE` = our per-root `wp_osShare_e` under lean's name (one
+  theorem); lean's `wp_logStepSWGQ`/`SWQ`/`SQ`, `wp_osOpenCreateSQ`/`OpenFileSQ`, `NoErrSpecsRename`/`OpenFile` ported to
+  L4 (`pc`, `osCallPerm (callKey R ·)`, the `ReachFrom` root clause, `SameRootR` on the NE rename); `backend.fileHoldsF`/
+  `nameAtF`/`fileFreeF`, bbolt `Open` spec/proof, `StartFiles` (`osCallPerms_root`) per root; lean's moved lemmas
+  (`openWALFilesLemmas`, `openAtIndexLemmas`, `TouchDirAllLemmas`, `OpenFileTruncLemmas`, `ApplyAllSnapLemmas`,
+  WalTester `member__*Lemmas`) got our L4/L3 hunks (`patch` of our diff, rejects into the Lemmas file); PkgTables/Init by
+  `etc/gen-init.py` (`--check` 0); FsExts = lean's `etcdSQ`/`etcdFsSemOk`/`etcdFsNoErr` + `etcdFsExts_sat` derived;
+  `HWal` added to the 28 `_robust` theorems (Spec + Proof `TopLevelRobustness`), `etcdWalAreasInit` moved to
+  `etcdstart/WalAreasInit.lean`; `snapHeld` over lean's `fileAt`; OpenSnapshotBackend/applySnapshot specs = snapHeld +
+  `bPath γo` (+ `R'`).
+- **Checked:** targeted build of every `GooseLang/Ext/Fs`, `Proof/os`, `Spec/os`, fileutil module, `StartFiles`, bbolt
+  `Open`: GREEN but `Proof/os/Rename.lean:145` (log `/shared/tmp/wallink/m5-os1.log`). Nothing above the fs layer built.
+- **STOP (os.Rename):** under L4 a rename needs `SameRoot`; `os.Rename.spec` renames `snapDBPath ss i` (from `snapHeld`,
+  i.e. `bootOk`'s `snapFreeAll (snapDBPathOf dd)`) onto `backendPathOf dd` (`bPath`, from `bootOk`/`srvFiles`), both
+  opaque paths: nothing relates their roots. Options in the checkpoint report (all trusted text). `rename_fileNE` is
+  already restated with `hsr : SameRootR R (child d bs) (child d' bt)`.
+- **Next after the decision:** finish `os.Rename.wp_proof` + its callers; then the full timed build, tcb, collections,
+  interfaces, gen-link modes, restartN/txnlin notes, STATUS, land stop. `etc/tier-baseline.txt` is the union of both
+  sides: rerun `etc/tier-check.py --check --update` after the build.
+
+### (2026-11-19 y, merge of lean e95ce79ce9 STOPPED: not mechanical)
 
 - **Branch** `wal-link`, head 8bd8ae9b55 (+ this note), pin still f551a1b46 (`manifest-f55`). P2 accepted by 03 (questions.md).
 - **The merge** (`git merge lean`, lean = e95ce79ce9, pin 3afd77e35) gives 106 conflicted files (list

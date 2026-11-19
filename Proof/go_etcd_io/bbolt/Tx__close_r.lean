@@ -49,7 +49,7 @@ theorem Tx.close_r.wp_proof (wp_Txid : internal.common.Meta.Txid.spec (GF := GF)
   obtain ⟨hT, hdb, hrw, hsrc⟩ := Hc
   iunfold rtxFrac at Hrt
   icases Hrt with ⟨%t, Hw, Hmg, Hme, Hrb, ⟨%f, Hfp⟩, Hpg, Hch, Hwf, Hdb, Hmv, Hvc,
-    ⟨%l, Hmap, Hmf, %Hl⟩, Hvo, %Hf⟩
+    ⟨%l, Hmap, Hmf, %Hl⟩, Hvo, Hrdx, %Hf⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
@@ -64,7 +64,15 @@ theorem Tx.close_r.wp_proof (wp_Txid : internal.common.Meta.Txid.spec (GF := GF)
   icombine Hv Hv' gives %hv
   obtain ⟨-, hv⟩ := hv
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj hv
-  icases Hx with ⟨Hrl, Hloan, Hstok, Hrds⟩
+  icases Hx with ⟨Hrl, Hloan, Hstok, ⟨%fx', Hrds⟩⟩
+  iunfold rdx at Hrdx
+  icases Hrdx with ⟨⟨%fx, -, Hrds1⟩, Hfile⟩
+  icombine Hrds1 Hrds gives %hfx
+  obtain ⟨-, hfx⟩ := hfx
+  simp only [RdInfo.mk.injEq, true_and] at hfx
+  subst hfx
+  ihave Hrds := (ghostMapElem_halves K.B.rds k _).2 $$ [Hrds1 Hrds]
+  · iframe
   simp only [QpMul_one_c]
   rw [hdb]
   -- batch 41: the spare reader's half of `B.spr`, for `removeTx`
@@ -74,8 +82,8 @@ theorem Tx.close_r.wp_proof (wp_Txid : internal.common.Meta.Txid.spec (GF := GF)
   · cases src
     · simp only [hsrc, ↓reduceIte]; iframe
     · simp only [hsrc, reduceCtorEq, ↓reduceIte]; iframe
-  wp_apply wp_removeTx wp_Txid wp_RemoveRO K tx r v mv k t.meta' l hdb Hf.2.2.1
-    $$ [Hrl Hmap Hmf Hrds Hvc Hstok Hd Hme Hmv Hsp] as ⟨Hmtok, Hstok, Hme, Hmv, Hdb4, Hd, #Hdone, Htok⟩
+  wp_apply wp_removeTx wp_Txid wp_RemoveRO K tx r v mv k t.meta' l fx hdb Hf.2.2.1
+    $$ [Hrl Hmap Hmf Hfile Hrds Hvc Hstok Hd Hme Hmv Hsp] as ⟨Hmtok, Hstok, Hme, Hmv, Hdb4, Hd, #Hdone, Htok⟩
   · iframe; iframe #
   -- the pair's source back
   ihave Hback : |={⊤}=> pairBack K src $$ [Hloan Hpool Hmtok Hstok Htok]

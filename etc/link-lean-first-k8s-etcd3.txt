@@ -6,6 +6,7 @@
 tracing_Start:
 Span__AddEvent:
 Span__End:
+# (proved over their real bodies since 2026-11-18)
 attribute_String:
 attribute_Int:
 GetAuditIDTruncated:
@@ -121,12 +122,20 @@ channelContext__Err:
 channelContext__Deadline:
 channelContext__Value:
 # k8s.io/apiserver/pkg/storage/etcd3 (`compact.go`)
-Compact: Version v3_Compare OpPut OpGet strconv_FormatInt strconv_ParseInt ResponseOp__GetResponseRange Client__Endpoints v2_V Verbose__Infof
+# (the import tiers, 2026-11-18) the client's calls the proofs take as hypotheses: the `*kv`'s `Txn`
+# and `Get`, the builder's methods (`@`, the client's `Link.lean`), `Commit` through the members
+# (`=`, `LinkMembers.lean`) and the laws of the client's linked calls (`=`, `ClientPutGet.lean`)
+kv__Txn: @
+kv__Get: @
+txn__If: @
+txn__Then: @
+txn__Else: @
+Compact: Version v3_Compare OpPut OpGet strconv_FormatInt strconv_ParseInt ResponseOp__GetResponseRange Client__Endpoints v2_V Verbose__Infof kv__Txn txn__If txn__Then txn__Else =client.v3.txn.wp_CommitM =client.client_Compact_kv_law_holds
 compactor__CompactRevision:
 compactor__UpdateCompactRevision:
 compactor__Stop:
 compactor__runCompactLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value clock_RealClock__After Compact compactor__UpdateCompactRevision Client__Endpoints v2_Errorf
-compactor__getCompactRev: strconv_ParseInt fmt_Errorf
+compactor__getCompactRev: strconv_ParseInt fmt_Errorf kv__Get
 compactor__fromWatchResponse: WatchResponse__Err strconv_ParseInt
 compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev v3_watcher__Watch compactor__fromWatchResponse Client__Endpoints v2_Errorf
 NewCompactor: compactor__runCompactLoop compactor__runWatchLoop
@@ -223,7 +232,7 @@ progressNotifyEvent:
 parseKV:
 parseEvent: Event__IsCreate Event_EventType__StringPtr fmt_ErrorfPlain
 logWatchChannelErr: isCancelError strings_Contains v2_Warningf v2_Errorf
-watchChan__syncPaginated: errors_AsLeafTy rpctypes_EtcdError__Code Status__Code WithRev WithLimit WithRange GetPrefixRangeEnd RecordEtcdRequest fmt_ErrorfPlain interpretListError parseKV watchChan__queueEvent
+watchChan__syncPaginated: errors_AsLeafTy rpctypes_EtcdError__Code Status__Code WithRev WithLimit WithRange GetPrefixRangeEnd RecordEtcdRequest fmt_ErrorfPlain interpretListError parseKV watchChan__queueEvent =client.client_range_any_law_holds
 watchChan__sync: watchChan__syncPaginated
 watchChan__startWatching: errors_AsLeafTy rpctypes_EtcdError__Code Status__Code store__GetCurrentResourceVersion NewTooLargeResourceVersionError Jitter time_Duration__Seconds watchChan__sendError watchChan__sync v2_Errorf progressNotifyEvent watchChan__queueEvent WithRev WithPrevKV WithPrefix v3_watcher__Watch store__getResourceSizeEstimator WatchResponse__Err WatchResponse__IsProgressNotify ResponseHeader__GetRevision RecordEtcdBookmark RecordEtcdEvent parseEvent logWatchChannelErr
 #

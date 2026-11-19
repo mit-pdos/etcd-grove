@@ -49,6 +49,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Adequacy
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.InitLinked
 
 @[expose] public section
 
@@ -64,18 +66,10 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `watchkv`'s initialization, then `Main(nw, nops)`. -/
-def watchkvProgram [GoSemanticsFunctions] (nw nops : w64) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.watch.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.watch.Main) #nw #nops
-
-/-- The read package's two metric names, which `watchkv`'s initialization registers. -/
-def watchkvNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The watch example is safe** (see the file header): every real execution of
 `watchkvProgram nw nops` from a fresh state with one thread, of `n` steps: if the main thread has

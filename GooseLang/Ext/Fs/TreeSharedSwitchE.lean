@@ -1,10 +1,12 @@
 /-
-The shared mode's switch before any step of a non-value expression (`wp_osShare_e`; wal-link P2,
-2026-11-19): `TreeSharedSwitch.lean`'s `wp_osShare'`, for any `e` with `toVal e = none` instead of an
-extension step (Perennial's `wp_ext_acc` takes any non-value `e`), so that a program's proof can switch
-to the shared mode before its first step, whatever that step is (the etcd examples' closed theorems,
-which allocate their WAL areas at adequacy). A module of its own so that `TreeSharedSwitch`'s
-importers do not change. Untrusted.
+**The mode switch at any step** (S3e, 2026-11-17; per-root resources since wal-link's L4, merged
+2026-11-19): `wp_osShare'` (`TreeSharedSwitch.lean`) at the step of any expression that is not a
+value, not only an operation of the extension. The switch reads and rewrites only the extension's part
+of the state interpretation, which every step of the program gives access to (`wp_ext_acc`), so it may
+be done before the program's first step: a closed theorem that starts in the legacy mode (`fs_start`'s
+whole tree) switches at once, before handing the proof of its program the shared mode's claims
+(`Proof/runtime/StartFiles.lean`; the etcd examples' closed theorems, which allocate their WAL areas at
+adequacy). Untrusted.
 -/
 module
 
@@ -31,7 +33,7 @@ variable {s : Stuckness} {E : CoPset}
 history `V` (no legacy call or directory fd) for the shared mode's resources: its invariant, the whole
 call permission, the log's length, a claim on all names of every directory of the tree; key `[]`'s
 whole permission goes into its dispenser (`osAboveInv`). Irreversible. -/
-theorem wp_osShare_e (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE : ↑osN ⊆ E)
+theorem wp_osShareE (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
       (osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) R -∗

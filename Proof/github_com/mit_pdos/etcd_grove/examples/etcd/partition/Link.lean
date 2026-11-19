@@ -22,6 +22,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.confi
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.startCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.writer
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Link
@@ -109,7 +110,7 @@ theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v
 
 theorem wp_writer :
     EtcdGrove.etcd_partition.writer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.writer.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
+  EtcdGrove.etcd_partition.writer.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny client_Put_km_law_holds
 
 theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_partition.MainWatch.spec (GF := GF) (hG := hG) :=

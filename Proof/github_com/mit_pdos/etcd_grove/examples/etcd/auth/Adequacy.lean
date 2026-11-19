@@ -54,6 +54,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.InitLinked
 
 @[expose] public section
 
@@ -69,18 +71,10 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `authkv`'s initialization, then `Main()`. -/
-def authkvProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.auth.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.Main) #()
-
-/-- The read package's two metric names, which `authkv`'s initialization registers. -/
-def authkvNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The authentication example is safe** (see the file header): every real execution of
 `authkvProgram` from a fresh state with one thread, of `n` steps: if the main thread has finished,

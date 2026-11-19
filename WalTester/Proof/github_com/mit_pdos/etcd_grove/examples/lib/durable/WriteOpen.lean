@@ -13,7 +13,7 @@ held whole (`trFile i True`).
 module
 
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.WriteInv
-public import Proof.os.OpenFileTruncS
+public import Proof.os.OpenFileTruncLemmas
 
 @[expose] public section
 

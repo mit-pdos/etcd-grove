@@ -64,7 +64,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `srvApplyKV_small`)
       ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧
         (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) ∧ uint.Z ai + 1 < 2 ^ 64 ∧
-        loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧
+        loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧ logPutsOk (unapplied ai ms) ∧
         dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) (unapplied ai ms) ∧
         uint.Z ai = A.length ∧ lastTermIs A at0 ∧
         storage.diskOk ∧ uint.Z g ≤ uint.Z (ciEff γ st.k) ∧

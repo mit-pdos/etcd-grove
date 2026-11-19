@@ -13,7 +13,7 @@ predicates (minting, the history's laws, `ansOf`) are used from kvreconf.
 -/
 module
 
-public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.readSeqs__next
+public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.readSeqs__nextLemmas
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.ReadSlot
 
 @[expose] public section

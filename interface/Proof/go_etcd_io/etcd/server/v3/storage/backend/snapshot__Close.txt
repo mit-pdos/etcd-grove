@@ -2,7 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom backend.snapshot.Close.wp_proof : backend.snapshot.Close.spec
+theorem backend.snapshot.Close.wp_proof [go_etcd_io.bbolt.Assumptions] (hRollback : ∀ [inst :
+    ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions], bbolt.Tx.Rollback.spec) : backend.snapshot.Close.spec
   -- `Perennial.EtcdGrove.backend.snapshot.Close.spec`, unfolded:
   ∀ (sp : Loc) (D : backend.Data) (γ : GName),
     ⊢

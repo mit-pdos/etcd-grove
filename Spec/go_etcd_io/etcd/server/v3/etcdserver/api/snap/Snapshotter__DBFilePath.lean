@@ -32,12 +32,12 @@ an error `fmt` can format, the directory's read having failed (`¬ dirReadOk ss`
 epochs, S8d, 2026-10-24; with the file there, `ErrNoDBSnapshot` is not returned). -/
 abbrev snap.Snapshotter.DBFilePath.spec : Prop :=
   ∀ (ss : Loc) (id : w64) (D : backend.Data),
-  {{ isSnapshotter (GF := GF) ss ∗ backend.fileHolds (snapDBPath ss id) D }}
+  {{ isSnapshotter (GF := GF) ss ∗ backend.fileAt (snapDBPath ss id) D }}
     (App (Val (ss @!! go.GoType.PointerType
         _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!!
         go!"DBFilePath")) (Val #id))
   {{ (p : GoString) (err : GoInterface), RET (PairV #p #err);
-      backend.fileHolds (snapDBPath ss id) D ∗
+      backend.fileAt (snapDBPath ss id) D ∗
       (⌜err = GoInterface.nil ∧ p = snapDBPath ss id⌝ ∨
         (⌜err ≠ GoInterface.nil ∧ ¬ dirReadOk ss⌝ ∗ fmt.argOk err)) }}
 

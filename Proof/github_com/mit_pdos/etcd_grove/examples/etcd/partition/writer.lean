@@ -10,7 +10,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLaws
 
 @[expose] public section
 
@@ -36,7 +36,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 set_option maxHeartbeats 400000 in
 theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
-    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (h_client_Put_km : client_Put_km.law (GF := GF) (hG := hG)) :
     writer.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC clis cls ms V γ w tsl tried lo hi P hAs hW hP hne hlo hlh hhi hsz
   wp_start as ⟨#Hcls, #Hcl, #Hms, #Ht, #Hkv, #Hmu⟩
@@ -126,7 +127,7 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
       as %cctx %ccd %ccancel ⟨#Hccancel, #Hcctx, #Hcce, -⟩
     (try wp_auto)
     -- `resp, err := cli.Put(ctx, p.Key, p.Val)`
-    wp_apply (client_Put_km cl ms V γ.kv cctx ccd x.Key' x.Val' slice.nil
+    wp_apply (h_client_Put_km cl ms V γ.kv cctx ccd x.Key' x.Val' slice.nil
         (client.kmWriteQ γ [] (.put (client.putKeyOp x.Key' x.Val')))
         (hsz x (List.mem_of_getElem? Hx_lookup)).put) $$ [Hau] as %resp %err Hout
     · iframe #; iexact Hau

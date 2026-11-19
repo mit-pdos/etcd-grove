@@ -115,7 +115,7 @@ end results
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 variable [go_gctx : GoGlobalContext]
 
 /-- **The Kubernetes etcd3 store's linearizability instance is safe, in the operational semantics** (`k8s_etcd3_adequate`,
@@ -163,43 +163,6 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 
-/-- **`k8s_etcd3_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `k8s_etcd3_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem k8s_etcd3_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
-    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
-    [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextErrsClient (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget.BootFacts id ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (clients ops watchers wops : w64) (Hc0 : 0 ≤ sint.Z clients) (Hw0 : 0 ≤ sint.Z watchers)
-    (Hc31 : sint.Z clients + sint.Z watchers < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
-    (Hwops : 0 ≤ sint.Z wops)
-    (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
-    (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops watchers wops) k8setcd3Names)
-    (HAs : addrsUnclaimed (k8setcd3Program clients ops watchers wops) [go!"127.0.0.1:23896"])
-    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"k8setcd3.etcd"])
-    (HEnv : verifyEnvOff (k8setcd3Program clients ops watchers wops))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"k8setcd3.etcd"]) :
-    Robustness.Robust [] [(k8setcd3Program clients ops watchers wops, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
-    (k8s_etcd3_safe
-      Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops
-      Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec
-      (by omega)).2
-
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members is safe, in the
 operational semantics** (`k8s_etcd3_cluster_adequate`, see the file header and `Adequacy.lean`). -/
 theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
@@ -243,43 +206,6 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_etcd3_cluster_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
     watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-/-- **`k8s_etcd3_cluster_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `k8s_etcd3_cluster_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem k8s_etcd3_cluster_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
-    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
-    [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextErrsClient (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
-    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
-    (Hdbo : storage.diskOk) (clients ops watchers wops : w64) (Hc0 : 0 ≤ sint.Z clients)
-    (Hw0 : 0 ≤ sint.Z watchers) (Hc31 : sint.Z clients + sint.Z watchers < 2 ^ 31)
-    (Hops : 0 ≤ sint.Z ops) (Hwops : 0 ≤ sint.Z wops)
-    (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
-    (HNs : prometheus.namesUnclaimed (k8setcd3CProgram k clients ops watchers wops) k8setcd3Names)
-    (HAs : addrsUnclaimed (k8setcd3CProgram k clients ops watchers wops) (k8s_etcd3N.k8setcd3NAddrs k))
-    (HDs : dataDirsAbsent (k8setcd3CProgram k clients ops watchers wops) (k8s_etcd3N.k8setcd3NDirs k))
-    (HEnv : verifyEnvOff (k8setcd3CProgram k clients ops watchers wops))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k)) :
-    Robustness.Robust [] [(k8setcd3CProgram k clients ops watchers wops, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
-    (k8s_etcd3_cluster_safe
-      Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0
-      Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2
-      κs t2 σ2 hexec (by omega)).2
 
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
@@ -329,45 +255,6 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
   k8s_etcd3_partition_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
     watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2
     Hsteps' Hn
-
-/-- **`k8s_etcd3_partition_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `k8s_etcd3_partition_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem k8s_etcd3_partition_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
-    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
-    [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextErrsClient (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
-    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
-    (Hdbo : storage.diskOk) (clients ops watchers wops : w64) (Hc0 : 0 ≤ sint.Z clients)
-    (Hw0 : 0 ≤ sint.Z watchers) (Hc31 : sint.Z clients + sint.Z watchers < 2 ^ 31)
-    (Hops : 0 ≤ sint.Z ops) (Hwops : 0 ≤ sint.Z wops)
-    (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
-    (Hsteps : steps.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8setcd3PProgram k clients ops watchers wops steps) k8setcd3Names)
-    (HAs : addrsUnclaimed (k8setcd3PProgram k clients ops watchers wops steps) (k8s_etcd3N.k8setcd3NAddrs k))
-    (HDs : dataDirsAbsent (k8setcd3PProgram k clients ops watchers wops steps) (k8s_etcd3N.k8setcd3NDirs k))
-    (HEnv : verifyEnvOff (k8setcd3PProgram k clients ops watchers wops steps))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k)) :
-    Robustness.Robust [] [(k8setcd3PProgram k clients ops watchers wops steps, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
-    (k8s_etcd3_partition_safe
-      Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0
-      Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1
-      hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
 end adequacy
 

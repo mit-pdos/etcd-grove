@@ -21,14 +21,15 @@ theorem mvcc.writeView.DeleteRange.wp_proof (hTODO : traceutil.TODO.spec) (hWrit
                           ownSlice endk e DFrac.discard ∗
                             lease.leaseOwn γ.leases L I ∗
                               (□ ∀ ilog, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
-                                ⌜γ.watchQ = false⌝ ∗
-                                  G ∗
-                                    □ (mvcc.slotF γ ∗ G -∗ False) ∗
-                                      ∀ ilog crev,
-                                        mvcc.endCb γ ilog
-                                          (List.map mvcc.Change.del
-                                            (mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e))
-                                          crev (mvcc.slotY γ ilog) R) -∗
+                                (□ ∀ ilog, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.LogPutsLe etcdKeyMax ilog⌝) ∗
+                                  ⌜γ.watchQ = false⌝ ∗
+                                    G ∗
+                                      □ (mvcc.slotF γ ∗ G -∗ False) ∗
+                                        ∀ ilog crev,
+                                          mvcc.endCb γ ilog
+                                            (List.map mvcc.Change.del
+                                              (mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e))
+                                            crev (mvcc.slotY γ ilog) R) -∗
           (▷
               ∀ n rev,
                 (mvcc.storeReader s γ ∗

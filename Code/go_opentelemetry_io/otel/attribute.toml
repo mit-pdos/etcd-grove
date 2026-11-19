@@ -1,6 +1,10 @@
-# Types only: the types of `trace.Span`'s method parameters, so that Goose translates
-# `trace.Span` as an interface (mvcc's watchStream.Watch stores a span in a local variable).
-translate = ["!*"]
+# Types only, but the constructors of the scalar attributes the request path builds, with their
+# bodies (`Bool`, `Int`, `Int64`, `String`, their `Key` methods, the `Value` constructors and the
+# raw encoders; their `wp_proof`s are theorems, `Proof/go_opentelemetry_io/otel/attribute/`), and the
+# value types they name (`BOOL`, `INT64`, `STRING`).
+translate = ["!*", "Bool", "Int", "Int64", "String", "Key.Bool", "Key.Int", "Key.Int64",
+  "Key.String", "BoolValue", "IntValue", "Int64Value", "StringValue", "boolToRaw", "int64ToRaw",
+  "BOOL", "INT64", "STRING"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

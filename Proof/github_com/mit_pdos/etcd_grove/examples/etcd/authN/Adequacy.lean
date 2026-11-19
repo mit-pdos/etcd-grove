@@ -41,6 +41,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.InitLinked
 
 @[expose] public section
 
@@ -56,18 +58,10 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `authN`'s initialization, then `Main(k)`. -/
-def authNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.authN.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.authN.Main) #(W64 (k : Int))
-
-/-- The read package's two metric names, which `authN`'s initialization registers (auth3's). -/
-def authNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **authN is safe** (see the file header). -/
 theorem etcd_authN_adequate [lctx : GoLocalContext] [sem : go.Semantics]

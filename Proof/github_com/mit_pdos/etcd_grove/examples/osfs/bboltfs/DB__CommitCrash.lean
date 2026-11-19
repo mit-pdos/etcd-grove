@@ -5,7 +5,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__CommitCrash
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commitCrash
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__Commit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__CommitLemmas
 
 @[expose] public section
 

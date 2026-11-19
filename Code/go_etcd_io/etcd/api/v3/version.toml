@@ -1,6 +1,8 @@
 # Types and names only: function and method bodies are axiomatized (the server's `start` logs
 # `version.Version` and `version.Cluster(...)`; the request path's unit 4c).
-translate = ["!*"]
+# (2026-11-19) The string variables, so that their initializers are translated (`etc/gen-init.py`);
+# the `semver` ones stay untranslated (`semver.New` formats with `fmt`).
+translate = ["!*", "MinClusterVersion", "Version", "APIVersion", "GitSHA"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

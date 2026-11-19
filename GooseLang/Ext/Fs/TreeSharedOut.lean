@@ -105,12 +105,13 @@ theorem osOutFd_nonneg (fd : w64) : osOutFd (L := L) fd ⊢ ⌜0 ≤ fd.toInt⌝
 /-- **The lifting of any operation, with the outside fds' interpretation too** (`wp_fs_stepM`'s
 continuation also gets and gives back `ofdCtx`). -/
 theorem wp_fs_stepO (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
-    (hE : ↑osN ⊆ E) (hl : ¬ LockOp o := by simp [LockOp]) :
+    (hE : ↑osN ⊆ E) (hl : ¬ LockOp o := by simp [LockOp])
+    (hM : o ≠ "Mmap" := by decide) :
     ⊢ osInv (L := L) -∗
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h -∗ treeCtx (gooseOsGS (L := L)) st -∗
           ofdCtx (gooseOsGS (L := L)) st ={E \ ↑osN, ∅}=∗
-        ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
-        ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
+        ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
+        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
           ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗
             treeCtx (gooseOsGS (L := L)) st' ∗ ofdCtx (gooseOsGS (L := L)) st' ∗
             WP e' @ s; E {{ Φ }}) -∗
@@ -135,10 +136,10 @@ theorem wp_fs_stepO (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   · ipureintro
     obtain ⟨e', h', st', Hst⟩ := Hex
     exact FsSemOk.step_ex _ _ _ _ g _ _ _ ()
-      (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) Hst
+      (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) (Or.inl Hst)
   inext
   iintro %e' %h' %σ' %g' %Hst -
-  have Hst := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst
+  have Hst := fsStepV_of_ne hM (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst)
   imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hn, Hof, Hwp⟩
   unfold osWorld
   icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hheap⟩

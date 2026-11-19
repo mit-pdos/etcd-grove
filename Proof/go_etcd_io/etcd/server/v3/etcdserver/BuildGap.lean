@@ -143,7 +143,19 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   · inext; iexists L'; iframe HL' Hσ Hw HG; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
+  obtain ⟨Hsh, Hccl, Hpk, -, Hatt⟩ := Hsh
+  -- (S1b) the committed log's puts are short: the server's log's entries, or fillers without data
+  have hpkL : logPutsOk L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · intro _ hn; exact absurd hd hn
+    · intro _ hn; exact absurd hd hn
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      have := Hpk m' hm'
+      unfold entryPutsOk at this ⊢
+      rw [← h1, ← h2]; exact this
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have hshL : logShape ρ.kv.lm L := by
     intro m hm
@@ -180,7 +192,7 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
   imodintro
   isplitr
-  · ipureintro; exact hshL
+  · ipureintro; exact ⟨hshL, hpkL⟩
   iapply batchWaitOk_of_work ρ E L hshL hcclL hatL $$ HclL HNZ HL
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper

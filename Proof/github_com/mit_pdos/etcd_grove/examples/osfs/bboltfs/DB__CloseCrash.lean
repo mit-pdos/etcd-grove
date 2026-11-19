@@ -4,7 +4,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__CloseCrash
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__closeCrash
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__Close
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__CloseLemmas
 
 @[expose] public section
 

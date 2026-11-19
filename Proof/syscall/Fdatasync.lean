@@ -1,10 +1,12 @@
 /-
 The proof of `Spec/syscall/Fdatasync.lean`: the extension's `Fsync` (`wp_osFsync`, and
-`wp_osFsyncB` for the byte-less `specB`), then `errnoErr`.
+`wp_osFsyncB` for the byte-less `specB`, by cases on `FsNoErr`: `wp_osFsyncBNE` when it holds,
+errno 0), then `errnoErr`.
 -/
 module
 
 public import Spec.syscall.Fdatasync
+public import GooseLang.Ext.Fs.NoErrSpecsOpen
 
 @[expose] public section
 
@@ -34,10 +36,24 @@ theorem syscall.Fdatasync.wp_proof : syscall.Fdatasync.spec (GF := GF) (hG := hG
 theorem syscall.Fdatasync.wp_proofB : syscall.Fdatasync.specB (GF := GF) (hG := hG) := by
   intro fd dq d m
   wp_start as ⟨#Hinv, Hfd, Hm⟩
-  wp_apply wp_osFsyncB fd dq d m CoPset.subseteq_top $$ Hinv Hfd Hm as %e Hr Hfd
-  iapply wp_errno
-  iapply HΦ
-  iframe
+  by_cases hne : FsNoErr
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
+    haveI := hs1
+    wp_apply wp_osFsyncBNE hSio fd dq d m CoPset.subseteq_top $$ Hinv Hfd Hm as %c Hm Hfd
+    iapply wp_errno
+    iapply HΦ
+    iframe Hfd
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists c; iexact Hm
+  · wp_apply wp_osFsyncB fd dq d m CoPset.subseteq_top $$ Hinv Hfd Hm as %e Hr Hfd
+    iapply wp_errno
+    iapply HΦ
+    iframe Hfd
+    icases Hr with (H | ⟨%he, Hm⟩)
+    · ileft; iexact H
+    · iright; iframe Hm; ipureintro; exact ⟨he.1, he.2, hne⟩
 
 end proof
 

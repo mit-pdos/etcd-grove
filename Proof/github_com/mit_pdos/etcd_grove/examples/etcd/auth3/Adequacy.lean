@@ -45,6 +45,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.InitLinked
 
 @[expose] public section
 
@@ -60,23 +62,10 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `auth3`'s initialization, then `Main()`. -/
-def auth3Program [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.auth3.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Main) #()
-
-/-- The program's addresses: the three members' peer and client addresses. -/
-def auth3Addrs : List GoString :=
-  [etcd_auth3.peerAddr₁, etcd_auth3.peerAddr₂, etcd_auth3.peerAddr₃, etcd_auth3.clientAddr₁,
-    etcd_auth3.clientAddr₂, etcd_auth3.clientAddr₃]
-
-/-- The read package's two metric names, which `auth3`'s initialization registers. -/
-def auth3Names : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **auth3 is safe** (see the file header). -/
 theorem etcd_auth3_adequate [lctx : GoLocalContext] [sem : go.Semantics]

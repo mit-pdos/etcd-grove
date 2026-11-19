@@ -3,12 +3,10 @@
 # this repository's (project bboltfs's: the file calls are modeled by the Linux file extension
 # fsExt, GooseLang/Ext/Fs); notes/bbolt-v2-infra.md.
 #
-# But `Options` stays an axiomatized type, and `DefaultOptions`' initializer (a literal of it)
-# untranslated: the backend's constructor and every example's `newBackend` rest on the
-# trust-boundary axioms over an abstract `Options` (`storage/backend/BboltOptions.lean`), which a
-# translated struct would bypass. To translate it with `Open`'s proof, those axioms become
-# lemmas.
-translate = ["*", "!Options", "!DefaultOptions", "!splitThreshold"]
+# `Options` and `DefaultOptions` are translated (2026-11-17, S2 of
+# notes/bbolt-integration-plan.md, D-I4): bbolt's `optsAt` is the struct's points-to
+# (`Spec/go_etcd_io/bbolt/Options.lean`) and the backend's option laws are lemmas over it.
+translate = ["*", "!splitThreshold"]
 imports = ["*"]
 # `splitThreshold` (`node.go`, the fork's `goose-lean-v2`: `splitTwo`'s float threshold factored
 # out): Perennial gives float multiplication and float-to-int conversion no meaning, so its model,

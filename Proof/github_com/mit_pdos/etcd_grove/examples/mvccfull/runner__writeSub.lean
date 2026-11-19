@@ -61,7 +61,7 @@ theorem runner.writeSub.wp_proof
   · -- a put
     rw [hkind]
     simp only [hk0, _root_.decide_true]
-    obtain ⟨hkks, hlL⟩ := hput hk0
+    obtain ⟨hkks, hlL, hkl0, hvl0⟩ := hput hk0
     (try wp_auto)
     wp_apply wp_bytes_to_string sv.key' sm.key DFrac.discard $$ [$Hk] as -
     (try wp_auto)
@@ -77,7 +77,7 @@ theorem runner.writeSub.wp_proof
     have hklen : (sm.key.length : Int) < 2 ^ 63 - 1 := hkl sm.key hkks
     wp_apply (hPutC γk trace te σ pend sv.key' vs sm.key sm.val sm.lease L)
       $$ [$Htx $Htrc $Hk $Hvs' $Hlo] as ⟨Htx, Htrc, Hlo⟩
-    · ipureintro; exact ⟨hklen, hlL⟩
+    · ipureintro; exact ⟨hklen, ⟨hkl0, hvl0⟩, hlL⟩
     (try wp_auto)
     iunfold ownPending at Hp
     icases Hp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩

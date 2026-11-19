@@ -567,7 +567,8 @@ its open token (`srvOpenQ`: the constructors' half, a quarter in the mode `on`, 
 backend's `Close` goroutine takes them), the alarm store's field (until 2026-11-01, J8a-5, also its
 `Get` under a resource `Tal`, `zal`: `specSnapM` now gets `Get` with no alarm from `Recover`'s
 `alarmEmpty`); and the backend file's directory entry at the configuration's data directory
-(`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every install), and
+(`backend.bPath d.γB.db (backendPathOf dd)`, the claim on its name, naming the backend's file:
+`OpenSnapshotBackend`'s rename target, one for every install; S5, until then the opaque `pathOwn`), and
 (2026-11-04, the restart plan's R2b-3d) the backend's file there. (Until strict M1, 2026-11-06,
 also the KV's closer, `srvKVCloserW`, for `store.Restore`: over the API, `Restore` takes mvcc's
 open token, the apply thread's `apply.cmpOwn`.) -/
@@ -578,7 +579,7 @@ def srvSnapRes (s : Loc) (E : apply.AEnv GF) (γA : ApplyNames) : IProp GF :=
     srvStopChans γA d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     -- MERGE-TODO(close): `lean`'s `srvKVCloserW s E` was here (see above)
-    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.bPath d.γB.db (config.backendPathOf dd) ∗
     -- (2026-11-04, the restart plan's R2b-3d) the backend's file is there (the stop image's)
     backend.bFile d.γB (config.backendPathOf dd))
 
@@ -693,7 +694,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     -- apply thread's `mvccOpen E'.γ` in `srvApplyKV`)
     srvStopChans γ' d' ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γm 1 (uint.nat sv.Metadata'.Index' + 1) ∗
-    backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗
+    backend.bPath d'.γB.db bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝))
 

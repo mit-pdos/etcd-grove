@@ -97,10 +97,10 @@ def rtCm (γ : BNames) (P : BParams) (C : Data) (R : RBuf) (win : Bool) : IProp 
 to readers (its waiters' authority), the other half of the bbolt read transaction and its
 snapshot. -/
 def rollbackRes (γ : BNames) (rtx wg : Loc) : IProp GF :=
-  iprop(∃ (γwg : sync.WaitGroupNames) (γw γo γt : GName) (D : Data),
-    sync.isWaitGroup wg γwg (bN.@"wg") ∗ inv (bN.@"wgi") (wgBody γ rtx γwg γw γo γt) ∗
-    sync.ownWaitGroupWaiters γwg 0 ∗ ghostVar γt 1 () ∗ txLive rtx (1 : Qp).half ∗
-    rtxSnap rtx D)
+  iprop(∃ (γwg : sync.WaitGroupNames) (γw γo γt : GName) (D : Data) (db : Loc),
+    sync.isWaitGroup wg γwg (bN.@"wg") ∗ inv (bN.@"wgi") (wgBody γ rtx D γwg γw γo γt) ∗
+    sync.ownWaitGroupWaiters γwg 0 ∗ ghostVar γt 1 () ∗ txLive rtx γ.db (1 : Qp).half (bbolt.TxView.ro D) ∗
+    isDB db γ.db)
 
 end defs
 
@@ -463,11 +463,13 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
     iframe; iframe #
     ipureintro; obtain ⟨f1, f2, f3, f4, f5, -⟩ := Hf; exact ⟨rfl, f1, f2, f3, f4, f5⟩
   simp only [↓reduceIte]
-  icases Hiv with ⟨Hlive, #Hsnap, -, #Hwgi, Hwo, Htk⟩
+  icases Hiv with ⟨Hlive, -, #Hwgi, Hwo, Htk⟩
   unfold wgInv
-  icases Hwgi with ⟨%γwg, #Hisw, #Hi, -⟩
-  iinv Hi with >Hbody Hclose
+  icases Hwgi with ⟨%γwg, %db, #Hisw, #Hi, -, #Hdb⟩
+  iinv Hi with Hbody Hclose
   all_goals try (exact fun _ _ => CoPset.mem_full)
+  ihave Hbody := wgBody_later db γ rd.rtx C γwg rd.γw rd.γo rd.γt $$ Hdb Hbody
+  imod Hbody
   iunfold wgBody at Hbody
   icases Hbody with (⟨%n, %outs, %pool, Hwgo, Hoa, Hpool, Htoks, %Hn, Hwt⟩ | ⟨Hoa, Hwo', -⟩)
   · icases Hwt with (Hwt | Hwo')
@@ -484,7 +486,7 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
       isplitr [Hrd Hview Hrvs Hcur Hcln Hhist Hpo]
       · ileft
         unfold rollbackRes
-        iexists γwg, rd.γw, rd.γo, rd.γt, C
+        iexists γwg, rd.γw, rd.γo, rd.γt, C, db
         iframe; iframe #
       iexists rd, H, L
       iframe; iframe #
@@ -501,7 +503,7 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
 theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Loc) (idx : Nat)
     (stop cln : Bool) :
     (if stop then iprop(⌜tx = Loc.null⌝ ∗ bStopped γ)
-       else iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)) ∗
+       else iprop(txLive tx γ.db 1 (bbolt.TxView.ro D) ∗ ∃ db, isDB db γ.db)) ∗
       cm ↦$ (∅ : GMap w64 Loc) ∗ wg ↦ (zero_val sync.WaitGroup) ∗
       ownTokAuthDfrac (GF := GF) γ.rdt DFrac.discard rdMax ⊢
     |={⊤}=> ∃ rd' : RdSt, ⌜rd'.rtx = tx ∧ rd'.wg = wg ∧ rd'.idx = idx ∧ rd'.win = false ∧ rd'.cln = cln⌝ ∗
@@ -509,17 +511,17 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
   iintro ⟨Hn, Hcm, Hwg, #Hauth⟩
   cases stop
   · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hn with ⟨Hlive, #Hsnap, Hst⟩
+    icases Hn with ⟨Hlive, %db, #Hdb⟩
     imod sync.init_WaitGroup (bN.@"wg") wg $$ Hwg with ⟨%γwg, #Hisw, Hctr, Hwt⟩
     imod ghost_map_alloc_empty (K := Nat) (V := Qp) with ⟨%γo, Hoa⟩
     imod ghostVar_alloc () with ⟨%γw, Hwo⟩
     imod ghostVar_alloc () with ⟨%γt, Htk⟩
     imod ownToks_0 γ.rdt with H0
-    ihave Hlive2 : txLive tx ((1 : Qp).half + (1 : Qp).half) $$ [Hlive]
+    ihave Hlive2 : txLive tx γ.db ((1 : Qp).half + (1 : Qp).half) (bbolt.TxView.ro D) $$ [Hlive]
     · rw [Qp.half_add_half]; iexact Hlive
-    icases ((txLive_fractional tx).fractional (1 : Qp).half (1 : Qp).half).1 $$ Hlive2
+    icases ((txLive_fractional tx γ.db (bbolt.TxView.ro D)).fractional (1 : Qp).half (1 : Qp).half).1 $$ Hlive2
       with ⟨Hl1, Hl2⟩
-    imod inv_alloc (bN.@"wgi") ⊤ (wgBody γ tx γwg γw γo γt) $$ [Hctr Hoa Hl2 H0 Hwt] with #Hi
+    imod inv_alloc (bN.@"wgi") ⊤ (wgBody γ tx D γwg γw γo γt) $$ [Hctr Hoa Hl2 H0 Hwt] with #Hi
     · inext
       unfold wgBody
       ileft
@@ -530,19 +532,17 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
       · ipureintro; rw [GMap.map_size_empty]; decide
       ipureintro
       rw [qsum_empty]; show (1 : Qp).val / 2 + 0 = 1 / 2; rw [Qp.val_one]; grind
-    imod inv_alloc (bN.@"intv") ⊤ iprop(∃ (M : GMap w64 Loc) (qm : Rat), □ cmFacts P tx D M ∗
+    imod inv_alloc (bN.@"intv") ⊤ iprop(∃ (M : GMap w64 Loc) (qm : Rat), □ cmFacts γ P tx D M ∗
         ⌜0 ≤ qm ∧ qm ≤ 1⌝ ∗ mapPart cm qm M ∗ tokPart γ (1 - qm)) $$ [Hcm] with #Hiv1
     · inext
       iexists ∅, 1
-      ihave #Hf := cmFacts_empty (GF := GF) P tx D
+      ihave #Hf := cmFacts_empty (GF := GF) γ P tx D
       iframe #
       unfold mapPart tokPart
       rw [dif_pos (show (0 : Rat) < 1 by decide), dif_neg (show ¬ (0 : Rat) < 1 - 1 by grind)]
       isplitr
       · ipureintro; decide
       iframe
-    imod inv_alloc (bN.@"stats") ⊤ iprop(rtxStats tx ∨ ghostVar γ.txb 1 ()) $$ [Hst] with #Hiv2
-    · inext; ileft; iexact Hst
     imodintro
     iexists (⟨tx, wg, γw, γo, γt, idx, false, true, cln⟩ : RdSt)
     isplitr
@@ -553,7 +553,7 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
     isplitr
     · unfold intvInv; iframe #
     isplitl []
-    · imodintro; unfold wgInv; iexists γwg; iframe #
+    · imodintro; unfold wgInv; iexists γwg, db; iframe #
     unfold wgOpen; iframe
   · simp only [↓reduceIte]
     icases Hn with ⟨%Hnull, #Hst⟩
@@ -581,7 +581,7 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
       rwgOf (baseOf rt) ↦ wg ∗ wg ↦ (zero_val sync.WaitGroup) ∗
       ownRB (rbufOf (baseOf rt)) R.reset ∗
       (if stop then iprop(⌜tx = Loc.null⌝ ∗ bStopped γ)
-       else iprop(txLive tx 1 ∗ rtxSnap tx C' ∗ rtxStats tx)) ∗ fkRd γ P (C', R.reset) ∗
+       else iprop(txLive tx γ.db 1 (bbolt.TxView.ro C') ∗ ∃ db, isDB db γ.db)) ∗ fkRd γ P (C', R.reset) ∗
       (if win then thinV γ (vData P (C', R.reset)) L'
        else thinV γ (vData P (C', R.reset)) (vData P (C, R))) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C', R.reset), false) ∗
@@ -734,10 +734,10 @@ whole bbolt read transaction (for `Rollback`). -/
 theorem wp_rollback_Wait (γ : BNames) (rtx wg : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ rollbackRes γ rtx wg }}
       (App (Val (wg @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Wait")) (Val #()))
-    {{ RET #(); ∃ D : Data, txLive rtx 1 ∗ rtxSnap rtx D }} := by
+    {{ RET #(); ∃ D : Data, txLive rtx γ.db 1 (bbolt.TxView.ro D) }} := by
   iintro %Φ ⟨#Hsync, Hr⟩ HΦ
   unfold rollbackRes
-  icases Hr with ⟨%γwg, %γw, %γo, %γt, %D, #Hisw, #Hi, Hwt, Htk, Hl, #Hsnap⟩
+  icases Hr with ⟨%γwg, %γw, %γo, %γt, %D, %db, #Hisw, #Hi, Hwt, Htk, Hl, #Hdb⟩
   -- register as the waiter
   iapply fupd_wp
   imod fupd_mask_subseteq (show (↑(bN.@"wg") : CoPset) ⊆ ⊤ from fun _ _ => CoPset.mem_full)
@@ -747,9 +747,11 @@ theorem wp_rollback_Wait (γ : BNames) (rtx wg : Loc) :
   imodintro
   iapply sync.WaitGroup.wp_Wait wg γwg (bN.@"wg") $$ [Htok] [Hl Htk Hwt HΦ]
   · iframe #; iframe
-  iinv Hi with >Hb Hclose
+  iinv Hi with Hb Hclose
   all_goals try (exact fun _ h => ⟨CoPset.mem_full, fun h' => by
     exact (sync.wg_mask_ndot_ne bN "wg" "wgi" (by decide)) h' |>.2 h⟩)
+  ihave Hb := wgBody_later db γ rtx D γwg γw γo γt $$ Hdb Hb
+  imod Hb
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -786,7 +788,7 @@ theorem wp_rollback_Wait (γ : BNames) (rtx wg : Loc) :
   iapply HΦ
   iexists D
   iframe #
-  iapply ((txLive_fractional rtx).fractional (1 : Qp).half (1 : Qp).half |>.2).trans
+  iapply ((txLive_fractional rtx γ.db (bbolt.TxView.ro D)).fractional (1 : Qp).half (1 : Qp).half |>.2).trans
     (by rw [Qp.half_add_half])
   iframe
 

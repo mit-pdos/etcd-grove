@@ -326,7 +326,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   obtain ⟨hR1, ⟨rfl, rfl, hnn1, hsz1, hd1⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl (by first | exact hne | exact hne.1)
     | ok ie =>
     (try wp_auto)
     iapply HΦ

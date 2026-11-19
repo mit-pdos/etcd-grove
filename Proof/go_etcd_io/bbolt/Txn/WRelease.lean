@@ -176,11 +176,16 @@ theorem wdb_release (p : BFile) (w : WDb) (σ : StoreSt) (ro : List w64) (S : Li
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C (w.fl.releasePending ro))
     (hbs : ∀ s ∈ S, (bs s).length = 4096)
     (hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64) :
-    wCells (GF := GF) w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗ slotsOwn w.ms p S bs ⊢
+    wCells (GF := GF) w.ms w.W ∗ wBytesX p w.W (flxS w.C w.fl w.wb) w.wb w.m.size ∗
+        slotsOwn w.ms p S bs ⊢
       ⌜wdbOK (w.released (w.fl.releasePending ro) S bs)⌝ ∗
       wCells w.ms (w.released (w.fl.releasePending ro) S bs).W ∗
-      wBytes p (w.released (w.fl.releasePending ro) S bs).W
+      wBytesX p (w.released (w.fl.releasePending ro) S bs).W
+        (flxS (w.released (w.fl.releasePending ro) S bs).C (w.released (w.fl.releasePending ro) S bs).fl
+          (w.released (w.fl.releasePending ro) S bs).wb)
         (w.released (w.fl.releasePending ro) S bs).wb w.m.size := by
+  have hnp := flxS_not_pend w hok
+  have hok0 := hok
   have hok' := wdbOK_released w σ ro S bs hσ hok hS hro hbs
   obtain ⟨-, -, c3, c4, -, -, -, -, c9, -, c11, -⟩ := hok
   have hpS : ∀ s ∈ S, s ∈ pendSlots w.fl := by
@@ -189,13 +194,24 @@ theorem wdb_release (p : BFile) (w : WDb) (σ : StoreSt) (ro : List w64) (S : Li
     rcases (mem_slotsOf _ _ _).1 h1 with h | h
     · exact absurd ((mem_slotsOf _ _ _).2 (.inl h)) h2
     · exact h
-  have hj := wjoin (GF := GF) p w.ms w.W S w.wb bs w.m.size
+  have hj := wjoinX (GF := GF) p w.ms w.W (flxS w.C w.fl w.wb) S w.wb bs w.m.size
     (fun s hs hw => ((c4 s).1 hw).2.2.2 (hpS s hs))
+    (fun s hs hx => hnp s hx (hpS s hs))
     (fun s hs => by
       have := c11 s (.inr (hpS s hs))
       refine ⟨by omega, fun b l hbl => ?_, hbs s hs⟩
       have := c9 b l hbl; omega)
+  have hX1 : flxS w.C (w.fl.releasePending ro) (mergeWb S bs w.wb) = flxS w.C w.fl w.wb := by
+    apply flxS_congr_f
+    intro f hf
+    have hfp := flpg_not_pend w hok0 f hf
+    refine ⟨⟨fun h => pendSlots_releasePending_sub _ _ hro (fun t pd hp => by
+      obtain ⟨-, hfl, -, -, hok1⟩ := hσ; rw [← hfl] at hp; exact hok1.2.2.2.1.2.2.2.2 t pd hp) _ h,
+      fun h => absurd h hfp⟩, ?_⟩
+    have : f ∉ S := fun h => hfp (hpS f h)
+    simp [mergeWb, this]
   simp only [WDb.released]
+  rw [hX1]
   iintro H
   ihave ⟨Hc, Hb⟩ := hj $$ H
   isplitr
@@ -217,13 +233,14 @@ theorem store_release_len (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat 
     (hro1 : ∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
-      ghostVar B.wv (1 : Qp).half wIdle ∗ ghostMapAuth B.fltx 1 F ⊢
+      ghostVar B.wv (1 : Qp).half wIdle ∗ ghostMapAuth B.fltx 1 F ∗
+      ghostVar B.cls (1 : Qp).half false ⊢
     |={E}=> ∃ (S : List Nat) (bs : Nat → List w8),
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half (fl.releasePending ro) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
       ghostMapAuth B.fltx 1 F ∗ slotsOwn ms p S bs ∗
       ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.releasePending ro)⌝ ∗
-      ⌜∀ s ∈ S, (bs s).length = 4096⌝ :=
+      ⌜∀ s ∈ S, (bs s).length = 4096⌝ ∗ ghostVar B.cls (1 : Qp).half false :=
   store_release B N p E hE C fl ms F ro hro hro1
 
 end store

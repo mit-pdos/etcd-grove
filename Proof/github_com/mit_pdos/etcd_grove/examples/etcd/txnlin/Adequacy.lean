@@ -39,6 +39,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.InitLinked
 
 @[expose] public section
 
@@ -54,27 +56,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors: putget's (`putgetGF`: the universal camera `AllG` at slot 0, then invariants,
-later credits, GooseLang's heap, prophecies and package state), and
-iris-lean's non-atomic invariants at slot 11 (as the counter's `counterGF`). Every other slot is
-the unit functor. -/
-def linkvtxnGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 11 => ⟨NaInvF, inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def linkvtxnGF_allG : AllG linkvtxnGF := ⟨⟨0, rfl⟩⟩
@@ -91,23 +75,10 @@ instance linkvtxnGF_gooseGpreS : GooseGpreS linkvtxnGF where
 take. -/
 instance linkvtxnGF_naInvG : NaInvG linkvtxnGF := ⟨⟨11, rfl⟩⟩
 
-/-- **A ghost-state instance at the local context `lctx`** (as putget's `heapAt`). -/
-abbrev linkvtxnHeapAt (hG : HeapGS .hasLC linkvtxnGF) (lctx : GoLocalContext) : HeapGS .hasLC linkvtxnGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `linkvtxn`'s initialization, then `Main(clients, ops)`. -/
-def linkvtxnProgram [GoSemanticsFunctions] (clients ops : w64) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main) #clients #ops
-
-/-- The read package's two metric names, which `linkvtxn`'s initialization registers (`readRegPerm`,
-D16). -/
-def linkvtxnNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The linearizability instance is safe** (see the file header): every real execution of
 `linkvtxnProgram clients ops` from a fresh state with one thread, of `n` steps: if the main thread has

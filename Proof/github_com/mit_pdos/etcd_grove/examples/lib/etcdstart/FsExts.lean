@@ -8,22 +8,19 @@ through `syscall.FcntlFlock`, whose model is over the Linux file extension (`fsE
 `GooseLang/Ext/Fs`). Every etcd program's initialization reaches it through the server, so its
 `wp_initialize'` takes `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]`, and the etcd examples'
 closed theorems (`examples/{etcd,k8s}/*/Adequacy.lean`) run over this list of extensions instead of
-`TrivialExt.lean`'s `trivialExts` (`[idIssueExt]`): `[idIssueExt, fsExt]`, as the osfs programs'
-results do (`GooseLang/Ext/Fs/Adequacy.lean`'s `fsExts`). Their premise on the file extension's
-initial state is `FsInit` (the files as on disk, the roots well formed): each says that the program
-runs on a real file system (the user's decision (A), 2026-11-15, `notes/wal-units/lean-integration.md`,
-session 3).
+`TrivialExt.lean`'s `trivialExts` (`[idIssueExt]`): `[idIssueExt, fsExt]`, the extension's own
+semantics restricted by `etcdSQ` (`etcdFsSem`: no file I/O error, no error of `flock`, `mmap`,
+`munmap`; S3e, 2026-11-17) and ghost state, as the osfs programs' results do
+(`GooseLang/Ext/Fs/Adequacy.lean`'s `fsExts`). Their premise on the file extension's initial state is
+`FsInit` (the files as on disk, the roots well formed): each says that the program runs on a real file
+system (the user's decision (A), 2026-11-15, `notes/wal-units/lean-integration.md`, session 3).
 
-**The semantics: no I/O error** (wal-link P2, 2026-11-19; `notes/wal-link-scope.md` §3.4 P2, §6
-"Added", Q3 approved by the user 2026-11-17). Since the server's WAL is the real WAL over the file
-extension (layer 1), the file extension's semantics is restricted by the premise on steps
-`NoIoErr etcdIoAll` (`GooseLang/Ext/Fs/Premises.lean`): no covered call (on any inode, on any path,
-`etcdIoAll`) fails with an I/O error when the model has an outcome with errno 0 for it from that state
-(`fsSemWithS (NoIoErr etcdIoAll) (fun _ _ => True)`: no premise on crashes, as there is no crash in
-these runs). It is an assumption on the environment, which every closed theorem over these
-extensions states by being about this semantics: the theorems are about the runs in which no file
-system call that can succeed fails. The specs hold over it (`etcdFsExts_semOk`, from
-`noIoErr_keeps`), and the WAL's no-error specs use its `FsStepSat` (`etcdFsExts_sat`).
+**The semantics: the file system does not fail** (S3e's `etcdSQ`; since wal-link P2, 2026-11-19, the
+server's WAL is the real WAL over the file extension, layer 1, whose no-error specs use the `NoIoErr`
+half: `etcdFsExts_sat`, `notes/wal-link-scope.md` §3.4 P2). It is an assumption on the environment,
+which every closed theorem over these extensions states by being about this semantics: the theorems are
+about the runs in which no file system call that can succeed fails. The specs hold over it
+(`etcdFsSemOk`).
 -/
 module
 
@@ -32,6 +29,8 @@ public import GooseLang.Ext.Fs.Ghost
 public import GooseLang.Ext.Fs.SemOk
 public import GooseLang.Ext.Fs.Adequacy
 public import GooseLang.Ext.Fs.NoIoErr
+public import GooseLang.Ext.Fs.NoMapLockErr
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 
 @[expose] public section
 
@@ -48,19 +47,36 @@ and the Linux file extension (`fileutil`'s package initializer). -/
 
 attribute [local instance] etcdFsExts
 
-/-- **No I/O error on any file or path** (the closed theorems' premise on the file extension's steps;
-see the file header): every inode and every path is covered. -/
-def etcdIoAll : Fs.IoSet := ⟨fun _ _ => True, fun _ => True⟩
+/-- **Every file and every path** (an `IoSet` covering all of them). -/
+def allIo : Fs.IoSet := ⟨fun _ _ => True, fun _ => True⟩
 
-/-- **The file extension's semantics in the etcd examples** (see the file header): its steps
-restricted by `NoIoErr etcdIoAll` (no I/O error on any call that can succeed), no premise on
-crashes. -/
-@[reducible] def etcdFsSem : ExtSemantics Fs.fsExt :=
-  Fs.fsSemWithS (Fs.NoIoErr etcdIoAll) (fun _ _ => True)
+/-- **The file system does not fail** (S3e, 2026-11-17, `notes/bbolt-integration-plan.md`, D-I5): no
+I/O error (`NoIoErr`) and no error of `flock`, `mmap`, `munmap` (`NoMapLockErr`) on any file or path:
+the premise on steps of the etcd examples' closed theorems (the user's accepted "file I/O does not
+fail" premise), which bbolt's error-free `Open` and `Close` need (the backend's `theFs` packs it,
+`FsNoErrAll`). -/
+abbrev etcdSQ : Fs.StepPrem := Fs.StepPrem.and (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)
 
-/-- Their semantics: the issue record's own, and the file extension's restricted by the no-I/O-error
-premise (`etcdFsSem`). -/
+/-- The file extension's semantics here: its steps restricted by `etcdSQ`, its crashes not (the
+programs do not crash). Until S3e the extension's own (`Fs.fs_semantics`, no premise). -/
+@[reducible] def etcdFsSem : ExtSemantics Fs.fsExt := Fs.fsSemWithS etcdSQ (fun _ _ => True)
+
+/-- Their semantics: the request ids' issue record's, and the file extension's under `etcdSQ`
+(`etcdFsSem`; until S3e `Fs.fs_semantics`, every step of the model, with no premise on the
+environment). -/
 @[reducible] def etcdFsExtsSemantics : GooseSemantics := ⟨(idIssue_semantics, etcdFsSem, ⟨⟩)⟩
+
+/-- The model's facts hold of the restricted semantics (`etcdSQ` keeps steps). -/
+theorem etcdFsSemOk : letI := etcdFsSem; Fs.FsSemOk :=
+  Fs.fsSemWithS_ok etcdSQ (fun _ _ => True) (Fs.noIoErr_noMapLockErr_keeps allIo allIo)
+
+/-- The restricted semantics' file system does not fail (`backend.FsNoErrAll`, at `allIo`). -/
+theorem etcdFsNoErr : letI := etcdFsSem; backend.FsNoErrAll := by
+  letI := etcdFsSem
+  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ (fun _ _ => True)
+  exact ⟨⟨allIo, fun _ _ => trivial, fun _ => trivial,
+    Fs.fsStepSat_and_left (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo),
+    Fs.fsStepSat_and_right (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)⟩⟩
 
 /-- Their ghost state: each extension's own. -/
 @[reducible] def etcdFsExtsInterp : GooseInterp := ⟨(idIssue_interp, Fs.fs_interp, ⟨⟩)⟩
@@ -75,21 +91,19 @@ theorem etcdFsExts_hasIdIssue : HasExt idIssueExt where
 
 /-- The programs have the Linux file extension (by computation; a local instance of a closed
 theorem). -/
-theorem etcdFsExts_hasFs : HasExt Fs.fsExt where
+theorem etcdFsExts_hasFs : letI := etcdFsSem; HasExt Fs.fsExt where
   registered := rfl
   sem_eq := rfl
   interp_eq := rfl
 
-/-- The specs hold over the restricted semantics (`noIoErr_keeps`; a local instance of a closed
-theorem). -/
-theorem etcdFsExts_semOk : Fs.FsSemOk (S := etcdFsSem) :=
-  Fs.fsSemWithS_ok _ _ (Fs.noIoErr_keeps _)
+/-- Every step of the restricted semantics has no I/O error (`etcdSQ`'s first half: what the WAL's
+no-error specs use). -/
+theorem etcdFsExts_sat : Fs.FsStepSat (Fs.NoIoErr allIo) (S := etcdFsSem) :=
+  letI := etcdFsSem
+  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ (fun _ _ => True)
+  Fs.fsStepSat_and_left (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)
 
-/-- Every step of the restricted semantics satisfies the premise (what the WAL's no-error specs use). -/
-theorem etcdFsExts_sat : Fs.FsStepSat (Fs.NoIoErr etcdIoAll) (S := etcdFsSem) :=
-  Fs.fsSemWithS_sat _ _
-
-attribute [local instance] etcdFsExts_hasFs etcdFsExts_semOk
+attribute [local instance] etcdFsExts_hasFs etcdFsSemOk
 
 section start
 variable [GoGlobalContext] {GF : BundledGFunctors}

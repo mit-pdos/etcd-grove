@@ -46,9 +46,9 @@ set_option hygiene false in
 /-- A log call (`h.lg.Warn(...)` and the like): its fields' strings, the call. -/
 local macro "zap_log" : tactic => `(tactic| (
   repeat' (first_callee
-    | "String" => (wp_apply hIDStringPtr _ _ _ $$ [«from»] as %_ ⟨«from», -⟩; iexact «from»)
-    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | "String" => (wp_apply hIDString as %_ -)
+    | "*ID.String" => (wp_apply hIDStringPtr _ _ _ $$ [«from»] as %_ ⟨«from», -⟩; iexact «from»)
+    | "*ID.String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "ID.String" => (wp_apply hIDString as %_ -)
     | "zap.String" => (wp_apply hZString as %_ -)
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);

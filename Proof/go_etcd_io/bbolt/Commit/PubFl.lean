@@ -29,6 +29,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- The freelist's ids (distinct, below the mark) are at most the mark. -/
 theorem allIds_le_hwm (w : WDb) (hok : wdbOK w) (hwf : w.fl.WF) :

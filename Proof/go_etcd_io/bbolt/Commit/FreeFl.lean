@@ -87,16 +87,26 @@ theorem cm_free_fl (wp_FlFree : internal.freelist.Interface.Free.spec (GF := GF)
     rw [List.mem_range'_1] at hs
     have := (hrun (s - f) (by omega)).2.2.1
     rwa [show f + (s - f) = s by omega] at this
+  -- session S4: the page's slots are the writer's half of the synced freelist page (`wBytesX`)
+  have hfnp : f ∉ pendSlots w.fl := (wdbOK_partition w hok f (by
+    have := (hrun 0 (by omega)).1; rwa [Nat.add_zero] at this)).2.2
+  have hX : flxS w.C w.fl w.wb = List.range' f (1 + pageOverflow (w.wb f)) := by
+    unfold flxS; rw [hf]; simp only [hfnp, ↓reduceIte]; rfl
+  rw [hX]
+  iunfold wBytesX at Hwbs
+  icases Hwbs with ⟨Hwbs, HX⟩
   rw [hms]
-  icases wSlots_carve b l K.p w.W (List.range' f (1 + pageOverflow (w.wb f))) w.wb w.m.size
-    List.nodup_range' hsub hin $$ [Hwc Hwbs] with ⟨HS, Hwc, Hwbs⟩
-  · iframe
+  icases wCells_carveS b l w.W (List.range' f (1 + pageOverflow (w.wb f)))
+    List.nodup_range' hsub (fun s hs => (hin s hs).1) $$ Hwc with ⟨HC, Hwc⟩
+  ihave HS : [∗list] s ∈ List.range' f (1 + pageOverflow (w.wb f)),
+      iprop(osSlotH K.p s (w.wb s) ∗ ∃ vf, cellsR b (4096 * s) 4096 vf) $$ [HX HC]
+  · iapply BigSepL.bigSepL_sep_eqv.2; iframe
   have hbm : w.m.maps !! b = some l := by rw [hok.1 b l hms]; simp [GMap.singleton]
   -- the cells' bytes, at the call's step
-  iapply wrSlots_agree _ rfl K.p (DFrac.own 1) w.m b l hbm (by simp) w.wb _ _ hlen4 $$ Hos Hom HS
+  iapply wrSlotsH_agree _ rfl K.p (DFrac.own 1) w.m b l hbm (by simp) w.wb _ _ hlen4 $$ Hos Hom HS
   iintro Hom HS
   -- the page's header
-  unfold slotsOwn
+  unfold slotsOwnH
   rw [show 1 + pageOverflow (w.wb f) = pageOverflow (w.wb f) + 1 by omega, List.range'_succ]
   icases BigSepL.bigSepL_cons.1 $$ HS with ⟨⟨Hpg, Hos0⟩, HS⟩
   have hpgne : w.wb f ≠ [] := by intro h; rw [h] at h16; simp at h16
@@ -123,10 +133,10 @@ theorem cm_free_fl (wp_FlFree : internal.freelist.Interface.Free.spec (GF := GF)
     (fun j hj => by
       rw [hfW]
       obtain ⟨-, a, c, d, -⟩ := hrun j hj
-      exact ⟨a, c, fun b' l' e => d b' l' (hms.trans e)⟩))
+      exact ⟨a, c, fun b' l' e => d b' l' (hms.trans e)⟩) (by rw [hfW]))
     $$ [Hpi Hcur Hgfl Hgmap Hgwv Hpg Hos0 HS] with ⟨Hcur, Hgfl, Hgmap, Hgwv, Htok, -⟩
   · iframe; iframe #
-    unfold slotsOwn
+    unfold slotsOwnH
     rw [hfW, show 1 + pageOverflow (w.wb f) = pageOverflow (w.wb f) + 1 by omega,
       List.range'_succ]
     iapply BigSepL.bigSepL_cons.2
@@ -138,6 +148,16 @@ theorem cm_free_fl (wp_FlFree : internal.freelist.Interface.Free.spec (GF := GF)
     WDb.freeFl.proj_wb, WDb.freeFl.proj_m, WDb.freeFl.proj_fli, WDb.freeFl.proj_f,
     WDb.freeFl.proj_fd, WDb.freeFl.proj_junk]
   rw [hms]
+  have hlt : (W64 (f : Int)).toNat + (pageOverflow (w.wb f) + 1) < 2 ^ 64 := by rw [hfW]; omega
+  have hX' : flxS w.C (w.fl.freePages w.wtxid (W64 (f : Int)) (pageOverflow (w.wb f) + 1)) w.wb = [] := by
+    unfold flxS; rw [hf]
+    have : f ∈ pendSlots (w.fl.freePages w.wtxid (W64 (f : Int)) (pageOverflow (w.wb f) + 1)) :=
+      (pendSlots_freePages _ _ _ _ hlt f).2 (Or.inr ⟨by rw [hfW]; omega, by rw [hfW]; omega⟩)
+    simp only [this, ↓reduceIte]
+  rw [hX']
+  ihave Hwbs : wBytesX K.p (wMinus w.W (List.range' f (pageOverflow (w.wb f) + 1))) [] w.wb w.m.size
+    $$ [Hwbs]
+  · iapply (wBytesX_nil K.p _ w.wb w.m.size).2; unfold wMinus; rw [List.range'_succ]; iexact Hwbs
   iframe
   ihave Hflo : flPgOwn w.fli (w.fl.freePages w.wtxid (W64 (f : Int)) (1 + pageOverflow (w.wb f)))
     $$ [Hflo]

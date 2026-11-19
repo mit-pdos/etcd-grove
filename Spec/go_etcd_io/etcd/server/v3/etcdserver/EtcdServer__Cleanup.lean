@@ -84,8 +84,9 @@ abbrev EtcdServer.Cleanup.spec : Prop :=
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
       dghostVar γbe dq (bkKey d) ∗ Y ∗
       ∃ D : backend.Data, backend.bStopView d.γB d.P W Pk D ∗
-        ((∃ path : GoString, backend.bFile d.γB path ∗ backend.fileHolds path D) ∨
-          ⌜¬ backend.dbCloseOk⌝) }}
+        -- (S5, 2026-11-18) the closed backend's file (`backend.Close`'s `bClosed`: its inode, which
+        -- the caller's claim on the name, `bPath`, joins back; until then the file at its path)
+        (backend.bClosed d.γB.db D ∨ ⌜¬ backend.dbCloseOk⌝) }}
 
 end spec
 

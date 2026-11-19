@@ -800,18 +800,47 @@ theorem wp_osMmap_cs (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Nam
       WP (ExternalOp fsExt.name "Mmap"
         (Val (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))))) {{ Φ }} := by
   iintro #Hos #Hinv Hfd Hown HΦ
+  have hN' : ↑N ⊆ (⊤ : CoPset) \ ↑osN := fun x hx =>
+    Std.LawfulSet.mem_diff.2 ⟨CoPset.subseteq_top x hx,
+      fun ho => (Std.LawfulSet.mem_diff.1 (hN x ho)).2 hx⟩
+  -- the call opens the invariant at each of its steps (it need not return: `wp_osMmapG`)
+  iapply wp_osMmapG fd off len prot fl dq d m (((⊤ : CoPset) \ ↑osN) \ ↑N) CoPset.subseteq_top
+    hrd hoff hlen hprot hfl (fun _ => True) (fun _ _ _ _ _ _ _ _ => trivial)
+    (csOwnF (L := L) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)))
+    (fun base e =>
+      iprop((⌜e = 0 ∧ 0 < base.addr ∧ base.addr + len.toNat ≤ maxAddr⌝ ∗
+            csOwnF (L := L) γ
+              (some (d.ino, ⟨{ m with maps := <[base := len.toNat]> m.maps }, bs, fa, fb, .idle⟩)) ∗
+            ∃ bs0 : List w8, ⌜bs0.length = m.size⌝ ∗
+              cellsR base 0 len.toNat (fun i => toCellVal bs0[i]?)) ∨
+         (⌜e ≠ 0 ∧ base = null⌝ ∗ csOwnF (L := L) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)))))
+    Φ $$ Hos [] HΦ Hfd Hown
+  imodintro
+  iintro Hown
   icases (csOwnF_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
   obtain ⟨hl, hab, hfb, -⟩ := Hwf
   dsimp only at hl hab hfb
-  iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
-  imod cs_open N P R γ Good Ok _ ⊤ (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv Hv
+  imod cs_open N P R γ Good Ok _ ((⊤ : CoPset) \ ↑osN) hN' $$ Hinv Hv
     with ⟨Hv, Hr, Hv', %Hok', Hclose⟩
   icases (invResS_idle _ _ rfl).1 $$ Hr with ⟨Hm2, Hb2⟩
   ihave Hm := (osMeta_halves _ _).2 $$ [Hm1 Hm2]
   · iframe
   imodintro
-  iapply wp_osMmap fd off len prot fl dq d m hN hrd hoff hlen hprot hfl $$ Hos Hfd Hm
-  iintro %base %e Hres Hfd
+  iframe Hm
+  iintro %r Hres
+  rcases r with _ | ⟨base, e⟩
+  · -- the call did not return: the invariant closed as it was
+    unfold mmapRes mmapPost
+    icases (osMeta_halves _ _).1 $$ Hres with ⟨Hm1, Hm2⟩
+    imod Hclose $$ [Hv' Hm2 Hb2] with -
+    · inext; iexists (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)); iframe Hv'; isplitl
+      · iapply (invResS_idle _ _ rfl).2; iframe
+      ipureintro; exact ⟨Hok'.1, rfl, Hok'.2⟩
+    imodintro
+    iapply (csOwnF_idle _ _ _ rfl).2
+    iframe
+    ipureintro; exact ⟨hl, hab, hfb, trivial⟩
+  unfold mmapRes mmapPost
   icases Hres with (⟨%he, Hm, Hc⟩ | ⟨%he, Hm⟩)
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     imod ghostVar_update_halves
@@ -826,7 +855,6 @@ theorem wp_osMmap_cs (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Nam
         iexact Hb2
       ipureintro; exact ⟨hok base, rfl, (by have hc := Hok'.2; simp only [CsCut] at hc ⊢; simp [hc, OsMeta.synced, OsMeta.announce, pwPostK, pwPost, rsPost])⟩
     imodintro
-    iapply HΦ $$ %base %e [Hv Hm1 Hb1 Hc] Hfd
     ileft
     isplitr; · ipureintro; exact he
     iframe Hc
@@ -843,9 +871,8 @@ theorem wp_osMmap_cs (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Nam
       · iapply (invResS_idle _ _ rfl).2; iframe
       ipureintro; exact ⟨Hok'.1, rfl, Hok'.2⟩
     imodintro
-    iapply HΦ $$ %base %e [Hv Hm1 Hb1] Hfd
     iright
-    isplitr; · ipureintro; exact he
+    isplitr; · ipureintro; exact ⟨he.1, he.2.1⟩
     iapply (csOwnF_idle _ _ _ rfl).2
     iframe
     ipureintro; exact ⟨hl, hab, hfb, trivial⟩

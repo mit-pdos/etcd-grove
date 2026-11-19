@@ -66,6 +66,8 @@ public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.InitLinked
 
 @[expose] public section
 
@@ -81,27 +83,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors: putget's (`putgetGF`: the universal camera `AllG` at slot 0, then invariants,
-later credits, GooseLang's heap, prophecies and package state), and
-iris-lean's non-atomic invariants at slot 11 (as the counter's `counterGF`). Every other slot is
-the unit functor. -/
-def linkvGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 11 => ⟨NaInvF, inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def linkvGF_allG : AllG linkvGF := ⟨⟨0, rfl⟩⟩
@@ -118,33 +102,10 @@ instance linkvGF_gooseGpreS : GooseGpreS linkvGF where
 take. -/
 instance linkvGF_naInvG : NaInvG linkvGF := ⟨⟨11, rfl⟩⟩
 
-/-- **A ghost-state instance at the local context `lctx`** (as putget's `heapAt`). -/
-abbrev linkvHeapAt (hG : HeapGS .hasLC linkvGF) (lctx : GoLocalContext) : HeapGS .hasLC linkvGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `linkv3p`'s initialization, then `Main(clients, ops, sched)` with the schedule
-built as a slice literal. -/
-def linkv3pProgram [GoSemanticsFunctions] (clients ops : w64)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize' #() ;;
-  App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.Main)) (Val #clients))
-    (Val #ops)) (schedLit steps)
-
-/-- The program's addresses: the three members' peer addresses, their client addresses, and the
-bridges' addresses (2026-10-21, `notes/client-cut-plan.md`). -/
-def linkv3pAddrs : List GoString :=
-  [etcd_partition.peerAddr₁, etcd_partition.peerAddr₂, etcd_partition.peerAddr₃,
-    etcd_partition.clientAddr₁, etcd_partition.clientAddr₂, etcd_partition.clientAddr₃,
-    etcd_partition.bridgeAddr₁, etcd_partition.bridgeAddr₂, etcd_partition.bridgeAddr₃]
-
-/-- The read package's two metric names, which `linkv3p`'s initialization registers (`readRegPerm`,
-D16). -/
-def linkv3pNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The partitioned three-member instance is safe** (see the file header): every real
 execution of `linkv3pProgram clients ops steps` from a fresh state with one thread, of `n` steps: if

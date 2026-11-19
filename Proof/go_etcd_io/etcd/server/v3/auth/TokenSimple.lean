@@ -168,7 +168,7 @@ theorem big_fresh_none (γt γf : GName) (m : GMap GoString GoString) (t : GoStr
 
 /-- `tm.resetSimpleToken(token)`: the keeper's map, kept. -/
 theorem keeper_reset (k : Loc) (token : GoString) :
-    {{ keeperMap (GF := GF) k }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.time ∗ keeperMap (GF := GF) k }}
       (App (Val #(methods (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"resetSimpleToken" #k))
         (Val #token))
     {{ RET #(); keeperMap k }} := by
@@ -213,7 +213,7 @@ theorem sprintfOut_simpleTok [go.IntoValInj GoString] [go.IntoValInj w64]
 
 /-- `tm.addSimpleToken(token)`: the keeper's map, kept. -/
 theorem keeper_add (k : Loc) (token : GoString) :
-    {{ keeperMap (GF := GF) k }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.time ∗ keeperMap (GF := GF) k }}
       (App (Val #(methods (go.GoType.PointerType simpleTokenTTLKeeper.ty) go!"addSimpleToken" #k))
         (Val #token))
     {{ RET #(); keeperMap k }} := by

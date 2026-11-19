@@ -74,7 +74,7 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
     (dv : Option Loc) (w : Nat) (g : w64) (sa : auth.AuthState),
   P E.authMode → receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
-  loopOk γ st ai → logShapeM E.authOn E.lm (unapplied ai ms) →
+  loopOk γ st ai → logShapeM E.authOn E.lm (unapplied ai ms) → logPutsOk (unapplied ai ms) →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) (unapplied ai ms) →
   uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

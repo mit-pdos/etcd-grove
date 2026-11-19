@@ -267,6 +267,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- outside the server's snapshotters writes `.snap.db` files there (`snap.snapDirOwn`), which
     -- names the one ghost map of its files (`snapDir_init`)
     "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir') ∗
+    -- (S5, 2026-11-18) and the claims on that directory's snapshot names, every index's, free
+    -- (`snapFreeAll`: the shared mode's claims on the names `bootstrap`'s new snapshot directory has,
+    -- none of them a file), which the directory's invariant keeps for `SaveDBFrom`
+    "Hsfree" ∷ snapFreeAll (snap.snapDBPathOf cfg.DataDir') ∗
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
@@ -454,8 +458,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
-    -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
-    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+    -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it).
+    -- (S5, 2026-11-18) The claim on that name, which names the backend's file (`backend.bPath`, what
+    -- `backend.New` gives with the backend; until then the opaque `pathOwn`)
+    "Hpath" ∷ backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
     -- (2026-11-04, the restart plan's R2b-3d, the user's approval) the backend's file is the
     -- configuration's backend path (`bootstrapBackend`'s `OpenBackend(cfg, ...)`, whose post gives it)
     "#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir'))
@@ -613,7 +619,8 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone] []
   · ipureintro
     exact ⟨rfl, rfl, Hnn.1, Hnn.2⟩
-  · iapply epCsOk_of_csOptA $$ Hcs
+  · iapply (epCsOk_of_csOptA _ memSnapEmpty.Metadata'.ConfState'
+      (by simp [storage.csIdCount, memSnapEmpty])) $$ Hcs
   · iexact Hnone
   · iexact Hinv0
 

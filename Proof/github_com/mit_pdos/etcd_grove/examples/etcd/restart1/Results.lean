@@ -38,7 +38,7 @@ end results
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 variable [go_gctx : GoGlobalContext]
 
 /-- **The one-member restart example is safe, in the operational semantics.**
@@ -118,8 +118,8 @@ and nothing else is in the range.
 - The restart reads the stopped files through the disk image's tokens: the WAL files
   (`wal.stopImage`, over the axiomatized `walFiles` token: the graceful file model, "the files a
   graceful stop in one process leaves"), the WAL directory's purge right (`walPurgeRight`), the
-  snapshot directory (`srvFiles`) and the backend file (`backend.pathOwn` of `backendPathOf`, with
-  its contents `backend.Data`).
+  snapshot directory (`srvFiles`) and the backend file (`backend.fileHolds` of `backendPathOf`, the
+  claim on its name with its contents `backend.Data`; until S5 also the opaque `backend.pathOwn`).
 - The rest of the existing trust base (`etc/tcb-collections/restart1.txt` will list it). -/
 theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions]
@@ -149,32 +149,6 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_restart1_adequate Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit
     Hthreads κs t2 σ2 Hsteps Hn
-
-/-- **`etcd_restart1_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_restart1_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_restart1_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC restart1GF, ContextReadErrs (GF := restart1GF) (hG := heapAtR1 hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_restart1.BootFacts id ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
-    (HNs : prometheus.namesUnclaimed restart1Program restart1Names)
-    (HDs : dataDirsAbsent restart1Program [go!"restart1.etcd"])
-    (HEnv : verifyEnvOff restart1Program)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC restart1GF,
-      ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"restart1.etcd"]) :
-    Robustness.Robust [] [(restart1Program, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_restart1_safe
-      Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1
-      hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 

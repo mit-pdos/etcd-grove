@@ -76,7 +76,7 @@ abbrev osAU {A : Type} (α : IProp GF) (β Q : A → IProp GF) : IProp GF :=
 /-- **An atomic update opened around one step of the extension**: the step runs with the update's
 precondition `α`, and ends either aborting (`α` back; the update returns) or committing with an
 outcome `o` (`β o`; the update's `Q o`). -/
-theorem wp_au_step {A : Type} (op : String) (v : val) (α : IProp GF) (β Q : A → IProp GF)
+theorem wp_au_step {A : Type} (op : String) [FsRetOp op] (v : val) (α : IProp GF) (β Q : A → IProp GF)
     (Ψ : val → IProp GF) :
     ⊢ osAU α β Q -∗
       (α -∗ WP (ExternalOp fsExt.name op (Val v)) @ ((⊤ : CoPset) \ osAuMask) {{ w,
@@ -206,7 +206,7 @@ theorem osAU_osAUnc {A : Type} (α : IProp GF) (β Q : A → IProp GF) :
 
 /-- **`wp_au_step` for `osAUnc`**: the update is opened with the generation's `notCrashed`
 (`wp_atomic_nc`), around one step of the extension. -/
-theorem wp_aunc_step {A : Type} (op : String) (v : val) (α : IProp GF) (β Q : A → IProp GF)
+theorem wp_aunc_step {A : Type} (op : String) [FsRetOp op] (v : val) (α : IProp GF) (β Q : A → IProp GF)
     (Ψ : val → IProp GF) :
     ⊢ osAUnc (L := L) α β Q -∗
       (α -∗ WP (ExternalOp fsExt.name op (Val v)) @ ((⊤ : CoPset) \ osAuMask) {{ w,

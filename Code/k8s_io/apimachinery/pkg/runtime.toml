@@ -9,7 +9,11 @@
 # that the driver's contract rests on the trust-boundary specs of `bytes.Buffer` and `reflect`
 # rather than on axioms of these two. And (k8s 7f-5a-P) `Decode`, the etcd3 watcher's `decodeObj`
 # (`d.Decode(data, nil, nil)`), so that the watch path's contract is the codec's `Decode` method.
-translate = ["!*", "Encode", "SetZeroValue", "Decode"]
+translate = ["!*", "Encode", "SetZeroValue", "Decode",
+  # BEGIN etc/gen-k8s-deep.py: the deep copies the proofs need (generated; do not edit)
+  "RawExtension.DeepCopyInto",
+  # END etc/gen-k8s-deep.py
+  ]
 imports = ["!*", "k8s.io/apimachinery/pkg/runtime/schema", "io", "bytes", "reflect",
            "k8s.io/apimachinery/pkg/conversion"]
 

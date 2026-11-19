@@ -62,7 +62,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The server's `E.C` in the auth mode `on`** (`srvC` with the mode's shapes). -/
 def srvCM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on ρ.kv.lm L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
+  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on ρ.kv.lm L ∧ logPutsOk L⌝ ∗ batchWaitOk ρ E L ∗
+    srvRLogLb ρ.raft L)
 
 instance srvCM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (L : List EntryModel) :
@@ -85,7 +86,8 @@ theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x�
 /-- **The cluster's workload in the auth mode `on`** (`clusterWorkloadOk` with the mode's
 shapes). -/
 def clusterWorkloadOkM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on ρ.kv.lm L⌝ ∗ batchWaitOk ρ E L)
+  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on ρ.kv.lm L ∧ logPutsOk L⌝ ∗
+    batchWaitOk ρ E L)
 
 instance clusterWorkloadOkM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (clusterWorkloadOkM (GF := GF) on ρ E) := by
@@ -466,7 +468,15 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   · inext; iexists L'; iframe HL' Hσ Hh Hw HG; ipureintro; exact Hok
   iunfold kvWorkOn at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
+  obtain ⟨Hsh, Hccl, Hpk, -, Hatt⟩ := Hsh
+  -- (S1b) the committed log's puts are short (`clusterWorkloadOk_of`'s)
+  have HpkL : logPutsOk L := srv_entry_transfer_nv _ L L' entryPutsOk
+    (fun m m' he h => by
+      have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      unfold entryPutsOk at h ⊢; rw [h1, h2]; exact h)
+    (fun m _ hd => fun _ hn => absurd hd hn) HLi Hp.2.2 Hpk hnv
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have HshL : logShapeOn ρ.kv.lm L := srv_entry_transfer_nv _ L L' (entryShapeOn ρ.kv.lm)
     (fun m m' he h => by
@@ -494,7 +504,7 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
   imodintro
   isplitr
-  · ipureintro; exact HshL
+  · ipureintro; exact ⟨HshL, HpkL⟩
   iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true ρ.kv.lm L HshL) HcclL HatL $$ HclL HNZ HL
 
 /-- **The workload clause in the auth mode `on`**, from the mode's KV invariant. -/

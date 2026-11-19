@@ -30,6 +30,7 @@ public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Metrics
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeLevels
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
 
 @[expose] public section
 
@@ -57,11 +58,6 @@ section adequacy
 variable [GooseExts] [GooseInterp]
 variable [GooseSemantics] [GoGlobalContext]
 variable {GF : BundledGFunctors}
-
-/-- **A ghost-state instance at the local context `lctx`** (the examples state their hypotheses
-over every instance whose Go local context is the semantics' own). -/
-abbrev heapWith (hG : HeapGS .hasLC GF) (lctx : GoLocalContext) : HeapGS .hasLC GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-- **The right to initialize, from the empty package state.** -/
 theorem ownInitializing_of_empty [hG : HeapGS .hasLC GF] (getInit : GoString → IProp GF) :
