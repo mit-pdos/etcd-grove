@@ -78,6 +78,16 @@ theorem noErrs_nil : ⊢ noErrs (GF := GF) slice.nil := by
   · iapply ownSlice_nil
   · iapply ownSliceCap_nil
 
+/-- An empty errors slice has length 0. -/
+theorem noErrs_len (s : GoSlice) : noErrs (GF := GF) s ⊢ ⌜sint.Z s.len = 0⌝ := by
+  unfold noErrs ownErrs
+  iintro ⟨Hs, _⟩
+  ihave %H := ownSlice_len _ _ _ $$ Hs
+  ipureintro
+  obtain ⟨h1, h2⟩ := H
+  simp only [List.length_nil] at h1
+  word
+
 /-- Calling `ruleKeepRHS`'s closure (the persistent spec read at one call). -/
 theorem ruleKeepRHSOk_call (f : GoFunc) (w : Loc) (v : typed.mergingWalker) (dql dqr : DFrac)
     (l r : Option UVal) :

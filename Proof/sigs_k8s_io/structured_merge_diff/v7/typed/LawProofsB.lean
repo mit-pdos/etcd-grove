@@ -443,3 +443,37 @@ theorem reconOut_reconcile_law_holds : reconOut_reconcile.law := by
       fset_empty_union, fset_map_append_nil]
   rw [fset_isEmpty_eq _ hn, filter_none, fset_union_empty]
 
+
+namespace LawB
+
+/-- A conforming side of a scalar type is a scalar of its kind (or `null`). -/
+theorem conf_scalar (S : Schema) (t : TypeRef) (s : Scalar) (x : UVal)
+    (h : S.find t.name = some (.scalar s)) (hc : conforms S t x) : scalarOk s x = true := by
+    simp only [conforms] at hc
+    cases x
+    · cases s <;> rfl
+    all_goals (rw [conformsB] at hc <;> simp_all)
+
+theorem leafAt_scalar (S : Schema) (t : TypeRef) (s : Scalar) (l r : Option UVal)
+    (h : S.find t.name = some (.scalar s)) : leafAt S t l r = true := by
+  simp [leafAt, h]
+
+theorem mergeO_scalar (S : Schema) (t : TypeRef) (s : Scalar) (l r : Option UVal)
+    (h : S.find t.name = some (.scalar s)) : mergeO S t l r = leafM l r := by
+  unfold mergeO fuelO
+  simp only [mergeF, h]
+
+theorem cmpO_scalar (S : Schema) (t : TypeRef) (s : Scalar) (p : Path) (l r : Option UVal)
+    (h : S.find t.name = some (.scalar s)) : cmpO S t p l r = leafC p l r := by
+  unfold cmpO fuelO
+  simp only [cmpF, h]
+
+theorem cmpBelow_scalar (S : Schema) (t : TypeRef) (s : Scalar) (p : Path) (l r : Option UVal)
+    (h : S.find t.name = some (.scalar s)) : cmpBelow S t p l r = leafC p l r := by
+  simp [cmpBelow, leafAt_scalar S t s l r h]
+
+end LawB
+
+end smd
+end EtcdGrove
+end Perennial
