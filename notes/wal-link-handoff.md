@@ -1,6 +1,21 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 u, item 3 done; F1's approved form STOPPED: bbolt unprovable)
+## START HERE (2026-11-19 v, the WAL work SPLIT: L3 lands without new file-model text)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin f551a1b46, `--packages=/shared/tmp/manifest-f55.json`
+  (`.lake/package-overrides.json` its copy). Last green full build `20261119-080329-2994864` (b5ba70baa2).
+- **Split (user, 2026-11-19, via 03; questions.md):** F1 (a), A1, A2, `PathErrno`, NoIoErr (a), cut/Create specNoErr,
+  rnNewStorageOk_holds → branch `wal-fsfix` (9017eb196d; brief `notes/wal-fsfix-brief.md`). On `wal-link`, the code
+  and Go texts of 3778c95957 and a50580df93 are reverted (notes kept); `rnNewStorageOk` stays a premise.
+- **Next, in order:** Hm1 route (B): move `WalOpG` out of `GooseLang/Ext/AbsDisk/Impl.lean` into a WAL-history
+  module (pure move, tcb unchanged; mind `etc/tier-baseline.txt`'s `AbsDisk.Impl -> PbModel`), then the presence bit
+  (`srvSnapMetaC md al uf`, `walSnapCanon` over `al`), remove the sorry `Hm1`; P2; merge lean (pin 3afd77e35); full
+  timed build (report id); tcb --check --update; collections; interfaces; Links; examples' Go to absolute dirs +
+  `--wal-dir`; STOP with the exact old → new closed statements.
+- **Pitfalls:** as in u and s below; the attack on `wal-fsfix` reads `/shared/tmp/wallink-fsfix-ro` (a detached
+  worktree of `wal-fsfix`: remove it with `git worktree remove` when the follow-up starts).
+
+### (2026-11-19 u, item 3 done; F1's approved form STOPPED: bbolt unprovable)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`, head a50580df93 (+ handoff commit); pin f551a1b46,
   `--packages=/shared/tmp/manifest-f55.json` (`.lake/package-overrides.json` its copy). Last green full build

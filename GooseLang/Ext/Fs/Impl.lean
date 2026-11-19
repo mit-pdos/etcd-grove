@@ -27,9 +27,7 @@ roots and their ancestors are existing directories throughout** (an ancestor may
 one, a root is none: so a root's `lstat` answers as its `stat`, and `mkdir` of either fails with no
 effect; `PathKind`; the program never removes, renames or replaces one either, as no step can); the
 filesystem has no error or shutdown event (then an `fsync` may return 0 without committing); the
-tree at boot is their trees' entries. No Linux security module denies a file lock on them
-(`security_file_lock`, which `flock(2)` and `fcntl`'s lock commands call before any lock is taken;
-2026-11-19, decided by etcd-grove-03 after the attack on `NoIoErr`'s lock coverage). The journal (jbd2) commits whole transactions, in order; a
+tree at boot is their trees' entries. The journal (jbd2) commits whole transactions, in order; a
 metadata call joins a transaction no earlier than those of the calls that returned before it
 began (measured, `notes/axiom-review/fs-v2-r5.md`, B1); an `fsync` of a directory commits the
 whole journal (`ext4_force_commit` for a file that is not regular, `fs/ext4/fsync.c`).

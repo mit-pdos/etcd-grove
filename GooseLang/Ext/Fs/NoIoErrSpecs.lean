@@ -38,16 +38,7 @@ theorem noIoErr_step {Sio : IoSet} [hsat : FsStepSat (NoIoErr Sio)] {o : String}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
     (hs : S.step o v h st g e' h' st' g') (hc : IoCovers Sio o v st)
     (hex : ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e'') : ErrnoZero o e' :=
-  (hsat.sat o v h st g e' h' st' g' hs hc).1 hex
-
-/-- **A covered `unlink`/`rmdir` that cannot succeed fails with Linux's errno** (`NoIoErr`'s
-`PathErrno`, from the semantics' step). -/
-theorem noIoErr_pathErrno {Sio : IoSet} [hsat : FsStepSat (NoIoErr Sio)] {o : String} {v : val}
-    {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
-    {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
-    (hs : S.step o v h st g e' h' st' g') (hc : IoCovers Sio o v st)
-    (hno : ¬ ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e'') : PathErrno o v st e' :=
-  (hsat.sat o v h st g e' h' st' g' hs hc).2 hno
+  hsat.sat o v h st g e' h' st' g' hs hc hex
 
 open Classical in
 /-- Every step of `fsync(fd)` returns 0 when every inode is covered. -/

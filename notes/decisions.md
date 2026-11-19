@@ -40479,20 +40479,6 @@ code that we can't yet reason about"): not done in unit `locks`, session 2; what
 to the WAL's own files (a set given by the WAL's paths, which needs a data-step lifting that sees the tree)
 is later work; the premise is stated generally, so it can replace (a) without touching the semantics.
 
-**Lock requests and directory reads covered (the user's approval, 2026-11-19, option (a) of
-`notes/wal-units/noioerr.md`, "Blocked"; branch `wal-link`).** `wal.Create` locks its first segment and reads
-its fresh temporary directory, `WAL.cut` locks its new tail, and neither call was covered, so their errors
-(on which etcd panics) were not excluded. `IoCovers` gains `Flock`, `OfdLock` (an fd of a covered inode) and
-`DirReadNext` (a directory fd of a covered inode), in the same "succeeds whenever it can" form: a lock
-request with no conflicting lock among the process's fds succeeds, an unlock succeeds, a read with a name
-left or at its end does not fail. `ErrnoZero "DirReadNext"` also accepts `ENOENT`: the semantics gives it
-only for a removed directory, as Linux does, and a premise excluding it there would be false of Linux.
-Not covered, though named in the approval: `LstatDir` (its outcome `isDir = 0` is both a non-directory and a
-failed `lstat` of a directory, so there is no success to name; the WAL never reaches it on a directory) and
-the queries `PathKind`, `FdKind` (one answer from each state; "covering" them would add text and exclude
-nothing). Go example: `premise_no_io_err.go` (assumed; measured as support on C:
-`premise_no_io_err_test.go`).
-
 **Not an I/O error: `EFBIG` at `maxBytes`** (unit `noioerr`, second session). A write that reaches ext4's
 `s_maxbytes` fails whatever the premise (no success exists there), so an error-free flush needs the tail's
 stream to end before it: the no-error specs that write take a sealed handle with room

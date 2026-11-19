@@ -35,10 +35,6 @@ import (
 //     fs-v2-r4.md N2);
 //   - no swap (an etcd deployment's usual setting; nothing in the model
 //     depends on it now that tears are byte-level).
-//   - no Linux security module denies a file lock on the roots' files
-//     (security_file_lock, called by flock(2) and fcntl's lock commands
-//     before any lock; 2026-11-19): a lock request that the lock rule lets
-//     succeed is refused only by an error NoIoErr names (premise_no_io_err.go).
 //
 // Outside C (xfs, data=journal, 1-2 KiB blocks, other kernels): not
 // described until tested on their own.
