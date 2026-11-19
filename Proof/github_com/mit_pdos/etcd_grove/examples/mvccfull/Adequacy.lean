@@ -56,6 +56,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequa
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.runtime.StartFiles
 public import Proof.runtime.Threads
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.TopLevelDefs
 
 @[expose] public section
 
@@ -205,11 +206,6 @@ theorem nameOk_of (b : GoString) (hl : 3 ≤ b.length) (hc : ∀ c ∈ b, c.toNa
   · intro h; exact (hc _ h).1 rfl
   · intro h; exact (hc _ h).2 rfl
 
-/-- **`Main`'s files, by name** (`FilePaths(MainConfig("mvccfull"))`): the members' `mvccfull-0.db`,
-`mvccfull-1.db` and the builders' `mvccfull-b<n>.db`. -/
-def mvccfullNames [GooseExts] [GoGlobalContext] : List GoString :=
-  filePathsM (mainConfigM go!"mvccfull" (zeroValDef : Mix))
-
 theorem memberPathM_child (r p : GoString) (k : Nat) :
     memberPathM (Fs.child r p) k = Fs.child r (memberPathM p k) := by
   simp [memberPathM, Fs.child, List.append_assoc]
@@ -315,13 +311,6 @@ instance mvccfullGF_gooseGpreS : GooseGpreS mvccfullGF where
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `mvccfull`'s initialization, then `Run(MainConfig(r/mvccfull))`: `Main`'s run with
-its files in the directory `r`, its report dropped, as `Main` does (S3e; until then `Main()`, whose prefix `mvccfull` is relative). -/
-def mvccfullProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.mvccfull.initialize' #() ;;
-  ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Run)
-    ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig) #(Fs.child r go!"mvccfull")) ;; #())
 
 /-- **mvcc's full tester passes** (see the file header): every real execution of
 `mvccfullProgram r` from a fresh state with one thread, whose file system's root `r` has none of
