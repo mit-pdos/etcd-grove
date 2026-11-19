@@ -78,16 +78,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.api.v3.version
 
--- `server/v3/lease/leasepb` (types only: the lease's protobuf message)
-namespace go_etcd_io.etcd.server.v3.lease.leasepb
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.lease.leasepb
+-- `server/v3/lease/leasepb`'s instances are in the server's `Base.lean` (schema imports it, 2026-11-19).
 
 -- `container/heap` (names only)
 namespace container.heap

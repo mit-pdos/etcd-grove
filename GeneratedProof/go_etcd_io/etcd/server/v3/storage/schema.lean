@@ -8,6 +8,7 @@ public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
 public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
+public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
