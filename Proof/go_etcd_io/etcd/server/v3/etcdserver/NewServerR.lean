@@ -290,7 +290,7 @@ theorem NewServer.wp_proofRG
   iunfold bootstrapRestartContract at Hboot'
   ihave Hbc := Hboot' $$ %σ %i %A %D %M [] []
   · ipureintro
-    exact ⟨Hsw.2.1, Hsw.2.2, Hbl, Hbco, Hfnc, Hdwd, Hdisk.1, Hdisk.2.2.1, Hbwb, Hpurl, Hcvl⟩
+    exact ⟨Hsw.2.1, Hsw.2.2, Hbl, Hbco, Hfnc, Hdwd, Hdisk.1, Hbwb, Hpurl, Hcvl⟩
   · iexists ρo.rd.kv, A, u
     iframe Hmvi
     ipureintro; exact ⟨Himr.2, Himg, Hist⟩
@@ -341,13 +341,13 @@ theorem NewServer.wp_proofRG
     ipureintro; exact ⟨Hl'b, Hag⟩
   imod wal.restartOk_start cfg id cid bw.w' σ γ.cl S i _ Hl0len $$ [Hwal Hwsi Hl0] with
     ⟨%hw, %νw, %Hhw, #Hdur, Hwview, Hwok, Hwstop, Hwapp, #Hwlb, Hwsi, Hwalo, Hwmeta, Hwpurge, %HwDir⟩
+  · iframe Hwal Hwsi Hl0
   -- (wal-link L3) the durability's WAL the opened one
   ihave %Hνh : ⌜νw.h = hw⌝ $$ []
   · ihave #Hdur' := Hdur
     iunfold rnDurInv at Hdur'
     icases Hdur' with ⟨%H, -⟩
     ipureintro; exact H
-  · iframe Hwal Hwsi Hl0
   iStructNamed Hbc
   wp_auto
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
@@ -431,7 +431,9 @@ theorem NewServer.wp_proofRG
     $$ [Hbv Hc Hrest Hpeers Hvac HrS Hwview Hwok]
     as %r ⟨%γrn, %rvr, %Hrnames, #Hsws, Hrd1, Hrd2, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, -, #Hminv,
       Hmsmeta, Hmsnone, Hrsc⟩
-  · iframe Hbv Hc Hrest Hpeers Hvac HrS Hwview Hwok
+  · ihave #Hdurν : rnDurInv γ.cl νw νw.h $$ []
+    · rw [Hνh]; iexact Hdur
+    iframe Hbv Hc Hrest Hpeers Hvac HrS Hwview Hwok Hdurν
     iframe #
     ipureintro
     exact ⟨⟨Hrcfg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, by rw [Hνh, Hhw], by omega, Hcfg0,
@@ -781,7 +783,7 @@ theorem NewServer.wp_proofRG
   imod kv_log_plain ρ.rd.raft ρ.rd.kv A $$ HkvI Hsrl HAr with %Hpl0
   have hnl : mvcc.LogNoLease (kvModel ρ.rd.kv A) := by
     have hl0 : mvcc.LogNoLease ρ.rd.kv.log0 := by
-      rw [Hlog0]; intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
+      rw [Hlog0]; intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hcs
       rcases hcs with rfl | rfl <;> simp at hc
     unfold kvModel; exact (kvRaftOf_restorable _ _ _ A Hpl0.1 hl0).1
   have hpi : mvcc.pendItems (kvModel ρ.rd.kv A) [] = ∅ := by
@@ -1128,13 +1130,14 @@ theorem NewServer.wp_proofRG
   ihave Hwtl : rnWalTokL γrn (srvRAddr s) $$ [Hwtl Hwstop Hwmeta Hwpurge Hrd1]
   · iunfold rnWalTokL
     iframe Hwtl
+    ihave Hwstop' : token γrn.wal.stop $$ [Hwstop]
+    · rw [Hrnν]; iexact Hwstop
+    iframe Hwstop'
     iunfold rnFixed at Hfix
     iNamed Hfix
     iexists rvr.raftNodeConfig'.storage', _
     iframe storageC Hrd1
-    rw [Hrnν]
-    iframe Hwstop
-    rw [Hνh]
+    rw [Hrnν, Hνh]
     -- (R2b-3b) the metadata names the member, the wrapper's id
     have hidr : γrn.id = id := by first | rw [Hrn5, Hrid] | rw [Hrn5, Hrid, Hid]
     rw [hidr]
@@ -1694,7 +1697,7 @@ theorem NewServer.wp_proofRG
       iframe HalS HalA HisAuth HauR HauSK Hlbe Hlcfg Hrc Hisc HszS
       isplitr
       · ipureintro
-        refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, HbP,
+        refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
           Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega, Hssp⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
@@ -1718,7 +1721,11 @@ theorem NewServer.wp_proofRG
       isplitr
       · iframe kv HisKV
       -- (J8a-3) the configuration's rebuild
-      iexact HcfgRb
+      iframe HcfgRb
+      -- (wal-link L3) the storage over the snapshotter, the WAL contract's (`NodeStart`'s)
+      iexists γrn.wal.h
+      rw [← Hrnss]
+      iexact Hsws
     isplitr
     · ipureintro
       rw [show (W64 0 + W64 A.length : w64) = i by have := HiA; word]; omega

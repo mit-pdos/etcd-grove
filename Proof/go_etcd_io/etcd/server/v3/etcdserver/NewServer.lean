@@ -445,7 +445,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply Hboot' $$ [Hrauth Hwdf] as %b %err Hb
   · iframe; iframe Hcfgro Hzlg Hvoff
     isplitl []
-    · ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1, Hdisk.2.2.2.2⟩
+    · ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1⟩
     iright; iexact Hfg
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
@@ -550,7 +550,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs νw pv ps ctxs ρ.ids.issued)
     $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok]
     as %r ⟨%γrn, %rvr, %Hrnames, #Hsws, Hrd1, Hrd2, Hr, Hrtm, #HstepI, #Hsfresh, Hloop, Happly, Hrunh, Hinst, Hbv, -, #Hminv, Hmsmeta, Hrsc⟩
-  · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok Hdur
+  · ihave #Hdurν : rnDurInv γ.cl νw νw.h $$ []
+    · rw [Hνh]; iexact Hdur
+    iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok Hdurν
     iframe #
     -- the pure premises: `bootOk`'s `Hraft` (`rnStartCfg`, its peers' facts), the heartbeat
     -- (`raftNode.bootCfg`), the directory's bound, the WAL read and the receipt bound
@@ -1219,13 +1221,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave Hwtl : rnWalTokL γrn (srvRAddr s) $$ [Hwtl Hwstop Hwmeta Hwpurge Hrd1]
   · iunfold rnWalTokL
     iframe Hwtl
+    ihave Hwstop' : token γrn.wal.stop $$ [Hwstop]
+    · rw [Hrnν]; iexact Hwstop
+    iframe Hwstop'
     iunfold rnFixed at Hfix
     iNamed Hfix
     iexists rvr.raftNodeConfig'.storage', _
     iframe storageC Hrd1
-    rw [Hrnν]
-    iframe Hwstop
-    rw [Hνh]
+    rw [Hrnν, Hνh]
     -- (R2b-3b) the metadata names the member, the wrapper's id
     have hidr : γrn.id = id := by first | rw [Hrn5, Hrid] | rw [Hrn5, Hrid, Hid]
     rw [hidr]
@@ -1782,7 +1785,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       iframe HalS HalA HisAuth HauR HauSK Hlbe Hlcfg Hrc Hisc HszS
       isplitr
       · ipureintro
-        refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, HbP,
+        refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
           Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega, Hssp⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
@@ -1806,7 +1809,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · iframe kv HisKV
       -- (J8a-3) the configuration's rebuild
-      iexact HcfgRb
+      iframe HcfgRb
+      -- (wal-link L3) the storage over the snapshotter, the WAL contract's (`NodeStart`'s)
+      iexists γrn.wal.h
+      rw [← Hrnss]
+      iexact Hsws
     -- (D22 J1b) the backend's stop channels and the constructors' half of its open token, the
     -- alarm store's field; (2026-11-01) the KV's closer, the backend file's directory entry
     iunfold srvSnapRes

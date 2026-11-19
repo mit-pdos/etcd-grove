@@ -325,7 +325,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
   · iunfold apply.applyTok; iexact Hmr
   wp_apply hS1 hok'
-      hciL0 Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1 hγn hpre
+      hciL0 Hdisk.2 hsz hγn hpre
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor Htt]
     as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, Htt, %Hst''⟩
   · iframe #; iframe

@@ -525,7 +525,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
           snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
           nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
         taNotifycAddr apL ↦□ nc ∗
-        isNotify2 γnc nc (walBaseLb γn.wal.loc (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+        isNotify2 γnc nc iprop(∃ j m, walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
         notifyRcvN γnc 0 ∗
         taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) γn.node
@@ -1109,7 +1109,7 @@ theorem EtcdServer.run.wp_proofG
   ihave #Hmsinv0 : (letI : MemStorReg GF := ⟨γn.reg⟩; memStorInv γn.ms γn.γs γn.node.cl γn.key)
     $$ []
   · iExactEq Hmsinv; rw [← Hmsγ]
-  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» P (∃ c : w64, srvCommittedOwn γr c) Hdisk.2.2.1 Hdisk.2.2.2.1
+  wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» P (∃ c : w64, srvCommittedOwn γr c)
     $$ [Hloop Hrdone Hcomm Hsend Hwtl]
   · rw [HEγr]; iframe Hrh Hrn Hmsinv0 Hslb0; iframe
   (try wp_auto)
