@@ -18,6 +18,7 @@ namespace k8s_correctness
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode map k8sDeep k8s_etcd3
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj Input labelSel fieldSel)
 
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -54,7 +55,7 @@ theorem Model.validCacherContinue.wp_proof
     · iexact Predicate
     cases hpe : predEmptyL x
     · wp_auto
-      wp_apply (wp_listItems mp m x x.ListKey') $$ [Hm] as %sl %err ⟨%herr, Hsl⟩
+      wp_apply (wp_listItems mp m x x.ListKey' (listOptsV x) false rfl rfl) $$ [Hm] as %sl %err ⟨%herr, Hsl⟩
       · iexact Hm
       subst herr
       unfold objsOwn

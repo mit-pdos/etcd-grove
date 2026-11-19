@@ -4,7 +4,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.keyInScope
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__DeepCopyObject
 public import Spec.maps.Keys
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PredOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ItemsRO
 
 @[expose] public section
@@ -20,7 +20,9 @@ namespace k8s_correctness
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode map k8sDeep k8s_etcd3
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj Input labelSel fieldSel)
 
+
 section pure
+
 variable [GooseExts]
 
 /-- `listItems`' result over the keys `ks` visited (in order). -/
@@ -63,8 +65,8 @@ theorem Model.listItems.wp_proof
     (wp_FE : fieldSel.Empty.spec (GF := GF) (hG := hG))
     (wp_GA : getAttrs.spec (GF := GF) (hG := hG)) :
     Model.listItems.spec (GF := GF) (hG := hG) := by
-  have wp_Matches := mlistMatches.wp_ok wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
-  intro mp m x key
+  have wp_Matches := mlistMatchesW.wp_ok wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
+  intro mp m x key opts b hP hR
   wp_start as Hm
   unfold modelAt modelRep modelVal
   icases Hm with ⟨#Hinit, %il, %rl, %M, #Hp, #HI, #Hit, #HR⟩
@@ -108,6 +110,7 @@ theorem Model.listItems.wp_proof
       · iexact Hs
       · ipureintro; exact Hkj_lookup
     wp_apply wp_keyInScope
+    rw [hR]
     have hkjM : (M !! kj).isSome := (Hks.1 kj).1 (List.mem_of_getElem? Hkj_lookup)
     obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hkjM
     icases itemsRO_lookup M m.items kj v hv $$ Hit with ⟨%p, %o, ⟨%ho, %hvp⟩, #Hpo⟩
@@ -131,9 +134,9 @@ theorem Model.listItems.wp_proof
         DFrac.discard) $$ HI as -
       rw [hv, Option.getD_some, hvp]
       (try wp_auto)
-      have hP : (listOptsV x).Predicate' = predV x := rfl
       isimp only [hP] at Predicate
-      wp_apply (wp_Matches _ x p o DFrac.discard) $$ [$Hinit $Predicate $Hpo] as ⟨Predicate, -⟩
+      wp_apply (wp_Matches _ x b p o DFrac.discard) $$ [$Hinit $Predicate $Hpo] as ⟨Predicate, -⟩
+      rw [hP]
       cases hsel : selOkL x o
       · simp only [hsel, Bool.false_eq_true, ↓reduceIte, List.append_nil] at hstep
         (try wp_auto)
