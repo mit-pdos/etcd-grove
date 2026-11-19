@@ -66,7 +66,7 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   `v3.0.0-20261118203246-34dea163a76c` (`notes/wal-fsext-fork/bump-go-mod.sh`); `etc/goose.py --check` passes.
 - `0009` (wal-link, 2026-11-19, **approved by the user 2026-11-19 via etcd-grove-03**; upamanyus/etcd branch
   `goose-lean-walfs3-fp9` of the clone `/shared/tmp/wal-fork/etcd`, head `d3feef9bcdddb9ad15ee5fc8bf725050395debb4`,
-  on `34dea163a`; **not yet pushed**): `WAL.Save` sums `proto.Size(e)+64` over the batch and returns the new
+  on `34dea163a`; **pushed by the user 2026-11-19**): `WAL.Save` sums `proto.Size(e)+64` over the batch and returns the new
   `ErrSaveBatchTooLarge` before `w.mu.Lock()` (nothing committed or written; the WAL stays usable) once the sum
   passes the new `var MaxSaveBatchBytes int64 = 1 << 42` (4 TiB). Why: `Save` writes a whole batch into the tail
   before checking whether to cut, and nothing bounds a `Ready`'s entries (etcd sets no
@@ -76,5 +76,7 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   A refused batch still ends in the raft loop's `lg.Fatal`, as `EFBIG` did, but with nothing written. Test
   `TestSaveBatchTooLarge` (`server/storage/wal/save_batch_limit_test.go`, `MaxSaveBatchBytes = 4096`): an 8 KiB
   batch is refused, a later `Save` succeeds, and `Open`+`ReadAll` see only the later entry (it does not compile
-  before the change: the error is new). WAL suite: see the line below. `etc/goose.py` pins `d3feef9bc`
-  (translated with `--src etcd=<the clone>` until the push); then `bump-go-mod.sh` with `NEW` its pseudo-version.
+  before the change: the error is new). `go test ./storage/wal/...` (GOWORK=off, go1.27.3, 35 min) passes but for
+  `TestWALByteMix`, failing by design as at 0006; `walpb` passes. `etc/goose.py` pins `d3feef9bc`; the examples'
+  `go.mod`/`go.sum` are at its pseudo-version `v3.0.0-20261119013048-d3feef9bcddd` (`bump-go-mod.sh`);
+  `etc/goose.py --check --project etcd --project etcd-wal` passes without `--src`.

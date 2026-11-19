@@ -1,11 +1,11 @@
 #!/bin/bash
-# The examples' go.mod/go.sum moved to the fork commit etc/goose.py pins (fixes 0007-0008, 34dea163a,
-# branch goose-lean-walfs3-fp, pushed 2026-11-18). Run from the worktree root (never in the main
+# The examples' go.mod/go.sum moved to the fork commit etc/goose.py pins (fix 0009, d3feef9bc,
+# branch goose-lean-walfs3-fp9, pushed 2026-11-19; before: 0007-0008, 34dea163a, goose-lean-walfs3-fp). Run from the worktree root (never in the main
 # checkout). Each go.mod replace line and each go.sum line of the old pseudo-version is rewritten to
 # the new one, with the hashes `go mod download -json` reports; nothing else changes.
 set -e
-OLD=v3.0.0-20261115085855-8c28a4296f16
-NEW=v3.0.0-20261118203246-34dea163a76c
+OLD=v3.0.0-20261118203246-34dea163a76c
+NEW=v3.0.0-20261119013048-d3feef9bcddd
 cd "$(git rev-parse --show-toplevel)"
 export GOWORK=off GOTOOLCHAIN=go1.27.3 GOFLAGS=-mod=mod PATH=/usr/local/go/bin:$PATH
 tmp=$(mktemp -d)

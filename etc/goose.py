@@ -319,7 +319,7 @@ PROJECTS = [
         # while `w.fp` is nil (`Create`'s call, before the pipeline exists; 0007 alone made a `Create`
         # whose first segment passes `SegmentSizeBytes` panic in `cut`).
         # Then 0009 (wal-link, 2026-11-19, approved by the user via etcd-grove-03; d3feef9bc, branch
-        # `goose-lean-walfs3-fp9`): `WAL.Save` refuses a batch whose sum of `proto.Size(e)+64` passes
+        # `goose-lean-walfs3-fp9`, pushed 2026-11-19): `WAL.Save` refuses a batch whose sum of `proto.Size(e)+64` passes
         # `MaxSaveBatchBytes` (4 TiB) with `ErrSaveBatchTooLarge`, before `w.mu.Lock()`
         # (nonissues/etcd-wal-save-batch-efbig.md).
         # Branch

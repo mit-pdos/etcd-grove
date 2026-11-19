@@ -5,9 +5,9 @@
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere.
   Merge the origin merge (pin f551a1b46, manifest-f55) when it lands on lean.
 - **Fork fix 0009 (approved by the user 2026-11-19):** commit `d3feef9bc` on branch `goose-lean-walfs3-fp9` of
-  `/shared/tmp/wal-fork/etcd` (on `34dea163a`), NOT PUSHED; `etc/goose.py` pins it (`--src etcd=/shared/tmp/wal-fork/etcd`
-  until the push; `etc/goose.py --check` warns that the examples' go.mod are still at 0008 until `bump-go-mod.sh`
-  with `NEW` = 0009's pseudo-version); README 0009, `notes/wal-fsext-fork/0009-*.patch`, the nonissue's Fix.
+  `/shared/tmp/wal-fork/etcd` (on `34dea163a`), pushed by the user 2026-11-19; pinned in `etc/goose.py`, examples'
+  go.mod/go.sum bumped (`bump-go-mod.sh`), `etc/goose.py --check` (etcd, etcd-wal) passes; WAL Go suite passes but
+  `TestWALByteMix` (by design); README 0009, `notes/wal-fsext-fork/0009-*.patch`, the nonissue's Fix.
 - **Done (bd06269e62 + this commit):** layer 1 `WAL.Save.spec`: room premise gone, update as
   `⌜saveBatchBytes Mr es ≤ maxSaveBatch⌝ -∗ AU`, refused arm (share back); `WalPbIn.SizeLaw` (+ `walRaftP_size`,
   `walSrvP_size`, in `WalPbLaws`); `wal.walInit` + gen-init (MaxSaveBatchBytes, ErrSaveBatchTooLarge); storage Save;
