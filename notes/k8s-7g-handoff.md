@@ -2,6 +2,36 @@
 
 ## START HERE
 
+**2026-11-19 (night 16; for etcd-grove-03). 03 accepted night 15 (questions.md "Step 5 night 15: decided"; findings
+in k8s-7g-trust.md §7). Closure pins done (`5acda50d4c`): realCheck in progress. build-n15 was killed while still
+queued (slots full; rerun it inside the next build).**
+
+- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`).
+- realCheck PLAN (decision 1; nothing below written yet unless marked):
+  1. `ClosPin` (DONE): `validatePin`/`tryUpdatePin`, stronger posts of validateFor/tryUpdateFor (validateD/tryUpdateD
+     are WP specs: no pure agreement otherwise). Callers mdelete/call patterns `⟨-, #H, -⟩` (call.lean not re-checked).
+  2. Pure: `isLinearization_map` (same calls/rets, `M.step s o.val = M'.step s o'.val`, same init); `decR L io` = view
+     of the first entry of `L : List (OpV × (Input × RResp))` with value `io`; `realM L init` (step via decR + realS).
+  3. Agreement: `respRep ro r1 ∗ respRep ro r2 ⊢ ⌜r1 = r2⌝` (errs not `.other`; deepRep induction, points-to
+     agree); `reqRep rq x1 ∗ reqRep rq x2 ∗ pins ⊢ ⌜∀ m r, realS.step m (x1,r) = realS.step m (x2,r)⌝` (list:
+     listOptsV projections; create: `op ↦□ createObjL`; delete: preAt agree + validatePin; update: tryUpdatePin
+     gives x1 = x2; get: key/MinRV/IgnoreNotFound).
+  4. ModelSpec `realMS L init`: rep k v m := ∃ mp, v = box mp ∧ itemsFitL m, modelAt mp m (persistent; Init's
+     Clone gives modelOwn: `modelOwn_freeze` under wp_fupd); ioOk i o := ∃ rq ro x r, boxes ∧ decR L (i,o) = some
+     (x,r) ∧ opPre-like facts (Model.Step's premises; `(rexecL x m).1.err ≠ .other` needs a lemma from keyOkL /
+     prepareKeyM / listConsL, encOkL by scope) ∗ reqRep rq x ∗ respRep ro r. Step's spec: call Model.Step with the
+     decR view (no agreement needed there); agreement only for the M ↔ realS transfer.
+  5. Discharge gaps found: RunLin2.spec's post lacks `HistOk lops` (porcupine needs `HistOk pOps`): stronger post
+     (form; RunLin2's proof has it at its own porcupine call). k8setcd3S.ioOk must gain OpOk's request facts and
+     wInPre (decision 2), proved in Apply from kInOk. NewReplay needs `ReplayPre` (stepPre along the replay:
+     itemsFitL invariant + per-op facts): no lemma yet.
+  6. Go specs: failureFree, realRequest (reqRep + pins), realEvents, initialModel (modelAt (absR st0)),
+     toPorcupineModel (isModel (realMS L init)), orderByLinearization, realCheck; then Check (new proof).
+- Pitfalls (new): `#l` for a Loc is abstract (only `go.intoVal_inj`): pins index the closure body's value list
+  (`exprVals`), found by tracing the goal with `set_option pp.deepTerms true`.
+
+### Superseded (night 15)
+
 **2026-11-19 (night 15; for etcd-grove-03). `Replay.validateGet` specified+proved, `Replay.Validate` proved
 (`a63f96f8ff`); `keyFunc` specified+proved; watch.go's spec FIXED (two panics were reachable: forms below);
 watch.go DONE: all 17 functions specified+proved, `ValidateWatch.wp_proof` against its accepted spec
