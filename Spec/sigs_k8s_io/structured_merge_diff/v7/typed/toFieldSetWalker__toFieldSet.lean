@@ -3,7 +3,7 @@
 `doScalar`/`doList`/`doMap`): adds the fields the walker's value (conforming to `st.t`) sets at
 its node to the set: `fieldsAt S st.t st.path x`. No error. The value is lent (any share).
 
-Premise: the set stays below `Set.Insert`'s bound (`typedSizeMax`).
+Premise: the set stays below `Set.Insert`'s bound (`2 ^ 63 - 1`; from the API's `smdSizeMax` premise by `fieldSet_card.law`).
 
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
@@ -33,7 +33,7 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.toFieldSetWalker.toFieldSet.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : TWSt) (s : Loc) (F : PathSet) (dq : DFrac) (x : UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ twOwn w sc S st s F ∗ isValF st.value dq x ∗ ⌜conforms S st.t x ∧ (F.union (fieldsAt S st.t st.path x)).CardLt typedSizeMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ twOwn w sc S st s F ∗ isValF st.value dq x ∗ ⌜conforms S st.t x ∧ (F.union (fieldsAt S st.t st.path x)).CardLt (2 ^ 63 - 1)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker.ty @!! go!"toFieldSet")) (Val #()))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
       twOwn w sc S st s (F.union (fieldsAt S st.t st.path x)) }}

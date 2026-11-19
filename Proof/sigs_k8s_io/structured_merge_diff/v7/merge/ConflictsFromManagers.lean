@@ -10,6 +10,9 @@ Lean-first (2026-11-19).
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.ConflictsFromManagers
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Path__Copy
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Iterate
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__Set
 
 @[expose] public section
 
@@ -31,7 +34,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
-theorem merge.ConflictsFromManagers.wp_proof :
+theorem merge.ConflictsFromManagers.wp_proof
+    (h_Path_Copy : fieldpath.Path.Copy.spec (GF := GF))
+    (h_Set_Iterate : fieldpath.Set.Iterate.spec (GF := GF))
+    (h_versionedSet_Set : fieldpath.versionedSet.Set.spec (GF := GF)) :
     merge.ConflictsFromManagers.spec (GF := GF) := by
   sorry
 

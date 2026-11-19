@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.listItemToPathElement.wp_proof
-    (hkeyedAssociativeListItemToPathElement : typed.keyedAssociativeListItemToPathElement.spec (GF := GF))
-    (hsetItemToPathElement : typed.setItemToPathElement.spec (GF := GF)) :
+    (h_keyedAssociativeListItemToPathElement : typed.keyedAssociativeListItemToPathElement.spec (GF := GF))
+    (h_setItemToPathElement : typed.setItemToPathElement.spec (GF := GF)) :
     typed.listItemToPathElement.spec (GF := GF) := by
   sorry
 

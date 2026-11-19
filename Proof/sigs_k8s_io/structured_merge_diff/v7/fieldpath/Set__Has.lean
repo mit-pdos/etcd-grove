@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.Has.wp_proof
-    (wp_PathElementSet_Has : fieldpath.PathElementSet.Has.spec (GF := GF))
-    (wp_SetNodeMap_Get : fieldpath.SetNodeMap.Get.spec (GF := GF)) :
+    (h_PathElementSet_Has : fieldpath.PathElementSet.Has.spec (GF := GF))
+    (h_SetNodeMap_Get : fieldpath.SetNodeMap.Get.spec (GF := GF)) :
     fieldpath.Set.Has.spec (GF := GF) := by
   sorry
 

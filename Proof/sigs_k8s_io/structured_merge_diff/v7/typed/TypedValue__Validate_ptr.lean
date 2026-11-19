@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.Validate_ptr.wp_proof
-    (hTypedValue_Validate : typed.TypedValue.Validate.spec (GF := GF)) :
+    (h_TypedValue_Validate : typed.TypedValue.Validate.spec (GF := GF)) :
     typed.TypedValue.Validate_ptr.spec (GF := GF) := by
   sorry
 

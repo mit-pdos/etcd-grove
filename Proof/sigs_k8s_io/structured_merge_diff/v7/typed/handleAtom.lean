@@ -5,7 +5,6 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.handleAtom
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.errorf
 
 @[expose] public section
 
@@ -27,8 +26,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
-theorem typed.handleAtom.wp_proof
-    (herrorf : typed.errorf.spec (GF := GF)) :
+theorem typed.handleAtom.wp_proof :
     typed.handleAtom.spec (GF := GF) := by
   sorry
 

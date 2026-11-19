@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.Merge.wp_proof
-    (hmerge : typed.merge.spec (GF := GF)) :
+    (h_merge : typed.merge.spec (GF := GF)) :
     typed.TypedValue.Merge.spec (GF := GF) := by
   sorry
 

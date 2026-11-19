@@ -35,7 +35,7 @@ abbrev typed.toFieldSetWalker.visitMapItems.spec : Prop :=
     (kvs : List (GoString × UVal)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ twOwn w sc S st s F ∗ isMapRep tp fs e rel ∗ isMapV m kvs ∗
       ⌜S.find st.t.name = some (.map fs e rel) ∧ conforms S st.t (.map kvs) ∧
-        (F.union (fieldsM S fs e st.path kvs)).CardLt typedSizeMax⌝ }}
+        (F.union (fieldsM S fs e st.path kvs)).CardLt (2 ^ 63 - 1)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker.ty @!! go!"visitMapItems")) (Val #tp)) (Val #m))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ twOwn w sc S st s (F.union (fieldsM S fs e st.path kvs)) }}
 

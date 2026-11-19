@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.IsList_ptr.wp_proof
-    (wp_IsList : value.valueUnstructured.IsList.spec (GF := GF)) :
+    (h_valueUnstructured_IsList : value.valueUnstructured.IsList.spec (GF := GF)) :
     value.valueUnstructured.IsList_ptr.spec (GF := GF) := by
   sorry
 

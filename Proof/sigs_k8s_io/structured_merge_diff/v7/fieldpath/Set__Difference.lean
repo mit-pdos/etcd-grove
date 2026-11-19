@@ -1,13 +1,11 @@
 /-
-`fieldpath.Set.Difference`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.Set.Difference`: a member of the recursion cluster `fieldpath.DifferenceRec` (`DifferenceRec.lean`); its proof is the
+projection of the cluster's (its body is `Set__DifferenceBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Difference
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Difference
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Less
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Empty
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.DifferenceRec
 
 @[expose] public section
 
@@ -30,11 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.Difference.wp_proof
-    (wp_PathElementSet_Difference : fieldpath.PathElementSet.Difference.spec (GF := GF))
-    (wp_PathElement_Less : fieldpath.PathElement.Less.spec (GF := GF))
-    (wp_Set_Empty : fieldpath.Set.Empty.spec (GF := GF)) :
-    fieldpath.Set.Difference.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.DifferenceRec.spec (GF := GF)) :
+    fieldpath.Set.Difference.spec (GF := GF) := hrec.1
 
 end proof
 

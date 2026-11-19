@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.Compare.wp_proof
-    (wp_CompareUsing : value.CompareUsing.spec (GF := GF)) :
+    (h_CompareUsing : value.CompareUsing.spec (GF := GF)) :
     value.Compare.spec (GF := GF) := by
   sorry
 

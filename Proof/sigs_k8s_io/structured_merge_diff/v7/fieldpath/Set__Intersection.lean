@@ -1,13 +1,11 @@
 /-
-`fieldpath.Set.Intersection`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.Set.Intersection`: a member of the recursion cluster `fieldpath.IntersectionRec` (`IntersectionRec.lean`); its proof is the
+projection of the cluster's (its body is `Set__IntersectionBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Intersection
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Intersection
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Less
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Empty
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.IntersectionRec
 
 @[expose] public section
 
@@ -30,11 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.Intersection.wp_proof
-    (wp_PathElementSet_Intersection : fieldpath.PathElementSet.Intersection.spec (GF := GF))
-    (wp_PathElement_Less : fieldpath.PathElement.Less.spec (GF := GF))
-    (wp_Set_Empty : fieldpath.Set.Empty.spec (GF := GF)) :
-    fieldpath.Set.Intersection.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.IntersectionRec.spec (GF := GF)) :
+    fieldpath.Set.Intersection.spec (GF := GF) := hrec.1
 
 end proof
 

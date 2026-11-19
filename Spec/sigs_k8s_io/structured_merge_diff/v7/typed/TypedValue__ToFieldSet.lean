@@ -4,8 +4,8 @@ atomic list or map, list item, and map entry that is `null`, `{}` or not a decla
 fresh set, **owned** (`ownSet`: the walker built it and keeps nothing of it; `ownSet_persist`
 makes it an `isSet`). No error in the scope.
 
-Premise (the same temporary limitation as `Compare`'s, local): the value has fewer than
-`typedSizeMax` nodes (`fieldSet_card.law`).
+Premise (D9/D10's workload premise, as `Compare`'s): the value has fewer than
+`smdSizeMax` nodes (so its field set stays below `2 ^ 63 - 1`: `fieldSet_card.law`).
 
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
@@ -35,7 +35,7 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.TypedValue.ToFieldSet.spec : Prop :=
   ∀ (tv : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue) (sc : Loc) (S : Schema) (t : TypeRef) (x : UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isTVv tv sc S t x ∗ ⌜x.size < typedSizeMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isTVv tv sc S t x ∗ ⌜x.size < smdSizeMax⌝ }}
     (App (Val (tv @!! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue.ty @!! go!"ToFieldSet")) (Val #()))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       ⌜err = interface.nil⌝ ∗ ownSet s (fieldSet S t x) }}

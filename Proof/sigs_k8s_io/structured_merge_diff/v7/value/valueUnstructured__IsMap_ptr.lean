@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.valueUnstructured.IsMap_ptr.wp_proof
-    (wp_IsMap : value.valueUnstructured.IsMap.spec (GF := GF)) :
+    (h_valueUnstructured_IsMap : value.valueUnstructured.IsMap.spec (GF := GF)) :
     value.valueUnstructured.IsMap_ptr.spec (GF := GF) := by
   sorry
 

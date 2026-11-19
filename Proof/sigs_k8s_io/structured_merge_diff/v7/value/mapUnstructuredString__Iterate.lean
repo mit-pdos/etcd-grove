@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.mapUnstructuredString.Iterate.wp_proof
-    (wp_IterateUsing : value.mapUnstructuredString.IterateUsing.spec (GF := GF)) :
+    (h_mapUnstructuredString_IterateUsing : value.mapUnstructuredString.IterateUsing.spec (GF := GF)) :
     value.mapUnstructuredString.Iterate.spec (GF := GF) := by
   sorry
 

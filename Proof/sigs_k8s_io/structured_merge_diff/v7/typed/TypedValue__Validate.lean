@@ -6,8 +6,8 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Validate
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__walker
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__validate
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__finished
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__validate
 
 @[expose] public section
 
@@ -30,9 +30,9 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.Validate.wp_proof
-    (hTypedValue_walker : typed.TypedValue.walker.spec (GF := GF))
-    (hvalidatingObjectWalker_validate : typed.validatingObjectWalker.validate.spec (GF := GF))
-    (hvalidatingObjectWalker_finished : typed.validatingObjectWalker.finished.spec (GF := GF)) :
+    (h_TypedValue_walker : typed.TypedValue.walker.spec (GF := GF))
+    (h_validatingObjectWalker_finished : typed.validatingObjectWalker.finished.spec (GF := GF))
+    (h_validatingObjectWalker_validate : typed.validatingObjectWalker.validate.spec (GF := GF)) :
     typed.TypedValue.Validate.spec (GF := GF) := by
   sorry
 

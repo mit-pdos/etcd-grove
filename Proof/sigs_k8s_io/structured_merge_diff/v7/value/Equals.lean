@@ -5,6 +5,7 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.Equals
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.EqualsUsing
 
 @[expose] public section
 
@@ -26,7 +27,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
-theorem value.Equals.wp_proof : value.Equals.spec (GF := GF) := by
+theorem value.Equals.wp_proof
+    (h_EqualsUsing : value.EqualsUsing.spec (GF := GF)) :
+    value.Equals.spec (GF := GF) := by
   sorry
 
 end proof

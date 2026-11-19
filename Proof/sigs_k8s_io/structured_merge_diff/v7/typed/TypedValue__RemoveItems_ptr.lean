@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.RemoveItems_ptr.wp_proof
-    (hTypedValue_RemoveItems : typed.TypedValue.RemoveItems.spec (GF := GF)) :
+    (h_TypedValue_RemoveItems : typed.TypedValue.RemoveItems.spec (GF := GF)) :
     typed.TypedValue.RemoveItems_ptr.spec (GF := GF) := by
   sorry
 

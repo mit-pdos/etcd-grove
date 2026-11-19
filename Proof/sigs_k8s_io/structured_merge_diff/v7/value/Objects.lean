@@ -412,6 +412,21 @@ def ownRange_methods.law : Prop :=
   ∀ r vs n, isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ ownRange r vs n ⊢
     ownRange r vs n ∗ ∃ i, ⌜r = .ok i⌝ ∗ □ rangeIfaceM i
 
+/-- **`value.Compare` is a strict total order on canonical values, zero exactly on equal ones**
+(requested by `fieldpath`'s Draft: `PathElement.Compare`'s order rests on it). -/
+def UVal.compare_eq_zero.law : Prop :=
+  ∀ a b : UVal, a.canon = true → b.canon = true → (UVal.compare a b = 0 ↔ a = b)
+def UVal.compare_antisymm.law : Prop :=
+  ∀ a b : UVal, a.canon = true → b.canon = true → (UVal.compare a b < 0 ↔ 0 < UVal.compare b a)
+def UVal.compare_trans.law : Prop :=
+  ∀ a b c : UVal, a.canon = true → b.canon = true → c.canon = true →
+    UVal.compare a b < 0 → UVal.compare b c < 0 → UVal.compare a c < 0
+/-- An interface's value is canonical (`isIface`'s maps are sorted). -/
+def isValF_canon.law : Prop := ∀ v dq x, isValF (GF := GF) v dq x ⊢ ⌜x.canon = true⌝
+/-- Agreement of a `FieldList` (requested by `fieldpath`'s Draft). -/
+def isFieldList_agree.law : Prop :=
+  ∀ s a b, isFieldList (GF := GF) s a ∗ isFieldList s b ⊢ ⌜a = b⌝
+
 /-- The pure facts the zips' clients use. -/
 def zipKeys_nodup.law : Prop :=
   ∀ ol or_, (∀ kvs, ol = some kvs → keysSorted kvs = true) →

@@ -6,7 +6,6 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__derefMap
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mapValue
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.errorf
 
 @[expose] public section
 
@@ -29,8 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.compareWalker.derefMap.wp_proof
-    (hmapValue : typed.mapValue.spec (GF := GF))
-    (herrorf : typed.errorf.spec (GF := GF)) :
+    (h_mapValue : typed.mapValue.spec (GF := GF)) :
     typed.compareWalker.derefMap.spec (GF := GF) := by
   sorry
 

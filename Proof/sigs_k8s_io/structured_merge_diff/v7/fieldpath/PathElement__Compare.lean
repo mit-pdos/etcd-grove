@@ -5,8 +5,9 @@ freeze over its callees' specs (the hypotheses).
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Compare
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Compare
+public import Perennial.Spec.strings.Compare
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.Compare
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Compare
 
 @[expose] public section
 
@@ -29,8 +30,9 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.PathElement.Compare.wp_proof
-    (wp_value_FieldList_Compare : value.FieldList.Compare.spec (GF := GF))
-    (wp_value_Compare : value.Compare.spec (GF := GF)) :
+    (h_strings_Compare : _root_.Perennial.strings.Compare.spec (GF := GF))
+    (h_Compare : value.Compare.spec (GF := GF))
+    (h_FieldList_Compare : value.FieldList.Compare.spec (GF := GF)) :
     fieldpath.PathElement.Compare.spec (GF := GF) := by
   sorry
 

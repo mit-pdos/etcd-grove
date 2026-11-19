@@ -1,13 +1,11 @@
 /-
-`typed.toFieldSetWalker.doMap`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.toFieldSetWalker.doMap`: a member of the recursion cluster `typed.toFieldSetWalkerRec` (`toFieldSetWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `toFieldSetWalker__doMapBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__doMap
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mapValue
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Insert
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__visitMapItems
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalkerRec
 
 @[expose] public section
 
@@ -30,11 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.toFieldSetWalker.doMap.wp_proof
-    (hmapValue : typed.mapValue.spec (GF := GF))
-    (hSet_Insert : fieldpath.Set.Insert.spec (GF := GF))
-    (htoFieldSetWalker_visitMapItems : typed.toFieldSetWalker.visitMapItems.spec (GF := GF)) :
-    typed.toFieldSetWalker.doMap.spec (GF := GF) := by
-  sorry
+    (hrec : typed.toFieldSetWalkerRec.spec (GF := GF)) :
+    typed.toFieldSetWalker.doMap.spec (GF := GF) := hrec.2.1
 
 end proof
 

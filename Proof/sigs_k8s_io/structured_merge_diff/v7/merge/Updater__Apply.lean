@@ -5,6 +5,15 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Apply
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewVersionedSet
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__prune
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__reconcileManagedFieldsWithSchemaChanges
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__update
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Merge_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__ToFieldSet_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.EqualsUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
 
 @[expose] public section
 
@@ -26,7 +35,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
-theorem merge.Updater.Apply.wp_proof : merge.Updater.Apply.spec (GF := GF) := by
+theorem merge.Updater.Apply.wp_proof
+    (h_NewVersionedSet : fieldpath.NewVersionedSet.spec (GF := GF))
+    (h_Updater_prune : merge.Updater.prune.spec (GF := GF))
+    (h_Updater_reconcileManagedFieldsWithSchemaChanges : merge.Updater.reconcileManagedFieldsWithSchemaChanges.spec (GF := GF))
+    (h_Updater_update : merge.Updater.update.spec (GF := GF))
+    (h_TypedValue_AsValue_ptr : typed.TypedValue.AsValue_ptr.spec (GF := GF))
+    (h_TypedValue_Merge_ptr : typed.TypedValue.Merge_ptr.spec (GF := GF))
+    (h_TypedValue_ToFieldSet_ptr : typed.TypedValue.ToFieldSet_ptr.spec (GF := GF))
+    (h_EqualsUsing : value.EqualsUsing.spec (GF := GF))
+    (h_NewFreelistAllocator : value.NewFreelistAllocator.spec (GF := GF)) :
+    merge.Updater.Apply.spec (GF := GF) := by
   sorry
 
 end proof

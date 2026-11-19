@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.Iterate.wp_proof
-    (wp_Set_iteratePrefix : fieldpath.Set.iteratePrefix.spec (GF := GF)) :
+    (h_Set_iteratePrefix : fieldpath.Set.iteratePrefix.spec (GF := GF)) :
     fieldpath.Set.Iterate.spec (GF := GF) := by
   sorry
 

@@ -8,8 +8,8 @@ walker's own interface calls through a bundle): `errors.New`.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.getAssociativeKeyDefault
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__Resolve
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Map__FindField
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__Resolve
 
 @[expose] public section
 
@@ -32,8 +32,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.getAssociativeKeyDefault.wp_proof
-    (hSchema_Resolve : schema.Schema.Resolve.spec (GF := GF))
-    (hMap_FindField : schema.Map.FindField.spec (GF := GF)) :
+    (h_Map_FindField : schema.Map.FindField.spec (GF := GF))
+    (h_Schema_Resolve : schema.Schema.Resolve.spec (GF := GF)) :
     typed.getAssociativeKeyDefault.spec (GF := GF) := by
   sorry
 

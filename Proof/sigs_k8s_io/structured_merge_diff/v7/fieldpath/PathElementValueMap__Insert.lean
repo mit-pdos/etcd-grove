@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.PathElementValueMap.Insert.wp_proof
-    (wp_PathElementMap_Insert : fieldpath.PathElementMap.Insert.spec (GF := GF)) :
+    (h_PathElementMap_Insert : fieldpath.PathElementMap.Insert.spec (GF := GF)) :
     fieldpath.PathElementValueMap.Insert.spec (GF := GF) := by
   sorry
 

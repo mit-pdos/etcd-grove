@@ -691,6 +691,11 @@ for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "
     EXTRA_IMPORTS.setdefault(_m, []).append("Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults")
 # (the import tiers, 2026-11-18) the laws of the client's linked calls the call proofs take
 # (`=client.*_law_holds`, `=*_law_holds` of `CallsLinked.lean`)
+# (2026-11-19, the SMD Draft's integration, notes/smd-plan.md) structured-merge-diff's walkers' pools,
+# its schemas' `sync.Once`, its sorted zips' `sort.Strings` and its comparisons' `strings.Compare`:
+# Perennial's specs, `=` callees
+EXTRA_IMPORTS["--k8s-smd"] = ["Perennial.Proof.sync.Link", "Perennial.Proof.sort.Link",
+                              "Perennial.Proof.strings.Link"]
 EXTRA_IMPORTS["--linkvtxn"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                 "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"]
 EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",

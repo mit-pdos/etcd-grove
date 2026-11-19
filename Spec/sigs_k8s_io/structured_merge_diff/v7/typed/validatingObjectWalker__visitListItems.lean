@@ -5,6 +5,8 @@ error, and the loop stops) and no key twice (duplicates not allowed): no error e
 list conforms.
 
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
+
+D10 (c) (2026-11-19, the Draft's integration): specified on conforming values only (the premise `conforms`, no error after): rejection is outside the scope, so the error paths (`errorf`, `fmt`) are not reached and no `fmt` spec is needed.
 -/
 module
 
@@ -34,9 +36,9 @@ abbrev typed.validatingObjectWalker.visitListItems.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : VWSt) (tp : Loc) (e : TypeRef) (rel : ElemRel)
     (ks : List GoString) (ll : value.List') (vs : List UVal),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isListRep tp e rel ks ∗ isListV ll vs ∗
-      ⌜S.find st.t.name = some (.list e rel ks)⌝ }}
+      ⌜S.find st.t.name = some (.list e rel ks) ∧ conforms S st.t (.list vs)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ll))
-  {{ (errs : GoSlice), RET #errs; errsIff errs (conforms S st.t (.list vs)) ∗ vwOwn w sc S st }}
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ vwOwn w sc S st }}
 
 end spec
 

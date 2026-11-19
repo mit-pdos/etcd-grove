@@ -26,7 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
-theorem merge.UpdaterBuilder.BuildUpdater.wp_proof : merge.UpdaterBuilder.BuildUpdater.spec (GF := GF) := by
+theorem merge.UpdaterBuilder.BuildUpdater.wp_proof :
+    merge.UpdaterBuilder.BuildUpdater.spec (GF := GF) := by
   sorry
 
 end proof

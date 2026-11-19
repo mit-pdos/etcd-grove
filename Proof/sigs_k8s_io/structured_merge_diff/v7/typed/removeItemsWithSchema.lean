@@ -1,16 +1,11 @@
 /-
-`typed.removeItemsWithSchema`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.removeItemsWithSchema`: a member of the recursion cluster `typed.removingWalkerRec` (`removingWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `removeItemsWithSchemaBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.removeItemsWithSchema
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.resolveSchema
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewValueInterface
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doMap
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doScalar
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalkerRec
 
 @[expose] public section
 
@@ -33,14 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.removeItemsWithSchema.wp_proof
-    (hNewFreelistAllocator : value.NewFreelistAllocator.spec (GF := GF))
-    (hresolveSchema : typed.resolveSchema.spec (GF := GF))
-    (hNewValueInterface : value.NewValueInterface.spec (GF := GF))
-    (hremovingWalker_doMap : typed.removingWalker.doMap.spec (GF := GF))
-    (hremovingWalker_doList : typed.removingWalker.doList.spec (GF := GF))
-    (hremovingWalker_doScalar : typed.removingWalker.doScalar.spec (GF := GF)) :
-    typed.removeItemsWithSchema.spec (GF := GF) := by
-  sorry
+    (hrec : typed.removingWalkerRec.spec (GF := GF)) :
+    typed.removeItemsWithSchema.spec (GF := GF) := hrec.1
 
 end proof
 

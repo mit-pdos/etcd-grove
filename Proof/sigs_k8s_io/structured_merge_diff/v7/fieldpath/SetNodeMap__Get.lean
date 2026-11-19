@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.SetNodeMap.Get.wp_proof
-    (wp_PathElement_Compare : fieldpath.PathElement.Compare.spec (GF := GF))
-    (wp_slices_BinarySearchFunc : EtcdGrove.slices.BinarySearchFunc.spec (GF := GF)) :
+    (h_PathElement_Compare : fieldpath.PathElement.Compare.spec (GF := GF))
+    (h_slices_BinarySearchFunc : EtcdGrove.slices.BinarySearchFunc.spec (GF := GF)) :
     fieldpath.SetNodeMap.Get.spec (GF := GF) := by
   sorry
 

@@ -44,7 +44,7 @@ Lean-first (2026-11-19, notes/smd-plan.md); the stages added with `merge`'s per-
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Defs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Walkers
 
 @[expose] public section
 
@@ -231,6 +231,17 @@ def kwiAt (S : Schema) (t : TypeRef) (s : PathSet) : Path → Path → Bool
 /-- **`keysWithItems`, decided**: every path of `s` passes `kwiAt` (`keysWithItemsB_iff`). -/
 def keysWithItemsB (S : Schema) (t : TypeRef) (s : PathSet) : Bool := s.all (kwiAt S t s [])
 
+/-- **D9's workload premise** of `Updater.Apply` and `Updater.Update` (`notes/smd-plan.md`, D9),
+stated once: the objects' sizes together, and the trie nodes of the managers' sets together, below
+`smdSizeMax` (`value/Defs.lean`). Every internal count (`Set.Insert`'s and `slices.Insert`'s
+lengths, `make`'s capacities, the typed API's size premises) follows from it by laws
+(`merge/Laws.lean`, `inputsSmall_*`). Decided (`decide` on the driver's literals). -/
+def inputsSmall (xs : List UVal) (mf : MF) : Prop :=
+  (xs.map UVal.size).sum < smdSizeMax ∧ (mfUnion mf).nodes.card < smdSizeMax
+
+instance (xs : List UVal) (mf : MF) : Decidable (inputsSmall xs mf) :=
+  inferInstanceAs (Decidable (_ ∧ _))
+
 /-! ## Representation predicates -/
 
 section own
@@ -268,28 +279,11 @@ manager and a path, in order (persistent). -/
 @[no_expose] def isConflicts (s : merge.Conflicts) (cs : List (GoString × Path)) : IProp GF :=
   iprop(∃ xs : List merge.Conflict, s ↦*{DFrac.discard} xs ∗ isConflictL xs cs)
 
-/-- **`ownMF m mf`**: the `fieldpath.ManagedFields` map `m` (non-nil) holds `mf`, **owned**: a
-map `merge` builds and then updates in place (`reconcileManagedFieldsWithSchemaChanges`' result,
-which `Apply`, `Update` and `Updater.update` write); its entries are persistent `isVSet`s.
-`ownMF_persist` (`merge/Laws.lean`) hands it out as an `isMF`. (Internal to `merge`; it may move
-beside `isMF` in `fieldpath/Defs.lean`.) -/
-@[no_expose] def ownMF (m : fieldpath.ManagedFields) (mf : MF) : IProp GF :=
-  iprop(∃ M : GMap GoString GoInterface, m ↦$ M ∗
-    ⌜keysSorted mf = true ∧ ∀ k, (M !! k).isSome = (mf.get k).isSome⌝ ∗ isMFL M mf)
-
 /-- **`isVSetOpt i o`**: a manager's entry read from a `ManagedFields` map: the nil interface
 (no entry) for `none`, else an `isVSet` (persistent). -/
 @[no_expose] def isVSetOpt (i : fieldpath.VersionedSet) : Option VSet → IProp GF
   | none => iprop(⌜i = interface.nil⌝)
   | some e => isVSet i e
-
-/-- **`isCmpResult c C`**: the `*typed.Comparison` at `c` holds `C` (its three sets; persistent).
-What `Updater.update` returns from `TypedValue.Compare` (through `FilterFields(nil)`). A stand-in
-for the `typed` package's own description of a `Comparison`, to be replaced by it when
-`TypedValue.Compare`'s spec lands (Draft). -/
-@[no_expose] def isCmpResult (c : Loc) (C : Cmp) : IProp GF :=
-  iprop(∃ (r m a : Loc), c ↦□ (typed.Comparison.mk r m a) ∗
-    isSet r C.removed ∗ isSet m C.modified ∗ isSet a C.added)
 
 /-- **`isConflict x c`**: the `merge.Conflict` `x` is the conflict `c`, a manager and a path
 (persistent). -/

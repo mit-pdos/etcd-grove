@@ -1,15 +1,11 @@
 /-
-`schema.Atom.Equals`:
-not proved yet (`sorry`): Draft of the `schema` package's per-function specs (notes/smd-plan.md,
-"The call DAG"); proved in the stage's Prove step, after the freeze.
-
-Lean-first (2026-11-19).
+`schema.Atom.Equals`: a member of the recursion cluster `schema.EqualsRec` (`EqualsRec.lean`); its proof is the
+projection of the cluster's (its body is `Atom__EqualsBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Atom__Equals
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.List__Equals
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Map__Equals
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.EqualsRec
 
 @[expose] public section
 
@@ -32,10 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : schema.Assumptions]
 
 theorem schema.Atom.Equals.wp_proof
-    (hListEquals : schema.List.Equals.spec (GF := GF))
-    (hMapEquals : schema.Map.Equals.spec (GF := GF)) :
-    schema.Atom.Equals.spec (GF := GF) := by
-  sorry
+    (hrec : schema.EqualsRec.spec (GF := GF)) :
+    schema.Atom.Equals.spec (GF := GF) := hrec.1
 
 end proof
 

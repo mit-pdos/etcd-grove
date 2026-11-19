@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.typeRefAtPath.wp_proof
-    (hMap_FindField : schema.Map.FindField.spec (GF := GF)) :
+    (h_Map_FindField : schema.Map.FindField.spec (GF := GF)) :
     typed.typeRefAtPath.spec (GF := GF) := by
   sorry
 

@@ -5,8 +5,8 @@ freeze over its callees' specs (the hypotheses).
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__WithPrefix
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Get
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Get
 
 @[expose] public section
 
@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.WithPrefix.wp_proof
-    (wp_SetNodeMap_Get : fieldpath.SetNodeMap.Get.spec (GF := GF))
-    (wp_NewSet : fieldpath.NewSet.spec (GF := GF)) :
+    (h_NewSet : fieldpath.NewSet.spec (GF := GF))
+    (h_SetNodeMap_Get : fieldpath.SetNodeMap.Get.spec (GF := GF)) :
     fieldpath.Set.WithPrefix.spec (GF := GF) := by
   sorry
 

@@ -5,8 +5,8 @@ freeze over its callees' specs (the hypotheses).
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Equals
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Equals
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.Equals
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Equals
 
 @[expose] public section
 
@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.PathElement.Equals.wp_proof
-    (wp_value_FieldList_Equals : value.FieldList.Equals.spec (GF := GF))
-    (wp_value_Equals : value.Equals.spec (GF := GF)) :
+    (h_Equals : value.Equals.spec (GF := GF))
+    (h_FieldList_Equals : value.FieldList.Equals.spec (GF := GF)) :
     fieldpath.PathElement.Equals.spec (GF := GF) := by
   sorry
 

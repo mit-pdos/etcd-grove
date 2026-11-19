@@ -1,14 +1,11 @@
 /-
-`fieldpath.Set.RecursiveDifference`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.Set.RecursiveDifference`: a member of the recursion cluster `fieldpath.RecursiveDifferenceRec` (`RecursiveDifferenceRec.lean`); its proof is the
+projection of the cluster's (its body is `Set__RecursiveDifferenceBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__RecursiveDifference
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Difference
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Less
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Has
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Empty
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.RecursiveDifferenceRec
 
 @[expose] public section
 
@@ -31,12 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.RecursiveDifference.wp_proof
-    (wp_PathElementSet_Difference : fieldpath.PathElementSet.Difference.spec (GF := GF))
-    (wp_PathElement_Less : fieldpath.PathElement.Less.spec (GF := GF))
-    (wp_PathElementSet_Has : fieldpath.PathElementSet.Has.spec (GF := GF))
-    (wp_Set_Empty : fieldpath.Set.Empty.spec (GF := GF)) :
-    fieldpath.Set.RecursiveDifference.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.RecursiveDifferenceRec.spec (GF := GF)) :
+    fieldpath.Set.RecursiveDifference.spec (GF := GF) := hrec.1
 
 end proof
 

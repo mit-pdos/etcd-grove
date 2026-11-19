@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.FieldList.Equals.wp_proof
-    (wp_Equals : value.Equals.spec (GF := GF)) :
+    (h_Equals : value.Equals.spec (GF := GF)) :
     value.FieldList.Equals.spec (GF := GF) := by
   sorry
 

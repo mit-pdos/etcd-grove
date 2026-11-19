@@ -5,6 +5,7 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts__Equals_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts__Equals
 
 @[expose] public section
 
@@ -26,7 +27,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
-theorem merge.Conflicts.Equals_ptr.wp_proof : merge.Conflicts.Equals_ptr.spec (GF := GF) := by
+theorem merge.Conflicts.Equals_ptr.wp_proof
+    (h_Conflicts_Equals : merge.Conflicts.Equals.spec (GF := GF)) :
+    merge.Conflicts.Equals_ptr.spec (GF := GF) := by
   sorry
 
 end proof

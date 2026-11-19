@@ -8,18 +8,117 @@ hand.
 -/
 module
 
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.DifferenceRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.EmptyRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.EnsureNamedFieldsAreMembersRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.EqualsRec
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.FieldNameElement
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.IntersectionRec
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.KeyElement
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.MakePath
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.MakePathElementMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.MakePathElementSet
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.MakePathElementValueMap
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields__Equals
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields__Equals_ptr
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewVersionedSet
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementMap__Get
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementMap__Insert
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Difference
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Has
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Insert
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Intersection
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Iterate
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Size
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Union
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementValueMap__Get
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementValueMap__Insert
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Compare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Less
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Path__Copy
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Path__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.RecursiveDifferenceRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Descend
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Difference
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__DifferenceBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Empty
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__EmptyBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__EnsureNamedFieldsAreMembers
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__EnsureNamedFieldsAreMembersBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__EqualsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Get
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Intersection
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__IntersectionBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Iterate
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__RecursiveDifference
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__RecursiveDifferenceBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Size
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__SizeBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Union
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__UnionBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__iteratePrefix
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__iteratePrefixBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Difference
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__DifferenceBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Empty
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__EmptyBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__EnsureNamedFieldsAreMembers
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__EnsureNamedFieldsAreMembersBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__EqualsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Has
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Insert
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Intersection
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__IntersectionBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Iterate
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__RecursiveDifference
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__RecursiveDifferenceBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Size
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__SizeBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Union
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__UnionBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__WithPrefix
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__iteratePrefix
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__iteratePrefixBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SizeRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.UnionRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.iteratePrefixRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__APIVersion
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__Applied
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__Set
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Conflict__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.ConflictsFromManagers
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts__Equals
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts__Equals_ptr
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.UpdaterBuilder__BuildUpdater
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Apply
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Update
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__addBackDanglingItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__addBackOwnedItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__addBackOwnedItemsForVersion
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__prune
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__reconcileManagedFieldsWithSchemaChanges
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__update
 public import Proof.reflect.DeepEqualNil
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Atom__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Atom__EqualsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.EqualsRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.List__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.List__EqualsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Map__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Map__EqualsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Map__FindField
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__FindNamedType
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__Resolve
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__resolveNoOverrides
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.StructField__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.StructField__EqualsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.TypeRef__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.TypeRef__EqualsBody
 public import Proof.slices.BinarySearchFunc
 public import Proof.slices.Insert
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.Main
@@ -38,12 +137,232 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__typedObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.updated
-public import Proof.sort.SliceStable
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.AsTyped
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Comparison__ExcludeFields
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Comparison__FilterFields
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.ReconcileFieldSetWithSchema
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Compare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Compare_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Merge
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Merge_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__RemoveItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__RemoveItems_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Schema
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Schema_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__ToFieldSet
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__ToFieldSet_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__TypeRef
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__TypeRef_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Validate
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Validate_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__toFieldSetWalker
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__walker
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.ValidationErrors__WithLazyPrefix
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.ValidationErrors__WithPrefix
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalkerRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__compare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__compareBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__compareListItem
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__compareListItemBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__derefList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__derefMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__doLeaf
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__doList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__doListBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__doMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__doMapBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__doScalar
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__finishDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__prepareDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__visitListItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__visitListItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__visitMapItem
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__visitMapItemBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__visitMapItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__visitMapItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.deduceAtom
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.getAssociativeKeyDefault
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.handleAtom
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.isUntypedDeducedMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.isUntypedDeducedRef
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.keyedAssociativeListItemToPathElement
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.listItemToPathElement
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.listValue
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mapValue
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.merge
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalkerRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__derefList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__derefMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doLeaf
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doListBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doMapBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doScalar
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__finishDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__indexListPathElements
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__merge
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__mergeBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__mergeListItem
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__mergeListItemBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__prepareDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__visitListItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__visitListItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__visitMapItem
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__visitMapItemBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__visitMapItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__visitMapItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalkerRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doListBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doMapBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doScalar
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__finishDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__finished
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__prepareDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__reconcile
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__reconcileBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__visitListItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__visitListItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__visitMapItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__visitMapItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.removeItemsWithSchema
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.removeItemsWithSchemaBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalkerRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doListBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doMapBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doScalar
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.resolveSchema
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.setItemToPathElement
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalkerRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__doList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__doListBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__doMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__doMapBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__doScalar
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__finishDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__finished
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__prepareDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__toFieldSet
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__toFieldSetBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__visitListItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__visitListItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__visitMapItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__visitMapItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.typeRefAtPath
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validateScalar
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalkerRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doListBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doMapBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doScalar
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__finishDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__finished
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__prepareDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__validate
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__validateBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__visitListItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__visitListItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__visitMapItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__visitMapItemsBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.BoolCompare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Compare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsingBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsingRec
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.EqualsUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.EqualsUsingBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.EqualsUsingRec
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Compare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Sort
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.FloatCompare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.IntCompare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.ListCompareUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.ListCompareUsingBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.ListEqualsUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.ListEqualsUsingBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.MapCompareUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.MapCompareUsingBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.MapZipUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.NewValueInterface
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.defaultMapZip
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.emptyRange__Item
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.emptyRange__Next
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__Free
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocListUnstructuredRange
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocValueUnstructured
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__Free
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocListUnstructuredRange
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocValueUnstructured
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.lexicalKeyOrderedMapZip
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructuredRange__Item
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructuredRange__Next
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__At
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__AtUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__AtUsing_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__At_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__EqualsUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__EqualsUsingBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__EqualsUsing_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__EqualsUsing_ptrBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__Length
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__Length_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__RangeUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__RangeUsing_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Empty
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__EqualsUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__EqualsUsingBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Get
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__GetUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Has
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Iterate
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__IterateUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Length
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__ZipUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.unorderedMapZip
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsBool
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsBool_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsFloat
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsFloat_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsInt
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsInt_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsListUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsListUsing_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsMapUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsMapUsing_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsMap_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsString
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsString_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsBool
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsBool_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsFloat
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsFloat_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsInt
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsInt_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsList
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsList_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsMap
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsMap_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsNull
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsNull_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsString
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsString_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__reuse
+public import Perennial.Proof.sync.Link
+public import Perennial.Proof.sort.Link
+public import Perennial.Proof.strings.Link
 
 @[expose] public section
 
@@ -62,10 +381,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumptions]
 
-theorem reflect.wp_DeepEqualNil :
-    EtcdGrove.reflect.DeepEqual.specNil (GF := GF) (hG := hG) :=
-  EtcdGrove.reflect.DeepEqual.wp_proofNil
-
 theorem slices.wp_BinarySearchFunc :
     EtcdGrove.slices.BinarySearchFunc.spec (GF := GF) (hG := hG) :=
   EtcdGrove.slices.BinarySearchFunc.wp_proof
@@ -74,9 +389,9 @@ theorem slices.wp_Insert :
     EtcdGrove.slices.Insert.spec (GF := GF) (hG := hG) :=
   EtcdGrove.slices.Insert.wp_proof
 
-theorem sort.wp_SliceStable :
-    EtcdGrove.sort.SliceStable.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.sort.SliceStable.wp_proof
+theorem reflect.wp_DeepEqualNil :
+    EtcdGrove.reflect.DeepEqual.specNil (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.DeepEqual.wp_proofNil
 
 end links
 
@@ -89,49 +404,1145 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumptions]
 
+theorem smd.value.heapAllocator.wp_Free :
+    EtcdGrove.smd.value.heapAllocator.Free.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.heapAllocator.Free.wp_proof
+
+theorem smd.value.freelistAllocator.wp_Free :
+    EtcdGrove.smd.value.freelistAllocator.Free.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.freelistAllocator.Free.wp_proof
+
+theorem smd.value.valueUnstructured.wp_AsBool :
+    EtcdGrove.smd.value.valueUnstructured.AsBool.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsBool.wp_proof
+
+theorem smd.value.valueUnstructured.wp_AsBool_ptr :
+    EtcdGrove.smd.value.valueUnstructured.AsBool_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsBool_ptr.wp_proof smd.value.valueUnstructured.wp_AsBool
+
+theorem smd.value.valueUnstructured.wp_AsFloat :
+    EtcdGrove.smd.value.valueUnstructured.AsFloat.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsFloat.wp_proof
+
+theorem smd.value.valueUnstructured.wp_AsFloat_ptr :
+    EtcdGrove.smd.value.valueUnstructured.AsFloat_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsFloat_ptr.wp_proof smd.value.valueUnstructured.wp_AsFloat
+
+theorem smd.value.valueUnstructured.wp_AsInt :
+    EtcdGrove.smd.value.valueUnstructured.AsInt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsInt.wp_proof
+
+theorem smd.value.valueUnstructured.wp_AsInt_ptr :
+    EtcdGrove.smd.value.valueUnstructured.AsInt_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsInt_ptr.wp_proof smd.value.valueUnstructured.wp_AsInt
+
+theorem smd.value.valueUnstructured.wp_AsListUsing :
+    EtcdGrove.smd.value.valueUnstructured.AsListUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsListUsing.wp_proof
+
+theorem smd.value.valueUnstructured.wp_AsListUsing_ptr :
+    EtcdGrove.smd.value.valueUnstructured.AsListUsing_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsListUsing_ptr.wp_proof smd.value.valueUnstructured.wp_AsListUsing
+
+theorem smd.value.valueUnstructured.wp_AsMapUsing :
+    EtcdGrove.smd.value.valueUnstructured.AsMapUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsMapUsing.wp_proof
+
+theorem smd.value.valueUnstructured.wp_AsMapUsing_ptr :
+    EtcdGrove.smd.value.valueUnstructured.AsMapUsing_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsMapUsing_ptr.wp_proof smd.value.valueUnstructured.wp_AsMapUsing
+
+theorem smd.value.valueUnstructured.wp_AsString :
+    EtcdGrove.smd.value.valueUnstructured.AsString.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsString.wp_proof
+
+theorem smd.value.valueUnstructured.wp_AsString_ptr :
+    EtcdGrove.smd.value.valueUnstructured.AsString_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsString_ptr.wp_proof smd.value.valueUnstructured.wp_AsString
+
+theorem smd.value.valueUnstructured.wp_IsBool :
+    EtcdGrove.smd.value.valueUnstructured.IsBool.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsBool.wp_proof
+
+theorem smd.value.valueUnstructured.wp_IsBool_ptr :
+    EtcdGrove.smd.value.valueUnstructured.IsBool_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsBool_ptr.wp_proof smd.value.valueUnstructured.wp_IsBool
+
+theorem smd.value.valueUnstructured.wp_IsFloat :
+    EtcdGrove.smd.value.valueUnstructured.IsFloat.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsFloat.wp_proof
+
+theorem smd.value.valueUnstructured.wp_IsFloat_ptr :
+    EtcdGrove.smd.value.valueUnstructured.IsFloat_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsFloat_ptr.wp_proof smd.value.valueUnstructured.wp_IsFloat
+
+theorem smd.value.valueUnstructured.wp_IsInt :
+    EtcdGrove.smd.value.valueUnstructured.IsInt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsInt.wp_proof
+
+theorem smd.value.valueUnstructured.wp_IsInt_ptr :
+    EtcdGrove.smd.value.valueUnstructured.IsInt_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsInt_ptr.wp_proof smd.value.valueUnstructured.wp_IsInt
+
+theorem smd.value.valueUnstructured.wp_IsList :
+    EtcdGrove.smd.value.valueUnstructured.IsList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsList.wp_proof
+
+theorem smd.value.valueUnstructured.wp_IsList_ptr :
+    EtcdGrove.smd.value.valueUnstructured.IsList_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsList_ptr.wp_proof smd.value.valueUnstructured.wp_IsList
+
+theorem smd.value.valueUnstructured.wp_IsMap :
+    EtcdGrove.smd.value.valueUnstructured.IsMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsMap.wp_proof
+
+theorem smd.value.valueUnstructured.wp_IsMap_ptr :
+    EtcdGrove.smd.value.valueUnstructured.IsMap_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsMap_ptr.wp_proof smd.value.valueUnstructured.wp_IsMap
+
+theorem smd.value.valueUnstructured.wp_IsNull :
+    EtcdGrove.smd.value.valueUnstructured.IsNull.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsNull.wp_proof
+
+theorem smd.value.valueUnstructured.wp_IsNull_ptr :
+    EtcdGrove.smd.value.valueUnstructured.IsNull_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsNull_ptr.wp_proof smd.value.valueUnstructured.wp_IsNull
+
+theorem smd.value.valueUnstructured.wp_IsString :
+    EtcdGrove.smd.value.valueUnstructured.IsString.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsString.wp_proof
+
+theorem smd.value.valueUnstructured.wp_IsString_ptr :
+    EtcdGrove.smd.value.valueUnstructured.IsString_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.IsString_ptr.wp_proof smd.value.valueUnstructured.wp_IsString
+
+theorem smd.value.wp_BoolCompare :
+    EtcdGrove.smd.value.BoolCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.BoolCompare.wp_proof
+
+theorem smd.value.wp_FloatCompare :
+    EtcdGrove.smd.value.FloatCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.FloatCompare.wp_proof
+
+theorem smd.value.wp_IntCompare :
+    EtcdGrove.smd.value.IntCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.IntCompare.wp_proof
+
+theorem smd.value.wp_CompareUsingBody :
+    EtcdGrove.smd.value.CompareUsing.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.CompareUsing.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.valueUnstructured.wp_AsBool_ptr smd.value.valueUnstructured.wp_AsFloat_ptr smd.value.valueUnstructured.wp_AsInt_ptr smd.value.valueUnstructured.wp_AsListUsing_ptr smd.value.valueUnstructured.wp_AsMapUsing_ptr smd.value.valueUnstructured.wp_AsString_ptr smd.value.valueUnstructured.wp_IsBool_ptr smd.value.valueUnstructured.wp_IsFloat_ptr smd.value.valueUnstructured.wp_IsInt_ptr smd.value.valueUnstructured.wp_IsList_ptr smd.value.valueUnstructured.wp_IsMap_ptr smd.value.valueUnstructured.wp_IsNull_ptr smd.value.valueUnstructured.wp_IsString_ptr _root_.Perennial.strings.wp_Compare smd.value.wp_BoolCompare smd.value.wp_FloatCompare smd.value.wp_IntCompare
+
+theorem smd.value.heapAllocator.wp_allocListUnstructuredRange :
+    EtcdGrove.smd.value.heapAllocator.allocListUnstructuredRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.heapAllocator.allocListUnstructuredRange.wp_proof
+
+theorem smd.value.freelistAllocator.wp_allocListUnstructuredRange :
+    EtcdGrove.smd.value.freelistAllocator.allocListUnstructuredRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.freelistAllocator.allocListUnstructuredRange.wp_proof
+
+theorem smd.value.listUnstructured.wp_RangeUsing :
+    EtcdGrove.smd.value.listUnstructured.RangeUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.RangeUsing.wp_proof smd.value.heapAllocator.wp_allocListUnstructuredRange smd.value.freelistAllocator.wp_allocListUnstructuredRange
+
+theorem smd.value.listUnstructured.wp_RangeUsing_ptr :
+    EtcdGrove.smd.value.listUnstructured.RangeUsing_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.RangeUsing_ptr.wp_proof smd.value.listUnstructured.wp_RangeUsing
+
+theorem smd.value.valueUnstructured.wp_reuse :
+    EtcdGrove.smd.value.valueUnstructured.reuse.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.reuse.wp_proof
+
+theorem smd.value.listUnstructuredRange.wp_Item :
+    EtcdGrove.smd.value.listUnstructuredRange.Item.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructuredRange.Item.wp_proof smd.value.valueUnstructured.wp_reuse
+
+theorem smd.value.emptyRange.wp_Item :
+    EtcdGrove.smd.value.emptyRange.Item.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.emptyRange.Item.wp_proof
+
+theorem smd.value.listUnstructuredRange.wp_Next :
+    EtcdGrove.smd.value.listUnstructuredRange.Next.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructuredRange.Next.wp_proof
+
+theorem smd.value.emptyRange.wp_Next :
+    EtcdGrove.smd.value.emptyRange.Next.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.emptyRange.Next.wp_proof
+
+theorem smd.value.wp_ListCompareUsingBody :
+    EtcdGrove.smd.value.ListCompareUsing.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.ListCompareUsing.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.listUnstructured.wp_RangeUsing smd.value.listUnstructured.wp_RangeUsing_ptr smd.value.listUnstructuredRange.wp_Item smd.value.emptyRange.wp_Item smd.value.listUnstructuredRange.wp_Next smd.value.emptyRange.wp_Next
+
+theorem smd.value.mapUnstructuredString.wp_Length :
+    EtcdGrove.smd.value.mapUnstructuredString.Length.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.Length.wp_proof
+
+theorem smd.value.heapAllocator.wp_allocValueUnstructured :
+    EtcdGrove.smd.value.heapAllocator.allocValueUnstructured.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.heapAllocator.allocValueUnstructured.wp_proof
+
+theorem smd.value.freelistAllocator.wp_allocValueUnstructured :
+    EtcdGrove.smd.value.freelistAllocator.allocValueUnstructured.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.freelistAllocator.allocValueUnstructured.wp_proof
+
+theorem smd.value.mapUnstructuredString.wp_GetUsing :
+    EtcdGrove.smd.value.mapUnstructuredString.GetUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.GetUsing.wp_proof smd.value.heapAllocator.wp_allocValueUnstructured smd.value.freelistAllocator.wp_allocValueUnstructured smd.value.valueUnstructured.wp_reuse
+
+theorem smd.value.mapUnstructuredString.wp_Has :
+    EtcdGrove.smd.value.mapUnstructuredString.Has.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.Has.wp_proof
+
+theorem smd.value.mapUnstructuredString.wp_IterateUsing :
+    EtcdGrove.smd.value.mapUnstructuredString.IterateUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.IterateUsing.wp_proof smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.heapAllocator.wp_allocValueUnstructured smd.value.freelistAllocator.wp_allocValueUnstructured smd.value.valueUnstructured.wp_reuse
+
+theorem smd.value.wp_lexicalKeyOrderedMapZip :
+    EtcdGrove.smd.value.lexicalKeyOrderedMapZip.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.lexicalKeyOrderedMapZip.wp_proof smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.mapUnstructuredString.wp_GetUsing smd.value.mapUnstructuredString.wp_Has smd.value.mapUnstructuredString.wp_IterateUsing smd.value.mapUnstructuredString.wp_Length _root_.Perennial.sort.wp_Strings
+
+theorem smd.value.mapUnstructuredString.wp_Empty :
+    EtcdGrove.smd.value.mapUnstructuredString.Empty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.Empty.wp_proof
+
+theorem smd.value.wp_unorderedMapZip :
+    EtcdGrove.smd.value.unorderedMapZip.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.unorderedMapZip.wp_proof smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.mapUnstructuredString.wp_Empty smd.value.mapUnstructuredString.wp_GetUsing smd.value.mapUnstructuredString.wp_Has smd.value.mapUnstructuredString.wp_IterateUsing
+
+theorem smd.value.wp_defaultMapZip :
+    EtcdGrove.smd.value.defaultMapZip.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.defaultMapZip.wp_proof smd.value.wp_lexicalKeyOrderedMapZip smd.value.wp_unorderedMapZip
+
+theorem smd.value.mapUnstructuredString.wp_ZipUsing :
+    EtcdGrove.smd.value.mapUnstructuredString.ZipUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.ZipUsing.wp_proof smd.value.wp_defaultMapZip
+
+theorem smd.value.wp_MapZipUsing :
+    EtcdGrove.smd.value.MapZipUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.MapZipUsing.wp_proof smd.value.mapUnstructuredString.wp_ZipUsing
+
+theorem smd.value.wp_MapCompareUsingBody :
+    EtcdGrove.smd.value.MapCompareUsing.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.MapCompareUsing.wp_proofBody smd.value.mapUnstructuredString.wp_Length smd.value.wp_MapZipUsing
+
+theorem smd.value.wp_CompareUsingRec :
+    EtcdGrove.smd.value.CompareUsingRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.CompareUsingRec.wp_proof smd.value.wp_CompareUsingBody smd.value.wp_ListCompareUsingBody smd.value.wp_MapCompareUsingBody
+
+theorem smd.value.wp_CompareUsing :
+    EtcdGrove.smd.value.CompareUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.CompareUsing.wp_proof smd.value.wp_CompareUsingRec
+
+theorem smd.value.wp_Compare :
+    EtcdGrove.smd.value.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.Compare.wp_proof smd.value.wp_CompareUsing
+
+theorem smd.value.FieldList.wp_Compare :
+    EtcdGrove.smd.value.FieldList.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.FieldList.Compare.wp_proof _root_.Perennial.strings.wp_Compare smd.value.wp_Compare
+
+theorem smd.fieldpath.PathElement.wp_Compare :
+    EtcdGrove.smd.fieldpath.PathElement.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElement.Compare.wp_proof _root_.Perennial.strings.wp_Compare smd.value.wp_Compare smd.value.FieldList.wp_Compare
+
+theorem smd.fieldpath.PathElement.wp_Less :
+    EtcdGrove.smd.fieldpath.PathElement.Less.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElement.Less.wp_proof smd.fieldpath.PathElement.wp_Compare
+
+theorem smd.fieldpath.PathElementSet.wp_Difference :
+    EtcdGrove.smd.fieldpath.PathElementSet.Difference.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementSet.Difference.wp_proof smd.fieldpath.PathElement.wp_Less
+
+theorem smd.fieldpath.Set.wp_DifferenceBody :
+    EtcdGrove.smd.fieldpath.Set.Difference.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Difference.wp_proofBody smd.fieldpath.PathElementSet.wp_Difference
+
+theorem smd.fieldpath.PathElementSet.wp_Size :
+    EtcdGrove.smd.fieldpath.PathElementSet.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementSet.Size.wp_proof
+
+theorem smd.fieldpath.Set.wp_EmptyBody :
+    EtcdGrove.smd.fieldpath.Set.Empty.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Empty.wp_proofBody smd.fieldpath.PathElementSet.wp_Size
+
+theorem smd.fieldpath.SetNodeMap.wp_EmptyBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Empty.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Empty.wp_proofBody
+
+theorem smd.fieldpath.wp_EmptyRec :
+    EtcdGrove.smd.fieldpath.EmptyRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.EmptyRec.wp_proof smd.fieldpath.Set.wp_EmptyBody smd.fieldpath.SetNodeMap.wp_EmptyBody
+
+theorem smd.fieldpath.Set.wp_Empty :
+    EtcdGrove.smd.fieldpath.Set.Empty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Empty.wp_proof smd.fieldpath.wp_EmptyRec
+
+theorem smd.fieldpath.SetNodeMap.wp_DifferenceBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Difference.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Difference.wp_proofBody smd.fieldpath.PathElement.wp_Less smd.fieldpath.Set.wp_Empty
+
+theorem smd.fieldpath.wp_DifferenceRec :
+    EtcdGrove.smd.fieldpath.DifferenceRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.DifferenceRec.wp_proof smd.fieldpath.Set.wp_DifferenceBody smd.fieldpath.SetNodeMap.wp_DifferenceBody
+
+theorem smd.fieldpath.PathElementSet.wp_Insert :
+    EtcdGrove.smd.fieldpath.PathElementSet.Insert.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementSet.Insert.wp_proof smd.fieldpath.PathElement.wp_Compare slices.wp_BinarySearchFunc slices.wp_Insert
+
+theorem smd.schema.Map.wp_FindField :
+    EtcdGrove.smd.schema.Map.FindField.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.Map.FindField.wp_proof _root_.Perennial.sync.Once.wp_Do
+
+theorem smd.schema.Schema.wp_FindNamedType :
+    EtcdGrove.smd.schema.Schema.FindNamedType.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.Schema.FindNamedType.wp_proof _root_.Perennial.sync.Once.wp_Do
+
+theorem smd.schema.Schema.wp_resolveNoOverrides :
+    EtcdGrove.smd.schema.Schema.resolveNoOverrides.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.Schema.resolveNoOverrides.wp_proof smd.schema.Schema.wp_FindNamedType
+
+theorem smd.schema.Schema.wp_Resolve :
+    EtcdGrove.smd.schema.Schema.Resolve.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.Schema.Resolve.wp_proof smd.schema.Schema.wp_resolveNoOverrides
+
+theorem smd.fieldpath.Set.wp_EnsureNamedFieldsAreMembersBody :
+    EtcdGrove.smd.fieldpath.Set.EnsureNamedFieldsAreMembers.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.EnsureNamedFieldsAreMembers.wp_proofBody smd.fieldpath.PathElementSet.wp_Insert smd.fieldpath.PathElementSet.wp_Size smd.schema.Map.wp_FindField smd.schema.Schema.wp_Resolve
+
+theorem smd.fieldpath.Set.wp_SizeBody :
+    EtcdGrove.smd.fieldpath.Set.Size.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Size.wp_proofBody smd.fieldpath.PathElementSet.wp_Size
+
+theorem smd.fieldpath.SetNodeMap.wp_SizeBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Size.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Size.wp_proofBody
+
+theorem smd.fieldpath.wp_SizeRec :
+    EtcdGrove.smd.fieldpath.SizeRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SizeRec.wp_proof smd.fieldpath.Set.wp_SizeBody smd.fieldpath.SetNodeMap.wp_SizeBody
+
+theorem smd.fieldpath.SetNodeMap.wp_Size :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Size.wp_proof smd.fieldpath.wp_SizeRec
+
+theorem smd.fieldpath.SetNodeMap.wp_EnsureNamedFieldsAreMembersBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.wp_proofBody smd.fieldpath.SetNodeMap.wp_Size smd.schema.Map.wp_FindField smd.schema.Schema.wp_Resolve
+
+theorem smd.fieldpath.wp_EnsureNamedFieldsAreMembersRec :
+    EtcdGrove.smd.fieldpath.EnsureNamedFieldsAreMembersRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.EnsureNamedFieldsAreMembersRec.wp_proof smd.fieldpath.Set.wp_EnsureNamedFieldsAreMembersBody smd.fieldpath.SetNodeMap.wp_EnsureNamedFieldsAreMembersBody
+
+theorem smd.value.wp_EqualsUsingBody :
+    EtcdGrove.smd.value.EqualsUsing.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.EqualsUsing.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.valueUnstructured.wp_AsBool_ptr smd.value.valueUnstructured.wp_AsFloat_ptr smd.value.valueUnstructured.wp_AsInt_ptr smd.value.valueUnstructured.wp_AsListUsing_ptr smd.value.valueUnstructured.wp_AsMapUsing_ptr smd.value.valueUnstructured.wp_AsString_ptr smd.value.valueUnstructured.wp_IsBool_ptr smd.value.valueUnstructured.wp_IsFloat_ptr smd.value.valueUnstructured.wp_IsInt_ptr smd.value.valueUnstructured.wp_IsList_ptr smd.value.valueUnstructured.wp_IsMap_ptr smd.value.valueUnstructured.wp_IsNull_ptr smd.value.valueUnstructured.wp_IsString_ptr
+
+theorem smd.value.listUnstructured.wp_Length :
+    EtcdGrove.smd.value.listUnstructured.Length.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.Length.wp_proof
+
+theorem smd.value.listUnstructured.wp_Length_ptr :
+    EtcdGrove.smd.value.listUnstructured.Length_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.Length_ptr.wp_proof smd.value.listUnstructured.wp_Length
+
+theorem smd.value.wp_ListEqualsUsingBody :
+    EtcdGrove.smd.value.ListEqualsUsing.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.ListEqualsUsing.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.value.listUnstructured.wp_RangeUsing smd.value.listUnstructured.wp_RangeUsing_ptr smd.value.listUnstructuredRange.wp_Item smd.value.emptyRange.wp_Item smd.value.listUnstructuredRange.wp_Next smd.value.emptyRange.wp_Next
+
+theorem smd.value.listUnstructured.wp_EqualsUsingBody :
+    EtcdGrove.smd.value.listUnstructured.EqualsUsing.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.EqualsUsing.wp_proofBody
+
+theorem smd.value.listUnstructured.wp_EqualsUsing_ptrBody :
+    EtcdGrove.smd.value.listUnstructured.EqualsUsing_ptr.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.EqualsUsing_ptr.wp_proofBody
+
+theorem smd.value.mapUnstructuredString.wp_EqualsUsingBody :
+    EtcdGrove.smd.value.mapUnstructuredString.EqualsUsing.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.EqualsUsing.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.heapAllocator.wp_allocValueUnstructured smd.value.freelistAllocator.wp_allocValueUnstructured smd.value.mapUnstructuredString.wp_IterateUsing smd.value.mapUnstructuredString.wp_Length smd.value.valueUnstructured.wp_reuse
+
+theorem smd.value.wp_EqualsUsingRec :
+    EtcdGrove.smd.value.EqualsUsingRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.EqualsUsingRec.wp_proof smd.value.wp_EqualsUsingBody smd.value.wp_ListEqualsUsingBody smd.value.listUnstructured.wp_EqualsUsingBody smd.value.listUnstructured.wp_EqualsUsing_ptrBody smd.value.mapUnstructuredString.wp_EqualsUsingBody
+
+theorem smd.value.wp_EqualsUsing :
+    EtcdGrove.smd.value.EqualsUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.EqualsUsing.wp_proof smd.value.wp_EqualsUsingRec
+
+theorem smd.value.wp_Equals :
+    EtcdGrove.smd.value.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.Equals.wp_proof smd.value.wp_EqualsUsing
+
+theorem smd.value.FieldList.wp_Equals :
+    EtcdGrove.smd.value.FieldList.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.FieldList.Equals.wp_proof smd.value.wp_Equals
+
+theorem smd.fieldpath.PathElement.wp_Equals :
+    EtcdGrove.smd.fieldpath.PathElement.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElement.Equals.wp_proof smd.value.wp_Equals smd.value.FieldList.wp_Equals
+
+theorem smd.fieldpath.PathElementSet.wp_Equals :
+    EtcdGrove.smd.fieldpath.PathElementSet.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementSet.Equals.wp_proof smd.fieldpath.PathElement.wp_Equals
+
+theorem smd.fieldpath.Set.wp_EqualsBody :
+    EtcdGrove.smd.fieldpath.Set.Equals.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Equals.wp_proofBody smd.fieldpath.PathElementSet.wp_Equals
+
+theorem smd.fieldpath.SetNodeMap.wp_EqualsBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Equals.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Equals.wp_proofBody smd.fieldpath.PathElement.wp_Equals
+
+theorem smd.fieldpath.wp_EqualsRec :
+    EtcdGrove.smd.fieldpath.EqualsRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.EqualsRec.wp_proof smd.fieldpath.Set.wp_EqualsBody smd.fieldpath.SetNodeMap.wp_EqualsBody
+
 theorem smd.fieldpath.wp_FieldNameElement :
     EtcdGrove.smd.fieldpath.FieldNameElement.spec (GF := GF) (hG := hG) :=
   EtcdGrove.smd.fieldpath.FieldNameElement.wp_proof
+
+theorem smd.fieldpath.PathElementSet.wp_Intersection :
+    EtcdGrove.smd.fieldpath.PathElementSet.Intersection.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementSet.Intersection.wp_proof smd.fieldpath.PathElement.wp_Less
+
+theorem smd.fieldpath.Set.wp_IntersectionBody :
+    EtcdGrove.smd.fieldpath.Set.Intersection.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Intersection.wp_proofBody smd.fieldpath.PathElementSet.wp_Intersection
+
+theorem smd.fieldpath.SetNodeMap.wp_IntersectionBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Intersection.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Intersection.wp_proofBody smd.fieldpath.PathElement.wp_Less smd.fieldpath.Set.wp_Empty
+
+theorem smd.fieldpath.wp_IntersectionRec :
+    EtcdGrove.smd.fieldpath.IntersectionRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.IntersectionRec.wp_proof smd.fieldpath.Set.wp_IntersectionBody smd.fieldpath.SetNodeMap.wp_IntersectionBody
 
 theorem smd.fieldpath.wp_KeyElement :
     EtcdGrove.smd.fieldpath.KeyElement.spec (GF := GF) (hG := hG) :=
   EtcdGrove.smd.fieldpath.KeyElement.wp_proof
 
+theorem smd.fieldpath.wp_MakePath :
+    EtcdGrove.smd.fieldpath.MakePath.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.MakePath.wp_proof
+
+theorem smd.fieldpath.wp_MakePathElementMap :
+    EtcdGrove.smd.fieldpath.MakePathElementMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.MakePathElementMap.wp_proof
+
+theorem smd.fieldpath.wp_MakePathElementSet :
+    EtcdGrove.smd.fieldpath.MakePathElementSet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.MakePathElementSet.wp_proof
+
+theorem smd.fieldpath.wp_MakePathElementValueMap :
+    EtcdGrove.smd.fieldpath.MakePathElementValueMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.MakePathElementValueMap.wp_proof smd.fieldpath.wp_MakePathElementMap
+
+theorem smd.fieldpath.Set.wp_Equals :
+    EtcdGrove.smd.fieldpath.Set.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Equals.wp_proof smd.fieldpath.wp_EqualsRec
+
+theorem smd.fieldpath.versionedSet.wp_APIVersion :
+    EtcdGrove.smd.fieldpath.versionedSet.APIVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.versionedSet.APIVersion.wp_proof
+
+theorem smd.fieldpath.versionedSet.wp_Applied :
+    EtcdGrove.smd.fieldpath.versionedSet.Applied.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.versionedSet.Applied.wp_proof
+
+theorem smd.fieldpath.versionedSet.wp_Set :
+    EtcdGrove.smd.fieldpath.versionedSet.Set.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.versionedSet.Set.wp_proof
+
 theorem smd.fieldpath.ManagedFields.wp_Equals :
     EtcdGrove.smd.fieldpath.ManagedFields.Equals.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.fieldpath.ManagedFields.Equals.wp_proof
+  EtcdGrove.smd.fieldpath.ManagedFields.Equals.wp_proof smd.fieldpath.Set.wp_Equals smd.fieldpath.versionedSet.wp_APIVersion smd.fieldpath.versionedSet.wp_Applied smd.fieldpath.versionedSet.wp_Set
 
 theorem smd.fieldpath.ManagedFields.wp_Equals_ptr :
     EtcdGrove.smd.fieldpath.ManagedFields.Equals_ptr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.fieldpath.ManagedFields.Equals_ptr.wp_proof
+  EtcdGrove.smd.fieldpath.ManagedFields.Equals_ptr.wp_proof smd.fieldpath.ManagedFields.wp_Equals
+
+theorem smd.fieldpath.SetNodeMap.wp_Descend :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Descend.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Descend.wp_proof smd.fieldpath.PathElement.wp_Compare slices.wp_BinarySearchFunc slices.wp_Insert
+
+theorem smd.fieldpath.Set.wp_Insert :
+    EtcdGrove.smd.fieldpath.Set.Insert.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Insert.wp_proof smd.fieldpath.PathElementSet.wp_Insert smd.fieldpath.SetNodeMap.wp_Descend
 
 theorem smd.fieldpath.wp_NewSet :
     EtcdGrove.smd.fieldpath.NewSet.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.fieldpath.NewSet.wp_proof
+  EtcdGrove.smd.fieldpath.NewSet.wp_proof smd.fieldpath.Set.wp_Insert
 
 theorem smd.fieldpath.wp_NewVersionedSet :
     EtcdGrove.smd.fieldpath.NewVersionedSet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.smd.fieldpath.NewVersionedSet.wp_proof
 
+theorem smd.fieldpath.PathElementMap.wp_Get :
+    EtcdGrove.smd.fieldpath.PathElementMap.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementMap.Get.wp_proof smd.fieldpath.PathElement.wp_Compare slices.wp_BinarySearchFunc
+
+theorem smd.fieldpath.PathElementMap.wp_Insert :
+    EtcdGrove.smd.fieldpath.PathElementMap.Insert.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementMap.Insert.wp_proof smd.fieldpath.PathElement.wp_Compare slices.wp_BinarySearchFunc slices.wp_Insert
+
+theorem smd.fieldpath.PathElementSet.wp_Has :
+    EtcdGrove.smd.fieldpath.PathElementSet.Has.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementSet.Has.wp_proof smd.fieldpath.PathElement.wp_Compare slices.wp_BinarySearchFunc
+
+theorem smd.fieldpath.PathElementSet.wp_Iterate :
+    EtcdGrove.smd.fieldpath.PathElementSet.Iterate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementSet.Iterate.wp_proof
+
+theorem smd.fieldpath.PathElementSet.wp_Union :
+    EtcdGrove.smd.fieldpath.PathElementSet.Union.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementSet.Union.wp_proof smd.fieldpath.PathElement.wp_Less
+
+theorem smd.fieldpath.PathElementValueMap.wp_Get :
+    EtcdGrove.smd.fieldpath.PathElementValueMap.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementValueMap.Get.wp_proof smd.fieldpath.PathElementMap.wp_Get
+
+theorem smd.fieldpath.PathElementValueMap.wp_Insert :
+    EtcdGrove.smd.fieldpath.PathElementValueMap.Insert.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.PathElementValueMap.Insert.wp_proof smd.fieldpath.PathElementMap.wp_Insert
+
+theorem smd.fieldpath.Path.wp_Copy :
+    EtcdGrove.smd.fieldpath.Path.Copy.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Path.Copy.wp_proof
+
+theorem smd.fieldpath.Path.wp_Equals :
+    EtcdGrove.smd.fieldpath.Path.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Path.Equals.wp_proof smd.fieldpath.PathElement.wp_Equals
+
+theorem smd.fieldpath.Set.wp_RecursiveDifferenceBody :
+    EtcdGrove.smd.fieldpath.Set.RecursiveDifference.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.RecursiveDifference.wp_proofBody smd.fieldpath.PathElementSet.wp_Difference
+
+theorem smd.fieldpath.SetNodeMap.wp_RecursiveDifferenceBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.RecursiveDifference.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.RecursiveDifference.wp_proofBody smd.fieldpath.PathElement.wp_Less smd.fieldpath.PathElementSet.wp_Has smd.fieldpath.Set.wp_Empty
+
+theorem smd.fieldpath.wp_RecursiveDifferenceRec :
+    EtcdGrove.smd.fieldpath.RecursiveDifferenceRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.RecursiveDifferenceRec.wp_proof smd.fieldpath.Set.wp_RecursiveDifferenceBody smd.fieldpath.SetNodeMap.wp_RecursiveDifferenceBody
+
+theorem smd.fieldpath.SetNodeMap.wp_Difference :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Difference.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Difference.wp_proof smd.fieldpath.wp_DifferenceRec
+
+theorem smd.fieldpath.SetNodeMap.wp_Empty :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Empty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Empty.wp_proof smd.fieldpath.wp_EmptyRec
+
+theorem smd.fieldpath.SetNodeMap.wp_EnsureNamedFieldsAreMembers :
+    EtcdGrove.smd.fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.wp_proof smd.fieldpath.wp_EnsureNamedFieldsAreMembersRec
+
+theorem smd.fieldpath.SetNodeMap.wp_Equals :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Equals.wp_proof smd.fieldpath.wp_EqualsRec
+
+theorem smd.fieldpath.SetNodeMap.wp_Get :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Get.wp_proof smd.fieldpath.PathElement.wp_Compare slices.wp_BinarySearchFunc
+
+theorem smd.fieldpath.SetNodeMap.wp_Intersection :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Intersection.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Intersection.wp_proof smd.fieldpath.wp_IntersectionRec
+
+theorem smd.fieldpath.SetNodeMap.wp_Iterate :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Iterate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Iterate.wp_proof
+
+theorem smd.fieldpath.SetNodeMap.wp_RecursiveDifference :
+    EtcdGrove.smd.fieldpath.SetNodeMap.RecursiveDifference.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.RecursiveDifference.wp_proof smd.fieldpath.wp_RecursiveDifferenceRec
+
+theorem smd.fieldpath.Set.wp_UnionBody :
+    EtcdGrove.smd.fieldpath.Set.Union.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Union.wp_proofBody smd.fieldpath.PathElementSet.wp_Union
+
+theorem smd.fieldpath.SetNodeMap.wp_UnionBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Union.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Union.wp_proofBody smd.fieldpath.PathElement.wp_Less
+
+theorem smd.fieldpath.wp_UnionRec :
+    EtcdGrove.smd.fieldpath.UnionRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.UnionRec.wp_proof smd.fieldpath.Set.wp_UnionBody smd.fieldpath.SetNodeMap.wp_UnionBody
+
+theorem smd.fieldpath.SetNodeMap.wp_Union :
+    EtcdGrove.smd.fieldpath.SetNodeMap.Union.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.Union.wp_proof smd.fieldpath.wp_UnionRec
+
+theorem smd.fieldpath.Set.wp_iteratePrefixBody :
+    EtcdGrove.smd.fieldpath.Set.iteratePrefix.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.iteratePrefix.wp_proofBody smd.fieldpath.PathElementSet.wp_Iterate
+
+theorem smd.fieldpath.SetNodeMap.wp_iteratePrefixBody :
+    EtcdGrove.smd.fieldpath.SetNodeMap.iteratePrefix.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.iteratePrefix.wp_proofBody
+
+theorem smd.fieldpath.wp_iteratePrefixRec :
+    EtcdGrove.smd.fieldpath.iteratePrefixRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.iteratePrefixRec.wp_proof smd.fieldpath.Set.wp_iteratePrefixBody smd.fieldpath.SetNodeMap.wp_iteratePrefixBody
+
+theorem smd.fieldpath.SetNodeMap.wp_iteratePrefix :
+    EtcdGrove.smd.fieldpath.SetNodeMap.iteratePrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.SetNodeMap.iteratePrefix.wp_proof smd.fieldpath.wp_iteratePrefixRec
+
+theorem smd.fieldpath.Set.wp_Difference :
+    EtcdGrove.smd.fieldpath.Set.Difference.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Difference.wp_proof smd.fieldpath.wp_DifferenceRec
+
+theorem smd.fieldpath.Set.wp_EnsureNamedFieldsAreMembers :
+    EtcdGrove.smd.fieldpath.Set.EnsureNamedFieldsAreMembers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.EnsureNamedFieldsAreMembers.wp_proof smd.fieldpath.wp_EnsureNamedFieldsAreMembersRec
+
+theorem smd.fieldpath.Set.wp_Has :
+    EtcdGrove.smd.fieldpath.Set.Has.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Has.wp_proof smd.fieldpath.PathElementSet.wp_Has smd.fieldpath.SetNodeMap.wp_Get
+
+theorem smd.fieldpath.Set.wp_Intersection :
+    EtcdGrove.smd.fieldpath.Set.Intersection.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Intersection.wp_proof smd.fieldpath.wp_IntersectionRec
+
+theorem smd.fieldpath.Set.wp_iteratePrefix :
+    EtcdGrove.smd.fieldpath.Set.iteratePrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.iteratePrefix.wp_proof smd.fieldpath.wp_iteratePrefixRec
+
+theorem smd.fieldpath.Set.wp_Iterate :
+    EtcdGrove.smd.fieldpath.Set.Iterate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Iterate.wp_proof smd.fieldpath.Set.wp_iteratePrefix
+
+theorem smd.fieldpath.Set.wp_RecursiveDifference :
+    EtcdGrove.smd.fieldpath.Set.RecursiveDifference.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.RecursiveDifference.wp_proof smd.fieldpath.wp_RecursiveDifferenceRec
+
+theorem smd.fieldpath.Set.wp_Size :
+    EtcdGrove.smd.fieldpath.Set.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Size.wp_proof smd.fieldpath.wp_SizeRec
+
+theorem smd.fieldpath.Set.wp_Union :
+    EtcdGrove.smd.fieldpath.Set.Union.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.Union.wp_proof smd.fieldpath.wp_UnionRec
+
+theorem smd.fieldpath.Set.wp_WithPrefix :
+    EtcdGrove.smd.fieldpath.Set.WithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.Set.WithPrefix.wp_proof smd.fieldpath.wp_NewSet smd.fieldpath.SetNodeMap.wp_Get
+
+theorem smd.merge.Conflict.wp_Equals :
+    EtcdGrove.smd.merge.Conflict.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Conflict.Equals.wp_proof smd.fieldpath.Path.wp_Equals
+
+theorem smd.merge.wp_ConflictsFromManagers :
+    EtcdGrove.smd.merge.ConflictsFromManagers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.ConflictsFromManagers.wp_proof smd.fieldpath.Path.wp_Copy smd.fieldpath.Set.wp_Iterate smd.fieldpath.versionedSet.wp_Set
+
 theorem smd.merge.Conflicts.wp_Equals :
     EtcdGrove.smd.merge.Conflicts.Equals.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.merge.Conflicts.Equals.wp_proof
+  EtcdGrove.smd.merge.Conflicts.Equals.wp_proof smd.merge.Conflict.wp_Equals
 
 theorem smd.merge.Conflicts.wp_Equals_ptr :
     EtcdGrove.smd.merge.Conflicts.Equals_ptr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.merge.Conflicts.Equals_ptr.wp_proof
+  EtcdGrove.smd.merge.Conflicts.Equals_ptr.wp_proof smd.merge.Conflicts.wp_Equals
 
 theorem smd.merge.UpdaterBuilder.wp_BuildUpdater :
     EtcdGrove.smd.merge.UpdaterBuilder.BuildUpdater.spec (GF := GF) (hG := hG) :=
   EtcdGrove.smd.merge.UpdaterBuilder.BuildUpdater.wp_proof
 
+theorem smd.typed.wp_deduceAtom :
+    EtcdGrove.smd.typed.deduceAtom.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.deduceAtom.wp_proof smd.value.valueUnstructured.wp_IsBool_ptr smd.value.valueUnstructured.wp_IsFloat_ptr smd.value.valueUnstructured.wp_IsInt_ptr smd.value.valueUnstructured.wp_IsList_ptr smd.value.valueUnstructured.wp_IsMap_ptr smd.value.valueUnstructured.wp_IsString_ptr
+
+theorem smd.typed.wp_handleAtom :
+    EtcdGrove.smd.typed.handleAtom.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.handleAtom.wp_proof
+
+theorem smd.typed.wp_resolveSchema :
+    EtcdGrove.smd.typed.resolveSchema.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.resolveSchema.wp_proof smd.schema.Schema.wp_Resolve smd.typed.wp_deduceAtom smd.typed.wp_handleAtom
+
+theorem smd.value.wp_NewFreelistAllocator :
+    EtcdGrove.smd.value.NewFreelistAllocator.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.NewFreelistAllocator.wp_proof
+
+theorem smd.value.wp_NewValueInterface :
+    EtcdGrove.smd.value.NewValueInterface.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.NewValueInterface.wp_proof smd.value.heapAllocator.wp_allocValueUnstructured smd.value.valueUnstructured.wp_reuse
+
+theorem smd.value.valueUnstructured.wp_Unstructured :
+    EtcdGrove.smd.value.valueUnstructured.Unstructured.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.Unstructured.wp_proof
+
+theorem smd.value.valueUnstructured.wp_Unstructured_ptr :
+    EtcdGrove.smd.value.valueUnstructured.Unstructured_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.Unstructured_ptr.wp_proof smd.value.valueUnstructured.wp_Unstructured
+
+theorem smd.typed.removingWalker.wp_doScalar :
+    EtcdGrove.smd.typed.removingWalker.doScalar.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.removingWalker.doScalar.wp_proof smd.value.valueUnstructured.wp_Unstructured_ptr
+
+theorem smd.typed.wp_removeItemsWithSchemaBody :
+    EtcdGrove.smd.typed.removeItemsWithSchema.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.removeItemsWithSchema.wp_proofBody smd.typed.wp_resolveSchema smd.value.wp_NewFreelistAllocator smd.value.wp_NewValueInterface smd.typed.removingWalker.wp_doScalar
+
+theorem smd.value.mapUnstructuredString.wp_Get :
+    EtcdGrove.smd.value.mapUnstructuredString.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.Get.wp_proof smd.value.mapUnstructuredString.wp_GetUsing
+
+theorem smd.typed.wp_getAssociativeKeyDefault :
+    EtcdGrove.smd.typed.getAssociativeKeyDefault.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.getAssociativeKeyDefault.wp_proof smd.schema.Map.wp_FindField smd.schema.Schema.wp_Resolve
+
+theorem smd.value.FieldList.wp_Sort :
+    EtcdGrove.smd.value.FieldList.Sort.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.FieldList.Sort.wp_proof
+
+theorem smd.typed.wp_keyedAssociativeListItemToPathElement :
+    EtcdGrove.smd.typed.keyedAssociativeListItemToPathElement.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.keyedAssociativeListItemToPathElement.wp_proof smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.mapUnstructuredString.wp_Get smd.value.valueUnstructured.wp_AsMapUsing_ptr smd.value.valueUnstructured.wp_IsMap_ptr smd.value.valueUnstructured.wp_IsNull_ptr smd.typed.wp_getAssociativeKeyDefault smd.value.FieldList.wp_Sort smd.value.wp_NewValueInterface
+
+theorem smd.typed.wp_setItemToPathElement :
+    EtcdGrove.smd.typed.setItemToPathElement.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.setItemToPathElement.wp_proof smd.value.valueUnstructured.wp_IsList_ptr smd.value.valueUnstructured.wp_IsMap_ptr smd.value.valueUnstructured.wp_IsNull_ptr
+
+theorem smd.typed.wp_listItemToPathElement :
+    EtcdGrove.smd.typed.listItemToPathElement.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.listItemToPathElement.wp_proof smd.typed.wp_keyedAssociativeListItemToPathElement smd.typed.wp_setItemToPathElement
+
+theorem smd.typed.removingWalker.wp_doListBody :
+    EtcdGrove.smd.typed.removingWalker.doList.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.removingWalker.doList.wp_proofBody smd.fieldpath.wp_MakePath smd.fieldpath.Set.wp_Empty smd.fieldpath.Set.wp_Has smd.fieldpath.Set.wp_WithPrefix smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.value.listUnstructured.wp_RangeUsing smd.value.listUnstructured.wp_RangeUsing_ptr smd.value.listUnstructuredRange.wp_Item smd.value.emptyRange.wp_Item smd.value.listUnstructuredRange.wp_Next smd.value.emptyRange.wp_Next smd.value.valueUnstructured.wp_AsListUsing_ptr smd.value.valueUnstructured.wp_IsList_ptr smd.value.valueUnstructured.wp_Unstructured_ptr smd.typed.wp_listItemToPathElement
+
+theorem smd.value.mapUnstructuredString.wp_Iterate :
+    EtcdGrove.smd.value.mapUnstructuredString.Iterate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.Iterate.wp_proof smd.value.mapUnstructuredString.wp_IterateUsing
+
+theorem smd.typed.removingWalker.wp_doMapBody :
+    EtcdGrove.smd.typed.removingWalker.doMap.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.removingWalker.doMap.wp_proofBody smd.fieldpath.wp_MakePath smd.fieldpath.Set.wp_Empty smd.fieldpath.Set.wp_Has smd.fieldpath.Set.wp_WithPrefix smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.mapUnstructuredString.wp_Empty smd.value.mapUnstructuredString.wp_Iterate smd.value.valueUnstructured.wp_AsMapUsing_ptr smd.value.valueUnstructured.wp_IsMap_ptr smd.value.valueUnstructured.wp_Unstructured_ptr
+
+theorem smd.typed.wp_removingWalkerRec :
+    EtcdGrove.smd.typed.removingWalkerRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.removingWalkerRec.wp_proof smd.typed.wp_removeItemsWithSchemaBody smd.typed.removingWalker.wp_doListBody smd.typed.removingWalker.wp_doMapBody
+
+theorem smd.typed.wp_removeItemsWithSchema :
+    EtcdGrove.smd.typed.removeItemsWithSchema.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.removeItemsWithSchema.wp_proof smd.typed.wp_removingWalkerRec
+
+theorem smd.typed.TypedValue.wp_RemoveItems :
+    EtcdGrove.smd.typed.TypedValue.RemoveItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.RemoveItems.wp_proof smd.typed.wp_removeItemsWithSchema
+
+theorem smd.typed.TypedValue.wp_RemoveItems_ptr :
+    EtcdGrove.smd.typed.TypedValue.RemoveItems_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.RemoveItems_ptr.wp_proof smd.typed.TypedValue.wp_RemoveItems
+
+theorem smd.typed.TypedValue.wp_Schema :
+    EtcdGrove.smd.typed.TypedValue.Schema.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.Schema.wp_proof
+
+theorem smd.typed.TypedValue.wp_Schema_ptr :
+    EtcdGrove.smd.typed.TypedValue.Schema_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.Schema_ptr.wp_proof smd.typed.TypedValue.wp_Schema
+
+theorem smd.typed.TypedValue.wp_toFieldSetWalker :
+    EtcdGrove.smd.typed.TypedValue.toFieldSetWalker.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.toFieldSetWalker.wp_proof _root_.Perennial.sync.Pool.wp_Get smd.value.wp_NewFreelistAllocator
+
+theorem smd.typed.toFieldSetWalker.wp_finished :
+    EtcdGrove.smd.typed.toFieldSetWalker.finished.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.finished.wp_proof _root_.Perennial.sync.Pool.wp_Put
+
+theorem smd.typed.wp_listValue :
+    EtcdGrove.smd.typed.listValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.listValue.wp_proof smd.value.valueUnstructured.wp_AsListUsing_ptr smd.value.valueUnstructured.wp_IsList_ptr smd.value.valueUnstructured.wp_IsNull_ptr
+
+theorem smd.typed.toFieldSetWalker.wp_doListBody :
+    EtcdGrove.smd.typed.toFieldSetWalker.doList.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.doList.wp_proofBody smd.fieldpath.Set.wp_Insert smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.typed.wp_listValue
+
+theorem smd.typed.wp_mapValue :
+    EtcdGrove.smd.typed.mapValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mapValue.wp_proof smd.value.valueUnstructured.wp_AsMapUsing_ptr smd.value.valueUnstructured.wp_IsMap_ptr smd.value.valueUnstructured.wp_IsNull_ptr
+
+theorem smd.typed.toFieldSetWalker.wp_doMapBody :
+    EtcdGrove.smd.typed.toFieldSetWalker.doMap.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.doMap.wp_proofBody smd.fieldpath.Set.wp_Insert smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.typed.wp_mapValue
+
+theorem smd.typed.toFieldSetWalker.wp_doScalar :
+    EtcdGrove.smd.typed.toFieldSetWalker.doScalar.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.doScalar.wp_proof smd.fieldpath.Set.wp_Insert
+
+theorem smd.typed.toFieldSetWalker.wp_toFieldSetBody :
+    EtcdGrove.smd.typed.toFieldSetWalker.toFieldSet.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.toFieldSet.wp_proofBody smd.typed.wp_resolveSchema smd.typed.toFieldSetWalker.wp_doScalar
+
+theorem smd.value.listUnstructured.wp_At :
+    EtcdGrove.smd.value.listUnstructured.At.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.At.wp_proof smd.value.wp_NewValueInterface
+
+theorem smd.value.listUnstructured.wp_At_ptr :
+    EtcdGrove.smd.value.listUnstructured.At_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.At_ptr.wp_proof smd.value.listUnstructured.wp_At
+
+theorem smd.typed.toFieldSetWalker.wp_finishDescent :
+    EtcdGrove.smd.typed.toFieldSetWalker.finishDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.finishDescent.wp_proof
+
+theorem smd.typed.toFieldSetWalker.wp_prepareDescent :
+    EtcdGrove.smd.typed.toFieldSetWalker.prepareDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.prepareDescent.wp_proof
+
+theorem smd.typed.toFieldSetWalker.wp_visitListItemsBody :
+    EtcdGrove.smd.typed.toFieldSetWalker.visitListItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.visitListItems.wp_proofBody smd.fieldpath.wp_MakePathElementSet smd.fieldpath.PathElementSet.wp_Has smd.fieldpath.PathElementSet.wp_Insert smd.fieldpath.Set.wp_Insert smd.value.listUnstructured.wp_At smd.value.listUnstructured.wp_At_ptr smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.wp_listItemToPathElement smd.typed.toFieldSetWalker.wp_finishDescent smd.typed.toFieldSetWalker.wp_prepareDescent
+
+theorem smd.value.valueUnstructured.wp_AsMap :
+    EtcdGrove.smd.value.valueUnstructured.AsMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsMap.wp_proof smd.value.valueUnstructured.wp_AsMapUsing_ptr
+
+theorem smd.value.valueUnstructured.wp_AsMap_ptr :
+    EtcdGrove.smd.value.valueUnstructured.AsMap_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.valueUnstructured.AsMap_ptr.wp_proof smd.value.valueUnstructured.wp_AsMap
+
+theorem smd.typed.toFieldSetWalker.wp_visitMapItemsBody :
+    EtcdGrove.smd.typed.toFieldSetWalker.visitMapItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.visitMapItems.wp_proofBody smd.fieldpath.Set.wp_Insert smd.value.mapUnstructuredString.wp_Iterate smd.value.mapUnstructuredString.wp_Length smd.value.valueUnstructured.wp_AsMap_ptr smd.value.valueUnstructured.wp_IsMap_ptr smd.value.valueUnstructured.wp_IsNull_ptr smd.schema.Map.wp_FindField smd.typed.toFieldSetWalker.wp_finishDescent smd.typed.toFieldSetWalker.wp_prepareDescent
+
+theorem smd.typed.wp_toFieldSetWalkerRec :
+    EtcdGrove.smd.typed.toFieldSetWalkerRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalkerRec.wp_proof smd.typed.toFieldSetWalker.wp_doListBody smd.typed.toFieldSetWalker.wp_doMapBody smd.typed.toFieldSetWalker.wp_toFieldSetBody smd.typed.toFieldSetWalker.wp_visitListItemsBody smd.typed.toFieldSetWalker.wp_visitMapItemsBody
+
+theorem smd.typed.toFieldSetWalker.wp_toFieldSet :
+    EtcdGrove.smd.typed.toFieldSetWalker.toFieldSet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.toFieldSet.wp_proof smd.typed.wp_toFieldSetWalkerRec
+
+theorem smd.typed.TypedValue.wp_ToFieldSet :
+    EtcdGrove.smd.typed.TypedValue.ToFieldSet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.ToFieldSet.wp_proof smd.typed.TypedValue.wp_toFieldSetWalker smd.typed.toFieldSetWalker.wp_finished smd.typed.toFieldSetWalker.wp_toFieldSet
+
+theorem smd.typed.TypedValue.wp_ToFieldSet_ptr :
+    EtcdGrove.smd.typed.TypedValue.ToFieldSet_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.ToFieldSet_ptr.wp_proof smd.typed.TypedValue.wp_ToFieldSet
+
+theorem smd.typed.TypedValue.wp_TypeRef :
+    EtcdGrove.smd.typed.TypedValue.TypeRef.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.TypeRef.wp_proof
+
+theorem smd.typed.TypedValue.wp_TypeRef_ptr :
+    EtcdGrove.smd.typed.TypedValue.TypeRef_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.TypeRef_ptr.wp_proof smd.typed.TypedValue.wp_TypeRef
+
+theorem smd.merge.Updater.wp_addBackDanglingItems :
+    EtcdGrove.smd.merge.Updater.addBackDanglingItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Updater.addBackDanglingItems.wp_proof smd.fieldpath.Set.wp_Difference smd.fieldpath.Set.wp_EnsureNamedFieldsAreMembers smd.fieldpath.Set.wp_Intersection smd.fieldpath.versionedSet.wp_APIVersion smd.fieldpath.versionedSet.wp_Set smd.typed.TypedValue.wp_RemoveItems_ptr smd.typed.TypedValue.wp_Schema_ptr smd.typed.TypedValue.wp_ToFieldSet_ptr smd.typed.TypedValue.wp_TypeRef_ptr
+
+theorem smd.merge.Updater.wp_addBackOwnedItemsForVersion :
+    EtcdGrove.smd.merge.Updater.addBackOwnedItemsForVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Updater.addBackOwnedItemsForVersion.wp_proof smd.fieldpath.Set.wp_Difference smd.fieldpath.Set.wp_EnsureNamedFieldsAreMembers smd.fieldpath.Set.wp_Union smd.typed.TypedValue.wp_RemoveItems_ptr smd.typed.TypedValue.wp_Schema_ptr smd.typed.TypedValue.wp_ToFieldSet_ptr smd.typed.TypedValue.wp_TypeRef_ptr
+
+theorem smd.merge.Updater.wp_addBackOwnedItems :
+    EtcdGrove.smd.merge.Updater.addBackOwnedItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Updater.addBackOwnedItems.wp_proof smd.fieldpath.wp_NewSet smd.fieldpath.Set.wp_Union smd.fieldpath.versionedSet.wp_APIVersion smd.fieldpath.versionedSet.wp_Set smd.merge.Updater.wp_addBackOwnedItemsForVersion
+
+theorem smd.merge.Updater.wp_prune :
+    EtcdGrove.smd.merge.Updater.prune.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Updater.prune.wp_proof smd.fieldpath.Set.wp_Empty smd.fieldpath.Set.wp_EnsureNamedFieldsAreMembers smd.fieldpath.versionedSet.wp_APIVersion smd.fieldpath.versionedSet.wp_Set smd.merge.Updater.wp_addBackDanglingItems smd.merge.Updater.wp_addBackOwnedItems smd.typed.TypedValue.wp_RemoveItems_ptr smd.typed.TypedValue.wp_Schema_ptr smd.typed.TypedValue.wp_TypeRef_ptr
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_finished :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.finished.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.finished.wp_proof _root_.Perennial.sync.Pool.wp_Put
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_doListBody :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.doList.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.doList.wp_proofBody smd.fieldpath.wp_NewSet
+
+theorem smd.typed.wp_isUntypedDeducedRef :
+    EtcdGrove.smd.typed.isUntypedDeducedRef.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.isUntypedDeducedRef.wp_proof
+
+theorem smd.typed.wp_isUntypedDeducedMap :
+    EtcdGrove.smd.typed.isUntypedDeducedMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.isUntypedDeducedMap.wp_proof smd.typed.wp_isUntypedDeducedRef
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_doMapBody :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.doMap.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.doMap.wp_proofBody smd.fieldpath.wp_NewSet smd.fieldpath.Set.wp_Size smd.typed.wp_isUntypedDeducedMap
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_doScalar :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.doScalar.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.doScalar.wp_proof
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_reconcileBody :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.reconcile.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.reconcile.wp_proofBody smd.schema.Schema.wp_Resolve smd.typed.wp_handleAtom smd.typed.reconcileWithSchemaWalker.wp_doScalar
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_finishDescent :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.finishDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.finishDescent.wp_proof smd.fieldpath.Set.wp_Union
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_prepareDescent :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.prepareDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.prepareDescent.wp_proof
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_visitListItemsBody :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.visitListItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.visitListItems.wp_proofBody smd.fieldpath.PathElementSet.wp_Has smd.fieldpath.PathElementSet.wp_Iterate smd.fieldpath.SetNodeMap.wp_Get smd.fieldpath.SetNodeMap.wp_Iterate smd.typed.reconcileWithSchemaWalker.wp_finishDescent smd.typed.reconcileWithSchemaWalker.wp_prepareDescent
+
+theorem smd.typed.wp_typeRefAtPath :
+    EtcdGrove.smd.typed.typeRefAtPath.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.typeRefAtPath.wp_proof smd.schema.Map.wp_FindField
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_visitMapItemsBody :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.visitMapItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.visitMapItems.wp_proofBody smd.fieldpath.PathElementSet.wp_Has smd.fieldpath.PathElementSet.wp_Iterate smd.fieldpath.SetNodeMap.wp_Get smd.fieldpath.SetNodeMap.wp_Iterate smd.typed.reconcileWithSchemaWalker.wp_finishDescent smd.typed.reconcileWithSchemaWalker.wp_prepareDescent smd.typed.wp_typeRefAtPath
+
+theorem smd.typed.wp_reconcileWithSchemaWalkerRec :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalkerRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalkerRec.wp_proof smd.typed.reconcileWithSchemaWalker.wp_doListBody smd.typed.reconcileWithSchemaWalker.wp_doMapBody smd.typed.reconcileWithSchemaWalker.wp_reconcileBody smd.typed.reconcileWithSchemaWalker.wp_visitListItemsBody smd.typed.reconcileWithSchemaWalker.wp_visitMapItemsBody
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_reconcile :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.reconcile.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.reconcile.wp_proof smd.typed.wp_reconcileWithSchemaWalkerRec
+
+theorem smd.typed.wp_ReconcileFieldSetWithSchema :
+    EtcdGrove.smd.typed.ReconcileFieldSetWithSchema.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.ReconcileFieldSetWithSchema.wp_proof smd.fieldpath.Set.wp_RecursiveDifference smd.fieldpath.Set.wp_Union _root_.Perennial.sync.Pool.wp_Get smd.typed.reconcileWithSchemaWalker.wp_finished smd.typed.reconcileWithSchemaWalker.wp_reconcile
+
+theorem smd.merge.Updater.wp_reconcileManagedFieldsWithSchemaChanges :
+    EtcdGrove.smd.merge.Updater.reconcileManagedFieldsWithSchemaChanges.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Updater.reconcileManagedFieldsWithSchemaChanges.wp_proof smd.fieldpath.wp_NewVersionedSet smd.fieldpath.versionedSet.wp_APIVersion smd.fieldpath.versionedSet.wp_Applied smd.fieldpath.versionedSet.wp_Set smd.typed.wp_ReconcileFieldSetWithSchema
+
+theorem smd.typed.Comparison.wp_ExcludeFields :
+    EtcdGrove.smd.typed.Comparison.ExcludeFields.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.Comparison.ExcludeFields.wp_proof smd.fieldpath.Set.wp_Empty smd.fieldpath.Set.wp_RecursiveDifference
+
+theorem smd.typed.Comparison.wp_FilterFields :
+    EtcdGrove.smd.typed.Comparison.FilterFields.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.Comparison.FilterFields.wp_proof
+
+theorem smd.schema.Atom.wp_EqualsBody :
+    EtcdGrove.smd.schema.Atom.Equals.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.Atom.Equals.wp_proofBody
+
+theorem smd.schema.List.wp_EqualsBody :
+    EtcdGrove.smd.schema.List.Equals.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.List.Equals.wp_proofBody
+
+theorem smd.schema.Map.wp_EqualsBody :
+    EtcdGrove.smd.schema.Map.Equals.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.Map.Equals.wp_proofBody
+
+theorem smd.schema.StructField.wp_EqualsBody :
+    EtcdGrove.smd.schema.StructField.Equals.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.StructField.Equals.wp_proofBody reflect.wp_DeepEqualNil
+
+theorem smd.schema.TypeRef.wp_EqualsBody :
+    EtcdGrove.smd.schema.TypeRef.Equals.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.TypeRef.Equals.wp_proofBody
+
+theorem smd.schema.wp_EqualsRec :
+    EtcdGrove.smd.schema.EqualsRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.EqualsRec.wp_proof smd.schema.Atom.wp_EqualsBody smd.schema.List.wp_EqualsBody smd.schema.Map.wp_EqualsBody smd.schema.StructField.wp_EqualsBody smd.schema.TypeRef.wp_EqualsBody
+
+theorem smd.schema.TypeRef.wp_Equals :
+    EtcdGrove.smd.schema.TypeRef.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.TypeRef.Equals.wp_proof smd.schema.wp_EqualsRec
+
+theorem smd.schema.Atom.wp_Equals :
+    EtcdGrove.smd.schema.Atom.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.Atom.Equals.wp_proof smd.schema.wp_EqualsRec
+
+theorem smd.typed.ValidationErrors.wp_WithLazyPrefix :
+    EtcdGrove.smd.typed.ValidationErrors.WithLazyPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.ValidationErrors.WithLazyPrefix.wp_proof
+
+theorem smd.typed.compareWalker.wp_doLeaf :
+    EtcdGrove.smd.typed.compareWalker.doLeaf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.doLeaf.wp_proof smd.fieldpath.Set.wp_Insert smd.value.wp_EqualsUsing
+
+theorem smd.typed.wp_validateScalar :
+    EtcdGrove.smd.typed.validateScalar.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validateScalar.wp_proof smd.value.valueUnstructured.wp_IsBool_ptr smd.value.valueUnstructured.wp_IsFloat_ptr smd.value.valueUnstructured.wp_IsInt_ptr smd.value.valueUnstructured.wp_IsNull_ptr smd.value.valueUnstructured.wp_IsString_ptr smd.value.valueUnstructured.wp_Unstructured_ptr
+
+theorem smd.typed.compareWalker.wp_doScalar :
+    EtcdGrove.smd.typed.compareWalker.doScalar.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.doScalar.wp_proof smd.typed.compareWalker.wp_doLeaf smd.typed.wp_validateScalar
+
+theorem smd.typed.compareWalker.wp_compareBody :
+    EtcdGrove.smd.typed.compareWalker.compare.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.compare.wp_proofBody smd.fieldpath.Set.wp_Insert smd.schema.Atom.wp_Equals smd.schema.Schema.wp_Resolve smd.typed.ValidationErrors.wp_WithLazyPrefix smd.typed.wp_deduceAtom smd.typed.wp_handleAtom smd.typed.compareWalker.wp_doScalar
+
+theorem smd.typed.compareWalker.wp_finishDescent :
+    EtcdGrove.smd.typed.compareWalker.finishDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.finishDescent.wp_proof
+
+theorem smd.typed.compareWalker.wp_prepareDescent :
+    EtcdGrove.smd.typed.compareWalker.prepareDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.prepareDescent.wp_proof
+
+theorem smd.typed.compareWalker.wp_compareListItemBody :
+    EtcdGrove.smd.typed.compareWalker.compareListItem.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.compareListItem.wp_proofBody smd.typed.compareWalker.wp_finishDescent smd.typed.compareWalker.wp_prepareDescent
+
+theorem smd.typed.compareWalker.wp_derefList :
+    EtcdGrove.smd.typed.compareWalker.derefList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.derefList.wp_proof smd.typed.wp_listValue
+
+theorem smd.typed.compareWalker.wp_doListBody :
+    EtcdGrove.smd.typed.compareWalker.doList.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.doList.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.compareWalker.wp_derefList smd.typed.compareWalker.wp_doLeaf
+
+theorem smd.typed.compareWalker.wp_derefMap :
+    EtcdGrove.smd.typed.compareWalker.derefMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.derefMap.wp_proof smd.typed.wp_mapValue
+
+theorem smd.typed.compareWalker.wp_doMapBody :
+    EtcdGrove.smd.typed.compareWalker.doMap.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.doMap.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.mapUnstructuredString.wp_Empty smd.typed.compareWalker.wp_derefMap smd.typed.compareWalker.wp_doLeaf
+
+theorem smd.typed.compareWalker.wp_visitListItemsBody :
+    EtcdGrove.smd.typed.compareWalker.visitListItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.visitListItems.wp_proofBody smd.fieldpath.wp_MakePathElementMap smd.fieldpath.PathElementMap.wp_Get smd.fieldpath.PathElementMap.wp_Insert smd.fieldpath.Set.wp_Insert smd.value.listUnstructured.wp_At smd.value.listUnstructured.wp_At_ptr smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.wp_listItemToPathElement smd.value.wp_Equals
+
+theorem smd.typed.compareWalker.wp_visitMapItemBody :
+    EtcdGrove.smd.typed.compareWalker.visitMapItem.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.visitMapItem.wp_proofBody smd.schema.Map.wp_FindField smd.typed.compareWalker.wp_finishDescent smd.typed.compareWalker.wp_prepareDescent
+
+theorem smd.typed.compareWalker.wp_visitMapItemsBody :
+    EtcdGrove.smd.typed.compareWalker.visitMapItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.visitMapItems.wp_proofBody smd.value.wp_MapZipUsing
+
+theorem smd.typed.wp_compareWalkerRec :
+    EtcdGrove.smd.typed.compareWalkerRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalkerRec.wp_proof smd.typed.compareWalker.wp_compareBody smd.typed.compareWalker.wp_compareListItemBody smd.typed.compareWalker.wp_doListBody smd.typed.compareWalker.wp_doMapBody smd.typed.compareWalker.wp_visitListItemsBody smd.typed.compareWalker.wp_visitMapItemBody smd.typed.compareWalker.wp_visitMapItemsBody
+
+theorem smd.typed.compareWalker.wp_compare :
+    EtcdGrove.smd.typed.compareWalker.compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.compare.wp_proof smd.typed.wp_compareWalkerRec
+
+theorem smd.typed.TypedValue.wp_Compare :
+    EtcdGrove.smd.typed.TypedValue.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.Compare.wp_proof smd.fieldpath.wp_NewSet smd.schema.TypeRef.wp_Equals _root_.Perennial.sync.Pool.wp_Get _root_.Perennial.sync.Pool.wp_Put smd.typed.compareWalker.wp_compare smd.value.wp_NewFreelistAllocator
+
+theorem smd.typed.TypedValue.wp_Compare_ptr :
+    EtcdGrove.smd.typed.TypedValue.Compare_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.Compare_ptr.wp_proof smd.typed.TypedValue.wp_Compare
+
+theorem smd.merge.Updater.wp_update :
+    EtcdGrove.smd.merge.Updater.update.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Updater.update.wp_proof smd.fieldpath.wp_NewVersionedSet smd.fieldpath.Set.wp_Difference smd.fieldpath.Set.wp_Empty smd.fieldpath.Set.wp_Intersection smd.fieldpath.Set.wp_Union smd.fieldpath.versionedSet.wp_APIVersion smd.fieldpath.versionedSet.wp_Applied smd.fieldpath.versionedSet.wp_Set smd.merge.wp_ConflictsFromManagers smd.typed.Comparison.wp_ExcludeFields smd.typed.Comparison.wp_FilterFields smd.typed.TypedValue.wp_Compare_ptr
+
+theorem smd.typed.TypedValue.wp_AsValue :
+    EtcdGrove.smd.typed.TypedValue.AsValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.AsValue.wp_proof
+
+theorem smd.typed.TypedValue.wp_AsValue_ptr :
+    EtcdGrove.smd.typed.TypedValue.AsValue_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.AsValue_ptr.wp_proof smd.typed.TypedValue.wp_AsValue
+
+theorem smd.typed.mergingWalker.wp_derefList :
+    EtcdGrove.smd.typed.mergingWalker.derefList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.derefList.wp_proof smd.typed.wp_listValue
+
+theorem smd.typed.mergingWalker.wp_doLeaf :
+    EtcdGrove.smd.typed.mergingWalker.doLeaf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.doLeaf.wp_proof
+
+theorem smd.typed.mergingWalker.wp_doListBody :
+    EtcdGrove.smd.typed.mergingWalker.doList.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.doList.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.mergingWalker.wp_derefList smd.typed.mergingWalker.wp_doLeaf
+
+theorem smd.typed.mergingWalker.wp_derefMap :
+    EtcdGrove.smd.typed.mergingWalker.derefMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.derefMap.wp_proof smd.typed.wp_mapValue
+
+theorem smd.typed.mergingWalker.wp_doMapBody :
+    EtcdGrove.smd.typed.mergingWalker.doMap.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.doMap.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.mapUnstructuredString.wp_Empty smd.typed.mergingWalker.wp_derefMap smd.typed.mergingWalker.wp_doLeaf
+
+theorem smd.typed.mergingWalker.wp_doScalar :
+    EtcdGrove.smd.typed.mergingWalker.doScalar.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.doScalar.wp_proof smd.typed.mergingWalker.wp_doLeaf smd.typed.wp_validateScalar
+
+theorem smd.typed.mergingWalker.wp_mergeBody :
+    EtcdGrove.smd.typed.mergingWalker.merge.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.merge.wp_proofBody smd.schema.Atom.wp_Equals smd.schema.Schema.wp_Resolve smd.typed.ValidationErrors.wp_WithLazyPrefix smd.typed.wp_deduceAtom smd.typed.wp_handleAtom smd.typed.mergingWalker.wp_doScalar
+
+theorem smd.typed.mergingWalker.wp_finishDescent :
+    EtcdGrove.smd.typed.mergingWalker.finishDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.finishDescent.wp_proof
+
+theorem smd.typed.mergingWalker.wp_prepareDescent :
+    EtcdGrove.smd.typed.mergingWalker.prepareDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.prepareDescent.wp_proof
+
+theorem smd.typed.mergingWalker.wp_mergeListItemBody :
+    EtcdGrove.smd.typed.mergingWalker.mergeListItem.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.mergeListItem.wp_proofBody smd.typed.mergingWalker.wp_finishDescent smd.typed.mergingWalker.wp_prepareDescent
+
+theorem smd.value.listUnstructured.wp_AtUsing :
+    EtcdGrove.smd.value.listUnstructured.AtUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.AtUsing.wp_proof smd.value.heapAllocator.wp_allocValueUnstructured smd.value.freelistAllocator.wp_allocValueUnstructured smd.value.valueUnstructured.wp_reuse
+
+theorem smd.value.listUnstructured.wp_AtUsing_ptr :
+    EtcdGrove.smd.value.listUnstructured.AtUsing_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.AtUsing_ptr.wp_proof smd.value.listUnstructured.wp_AtUsing
+
+theorem smd.typed.mergingWalker.wp_indexListPathElements :
+    EtcdGrove.smd.typed.mergingWalker.indexListPathElements.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.indexListPathElements.wp_proof smd.fieldpath.wp_MakePathElementValueMap smd.fieldpath.PathElementValueMap.wp_Get smd.fieldpath.PathElementValueMap.wp_Insert smd.value.listUnstructured.wp_At smd.value.listUnstructured.wp_At_ptr smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.wp_listItemToPathElement smd.value.wp_NewValueInterface
+
+theorem smd.typed.mergingWalker.wp_visitListItemsBody :
+    EtcdGrove.smd.typed.mergingWalker.visitListItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.visitListItems.wp_proofBody smd.fieldpath.wp_MakePathElementMap smd.fieldpath.PathElement.wp_Equals smd.fieldpath.PathElementMap.wp_Get smd.fieldpath.PathElementMap.wp_Insert smd.fieldpath.PathElementValueMap.wp_Get smd.value.listUnstructured.wp_AtUsing smd.value.listUnstructured.wp_AtUsing_ptr smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.mergingWalker.wp_indexListPathElements
+
+theorem smd.typed.mergingWalker.wp_visitMapItemBody :
+    EtcdGrove.smd.typed.mergingWalker.visitMapItem.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.visitMapItem.wp_proofBody smd.schema.Map.wp_FindField smd.typed.mergingWalker.wp_finishDescent smd.typed.mergingWalker.wp_prepareDescent
+
+theorem smd.typed.mergingWalker.wp_visitMapItemsBody :
+    EtcdGrove.smd.typed.mergingWalker.visitMapItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.visitMapItems.wp_proofBody smd.value.wp_MapZipUsing
+
+theorem smd.typed.wp_mergingWalkerRec :
+    EtcdGrove.smd.typed.mergingWalkerRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalkerRec.wp_proof smd.typed.mergingWalker.wp_doListBody smd.typed.mergingWalker.wp_doMapBody smd.typed.mergingWalker.wp_mergeBody smd.typed.mergingWalker.wp_mergeListItemBody smd.typed.mergingWalker.wp_visitListItemsBody smd.typed.mergingWalker.wp_visitMapItemBody smd.typed.mergingWalker.wp_visitMapItemsBody
+
+theorem smd.typed.mergingWalker.wp_merge :
+    EtcdGrove.smd.typed.mergingWalker.merge.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.merge.wp_proof smd.typed.wp_mergingWalkerRec
+
+theorem smd.typed.wp_merge :
+    EtcdGrove.smd.typed.merge.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.merge.wp_proof smd.schema.TypeRef.wp_Equals _root_.Perennial.sync.Pool.wp_Get _root_.Perennial.sync.Pool.wp_Put smd.typed.mergingWalker.wp_merge smd.value.wp_NewFreelistAllocator smd.value.wp_NewValueInterface
+
+theorem smd.typed.TypedValue.wp_Merge :
+    EtcdGrove.smd.typed.TypedValue.Merge.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.Merge.wp_proof smd.typed.wp_merge
+
+theorem smd.typed.TypedValue.wp_Merge_ptr :
+    EtcdGrove.smd.typed.TypedValue.Merge_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.Merge_ptr.wp_proof smd.typed.TypedValue.wp_Merge
+
 theorem smd.merge.Updater.wp_Apply :
     EtcdGrove.smd.merge.Updater.Apply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.merge.Updater.Apply.wp_proof
+  EtcdGrove.smd.merge.Updater.Apply.wp_proof smd.fieldpath.wp_NewVersionedSet smd.merge.Updater.wp_prune smd.merge.Updater.wp_reconcileManagedFieldsWithSchemaChanges smd.merge.Updater.wp_update smd.typed.TypedValue.wp_AsValue_ptr smd.typed.TypedValue.wp_Merge_ptr smd.typed.TypedValue.wp_ToFieldSet_ptr smd.value.wp_EqualsUsing smd.value.wp_NewFreelistAllocator
 
 theorem smd.merge.Updater.wp_Update :
     EtcdGrove.smd.merge.Updater.Update.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.merge.Updater.Update.wp_proof
+  EtcdGrove.smd.merge.Updater.Update.wp_proof smd.fieldpath.wp_NewSet smd.fieldpath.wp_NewVersionedSet smd.fieldpath.Set.wp_Difference smd.fieldpath.Set.wp_Empty smd.fieldpath.Set.wp_Union smd.fieldpath.versionedSet.wp_Set smd.merge.Updater.wp_reconcileManagedFieldsWithSchemaChanges smd.merge.Updater.wp_update
+
+theorem smd.schema.List.wp_Equals :
+    EtcdGrove.smd.schema.List.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.List.Equals.wp_proof smd.schema.wp_EqualsRec
+
+theorem smd.schema.Map.wp_Equals :
+    EtcdGrove.smd.schema.Map.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.Map.Equals.wp_proof smd.schema.wp_EqualsRec
+
+theorem smd.schema.StructField.wp_Equals :
+    EtcdGrove.smd.schema.StructField.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.schema.StructField.Equals.wp_proof smd.schema.wp_EqualsRec
 
 theorem wp_newSchema :
     EtcdGrove.k8s_smd.newSchema.spec (GF := GF) (hG := hG) :=
@@ -145,13 +1556,69 @@ theorem identityConverter.wp_IsMissingVersionError :
     EtcdGrove.k8s_smd.identityConverter.IsMissingVersionError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_smd.identityConverter.IsMissingVersionError.wp_proof
 
-theorem smd.value.wp_NewValueInterface :
-    EtcdGrove.smd.value.NewValueInterface.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.value.NewValueInterface.wp_proof
+theorem smd.typed.TypedValue.wp_walker :
+    EtcdGrove.smd.typed.TypedValue.walker.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.walker.wp_proof _root_.Perennial.sync.Pool.wp_Get smd.value.wp_NewFreelistAllocator
+
+theorem smd.typed.validatingObjectWalker.wp_finished :
+    EtcdGrove.smd.typed.validatingObjectWalker.finished.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.finished.wp_proof _root_.Perennial.sync.Pool.wp_Put
+
+theorem smd.typed.validatingObjectWalker.wp_doListBody :
+    EtcdGrove.smd.typed.validatingObjectWalker.doList.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.doList.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.typed.wp_listValue
+
+theorem smd.typed.validatingObjectWalker.wp_doMapBody :
+    EtcdGrove.smd.typed.validatingObjectWalker.doMap.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.doMap.wp_proofBody smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.typed.wp_mapValue
+
+theorem smd.typed.validatingObjectWalker.wp_doScalar :
+    EtcdGrove.smd.typed.validatingObjectWalker.doScalar.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.doScalar.wp_proof smd.typed.wp_validateScalar
+
+theorem smd.typed.validatingObjectWalker.wp_validateBody :
+    EtcdGrove.smd.typed.validatingObjectWalker.validate.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.validate.wp_proofBody smd.typed.ValidationErrors.wp_WithLazyPrefix smd.typed.wp_resolveSchema smd.typed.validatingObjectWalker.wp_doScalar
+
+theorem smd.typed.validatingObjectWalker.wp_finishDescent :
+    EtcdGrove.smd.typed.validatingObjectWalker.finishDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.finishDescent.wp_proof
+
+theorem smd.typed.validatingObjectWalker.wp_prepareDescent :
+    EtcdGrove.smd.typed.validatingObjectWalker.prepareDescent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.prepareDescent.wp_proof
+
+theorem smd.typed.validatingObjectWalker.wp_visitListItemsBody :
+    EtcdGrove.smd.typed.validatingObjectWalker.visitListItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.visitListItems.wp_proofBody smd.fieldpath.wp_MakePathElementSet smd.fieldpath.PathElementSet.wp_Has smd.fieldpath.PathElementSet.wp_Insert smd.value.heapAllocator.wp_Free smd.value.freelistAllocator.wp_Free smd.value.listUnstructured.wp_AtUsing smd.value.listUnstructured.wp_AtUsing_ptr smd.value.listUnstructured.wp_Length smd.value.listUnstructured.wp_Length_ptr smd.typed.wp_listItemToPathElement smd.typed.validatingObjectWalker.wp_finishDescent smd.typed.validatingObjectWalker.wp_prepareDescent
+
+theorem smd.typed.ValidationErrors.wp_WithPrefix :
+    EtcdGrove.smd.typed.ValidationErrors.WithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.ValidationErrors.WithPrefix.wp_proof
+
+theorem smd.typed.validatingObjectWalker.wp_visitMapItemsBody :
+    EtcdGrove.smd.typed.validatingObjectWalker.visitMapItems.specBody (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.visitMapItems.wp_proofBody smd.value.mapUnstructuredString.wp_IterateUsing smd.schema.Map.wp_FindField smd.typed.ValidationErrors.wp_WithPrefix smd.typed.validatingObjectWalker.wp_finishDescent smd.typed.validatingObjectWalker.wp_prepareDescent
+
+theorem smd.typed.wp_validatingObjectWalkerRec :
+    EtcdGrove.smd.typed.validatingObjectWalkerRec.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalkerRec.wp_proof smd.typed.validatingObjectWalker.wp_doListBody smd.typed.validatingObjectWalker.wp_doMapBody smd.typed.validatingObjectWalker.wp_validateBody smd.typed.validatingObjectWalker.wp_visitListItemsBody smd.typed.validatingObjectWalker.wp_visitMapItemsBody
+
+theorem smd.typed.validatingObjectWalker.wp_validate :
+    EtcdGrove.smd.typed.validatingObjectWalker.validate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.validate.wp_proof smd.typed.wp_validatingObjectWalkerRec
+
+theorem smd.typed.TypedValue.wp_Validate :
+    EtcdGrove.smd.typed.TypedValue.Validate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.Validate.wp_proof smd.typed.TypedValue.wp_walker smd.typed.validatingObjectWalker.wp_finished smd.typed.validatingObjectWalker.wp_validate
+
+theorem smd.typed.TypedValue.wp_Validate_ptr :
+    EtcdGrove.smd.typed.TypedValue.Validate_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.Validate_ptr.wp_proof smd.typed.TypedValue.wp_Validate
 
 theorem smd.typed.wp_AsTyped :
     EtcdGrove.smd.typed.AsTyped.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.typed.AsTyped.wp_proof
+  EtcdGrove.smd.typed.AsTyped.wp_proof smd.typed.TypedValue.wp_Validate_ptr
 
 theorem state.wp_typedObj :
     EtcdGrove.k8s_smd.state.typedObj.spec (GF := GF) (hG := hG) :=
@@ -160,14 +1627,6 @@ theorem state.wp_typedObj :
 theorem state.wp_apply :
     EtcdGrove.k8s_smd.state.apply.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_smd.state.apply.wp_proof state.wp_typedObj smd.merge.Updater.wp_Apply
-
-theorem smd.typed.TypedValue.wp_AsValue_ptr :
-    EtcdGrove.smd.typed.TypedValue.AsValue_ptr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.typed.TypedValue.AsValue_ptr.wp_proof
-
-theorem smd.value.wp_Equals :
-    EtcdGrove.smd.value.Equals.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.value.Equals.wp_proof
 
 theorem state.wp_check :
     EtcdGrove.k8s_smd.state.check.spec (GF := GF) (hG := hG) :=
@@ -213,9 +1672,133 @@ theorem wp_Main :
     EtcdGrove.k8s_smd.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_smd.Main.wp_proof wp_newSchema identityConverter.wp_Convert identityConverter.wp_IsMissingVersionError smd.merge.UpdaterBuilder.wp_BuildUpdater state.wp_typedObj state.wp_apply state.wp_check wp_field wp_mapKey wp_containerPaths wp_concat wp_applied wp_updated wp_container smd.merge.Updater.wp_Apply smd.merge.Updater.wp_Update smd.merge.Conflicts.wp_Equals_ptr
 
-theorem smd.typed.TypedValue.wp_AsValue :
-    EtcdGrove.smd.typed.TypedValue.AsValue.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.typed.TypedValue.AsValue.wp_proof
+theorem smd.typed.compareWalker.wp_compareListItem :
+    EtcdGrove.smd.typed.compareWalker.compareListItem.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.compareListItem.wp_proof smd.typed.wp_compareWalkerRec
+
+theorem smd.typed.compareWalker.wp_doList :
+    EtcdGrove.smd.typed.compareWalker.doList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.doList.wp_proof smd.typed.wp_compareWalkerRec
+
+theorem smd.typed.compareWalker.wp_doMap :
+    EtcdGrove.smd.typed.compareWalker.doMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.doMap.wp_proof smd.typed.wp_compareWalkerRec
+
+theorem smd.typed.compareWalker.wp_visitListItems :
+    EtcdGrove.smd.typed.compareWalker.visitListItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.visitListItems.wp_proof smd.typed.wp_compareWalkerRec
+
+theorem smd.typed.compareWalker.wp_visitMapItem :
+    EtcdGrove.smd.typed.compareWalker.visitMapItem.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.visitMapItem.wp_proof smd.typed.wp_compareWalkerRec
+
+theorem smd.typed.compareWalker.wp_visitMapItems :
+    EtcdGrove.smd.typed.compareWalker.visitMapItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.compareWalker.visitMapItems.wp_proof smd.typed.wp_compareWalkerRec
+
+theorem smd.typed.mergingWalker.wp_doList :
+    EtcdGrove.smd.typed.mergingWalker.doList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.doList.wp_proof smd.typed.wp_mergingWalkerRec
+
+theorem smd.typed.mergingWalker.wp_doMap :
+    EtcdGrove.smd.typed.mergingWalker.doMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.doMap.wp_proof smd.typed.wp_mergingWalkerRec
+
+theorem smd.typed.mergingWalker.wp_mergeListItem :
+    EtcdGrove.smd.typed.mergingWalker.mergeListItem.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.mergeListItem.wp_proof smd.typed.wp_mergingWalkerRec
+
+theorem smd.typed.mergingWalker.wp_visitListItems :
+    EtcdGrove.smd.typed.mergingWalker.visitListItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.visitListItems.wp_proof smd.typed.wp_mergingWalkerRec
+
+theorem smd.typed.mergingWalker.wp_visitMapItem :
+    EtcdGrove.smd.typed.mergingWalker.visitMapItem.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.visitMapItem.wp_proof smd.typed.wp_mergingWalkerRec
+
+theorem smd.typed.mergingWalker.wp_visitMapItems :
+    EtcdGrove.smd.typed.mergingWalker.visitMapItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.mergingWalker.visitMapItems.wp_proof smd.typed.wp_mergingWalkerRec
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_doList :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.doList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.doList.wp_proof smd.typed.wp_reconcileWithSchemaWalkerRec
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_doMap :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.doMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.doMap.wp_proof smd.typed.wp_reconcileWithSchemaWalkerRec
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_visitListItems :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.visitListItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.visitListItems.wp_proof smd.typed.wp_reconcileWithSchemaWalkerRec
+
+theorem smd.typed.reconcileWithSchemaWalker.wp_visitMapItems :
+    EtcdGrove.smd.typed.reconcileWithSchemaWalker.visitMapItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.reconcileWithSchemaWalker.visitMapItems.wp_proof smd.typed.wp_reconcileWithSchemaWalkerRec
+
+theorem smd.typed.removingWalker.wp_doList :
+    EtcdGrove.smd.typed.removingWalker.doList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.removingWalker.doList.wp_proof smd.typed.wp_removingWalkerRec
+
+theorem smd.typed.removingWalker.wp_doMap :
+    EtcdGrove.smd.typed.removingWalker.doMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.removingWalker.doMap.wp_proof smd.typed.wp_removingWalkerRec
+
+theorem smd.typed.toFieldSetWalker.wp_doList :
+    EtcdGrove.smd.typed.toFieldSetWalker.doList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.doList.wp_proof smd.typed.wp_toFieldSetWalkerRec
+
+theorem smd.typed.toFieldSetWalker.wp_doMap :
+    EtcdGrove.smd.typed.toFieldSetWalker.doMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.doMap.wp_proof smd.typed.wp_toFieldSetWalkerRec
+
+theorem smd.typed.toFieldSetWalker.wp_visitListItems :
+    EtcdGrove.smd.typed.toFieldSetWalker.visitListItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.visitListItems.wp_proof smd.typed.wp_toFieldSetWalkerRec
+
+theorem smd.typed.toFieldSetWalker.wp_visitMapItems :
+    EtcdGrove.smd.typed.toFieldSetWalker.visitMapItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.toFieldSetWalker.visitMapItems.wp_proof smd.typed.wp_toFieldSetWalkerRec
+
+theorem smd.typed.validatingObjectWalker.wp_doList :
+    EtcdGrove.smd.typed.validatingObjectWalker.doList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.doList.wp_proof smd.typed.wp_validatingObjectWalkerRec
+
+theorem smd.typed.validatingObjectWalker.wp_doMap :
+    EtcdGrove.smd.typed.validatingObjectWalker.doMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.doMap.wp_proof smd.typed.wp_validatingObjectWalkerRec
+
+theorem smd.typed.validatingObjectWalker.wp_visitListItems :
+    EtcdGrove.smd.typed.validatingObjectWalker.visitListItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.visitListItems.wp_proof smd.typed.wp_validatingObjectWalkerRec
+
+theorem smd.typed.validatingObjectWalker.wp_visitMapItems :
+    EtcdGrove.smd.typed.validatingObjectWalker.visitMapItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.validatingObjectWalker.visitMapItems.wp_proof smd.typed.wp_validatingObjectWalkerRec
+
+theorem smd.value.wp_ListCompareUsing :
+    EtcdGrove.smd.value.ListCompareUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.ListCompareUsing.wp_proof smd.value.wp_CompareUsingRec
+
+theorem smd.value.wp_ListEqualsUsing :
+    EtcdGrove.smd.value.ListEqualsUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.ListEqualsUsing.wp_proof smd.value.wp_EqualsUsingRec
+
+theorem smd.value.wp_MapCompareUsing :
+    EtcdGrove.smd.value.MapCompareUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.MapCompareUsing.wp_proof smd.value.wp_CompareUsingRec
+
+theorem smd.value.listUnstructured.wp_EqualsUsing :
+    EtcdGrove.smd.value.listUnstructured.EqualsUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.EqualsUsing.wp_proof smd.value.wp_EqualsUsingRec
+
+theorem smd.value.listUnstructured.wp_EqualsUsing_ptr :
+    EtcdGrove.smd.value.listUnstructured.EqualsUsing_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.listUnstructured.EqualsUsing_ptr.wp_proof smd.value.wp_EqualsUsingRec
+
+theorem smd.value.mapUnstructuredString.wp_EqualsUsing :
+    EtcdGrove.smd.value.mapUnstructuredString.EqualsUsing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.mapUnstructuredString.EqualsUsing.wp_proof smd.value.wp_EqualsUsingRec
 
 end links_hasLC
 

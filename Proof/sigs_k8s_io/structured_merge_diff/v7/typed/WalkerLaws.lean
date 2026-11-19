@@ -91,11 +91,11 @@ def conforms_entry.law : Prop :=
 /-- The field set of a value has at most as many paths as the value has nodes (each path is a
 node): the walkers' size premise from the API's. -/
 def fieldSet_card.law : Prop :=
-  ∀ S t p x, x.size < typedSizeMax → (fieldsAt S t p x).CardLt typedSizeMax
+  ∀ S t p x, x.size < smdSizeMax → (fieldsAt S t p x).CardLt (2 ^ 63 - 1)
 def cmpO_card.law : Prop :=
-  ∀ S t p l r, sizeO l + sizeO r < typedSizeMax →
-    (cmpO S t p l r).removed.CardLt typedSizeMax ∧ (cmpO S t p l r).modified.CardLt typedSizeMax ∧
-    (cmpO S t p l r).added.CardLt typedSizeMax
+  ∀ S t p l r, sizeO l < smdSizeMax → sizeO r < smdSizeMax →
+    (cmpO S t p l r).removed.CardLt (2 ^ 63 - 1) ∧ (cmpO S t p l r).modified.CardLt (2 ^ 63 - 1) ∧
+    (cmpO S t p l r).added.CardLt (2 ^ 63 - 1)
 
 /-- At a scalar type `removeAt` is the identity (`removingWalker.doScalar`). -/
 def removeAt_scalar.law : Prop :=

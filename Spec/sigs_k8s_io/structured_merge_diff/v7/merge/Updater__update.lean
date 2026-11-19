@@ -18,6 +18,8 @@ comparison unchanged). Both objects of one schema and type (`isTV`), so `Compare
 The shared step of `Apply` (`managers` with the applier's new entry, `force` the caller's) and
 `Update` (`managers` reconciled, forced). Internal to `merge`: mirrors the code over the abstract
 stage. Draft (2026-11-19, notes/smd-plan.md).
+
+D9: the objects' sizes (`Compare`'s premise), from `Apply`'s/`Update`'s `inputsSmall` (`inputsSmall_prune`, `merge/Laws.lean`).
 -/
 module
 
@@ -47,7 +49,8 @@ abbrev merge.Updater.update.spec : Prop :=
   ∀ (u : Loc) (cv : merge.Converter) (rion : Bool) (sc : Loc) (S : Schema) (t : TypeRef)
     (op : Loc) (old : UVal) (np : Loc) (new : UVal) (ver : GoString) (mfm : GoMap) (mf : MF)
     (wf : GoString) (force : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ isUpdater u cv (zero_val GoMap) (zero_val GoMap) rion ∗ isIdentityConverter cv ∗ isTV op sc S t old ∗ isTV np sc S t new ∗ ownMF mfm mf }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ isUpdater u cv (zero_val GoMap) (zero_val GoMap) rion ∗ isIdentityConverter cv ∗ isTV op sc S t old ∗ isTV np sc S t new ∗ ownMF mfm mf ∗
+      ⌜old.size < smdSizeMax ∧ new.size < smdSizeMax⌝ }}
     (App (App (App (App (App (App (Val (u @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.Updater.ty @!! go!"update"))
       (Val #op)) (Val #np)) (Val #ver)) (Val #mfm)) (Val #wf)) (Val #force))
   {{ (r : GoMap) (cp : Loc) (err : GoInterface), RET (PairV (PairV #r #cp) #err);
@@ -60,7 +63,7 @@ abbrev merge.Updater.update.spec : Prop :=
         iprop(⌜r = mfm ∧ err = interface.nil⌝ ∗
           ownMF mfm (afterUpdate mf wf (conflictsOf mf wf (compare S t old new))
             (compare S t old new).removed) ∗
-          isCmpResult cp (compare S t old new)) }}
+          isComparison cp (compare S t old new)) }}
 
 end spec
 

@@ -8,6 +8,7 @@ Lean-first (2026-11-19).
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Map__FindField
+public import Perennial.Spec.sync.Once__Do
 
 @[expose] public section
 
@@ -29,7 +30,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : schema.Assumptions]
 
-theorem schema.Map.FindField.wp_proof :
+theorem schema.Map.FindField.wp_proof
+    (h_sync_Once_Do : _root_.Perennial.sync.Once.Do.spec (GF := GF)) :
     schema.Map.FindField.spec (GF := GF) := by
   sorry
 

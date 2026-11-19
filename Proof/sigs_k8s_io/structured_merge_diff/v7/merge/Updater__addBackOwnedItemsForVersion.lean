@@ -12,6 +12,13 @@ Lean-first (2026-11-19).
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__addBackOwnedItemsForVersion
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Difference
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__EnsureNamedFieldsAreMembers
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Union
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__RemoveItems_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Schema_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__ToFieldSet_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__TypeRef_ptr
 
 @[expose] public section
 
@@ -33,7 +40,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
-theorem merge.Updater.addBackOwnedItemsForVersion.wp_proof :
+theorem merge.Updater.addBackOwnedItemsForVersion.wp_proof
+    (h_Set_Difference : fieldpath.Set.Difference.spec (GF := GF))
+    (h_Set_EnsureNamedFieldsAreMembers : fieldpath.Set.EnsureNamedFieldsAreMembers.spec (GF := GF))
+    (h_Set_Union : fieldpath.Set.Union.spec (GF := GF))
+    (h_TypedValue_RemoveItems_ptr : typed.TypedValue.RemoveItems_ptr.spec (GF := GF))
+    (h_TypedValue_Schema_ptr : typed.TypedValue.Schema_ptr.spec (GF := GF))
+    (h_TypedValue_ToFieldSet_ptr : typed.TypedValue.ToFieldSet_ptr.spec (GF := GF))
+    (h_TypedValue_TypeRef_ptr : typed.TypedValue.TypeRef_ptr.spec (GF := GF)) :
     merge.Updater.addBackOwnedItemsForVersion.spec (GF := GF) := by
   sorry
 

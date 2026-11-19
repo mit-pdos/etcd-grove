@@ -31,7 +31,7 @@ variable [sem : go.Semantics]
 variable [package_sem : schema.Assumptions]
 
 theorem schema.Schema.Resolve.wp_proof
-    (hresolveNoOverrides : schema.Schema.resolveNoOverrides.spec (GF := GF)) :
+    (h_Schema_resolveNoOverrides : schema.Schema.resolveNoOverrides.spec (GF := GF)) :
     schema.Schema.Resolve.spec (GF := GF) := by
   sorry
 

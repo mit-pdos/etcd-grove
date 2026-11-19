@@ -1,11 +1,11 @@
 /-
-`fieldpath.SetNodeMap.Size`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.SetNodeMap.Size`: a member of the recursion cluster `fieldpath.SizeRec` (`SizeRec.lean`); its proof is the
+projection of the cluster's (its body is `SetNodeMap__SizeBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Size
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Size
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SizeRec
 
 @[expose] public section
 
@@ -28,9 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.SetNodeMap.Size.wp_proof
-    (wp_Set_Size : fieldpath.Set.Size.spec (GF := GF)) :
-    fieldpath.SetNodeMap.Size.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.SizeRec.spec (GF := GF)) :
+    fieldpath.SetNodeMap.Size.spec (GF := GF) := hrec.2
 
 end proof
 

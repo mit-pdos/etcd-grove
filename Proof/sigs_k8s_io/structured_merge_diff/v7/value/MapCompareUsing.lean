@@ -1,13 +1,11 @@
 /-
-`value.MapCompareUsing`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Its callees' specs (and the interface bundles' laws, `Objects.lean`) are its
-hypotheses. Lean-first (2026-11-19), Draft.
+`value.MapCompareUsing`: a member of the recursion cluster `value.CompareUsingRec` (`CompareUsingRec.lean`); its proof is the
+projection of the cluster's (its body is `MapCompareUsingBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.MapCompareUsing
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.MapZipUsing
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsingRec
 
 @[expose] public section
 
@@ -30,11 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.MapCompareUsing.wp_proof
-    (wp_MapZipUsing : value.MapZipUsing.spec (GF := GF))
-    (wp_CompareUsing : value.CompareUsing.spec (GF := GF))
-    (h_mapM : isMapV_methods.law (GF := GF)) :
-    value.MapCompareUsing.spec (GF := GF) := by
-  sorry
+    (hrec : value.CompareUsingRec.spec (GF := GF)) :
+    value.MapCompareUsing.spec (GF := GF) := hrec.2.2
 
 end proof
 

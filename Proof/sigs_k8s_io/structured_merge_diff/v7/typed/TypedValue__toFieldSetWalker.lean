@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.toFieldSetWalker.wp_proof
-    (hPool_Get : sync.Pool.Get.spec (GF := GF))
-    (hNewFreelistAllocator : value.NewFreelistAllocator.spec (GF := GF)) :
+    (h_sync_Pool_Get : _root_.Perennial.sync.Pool.Get.spec (GF := GF))
+    (h_NewFreelistAllocator : value.NewFreelistAllocator.spec (GF := GF)) :
     typed.TypedValue.toFieldSetWalker.spec (GF := GF) := by
   sorry
 

@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.toFieldSetWalker.doScalar.wp_proof
-    (hSet_Insert : fieldpath.Set.Insert.spec (GF := GF)) :
+    (h_Set_Insert : fieldpath.Set.Insert.spec (GF := GF)) :
     typed.toFieldSetWalker.doScalar.spec (GF := GF) := by
   sorry
 

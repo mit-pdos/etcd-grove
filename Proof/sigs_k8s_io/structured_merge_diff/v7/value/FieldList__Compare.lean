@@ -6,6 +6,7 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Compare
+public import Perennial.Spec.strings.Compare
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.Compare
 
 @[expose] public section
@@ -29,7 +30,8 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.FieldList.Compare.wp_proof
-    (wp_Compare : value.Compare.spec (GF := GF)) :
+    (h_strings_Compare : _root_.Perennial.strings.Compare.spec (GF := GF))
+    (h_Compare : value.Compare.spec (GF := GF)) :
     value.FieldList.Compare.spec (GF := GF) := by
   sorry
 

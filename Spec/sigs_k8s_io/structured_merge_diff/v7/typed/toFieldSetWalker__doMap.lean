@@ -30,7 +30,7 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.toFieldSetWalker.doMap.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : TWSt) (s : Loc) (F : PathSet) (dq : DFrac) (x : UVal) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ twOwn w sc S st s F ∗ isValF st.value dq x ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel) ∧ conforms S st.t x ∧ (F.union (fieldsAt S st.t st.path x)).CardLt typedSizeMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ twOwn w sc S st s F ∗ isValF st.value dq x ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel) ∧ conforms S st.t x ∧ (F.union (fieldsAt S st.t st.path x)).CardLt (2 ^ 63 - 1)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker.ty @!! go!"doMap")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
       twOwn w sc S st s (F.union (fieldsAt S st.t st.path x)) }}

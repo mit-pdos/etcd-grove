@@ -99,6 +99,47 @@ def afterUpdate_sorted.law : Prop :=
   ∀ mf mgr confl removed, keysSorted mf = true →
     keysSorted (afterUpdate mf mgr confl removed) = true
 
+
+/-! ## The workload premise (D9) and `RemoveItems`' conformance (D10 (b)), the Draft's integration
+(2026-11-19): what the stages' premises follow from -/
+
+/-- Merging adds no node beyond the two sides'. -/
+def merge_size.law : Prop :=
+  ∀ S t l r, (merge S t l r).size ≤ l.size + r.size
+/-- Removing paths adds no node. -/
+def removeItems_size.law : Prop :=
+  ∀ S t x R, (removeItems S t x R).size ≤ x.size
+/-- Pruning adds no node (its three passes remove from `merged`). -/
+def prune_size.law : Prop :=
+  ∀ S t merged (mf : MF) last, (prune S t merged mf last).size ≤ merged.size
+/-- `ensureNamed` adds only prefixes of the set's paths: its count is bounded by the trie's nodes. -/
+def ensureNamed_nodes.law : Prop :=
+  ∀ S t (s : PathSet) q, q ∈ ensureNamed S t s → q ∈ s.nodes
+/-- A field set's trie nodes are nodes of the value. -/
+def fieldSet_nodes.law : Prop :=
+  ∀ S t x, (fieldSet S t x).nodes.card ≤ x.size
+/-- A manager's set is part of the union (each set's nodes count no more than the union's). -/
+def mfUnion_nodes.law : Prop :=
+  ∀ (mf : MF) m e, mf.get m = some e → e.set.nodes.card ≤ (mfUnion mf).nodes.card
+/-- `Apply`'s workload premise gives `prune`'s and `update`'s size premises (with
+`merge_size`, `prune_size`, `reconcileMF` and `MF.set` keeping the union's nodes below the bound
+together with the applier's new field set: `fieldSet_nodes`). -/
+def inputsSmall_prune.law : Prop :=
+  ∀ S t (live config : UVal) (mf : MF) mgr (e : VSet), inputsSmall [live, config] mf →
+    e.set = fieldSet S t config →
+    (merge S t live config).size < smdSizeMax ∧
+    (mfUnion ((reconcileMF S t mf).set mgr e)).nodes.card < 2 * smdSizeMax
+
+/-- **`prune`'s passes keep the object conforming** (D10 (b): `RemoveItems`' premise), from
+`keysWithItems` of the managers' and the last sets (`Apply`'s premise; round 1's finding 1 is the
+counterexample without it). -/
+def prune_conforms.law : Prop :=
+  ∀ S t merged (mf : MF) (L : VSet), S.WF → conforms S t merged →
+    (∀ m e, mf.get m = some e → keysWithItems S t e.set) → keysWithItems S t L.set →
+    let p0 := removeItems S t merged (ensureNamed S t L.set)
+    let p1 := addBackOwnedMF S t merged p0 mf
+    conforms S t p0 ∧ conforms S t p1 ∧ conforms S t (addBackDangling S t merged p1 L.set)
+
 end smd
 end EtcdGrove
 end Perennial

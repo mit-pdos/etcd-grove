@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.compareWalker.doLeaf.wp_proof
-    (hSet_Insert : fieldpath.Set.Insert.spec (GF := GF))
-    (hEqualsUsing : value.EqualsUsing.spec (GF := GF)) :
+    (h_Set_Insert : fieldpath.Set.Insert.spec (GF := GF))
+    (h_EqualsUsing : value.EqualsUsing.spec (GF := GF)) :
     typed.compareWalker.doLeaf.spec (GF := GF) := by
   sorry
 

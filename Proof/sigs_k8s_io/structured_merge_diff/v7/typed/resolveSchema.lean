@@ -6,7 +6,6 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.resolveSchema
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__Resolve
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.errorf
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.deduceAtom
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.handleAtom
 
@@ -31,10 +30,9 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.resolveSchema.wp_proof
-    (hSchema_Resolve : schema.Schema.Resolve.spec (GF := GF))
-    (herrorf : typed.errorf.spec (GF := GF))
-    (hdeduceAtom : typed.deduceAtom.spec (GF := GF))
-    (hhandleAtom : typed.handleAtom.spec (GF := GF)) :
+    (h_Schema_Resolve : schema.Schema.Resolve.spec (GF := GF))
+    (h_deduceAtom : typed.deduceAtom.spec (GF := GF))
+    (h_handleAtom : typed.handleAtom.spec (GF := GF)) :
     typed.resolveSchema.spec (GF := GF) := by
   sorry
 

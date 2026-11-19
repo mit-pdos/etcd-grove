@@ -6,6 +6,7 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.MapZipUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__ZipUsing
 
 @[expose] public section
 
@@ -28,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.MapZipUsing.wp_proof
-    (h_mapM : isMapV_methods.law (GF := GF)) :
+    (h_mapUnstructuredString_ZipUsing : value.mapUnstructuredString.ZipUsing.spec (GF := GF)) :
     value.MapZipUsing.spec (GF := GF) := by
   sorry
 

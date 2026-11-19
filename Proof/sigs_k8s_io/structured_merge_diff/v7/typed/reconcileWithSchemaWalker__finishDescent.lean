@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.finishDescent.wp_proof
-    (hSet_Union : fieldpath.Set.Union.spec (GF := GF)) :
+    (h_Set_Union : fieldpath.Set.Union.spec (GF := GF)) :
     typed.reconcileWithSchemaWalker.finishDescent.spec (GF := GF) := by
   sorry
 

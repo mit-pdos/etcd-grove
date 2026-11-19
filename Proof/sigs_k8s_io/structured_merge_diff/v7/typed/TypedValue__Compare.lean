@@ -5,13 +5,12 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Compare
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.TypeRef__Equals
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.errorf
 public import Perennial.Spec.sync.Pool__Get
 public import Perennial.Spec.sync.Pool__Put
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__compare
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
 
 @[expose] public section
 
@@ -34,13 +33,12 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.Compare.wp_proof
-    (hTypeRef_Equals : schema.TypeRef.Equals.spec (GF := GF))
-    (herrorf : typed.errorf.spec (GF := GF))
-    (hPool_Get : sync.Pool.Get.spec (GF := GF))
-    (hPool_Put : sync.Pool.Put.spec (GF := GF))
-    (hNewSet : fieldpath.NewSet.spec (GF := GF))
-    (hNewFreelistAllocator : value.NewFreelistAllocator.spec (GF := GF))
-    (hcompareWalker_compare : typed.compareWalker.compare.spec (GF := GF)) :
+    (h_NewSet : fieldpath.NewSet.spec (GF := GF))
+    (h_TypeRef_Equals : schema.TypeRef.Equals.spec (GF := GF))
+    (h_sync_Pool_Get : _root_.Perennial.sync.Pool.Get.spec (GF := GF))
+    (h_sync_Pool_Put : _root_.Perennial.sync.Pool.Put.spec (GF := GF))
+    (h_compareWalker_compare : typed.compareWalker.compare.spec (GF := GF))
+    (h_NewFreelistAllocator : value.NewFreelistAllocator.spec (GF := GF)) :
     typed.TypedValue.Compare.spec (GF := GF) := by
   sorry
 

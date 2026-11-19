@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.NewSet.wp_proof
-    (wp_Set_Insert : fieldpath.Set.Insert.spec (GF := GF)) :
+    (h_Set_Insert : fieldpath.Set.Insert.spec (GF := GF)) :
     fieldpath.NewSet.spec (GF := GF) := by
   sorry
 

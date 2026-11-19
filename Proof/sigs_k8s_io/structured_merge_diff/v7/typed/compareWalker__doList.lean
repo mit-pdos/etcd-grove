@@ -1,13 +1,11 @@
 /-
-`typed.compareWalker.doList`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.compareWalker.doList`: a member of the recursion cluster `typed.compareWalkerRec` (`compareWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `compareWalker__doListBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__doList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__derefList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__doLeaf
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__visitListItems
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalkerRec
 
 @[expose] public section
 
@@ -30,11 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.compareWalker.doList.wp_proof
-    (hcompareWalker_derefList : typed.compareWalker.derefList.spec (GF := GF))
-    (hcompareWalker_doLeaf : typed.compareWalker.doLeaf.spec (GF := GF))
-    (hcompareWalker_visitListItems : typed.compareWalker.visitListItems.spec (GF := GF)) :
-    typed.compareWalker.doList.spec (GF := GF) := by
-  sorry
+    (hrec : typed.compareWalkerRec.spec (GF := GF)) :
+    typed.compareWalker.doList.spec (GF := GF) := hrec.2.2.1
 
 end proof
 

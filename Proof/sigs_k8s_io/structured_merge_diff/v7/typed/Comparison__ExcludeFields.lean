@@ -5,6 +5,8 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.Comparison__ExcludeFields
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Empty
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__RecursiveDifference
 
 @[expose] public section
 
@@ -26,7 +28,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
-theorem typed.Comparison.ExcludeFields.wp_proof :
+theorem typed.Comparison.ExcludeFields.wp_proof
+    (h_Set_Empty : fieldpath.Set.Empty.spec (GF := GF))
+    (h_Set_RecursiveDifference : fieldpath.Set.RecursiveDifference.spec (GF := GF)) :
     typed.Comparison.ExcludeFields.spec (GF := GF) := by
   sorry
 

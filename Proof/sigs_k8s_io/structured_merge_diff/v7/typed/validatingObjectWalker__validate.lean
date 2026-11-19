@@ -1,17 +1,11 @@
 /-
-`typed.validatingObjectWalker.validate`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
-
-Recursive (`validate` → `resolveSchema` → `doList`/`doMap` → `visit*` → `validate`): the link needs a form for a cycle of specs (open question in the report).
+`typed.validatingObjectWalker.validate`: a member of the recursion cluster `typed.validatingObjectWalkerRec` (`validatingObjectWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `validatingObjectWalker__validateBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__validate
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.resolveSchema
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.ValidationErrors__WithLazyPrefix
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doScalar
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doMap
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalkerRec
 
 @[expose] public section
 
@@ -34,13 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.validatingObjectWalker.validate.wp_proof
-    (hresolveSchema : typed.resolveSchema.spec (GF := GF))
-    (hValidationErrors_WithLazyPrefix : typed.ValidationErrors.WithLazyPrefix.spec (GF := GF))
-    (hvalidatingObjectWalker_doScalar : typed.validatingObjectWalker.doScalar.spec (GF := GF))
-    (hvalidatingObjectWalker_doList : typed.validatingObjectWalker.doList.spec (GF := GF))
-    (hvalidatingObjectWalker_doMap : typed.validatingObjectWalker.doMap.spec (GF := GF)) :
-    typed.validatingObjectWalker.validate.spec (GF := GF) := by
-  sorry
+    (hrec : typed.validatingObjectWalkerRec.spec (GF := GF)) :
+    typed.validatingObjectWalker.validate.spec (GF := GF) := hrec.2.2.1
 
 end proof
 

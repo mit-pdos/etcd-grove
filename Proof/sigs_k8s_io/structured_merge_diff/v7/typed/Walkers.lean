@@ -46,7 +46,7 @@ module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Defs
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Objects
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NamedVocab
 public import Perennial.Proof.sync.PoolDefs
 
 @[expose] public section
@@ -186,11 +186,6 @@ def reconBelow (S : Schema) (t : TypeRef) (p : Path) (F : PathSet) : Option Path
   let ns := atomicNodes S t F
   if ns.isEmpty then none else some (ns.map (p ++ ·))
 
-/-- **The bound `Set.Insert` needs** on the set it inserts into (`fieldpath.Set.Insert`'s premise
-`CardLt (2 ^ 63 - 1)`): the walkers that build sets (field sets, comparisons) take it on the set
-they end with. -/
-def typedSizeMax : Nat := 2 ^ 63 - 1
-
 /-- The key a list item has (`listItemToPathElement` on an associative list with keys `ks`). -/
 def itemKeyOk (ks : List GoString) (x : UVal) : Prop := (keyOf ks x).isSome
 
@@ -278,8 +273,8 @@ def isTVu (tv : typed.TypedValue) (sc : Loc) (S : Schema) (t : TypeRef) (x : UVa
     ⌜S.WF⌝)
 
 /-- **`isComparison c C`**: the `*typed.Comparison` at `c` holds `C` (its three sets; persistent:
-neither `Compare`'s caller nor `FilterFields(nil)` writes it). The `merge` package's stand-in
-`isCmpResult` is this. Sealed. -/
+neither `Compare`'s caller nor `FilterFields(nil)` writes it; `merge`'s `Updater.update` returns
+one). Sealed. -/
 @[no_expose] def isComparison (c : Loc) (C : Cmp) : IProp GF :=
   iprop(∃ (r m a : Loc), c ↦□ (typed.Comparison.mk r m a) ∗
     isSet r C.removed ∗ isSet m C.modified ∗ isSet a C.added)

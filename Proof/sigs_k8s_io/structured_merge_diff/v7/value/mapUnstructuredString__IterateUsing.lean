@@ -6,6 +6,10 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__IterateUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__Free
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__Free
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocValueUnstructured
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocValueUnstructured
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__reuse
 
 @[expose] public section
@@ -29,8 +33,11 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.mapUnstructuredString.IterateUsing.wp_proof
-    (h_allocM : isAlloc_methods.law (GF := GF))
-    (wp_reuse : value.valueUnstructured.reuse.spec (GF := GF)) :
+    (h_heapAllocator_Free : value.heapAllocator.Free.spec (GF := GF))
+    (h_freelistAllocator_Free : value.freelistAllocator.Free.spec (GF := GF))
+    (h_heapAllocator_allocValueUnstructured : value.heapAllocator.allocValueUnstructured.spec (GF := GF))
+    (h_freelistAllocator_allocValueUnstructured : value.freelistAllocator.allocValueUnstructured.spec (GF := GF))
+    (h_valueUnstructured_reuse : value.valueUnstructured.reuse.spec (GF := GF)) :
     value.mapUnstructuredString.IterateUsing.spec (GF := GF) := by
   sorry
 

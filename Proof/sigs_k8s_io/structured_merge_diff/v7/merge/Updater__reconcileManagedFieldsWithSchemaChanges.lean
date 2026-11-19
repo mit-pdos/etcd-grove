@@ -12,6 +12,10 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__reconcileManagedFieldsWithSchemaChanges
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewVersionedSet
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__APIVersion
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__Applied
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__Set
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.ReconcileFieldSetWithSchema
 
 @[expose] public section
 
@@ -34,7 +38,11 @@ variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
 theorem merge.Updater.reconcileManagedFieldsWithSchemaChanges.wp_proof
-    (hNewVersionedSet : fieldpath.NewVersionedSet.spec (GF := GF)) :
+    (h_NewVersionedSet : fieldpath.NewVersionedSet.spec (GF := GF))
+    (h_versionedSet_APIVersion : fieldpath.versionedSet.APIVersion.spec (GF := GF))
+    (h_versionedSet_Applied : fieldpath.versionedSet.Applied.spec (GF := GF))
+    (h_versionedSet_Set : fieldpath.versionedSet.Set.spec (GF := GF))
+    (h_ReconcileFieldSetWithSchema : typed.ReconcileFieldSetWithSchema.spec (GF := GF)) :
     merge.Updater.reconcileManagedFieldsWithSchemaChanges.spec (GF := GF) := by
   sorry
 

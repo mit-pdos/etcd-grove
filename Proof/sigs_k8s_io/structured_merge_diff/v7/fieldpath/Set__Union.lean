@@ -1,12 +1,11 @@
 /-
-`fieldpath.Set.Union`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.Set.Union`: a member of the recursion cluster `fieldpath.UnionRec` (`UnionRec.lean`); its proof is the
+projection of the cluster's (its body is `Set__UnionBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Union
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Union
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Less
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.UnionRec
 
 @[expose] public section
 
@@ -29,10 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.Union.wp_proof
-    (wp_PathElementSet_Union : fieldpath.PathElementSet.Union.spec (GF := GF))
-    (wp_PathElement_Less : fieldpath.PathElement.Less.spec (GF := GF)) :
-    fieldpath.Set.Union.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.UnionRec.spec (GF := GF)) :
+    fieldpath.Set.Union.spec (GF := GF) := hrec.1
 
 end proof
 

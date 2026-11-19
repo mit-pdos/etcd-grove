@@ -6,6 +6,13 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.lexicalKeyOrderedMapZip
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__Free
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__Free
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__GetUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Has
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__IterateUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Length
+public import Perennial.Spec.sort.Strings
 
 @[expose] public section
 
@@ -28,8 +35,13 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.lexicalKeyOrderedMapZip.wp_proof
-    (h_mapM : isMapV_methods.law (GF := GF))
-    (h_allocM : isAlloc_methods.law (GF := GF)) :
+    (h_heapAllocator_Free : value.heapAllocator.Free.spec (GF := GF))
+    (h_freelistAllocator_Free : value.freelistAllocator.Free.spec (GF := GF))
+    (h_mapUnstructuredString_GetUsing : value.mapUnstructuredString.GetUsing.spec (GF := GF))
+    (h_mapUnstructuredString_Has : value.mapUnstructuredString.Has.spec (GF := GF))
+    (h_mapUnstructuredString_IterateUsing : value.mapUnstructuredString.IterateUsing.spec (GF := GF))
+    (h_mapUnstructuredString_Length : value.mapUnstructuredString.Length.spec (GF := GF))
+    (h_sort_Strings : _root_.Perennial.sort.Strings.spec (GF := GF)) :
     value.lexicalKeyOrderedMapZip.spec (GF := GF) := by
   sorry
 

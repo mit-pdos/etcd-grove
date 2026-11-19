@@ -5,7 +5,7 @@ conforming to `st.t`) at its node and adds the changes to the comparison: `cmpO 
 (`cmpF` at the node: a leaf's change, or the items' or entries' changes and the node itself
 added or removed when a side is absent). No error. `inLeaf` ends as whether the node is a leaf.
 
-Premise: the comparison's sets stay below `Set.Insert`'s bound (`typedSizeMax`).
+Premise: the comparison's sets stay below `Set.Insert`'s bound (`2 ^ 63 - 1`; from the API's `smdSizeMax` premise by `cmpO_card.law`).
 
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
@@ -36,7 +36,7 @@ variable [package_sem : typed.Assumptions]
 abbrev typed.compareWalker.compare.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : CWSt) (c : Loc) (C : Cmp) (dql dqr : DFrac) (l r : Option UVal) (f : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ cwOwn w sc S st c C ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-      ⌜(l.isSome ∨ r.isSome) ∧ confO S st.t l ∧ confO S st.t r ∧ st.inLeaf = false ∧ (C.union (cmpO S st.t st.path l r)).removed.CardLt typedSizeMax ∧ (C.union (cmpO S st.t st.path l r)).modified.CardLt typedSizeMax ∧ (C.union (cmpO S st.t st.path l r)).added.CardLt typedSizeMax⌝ }}
+      ⌜(l.isSome ∨ r.isSome) ∧ confO S st.t l ∧ confO S st.t r ∧ st.inLeaf = false ∧ (C.union (cmpO S st.t st.path l r)).removed.CardLt (2 ^ 63 - 1) ∧ (C.union (cmpO S st.t st.path l r)).modified.CardLt (2 ^ 63 - 1) ∧ (C.union (cmpO S st.t st.path l r)).added.CardLt (2 ^ 63 - 1)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker.ty @!! go!"compare")) (Val #f))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
       cwOwn w sc S { st with inLeaf := leafAt S st.t l r } c (C.union (cmpO S st.t st.path l r)) }}

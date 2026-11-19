@@ -5,8 +5,8 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doScalar
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validateScalar
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doLeaf
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validateScalar
 
 @[expose] public section
 
@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.mergingWalker.doScalar.wp_proof
-    (hvalidateScalar : typed.validateScalar.spec (GF := GF))
-    (hmergingWalker_doLeaf : typed.mergingWalker.doLeaf.spec (GF := GF)) :
+    (h_mergingWalker_doLeaf : typed.mergingWalker.doLeaf.spec (GF := GF))
+    (h_validateScalar : typed.validateScalar.spec (GF := GF)) :
     typed.mergingWalker.doScalar.spec (GF := GF) := by
   sorry
 

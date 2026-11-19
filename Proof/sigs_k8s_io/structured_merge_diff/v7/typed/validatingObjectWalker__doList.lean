@@ -1,13 +1,11 @@
 /-
-`typed.validatingObjectWalker.doList`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.validatingObjectWalker.doList`: a member of the recursion cluster `typed.validatingObjectWalkerRec` (`validatingObjectWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `validatingObjectWalker__doListBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__doList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.listValue
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.errorf
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker__visitListItems
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalkerRec
 
 @[expose] public section
 
@@ -30,11 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.validatingObjectWalker.doList.wp_proof
-    (hlistValue : typed.listValue.spec (GF := GF))
-    (herrorf : typed.errorf.spec (GF := GF))
-    (hvalidatingObjectWalker_visitListItems : typed.validatingObjectWalker.visitListItems.spec (GF := GF)) :
-    typed.validatingObjectWalker.doList.spec (GF := GF) := by
-  sorry
+    (hrec : typed.validatingObjectWalkerRec.spec (GF := GF)) :
+    typed.validatingObjectWalker.doList.spec (GF := GF) := hrec.1
 
 end proof
 

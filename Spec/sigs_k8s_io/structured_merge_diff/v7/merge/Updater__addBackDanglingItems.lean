@@ -7,6 +7,8 @@ scope (the identity converter; `ToFieldSet` of conforming values).
 
 Internal to `merge`: mirrors the code over the abstract stage. Draft (2026-11-19,
 notes/smd-plan.md).
+
+D10 (b)/D9 (the Draft's integration): the pass's result conforms (`RemoveItems`' premise) and the sizes (`ToFieldSet`, `EnsureNamedFieldsAreMembers`), from `prune`'s premises. `ToFieldSet` returns an owned set (`ownSet`), which the proof persists (`ownSet_persist`) before the set algebra.
 -/
 module
 
@@ -35,7 +37,9 @@ variable [package_sem : merge.Assumptions]
 abbrev merge.Updater.addBackDanglingItems.spec : Prop :=
   ∀ (u : Loc) (cv : merge.Converter) (igf igfl : GoMap) (rion : Bool) (sc : Loc) (S : Schema) (t : TypeRef)
     (mp : Loc) (merged : UVal) (pp : Loc) (pruned : UVal) (ls : fieldpath.VersionedSet) (L : VSet),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ isUpdater u cv igf igfl rion ∗ isIdentityConverter cv ∗ isTV mp sc S t merged ∗ isTV pp sc S t pruned ∗ isVSet ls L }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ isUpdater u cv igf igfl rion ∗ isIdentityConverter cv ∗ isTV mp sc S t merged ∗ isTV pp sc S t pruned ∗ isVSet ls L ∗
+      ⌜merged.size < smdSizeMax ∧ pruned.size < smdSizeMax ∧ L.set.nodes.card < smdSizeMax ∧
+        conforms S t (addBackDangling S t merged pruned L.set)⌝ }}
     (App (App (App (Val (u @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.Updater.ty @!! go!"addBackDanglingItems"))
       (Val #mp)) (Val #pp)) (Val #ls))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);

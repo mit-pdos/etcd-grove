@@ -40,9 +40,6 @@ open sigs_k8s_io.structured_merge_diff.v7
 
 /-! ## Path elements and paths -/
 
-/-- A `value.FieldList`: `(name, value)` pairs. -/
-abbrev FieldList := List (GoString × UVal)
-
 /-- `fieldpath.PathElement` (its one non-nil field). -/
 inductive PE where
   | field (n : GoString)
@@ -52,17 +49,6 @@ inductive PE where
   deriving DecidableEq, Inhabited
 
 abbrev Path := List PE
-
-/-- `FieldList.Compare`. -/
-def flCompare : FieldList → FieldList → Int
-  | [], [] => 0
-  | [], _ :: _ => -1
-  | _ :: _, [] => 1
-  | (n, v) :: xs, (n', v') :: ys =>
-    let c := gsCompare n n'
-    if c != 0 then c else
-    let c := UVal.compare v v'
-    if c != 0 then c else flCompare xs ys
 
 /-- `PathElement.Compare`: the order of a set's sorted slices. -/
 def PE.compare : PE → PE → Int
@@ -161,6 +147,40 @@ instance [DecidableEq α] : DecidableEq (FSet α) := fun a b =>
       have h' : FSet.Same la lb := Quotient.exact h
       exact ⟨fun x hx => (h' x).1 hx, fun x hx => (h' x).2 hx⟩)
 
+/-- A list's members, each once (internal: `FSet.card`). -/
+def dedupL [DecidableEq α] : List α → List α
+  | [] => []
+  | x :: xs => if x ∈ xs then dedupL xs else x :: dedupL xs
+
+theorem mem_dedupL [DecidableEq α] (l : List α) (x : α) : x ∈ dedupL l ↔ x ∈ l := by
+  induction l with
+  | nil => simp [dedupL]
+  | cons y ys ih =>
+    unfold dedupL
+    split
+    · rw [ih]; constructor
+      · intro h; exact List.mem_cons_of_mem _ h
+      · intro h; rcases List.mem_cons.1 h with rfl | h
+        · assumption
+        · exact h
+    · simp only [List.mem_cons, ih]
+
+theorem nodup_dedupL [DecidableEq α] (l : List α) : (dedupL l).Nodup := by
+  induction l with
+  | nil => exact List.nodup_nil
+  | cons y ys ih =>
+    unfold dedupL
+    split
+    · exact ih
+    · next h => exact List.nodup_cons.2 ⟨fun hm => h ((mem_dedupL ys y).1 hm), ih⟩
+
+/-- **The number of members** of a finite set (decided: `decide` computes it on a literal). -/
+def card [DecidableEq α] (s : FSet α) : Nat :=
+  Quotient.lift (fun l : List α => (dedupL l).length)
+    (fun a b (h : FSet.Same a b) =>
+      ((List.perm_ext_iff_of_nodup (nodup_dedupL a) (nodup_dedupL b)).2
+        (fun x => by rw [mem_dedupL, mem_dedupL]; exact h x)).length_eq) s
+
 instance : Inhabited (FSet α) := ⟨empty⟩
 
 end FSet
@@ -255,16 +275,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- A `value.FieldList`'s fields (internal). -/
-@[no_expose] def isFieldsL : List value.Field → FieldList → IProp GF
-  | [], [] => iprop(True)
-  | f :: fs, (n, x) :: rest => iprop(⌜f.Name' = n⌝ ∗ isVal f.Value' x ∗ isFieldsL fs rest)
-  | _, _ => iprop(False)
-
-/-- **`isFieldList s fl`**: the `value.FieldList` slice `s` holds `fl` (persistent). -/
-@[no_expose] def isFieldList (s : GoSlice) (fl : FieldList) : IProp GF :=
-  iprop(∃ fs : List value.Field, s ↦*{DFrac.discard} fs ∗ isFieldsL fs fl)
-
 /-- **`isPE e pe`**: the `fieldpath.PathElement` `e` is `pe` (its first non-nil field;
 persistent). -/
 @[no_expose] def isPE (e : fieldpath.PathElement) : PE → IProp GF
@@ -355,6 +365,15 @@ sets), which `Set.Insert` updates in place. `ownSet_persist` (`Laws.lean`) hands
 applied flag (persistent). -/
 @[no_expose] def isMF (m : fieldpath.ManagedFields) (mf : MF) : IProp GF :=
   iprop(∃ M : GMap GoString GoInterface, m ↦$□ M ∗
+    ⌜keysSorted mf = true ∧ ∀ k, (M !! k).isSome = (mf.get k).isSome⌝ ∗ isMFL M mf)
+
+/-- **`ownMF m mf`**: the `fieldpath.ManagedFields` map `m` (non-nil) holds `mf`, **owned**: a
+map `merge` builds and then updates in place (`reconcileManagedFieldsWithSchemaChanges`' result,
+which `Apply`, `Update` and `Updater.update` write); its entries are persistent `isVSet`s.
+`ownMF_persist` (`merge/Laws.lean`) hands it out as an `isMF`. (Moved here, beside `isMF`, from
+`merge/Defs.lean` at the Draft's integration, 2026-11-19.) -/
+@[no_expose] def ownMF (m : fieldpath.ManagedFields) (mf : MF) : IProp GF :=
+  iprop(∃ M : GMap GoString GoInterface, m ↦$ M ∗
     ⌜keysSorted mf = true ∧ ∀ k, (M !! k).isSome = (mf.get k).isSome⌝ ∗ isMFL M mf)
 
 end own

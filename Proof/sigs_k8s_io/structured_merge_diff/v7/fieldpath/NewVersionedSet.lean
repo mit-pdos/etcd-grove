@@ -26,7 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
-theorem fieldpath.NewVersionedSet.wp_proof : fieldpath.NewVersionedSet.spec (GF := GF) := by
+theorem fieldpath.NewVersionedSet.wp_proof :
+    fieldpath.NewVersionedSet.spec (GF := GF) := by
   sorry
 
 end proof

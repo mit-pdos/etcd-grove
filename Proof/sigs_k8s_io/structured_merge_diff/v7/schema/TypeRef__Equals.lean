@@ -1,17 +1,11 @@
 /-
-`schema.TypeRef.Equals`:
-not proved yet (`sorry`): Draft of the `schema` package's per-function specs (notes/smd-plan.md,
-"The call DAG"); proved in the stage's Prove step, after the freeze.
-No callee hypothesis: the call `a.Inlined.Equals(&b.Inlined)` is on two zero atoms in the
-scope (`isTypeRefOpt`), where `Atom.Equals` returns `true` without calling `List.Equals` or
-`Map.Equals`; the proof unfolds that call's body, so that the recursion `TypeRef.Equals` ->
-`Atom.Equals` -> `Map.Equals` -> `TypeRef.Equals` is not a cycle among the proofs' hypotheses.
-
-Lean-first (2026-11-19).
+`schema.TypeRef.Equals`: a member of the recursion cluster `schema.EqualsRec` (`EqualsRec.lean`); its proof is the
+projection of the cluster's (its body is `TypeRef__EqualsBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.TypeRef__Equals
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.EqualsRec
 
 @[expose] public section
 
@@ -33,9 +27,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : schema.Assumptions]
 
-theorem schema.TypeRef.Equals.wp_proof :
-    schema.TypeRef.Equals.spec (GF := GF) := by
-  sorry
+theorem schema.TypeRef.Equals.wp_proof
+    (hrec : schema.EqualsRec.spec (GF := GF)) :
+    schema.TypeRef.Equals.spec (GF := GF) := hrec.2.2.2.2
 
 end proof
 

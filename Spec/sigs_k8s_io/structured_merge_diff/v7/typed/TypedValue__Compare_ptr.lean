@@ -30,7 +30,7 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.TypedValue.Compare_ptr.spec : Prop :=
   ∀ (lp q sc : Loc) (S : Schema) (t : TypeRef) (l r : UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isTV lp sc S t l ∗ isTV q sc S t r ∗ ⌜l.size + r.size < typedSizeMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isTV lp sc S t l ∗ isTV q sc S t r ∗ ⌜l.size < smdSizeMax ∧ r.size < smdSizeMax⌝ }}
     (App (Val (lp @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue.ty @!! go!"Compare")) (Val #q))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
       ⌜err = interface.nil⌝ ∗ isComparison c (compare S t l r) }}

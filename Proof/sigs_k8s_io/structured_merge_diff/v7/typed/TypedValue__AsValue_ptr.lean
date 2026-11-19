@@ -5,6 +5,7 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue
 
 @[expose] public section
 
@@ -26,7 +27,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
-theorem typed.TypedValue.AsValue_ptr.wp_proof : typed.TypedValue.AsValue_ptr.spec (GF := GF) := by
+theorem typed.TypedValue.AsValue_ptr.wp_proof
+    (h_TypedValue_AsValue : typed.TypedValue.AsValue.spec (GF := GF)) :
+    typed.TypedValue.AsValue_ptr.spec (GF := GF) := by
   sorry
 
 end proof

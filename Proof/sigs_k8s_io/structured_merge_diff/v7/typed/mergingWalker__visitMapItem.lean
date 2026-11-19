@@ -1,14 +1,11 @@
 /-
-`typed.mergingWalker.visitMapItem`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.mergingWalker.visitMapItem`: a member of the recursion cluster `typed.mergingWalkerRec` (`mergingWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `mergingWalker__visitMapItemBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__visitMapItem
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Map__FindField
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__prepareDescent
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__merge
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__finishDescent
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalkerRec
 
 @[expose] public section
 
@@ -31,12 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.mergingWalker.visitMapItem.wp_proof
-    (hMap_FindField : schema.Map.FindField.spec (GF := GF))
-    (hmergingWalker_prepareDescent : typed.mergingWalker.prepareDescent.spec (GF := GF))
-    (hmergingWalker_merge : typed.mergingWalker.merge.spec (GF := GF))
-    (hmergingWalker_finishDescent : typed.mergingWalker.finishDescent.spec (GF := GF)) :
-    typed.mergingWalker.visitMapItem.spec (GF := GF) := by
-  sorry
+    (hrec : typed.mergingWalkerRec.spec (GF := GF)) :
+    typed.mergingWalker.visitMapItem.spec (GF := GF) := hrec.2.2.2.2.2.1
 
 end proof
 

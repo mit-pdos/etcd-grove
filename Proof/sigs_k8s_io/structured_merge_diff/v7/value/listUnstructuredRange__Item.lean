@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.listUnstructuredRange.Item.wp_proof
-    (wp_reuse : value.valueUnstructured.reuse.spec (GF := GF)) :
+    (h_valueUnstructured_reuse : value.valueUnstructured.reuse.spec (GF := GF)) :
     value.listUnstructuredRange.Item.spec (GF := GF) := by
   sorry
 

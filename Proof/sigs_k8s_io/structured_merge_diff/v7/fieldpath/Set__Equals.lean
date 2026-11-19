@@ -1,12 +1,11 @@
 /-
-`fieldpath.Set.Equals`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.Set.Equals`: a member of the recursion cluster `fieldpath.EqualsRec` (`EqualsRec.lean`); its proof is the
+projection of the cluster's (its body is `Set__EqualsBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Equals
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Equals
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElement__Equals
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.EqualsRec
 
 @[expose] public section
 
@@ -29,10 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.Equals.wp_proof
-    (wp_PathElementSet_Equals : fieldpath.PathElementSet.Equals.spec (GF := GF))
-    (wp_PathElement_Equals : fieldpath.PathElement.Equals.spec (GF := GF)) :
-    fieldpath.Set.Equals.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.EqualsRec.spec (GF := GF)) :
+    fieldpath.Set.Equals.spec (GF := GF) := hrec.1
 
 end proof
 

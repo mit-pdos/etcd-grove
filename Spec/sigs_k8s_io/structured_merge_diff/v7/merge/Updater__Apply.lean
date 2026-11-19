@@ -35,6 +35,8 @@ deleted (`issues/smd-apply-deletes-own-struct.md`).
 
 Lean-first (2026-11-19, notes/smd-plan.md); round 1's repairs 2026-11-19 (the third clause of
 `keysWithItems`; the schema carried by `isTV`; the conflicts as a set).
+
+D9 (2026-11-19, the Draft's integration): the workload premise `inputsSmall` (`merge/Defs.lean`), stated once here; the internal size premises of the stages and of the typed API follow from it (`merge/Laws.lean`).
 -/
 module
 
@@ -67,7 +69,8 @@ abbrev merge.Updater.Apply.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗
       isUpdater u cv (zero_val GoMap) (zero_val GoMap) rion ∗ isIdentityConverter cv ∗
       isTV lp sc S t live ∗ isTV cp sc S t config ∗ isMF mfm mf ∗
-      ⌜∀ m e, mf.get m = some e → e.version = ver ∧ keysWithItems S t e.set⌝ }}
+      ⌜∀ m e, mf.get m = some e → e.version = ver ∧ keysWithItems S t e.set⌝ ∗
+      ⌜inputsSmall [live, config] mf⌝ }}
     (App (App (App (App (App (App (Val (u @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.Updater.ty @!! go!"Apply"))
       (Val #lp)) (Val #cp)) (Val #ver)) (Val #mfm)) (Val #mgr)) (Val #force))
   {{ (op : Loc) (mfm' : GoMap) (err : GoInterface), RET (PairV (PairV #op #mfm') #err);

@@ -6,11 +6,10 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.merge
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.TypeRef__Equals
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.errorf
 public import Perennial.Spec.sync.Pool__Get
 public import Perennial.Spec.sync.Pool__Put
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__merge
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewValueInterface
 
 @[expose] public section
@@ -34,13 +33,12 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.merge.wp_proof
-    (hTypeRef_Equals : schema.TypeRef.Equals.spec (GF := GF))
-    (herrorf : typed.errorf.spec (GF := GF))
-    (hPool_Get : sync.Pool.Get.spec (GF := GF))
-    (hPool_Put : sync.Pool.Put.spec (GF := GF))
-    (hNewFreelistAllocator : value.NewFreelistAllocator.spec (GF := GF))
-    (hmergingWalker_merge : typed.mergingWalker.merge.spec (GF := GF))
-    (hNewValueInterface : value.NewValueInterface.spec (GF := GF)) :
+    (h_TypeRef_Equals : schema.TypeRef.Equals.spec (GF := GF))
+    (h_sync_Pool_Get : _root_.Perennial.sync.Pool.Get.spec (GF := GF))
+    (h_sync_Pool_Put : _root_.Perennial.sync.Pool.Put.spec (GF := GF))
+    (h_mergingWalker_merge : typed.mergingWalker.merge.spec (GF := GF))
+    (h_NewFreelistAllocator : value.NewFreelistAllocator.spec (GF := GF))
+    (h_NewValueInterface : value.NewValueInterface.spec (GF := GF)) :
     typed.merge.spec (GF := GF) := by
   sorry
 

@@ -1,14 +1,11 @@
 /-
-`fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers`: a member of the recursion cluster `fieldpath.EnsureNamedFieldsAreMembersRec` (`EnsureNamedFieldsAreMembersRec.lean`); its proof is the
+projection of the cluster's (its body is `SetNodeMap__EnsureNamedFieldsAreMembersBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__EnsureNamedFieldsAreMembers
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__Resolve
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Map__FindField
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Size
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__EnsureNamedFieldsAreMembers
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.EnsureNamedFieldsAreMembersRec
 
 @[expose] public section
 
@@ -31,12 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.wp_proof
-    (wp_schema_Schema_Resolve : schema.Schema.Resolve.spec (GF := GF))
-    (wp_schema_Map_FindField : schema.Map.FindField.spec (GF := GF))
-    (wp_SetNodeMap_Size : fieldpath.SetNodeMap.Size.spec (GF := GF))
-    (wp_Set_EnsureNamedFieldsAreMembers : fieldpath.Set.EnsureNamedFieldsAreMembers.spec (GF := GF)) :
-    fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.EnsureNamedFieldsAreMembersRec.spec (GF := GF)) :
+    fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.spec (GF := GF) := hrec.2
 
 end proof
 

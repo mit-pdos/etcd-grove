@@ -1,11 +1,11 @@
 /-
-`fieldpath.SetNodeMap.iteratePrefix`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.SetNodeMap.iteratePrefix`: a member of the recursion cluster `fieldpath.iteratePrefixRec` (`iteratePrefixRec.lean`); its proof is the
+projection of the cluster's (its body is `SetNodeMap__iteratePrefixBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__iteratePrefix
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__iteratePrefix
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.iteratePrefixRec
 
 @[expose] public section
 
@@ -28,9 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.SetNodeMap.iteratePrefix.wp_proof
-    (wp_Set_iteratePrefix : fieldpath.Set.iteratePrefix.spec (GF := GF)) :
-    fieldpath.SetNodeMap.iteratePrefix.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.iteratePrefixRec.spec (GF := GF)) :
+    fieldpath.SetNodeMap.iteratePrefix.spec (GF := GF) := hrec.2
 
 end proof
 

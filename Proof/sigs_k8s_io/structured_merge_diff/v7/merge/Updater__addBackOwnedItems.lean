@@ -12,6 +12,9 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__addBackOwnedItems
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Union
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__APIVersion
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__Set
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__addBackOwnedItemsForVersion
 
 @[expose] public section
@@ -35,8 +38,11 @@ variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
 theorem merge.Updater.addBackOwnedItems.wp_proof
-    (hNewSet : fieldpath.NewSet.spec (GF := GF))
-    (haddBackOwnedItemsForVersion : merge.Updater.addBackOwnedItemsForVersion.spec (GF := GF)) :
+    (h_NewSet : fieldpath.NewSet.spec (GF := GF))
+    (h_Set_Union : fieldpath.Set.Union.spec (GF := GF))
+    (h_versionedSet_APIVersion : fieldpath.versionedSet.APIVersion.spec (GF := GF))
+    (h_versionedSet_Set : fieldpath.versionedSet.Set.spec (GF := GF))
+    (h_Updater_addBackOwnedItemsForVersion : merge.Updater.addBackOwnedItemsForVersion.spec (GF := GF)) :
     merge.Updater.addBackOwnedItems.spec (GF := GF) := by
   sorry
 

@@ -1,13 +1,11 @@
 /-
-`typed.mergingWalker.doList`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.mergingWalker.doList`: a member of the recursion cluster `typed.mergingWalkerRec` (`mergingWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `mergingWalker__doListBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__derefList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__doLeaf
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__visitListItems
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalkerRec
 
 @[expose] public section
 
@@ -30,11 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.mergingWalker.doList.wp_proof
-    (hmergingWalker_derefList : typed.mergingWalker.derefList.spec (GF := GF))
-    (hmergingWalker_doLeaf : typed.mergingWalker.doLeaf.spec (GF := GF))
-    (hmergingWalker_visitListItems : typed.mergingWalker.visitListItems.spec (GF := GF)) :
-    typed.mergingWalker.doList.spec (GF := GF) := by
-  sorry
+    (hrec : typed.mergingWalkerRec.spec (GF := GF)) :
+    typed.mergingWalker.doList.spec (GF := GF) := hrec.1
 
 end proof
 

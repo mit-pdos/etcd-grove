@@ -1,14 +1,11 @@
 /-
-`typed.compareWalker.visitMapItem`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.compareWalker.visitMapItem`: a member of the recursion cluster `typed.compareWalkerRec` (`compareWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `compareWalker__visitMapItemBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__visitMapItem
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Map__FindField
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__prepareDescent
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__compare
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__finishDescent
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalkerRec
 
 @[expose] public section
 
@@ -31,12 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.compareWalker.visitMapItem.wp_proof
-    (hMap_FindField : schema.Map.FindField.spec (GF := GF))
-    (hcompareWalker_prepareDescent : typed.compareWalker.prepareDescent.spec (GF := GF))
-    (hcompareWalker_compare : typed.compareWalker.compare.spec (GF := GF))
-    (hcompareWalker_finishDescent : typed.compareWalker.finishDescent.spec (GF := GF)) :
-    typed.compareWalker.visitMapItem.spec (GF := GF) := by
-  sorry
+    (hrec : typed.compareWalkerRec.spec (GF := GF)) :
+    typed.compareWalker.visitMapItem.spec (GF := GF) := hrec.2.2.2.2.2.1
 
 end proof
 

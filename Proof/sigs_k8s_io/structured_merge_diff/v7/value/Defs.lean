@@ -220,6 +220,44 @@ def UVal.compareF : Nat → UVal → UVal → Int
 /-- `value.Compare`. -/
 def UVal.compare (a b : UVal) : Int := UVal.compareF (a.size + b.size + 1) a b
 
+mutual
+/-- A canonical value: every map's keys strictly sorted, recursively (what `isIface` admits; moved here from
+`fieldpath/Vocab.lean` at the Draft's integration, 2026-11-19). -/
+def UVal.canon : UVal → Bool
+  | .list vs => UVal.canonL vs
+  | .map kvs => keysSorted kvs && UVal.canonM kvs
+  | _ => true
+/-- A list's items are canonical. -/
+def UVal.canonL : List UVal → Bool
+  | [] => true
+  | v :: vs => UVal.canon v && UVal.canonL vs
+/-- A map's values are canonical. -/
+def UVal.canonM : List (GoString × UVal) → Bool
+  | [] => true
+  | (_, v) :: kvs => UVal.canon v && UVal.canonM kvs
+end
+
+/-- A `value.FieldList`: `(name, value)` pairs (moved here from `fieldpath/Defs.lean` at the
+Draft's integration, 2026-11-19: it is `value`'s type). -/
+abbrev FieldList := List (GoString × UVal)
+
+/-- `FieldList.Compare`. -/
+def flCompare : FieldList → FieldList → Int
+  | [], [] => 0
+  | [], _ :: _ => -1
+  | _ :: _, [] => 1
+  | (n, v) :: xs, (n', v') :: ys =>
+    let c := gsCompare n n'
+    if c != 0 then c else
+    let c := UVal.compare v v'
+    if c != 0 then c else flCompare xs ys
+
+/-- **D9's workload bound** (`notes/smd-plan.md`, decisions D9/D10): the inputs of
+`Updater.Apply`/`Update` (values' sizes, the managed sets' trie nodes) stay below it, and so do the
+values the typed API is given; the internal 64-bit counts (`CardLt (2 ^ 63 - 1)`) follow from it
+by laws. Real Go runs out of memory long before. -/
+@[word_unfold] def smdSizeMax : Nat := 2 ^ 32
+
 /-! ## Representation predicates -/
 
 section own
@@ -275,6 +313,16 @@ rewrites one wrapper per entry (`reuse`), the freelist allocator frees and reuse
 /-- **`isVal v x`**: `isValF` at the discarded fraction: a value the API takes or hands out
 (persistent: SMD never writes a value it was given or returned). -/
 abbrev isVal (v : value.Value) (x : UVal) : IProp GF := isValF v DFrac.discard x
+
+/-- A `value.FieldList`'s fields (internal). -/
+@[no_expose] def isFieldsL : List value.Field → FieldList → IProp GF
+  | [], [] => iprop(True)
+  | f :: fs, (n, x) :: rest => iprop(⌜f.Name' = n⌝ ∗ isVal f.Value' x ∗ isFieldsL fs rest)
+  | _, _ => iprop(False)
+
+/-- **`isFieldList s fl`**: the `value.FieldList` slice `s` holds `fl` (persistent). -/
+@[no_expose] def isFieldList (s : GoSlice) (fl : FieldList) : IProp GF :=
+  iprop(∃ fs : List value.Field, s ↦*{DFrac.discard} fs ∗ isFieldsL fs fl)
 
 end own
 

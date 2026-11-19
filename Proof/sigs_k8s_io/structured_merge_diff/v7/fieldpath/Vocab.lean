@@ -49,22 +49,6 @@ open sigs_k8s_io.structured_merge_diff.v7
 
 /-! ## The order of path elements -/
 
-mutual
-/-- A canonical value: every map's keys strictly sorted, recursively (what `isIface` admits). -/
-def UVal.canon : UVal → Bool
-  | .list vs => UVal.canonL vs
-  | .map kvs => keysSorted kvs && UVal.canonM kvs
-  | _ => true
-/-- A list's items are canonical. -/
-def UVal.canonL : List UVal → Bool
-  | [] => true
-  | v :: vs => UVal.canon v && UVal.canonL vs
-/-- A map's values are canonical. -/
-def UVal.canonM : List (GoString × UVal) → Bool
-  | [] => true
-  | (_, v) :: kvs => UVal.canon v && UVal.canonM kvs
-end
-
 /-- A well-formed path element: the values it holds are canonical (`isPE_wf`). -/
 def PE.wf : PE → Bool
   | .key fl => fl.all (fun f => f.2.canon)
@@ -85,8 +69,12 @@ def PE.Sorted (xs : List PE) : Prop := xs.Pairwise PE.lt
 def FSet.HasCard {α : Type} (s : FSet α) (n : Nat) : Prop :=
   ∃ l : List α, l.Nodup ∧ FSet.ofList l = s ∧ l.length = n
 
-/-- Fewer than `b` members (every count of `s` is below `b`). -/
-def FSet.CardLt {α : Type} (s : FSet α) (b : Nat) : Prop := ∀ n, s.HasCard n → n < b
+/-- Fewer than `b` members (decided: `FSet.card`, the integration's form, 2026-11-19; it was
+"every count of `s` is below `b`", equivalent by `FSet.hasCard_card`). -/
+def FSet.CardLt {α : Type} [DecidableEq α] (s : FSet α) (b : Nat) : Prop := s.card < b
+
+instance {α : Type} [DecidableEq α] (s : FSet α) (b : Nat) : Decidable (s.CardLt b) :=
+  inferInstanceAs (Decidable (s.card < b))
 
 /-! ## Paths and sets of paths -/
 
@@ -106,6 +94,9 @@ def rdiff (A B : PathSet) : PathSet :=
   FSet.filter (fun q => !(q.nePrefixes.any (fun r => FSet.mem B r))) A
 /-- `pre` put before every path (`iteratePrefix`'s paths). -/
 def prepend (pre : Path) (S : PathSet) : PathSet := FSet.map (fun q => pre ++ q) S
+/-- **The nodes of a set's trie**: every non-empty prefix of its paths (D9's measure of a managed
+set: `inputsSmall`, `merge/Defs.lean`; `ensureNamed` adds only such prefixes). -/
+def nodes (S : PathSet) : PathSet := FSet.bind Path.nePrefixes S
 end PathSet
 
 /-! ## Finite maps keyed by path elements (`PathElementMap`, `PathElementValueMap`) -/
@@ -282,6 +273,17 @@ def FSet.hasCard_unique.law : Prop :=
 /-- The count is zero exactly on the empty set. -/
 def FSet.hasCard_zero.law : Prop :=
   ∀ {α : Type} (a : FSet α) (n : Nat), a.HasCard n → (n = 0 ↔ a.isEmpty = true)
+/-- `card` is the count (the integration's decided `CardLt`, 2026-11-19). -/
+def FSet.hasCard_card.law : Prop := ∀ {α : Type} [DecidableEq α] (a : FSet α), a.HasCard a.card
+/-- **`CardLt` is monotone under inclusion** (requested by `fieldpath`'s Draft) and in the bound. -/
+def FSet.cardLt_mono.law : Prop :=
+  ∀ {α : Type} [DecidableEq α] (a b : FSet α) (n m : Nat), (∀ x, x ∈ a → x ∈ b) → n ≤ m →
+    b.CardLt n → a.CardLt m
+/-- A union counts at most its two sides. -/
+def FSet.card_union.law : Prop :=
+  ∀ {α : Type} [DecidableEq α] (a b : FSet α), (FSet.union a b).card ≤ a.card + b.card
+/-- A set counts at most its trie's nodes (D9: from the managed sets' bound to their counts). -/
+def PathSet.card_nodes.law : Prop := ∀ (S : PathSet), S.card ≤ S.nodes.card
 
 /-! ### Sets of paths (pure) -/
 
@@ -340,6 +342,10 @@ def ownPESetV_persist.law : Prop :=
 /-- The zero `PathElementSet` (`PathElementSet{}`) is the empty set, owned. -/
 def ownPESetV_zero.law : Prop :=
   iprop(True) ⊢ ownPESetV (GF := GF) (zero_val fieldpath.PathElementSet) FSet.empty
+
+/-- A wrapper is what `PathElementValueMap.Get`'s type assertion accepts (requested by
+`fieldpath`'s Draft of `value`). -/
+def isValF_isValuePtr.law : Prop := ∀ v dq x, isValF (GF := GF) v dq x ⊢ ⌜isValuePtr v⌝
 
 /-- A `VersionedSet` interface holds a `versionedSet` (a client calling its methods resolves the
 dynamic type with this, then uses `versionedSet.Set`/`APIVersion`/`Applied`). -/

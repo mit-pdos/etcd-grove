@@ -5,6 +5,7 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doScalar
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured_ptr
 
 @[expose] public section
 
@@ -26,7 +27,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
-theorem typed.removingWalker.doScalar.wp_proof :
+theorem typed.removingWalker.doScalar.wp_proof
+    (h_valueUnstructured_Unstructured_ptr : value.valueUnstructured.Unstructured_ptr.spec (GF := GF)) :
     typed.removingWalker.doScalar.spec (GF := GF) := by
   sorry
 

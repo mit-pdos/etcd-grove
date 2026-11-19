@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.PathElementSet.Equals.wp_proof
-    (wp_PathElement_Equals : fieldpath.PathElement.Equals.spec (GF := GF)) :
+    (h_PathElement_Equals : fieldpath.PathElement.Equals.spec (GF := GF)) :
     fieldpath.PathElementSet.Equals.spec (GF := GF) := by
   sorry
 

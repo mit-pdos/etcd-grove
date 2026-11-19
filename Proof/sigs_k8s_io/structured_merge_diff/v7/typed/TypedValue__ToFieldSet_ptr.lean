@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.ToFieldSet_ptr.wp_proof
-    (hTypedValue_ToFieldSet : typed.TypedValue.ToFieldSet.spec (GF := GF)) :
+    (h_TypedValue_ToFieldSet : typed.TypedValue.ToFieldSet.spec (GF := GF)) :
     typed.TypedValue.ToFieldSet_ptr.spec (GF := GF) := by
   sorry
 

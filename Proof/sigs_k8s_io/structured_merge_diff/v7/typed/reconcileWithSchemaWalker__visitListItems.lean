@@ -1,17 +1,11 @@
 /-
-`typed.reconcileWithSchemaWalker.visitListItems`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.reconcileWithSchemaWalker.visitListItems`: a member of the recursion cluster `typed.reconcileWithSchemaWalkerRec` (`reconcileWithSchemaWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `reconcileWithSchemaWalker__visitListItemsBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__visitListItems
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__prepareDescent
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Get
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__reconcile
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__finishDescent
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.SetNodeMap__Iterate
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Has
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Iterate
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalkerRec
 
 @[expose] public section
 
@@ -34,15 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.visitListItems.wp_proof
-    (hreconcileWithSchemaWalker_prepareDescent : typed.reconcileWithSchemaWalker.prepareDescent.spec (GF := GF))
-    (hSetNodeMap_Get : fieldpath.SetNodeMap.Get.spec (GF := GF))
-    (hreconcileWithSchemaWalker_reconcile : typed.reconcileWithSchemaWalker.reconcile.spec (GF := GF))
-    (hreconcileWithSchemaWalker_finishDescent : typed.reconcileWithSchemaWalker.finishDescent.spec (GF := GF))
-    (hSetNodeMap_Iterate : fieldpath.SetNodeMap.Iterate.spec (GF := GF))
-    (hPathElementSet_Has : fieldpath.PathElementSet.Has.spec (GF := GF))
-    (hPathElementSet_Iterate : fieldpath.PathElementSet.Iterate.spec (GF := GF)) :
-    typed.reconcileWithSchemaWalker.visitListItems.spec (GF := GF) := by
-  sorry
+    (hrec : typed.reconcileWithSchemaWalkerRec.spec (GF := GF)) :
+    typed.reconcileWithSchemaWalker.visitListItems.spec (GF := GF) := hrec.2.2.2.1
 
 end proof
 

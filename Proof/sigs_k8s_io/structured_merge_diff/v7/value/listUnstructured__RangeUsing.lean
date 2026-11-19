@@ -6,6 +6,8 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__RangeUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocListUnstructuredRange
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocListUnstructuredRange
 
 @[expose] public section
 
@@ -28,7 +30,8 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.listUnstructured.RangeUsing.wp_proof
-    (h_allocM : isAlloc_methods.law (GF := GF)) :
+    (h_heapAllocator_allocListUnstructuredRange : value.heapAllocator.allocListUnstructuredRange.spec (GF := GF))
+    (h_freelistAllocator_allocListUnstructuredRange : value.freelistAllocator.allocListUnstructuredRange.spec (GF := GF)) :
     value.listUnstructured.RangeUsing.spec (GF := GF) := by
   sorry
 

@@ -1,12 +1,11 @@
 /-
-`value.listUnstructured.EqualsUsing_ptr`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Its callees' specs (and the interface bundles' laws, `Objects.lean`) are its
-hypotheses. Lean-first (2026-11-19), Draft.
+`value.listUnstructured.EqualsUsing_ptr`: a member of the recursion cluster `value.EqualsUsingRec` (`EqualsUsingRec.lean`); its proof is the
+projection of the cluster's (its body is `listUnstructured__EqualsUsing_ptrBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__EqualsUsing_ptr
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__EqualsUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.EqualsUsingRec
 
 @[expose] public section
 
@@ -29,9 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.listUnstructured.EqualsUsing_ptr.wp_proof
-    (wp_EqualsUsing : value.listUnstructured.EqualsUsing.spec (GF := GF)) :
-    value.listUnstructured.EqualsUsing_ptr.spec (GF := GF) := by
-  sorry
+    (hrec : value.EqualsUsingRec.spec (GF := GF)) :
+    value.listUnstructured.EqualsUsing_ptr.spec (GF := GF) := hrec.2.2.2.1
 
 end proof
 

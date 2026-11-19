@@ -1,16 +1,11 @@
 /-
-`value.CompareUsing`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Its callees' specs (and the interface bundles' laws, `Objects.lean`) are its
-hypotheses. Lean-first (2026-11-19), Draft.
+`value.CompareUsing`: a member of the recursion cluster `value.CompareUsingRec` (`CompareUsingRec.lean`); its proof is the
+projection of the cluster's (its body is `CompareUsingBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsing
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.IntCompare
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.BoolCompare
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.FloatCompare
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.ListCompareUsing
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.MapCompareUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsingRec
 
 @[expose] public section
 
@@ -33,15 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.CompareUsing.wp_proof
-    (wp_IntCompare : value.IntCompare.spec (GF := GF))
-    (wp_BoolCompare : value.BoolCompare.spec (GF := GF))
-    (wp_FloatCompare : value.FloatCompare.spec (GF := GF))
-    (wp_ListCompareUsing : value.ListCompareUsing.spec (GF := GF))
-    (wp_MapCompareUsing : value.MapCompareUsing.spec (GF := GF))
-    (h_valueM : isValF_methods.law (GF := GF))
-    (h_allocM : isAlloc_methods.law (GF := GF)) :
-    value.CompareUsing.spec (GF := GF) := by
-  sorry
+    (hrec : value.CompareUsingRec.spec (GF := GF)) :
+    value.CompareUsing.spec (GF := GF) := hrec.1
 
 end proof
 

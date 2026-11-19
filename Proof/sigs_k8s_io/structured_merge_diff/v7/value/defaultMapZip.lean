@@ -6,8 +6,8 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.defaultMapZip
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.unorderedMapZip
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.lexicalKeyOrderedMapZip
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.unorderedMapZip
 
 @[expose] public section
 
@@ -30,8 +30,8 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.defaultMapZip.wp_proof
-    (wp_unorderedMapZip : value.unorderedMapZip.spec (GF := GF))
-    (wp_lexicalKeyOrderedMapZip : value.lexicalKeyOrderedMapZip.spec (GF := GF)) :
+    (h_lexicalKeyOrderedMapZip : value.lexicalKeyOrderedMapZip.spec (GF := GF))
+    (h_unorderedMapZip : value.unorderedMapZip.spec (GF := GF)) :
     value.defaultMapZip.spec (GF := GF) := by
   sorry
 

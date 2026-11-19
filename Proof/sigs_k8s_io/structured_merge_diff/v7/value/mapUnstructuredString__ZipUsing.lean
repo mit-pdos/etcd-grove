@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.mapUnstructuredString.ZipUsing.wp_proof
-    (wp_defaultMapZip : value.defaultMapZip.spec (GF := GF)) :
+    (h_defaultMapZip : value.defaultMapZip.spec (GF := GF)) :
     value.mapUnstructuredString.ZipUsing.spec (GF := GF) := by
   sorry
 

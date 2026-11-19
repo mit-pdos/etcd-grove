@@ -4,6 +4,8 @@ error for a value of another kind, none for `null`, else the entries (`visitMapI
 error exactly when the value conforms.
 
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
+
+D10 (c) (2026-11-19, the Draft's integration): specified on conforming values only (the premise `conforms`, no error after): rejection is outside the scope, so the error paths (`errorf`, `fmt`) are not reached and no `fmt` spec is needed.
 -/
 module
 
@@ -31,9 +33,9 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.validatingObjectWalker.doMap.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel)⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel)⌝ ∗ ⌜conforms S st.t x⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"doMap")) (Val #tp))
-  {{ (errs : GoSlice), RET #errs; errsIff errs (conforms S st.t x) ∗ isValF st.value dq x ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
       vwOwn w sc S st }}
 
 end spec

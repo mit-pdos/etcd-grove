@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.validatingObjectWalker.doScalar.wp_proof
-    (hvalidateScalar : typed.validateScalar.spec (GF := GF)) :
+    (h_validateScalar : typed.validateScalar.spec (GF := GF)) :
     typed.validatingObjectWalker.doScalar.spec (GF := GF) := by
   sorry
 

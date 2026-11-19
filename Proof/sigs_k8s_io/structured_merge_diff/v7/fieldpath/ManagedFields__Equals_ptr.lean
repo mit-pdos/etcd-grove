@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.ManagedFields.Equals_ptr.wp_proof
-    (wp_ManagedFields_Equals : fieldpath.ManagedFields.Equals.spec (GF := GF)) :
+    (h_ManagedFields_Equals : fieldpath.ManagedFields.Equals.spec (GF := GF)) :
     fieldpath.ManagedFields.Equals_ptr.spec (GF := GF) := by
   sorry
 

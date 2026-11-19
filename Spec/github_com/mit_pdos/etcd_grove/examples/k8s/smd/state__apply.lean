@@ -36,6 +36,7 @@ abbrev state.apply.spec : Prop :=
     (obj : Option UVal) (mf' : MF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd ∗ ownState s sc st ∗ isUMap m kvs ∗ ⌜conforms sc0 rootRef (.map kvs)⌝ ∗
       ⌜∀ m e, st.mf.get m = some e → e.version = version ∧ keysWithItems sc0 rootRef e.set⌝ ∗
+      ⌜inputsSmall [st.live, .map kvs] st.mf⌝ ∗
       ⌜applyResult sc0 rootRef false st.live (.map kvs) version st.mf mgr false = .ok obj mf'⌝ }}
     (App (App (App (Val (s @!! go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state.ty @!! go!"apply")) (Val #m)) (Val #mgr))
       (Val #msg))

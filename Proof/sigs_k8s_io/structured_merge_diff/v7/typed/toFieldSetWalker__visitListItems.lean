@@ -1,18 +1,11 @@
 /-
-`typed.toFieldSetWalker.visitListItems`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.toFieldSetWalker.visitListItems`: a member of the recursion cluster `typed.toFieldSetWalkerRec` (`toFieldSetWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `toFieldSetWalker__visitListItemsBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__visitListItems
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.MakePathElementSet
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.listItemToPathElement
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Has
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Insert
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Insert
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__prepareDescent
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__toFieldSet
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__finishDescent
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalkerRec
 
 @[expose] public section
 
@@ -35,16 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.toFieldSetWalker.visitListItems.wp_proof
-    (hMakePathElementSet : fieldpath.MakePathElementSet.spec (GF := GF))
-    (hlistItemToPathElement : typed.listItemToPathElement.spec (GF := GF))
-    (hPathElementSet_Has : fieldpath.PathElementSet.Has.spec (GF := GF))
-    (hPathElementSet_Insert : fieldpath.PathElementSet.Insert.spec (GF := GF))
-    (hSet_Insert : fieldpath.Set.Insert.spec (GF := GF))
-    (htoFieldSetWalker_prepareDescent : typed.toFieldSetWalker.prepareDescent.spec (GF := GF))
-    (htoFieldSetWalker_toFieldSet : typed.toFieldSetWalker.toFieldSet.spec (GF := GF))
-    (htoFieldSetWalker_finishDescent : typed.toFieldSetWalker.finishDescent.spec (GF := GF)) :
-    typed.toFieldSetWalker.visitListItems.spec (GF := GF) := by
-  sorry
+    (hrec : typed.toFieldSetWalkerRec.spec (GF := GF)) :
+    typed.toFieldSetWalker.visitListItems.spec (GF := GF) := hrec.2.2.2.1
 
 end proof
 

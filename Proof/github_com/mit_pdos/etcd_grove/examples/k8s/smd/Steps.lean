@@ -184,6 +184,22 @@ theorem kwi_all : ∀ mf ∈ [mf1, mf2, mf3, mf5, mf6, mf7a, mf8],
     ∀ me ∈ mf, keysWithItemsB sc0 rootRef me.2.set = true := by
   decide +kernel
 
+/-- One API version (`Apply`'s premise, `notes/smd-plan.md`, "Scope"): every manager's entry is at
+`version` before each `Apply` (the Draft's integration, 2026-11-19). -/
+theorem version_all : ∀ mf ∈ [MF.none, mf1, mf2, mf3, mf5, mf6, mf7a, mf8],
+    ∀ me ∈ mf, me.2.version = version := by
+  decide +kernel
+
+/-- **D9's workload premise** (`inputsSmall`, `merge/Defs.lean`) at every `Apply` (steps 1-7b and
+9) and at the `Update` of step 8: the objects' sizes and the managers' trie nodes below
+`smdSizeMax` (the Draft's integration, 2026-11-19). -/
+theorem small_all :
+    inputsSmall [UVal.ofMap [], obj1] MF.none ∧ inputsSmall [obj1, cfg2] mf1 ∧
+    inputsSmall [obj2, cfg3] mf2 ∧ inputsSmall [obj2, cfg4] mf3 ∧ inputsSmall [obj5, cfg6] mf5 ∧
+    inputsSmall [obj6, cfg7a] mf6 ∧ inputsSmall [obj7a, cfg7b] mf7a ∧
+    inputsSmall [obj7b, obj8] mf7b ∧ inputsSmall [obj8, cfg9] mf8 := by
+  decide +kernel
+
 end k8s_smd
 end EtcdGrove
 end Perennial

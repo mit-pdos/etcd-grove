@@ -3,6 +3,8 @@
 error exactly when the value is `null` or a scalar of the kind (`conforms` at a scalar type).
 
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
+
+D10 (c) (2026-11-19, the Draft's integration): specified on conforming values only (the premise `conforms`, no error after): rejection is outside the scope, so the error paths (`errorf`, `fmt`) are not reached and no `fmt` spec is needed.
 -/
 module
 
@@ -30,9 +32,9 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.validatingObjectWalker.doScalar.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (tp : Loc) (s : Scalar),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ tp ↦□ s.goName ∗ ⌜S.find st.t.name = some (.scalar s)⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ tp ↦□ s.goName ∗ ⌜S.find st.t.name = some (.scalar s)⌝ ∗ ⌜conforms S st.t x⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"doScalar")) (Val #tp))
-  {{ (errs : GoSlice), RET #errs; errsIff errs (conforms S st.t x) ∗ isValF st.value dq x ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
       vwOwn w sc S st }}
 
 end spec

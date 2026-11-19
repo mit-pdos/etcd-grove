@@ -1,11 +1,11 @@
 /-
-`fieldpath.Set.Empty`: not proved yet (`sorry`): Draft (notes/smd-plan.md), proved after the
-freeze over its callees' specs (the hypotheses).
+`fieldpath.Set.Empty`: a member of the recursion cluster `fieldpath.EmptyRec` (`EmptyRec.lean`); its proof is the
+projection of the cluster's (its body is `Set__EmptyBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Empty
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.PathElementSet__Size
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.EmptyRec
 
 @[expose] public section
 
@@ -28,9 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.Set.Empty.wp_proof
-    (wp_PathElementSet_Size : fieldpath.PathElementSet.Size.spec (GF := GF)) :
-    fieldpath.Set.Empty.spec (GF := GF) := by
-  sorry
+    (hrec : fieldpath.EmptyRec.spec (GF := GF)) :
+    fieldpath.Set.Empty.spec (GF := GF) := hrec.1
 
 end proof
 

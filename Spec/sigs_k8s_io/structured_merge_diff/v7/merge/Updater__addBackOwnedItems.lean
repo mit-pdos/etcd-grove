@@ -12,6 +12,8 @@ read and given back.
 
 Internal to `merge`: mirrors the code over the abstract stage. Draft (2026-11-19,
 notes/smd-plan.md).
+
+D10 (b)/D9 (the Draft's integration): the pass's result conforms (`RemoveItems`' premise, from `prune`'s `keysWithItems`: `prune_conforms`) and the sizes (`ToFieldSet`, `EnsureNamedFieldsAreMembers`), from `prune`'s premises.
 -/
 module
 
@@ -42,7 +44,9 @@ abbrev merge.Updater.addBackOwnedItems.spec : Prop :=
     (mp : Loc) (merged : UVal) (pp : Loc) (pruned : UVal) (pv : GoString) (mfm : GoMap) (mf : MF)
     (mgr : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ isUpdater u cv igf igfl rion ∗ isIdentityConverter cv ∗ isTV mp sc S t merged ∗ isTV pp sc S t pruned ∗ ownMF mfm mf ∗
-      ⌜∀ m e, mf.get m = some e → e.version = pv⌝ }}
+      ⌜∀ m e, mf.get m = some e → e.version = pv⌝ ∗
+      ⌜merged.size < smdSizeMax ∧ pruned.size < smdSizeMax ∧ (mfUnion mf).nodes.card < smdSizeMax ∧
+        conforms S t (addBackOwnedMF S t merged pruned mf)⌝ }}
     (App (App (App (App (App (Val (u @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.Updater.ty @!! go!"addBackOwnedItems"))
       (Val #mp)) (Val #pp)) (Val #pv)) (Val #mfm)) (Val #mgr))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);

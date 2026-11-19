@@ -34,7 +34,7 @@ abbrev typed.toFieldSetWalker.visitListItems.spec : Prop :=
     (ks : List GoString) (ll : value.List') (vs : List UVal),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ twOwn w sc S st s F ∗ isListRep tp e .associative ks ∗ isListV ll vs ∗
       ⌜S.find st.t.name = some (.list e .associative ks) ∧ conforms S st.t (.list vs) ∧
-        (F.union (fieldsL S e ks st.path vs)).CardLt typedSizeMax⌝ }}
+        (F.union (fieldsL S e ks st.path vs)).CardLt (2 ^ 63 - 1)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ll))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ twOwn w sc S st s (F.union (fieldsL S e ks st.path vs)) }}
 

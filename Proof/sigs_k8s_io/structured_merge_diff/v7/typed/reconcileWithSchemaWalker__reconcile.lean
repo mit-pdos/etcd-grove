@@ -1,18 +1,11 @@
 /-
-`typed.reconcileWithSchemaWalker.reconcile`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
-
-Recursive (`reconcile` → `handleAtom` → `doList`/`doMap` → `visit*` → `reconcile`): the link needs a form for a cycle of specs (open question in the report).
+`typed.reconcileWithSchemaWalker.reconcile`: a member of the recursion cluster `typed.reconcileWithSchemaWalkerRec` (`reconcileWithSchemaWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `reconcileWithSchemaWalker__reconcileBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__reconcile
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__Resolve
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.errorf
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.handleAtom
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doScalar
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doMap
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalkerRec
 
 @[expose] public section
 
@@ -35,14 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.reconcile.wp_proof
-    (hSchema_Resolve : schema.Schema.Resolve.spec (GF := GF))
-    (herrorf : typed.errorf.spec (GF := GF))
-    (hhandleAtom : typed.handleAtom.spec (GF := GF))
-    (hreconcileWithSchemaWalker_doScalar : typed.reconcileWithSchemaWalker.doScalar.spec (GF := GF))
-    (hreconcileWithSchemaWalker_doList : typed.reconcileWithSchemaWalker.doList.spec (GF := GF))
-    (hreconcileWithSchemaWalker_doMap : typed.reconcileWithSchemaWalker.doMap.spec (GF := GF)) :
-    typed.reconcileWithSchemaWalker.reconcile.spec (GF := GF) := by
-  sorry
+    (hrec : typed.reconcileWithSchemaWalkerRec.spec (GF := GF)) :
+    typed.reconcileWithSchemaWalker.reconcile.spec (GF := GF) := hrec.2.2.1
 
 end proof
 

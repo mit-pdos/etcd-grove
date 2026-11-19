@@ -1,12 +1,11 @@
 /-
-`typed.reconcileWithSchemaWalker.doList`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.reconcileWithSchemaWalker.doList`: a member of the recursion cluster `typed.reconcileWithSchemaWalkerRec` (`reconcileWithSchemaWalkerRec.lean`); its proof is the
+projection of the cluster's (its body is `reconcileWithSchemaWalker__doListBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doList
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__visitListItems
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalkerRec
 
 @[expose] public section
 
@@ -29,10 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.doList.wp_proof
-    (hNewSet : fieldpath.NewSet.spec (GF := GF))
-    (hreconcileWithSchemaWalker_visitListItems : typed.reconcileWithSchemaWalker.visitListItems.spec (GF := GF)) :
-    typed.reconcileWithSchemaWalker.doList.spec (GF := GF) := by
-  sorry
+    (hrec : typed.reconcileWithSchemaWalkerRec.spec (GF := GF)) :
+    typed.reconcileWithSchemaWalker.doList.spec (GF := GF) := hrec.1
 
 end proof
 

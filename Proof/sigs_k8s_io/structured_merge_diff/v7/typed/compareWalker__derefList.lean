@@ -6,7 +6,6 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker__derefList
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.listValue
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.errorf
 
 @[expose] public section
 
@@ -29,8 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.compareWalker.derefList.wp_proof
-    (hlistValue : typed.listValue.spec (GF := GF))
-    (herrorf : typed.errorf.spec (GF := GF)) :
+    (h_listValue : typed.listValue.spec (GF := GF)) :
     typed.compareWalker.derefList.spec (GF := GF) := by
   sorry
 

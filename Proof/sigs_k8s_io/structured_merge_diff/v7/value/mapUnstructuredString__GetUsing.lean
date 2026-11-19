@@ -6,6 +6,8 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__GetUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocValueUnstructured
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocValueUnstructured
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__reuse
 
 @[expose] public section
@@ -29,8 +31,9 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.mapUnstructuredString.GetUsing.wp_proof
-    (h_allocM : isAlloc_methods.law (GF := GF))
-    (wp_reuse : value.valueUnstructured.reuse.spec (GF := GF)) :
+    (h_heapAllocator_allocValueUnstructured : value.heapAllocator.allocValueUnstructured.spec (GF := GF))
+    (h_freelistAllocator_allocValueUnstructured : value.freelistAllocator.allocValueUnstructured.spec (GF := GF))
+    (h_valueUnstructured_reuse : value.valueUnstructured.reuse.spec (GF := GF)) :
     value.mapUnstructuredString.GetUsing.spec (GF := GF) := by
   sorry
 

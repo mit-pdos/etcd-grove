@@ -10,6 +10,7 @@ Lean-first (2026-11-19).
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Conflict__Equals
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Path__Equals
 
 @[expose] public section
 
@@ -31,7 +32,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
-theorem merge.Conflict.Equals.wp_proof :
+theorem merge.Conflict.Equals.wp_proof
+    (h_Path_Equals : fieldpath.Path.Equals.spec (GF := GF)) :
     merge.Conflict.Equals.spec (GF := GF) := by
   sorry
 

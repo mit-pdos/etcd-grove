@@ -6,8 +6,8 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__ToFieldSet
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__toFieldSetWalker
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__toFieldSet
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__finished
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__toFieldSet
 
 @[expose] public section
 
@@ -30,9 +30,9 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.ToFieldSet.wp_proof
-    (hTypedValue_toFieldSetWalker : typed.TypedValue.toFieldSetWalker.spec (GF := GF))
-    (htoFieldSetWalker_toFieldSet : typed.toFieldSetWalker.toFieldSet.spec (GF := GF))
-    (htoFieldSetWalker_finished : typed.toFieldSetWalker.finished.spec (GF := GF)) :
+    (h_TypedValue_toFieldSetWalker : typed.TypedValue.toFieldSetWalker.spec (GF := GF))
+    (h_toFieldSetWalker_finished : typed.toFieldSetWalker.finished.spec (GF := GF))
+    (h_toFieldSetWalker_toFieldSet : typed.toFieldSetWalker.toFieldSet.spec (GF := GF)) :
     typed.TypedValue.ToFieldSet.spec (GF := GF) := by
   sorry
 

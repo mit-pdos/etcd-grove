@@ -8,6 +8,9 @@ walker's own interface calls through a bundle): `fmt.Errorf`.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mapValue
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsMapUsing_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsMap_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsNull_ptr
 
 @[expose] public section
 
@@ -29,7 +32,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
-theorem typed.mapValue.wp_proof :
+theorem typed.mapValue.wp_proof
+    (h_valueUnstructured_AsMapUsing_ptr : value.valueUnstructured.AsMapUsing_ptr.spec (GF := GF))
+    (h_valueUnstructured_IsMap_ptr : value.valueUnstructured.IsMap_ptr.spec (GF := GF))
+    (h_valueUnstructured_IsNull_ptr : value.valueUnstructured.IsNull_ptr.spec (GF := GF)) :
     typed.mapValue.spec (GF := GF) := by
   sorry
 

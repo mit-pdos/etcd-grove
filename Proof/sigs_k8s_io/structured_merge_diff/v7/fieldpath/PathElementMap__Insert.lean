@@ -30,9 +30,9 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.PathElementMap.Insert.wp_proof
-    (wp_PathElement_Compare : fieldpath.PathElement.Compare.spec (GF := GF))
-    (wp_slices_BinarySearchFunc : EtcdGrove.slices.BinarySearchFunc.spec (GF := GF))
-    (wp_slices_Insert : EtcdGrove.slices.Insert.spec (GF := GF)) :
+    (h_PathElement_Compare : fieldpath.PathElement.Compare.spec (GF := GF))
+    (h_slices_BinarySearchFunc : EtcdGrove.slices.BinarySearchFunc.spec (GF := GF))
+    (h_slices_Insert : EtcdGrove.slices.Insert.spec (GF := GF)) :
     fieldpath.PathElementMap.Insert.spec (GF := GF) := by
   sorry
 

@@ -1,15 +1,11 @@
 /-
-`schema.StructField.Equals`:
-not proved yet (`sorry`): Draft of the `schema` package's per-function specs (notes/smd-plan.md,
-"The call DAG"); proved in the stage's Prove step, after the freeze.
-
-Lean-first (2026-11-19).
+`schema.StructField.Equals`: a member of the recursion cluster `schema.EqualsRec` (`EqualsRec.lean`); its proof is the
+projection of the cluster's (its body is `StructField__EqualsBody.lean`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.StructField__Equals
-public import Spec.reflect.DeepEqualNil
-public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.TypeRef__Equals
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.EqualsRec
 
 @[expose] public section
 
@@ -32,10 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : schema.Assumptions]
 
 theorem schema.StructField.Equals.wp_proof
-    (hDeepEqual : _root_.Perennial.EtcdGrove.reflect.DeepEqual.specNil (GF := GF) (hG := hG))
-    (hTypeRefEquals : schema.TypeRef.Equals.spec (GF := GF)) :
-    schema.StructField.Equals.spec (GF := GF) := by
-  sorry
+    (hrec : schema.EqualsRec.spec (GF := GF)) :
+    schema.StructField.Equals.spec (GF := GF) := hrec.2.2.2.1
 
 end proof
 

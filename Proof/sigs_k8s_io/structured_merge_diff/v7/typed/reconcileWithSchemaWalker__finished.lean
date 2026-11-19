@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.finished.wp_proof
-    (hPool_Put : sync.Pool.Put.spec (GF := GF)) :
+    (h_sync_Pool_Put : _root_.Perennial.sync.Pool.Put.spec (GF := GF)) :
     typed.reconcileWithSchemaWalker.finished.spec (GF := GF) := by
   sorry
 

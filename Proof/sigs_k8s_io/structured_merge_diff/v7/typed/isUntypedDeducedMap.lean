@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.isUntypedDeducedMap.wp_proof
-    (hisUntypedDeducedRef : typed.isUntypedDeducedRef.spec (GF := GF)) :
+    (h_isUntypedDeducedRef : typed.isUntypedDeducedRef.spec (GF := GF)) :
     typed.isUntypedDeducedMap.spec (GF := GF) := by
   sorry
 

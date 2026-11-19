@@ -35,9 +35,9 @@ abbrev typed.compareWalker.visitMapItems.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ cwOwn w sc S st c C ∗ isMapRep tp fs e rel ∗ isMapO lm ol ∗ isMapO rm or_ ∗
       ⌜S.find st.t.name = some (.map fs e rel) ∧ st.inLeaf = false ∧
         confO S st.t (ol.map UVal.map) ∧ confO S st.t (or_.map UVal.map) ∧
-        (C.union (cmpMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e st.path (kvsOrEmpty ol) (kvsOrEmpty or_))).removed.CardLt typedSizeMax ∧
-        (C.union (cmpMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e st.path (kvsOrEmpty ol) (kvsOrEmpty or_))).modified.CardLt typedSizeMax ∧
-        (C.union (cmpMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e st.path (kvsOrEmpty ol) (kvsOrEmpty or_))).added.CardLt typedSizeMax⌝ }}
+        (C.union (cmpMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e st.path (kvsOrEmpty ol) (kvsOrEmpty or_))).removed.CardLt (2 ^ 63 - 1) ∧
+        (C.union (cmpMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e st.path (kvsOrEmpty ol) (kvsOrEmpty or_))).modified.CardLt (2 ^ 63 - 1) ∧
+        (C.union (cmpMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e st.path (kvsOrEmpty ol) (kvsOrEmpty or_))).added.CardLt (2 ^ 63 - 1)⌝ }}
     (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker.ty @!! go!"visitMapItems")) (Val #tp)) (Val #lm)) (Val #rm))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗
       cwOwn w sc S st c (C.union (cmpMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e st.path
