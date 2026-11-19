@@ -1257,10 +1257,6 @@ theorem io.PipeWriter.wp_CloseWithError :
     io.PipeWriter.CloseWithError.spec (GF := GF) (hG := hG) :=
   io.PipeWriter.CloseWithError.wp_proof
 
-theorem snap.Message.wp_GetTo :
-    snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
-  snap.Message.GetTo.wp_proof
-
 theorem snap.Message.wp_CloseNotify :
     snap.Message.CloseNotify.spec (GF := GF) (hG := hG) :=
   snap.Message.CloseNotify.wp_proof
@@ -2479,6 +2475,10 @@ theorem snap.wp_NewMessage :
 theorem EtcdServer.wp_createMergedSnapshotMessage :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
   EtcdServer.createMergedSnapshotMessage.wp_proof EtcdServer.wp_Logger EtcdServer.wp_KV wp_newSnapshotReaderCloser proto.wp_CloneConfState backend.snapshot.wp_Size snap.wp_NewMessage
+
+theorem snap.Message.wp_GetTo :
+    snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
+  snap.Message.GetTo.wp_proof
 
 theorem EtcdServer.wp_sendMergedSnap :
     EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=

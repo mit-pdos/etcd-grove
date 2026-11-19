@@ -1,11 +1,11 @@
 /-
-`fields.Everything()` (`k8s.io/apimachinery/pkg/fields`, `selector.go:76`, names-only here): it
+`fields.Everything()` (`k8s.io/apimachinery/pkg/fields`, `selector.go:76`): it
 returns `andTerm{}` (a non-nil, length-0 value of the slice type `andTerm`); the spec says it
 returns a non-nil `Selector` whose `Empty()` is `true` (`andTerm.Empty`, value receiver,
 `selector.go:190`: `true` on `nil` or length 0, before its loop; pure, so the triple is
 persistent), for `storage.Everything` (`storageInit`, 2026-11-16, k8s 7f-5b H2). Evidence:
-`examples/premisefix/watcherctx/everything_test.go`. The trust boundary: an axiom,
-`Proof/k8s_io/apimachinery/pkg/fields/Everything.lean`. Lean-first (no Rocq counterpart).
+`examples/premisefix/watcherctx/everything_test.go`. Proved over its translated body (2026-11-19; until then a trust-boundary axiom,
+`Proof/k8s_io/apimachinery/pkg/fields/Everything.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 

@@ -160,6 +160,75 @@ noncomputable def Set.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
+/-- Everything returns a selector that matches all fields.
+
+    go: selector.go:76:6 -/
+noncomputable def Everything.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Selector.ty))) (App (Val (GoInstruction (GoZeroVal Selector.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert andTerm.ty Selector.ty))) (App (Val (GoInstruction (CompositeLiteral andTerm.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Selector.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad Selector.ty))) (Var "$res0")))))
+
+/-- go: selector.go:190:18 -/
+noncomputable def andTerm.Empty.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc andTerm.ty))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad andTerm.ty))) (Var "t"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange Selector.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve Selector.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad Selector.ty))) (App (Val (GoInstruction (IndexRef andTerm.ty))) (Pair (App (Val (GoInstruction (GoLoad andTerm.ty))) (Var "t")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Val #())))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad andTerm.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Selector.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals andTerm.ty))) (Pair (App (Val (GoInstruction (GoLoad andTerm.ty))) (Var "t")) (App (Val (GoInstruction (Convert go.untypedNil andTerm.ty))) (Val UntypedNil)))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.fields where
   pkgImportedPkgs := []
 
@@ -376,10 +445,15 @@ class andTerm.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq andTerm.ty andTerm.underlying
   method_set : go.MethodSetIs andTerm.ty [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType andTerm.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [Fields.ty] false [go.bool]))), (go!"Requirements", (some (go.signature.Signature [] false [Requirements.ty]))), (go!"RequiresExactMatch", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Transform", (some (go.signature.Signature [TransformFunc.ty] false [Selector.ty, go.error])))]
+  Empty_unfold : MethodUnfold andTerm.ty go!"Empty" andTerm.Empty.impl
+  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType andTerm.ty) go!"Empty" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve andTerm.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad andTerm.ty))) (Var "$r"))))
 
 attribute [instance] andTerm.TypeAssumptions.underlying
   andTerm.TypeAssumptions.method_set
   andTerm.TypeAssumptions.ptr_method_set
+  andTerm.TypeAssumptions.Empty_unfold
+  andTerm.TypeAssumptions.ptr_Empty_unfold
 
 structure InvalidEscapeSequence [GooseExts] where
   mk ::
@@ -462,6 +536,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   InvalidEscapeSequence_instance : InvalidEscapeSequence.TypeAssumptions
   UnescapedRune_instance : UnescapedRune.TypeAssumptions
   TransformFunc_instance : TransformFunc.TypeAssumptions
+  Everything_unfold : FuncUnfold Everything [] Everything.impl
 
 attribute [instance] Assumptions.Fields_instance
   Assumptions.Set_instance
@@ -475,6 +550,7 @@ attribute [instance] Assumptions.Fields_instance
   Assumptions.InvalidEscapeSequence_instance
   Assumptions.UnescapedRune_instance
   Assumptions.TransformFunc_instance
+  Assumptions.Everything_unfold
 
 end k8s_io.apimachinery.pkg.fields
 

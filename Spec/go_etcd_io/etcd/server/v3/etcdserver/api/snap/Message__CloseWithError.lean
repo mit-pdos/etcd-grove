@@ -1,11 +1,11 @@
 /-
-`m.CloseWithError(err)` (`etcdserver/api/snap/message.go`; names only; rafthttp stage 7b, D42,
+`m.CloseWithError(err)` (`etcdserver/api/snap/message.go`; rafthttp stage 7b, D42,
 2026-10-24, **D22's interface**: settled by the user for the D22 owner, 2026-10-25, D42): closes
 the message's reader and sends `err == nil` on its `closeC` (`NewMessage`'s channel, of one slot,
 whose receives carry nothing: `isChanBag` at `True`; a second send would block, which a partial
 correctness spec allows). The snapshot sender calls it once, after its post, from `send`'s
 `defer`. True of every `msgIs` because only `NewMessage` makes it, of a reader whose `Close`
-returns (`io.rcCloseOk`, its premise; sweep repairs 1, S1, 2026-11-08). The trust boundary (an axiom once the sender's proof uses it, stage 7d). Lean-first (no
+returns (`io.rcCloseOk`, its premise; sweep repairs 1, S1, 2026-11-08). A trust-boundary axiom from stage 7d until 2026-11-19, now proved over the translated body. Lean-first (no
 Rocq counterpart).
 -/
 module
