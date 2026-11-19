@@ -244,20 +244,85 @@ theorem grantG_refuted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
   · iframe #
   exact absurd Hg (not_akGrantedL_lease who σ rq k L hk hL hwho (fun r hm h => hrq r _ hm h))
 
+/-- **`op`'s grant checks the lease `L`**: at every token and state, `op`'s grant (`opGrantT`) is the
+write grant of a request whose lease check is of `L` (`refused_update`'s premise). -/
+def opChecksLease (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (op : KVOp) (L : w64) : Prop :=
+  ∀ tok L₀ σ, v3rpc.opGrantT (GF := GF) s E ρ tok op L₀ σ ⊢
+    ∃ rq : apply.IRRModel, ⌜∀ r (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+        (hm : apply.HeaderModel), leaseGrantedM (setupSt r) I (apply.withHeader rq hm) →
+          leaseOk (setupSt r) ⟨hm.username, hm.authRevision⟩ I L⌝ ∗
+      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) rq L₀ σ
+
+/-- A leased put's grant checks its lease. -/
+theorem opChecksLease_put (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (o : OpFull) :
+    opChecksLease s E ρ (.put o) o.leaseID := by
+  intro tok L₀ σ
+  iintro H
+  iexists irrPut o
+  isplitl []
+  · ipureintro; exact fun r I hm h => leaseGranted_put r I o hm h
+  iunfold v3rpc.opGrantT at H
+  iexact H
+
+/-- **A transaction's lease check covers its put**: the wire transaction `tw` of
+`Txn().Then(OpPut(k, "v", WithLease(L)))` (`tw.toModel = txnWireOf (leaseTxn k L)`) has a put
+with lease `L` (`txnPutsW`), whose lease check is of `L`. -/
+theorem leaseGranted_txn (r : Nat) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+    (tw : txn.TxnModelW) (k : GoString) (L : w64) (htw : tw.toModel = txnWireOf (leaseTxn k L))
+    (hm : apply.HeaderModel) (h : leaseGrantedM (setupSt r) I (apply.withHeader (irrTxn tw) hm)) :
+    leaseOk (setupSt r) ⟨hm.username, hm.authRevision⟩ I L := by
+  unfold leaseGrantedM at h
+  rw [dispatchKind_withHeader] at h
+  have hk : apply.dispatchKind (irrTxn tw) = .txn := by
+    simp [apply.dispatchKind, irrTxn, apply.irrEmpty]
+  rw [hk] at h
+  obtain ⟨cmps, th, el⟩ := tw
+  simp only [txn.TxnModelW.toModel, txnWireOf, leaseTxn, List.map_cons, List.map_nil, opWire,
+    TxnModel.mk.injEq] at htw
+  obtain ⟨-, hth, -⟩ := htw
+  cases th with
+  | nil => simp [txn.TxnOpW.toOps] at hth
+  | cons w ws =>
+    simp only [txn.TxnOpW.toOps, List.cons.injEq] at hth
+    obtain ⟨hw, -⟩ := hth
+    cases w with
+    | get o => simp [txn.TxnOpW.toOp] at hw
+    | delete o => simp [txn.TxnOpW.toOp] at hw
+    | txn cs ts es => simp [txn.TxnOpW.toOp] at hw
+    | put o =>
+      have hL : o.leaseID = L := by
+        simp only [txn.TxnOpW.toOp, txn.putTxnOp] at hw
+        split at hw
+        · simp at hw
+        split at hw
+        · simp at hw
+        simp only [TxnOp.put.injEq] at hw
+        exact hw.2.2
+      rw [← hL]
+      exact h _ rfl o (by simp [apply.txnPutsW, apply.opsPutsW, apply.opPutsW])
+
+/-- u's transaction's grant checks its put's lease (`leaseGranted_txn`). -/
+theorem opChecksLease_txn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (k : GoString) (L : w64) :
+    opChecksLease s E ρ (.txn (txnWireOf (leaseTxn k L))) L := by
+  intro tok L₀ σ
+  iintro H
+  iunfold v3rpc.opGrantT at H
+  icases H with ⟨%tw, %htw, H⟩
+  iexists irrTxn tw
+  isplitl []
+  · ipureintro; exact fun r I hm h => leaseGranted_txn r I tw k L htw hm h
+  iexact H
+
 /-- **A client update of `who`'s, refuted at every state the cell holds** (`cell_refusedAu`): `op`'s
-grant is `rq`'s, which checks the lease `L`, held on `k` at those states. -/
+grant checks the lease `L` (`opChecksLease`: a leased put's, `opChecksLease_put`; u's transaction's,
+`opChecksLease_txn`), held on `k` at those states. -/
 theorem refused_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ : ReqNames)
-    (Lset : List EntryModel) (n : Nat) (who : GoString) (γc : CellNames) (op : KVOp) (rq : apply.IRRModel)
+    (Lset : List EntryModel) (n : Nat) (who : GoString) (γc : CellNames) (op : KVOp)
     (k : GoString) (L : w64) (pre : List w64) (ps0 : List Nat) (Q : KVState → IProp GF)
-    (hγa : E.authMode = .on γa)
-    (hop : ∀ tok L₀ σ, v3rpc.opGrantT (GF := GF) s E ρ tok op L₀ σ =
-      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) rq L₀ σ)
+    (hγa : E.authMode = .on γa) (hop : opChecksLease s E ρ op L)
     (hcell : ∀ σ ids ps gs d, CellOk σ ids ps gs d → pre <+: ids → ps0.length ≤ ps.length →
       leaseOf k σ.kvs = some L ∧ L ≠ W64 0)
-    (hwho : who = go!"anon" ∨ who = go!"bad" ∨ who = go!"v" ∨ (who = go!"u" ∧ ¬ inRangeK k))
-    (hrq : ∀ r (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (hm : apply.HeaderModel),
-      leaseGrantedM (setupSt r) I (apply.withHeader rq hm) →
-        leaseOk (setupSt r) ⟨hm.username, hm.authRevision⟩ I L) :
+    (hwho : who = go!"anon" ∨ who = go!"bad" ∨ who = go!"v" ∨ (who = go!"u" ∧ ¬ inRangeK k)) :
     cellInv ρ.kv γc ∗ monoListLbOwn γc.ids pre ∗ monoListLbOwn γc.ps ps0 ∗
       akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ⊢
       □ ∀ (conn : Loc) (ctx : GoInterface), attemptTokOk conn (akTokP γa who) -∗
@@ -280,7 +345,7 @@ theorem refused_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
     obtain ⟨hk, hL⟩ := hcell σ ids ps gs d HS Hpre Hps
     iunfold clientGrant at HG
     icases HG with ⟨%md, %Hmd, HG⟩
-    rw [hop]
+    icases hop _ _ _ $$ HG with ⟨%rq, %hrq, HG⟩
     ihave #Hs := akTokSeen_attempt γa who conn md
       (by unfold clientAttemptMd at Hmd; rw [hout] at Hmd; exact Hmd) $$ Htk
     iapply (grantG_refuted s E γa ρ Lset n who _ rq σ k L hγa hk hL hwho hrq)

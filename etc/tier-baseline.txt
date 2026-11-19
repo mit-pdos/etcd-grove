@@ -26,6 +26,7 @@ Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.barrier Proof.go_etcd_i
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainServe  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.go_etcd_io.etcd.client.v3.ServeFromStart  # proof->linking
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOnLinked  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.absent Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier Proof.go_etcd_io.etcd.client.v3.AuthnServedOn  # proof->linking
