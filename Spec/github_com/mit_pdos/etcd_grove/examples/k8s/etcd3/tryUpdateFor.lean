@@ -5,7 +5,7 @@
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Callbacks
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ClosPin
 
 @[expose] public section
 
@@ -31,7 +31,7 @@ abbrev tryUpdateFor.spec : Prop :=
   ∀ (inp : Input), inFits inp →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.tryUpdateFor)) (Val #inp))
-  {{ (uf : GoFunc), RET #uf; ⌜uf ≠ func.nil⌝ ∗ tryUpdateD inp uf }}
+  {{ (uf : GoFunc), RET #uf; ⌜uf ≠ func.nil⌝ ∗ tryUpdateD inp uf ∗ tryUpdatePin inp uf }}
 
 end spec
 

@@ -76,7 +76,7 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_apply context.wp_Background
     (try wp_auto)
-    wp_apply wp_validateFor as %vf ⟨-, #Hvf⟩
+    wp_apply wp_validateFor as %vf ⟨-, #Hvf, -⟩
     iunfold validateD at Hvf
     (try wp_auto)
     cases hr : rejects x.HasReject' x.Reject' it.obj'.Node'

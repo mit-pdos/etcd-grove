@@ -34,6 +34,13 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   isplitr
   · ipureintro; simp [func.nil]
+  isplitl []
+  rotate_left
+  · iunfold validatePin
+    iexists rejects_ptr, reject_ptr
+    isplitr
+    · ipureintro; simp only [exprVals, List.append_assoc, List.cons_append, List.nil_append]; exact ⟨rfl, rfl⟩
+    iframe #
   iunfold validateD
   imodintro
   iintro %ctx %p %v %Ψ Hp HΨ
