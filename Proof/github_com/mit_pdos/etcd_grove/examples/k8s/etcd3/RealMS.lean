@@ -11,6 +11,7 @@ whose decoded view (`decR L`) has its own `reqRep`/`respRep` and `Model.Step`'s 
 - `rexecL_notOther`: the model's own answer is never `RErr.other` on an input with a key `PrepareKey` accepts
   (a list's: its key and consistency accepted, its continue token defined by scope);
 - `itemsFitL_step`: `Step` keeps the items fitting;
+- `okOut x y`: `failureFree`'s test of an operation;
 - `stepIn x r`, `realMS L init`.
 -/
 module
@@ -144,6 +145,11 @@ theorem itemsFitL_step (x : Input) (m : RM) (out : RResp) (hm : itemsFitL m) (hx
     · exact itemsFitL_exec x m hm hx
     · exact hm
   · exact hm
+
+/-- **`failureFree`'s test of one operation**: a watch that ran did not fail its `Watch` call, a unary output is
+not `EOther`. -/
+def okOut (x : Input) (y : Output) : Bool :=
+  if x.Kind' = W64 5 then x.Skip' || !y.WFailed' else decide (y.Err' ≠ W64 4)
 
 end pure
 
