@@ -40789,6 +40789,11 @@ left are `etc/tier-baseline.txt`, which only shrinks.
 
 ## Shared Go runtime under a neutral module path (2026-11-19 · phase 5 item 1 of `notes/dsverify-net-port-plan.md` · branch `worktree-agent-acfe43339741d934f`)
 
+*Superseded in part (2026-11-19, "Trusted generated code: the generator is the trusted artifact" and
+"`models/`: the home of the trusted models", below): the module is now `models.lab` in `models/`
+(Lean `models_lab`), the generators live in it (`models/protobuf/`, `models/json/`), and pbgen's input
+names root types only.*
+
 - **Decision.** The Go code that the network library models share between etcd's proofs and the
   dsverify kits (now the codecs' helpers `pbcodec`, `jsoncodec`; later the models' added files) is
   one Go module, `netmodels.lab`, in `netmodels/` at the repository root, with its own `go.mod`.
@@ -40810,3 +40815,47 @@ left are `etc/tier-baseline.txt`, which only shrinks.
   dependency's go line above the importer's makes Go rewrite the importer's module graph.
 - **The generators** (`etc/pbgen.py`, `etc/jsongen.py`) live in `etc/` (they are tools of the
   repository, exported with the part) and name no kit: a [protobuf] or [json] table in any toml file.
+
+## Trusted generated code: the generator is the trusted artifact (2026-11-19 · the user's decision · branch `pbgen-trust`)
+
+- **The user (2026-11-19):** "it's pbgen.py that's the trusted protobuf implementation (though it
+  only supports some types)... I don't want to think of mechanically created output as individually
+  trusted in this case; I'd rather make sure the generator is high quality and can be trusted."
+- **Why the generator, not its outputs.** Nothing in Lean fixes protobuf's wire format: a program's
+  proof proves its generated codec meets whatever `PbCodec` instance it chooses, and the program's
+  final statement does not mention it. What is trusted is that running the program with
+  `proto.Marshal`/`Unmarshal` replaced by the generated code behaves as with real protobuf-go
+  v1.36.12, for every type the generator accepts: a claim about the generator, argued once, not per
+  output.
+- **What that requires of the generator** (`models/protobuf/`): (1) no trusted hand-written input:
+  the `[protobuf]` table names only the root message types; every reachable message's and enum's
+  fields come from the descriptors protoc-gen-go registered (the ones protobuf-go runs on) and the
+  generated Go structs, dumped by `models.lab/pbdesc`; (2) a hard refusal of everything outside the
+  subset, naming message and field, before any code is emitted; (3) a small trusted core,
+  `pbgen_core.py` (the input check, the refusals, the emitter, and in its doc the encoding emitted
+  per field kind with citations to the encoding spec's sections and to protobuf-go's source),
+  separate from the untrusted command line, schema dump runner and test generation; (4) evidence
+  about the generator, not only per output: a differential test over random schemas of the subset,
+  compiled by the real protoc-gen-go (`models/internal/pbgenrand`); (5) an independent review
+  (`notes/axiom-review/pbgen.md`); (6) the gate: every codec in the tree is exactly the generator's
+  output for its derived input.
+- **Where the claim stops** (pbgen_core's doc): unknown fields are dropped, not kept for re-marshal
+  (the emitted code cannot reach the struct's unexported `unknownFields`); error values are not
+  modeled (error-or-not is), nor what comes with an error (the message after a failed Unmarshal,
+  the partial bytes of a failed Marshal); slice capacities and aliasing differ (the review,
+  `notes/axiom-review/pbgen.md`); only `Marshal`/`Unmarshal` with default options.
+- **The same for the other generated models** when they are reworked (`jsongen.py` next: the plan
+  note, phase 5.1, says what carries over), and for the patches of real packages (Q1): the
+  program that makes the model is what is reviewed and tested.
+
+## `models/`: the home of the trusted models (2026-11-19 · the user's decision · branch `pbgen-trust`)
+
+- **Decision (the user's naming).** `netmodels/` becomes `models/`, the Go module `models.lab`
+  (neutral: no project's name), goose project `models` (lean root `models.lab=Net`): the home of all
+  our trusted models in general, an executable stand-in for a real library, verified where it is
+  code, trusted only in its claim to behave like the library. Each model sits with its evidence: its
+  generator beside the helpers it generates for (`models/protobuf/pbgen.py`, `models/json/jsongen.py`),
+  its differential tests in `models/internal/`; `models/README.md` lists, per model, what is verified,
+  what is trusted and its evidence, and points to the trusted models kept where Perennial's layout
+  puts them (`TrustedCode/`, `GooseLang/Ext/*/Impl.lean`). The patches of real packages (gRPC,
+  net/http, net/rpc; Q1 of the plan) will live under `models/` too, not `etc/model-patches/`.

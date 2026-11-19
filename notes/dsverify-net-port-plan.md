@@ -58,7 +58,8 @@ as a patch of the real grpc-go / Go `net/http` source, keeping every type and op
 translated code and its dependencies, `otelgrpc`, grpc-gateway, the prometheus interceptors,
 typecheck against the real API). dsverify-lab substitutes whole hand-written packages (a GOROOT
 symlink farm, `go.mod` replaces) with only the API its kits reach, which cannot serve etcd. So:
-`etc/model-patches/<project>/*.patch`, applied by `etc/goose.py` (an overlay for the standard
+`etc/model-patches/<project>/*.patch` (now: under `models/`, each patch beside its evidence, the user's
+decision of 2026-11-19, `notes/decisions.md`, "`models/`: the home of the trusted models"), applied by `etc/goose.py` (an overlay for the standard
 library), for grpc, net/http, net/rpc, encoding/json and gob; dsverify's model code becomes the
 content of the patches' added files (framing, transport, dispatch), and its differential tests stay.
 
@@ -206,25 +207,25 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
    phase 7). The same for JSON (`jsongen.py`, `jsoncodec`, E3). gob: names-only plus the generated
    codec, net/rpc's only user.
 
-   **Done (2026-11-19).** *Where.* The shared Go code is the Go module `netmodels.lab` in
-   `netmodels/` (its own `go.mod`; `toolchain go1.27.3`, `etc/goose.py`'s `GO_TOOLCHAIN`, with the go
+   **Done (2026-11-19).** *Where.* The shared Go code is the Go module `models.lab` in
+   `models/` (its own `go.mod`; `toolchain go1.27.3`, `etc/goose.py`'s `GO_TOOLCHAIN`, with the go
    line at 1.27 so that the examples' module, on go 1.27, can import it: a dependency's go line above
-   the main module's makes Go rewrite the importer's module graph): `netmodels.lab/pbcodec` and
-   `netmodels.lab/jsoncodec`, dsverify's `harness/pbcodec`, `harness/jsoncodec` with their comments
+   the main module's makes Go rewrite the importer's module graph): `models.lab/pbcodec` and
+   `models.lab/jsoncodec`, dsverify's `harness/pbcodec`, `harness/jsoncodec` with their comments
    made neutral (no kit, no harness path) and pbcodec's protowire tests no longer behind a build tag
    (the module requires protobuf-go v1.36.12 for its tests only). The path names neither etcd-grove
    nor dsverify-lab: the part is exported to the lab (Q3), whose runs must not see this repository,
    and a kit's generated codec imports it by that path in both places (`notes/decisions.md`, "Shared
-   Go runtime under a neutral module path"). Translated by goose project `netmodels` into the part
-   `Net/` (`-lean-root netmodels.lab=Net`: `Net/Code/netmodels_lab/{pbcodec,jsoncodec}.lean`, with
+   Go runtime under a neutral module path"). Translated by goose project `models` into the part
+   `Net/` (`-lean-root models.lab=Net`: `Net/Code/models_lab/{pbcodec,jsoncodec}.lean`, with
    their bodies, nothing trusted); their `Init.lean` from `etc/gen-init.py` (`NET_PKGS`).
-   *Generators.* `etc/pbgen.py` and `etc/jsongen.py`, from `harness/kitgen/`: generic (a [protobuf]
+   *Generators.* `etc/pbgen.py` and `etc/jsongen.py` (now `models/protobuf/pbgen.py`, `models/json/jsongen.py`), from `harness/kitgen/`: generic (a [protobuf]
    or [json] table in any toml file, `SECTION.toml OUTDIR --pkg NAME`), the registration with the
    protobuf/encoding-json model optional (`--register`: those models are later items), `--check`;
    jsongen gained its command line (kitgen called it as a module). What they generate is unchanged
    but the helpers' import path and the messages. Use in each script's docstring.
-   *What is proved* (`Net/Proof/netmodels_lab/`, `Results.lean`; TCB collection
-   `etc/tcb-collections/netmodels.txt`, no axiom of ours): `jsoncodec`'s `IsSpace`, `AppendRaw`,
+   *What is proved* (`Net/Proof/models_lab/`, `Results.lean`; TCB collection
+   `etc/tcb-collections/models.txt`, no axiom of ours): `jsoncodec`'s `IsSpace`, `AppendRaw`,
    `AppendBool` (dsverify's `wp_IsSpace`, `wp_AppendRaw`, `wp_AppendBool`, now `X.spec` +
    `X.wp_proof`), both packages' `wp_initialize'` (generated), and, new, both `(*Error).Error`
    (`Error.Error.spec`, of an error kept for good, `↦□`) with `Error_is_error` and `Error_errAny` (over the `Error()` spec, a premise, as vocabulary files import specs only; linked in `Results.lean`) (a kept `*pbcodec.Error` or
@@ -240,28 +241,28 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
    harness, and are not here yet: a kit port proves them (or they move here when the first port
    needs them).
    *Statement changes* (each a rename; the bodies are dsverify's): `google_golang_org.protobuf.proto.
-   {PbCodec, marshalOk, unmarshalOk}` → `netmodels_lab.pbcodec.*` (the protobuf model's namespace
+   {PbCodec, marshalOk, unmarshalOk}` → `models_lab.pbcodec.*` (the protobuf model's namespace
    keeps what is about the model); `encoding.json.{JsonCodec, jsonValid, marshalOk, unmarshalOk,
-   scanOk, scanFn}` → `netmodels_lab.jsoncodec.*`; `encoding.json.isSpaceB` merged into
+   scanOk, scanFn}` → `models_lab.jsoncodec.*`; `encoding.json.isSpaceB` merged into
    `jsoncodec.spaceB` (the same definition; `jsonValid` uses it); `scanFn` names
-   `netmodels.lab/jsoncodec.Scan` (was `dsverify.lab/harness/jsoncodec.Scan`); `net.rpc.errAny` →
-   `netmodels_lab.errAny` (net/rpc's port will use it); `dsverify_lab.harness.jsoncodec.wp_X` →
-   `netmodels_lab.jsoncodec.X.wp_proof : X.spec` (the same triples); jsoncodec's `wp_initialize'` is
+   `models.lab/jsoncodec.Scan` (was `dsverify.lab/harness/jsoncodec.Scan`); `net.rpc.errAny` →
+   `models_lab.errAny` (net/rpc's port will use it); `dsverify_lab.harness.jsoncodec.wp_X` →
+   `models_lab.jsoncodec.X.wp_proof : X.spec` (the same triples); jsoncodec's `wp_initialize'` is
    gen-init's (Perennial's form, at `HeapGS HasLC.hasLC`, where dsverify's was at any `hlc`).
-   *Evidence* (`go vet`, `go test` in `netmodels/` and `examples/netmodels/`): pbcodec against
+   *Evidence* (`go vet`, `go test` in `models/` and `examples/models/`): pbcodec against
    protowire and `unicode/utf8`, jsoncodec against `encoding/json` (dsverify's tests); the
-   generated protobuf codec of `netmodels/internal/pbdifftest` (dsverify's grpcdifftest messages
+   generated protobuf codec of `models/internal/pbdifftest` (dsverify's grpcdifftest messages
    `pb` and `xpb`: every supported field kind, packed repeated scalars, negative enums, two-byte
    tags, recursion) byte-exact against protobuf-go v1.36.12's `proto.Marshal` and its `Unmarshal`
    (value and error-or-not, on encodings and their mutations); the generated JSON codec of
-   `netmodels/internal/jsondifftest` (dsverify's difftest types plus a named basic type and an
+   `models/internal/jsondifftest` (dsverify's difftest types plus a named basic type and an
    `any` field) against `encoding/json`, byte for byte, and its scanner on validity and value ends;
    and the generated protobuf codec of 16 of **etcd's message types**
-   (`examples/netmodels/pbetcd`: `etcdserverpb` Range/Put/DeleteRange/LeaseGrant requests and
+   (`examples/models/pbetcd`: `etcdserverpb` Range/Put/DeleteRange/LeaseGrant requests and
    responses, `LeaseTimeToLiveResponse`, `WatchCreateRequest` (a repeated enum), `WatchResponse`,
    `Member`, `MemberListResponse`, `ResponseHeader`; `mvccpb.KeyValue`, `Event`) byte-exact against
    protobuf-go v1.36.12 (the version `examples/go.mod` pins) at the examples' etcd pin.
-   *What the generator cannot handle in etcd's `.proto` files* (`etc/pbgen.py --from-pb`, E2 (b)
+   *What the generator cannot handle in etcd's `.proto` files* (`--from-pb` then, the core's refusals now; E2 (b)
    needs them): **all of raftpb** (proto2: every scalar and enum field has explicit presence, a
    `*T` in Go, written when non-nil even if zero; proto2 enums are closed, an unknown value goes to
    the unknown fields instead of the field; proto2 `bytes` fields keep presence (`Data`, `Context`);
@@ -272,6 +273,90 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
    `Txn`). Maps, floats, groups and extensions: none in etcd's messages. (`--from-pb` drafts a oneof's
    holder as an empty message; the refusal lines say why.) Extending pbgen to proto2 presence,
    closed enums, unpacked repeated fields and oneofs is E2 (b)'s work, with the same tests.
+
+   **The generator as trusted code (2026-11-19, branch `pbgen-trust`; the user's decision,
+   `notes/decisions.md`, "Trusted generated code: the generator is the trusted artifact").** What is
+   trusted is the generator, not each codec: running a program with `proto.Marshal`/`Unmarshal`
+   replaced by the code pbgen emits behaves as with protobuf-go v1.36.12, for every schema pbgen
+   accepts (nothing in Lean fixes the wire format: a proof proves its codec meets the `PbCodec` it
+   chooses, and the closed statement does not mention it). Renamed with the rest of `netmodels/` the
+   same day (`models/`, Go module `models.lab`, Lean `models_lab`; the user's naming, `models/README.md`).
+   - *Input.* `[protobuf] imports = {alias = "go/path"}`, `roots = ["alias.GoType", ...]`: the root
+     message types only. pbgen writes a throwaway `main` in the target's Go module that imports the
+     roots' packages and `models.lab/pbdesc`, runs it (`go run`), and reads its JSON: from the
+     descriptors protoc-gen-go registered (`protoregistry`, the ones protobuf-go runs on) the roots'
+     closure of messages and enums, each field's kind, cardinality, packedness, presence, oneof, map,
+     options; from the Go structs each field's Go name and type (by its `protobuf:"..,N,.."` tag).
+     No field list is written by hand (`--from-pb` and the field tables are gone). The per-type code
+     derived for the two existing inputs is identical to what the hand-written tables gave.
+   - *The subset and the refusals* (`models/protobuf/pbgen_core.py`, `Schema`; exit 2, every reason,
+     naming message and field, nothing written): accepted are proto3 messages with implicit-presence
+     scalars (int32 int64 uint32 uint64 sint32 sint64 fixed32 fixed64 sfixed32 sfixed64 bool string
+     bytes), open proto3 enums, singular and repeated messages, packed repeated scalars and enums,
+     repeated strings and bytes, all in protoc-gen-go's open struct API. Refused: proto2 and editions
+     files; proto3 `optional`; oneofs; maps and map entries; groups; float, double; `[packed=false]`;
+     required; defaults; weak and lazy fields; extension ranges, MessageSet; closed enums or enums of
+     non-proto3 files; strings without UTF-8 enforcement; a message or enum without a registered Go
+     type; a field without an exported Go field of the expected type (the opaque API); exported Go
+     fields that are no field's (a oneof holder); colliding aliases or generated names.
+   - *The trusted core* (`pbgen_core.py`: 601 lines, 526 non-blank; 118 the doc: the claim, the subset,
+     and per field kind the encoding emitted, with the encoding spec's section names and protobuf-go
+     v1.36.12's file:line for each choice in the spec's latitude: field order, zero-value omission,
+     nil elements, packed acceptance, UTF-8 checks, the recursion limit, unknown fields, the
+     error-or-not cases; ~80 the kind tables and field model; ~175 the schema check and refusals;
+     ~225 the emitter). Untrusted: the command line, input and dump runner (`pbgen.py`, 203 lines),
+     the test generator (`pbgen_testgen.py`, 945 lines, mostly the Go test text). Trusted with the
+     core: `models/pbdesc` (Go, 312 lines, ~150 of code), which states the facts the core decides on,
+     each read directly off `protoreflect` or `reflect` (it decides nothing; a wrong fact would also
+     show in the random-schema test and in the generated shape test). The core's documented deviations: unknown fields checked and dropped (protobuf-go keeps
+     them and re-marshals them: a program forwarding a message decoded from a peer with a newer
+     schema differs; between peers of one schema none arise), error values not modeled, what comes
+     with an error (the review's), slice capacities and aliasing (the review's), only
+     Marshal/Unmarshal with default options.
+   - *Evidence about the generator.* `models/internal/pbgenrand` (`go test`): random proto3 schemas
+     (1-4 messages per file, nested messages and enums, one or two files per schema, cross-file and
+     recursive references, empty messages, every scalar kind, enums with negative and extreme values,
+     repeated fields, field numbers 1, 15/16, 2047/2048, 18999/20000, 2^18, 536870911 and random
+     ones, field names protoc-gen-go must rename (`reset`, `string`, `descriptor`, ...), Go package
+     names that collide with each other or with the codec's identifiers), built as
+     `FileDescriptorProto`s and compiled by the real protoc-gen-go v1.36.12 (built from the module
+     cache and run as a plugin: no protoc here), pbgen run on them (its dump included), and the
+     codec checked against protobuf-go by the generated regression test (Marshal byte for byte and
+     nil-or-not; Unmarshal of real encodings, mutations, every field number with every wire type,
+     error-or-not and value; recursion limits; panics). Seedable (`PBGEN_RAND_SEED`), sized
+     (`PBGEN_RAND_SCHEMAS`, `PBGEN_TEST_SCALE`): the gates run 24 schemas (~20 s); by hand, seed 7,
+     200 schemas, scale 1: 782 message types, 3207 fields, 2,320,869 encodings equal and 27,615
+     Marshal errors agreed, 325,642 mutated decodes equal and 354,358 errors agreed, all passing
+     (212 s). `TestRefusals`: one schema per unsupported construct (proto2 with required, default,
+     group, closed enum, extension range; editions; proto3 `optional`; oneof; map; float, double;
+     unpacked; lazy; a proto3 message reaching a proto2 one; the opaque API), each refused with
+     message and field named. The per-type tests of `models/internal/pbdifftest` and
+     `examples/models/pbetcd` stay as regression tests.
+   - *The gate* (`etc/gates.sh`, section `models`): `pbgen.py --check` on every input (the derived
+     dump included), and every `protobuf.toml` of the tree (but `old/`) must be one the gate checks.
+   - *Review* (`notes/axiom-review/pbgen.md`): an independent reviewer given only the core, the
+     encoding facts and protobuf-go's source, asked for an accepted schema and value on which the
+     emitted code and protobuf-go differ. Found none on decoded values, encoded bytes or
+     error-or-not; three observable differences, now documented deviations of the core: the
+     message's contents after a failed Unmarshal (a packed record cut short keeps the values before
+     the bad one), the partial bytes protobuf-go's Marshal returns with its error (the codec: nil),
+     slice capacities and aliasing (protobuf-go pre-sizes). Suspected and closed: a dump against
+     other `.pb.go` files than the program links (pbgen runs it in the codec's own module).
+   - *jsongen* (`models/json/jsongen.py`, not reworked here). What carries over: (1) inputs from the
+     real types: its `[json]` table lists Go field names, JSON names, kinds and `omitempty` by hand;
+     they can be derived by reflection on the real Go types (a `pbdesc`-like dump of `reflect`'s
+     struct fields and `json` tags; encoding/json's own rules for tag parsing, embedding and
+     exported fields must then be reproduced or refused), about a day; (2) hard refusals (embedded
+     structs, `string` tag option, maps with non-string keys, interfaces other than `any`, custom
+     `MarshalJSON`/`UnmarshalJSON`/`TextMarshaler` methods, floats): some exist, they need a list
+     naming type and field, half a day; (3) a trusted core split from its test generation (963 lines
+     today, mixed) with each emitted case cited to encoding/json's source (no wire spec to cite;
+     RFC 8259 for the syntax, `encode.go`/`decode.go` for Go's choices: HTML escaping, invalid UTF-8
+     replaced, field matching case-insensitively, duplicate keys last-wins), a day; (4) a random-type
+     differential test (random Go struct types written as source, compiled, round-tripped and
+     compared with encoding/json, including mutations of real encodings), about two days, simpler
+     than pbgen's since no plugin is needed; (5) the gate and (6) a review as here. In all about a
+     week; the scanner `jsoncodec.Scan` is already proved in part and tested against encoding/json.
 2. **net/rpc** (kits only): dsverify's model as a patch of Go's `net/rpc` (overlay), its proofs
    (5.3k lines) ported over phase 4's specs; `rpcgen.py` with it.
 3. **net/http**: from dsverify's server and `ReadResponse` (net/rpc's CONNECT, craq), then option B

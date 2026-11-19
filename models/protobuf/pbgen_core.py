@@ -8,14 +8,16 @@ with `proto.Marshal`/`proto.Unmarshal` replaced by the code this module emits be
 real google.golang.org/protobuf v1.36.12, for every schema this module accepts. Everything else
 of pbgen (the command line, reading the toml, running the dump, the tests: `pbgen.py`,
 `pbgen_testgen.py`) is untrusted: a bug there makes a test weaker or a run fail, never wrong code
-accepted.
+accepted. `models/pbdesc` (the Go program that produces the dump this module reads) is trusted
+with it: a wrong fact there would be wrong code accepted.
 
 THE INPUT is a schema dump (`models.lab/pbdesc`, `models/pbdesc/pbdesc.go`): the facts of
 the registered descriptors (`protoregistry`) that protoc-gen-go embeds in the `.pb.go` files of
 the root message types and of every message and enum they reach, which are the descriptors the
 real proto.Marshal and Unmarshal run on, and the generated Go structs' exported fields with their
 `protobuf:"..."` tags (field number to Go field name and Go type). No field list is written by
-hand. `Schema` checks the dump and refuses (PbRefused, every reason, naming the message and the
+hand. The dump is made in the Go module the codec is generated into (pbgen.py runs it there), so
+it reads the very `.pb.go` files the program links. `Schema` checks the dump and refuses (PbRefused, every reason, naming the message and the
 field) everything outside the subset; on a refusal no code is emitted.
 
 THE SUBSET (accepted): messages of proto3 files (`syntax = "proto3"`), each mapped by protoc-gen-go
@@ -108,6 +110,17 @@ protowire function of the same name, tested in `models/pbcodec/protowire_test.go
     schema does not know (a peer with a newer schema, or a corrupted input) behaves differently;
     between peers of the same schema none arise.
   - error values: only error-or-not is the real one's (*pbcodec.Error, not protobuf-go's types).
+  - what comes with an error (found by the review, notes/axiom-review/pbgen.md): Marshal returns
+    nil with its error where protobuf-go returns the bytes written so far (proto/encode.go:111);
+    after a failed Unmarshal the message's contents are not the real one's (e.g. a packed record
+    cut short: the emitted code has appended the values before the bad one, protobuf-go leaves
+    the field's length as it was, codec_gen.go:741-777). A program must not use either; protobuf-go
+    promises nothing of them.
+  - slice capacities and aliasing (the review): the emitted code builds slices by `append` and
+    exact-length copies, protobuf-go pre-sizes them (Marshal's buffer by a size pass,
+    proto/encode.go:190; packed slices by a count of their varints; a singular bytes field by
+    `append([]byte(nil), v...)`), so cap() and what two appends to a decoded slice share differ;
+    lengths and contents do not.
   - only proto.Marshal and proto.Unmarshal with default options, on *T of the derived types;
     any other value panics ("not modelled"). proto.Size, Equal, Clone, Merge, MarshalOptions
     (Deterministic is moot: no maps), protojson, prototext are not covered.
