@@ -11,7 +11,10 @@ Lean-first (no Rocq counterpart).
   proof, with that fact added: a capacity `0` slice gets a non-null pre-allocated address), for
   `toEventReference`'s `make([]eventReference, 0, len(events))`, which `cmp.Diff`'s spec compares;
 - `annotObj`: `storage.HasInitialEventsEndBookmarkAnnotation` of a read-only driver's `*Obj`: its
-  `Annotated` field (`annotL`), from the generic spec and `Obj.GetAnnotations`'.
+  `Annotated` field (`annotL`), from the generic spec and `Obj.GetAnnotations`';
+- `evsRO_split`: a read-only event slice split at an index (`events[:i]`, `events[i:]`,
+  `splitInitialEvents`);
+- `getAttrs_func_ne_nil`: the driver's `getAttrs` is not a nil function (`checkWatch`).
 -/
 module
 
@@ -211,6 +214,41 @@ theorem annotObj.wp_ok [storage_sem : k8s_io.apiserver.pkg.storage.Assumptions]
   · inext
     iintro -
     iapply HΦ; itrivial
+
+/-- **A read-only event slice split at `k`**: `events[:k]` and `events[k:]`. -/
+theorem evsRO_split (sl : GoSlice) (rs : List REv) (k : w64)
+    (hk : 0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z sl.len) :
+    evsRO (GF := GF) sl rs ⊢
+      evsRO (slice.slice sl k8s_io.apimachinery.pkg.watch.Event (W64 0) k) (rs.take (sint.nat k)) ∗
+      evsRO (slice.slice sl k8s_io.apimachinery.pkg.watch.Event k sl.len) (rs.drop (sint.nat k)) := by
+  iintro #Hs
+  iunfold evsRO at Hs
+  icases Hs with ⟨%vs, #Hsl, #Hvs⟩
+  ihave %Hlen := ownSlice_len $$ Hsl
+  ihave %Hl2 := BigSepL2.bigSepL2_length $$ Hvs
+  icases (ownSlice_split_all k sl DFrac.discard vs hk).1 $$ Hsl with ⟨#H1, #H2⟩
+  have e : ([∗list] v;r ∈ vs;rs, evRep (GF := GF) v r) ⊣⊢
+      ([∗list] v;r ∈ vs.take (sint.nat k) ++ vs.drop (sint.nat k);
+        rs.take (sint.nat k) ++ rs.drop (sint.nat k), evRep (GF := GF) v r) := by
+    rw [List.take_append_drop, List.take_append_drop]; exact .rfl
+  icases (e.1.trans (BigSepL2.bigSepL2_append (Or.inl (by simp [Hl2])) ).1) $$ Hvs with ⟨#Hv1, #Hv2⟩
+  isplitl []
+  · iunfold evsRO
+    iexists _
+    iframe H1 Hv1
+  · iunfold evsRO
+    iexists _
+    iframe H2 Hv2
+
+/-- The driver's `getAttrs` is not a nil function (a copy of `Model__list.lean`'s `getAttrs_ne_nil`,
+which a proof file cannot import). -/
+theorem getAttrs_func_ne_nil :
+    functions github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getAttrs [] ≠ func.nil := by
+  intro h
+  have hu := FuncUnfold.func_unfold (f := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getAttrs)
+    (type_args := [])
+  rw [h, go.intoVal_unfold GoFunc] at hu
+  simp [func.nil, github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getAttrs.impl] at hu
 
 end proof
 
