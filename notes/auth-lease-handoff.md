@@ -1,6 +1,38 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-19 late, item 9: merged lean f551; noAuth, foreign, barriers proved)
+## START HERE (S4, 2026-11-19 night, item 9: run's prerequisites done; run itself next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46**: `--packages=/shared/tmp/manifest-f55.json`
+  everywhere, `.lake/package-overrides.json` its copy. lean has not moved since df37bd5157 (no merge needed yet).
+- **Done this session** (all `lean-check --fast -a` 0 errors, not yet in a `lake build`): `e724f11156` Refusals.lean
+  (`noAuth_refutes`, `foreign_check_refuted`, `foreign_reads_refuted`, `grantG_refuted`, `refused_update` (generic:
+  any op whose grant is `rq`'s checking a lease held on a key), `revokeLu_update`), Cell `cell_setupAu`/`cellInv_same`/
+  `authHistN_cellM`, CellModel `cellOk_put0`; noAuth's refutation and `holds_refutes_keys`' perm refutation now fancy
+  updates (not provable as plain wands: the auth state needs `akAuthFixed`'s fupd). Then (next commit) `Spec/…/authlease/
+  run.lean` (draft + `etcdKV x0 σ0`/`findKey "a/x" σ0 = none` in place of `akHistInv`, + `clusterNoSnap`), and
+  `authlease/Served.lean` (`serve_member_lease`, `srvdAt` with `etcdLeaseServedOn`). Forms: questions.md, last entry.
+- **Next, in order:** (1) txn refusal: `refused_update` for u's `Txn().Then(OpPut(a/x, WithLease(Lz)))` needs an `hrq`
+  lemma for `irrTxn tw` with `tw.toModel = txnWireOf (leaseTxn xK Lz)` (invert `toModel` to get a put in
+  `apply.txnPutsW tw` with lease `Lz`; `leaseGrantedM`'s `.txn` arm), and its `hop` is not `rfl` (opGrantT's txn arm
+  has `∃ tw`): write a txn variant of `refused_update`. (2) `run.lean` proof: authN's run skeleton (serve loop with
+  `serve_member_lease`, `srvdW`; cell_alloc on `etcdKV σ0` BEFORE SetUp, SetUp's `Hsau` from `cell_setupAu`; barriers
+  via `barriers.spec` with `bs` built from `(ss.zip xs).zip ws`, `Q := True` first, `Q := cellSeen γc ps 0` second
+  (`cell_readAu`); clients as authN; grantPut root (Fix: `cell_fix` + `cell_putZAu`), grantPut u (Fix: `cell_fix` +
+  `cell_putAAu`, its `Lu ≠ Lz` from the put's grant via `grantG_refuted`-style reasoning), the txn (`cell_txnTAu`),
+  barriers 2, `cell_holds` at members 1%k (Lz, zK) and 2%k (Lu, aK) from barrier 2's floor, noAuth ×2
+  (`noAuth_refutes`, `cell_grantAu`, `revokeLu_update`), u's put/txn refused (`refused_update`), absent(a/x),
+  foreign u (Qr := False; `foreign_reads_refuted`) and v (Qr := revoked, `cell_not_revoked`), root's Get z/lease,
+  `cell_permit` then u's Revoke(Lu) (`cell_revokeUAu`), absent ×2 (from `revoked` + `cellSeen` d ≥ 1 → `gone`).
+  Each member's cell via `cellInv_same` (sameCluster's `kv.st`); `lessor_keys_of_read` as a hypothesis of run.wp_proof.
+  (3) Main (`allocNOnM … .revocable … (ns := true)`; `findKey "a/x"` of the boot state: a lemma). STOP at Main.wp_proof.
+- **Known debt (decided by etcd-grove-03):** the five authlease proof→linking tier edges (absent/barrier/grantPut →
+  auth ClientOn, grantPut → ResultsOn, barrier → AuthnServedOn) match authN's; remove when authN's are. Served.lean adds
+  one more of the same kind (→ etcdstart ServedLeaseOnLinked; run will add authN-like ones): for decision at the stop.
+- **Pitfalls:** `%⟨…⟩` is not an IPM pattern/argument: name a `have` and pass `%h`. `iapply` of a `□ P` lemma onto goal
+  `P` fails: `ihave #H := lem $$ […]` then `iexact H`. `akTokSeen_md` drags in authlease's `Assumptions`: use
+  `etcd_auth.akTokSeen_attempt` directly. lean-check of Served.lean takes ~6 min fresh (authN.run import).
+
+## Previous START HERE (S4, 2026-11-19 late, item 9: merged lean f551; noAuth, foreign, barriers proved)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46**: `--packages=/shared/tmp/manifest-f55.json`
   everywhere, `.lake/package-overrides.json` its copy, `PERENNIAL_DIR=/shared/perennial-f551a1b46` for gen-init/goose.
