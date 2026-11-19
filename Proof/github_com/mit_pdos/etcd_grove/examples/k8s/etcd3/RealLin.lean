@@ -181,46 +181,151 @@ theorem rstepL_kstepL (x : Input) (y : Output) (r : RResp) (h : HSt) (hk5 : x.Ki
 
 /-! ## B2 -/
 
-/-- **B2: the driver's linearization is the maintainers'.** On a recorded history every operation of which
-answered (no `EOther` output) with its real answer encoded by its output (`OpOk`), linearized by `π` for
-the driver's model from the seeded configuration `h0`, the unary operations with the store's answers are
-linearized for `realS` from `h0`'s abstraction (`initialModel`) by `π`'s unary indices, renumbered.
-Premises on the configurations: `h0`'s are B1's (`CfgOk`), and every unary step of the history keeps
-them. -/
-theorem realS_isLinearization (h0 : HSt) (H : List (Op ROp)) (π : List Nat)
-    (hπ : IsLinearization (kM h0) H π) (hops : ∀ o ∈ H, OpOk o.val) (hcfg0 : CfgOk h0)
-    (hpres : ∀ o ∈ H, ∀ h, CfgOk h → o.val.1.Kind' ≠ W64 5 → CfgOk (kstepL o.val.1 h).1) :
+/-- **A run through a filter, counting the steps** (`run_filter` with the step's index: the simulation
+may use that fewer than `|h|` steps were taken). -/
+theorem run_filterN {σ σ' α β : Type} (M : SeqModel σ α) (M' : SeqModel σ' β) (f : α → Option β)
+    (R : Nat → σ → σ' → Prop) (h : List (Op α))
+    (hsimN : ∀ o ∈ h, ∀ n s s' t, n < h.length → R n s s' → M.step s o.val = some t → f o.val = none →
+      R (n + 1) t s')
+    (hsimS : ∀ o ∈ h, ∀ n s s' t b, n < h.length → R n s s' → M.step s o.val = some t → f o.val = some b →
+      ∃ t', M'.step s' b = some t' ∧ R (n + 1) t t') :
+    ∀ (l : List Nat) (n : Nat) (s : σ) (s' : σ') (t : σ), n + l.length ≤ h.length → R n s s' →
+      run M s (vals h l) = some t →
+      ∃ t', run M' s' (vals (fmapH f h) (l.filterMap (fidx f h))) = some t'
+  | [], _, _, s', _, _, _, _ => ⟨s', rfl⟩
+  | k :: l, n, s, s', t, hn, hR, hr => by
+    simp only [List.length_cons] at hn
+    cases ho : h[k]? with
+    | none =>
+      have hv : vals h (k :: l) = vals h l := by simp [vals, ho]
+      have hf : fidx f h k = none := by simp [fidx, ho]
+      rw [hv] at hr
+      rw [List.filterMap_cons, hf]
+      exact run_filterN M M' f R h hsimN hsimS l n s s' t (by omega) hR hr
+    | some o =>
+      have hv : vals h (k :: l) = o.val :: vals h l := by simp [vals, ho]
+      have hmem : o ∈ h := List.mem_of_getElem? ho
+      rw [hv] at hr
+      simp only [run] at hr
+      cases hst : M.step s o.val with
+      | none => rw [hst] at hr; cases hr
+      | some s1 =>
+        rw [hst] at hr
+        simp only at hr
+        cases hf : f o.val with
+        | none =>
+          have hfi : fidx f h k = none := by simp [fidx, ho, hf]
+          rw [List.filterMap_cons, hfi]
+          exact run_filterN M M' f R h hsimN hsimS l (n + 1) s1 s' t (by omega)
+            (hsimN o hmem n s s' s1 (by omega) hR hst hf) hr
+        | some b =>
+          obtain ⟨s1', hst', hR'⟩ := hsimS o hmem n s s' s1 b (by omega) hR hst hf
+          have hfi : fidx f h k = some (fmapH f (h.take k)).length := by simp [fidx, ho, hf]
+          obtain ⟨o2, b2, ho2, hb2, hg⟩ := fidx_get f h k _ hfi
+          rw [ho] at ho2; cases ho2
+          rw [hf] at hb2; cases hb2
+          rw [List.filterMap_cons, hfi]
+          have hv' : vals (fmapH f h) ((fmapH f (h.take k)).length :: l.filterMap (fidx f h)) =
+              b :: vals (fmapH f h) (l.filterMap (fidx f h)) := by simp [vals, hg]
+          rw [hv']
+          simp only [run, hst']
+          exact run_filterN M M' f R h hsimN hsimS l (n + 1) s1 s1' t (by omega) hR' hr
+
+/-- **`isLinearization_filter`, counting the steps.** -/
+theorem isLinearization_filterN {σ σ' α β : Type} (M : SeqModel σ α) (M' : SeqModel σ' β)
+    (f : α → Option β) (R : Nat → σ → σ' → Prop) (h : List (Op α)) (π : List Nat)
+    (hinit : R 0 M.init M'.init)
+    (hsimN : ∀ o ∈ h, ∀ n s s' t, n < h.length → R n s s' → M.step s o.val = some t → f o.val = none →
+      R (n + 1) t s')
+    (hsimS : ∀ o ∈ h, ∀ n s s' t b, n < h.length → R n s s' → M.step s o.val = some t → f o.val = some b →
+      ∃ t', M'.step s' b = some t' ∧ R (n + 1) t t')
+    (hπ : IsLinearization M h π) :
+    IsLinearization M' (fmapH f h) (π.filterMap (fidx f h)) := by
+  have hlen : π.length ≤ h.length := by
+    have hsub : π ⊆ List.range h.length := fun k hk => List.mem_range.2 ((hπ.2.1 k).1 hk).1
+    have := (List.subperm_of_subset hπ.1 hsub).length_le
+    simpa using this
+  have hL := isLinearization_filter M M (fun a => some a) (fun s s' => s = s') h π rfl
+    (fun _ _ _ _ _ _ _ hf => by cases hf)
+    (fun _ _ s s' t b e hst hb => by cases hb; subst e; exact ⟨t, hst, rfl⟩) hπ
+  obtain ⟨hnd, hmem, hrun, hpw⟩ := hπ
+  obtain ⟨t, ht⟩ := Option.isSome_iff_exists.1 hrun
+  obtain ⟨t', ht'⟩ := run_filterN M M' f R h hsimN hsimS π 0 M.init M'.init t (by omega) hinit ht
+  refine ⟨?_, ?_, by rw [ht']; rfl, ?_⟩
+  · unfold List.Nodup
+    rw [List.pairwise_filterMap]
+    refine hnd.imp ?_
+    intro a a' hne b hb b' hb' e
+    subst e
+    exact hne (fidx_inj f h a a' b hb hb')
+  · intro n
+    constructor
+    · intro hn
+      obtain ⟨k, -, hk⟩ := List.mem_filterMap.1 hn
+      exact ⟨fidx_lt f h k n hk, fun e => e⟩
+    · rintro ⟨hn, -⟩
+      obtain ⟨k, hk⟩ := fidx_surj f h n _ (List.getElem?_eq_getElem hn)
+      obtain ⟨o, -, ho, -, -⟩ := fidx_get f h k n hk
+      have hkl : k < h.length := (List.getElem?_eq_some_iff.1 ho).1
+      exact List.mem_filterMap.2 ⟨k, (hmem k).2 ⟨hkl, fun e => e⟩, hk⟩
+  · rw [List.pairwise_filterMap]
+    refine hpw.imp ?_
+    intro a a' hna b hb b' hb' hprec
+    apply hna
+    obtain ⟨x, y, h1, h2, hlt⟩ := hprec
+    obtain ⟨o, c, ho, -, hg⟩ := fidx_get f h a b hb
+    obtain ⟨o', c', ho', -, hg'⟩ := fidx_get f h a' b' hb'
+    rw [hg'] at h1; rw [hg] at h2
+    cases h1; cases h2
+    exact ⟨o', o, ho', ho, hlt⟩
+
+/-- **B2.** On a recorded history whose calls all answered (`failureFree`), each unary operation
+answered with its real answer encoded by its output (`OpOk`), linearized by `π` for the driver's model
+from the seeded configuration `h0`, the unary operations with the store's answers are linearized for
+`realS` from `h0`'s abstraction (`initialModel`) by `π`'s unary indices, renumbered. Premises on the
+configurations: an invariant `I` that gives B1's (`CfgOk`), holds at `h0`, and is kept by every unary
+step of the history while the revision has room under `2^63` (the step moving it by at most one); and
+a history short enough that the revisions do not wrap. -/
+theorem realS_isLinearization (h0 : HSt) (H : List (Op ROp)) (π : List Nat) (I : HSt → Prop)
+    (hπ : IsLinearization (kM h0) H π) (hops : ∀ o ∈ H, OpOk o.val) (hI : ∀ h, I h → CfgOk h) (hI0 : I h0)
+    (hpres : ∀ o ∈ H, ∀ h, I h → uint.nat h.st.rv + 1 < 2 ^ 63 → o.val.1.Kind' ≠ W64 5 →
+      I (kstepL o.val.1 h).1 ∧ uint.nat (kstepL o.val.1 h).1.st.rv ≤ uint.nat h.st.rv + 1)
+    (hn : uint.nat h0.st.rv + H.length < 2 ^ 63) :
     IsLinearization (realS (absR h0.st)) (fmapH unaryOf H) (π.filterMap (fidx unaryOf H)) := by
-  refine isLinearization_filter (kM h0) (realS (absR h0.st)) unaryOf
-    (fun S m => ∃ h, (∀ c, S c ↔ c = ⟨h, []⟩) ∧ m = absR h.st ∧ CfgOk h) H π
-    ⟨h0, fun c => Iff.rfl, rfl, hcfg0⟩ ?_ ?_ hπ
-  · rintro o ho S m T ⟨h, hS, rfl, hc⟩ hT hf
+  refine isLinearization_filterN (kM h0) (realS (absR h0.st)) unaryOf
+    (fun n S m => ∃ h, (∀ c, S c ↔ c = ⟨h, []⟩) ∧ m = absR h.st ∧ I h ∧
+      uint.nat h.st.rv ≤ uint.nat h0.st.rv + n) H π
+    ⟨h0, fun c => Iff.rfl, rfl, hI0, by omega⟩ ?_ ?_ hπ
+  · rintro o ho n S m T hn' ⟨h, hS, rfl, hc, hrv⟩ hT hf
     have hk5 : o.val.1.Kind' = W64 5 := by
       unfold unaryOf at hf; by_cases e : o.val.1.Kind' = W64 5
       · exact e
       · rw [if_neg e] at hf; cases hf
     obtain ⟨-, hT'⟩ := (kM_step h0 h S hS o.val.1 o.val.2.1 o.val.2.2 (hops o ho).1 T hT).1 hk5
-    exact ⟨h, hT', rfl, hc⟩
-  · rintro o ho S m T b ⟨h, hS, rfl, hc⟩ hT hf
+    exact ⟨h, hT', rfl, hc, by omega⟩
+  · rintro o ho n S m T b hn' ⟨h, hS, rfl, hc, hrv⟩ hT hf
     have hk5 : o.val.1.Kind' ≠ W64 5 := by
       intro e; unfold unaryOf at hf; rw [if_pos e] at hf; cases hf
     have hb : b = (o.val.1, o.val.2.2) := by
       unfold unaryOf at hf; rw [if_neg hk5] at hf; exact (Option.some.inj hf).symm
     subst hb
     obtain ⟨hy, hT'⟩ := (kM_step h0 h S hS o.val.1 o.val.2.1 o.val.2.2 (hops o ho).1 T hT).2 hk5
-    obtain ⟨hok, hmv⟩ := rstepL_kstepL o.val.1 o.val.2.1 o.val.2.2 h hk5 (hops o ho) hc hy
-    refine ⟨absR (kstepL o.val.1 h).1.st, ?_, (kstepL o.val.1 h).1, hT', rfl, hpres o ho h hc hk5⟩
+    obtain ⟨hok, hmv⟩ := rstepL_kstepL o.val.1 o.val.2.1 o.val.2.2 h hk5 (hops o ho) (hI h hc) hy
+    obtain ⟨hI', hrv'⟩ := hpres o ho h hc (by omega) hk5
+    refine ⟨absR (kstepL o.val.1 h).1.st, ?_, (kstepL o.val.1 h).1, hT', rfl, hI', by omega⟩
     show (if (rstepL o.val.1 (absR h.st) o.val.2.2).1 then
       some (rstepL o.val.1 (absR h.st) o.val.2.2).2.1 else none) = _
     rw [if_pos hok, hmv]
 
 /-- **B2, linearizable**: the unary history with the store's answers is linearizable for `realS` (so the
 real porcupine run, with no timeout, answers `Ok`). -/
-theorem realS_linearizable (h0 : HSt) (H : List (Op ROp)) (π : List Nat)
-    (hπ : IsLinearization (kM h0) H π) (hops : ∀ o ∈ H, OpOk o.val) (hcfg0 : CfgOk h0)
-    (hpres : ∀ o ∈ H, ∀ h, CfgOk h → o.val.1.Kind' ≠ W64 5 → CfgOk (kstepL o.val.1 h).1) :
+theorem realS_linearizable (h0 : HSt) (H : List (Op ROp)) (π : List Nat) (I : HSt → Prop)
+    (hπ : IsLinearization (kM h0) H π) (hops : ∀ o ∈ H, OpOk o.val) (hI : ∀ h, I h → CfgOk h) (hI0 : I h0)
+    (hpres : ∀ o ∈ H, ∀ h, I h → uint.nat h.st.rv + 1 < 2 ^ 63 → o.val.1.Kind' ≠ W64 5 →
+      I (kstepL o.val.1 h).1 ∧ uint.nat (kstepL o.val.1 h).1.st.rv ≤ uint.nat h.st.rv + 1)
+    (hn : uint.nat h0.st.rv + H.length < 2 ^ 63) :
     Linearizable (realS (absR h0.st)) (fmapH unaryOf H) :=
-  linearizable_of_isLinearization (realS_isLinearization h0 H π hπ hops hcfg0 hpres)
+  linearizable_of_isLinearization (realS_isLinearization h0 H π I hπ hops hI hI0 hpres hn)
 
 end go
 

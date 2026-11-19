@@ -35,9 +35,9 @@ section go
 variable [GooseExts]
 
 /-- **What the run needs of a configuration**: B1's (`CfgOk`), its history's (`HistCfgOk`), its history's
-stores sorted (`HistSorted`), and a revision far from wrapping. -/
+stores sorted (`HistSorted`), its objects at their revisions (`HistGood`), and a revision far from wrapping. -/
 def RunOk (h : HSt) : Prop :=
-  CfgOk h ∧ HistCfgOk h ∧ HistSorted h.hist ∧ uint.nat h.st.rv < 2 ^ 63
+  CfgOk h ∧ HistCfgOk h ∧ HistSorted h.hist ∧ HistGood h.hist ∧ uint.nat h.st.rv < 2 ^ 63
 
 /-- **A run of `realS` is a successful replay** (`NewReplay`'s loop steps exactly as `realS`). -/
 theorem replay_of_run (init : RM) : ∀ (l : List (Input × RResp)) (m m' : RM) (ss : GMap w64 RM)
@@ -111,7 +111,7 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
       · obtain ⟨hy, hS1⟩ := hstep.2 hk5
         obtain ⟨hrun', hrv1⟩ := hpres o ho h hrun (by omega) (by rw [hov]; exact hk5)
         rw [hov] at hrun' hrv1
-        obtain ⟨hcfg, hhc, hsort, hrvb⟩ := hrun
+        obtain ⟨hcfg, hhc, hsort, hgood, hrvb⟩ := hrun
         obtain ⟨hok, hmv⟩ := rstepL_kstepL v.1 v.2.1 v.2.2 h hk5 hop hcfg hy
         obtain ⟨m, ss, cs⟩ := acc
         have hm : m = absR h.st := hsim.1
@@ -122,7 +122,7 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
               cs ++ (rstepL v.1 (absR h.st) v.2.2).2.2.toList) := by
           simp only [replayStepL, hok, ↓reduceIte]
         have hsim' := simR_step h0.st.rv _ h v.1 v.2.2 _ hsim hhc.1 hhc.2.1 hrun'.2.2.1 hrun'.2.1.1
-          hrun'.2.2.2 hrs hmv
+          hrun'.2.2.2.2 hrs hmv
         obtain ⟨hF, accF, hfold, hsimF, hrunF, hpre, hpts, hwts⟩ :=
           drive h0 H hops hpres l hl' S1 _ _ T hS1 hrun' (by omega) hsim' hr
         have hpre0 : h.hist <+: (kstepL v.1 h).1.hist := by
@@ -136,7 +136,7 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
           rw [hrs]; exact hfold
         · intro w hw hw5
           rcases List.mem_cons.1 hw with rfl | hw
-          · exact ⟨h, ⟨hcfg, hhc, hsort, hrvb⟩, hpre0.trans hpre, hsim.2.1, hy⟩
+          · exact ⟨h, ⟨hcfg, hhc, hsort, hgood, hrvb⟩, hpre0.trans hpre, hsim.2.1, hy⟩
           · exact hpts w hw hw5
         · intro w hw hw5
           rcases List.mem_cons.1 hw with rfl | hw

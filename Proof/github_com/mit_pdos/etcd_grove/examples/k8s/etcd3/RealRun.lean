@@ -175,6 +175,172 @@ theorem mstepL_ok (x : Input) (st : GSt) (hg : StGood st) (hr : uint.nat st.rv +
         exact itemOk_of _ hf ((updGo_annotated x _).trans hc.2.1) (by rw [hv]; exact hx.2)
   · exact ⟨hg, Or.inl rfl⟩
 
+/-! ## `HistGood` along the run -/
+
+theorem fI_eq_of_lookupL {a b : List item} {k : GoString} (h : lookupL a k = lookupL b k) :
+    fI a k = fI b k := by
+  rw [lookupL_fI, lookupL_fI] at h
+  simp only [Prod.mk.injEq] at h
+  obtain ⟨h1, h2⟩ := h
+  cases ha : fI a k <;> cases hb : fI b k <;> simp_all
+
+theorem fI_setItemL (its : List item) (it : item) (hs : SortedI its) (k : GoString) :
+    fI (setItemL its it) k = if it.key' = k then some it else fI its k := by
+  have h := lookupL_setItemL its it hs k
+  by_cases e : it.key' = k
+  · rw [if_pos e] at h; rw [if_pos e]
+    rw [lookupL_fI] at h
+    simp only [Prod.mk.injEq] at h
+    cases hf : fI (setItemL its it) k <;> simp_all
+  · rw [if_neg e] at h; rw [if_neg e]; exact fI_eq_of_lookupL h
+
+theorem fI_delItemL (its : List item) (k k' : GoString) :
+    fI (delItemL its k) k' = if k = k' then none else fI its k' := by
+  have h := lookupL_delItemL its k k'
+  by_cases e : k = k'
+  · rw [if_pos e] at h; rw [if_pos e]
+    rw [lookupL_fI] at h
+    simp only [Prod.mk.injEq] at h
+    cases hf : fI (delItemL its k) k' <;> simp_all
+  · rw [if_neg e] at h; rw [if_neg e]; exact fI_eq_of_lookupL h
+
+/-- **A write changes one name**, whose new item (if any) is at the new revision. -/
+theorem mstepL_one (x : Input) (st : GSt) (hs : SortedI st.items) :
+    (mstepL x st).1 = st ∨ ∃ n, (∀ k, k ≠ n → fI (mstepL x st).1.items k = fI st.items k) ∧
+      ∀ it, fI (mstepL x st).1.items n = some it → it.obj'.ResourceVersion' = (mstepL x st).1.rv := by
+  have hset : ∀ (it : item), it.obj'.ResourceVersion' = st.rv + W64 1 →
+      ∃ n, (∀ k, k ≠ n → fI (setItemL st.items it) k = fI st.items k) ∧
+        ∀ it', fI (setItemL st.items it) n = some it' → it'.obj'.ResourceVersion' = st.rv + W64 1 := by
+    intro it hrv
+    refine ⟨it.key', fun k hk => ?_, fun it' h => ?_⟩
+    · rw [fI_setItemL _ _ hs, if_neg (Ne.symm hk)]
+    · rw [fI_setItemL _ _ hs, if_pos rfl] at h; cases h; exact hrv
+  unfold mstepL
+  split
+  · unfold mcreateL
+    split
+    · exact Or.inl rfl
+    · exact Or.inr (hset _ (by rfl))
+  split
+  · unfold mdeleteL; dsimp only
+    split
+    · exact Or.inl rfl
+    split
+    · exact Or.inl rfl
+    split
+    · exact Or.inl rfl
+    · refine Or.inr ⟨x.Key', fun k hk => ?_, fun it h => ?_⟩
+      · rw [fI_delItemL, if_neg (Ne.symm hk)]
+      · rw [fI_delItemL, if_pos rfl] at h; cases h
+  split
+  · unfold mupdateL; dsimp only
+    generalize (if (lookupL st.items x.Key').2 = true then (lookupL st.items x.Key').1.obj' else zObj) = cur
+    split
+    · exact Or.inl rfl
+    split
+    · exact Or.inl rfl
+    split
+    · exact Or.inl rfl
+    split
+    · exact Or.inl rfl
+    · exact Or.inr (hset _ (by rfl))
+  · exact Or.inl rfl
+
+/-- **`HistGood` of a history grown by a store** that changes one name of the last store, its new item at
+the new revision. -/
+theorem histGood_snoc (hs : List GSt) (st st' : GSt) (n : GoString) (hg : HistGood hs)
+    (hlast : hs.getLast? = some st) (hst : StOk st) (hst' : StGood st')
+    (hrv' : uint.nat st'.rv = hs.length + 1)
+    (hone : ∀ k, k ≠ n → fI st'.items k = fI st.items k)
+    (hnew : ∀ it, fI st'.items n = some it → it.obj'.ResourceVersion' = st'.rv) :
+    HistGood (hs ++ [st']) := by
+  have hN : histN hs hs.length = st := histN_last hs st hlast
+  have hN' : histN (hs ++ [st']) (hs.length + 1) = st' := by
+    unfold histN; rw [List.take_of_length_le (by simp)]; simp
+  have hold : ∀ it ∈ st.items, 1 ≤ uint.nat it.obj'.ResourceVersion' ∧
+      uint.nat it.obj'.ResourceVersion' ≤ hs.length ∧ it.obj'.Annotated' = false := by
+    intro it hit; exact hg.1 hs.length it (Nat.le_refl _) (hN ▸ hit)
+  refine ⟨fun r it hr hit => ?_, fun r ch h2 hr hch => ?_⟩
+  · simp only [List.length_append, List.length_singleton] at hr
+    by_cases hle : r ≤ hs.length
+    · rw [histN_append_le _ _ _ hle] at hit; exact hg.1 r it hle hit
+    · have hr1 : r = hs.length + 1 := by omega
+      subst hr1
+      rw [hN'] at hit
+      have hf : fI st'.items it.key' = some it := by
+        have := lookupL_mem _ hst'.1.1 it hit
+        rw [lookupL_fI] at this
+        simp only [Prod.mk.injEq] at this
+        cases e : fI st'.items it.key' <;> simp_all
+      refine ⟨?_, ?_, hst'.1.2 it hit⟩
+      · by_cases hk : it.key' = n
+        · rw [hk] at hf; rw [hnew it hf, hrv']; omega
+        · rw [hone _ hk] at hf
+          exact (hold it (List.mem_of_find?_eq_some hf)).1
+      · have := hst'.2.2 it hit; omega
+  · simp only [List.length_append, List.length_singleton] at hr
+    by_cases hle : r ≤ hs.length
+    · rw [histN_append_le _ _ _ hle, histN_append_le _ _ _ (by omega)] at hch
+      exact hg.2 r ch h2 hle hch
+    · have hr1 : r = hs.length + 1 := by omega
+      subst hr1
+      rw [hN', show hs.length + 1 - 1 = hs.length from rfl, histN_append_le _ _ _ (Nat.le_refl _), hN] at hch
+      rw [changeAtL_one n _ st.items st'.items hst.1 hst'.1.1 (fun k hk => (hone k hk).symm)] at hch
+      unfold chgL at hch
+      split at hch
+      · cases hch
+      · rename_i p hp _
+        simp only [Option.some.injEq] at hch; subst hch
+        refine ⟨fun o ho => (by cases ho), fun o ho => ?_⟩
+        simp only [Option.some.injEq] at ho; subst ho
+        exact hst.2 p (List.mem_of_find?_eq_some hp)
+      · rename_i q _ hq
+        simp only [Option.some.injEq] at hch; subst hch
+        refine ⟨fun o ho => ?_, fun o ho => by cases ho⟩
+        simp only [Option.some.injEq] at ho; subst ho
+        exact ⟨by rw [hnew q hq, hrv'], hst'.1.2 q (List.mem_of_find?_eq_some hq)⟩
+      · rename_i p q hp hq
+        split at hch
+        · cases hch
+        simp only [Option.some.injEq] at hch; subst hch
+        refine ⟨fun o ho => ?_, fun o ho => ?_⟩
+        · simp only [Option.some.injEq] at ho; subst ho
+          exact ⟨by rw [hnew q hq, hrv'], hst'.1.2 q (List.mem_of_find?_eq_some hq)⟩
+        · simp only [Option.some.injEq] at ho; subst ho
+          exact hst.2 p (List.mem_of_find?_eq_some hp)
+
+/-- **B5's `HistWf`, for any watch**, from `HistGood` and a history shorter than `2^63`. -/
+theorem histWf_of_histGood (x : Input) (hs : List GSt) (hg : HistGood hs) (hlen : hs.length < 2 ^ 63) :
+    HistWf x hs := by
+  refine ⟨hlen, hg.1, fun r e he => ?_⟩
+  unfold evAtL at he
+  split at he
+  · rename_i h2
+    cases hch : changeAtL (histN hs (r - 1)).items (histN hs r).items r with
+    | none => rw [hch] at he; cases he
+    | some ch =>
+      rw [hch] at he
+      simp only [Option.bind_some] at he
+      have hr : r ≤ hs.length := by
+        refine Classical.byContradiction fun hgt => ?_
+        have e1 : histN hs (r - 1) = histN hs r := by
+          unfold histN; rw [List.take_of_length_le (by omega), List.take_of_length_le (by omega)]
+        rw [e1, changeAtL_self] at hch; cases hch
+      obtain ⟨hcur, hprev⟩ := hg.2 r ch h2 hr hch
+      split at he
+      · unfold toEventL at he
+        simp only at he
+        split at he
+        · obtain ⟨o, ho, rfl⟩ := Option.map_eq_some_iff.1 he; exact hcur o ho
+        split at he
+        · obtain ⟨o, ho, rfl⟩ := Option.map_eq_some_iff.1 he; exact hcur o ho
+        split at he
+        · obtain ⟨o, ho, rfl⟩ := Option.map_eq_some_iff.1 he
+          exact ⟨by rw [changeAtL_rv _ _ _ _ hch]; exact W64_nat r (by omega), hprev o ho⟩
+        · cases he
+      · cases he
+  · cases he
+
 /-- **B4's `hpres`: a unary step keeps `RunOk`**, with room under `2^63`, moving the revision by at most one. -/
 theorem kstepL_runOk (x : Input) (h : HSt) (hrun : RunOk h) (hr : uint.nat h.st.rv + 1 < 2 ^ 63)
     (hx : OpFits x) :
@@ -182,15 +348,16 @@ theorem kstepL_runOk (x : Input) (h : HSt) (hrun : RunOk h) (hr : uint.nat h.st.
   unfold kstepL
   split
   · exact ⟨hrun, Nat.le_succ _⟩
-  obtain ⟨hcfg, hhc, hsort, hrvb⟩ := hrun
+  obtain ⟨hcfg, hhc, hsort, hgood, hrvb⟩ := hrun
   have hg : StGood h.st := ⟨hcfg.1, hcfg.2.1, fun it hit => hcfg.2.2.1.1 _ _ (by
     show (GMap.ofList (h.st.items.map fun it => (storeKeyL it.key', it.obj'))) !! storeKeyL it.key' = _
     rw [ofList_items, fI_mem _ hcfg.1.1 it hit]; rfl)⟩
   obtain ⟨hg', hc⟩ := mstepL_ok x h.st hg hr hx
-  generalize (mstepL x h.st).1 = st' at hg' hc
+  have hone := mstepL_one x h.st hcfg.1.1
+  generalize (mstepL x h.st).1 = st' at hg' hc hone
   rcases hc with rfl | hc
   · have : advanceL h h.st = h := by unfold advanceL; rw [if_neg (fun e => e rfl)]
-    rw [this]; exact ⟨⟨hcfg, hhc, hsort, hrvb⟩, Nat.le_succ _⟩
+    rw [this]; exact ⟨⟨hcfg, hhc, hsort, hgood, hrvb⟩, Nat.le_succ _⟩
   have hne : st'.rv ≠ h.st.rv := by rw [hc]; intro e; have := congrArg (fun r => uint.nat r) e; simp at this; word
   have ha : advanceL h st' = ⟨st', h.hist ++ [st']⟩ := by unfold advanceL; rw [if_pos hne]
   rw [ha]
@@ -202,7 +369,7 @@ theorem kstepL_runOk (x : Input) (h : HSt) (hrun : RunOk h) (hr : uint.nat h.st.
   have hold : ∀ q : w64, uint.nat q ≤ uint.nat h.st.rv →
       histAtL (h.hist ++ [st']) q = histAtL h.hist q := fun q hq => histAtL_snoc_le _ _ _ (by omega)
   refine ⟨⟨⟨hg'.1, hg'.2.1, rmWf_absR _ hg'.2.2, by dsimp only; omega, fun q hq0 hq => ?_⟩,
-    ⟨by simp; omega, by simp, fun q hq0 hq => ?_⟩, fun r hr' => ?_, by dsimp only; omega⟩, by omega⟩
+    ⟨by simp; omega, by simp, fun q hq0 hq => ?_⟩, fun r hr' => ?_, ?_, by dsimp only; omega⟩, by omega⟩
   · dsimp only at hq ⊢
     by_cases hle : uint.nat q ≤ uint.nat h.st.rv
     · rw [hold q hle]; exact hcfg.2.2.2.2 q hq0 hle
@@ -221,6 +388,9 @@ theorem kstepL_runOk (x : Input) (h : HSt) (hrun : RunOk h) (hr : uint.nat h.st.
     · have e : histN (h.hist ++ [st']) r = st' := by
         unfold histN; rw [List.take_of_length_le (by simp; omega)]; simp
       rw [e]; exact hg'.1.1
+  · rcases hone with e | ⟨n, hn1, hn2⟩
+    · exact absurd (congrArg GSt.rv e) hne
+    exact histGood_snoc h.hist h.st st' n hgood hhc.2.1 hcfg.1 hg' (by omega) hn1 hn2
 
 end go
 

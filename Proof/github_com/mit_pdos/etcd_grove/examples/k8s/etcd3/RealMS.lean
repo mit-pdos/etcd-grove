@@ -224,6 +224,92 @@ not `EOther`. -/
 def okOut (x : Input) (y : Output) : Bool :=
   if x.Kind' = W64 5 then x.Skip' || !y.WFailed' else decide (y.Err' ≠ W64 4)
 
+/-- A consistent list asks for revision `0`. -/
+theorem listConsL_consistent (x : Input) (rq : w64) (h : listConsL x = some (.consistent, rq)) : rq = 0 := by
+  unfold listConsL at h
+  by_cases h0 : x.MinRV' = []
+  · rw [if_pos h0] at h
+    by_cases hm : x.Match' = W64 1 ∨ x.Match' = W64 2
+    · rw [if_pos hm] at h; cases h
+    · rw [if_neg hm] at h; simp only [Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm
+  · rw [if_neg h0] at h
+    cases hp : parseRVD x.MinRV' with
+    | none => rw [hp] at h; cases h
+    | some v =>
+      rw [hp] at h
+      simp only at h
+      by_cases h1 : x.Match' = W64 1
+      · rw [if_pos h1] at h; simp at h
+      rw [if_neg h1] at h
+      by_cases h2 : x.Match' = W64 2
+      · rw [if_pos h2] at h
+        by_cases hv : v = 0
+        · rw [if_pos hv] at h; cases h
+        · rw [if_neg hv] at h; simp at h
+      rw [if_neg h2] at h
+      split at h <;> simp at h
+
+/-- A list answer of a unary operation carries no error (`RawRel`). -/
+theorem rawRel_list_noerr (x : Input) (y : Output) (out : RResp) (hraw : RawRel x y out)
+    (items : Option (List Obj)) (rv : w64) (c : GoString) (rr : Option w64)
+    (hobj : out.obj = .list items rv c rr) : out.err = RErr.none := by
+  unfold RawRel at hraw
+  by_cases e0 : y.Err' = W64 0
+  · rw [if_pos e0] at hraw
+    by_cases e4 : x.Kind' = W64 4
+    · rw [if_pos e4] at hraw; obtain ⟨_, _, _, rfl⟩ := hraw; rfl
+    · rw [if_neg e4] at hraw; subst hraw; cases hobj
+  rw [if_neg e0] at hraw
+  by_cases e1 : y.Err' = W64 1
+  · rw [if_pos e1] at hraw; subst hraw; cases hobj
+  rw [if_neg e1] at hraw
+  by_cases e2 : y.Err' = W64 2
+  · rw [if_pos e2] at hraw; subst hraw; cases hobj
+  rw [if_neg e2] at hraw
+  by_cases e3 : y.Err' = W64 3
+  · rw [if_pos e3] at hraw; subst hraw; cases hobj
+  rw [if_neg e3] at hraw
+  by_cases e5 : y.Err' = W64 5
+  · rw [if_pos e5] at hraw; subst hraw; cases hobj
+  rw [if_neg e5] at hraw
+  by_cases e6 : y.Err' = W64 6
+  · rw [if_pos e6] at hraw; subst hraw; cases hobj
+  rw [if_neg e6] at hraw
+  exact hraw.elim
+
+/-- **`Replay.Validate`'s list premise** (`listExpOk`) for a unary list the replay validates. -/
+theorem listExpOk_of (R : RReplay) (x : Input) (y : Output) (out : RResp) (hraw : RawRel x y out)
+    (hst : stepIn x out) (h4 : x.Kind' = W64 4) (hv : rvalidateL R x out = true) : listExpOk R x out := by
+  intro items rv c rr st hobj hst'
+  have hne := rawRel_list_noerr x y out hraw items rv c rr hobj
+  obtain ⟨hlc, hpk⟩ := hst.2.2.2 h4
+  obtain ⟨⟨c0, rq⟩, hlc⟩ := Option.isSome_iff_exists.1 hlc
+  obtain ⟨p, hp⟩ := Option.isSome_iff_exists.1 hpk
+  unfold rvalidateL at hv
+  rw [if_pos h4] at hv
+  unfold rreplayListL at hv
+  rw [hne, hlc] at hv
+  simp only [errNonNil, Bool.false_eq_true, ↓reduceIte] at hv
+  cases c0 with
+  | consistent =>
+    have hrq := listConsL_consistent x rq hlc
+    subst hrq
+    have hno := rexecL_notOther x st hst.1.2.1 (fun h => absurd h4 h)
+      (fun _ => ⟨by rw [hlc]; rfl, by rw [hp]; rfl⟩)
+    unfold rexecL at hno
+    rw [if_pos h4] at hno
+    unfold rlistL at hno ⊢
+    rw [hp, hlc] at hno ⊢
+    simp only at hno ⊢
+    rw [if_neg (by simp)] at hno ⊢
+    split <;> (try split) <;> simp_all [deepErrE]
+  | exact =>
+    simp only [hobj, hst'] at hv
+    cases e : (rlistL x st).err <;> simp_all [equalListRespL, respEqL, errNonNil, deepErrE]
+  | notOlderThan =>
+    simp only [hobj, hst'] at hv
+    cases e : (rlistL x st).err <;> simp_all [equalListRespL, respEqL, errNonNil, deepErrE]
+
 end pure
 
 section defs

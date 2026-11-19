@@ -498,20 +498,6 @@ theorem filterMap_range'_window {β : Type} (f : Nat → Option β) (c n a b : N
 
 /-! ### The replay's events are the history's -/
 
-theorem changeAtL_rv : ∀ (p q : List item) (r : Nat) (ch : Chg), changeAtL p q r = some ch → ch.rv = r
-  | [], [], _, _, h => by simp [changeAtL] at h
-  | _ :: _, [], _, _, h => by simp only [changeAtL, Option.some.injEq] at h; subst h; rfl
-  | [], _ :: _, _, _, h => by simp only [changeAtL, Option.some.injEq] at h; subst h; rfl
-  | p :: ps, q :: qs, r, ch, h => by
-    simp only [changeAtL] at h
-    split at h
-    · simp only [Option.some.injEq] at h; subst h; rfl
-    · split at h
-      · simp only [Option.some.injEq] at h; subst h; rfl
-      · split at h
-        · exact changeAtL_rv ps qs r ch h
-        · simp only [Option.some.injEq] at h; subst h; rfl
-
 theorem toWatchEventL_chg (x : Input) (k : GoString) (ch : Chg) (r : Nat) (hr : ch.rv = r) :
     toWatchEventL x ⟨k, W64 (r : Int), ch.cur, ch.prev⟩ = (toEventL x ch).map fromW := by
   unfold toWatchEventL toEventL

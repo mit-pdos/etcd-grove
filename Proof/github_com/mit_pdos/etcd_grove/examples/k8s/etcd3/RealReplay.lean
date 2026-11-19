@@ -58,6 +58,32 @@ def rmWf (m : RM) : Prop :=
 def HistSorted (hs : List GSt) : Prop :=
   ∀ r ≤ hs.length, ((histN hs r).items.map (·.key')).Pairwise go.GoStringLt
 
+theorem changeAtL_rv : ∀ (p q : List item) (r : Nat) (ch : Chg), changeAtL p q r = some ch → ch.rv = r
+  | [], [], _, _, h => by simp [changeAtL] at h
+  | _ :: _, [], _, _, h => by simp only [changeAtL, Option.some.injEq] at h; subst h; rfl
+  | [], _ :: _, _, _, h => by simp only [changeAtL, Option.some.injEq] at h; subst h; rfl
+  | p :: ps, q :: qs, r, ch, h => by
+    simp only [changeAtL] at h
+    split at h
+    · simp only [Option.some.injEq] at h; subst h; rfl
+    · split at h
+      · simp only [Option.some.injEq] at h; subst h; rfl
+      · split at h
+        · exact changeAtL_rv ps qs r ch h
+        · simp only [Option.some.injEq] at h; subst h; rfl
+
+/-- **A history's objects carry their revisions** (what B5's `HistWf` needs, for every watch): an object
+of the store at revision `r` has a revision in `[1, r]` and no annotation, and the change at each revision
+`r` (`changeAtL`) carries objects with no annotation, its new object at revision `r`. Kept by every step
+(`kstepL_runOk`). -/
+def HistGood (hs : List GSt) : Prop :=
+  (∀ r it, r ≤ hs.length → it ∈ (histN hs r).items →
+    1 ≤ uint.nat it.obj'.ResourceVersion' ∧ uint.nat it.obj'.ResourceVersion' ≤ r ∧
+      it.obj'.Annotated' = false) ∧
+  ∀ r ch, 2 ≤ r → r ≤ hs.length → changeAtL (histN hs (r - 1)).items (histN hs r).items r = some ch →
+    (∀ o, ch.cur = some o → uint.nat o.ResourceVersion' = r ∧ o.Annotated' = false) ∧
+      ∀ o, ch.prev = some o → o.Annotated' = false
+
 /-- **The changes of a history from revision `s0` on**, as the checker's `Change`s: for each
 revision `r` in `(s0, |hs|]`, the item that differs between the stores at `r - 1` and `r`
 (`changeAtL`), at its store key. -/

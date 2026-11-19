@@ -2,6 +2,48 @@
 
 ## START HERE
 
+**2026-11-19 (night 19; for etcd-grove-03). 03's night-18 decisions recorded (questions.md). Build n18 ran
+(`/shared/tmp/k8s7g/build-n18.log`): only `Check` failed (expected: realCheck not wired) and night-19's new RealMS lemmas
+(since fixed). Night 19 found two gaps in the B2/B5 bridge and closed them (pure, lean-checked `-a` without `--fast`:
+RealLin, RealRun, RealB4, RealMS, RealWatch, genWatchFrom, the new spec), and wrote `realCheck.spec` (statement only).
+NO realCheck proof yet. Forms: questions.md "night 19".**
+
+- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`). Build (tree lock shared with lean-check):
+  `/shared/tmp/build-slot.sh flock /shared/tmp/k8s7g/tree.lock lake --packages=/shared/tmp/manifest-f55.json build $(cat /shared/tmp/k8s7g/targets-n19.txt)`
+  (n19 = n18 + RealRun/RealB4/RealLin/RealWatch/genWatchFrom/Apply/Gen + Spec realCheck; Apply/Gen not yet re-checked
+  after `GenInW` gained `Limit = 0`).
+- Done night 19: `HistGood` + `RunOk` 4th conjunct + `kstepL_runOk` keeps it + `histWf_of_histGood` (B5's HistWf);
+  B2 restated over an invariant `I` with counted steps (`isLinearization_filterN`); `listExpOk_of`; `GenInW.Limit = 0`.
+- NEXT, in order:
+  1. `realCheck` proof (Proof/.../realCheck.lean) against `Spec/.../realCheck.lean`. Plan:
+     loop 1 invariant (ghost `vs : List ROp`, one per op so far; `Hi := zip lops vs` as `Op ROp` with lops' Call/Return):
+     `osl ↦* os`, `psl ↦* ps`, `wsl ↦* ws`; `[∗list] o;e ∈ os;fmapH unaryOf Hi, opRep o e.val`; `histOf ps = zipWith
+     (fun c e => ⟨(boxReq c.Request', boxResp c.Response'), e.call, e.ret⟩) os (fmapH unaryOf Hi)`; `∀ p ∈ ps, Call ≤
+     Return`; per watch `∃ x y rs`, `(x, y, _) ∈ Hi`-vals, `wreqRep`, `evsRO w.Response'.Events' (realEventsL x rs)`,
+     `decWEventsL`/`WatchFromL`/`WFailed = false`/`Skip = false`/`wInPre x`; per op `OpOk vs[j]`, `OpFits`, `FloorOk`,
+     `stepIn` (unary: `genIn_stepIn` from GenIn + rawOk's RawRel; r from rawOk's ∃, a watch's r dummy).
+     Then `H := zip lops vs`; driver lin on `kM g0` via `isLinearization_map` from RunLin2's (decOp_box);
+     `L := zipWith (fun c e => ((boxReq c.Request', boxResp c.Response'), e.val)) os (fmapH unaryOf H)`; StepAgree L
+     from `reqRep_agree`/`respRep_agree` over L's reps; realMS ioOk of each p via `decR_mem`; Illegal refuted by
+     `realS_isLinearization g0 H π RunOk` (hI := `.1`, hpres := `kstepL_runOk`) + `isLinearization_map` + `realM_step`;
+     Ok: `linInfoOk` → psls length 1 → `partLins` → one `linSlice` xs (when ps ≠ []) → lin2 on realM → map back to
+     realS on `fmapH unaryOf H`; `orderByLinearization` (xs in range from the perm); empty ps: lin2 := the B2 one;
+     `realReplay_ok g0 H π hops hrun0 hpres hfl hn lin2` gives R, `rvalidateL` of each, the watches' `hv`;
+     NewReplay (`replayPre_of`; `[∗list] opRep` reindexed by xs), Validate (`opPre`/`listExpOk_of`/keyOkL from
+     stepIn), NewWatchValidator, ValidateWatch (B5 `validateWatchL_of_watchOkL` with `histWf_of_histGood`, hs0 from
+     `CfgOk`'s `0 < rv`, hreq from ioOk's watch conjunct; `wreqRep` from watchOptions + `sendInitOwn_persist`).
+  2. `Check`: `failureFree` + `realCheck`; `Check.spec` gains `RunOk g0` (PROPOSED, questions.md night 19), proved for
+     `g0s` in Seed.lean (StOk/itemOk/rmWf/histAtL/HistCfgOk/HistSorted/HistGood of `[st1, st2, st3]`) and passed in
+     Main/MainCluster/MainPartition; `uint.nat g0.st.rv + |lops| < 2^63` from Check's bounds. gen-link (LAKE_OPTS);
+     timed full build (report the id).
+  3. Report at step 5's end; then step 6 prep and STOP for the Freeze.
+- Pitfalls (new): `by_contra` does not exist (no Mathlib): `refine Classical.byContradiction fun h => ?_`. Inside
+  `⟨fun o ho => by cases ho, …⟩` the `by` swallows the comma (`cases ho, …`): parenthesize `(by cases ho)`.
+  `mupdateL`'s `cur` is an `if`: `generalize` it before `split` (as `mstepL_ok`). After `rw [hlc]` a `match some (c, rq)`
+  does not reduce: `simp only [..] at hv`. `List.subperm_of_subset` (not `Nodup.subperm`).
+
+### Superseded (night 18)
+
 **2026-11-19 (night 18; for etcd-grove-03). 03's night-17 decisions recorded (questions.md). Done, each file
 lean-checked `-a` without `--fast` (all 7 touched proof files, 0 errors): gap 2 + the ReplayPre lemma
 (`7b8a12f143`), `realRequest` + `realEvents` specs+proofs (`da5687eeaf`), GMap.ofList docstring in
