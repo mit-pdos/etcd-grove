@@ -2864,3 +2864,14 @@ parameter.
   copy of `wp_slice_make3`'s proof with the extra conjunct.
 - **Proposed (general).** Strengthen `wp_slice_make3`'s post with `⌜sl ≠ slice.nil⌝` (a stronger post,
   no premise). **Status.** Recorded only.
+
+## 2026-11-19: closure values and their captured cells (k8s 7g, `realCheck`)
+
+- **The gap.** Nothing relates a closure value (`GoFunc`) to the cells it captured: two WP specs of one
+  closure give no pure agreement of what they are about. `realCheck`'s porcupine model needs it (two
+  operations with the same `Request` value, i.e. the same `validateFor`/`tryUpdateFor` closure, step alike).
+- **Worked around locally.** `Proof/.../k8s/etcd3/ClosPin.lean`: `exprVals` (the leaf values of an `Expr`) and
+  pins at the indices of the translated bodies (`validatePin`, `tryUpdatePin`), proved by the closures' specs.
+- **Proposed (general).** A Perennial notion of a closure's captured cells (e.g. `func.captures f ls`, produced
+  by `wp_auto` when it evaluates a `Lam` under allocated variables), with agreement for equal values.
+  **Status.** Recorded only.
