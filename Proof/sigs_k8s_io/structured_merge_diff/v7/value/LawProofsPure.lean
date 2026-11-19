@@ -245,6 +245,24 @@ theorem perm_of_nodup_mem {α : Type} [DecidableEq α] (l l' : List α) (h1 : l.
     (h : ∀ a, a ∈ l ↔ a ∈ l') : l.Perm l' :=
   (List.perm_ext_iff_of_nodup h1 h2).2 h
 
+/-! ## Zips with a nil side -/
+
+theorem zipKeys_none_none : zipKeys none none = [] := by
+  simp [zipKeys, kvsOrEmpty, zipLexical]
+
+theorem zipLexical_left (n : Nat) (xs : List (GoString × UVal)) :
+    (zipLexical (n + 1) xs []).map (·.1) = kvKeys xs := by
+  cases xs <;> simp [zipLexical, kvKeys]
+
+theorem zipLexical_right (n : Nat) (ys : List (GoString × UVal)) :
+    (zipLexical (n + 1) [] ys).map (·.1) = kvKeys ys := by
+  cases ys <;> simp [zipLexical, kvKeys]
+
+theorem zipKeys_swap_none (kvs : List (GoString × UVal)) :
+    zipKeys (some kvs) none = zipKeys none (some kvs) := by
+  simp only [zipKeys, kvsOrEmpty, Option.getD_some, Option.getD_none, List.length_nil]
+  rw [zipLexical_left, zipLexical_right]
+
 end ValuePure
 
 end smd

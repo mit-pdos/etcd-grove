@@ -364,6 +364,62 @@ theorem isMapV_persistent_law_holds : isMapV_persistent.law (GF := GF) := fun _ 
 theorem isListV_persistent_law_holds : isListV_persistent.law (GF := GF) := fun _ _ => by
   iintro #H; imodintro; iexact H
 
+theorem isValF_concrete_law_holds : isValF_concrete.law (GF := GF) := by
+  intro v dq x
+  iintro Hv
+  iunfold isValF at Hv
+  icases Hv with ⟨%p, %i, %Heq, -⟩
+  iexists p
+  ipureintro
+  exact Heq
+
+theorem isMapV_concrete_law_holds : isMapV_concrete.law (GF := GF) := by
+  intro m kvs
+  iintro Hm
+  iunfold isMapV at Hm
+  icases Hm with ⟨%gm, %Heq, -⟩
+  iexists gm
+  ipureintro
+  exact Heq
+
+theorem isListV_concrete_law_holds : isListV_concrete.law (GF := GF) := by
+  intro l vs
+  iintro Hl
+  iunfold isListV at Hl
+  icases Hl with ⟨%sl, -, (%Heq | ⟨%p, %Heq, -⟩)⟩
+  · ileft; iexists sl; ipureintro; exact Heq
+  · iright; iexists p; ipureintro; exact Heq
+
+theorem ownRange_concrete_law_holds : ownRange_concrete.law (GF := GF) := by
+  intro r vs n
+  iintro Hr
+  iunfold ownRange at Hr
+  icases Hr with (⟨%q, %h⟩ | ⟨%q, %sl, %w, %iw, %h, Hq, Hi, Hw⟩)
+  · isplitl
+    · iunfold ownRange; ileft; iexists q; ipureintro; exact h
+    · ileft; iexists q; ipureintro; exact h.1
+  · isplitl
+    · iunfold ownRange; iright; iexists q, sl, w, iw; iframe; ipureintro; exact h
+    · iright; iexists q; ipureintro; exact h.1
+
+theorem isMapO_cases (m : value.Map) (o : Option (List (GoString × UVal))) :
+    isMapO (GF := GF) m o ⊢
+      ⌜(o = none ∧ m = interface.nil) ∨
+        ∃ (kvs : List (GoString × UVal)) (gm : GoMap), o = some kvs ∧
+          m = interface.mkOk value.mapUnstructuredString.ty #gm⌝ := by
+  cases o with
+  | none =>
+    simp only [isMapO]
+    iintro %h
+    ipureintro
+    simp [h]
+  | some kvs =>
+    simp only [isMapO]
+    iintro Hm
+    icases isMapV_concrete_law_holds m kvs $$ Hm with ⟨%gm, %h⟩
+    ipureintro
+    exact Or.inr ⟨kvs, gm, rfl, h⟩
+
 theorem isAlloc_concrete_law_holds : isAlloc_concrete.law (GF := GF) := by
   intro a
   iintro Ha
