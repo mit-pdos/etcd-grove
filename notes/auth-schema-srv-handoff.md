@@ -1,6 +1,30 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 g, PORT CHECKPOINT A)
+## START HERE (2026-11-19 h, P3-P5 BLOCKER: UnsafePut's entry-size premise)
+
+- Staging branch `auth-schema-port` (worktree `/shared/etcd-grove-authschema`), pin 3afd77e35:
+  `--packages=/shared/tmp/manifest-3af.json`, `.lake/package-overrides.json` = that manifest. `auth-schema-srv` still at
+  cc85342beb (fast-forward at checkpoint B, not reached). Checkpoint A ACCEPTED (questions.md).
+- **Done**: e0fba3c0e6 the four `UnsafeForEach` callers over lean's vocabulary (read: visitor `txLive rtx γ.db q (ro
+  rv.1)`; batch: `∀ G`, `ownWTxG st.tx γ.db st.C st.S G`); 525d00e65f backend Link regenerated + realization vocabulary
+  (`rdB γ.db`, `txBytes … γ.db`, `kvsOutRd_* γ.db`); backend Link target builds green (3804 jobs); every other gen-link
+  mode: no change. e5737627bc soundness §8 + independent check (OK, 3 MINORs). 8f9a9f734c, 5969f26472: realization files
+  `attribute [-instance] Perennial.Fs.Qp.countable` (iris now has `instCountableQp`; the duplicate split the pools'
+  ghost-map instance).
+- Full timed builds: 20261119-180506-1343931 (failed: AuthRealInv, fixed), 20261119-190055-1577997 (failed only at
+  `AuthRealWr` l.1209/1260; everything else up to it green).
+- **BLOCKER**: lean's `batchTxBuffered.UnsafePut.spec` takes `kb.length + vb.length ≤ bbolt.bboltEntryMax` (2^28);
+  `lk_put`/`lk_putA` (AuthRealWr) put `userEncode ur`/`roleEncode rr` whose size nothing bounds (the schema write
+  contract gives only key bounds; `authSmall` bounds roles/permissions by the revision ≤ 2^61; `authRecordsFit` is an
+  opaque Prop with no law). Needs a decision (report of 2026-11-19 h); no Lean change made for it.
+- Next after the decision: fix `lk_put`/`lk_putA` and their callers, rerun the full timed build, tcb `--check --update`,
+  collections, interfaces, tier-check; checkpoint B; then C (stmtdiff: `/shared/tmp/auth-schema-srv/stmtdiff2.py lean`,
+  20 statements incl. the three `*_robust.spec`, currently all OK with only hD22 removed).
+- Pitfalls: (44)-(45) as before; (46) a file importing the file extension and iris's ghost maps over `Qp` needs
+  `attribute [-instance] Perennial.Fs.Qp.countable` (or delete the duplicate in `GooseLang/Ext/{Fs,OsFs}/Ghost.lean`).
+
+## History (START HERE of 2026-11-19 g, PORT CHECKPOINT A, superseded)
+
 
 - Port Scope ACCEPTED by etcd-grove-03 (questions.md "Port Scope ACCEPTED"): staging branch `auth-schema-port`
   (worktree `/shared/etcd-grove-authschema`), pin 3afd77e35: `--packages=/shared/tmp/manifest-3af.json` everywhere,
