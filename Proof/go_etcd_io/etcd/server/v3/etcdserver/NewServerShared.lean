@@ -112,7 +112,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOptsLemmas
 public import Proof.ReceiptTactics
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
 
 @[expose] public section
 
