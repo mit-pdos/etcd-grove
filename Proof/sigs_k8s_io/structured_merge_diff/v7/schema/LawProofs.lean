@@ -175,6 +175,26 @@ theorem isStructField_elim_law_holds : isStructField_elim.law (GF := GF) := fun 
 
 /-! ## Opening a schema's and a map type's lazy index (for `FindNamedType`, `Map.FindField`) -/
 
+/-- An atomic pointer, given up for good (the lazy index once built). -/
+theorem LawProofs.ownPointer_persist {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T']
+    (u : Loc) (dq : DFrac) (v : Loc) :
+    sync.atomic.ownPointer (GF := GF) (T' := T') u dq v ⊢
+      |==> sync.atomic.ownPointer (T' := T') u DFrac.discard v := by
+  rw [sync.atomic.ownPointer_unseal]; unfold sync.atomic.ownPointerDef
+  exact (typedPointsto_dfractional _ _).dfractional_persist dq
+
+instance LawProofs.ownPointer_discard_pers {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T']
+    (u : Loc) (v : Loc) :
+    Persistent (sync.atomic.ownPointer (GF := GF) (T' := T') u DFrac.discard v) := by
+  rw [sync.atomic.ownPointer_unseal]; unfold sync.atomic.ownPointerDef; infer_instance
+
+/-- A zero atomic pointer is an owned nil pointer. -/
+theorem LawProofs.ownPointer_zero {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] (u : Loc) :
+    u ↦ (zero_val (sync.atomic.Pointer T')) ⊢
+      sync.atomic.ownPointer (GF := GF) (T' := T') u (DFrac.own 1) null := by
+  rw [sync.atomic.ownPointer_unseal]; unfold sync.atomic.ownPointerDef
+  exact .rfl
+
 theorem LawProofs.isTypeDefs_lookup (n : GoString) : ∀ (tds : List schema.TypeDef)
     (ts : List (GoString × Atom)), (ts.map (·.1)).Nodup →
     isTypeDefs (GF := GF) false tds ts ⊢
