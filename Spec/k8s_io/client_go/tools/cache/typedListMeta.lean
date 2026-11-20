@@ -1,6 +1,7 @@
 /-
-**The reflector's typed lists' `ListMeta` accessors: a pending hypothesis** (DRAFT, k8s 7g follow-up
-(B'), `notes/k8s-7g-listaccessor-bprime.md` step 4; not a Go function's spec).
+**The reflector's typed lists' `ListMeta` accessors: a pending hypothesis** (k8s 7g follow-up (B'),
+`notes/k8s-7g-listaccessor-bprime.md` step 4; approved by the user, 2026-11-20; not a Go function's
+spec: a fact named for what it states, linked as a `?` entry of `etc/link-lean-first-k8scache.txt`).
 
 The reflector's lists (`resListTy r`: `*v1.PodList`, `*v1.NodeList`, `*appsv1.DaemonSetList`,
 `*appsv1.ControllerRevisionList`) reach `meta.ListAccessor` in `ListPager.list`, whose result the
@@ -18,7 +19,8 @@ Each is a fact about `k8s.io/api/{core,apps}/v1`: (1) of those packages' method 
 (translated with bodies). So it is provable under `k8s.io/api/core/v1`'s and `apps/v1`'s
 `Assumptions`, which client-go cache's Link does not take: there it stays a hypothesis
 (`h_typedListMeta`, `section links_pending`) of the results that reach the pager (all of which are
-pending for other reasons already), to be discharged by a Link that takes those instances.
+pending for other reasons already), to be discharged by a Link that takes those instances. Go evidence:
+`examples/k8s/daemonset/apimodel/typedlistmeta_test.go` `TestTypedListMeta`.
 -/
 module
 

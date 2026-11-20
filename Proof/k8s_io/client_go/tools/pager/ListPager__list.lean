@@ -1,11 +1,12 @@
 /-
-Proof of `Spec/k8s_io/client_go/tools/pager/ListPager__list.lean`, over `meta.ListAccessor`'s and
-`apierrors.IsResourceExpired`'s named hypotheses (boundary, pending approval). Lean-first.
+Proof of `Spec/k8s_io/client_go/tools/pager/ListPager__list.lean`, over `meta.ListAccessor`'s spec, the typed
+lists' pending hypothesis `cache.typedListMeta` and `apierrors.IsResourceExpired`'s named hypothesis. Lean-first.
 -/
 module
 
 public import Spec.k8s_io.client_go.tools.pager.ListPager__list
 public import Spec.k8s_io.apimachinery.pkg.api.meta.ListAccessor
+public import Spec.k8s_io.client_go.tools.cache.typedListMeta
 public import Spec.k8s_io.apimachinery.pkg.api.errors.IsResourceExpired
 public import Perennial.Proof.context.BackgroundCtx
 
@@ -43,6 +44,7 @@ variable [package_sem : k8s_io.client_go.tools.pager.Assumptions]
 
 theorem ListPager.list.wp_proof
     (wp_ListAccessor : apimeta.ListAccessor.spec (GF := GF) (hG := hG))
+    (wp_typedListMeta : cache.typedListMeta.spec (GF := GF) (hG := hG))
     (wp_IsResourceExpired : apierrors.IsResourceExpired.spec (GF := GF) (hG := hG)) :
     ListPager.list.spec (GF := GF) (hG := hG) := by
   intro p pg opts alloc res S hts hsie
@@ -103,13 +105,10 @@ theorem ListPager.list.wp_proof
               iframe
     · subst he hobj
       (try wp_auto)
-      wp_apply (wp_ListAccessor.1 res q os rv) $$ [$Hmeta $Hl] as %m %merr ⟨%hmerr, Hl, #Hacc⟩
-      subst hmerr
-      iunfold apimeta.listAccOk at Hacc
-      icases Hacc with ⟨%hm, #HrvM, #HcontM⟩
-      subst hm
+      obtain ⟨hlts, -, wp_cont⟩ := wp_typedListMeta res
+      wp_apply (wp_ListAccessor ⟨go.GoType.PointerType (resListTy res), #q⟩ hlts) $$ [$Hmeta]
       (try wp_auto)
-      wp_apply HcontM $$ Hl as Hl
+      wp_apply (wp_cont q os rv) $$ [$Hl] as Hl
       (try wp_auto)
       wp_func_call
       wp_call

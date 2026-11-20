@@ -17,6 +17,7 @@ public import Spec.k8s_io.client_go.tools.pager.New
 public import Spec.k8s_io.client_go.tools.pager.SimplePageFunc
 public import Spec.k8s_io.client_go.tools.pager.ListPager__ListWithAlloc
 public import Spec.k8s_io.apimachinery.pkg.api.meta.ListAccessor
+public import Spec.k8s_io.client_go.tools.cache.typedListMeta
 public import Spec.k8s_io.apimachinery.pkg.api.meta.ExtractListWithAlloc
 public import Spec.k8s_io.apimachinery.pkg.api.meta.LenList
 public import Spec.k8s_io.utils.trace.New
@@ -63,6 +64,7 @@ theorem Reflector.list.wp_proof
     (wp_SimplePageFunc : pager.SimplePageFunc.spec (GF := GF) (hG := hG))
     (wp_ListWithAlloc : pager.ListPager.ListWithAlloc.spec (GF := GF) (hG := hG))
     (wp_ListAccessor : apimeta.ListAccessor.spec (GF := GF) (hG := hG))
+    (wp_typedListMeta : typedListMeta.spec (GF := GF) (hG := hG))
     (wp_Extract : apimeta.ExtractListWithAlloc.spec (GF := GF) (hG := hG))
     (wp_LenList : apimeta.LenList.spec (GF := GF) (hG := hG))
     (wp_traceNew : trace.New.spec (GF := GF) (hG := hG))
@@ -427,13 +429,10 @@ theorem Reflector.list.wp_proof
         all_goals
           wp_apply (wp_setUnavailable r v u' false) $$ [$Hpkg $Hown] as Hown
           (try wp_auto)
-          wp_apply (wp_ListAccessor.1 res q os (rvStr σ.rev)) $$ [$Hmeta $Hl] as %m %merr ⟨%hmerr, Hl, #Hacc⟩
-          subst hmerr
-          iunfold apimeta.listAccOk at Hacc
-          icases Hacc with ⟨%hm, #HrvM, #HcontM⟩
-          subst hm
+          obtain ⟨hlts, wp_rvM, -⟩ := wp_typedListMeta res
+          wp_apply (wp_ListAccessor ⟨go.GoType.PointerType (resListTy res), #q⟩ hlts) $$ [$Hmeta]
           (try wp_auto)
-          wp_apply HrvM $$ Hl as Hl
+          wp_apply (wp_rvM q os (rvStr σ.rev)) $$ [$Hl] as Hl
           (try wp_auto)
           wp_apply (wp_Step tr _ _) $$ []
           · ipureintro; exact Htr
