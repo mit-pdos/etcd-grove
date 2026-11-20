@@ -86,8 +86,13 @@ UNSIGNED = {"uint", "uint8", "uint16", "uint32", "uint64"}
 BASIC = SIGNED | UNSIGNED | {"bool", "string"}
 GOB_IFACES = ["gob_encoder", "gob_decoder", "binary_marshaler", "binary_unmarshaler",
               "text_marshaler", "text_unmarshaler"]
-# identifiers the generated files declare or import: no package alias may be one of them
-RESERVED = {"errors", "rpcmodel", "bytes", "gob", "rand", "reflect", "testing", "fmt", "math"}
+# identifiers the generated files import or use as local names: a package alias that is one of
+# them (or starts with "rpc") is renamed p_<alias> in the generated code
+RESERVED = {"errors", "rpcmodel", "bytes", "gob", "rand", "reflect", "testing", "fmt", "math", "os",
+            "strconv", "t", "r", "i", "seed", "v", "z", "real", "model", "model2", "r1", "r2",
+            "real3", "model3", "before", "err", "d", "b", "x", "y", "p", "n", "ok", "rest", "tag",
+            "data", "ptr", "rcvr", "argv", "replyv", "ms", "errT", "exported", "m", "mt", "got",
+            "want", "s", "k", "f", "c", "e", "q"}
 
 
 class Schema:
@@ -99,7 +104,7 @@ class Schema:
         self.alias = {}       # import path -> alias
         for a, p in aliases.items():
             if a in RESERVED or a.startswith("rpc"):
-                self.reasons.append(f"import alias {a!r}: reserved by the generated code")
+                a = "p_" + a
             self.alias[p] = a
         self.ok = {}          # id -> True (checked, accepted)
         self.roots = []       # ids of top-level types (method arguments flattened, extra types)
@@ -127,7 +132,7 @@ class Schema:
                 return self.refuse(where, f"{e['string']} is a generic type (not nameable)")
             if not e["name"][0].isupper():
                 return self.refuse(where, f"{e['string']} is unexported (the codec cannot name it)")
-            if e["pkg_path"] == "main" or e["pkg_path"].endswith("/main") and e["pkg_name"] == "main":
+            if e["pkg_name"] == "main":
                 return self.refuse(where, f"{e['string']} is in package main (not importable)")
         return True
 
