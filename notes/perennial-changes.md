@@ -1306,6 +1306,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`time` is translated without `Duration.String`, so its pointer wrapper is missing too).
 - **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
   base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
+  (2026-11-20, auth-mediation M2) etcd's membership operations: `json.Marshal` of a
+  `membership.Member` and of a `ConfigChangeContext` (`EtcdServer.AddMember`, `UpdateMember`,
+  `promoteMember`), local trust-boundary specs in the smallest form (no error, some fresh bytes:
+  `Spec/encoding/json/MarshalMember.lean`, `MarshalConfigChangeContext.lean`); the general fix is a
+  model of `encoding/json`'s encoder for structs of basic fields and string slices.
 - **Workaround here.** The three packages names-only in this repository's configuration (survey
   branch: `Code/encoding/{json,base64}.toml`, `Code/path.toml`); specs as
   needed, local until proposed.
