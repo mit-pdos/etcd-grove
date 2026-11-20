@@ -11,6 +11,7 @@
 reflect_DeepEqual+Nil:
 slices_BinarySearchFunc:
 slices_Insert:
+sort_SliceStable:
 # `value`: values, their maps, lists, ranges and allocators (specs over Proof/sigs_k8s_io/structured_merge_diff/v7/value/; proofs `sorry`). A
 # recursion cluster `<C>Rec` takes its members' bodies (`<fn>+Body`: the spec inside the logic
 # from the cluster's under a later), each member's `wp_proof` the cluster's (its projection).
@@ -25,7 +26,7 @@ value_EqualsUsing+Body: value_heapAllocator__Free value_freelistAllocator__Free 
 value_EqualsUsingRec: value_EqualsUsing+Body value_ListEqualsUsing+Body value_listUnstructured__EqualsUsing+Body value_listUnstructured__EqualsUsing_ptr+Body value_mapUnstructuredString__EqualsUsing+Body
 value_FieldList__Compare: =_root_.Perennial.strings.wp_Compare value_Compare
 value_FieldList__Equals: value_Equals
-value_FieldList__Sort:
+value_FieldList__Sort: sort_SliceStable
 value_FloatCompare:
 value_IntCompare:
 value_ListCompareUsing: value_CompareUsingRec

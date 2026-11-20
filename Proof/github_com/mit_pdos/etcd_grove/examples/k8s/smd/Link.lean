@@ -137,6 +137,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__typedObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.updated
+public import Proof.sort.SliceStable
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.AsTyped
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Comparison__ExcludeFields
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Comparison__FilterFields
@@ -388,6 +389,10 @@ theorem slices.wp_BinarySearchFunc :
 theorem slices.wp_Insert :
     EtcdGrove.slices.Insert.spec (GF := GF) (hG := hG) :=
   EtcdGrove.slices.Insert.wp_proof
+
+theorem sort.wp_SliceStable :
+    EtcdGrove.sort.SliceStable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sort.SliceStable.wp_proof
 
 theorem reflect.wp_DeepEqualNil :
     EtcdGrove.reflect.DeepEqual.specNil (GF := GF) (hG := hG) :=
@@ -1094,7 +1099,7 @@ theorem smd.typed.wp_getAssociativeKeyDefault :
 
 theorem smd.value.FieldList.wp_Sort :
     EtcdGrove.smd.value.FieldList.Sort.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.smd.value.FieldList.Sort.wp_proof
+  EtcdGrove.smd.value.FieldList.Sort.wp_proof sort.wp_SliceStable
 
 theorem smd.typed.wp_keyedAssociativeListItemToPathElement :
     EtcdGrove.smd.typed.keyedAssociativeListItemToPathElement.spec (GF := GF) (hG := hG) :=
