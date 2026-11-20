@@ -93,25 +93,43 @@ type Node struct {
 	stats *Stats
 }
 
-// listen listens on addr, retrying for up to 5s (the previous incarnation's socket may not be
-// gone yet); it panics if it cannot.
+// listen listens on addr, retrying until it can (the previous incarnation's socket may not be
+// gone yet): a failed Listen is never a panic (the net extension lets any Listen fail).
 func listen(addr string) net.Listener {
-	deadline := time.Now().Add(5 * time.Second)
 	for {
 		l, err := net.Listen("tcp", addr)
 		if err == nil {
 			return l
 		}
-		if time.Now().After(deadline) {
-			panic("kvnet: listen " + addr + ": " + err.Error())
-		}
 		time.Sleep(10 * time.Millisecond)
 	}
 }
 
-// RunNode runs the replica cfg.ID until its process ends: it starts it from its durable file
+// RunNode is a replica's process, as the top-level theorem runs it: replica id of the cluster
+// whose replicas' addresses are addrs (comma-separated, replica i at the i-th, ids from 1), its
+// durable file in the directory dir, the bootstrap configuration's voters 1..voters, and raft's
+// options. It panics if the cluster is not one the theorem's premises allow (ValidCluster) or id
+// is not one of its replicas; otherwise it never returns (Run).
+func RunNode(id uint64, addrs string, dir string, voters uint64, preVote, checkQuorum, stepDownOnRemoval bool,
+	maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs uint64) {
+	as := SplitAddrs(addrs)
+	if !ValidCluster(as, voters, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs) ||
+		id < 1 || id > uint64(len(as)) {
+		panic("kvnet: not a valid cluster")
+	}
+	m := make(map[uint64]string)
+	for i, a := range as {
+		m[uint64(i)+1] = a
+	}
+	Run(NodeConfig{ID: id, Dir: dir, Addrs: m, Opts: Options{
+		Voters: voters, PreVote: preVote, CheckQuorum: checkQuorum, StepDownOnRemoval: stepDownOnRemoval,
+		MaxSizePerMsg: maxSizePerMsg, MaxCommittedSizePerReady: maxCommittedSizePerReady,
+		MaxInflightMsgs: int(maxInflightMsgs)}})
+}
+
+// Run runs the replica cfg.ID until its process ends: it starts it from its durable file
 // (StartNode), then serves its peers and clients on its address. It never returns.
-func RunNode(cfg NodeConfig) {
+func Run(cfg NodeConfig) {
 	l := listen(cfg.Addrs[cfg.ID])
 	n := StartNode(cfg)
 	for {

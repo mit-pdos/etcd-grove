@@ -38,11 +38,11 @@ def kvnetReplicaProgram (cl : ClusterConfig) (addrs dir : GoString) (id : w64) :
 /-- The checking client's process: its package initialization, then `Check`. The driver: it runs
 the clients' Put/Get/Read operations (retrying across replicas, fresh operation ids and read
 sequence numbers), configuration changes and leadership disruptions, records the history with a
-counter clock, and panics unless porcupine (no timeout) answers `Ok`, or on a malformed reply. -/
+counter clock, and panics unless porcupine (no timeout) answers `Ok`. A reply that does not
+decode counts as no answer. -/
 def kvcheckProgram (cl : ClusterConfig) (addrs : GoString) : Expr :=
   kvcheck.initialize' #() ;;
-  (@! kvcheck.Check) #addrs #cl.voters #cl.preVote #cl.checkQuorum #cl.stepDownOnRemoval
-    #cl.maxSizePerMsg #cl.maxCommittedSizePerReady #cl.maxInflightMsgs
+  (@! kvcheck.Check) #addrs #cl.voters
 
 -- The extensions are fixed: the net extension and the Linux file extension, and nothing else.
 attribute [local instance] kvnetExts kvnetExtsSemantics kvnetExts_hasNet kvnetExts_hasFs
@@ -179,21 +179,31 @@ extension's notes).
 
 **Go**
 
-8. `kvnet.RunNode(id, addrs, dir string, voters, options…)`: split the addresses; **panic** on an
-   invalid configuration (an address not canonical, voters not in `1..len(addrs)`, both size limits
-   0, `maxInflightMsgs` not positive) or `id ∉ 1..len(addrs)` (unreachable under the premises).
-   `NodeConfig` and the address map stay internal.
-9. `RunNode` never panics on a failed `Listen` (today `node.go:98-110` retries 5 s, then panics:
-   reachable, since `Listen` may fail every time); retry forever.
-10. Translatable: replace the array of atomics in `stats.go`; keep `args.go` (`flag`) and `cmd/` out
-    of the translated package.
-11. New package `kvcheck`, `Check(addrs string, voters, options…)`: panics on an invalid
-    configuration as `RunNode`; Put/Get/Read clients retrying across replicas, with fresh operation
-    ids and read sequence numbers; configuration-change proposers; disruptions; the history with
-    `lintest.CounterClock`; porcupine with no timeout; a panic unless `Ok`, or on a malformed reply;
-    no aborted path. The workload (clients, operation counts, keys) is kvcheck's.
-12. The test harness calls exactly `kvcheck.Check`; only fault injection stays in it. Mutation tests
-    (e.g. `persist` with `os.WriteFile`, which fails power mode) show `Check` panics.
+8. **Done (2026-11-20).** `kvnet.RunNode(id, addrs, dir, voters, preVote, checkQuorum,
+   stepDownOnRemoval, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs)` (`node.go`): splits
+   the addresses (`addrs.go`: `SplitAddrs`, `AddrOk` = the net extension's `addrOk`, unit-tested on
+   its edge cases, `ValidAddrs`, `ValidCluster`); **panics** on an invalid configuration or
+   `id ∉ 1..len(addrs)` (unreachable under the premises); then `Run(NodeConfig)`, the former
+   `RunNode`.
+9. **Done.** `listen` retries forever: a failed `Listen` is never a panic.
+10. **Done.** `stats.go`: a mutex and a plain array (no array of atomics); `args.go` (`flag`) moved
+    to the driver (`driver/args.go`: `NodeArgs`, `ClientArgs`, `RunProcess`). `fmt` stays (kvdurable,
+    translated, uses it too).
+11. **Done.** Package `kvcheck` (`examples/raft/kvnet/kvcheck`), `Check(addrs string, voters uint64)`
+    (the raft options are not the client's business): panics unless `kvnet.ValidAddrs`; 4 clients ×
+    100 operations of `kvnet.Gen`, each retried at random members until answered (fresh operation id
+    per operation, fresh read sequence number per attempt; an exhausted counter spins rather than
+    reuses, as kvdurable's); 1-3 configuration-change proposers and leadership disruptions until the
+    clients are done; `lintest.Run` with `CounterClock` and timeout 0; a panic unless `Ok`. A reply
+    that does not decode counts as no answer (no obligation on the replicas' replies beyond the
+    history). kvdurable's `Run` over the network.
+12. **Done.** The harness (`driver.Run`) starts all 9 replicas at once (the theorem's replicas all
+    run from the start; the client's configuration changes add and remove them), runs `kvcheck` as a
+    process of the same binary on a client machine (`RunProcess`, roles `node`/`client`), and keeps
+    only fault injection (kills, power losses, the network nemesis) and its own post-run checks
+    (convergence, the final whole-cluster crash; its reads use sequence numbers from 2^63). Local
+    mode's addresses are now below the ephemeral range (`AddrOk`). `TestKill` passes (porcupine
+    `Ok`, 51 kills). To do: a mutation test showing `Check` panics.
 
 **Translation and linking**
 
