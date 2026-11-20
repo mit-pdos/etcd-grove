@@ -90,16 +90,6 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `defaultCompactionBatchLimit = 1000` (`kvstore.go`). -/
-axiom defaultCompactionBatchLimit_init :
-    {{ (True : IProp GF) }} (App (Val defaultCompactionBatchLimit.init) (Val #()))
-    {{ RET #(); globalAddr defaultCompactionBatchLimit ↦ (W64 1000 : w64) }}
-
-/-- `defaultCompactionSleepInterval = 10 * time.Millisecond` (`kvstore.go`). -/
-axiom defaultCompactionSleepInterval_init :
-    {{ (True : IProp GF) }} (App (Val defaultCompactionSleepInterval.init) (Val #()))
-    {{ RET #(); ∃ d : w64, globalAddr defaultCompactionSleepInterval ↦ d }}
-
 end go_etcd_io.etcd.server.v3.storage.mvcc
 end opaqueInits
 

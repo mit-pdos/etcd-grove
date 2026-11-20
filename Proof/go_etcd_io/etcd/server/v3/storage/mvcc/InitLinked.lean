@@ -108,6 +108,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) deleteCounter _ as HdeleteCounter
   wp_apply wp_GlobalAlloc (V := GoInterface) putCounter _ as HputCounter
   wp_apply wp_GlobalAlloc (V := GoInterface) rangeCounter _ as HrangeCounter
+  wp_apply wp_GlobalAlloc (V := w64) defaultCompactionSleepInterval _ as HdefaultCompactionSleepInterval
+  wp_apply wp_GlobalAlloc (V := w64) defaultCompactionBatchLimit _ as HdefaultCompactionBatchLimit
   wp_apply wp_GlobalAlloc (V := w64) restoreChunkKeys _ as HrestoreChunkKeys
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrFutureRev _ as HErrFutureRev
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrCompacted _ as HErrCompacted
@@ -150,11 +152,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrCompacted))
   -- translated initializer of ErrFutureRev))
   -- translated initializer of restoreChunkKeys))
+  -- translated initializer of defaultCompactionBatchLimit))
   wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xCP ⟨#MCP, #CCP⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xFR ⟨#MFR, #CFR⟩
-  wp_apply defaultCompactionBatchLimit_init as HdefaultCompactionBatchLimit
-  wp_apply defaultCompactionSleepInterval_init as ⟨%ddefaultCompactionSleepInterval, HdefaultCompactionSleepInterval⟩
+  -- translated initializer of defaultCompactionSleepInterval))
   -- translated initializer of rangeCounter))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %crangeCounter ⟨#CrangeCounter, -⟩
   try wp_auto
@@ -237,8 +239,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrWatcherNotExist
   ipersist HErrEmptyWatcherRange
   ipersist HErrWatcherDuplicateID
-  ipersist HdefaultCompactionBatchLimit
-  ipersist HdefaultCompactionSleepInterval
   ipersist HrangeCounter
   ipersist HputCounter
   ipersist HdeleteCounter
@@ -254,6 +254,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HindexCompactionPauseMs
   ipersist HdbCompactionPauseMs
   ipersist HdbCompactionTotalMs
+  ipersist HdefaultCompactionBatchLimit
+  ipersist HdefaultCompactionSleepInterval
   ipersist HchanBufLen
   ipersist HmaxWatchersPerSync
   ipersist HwatchResyncPeriod

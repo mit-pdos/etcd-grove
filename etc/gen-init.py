@@ -240,6 +240,10 @@ error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-o
 initializer runs its variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New`
 call (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states;
 `linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`); `opaqueInitsOk` the others.
+(const-inits, 2026-11-19) The timeouts and intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`,
+`proberInterval`, `statusMonitoringInterval`, `statusErrorInterval`), `errMemberNotFound`
+(`fmt.Errorf`, its proof) and `supportedStream` (a map literal of slice literals) are translated
+and set (until then the trust-boundary axioms `<X>_init` and `opaqueInitsOk`).
 `RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
 (`path.Join`, proved), `ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds), `readBytesLimit`
 (512 MiB) and (raft-entsize, route H1, 2026-11-10) `linkHeartbeatMessage`
@@ -257,23 +261,33 @@ literal frozen by `hbMsg_init`) are translated and set.''',
         'linkHeartbeatSize': dict(
         doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
         post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
-        pat='⟨%n@, H@, %B@⟩'),
-        # (2026-10-24, rafthttp stage 6e) the stream types each version supports, which the stream
-        # reader's `checkStreamSupport` looks up
-        'supportedStream': dict(
-        doc='/-- `supportedStream = map[string][]streamType{"2.0.0": {}, "2.1.0": {streamTypeMsgAppV2, streamTypeMessage}, ...}` (`stream.go`): a map of slices; nothing writes the map or its slices. -/',
-        post='∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦ m ∗ m ↦$□ M ∗ □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts',
-        pat='⟨%m@, %M@, H@, #MM@, #ME@⟩')},
+        pat='⟨%n@, H@, %B@⟩')},
+
     alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64',
                  'ProbingPrefix': 'GoString', 'RaftStreamPrefix': 'GoString',
                  'RaftSnapshotPrefix': 'GoString',
-                 'linkHeartbeatMessage': '_root_.Perennial.go_etcd_io.raft.v3.raftpb.Message'},
+                 'linkHeartbeatMessage': '_root_.Perennial.go_etcd_io.raft.v3.raftpb.Message',
+                 'snapResponseReadTimeout': 'w64', 'errMemberNotFound': 'GoInterface',
+                 'ConnWriteTimeout': 'w64', 'proberInterval': 'w64', 'statusMonitoringInterval': 'w64',
+                 'statusErrorInterval': 'w64', 'supportedStream': 'Loc'},
     # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step;
     # (2026-10-24, rafthttp stage 6d) the three subpaths of `RaftPrefix`: `path.Join` (proved)
     before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto'],
+            'ConnWriteTimeout': ['simp only [DefaultConnWriteTimeout]', 'try wp_auto'],
             'ProbingPrefix': raft_subpath('probing', 'P'),
             'RaftStreamPrefix': raft_subpath('stream', 'S'),
             'RaftSnapshotPrefix': raft_subpath('snapshot', 'N'),
+            # (const-inits, 2026-11-19) the stream types each version supports (`stream.go`): a
+            # `map[string][]streamType` literal of 13 slice literals, each slice made then inserted
+            'supportedStream': ['try wp_auto',
+                'wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType streamType.ty)) as %mss Hss',
+                'try wp_auto'] + [l for i in range(13) for l in [
+                f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sss{i} ⟨Sss{i}, -⟩',
+                'try wp_auto',
+                'wp_apply (wp_mapInsert (K := GoString) (V := GoSlice) go.string) $$ Hss as Hss', 'try wp_auto']],
+            # (const-inits, 2026-11-19) `errMemberNotFound = fmt.Errorf("member not found")`, translated
+            'errMemberNotFound': ['wp_apply (_root_.Perennial.fmt.wp_Errorf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -',
+                                  '· iframe #; iapply ownSlice_nil', 'try wp_auto'],
             # (raft-entsize, route H1, 2026-11-10) `Message{Type: MsgHeartbeat.Enum()}`, translated:
             # `Enum`'s proof, the literal stored, frozen at its content `hbC` (`hbMsg_init`)
             'linkHeartbeatMessage': ['try wp_auto',
@@ -283,6 +297,12 @@ literal frozen by `hbMsg_init`) are translated and set.''',
                 'try wp_auto',
                 'imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage',
                 '· iframe HlinkHeartbeatMessage Hphb']},
+    # (const-inits, 2026-11-19) a lookup in a map literal finds one of its values
+    pre=['/-- A lookup in `<[k := v]> m` finds `v` or one of `m`\'s values. -/',
+         'theorem EtcdGrove.lookup_insert_some {K V : Type} [DecidableEq K] (m : GMap K V) (k k\' : K) (v w : V)',
+         '    (h : (<[k := v]> m) !! k\' = some w) : w = v ∨ m !! k\' = some w := by',
+         '  rw [GMap.lookup_insert_eq_iff] at h',
+         '  by_cases hk : k = k\' <;> simp [hk] at h <;> simp [h]', ''],
     imports=['Proof.path.Join', 'Proof.path.Clean', 'Proof.path.lazybuf__index',
              'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string',
              'Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum',
@@ -292,7 +312,8 @@ literal frozen by `hbMsg_init`) are translated and set.''',
             'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',
             'ipersist HRaftSnapshotPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
             'ipersist HreadBytesLimit', 'ipersist HerrUnsupportedStreamType',
-            'ipersist HsupportedStream',
+            'ipersist HsupportedStream', 'ipersist HsnapResponseReadTimeout', 'ipersist HerrMemberNotFound',
+            'ipersist Hss'] + [f'ipersist Sss{i}' for i in range(13)] + [
             'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
             'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'isplitr',
@@ -302,7 +323,12 @@ literal frozen by `hbMsg_init`) are translated and set.''',
             'isplitr', '· iexact HProbingPrefix', 'isplitr', '· iexact HRaftStreamPrefix',
             'isplitr', '· iexact HRaftSnapshotPrefix',
             'simp only [EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]',
-            'iframe #', 'try (ipureintro; exact BlinkHeartbeatSize)'],
+            'iframe #',
+            # `supportedStream`'s slices: each entry one of the 13 literals
+            'isplitl []', '· ipureintro; exact BlinkHeartbeatSize',
+            'imodintro', 'iintro %k %sl %Hk',
+            'repeat\' (rcases EtcdGrove.lookup_insert_some _ _ _ _ _ Hk with rfl | Hk)',
+            'all_goals (first | (iexists _; iassumption) | simp at Hk)'],
 )
 
 
@@ -891,11 +917,10 @@ reads, `opaqueInitsOk` the others.''',
 # (the lease-renew plan, 2026-11-01) names only: `LeaseRenew` reads `LeasePrefix`
 SPECIAL['go_etcd_io.etcd.server.v3.lease.leasehttp'] = dict(
     doc='''Its fact (`lease/leasehttp/Base.lean`): `LeasePrefix` holds some string. Its initializer
-runs its variables' untranslated initializers (`http.go`); the trust-boundary axiom
-`LeasePrefix_init` states the one the fact reads (`"/leases"`, its value not stated),
-`opaqueInitsOk` the others.''',
-    custom={'LeasePrefix': dict(doc='/-- `LeasePrefix = "/leases"` (`http.go`): some string. -/',
-                                post='∃ p : GoString, globalAddr LeasePrefix ↦ p', pat='⟨%p@, H@⟩')},
+sets the translated `LeasePrefix` (`"/leases"`) and `LeaseInternalPrefix` (`http.go`; until
+2026-11-19 the trust-boundary axiom `LeasePrefix_init`) and runs its other variables'
+untranslated initializers, which `opaqueInitsOk` says run.''',
+    alloc_types={'LeasePrefix': 'GoString', 'LeaseInternalPrefix': 'GoString'},
     finish=['ipersist HLeasePrefix'] + FIN_PRE[:6],
 )
 
@@ -977,19 +1002,16 @@ SPECIAL['github_com.spf13.pflag'] = dict(
 # (k8s 7e-1, 2026-11-10, decided by etcd-grove-81) grpc's fact: `EnableTracing` holds `false`
 SPECIAL['google_golang_org.grpc'] = dict(
     doc='''Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good. Its
-initializer initializes its imports, runs the untranslated initializers of its variables (`X.init`,
-axioms of the translation), which the trust-boundary axiom `opaqueInitsOk` says run without
-panicking, but the first, `DefaultBackoffConfig.init`, whose trust-boundary axiom
-`DefaultBackoffConfig_init` also gives `EnableTracing`'s cell, holding `false`: Go allocates every
-package variable, zero-valued, before the first initializer runs, and `EnableTracing` (`var
-EnableTracing bool`, `trace.go:33` at v1.84.0) has no initializer of its own, so the names-only
-translation has no step that allocates it and the fact rides on the first initializer. Its
-untranslated `init` functions the trust-boundary axiom `initFuncsOk` says return.''',
-    custom={'DefaultBackoffConfig': dict(
-        doc='/-- `DefaultBackoffConfig = BackoffConfig{MaxDelay: 120 * time.Second}` (`backoff.go`) runs without panicking, and `EnableTracing`\'s cell holds `false` after it: Go allocates every package variable, zero-valued, before the first initializer runs, and `EnableTracing` (`var EnableTracing bool`, `trace.go:33` at grpc v1.84.0) has no initializer of its own, so its allocation is attributed to the package\'s first initializer (grpc\'s translation is names-only: its `initialize\'` has no `GlobalAlloc`). No translated code writes `EnableTracing`; a program that writes it (etcd\'s `embed` at log level debug, grpc-proxy `--debug`) gets no proof: it would need the cell, which `finish` makes persistent. -/',
-        post='globalAddr EnableTracing ↦ false',
-        pat='H@')},
-    finish=['ipersist HDefaultBackoffConfig'] + FIN_PRE[:6],
+initializer initializes its imports, allocates `EnableTracing` (`var EnableTracing bool`,
+`trace.go:33` at v1.84.0: translated, no initializer, so its cell holds `false`), runs the
+untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
+trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated `init`
+functions, which the trust-boundary axiom `initFuncsOk` says return. (Until 2026-11-19 the cell
+came from the trust-boundary axiom `DefaultBackoffConfig_init`.) No translated code writes
+`EnableTracing`; a program that writes it (etcd's `embed` at log level debug, grpc-proxy `--debug`)
+gets no proof: it would need the cell, which `finish` makes persistent.''',
+    alloc_types={'EnableTracing': 'Bool'},
+    finish=['ipersist HEnableTracing'] + FIN_PRE[:6],
 )
 
 # (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
@@ -1281,20 +1303,6 @@ for _x, _k, _l in _SNAP_METRICS:
     SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom'][_x] = promvec(_x, _k, [_l])
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     f'ipersist H{_x}' for _x, _, _ in _SNAP_METRICS]
-# (2026-10-24, rafthttp stage 7d) the snapshot sender's response-read timeout, which its `post`
-# hands to `time.AfterFunc` (any duration does)
-SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['snapResponseReadTimeout'] = dict(
-    doc='/-- `snapResponseReadTimeout = 5 * time.Second` (`snapshot_sender.go`): some duration, read-only for good. -/',
-    post='∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦ d', pat='⟨%d@, H@⟩')
-SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
-    'ipersist HsnapResponseReadTimeout']
-# (2026-10-24, rafthttp stage 7d) the error `SendSnapshot` closes a message with when it has no
-# peer for it (`CloseWithError` takes any error)
-SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['errMemberNotFound'] = dict(
-    doc='/-- `errMemberNotFound = errors.New("member not found")` (`util.go`): some error, read-only for good. -/',
-    post='∃ e : GoInterface, globalAddr errMemberNotFound ↦ e', pat='⟨%e@, H@⟩')
-SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
-    'ipersist HerrMemberNotFound']
 
 _MEMBERSHIP_ERRS = ['ErrIDRemoved', 'ErrIDExists', 'ErrIDNotFound', 'ErrPeerURLexists',
                     'ErrMemberNotLearner', 'ErrTooManyLearners']
@@ -1597,12 +1605,14 @@ SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
 `[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
 backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
 `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom `time.Unix.wp_proof`) and
-`maxBackoff`, and `LeaseResponseChSize` (`lease.go`, untranslated: `16`; the trust-boundary axiom
-`LeaseResponseChSize_init`). Its initializer also runs its other untranslated initializers
-(`opaqueInitsOk`).''',
+`maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
+trust-boundary axiom `LeaseResponseChSize_init`), and the translated constants
+`defaultUnaryMaxRetries`, `defaultStreamMaxRetries` and `defaultBackoffWaitBetween`
+(`options.go`). Its initializer also runs its other untranslated initializers (`opaqueInitsOk`).''',
     imports=['Proof.time.Unix'],
     alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
-                 'noPrefixEnd': 'GoSlice'},
+                 'noPrefixEnd': 'GoSlice', 'LeaseResponseChSize': 'w64', 'defaultUnaryMaxRetries': 'w64', 'defaultStreamMaxRetries': 'w64',
+                 'defaultBackoffWaitBetween': 'w64'},
     custom={'defaultOptions': dict(
         doc='/-- `defaultOptions = &options{retryPolicy: nonRepeatable, ..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`\'s float arithmetic and `rand.Float64`, which do not panic), with the policy `nonRepeatable` (`W8 1`, `retry.go`\'s `iota`; D29). -/',
         post=f'∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ {CV3}.backoffOk ov.backoffFunc\' ∗ ⌜ov.retryPolicy\' = W8 1⌝',
@@ -1616,14 +1626,11 @@ backoff function returns; the trust-boundary axiom `defaultOptions_init`), and i
             'imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #'],
 )
 
-SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['custom'].update({
-    # (the auth plan's E2c, 2026-10-25) the strings themselves: `AuthInfoFromCtx`'s token is the
-    # context's metadata under these keys
-    'TokenFieldNameGRPC': dict(doc='/-- `TokenFieldNameGRPC = "token"` (`metadatafields.go`): that string. -/',
-                               post='globalAddr TokenFieldNameGRPC ↦ go!"token"', pat='H@'),
-    'TokenFieldNameSwagger': dict(doc='/-- `TokenFieldNameSwagger = "authorization"` (`metadatafields.go`): that string. -/',
-                               post='globalAddr TokenFieldNameSwagger ↦ go!"authorization"', pat='H@'),
-})
+# (the auth plan's E2c, 2026-10-25) the strings themselves: `AuthInfoFromCtx`'s token is the
+# context's metadata under these keys; (const-inits, 2026-11-19) translated, as the metadata keys
+SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes'].setdefault('alloc_types', {}).update(
+    {x: 'GoString' for x in ['TokenFieldNameGRPC', 'TokenFieldNameSwagger', 'MetadataRequireLeaderKey',
+                             'MetadataHasLeader', 'MetadataClientAPIVersionKey']})
 SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['finish'] = (
     ['ipersist HTokenFieldNameGRPC', 'ipersist HTokenFieldNameSwagger'] +
     SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['finish'])
@@ -1793,9 +1800,6 @@ for x in _RERRS:
     _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): a `*status.Error`, which grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/',
                            post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ {CV3}.statusErrOk (GoInterface.ok e) ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"{m}"⌝',
                            pat='⟨%e@, H@, #S@, %D@⟩')
-for x, v in _RKEYS.items():
-    _R['custom'][x] = dict(doc=f'/-- `{x} = "{v}"` (`metadatafields.go`): a string. -/',
-                           post=f'∃ k : GoString, globalAddr {x} ↦ k', pat='⟨%k@, H@⟩')
 # (D19j, 2026-10-18) the `ErrGRPC*` errors `v3rpc`'s watch server returns or reports: `status.Error`
 # values whose `Error()` returns
 _RWERRS = {'ErrGRPCInvalidAuthToken': ('Unauthenticated', 'etcdserver: invalid auth token'),
@@ -1823,14 +1827,11 @@ _P = SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb']
 _P['doc'] = """Its fact (`etcdserverpbInit`, `cache/v3/Base.lean`): the sort enumerations' name maps. Its
 initializer allocates and sets the translated gRPC service descriptors (`KV_ServiceDesc`, ...:
 `grpc.ServiceDesc` literals), initializes its imports and runs its other variables' untranslated
-initializers (the generated protobuf descriptors and enum maps): the trust-boundary axioms
-`<X>_init` state the two the fact reads, `opaqueInitsOk` the others."""
-for x, n in [('RangeRequest_SortOrder_name', 2), ('RangeRequest_SortTarget_name', 4)]:
-    _P['custom'] = _P.get('custom', {})
-    _P['custom'][x] = dict(
-        doc=f'/-- `{x} = map[int32]string{{...}}` (`rpc.pb.go`): the enumeration\'s names, keys `0` to `{n}`. -/',
-        post=f'∃ (mp : Loc) (M : GMap w32 GoString), globalAddr {x} ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ {n}⌝',
-        pat='⟨%mp@, %M@, H@, #S@, %P@⟩')
+initializers (the generated protobuf descriptors and enum maps), which the trust-boundary axiom
+`opaqueInitsOk` says run. (const-inits, 2026-11-19) The two sort enumerations' name maps the fact
+reads (`RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: `map[int32]string` literals,
+`rpc.pb.go`) are translated and set; until then the trust-boundary axioms `<X>_init`."""
+_P['alloc_types'].update({'RangeRequest_SortOrder_name': 'Loc', 'RangeRequest_SortTarget_name': 'Loc'})
 _P['heavy'] = True
 _P['pre'] = ['/-- A small 64-bit literal\'s value as a signed natural (the descriptors\' slice indices). -/',
              'theorem EtcdGrove.sint_nat_ofNat64 (n : Nat) (h : n < 2 ^ 63) : sint.nat (BitVec.ofNat 64 n) = n := by',
@@ -1839,13 +1840,32 @@ _PB_SL = ['KVm', 'KVs', 'Wm', 'Ws', 'Lm', 'Ls', 'Cm', 'Cs', 'Mm', 'Ms', 'Am', 'A
 _PB_DESCS = ['KV', 'Watch', 'Lease', 'Cluster', 'Maintenance', 'Auth']
 _P['before'] = {'$inits': [f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %p{t} ⟨S{t}, -⟩; try wp_auto'
                             for t in _PB_SL] + ['try wp_auto']}
+# (const-inits, 2026-11-19) the sort enumerations' name maps: `map[int32]string` literals
+for _x, _h in [('RangeRequest_SortOrder_name', 'Hso'), ('RangeRequest_SortTarget_name', 'Hst')]:
+    _P['before'][_x] = ['try wp_auto',
+        f'wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %m{_h} {_h}',
+        'try wp_auto',
+        f'repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ {_h} as {_h}; try wp_auto)']
+def _PB_DOM(n):
+    """The name map's domain, keys `0` to `n`: the literal's lookups, case by case."""
+    ks = ' ∨ '.join(f'k = W32 {i}' for i in range(n + 1))
+    pats = ' | '.join(['rfl'] * (n + 1))
+    nes = ', '.join(f'if_neg (show ¬(W32 {i} = k) from fun h => hk (by subst h; simp))' for i in reversed(range(n + 1)))
+    return ('ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; '
+            f'by_cases hk : {ks}; '
+            f'(· rcases hk with {pats} <;> simp (config := {{decide := true}})); '
+            f'(· have hr : ¬ (0 ≤ sint.Z k ∧ sint.Z k ≤ {n}) := fun hr => hk (by word); '
+            'simp only [hr, iff_false, Bool.not_eq_true, Option.isSome_eq_false_iff, Option.isNone_iff_eq_none]; '
+            f'rw [{nes}])')
 _P['finish'] = ([f'ipersist S{t}' for t in _PB_SL] +
                 [f'ipersist H{d}_ServiceDesc' for d in _PB_DESCS] +
                 [f'iStructNamedSuffix H{d}_ServiceDesc "{d}"' for d in _PB_DESCS] +
-                ['ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name'] +
-                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs', 'iframe #',
-                 'isplitl []', '· ipureintro; exact PRangeRequest_SortOrder_name',
-                 'isplitl []', '· ipureintro; exact PRangeRequest_SortTarget_name',
+                ['ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name',
+                 'ipersist Hso', 'ipersist Hst'] +
+                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs',
+                 'isplitl []', '· iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ' + _PB_DOM(2),
+                 'isplitl []', '· iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ' + _PB_DOM(4),
+                 'iframe #',
                  'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))'])
 
 _C = SPECIAL['go_etcd_io.etcd.client.v3']
@@ -1854,15 +1874,8 @@ _C['custom'].update({
         doc='/-- `defaultCallOpts = []grpc.CallOption{defaultWaitForReady, defaultMaxCallSendMsgSize, defaultMaxCallRecvMsgSize}` (`options.go`): grpc\'s `WaitForReady(true)`, `MaxCallSendMsgSize(...)`, `MaxCallRecvMsgSize(...)`, options holding only scalars (`FailFastCallOption`, `MaxSendMsgSizeCallOption`, `MaxRecvMsgSizeCallOption`). -/',
         post='∃ (sl : GoSlice) (vs : List GoInterface), globalAddr defaultCallOpts ↦ sl ∗ sl ↦*□ vs ∗ ⌜sl.len = sl.cap ∧ ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty, google_golang_org.grpc.MaxSendMsgSizeCallOption.ty, google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝',
         pat='⟨%sl@, %vs@, H@, #S@, %P@⟩'),
-    'defaultUnaryMaxRetries': dict(doc='/-- `defaultUnaryMaxRetries uint = 100` (`options.go`). -/',
-        post='∃ n : w64, globalAddr defaultUnaryMaxRetries ↦ n', pat='⟨%n@, H@⟩'),
-    'defaultBackoffWaitBetween': dict(doc='/-- `defaultBackoffWaitBetween = 25 * time.Millisecond` (`options.go`). -/',
-        post='∃ d : time.Duration, globalAddr defaultBackoffWaitBetween ↦ d', pat='⟨%d@, H@⟩'),
     'defaultBackoffJitterFraction': dict(doc='/-- `defaultBackoffJitterFraction = 0.10` (`options.go`): a float. -/',
         post='∃ f : w64, globalAddr defaultBackoffJitterFraction ↦ f', pat='⟨%f@, H@⟩'),
-    # (item 1, the client lease, 2026-10-18: `KeepAlive`'s `make(chan ..., LeaseResponseChSize)`)
-    'LeaseResponseChSize': dict(doc='/-- `LeaseResponseChSize = 16` (`lease.go`). -/',
-        post='globalAddr LeaseResponseChSize ↦ (W64 16 : w64)', pat='H@'),
 })
 _C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist HdefaultCallOpts',
                  'ipersist HdefaultUnaryMaxRetries', 'ipersist HdefaultBackoffWaitBetween',
@@ -1928,12 +1941,6 @@ _MV_GAU += ['slowWatcherGauge', 'keysGauge', 'dbCompactionLast']
 _MV_METRICS = ([(x, 'counter') for x in _MV_CNT] + [(x, 'gauge') for x in _MV_GAU] +
                [(x, 'hist') for x in _MV_HIS])
 _mv_custom = {}
-_mv_custom['defaultCompactionBatchLimit'] = dict(
-    doc='/-- `defaultCompactionBatchLimit = 1000` (`kvstore.go`). -/',
-    post='globalAddr defaultCompactionBatchLimit ↦ (W64 1000 : w64)', pat='H@')
-_mv_custom['defaultCompactionSleepInterval'] = dict(
-    doc='/-- `defaultCompactionSleepInterval = 10 * time.Millisecond` (`kvstore.go`). -/',
-    post='∃ d : w64, globalAddr defaultCompactionSleepInterval ↦ d', pat='⟨%d@, H@⟩')
 _MV_ERR = {'ErrRevisionNotFound': 'RNF', 'ErrCompacted': 'CP', 'ErrFutureRev': 'FR',
            'ErrWatcherNotExist': 'WNE', 'ErrEmptyWatcherRange': 'EWR', 'ErrWatcherDuplicateID': 'WDI'}
 # (R2 of the restore plan) the metrics reporters `setupMetricsReporter` sets, each under its lock.
@@ -1954,7 +1961,8 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
                  **{x: 'GoFunc' for x in _MV_REPORT},
                  'watchBatchMaxRevs': 'w64', 'ErrWatcherDuplicateID': 'GoInterface',
                  'ErrEmptyWatcherRange': 'GoInterface', 'ErrWatcherNotExist': 'GoInterface',
-                 'watchResyncPeriod': 'w64', 'maxWatchersPerSync': 'w64', 'chanBufLen': 'w64',
+                 'watchResyncPeriod': 'w64', 'defaultCompactionBatchLimit': 'w64',
+                 'defaultCompactionSleepInterval': 'w64', 'maxWatchersPerSync': 'w64', 'chanBufLen': 'w64',
                  'ErrFutureRev': 'GoInterface', 'ErrCompacted': 'GoInterface',
                  'ErrRevisionNotFound': 'GoInterface', 'restoreChunkKeys': 'w64'},
     before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩'] +
@@ -1969,6 +1977,7 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
             **{x: metric_steps(x, k) for x, k in _MV_METRICS}},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] + [f'ipersist H{x}' for x, _ in _MV_METRICS] +
+            ['ipersist HdefaultCompactionBatchLimit', 'ipersist HdefaultCompactionSleepInterval'] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
              'ipersist HwatchBatchMaxRevs', 'ipersist HrestoreChunkKeys',
              'ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []',

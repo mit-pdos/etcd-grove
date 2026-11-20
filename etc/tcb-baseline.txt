@@ -38,8 +38,6 @@ axiom Perennial.github_com.spf13.pflag.opaqueInitsOk
 axiom Perennial.github_com.xiang90.probing.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder_name_init
-axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget_name_init
 axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
@@ -72,11 +70,6 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrInvalidAuthToken_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrNoLeader_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrUserEmpty_init
-axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataClientAPIVersionKey_init
-axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader_init
-axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey_init
-axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC_init
-axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.errStringToError_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.version.V3_6_init
@@ -85,12 +78,9 @@ axiom Perennial.go_etcd_io.etcd.api.v3.version.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.transport.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.types.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.client.v3.LeaseResponseChSize_init
 axiom Perennial.go_etcd_io.etcd.client.v3.defaultBackoffJitterFraction_init
-axiom Perennial.go_etcd_io.etcd.client.v3.defaultBackoffWaitBetween_init
 axiom Perennial.go_etcd_io.etcd.client.v3.defaultCallOpts_init
 axiom Perennial.go_etcd_io.etcd.client.v3.defaultOptions_init
-axiom Perennial.go_etcd_io.etcd.client.v3.defaultUnaryMaxRetries_init
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.featuregate.opaqueInitsOk
@@ -105,17 +95,14 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.opaqueInitsO
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.activePeers_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.disconnectedPeers_init
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errMemberNotFound_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.receivedBytes_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.recvFailures_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rttSec_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.sentBytes_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.sentFailures_init
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapResponseReadTimeout_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotReceiveFailures_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotReceiveInflights_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotReceiveSeconds_init
@@ -124,7 +111,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSendFa
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSendInflights_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSendSeconds_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSend_init
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.supportedStream_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.opaqueInitsOk
@@ -163,7 +149,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.lease.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leaseGranted_init
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leaseRevoked_init
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leaseTotalTTLs_init
-axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.LeasePrefix_init
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
@@ -176,8 +161,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.rebalanceSec_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.spillSec_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.writeSec_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.defaultCompactionBatchLimit_init
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.defaultCompactionSleepInterval_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.opaqueInitsOk
@@ -198,7 +181,6 @@ axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
 axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
-axiom Perennial.google_golang_org.grpc.DefaultBackoffConfig_init
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
