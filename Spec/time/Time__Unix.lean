@@ -1,8 +1,8 @@
 /-
-`time.Time.Unix`, of Go's `time` package (not translated in Perennial's `time`: no body, so the
-call cannot be stepped): returns some `int64` (the seconds since the epoch; unmodelled). The
-compaction job's deferred `dbCompactionLast.Set(float64(time.Now().Unix()))` calls it
-(2026-10-13, unit 5c). A trust-boundary axiom, true of Go's `Time.Unix` (it never panics).
+`time.Time.Unix`, of Go's `time` package: returns some `int64` (the seconds since the epoch;
+unmodelled). The compaction job's deferred `dbCompactionLast.Set(float64(time.Now().Unix()))` calls
+it (2026-10-13, unit 5c). Proved (`Proof/time/Time__Unix.lean`) over Perennial's translation of Go's
+(2026-11-20; until then a trust-boundary axiom).
 -/
 module
 
