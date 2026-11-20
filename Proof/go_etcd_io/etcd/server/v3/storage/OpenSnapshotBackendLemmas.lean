@@ -1,12 +1,14 @@
 /-
 `storage.OpenSnapshotBackend`'s lemma (wal-link, 2026-11-19, option B1): the database snapshot's
 file and the backend's file are names of one directory, the snapshot directory `config.snapDirOf dd`
-(`os.Rename.spec`'s premise). Lean-first (no Rocq counterpart).
+(`os.Rename.spec`'s premise); and (wal-fsfix2, 2026-11-20) each snapshot file of a data directory that
+fits fits (`pathFits_snapDBPath`). Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import GooseLang.Ext.Fs.TreeLemmas
+public import Proof.go_etcd_io.etcd.server.v3.config.PathFits
 
 @[expose] public section
 
@@ -39,6 +41,12 @@ theorem snapDBPath_parent [GooseExts] (dd : GoString) (i : w64) :
   show parentOf (Fs.child (config.snapDirOf dd) (snapDBName i)) =
     parentOf (Fs.child (config.snapDirOf dd) go!"db")
   rw [Fs.parentOf_child' _ _ (snapDBName_nameOk i), Fs.parentOf_child' _ _ hdb]
+
+/-- **A snapshot file of a data directory that fits fits** (`bootOk`'s `Hsfree` claims carry it:
+implied by `bootCfgFresh`'s `DirFits`, wal-fsfix2). -/
+theorem pathFits_snapDBPath {dd : GoString} (hd : Fs.DirFits dd) (i : w64) :
+    Fs.PathFits (snapDBPath (config.snapDirOf dd) i) :=
+  config.pathFits_snapDir_child hd (by simp [snapDBName, WalFs.hex16])
 
 end snap
 end EtcdGrove
