@@ -235,6 +235,10 @@ done
 python3 models/json/jsongen.py models/internal/jsondifftest/json.toml models/internal/jsondifftest/codec \
   --pkg codec --check >> "$tmp/nm.log" 2>&1 || nm=1
 (cd models && GOWORK=off go vet ./... && GOWORK=off gotest ./...) >> "$tmp/nm.log" 2>&1 || nm=1
+# the net/rpc and net/http models (models/net/; phase 5.2): rpcgen's codec is its output for the
+# derived input (--check, inside run.sh), and the differential tests pass against the real packages
+# and against the models (an overlay of the toolchain's source, models/goroot.py)
+models/internal/rpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 (cd examples && GOWORK=off gotest ./models/...) >> "$tmp/nm.log" 2>&1 || nm=1
 if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
