@@ -17,6 +17,45 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
+
+- **Limitation.** Perennial's models of `Sprintf`, `Printf` and `Errorf` (`Perennial/TrustedCode/fmt.lean`) never
+  call an argument's method, so their specs admit only `fmt.ArgsWf` arguments (predeclared basic types, methodless
+  named integers and strings); `Errorf` is `errors.New(format)` (no formatting, no `%w`); `%p` and `%0Nx` give
+  arbitrary output; `Sscanf` has no model. Go's `fmt` itself cannot be translated (reflection on every argument,
+  `sync.Pool`, float formatting).
+- **Needed by.** The eight `fmt` axioms left here after prove-reflectfmt (2026-11-20): `fmt.Errorf`, `fmt.ErrorfPlain`,
+  `fmt.Printf`, `fmt.SprintfArgs` (arguments whose `Error()`/`String()` `fmt` calls: `fmt.argsOk`),
+  `fmt.SprintfClientPtr` (`%p` of a pointer), `fmt.SprintfWalName` (`%016x`), `fmt.Sscanf` (`%d`),
+  `fmt.SscanfWalName` (`%016x-%016x.wal`). Also the proofs over the model outside its faithful domain
+  (`fmt.ErrorfErrs`, `fmt.ErrorfStrs`, `fmt.ErrorfWrap`, client-go's `wp_Errorf_setArgs`), whose faithfulness is
+  argued in their headers, not checked.
+- **Proposed (general, not shaped by one caller; one Perennial branch, three steps).**
+  1. *Formatting methods.* The models' per-argument step (`formatArg`) does what `printArg`/`handleMethods` do on a
+     non-`%T`/`%p` verb, for the cases a spec admits: for a method verb (`v s x X q`, not `#v`) an argument whose
+     dynamic type has `Error() string` (and no `Format`) gets its `Error()` called, else one with `String() string`
+     (and no `Format`, no `Error`) its `String()`, the result formatted as a string (exactly for `%s`/`%v`,
+     arbitrary otherwise); any other non-basic argument stays outside the spec. The specs' premise becomes this
+     repository's directive-aware `fmt.argsOk mv format xs` (`Spec/fmt/Errorf.lean`: `fmt.fmtDirectives`,
+     `fmt.argOkAt`, `fmt.stringMethodSpec`), moved to Perennial with its tests (`examples/premisefix/fmtarg`, the
+     three fmt-soundness attacks), and the posts keep `SprintfOut` with the method results as `StrArgValue`s.
+     Retires `fmt.SprintfArgs`, `fmt.Printf` and, with step 3, `fmt.Errorf`.
+  2. *`%p`.* `formatArg` at `p` of a pointer, func, map, chan or unsafe pointer returns an arbitrary string without
+     reading memory (Go's `printArg` does `%p` first, `fmt/print.go:686-693`); the premise admits such an argument
+     under `p` only (`fmt.SprintfClientArgOkAt`'s rule, for any pointer type). Retires `fmt.SprintfClientPtr`, and
+     bbolt's `(*Options).String` (the 2026-11-17 entry below).
+  3. *`Errorf`.* The model formats as `Sprintf` does, then returns `errors.New(s)` when no directive's verb is `w`
+     (Go's `case 0`, `fmt/errors.go`), else a fresh `*fmt.wrapError`/`*fmt.wrapErrors` holding the `%w` arguments
+     (translated: both are plain structs with `Error`/`Unwrap`); the spec says which. Retires `fmt.ErrorfPlain` (its
+     post is the no-`w` case) and lets `fmt.ErrorfWrap`/`fmt.ErrorfErrs` rest on a faithful model.
+  Together with the `%0Nx` and `Sscanf` proposals (the 2026-11-13 entry "`Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx`"),
+  every `fmt` axiom here goes.
+- **Workaround here.** The axioms, each narrowed to the calls etcd makes; prove-reflectfmt (2026-11-20) retired
+  `fmt.SprintfNamed` and `fmt.SprintfID` (their calls are within Perennial's `fmt.wp_Sprintf` since `ArgWf` admits
+  methodless named integers and strings, or within `fmt.SprintfArgs`) and fixed `fmt.SprintfClientPtr`'s premise
+  (`notes/axiom-review/sprintfclientptr.md`).
+- **Status.** Proposed only (the Perennial branch is the `stdlib` agent's at the time).
+
 ### `unsafe` and `reflect` beyond plain bytes: what all of etcd needs (2026-11-20, survey)
 
 - **Limitation.** Perennial models byte views of pointer-free types only (R1-R5 of its
@@ -1228,7 +1267,9 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** `ArgWf` admits a named type with `fmt.NoFmtMethods` whatever its basic underlying
   type (the output of a non-integer one arbitrary from its directive on, as `SprintfOut.other`); with
   `NoFmtMethods` from goose's method sets, the list and the axiom go.
-- **Status.** Not started.
+- **Status.** Done in Perennial (`ArgWf`'s `IsStrArgType`: a named string type without formatting methods, holding a
+  string; `ArgsWf.cons_named_string`); `fmt.SprintfNamed` and `fmt.methodlessNamedTypes` retired (prove-reflectfmt,
+  2026-11-20): `Preconditions.Check`, `Mutex.tryAcquire` and `Election.Campaign` call Perennial's `fmt.wp_Sprintf`.
 
 ### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
 
