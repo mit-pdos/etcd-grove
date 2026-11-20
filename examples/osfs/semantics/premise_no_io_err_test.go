@@ -167,29 +167,52 @@ func TestNoIoErrPermissions(t *testing.T) {
 		if err := os.WriteFile(f, []byte("x"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		setFlags := func(v int) error {
+		// set (on) or clear (off) attr's bit, keeping the file's other flags: ext4 refuses
+		// (EOPNOTSUPP) a FS_IOC_SETFLAGS that clears FS_EXTENT_FL, which a bare value would
+		// (2026-11-20's run on C: the append-only flag was refused that way, and the immutable
+		// flag's clearing too, leaving it set)
+		setFlags := func(on bool) error {
 			g, err := os.Open(f)
 			if err != nil {
-				t.Fatal(err)
+				return err
 			}
 			defer g.Close()
-			return unix.IoctlSetPointerInt(int(g.Fd()), unix.FS_IOC_SETFLAGS, v)
+			v, err := unix.IoctlGetUint32(int(g.Fd()), unix.FS_IOC_GETFLAGS)
+			if err != nil {
+				return fmt.Errorf("FS_IOC_GETFLAGS: %w", err)
+			}
+			if on {
+				v |= uint32(attr.flag)
+			} else {
+				v &^= uint32(attr.flag)
+			}
+			if err := unix.IoctlSetPointerInt(int(g.Fd()), unix.FS_IOC_SETFLAGS, int(v)); err != nil {
+				return fmt.Errorf("FS_IOC_SETFLAGS: %w", err)
+			}
+			return nil
 		}
-		if err := setFlags(attr.flag); err != nil {
+		clear := func() {
+			if err := setFlags(false); err != nil {
+				t.Errorf("%s: clearing the flag: %v (the file %s may keep it: chattr -i -a)", attr.name, err, f)
+			}
+		}
+		if err := setFlags(true); err != nil {
 			// no CAP_LINUX_IMMUTABLE here (a container, an idmapped mount): not measured
-			t.Logf("%s: FS_IOC_SETFLAGS: %v: not measured", attr.name, err)
+			t.Logf("%s: %v: not measured", attr.name, err)
 			os.Remove(f)
 			continue
 		}
 		if err := syscall.Unlink(f); err != syscall.EPERM {
-			setFlags(0)
+			clear()
 			t.Fatalf("%s: unlink: %v, want EPERM", attr.name, err)
 		}
 		if err := syscall.Rename(f, dir+"/1.wal"); err != syscall.EPERM {
-			setFlags(0)
+			clear()
 			t.Fatalf("%s: rename: %v, want EPERM", attr.name, err)
 		}
-		setFlags(0)
+		if err := setFlags(false); err != nil {
+			t.Fatalf("%s: clearing the flag: %v", attr.name, err)
+		}
 		if err := syscall.Unlink(f); err != nil {
 			t.Fatalf("%s cleared: unlink: %v", attr.name, err)
 		}
@@ -287,6 +310,11 @@ func permDir(t *testing.T, m os.FileMode) string {
 	base := extDir(t)
 	if err := os.Chmod(base, 0o755); err != nil {
 		t.Fatal(err)
+	}
+	// the control every contrast below needs: nobody may reach base (every ancestor searchable;
+	// 2026-11-20's run on C failed here, run-models-on-c.sh's mktemp directory being 0700)
+	if e := asNobody(t, "open", base); e != 0 {
+		t.Fatalf("nobody cannot open %s: %v (an ancestor of SEMANTICS_C_DIR it may not search?)", base, e)
 	}
 	d := base + "/d"
 	if err := os.Mkdir(d, 0o700); err != nil {

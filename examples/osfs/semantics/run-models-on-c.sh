@@ -9,10 +9,41 @@ set -eu
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$HERE/../../../notes/axiom-review/fs-config/mkfs-mount.sh"
 W=$(mktemp -d)
-DEV=$(c_mkfs "$W/c.img")
-cleanup() { sudo umount "$W/mnt" 2>/dev/null || true; sudo losetup -d "$DEV" 2>/dev/null || true; rm -rf "$W"; }
+# nobody's children (asNobody, the permission tests) must reach the mount point: mktemp makes 0700
+chmod 0755 "$W"
+DEV=
+GOPID=
+cleanup() {
+  local st=$? ok=1
+  trap - EXIT INT TERM
+  if [ -n "$GOPID" ] && kill -0 "$GOPID" 2>/dev/null; then
+    # go test and its children (the test binary, nobody's helpers) hold the mount busy
+    kill -TERM -- "-$GOPID" 2>/dev/null || true
+    for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$GOPID" 2>/dev/null || break; sleep 0.5; done
+    kill -KILL -- "-$GOPID" 2>/dev/null || true
+    wait "$GOPID" 2>/dev/null || true
+  fi
+  if mountpoint -q "$W/mnt" 2>/dev/null; then
+    for _ in 1 2 3 4 5; do sudo umount "$W/mnt" 2>/dev/null && break; sleep 1; done
+    if mountpoint -q "$W/mnt"; then
+      echo "cleanup: umount $W/mnt failed (busy: $(sudo fuser -vm "$W/mnt" 2>&1 | tr '\n' ' ')); lazy unmount" >&2
+      sudo umount -l "$W/mnt" || { echo "cleanup: could not unmount $W/mnt" >&2; ok=0; }
+    fi
+  fi
+  if [ -n "$DEV" ]; then
+    sudo losetup -d "$DEV" || { echo "cleanup: could not detach $DEV" >&2; ok=0; }
+  fi
+  if [ "$ok" = 1 ]; then rm -rf "$W"; else echo "cleanup: left $W in place" >&2; fi
+  exit "$st"
+}
 trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+DEV=$(c_mkfs "$W/c.img")
 c_mount "$DEV" "$W/mnt"
 c_check "$W/mnt"
 cd "$HERE"
-SEMANTICS_C_DIR="$W/mnt" go test -count=1 "$@" .
+# its own process group, so that cleanup can stop it and every child
+SEMANTICS_C_DIR="$W/mnt" setsid go test -count=1 "$@" . &
+GOPID=$!
+wait "$GOPID"

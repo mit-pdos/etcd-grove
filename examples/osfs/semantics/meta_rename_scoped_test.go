@@ -25,6 +25,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"testing"
+	"time"
 )
 
 func renameScopedRootA(t *testing.T, a string, stop *atomic.Bool, renames *atomic.Int64, errs chan<- error) {
@@ -72,12 +73,13 @@ func renameScopedRootA(t *testing.T, a string, stop *atomic.Bool, renames *atomi
 	}
 }
 
-func renameScopedWorker(b string, w int, iters int, errs chan<- error) {
+func renameScopedWorker(b string, w int, cont func(i int) bool, seqs *atomic.Int64, errs chan<- error) {
 	d := fmt.Sprintf("%s/w%d", b, w)
 	fail := func(step string, err error) {
 		errs <- fmt.Errorf("worker %d: %s: %v", w, step, err)
 	}
-	for i := 0; i < iters; i++ {
+	for i := 0; cont(i); i++ {
+		seqs.Add(1)
 		deep := d + "/m/n/o"
 		if err := os.MkdirAll(deep, 0o755); err != nil {
 			fail("mkdirall", err)
@@ -156,17 +158,26 @@ func TestDirRenameScopedToRoot(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	const workers, iters = 4, 3000
+	// Root B's workers run at least iters sequences each, and go on until root A has made
+	// minRenames directory renames (root A fsyncs its directory each round, which on C's ext4 is
+	// much slower than B's sequences: 2026-11-20's run on C saw 26 renames while B ran 3000
+	// sequences), within a time budget.
+	const workers, iters, minRenames = 4, 3000, 400
+	const budget = 2 * time.Minute
 	errs := make(chan error, workers+1)
 	var stop atomic.Bool
-	var renames atomic.Int64
+	var renames, seqs atomic.Int64
+	start := time.Now()
+	cont := func(i int) bool {
+		return i < iters || (renames.Load() < minRenames && time.Since(start) < budget)
+	}
 	var wa sync.WaitGroup
 	wa.Add(1)
 	go func() { defer wa.Done(); renameScopedRootA(t, a, &stop, &renames, errs) }()
 	var wb sync.WaitGroup
 	for w := 0; w < workers; w++ {
 		wb.Add(1)
-		go func(w int) { defer wb.Done(); renameScopedWorker(b, w, iters, errs) }(w)
+		go func(w int) { defer wb.Done(); renameScopedWorker(b, w, cont, &seqs, errs) }(w)
 	}
 	wb.Wait()
 	stop.Store(true)
@@ -175,10 +186,11 @@ func TestDirRenameScopedToRoot(t *testing.T) {
 	for err := range errs {
 		t.Error(err)
 	}
-	t.Logf("root A: %d directory renames; root B: %d workers x %d sequences (%d path calls each)",
-		renames.Load(), workers, iters, 15)
-	if renames.Load() < 100 {
-		t.Fatalf("too few renames in root A (%d) to have raced root B", renames.Load())
+	t.Logf("root A: %d directory renames; root B: %d workers, %d sequences in all (%d path calls each), %v",
+		renames.Load(), workers, seqs.Load(), 15, time.Since(start).Round(time.Millisecond))
+	if renames.Load() < minRenames {
+		t.Fatalf("too few renames in root A (%d, want %d within %v) to have raced root B",
+			renames.Load(), minRenames, budget)
 	}
 }
 
