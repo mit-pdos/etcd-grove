@@ -16,7 +16,8 @@ from the reflector's state at its last version `n` (`none` before the first list
 * the context is done first: `nil`, the context seen done (the listing goroutine keeps the
   reflector's fields; `watch` then returns at once).
 
-Callees' named hypotheses: `meta.ListAccessor`, `meta.ExtractListWithAlloc`, `meta.LenList`,
+Callees' named hypotheses: the typed lists' `cache.typedListMeta`, `meta.ExtractListWithAlloc`,
+`meta.LenList`,
 `Trace.Step`, the `apierrors` predicates (boundary, pending approval),
 `isTooLargeResourceVersionError` (not proved this round).
 -/

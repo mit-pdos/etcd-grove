@@ -4,6 +4,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__GetResourceVersion
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__ParseResourceVersion
 public import Spec.k8s_io.apimachinery.pkg.api.meta.ListAccessor
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListAccessorObjList
 
 @[expose] public section
 
@@ -77,7 +78,7 @@ theorem Model.listResponseRV.wp_proof
     rw [hx]
     wp_auto
     rw [hx]
-    wp_apply (wp_LA.2 lp) as %acc %aerr %hacc
+    wp_apply (ListAccessor_objList wp_LA lp) as %acc %aerr %hacc
     obtain ⟨rfl, rfl⟩ := hacc
     wp_auto
     have hle1 : k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty ≤u go.GoType.InterfaceType _ :=
