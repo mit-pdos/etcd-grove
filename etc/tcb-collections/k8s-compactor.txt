@@ -49,10 +49,5 @@ axiom streamKeyFromCtx.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
-axiom zap.Duration.wp_proof
-axiom zap.Error.wp_proof
-axiom zap.Int'.wp_proof
-axiom zap.Int64.wp_proof
-axiom zap.Logger.Debug.wp_proof
-axiom zap.Logger.Info.wp_proof
-axiom zap.String.wp_proof
+axiom zap.Logger.check.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof
