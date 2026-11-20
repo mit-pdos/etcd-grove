@@ -54,7 +54,7 @@ theorem typed.validatingObjectWalker.doList.wp_proofBody
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   try wp_auto
-  wp_apply h_listValue a st.value dq x $$ [Hv] as %l %err ⟨Hv, Hlo, %Herr⟩
+  wp_apply h_listValue st.alloc st.value dq x $$ [Hv] as %l %err ⟨Hv, Hlo, %Herr⟩
   · iframe Hv; ipureintro; exact Hx
   rw [Herr.2 Hx]
   wp_auto
@@ -84,24 +84,34 @@ theorem typed.validatingObjectWalker.doList.wp_proofBody
     ihave %Hlc := isListV_concrete_law_holds l vs $$ Hlv
     rcases Hlc with ⟨sl, rfl⟩ | ⟨pl, rfl⟩
     all_goals
-      ihave ⟨Ha, %i, %Hai, #Hfree⟩ := isAlloc_Free h_heapAllocator_Free h_freelistAllocator_Free a $$ [Ha]
+      ihave ⟨Ha, %i, %Hai, #Hfree⟩ := isAlloc_Free h_heapAllocator_Free h_freelistAllocator_Free st.alloc $$ [Ha]
       · iframe Ha; iPkgInit
-      subst Hai
+      rw [Hai]
       wp_auto
       icases IH with ⟨-, -, -, #HvL, -⟩
-      wp_apply HvL $$ [Hw Hsp Ha] as %errs ⟨Herrs, Hown⟩
+      wp_apply HvL $$ %w %sc %S %st %tp %e %rel %ks %_ %vs [Hw Hsp Ha] as %errs ⟨Herrs, Hown⟩
       · iframe #
         isplitl [Hw Hsp Ha]
         · unfold vwOwn vwCore
           iexists sp
+          rw [Hai]
           iframe Hsp Ha
           iexists tr
           iframe Hw
           iframe #
           ipureintro; exact Hwf
         ipureintro; exact ⟨Hfind, Hc⟩
-      wp_auto
-      sorry
+      iunfold vwOwn at Hown
+      icases Hown with ⟨%sp', Hcore', Hsp', Ha'⟩
+      rw [Hai]
+      wp_apply Hfree $$ %_ [Ha'] as Ha'
+      · iframe; ihave ⟨-, Hf⟩ := (freeable_view_law_holds).2.1 _ vs $$ Hlv; iexact Hf
+      iapply HΦ
+      iframe Herrs Hv
+      unfold vwOwn
+      iexists sp'
+      rw [Hai]
+      iframe
 
 end proof
 
