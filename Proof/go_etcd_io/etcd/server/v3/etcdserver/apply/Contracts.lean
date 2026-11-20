@@ -659,11 +659,40 @@ instance isApplyKV_persistent (kv : GoInterface) (γ : MvccName) :
 
 /-! ## The quota -/
 
-/-- The request types the appliers pass a quota (`BackendQuota.Cost` panics on any other). -/
-def quotaReqTy (t : go.GoType) : Prop :=
-  t = go.GoType.PointerType etcdserverpb.PutRequest.ty ∨
-  t = go.GoType.PointerType etcdserverpb.TxnRequest.ty ∨
-  t = go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty
+section request
+variable {hlc : HasLC} [hReq : HeapGS hlc GF] [semReq : go.Semantics]
+
+/-- The heap data read by BackendQuota.Cost. Lease grants have constant cost. -/
+def quotaReqOk (t : go.GoType) (p : Loc) : IProp GF :=
+  iprop((⌜t = go.GoType.PointerType etcdserverpb.PutRequest.ty⌝ ∗ ∃ o : OpFull, txn.putRequestIs p o) ∨
+    (⌜t = go.GoType.PointerType etcdserverpb.TxnRequest.ty⌝ ∗ ∃ m : TxnModel, txn.txnRequestIs p m) ∨
+    ⌜t = go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty⌝)
+
+instance quotaReqOk_persistent (t : go.GoType) (p : Loc) :
+    Persistent (quotaReqOk (GF := GF) t p) := by
+  unfold quotaReqOk; infer_instance
+
+end request
+
+/-- The concrete receiver and atomic counters read by BackendQuota.Available. -/
+def quotaBackend (be : GoInterface) : IProp GF :=
+  iprop(∃ b : Loc, ⌜be = interface.mkOk (go.GoType.PointerType storage.backend.backend.ty) #b⌝ ∗
+    backend.metricsInv b)
+
+instance quotaBackend_persistent (be : GoInterface) : Persistent (quotaBackend (GF := GF) be) := by
+  unfold quotaBackend; infer_instance
+
+theorem quotaBackend_of_isBackend (γ : backend.BNames) (P : backend.BParams)
+    (W Pk : IProp GF) (b : Loc) :
+    backend.isBackend γ P W Pk b ⊢ quotaBackend
+      (interface.mkOk (go.GoType.PointerType storage.backend.backend.ty) #b) := by
+  iintro #Hb
+  iunfold backend.isBackend at Hb
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hm, -⟩
+  iunfold quotaBackend
+  iexists b
+  iframe Hm
+  ipureintro; rfl
 
 /-- **The backend stays under its quota** (opaque, a named workload premise, D19a's first kind;
 audit phase B3, D19h, 2026-10-18, adopted by the user): every `Available` of the run's quotas
@@ -685,10 +714,10 @@ construction premise), which `storage.NewBackendQuota` takes; so no applier sets
 `quotaAlarmer.check` never proposes the NOSPACE `Alarm`. -/
 def isQuota (q : GoInterface) : IProp GF :=
   iprop(∃ qi : GoInterfaceOk, ⌜q = GoInterface.ok qi⌝ ∗
-    □ (∀ (t : go.GoType) (p : Loc), ⌜quotaReqTy t⌝ -∗
+    □ (∀ (t : go.GoType) (p : Loc), quotaReqOk t p -∗
       {{ True }} (App (Val #(methods qi.ty go!"Available" qi.v)) (Val #(interface.mkOk t #p)))
       {{ (b : Bool), RET #b; ⌜b = true⌝ }}) ∗
-    □ (∀ (t : go.GoType) (p : Loc), ⌜quotaReqTy t⌝ -∗
+    □ (∀ (t : go.GoType) (p : Loc), quotaReqOk t p -∗
       {{ True }} (App (Val #(methods qi.ty go!"Cost" qi.v)) (Val #(interface.mkOk t #p)))
       {{ (c : w64), RET #c; True }}))
 

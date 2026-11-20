@@ -2325,10 +2325,22 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
     (by unfold v3rpc.quotaRd; iintro ⟨H, Hb⟩
         ihave ⟨HK, Hl⟩ := (etcdRunSlot_split s E γr).1 $$ H; iframe) $$ Hd
   ihave #Hqt := v3rpc.quotaKV_txnHandlerOkMd_of v3rpc.quotaKVServer.wp_Txn (etcdTxnSpecM E.authOn s E ρ γr cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ (etcdKVSlot s E γr) $$ []
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ (etcdKVSlot s E γr)
+    (by intro r m; iintro ⟨#Hr, -⟩
+        iunfold apply.quotaReqOk
+        iright; ileft
+        isplitr
+        · ipureintro; rfl
+        iexists m; iexact Hr) $$ []
   · iframe #
   ihave #Hqp := v3rpc.quotaKV_putHandlerOkMd_of v3rpc.quotaKVServer.wp_Put (etcdPutSpecM E.authOn s E ρ cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ (etcdKVSlot s E γr) $$ []
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ (etcdKVSlot s E γr)
+    (by intro r m; iintro #Hr
+        iunfold apply.quotaReqOk
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iexists m; iexact Hr) $$ []
   · iframe #
   ihave #Hqr := v3rpc.quotaKV_promotedHandlerOkMd (etcdRangeSpecM E.authOn s E γr cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ iprop(etcdKVSlot s E γr ∗ v3rpc.quotaRd s) go!"Range" inferInstance $$ [Hq Hr1]

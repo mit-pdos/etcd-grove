@@ -41,7 +41,7 @@ abbrev v3rpc.quotaKVServer.Put.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOkMd #(methods kv.ty go!"Put" kv.v) iprop(S ∗ srvLgReader s) Spec ∗
       S ∗ v3rpc.quotaRd s ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ apply.quotaReqOk (go.GoType.PointerType etcdserverpb.PutRequest.ty) r ∗
       Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Put"))
       (Val #(GoInterface.ok ci))) (Val #r))

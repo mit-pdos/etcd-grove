@@ -1041,6 +1041,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   -- `s.uberApply = s.NewUberApplier()`
   -- (2026-11-01, J8a-5) the store recovered has no alarm: `Get` returns none (`alarmEmpty`)
   ihave #HalG := alarmGetIs_empty hAG al d'.be $$ [$Halpkg $HisAl]
+  ihave #HquotaBe := apply.quotaBackend_of_isBackend _ _ _ _ _ $$ HnB
   wp_apply hNUA s sfv.lg al cl _ _ _ _ _ fg quota wad (DFrac.own (1 : Qp).half)
       (alarmEmpty al d'.be) true hbuq
     $$ [HbeA HnAl] as %ua' ⟨HbeA, HnAl, %up', %opts', %Hua', %Hopts', Hube⟩
