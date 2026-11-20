@@ -33,13 +33,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **One registration armed at `S`**: from the inputs at `S`, the entry (under the invariant's
 later) at the next count and the new committed data `S`, the inputs kept. -/
 theorem entry_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (c : Nat) (Dc S : Data)
-    (e : GName × GName × Nat) :
-    obsIn (GF := GF) γ P W Pk S ∗ ▷ regEntry γ P W Pk c Dc e ⊢
-      ◇ (obsIn γ P W Pk S ∗ ▷ regEntry γ P W Pk (c + 1) S e) := by
+    (e : GName × GName × Nat) (F : IProp GF) (hF : F ⊢ obsIn γ P W Pk S) :
+    F ∗ ▷ regEntry γ P W Pk c Dc e ⊢ ◇ (F ∗ ▷ regEntry γ P W Pk (c + 1) S e) := by
   iintro ⟨Hi, He⟩
   iunfold regEntry at He
   icases He with ⟨%R, %Q, Hr, Hp, HR, Hw, -⟩
-  ihave Ha := obsWand_apply_later γ P W Pk R Q S $$ [$Hi $HR $Hw]
+  ihave Ha := obsWand_apply_later γ P W Pk R Q S F hF $$ [$Hi $HR $Hw]
   imod Ha with ⟨⟨Hi, HR, Hw⟩, %Hq⟩
   imodintro
   iframe Hi
@@ -51,9 +50,9 @@ theorem entry_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (c : Nat) (Dc S 
 
 /-- **Every registration armed at `S`** (by induction on the map, the inputs passed along). -/
 theorem entries_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (c : Nat) (Dc S : Data)
-    (M : GMap Nat (GName × GName × Nat)) :
-    obsIn (GF := GF) γ P W Pk S ∗ ▷ ([∗map] _i ↦ e ∈ M, regEntry γ P W Pk c Dc e) ⊢
-      ◇ (obsIn γ P W Pk S ∗ ▷ [∗map] _i ↦ e ∈ M, regEntry γ P W Pk (c + 1) S e) := by
+    (M : GMap Nat (GName × GName × Nat)) (F : IProp GF) (hF : F ⊢ obsIn γ P W Pk S) :
+    F ∗ ▷ ([∗map] _i ↦ e ∈ M, regEntry γ P W Pk c Dc e) ⊢
+      ◇ (F ∗ ▷ [∗map] _i ↦ e ∈ M, regEntry γ P W Pk (c + 1) S e) := by
   induction M using Std.LawfulFiniteMap.induction_on with
   | hemp =>
     rw [BigSepM.bigSepM_empty.to_eq, BigSepM.bigSepM_empty.to_eq]
@@ -66,7 +65,7 @@ theorem entries_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (c : Nat) (Dc 
       (BigSepM.bigSepM_insert (Φ := fun (_ : Nat) e => regEntry (GF := GF) γ P W Pk (c + 1) S e) hi).to_eq]
     iintro ⟨Hi, Hs⟩
     icases Hs with ⟨He, Hs⟩
-    imod entry_arm γ P W Pk c Dc S x $$ [$Hi $He] with ⟨Hi, He⟩
+    imod entry_arm γ P W Pk c Dc S x F hF $$ [$Hi $He] with ⟨Hi, He⟩
     imod IH $$ [$Hi $Hs] with ⟨Hi, Hs⟩
     imodintro
     iframe Hi
@@ -75,9 +74,10 @@ theorem entries_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (c : Nat) (Dc 
 
 /-- **The registrations armed at `S`, the counter up by one** (what a commit point does, its new
 committed data `S`): a lower bound `n` of the counter before is `n + 1` after. -/
-theorem regs_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc S : Data) (n : Nat) :
-    obsIn (GF := GF) γ P W Pk S ∗ ▷ cmtRegs γ P W Pk Dc ∗ cntLb γ n ⊢
-      |==> ◇ (obsIn γ P W Pk S ∗ ▷ cmtRegs γ P W Pk S ∗ cntLb γ (n + 1)) := by
+theorem regs_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc S : Data) (n : Nat)
+    (F : IProp GF) (hF : F ⊢ obsIn γ P W Pk S) :
+    F ∗ ▷ cmtRegs γ P W Pk Dc ∗ cntLb γ n ⊢
+      |==> ◇ (F ∗ ▷ cmtRegs γ P W Pk S ∗ cntLb γ (n + 1)) := by
   iintro ⟨Hi, Hr, #Hlb⟩
   iunfold cmtRegs at Hr
   icases Hr with ⟨%gm, %gc, %c, %M, Hn, Hc, Hm, Hs⟩
@@ -93,7 +93,7 @@ theorem regs_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc S : Data) (n 
   simp only [Prod.mk.injEq] at Hag
   obtain ⟨-, rfl, rfl⟩ := Hag
   ihave %Hle := monoNatLbOwn_valid gc 1 c n $$ Hc Hl
-  imod entries_arm γ P W Pk c Dc S M $$ [$Hi $Hs] with ⟨Hi, Hs⟩
+  imod entries_arm γ P W Pk c Dc S M F hF $$ [$Hi $Hs] with ⟨Hi, Hs⟩
   imodintro
   imod mono_nat_own_update (c + 1) (by omega) $$ Hc with ⟨Hc, #Hl'⟩
   imodintro

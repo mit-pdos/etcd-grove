@@ -399,6 +399,9 @@ def bOpen (γ : BNames) (q : Qp) : IProp GF :=
 /-- The backend stopped (persistent). -/
 def bStopped (γ : BNames) : IProp GF := dghostVar γ.opn DFrac.discard true
 
+instance bStopped_timeless (γ : BNames) : Timeless (bStopped (GF := GF) γ) := by
+  unfold bStopped; infer_instance
+
 /-- (2026-11-04, R2b-3c) **The backend's bbolt database is `db`, the file at `path`** (persistent). -/
 def bDBAt (γ : BNames) (db : Loc) (path : GoString) : IProp GF :=
   dghostVar γ.dbf DFrac.discard ((db, path) : Loc × GoString)
@@ -1683,13 +1686,15 @@ theorem obsWand_apply (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ)
   iintro ⟨⟨HW, HPk, ⟨%X, Hva, Hdl⟩, Hhk, Hrb, Hfk⟩, HR, #Hw⟩
   iapply Hw $$ HR HW HPk Hva Hdl Hhk Hrb Hfk
 
-/-- The same with `R` and the wand under a later (a registration's, in the commit invariant): `Q` of
-`S` after an `◇`. -/
-theorem obsWand_apply_later (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) (S : Data) :
-    obsIn (GF := GF) γ P W Pk S ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢
-      ◇ ((obsIn γ P W Pk S ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q) ∗ ⌜obsAt P Q S⌝) := by
-  have h0 : obsIn (GF := GF) γ P W Pk S ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ▷ ⌜obsAt P Q S⌝ := by
+/-- The same from any frame `F` that gives the inputs (`hF`, an entailment: the frame is kept
+whole, the conclusion being pure), with `R` and the wand under a later (a registration's, in the
+commit invariant): `Q` of `S` after an `◇`. -/
+theorem obsWand_apply_later (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) (S : Data)
+    (F : IProp GF) (hF : F ⊢ obsIn γ P W Pk S) :
+    F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ◇ ((F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q) ∗ ⌜obsAt P Q S⌝) := by
+  have h0 : F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ▷ ⌜obsAt P Q S⌝ := by
     iintro ⟨Hi, HR, Hw⟩
+    ihave Hi := hF $$ Hi
     inext
     ihave Hp := obsWand_apply γ P W Pk R Q S $$ [$Hi $HR $Hw]
     icases Hp with ⟨-, %Hp⟩

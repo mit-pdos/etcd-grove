@@ -533,7 +533,11 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod ownTokAuth_alloc (GF := GF) with ⟨%gwb, Hwba⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%grdt, Hrdta⟩
   imod ghostVar_alloc () with ⟨%gtxa, Htxa⟩
-  imod ghostVar_alloc () with ⟨%gtxb, -⟩
+  -- (backend-snapshot B2) the registry's map and commit counter, their names on `γ.txb`
+  imod ghost_map_alloc_empty (K := Nat) (V := GName × GName × Nat) with ⟨%gregm, Hregm⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gregc, Hregc, -⟩
+  imod dghostVar_alloc ((gregm, gregc) : GName × GName) with ⟨%gtxb, Hgtxb⟩
+  imod dghostVar_persist gtxb 1 ((gregm, gregc) : GName × GName) $$ Hgtxb with #Hgtxb
   imod ghostVar_alloc ((rv0 D, false) : RView × Bool) with ⟨%grvs, Hrvs⟩
   imod ghostVar_alloc () with ⟨%gcvw, Hcvw⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gwbc, Hwbc, -⟩
@@ -732,12 +736,18 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   icases rep_guard _ hn (rmuOf (baseOf rt)) (rtRes γ P rt) $$ Hrmus with ⟨Hrmus, #Hrg⟩
   icases rep_guard _ hn tm (fun q => tmTok γ q) $$ Htms with ⟨Htms, #Htg⟩
   -- (backend-snapshot B1) the commit invariant, with the committed data's other half
-  imod inv_alloc cmtN ⊤ (cmtBody γ P (W γ) (Pk γ)) $$ [Hhalf] with #Hcmt
+  imod inv_alloc cmtN ⊤ (cmtBody γ P (W γ) (Pk γ)) $$ [Hhalf Hregm Hregc] with #Hcmt
   · inext
     unfold cmtBody cmtRegs
     ileft
     iexists D
     iframe Hhalf
+    iexists gregm, gregc, 0, ∅
+    iframe Hregc Hregm
+    isplitr
+    · unfold cmtNames; iexact Hgtxb
+    iapply BigSepM.bigSepM_empty.2
+    iempintro
   -- the backend
   ihave #Hnh : isBackendNH γ P (W γ) (Pk γ) b h $$ []
   · unfold isBackendNH

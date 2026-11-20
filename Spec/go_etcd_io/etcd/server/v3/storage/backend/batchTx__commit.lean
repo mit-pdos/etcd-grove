@@ -24,20 +24,26 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.commit(stop)` on the writer: nothing if nothing is pending (and not stopping); else bbolt's write transaction committed (`lg.Fatal` on an error), `pending` reset, and, unless stopping, a new write transaction begun over the new committed data. -/
 abbrev backend.batchTx.commit.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db : Loc) (st : BSess) (stop : Bool),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db : Loc) (st : BSess) (stop : Bool) (n : Nat)
+    (F : IProp GF), (F ⊢ obsIn γ P W Pk st.S) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ ownDB db γ.db st.C ∗ txDB st.tx γ.db db ∗ sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
       -- (backend-snapshot B1) the batch lock's quarter of the open flag (the commit point opens the
-      -- commit invariant), and a stop's payment (`stopPay`: the stop's commit stops the backend)
-      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ (if stop then stopPay γ else emp) }}
+      -- commit invariant), and a stop's payment (`stopPay`: the stop's commit stops the backend);
+      -- (B2) otherwise a frame `F` giving the batch lock's inputs at the writer's contents (`obsIn`,
+      -- kept whole: the commit point, or a no-op, arms the snapshots' registrations) and a lower
+      -- bound of the commit counter
+      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
+      (if stop then stopPay γ else iprop(F ∗ cntLb γ n)) ∗
+      ⌜st.pend = W64 0 → st.S = st.C⌝ }}
     (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"commit")) (Val #stop))
   {{ RET #(); sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
       ((⌜st.pend = W64 0 ∧ stop = false⌝ ∗ btW γ t st ∗ ownDB db γ.db st.C ∗ txDB st.tx γ.db db ∗
-          dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false) ∨
+          dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ F ∗ cntLb γ (n + 1)) ∨
        (⌜¬ (st.pend = W64 0 ∧ stop = false)⌝ ∗ ownDB db γ.db st.S ∗ pendOf t ↦ W64 0 ∗
         ∃ tx' : Loc, txFOf t ↦ tx' ∗
           (if stop then iprop(bStopped γ ∗ dbHalf γ.db st.S)
            else iprop(ownWTx tx' γ.db st.S st.S ∗ txDB tx' γ.db db ∗
-             dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false)))) }}
+             dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ F ∗ cntLb γ (n + 1))))) }}
 
 end spec
 
