@@ -118,10 +118,10 @@ theorem typed.TypedValue.Compare.wp_proof
     simp only [Cmp.union, Cmp.none]
     congr 1 <;> exact LawB.fset_empty_union _
   have hcard := LawB.cmpO_card_law_holds S t [] (some l) (some r) Hsz.1 Hsz.2
-  ihave Hown : cwOwn wl sc S (CWSt.mk tv.value' tvr.value' t [] false) «$r0_ptr» Cmp.none v0.spareWalkers'
+  ihave Hown : cwOwn wl sc S (CWSt.mk tv.value' tvr.value' t [] false a) «$r0_ptr» Cmp.none v0.spareWalkers'
       $$ [Hw Ha Hpath Hsp «$r0» Hs1 Hs2 Hs3]
   · unfold cwOwn cwCore ownCmp
-    iexists v0.path', a
+    iexists v0.path'
     iframe
     isplitl [Hw]
     · iexists tv.typeRef'
@@ -136,7 +136,7 @@ theorem typed.TypedValue.Compare.wp_proof
     isplitl [Hs2]
     · iexact Hs2
     iexact Hs3
-  wp_apply h_compareWalker_compare wl sc S (CWSt.mk tv.value' tvr.value' t [] false) «$r0_ptr» Cmp.none
+  wp_apply h_compareWalker_compare wl sc S (CWSt.mk tv.value' tvr.value' t [] false a) «$r0_ptr» Cmp.none
       DFrac.discard DFrac.discard (some l) (some r) func.nil v0.spareWalkers'
     $$ [Hown] as %errs ⟨Herrs, -, -, %sp', Hown, -⟩
   · simp only [isValO]
@@ -150,7 +150,7 @@ theorem typed.TypedValue.Compare.wp_proof
   rw [decide_eq_false hd]
   simp only
   iunfold cwOwn at Hown
-  icases Hown with ⟨%ps', %a', Hcore, Hp', Hsp', Ha', Hc⟩
+  icases Hown with ⟨%ps', Hcore, Hp', Hsp', Ha', Hc⟩
   iunfold cwCore at Hcore
   icases Hcore with ⟨%tr', Hw, #Htr', #Hsc', %Hwf'⟩
   try wp_auto

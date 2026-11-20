@@ -105,7 +105,7 @@ def typed.compareWalker.visitMapItem.specI : IProp GF :=
     (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (om : GoMap)
     (key : GoString) (t' : TypeRef) (lc rc : value.Value) (dql dqr : DFrac) (l r : Option UVal) (sp : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ cwOwn w sc S st c C sp ∗ isMapRep tp fs e rel ∗ isValO lc dql l ∗ isValO rc dqr r ∗
-      ⌜fieldType fs e key = some t' ∧ (l.isSome ∨ r.isSome) ∧ confO S t' l ∧ confO S t' r ∧
+      ⌜(fs.map (·.1)).Nodup ∧ fieldType fs e key = some t' ∧ (l.isSome ∨ r.isSome) ∧ confO S t' l ∧ confO S t' r ∧
         st.inLeaf = false ∧
         (C.union (cmpO S t' (st.path ++ [.field key]) l r)).removed.CardLt (2 ^ 63 - 1) ∧
         (C.union (cmpO S t' (st.path ++ [.field key]) l r)).modified.CardLt (2 ^ 63 - 1) ∧

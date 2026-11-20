@@ -37,8 +37,8 @@ abbrev typed.compareWalker.prepareDescent.spec : Prop :=
       isPE pe pe' ∗ isTypeRef tr t' }}
     (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker.ty @!! go!"prepareDescent")) (Val #pe)) (Val #tr)) (Val #c'))
   {{ (w2 : Loc), RET #w2; ∃ (sp' : Loc) (ps2 : fieldpath.Path), cwCore w sc S st ps c sp' a ∗
-      cwCore w2 sc S ⟨interface.nil, interface.nil, t', st.path ++ [pe'], st.inLeaf⟩ ps2 c' sp' a ∗
-      ownPath ps2 (st.path ++ [pe']) ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker sp' ∗ ⌜sp' ≠ null⌝ }}
+      cwCore w2 sc S ⟨interface.nil, interface.nil, t', st.path ++ [pe'], st.inLeaf, a⟩ ps2 c' sp' a ∗
+      ownPath ps2 (st.path ++ [pe']) ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker sp' ∗ ⌜sp' ≠ null ∧ (sp ≠ null → sp' = sp)⌝ }}
 
 end spec
 

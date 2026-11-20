@@ -183,6 +183,14 @@ theorem reconOut_root_ne (S : Schema) (t : TypeRef) (s N : PathSet)
       simp at hm
   · cases h
 
+/-- A map type's declared field names are distinct (`Map.FindField`'s premise). -/
+theorem map_fields_nodup (S : Schema) (hS : S.WF) (n : GoString) (fs : List (GoString × TypeRef))
+    (e : Option TypeRef) (rel : ElemRel) (h : S.find n = some (.map fs e rel)) :
+    (fs.map (·.1)).Nodup := by
+  have hw := find_wf S hS _ _ h
+  simp only [Atom.wf, Bool.and_eq_true, decide_eq_true_eq] at hw
+  exact hw.1.1
+
 end LawB
 
 end smd

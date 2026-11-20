@@ -57,7 +57,7 @@ theorem typed.compareWalker.compare.wp_proofBody
   iintro %w %sc %S %st %c %C %dql %dqr %l %r %f %sp
   wp_start as ⟨Hown, Hl, Hr, %Hpre⟩
   iunfold cwOwn at Hown
-  icases Hown with ⟨%ps, %a, Hcore, Hp, Hsp, Ha, Hc⟩
+  icases Hown with ⟨%ps, Hcore, Hp, Hsp, Ha, Hc⟩
   iunfold cwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   ihave ⟨Hl, %Hln⟩ := isValO_nil $$ Hl
@@ -143,14 +143,14 @@ theorem typed.compareWalker.compare.wp_proofBody
     ihave Hown : cwOwn w sc S st c C sp $$ [Hw Hp Hsp Ha Hc]
     · unfold cwOwn cwCore
       rw [Hrn.2 rfl]
-      iexists ps, a
+      iexists ps
       iframe
       iframe #
       ipureintro; exact Hwf
     wp_apply h_handleAtom atm At tr (go.GoType.PointerType typed.compareWalker.ty) #w
       iprop(cwOwn w sc S st c C sp ∗ isValO st.lhs dql (some x) ∗ isValO GoInterface.nil dqr none)
       (fun errs => iprop(noErrs errs ∗ isValO st.lhs dql (some x) ∗ isValO GoInterface.nil dqr none ∗
-        (∃ sp' : Loc, cwOwn w sc S (CWSt.mk st.lhs GoInterface.nil st.t st.path (leafAt S st.t (some x) none)) c
+        (∃ sp' : Loc, cwOwn w sc S (CWSt.mk st.lhs GoInterface.nil st.t st.path (leafAt S st.t (some x) none) st.alloc) c
           (C.union (cmpBelow S st.t st.path (some x) none)) sp' ∗ ⌜sp ≠ null → sp' = sp⌝)))
       $$ [Hown Hl Hr] as %errs' HQ
     · iframe #; iframe
@@ -166,7 +166,7 @@ theorem typed.compareWalker.compare.wp_proofBody
       · iapply ownSliceCap_nil
     simp only [List.append_nil]
     iunfold cwOwn at Hown
-    icases Hown with ⟨%ps', %a', Hcore, Hp, Hsp, Ha, Hc⟩
+    icases Hown with ⟨%ps', Hcore, Hp, Hsp, Ha, Hc⟩
     iunfold cwCore at Hcore
     icases Hcore with ⟨%tr', Hw, #Htr', #Hsc', %Hwf'⟩
     have hres := cmpO_below_resolved S st.t st.path (some x) none hfind
@@ -202,7 +202,7 @@ theorem typed.compareWalker.compare.wp_proofBody
       · ipureintro; exact Hsp'
       unfold cwOwn cwCore ownCmp ownPath
       rw [hC]
-      iexists ps', a'
+      iexists ps'
       iframe
       iframe #
       ipureintro; exact Hwf'
@@ -222,7 +222,7 @@ theorem typed.compareWalker.compare.wp_proofBody
       · ipureintro; exact Hsp'
       unfold cwOwn cwCore
       rw [hres]
-      iexists ps', a'
+      iexists ps'
       iframe
       iframe #
       ipureintro; exact Hwf'
@@ -235,14 +235,14 @@ theorem typed.compareWalker.compare.wp_proofBody
       ihave Hown : cwOwn w sc S st c C sp $$ [Hw Hp Hsp Ha Hc]
       · unfold cwOwn cwCore
         rw [Hln.2 rfl, Hpr]
-        iexists ps, a
+        iexists ps
         iframe
         iframe #
         ipureintro; exact Hwf
       wp_apply h_handleAtom atm At tr (go.GoType.PointerType typed.compareWalker.ty) #w
         iprop(cwOwn w sc S st c C sp ∗ isValO GoInterface.nil dql none ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y))
         (fun errs => iprop(noErrs errs ∗ isValO GoInterface.nil dql none ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y) ∗
-          (∃ sp' : Loc, cwOwn w sc S (CWSt.mk GoInterface.nil (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) st.t st.path (leafAt S st.t none (some y))) c
+          (∃ sp' : Loc, cwOwn w sc S (CWSt.mk GoInterface.nil (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) st.t st.path (leafAt S st.t none (some y)) st.alloc) c
             (C.union (cmpBelow S st.t st.path none (some y))) sp' ∗ ⌜sp ≠ null → sp' = sp⌝)))
         $$ [Hown Hl Hr] as %errs' HQ
       · iframe #; iframe
@@ -258,7 +258,7 @@ theorem typed.compareWalker.compare.wp_proofBody
         · iapply ownSliceCap_nil
       simp only [List.append_nil]
       iunfold cwOwn at Hown
-      icases Hown with ⟨%ps', %a', Hcore, Hp, Hsp, Ha, Hc⟩
+      icases Hown with ⟨%ps', Hcore, Hp, Hsp, Ha, Hc⟩
       iunfold cwCore at Hcore
       icases Hcore with ⟨%tr', Hw, #Htr', #Hsc', %Hwf'⟩
       have hres := cmpO_below_resolved S st.t st.path none (some y) hfind
@@ -293,7 +293,7 @@ theorem typed.compareWalker.compare.wp_proofBody
         · ipureintro; exact Hsp'
         unfold cwOwn cwCore ownCmp ownPath
         rw [hC]
-        iexists ps', a'
+        iexists ps'
         iframe
         iframe #
         ipureintro; exact Hwf'
@@ -313,7 +313,7 @@ theorem typed.compareWalker.compare.wp_proofBody
         · ipureintro; exact Hsp'
         unfold cwOwn cwCore
         rw [hres]
-        iexists ps', a'
+        iexists ps'
         iframe
         iframe #
         ipureintro; exact Hwf'
@@ -330,14 +330,14 @@ theorem typed.compareWalker.compare.wp_proofBody
       ihave Hown : cwOwn w sc S st c C sp $$ [Hw Hp Hsp Ha Hc]
       · unfold cwOwn cwCore
         rw [Hpl, Hpr]
-        iexists ps, a
+        iexists ps
         iframe
         iframe #
         ipureintro; exact Hwf
       wp_apply h_handleAtom atm At tr (go.GoType.PointerType typed.compareWalker.ty) #w
         iprop(cwOwn w sc S st c C sp ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) dql (some x) ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y))
         (fun errs => iprop(noErrs errs ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) dql (some x) ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y) ∗
-          (∃ sp' : Loc, cwOwn w sc S (CWSt.mk (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) st.t st.path (leafAt S st.t (some x) (some y))) c
+          (∃ sp' : Loc, cwOwn w sc S (CWSt.mk (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) st.t st.path (leafAt S st.t (some x) (some y)) st.alloc) c
             (C.union (cmpBelow S st.t st.path (some x) (some y))) sp' ∗ ⌜sp ≠ null → sp' = sp⌝)))
         $$ [Hown Hl Hr] as %errs' HQ
       · iframe #; iframe
@@ -353,7 +353,7 @@ theorem typed.compareWalker.compare.wp_proofBody
         · iapply ownSliceCap_nil
       simp only [List.append_nil]
       iunfold cwOwn at Hown
-      icases Hown with ⟨%ps', %a', Hcore, Hp, Hsp, Ha, Hc⟩
+      icases Hown with ⟨%ps', Hcore, Hp, Hsp, Ha, Hc⟩
       iunfold cwCore at Hcore
       icases Hcore with ⟨%tr', Hw, #Htr', #Hsc', %Hwf'⟩
       have hres := cmpO_below_resolved S st.t st.path (some x) (some y) hfind
@@ -381,7 +381,7 @@ theorem typed.compareWalker.compare.wp_proofBody
         · ipureintro; exact Hsp'
         unfold cwOwn cwCore
         rw [hC]
-        iexists ps', a'
+        iexists ps'
         iframe
         iframe #
         ipureintro; exact Hwf'

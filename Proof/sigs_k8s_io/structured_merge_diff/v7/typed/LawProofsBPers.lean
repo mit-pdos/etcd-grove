@@ -44,6 +44,11 @@ instance isSetO_pers (p : Loc) : (o : Option PathSet) → Persistent (isSetO (GF
   | none => by unfold isSetO; infer_instance
   | some _ => by unfold isSetO; infer_instance
 
+/-- A field's path element (`PathElement{FieldName: &key}`). -/
+theorem isPE_field_intro (e : fieldpath.PathElement) (n : GoString) :
+    e.FieldName' ↦□ n ⊢ isPE (GF := GF) e (.field n) := by
+  unfold isPE; iintro H; iexact H
+
 /-- A path element's field name: set exactly for a field. -/
 theorem isPE_fieldName (e : fieldpath.PathElement) (pe : PE) :
     isPE (GF := GF) e pe ⊢ match pe with

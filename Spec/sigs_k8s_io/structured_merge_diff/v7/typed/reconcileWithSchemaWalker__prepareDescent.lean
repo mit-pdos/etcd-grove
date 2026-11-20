@@ -43,7 +43,7 @@ abbrev typed.reconcileWithSchemaWalker.prepareDescent.spec : Prop :=
       rwCore w sc S st ps fs tv rem add sp' ∗
       rwCore w2 sc S ⟨t', st.path ++ [pe'], st.isAtomic⟩ ps2 fs tv rem add sp' ∗
       ownPath ps2 (st.path ++ [pe']) ∗ (ownPath ps2 (st.path ++ [pe']) -∗ ownPath ps st.path) ∗
-      spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker sp' ∗ ⌜sp' ≠ null⌝ }}
+      spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker sp' ∗ ⌜sp' ≠ null ∧ (sp ≠ null → sp' = sp)⌝ }}
 
 end spec
 

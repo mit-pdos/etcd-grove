@@ -42,7 +42,7 @@ theorem typed.mergingWalker.doLeaf.wp_proof :
     simp only [↓reduceIte]
     iframe
     unfold mwOwn mwCore; rw [Hif]
-    iexists ps, a
+    iexists ps
     iframe
     isplitr; iexact Htr
     isplitr; iexact Hsc
@@ -58,7 +58,7 @@ theorem typed.mergingWalker.doLeaf.wp_proof :
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe
     unfold mwOwn mwCore
-    iexists ps, a
+    iexists ps
     iframe
     simp only
     isplitr; iexact Htr

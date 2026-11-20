@@ -57,7 +57,7 @@ theorem typed.compareWalker.doScalar.wp_proof
   rw [Hleaf]
   ihave Hown : cwOwn w sc S st c C sp $$ [Hw Hps Hsp Ha Hc]
   · unfold cwOwn cwCore
-    iexists ps, a
+    iexists ps
     iframe
     rw [Hleaf]
     iframe

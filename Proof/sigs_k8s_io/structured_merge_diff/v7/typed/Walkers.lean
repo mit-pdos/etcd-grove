@@ -295,6 +295,9 @@ structure MWSt where
   path : Path
   out : Option UVal
   inLeaf : Bool
+  /-- The allocator (Prove phase, 2026-11-20: kept across a method, as `VWSt.alloc`; a descent's
+  `finishDescent` needs the child's allocator to be the parent's). -/
+  alloc : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.Allocator
 
 /-- **`outRep o mx`**: the merging walker's `out *interface{}`: nil (`none`), or a cell holding
 an interface holding `x`, never written again (persistent). -/
@@ -325,8 +328,9 @@ def mwCore (w sc : Loc) (S : Schema) (st : MWSt) (ps : fieldpath.Path) (sp : Loc
 (path buffer, spare walkers at `sp`, allocator). `sp` is explicit: a descent's `finishDescent`
 needs the child's spare walkers to be the parent's (Go sets `spareWalkers` only when nil). -/
 def mwOwn (w sc : Loc) (S : Schema) (st : MWSt) (sp : Loc) : IProp GF :=
-  iprop(∃ (ps : fieldpath.Path) (a : value.Allocator),
-    mwCore w sc S st ps sp a ∗ ownPath ps st.path ∗ spareWalkers typed.mergingWalker sp ∗ isAlloc a)
+  iprop(∃ ps : fieldpath.Path,
+    mwCore w sc S st ps sp st.alloc ∗ ownPath ps st.path ∗ spareWalkers typed.mergingWalker sp ∗
+    isAlloc st.alloc)
 
 /-- **`mwPooled w`**: a merging walker in `mwPool`: its path emptied (`finishDescent` leaves the
 top walker's path at its start, `[]`), no output and not in a leaf (`merge`'s deferred reset;
@@ -346,6 +350,8 @@ structure CWSt where
   t : TypeRef
   path : Path
   inLeaf : Bool
+  /-- The allocator (kept across a method, as `MWSt.alloc`). -/
+  alloc : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.Allocator
 
 /-- **`cwCore w sc S st ps c sp a`**: the compare walker's struct (owned), its comparison `c`
 (shared by the traversal's walkers: `prepareDescent(pe, tr, w.comparison)`). -/
@@ -359,9 +365,9 @@ def cwCore (w sc : Loc) (S : Schema) (st : CWSt) (ps : fieldpath.Path) (c sp : L
 far (owned: the walker inserts into its sets), its spare walkers at `sp` (explicit, as
 `mwOwn`'s). -/
 def cwOwn (w sc : Loc) (S : Schema) (st : CWSt) (c : Loc) (C : Cmp) (sp : Loc) : IProp GF :=
-  iprop(∃ (ps : fieldpath.Path) (a : value.Allocator),
-    cwCore w sc S st ps c sp a ∗ ownPath ps st.path ∗ spareWalkers typed.compareWalker sp ∗
-    isAlloc a ∗ ownCmp c C)
+  iprop(∃ ps : fieldpath.Path,
+    cwCore w sc S st ps c sp st.alloc ∗ ownPath ps st.path ∗ spareWalkers typed.compareWalker sp ∗
+    isAlloc st.alloc ∗ ownCmp c C)
 
 /-- **`cwPooled w`**: a compare walker in `cmpwPool` (path emptied, not in a leaf, spare walkers,
 allocator or nil). -/

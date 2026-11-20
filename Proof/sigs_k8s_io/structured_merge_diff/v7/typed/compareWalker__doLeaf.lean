@@ -48,7 +48,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
     simp only [↓reduceIte]
     iframe
     unfold cwOwn cwCore; rw [Hif]
-    iexists ps, a
+    iexists ps
     iframe
     isplitr; iexact Htr
     isplitr; iexact Hsc
@@ -72,7 +72,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
       simp only [Bool.false_eq_true, ↓reduceIte, leafC, Cmp.union, LawB.ps_union_empty]
       iframe
       unfold cwOwn cwCore ownPath ownCmp
-      iexists ps, a
+      iexists ps
       iframe
       simp only
       isplitr; iexact Htr
@@ -96,7 +96,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte, leafC, Cmp.union, LawB.ps_union_empty]
         iframe
         unfold cwOwn cwCore ownPath ownCmp
-        iexists ps, a
+        iexists ps
         iframe
         simp only
         isplitr; iexact Htr
@@ -107,7 +107,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
         rw [Hpr]
         simp only [isValO]
         wp_auto
-        wp_apply h_EqualsUsing a _ _ dqr dql y x $$ [Ha Hr Hl] as %b ⟨Ha, Hr, Hl, %Hb⟩
+        wp_apply h_EqualsUsing st.alloc _ _ dqr dql y x $$ [Ha Hr Hl] as %b ⟨Ha, Hr, Hl, %Hb⟩
         · iframe
         by_cases hxy : x = y
         · have hb : b = true := Hb.2 hxy.symm
@@ -118,7 +118,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
             LawB.ps_union_empty]
           iframe
           unfold cwOwn cwCore ownPath ownCmp
-          iexists ps, a
+          iexists ps
           iframe
           simp only
           isplitr; iexact Htr
@@ -140,7 +140,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
           simp only [Bool.false_eq_true, ↓reduceIte, leafC, hxy, Cmp.union, LawB.ps_union_empty]
           iframe
           unfold cwOwn cwCore ownPath ownCmp
-          iexists ps, a
+          iexists ps
           iframe
           simp only
           isplitr; iexact Htr

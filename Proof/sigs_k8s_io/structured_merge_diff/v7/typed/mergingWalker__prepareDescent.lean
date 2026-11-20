@@ -89,7 +89,7 @@ theorem typed.mergingWalker.prepareDescent.wp_proof :
       iframe
       iapply (BigSepL.bigSepL_nil_intro (P := iprop(True)))
       ipureintro; trivial
-    · ipureintro; exact Hspcnn
+    · ipureintro; exact ⟨Hspcnn, fun h => absurd rfl h⟩
   · unfold spareWalkers
     icases Hsp with (%Hn | ⟨%sl, %ws, Hspp, Hws, Hwsc, Hwl⟩)
     · exact absurd Hn Hif
@@ -164,7 +164,7 @@ theorem typed.mergingWalker.prepareDescent.wp_proof :
       · iright
         iexists _, ws'
         iframe
-      · ipureintro; exact Hspnn
+      · ipureintro; exact ⟨Hspnn, fun _ => trivial⟩
     · have hws : ws = [] := by
         apply List.eq_nil_of_length_eq_zero
         have := Hwslen.1
@@ -208,7 +208,7 @@ theorem typed.mergingWalker.prepareDescent.wp_proof :
       · iright
         iexists sl, []
         iframe
-      · ipureintro; exact Hspnn
+      · ipureintro; exact ⟨Hspnn, fun _ => trivial⟩
 
 end proof
 

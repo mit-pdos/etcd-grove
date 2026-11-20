@@ -56,7 +56,7 @@ theorem typed.mergingWalker.doScalar.wp_proof
   rw [Hleaf]
   ihave Hown : mwOwn w sc S st sp $$ [Hw Hps Hsp Ha]
   · unfold mwOwn mwCore
-    iexists ps, a
+    iexists ps
     iframe
     rw [Hleaf]
     iframe

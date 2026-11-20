@@ -40,8 +40,8 @@ abbrev typed.mergingWalker.prepareDescent.spec : Prop :=
       isPE pe pe' ∗ isTypeRef tr t' }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"prepareDescent")) (Val #pe)) (Val #tr))
   {{ (w2 : Loc), RET #w2; ∃ (sp' : Loc) (ps2 : fieldpath.Path), mwCore w sc S st ps sp' a ∗
-      mwCore w2 sc S ⟨interface.nil, interface.nil, t', st.path ++ [pe'], none, st.inLeaf⟩ ps2 sp' a ∗
-      ownPath ps2 (st.path ++ [pe']) ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker sp' ∗ ⌜sp' ≠ null⌝ }}
+      mwCore w2 sc S ⟨interface.nil, interface.nil, t', st.path ++ [pe'], none, st.inLeaf, a⟩ ps2 sp' a ∗
+      ownPath ps2 (st.path ++ [pe']) ∗ spareWalkers _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker sp' ∗ ⌜sp' ≠ null ∧ (sp ≠ null → sp' = sp)⌝ }}
 
 end spec
 

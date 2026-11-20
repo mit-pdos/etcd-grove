@@ -105,9 +105,9 @@ theorem typed.merge.wp_proof
       wp_auto
       wp_join_done
   obtain ⟨Hout0, Hleaf0⟩ := Hv0
-  ihave Hown : mwOwn wl sc S (MWSt.mk tvl.value' tvr.value' t [] none false) v0.spareWalkers' $$ [Hw Ha Hpath Hsp]
+  ihave Hown : mwOwn wl sc S (MWSt.mk tvl.value' tvr.value' t [] none false a) v0.spareWalkers' $$ [Hw Ha Hpath Hsp]
   · unfold mwOwn mwCore
-    iexists v0.path', a
+    iexists v0.path'
     iframe
     iexists tvl.typeRef', rule, v0.out'
     rw [← Hleaf0]
@@ -115,7 +115,7 @@ theorem typed.merge.wp_proof
     iframe #
     unfold outRep
     ipureintro; exact ⟨Hcl.1, Hout0⟩
-  wp_apply h_mergingWalker_merge wl sc S (MWSt.mk tvl.value' tvr.value' t [] none false)
+  wp_apply h_mergingWalker_merge wl sc S (MWSt.mk tvl.value' tvr.value' t [] none false a)
       DFrac.discard DFrac.discard (some l) (some r) func.nil v0.spareWalkers'
     $$ [Hown] as %errs ⟨Herrs, -, -, %sp', Hown, -⟩
   · simp only [isValO]
@@ -127,7 +127,7 @@ theorem typed.merge.wp_proof
   rw [decide_eq_false hd]
   simp only
   iunfold mwOwn at Hown
-  icases Hown with ⟨%ps', %a', Hcore, Hp', Hsp', Ha'⟩
+  icases Hown with ⟨%ps', Hcore, Hp', Hsp', Ha'⟩
   iunfold mwCore at Hcore
   icases Hcore with ⟨%tr', %rule', %o', Hw, #Htr', #Hsc', %Hwf', #Hrule', #Ho'⟩
   wp_auto
