@@ -1,5 +1,5 @@
 /-
-`config.ServerConfig.PeerDialTimeout` (`config.go`: a duration computed from two fields): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`config.ServerConfig.PeerDialTimeout` (`config.go`: a duration computed from two fields): names-only until 2026-11-19, now translated and proved. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
 `notes/decisions.md`), for `NewServer`.
 -/
 module

@@ -120,7 +120,7 @@ heap_up:
 heap_down:
 heap_Push: heap_up
 heap_Fix: heap_down heap_up
-version_LessThan:
+version_LessThan: v3_Version__LessThan
 schema_MustUnsafePutLease:
 lease_LeaseQueue__Len:
 lease_LeaseQueue__Less:
@@ -520,8 +520,9 @@ EtcdServer__run: schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup sto
 # (`clusterVersionOk`; since D17 `NewServer` builds it from `EtcdServer.ClusterVersion`, translated
 # and proved). The read package's `NewRead` and `LinearizableReadLoop` are its Link's.
 zap_Logger__Info:
-types_ID__String:
-types_ID__String_ptr:
+strconv_FormatUint:
+types_ID__String: strconv_FormatUint
+types_ID__String_ptr: types_ID__String
 Version__String:
 version_Cluster:
 prometheus_GaugeVec__With:

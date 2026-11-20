@@ -13,6 +13,7 @@ reads, `opaqueInitsOk` the others.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.lease.Base
+public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -99,6 +100,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoString) APIVersion _ as HAPIVersion
   wp_apply wp_GlobalAlloc (V := GoString) Version _ as HVersion
   wp_apply wp_GlobalAlloc (V := GoString) MinClusterVersion _ as HMinClusterVersion
+  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of MinClusterVersion))
   -- translated initializer of Version))
   -- translated initializer of APIVersion))

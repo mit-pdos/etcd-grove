@@ -41,6 +41,9 @@ os.chdir(ROOT)
 # `lake build --packages=<file>` builds against, when the shared one lags behind it)
 PERENNIAL_CODE = os.path.join(os.environ.get('PERENNIAL_DIR', '.lake/packages/perennial'),
                               'Perennial', 'Code')
+if not os.path.isdir(PERENNIAL_CODE):
+    sys.exit(f'gen-init: no Perennial translations at {PERENNIAL_CODE}: fetch the pinned '
+             'dependencies first (`lake env true`), or set PERENNIAL_DIR')
 
 ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the auth plan's A3c (2026-10-24): the Lock and Election services' servers
