@@ -407,7 +407,7 @@ theorem probeA_readySplit (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (s
         readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗ readyToksClaim n γ N ms ∗
         ⌜(st.afterReady ce es h L ss).handling = some (es, L)⌝ := by
   unfold readyGotT readyRest
-  iintro ⟨%ce, %es, %h, %L, %ms, %ss, -, -, -, ⟨-, Hmsl, Hms, -, -, -, -, Hsnap, -⟩, -, Hent, -, -,
+  iintro ⟨%ce, %es, %h, %L, %ms, %ss, -, -, -, -, ⟨-, Hmsl, Hms, -, -, -, -, Hsnap, -⟩, -, Hent, -, -,
     Hcl⟩
   iexists ce, es, h, L, ms, ss
   iframe Hmsl Hms Hsnap Hent Hcl

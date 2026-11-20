@@ -174,7 +174,7 @@ theorem Cluster.app.wp_proof
     inext
     iintro %rdv Hgot
     iunfold readyGotT at Hgot
-    icases Hgot with ⟨%ce, %es, %h, %L, %qs, %ss, #Hce, #Hcomm, -, Hrest, -, Henter, #Hdl, -, Hcl⟩
+    icases Hgot with ⟨%ce, %es, %h, %L, %qs, %ss, -, #Hce, #Hcomm, -, Hrest, -, Henter, #Hdl, -, Hcl⟩
     iunfold readyRest at Hrest
     icases Hrest with ⟨#Hes0, Hmsl, Hmsok, -, #Hhs, -, %Hbnd, Hsnap, -⟩
     ihave #Hhs := hsOptC_hsOpt _ _ $$ Hhs

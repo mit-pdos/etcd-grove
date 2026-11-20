@@ -786,6 +786,53 @@ instance nodeTagPin_persistent (γ : Cluster) (n : Loc) (SV : SnapshotM → IPro
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
 
+/-- The certificate carried by the received-snapshot path of this node. -/
+@[no_expose] def nodeRestoreCert (γ : Cluster) (n : Loc) (sv : SnapshotM) : IProp GF :=
+  iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗
+    ksnCert γn.sn (snapTrip sv sv.Metadata'.ConfState'.lists))
+
+instance nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) :
+    Persistent (nodeRestoreCert (GF := GF) γ n sv) := by
+  unfold nodeRestoreCert
+  haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
+  infer_instance
+
+/-- For an outgoing MsgSnap, the storage supplied its pinned certificate or raft
+carried the certificate for a received snapshot. The later comes from saved
+predicate agreement and applies only to the client-selected certificate. -/
+theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (ms : List QMsg)
+    (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
+    ⊢ readySnapSources (GF := GF) γ n ms -∗ nodeTagPin γ n SV -∗
+      ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert γ n sv) := by
+  haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
+  unfold readySnapSources ApiImpl.snapSources nodeTagPin
+  iintro ⟨%γn, #Htab, #Hs⟩ ⟨%γp, #Htabp, #Hpin⟩
+  iunfold qSrcs at Hs
+  ihave ⟨#Hq, -⟩ := BigSepL.bigSepL_mem_acc hq $$ Hs
+  iunfold qSrc at Hq
+  iunfold tsSrc at Hq
+  icases Hq with (%Hne | ⟨%sv, %Hsv, Hc⟩)
+  · exact False.elim (Hne ht)
+  iexists sv
+  isplitr
+  · ipureintro; exact Hsv
+  icases Hc with (Hc | Hc)
+  · ileft
+    ihave %He := ApiImpl.nodeTabOk_agree γ n γn γp $$ Htab Htabp
+    have Hkey : γn.sn.gsv = γp.sn.gsv := congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.1) He
+    iunfold svCert at Hc
+    icases Hc with ⟨%P, #Hp, #HP⟩
+    ihave #Hp' : savedPredOwn γp.sn.gsv DFrac.discard P $$ []
+    · rw [← Hkey]; iexact Hp
+    ihave #Heq := saved_pred_agree γp.sn.gsv DFrac.discard DFrac.discard P SV sv $$ Hp' Hpin
+    inext
+    ihave ⟨Hiff, -⟩ := internalEq_iff _ _ $$ Heq
+    iapply Hiff $$ HP
+  · iright
+    unfold nodeRestoreCert
+    iexists γn
+    iframe Htab Hc
+
 /-- A storage whose nonempty snapshots also carry the client's source tag. -/
 def isStorageT (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) (st : Storage) : IProp GF :=
   isStorageP γ.maxData.isSome (fun sv => iprop(snapshotValid γ sv ∗ Tg sv))
