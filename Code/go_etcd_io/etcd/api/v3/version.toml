@@ -2,8 +2,10 @@
 # `version.Version` and `version.Cluster(...)`; the request path's unit 4c).
 # (2026-11-19) The string variables, so that their initializers are translated (`etc/gen-init.py`);
 # the `semver` ones stay untranslated (`semver.New` formats with `fmt`).
-translate = ["!*", "MinClusterVersion", "Version", "APIVersion", "GitSHA"]
-imports = ["!*"]
+translate = ["!*", "MinClusterVersion", "Version", "APIVersion", "GitSHA",
+  # (2026-11-19) `LessThan`, proved over `semver.Version.LessThan`
+  "LessThan"]
+imports = ["!*", "github.com/Masterminds/semver/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

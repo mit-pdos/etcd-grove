@@ -9,7 +9,7 @@
 # `errMemberNotFound` and `supportedStream`.
 translate = ["*", "!init.*",
   "!addPeerToProber", "!monitorProbingStatus",
-  "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper", "!waitSchedule",
+  "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper",
   "!activePeers", "!disconnectedPeers", "!sentBytes", "!receivedBytes", "!sentFailures",
   "!recvFailures", "!snapshotSend", "!snapshotSendInflights", "!snapshotSendFailures",
   "!snapshotSendSeconds", "!snapshotReceive", "!snapshotReceiveInflights",
@@ -24,7 +24,7 @@ translate = ["*", "!init.*",
 # (2026-10-24, rafthttp stage 6d) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
 # translated: `path.Join(RaftPrefix, ...)`, their values facts of `rafthttpInit`
 imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",
-  "net/url", "path", "strings", "sync", "time",
+  "net/url", "path", "runtime", "strings", "sync", "time",
   "github.com/Masterminds/semver/v3", "github.com/dustin/go-humanize",
   "github.com/prometheus/client_golang/prometheus", "github.com/xiang90/probing",
   "go.etcd.io/etcd/api/v3/version", "go.etcd.io/etcd/client/pkg/v3/transport",

@@ -50,6 +50,7 @@ public import Proof.net.Init
 public import Proof.net.http.Init
 public import Proof.net.url.Init
 public import Proof.path.Init
+public import Proof.runtime.Init
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
 public import Proof.errors.NewVarCell

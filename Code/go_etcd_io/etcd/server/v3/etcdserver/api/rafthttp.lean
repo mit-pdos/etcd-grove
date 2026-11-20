@@ -25,6 +25,7 @@ public import Perennial.Code.sync
 public import Code.golang_org.x.time.rate
 public import Code.go_etcd_io.raft.v3
 public import Perennial.Code.bytes
+public import Perennial.Code.runtime
 public import Code.github_com.xiang90.probing
 public import Code.go_etcd_io.etcd.pkg.v3.httputil
 public import Code.github_com.Masterminds.semver.v3
@@ -3929,6 +3930,16 @@ noncomputable def pipeline.post.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.url.URL.ty))) (Pair (Var "u") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- waitSchedule waits other goroutines to be scheduled for a while
+
+    go: pipeline.go:179:6 -/
+noncomputable def waitSchedule.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.runtime.Gosched []))) (Val #())) (Val #()))))
+  (Val #())))
 
 /-- go: remote.go:40:6 -/
 noncomputable def startRemote.impl [GooseExts] [GoGlobalContext] : val :=
@@ -8031,12 +8042,13 @@ noncomputable def addRemoteFromRequest.impl [GooseExts] [GoGlobalContext] : val 
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp where
-  pkgImportedPkgs := [pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.context, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.path, pkg_id.strings, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.ioutil, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.sync, pkg_id.golang_org.x.time.rate, pkg_id.go_etcd_io.raft.v3, pkg_id.bytes, pkg_id.github_com.xiang90.probing, pkg_id.go_etcd_io.etcd.pkg.v3.httputil, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.net.url, pkg_id.net]
+  pkgImportedPkgs := [pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.context, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.path, pkg_id.strings, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.ioutil, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.sync, pkg_id.golang_org.x.time.rate, pkg_id.go_etcd_io.raft.v3, pkg_id.bytes, pkg_id.runtime, pkg_id.github_com.xiang90.probing, pkg_id.go_etcd_io.etcd.pkg.v3.httputil, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.net.url, pkg_id.net]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8302,6 +8314,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.bytes.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.runtime.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.xiang90.probing.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -10138,6 +10152,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isMsgApp_unfold : FuncUnfold isMsgApp [] isMsgApp.impl
   isMsgSnap_unfold : FuncUnfold isMsgSnap [] isMsgSnap.impl
   newPeerStatus_unfold : FuncUnfold newPeerStatus [] newPeerStatus.impl
+  waitSchedule_unfold : FuncUnfold waitSchedule [] waitSchedule.impl
   startRemote_unfold : FuncUnfold startRemote [] startRemote.impl
   newSnapshotSender_unfold : FuncUnfold newSnapshotSender [] newSnapshotSender.impl
   createSnapBody_unfold : FuncUnfold createSnapBody [] createSnapBody.impl
@@ -10178,6 +10193,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_rate_Assumption : _root_.Perennial.golang_org.x.time.rate.Assumptions
   import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
+  import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
   import_probing_Assumption : _root_.Perennial.github_com.xiang90.probing.Assumptions
   import_httputil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.httputil.Assumptions
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
@@ -10225,6 +10241,7 @@ attribute [instance] Assumptions.encoder_instance
   Assumptions.isMsgApp_unfold
   Assumptions.isMsgSnap_unfold
   Assumptions.newPeerStatus_unfold
+  Assumptions.waitSchedule_unfold
   Assumptions.startRemote_unfold
   Assumptions.newSnapshotSender_unfold
   Assumptions.createSnapBody_unfold
@@ -10265,6 +10282,7 @@ attribute [instance] Assumptions.encoder_instance
   Assumptions.import_rate_Assumption
   Assumptions.import_raft_Assumption
   Assumptions.import_bytes_Assumption
+  Assumptions.import_runtime_Assumption
   Assumptions.import_probing_Assumption
   Assumptions.import_httputil_Assumption
   Assumptions.import_semver_Assumption
