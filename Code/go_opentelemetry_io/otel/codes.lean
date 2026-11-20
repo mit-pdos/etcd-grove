@@ -25,23 +25,22 @@ noncomputable def Code.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Code.ty
 
-opaque Unset [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Unset [GooseExts] [GoGlobalContext] : val :=
+  #(W32 0)
 
-opaque Error [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Error [GooseExts] [GoGlobalContext] : val :=
+  #(W32 1)
 
-opaque Ok [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Ok [GooseExts] [GoGlobalContext] : val :=
+  #(W32 2)
 
 opaque maxCode [GooseExts] [GoGlobalContext] : val
 
 noncomputable def codeToStr [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/codes.codeToStr"
 
-opaque codeToStr.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def strToCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/codes.strToCode"
-
-opaque strToCode.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.codes where
   pkgImportedPkgs := []
@@ -53,10 +52,30 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.go_opentelemetry_io.otel.codes)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val Unset)
+  (Let "$v1" (Val #(go!"Unset"))
+  (Let "$k2" (Val Error)
+  (Let "$v3" (Val #(go!"Error"))
+  (Let "$k4" (Val Ok)
+  (Let "$v5" (Val #(go!"Ok"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType Code.ty go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression Code.ty (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression Code.ty (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression Code.ty (Var "$k4"))) (ElementExpression go.string (Var "$v5")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"\"Unset\""))
+  (Let "$v1" (Val Unset)
+  (Let "$k2" (Val #(go!"\"Error\""))
+  (Let "$v3" (Val Error)
+  (Let "$k4" (Val #(go!"\"Ok\""))
+  (Let "$v5" (Val Ok)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string Code.ty)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression Code.ty (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression Code.ty (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression Code.ty (Var "$v5")))]))))))))
   (App (Val doExecute)
-  (App (Val strToCode.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string Code.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr strToCode))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val codeToStr.init) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType Code.ty go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr codeToStr))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc codeToStr (go.GoType.MapType Code.ty go.string))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc strToCode (go.GoType.MapType go.string Code.ty))) (Val #()))))))))
 
 abbrev Code [GooseExts] : Type := w32
 

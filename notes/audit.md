@@ -633,3 +633,22 @@ premises: `rnStopOkStarted`, `bootstrapContract`).
 | `bootstrapContract`'s `bootOk`/`bootOkR` `Hssp` (`snap.snapDBPath bs.ss' = snapDBPathOf cfg.DataDir`) with `snap.snapDBPath : Loc → w64 → GoString` opaque | **unsatisfiable for two or more members** (2026-11-19; since S5, 2026-11-18, when `Hsfree`'s exclusive name claims joined it; widened by B1's `Hpath`): **fixed** on wal-link (2026-11-19, approved by the user via etcd-grove-03) | A pure opaque function of a run-allocated location, pinned per run by the contract: true in every run only if every member's `snapDBPathOf` is one function, and then the members' exclusive claims collide, so the multi-member closed theorems held vacuously. Fixed: the directory is the snapshotter's `dir` field, a persistent cell in `isSnapshotter ss sd`; paths `snapDBPath sd i` a definition over the string; `snapDirInv sd`; the snapshot specs over `sd` |
 | `snap.Snapshotter.DBFilePath`, `SaveDBFrom`, `ReleaseSnapDBs` (restated over `isSnapshotter ss sd`, `snapDBPath sd`, `snapDirInv sd`) | ok (re-attack 2026-11-19, `notes/axiom-review/snapdir.md`) | the paths' meaning unchanged (`filepath.Join(s.dir, "%016x.snap.db")`, `s.dir` a clean `cfg.SnapDir()`: `examples/etcd/snappaths`); two incarnations sharing `snapDirInv sd` sound |
 | `bootstrapContract`'s `bootOk` `Hpath`/`Hsfree` (and `bootOkR`, `srvFiles`) over the examples' relative `DataDir = name ++ ".etcd"` | **unsatisfiable for every member** (2026-11-19, the re-attack; pre-existing since S5, 2026-11-18): **fixed** on wal-link (2026-11-19, approved by the user via etcd-grove-03: absolute data directories `memberDataDir`, roots of their own, `dataAreaFresh` in `wal.bootRes`) | the claims (`bPath`, `fileFree`, `fileHolds`) need `osPathS`, whose roots are absolute (`RootForm`), and the trusted `BackendPath` axiom makes `snapDirOf "m1.etcd"` relative; absolute data directories break `HWal` (`walAreaOf`). `notes/datadir-relative-unsat.md` |
+
+### Rechecked on 2026-11-20 against `5a18d777d2`
+
+The baseline contains 674 axioms and two admissions in generated Perennial
+instances for `reflect.Type'`. The counts below are the numbers of checked-in
+proof collections that depend on each named axiom.
+
+| Assumption | Collections | Evidence |
+|---|---:|---|
+| `semver.semverValid_simple` | 26 | semver v3.5.0 rejects a 257-byte version that meets the old simple-version predicate. The predicate now includes the parser's byte limit. The adjacent boundary cases are in `Simple.lean` and `examples/axiomcx/semverlen`. |
+| `storage.NewBackendQuota.wp_proof` | 32 | A lease grant costs 64, so `Available` calls `Size` even when constructed with a nil backend. The contract now requires the concrete receiver and its metrics invariant. The workload assumption `backendUnderQuota` still supplies the quota headroom. |
+| `storage.BackendQuota.Cost.wp_proof` | 27 | Even a non-nil transaction can contain a typed nil `*RequestOp_RequestPut`. The generated getter dereferences the wrapper. The revised contract requires ownership of the actual put or transaction representation. The lease-grant branch only tests the type. See `examples/axiomcx/quota`. |
+| `status.Error.wp_proof`, `status.FromError.wp_proof`, `metadata.AppendToOutgoingContext.wp_proof` | 37, 33, 4 | **Open.** Different executions can allocate the same address for status errors with different messages, or contexts with different outgoing metadata. The pure `errDesc` and `outgoingOf` functions give that address only one result. See [the per-heap redesign](perheap-scope.md). |
+
+Two findings on the original base (`6a037ed4be`) were addressed upstream during the review.
+The [snapshot release finding](release-snapdb-held-file.md) led to a sealed snapshot handoff and a proof of
+`storage.storage.Release.wp_proof`. The [incoming metadata finding](incomingof-crossworld.md)
+led to the removal of `incomingOf_cancelCtx` and `v3rpc.incomingOf_cancellableContext`.
+The remaining baseline and the two generated admissions have not been discharged in this review.

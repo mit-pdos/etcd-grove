@@ -319,11 +319,11 @@ theorem wp_insert :
 
 theorem heap.wp_Init_ :
     EtcdGrove.heap.Init_.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.Init_.wp_proof
+  EtcdGrove.heap.Init_.wp_proof heap.wp_down
 
 theorem heap.wp_Pop :
     EtcdGrove.heap.Pop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.Pop.wp_proof
+  EtcdGrove.heap.Pop.wp_proof heap.wp_down
 
 theorem utilruntime.wp_HandleCrashWithLogger :
     EtcdGrove.utilruntime.HandleCrashWithLogger.spec (GF := GF) (hG := hG) :=

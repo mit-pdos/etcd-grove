@@ -33,15 +33,14 @@ noncomputable def Cluster.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Cluster.ty
 
-opaque AuthCapability [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def AuthCapability [GooseExts] [GoGlobalContext] : val :=
+  #(go!"auth")
 
 @[reducible] noncomputable def V3rpcCapability [GooseExts] [GoGlobalContext] : val :=
   #(go!"v3rpc")
 
 noncomputable def capabilityMaps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.capabilityMaps"
-
-opaque capabilityMaps.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def enableMapMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.enableMapMu"
@@ -64,6 +63,19 @@ noncomputable def IsCapabilityEnabled [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def EnableCapability [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.EnableCapability"
 
+/-- go: capability.go:55:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$k0" (Val AuthCapability)
+  (Let "$v1" (Val #true)
+  (Let "$k2" (Val V3rpcCapability)
+  (Let "$v3" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType Capability.ty go.bool)))) (LiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k0"))) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k2"))) (ElementExpression go.bool (Var "$v3")))]))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType Capability.ty go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr enabledMap))) (Val #())) (Var "$r0"))))))
+  (Val #())))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api where
   pkgImportedPkgs := [pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership]
 
@@ -77,16 +89,68 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"3.0.0"))
+  (Let "$k1" (Val AuthCapability)
+  (Let "$v2" (Val #true)
+  (Let "$k3" (Val V3rpcCapability)
+  (Let "$v4" (Val #true)
+  (Let "$k5" (Val #(go!"3.1.0"))
+  (Let "$k6" (Val AuthCapability)
+  (Let "$v7" (Val #true)
+  (Let "$k8" (Val V3rpcCapability)
+  (Let "$v9" (Val #true)
+  (Let "$k10" (Val #(go!"3.2.0"))
+  (Let "$k11" (Val AuthCapability)
+  (Let "$v12" (Val #true)
+  (Let "$k13" (Val V3rpcCapability)
+  (Let "$v14" (Val #true)
+  (Let "$k15" (Val #(go!"3.3.0"))
+  (Let "$k16" (Val AuthCapability)
+  (Let "$v17" (Val #true)
+  (Let "$k18" (Val V3rpcCapability)
+  (Let "$v19" (Val #true)
+  (Let "$k20" (Val #(go!"3.4.0"))
+  (Let "$k21" (Val AuthCapability)
+  (Let "$v22" (Val #true)
+  (Let "$k23" (Val V3rpcCapability)
+  (Let "$v24" (Val #true)
+  (Let "$k25" (Val #(go!"3.5.0"))
+  (Let "$k26" (Val AuthCapability)
+  (Let "$v27" (Val #true)
+  (Let "$k28" (Val V3rpcCapability)
+  (Let "$v29" (Val #true)
+  (Let "$k30" (Val #(go!"3.6.0"))
+  (Let "$k31" (Val AuthCapability)
+  (Let "$v32" (Val #true)
+  (Let "$k33" (Val V3rpcCapability)
+  (Let "$v34" (Val #true)
+  (Let "$k35" (Val #(go!"3.7.0"))
+  (Let "$k36" (Val AuthCapability)
+  (Let "$v37" (Val #true)
+  (Let "$k38" (Val V3rpcCapability)
+  (Let "$v39" (Val #true)
+  (Let "$k40" (Val #(go!"3.8.0"))
+  (Let "$k41" (Val AuthCapability)
+  (Let "$v42" (Val #true)
+  (Let "$k43" (Val V3rpcCapability)
+  (Let "$v44" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string (go.GoType.MapType Capability.ty go.bool))))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k1"))) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k3"))) (ElementExpression go.bool (Var "$v4")))])), (KeyedElement (some (KeyExpression go.string (Var "$k5"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k6"))) (ElementExpression go.bool (Var "$v7"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k8"))) (ElementExpression go.bool (Var "$v9")))])), (KeyedElement (some (KeyExpression go.string (Var "$k10"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k11"))) (ElementExpression go.bool (Var "$v12"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k13"))) (ElementExpression go.bool (Var "$v14")))])), (KeyedElement (some (KeyExpression go.string (Var "$k15"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k16"))) (ElementExpression go.bool (Var "$v17"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k18"))) (ElementExpression go.bool (Var "$v19")))])), (KeyedElement (some (KeyExpression go.string (Var "$k20"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k21"))) (ElementExpression go.bool (Var "$v22"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k23"))) (ElementExpression go.bool (Var "$v24")))])), (KeyedElement (some (KeyExpression go.string (Var "$k25"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k26"))) (ElementExpression go.bool (Var "$v27"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k28"))) (ElementExpression go.bool (Var "$v29")))])), (KeyedElement (some (KeyExpression go.string (Var "$k30"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k31"))) (ElementExpression go.bool (Var "$v32"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k33"))) (ElementExpression go.bool (Var "$v34")))])), (KeyedElement (some (KeyExpression go.string (Var "$k35"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k36"))) (ElementExpression go.bool (Var "$v37"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k38"))) (ElementExpression go.bool (Var "$v39")))])), (KeyedElement (some (KeyExpression go.string (Var "$k40"))) (ElementLiteralValue [(KeyedElement (some (KeyExpression Capability.ty (Var "$k41"))) (ElementExpression go.bool (Var "$v42"))), (KeyedElement (some (KeyExpression Capability.ty (Var "$k43"))) (ElementExpression go.bool (Var "$v44")))]))])))))))))))))))))))))))))))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val capabilityMaps.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.MapType Capability.ty go.bool))))) (Pair (App (Val (GoInstruction (GlobalVarAddr capabilityMaps))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc capabilityMaps (go.GoType.MapType go.string (go.GoType.MapType Capability.ty go.bool)))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc enabledMap (go.GoType.MapType Capability.ty go.bool))) (Val #()))))))))
 
 abbrev Capability [GooseExts] : Type := GoString
 
@@ -119,12 +183,14 @@ attribute [instance] Cluster.TypeAssumptions.underlying
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Capability_instance : Capability.TypeAssumptions
   Cluster_instance : Cluster.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
 
 attribute [instance] Assumptions.Capability_instance
   Assumptions.Cluster_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_semver_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_membership_Assumption

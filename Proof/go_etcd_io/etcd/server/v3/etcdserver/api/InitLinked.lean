@@ -48,11 +48,97 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply wp_GlobalAlloc (V := Loc) enabledMap _ as HenabledMap
+  wp_apply wp_GlobalAlloc (V := Loc) capabilityMaps _ as HcapabilityMaps
   wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk capabilityMaps.init (by mem_tac))
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of capabilityMaps))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string (go.GoType.MapType go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool)) as %mcm Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc0 Hc0
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc0 as Hc0
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc0 as Hc0
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc1 Hc1
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc1 as Hc1
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc1 as Hc1
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc2 Hc2
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc2 as Hc2
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc2 as Hc2
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc3 Hc3
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc3 as Hc3
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc3 as Hc3
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc4 Hc4
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc4 as Hc4
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc4 as Hc4
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc5 Hc5
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc5 as Hc5
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc5 as Hc5
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc6 Hc6
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc6 as Hc6
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc6 as Hc6
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc7 Hc7
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc7 as Hc7
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc7 as Hc7
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %mc8 Hc8
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc8 as Hc8
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ Hc8 as Hc8
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm
+  try wp_auto
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty go.bool) as %me He
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ He as He
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ He as He
+  try wp_auto
   iframe Hown
   is_pkg_init_finish
 

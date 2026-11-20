@@ -34,7 +34,7 @@ abbrev apply.newApplierV3.spec : Prop :=
   ∀ (opts : ApplierOptions),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ zapLoggerOk opts.Logger' }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ zapLoggerOk opts.Logger' ∗ apply.quotaBackend opts.Backend' }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
   {{ (a : GoInterface), RET #a;
       -- (the auth plan's E2m) its shape: auth over quota over the backend with `opts`

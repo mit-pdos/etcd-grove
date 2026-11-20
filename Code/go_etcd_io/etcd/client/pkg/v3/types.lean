@@ -129,19 +129,16 @@ noncomputable def URLs.Len.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.types where
   pkgImportedPkgs := [pkg_id.strconv, pkg_id.net.url]
 
-opaque «_».init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.pkg.v3.types)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType unsafeSet.ty) Set'.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType unsafeSet.ty)))) (Val UntypedNil)))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType tsafeSet.ty) ThreadsafeSet.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType tsafeSet.ty)))) (Val UntypedNil)))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
   (App (Val doExecute)
