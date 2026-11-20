@@ -39,7 +39,6 @@ axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
-axiom heap.Init_.wp_proof
 axiom http.Flush_ok
 axiom http.HeaderGetOwnPtr_ok
 axiom http.HeaderGetPtr_ok
