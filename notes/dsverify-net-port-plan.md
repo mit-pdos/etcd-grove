@@ -634,9 +634,11 @@ tests kept as differential tests against the real library, a "not modelled" pani
       contexts or pools).
    *Landing.* `etc/land.sh` needs the full build and `etc/gates.sh`; `df -h /` showed 9.1 GB, then
    7.9 GB free during this session (the task's floor is 10 GB), so neither ran: the branch is
-   committed, not landed, `lean` not pushed. Checks run: `lake build Net` (before the proofs) and
-   `lake build Net.Proof.net.rpc.Results` (every proof), `etc/goose.py --check --project models-net`,
-   `go test` of the new `TestIsExportedASCII`.
+   committed, not landed, `lean` not pushed. Checks run: `lake build Net` (2331 jobs, with every new
+   module), `etc/goose.py --check --project models-net`, `go test` of the new `TestIsExportedASCII`.
+   Still to run before landing: the full `lake build`, `etc/tcb-report.py --collection
+   etc/tcb-collections/models-net.txt --check --update` (expected: no axiom, no `sorry`), and
+   `etc/land.sh` (its gates).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
