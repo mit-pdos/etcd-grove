@@ -3,7 +3,7 @@
 member's name): `memberDataDir name` is `dataBase/<name>.etcd`, so with a name of at most 200 bytes it
 is a directory that fits (`Fs.DirFits`: under 3800 bytes, every 256-byte window holding a `/`), and
 every path the server makes below it (`member/snap/db`, `member/snap/<16 hex>.snap.db`) fits
-(`Fs.pathFits_of_dirFits`, a component at a time). Untrusted.
+(`Fs.pathFits_of_dirFits` for one component; deeper ones by `Fs.winOk_child` a component at a time, with a length bound). Untrusted.
 -/
 module
 

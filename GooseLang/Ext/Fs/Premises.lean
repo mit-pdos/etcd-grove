@@ -99,7 +99,7 @@ outside the roots' trees. The OFD lock requests (`OfdLock`) and the directory re
 are covered on an fd of a covered inode (since 2026-11-19), a lock call only when it is blocking
 (`fcntl(F_OFD_SETLKW)`): a non-blocking one may fail with `EAGAIN` whatever the model's locks
 (`LockStep`, `locks_spurious_eagain.go`). `flock` is not covered here: `NoMapLockErr` covers it (in the
-same form, its non-blocking `EAGAIN` allowed; the user's decision of 2026-11-20, one premise per call). A path call is covered only on
+same form, its non-blocking `EAGAIN` allowed; the user's decision of 2026-11-20: one premise per call, but for an `open` with no free fd, which both may name, `noIoErr_noMapLockErr_keeps`). A path call is covered only on
 paths that fit (`PathFits`, each of `rename`'s two). -/
 def IoCovers (S : IoSet) (o : String) (v : val) (st : OsState) : Prop :=
   match o with
@@ -297,7 +297,7 @@ address space is shared by the mappings and the Go heap, both in `(0, maxAddr]`,
 steps does not see the heap: the stall, a step of the semantics that sees it, is what is left from a
 state whose heap leaves no room, so the premise keeps a step there, `StepKeeps`; the model treats
 running out of address space as the Go runtime's out of memory, outside the model, as Perennial's
-`AllocOOMS`). Nor anything about the OFD lock (`fcntl`), which `NoIoErr` does not name either.
+`AllocOOMS`). Nor anything about the OFD lock (`fcntl`): `NoIoErr` covers its blocking requests.
 
 An environment assumption, not a property of Linux (evidence: assumed): the kernel's lock and
 mapping calls do not fail on these files for want of kernel memory or descriptors, the process is
