@@ -45,6 +45,8 @@ theorem fieldpath.PathElement.Compare.wp_proof
   wp_auto
   cases a <;> cases b <;> simp only at na nb <;> unfold isPE
   case field.field n n' =>
+    icases Ha with ⟨-, Ha⟩
+    icases Hb with ⟨-, Hb⟩
     pe_if; pe_if
     wp_apply h_strings_Compare
     wp_end

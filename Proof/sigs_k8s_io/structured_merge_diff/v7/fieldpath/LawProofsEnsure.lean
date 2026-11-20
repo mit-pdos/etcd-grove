@@ -276,27 +276,23 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **A field's path element has no key.** Not provable from the frozen `isPE (.field n)`, which
-pins only `FieldName` (`Defs.lean`): a `PathElement` with both `FieldName` and `Key` set satisfies
-it, and `SetNodeMap.EnsureNamedFieldsAreMembers` then takes the `else if pe.Key != nil` branch
-under a list type (the child at the list's element type, where its spec says `childType = none`).
-Every `PathElement` SMD builds has exactly one field set; the smallest fix is to add
-`⌜e.Key' = null⌝` to `isPE`'s `.field` case (its introduction, `PathElement{FieldName: &n}`, has a
-nil `Key`). Reported (agent C4, 2026-11-20). -/
+/-- **A field's path element has no key** (`isPE`'s `.field` case carries it: SMD builds a field
+element as `PathElement{FieldName: &n}`); `SetNodeMap.EnsureNamedFieldsAreMembers` reads it in its
+`else if pe.Key != nil` branch. -/
 theorem fpE.isPE_field_key (e : fieldpath.PathElement) (n : GoString) :
     isPE (GF := GF) e (.field n) ⊢ ⌜e.Key' = null⌝ := by
-  sorry
+  unfold isPE; iintro ⟨%h, -⟩; ipureintro; exact h
 
 /-- A path element's field name, set exactly for a field. -/
 theorem fpE.isPE_field (e : fieldpath.PathElement) (n : GoString) :
     isPE (GF := GF) e (.field n) ⊢ e.FieldName' ↦□ n := by
-  unfold isPE; iintro H; iexact H
+  unfold isPE; iintro ⟨-, H⟩; iexact H
 
 /-- A path element's field name is nil exactly when it is not a field. -/
 theorem fpE.isPE_fieldName_ptr (e : fieldpath.PathElement) (pe : PE) :
     isPE (GF := GF) e pe ⊢ ⌜e.FieldName' = null ↔ ∀ n, pe ≠ .field n⌝ := by
   rcases pe with n | fl | x | i <;> unfold isPE
-  · iintro #H
+  · iintro ⟨-, #H⟩
     ihave %hn := typedPointsto_not_null $$ H
     ipureintro
     simp [hn]
@@ -310,9 +306,8 @@ theorem fpE.isPE_ptrs (e : fieldpath.PathElement) (pe : PE) :
     isPE (GF := GF) e pe ⊢
       ⌜(e.FieldName' = null ↔ ∀ n, pe ≠ .field n) ∧ (e.Key' = null ↔ ∀ fl, pe ≠ .key fl)⌝ := by
   rcases pe with n | fl | x | i
-  · iintro #H
-    ihave %hk := fpE.isPE_field_key e n $$ H
-    unfold isPE
+  · unfold isPE
+    iintro ⟨%hk, #H⟩
     ihave %hn := typedPointsto_not_null $$ H
     ipureintro
     simp [hn, hk]

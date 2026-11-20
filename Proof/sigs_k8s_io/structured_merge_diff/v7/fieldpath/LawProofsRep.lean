@@ -302,7 +302,7 @@ theorem isPE_null (e : fieldpath.PathElement) (pe : PE) : isPE (GF := GF) e pe �
      | .value _ => e.FieldName' = null ∧ e.Key' = null ∧ e.Value' ≠ null
      | .index _ => e.FieldName' = null ∧ e.Key' = null ∧ e.Value' = null ∧ e.Index' ≠ null⌝ := by
   cases pe <;> unfold isPE
-  · iintro H; iapply typedPointsto_not_null; iexact H
+  · iintro ⟨-, H⟩; iapply typedPointsto_not_null; iexact H
   · iintro ⟨%h, %s, H, -⟩
     ihave %h' := typedPointsto_not_null $$ H
     ipureintro; exact ⟨h.1, h'⟩
@@ -319,7 +319,10 @@ theorem isPE_agree' (e : fieldpath.PathElement) (a b : PE) :
   ihave %na := isPE_null e a $$ Ha
   ihave %nb := isPE_null e b $$ Hb
   cases a <;> cases b <;> simp only at na nb <;> try (exfalso; simp_all; done)
-  · unfold isPE; icombine Ha Hb gives %h; ipureintro; rw [h]
+  · unfold isPE
+    icases Ha with ⟨-, Ha⟩
+    icases Hb with ⟨-, Hb⟩
+    icombine Ha Hb gives %h; ipureintro; rw [h]
   · unfold isPE
     icases Ha with ⟨-, %s, Hs, Hfl⟩
     icases Hb with ⟨-, %s', Hs', Hfl'⟩

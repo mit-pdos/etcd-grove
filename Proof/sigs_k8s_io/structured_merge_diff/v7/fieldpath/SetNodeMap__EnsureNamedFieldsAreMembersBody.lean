@@ -1,8 +1,7 @@
 /-
 `fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers`' body (the recursion cluster
-`fieldpath.EnsureNamedFieldsAreMembersRec`, `EnsureNamedFieldsAreMembersRec.lean`): proved over one
-gap, `fpE.isPE_field_key` (`LawProofsEnsure.lean`, a `sorry`): the frozen `isPE (.field n)` does
-not say `Key` is nil, which Go's `else if pe.Key != nil && atom.List != nil` reads. Each child at
+`fieldpath.EnsureNamedFieldsAreMembersRec`, `EnsureNamedFieldsAreMembersRec.lean`). A field element
+has a nil `Key` (`fpE.isPE_field_key`), which Go's `else if pe.Key != nil && atom.List != nil` reads. Each child at
 the type Go computes (`childType`: `fpE.childType_map`/`_list`/`_other`), its set by the cluster's
 `Set.EnsureNamedFieldsAreMembers`; the node list `nl.map (fpE.ensF S ty)` (`fpE.ens_nlPaths`).
 -/

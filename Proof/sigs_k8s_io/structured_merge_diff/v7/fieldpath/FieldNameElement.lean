@@ -35,7 +35,9 @@ theorem fieldpath.FieldNameElement.wp_proof : fieldpath.FieldNameElement.spec (G
   imodintro
   iapply HΦ
   unfold isPE
-  iexact name
+  isplit
+  · ipureintro; rfl
+  · iexact name
 
 end proof
 

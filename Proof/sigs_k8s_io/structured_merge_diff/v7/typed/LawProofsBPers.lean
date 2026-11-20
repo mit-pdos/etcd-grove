@@ -45,9 +45,12 @@ instance isSetO_pers (p : Loc) : (o : Option PathSet) → Persistent (isSetO (GF
   | some _ => by unfold isSetO; infer_instance
 
 /-- A field's path element (`PathElement{FieldName: &key}`). -/
-theorem isPE_field_intro (e : fieldpath.PathElement) (n : GoString) :
+theorem isPE_field_intro (e : fieldpath.PathElement) (n : GoString)
+    (hk : e.Key' = null := by rfl) :
     e.FieldName' ↦□ n ⊢ isPE (GF := GF) e (.field n) := by
-  unfold isPE; iintro H; iexact H
+  unfold isPE; iintro #H; isplit
+  · ipureintro; exact hk
+  · iexact H
 
 /-- A path element's field name: set exactly for a field. -/
 theorem isPE_fieldName (e : fieldpath.PathElement) (pe : PE) :
@@ -55,7 +58,7 @@ theorem isPE_fieldName (e : fieldpath.PathElement) (pe : PE) :
       | .field n => e.FieldName' ↦□ n
       | _ => ⌜e.FieldName' = null⌝ := by
   rcases pe with n | fl | x | i <;> unfold isPE
-  · iintro H; iexact H
+  · iintro ⟨-, H⟩; iexact H
   all_goals (iintro ⟨%h, -⟩; ipureintro; first | exact h | exact h.1)
 
 /-- A set's pointer is not nil (its struct is allocated). -/

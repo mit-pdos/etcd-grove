@@ -279,7 +279,7 @@ variable [sem : go.Semantics]
 persistent). The values a key or a value element holds have every map inside of at most `2^61`
 entries (`UVal.mapLensOk`, `value.Compare`'s premise: SMD compares path elements). -/
 @[no_expose] def isPE (e : fieldpath.PathElement) : PE → IProp GF
-  | .field n => iprop(e.FieldName' ↦□ n)
+  | .field n => iprop(⌜e.Key' = null⌝ ∗ e.FieldName' ↦□ n)
   | .key fl => iprop(⌜e.FieldName' = null ∧ fl.all (fun f => f.2.mapLensOk) = true⌝ ∗
       ∃ s : GoSlice, e.Key' ↦□ s ∗ isFieldList s fl)
   | .value x => iprop(⌜e.FieldName' = null ∧ e.Key' = null ∧ x.mapLensOk = true⌝ ∗
