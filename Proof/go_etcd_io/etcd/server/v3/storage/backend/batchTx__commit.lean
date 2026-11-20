@@ -47,7 +47,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
       [os.fileStat.FieldAssumptions], bbolt.Tx.Commit.spec (GF := GF) (hG := hG)) :
   ∀ (db tx : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (path : GoString) (stop : Bool)
     (D S : backend.Data) (n : Nat) (F : IProp GF),
-  (F ⊢ obsIn γ P W Pk S) →
+  armStep γ P W Pk γ.db.ns F S n →
   γ.db.ns = dbNs path →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ.db D ∗ backend.txDB tx γ.db db ∗
       ownWTx tx γ.db D S ∗ cmtInv γ P W Pk ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
@@ -59,7 +59,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
          else iprop(dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ F ∗
            cntLb γ (n + 1)))) ∨
         ⌜err ≠ GoInterface.nil⌝) }} := by
-  intro db tx γ P W Pk path stop D S n F hF hns
+  intro db tx γ P W Pk path stop D S n F hA hns
   have hE : (↑cmtN : CoPset) ⊆ ⊤ \ ↑γ.db.ns := by rw [hns]; exact cmtN_dbNs path
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
@@ -115,8 +115,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
         · iintro ⟨-, Hw⟩
           imod Hcl with -
           icases Hsp with ⟨Hi, #Hlb⟩
-          imod regs_arm γ P W Pk D S n F hF $$ [$Hi $Hregs $Hlb] with Hx
-          imod Hx with ⟨Hi, Hregs, #Hlb'⟩
+          imod (hA D) $$ [$Hi $Hregs $Hlb] with ⟨Hi, Hregs, #Hlb'⟩
           icases (backend.boltState_halves γ.db S).1 $$ Hw with ⟨Hs, Hh⟩
           imod Hclose $$ [Hh Hregs] with -
           · inext
@@ -229,7 +228,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 contents are the committed data `C` (`sessWf`), so the batch lock's inputs at it arm every
 registration there, the counter up by one (as at a commit point, without bbolt). -/
 private theorem cmt_arm_noop (γ : BNames) (P : BParams) (W Pk : IProp GF) (db : Loc) (path : GoString)
-    (C : backend.Data) (n : Nat) (F : IProp GF) (hF : F ⊢ obsIn γ P W Pk C)
+    (C : backend.Data) (n : Nat) (F : IProp GF) (hA : armStep γ P W Pk γ.db.ns F C n)
     (hns : γ.db.ns = dbNs path) :
     cmtInv γ P W Pk ∗ ownDB db γ.db C ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       F ∗ cntLb γ n ⊢
@@ -253,8 +252,11 @@ private theorem cmt_arm_noop (γ : BNames) (P : BParams) (W Pk : IProp GF) (db :
     ihave %HD := bbolt.boltState_agree γ.db _ _ C Dc $$ [Hs Hh]
     · iframe Hs Hh
     subst HD
-    imod regs_arm γ P W Pk C C n F hF $$ [$Hi $Hregs $Hlb] with Hx
-    imod Hx with ⟨Hi, Hregs, #Hlb'⟩
+    have hsub : cmtMask γ.db.ns ⊆ ⊤ \ ↑cmtN := by
+      intro x hx
+      rw [Iris.Std.LawfulSet.mem_diff] at hx ⊢
+      exact ⟨CoPset.mem_full, hx.2⟩
+    imod ((hA C).trans (fupd_mask_mono hsub)) $$ [$Hi $Hregs $Hlb] with ⟨Hi, Hregs, #Hlb'⟩
     imod Hclose $$ [Hh Hregs] with -
     · inext
       iunfold cmtBody
@@ -277,7 +279,7 @@ theorem backend.batchTx.commit.wp_proof
     backend.batchTx.commit.spec (GF := GF) (hG := hG) := by
   replace hCommit := bbolt.kvGlue_Tx__Commit_kv hCommit
   replace hStats := bbolt.kvGlue_Tx__Stats_kv hStats
-  intro γ P W Pk b t db st stop n F hF
+  intro γ P W Pk b t db st stop n F hArm
   wp_start as ⟨#Hb, #Ht, Hw, Hown, #Htxdb, Hmu, Hopn, Hsp, %hSC⟩
   icases isBackend_cmtInv γ P W Pk b $$ Hb with ⟨#Hcmt, %path, %hns⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
@@ -303,7 +305,7 @@ theorem backend.batchTx.commit.wp_proof
     icases Hsp with ⟨Hi, #Hlb⟩
     have hSC' := hSC hA1
     rw [hSC']
-    imod cmt_arm_noop γ P W Pk db path st.C n F (by rw [← hSC']; exact hF) hns $$ [$Hcmt $Hown $Hopn $Hi $Hlb] with ⟨Hown, Hopn, Hi, #Hlb'⟩
+    imod cmt_arm_noop γ P W Pk db path st.C n F (by rw [← hSC']; exact hArm) hns $$ [$Hcmt $Hown $Hopn $Hi $Hlb] with ⟨Hown, Hopn, Hi, #Hlb'⟩
     rw [hA1]
     wp_auto
     iapply HΦ
@@ -319,7 +321,7 @@ theorem backend.batchTx.commit.wp_proof
     · exact absurd ⟨Hif, rfl⟩ hA
     try wp_auto
     wp_apply time.wp_Now as %start -
-    wp_apply (hCommit db st.tx γ P W Pk path true st.C st.S n F hF hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $Hopn $Hsp]
+    wp_apply (hCommit db st.tx γ P W Pk path true st.C st.S n F hArm hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $Hopn $Hsp]
       as %err ⟨#Hdone, Hr⟩
     wp_apply (hStats st.tx) $$ [$Hdone] as %s1 -
     wp_apply hSeconds as %f1 -
@@ -362,7 +364,7 @@ theorem backend.batchTx.commit.wp_proof
       · exact absurd rfl Herr
   · try wp_auto
     wp_apply time.wp_Now as %start -
-    wp_apply (hCommit db st.tx γ P W Pk path stop st.C st.S n F hF hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $Hopn $Hsp]
+    wp_apply (hCommit db st.tx γ P W Pk path stop st.C st.S n F hArm hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $Hopn $Hsp]
       as %err ⟨#Hdone, Hr⟩
     wp_apply (hStats st.tx) $$ [$Hdone] as %s1 -
     wp_apply hSeconds as %f1 -

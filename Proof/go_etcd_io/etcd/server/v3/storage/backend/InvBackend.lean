@@ -1690,16 +1690,23 @@ theorem obsWand_apply (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ)
 whole, the conclusion being pure), with `R` and the wand under a later (a registration's, in the
 commit invariant): `Q` of `S` after an `◇`. -/
 theorem obsWand_apply_later (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) (S : Data)
-    (F : IProp GF) (hF : F ⊢ obsIn γ P W Pk S) :
+    (F : IProp GF) (hF : F ⊢ |==> obsIn γ P W Pk S) :
     F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ◇ ((F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q) ∗ ⌜obsAt P Q S⌝) := by
-  have h0 : F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ▷ ⌜obsAt P Q S⌝ := by
+  have h0 : obsIn (GF := GF) γ P W Pk S ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ▷ ⌜obsAt P Q S⌝ := by
     iintro ⟨Hi, HR, Hw⟩
-    ihave Hi := hF $$ Hi
     inext
     ihave Hp := obsWand_apply γ P W Pk R Q S $$ [$Hi $HR $Hw]
     icases Hp with ⟨-, %Hp⟩
     ipureintro; exact Hp
-  have h := h0.trans (Timeless.timeless (P := iprop(⌜obsAt P Q S⌝)))
+  have h1 := h0.trans (Timeless.timeless (P := iprop(⌜obsAt P Q S⌝)))
+  -- the inputs may be had only after a ghost update (a hypothetical one: its effects are dropped,
+  -- the conclusion being pure)
+  have h : F ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ◇ ⌜obsAt P Q S⌝ := by
+    iintro ⟨Hi, HR, Hw⟩
+    ihave Hi := hF $$ Hi
+    imod Hi
+    iapply h1
+    iframe Hi HR Hw
   refine (and_intro except0_intro h).trans ?_
   refine except0_and.2.trans (except0_mono persistent_and_sep_mp)
 
