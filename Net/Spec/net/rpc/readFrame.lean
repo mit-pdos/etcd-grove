@@ -3,9 +3,9 @@
 8-byte length, then (if at most `maxFrame`) its payload, each by `readFull` (`first` for the
 length only). The reads go through the caller's reader predicate `P` and accessor, as in
 `readFull.spec`. It returns `(p, nil)` with what it read a whole frame `frameOf pl` and `p` a fresh
-slice of the payload `pl` (at most `maxFrameN` bytes); or `(nil, err)`: `errFrame` (`ef`) after a
-length beyond `maxFrame` (`ef`, which holds `errors.New("rpc: malformed frame")`), or `readFull`'s error (`readErr`, with what it read: `io.EOF` only when
-it read nothing). Proved in `Net/Proof/net/rpc/readFrame.lean`.
+slice of the payload `pl` (at most `maxFrameN` bytes); or `(nil, err)`: `errFrame` (`ef`, which
+holds `errors.New("rpc: malformed frame")`) after a length beyond `maxFrame`, or `readFull`'s error
+(`readErr`, with what it read: `io.EOF` only when it read nothing). Proved in `Net/Proof/net/rpc/readFrame.lean`.
 -/
 module
 
