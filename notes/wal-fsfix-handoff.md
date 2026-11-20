@@ -1,6 +1,30 @@
 # wal-fsfix handoff
 
-## START HERE (2026-11-20 z)
+## START HERE (2026-11-20 z2)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. Pin 3afd77e35:
+  `--packages=/shared/tmp/manifest-3af.json`. Builds: plain `/shared/tmp/build-slot.sh ...` (never BUILD_SLOT_BIG).
+- **Done this session**: Fs layer builds (`NoMapLockErrSpecs` over MapDesc/LockStep (b), `OpenFileS`); the name
+  bound threaded (9cff19a579: `name.length ≤ 200` premises on etcdstart's `newServerMode`, `newServer`, `NewMember`,
+  `BuildServer`, `StartMember(Auth)`, `StartServer`, `Start{Compacting,Periodic}Server`, `StartMembers(Auth)`,
+  auth3/restart/restartN specs; `memberAt_name_len`, each N-example's `members_names_len`, `cluster3.cfgOk.len1-3`;
+  discharged by `decide` for literal names); the independent attack (noioerr.md session 10: no refutation).
+- **Pending text fixes NOT in the tree** (kept out so intermediate builds do not cascade): apply
+  `git apply /shared/tmp/walfsfix/premises-text.patch` (Premises.lean's false OFD sentence, "one premise per call";
+  WalLayoutFits docstring) BEFORE the final full timed build.
+- **Next**: the full build (`/shared/tmp/walfsfix/full2.log`) → repair (expected: etcdstart/examples arg order,
+  `dirFits_memberDataDir name HnL` defeq against the literal's `DataDir'`) → apply the patch → full timed build
+  (report id) → `etc/tcb-report.py --check --update`, collections, `etc/gen-interface.py` for touched APIs → land
+  stop. `cut.specNoErr`: not started; it is a hypothesis carried by `wp_Save`/`wp_SaveSnapshot` (Link), so its form
+  can change: add `[FsStepSat (NoMapLockErr Sio)]` (fileutil's flock fallback) and `Fs.DirFits dir`; it needs NE
+  callee specs that do not exist yet (Truncate specAu, syncCut, walPipe open, Rename, FsyncDir, Close, LockFile
+  over OFD+flock): a stage of its own. `rnNewStorageOk_holds` blocked on it and on Create.specNoErr (a STOP).
+- Land-stop items: mvccrand/mvccfull `Hrfit : Fs.DirFits r` (new closed premise; RootsOk/RootForm is the only
+  existing root premise, shared by every fs example: not used); bootstrapContract pre gains `DirFits`, its post's
+  claims carry `PathFits` of `snapDirOf` paths (opaque: asserted, true of Go); Premises.lean flock out (NoMapLockErr,
+  still "pending the user's review", now its only coverage); attack's text fixes.
+
+## History (2026-11-20 z)
 
 - Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. Pin 3afd77e35:
   `--packages=/shared/tmp/manifest-3af.json`. `.lake/build` seeded from wal-link's at lean 94ea36b029 (merged: c7b7c8d8f1).
