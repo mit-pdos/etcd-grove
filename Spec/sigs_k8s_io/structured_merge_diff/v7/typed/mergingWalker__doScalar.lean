@@ -30,13 +30,13 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.mergingWalker.doScalar.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (dql dqr : DFrac) (l r : Option UVal) (tp : Loc)
-    (s : Scalar),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ tp ↦□ s.goName ∗
+    (s : Scalar) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ tp ↦□ s.goName ∗
       ⌜S.find st.t.name = some (.scalar s) ∧ (l.isSome ∨ r.isSome) ∧ confO S st.t l ∧ confO S st.t r ∧
         st.inLeaf = false⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"doScalar")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-      mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := true } }}
+      mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := true } sp }}
 
 end spec
 

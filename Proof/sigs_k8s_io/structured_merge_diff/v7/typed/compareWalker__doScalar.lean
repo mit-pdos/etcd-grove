@@ -34,7 +34,7 @@ theorem typed.compareWalker.doScalar.wp_proof
     (h_compareWalker_doLeaf : typed.compareWalker.doLeaf.spec (GF := GF))
     (h_validateScalar : typed.validateScalar.spec (GF := GF)) :
     typed.compareWalker.doScalar.spec (GF := GF) :=
-    fun w sc S st c C dql dqr l r tp s => by
+    fun w sc S st c C dql dqr l r tp s sp => by
   wp_start as ⟨Hown, Hl, Hr, #Htp, %Hpre⟩
   obtain ⟨Hfind, Hlr, Hcl, Hcr, Hleaf, Hc1, Hc2, Hc3⟩ := Hpre
   rw [LawB.cmpO_scalar S st.t s st.path l r Hfind] at Hc1 Hc2 Hc3
@@ -55,16 +55,16 @@ theorem typed.compareWalker.doScalar.wp_proof
   rw [show decide (sint.Z (W64 0) < sint.Z le.len) = false by simp [Hlen]]
   wp_auto
   rw [Hleaf]
-  ihave Hown : cwOwn w sc S st c C $$ [Hw Hps Hsp Ha Hc]
+  ihave Hown : cwOwn w sc S st c C sp $$ [Hw Hps Hsp Ha Hc]
   · unfold cwOwn cwCore
-    iexists ps, sp, a
+    iexists ps, a
     iframe
     rw [Hleaf]
     iframe
     isplitr; iexact Htr
     isplitr; iexact Hsc
     ipureintro; exact HWF
-  wp_apply h_compareWalker_doLeaf w sc S st c C dql dqr l r $$ [Hown Hl Hr] as ⟨Hl, Hr, Hown⟩
+  wp_apply h_compareWalker_doLeaf w sc S st c C dql dqr l r sp $$ [Hown Hl Hr] as ⟨Hl, Hr, Hown⟩
   · iframe; ipureintro; exact ⟨Hlr, Hc1, Hc2, Hc3⟩
   rw [Hleaf]
   simp only [Bool.false_eq_true, ↓reduceIte]

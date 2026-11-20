@@ -34,7 +34,7 @@ theorem typed.mergingWalker.doScalar.wp_proof
     (h_mergingWalker_doLeaf : typed.mergingWalker.doLeaf.spec (GF := GF))
     (h_validateScalar : typed.validateScalar.spec (GF := GF)) :
     typed.mergingWalker.doScalar.spec (GF := GF) :=
-    fun w sc S st dql dqr l r tp s => by
+    fun w sc S st dql dqr l r tp s sp => by
   wp_start as ⟨Hown, Hl, Hr, #Htp, %Hpre⟩
   obtain ⟨Hfind, Hlr, Hcl, Hcr, Hleaf⟩ := Hpre
   iNamed Hown
@@ -54,9 +54,9 @@ theorem typed.mergingWalker.doScalar.wp_proof
   rw [show decide (sint.Z (W64 0) < sint.Z le.len) = false by simp [Hlen]]
   wp_auto
   rw [Hleaf]
-  ihave Hown : mwOwn w sc S st $$ [Hw Hps Hsp Ha]
+  ihave Hown : mwOwn w sc S st sp $$ [Hw Hps Hsp Ha]
   · unfold mwOwn mwCore
-    iexists ps, sp, a
+    iexists ps, a
     iframe
     rw [Hleaf]
     iframe
@@ -65,7 +65,7 @@ theorem typed.mergingWalker.doScalar.wp_proof
     isplitr; ipureintro; exact HWF
     isplitr; iexact Hrule
     iexact Ho
-  wp_apply h_mergingWalker_doLeaf w sc S st dql dqr l r $$ [Hown Hl Hr] as ⟨Hl, Hr, Hown⟩
+  wp_apply h_mergingWalker_doLeaf w sc S st dql dqr l r sp $$ [Hown Hl Hr] as ⟨Hl, Hr, Hown⟩
   · iframe; ipureintro; exact Hlr
   rw [Hleaf]
   simp only [Bool.false_eq_true, ↓reduceIte]

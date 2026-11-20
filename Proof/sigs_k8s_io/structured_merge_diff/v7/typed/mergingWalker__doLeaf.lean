@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.mergingWalker.doLeaf.wp_proof :
-    typed.mergingWalker.doLeaf.spec (GF := GF) := fun w sc S st dql dqr l r => by
+    typed.mergingWalker.doLeaf.spec (GF := GF) := fun w sc S st dql dqr l r sp => by
   wp_start as ⟨Hown, Hl, Hr, %Hlr⟩
   iNamed Hown
   icases Hown with ⟨Hcore, Hps, Hsp, Ha⟩
@@ -42,7 +42,7 @@ theorem typed.mergingWalker.doLeaf.wp_proof :
     simp only [↓reduceIte]
     iframe
     unfold mwOwn mwCore; rw [Hif]
-    iexists ps, sp, a
+    iexists ps, a
     iframe
     isplitr; iexact Htr
     isplitr; iexact Hsc
@@ -58,7 +58,7 @@ theorem typed.mergingWalker.doLeaf.wp_proof :
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe
     unfold mwOwn mwCore
-    iexists ps, sp, a
+    iexists ps, a
     iframe
     simp only
     isplitr; iexact Htr

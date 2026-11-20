@@ -32,13 +32,13 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.mergingWalker.doMap.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (dql dqr : DFrac) (l r : Option UVal) (tp : Loc)
-    (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ isMapRep tp fs e rel ∗
+    (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ isMapRep tp fs e rel ∗
       ⌜S.find st.t.name = some (.map fs e rel) ∧ (l.isSome ∨ r.isSome) ∧ confO S st.t l ∧ confO S st.t r ∧ st.out = none ∧
         st.inLeaf = false⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"doMap")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-      mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := leafAt S st.t l r } }}
+      (∃ sp' : Loc, mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := leafAt S st.t l r } sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }}
 
 end spec
 

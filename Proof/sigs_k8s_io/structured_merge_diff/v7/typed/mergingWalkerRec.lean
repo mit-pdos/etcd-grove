@@ -68,31 +68,31 @@ theorem typed.mergingWalkerRec.wp_proof
     iexact H6
   unfold typed.mergingWalkerRec.specI typed.mergingWalker.doList.specI typed.mergingWalker.doMap.specI typed.mergingWalker.merge.specI typed.mergingWalker.mergeListItem.specI typed.mergingWalker.visitListItems.specI typed.mergingWalker.visitMapItem.specI typed.mergingWalker.visitMapItems.specI at H
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
     iintro %Φ HP HΦ
     ihave ⟨HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
     iintro %Φ HP HΦ
     ihave ⟨-, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9
     iintro %Φ HP HΦ
     ihave ⟨-, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, -, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, -, -, -, HH⟩ := H
     iapply HH $$ HP HΦ

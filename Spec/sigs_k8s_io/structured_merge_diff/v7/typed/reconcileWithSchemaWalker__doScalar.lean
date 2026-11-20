@@ -29,10 +29,10 @@ variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.reconcileWithSchemaWalker.doScalar.spec : Prop :=
-  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (tp : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A }}
+  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (tp : Loc) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"doScalar")) (Val #tp))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ rwOwn w sc S st F R A }}
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ rwOwn w sc S st F R A sp }}
 
 end spec
 

@@ -29,7 +29,7 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.doScalar.wp_proof :
     typed.reconcileWithSchemaWalker.doScalar.spec (GF := GF) :=
-    fun w sc S st F R A tp => by
+    fun w sc S st F R A tp sp => by
   wp_start as Hown
   wp_auto
   iapply HΦ

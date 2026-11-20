@@ -30,15 +30,15 @@ variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.compareWalker.doLeaf.spec : Prop :=
-  ∀ (w sc : Loc) (S : Schema) (st : CWSt) (c : Loc) (C : Cmp) (dql dqr : DFrac) (l r : Option UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ cwOwn w sc S st c C ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ ⌜(l.isSome ∨ r.isSome) ∧
+  ∀ (w sc : Loc) (S : Schema) (st : CWSt) (c : Loc) (C : Cmp) (dql dqr : DFrac) (l r : Option UVal) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ cwOwn w sc S st c C sp ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ ⌜(l.isSome ∨ r.isSome) ∧
       (C.union (leafC st.path l r)).removed.CardLt (2 ^ 63 - 1) ∧
       (C.union (leafC st.path l r)).modified.CardLt (2 ^ 63 - 1) ∧
       (C.union (leafC st.path l r)).added.CardLt (2 ^ 63 - 1)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.compareWalker.ty @!! go!"doLeaf")) (Val #()))
   {{ RET #(); isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-      (if st.inLeaf then cwOwn w sc S st c C
-       else cwOwn w sc S { st with inLeaf := true } c (C.union (leafC st.path l r))) }}
+      (if st.inLeaf then cwOwn w sc S st c C sp
+       else cwOwn w sc S { st with inLeaf := true } c (C.union (leafC st.path l r)) sp) }}
 
 end spec
 

@@ -11,6 +11,8 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsB2
 
 noncomputable section
 
+set_option linter.unusedSimpArgs false
+
 namespace Perennial
 namespace EtcdGrove
 namespace smd
@@ -62,6 +64,22 @@ theorem map_elem_not_untyped (S : Schema) (hS : S.WF) (n : GoString) (fs : List 
     obtain ⟨a, ha⟩ := Option.isSome_iff_exists.1 hres
     simp only [Option.map_some, ne_eq, Option.some.injEq]
     exact find_not_untyped S hS _ _ ha
+
+/-! ## The compare walker's node change (`compare`'s tail) -/
+
+theorem cmp_node_added (C B : Cmp) (p : Path) (r : Option UVal) :
+    C.union (B.union (nodeC p none r)) =
+      ⟨(C.union B).removed, (C.union B).modified, ((C.union B).added).union (ins p)⟩ := by
+  simp only [Cmp.union, nodeC, Cmp.none, PathSet.union, PathSet.empty, fset_union_assoc, fset_union_empty]
+
+theorem cmp_node_removed (C B : Cmp) (p : Path) (x : UVal) :
+    C.union (B.union (nodeC p (some x) none)) =
+      ⟨((C.union B).removed).union (ins p), (C.union B).modified, (C.union B).added⟩ := by
+  simp only [Cmp.union, nodeC, Cmp.none, PathSet.union, PathSet.empty, fset_union_assoc, fset_union_empty]
+
+theorem cmp_node_none (C B : Cmp) (p : Path) (x y : UVal) :
+    C.union (B.union (nodeC p (some x) (some y))) = C.union B := by
+  simp only [Cmp.union, nodeC, Cmp.none, PathSet.union, PathSet.empty, fset_union_assoc, fset_union_empty]
 
 end LawB
 

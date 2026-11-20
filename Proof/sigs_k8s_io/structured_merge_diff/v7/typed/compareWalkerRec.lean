@@ -68,31 +68,31 @@ theorem typed.compareWalkerRec.wp_proof
     iexact H6
   unfold typed.compareWalkerRec.specI typed.compareWalker.compare.specI typed.compareWalker.compareListItem.specI typed.compareWalker.doList.specI typed.compareWalker.doMap.specI typed.compareWalker.visitListItems.specI typed.compareWalker.visitMapItem.specI typed.compareWalker.visitMapItems.specI at H
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
     iintro %Φ HP HΦ
     ihave ⟨HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18
     iintro %Φ HP HΦ
     ihave ⟨-, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14
     iintro %Φ HP HΦ
     ihave ⟨-, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, -, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, -, -, -, HH⟩ := H
     iapply HH $$ HP HΦ

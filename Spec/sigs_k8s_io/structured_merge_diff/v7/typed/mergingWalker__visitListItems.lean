@@ -42,14 +42,14 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.mergingWalker.visitListItems.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (tp : Loc) (e : TypeRef) (ks : List GoString)
-    (ll rl : value.List') (ol or_ : Option (List UVal)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isListRep tp e .associative ks ∗ isListO ll ol ∗ isListO rl or_ ∗
+    (ll rl : value.List') (ol or_ : Option (List UVal)) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isListRep tp e .associative ks ∗ isListO ll ol ∗ isListO rl or_ ∗
       ⌜S.find st.t.name = some (.list e .associative ks) ∧ st.out = none ∧ st.inLeaf = false ∧
         confO S st.t (ol.map UVal.list) ∧ confO S st.t (or_.map UVal.list)⌝ }}
     (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ll)) (Val #rl))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗
-      mwOwn w sc S { st with out := (mergeListOut (fuelL (ol.getD []) (or_.getD [])) S e ks
-        (ol.getD []) (or_.getD [])) } }}
+      (∃ sp' : Loc, mwOwn w sc S { st with out := (mergeListOut (fuelL (ol.getD []) (or_.getD [])) S e ks
+        (ol.getD []) (or_.getD [])) } sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }}
 
 end spec
 

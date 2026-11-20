@@ -33,12 +33,12 @@ variable [package_sem : typed.Assumptions]
 abbrev typed.mergingWalker.visitMapItem.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (tp : Loc) (fs : List (GoString × TypeRef))
     (e : Option TypeRef) (rel : ElemRel) (om : GoMap) (M : GMap GoString GoInterface)
-    (key : GoString) (t' : TypeRef) (lc rc : value.Value) (dql dqr : DFrac) (l r : Option UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isMapRep tp fs e rel ∗ om ↦$ M ∗ isValO lc dql l ∗ isValO rc dqr r ∗
+    (key : GoString) (t' : TypeRef) (lc rc : value.Value) (dql dqr : DFrac) (l r : Option UVal) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isMapRep tp fs e rel ∗ om ↦$ M ∗ isValO lc dql l ∗ isValO rc dqr r ∗
       ⌜fieldType fs e key = some t' ∧ (l.isSome ∨ r.isSome) ∧ confO S t' l ∧ confO S t' r ∧
         st.inLeaf = false⌝ }}
     (App (App (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"visitMapItem")) (Val #tp)) (Val #om)) (Val #key)) (Val #lc)) (Val #rc))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ mwOwn w sc S st ∗ isValO lc dql l ∗ isValO rc dqr r ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ (∃ sp' : Loc, mwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗ isValO lc dql l ∗ isValO rc dqr r ∗
       match mergeO S t' l r with
       | none => iprop(om ↦$ M)
       | some x => iprop(∃ i : GoInterface, om ↦$ (<[key := i]> M) ∗ isIface i x) }}

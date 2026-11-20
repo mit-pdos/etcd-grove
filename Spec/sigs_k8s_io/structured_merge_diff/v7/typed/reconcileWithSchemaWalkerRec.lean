@@ -36,30 +36,30 @@ variable [package_sem : typed.Assumptions]
 /-- `typed.reconcileWithSchemaWalker.doList.spec` inside the logic (Löb's hypothesis of `typed.reconcileWithSchemaWalkerRec`). -/
 def typed.reconcileWithSchemaWalker.doList.specI : IProp GF :=
   iprop(
-  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (tp : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A ∗ isListRep tp e rel ks ∗ ⌜S.find st.t.name = some (.list e rel ks) ∧ (st.isAtomic = true → F = none)⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (tp : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ isListRep tp e rel ks ∗ ⌜S.find st.t.name = some (.list e rel ks) ∧ (st.isAtomic = true → F = none)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"doList")) (Val #tp))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, rwOwn w sc S st F R' A' ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
         optU A A' = optU A (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty))⌝ }})
 
 /-- `typed.reconcileWithSchemaWalker.doMap.spec` inside the logic (Löb's hypothesis of `typed.reconcileWithSchemaWalkerRec`). -/
 def typed.reconcileWithSchemaWalker.doMap.specI : IProp GF :=
   iprop(
-  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel) ∧ (st.isAtomic = true → F = none)⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel) ∧ (st.isAtomic = true → F = none)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"doMap")) (Val #tp))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, rwOwn w sc S st F R' A' ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
         optU A A' = optU A (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty))⌝ }})
 
 /-- `typed.reconcileWithSchemaWalker.reconcile.spec` inside the logic (Löb's hypothesis of `typed.reconcileWithSchemaWalkerRec`). -/
 def typed.reconcileWithSchemaWalker.reconcile.specI : IProp GF :=
   iprop(
-  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A ∗ ⌜(S.find st.t.name).isSome ∧ (st.isAtomic = true → F = none)⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ ⌜(S.find st.t.name).isSome ∧ (st.isAtomic = true → F = none)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"reconcile")) (Val #()))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, rwOwn w sc S st F R' A' ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
         optU A A' = optU A (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty))⌝ }})
 
@@ -67,22 +67,22 @@ def typed.reconcileWithSchemaWalker.reconcile.specI : IProp GF :=
 def typed.reconcileWithSchemaWalker.visitListItems.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (R A : Option PathSet) (tp : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString) (ep : Loc)
-    (F : PathSet),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A ∗ isListRep tp e rel ks ∗ isSet ep F ∗
+    (F : PathSet) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A sp ∗ isListRep tp e rel ks ∗ isSet ep F ∗
       ⌜S.find st.t.name = some (.list e rel ks) ∧ rel ≠ .atomic⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ep))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, rwOwn w sc S st (some F) R' A' ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st (some F) R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconBelow S st.t st.path F) ∧ optU A A' = optU A (reconBelow S st.t st.path F)⌝ }})
 
 /-- `typed.reconcileWithSchemaWalker.visitMapItems.spec` inside the logic (Löb's hypothesis of `typed.reconcileWithSchemaWalkerRec`). -/
 def typed.reconcileWithSchemaWalker.visitMapItems.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (R A : Option PathSet) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (ep : Loc)
-    (F : PathSet),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A ∗ isMapRep tp fs e rel ∗ isSet ep F ∗
+    (F : PathSet) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A sp ∗ isMapRep tp fs e rel ∗ isSet ep F ∗
       ⌜S.find st.t.name = some (.map fs e rel) ∧ rel ≠ .atomic⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"visitMapItems")) (Val #tp)) (Val #ep))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, rwOwn w sc S st (some F) R' A' ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st (some F) R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconBelow S st.t st.path F) ∧ optU A A' = optU A (reconBelow S st.t st.path F)⌝ }})
 
 /-- **The cluster's specs inside the logic**: what each member's body assumes under a later

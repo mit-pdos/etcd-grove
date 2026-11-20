@@ -33,14 +33,14 @@ variable [package_sem : typed.Assumptions]
 abbrev typed.mergingWalker.visitMapItems.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (tp : Loc) (fs : List (GoString × TypeRef))
     (e : Option TypeRef) (rel : ElemRel) (lm rm : value.Map)
-    (ol or_ : Option (List (GoString × UVal))),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isMapRep tp fs e rel ∗ isMapO lm ol ∗ isMapO rm or_ ∗
+    (ol or_ : Option (List (GoString × UVal))) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isMapRep tp fs e rel ∗ isMapO lm ol ∗ isMapO rm or_ ∗
       ⌜S.find st.t.name = some (.map fs e rel) ∧ st.out = none ∧ st.inLeaf = false ∧
         confO S st.t (ol.map UVal.map) ∧ confO S st.t (or_.map UVal.map)⌝ }}
     (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"visitMapItems")) (Val #tp)) (Val #lm)) (Val #rm))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗
-      mwOwn w sc S { st with out := (mergeMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e
-        (kvsOrEmpty ol) (kvsOrEmpty or_)) } }}
+      (∃ sp' : Loc, mwOwn w sc S { st with out := (mergeMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e
+        (kvsOrEmpty ol) (kvsOrEmpty or_)) } sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }}
 
 end spec
 

@@ -42,11 +42,11 @@ theorem typed.reconcileWithSchemaWalker.reconcile.wp_proofBody
     typed.reconcileWithSchemaWalker.doMap.specI typed.reconcileWithSchemaWalker.visitListItems.specI
     typed.reconcileWithSchemaWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %F %R %A
+  iintro %w %sc %S %st %F %R %A %sp
   wp_start as ⟨Hown, %Hfind, %Hat⟩
   obtain ⟨At, hA⟩ := Option.isSome_iff_exists.1 Hfind
   iunfold rwOwn at Hown
-  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, %sp, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
+  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
   iunfold rwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   have Hnd := Schema.WF_types_nodup_law_holds S Hwf
@@ -57,9 +57,9 @@ theorem typed.reconcileWithSchemaWalker.reconcile.wp_proofBody
   simp only [Schema.resolveRef, Schema.resolvesRef, Schema.resolves, hA, Option.isSome_some] at Hok ⊢
   subst Hok
   wp_auto
-  ihave Hown : rwOwn w sc S st F R A $$ [Hw Hp Hfs Hrem Hadd Hsp]
+  ihave Hown : rwOwn w sc S st F R A sp $$ [Hw Hp Hfs Hrem Hadd Hsp]
   · unfold rwOwn rwCore
-    iexists ps, fs, tv, rem, add, sp
+    iexists ps, fs, tv, rem, add
     iframe Hp Hfs Hrem Hadd Hsp
     iexists tr
     iframe Hw
@@ -67,8 +67,9 @@ theorem typed.reconcileWithSchemaWalker.reconcile.wp_proofBody
     ipureintro; exact Hwf
   icases IH with ⟨#HdL, #HdM, -, -, -⟩
   wp_apply h_handleAtom a At tr (go.GoType.PointerType typed.reconcileWithSchemaWalker.ty) #w
-    iprop(rwOwn w sc S st F R A)
-    (fun errs => iprop(noErrs errs ∗ ∃ R' A' : Option PathSet, rwOwn w sc S st F R' A' ∗
+    iprop(rwOwn w sc S st F R A sp)
+    (fun errs => iprop(noErrs errs ∗ ∃ R' A' : Option PathSet,
+      (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
         optU A A' = optU A (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty))⌝))
     $$ [Hown] as %errs HQ
@@ -80,13 +81,16 @@ theorem typed.reconcileWithSchemaWalker.reconcile.wp_proofBody
       icases (isAtomOpt_scalar_law_holds a sk).1 $$ Ha with ⟨#Hs, -⟩
       imodintro
       iintro %Φ2 Hown HΦ2
-      wp_apply h_reconcileWithSchemaWalker_doScalar w sc S st F R A a.Scalar' $$ [Hown]
+      wp_apply h_reconcileWithSchemaWalker_doScalar w sc S st F R A a.Scalar' sp $$ [Hown]
         as %errs ⟨Herrs, Hown⟩
       · iframe #; iframe
       iapply HΦ2
       iframe Herrs
       iexists R, A
-      iframe Hown
+      isplitl
+      · iexists sp
+        iframe Hown
+        ipureintro; intro _; rfl
       ipureintro
       rw [reconOut_scalar_law_holds S st.t st.path st.isAtomic _ sk hA]
       have h1 : ∀ x : Option PathSet, optU x x = optU x none := fun x => by

@@ -30,12 +30,12 @@ variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.mergingWalker.doLeaf.spec : Prop :=
-  ∀ (w sc : Loc) (S : Schema) (st : MWSt) (dql dqr : DFrac) (l r : Option UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ ⌜l.isSome ∨ r.isSome⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : MWSt) (dql dqr : DFrac) (l r : Option UVal) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ ⌜l.isSome ∨ r.isSome⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"doLeaf")) (Val #()))
   {{ RET #(); isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-      (if st.inLeaf then mwOwn w sc S st
-       else mwOwn w sc S { st with out := leafM l r, inLeaf := true }) }}
+      (if st.inLeaf then mwOwn w sc S st sp
+       else mwOwn w sc S { st with out := leafM l r, inLeaf := true } sp) }}
 
 end spec
 

@@ -321,10 +321,11 @@ def mwCore (w sc : Loc) (S : Schema) (st : MWSt) (ps : fieldpath.Path) (sp : Loc
     w ↦ (typed.mergingWalker.mk st.lhs st.rhs sc tr ps rule func.nil o st.inLeaf sp a) ∗
     isTypeRef tr st.t ∗ isSchema sc S ∗ ⌜S.WF⌝ ∗ ruleKeepRHSOk rule ∗ outRep o st.out)
 
-/-- **`mwOwn w sc S st`**: the active merging walker: its struct and the descent's resources
-(path buffer, spare walkers, allocator). -/
-def mwOwn (w sc : Loc) (S : Schema) (st : MWSt) : IProp GF :=
-  iprop(∃ (ps : fieldpath.Path) (sp : Loc) (a : value.Allocator),
+/-- **`mwOwn w sc S st sp`**: the active merging walker: its struct and the descent's resources
+(path buffer, spare walkers at `sp`, allocator). `sp` is explicit: a descent's `finishDescent`
+needs the child's spare walkers to be the parent's (Go sets `spareWalkers` only when nil). -/
+def mwOwn (w sc : Loc) (S : Schema) (st : MWSt) (sp : Loc) : IProp GF :=
+  iprop(∃ (ps : fieldpath.Path) (a : value.Allocator),
     mwCore w sc S st ps sp a ∗ ownPath ps st.path ∗ spareWalkers typed.mergingWalker sp ∗ isAlloc a)
 
 /-- **`mwPooled w`**: a merging walker in `mwPool`: its path emptied (`finishDescent` leaves the
@@ -354,10 +355,11 @@ def cwCore (w sc : Loc) (S : Schema) (st : CWSt) (ps : fieldpath.Path) (c sp : L
     w ↦ (typed.compareWalker.mk st.lhs st.rhs sc tr ps c st.inLeaf sp a) ∗
     isTypeRef tr st.t ∗ isSchema sc S ∗ ⌜S.WF⌝)
 
-/-- **`cwOwn w sc S st c C`**: the active compare walker, the comparison at `c` holding `C` so
-far (owned: the walker inserts into its sets). -/
-def cwOwn (w sc : Loc) (S : Schema) (st : CWSt) (c : Loc) (C : Cmp) : IProp GF :=
-  iprop(∃ (ps : fieldpath.Path) (sp : Loc) (a : value.Allocator),
+/-- **`cwOwn w sc S st c C sp`**: the active compare walker, the comparison at `c` holding `C` so
+far (owned: the walker inserts into its sets), its spare walkers at `sp` (explicit, as
+`mwOwn`'s). -/
+def cwOwn (w sc : Loc) (S : Schema) (st : CWSt) (c : Loc) (C : Cmp) (sp : Loc) : IProp GF :=
+  iprop(∃ (ps : fieldpath.Path) (a : value.Allocator),
     cwCore w sc S st ps c sp a ∗ ownPath ps st.path ∗ spareWalkers typed.compareWalker sp ∗
     isAlloc a ∗ ownCmp c C)
 
@@ -446,10 +448,11 @@ def rwCore (w sc : Loc) (S : Schema) (st : RWSt) (ps : fieldpath.Path) (fs tv re
     w ↦ (typed.reconcileWithSchemaWalker.mk tv sc fs tr ps st.isAtomic rem add sp) ∗
     isTypeRef tr st.t ∗ isSchema sc S ∗ ⌜S.WF⌝)
 
-/-- **`rwOwn w sc S st F R A`**: the active reconcile walker, its node's child set `F`
-(`none`: nil), its accumulators holding `R` and `A` (`none`: nil). -/
-def rwOwn (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) : IProp GF :=
-  iprop(∃ (ps : fieldpath.Path) (fs tv rem add sp : Loc),
+/-- **`rwOwn w sc S st F R A sp`**: the active reconcile walker, its node's child set `F`
+(`none`: nil), its accumulators holding `R` and `A` (`none`: nil), its spare walkers at `sp`
+(explicit, as `mwOwn`'s). -/
+def rwOwn (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (sp : Loc) : IProp GF :=
+  iprop(∃ (ps : fieldpath.Path) (fs tv rem add : Loc),
     rwCore w sc S st ps fs tv rem add sp ∗ ownPath ps st.path ∗ isSetO fs F ∗ isSetO rem R ∗
     isSetO add A ∗ spareWalkers typed.reconcileWithSchemaWalker sp)
 

@@ -34,7 +34,7 @@ variable [package_sem : typed.Assumptions]
 theorem typed.compareWalker.doLeaf.wp_proof
     (h_Set_Insert : fieldpath.Set.Insert.spec (GF := GF))
     (h_EqualsUsing : value.EqualsUsing.spec (GF := GF)) :
-    typed.compareWalker.doLeaf.spec (GF := GF) := fun w sc S st c C dql dqr l r => by
+    typed.compareWalker.doLeaf.spec (GF := GF) := fun w sc S st c C dql dqr l r sp => by
   wp_start as ⟨Hown, Hl, Hr, %Hpre⟩
   iNamed Hown
   icases Hown with ⟨Hcore, Hps, Hsp, Ha, Hc⟩
@@ -48,7 +48,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
     simp only [↓reduceIte]
     iframe
     unfold cwOwn cwCore; rw [Hif]
-    iexists ps, sp, a
+    iexists ps, a
     iframe
     isplitr; iexact Htr
     isplitr; iexact Hsc
@@ -72,7 +72,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
       simp only [Bool.false_eq_true, ↓reduceIte, leafC, Cmp.union, LawB.ps_union_empty]
       iframe
       unfold cwOwn cwCore ownPath ownCmp
-      iexists ps, sp, a
+      iexists ps, a
       iframe
       simp only
       isplitr; iexact Htr
@@ -96,7 +96,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte, leafC, Cmp.union, LawB.ps_union_empty]
         iframe
         unfold cwOwn cwCore ownPath ownCmp
-        iexists ps, sp, a
+        iexists ps, a
         iframe
         simp only
         isplitr; iexact Htr
@@ -118,7 +118,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
             LawB.ps_union_empty]
           iframe
           unfold cwOwn cwCore ownPath ownCmp
-          iexists ps, sp, a
+          iexists ps, a
           iframe
           simp only
           isplitr; iexact Htr
@@ -140,7 +140,7 @@ theorem typed.compareWalker.doLeaf.wp_proof
           simp only [Bool.false_eq_true, ↓reduceIte, leafC, hxy, Cmp.union, LawB.ps_union_empty]
           iframe
           unfold cwOwn cwCore ownPath ownCmp
-          iexists ps, sp, a
+          iexists ps, a
           iframe
           simp only
           isplitr; iexact Htr

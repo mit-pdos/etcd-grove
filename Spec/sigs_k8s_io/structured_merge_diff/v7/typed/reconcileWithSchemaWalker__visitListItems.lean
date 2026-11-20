@@ -32,11 +32,11 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.reconcileWithSchemaWalker.visitListItems.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (R A : Option PathSet) (tp : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString) (ep : Loc)
-    (F : PathSet),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A ∗ isListRep tp e rel ks ∗ isSet ep F ∗
+    (F : PathSet) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A sp ∗ isListRep tp e rel ks ∗ isSet ep F ∗
       ⌜S.find st.t.name = some (.list e rel ks) ∧ rel ≠ .atomic⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ep))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, rwOwn w sc S st (some F) R' A' ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st (some F) R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconBelow S st.t st.path F) ∧ optU A A' = optU A (reconBelow S st.t st.path F)⌝ }}
 
 end spec

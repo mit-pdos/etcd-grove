@@ -39,72 +39,72 @@ variable [package_sem : typed.Assumptions]
 def typed.mergingWalker.doList.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (dql dqr : DFrac) (l r : Option UVal) (tp : Loc)
-    (e : TypeRef) (rel : ElemRel) (ks : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ isListRep tp e rel ks ∗
+    (e : TypeRef) (rel : ElemRel) (ks : List GoString) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ isListRep tp e rel ks ∗
       ⌜S.find st.t.name = some (.list e rel ks) ∧ (l.isSome ∨ r.isSome) ∧ confO S st.t l ∧ confO S st.t r ∧ st.out = none ∧
         st.inLeaf = false⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"doList")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-      mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := leafAt S st.t l r } }})
+      (∃ sp' : Loc, mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := leafAt S st.t l r } sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- `typed.mergingWalker.doMap.spec` inside the logic (Löb's hypothesis of `typed.mergingWalkerRec`). -/
 def typed.mergingWalker.doMap.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (dql dqr : DFrac) (l r : Option UVal) (tp : Loc)
-    (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ isMapRep tp fs e rel ∗
+    (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗ isMapRep tp fs e rel ∗
       ⌜S.find st.t.name = some (.map fs e rel) ∧ (l.isSome ∨ r.isSome) ∧ confO S st.t l ∧ confO S st.t r ∧ st.out = none ∧
         st.inLeaf = false⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"doMap")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-      mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := leafAt S st.t l r } }})
+      (∃ sp' : Loc, mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := leafAt S st.t l r } sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- `typed.mergingWalker.merge.spec` inside the logic (Löb's hypothesis of `typed.mergingWalkerRec`). -/
 def typed.mergingWalker.merge.specI : IProp GF :=
   iprop(
-  ∀ (w sc : Loc) (S : Schema) (st : MWSt) (dql dqr : DFrac) (l r : Option UVal) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
+  ∀ (w sc : Loc) (S : Schema) (st : MWSt) (dql dqr : DFrac) (l r : Option UVal) (f : GoFunc) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
       ⌜(l.isSome ∨ r.isSome) ∧ confO S st.t l ∧ confO S st.t r ∧ st.out = none ∧ st.inLeaf = false⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"merge")) (Val #f))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-      mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := leafAt S st.t l r } }})
+      (∃ sp' : Loc, mwOwn w sc S { st with out := mergeO S st.t l r, inLeaf := leafAt S st.t l r } sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- `typed.mergingWalker.mergeListItem.spec` inside the logic (Löb's hypothesis of `typed.mergingWalkerRec`). -/
 def typed.mergingWalker.mergeListItem.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (tp : Loc) (e : TypeRef) (rel : ElemRel)
     (ks : List GoString) (pe : fieldpath.PathElement) (pe' : PE) (lc rc : value.Value)
-    (dql dqr : DFrac) (l r : Option UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isListRep tp e rel ks ∗ isPE pe pe' ∗ isValO lc dql l ∗ isValO rc dqr r ∗
+    (dql dqr : DFrac) (l r : Option UVal) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isListRep tp e rel ks ∗ isPE pe pe' ∗ isValO lc dql l ∗ isValO rc dqr r ∗
       ⌜(l.isSome ∨ r.isSome) ∧ confO S e l ∧ confO S e r ∧ st.inLeaf = false⌝ }}
     (App (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"mergeListItem")) (Val #tp)) (Val #pe)) (Val #lc)) (Val #rc))
-  {{ (o : Loc) (errs : GoSlice), RET (PairV #o #errs); mwOwn w sc S st ∗ outRep o (mergeO S e l r) ∗
+  {{ (o : Loc) (errs : GoSlice), RET (PairV #o #errs); (∃ sp' : Loc, mwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗ outRep o (mergeO S e l r) ∗
       noErrs errs ∗ isValO lc dql l ∗ isValO rc dqr r }})
 
 /-- `typed.mergingWalker.visitListItems.spec` inside the logic (Löb's hypothesis of `typed.mergingWalkerRec`). -/
 def typed.mergingWalker.visitListItems.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (tp : Loc) (e : TypeRef) (ks : List GoString)
-    (ll rl : value.List') (ol or_ : Option (List UVal)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isListRep tp e .associative ks ∗ isListO ll ol ∗ isListO rl or_ ∗
+    (ll rl : value.List') (ol or_ : Option (List UVal)) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isListRep tp e .associative ks ∗ isListO ll ol ∗ isListO rl or_ ∗
       ⌜S.find st.t.name = some (.list e .associative ks) ∧ st.out = none ∧ st.inLeaf = false ∧
         confO S st.t (ol.map UVal.list) ∧ confO S st.t (or_.map UVal.list)⌝ }}
     (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ll)) (Val #rl))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗
-      mwOwn w sc S { st with out := (mergeListOut (fuelL (ol.getD []) (or_.getD [])) S e ks
-        (ol.getD []) (or_.getD [])) } }})
+      (∃ sp' : Loc, mwOwn w sc S { st with out := (mergeListOut (fuelL (ol.getD []) (or_.getD [])) S e ks
+        (ol.getD []) (or_.getD [])) } sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- `typed.mergingWalker.visitMapItem.spec` inside the logic (Löb's hypothesis of `typed.mergingWalkerRec`). -/
 def typed.mergingWalker.visitMapItem.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (tp : Loc) (fs : List (GoString × TypeRef))
     (e : Option TypeRef) (rel : ElemRel) (om : GoMap) (M : GMap GoString GoInterface)
-    (key : GoString) (t' : TypeRef) (lc rc : value.Value) (dql dqr : DFrac) (l r : Option UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isMapRep tp fs e rel ∗ om ↦$ M ∗ isValO lc dql l ∗ isValO rc dqr r ∗
+    (key : GoString) (t' : TypeRef) (lc rc : value.Value) (dql dqr : DFrac) (l r : Option UVal) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isMapRep tp fs e rel ∗ om ↦$ M ∗ isValO lc dql l ∗ isValO rc dqr r ∗
       ⌜fieldType fs e key = some t' ∧ (l.isSome ∨ r.isSome) ∧ confO S t' l ∧ confO S t' r ∧
         st.inLeaf = false⌝ }}
     (App (App (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"visitMapItem")) (Val #tp)) (Val #om)) (Val #key)) (Val #lc)) (Val #rc))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ mwOwn w sc S st ∗ isValO lc dql l ∗ isValO rc dqr r ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ (∃ sp' : Loc, mwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗ isValO lc dql l ∗ isValO rc dqr r ∗
       match mergeO S t' l r with
       | none => iprop(om ↦$ M)
       | some x => iprop(∃ i : GoInterface, om ↦$ (<[key := i]> M) ∗ isIface i x) }})
@@ -114,14 +114,14 @@ def typed.mergingWalker.visitMapItems.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : MWSt) (tp : Loc) (fs : List (GoString × TypeRef))
     (e : Option TypeRef) (rel : ElemRel) (lm rm : value.Map)
-    (ol or_ : Option (List (GoString × UVal))),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st ∗ isMapRep tp fs e rel ∗ isMapO lm ol ∗ isMapO rm or_ ∗
+    (ol or_ : Option (List (GoString × UVal))) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ mwOwn w sc S st sp ∗ isMapRep tp fs e rel ∗ isMapO lm ol ∗ isMapO rm or_ ∗
       ⌜S.find st.t.name = some (.map fs e rel) ∧ st.out = none ∧ st.inLeaf = false ∧
         confO S st.t (ol.map UVal.map) ∧ confO S st.t (or_.map UVal.map)⌝ }}
     (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"visitMapItems")) (Val #tp)) (Val #lm)) (Val #rm))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗
-      mwOwn w sc S { st with out := (mergeMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e
-        (kvsOrEmpty ol) (kvsOrEmpty or_)) } }})
+      (∃ sp' : Loc, mwOwn w sc S { st with out := (mergeMapOut (fuelM (kvsOrEmpty ol) (kvsOrEmpty or_)) S fs e
+        (kvsOrEmpty ol) (kvsOrEmpty or_)) } sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- **The cluster's specs inside the logic**: what each member's body assumes under a later
 (`<member>.specBody`), and what Löb's induction proves. -/
