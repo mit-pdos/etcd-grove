@@ -1,6 +1,29 @@
 # wal-fsfix handoff
 
-## START HERE (2026-11-19 x)
+## START HERE (2026-11-20 y)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head: `git log -1`. Pin 3afd77e35:
+  `--packages=/shared/tmp/manifest-3af.json` (`.lake/package-overrides.json` = its copy). `.lake/build` seeded
+  (cp -a) from wal-link's at lean 94ea36b029.
+- c7b7c8d8f1 = merge of lean 94ea36b029 (wal-link landed). wal-link's split revert 28d300ba17 is NOT taken (the merge
+  is of lean with that revert undone, so NoIoErr (a)/PathErrno stay). fb1fd2cef1 = the Fs repairs (NoIoErr.lean,
+  NoMapLockErr.lean build, `lean-check -a`).
+- **STOPPED (coordinator decision)**: lean's error-free open/rename specs (`NoErrSpecsOpenFile`: `open_failure_eintr`,
+  `wp_osOpenCreateSNE`, `wp_osOpenFileSNE`; `NoErrSpecsRename`: `wp_osRenameFileSNE`) build `IoCovers "Open"/"Rename"`
+  for ANY path; this branch's A1 decision covers only `PathFits` paths. Their callers (`Proof/os/OpenFileS.lean`,
+  `Proof/os/Rename.lean`: `os.Rename.spec`, bbolt's `Open_sharedNoErr`, the server's snapshot backend) get paths from
+  `memberDataDir name` with a generic `name`: a path-length fact must come from somewhere: a closed-statement
+  premise (member names short) or a decision change. Options in the report (and below).
+- Full timed build NOT run (would fail at NoErrSpecsRename/OpenFile and everything above them).
+- Then: full build, tcb --check --update, collections, interfaces; cut.specNoErr (reuse `wp_osRenameFileSNE` etc.;
+  `LockFile`'s blocking flock is named by both NoIoErr and NoMapLockErr now: a twin of trusted coverage, see report);
+  rnNewStorageOk_holds; Create.specNoErr is a STOP (directory read permission, final attack finding 2).
+- Config-C run for the user: commit f5823538f2, filter
+  `^(TestLocks|TestNoIoErr|TestDirRenameScopedToRoot|TestCrossRootRenameExcluded)`.
+- Pitfalls: Go tests here as root; `/shared` idmapped; no loop devices in this container.
+
+## History (2026-11-19 x)
+
 
 - Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head: `git log -1`. NOT merged with lean e95ce79ce9
   (pin 3afd77e35). Current pin f551a1b46: `--packages=/shared/tmp/manifest-f55.json`.
