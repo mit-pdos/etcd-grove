@@ -10,6 +10,7 @@ module
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsB2
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofsSort
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA2
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
@@ -129,6 +130,47 @@ theorem keyNames_sublist (ks : List GoString) (kvs : List (GoString × UVal)) :
     | none => exact ih.cons k
     | some v => exact ih.cons₂ k
 
+/-! ## A list's field sets, item by item -/
+
+theorem mem_pu (a b : PathSet) (q : Path) : q ∈ PathSet.union a b ↔ q ∈ a ∨ q ∈ b :=
+  FSet.mem_union' a b q
+
+theorem mem_fieldsL_append (S : Schema) (e : TypeRef) (ks : List GoString) (p : Path) (q : Path) :
+    ∀ (l1 l2 : List UVal),
+      q ∈ fieldsL S e ks p (l1 ++ l2) ↔ q ∈ fieldsL S e ks p l1 ∨ q ∈ fieldsL S e ks p l2
+  | [], l2 => by simp only [List.nil_append, fieldsL]; exact ⟨Or.inr, fun h => h.elim (fun h => absurd h (FSet.mem_empty _)) id⟩
+  | a :: l1, l2 => by
+    simp only [List.cons_append, fieldsL]
+    cases keyOf ks a with
+    | none => exact mem_fieldsL_append S e ks p q l1 l2
+    | some pe =>
+      simp only [union, mem_pu, mem_fieldsL_append S e ks p q l1 l2, or_assoc]
+
+/-- The field set of the first `j + 1` items: the first `j`'s, then the item's fields and the
+item's path. -/
+theorem fieldsL_step (F : PathSet) (S : Schema) (e : TypeRef) (ks : List GoString) (p : Path)
+    (vs : List UVal) (j : Nat) (x : UVal) (pe : PE) (hx : vs[j]? = some x)
+    (hk : keyOf ks x = some pe) :
+    PathSet.union (PathSet.union (PathSet.union F (fieldsL S e ks p (vs.take j)))
+      (fieldsAt S e (p ++ [pe]) x)) (PathSet.single (p ++ [pe])) =
+      PathSet.union F (fieldsL S e ks p (vs.take (j + 1))) := by
+  apply FSet.ext'
+  intro q
+  rw [List.take_add_one, hx]
+  simp only [Option.toList_some, mem_pu, mem_fieldsL_append]
+  simp only [fieldsL, hk, union, mem_pu]
+  have he : q ∉ (empty : PathSet) := FSet.mem_empty q
+  simp only [or_assoc, he, or_false, ins]
+
+theorem fieldsL_take_sub (S : Schema) (e : TypeRef) (ks : List GoString) (p : Path)
+    (vs : List UVal) (j : Nat) (q : Path) (h : q ∈ fieldsL S e ks p (vs.take j)) :
+    q ∈ fieldsL S e ks p vs := by
+  rw [← List.take_append_drop j vs, mem_fieldsL_append]; exact Or.inl h
+
+theorem cardLt_sub (A B : PathSet) (n : Nat) (h : ∀ q, q ∈ A → q ∈ B) (hB : B.CardLt n) :
+    A.CardLt n :=
+  Nat.lt_of_le_of_lt (FSet.card_le_of_subset _ _ h) hB
+
 end LawA3
 
 section proof
@@ -227,6 +269,54 @@ theorem isPE_key_intro (e : fieldpath.PathElement) (s : GoSlice) (fl : FieldList
   · ipureintro; exact ⟨hn, hl⟩
   iexists s
   iframe #
+
+/-- A list view's `Length` and `At` (`isListV_dispatchA` without `AtUsing`). -/
+theorem isListV_dispatchL [package_sem : typed.Assumptions]
+    (hL : value.listUnstructured.Length.spec (GF := GF))
+    (hLP : value.listUnstructured.Length_ptr.spec (GF := GF))
+    (hT : value.listUnstructured.At.spec (GF := GF))
+    (hTP : value.listUnstructured.At_ptr.spec (GF := GF))
+    (l : value.List') (vs : List UVal) :
+    isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isListV l vs ⊢
+      ∃ i, ⌜l = .ok i⌝ ∗
+        □ ({{ True }} (App (Val #(methods i.ty go!"Length" i.v)) (Val #()))
+            {{ (r : w64), RET #r; ⌜r.toInt = vs.length⌝ }}) ∗
+        □ (∀ (n : w64) (x : UVal),
+            {{ ⌜0 ≤ n.toInt ∧ vs[n.toInt.toNat]? = some x⌝ }}
+            (App (Val #(methods i.ty go!"At" i.v)) (Val #n))
+            {{ (v : value.Value), RET #v; isValF v (DFrac.own 1) x }}) := by
+  iintro ⟨#Hpkg, Hl⟩
+  ihave #Hl := isListV_persistent_law_holds l vs $$ Hl
+  ihave %Hc := isListV_concrete_law_holds l vs $$ Hl
+  rcases Hc with ⟨sl, rfl⟩ | ⟨p, rfl⟩
+  · iexists _
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · imodintro
+      iintro %Φ !> - HΦ
+      iapply hL sl vs $$ [] [HΦ]
+      · iframe #
+      · iexact HΦ
+    · imodintro
+      iintro %n %x %Φ !> %h HΦ
+      iapply hT sl vs n x $$ [] [HΦ]
+      · iframe #; ipureintro; exact h
+      · iexact HΦ
+  · iexists _
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · imodintro
+      iintro %Φ !> - HΦ
+      iapply hLP p vs $$ [] [HΦ]
+      · iframe #
+      · iexact HΦ
+    · imodintro
+      iintro %n %x %Φ !> %h HΦ
+      iapply hTP p vs n x $$ [] [HΦ]
+      · iframe #; ipureintro; exact h
+      · iexact HΦ
 
 end LawA3
 
