@@ -576,3 +576,31 @@ line heads each log). Logs: `notes/axiom-review/noioerr-c-runs/`.
   the environment clause (`Impl.lean`'s "Environment", `env_config.go`) assumes the sysctl denies nothing, which a
   setting of 0 makes true outright; the test is only the contrast (why it is an assumption where the sysctl is
   set), measured where it is set: not on this host. `TestEnoent`'s bounded form was not in the run (untested on C).
+
+## Session 10 (2026-11-20, branch `wal-fsfix`): the user's decisions of 2026-11-20 implemented; the attack on them
+
+The member-name bound (≤ 200 bytes) in `bootCfgFresh` (`Fs.DirFits cfg.DataDir'`), threaded as `name.length ≤ 200`
+premises through etcdstart's specs up to the examples (`memberAt_name_len`, `members_names_len`, `cluster3.cfgOk`'s
+`len1`-`len3`); `flock` out of `IoCovers` (`NoMapLockErr` covers it); `PathFits` on the error-free open/rename
+lemmas and on the shared-mode name claims.
+
+### The independent attack (2026-11-20, read-only subagent, axiom skill; target 9cff19a579): no refutation
+
+Programs and outputs: `/shared/tmp/walfsfix-attack9/` (`symlen/`, `joinfit/`).
+
+1. **`IoCovers` without `"Flock"`**: survives (for a blocking `flock` the old clause asked what `MapLockOk "Flock"`
+   asks; the two premises are always assumed together; no inconsistency). **False text** `Premises.lean` ("Nor
+   anything about the OFD lock (`fcntl`), which `NoIoErr` does not name either": `IoCovers "OfdLock"` exists),
+   fixed; stale Go texts (`locks_spurious_eagain.go`, `doc.go`, `premise_no_io_err.go`, `TestNoIoErrLocks`'s
+   comment) and "one premise per call" (an `open` with no free fd is named by both) fixed. Open: `NoMapLockErr` is
+   still marked "pending the user's review" and now carries `flock`; `cut.specNoErr` will need
+   `FsStepSat (NoMapLockErr Sio)` too (`fileutil`'s flock fallback, `TrustedCode/syscall.lean`).
+2. **`PathFits`/`PathFitsLemmas`**: survives (4096-byte paths rejected; windows = no component over 255; only
+   canonical absolute paths reach a covered step; a root under symlinked ancestors resolving to 6049 bytes gave no
+   `ENAMETOOLONG` on ext4 and tmpfs of this host: to rerun on C before a trusted text cites it).
+3. **`bootCfgFresh`'s `DirFits`, `bootOk`'s `PathFits`**: survives; but `config.snapDirOf` is opaque, so the
+   `PathFits` of the snapshot and backend paths in `bootOk`'s claims is ASSERTED by the assumed contract, not
+   implied by its precondition (true of Go: `SnapDir` is `filepath.Join(d, "member", "snap")`; `joinfit/` checked
+   134 400 adversarial data directories). For the land report (or define `snapDirOf` as Go's `Join`).
+4. **mvccrand/mvccfull `Hrfit : Fs.DirFits r`**: satisfiable (a real root's components are ≤ 255; only
+   `|r| < 3800` restricts) and sufficient (only `r/<name>` paths, names ≤ 255).
