@@ -218,6 +218,12 @@ theorem mergeMapOut_eq (S : Schema) (fs : List (GoString × TypeRef)) (e : Optio
     simp only
     rw [mergeF_fuel_law_holds _ S t' _ _ (by unfold fuelO fuelM; simp only at hs; omega)]
 
+/-- The merged entry of a key the zip visits, from `visitMapItem`'s result. -/
+theorem resM_eq (S : Schema) (fs : List (GoString × TypeRef)) (e : Option TypeRef)
+    (L R : List (GoString × UVal)) (k : GoString) (t' : TypeRef) (ht : fieldType fs e k = some t') :
+    resM S fs e L R k = mergeO S t' (lookupKV k L) (lookupKV k R) := by
+  simp only [resM, ht]
+
 /-! ## The comparison, key by key -/
 
 /-- The comparison of key `k` (the compare walker's `visitMapItem`). -/
@@ -382,6 +388,61 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 namespace LawBMZ
+
+/-! ## The Go map the merging walker fills, key by key -/
+
+/-- The Go map holds exactly the visited keys with a merged entry. -/
+def MInv (M : GMap GoString GoInterface) (done : List GoString) (g : GoString → Option UVal) :
+    Prop :=
+  ∀ k, (M !! k).isSome = decide (k ∈ done ∧ (g k).isSome)
+
+theorem minv_nil (g : GoString → Option UVal) : MInv ∅ [] g := by
+  intro k; simp
+
+theorem minv_none {M : GMap GoString GoInterface} {done : List GoString}
+    {g : GoString → Option UVal} {k : GoString} (h : MInv M done g) (hg : g k = none) :
+    MInv M (done ++ [k]) g := by
+  intro k'
+  rw [h k']
+  by_cases hk : k' = k
+  · subst hk; simp [hg]
+  · simp [hk]
+
+theorem minv_some {M : GMap GoString GoInterface} {done : List GoString}
+    {g : GoString → Option UVal} {k : GoString} {x : UVal} (i : GoInterface) (h : MInv M done g)
+    (hg : g k = some x) : MInv (<[k := i]> M) (done ++ [k]) g := by
+  intro k'
+  rw [GMap.lookup_insert_eq_iff]
+  by_cases hk : k = k'
+  · subst hk; simp [hg]
+  · have hk' : ¬ k' = k := fun e => hk e.symm
+    simp only [hk, ↓reduceIte, h k', List.mem_append, List.mem_singleton, hk', or_false]
+
+theorem minv_final {M : GMap GoString GoInterface} {done ks : List GoString}
+    {g : GoString → Option UVal} (h : MInv M done g) (hp : done.Perm ks) (k : GoString) :
+    (M !! k).isSome = (lookupKV k (entriesOf g ks)).isSome := by
+  rw [h k, lkv_entriesOf]
+  simp only [← hp.mem_iff]
+  by_cases hk : k ∈ done <;> simp [hk]
+
+theorem minv_empty {M : GMap GoString GoInterface} {done ks : List GoString}
+    {g : GoString → Option UVal} (h : MInv M done g) (hp : done.Perm ks) :
+    GMap.size M = 0 ↔ (entriesOf g ks).isEmpty := by
+  rw [GMap.map_size_empty_iff, ← GMap.lookup_empty_iff]
+  constructor
+  · intro he
+    cases hE : entriesOf g ks with
+    | nil => rfl
+    | cons kv rest =>
+      have h1 : (lookupKV kv.1 (entriesOf g ks)).isSome := by rw [hE]; simp [lookupKV]
+      rw [← minv_final h hp, he] at h1
+      cases h1
+  · intro he k
+    have := minv_final h hp k
+    have h2 : entriesOf g ks = [] := List.isEmpty_iff.1 he
+    rw [h2] at this
+    simp only [lookupKV, Option.isSome_none] at this
+    exact Option.isSome_eq_false_iff.1 this |> Option.isNone_iff_eq_none.1
 
 /-- A Go map whose keys are those of the sorted entries `kvs`, each holding an interface of its
 value (filled in any order), read-only, is an interface holding `.map kvs`. -/
