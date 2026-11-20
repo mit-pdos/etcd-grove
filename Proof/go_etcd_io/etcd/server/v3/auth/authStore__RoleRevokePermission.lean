@@ -15,6 +15,7 @@ public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.bytes
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -162,6 +163,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨-, #HGR, -, -, -⟩
+  wp_take_receipt as Hrc
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetRole" ti.v)) (Val #role))
   iapply HGR $$ %st0 %role HL
@@ -259,11 +261,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
       $$ Hperms
     ihave #Hpw2 := Hpw
     iunfold ownPermS at Hpw2
-    icases Hpw2 with ⟨%Hppnn, %pms, %kk, %kre, %psc, #Hpp, #Hkk, #Hkre⟩
-    ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hpp
-    icases typedPointsto_split _ _ _ $$ Hpp with Hpp
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hpp
+    icases Hpw2 with ⟨%Hppnn, %kk, %kre, #PermType, #Key, #RangeEnd, -, -, #Hkk, #Hkre⟩
+    have Hrespnn : pp ≠ null := Hppnn.1
     (try wp_auto)
     have hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     wp_apply (_root_.Perennial.bytes.wp_Equal kk ks DFrac.discard DFrac.discard w.key key)
@@ -403,8 +402,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     rw [hsnd, auth.filterMap_filter_keepW]; exact Hrrps.filter _
   imod (ownSlice_persist _ _ _) $$ Hsl with #Hsl'
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #uu))
-  iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) %AuthSess.init [HL Hsw Huu]
-  · iframe HL Hsw
+  iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) %AuthSess.init [HL Hrc Hsw Huu]
+  · iframe HL Hrc Hsw
     isplitl [Huu]
     · iunfold ownRole
       iexists zeroValDef, rnm, sl, kept.map Prod.fst, (0 : w32)

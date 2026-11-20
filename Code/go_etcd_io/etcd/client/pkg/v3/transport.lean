@@ -2,6 +2,7 @@
 module
 
 public import Code.crypto.tls
+public import Perennial.Code.errors
 public import Code.go_uber_org.zap
 public import Perennial.Golang.Defn
 
@@ -140,8 +141,6 @@ opaque tlsHandshakeTimeout [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrNotTCP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/transport.ErrNotTCP"
 
-opaque ErrNotTCP.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def NewKeepAliveListener [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/transport.NewKeepAliveListener"
 
@@ -236,7 +235,7 @@ noncomputable def NewUnixListener [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/transport.NewUnixListener"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.transport where
-  pkgImportedPkgs := [pkg_id.crypto.tls, pkg_id.go_uber_org.zap]
+  pkgImportedPkgs := [pkg_id.crypto.tls, pkg_id.errors, pkg_id.go_uber_org.zap]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -246,12 +245,20 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"only tcp connections have keepalive"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val ErrNotTCP.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNotTCP))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.crypto.tls.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrNotTCP go.error)) (Val #()))))))))
 
 opaque keepaliveListener.nonempty_type : NonemptyType.{0}
 def keepaliveListener : Type := keepaliveListener.nonempty_type.type
@@ -760,6 +767,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   unixTransport_instance : unixTransport.TypeAssumptions
   unixListener_instance : unixListener.TypeAssumptions
   import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
+  import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
 
 attribute [instance] Assumptions.keepaliveListener_instance
@@ -780,6 +788,7 @@ attribute [instance] Assumptions.keepaliveListener_instance
   Assumptions.unixTransport_instance
   Assumptions.unixListener_instance
   Assumptions.import_tls_Assumption
+  Assumptions.import_errors_Assumption
   Assumptions.import_zap_Assumption
 
 end go_etcd_io.etcd.client.pkg.v3.transport

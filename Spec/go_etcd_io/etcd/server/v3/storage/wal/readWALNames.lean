@@ -51,9 +51,9 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.readWALNames.spec : Prop :=
     (dqn : DFrac) (h : NamesH),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
-      osCallPerm (GF := GF) qc ∗ osNames (GF := GF) j N dqn h }}
+      osCallPerm (GF := GF) (callKey R d) qc ∗ osNames (GF := GF) j N dqn h }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.readWALNames)) (Val #lg)) (Val #d))
-  {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j N dqn h ∗
       ((∃ ws : List GoString, ⌜err = interface.nil ∧ WalNamesOut N h ws⌝ ∗ r ↦* ws) ∨
        ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e ∗ errIsTerm (GoInterface.ok e)) }}

@@ -167,7 +167,9 @@ theorem memberBoots_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
     (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp)
     (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
-    (Hklg : γk.lm = lm) (hpo : kvPfxOk γk) (L : List w64)
+    (Hklg : γk.lm = lm) (hpo : kvPfxOk γk)
+    -- (auth-lease S4, 2026-11-16) the cluster outside raft's no-snapshot mode
+    (Hnsn : ¬ clusterNoSnap γ.cl) (L : List w64)
     (hpfx : ∀ id ∈ L, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)
     (HΦ : ∀ id ∈ L, Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) (idx id).slog)
     (Hx : ∀ id ∈ L, xs (idPfxOf (W16 (uint.Z id))) = (idx id).slog) :
@@ -205,7 +207,7 @@ theorem memberBoots_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
     icases Hns with ⟨⟨Hi, Hc, Hr, Hg⟩, Hns⟩
     imod (memberBoot_of γ ps ctxs (reg q) issued cnt wn fs γk Φs q γm (idx q) (cok q) (rev q)
         (xs (idPfxOf (W16 (uint.Z q)))) (Hx q (by simp)) Hiss Hwn Hfs Hc0 Hch Hlog Hvs cmp Hkc lm
-        hrun Hklg (hpfx q (by simp)) hpo (HΦ q (by simp)))
+        hrun Hklg (hpfx q (by simp)) hpo (HΦ q (by simp)) Hnsn)
       $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm Hw Hg Hi Hc Hr with ⟨%ρ, %Hρ, Hb⟩
     imod (ih (fun id h => hpfx id (List.mem_cons_of_mem _ h)) (fun id h => HΦ id (List.mem_cons_of_mem _ h))
         (fun id h => Hx id (List.mem_cons_of_mem _ h)))
@@ -228,7 +230,7 @@ theorem memberStartRes_split (n p : GoString) (c : Option GoString) :
       httpProtoFree p ∗ (∀ γn : NetNames GF,
         http.httpProtoOwn p (raftProto (netRh γn)) -∗ memberFreshRes n ⟨some p, c⟩ γn) := by
   simp only [memberStartRes, memberFreshRes]
-  iintro ⟨#Hv, Hw, ⟨Ha, Hf⟩, Hc⟩
+  iintro ⟨#Hv, Hw, WaHw, ⟨Ha, Hf⟩, Hc⟩
   iframe Hf
   iintro %γn Ho
   iframe; iframe #
@@ -278,14 +280,15 @@ theorem allocN (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : 
   imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
       Hpsne Hnz cmp cret lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
       (gpsOk_of_apart lm ids id0 hid0 hap)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+  have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
   have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklg ▸ h))
   ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
   ihave Hwns := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
   imod (memberBoots_of γ ps ctxs issued cnt wn fs γk (ΦsOf ids idx) γm idx cok rev reg (xsOf ids idx)
-      hiss hwn hfs hc0 hch hlog hvs cmp hkc lm hrun hklg hpo ids
+      hiss hwn hfs hc0 hch hlog hvs cmp hkc lm hrun hklg hpo HnoSnap ids
       (fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid)
       (fun id hid => ΦsOf_at ids idx Hipnd id hid) (fun id hid => xsOf_at ids idx Hipnd id hid))
     $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hwns Hns with ⟨%gs, %Hgs, Hbs⟩

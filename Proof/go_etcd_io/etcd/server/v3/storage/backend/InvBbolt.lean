@@ -61,6 +61,7 @@ public import Spec.go_etcd_io.bbolt.ApiS
 public import Spec.go_etcd_io.bbolt.ApiIno
 public import GooseLang.Ext.Fs.TreeSharedRes
 public import GooseLang.Ext.Fs.FilteredSem
+public import GooseLang.Ext.Fs.PathFitsLemmas
 
 @[expose] public section
 
@@ -235,14 +236,14 @@ theorem dbNs_osN (p : GoString) : (↑(dbNs p) : CoPset) ## ↑osN := by
   exact ndot_ne_disjoint nroot (show ("etcdBackendDb" : String) ≠ "osfs" by decide)
 
 /-- **The file at `path` holds a database with the data `D`**, at the instances: `path` is
-`d/b`, the name `b` of the directory `d` (`osPathS`, a share of the call permission, the whole
-claim on `b`, in the shared mode of the tree), and `b` names a file holding `D` or nothing with
+`d/b`, the name `b` of the directory `d` (`osPathS`, a share of the call permission of `d`'s root
+(`callKey R d`: per root since wal-link L4), the whole claim on `b`, in the shared mode of the tree), and `b` names a file holding `D` or nothing with
 `D = ∅` (bbolt's `nameHolds`): what bbolt's `Open_sharedNoErr.spec` takes. -/
 def fileHoldsF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (D : Data) :
     IProp GF :=
   iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH),
-    ⌜path = child d b ∧ NameOk b⌝ ∗ osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
-    osNames j (.only [b]) (DFrac.own 1) h ∗ bbolt.nameHolds h b D)
+    ⌜path = child d b ∧ NameOk b ∧ PathFits path⌝ ∗ osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗
+    osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗ bbolt.nameHolds h b D)
 
 /-- **What an open database keeps of its file** (S3e; S5, 2026-11-18: the inode only), at the
 instances: the inode `Open` opened (`boltIno γ i`, which `Close` needs to give the file back), and
@@ -263,8 +264,8 @@ current entry is the file `i` (`fileHoldsF` without the file's contents). -/
 def nameAtF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (i : Ino) :
     IProp GF :=
   iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH),
-    ⌜path = child d b ∧ NameOk b ∧ h.cur !! b = some (.file i)⌝ ∗ osInv ∗ osSharedInv R ∗
-    osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
+    ⌜path = child d b ∧ NameOk b ∧ h.cur !! b = some (.file i) ∧ PathFits path⌝ ∗ osInv ∗ osSharedInv R ∗
+    osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
 
 /-- **The file at `path` holds `D`, a file** (S5), at the instances: `fileHoldsF`'s case of a file
 (the claim on the name naming the inode `i`, whose file holds a database with the data `D`). -/
@@ -276,8 +277,8 @@ def fileAtF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (D :
 and a share of the call permission), naming nothing. -/
 def fileFreeF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) : IProp GF :=
   iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH),
-    ⌜path = child d b ∧ NameOk b ∧ h.cur !! b = none⌝ ∗ osInv ∗ osSharedInv R ∗
-    osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
+    ⌜path = child d b ∧ NameOk b ∧ h.cur !! b = none ∧ PathFits path⌝ ∗ osInv ∗ osSharedInv R ∗
+    osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
 
 /-- **The file at `path` holds `D`, and is a file** (S5; exclusive): what a received snapshot's file
 is (`snapDirInv`'s files), what `os.Rename` moves. -/
@@ -364,11 +365,11 @@ theorem bPath_join (γ : DBNames) (path : GoString) (D : Data) :
     subst he
     unfold nameAtF fileHoldsF
     icases Hn with ⟨%R, %d, %b, %dq, %j, %qc, %h, %hp, #Hinv, #Hsh, Hp, Hcp, Hnm⟩
-    obtain ⟨hp, hb, hi⟩ := hp
+    obtain ⟨hp, hb, hi, hf⟩ := hp
     iexists R, d, b, dq, j, qc, h
     iframe Hinv Hsh Hp Hcp Hnm
     isplitr
-    · ipureintro; exact ⟨hp, hb⟩
+    · ipureintro; exact ⟨hp, hb, hf⟩
     unfold bbolt.nameHolds
     ileft
     iexists i
@@ -384,11 +385,11 @@ theorem fileAt_fileHolds (path : GoString) (D : Data) :
   · simp only [fileAt, fileHolds, onFs_some hfs]
     unfold fileAtF nameAtF fileHoldsF
     iintro ⟨%i, ⟨%R, %d, %b, %dq, %j, %qc, %h, %hp, #Hinv, #Hsh, Hp, Hcp, Hnm⟩, Hf⟩
-    obtain ⟨hp, hb, hi⟩ := hp
+    obtain ⟨hp, hb, hi, hf⟩ := hp
     iexists R, d, b, dq, j, qc, h
     iframe Hinv Hsh Hp Hcp Hnm
     isplitr
-    · ipureintro; exact ⟨hp, hb⟩
+    · ipureintro; exact ⟨hp, hb, hf⟩
     unfold bbolt.nameHolds
     ileft
     iexists i

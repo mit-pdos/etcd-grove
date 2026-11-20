@@ -52,7 +52,7 @@ theorem authApplyOkM_on
   iapply (apply.isAuthStore_of_authInv hPut hRange hDel hAdmin hEn hRev stl R (.on γa) (fun _ => Pk) f
     (srvBkTie d) RW)
   iframe Hpkg Hinv
-  iapply (apply.isAuthStoreAdmin_on (interface.mk (go.GoType.PointerType auth.authStore.ty) #stl)
+  iapply (apply.isAuthStoreAdmin_on (interface.mk (go.GoType.PointerType Perennial.go_etcd_io.etcd.server.v3.auth.authStore.ty) #stl)
     (fun _ => Pk) f (srvBkTie d) RW γa)
 
 /-- **The real store's request side and apply contract in the mode `on γa`**, both with the

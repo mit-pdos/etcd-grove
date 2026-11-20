@@ -45,7 +45,7 @@ def memberStarted (lg : Loc) (γn : NetNames GF) (z : Loc × Loc) (x : GMember �
     IProp GF :=
   iprop((threadTok -∗ memberUp z.1 x.2.ρ x.2.E lg γn x.2.id) ∗
     (∃ γS : SwNames, memberRec z.2 γS γn x.1.Name' x.1.Peer' x.1.Client') ∗
-    srvDataDir z.1 (x.1.Name' ++ go!".etcd"))
+    srvDataDir z.1 (memberDataDir x.1.Name'))
 
 /-- See the file header. -/
 abbrev startMembers.spec : Prop :=
@@ -58,6 +58,9 @@ abbrev startMembers.spec : Prop :=
   bootLog.length ≤ 2 ^ 60 → γn.dir = dir → netDirOk dir → rafthttp.bootCfg dir ps →
   -- the members' names distinct and valid UTF-8 (`bootPremise`'s condition on the map's keys)
   (xs.map (·.1.Name')).Nodup → (∀ x ∈ xs, utf8Valid x.1.Name') →
+  -- (wal-fsfix, 2026-11-20, the user's decision) the members' names at most 200 bytes, so that their
+  -- data directories fit (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
+  (∀ x ∈ xs, x.1.Name'.length ≤ 200) →
   -- each member's names the cluster's, its peer URL its directory entry
   (∀ x ∈ xs, x.2.γ.vs = ps ∧ x.2.γ.rule = srvRule (W64 0) bootLog ∧ x.2.γ.boot = bootLog ∧
     γn.N = srvNet x.2.γ ∧ go!"http://" ++ x.1.Peer' ∈ dir x.2.id) →

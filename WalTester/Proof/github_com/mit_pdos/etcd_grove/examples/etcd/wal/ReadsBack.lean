@@ -53,13 +53,13 @@ inductive TDisc : StorContents → WalHist → StorContents → Prop
   | nil (σ : StorContents) : TDisc σ [] σ
   | save {σ σ1 σ2 : StorContents} {B : WalHist} {h : HardStateM} {es : List EntryM} :
       TDisc σ B σ1 → tDSave σ1 h es σ2 → TDisc σ (B ++ [.save h es]) σ2
-  | own {σ σ1 : StorContents} {B : WalHist} {m : SnapshotMetadataM} :
-      TDisc σ B σ1 → uint.nat m.Index' ≤ σ1.commit → TDisc σ (B ++ [.snap m]) (walSaveSnap σ1 m)
-  | recv {σ σ1 σ2 : StorContents} {B : WalHist} {m : SnapshotMetadataM} {h : HardStateM}
+  | own {σ σ1 : StorContents} {B : WalHist} {m : SnapshotMetadataM} {al : Bool} :
+      TDisc σ B σ1 → uint.nat m.Index' ≤ σ1.commit → TDisc σ (B ++ [.snap m al]) (walSaveSnap σ1 m)
+  | recv {σ σ1 σ2 : StorContents} {B : WalHist} {m : SnapshotMetadataM} {al : Bool} {h : HardStateM}
       {es : List EntryM} :
       TDisc σ B σ1 → σ1.last < uint.nat m.Index' → tDSave (walSaveSnap σ1 m) h es σ2 →
       uint.nat m.Index' ≤ σ2.commit → (∀ e ∈ es, uint.nat m.Index' < uint.nat e.Index') →
-      TDisc σ (B ++ [.snap m, .save h es]) σ2
+      TDisc σ (B ++ [.snap m al, .save h es]) σ2
 
 /-- The restart's read of `A`, as its re-marked guide. -/
 def tRestartG (A : WalHist) : List (WalOp × Bool) :=
@@ -72,7 +72,7 @@ def tSimAt (H : WalHist) (n : Nat) (σ : StorContents) : Prop :=
 /-- **`tSimAt`, or such a history followed by a received snapshot's record** whose `Save` has not come. -/
 def tSim (H : WalHist) (n : Nat) : Prop :=
   (∃ σ, tSimAt H n σ) ∨
-    ∃ H0 σ m, H = H0 ++ [.snap m] ∧ tSimAt H0 n σ ∧ σ.last < uint.nat m.Index'
+    ∃ H0 σ m al, H = H0 ++ [.snap m al] ∧ tSimAt H0 n σ ∧ σ.last < uint.nat m.Index'
 
 /-! ## Steps -/
 
@@ -84,23 +84,23 @@ theorem tSimAt_save {H : WalHist} {n : Nat} {σ σ2 : StorContents} {h : HardSta
   obtain ⟨A, B, σA, rfl, hA, hg, hD⟩ := hs
   exact ⟨A, B ++ [.save h es], σA, by simp, hA, hg, .save hD hd⟩
 
-theorem tSimAt_own {H : WalHist} {n : Nat} {σ : StorContents} {m : SnapshotMetadataM}
+theorem tSimAt_own {H : WalHist} {n : Nat} {σ : StorContents} {m : SnapshotMetadataM} {al : Bool}
     (hs : tSimAt H n σ) (hm : uint.nat m.Index' ≤ σ.commit) :
-    tSimAt (H ++ [.snap m]) n (walSaveSnap σ m) := by
+    tSimAt (H ++ [.snap m al]) n (walSaveSnap σ m) := by
   obtain ⟨A, B, σA, rfl, hA, hg, hD⟩ := hs
-  exact ⟨A, B ++ [.snap m], σA, by simp, hA, hg, .own hD hm⟩
+  exact ⟨A, B ++ [.snap m al], σA, by simp, hA, hg, .own hD hm⟩
 
-theorem tSimAt_recv {H : WalHist} {n : Nat} {σ σ2 : StorContents} {m : SnapshotMetadataM}
+theorem tSimAt_recv {H : WalHist} {n : Nat} {σ σ2 : StorContents} {m : SnapshotMetadataM} {al : Bool}
     {h : HardStateM} {es : List EntryM} (hs : tSimAt H n σ) (hl : σ.last < uint.nat m.Index')
     (hd : tDSave (walSaveSnap σ m) h es σ2) (hc : uint.nat m.Index' ≤ σ2.commit)
     (hes : ∀ e ∈ es, uint.nat m.Index' < uint.nat e.Index') :
-    tSimAt (H ++ [.snap m, .save h es]) n σ2 := by
+    tSimAt (H ++ [.snap m al, .save h es]) n σ2 := by
   obtain ⟨A, B, σA, rfl, hA, hg, hD⟩ := hs
-  exact ⟨A, B ++ [.snap m, .save h es], σA, by simp, hA, hg, .recv hD hl hd hc hes⟩
+  exact ⟨A, B ++ [.snap m al, .save h es], σA, by simp, hA, hg, .recv hD hl hd hc hes⟩
 
-theorem tSim_snapT {H : WalHist} {n : Nat} {σ : StorContents} {m : SnapshotMetadataM}
-    (hs : tSimAt H n σ) (hl : σ.last < uint.nat m.Index') : tSim (H ++ [.snap m]) n :=
-  Or.inr ⟨H, σ, m, rfl, hs, hl⟩
+theorem tSim_snapT {H : WalHist} {n : Nat} {σ : StorContents} {m : SnapshotMetadataM} {al : Bool}
+    (hs : tSimAt H n σ) (hl : σ.last < uint.nat m.Index') : tSim (H ++ [.snap m al]) n :=
+  Or.inr ⟨H, σ, m, al, rfl, hs, hl⟩
 
 theorem tSimAt_mark {H : WalHist} {n n' : Nat} {σ : StorContents} (hn : n ≤ n') (hs : tSimAt H n σ) :
     tSimAt H n' σ := by
@@ -108,9 +108,9 @@ theorem tSimAt_mark {H : WalHist} {n n' : Nat} {σ : StorContents} (hn : n ≤ n
   exact ⟨A, B, σA, hH, by omega, hg, hD⟩
 
 theorem tSim_mark {H : WalHist} {n n' : Nat} (hn : n ≤ n') (hs : tSim H n) : tSim H n' := by
-  rcases hs with ⟨σ, h⟩ | ⟨H0, σ, m, hH, h, hl⟩
+  rcases hs with ⟨σ, h⟩ | ⟨H0, σ, m, al, hH, h, hl⟩
   · exact Or.inl ⟨σ, tSimAt_mark hn h⟩
-  · exact Or.inr ⟨H0, σ, m, hH, tSimAt_mark hn h, hl⟩
+  · exact Or.inr ⟨H0, σ, m, al, hH, tSimAt_mark hn h, hl⟩
 
 /-- The empty history (`Create`'s), at any mark. -/
 theorem tSimAt_nil (n : Nat) : tSimAt [] n walFresh :=
@@ -127,8 +127,8 @@ theorem gStep_save {σ1 σ2 : StorContents} {h : HardStateM} {es : List EntryM}
     gStep σ1 (.save h es, true) = some σ2 := by
   simp only [gStep, h1, if_pos h2]
 
-theorem gStep_snap {σ : StorContents} {m : SnapshotMetadataM} (hok : gSnapOk m σ = true) (b : Bool) :
-    gStep σ (.snap m, b) = some (if b then walSaveSnap σ m else σ) := by
+theorem gStep_snap {σ : StorContents} {m : SnapshotMetadataM} {al : Bool} (hok : gSnapOk m σ = true) (b : Bool) :
+    gStep σ (.snap m al, b) = some (if b then walSaveSnap σ m else σ) := by
   simp only [gStep, hok, ↓reduceIte]
 
 theorem gFold_snoc (G : StorContents) (L : List (WalOp × Bool)) (x : WalOp × Bool) {G1 G2 : StorContents}
@@ -137,52 +137,52 @@ theorem gFold_snoc (G : StorContents) (L : List (WalOp × Bool)) (x : WalOp × B
 
 /-- Every snapshot record the guide applies is at or below `c`. -/
 def gKept (c : Nat) (L : List (WalOp × Bool)) : Prop :=
-  ∀ m, (WalOpG.snap m, true) ∈ L → uint.nat m.Index' ≤ c
+  ∀ m al, (WalOpG.snap m al, true) ∈ L → uint.nat m.Index' ≤ c
 
 theorem gKept_mono {c c' : Nat} {L : List (WalOp × Bool)} (h : gKept c L) (hc : c ≤ c') : gKept c' L :=
-  fun m hm => Nat.le_trans (h m hm) hc
+  fun m al hm => Nat.le_trans (h m al hm) hc
 
 theorem gKept_append {c : Nat} {L L' : List (WalOp × Bool)} (h : gKept c L) (h' : gKept c L') :
     gKept c (L ++ L') := by
-  intro m hm
+  intro m al hm
   rcases List.mem_append.1 hm with hm | hm
-  · exact h m hm
-  · exact h' m hm
+  · exact h m al hm
+  · exact h' m al hm
 
 theorem gKept_save {c : Nat} (h : HardStateM) (es : List EntryM) : gKept c [(WalOpG.save h es, true)] := by
-  intro m hm; simp at hm
+  intro m al hm; simp at hm
 
-theorem gKept_false {c : Nat} (m : SnapshotMetadataM) : gKept c [(WalOpG.snap m, false)] := by
-  intro m' hm; simp at hm
+theorem gKept_false {c : Nat} (m : SnapshotMetadataM) (al : Bool) : gKept c [(WalOpG.snap m al, false)] := by
+  intro m' al' hm; simp at hm
 
-theorem gKept_snap {c : Nat} {m : SnapshotMetadataM} (h : uint.nat m.Index' ≤ c) :
-    gKept c [(WalOpG.snap m, true)] := by
-  intro m' hm; simp only [List.mem_singleton, Prod.mk.injEq, WalOpG.snap.injEq, and_true] at hm
-  subst hm; exact h
+theorem gKept_snap {c : Nat} {m : SnapshotMetadataM} {al : Bool} (h : uint.nat m.Index' ≤ c) :
+    gKept c [(WalOpG.snap m al, true)] := by
+  intro m' al' hm; simp only [List.mem_singleton, Prod.mk.injEq, WalOpG.snap.injEq, and_true] at hm
+  obtain ⟨rfl, -⟩ := hm; exact h
 
 /-- **The discipline is a guide** applying every record of `B`, all at or below the end's commit. -/
 theorem TDisc.guide {σ σ' : StorContents} {B : WalHist} (hD : TDisc σ B σ') :
     ∃ LB, LB.map Prod.fst = B ∧ gFold σ LB = some σ' ∧ gKept σ'.commit LB ∧ σ.commit ≤ σ'.commit := by
   induction hD with
-  | nil => exact ⟨[], rfl, rfl, fun m hm => by simp at hm, Nat.le_refl _⟩
+  | nil => exact ⟨[], rfl, rfl, fun m al hm => by simp at hm, Nat.le_refl _⟩
   | @save σ1 σ2 B h es _ hd ih =>
     obtain ⟨LB, hm, hg, hk, hc⟩ := ih
     obtain ⟨h1, h2, h3, -⟩ := hd
     refine ⟨LB ++ [(.save h es, true)], by simp [hm], gFold_snoc _ _ _ hg (gStep_save h1 h2),
       gKept_append (gKept_mono hk h3) (gKept_save h es), by omega⟩
-  | @own σ1 B m _ hm' ih =>
+  | @own σ1 B m al _ hm' ih =>
     obtain ⟨LB, hm, hg, hk, hc⟩ := ih
     have hok : gSnapOk m σ1 = true := by simp only [gSnapOk, decide_eq_true_eq]; omega
-    refine ⟨LB ++ [(.snap m, true)], by simp [hm], gFold_snoc _ _ _ hg (gStep_snap hok true), ?_, ?_⟩
+    refine ⟨LB ++ [(.snap m al, true)], by simp [hm], gFold_snoc _ _ _ hg (gStep_snap hok true), ?_, ?_⟩
     · rw [walSaveSnap_commit]; exact gKept_append hk (gKept_snap hm')
     · rw [walSaveSnap_commit]; exact hc
-  | @recv σ1 σ2 B m h es _ hl hd hmc _ ih =>
+  | @recv σ1 σ2 B m al h es _ hl hd hmc _ ih =>
     obtain ⟨LB, hm, hg, hk, hc⟩ := ih
     obtain ⟨h1, h2, h3, -⟩ := hd
     rw [walSaveSnap_commit] at h3
     have hok : gSnapOk m σ1 = true := by simp only [gSnapOk, decide_eq_true_eq]; omega
-    have hg1 := gFold_snoc _ _ _ hg (gStep_snap hok true)
-    refine ⟨LB ++ [(.snap m, true)] ++ [(.save h es, true)], by simp [hm],
+    have hg1 := gFold_snoc _ _ _ hg (gStep_snap (al := al) hok true)
+    refine ⟨LB ++ [(.snap m al, true)] ++ [(.save h es, true)], by simp [hm],
       gFold_snoc _ _ _ hg1 (by simpa using gStep_save h1 h2), ?_, by omega⟩
     exact gKept_append (gKept_append (gKept_mono hk (by omega)) (gKept_snap hmc)) (gKept_save h es)
 
@@ -192,7 +192,7 @@ theorem TDisc.guide {σ σ' : StorContents} {B : WalHist} (hD : TDisc σ B σ') 
 then its torn `Save` (bad). -/
 def GoodImg (σ : StorContents) (I : WalHist) : Prop :=
   (∃ L σ'', L.map Prod.fst = I ∧ gFold σ L = some σ'' ∧ gKept σ''.commit L ∧ σ.commit ≤ σ''.commit) ∨
-  (∃ L0 σ1 m es, I = L0.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es] ∧
+  (∃ L0 σ1 m al es, I = L0.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es] ∧
     gFold σ L0 = some σ1 ∧ gKept σ1.commit L0 ∧ σ.commit ≤ σ1.commit ∧ σ1.commit < uint.nat m.Index' ∧
     σ1.last < uint.nat m.Index' ∧ es ≠ [] ∧ ∀ e ∈ es, uint.nat m.Index' < uint.nat e.Index')
 
@@ -246,7 +246,7 @@ theorem TDisc.img {σ σ' : StorContents} {B : WalHist} (hD : TDisc σ B σ') (h
   induction hD generalizing I with
   | nil =>
     rw [walImg_nil0 hI]
-    exact Or.inl ⟨[], σ, rfl, rfl, fun m hm => by simp at hm, Nat.le_refl _⟩
+    exact Or.inl ⟨[], σ, rfl, rfl, fun m al hm => by simp at hm, Nat.le_refl _⟩
   | @save σ1 σ2 B h es hB hd ih =>
     rcases walImg_snoc_cases hI with hI | rfl | ⟨h', es', k, ho, hk, rfl⟩
     · exact ih hI
@@ -259,13 +259,13 @@ theorem TDisc.img {σ σ' : StorContents} {B : WalHist} (hD : TDisc σ B σ') (h
       refine Or.inl ⟨LB ++ [(.save ⟨W64 0, W64 0, W64 0⟩ (es.take k), true)], τ, by simp [hm],
         gFold_snoc _ _ _ hg (gStep_save hτ hτl), ?_, by omega⟩
       rw [hτc]; exact gKept_append hk (gKept_save _ _)
-  | @own σ1 B m hB hm' ih =>
+  | @own σ1 B m al hB hm' ih =>
     rcases walImg_snoc_cases hI with hI | rfl | ⟨h', es', k, ho, hk, rfl⟩
     · exact ih hI
     · obtain ⟨L, hm, hg, hk, hc⟩ := (TDisc.own hB hm').guide
       exact Or.inl ⟨L, _, hm, hg, hk, hc⟩
     · cases ho
-  | @recv σ1 σ2 B m h es hB hl hd hmc hes ih =>
+  | @recv σ1 σ2 B m al h es hB hl hd hmc hes ih =>
     obtain ⟨LB, hm, hg, hk, hc⟩ := hB.guide
     have hσ1 := gFold_commitLe LB hσ hg
     have hok : gSnapOk m σ1 = true := by simp only [gSnapOk, decide_eq_true_eq]; omega
@@ -274,8 +274,8 @@ theorem TDisc.img {σ σ' : StorContents} {B : WalHist} (hD : TDisc σ B σ') (h
     · have hi2 : i = 0 ∨ i = 1 := by simp at hi; omega
       rcases hi2 with rfl | rfl
       · simp only [Nat.zero_add, List.take_succ_cons, List.take_zero] at hI; subst hI
-        refine Or.inl ⟨LB ++ [(.snap m, false)], σ1, by simp [hm],
-          gFold_snoc _ _ _ hg (gStep_snap hok false), gKept_append hk (gKept_false m), hc⟩
+        refine Or.inl ⟨LB ++ [(.snap m al, false)], σ1, by simp [hm],
+          gFold_snoc _ _ _ hg (gStep_snap hok false), gKept_append hk (gKept_false m al), hc⟩
       · simp only [Nat.reduceAdd, List.take_succ_cons, List.take_zero] at hI
         subst hI
         obtain ⟨L, hm2, hg2, hk2, hc2⟩ := (TDisc.recv hB hl hd hmc hes).guide
@@ -290,11 +290,11 @@ theorem TDisc.img {σ σ' : StorContents} {B : WalHist} (hD : TDisc σ B σ') (h
         subst hI
         by_cases hne : es.take k = []
         · rw [hne]
-          refine Or.inl ⟨LB ++ [(.snap m, false)] ++ [(.save ⟨W64 0, W64 0, W64 0⟩ [], true)], σ1,
+          refine Or.inl ⟨LB ++ [(.snap m al, false)] ++ [(.save ⟨W64 0, W64 0, W64 0⟩ [], true)], σ1,
             by simp [hm], gFold_snoc _ _ _ (gFold_snoc _ _ _ hg (gStep_snap hok false))
               (phantom_step σ1 hσ1), ?_, hc⟩
-          exact gKept_append (gKept_append hk (gKept_false m)) (gKept_save _ _)
-        · refine Or.inr ⟨LB, σ1, m, es.take k, by simp [hm], hg, hk, hc, by omega, hl, hne,
+          exact gKept_append (gKept_append hk (gKept_false m al)) (gKept_save _ _)
+        · refine Or.inr ⟨LB, σ1, m, al, es.take k, by simp [hm], hg, hk, hc, by omega, hl, hne,
             fun e he => hes e (List.mem_of_mem_take he)⟩
 
 /-! ## The images of `tSim` -/
@@ -334,15 +334,15 @@ theorem remask_congr (c : Nat) {L L' : List (WalOp × Bool)} (h : L.map Prod.fst
 
 /-- **The torn `Save` after a received snapshot's record fails the restart's read too.** -/
 theorem walRead_bad {L : List (WalOp × Bool)} {σ1 : StorContents} (hL : gFold walFresh L = some σ1)
-    (hk : gKept σ1.commit L) {m : SnapshotMetadataM} (hc : σ1.commit < uint.nat m.Index')
+    (hk : gKept σ1.commit L) {m : SnapshotMetadataM} {al : Bool} (hc : σ1.commit < uint.nat m.Index')
     (hl : σ1.last < uint.nat m.Index') {es : List EntryM} (hne : es ≠ [])
     (hes : ∀ e ∈ es, uint.nat m.Index' < uint.nat e.Index') :
-    walRead (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) = none := by
-  have hhs : walLastHS (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) =
+    walRead (L.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) = none := by
+  have hhs : walLastHS (L.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) =
       σ1.hs := by
     rw [walLastHS_bad, walLastHS_eq, gFold_hs L hL]; rfl
   have hcI : uint.nat (walLastHS (L.map Prod.fst ++
-      [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es])).Commit' = σ1.commit := by rw [hhs]; rfl
+      [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es])).Commit' = σ1.commit := by rw [hhs]; rfl
   unfold walRead
   rw [hcI, List.filter_append]
   have hnc : ¬ uint.nat m.Index' ≤ σ1.commit := by omega
@@ -354,7 +354,7 @@ theorem walRead_bad {L : List (WalOp × Bool)} {σ1 : StorContents} (hL : gFold 
     (by simp [walFresh, StorContents.commit, StorContents.last]) hR1
   rw [walFoldChkFrom_append, hf, Option.bind_some]
   have hb : R1.b ≤ σ1.commit := by
-    refine walFoldChkFrom_b_le (fun m' hm' => ?_) (by simp [walFresh, StorContents.b]) hf
+    refine walFoldChkFrom_b_le (fun m' al' hm' => ?_) (by simp [walFresh, StorContents.b]) hf
     have := (List.mem_filter.1 hm').2
     simpa [walKeep] using this
   have hRl := SRel_last hrel
@@ -384,7 +384,7 @@ theorem tSim_img {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : wal
     have hcA := gFold_fresh_commit hgA
     rw [tRestartG_fst] at hcA
     have hkA : gKept σA.commit (tRestartG A) := by
-      intro m hm
+      intro m al hm
       unfold tRestartG remask at hm
       obtain ⟨⟨o, b⟩, -, he⟩ := List.mem_map.1 hm
       simp only [Prod.mk.injEq] at he
@@ -392,7 +392,7 @@ theorem tSim_img {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : wal
       simp only [walKeep, decide_eq_true_eq] at hk
       omega
     rcases himg I' hI' with ⟨L, σ'', hm, hg, hk, hc⟩ |
-      ⟨L0, σ1, m, es, rfl, hg, hk0, hc0, hc, hl, hne, hes⟩
+      ⟨L0, σ1, m, al, es, rfl, hg, hk0, hc0, hc, hl, hne, hes⟩
     · right
       have hg' : gFold walFresh (tRestartG A ++ L) = some σ'' := by rw [gFold_append, hgA]; exact hg
       have hk' : gKept σ''.commit (tRestartG A ++ L) := gKept_append (gKept_mono hkA hc) hk
@@ -401,22 +401,22 @@ theorem tSim_img {H : WalHist} {n : Nat} (hs : tSim H n) {I : WalHist} (hI : wal
     · left
       have hg' : gFold walFresh (tRestartG A ++ L0) = some σ1 := by rw [gFold_append, hgA]; exact hg
       have hk' : gKept σ1.commit (tRestartG A ++ L0) := gKept_append (gKept_mono hkA hc0) hk0
-      have h1 := readAll_bad hg' hc hl hne hes
-      have h2 := walRead_bad hg' hk' hc hl hne hes
+      have h1 := readAll_bad (al := al) hg' hc hl hne hes
+      have h2 := walRead_bad (al := al) hg' hk' hc hl hne hes
       rw [List.map_append, tRestartG_fst, List.append_assoc] at h1 h2
       exact ⟨h1, h2⟩
-  rcases hs with ⟨σ, A, B, σA, rfl, hA, hgA, hD⟩ | ⟨H0, σ, m, rfl, ⟨A, B, σA, rfl, hA, hgA, hD⟩, hl⟩
+  rcases hs with ⟨σ, A, B, σA, rfl, hA, hgA, hD⟩ | ⟨H0, σ, m, al, rfl, ⟨A, B, σA, rfl, hA, hgA, hD⟩, hl⟩
   · exact key A B σA hA hgA (fun I' h => hD.img (gFold_commitLe _ (by simp [walFresh,
       StorContents.commit, StorContents.last]) hgA) h) hI
-  · refine key A (B ++ [.snap m]) σA hA hgA ?_ (by rwa [List.append_assoc] at hI)
+  · refine key A (B ++ [.snap m al]) σA hA hgA ?_ (by rwa [List.append_assoc] at hI)
     intro I' hI'
     have hσA := gFold_commitLe _ (by simp [walFresh, StorContents.commit, StorContents.last]) hgA
     rcases walImg_snoc_cases hI' with hI' | rfl | ⟨_, _, _, ho, _, _⟩
     · exact hD.img hσA hI'
     · obtain ⟨LB, hm, hg, hk, hc⟩ := hD.guide
       have hok : gSnapOk m σ = true := by simp only [gSnapOk, decide_eq_true_eq]; omega
-      exact Or.inl ⟨LB ++ [(.snap m, false)], σ, by simp [hm], gFold_snoc _ _ _ hg (gStep_snap hok false),
-        gKept_append hk (gKept_false m), hc⟩
+      exact Or.inl ⟨LB ++ [(.snap m al, false)], σ, by simp [hm], gFold_snoc _ _ _ hg (gStep_snap hok false),
+        gKept_append hk (gKept_false m al), hc⟩
     · cases ho
 
 /-- **`tReadsBackOk` of every image at the mark.** -/

@@ -2,13 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem mvcc.wp_wsWg_Wait (s st : Loc) (γs : mvcc.StoreNames) (γwg : sync.WaitGroupNames) (γd γw :
-    GName) : ⊢ ∀ Φ, isPkgInit pkg_id.sync ∗ sync.isWaitGroup (mvcc.wsWgAddr s) γwg mvcc.wsWgWGN ∗
-    inv mvcc.wsWgN (mvcc.wsWgInv st γs γwg γd γw) ∗ sync.ownWaitGroupWaitToken γwg ∗ token γw -∗ ▷
-    (([∗list] _x ∈ List.replicate mvcc.wsLoopN (), mvcc.storeReader st γs) -∗ Φ (intoVal ())) -∗ WP
-    ((intoVal (methods sync.WaitGroup.ty.PointerType go!"Wait" (intoVal (mvcc.wsWgAddr s))))
-    (intoVal ())) {{ Φ }}
-
 theorem mvcc.watchableStore.Close.wp_proof (hClose : mvcc.store.Close.spec) :
     mvcc.watchableStore.Close.spec
   -- `Perennial.EtcdGrove.mvcc.watchableStore.Close.spec`, unfolded:

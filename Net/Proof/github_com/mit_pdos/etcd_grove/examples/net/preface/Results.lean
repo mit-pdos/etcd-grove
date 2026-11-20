@@ -32,9 +32,9 @@ preface) never fails, whatever the junk sender sends (half a preface, which the 
 lets it give up on), however the connections fail, with whatever kind of error (closed, timeout,
 system), whether a failed dial leaves its connection abandoned for the server to accept (D16), or
 the nodes crash or exit (a crash does not clear the bytes in flight on a connection: the network is
-global state). It rests on Perennial's
-trust-boundary axiom `time.Now.wp_proof` (`time.Now` returns some time: the server's deadline),
-which `#print axioms` below lists with the translation's axiomatized types.
+global state). The server's deadline comes from `time.Now`, which Perennial proves (since its
+`932c9c388`) over its trusted model of the runtime's clock (`runtimeNow`: any reading); `#print
+axioms` below lists what the result rests on, with the translation's axiomatized types.
 -/
 module
 
@@ -56,6 +56,7 @@ public import Perennial.Proof.time.Link
 public import GooseLang.Ext.Net.Adequacy
 public import GooseLang.Ext.Net.Deploy
 public import Robustness.Statement
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.TopLevelDefs
 
 @[expose] public section
 
@@ -75,25 +76,6 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 /- The global setup of `goose_dist_crash_adequacy` is under the global ghost state alone, whose
 invariants are those of the fancy updates. -/
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- The program of a command whose package's initializer is `init` and whose `main` is `main`:
-initialize the command's package (and so its imports), then call its `main` (as goose calls a
-function: resolve it, then apply it). -/
-def bootOf [GoGlobalContext] (init : val) (main : GoString) : Expr :=
-  Seq (App (Val init) (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve main []))) (Val #())) (Val #()))
-
-/-- The program of the server's command `cmd/server`. -/
-abbrev boot_server [GoGlobalContext] : Expr := bootOf cmd.server.initialize' cmd.server.main
-/-- The program of the client's command `cmd/client`. -/
-abbrev boot_client [GoGlobalContext] : Expr := bootOf cmd.client.initialize' cmd.client.main
-/-- The program of the junk sender's command `cmd/junk`. -/
-abbrev boot_junk [GoGlobalContext] : Expr := bootOf cmd.junk.initialize' cmd.junk.main
-
-/-- The system: the server, the client and the junk sender, each running its command's program,
-from the local states `σs`, `σc` and `σj`. -/
-def system [GoGlobalContext] (σs σc σj : state) : List (Expr × state) :=
-  [(boot_server, σs), (boot_client, σc), (boot_junk, σj)]
 
 /-- A node's initial local state: its Go context is `lctx`, no package is initialized and it has
 its main thread only. -/
@@ -337,29 +319,6 @@ theorem preface_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       | 0, hi => cases hi; exact Hs.threads
       | 1, hi => cases hi; exact Hc.threads
       | 2, hi => cases hi; exact Hj.threads))
-
-/-- **`preface_crash_safety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the system's machines, each of which may crash at any step and
-restart, each a fresh Go process (`Robust`'s premise), under `preface_crash_safety`'s other
-hypotheses: in every execution, of any length, no thread of any machine is stuck and none has an
-unrecovered panic. -/
-theorem preface_crash_robust
-    [lctx : GoLocalContext] [sem : go.Semantics] [package_s : cmd.server.Assumptions]
-    [package_c : cmd.client.Assumptions] [package_j : cmd.junk.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σs σc σj : state) (g : GlobalState)
-    (h : GoString) (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
-    (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat) :
-    Robustness.Robust (system σs σc σj) [] g bound := by
-  refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
-  have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σs σc σj) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
-    ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩
-  exact (preface_crash_safety
-      σs σc σj g h (hfresh σs ⟨boot_server, by simp [system]⟩)
-      (hfresh σc ⟨boot_client, by simp [system]⟩) (hfresh σj ⟨boot_junk, by simp [system]⟩) Hhost
-      Hplan pl Hwf Hpl Hconns n κs c Hsteps i tp σ hi).2
 
 end adequacy
 

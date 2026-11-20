@@ -310,6 +310,7 @@ theorem RawNode.acceptReady.wp_proof
   icases Hrdrs with ⟨%sts, #Hrdsts, %Hsts⟩
   ihave %Hstl := readStatesPts_len _ _ $$ Hrdsts
   icases Hrdhard with ⟨%hrd, #Hrdhard, #Hrdw, %Hhseq⟩
+  ihave #Hrdhard := hsOptC_hsOpt _ _ $$ Hrdhard
   -- (D22l) the caller's hard state is the `Ready`'s
   ihave %Hhh := hsOpt_agree rd.HardState' hrd h $$ [Hrdhard Hh]
   · isplitl [] <;> iassumption

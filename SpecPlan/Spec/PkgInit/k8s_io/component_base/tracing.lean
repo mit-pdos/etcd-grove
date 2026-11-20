@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.k8s_io.component_base.tracing
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.trace
+public import SpecPlan.Spec.PkgInit.k8s_io.utils.trace
 
 @[expose] public section
 noncomputable section

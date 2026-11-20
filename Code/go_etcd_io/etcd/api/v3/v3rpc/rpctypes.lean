@@ -35,57 +35,35 @@ attribute [irreducible] TokenFieldNameGRPCKey.ty
 noncomputable def ErrGRPCEmptyKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCEmptyKey"
 
-opaque ErrGRPCEmptyKey.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCKeyNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCKeyNotFound"
-
-opaque ErrGRPCKeyNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCValueProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCValueProvided"
 
-opaque ErrGRPCValueProvided.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCLeaseProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseProvided"
-
-opaque ErrGRPCLeaseProvided.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTooManyOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTooManyOps"
 
-opaque ErrGRPCTooManyOps.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCDuplicateKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDuplicateKey"
-
-opaque ErrGRPCDuplicateKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCInvalidClientAPIVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidClientAPIVersion"
 
-opaque ErrGRPCInvalidClientAPIVersion.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCInvalidSortOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidSortOption"
-
-opaque ErrGRPCInvalidSortOption.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCCompacted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCompacted"
 
-opaque ErrGRPCCompacted.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCFutureRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCFutureRev"
 
-opaque ErrGRPCFutureRev.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCNoSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoSpace"
-
-opaque ErrGRPCNoSpace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCLeaseNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseNotFound"
@@ -104,8 +82,6 @@ opaque ErrGRPCLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCWatchCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCWatchCanceled"
-
-opaque ErrGRPCWatchCanceled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCMemberExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberExist"
@@ -185,8 +161,6 @@ opaque ErrGRPCUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrGRPCUserEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserEmpty"
 
-opaque ErrGRPCUserEmpty.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCUserNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserNotFound"
 
@@ -220,8 +194,6 @@ opaque ErrGRPCPermissionNotGiven.init [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrGRPCPermissionDenied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionDenied"
 
-opaque ErrGRPCPermissionDenied.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCRoleNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleNotGranted"
 
@@ -240,8 +212,6 @@ opaque ErrGRPCAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrGRPCInvalidAuthToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidAuthToken"
 
-opaque ErrGRPCInvalidAuthToken.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidAuthMgmt"
 
@@ -250,12 +220,8 @@ opaque ErrGRPCInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrGRPCAuthOldRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthOldRevision"
 
-opaque ErrGRPCAuthOldRevision.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoLeader"
-
-opaque ErrGRPCNoLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotLeader"
@@ -269,8 +235,6 @@ opaque ErrGRPCLeaderChanged.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNotCapable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotCapable"
-
-opaque ErrGRPCNotCapable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCStopped"
@@ -309,8 +273,6 @@ opaque ErrGRPCCorrupt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNotSupportedForLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotSupportedForLearner"
-
-opaque ErrGRPCNotSupportedForLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCBadLeaderTransferee"
@@ -650,27 +612,17 @@ opaque ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 noncomputable def MetadataRequireLeaderKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataRequireLeaderKey"
 
-opaque MetadataRequireLeaderKey.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def MetadataHasLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataHasLeader"
-
-opaque MetadataHasLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetadataClientAPIVersionKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataClientAPIVersionKey"
 
-opaque MetadataClientAPIVersionKey.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def TokenFieldNameGRPC [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameGRPC"
 
-opaque TokenFieldNameGRPC.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def TokenFieldNameSwagger [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameSwagger"
-
-opaque TokenFieldNameSwagger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Error [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.Error"
@@ -856,20 +808,56 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: key is not provided"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: key not found"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: value is provided"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: lease is provided"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: too many operations in txn request"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: duplicate key given in txn request"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: invalid client api version"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: invalid sort option"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 11))
+  (Let "$a1" (Val #(go!"etcdserver: mvcc: required revision has been compacted"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 11))
+  (Let "$a1" (Val #(go!"etcdserver: mvcc: required revision is a future revision"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 8))
+  (Let "$a1" (Val #(go!"etcdserver: mvcc: database space exceeded"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 1))
+  (Let "$a1" (Val #(go!"etcdserver: watch canceled"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -886,6 +874,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: user name is empty"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -893,16 +884,31 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 7))
+  (Let "$a1" (Val #(go!"etcdserver: permission denied"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 16))
+  (Let "$a1" (Val #(go!"etcdserver: invalid auth token"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: revision of auth store is old"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 14))
+  (Let "$a1" (Val #(go!"etcdserver: no leader"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: not capable"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -911,6 +917,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: rpc not supported for learner"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -959,16 +968,45 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"hasleader"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"true"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"client-api-version"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"token"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"authorization"))
   (App (Val doExecute)
-  (App (Val TokenFieldNameSwagger.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr TokenFieldNameSwagger))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val TokenFieldNameGRPC.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr TokenFieldNameGRPC))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MetadataClientAPIVersionKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetadataClientAPIVersionKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MetadataHasLeader.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetadataHasLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MetadataRequireLeaderKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetadataRequireLeaderKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrNoInflightDowngrade.init) (Val #()))))))
   (App (Val doExecute)
@@ -1104,7 +1142,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCBadLeaderTransferee.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCNotSupportedForLearner.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotSupportedForLearner))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrGRPCCorrupt.init) (Val #()))))))
   (App (Val doExecute)
@@ -1120,19 +1158,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCStopped.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCNotCapable.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotCapable))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrGRPCLeaderChanged.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val ErrGRPCNotLeader.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCNoLeader.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCAuthOldRevision.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthOldRevision))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrGRPCInvalidAuthMgmt.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCInvalidAuthToken.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthToken))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrGRPCAuthNotEnabled.init) (Val #()))))))
   (App (Val doExecute)
@@ -1140,7 +1178,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCRoleNotGranted.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCPermissionDenied.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionDenied))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrGRPCPermissionNotGiven.init) (Val #()))))))
   (App (Val doExecute)
@@ -1154,7 +1192,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCUserNotFound.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCUserEmpty.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserEmpty))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrGRPCUserAlreadyExist.init) (Val #()))))))
   (App (Val doExecute)
@@ -1186,7 +1224,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCMemberExist.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCWatchCanceled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCWatchCanceled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrGRPCLeaseTTLTooLarge.init) (Val #()))))))
   (App (Val doExecute)
@@ -1194,31 +1232,79 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCLeaseNotFound.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCNoSpace.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoSpace))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCFutureRev.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCFutureRev))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCCompacted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCompacted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCInvalidSortOption.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidSortOption))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCInvalidClientAPIVersion.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidClientAPIVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCDuplicateKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDuplicateKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCTooManyOps.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTooManyOps))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCLeaseProvided.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseProvided))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCValueProvided.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCValueProvided))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCKeyNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCKeyNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCEmptyKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCEmptyKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.codes.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCEmptyKey go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCKeyNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCValueProvided go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCLeaseProvided go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCTooManyOps go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCDuplicateKey go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCInvalidClientAPIVersion go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCInvalidSortOption go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCCompacted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCFutureRev go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCNoSpace go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCWatchCanceled go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCUserEmpty go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCPermissionDenied go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCInvalidAuthToken go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCAuthOldRevision go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCNoLeader go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCNotCapable go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCNotSupportedForLearner go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MetadataRequireLeaderKey go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MetadataHasLeader go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MetadataClientAPIVersionKey go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc TokenFieldNameGRPC go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc TokenFieldNameSwagger go.string)) (Val #()))))))))
 
 structure EtcdError [GooseExts] where
   mk ::

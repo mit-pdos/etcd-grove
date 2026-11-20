@@ -1,6 +1,8 @@
 # Types and names only (unit N4, 2026-10-17: rafthttp.Transport's probers).
-translate = ["!*"]
-imports = ["!*", "time"]
+# (prove-smallinits, 2026-11-20) the package's variables: `ErrNotFound`, `ErrExist` (`errors.New`) and
+# `α` (a float constant; until then `opaqueInitsOk`).
+translate = ["!*", "ErrNotFound", "ErrExist", "α"]
+imports = ["!*", "time", "errors"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

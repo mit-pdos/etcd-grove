@@ -34,10 +34,10 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.readWALNames.specAbsent : Prop :=
   NameOk b → N.Mem b → h.cur !! b = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
-      osCallPerm (GF := GF) qc ∗ osNames (GF := GF) j N dqn h }}
+      osCallPerm (GF := GF) (callKey R d) qc ∗ osNames (GF := GF) j N dqn h }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.readWALNames)) (Val #lg))
       (Val #(child d b)))
-  {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j N dqn h ∗ ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e ∗ errIsTerm (GoInterface.ok e) }}
 
 end spec

@@ -306,11 +306,11 @@ theorem rafthttp.Transport.Handler_core
     (hSServe : rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSnServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (a : GoString) (ss : Loc) (Rm : w64 → IProp GF) (Hown : Rh.owner a = lid) :
+    (a : GoString) (ss : Loc) (sd : GoString) (Rm : w64 → IProp GF) (Hown : Rh.owner a = lid) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trFixed Rh t lid γd R ∗
-        t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗ snap.isSnapshotter ss ∗
-        inv snapDirN (snapDirInv ss γd Rh.γn.N.img Rm) ∗
+        t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗ snap.isSnapshotter ss sd ∗
+        inv snapDirN (snapDirInv sd γd Rh.γn.N.img Rm) ∗
         trAddRemoteReq Rh t lid ∗ trAddRemote Rh t lid }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
     {{ (h : GoInterface), RET #h;
@@ -350,7 +350,7 @@ theorem rafthttp.Transport.Handler_core
       · ipureintro; exact Hp
       iapply peerStreams_of_peerOk $$ Hpok
   (try wp_auto)
-  wp_apply hNSnH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r ss cid lg lid Rm Hown
+  wp_apply hNSnH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r ss sd cid lg lid Rm Hown
     $$ [] as %hsn ⟨%hsnl, %Hhsn, #Hsnok⟩
   · iunfold trAddRemoteReq at Harr
     iframe #

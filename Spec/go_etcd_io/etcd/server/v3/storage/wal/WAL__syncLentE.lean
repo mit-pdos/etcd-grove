@@ -1,6 +1,6 @@
 /-
 `(*wal.WAL).sync` (S/wal.go:976-1001) of a failed `ReadAll`'s handle whose tail `ZeroToEnd` left in an unknown
-state (`walFailLent`'s `walTailPE` form; `WAL.Close.specFailed`): as `WAL.sync.specLent`.
+state (`walFailLent`'s `walTailPE` form; `WAL.Close.spec` (state `failed`)): as `WAL.sync.specLent`.
 
 Stated by unit `closefailed`; **proved** by unit `synclent` (`WAL.sync.wp_proofLentE`, `WAL__syncLentE.lean`):
 the fdatasync over the invariant step `walInvBody_syncPE` (the synced layout `syncLay_anyE`'s: F-Z, or

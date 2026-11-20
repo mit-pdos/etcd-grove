@@ -3,7 +3,7 @@
 `KVService.lean`'s, for a member started with auth on): metadata-indexed gRPC specs
 (`GrpcSpecMd`), whose replies carry what the server's answers with auth on add
 (`v3rpc.srvKVAnsOn`) at the token of the metadata the handler sees (`auth.mdTokenOf`, what
-`AuthInfoFromCtx` reads of its context, `auth.ctxTokenOf`):
+`AuthInfoFromCtx` reads of its context, `auth.ctxToken`):
 - a write (`Put`, `DeleteRange`, a writing `Txn`): its grant (`v3rpc.writeGrantOn`: the request with
   the header the server stamped was granted at the committed log before its entry, the header's user
   the empty one or the one the token was issued to, and the entry committed);
@@ -46,12 +46,13 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **etcd's `Put` with auth on**: `etcdPutSpec`'s, the caller's update told the put's grant at
 the token of the attempt's metadata when it fires (`v3rpc.kvOpAuOn`, 5a), the reply also with the
-grant. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
+grant. A put's lease `0`, or any lease at the revocable lease mode (the server's `putPermitOn`,
+auth-lease S3b; a missing lease is the server's `ErrLeaseNotFound`, an error). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdPutSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
   fun md (o : OpFull) (Φ : PutRespM → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
-      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗
+      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0 ∨ ρ.kv.lm = .revocable⌝ ∗
         v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.put o) Q ∗
         ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
           v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut o) -∗ Φ m)
@@ -312,7 +313,8 @@ def etcdTxnSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames
       ∃ Q : KVState → IProp GF,
       (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
         (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
-        (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
+        (⌜txn.txnReadonly t = false ∧ (txn.txnPlain t ∨ (ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
+            txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
           v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.txn t) Q)) ∗
       ∃ (c : w64) (F : mvcc.Log) (n : Nat), committedAtLeast γr c ∗
       srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
@@ -332,7 +334,7 @@ def etcdPutSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid 
     GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
   fun md (o : OpFull) (Φ : PutRespM → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
-      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗
+      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0 ∨ (on = true ∧ ρ.kv.lm = .revocable)⌝ ∗
         v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.put o) Q ∗
         ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
           (⌜on = false⌝ → kvRevLb ρ.rd.kv m.hdr.revision) -∗
@@ -379,7 +381,9 @@ def etcdTxnSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       ∃ Q : KVState → IProp GF,
       (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
         (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
-        (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
+        (⌜txn.txnReadonly t = false ∧
+            (txn.txnPlain t ∨ (on = true ∧ ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
+            txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
           v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.txn t) Q)) ∗
       ∃ (c : w64) (F : mvcc.Log) (n : Nat), committedAtLeast γr c ∗
       srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
@@ -424,7 +428,7 @@ theorem etcdPutSpecM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iframe HF
   iexists Q
   isplitr
-  · ipureintro; exact Hl
+  · ipureintro; exact Hl.imp id (fun h => ⟨rfl, h⟩)
   isplitl [Hau]
   · iapply (kvOpAuM_of_on s E ρ _ _ Q) $$ Hau
   iintro %m Hm - Hg
@@ -492,7 +496,7 @@ theorem etcdTxnSpecM_true (s : Loc) (E : apply.AEnv GF)
       · ipureintro; exact H
       iexact Ha
     · iright; iright; isplitr
-      · ipureintro; exact H
+      · ipureintro; exact ⟨H.1, H.2.1.imp id (fun h => ⟨rfl, h⟩), H.2.2⟩
       iapply (kvOpAuM_of_on s E ρ _ _ Q) $$ Ha
   iexists c, F, n
   iframe Hc HF Hn
@@ -515,7 +519,7 @@ theorem etcdPutSpecM_false (s : Loc) (E : apply.AEnv GF)
   iframe HF
   iexists Q
   isplitr
-  · ipureintro; exact Hl
+  · ipureintro; exact Or.inl Hl
   isplitl [Hau]
   · iexact Hau
   iintro %m Hm Hr -
@@ -591,7 +595,9 @@ theorem etcdTxnSpecM_false [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
   ihave Hd : iprop(|==> ((⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
         (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
-        (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
+        (⌜txn.txnReadonly t = false ∧
+            (txn.txnPlain t ∨ (false = true ∧ ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
+            txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
           v3rpc.kvOpAuM false s E ρ (auth.mdTokenOf md) (.txn t) Q)))) $$ [Hd]
   · icases Hd with (%H | ⟨%H, Ha⟩ | ⟨%H, Ha⟩)
     · imodintro; ileft; ipureintro; exact H
@@ -600,7 +606,7 @@ theorem etcdTxnSpecM_false [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s
       iexact Ha
     · imod (kvOpAuM_of_au1 _ s E ρ (auth.mdTokenOf md) (.txn t) Q) $$ Ha with Ha
       imodintro; iright; iright; isplitr
-      · ipureintro; exact ⟨H.1, H.2.1, H.2.2, txnNestOk_of_plain t Hpl.1 Hpl.2⟩
+      · ipureintro; exact ⟨H.1, Or.inl H.2.1, H.2.2, txnNestOk_of_plain t Hpl.1 Hpl.2⟩
       iexact Ha
   imod Hd with Hd
   imodintro
@@ -681,7 +687,8 @@ def txnUpdAtOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx :
     (γr : ReadNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
   iprop(⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
     (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
-    (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
+    (⌜txn.txnReadonly t = false ∧ (txn.txnPlain t ∨ (ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
+        txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
       clientOpAuOn s E ρ conn ctx (.txn t) Q))
 
 /-- A writing transaction's update, from its shape and its update (L13). -/
@@ -694,7 +701,7 @@ theorem txnUpdAtOn_write (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : L
   unfold txnUpdAtOn
   iright; iright
   isplitl []
-  · ipureintro; exact ⟨h1, h2, h3, h4⟩
+  · ipureintro; exact ⟨h1, Or.inl h2, h3, h4⟩
   iexact H
 
 end defs

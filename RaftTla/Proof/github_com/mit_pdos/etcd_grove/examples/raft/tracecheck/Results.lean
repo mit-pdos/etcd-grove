@@ -12,7 +12,8 @@ The trace check's results (`examples/raft/tracecheck`, the closed program of
   token, `trTok_type`, `isReadyChan_recvAu.tracedSpec_proof`, the linked `node.Advance.tracedSpec`,
   `TracedLinked.lean`).
 * **`raft_tracecheck_safe_of`**: §1.2's `raft_tracecheck_safe` (no execution of the package's
-  initialization then `Main()`, of `n + 2 ≤ 2^31` steps, panics or gets stuck; the main thread's
+  initialization then `Main()`, of `n + 4 ≤ 2^61` steps along which fewer than `2^31` threads are
+  live at once, panics or gets stuck; the main thread's
   result is `#()`), given the bootstrap log's facts and premises (`Defs.lean`). Everything `Main`
   calls is proved, over raft's linked results (`Proof/go_etcd_io/raft/v3/Linked.lean`, `Link.lean`)
   and the checker's (`etcdraft/Link.lean`): `Main`, `DefaultCConfig`, `RunConcurrent` (the harness,
@@ -218,7 +219,8 @@ theorem tcMainSpec_of (h : HarnessOpen) : tcMainSpec := by
 cluster run concurrently (`RunConcurrent(DefaultCConfig())`: proposals, drops, delays and
 reordering, isolations), its trace converted and checked against raft's TLA+ trace specification
 (`CheckTrace(tr, true)`), and a panic unless TLC would accept it -- from a fresh state with one
-thread, of `n` steps with `n + 2 ≤ 2^31`, given the bootstrap log's facts and premises, has no
+thread, of `n` steps with `n + 4 ≤ 2^61` along which fewer than `2^31` threads are ever live at
+once (`RealNstepsBelow`), given the bootstrap log's facts and premises, has no
 stuck thread and no thread that ended in a panic. -/
 theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
@@ -228,8 +230,8 @@ theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem :
       ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n + 2 ≤ 2 ^ 31) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow (2 ^ 31) n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
@@ -246,28 +248,12 @@ theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n + 2 ≤ 2 ^ 31) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow (2 ^ 31) n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   raft_tracecheck_safe_of harnessOpen boot Hbf Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
-
-/-- **`raft_tracecheck_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `raft_tracecheck_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 31 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem raft_tracecheck_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
-    [hLog : log.NewModel] (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
-    (Hprem : ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
-    (σ : state) (g : GlobalState) :
-    Robustness.Robust [] [(tracecheckProgram, σ)] g (2 ^ 31 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (raft_tracecheck_safe
-      boot Hbf Hprem σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end closed
 

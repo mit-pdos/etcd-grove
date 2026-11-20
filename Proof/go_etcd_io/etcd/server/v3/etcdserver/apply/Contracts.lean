@@ -325,11 +325,13 @@ begin whose payload is the end of exactly the lease's deletions (`auBegin γ σ�
 * `id` not live: an error (`ErrLeaseNotFound`), nothing changed, `Pre` back;
 * `id` live: no error, `Y`, `Post`, the live set without `id`, its record deleted from the `lease`
   bucket (`restRevoke`).
-(Revoke-open, from `lean`) The lessor in the revocable mode (`lease.lessorRevocable`, persistent). -/
+(Revoke-open, from `lean`) The lessor in the revocable mode (`lease.lessorRevocable`, persistent).
+(Auth-lease S4 item 7b, the applier at a window, 2026-11-17) In a lessor window `w`, as `lease.lessor.Revoke.spec`:
+the owner's resource at `w`, the window dropping the lease's items, the end under the window's witness. -/
 def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
     (BT : mvcc.KBReal → IProp GF) (RO : RestM → IProp GF) : IProp GF :=
   iprop(□ (∀ (id : w64) (σ₀ : MvccState) (L : List w64) (rs : RestM) (q : Qp) (B : mvcc.KBReal)
-      (Pre Q Post Y : IProp GF),
+      (Pre Q Post Y : IProp GF) (w : Option lease.LWin),
     {{ mvcc.api.mvccReaders γ 1 ∗
         (∃ rd : GoFunc, lease.rdOwn (mvccLeases γ) rd ∗ mvccDeleter rd γ) ∗
         lease.lessorRevocable (mvccLeases γ) ∗
@@ -337,9 +339,13 @@ def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : mvcc.KBReal → IPro
         ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧ MvccReachable σ₀ ∧
           σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗
         (if decide (id ∈ L) then
-          auBegin γ σ₀ (auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y)
+          auBegin γ σ₀ iprop(lease.winWit (mvccLeases γ) w (mvcc.leaseItemsOf (mvcc.stateAfter
+              (mvcc.commitLog σ₀.log (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id)))) -∗
+            auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y)
         else iprop(True)) ∗
-        lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗
+        lease.leaseOwnW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) w ∗
+        ⌜lease.winDrops w (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log))
+          (fun it => (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)).lookup it = some id)⌝ ∗
         lease.leaseRevokers (mvccLeases γ) L ∗ txn.leasesKnown L (mvcc.stateAfter σ₀.log) ∗ RO rs }}
       (App (Val #(methods le.ty go!"Revoke" le.v)) (Val #id))
     {{ (err : GoInterface), RET #err; mvcc.api.mvccReaders γ 1 ∗
@@ -348,12 +354,12 @@ def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : mvcc.KBReal → IPro
         ((⌜id ∉ L ∧ mvcc.leaseDels (mvcc.stateAfter σ₀.log) id = []⌝ ∗
             (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□
               GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) ∗ Pre ∗
-            lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗
+            lease.leaseOwnW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) w ∗
             lease.leaseRevokers (mvccLeases γ) L ∗ txn.leasesKnown L (mvcc.stateAfter σ₀.log) ∗
             RO rs) ∨
          (⌜id ∈ L ∧ err = GoInterface.nil⌝ ∗ Y ∗ Post ∗
-            lease.leaseOwn (mvccLeases γ) (L.filter (· != id)) (mvcc.leaseItemsOf (mvcc.stateAfter
-              (revokeLog σ₀.log id))) ∗
+            lease.leaseOwnW (mvccLeases γ) (L.filter (· != id)) (mvcc.leaseItemsOf (mvcc.stateAfter
+              (revokeLog σ₀.log id))) w ∗
             lease.leaseRevokers (mvccLeases γ) (L.filter (· != id)) ∗
             txn.leasesKnown (L.filter (· != id)) (mvcc.stateAfter (revokeLog σ₀.log id)) ∗
             RO (restRevoke id rs))) }}))
@@ -382,20 +388,20 @@ def isApplyLessor (le : GoInterface) (γ : MvccName) (Pk : mvcc.KBReal → IProp
     (BT : mvcc.KBReal → IProp GF) (RO : RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le (mvccLeases γ) ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
-        (B : mvcc.KBReal) (rs : RestM) (Pre Q Post : IProp GF) (U : List w64),
+        (B : mvcc.KBReal) (rs : RestM) (Pre Q Post : IProp GF) (U : List w64) (w : Option lease.LWin),
       -- the grant writes `le.b` through `RO rs` (lean's `lessorBackend` lent part `Ln`, from the
       -- rest resource's lens: `LessorDerive.revokeLens`) beside the backend's tokens
-      {{ csContractA (Pk B) f Pre Q Post ∗ lease.leaseOwn (mvccLeases γ) L I ∗
+      {{ csContractA (Pk B) f Pre Q Post ∗ lease.leaseOwnW (mvccLeases γ) L I w ∗
           lease.leaseRevokers (mvccLeases γ) L ∗ bkWT B ∗ bkRT B ∗ BT B ∗
           lease.leaseGranted (mvccLeases γ) id ∗ RO rs ∗ lease.leaseEver (mvccLeases γ) U ∗
           (lease.lessorModeIs (mvccLeases γ) true ∨ ⌜id ∉ U⌝) }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
       {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); bkRT B ∗ BT B ∗ applyErrIs err ∗
           ((⌜err ≠ GoInterface.nil ∧ ¬ grantIdsOk L id ttl⌝ ∗ lease.lessorErrIs err ∗ Pre ∗
-              lease.leaseOwn (mvccLeases γ) L I ∗ lease.leaseRevokers (mvccLeases γ) L ∗ RO rs ∗
+              lease.leaseOwnW (mvccLeases γ) L I w ∗ lease.leaseRevokers (mvccLeases γ) L ∗ RO rs ∗
               lease.leaseEver (mvccLeases γ) U) ∨
             (⌜err = GoInterface.nil ∧ grantIdsOk L id ttl⌝ ∗ Post ∗
-              lease.leaseOwn (mvccLeases γ) (L ++ [id]) I ∗
+              lease.leaseOwnW (mvccLeases γ) (L ++ [id]) I w ∗
               lease.leaseRevokers (mvccLeases γ) (L ++ [id]) ∗
               leaseTTLIs l id ∗ lease.leaseLiveFrom (mvccLeases γ) 0 id l ∗
               lease.leaseEver (mvccLeases γ) (U ++ [id]) ∗ lease.leaseReqIs (mvccLeases γ) id ttl ∗
@@ -445,15 +451,18 @@ path (`EtcdServer.Txn`'s `CheckTxnAuth`), which holds none and walks only read-o
 `none`). -/
 abbrev LeaseView := Option (List w64 × GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
 
-/-- The owner's resource of the view (`lease.lessorUser`), nothing without one. -/
-def lessorView (γl : GName) : LeaseView → IProp GF
+/-- The owner's resource of the view (`lease.lessorUser`), nothing without one; (auth-lease S4 item 7b) in the lessor
+window `w` (`lease.lessorUserW`; none by default). -/
+def lessorView (γl : GName) (U : LeaseView) (w : Option lease.LWin := none) : IProp GF :=
+  match U with
   | none => iprop(True)
-  | some (L, I) => lease.lessorUser γl L I
+  | some (L, I) => lease.lessorUserW γl L I w
 
-theorem lessorView_none (γl : GName) : lessorView (GF := GF) γl none = iprop(True) := rfl
+theorem lessorView_none (γl : GName) (w : Option lease.LWin) :
+    lessorView (GF := GF) γl none w = iprop(True) := rfl
 theorem lessorView_some (γl : GName) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) :
-    lessorView (GF := GF) γl (some (L, I)) = lease.lessorUser γl L I := rfl
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (w : Option lease.LWin) :
+    lessorView (GF := GF) γl (some (L, I)) w = lease.lessorUserW γl L I w := rfl
 /-! ## The alarm store, the cluster, the raft status, the snapshot server -/
 
 /-- The `*pb.AlarmMember` `m` (not nil): its `Alarm`, read-only. -/
@@ -659,11 +668,40 @@ instance isApplyKV_persistent (kv : GoInterface) (γ : MvccName) :
 
 /-! ## The quota -/
 
-/-- The request types the appliers pass a quota (`BackendQuota.Cost` panics on any other). -/
-def quotaReqTy (t : go.GoType) : Prop :=
-  t = go.GoType.PointerType etcdserverpb.PutRequest.ty ∨
-  t = go.GoType.PointerType etcdserverpb.TxnRequest.ty ∨
-  t = go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty
+section request
+variable {hlc : HasLC} [hReq : HeapGS hlc GF] [semReq : go.Semantics]
+
+/-- The heap data read by BackendQuota.Cost. Lease grants have constant cost. -/
+def quotaReqOk (t : go.GoType) (p : Loc) : IProp GF :=
+  iprop((⌜t = go.GoType.PointerType etcdserverpb.PutRequest.ty⌝ ∗ ∃ o : OpFull, txn.putRequestIs p o) ∨
+    (⌜t = go.GoType.PointerType etcdserverpb.TxnRequest.ty⌝ ∗ ∃ m : TxnModel, txn.txnRequestIs p m) ∨
+    ⌜t = go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty⌝)
+
+instance quotaReqOk_persistent (t : go.GoType) (p : Loc) :
+    Persistent (quotaReqOk (GF := GF) t p) := by
+  unfold quotaReqOk; infer_instance
+
+end request
+
+/-- The concrete receiver and atomic counters read by BackendQuota.Available. -/
+def quotaBackend (be : GoInterface) : IProp GF :=
+  iprop(∃ b : Loc, ⌜be = interface.mkOk (go.GoType.PointerType storage.backend.backend.ty) #b⌝ ∗
+    backend.metricsInv b)
+
+instance quotaBackend_persistent (be : GoInterface) : Persistent (quotaBackend (GF := GF) be) := by
+  unfold quotaBackend; infer_instance
+
+theorem quotaBackend_of_isBackend (γ : backend.BNames) (P : backend.BParams)
+    (W Pk : IProp GF) (b : Loc) :
+    backend.isBackend γ P W Pk b ⊢ quotaBackend
+      (interface.mkOk (go.GoType.PointerType storage.backend.backend.ty) #b) := by
+  iintro #Hb
+  iunfold backend.isBackend at Hb
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hm, -⟩
+  iunfold quotaBackend
+  iexists b
+  iframe Hm
+  ipureintro; rfl
 
 /-- **The backend stays under its quota** (opaque, a named workload premise, D19a's first kind;
 audit phase B3, D19h, 2026-10-18, adopted by the user): every `Available` of the run's quotas
@@ -685,10 +723,10 @@ construction premise), which `storage.NewBackendQuota` takes; so no applier sets
 `quotaAlarmer.check` never proposes the NOSPACE `Alarm`. -/
 def isQuota (q : GoInterface) : IProp GF :=
   iprop(∃ qi : GoInterfaceOk, ⌜q = GoInterface.ok qi⌝ ∗
-    □ (∀ (t : go.GoType) (p : Loc), ⌜quotaReqTy t⌝ -∗
+    □ (∀ (t : go.GoType) (p : Loc), quotaReqOk t p -∗
       {{ True }} (App (Val #(methods qi.ty go!"Available" qi.v)) (Val #(interface.mkOk t #p)))
       {{ (b : Bool), RET #b; ⌜b = true⌝ }}) ∗
-    □ (∀ (t : go.GoType) (p : Loc), ⌜quotaReqTy t⌝ -∗
+    □ (∀ (t : go.GoType) (p : Loc), quotaReqOk t p -∗
       {{ True }} (App (Val #(methods qi.ty go!"Cost" qi.v)) (Val #(interface.mkOk t #p)))
       {{ (c : w64), RET #c; True }}))
 

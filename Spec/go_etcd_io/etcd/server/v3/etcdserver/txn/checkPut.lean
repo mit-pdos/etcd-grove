@@ -38,14 +38,14 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 abbrev txn.checkPut.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (le : GoInterface)
     (γl : GName) (p : Loc) (o : OpFull) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (w : Option lease.LWin),
   {{ pkgInit ∗ ⌜trace ≠ null⌝ ∗ mvcc.api.mvccTxn t γ trace k ∗ traceutil.ownTrace trace te ∗
       ⌜txn.Reach k.state⌝ ∗ txn.putRequestIs p o ∗ txn.isTxnLessor le γl ∗
-      lease.lessorUser γl L I }}
+      lease.lessorUserW γl L I w }}
     (App (App (App (App (Val (@! txn.checkPut)) (Val #trace)) (Val #t)) (Val #le)) (Val #p))
   {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace k ∗
       traceutil.ownTrace trace te ∗
-      lease.lessorUser γl L I ∗
+      lease.lessorUserW γl L I w ∗
       ((⌜err = GoInterface.nil ∧
           (txn.needsPrev o = true → (mvcc.findKey o.key (txn.mstate k)).isSome)⌝ ∗
           txn.leaseOk L o.leaseID) ∨

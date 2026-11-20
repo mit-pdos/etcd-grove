@@ -34,9 +34,9 @@ that log witnessed (`E.Nx`, the server's `kvNx`; the merge of `lean`, 2026-11-06
 abbrev apply.applierV3backend.newHeader.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (log : mvcc.Log) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      apply.applyTok E ∗ srvApi.wSt E.γs log c }}
+      apply.applyTok E ∗ srvApi.wStQ E.γs E.stq log c }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"newHeader")) (Val #()))
-  {{ (h : Loc), RET #h; apply.applyTok E ∗ srvApi.wSt E.γs log c ∗ ⌜h ≠ null⌝ ∗
+  {{ (h : Loc), RET #h; apply.applyTok E ∗ srvApi.wStQ E.γs E.stq log c ∗ ⌜h ≠ null⌝ ∗
       apply.hdrFields h ∗
       structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ W64 ((log.length : Int) - 1) ∗
       □ E.Nx log ∗ srvApi.kvLogLb E.γs log ∗ ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ }}

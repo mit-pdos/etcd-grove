@@ -5,6 +5,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.ioutil
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.verify
+public import Perennial.Proof.fmt.Base
 
 @[expose] public section
 noncomputable section

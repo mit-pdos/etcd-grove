@@ -58,7 +58,7 @@ theorem lockWf_setLk {st : OsState} {fd : w64} {d : OsFd} {k : LockKind} {x : Op
     · subst ek; rw [if_pos rfl] at hk; subst hk
       cases h : d2.lk k' with
       | none => rfl
-      | some y => exact absurd ⟨fd2, d2, h2, Ne.symm hne, hino.symm, y, h, .inl rfl⟩ (hok true rfl)
+      | some y => exact absurd (.inl ⟨fd2, d2, h2, Ne.symm hne, hino.symm, y, h, .inl rfl⟩) (hok true rfl)
     · rw [if_neg ek] at hk
       exact hwf k' fd d fd2 d2 hd h2 hne hino hk
   · rw [if_neg e1] at h1
@@ -72,7 +72,7 @@ theorem lockWf_setLk {st : OsState} {fd : w64} {d : OsFd} {k : LockKind} {x : Op
         cases hx : x with
         | none => rfl
         | some ex =>
-          exact absurd ⟨fd1, d1, h1, fun h => e1 h.symm, hino, true, hk, .inr rfl⟩ (hok ex hx)
+          exact absurd (.inl ⟨fd1, d1, h1, fun h => e1 h.symm, hino, true, hk, .inr rfl⟩) (hok ex hx)
       · rw [if_neg ek]; exact hwf k' fd1 d1 fd d h1 hd (fun h => e1 h.symm) hino hk
     · rw [if_neg e2] at h2; exact hwf k' fd1 d1 fd2 d2 h1 h2 hne hino hk
 
@@ -115,7 +115,7 @@ theorem lockCoh_setLk {st : OsState} {Λ : GMap (LockKind × Ino) w64} {fd : w64
       · constructor
         · intro h; cases h; contradiction
         · rintro ⟨d', h1, h2, h3⟩
-          exact absurd ⟨fd', d', h1, fun h => ‹¬ fd = fd'› h.symm, h2, true, h3, .inl rfl⟩ hnc
+          exact absurd (.inl ⟨fd', d', h1, fun h => ‹¬ fd = fd'› h.symm, h2, true, h3, .inl rfl⟩) hnc
     · rw [if_neg hx]
       by_cases hl : d.lk k' = some true
       · rw [if_pos hl, GMap.lookup_delete_iff]
@@ -186,7 +186,7 @@ theorem lockCtx_setLk (hL : OsGS GF) {st : OsState} {fd : w64} {d : OsFd} {k : L
       | some fd' =>
         obtain ⟨d', h1, h2, h3⟩ := (hcoh k d.ino fd').1 hq
         have hne : fd' ≠ fd := fun h => by subst h; rw [hd] at h1; cases h1; rw [hnone] at h3; cases h3
-        exact absurd ⟨fd', d', h1, hne, h2, true, h3, .inl rfl⟩ hnc
+        exact absurd (.inl ⟨fd', d', h1, hne, h2, true, h3, .inl rfl⟩) hnc
     imod gAuth_insert hL _ _ _ fd hfree $$ Ha with ⟨Ha, Hk⟩
     imodintro
     iframe Hk
@@ -372,7 +372,7 @@ theorem lockStep_fail_ex {st : OsState} {k : LockKind} {fd : w64}
     LockStep st k fd d req nb (Val (#(1 : w64))) st := by
   unfold LockStep
   cases req with
-  | some ex => exact ⟨hfree (by simp), .inr ⟨1, by decide, fun _ h => absurd h (by decide), rfl, rfl⟩⟩
+  | some ex => exact ⟨hfree (by simp), .inr ⟨1, by decide, rfl, rfl⟩⟩
   | none => exact .inr ⟨1, by decide, rfl, .inl rfl⟩
 
 /-- **The lock rule's spec**: the step of an operation `o` whose steps from `st` are, for the open
@@ -464,7 +464,7 @@ theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd
   unfold LockStep at hl
   split at hl
   · rename_i ex
-    obtain ⟨hnone, ⟨hnc, hst', he'⟩ | ⟨e, he, -, hst', he'⟩⟩ := hl
+    obtain ⟨hnone, ⟨hnc, hst', he'⟩ | ⟨e, he, hst', he'⟩⟩ := hl
     · iapply hdone (some ex) 0 hst' he' (fun ex' h => by cases h; exact ⟨hnone, hnc⟩)
         ⟨.inr rfl, fun _ => rfl, fun _ h => absurd rfl h⟩ $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
     · iapply hsame e hst' he' (fun h => absurd h he) $$ HAb HAm HAf HAt Htok Hcells Hσ Hlk Hfd Ht HΦ
@@ -523,7 +523,8 @@ theorem wp_osFlock (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool) (hE
     exact hl
 
 /-- `close(fd)`, with the whole fd and its locks' tokens: whatever the errno, the fd is gone and its
-locks are released. -/
+locks' tokens are spent (the locks are released, or, with a live mapping made through `fd`, kept by
+the description the mapping holds, `MapDesc`, until it is unmapped: no token for them remains). -/
 theorem wp_osClose (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
     {{ osInv (L := L) ∗ osFd (L := L) fd (DFrac.own 1) d ∗ lockToks (L := L) fd d }}
       (ExternalOp fsExt.name "Close" (Val (#fd))) @ s; E
@@ -538,37 +539,34 @@ theorem wp_osClose (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
   icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
-  have hwf' : ∀ X : GMap w64 OsFd, (∀ fd d, X !! fd = some d → st.proc.fds !! fd = some d) →
-      OsWf (st.setProc { st.proc with fds := X }) := fun X hX =>
-    osWf_fds hwf X (fun fd d h => hwf.fds fd d (hX fd d h))
-  have hdel : ∀ fd' d', (GMap.delete fd st.proc.fds) !! fd' = some d' → st.proc.fds !! fd' = some d' := by
-    intro fd' d' h; rw [GMap.lookup_delete_iff] at h; split at h
-    · cases h
-    · exact h
+  have hwfC := osWf_closeFd hwf fd d
+  have hcv : cellView (st.closeFd fd d) = cellView st :=
+    cellView_congr hwf hwfC rfl (fun _ => rfl) rfl
   imodintro
   isplitr
   · ipureintro
-    exact ⟨_, h, (st.setProc { st.proc with fds := GMap.delete fd st.proc.fds }),
-      ⟨fd, 0, d, rfl, hfd, rfl, rfl⟩, mapsFresh_same rfl,
-      heapRendered_same (hwf' _ hdel) rfl (cellView_congr hwf (hwf' _ hdel) rfl (fun _ => rfl) rfl) Hag⟩
+    exact ⟨_, h, st.closeFd fd d, ⟨fd, 0, d, rfl, hfd, rfl, rfl⟩, mapsFresh_same rfl,
+      heapRendered_same hwfC rfl hcv Hag⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
   obtain ⟨fd', e, d', hv, hfd', rfl, rfl⟩ := Hst
   cases go.intoVal_inj hv
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
   imod gFdElem_delete _ _ _ _ _ $$ HAf Hfd with HAf
-  imod cells_same hwf (hwf' _ hdel) Hr Hfr rfl (cellView_congr hwf (hwf' _ hdel) rfl (fun _ => rfl) rfl) $$ [Hσ Hcells]
+  imod cells_same hwf hwfC Hr Hfr rfl hcv $$ [Hσ Hcells]
     with ⟨Hσ, Hcells⟩
   · iframe
   unfold lockToks lockTok osLock
   imod lockCtx_close _ hfd $$ [Hlk Ht] with Hlk
   · iframe
+  ihave Hlk := lockCtx_frame _ (lockFrame_of_fds (st := st.delFd fd) (st' := st.closeFd fd d) rfl) $$ Hlk
   imodintro
   iexists Γb, Γm, (GMap.delete fd Γf), Γt
   iframe
   isplitr
-  · ipureintro; refine ⟨hwf' _ hdel, ?_⟩; rw [hcoh.fds]; exact osCoh_fds hcoh _
+  · ipureintro; refine ⟨hwfC, ?_⟩; rw [hcoh.fds]; exact osCoh_closeFd hcoh fd d
   iapply wp_value'
   iapply HΦ
   itrivial

@@ -27,7 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`qa.check(ctx, r)`** of a request `r` of a type `rt` with `apply.quotaReqTy rt` (`*pb.PutRequest`,
+/-- **`qa.check(ctx, r)`** of a request `r` of a type `rt` with `apply.quotaReqOk rt r` (`*pb.PutRequest`,
 `*pb.TxnRequest`, `*pb.LeaseGrantRequest`): `newBackendQuota(qa.s, qa.name).Available(r)`, over
 the backend current at the check (`s.Backend()` under `s.bemu`: the fork's 8f793b820, D22g (A);
 until then a quota built at construction, over a backend a snapshot's install closes), which
@@ -37,10 +37,9 @@ answers true (`apply.isQuota`, under the workload premise `apply.backendUnderQuo
 said nothing of the error). The reader slots of `s.lgMu` and `s.bemu` (`quotaRd`) come back. -/
 abbrev v3rpc.quotaAlarmer.check.spec : Prop :=
   ∀ (qa s : Loc) (ci : GoInterfaceOk) (r : Loc) (rt : go.GoType),
-  apply.quotaReqTy rt →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      v3rpc.quotaAlarmerAt qa s ∗ v3rpc.quotaRd s }}
+      v3rpc.quotaAlarmerAt qa s ∗ v3rpc.quotaRd s ∗ apply.quotaReqOk rt r }}
     (App (App (Val (qa @!! go.GoType.PointerType v3rpc.quotaAlarmer.ty @!! go!"check"))
       (Val #(GoInterface.ok ci)))
       (Val #(interface.mkOk rt #r : GoInterface)))

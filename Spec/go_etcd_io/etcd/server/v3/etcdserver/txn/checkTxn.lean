@@ -39,16 +39,17 @@ error.
 abbrev txn.checkTxn.spec : Prop :=
   ∀ (tw : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (rt : Loc)
     (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool)
-    (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (lu : Bool),
+    (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (lu : Bool)
+    (w : Option lease.LWin),
   (lu = false → txn.txnReadonly t = true) →
   {{ pkgInit ∗ ⌜trace ≠ null⌝ ∗ mvcc.api.mvccTxn tw γ trace (.read σ) ∗
       traceutil.ownTrace trace te ∗ ⌜txn.Reach σ⌝ ∗ txn.txnRequestIs rt t ∗
-      txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
+      txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUserW γl L I w) ∗
       pl ↦*□ (txn.txnPath (mvcc.stateAfter σ.log) t ++ rest) }}
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace)) (Val #tw)) (Val #rt)) (Val #le))
       (Val #pl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.api.mvccTxn tw γ trace (.read σ) ∗
-      traceutil.ownTrace trace te ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
+      traceutil.ownTrace trace te ∗ (⌜lu = false⌝ ∨ lease.lessorUserW γl L I w) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter σ.log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter σ.log)
             (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))⌝ ∗

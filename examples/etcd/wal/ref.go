@@ -346,13 +346,14 @@ func lastIdx(h []walOp) uint64 {
 }
 
 // cutPos is walCutPos (WalDisk.lean): a WAL file can start at position b of h (0, or right after
-// a Save that writes a record).
+// a Save that writes a record, or right after a SaveSnapshot: both cut once the tail passes
+// SegmentSizeBytes, the fork's fix 0007).
 func cutPos(h []walOp, b int) bool {
 	if b == 0 {
 		return true
 	}
 	o := h[b-1]
-	return !o.snap && !(hsEmpty(o.hs) && len(o.ents) == 0)
+	return o.snap || !(hsEmpty(o.hs) && len(o.ents) == 0)
 }
 
 // nameBound is walNameBound h a false (WalDisk.lean), for histories with no index 2^64-1: the

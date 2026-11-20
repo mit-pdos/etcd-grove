@@ -56,7 +56,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   icases Hkv' with #Hkv'
   iunfold apply.envAus at Haus
   icases Haus with ⟨-, #HauR, -, -, #Hfacts, -⟩
-  ihave Hau := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hsw []
+  ihave Hau := HauR $$ %log %c %(srvApi.wStQ E.γs E.stq log c) Hsw []
   · iintro Hsw; iexact Hsw
   iunfold srvApi.auRead at Hau
   ihave #Hmi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []

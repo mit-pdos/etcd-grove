@@ -41,10 +41,12 @@ for the authenticated class's reason (`authedWhy`; the read path's errors are no
 `readErrIs_authErrVarIs`). -/
 abbrev EtcdServer.MemberList.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (lin : Bool) (dq : DFrac) (c : w64)
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (lin : Bool) (dq : DFrac) (c : w64)
     (g : GName) (Q : List EntryModel → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ isServerRead s E γr ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗
+      isServerReq s E ρ ∗ isServerRead s E γr ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
       srvReadReader s γr ∗ committedAtLeast γr c ∗ savedPredOwn g DFrac.discard Q ∗
       kvDep γr.kv Q }}
@@ -53,7 +55,7 @@ abbrev EtcdServer.MemberList.spec : Prop :=
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
       srvReadReader s γr ∗ applyErrIs err ∗
-      (∀ _ : err ≠ GoInterface.nil, authErrVarIs err -∗ authedWhy E.authMode n (GoInterface.ok ctx) err) ∗
+      (∀ _ : err ≠ GoInterface.nil, authErrVarIs err -∗ authedWhy E.authMode n tok err) ∗
       (∀ _ : err = GoInterface.nil, (∃ ms : List Loc, membership.membersAt sl ms) ∗
         (∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo, authedRes E.authMode ai) ∗
         (∀ _ : lin = true, readIndexOk γr c ∗ readServed γr c g)) }}

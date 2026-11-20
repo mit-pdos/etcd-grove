@@ -96,7 +96,7 @@ theorem Cache.getWatchLoop.wp_proof
     · fmt_arg_method; simp only [EtcdGrove.fmt.argOk]; iright; ileft
       isplitr
       · iexact HeS'
-      · iapply errStrOk_noFormat; iexact HeS
+      · iapply errStrOk_methods; iexact HeS
     itrivial
   -- the backoff: `select` on `ctx.Done()` and `time.After(backoff)`
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone

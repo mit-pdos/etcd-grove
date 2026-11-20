@@ -60,7 +60,6 @@ abbrev RawNode.Bootstrap.spec : Prop :=
   γ.reCfg = GMap.listToSet ps →
   γ.reBoot = bootLog →
   BootLogOk ps bootLog →
-  γ.reNoSnap = false →
   -- (step 5) in place of `γ.reTrace = none`: the node's mode the cluster's, and the traced scope
   s.gh.tr = γ.reTrace →
   (γ.reTrace ≠ none → pre = false ∧ s.cq = false ∧ ps.length < 2 ^ 40) →
@@ -68,10 +67,16 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       rawNodeFresh rn r id si ∅ sdr pre s ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       bootInit γ md id (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`; raft-final phase 1, over
+      -- the node's storage names, U8 v2; until then also, D21 M3, the no-snapshot mode's storage cap
+      -- `NsCap`)
       certLink γ s.gh.sn ∗
       -- (step 5) the capability after positions 0-2, and the storage's no-compaction
       trCapB γ.reTrace γ r id (bootCfg ps) false (bootPhase ps id) (bootAt ps id 2) ∗
-      trNoCut γ.reTrace (interface.ok si) }}
+      trNoCut γ.reTrace (interface.ok si) ∗
+      -- (auth-lease S4, 2026-11-16, L-r5; D21 M3 revived) in the cluster's no-snapshot mode, the
+      -- storage never compacted past index `1` (`storCapF`, the mode's cap `NsCap`)
+      (⌜γ.reNoSnap = false⌝ ∨ storCapF (interface.ok si) 1) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Bootstrap")) (Val #peers))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil⌝ ∗

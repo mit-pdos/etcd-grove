@@ -26,7 +26,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -36,6 +39,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.InitLinked
 
 @[expose] public section
 
@@ -55,24 +60,6 @@ attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdF
 
 /-! ## The ghost-state bundle -/
 
-/-- The functors: putget's (`putgetGF`: the universal camera `AllG` at slot 0, then invariants,
-later credits, GooseLang's heap, prophecies and package state), and
-iris-lean's non-atomic invariants at slot 11 (as the counter's `counterGF`). Every other slot is
-the unit functor. -/
-def linkvtxnGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 11 => ⟨NaInvF, inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
-
 /-- The universal camera at slot 0. -/
 def linkvtxnGF_allG : AllG linkvtxnGF := ⟨⟨0, rfl⟩⟩
 
@@ -88,23 +75,10 @@ instance linkvtxnGF_gooseGpreS : GooseGpreS linkvtxnGF where
 take. -/
 instance linkvtxnGF_naInvG : NaInvG linkvtxnGF := ⟨⟨11, rfl⟩⟩
 
-/-- **A ghost-state instance at the local context `lctx`** (as putget's `heapAt`). -/
-abbrev linkvtxnHeapAt (hG : HeapGS .hasLC linkvtxnGF) (lctx : GoLocalContext) : HeapGS .hasLC linkvtxnGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `linkvtxn`'s initialization, then `Main(clients, ops)`. -/
-def linkvtxnProgram [GoSemanticsFunctions] (clients ops : w64) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main) #clients #ops
-
-/-- The read package's two metric names, which `linkvtxn`'s initialization registers (`readRegPerm`,
-D16). -/
-def linkvtxnNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The linearizability instance is safe** (see the file header): every real execution of
 `linkvtxnProgram clients ops` from a fresh state with one thread, of `n` steps: if the main thread has
@@ -127,7 +101,7 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed (linkvtxnProgram clients ops) linkvtxnNames)
     (HAs : addrsUnclaimed (linkvtxnProgram clients ops) [go!"127.0.0.1:23796"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (linkvtxnProgram clients ops) [go!"linkvtxn.etcd"])
+    (HDs : dataDirsAbsent (linkvtxnProgram clients ops) [go!"/tmp/etcd-grove-data/linkvtxn.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (linkvtxnProgram clients ops))
     (n : Nat)
@@ -135,6 +109,8 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_txnlin.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/linkvtxn.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -143,10 +119,10 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := linkvtxnGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize'
+  refine etcd_adequate_members (GF := linkvtxnGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main) #clients #ops)
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-      (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) [go!"linkvtxn.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+      (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) [go!"/tmp/etcd-grove-data/linkvtxn.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(go!"linkvtxn", ⟨none, some go!"127.0.0.1:23796"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_

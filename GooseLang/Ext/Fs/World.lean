@@ -14,7 +14,7 @@ world), and the tree's resources and their laws. Untrusted.
 * `osFd fd dq d`: `fd` is open, on the file `d.ino`, with `d`'s access mode; fractional.
 * `osTree dq V`: (a fraction of) the tree's history `V`. `osDir j dq g`: the directory of inode `j`,
   as `g` says: a fraction of the history, of which `g` is `j`'s view. `osDirFd fd dq x`: `fd` is an
-  open directory fd, on `x.1`, its read at `x.2`. `osCall t s q`: the call on a path `t` is in flight,
+  open directory fd, on `x.1`, its read at `x.2`. `osCall t s p q`: the call on a path `t` (on `p`) is in flight,
   begun when the log had `s` entries.
 * `osInv`: the invariant of the generation's mapped cells; every spec takes it, with `↑osN ⊆ E`.
 -/
@@ -182,17 +182,18 @@ theorem osDirFd_nonneg (fd : w64) (dq : DFrac) (x : Ino × DirPh) :
     osDirFd (L := L) fd dq x ⊢ ⌜0 ≤ fd.toInt⌝ := by
   unfold osDirFd; exact gFdElem_nonneg _ _ _ _ _
 
-/-- The call on a path `t` is in flight, begun when the log had `s` entries; the state
-interpretation holds the fraction `q` of the history for it, which its step gives back. -/
-def osCall (t : Nat) (s : Nat) (q : Qp) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc t (DFrac.own 1) (s, q)
+/-- The call on a path `t` is in flight, begun on the path `p` when the log had `s` entries; the
+state interpretation holds the fraction `q` of the history for it, which its step gives back. -/
+def osCall (t : Nat) (s : Nat) (p : GoString) (q : Qp) : IProp GF :=
+  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc t (DFrac.own 1) ((s, p), q)
 
 instance osTree_timeless (dq : DFrac) (R : Roots) (V : Hist) :
     Timeless (osTree (L := L) dq R V) := by
   unfold osTree; infer_instance
 instance osDir_timeless (j : Ino) (dq : DFrac) (g : DirG) : Timeless (osDir (L := L) j dq g) := by
   unfold osDir; infer_instance
-instance osCall_timeless (t s : Nat) (q : Qp) : Timeless (osCall (L := L) t s q) := by
+instance osCall_timeless (t s : Nat) (p : GoString) (q : Qp) :
+    Timeless (osCall (L := L) t s p q) := by
   unfold osCall; infer_instance
 
 /-- The history held, with the authoritative one: they agree. -/
@@ -253,9 +254,9 @@ theorem osTree_dir (dq : DFrac) (R : Roots) (V : Hist) (j : Ino) :
   iintro H; iexists R, V; iframe; ipureintro; rfl
 
 /-- A call held, with the authoritative calls: it is in flight, with its start. -/
-theorem osCall_auth (C : GMap Nat (Nat × Qp)) (t s : Nat) (q : Qp) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc C -∗ osCall (L := L) t s q -∗
-      ⌜C !! t = some (s, q)⌝ := by
+theorem osCall_auth (C : GMap Nat CallV) (t s : Nat) (p : GoString) (q : Qp) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc C -∗ osCall (L := L) t s p q -∗
+      ⌜C !! t = some ((s, p), q)⌝ := by
   iintro HA Hc
   unfold osCall
   iapply gAuth_lookup $$ HA Hc
@@ -292,12 +293,12 @@ theorem treeFrame_inflight (st : OsState) (X : GMap Nat OsChange) :
     TreeFrame st (st.setProc { st.proc with inflight := X }) :=
   treeFrame_proc st _ rfl rfl (fun _ h => Or.inl h)
 
-theorem treeFrame_maps (st : OsState) (X : GMap Loc OsMap) :
-    TreeFrame st (st.setProc { st.proc with maps := X }) :=
+theorem treeFrame_maps (st : OsState) (X : GMap Loc OsMap) (M : GMap Loc MapDesc := st.proc.mapDesc) :
+    TreeFrame st (st.setProc { st.proc with maps := X, mapDesc := M }) :=
   treeFrame_proc st _ rfl rfl (fun _ h => Or.inl h)
 
-theorem treeFrame_fds_delete (st : OsState) (fd : w64) :
-    TreeFrame st (st.setProc { st.proc with fds := GMap.delete fd st.proc.fds }) := by
+theorem treeFrame_fds_delete (st : OsState) (fd : w64) (M : GMap Loc MapDesc := st.proc.mapDesc) :
+    TreeFrame st (st.setProc { st.proc with fds := GMap.delete fd st.proc.fds, mapDesc := M }) := by
   refine treeFrame_proc st _ rfl rfl (fun fd' h => Or.inl ?_)
   intro h'; apply h; show (GMap.delete fd st.proc.fds) !! fd' = none
   rw [GMap.lookup_delete_iff]; split
@@ -381,18 +382,18 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
   · -- Flock
     obtain ⟨_, _, _, _, _, -, hd, -, hl⟩ := h; exact treeFrame_lockStep hd hl
   · -- Close
-    obtain ⟨fd, _, _, -, -, rfl, -⟩ := h; exact treeFrame_fds_delete _ _
+    obtain ⟨fd, _, _, -, -, rfl, -⟩ := h; exact treeFrame_fds_delete _ _ _
   · -- Mmap
     obtain ⟨_, _, _, _, _, _, -, -, -, -, -, -, -, hres⟩ := h
     rcases hres with ⟨_, -, -, -, rfl, -⟩ | ⟨_, -, rfl, -⟩
-    · exact treeFrame_maps _ _
+    · exact treeFrame_maps _ _ _
     · exact TreeFrame.refl _
   · -- Munmap
     obtain ⟨_, _, _, _, -, -, -, -, hres⟩ := h
     rcases hres with ⟨rfl, -⟩ | ⟨_, -, -, rfl | rfl⟩
-    · exact treeFrame_maps _ _
+    · exact treeFrame_maps _ _ _
     · exact TreeFrame.refl _
-    · exact treeFrame_maps _ _
+    · exact treeFrame_maps _ _ _
   · -- FdKind
     obtain ⟨_, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- FallocStart
@@ -453,7 +454,7 @@ def osWorld (st : OsState) (Γb : GMap (Ino × Nat) (ByteG))
 /-- What a tree operation's proof works with of the tree: the state's facts, the ghost maps of the
 history, the directory fds and the calls in flight, and the fractions the reads in progress hold. -/
 def treeWorld (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
-    (Γc : GMap Nat (Nat × Qp)) : IProp GF :=
+    (Γc : GMap Nat CallV) : IProp GF :=
   iprop(⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (st.fs.roots, V)) ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf ∗
@@ -681,7 +682,8 @@ theorem legacyWit_tree (dq : DFrac) (R : Roots) (V : Hist) :
   icases gElem_valid_2 _ _ _ _ _ _ _ $$ H Hd with %Hv
   exact absurd (DFrac.valid_op_own Hv.1) (by simp)
 
-theorem legacyWit_call (t s : Nat) (q : Qp) : LegacyWit (L := L) (osCall (L := L) t s q) := by
+theorem legacyWit_call (t s : Nat) (p : GoString) (q : Qp) :
+    LegacyWit (L := L) (osCall (L := L) t s p q) := by
   intro st
   unfold treeShared osCall
   iintro ⟨H, %V0, %s0, %Γdf, %Γc, %Γg, %hw, -, -, -, Hac, -⟩

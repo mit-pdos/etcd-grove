@@ -267,7 +267,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
   intro Rh a γd Rs h wi r R γk rd Hhost Hpath
   iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd HRs
   iunfold snapHandlerOk at Hh
-  icases Hh with ⟨%hv, %Rm, #Hhv, #Hhvlg, %Hhvok, #Hraft, #Hss, #Hdir, #Haddr⟩
+  icases Hh with ⟨%hv, %sd, %Rm, #Hhv, #Hhvlg, %Hhvok, #Hraft, #Hss, #Hdir, #Haddr⟩
   rw [method_unfold (t := go.GoType.PointerType rafthttp.snapshotHandler.ty) (m := go!"ServeHTTP")]
   wp_auto
   ihave #HR0 := HR
@@ -401,7 +401,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           icases Heof0 with ⟨%xe, #Heof, -⟩
           ihave #Hsro := http.bodyStream_streamReaderOk hBodyRead rd Pre Φ
             (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #xe) Hrdnn
-          wp_apply hSave hv.snapshotter' rd (http.bodyStream rd Pre Φ) Pre Φ _ (msgFrame bs)
+          wp_apply hSave hv.snapshotter' sd rd (http.bodyStream rd Pre Φ) Pre Φ _ (msgFrame bs)
               sn.Metadata'.Index' D γd Rh.γn.N.img Rm
               (fun t ht => by
                 obtain ⟨t', he, hi⟩ := HPhi _ ht

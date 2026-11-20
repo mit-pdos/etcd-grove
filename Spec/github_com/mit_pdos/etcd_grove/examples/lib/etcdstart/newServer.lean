@@ -68,6 +68,9 @@ abbrev newServer.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
+  -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
+  -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
+  name.length ≤ 200 →
   retention = W64 0 →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
@@ -95,7 +98,7 @@ abbrev newServer.spec : Prop :=
           leaseTTLRowR s ps ∗
           -- (R2c-5) the data directory, the name's `.etcd`, with no dedicated WAL directory
           -- (`srvDataDir`, the slot's: `srvStop.dataDir`), which a stop request carries
-          srvDataDir s (name ++ go!".etcd")) }}
+          srvDataDir s (memberDataDir name)) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev newServer.specRestart : Prop :=
@@ -128,7 +131,7 @@ abbrev newServer.specRestart : Prop :=
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
           ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗
-          srvDataDir s (name ++ go!".etcd")) }}
+          srvDataDir s (memberDataDir name)) }}
 
 end spec
 

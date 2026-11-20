@@ -8,7 +8,9 @@ Lean-first (no Rocq counterpart).
 operation's linearization point (`InvOk.commit`: the operation is appended to the log with
 the clock's current value, and to the client's records). What a client learns from it
 (`InvOk.lr_le'`, `InvOk.recs_le`): its last reading and the `τ`s of its records are at most
-the clock's current value.
+the clock's current value. The library may return an output other than the one it committed,
+when the model cannot tell them apart (`InvOk.swap`: the client's last record and its log entry
+take the returned output; `applySpec`, `Defs.lean`).
 -/
 module
 
@@ -44,6 +46,19 @@ theorem run_append_one (M : SeqModel σ α) (s0 : σ) (l : List α) (a : α) :
 theorem clientRecs_append (c : Nat) (Lc : List (α × Int)) (p : α × Int) :
     clientRecs c (Lc ++ [p]) = clientRecs c Lc ++ [⟨c, Lc.length, p.1, p.2⟩] := by
   simp [clientRecs, List.mapIdx_append]
+
+/-- Running the model over two lists of steps it cannot tell apart, pointwise. -/
+theorem run_map_congr {β : Type} (M : SeqModel σ α) (f g : β → α) (l : List β)
+    (h : ∀ x ∈ l, ∀ s, M.step s (f x) = M.step s (g x)) (s0 : σ) :
+    run M s0 (l.map f) = run M s0 (l.map g) := by
+  induction l generalizing s0 with
+  | nil => rfl
+  | cons b l ih =>
+    simp only [List.map_cons, run]
+    rw [h b (List.mem_cons_self ..) s0]
+    cases M.step s0 (g b) with
+    | none => rfl
+    | some s1 => exact ih (fun x hx => h x (List.mem_cons_of_mem _ hx)) s1
 
 end pure
 
@@ -144,6 +159,95 @@ theorem InvOk.commit (H : InvOk M n s t L Ls) {c : Nat} {v : ClientV}
       have : (c == c') = false := by simp [h]
       rw [this]
       simp
+
+/-- The log entry of client `c`'s `j`-th record, with the output swapped to `io'`. -/
+def swapRec (c j : Nat) (io' : OpV) (e : LinRec OpV) : LinRec OpV :=
+  if e.c = c ∧ e.j = j then { e with io := io' } else e
+
+theorem map_swapRec_toRecs (c : Nat) (Lc : List (OpV × w64)) (io io' : OpV) (τ : w64) :
+    (toRecs c (Lc ++ [(io, τ)])).map (swapRec c Lc.length io') = toRecs c (Lc ++ [(io', τ)]) := by
+  apply List.ext_getElem?
+  intro k
+  simp only [List.getElem?_map, toRecs, clientRecs_getElem?, List.map_append, List.map_cons,
+    List.map_nil]
+  rcases Nat.lt_trichotomy k Lc.length with hk | hk | hk
+  · rw [List.getElem?_append_left (by simpa using hk), List.getElem?_append_left (by simpa using hk)]
+    cases (Lc.map fun p => (p.1, sint.Z p.2))[k]? with
+    | none => rfl
+    | some p => simp [swapRec, Nat.ne_of_lt hk]
+  · subst hk
+    rw [List.getElem?_append_right (by simp), List.getElem?_append_right (by simp)]
+    simp [swapRec]
+  · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none (by simp; omega)]
+    rfl
+
+theorem map_swapRec_toRecs_ne {c c' : Nat} (h : c ≠ c') (j : Nat) (io' : OpV)
+    (Lc : List (OpV × w64)) : (toRecs c' Lc).map (swapRec c j io') = toRecs c' Lc := by
+  refine (List.map_congr_left ?_).trans (List.map_id _)
+  intro e he
+  obtain ⟨p, -, hp⟩ := mem_clientRecs he
+  have hc : e.c = c' := by rw [hp]
+  simp [swapRec, hc, Ne.symm h]
+
+/-- The library returned `io'` in place of the output `io` it committed, which the model cannot
+tell apart: client `c`'s last record, and its entry in the log, take `io'`. -/
+theorem InvOk.swap (H : InvOk M n s t L Ls) {c : Nat} {Lc : List (OpV × w64)} {lr : w64}
+    {io io' : OpV} {τ : w64} (hc : Ls.lookup c = some (Lc ++ [(io, τ)], lr))
+    (heq : ∀ s, M.step s io' = M.step s io) :
+    InvOk M n s t (L.map (swapRec c Lc.length io')) (Ls.insert c (Lc ++ [(io', τ)], lr)) where
+  runs := by
+    rw [List.map_map, ← H.runs]
+    refine run_map_congr M _ _ L ?_ M.init
+    intro e he s0
+    simp only [Function.comp_apply, swapRec]
+    split
+    · next hj =>
+      have hm : e ∈ L.filter (fun e => e.c == c) := List.mem_filter.2 ⟨he, by simp [hj.1]⟩
+      rw [H.filt c, recsOf, hc, Option.map_some, Option.getD_some] at hm
+      obtain ⟨p, hp, he'⟩ := mem_clientRecs hm
+      rw [List.getElem?_map, hj.2, List.getElem?_append_right (Nat.le_refl _), Nat.sub_self,
+        List.getElem?_cons_zero, Option.map_some, Option.some.injEq] at hp
+      subst hp
+      rw [he']
+      exact heq s0
+    · rfl
+  sorted := by
+    rw [List.pairwise_map]
+    refine H.sorted.imp ?_
+    intro a b hab
+    simp only [swapRec]
+    split <;> split <;> exact hab
+  le_t e he := by
+    obtain ⟨e0, he0, rfl⟩ := List.mem_map.1 he
+    have := H.le_t e0 he0
+    simp only [swapRec]
+    split <;> exact this
+  lr_le c' v' hc' := by
+    rw [GMap.lookup_insert_eq_iff] at hc'
+    split at hc'
+    · cases hc'; exact H.lr_le c (Lc ++ [(io, τ)], lr) hc
+    · exact H.lr_le c' v' hc'
+  dom c' v' hc' := by
+    rw [GMap.lookup_insert_eq_iff] at hc'
+    split at hc'
+    · next h => subst h; exact H.dom c _ hc
+    · exact H.dom c' v' hc'
+  filt c' := by
+    have hf : (L.map (swapRec c Lc.length io')).filter (fun e => e.c == c') =
+        (L.filter (fun e => e.c == c')).map (swapRec c Lc.length io') := by
+      rw [List.filter_map]
+      congr 1
+      apply List.filter_congr
+      intro e _
+      simp only [Function.comp_apply, swapRec]
+      split <;> rfl
+    rw [hf, H.filt c', recsOf_insert]
+    split
+    · next h =>
+      subst h
+      simp only [recsOf, hc, Option.map_some, Option.getD_some]
+      exact map_swapRec_toRecs c Lc io io' τ
+    · next h => exact map_swapRec_toRecs_ne h _ _ _
 
 /-- A client's trace and records, one operation further. -/
 theorem ClientOk.snoc {id : w64} {hc : List Operation} {Lc : List (OpV × w64)}

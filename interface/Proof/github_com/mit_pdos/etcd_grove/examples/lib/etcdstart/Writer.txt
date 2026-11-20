@@ -2,11 +2,15 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem client.client_Put_kv.law.congr_simp [client_sem : go_etcd_io.etcd.client.v3.Assumptions] :
+    client.client_Put_kv.law = client.client_Put_kv.law
+
 theorem client.isKv.congr_simp (api api✝ : Loc) (e_api : api = api✝) (γ γ✝ : KVNames) (e_γ : γ = γ✝)
     (dup dup✝ : Bool) (e_dup : dup = dup✝) : client.isKv api γ dup = client.isKv api✝ γ✝ dup✝
 
 theorem etcdstart.Writer.wp_proof [HasExt idIssueExt] (hWT : context.WithTimeoutBackground.spec)
-    (wp_ErrAny : context.ErrAny.spec) : etcdstart.Writer.spec
+    (wp_ErrAny : context.ErrAny.spec) (h_client_Put_kv : client.client_Put_kv.law) :
+    etcdstart.Writer.spec
   -- `Perennial.EtcdGrove.etcdstart.Writer.spec`, unfolded:
   ∀ [inst : go_etcd_io.etcd.cache.v3.Assumptions] [ContextReadErrs] [ContextErrsClient] (cl api : Loc) (γk : KVNames)
     (QW : GoString → GoString → KVState → IProp GF) (OkF : etcdstart.wrec → IProp GF) (w : Loc) (tsl : GoSlice)

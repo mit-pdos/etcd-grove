@@ -41,8 +41,9 @@ variable {s : Stuckness} {E : CoPset}
 
 /-- What a region has after its `open(O_CREAT)` of `b` (the name free): its permission back, and
 the file created (logged, its claim updated, its `OsMeta`), or a failure with nothing done. -/
-def createPost (j : Ino) (b : GoString) (h : NamesH) (s0 : Nat) (q : Qp) (v : val) : IProp GF :=
-  iprop(osCallPerm (L := L) q ∗ ∃ fd e : w64, ⌜v = PairV (#fd) (#e)⌝ ∗
+def createPost (r : GoString) (j : Ino) (b : GoString) (h : NamesH) (s0 : Nat) (q : Qp) (v : val) :
+    IProp GF :=
+  iprop(osCallPerm (L := L) r q ∗ ∃ fd e : w64, ⌜v = PairV (#fd) (#e)⌝ ∗
     ((∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
         osNames (L := L) j (.only [b]) (DFrac.own 1)
           (h.log x (⟨.create j b i, s0⟩ : LogEntry) (<[b := .file i]> h.cur)) ∗
@@ -54,9 +55,9 @@ theorem region_create (R : Roots) (d b : GoString) (j : Ino) (q : Qp) (h : Names
     (c : Qp) (hb : NameOk b) (hn : h.cur !! b = none) (hs : h.next ≤ s0) (hE : ↑osN ⊆ E)
     (hE' : ↑osShN ⊆ E) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d (DFrac.own q) j -∗
-      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 c -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) c -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
-        @ s; E {{ createPost (L := L) j b h s0 c }} := by
+        @ s; E {{ createPost (L := L) (callKey R d) j b h s0 c }} := by
   iintro #Hinv #Hsi Hp Hn Hk
   iapply wp_osOpenCreateS R d b j (DFrac.own q) h k s0 c flCreat flCreat_ok (by decide) (by decide) hb (by rw [hn]; intro J hJ; cases hJ) hs
     hE hE' _ $$ Hinv Hsi Hp Hn Hk
@@ -90,11 +91,11 @@ theorem twoRegion_par (R : Roots) (d b1 b2 : GoString) (j : Ino) (q1 q2 : Qp) (h
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d (DFrac.own (q1 + q2)) j -∗
       osNames (L := L) j (.only [b1]) (DFrac.own 1) h1 -∗
       osNames (L := L) j (.only [b2]) (DFrac.own 1) h2 -∗
-      osCallS (L := L) k1 s1 c1 -∗ osCallS (L := L) k2 s2 c2 -∗
+      osCallS (L := L) k1 s1 (child d b1) c1 -∗ osCallS (L := L) k2 s2 (child d b2) c2 -∗
       (WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k1) (PairV (#(child d b1)) (#flCreat)))))
-        @ s; E {{ createPost (L := L) j b1 h1 s1 c1 }}) ∗
+        @ s; E {{ createPost (L := L) (callKey R d) j b1 h1 s1 c1 }}) ∗
       (WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k2) (PairV (#(child d b2)) (#flCreat)))))
-        @ s; E {{ createPost (L := L) j b2 h2 s2 c2 }}) := by
+        @ s; E {{ createPost (L := L) (callKey R d) j b2 h2 s2 c2 }}) := by
   iintro #Hinv #Hsi Hp Hn1 Hn2 Hk1 Hk2
   icases (osPathS_frac R d q1 q2 j).1 $$ Hp with ⟨Hp1, Hp2⟩
   isplitl [Hp1 Hn1 Hk1]

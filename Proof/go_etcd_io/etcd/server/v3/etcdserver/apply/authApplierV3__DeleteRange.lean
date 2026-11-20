@@ -33,7 +33,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
   iunfold apply.deletePre at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, %Tw, %Hwt⟩
   ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hm
@@ -96,8 +96,10 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
       iframe #
       isplitr
       · ipureintro; exact Hk
-      iapply apply.mPre_of_rest
-      iframe
+      isplitl
+      · iapply apply.mPre_of_rest
+        iframe
+      iexists Tw; ipureintro; exact Hwt
     iapply HΦ
     iframe Htt
     isplitr [Htrc]
@@ -143,8 +145,10 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     iframe #
     isplitr
     · ipureintro; exact Hk
-    iapply apply.mPre_of_rest
-    iframe
+    isplitl
+    · iapply apply.mPre_of_rest
+      iframe
+    iexists Tw; ipureintro; exact Hwt
   iapply HΦ
   iframe Htt
   isplitr [Htrc]

@@ -12,9 +12,11 @@ goes into `fmt.Errorf("get %q failed: %w", ...)` (the error's `Error()`: `kvErr`
 module
 
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__getCompactRev
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Spec.strconv.ParseInt
 public import Spec.fmt.Errorf
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
+public import Spec.go_etcd_io.etcd.client.v3.kv__Get
 import all Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
 
 @[expose] public section
@@ -45,7 +47,8 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 a read update (`client.client_Get_kv` without the `WithRev`): `nil` and the reply's message `m`
 with the state `σ` the update fired at, the header at `σ`'s revision, `m`'s key-values the key's
 in `σ`'s current store; or a client error. -/
-private theorem client_Get_nil [go_etcd_io.etcd.client.v3.Assumptions] (cl api : Loc)
+private theorem client_Get_nil [go_etcd_io.etcd.client.v3.Assumptions]
+    (wp_Get : EtcdGrove.kv.Get.spec (GF := GF) (hG := hG)) (cl api : Loc)
     (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -65,7 +68,7 @@ private theorem client_Get_nil [go_etcd_io.etcd.client.v3.Assumptions] (cl api :
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.v3.kv.wp_Get api γ dup ci cd key slice.nil [] iprop(True) Q) $$ []
+  wp_apply (wp_Get api γ dup ci cd key slice.nil [] iprop(True) Q) $$ []
     as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
@@ -129,7 +132,8 @@ private theorem slice_empty_len (sl : GoSlice)
 
 theorem compactor.getCompactRev.wp_proof
     (wp_ParseInt : EtcdGrove.strconv.ParseInt.spec (GF := GF) (hG := hG))
-    (wp_Errorf : EtcdGrove.fmt.Errorf.spec (GF := GF) (hG := hG)) :
+    (wp_Errorf : EtcdGrove.fmt.Errorf.spec (GF := GF) (hG := hG))
+    (wp_Get : EtcdGrove.kv.Get.spec (GF := GF) (hG := hG)) :
     compactor.getCompactRev.spec (GF := GF) (hG := hG) := by
   intro _ _ c cl γk recorded γc ci cd
   wp_start as ⟨#Hc, #Hko, #Hctx, #Hce, #Hread⟩
@@ -143,7 +147,7 @@ theorem compactor.getCompactRev.wp_proof
   wp_auto
   ihave #Hread' := Hread
   iunfold keyReadOk at Hread'
-  wp_apply (client_Get_nil cl api γk dup ci cd compactRevKey (keyHistOk γk recorded)
+  wp_apply (client_Get_nil wp_Get cl api γk dup ci cd compactRevKey (keyHistOk γk recorded)
       (opSizeOk_opGetModel (K := 2 ^ 27) (E := 0) (V := 0) (optsKeep_nil _ _ _)
         (by simp [compactRevKey]) (by decide))) $$ []
     as %resp %err Hout
@@ -182,7 +186,7 @@ theorem compactor.getCompactRev.wp_proof
       iright; ileft
       isplitr
       · iexact He2
-      · ipureintro; exact He2t.1
+      · ipureintro; exact He2t
     ipureintro; simp
   -- the `Get` succeeded
   subst Herr

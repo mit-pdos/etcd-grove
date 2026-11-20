@@ -158,11 +158,11 @@ local macro "status_switch" : tactic => `(tactic| (
       isplitr
       · fmt_arg_method; iright; iright; isplitr
         · iapply id_stringMethodSpec hIDString $$ Htyp
-        · ipureintro; fmt_method_none
+        · ipureintro; fmt_method_facts
       isplitr
       · fmt_arg_method; iright; iright; isplitr
         · iapply id_stringMethodSpec hIDString $$ Htyp
-        · ipureintro; fmt_method_none
+        · ipureintro; fmt_method_facts
       itrivial
     ret_err
   rw [_root_.decide_eq_false (show ¬ rst = W64 404 from h404)]

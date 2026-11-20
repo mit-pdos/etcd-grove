@@ -26,7 +26,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.wp_
     (wp_GetIndex : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF)
       (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.spec (GF := GF) (hG := hG) := by
-  intro Mr sp sm cs hcs
+  intro Mr sp sm al cs hcs
   wp_start as #Hs
   ihave #Hs0 := Hs
   iunfold walSnapAt at Hs

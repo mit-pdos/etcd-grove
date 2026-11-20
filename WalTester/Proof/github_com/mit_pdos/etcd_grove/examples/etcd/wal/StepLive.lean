@@ -86,10 +86,10 @@ theorem memLive_post (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOrac
     hcw hms
   iframe
 
-theorem osCallPerm_join2 :
-    osCallPerm (L := hG.goose_localGS) (1 : Qp).half ∗ osCallPerm (L := hG.goose_localGS) (1 : Qp).half ⊢
-      osCallPerm (L := hG.goose_localGS) 1 := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half
+theorem osCallPerm_join2 (k : GoString) :
+    osCallPerm (L := hG.goose_localGS) k (1 : Qp).half ∗ osCallPerm (L := hG.goose_localGS) k (1 : Qp).half ⊢
+      osCallPerm (L := hG.goose_localGS) k 1 := by
+  have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at h
   exact h.2
 

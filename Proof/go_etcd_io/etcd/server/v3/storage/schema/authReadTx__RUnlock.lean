@@ -25,13 +25,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 theorem schema.authReadTx.RUnlock.wp_proof :
     schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG) := by
-  intro atx rt R Held D
+  intro atx rt R Held ι L x D
   wp_start as ⟨#Htx, #Hrtx, HD⟩
   iunfold schema.authRTx at Hrtx
   icases Hrtx with ⟨-, #HRU⟩
-  wp_auto
+  wp_auto_lc 1
   wp_bind (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #()))
-  iapply HRU $$ %D HD
+  iapply HRU $$ %x %D [$HD $Hlc1]
   inext
   iintro HR
   (try wp_auto)

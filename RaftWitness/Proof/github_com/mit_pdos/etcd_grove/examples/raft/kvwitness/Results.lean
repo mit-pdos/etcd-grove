@@ -244,19 +244,6 @@ theorem kv_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kv_adequate σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
-/-- **`kv_porcupine_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `kv_porcupine_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 63` steps no thread is stuck and none has an unrecovered panic. -/
-theorem kv_porcupine_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Assumptions]
-    [hLog : log.NewModel] (σ : state) (g : GlobalState) :
-    Robustness.Robust [] [(kvProgram, σ)] g (2 ^ 63) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (kv_porcupine_safe
-      σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
-
 /-- **The randomized linearizability test of the store with a witness never fails**
 (`raft_kvwitness_adequate`, `AdequacyLinked.lean`): every real execution of `kvProgramWitness` --
 the store package's initialization, then `MainWitness()`: a cluster of the raft voters `1`, `2`
@@ -276,19 +263,6 @@ theorem raft_kvwitness_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantic
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   raft_kvwitness_adequate σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
-
-/-- **`raft_kvwitness_porcupine_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `raft_kvwitness_porcupine_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 63` steps no thread is stuck and none has an unrecovered panic. -/
-theorem raft_kvwitness_porcupine_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Assumptions]
-    [hLog : log.NewModel] (σ : state) (g : GlobalState) :
-    Robustness.Robust [] [(kvProgramWitness, σ)] g (2 ^ 63) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (raft_kvwitness_porcupine_safe
-      σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end closed
 

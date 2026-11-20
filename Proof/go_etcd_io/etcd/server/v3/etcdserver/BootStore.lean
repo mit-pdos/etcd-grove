@@ -97,11 +97,12 @@ theorem boot_storage
       backend.isBackend bk.γB bk.P (mvcc.api.mvccW bk.gx) (Pk bk.γB) bk.be ∗
       backend.isStopChans bk.γB bk.P (mvcc.api.mvccW bk.gx) (Pk bk.γB) bk.be ∗
       backend.plHook bk.γB func.nil ∗ backend.rbOwn bk.γB (backend.rbData bk.P D) ∗
-      backend.bkRPool bk.γB bk.P bk.be ∗ backend.rdAuth bk.γB bk.P bk.be ∗
+      backend.bkRPool bk.γB bk.P bk.be ∗
+      (backend.rdAuth bk.γB bk.P bk.be ∗ backend.rbClaimToks bk.γB bk.P (fun _ => True)) ∗
       backend.bOpen bk.γB (1 : Qp).half ∗ apply.bkRT bk ∗ ownToks bk.γB.wb 5 := by
   iintro ⟨Hnew, Hreg, #Hsz, Hq⟩
   iunfold backend.newPostK at Hnew
-  icases Hnew with ⟨#HnB, #HnSC, HK, HnV, HnH, HnRB, HnRd, HnDl, HnFk, HnSr⟩
+  icases Hnew with ⟨#HnB, #HnSC, HK, HnV, HnH, HnRB, HnRd, HnDl, HnFk, HnSr, HnTok⟩
   iunfold bootLeft at HK
   icases HK with ⟨HnWb, Ho⟩
   -- the open token's shares: the constructors' half, the pool's, the stock's
@@ -149,7 +150,7 @@ theorem boot_storage
   ihave HbkP := backend.bkRPool_intro d0.γB d0.P d0.be $$ [$HnPool $Hop]
   imodintro
   iexists γp
-  iframe Hat0 Hrg Hstock Hsto HnB HnSC HnH HnRB HbkP HnRA Ho Hw5
+  iframe Hat0 Hrg Hstock Hsto HnB HnSC HnH HnRB HbkP HnRA HnTok Ho Hw5
   isplitr
   · iintro !> %E %hE
     rw [srvWTPool_congr E E₂ γp hE]
@@ -180,11 +181,12 @@ theorem boot_storageR
       backend.isBackend bk.γB bk.P (mvcc.api.mvccW bk.gx) (Pk bk.γB) bk.be ∗
       backend.isStopChans bk.γB bk.P (mvcc.api.mvccW bk.gx) (Pk bk.γB) bk.be ∗
       backend.plHook bk.γB func.nil ∗ backend.rbOwn bk.γB (backend.rbData bk.P D) ∗
-      backend.bkRPool bk.γB bk.P bk.be ∗ backend.rdAuth bk.γB bk.P bk.be ∗
+      backend.bkRPool bk.γB bk.P bk.be ∗
+      (backend.rdAuth bk.γB bk.P bk.be ∗ backend.rbClaimToks bk.γB bk.P (fun _ => True)) ∗
       backend.bOpen bk.γB (1 : Qp).half ∗ apply.bkRT bk ∗ ownToks bk.γB.wb 5 := by
   iintro ⟨Him, Hnew, Hreg, #Hsz, Hq⟩
   iunfold backend.newPostK at Hnew
-  icases Hnew with ⟨#HnB, #HnSC, HK, HnV, HnH, HnRB, HnRd, HnDl, HnFk, HnSr⟩
+  icases Hnew with ⟨#HnB, #HnSC, HK, HnV, HnH, HnRB, HnRd, HnDl, HnFk, HnSr, HnTok⟩
   iunfold bootLeft at HK
   icases HK with ⟨HnWb, Ho⟩
   -- the open token's shares: the constructors' half, the pool's, the stock's
@@ -231,7 +233,7 @@ theorem boot_storageR
   ihave HbkP := backend.bkRPool_intro d0.γB d0.P d0.be $$ [$HnPool $Hop]
   imodintro
   iexists γp
-  iframe Hat0 Hrg Hstock Hsto HnB HnSC HnH HnRB HbkP HnRA Ho Hw5
+  iframe Hat0 Hrg Hstock Hsto HnB HnSC HnH HnRB HbkP HnRA HnTok Ho Hw5
   isplitr
   · iintro !> %E %hE
     rw [srvWTPool_congr E E₂ γp hE]

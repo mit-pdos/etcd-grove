@@ -45,7 +45,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWALUnlock.spec (P : WalPb
     (o : Option (Nat × Nat)),
   RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ osInv ∗
-      osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm 1 ∗ osLogLb lb ∗
+      osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) 1 ∗ osLogLb lb ∗
       U o ∗ renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb o ∗ Sp ∗ walTmpsRes J ∗
       walPreIn w lg dir mds md e lt f snapi enti ∗ walLockIn e f fd fname d c off ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗

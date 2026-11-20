@@ -28,7 +28,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Fs
 section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions]
@@ -54,11 +54,11 @@ theorem wp_walPipeH_open
     {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
         (⌜err = interface.nil⌝ ∗ ∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (sz : w64)
             (n : Nat), isFilePipe fp γ R dir dq j sz ∗ pipeMain γ (n + 1) ∗ pipeFile j dir n lf ∗
-            ⌜n ≤ k⌝) ∨
+            ⌜n ≤ k ∧ R = W.roots⌝) ∨
         ⌜err ≠ interface.nil⌝ }} := by
   iintro %Φ Hp HΦ
   iunfold walPipeH at Hp
-  icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn2, -⟩
+  icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn2, %hfr⟩
   have hn := hn2.1
   iapply wp_Open fp γ R dir dq j sz n $$ [$Hfp $Hmain Hc]
   · iunfold pipeQ
@@ -75,14 +75,14 @@ theorem wp_walPipeH_open
     iframe
     isplitl []
     · iexact Hfp
-    ipureintro; exact hn
+    ipureintro; exact ⟨hn, hfr.2⟩
   · iright
     ipureintro; exact he
 
 /-- **The handle's pipeline after a cut**: the claim on the renamed file's name, `pipeTmp n`, is
 the one the next `Open` hands back. -/
 theorem walPipeH_next (fp : Loc) (dir : GoString) (k : Nat) (γ : PipeNames) (R : Roots)
-    (dq : DFrac) (j : Ino) (sz : w64) (n : Nat) (hn : n ≤ k) (hfp : fp ≠ null) :
+    (dq : DFrac) (j : Ino) (sz : w64) (n : Nat) (hn : n ≤ k) (hfp : fp ≠ null) (hR : R = W.roots) :
     isFilePipe (GF := GF) fp γ R dir dq j sz ∗ pipeMain γ (n + 1) ∗ tmpClaim j (pipeTmp n) ⊢
       walPipeH fp dir j (k + 1) := by
   iintro ⟨#Hfp, Hmain, Hc⟩
@@ -93,7 +93,7 @@ theorem walPipeH_next (fp : Loc) (dir : GoString) (k : Nat) (γ : PipeNames) (R 
   iframe Hc
   isplitr
   · ipureintro; exact ⟨by omega, trivial⟩
-  · ipureintro; exact hfp
+  · ipureintro; exact ⟨hfp, hR⟩
 
 end iris
 

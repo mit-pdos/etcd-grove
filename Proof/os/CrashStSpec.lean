@@ -179,7 +179,7 @@ theorem os.OpenFile.wp_proof_crashS [os.file.FieldAssumptions] :
     subst V'
     icases csOwn_none _ _ _ _ $$ Hown with ⟨Hv, Ht, %hn⟩
     ihave Ht := (osTree_halves (1 : Qp).half R V).1 $$ Ht
-    wp_apply wp_osCallBegin R V (1 : Qp).half.half (1 : Qp).half.half CoPset.subseteq_top
+    wp_apply wp_osCallBegin R V _ (1 : Qp).half.half (1 : Qp).half.half CoPset.subseteq_top
       $$ Hos Ht as %t Ht Hk
     rw [os.file_ty_eq, os.File_ty_eq,
       show (W64 66 ||| W64 524288) = flCreat from by decide]
@@ -231,7 +231,7 @@ theorem os.OpenFile.wp_proof_crashS [os.file.FieldAssumptions] :
     obtain ⟨hsi, heq, -⟩ := csOpenInv_some hs hm
     icases csOwn_tree _ _ _ _ _ _ $$ Hown with ⟨Ht, %hl, Hback⟩
     ihave Ht := (osTree_halves (1 : Qp).half R V').1 $$ Ht
-    wp_apply wp_osCallBegin R V' (1 : Qp).half.half (1 : Qp).half.half CoPset.subseteq_top
+    wp_apply wp_osCallBegin R V' _ (1 : Qp).half.half (1 : Qp).half.half CoPset.subseteq_top
       $$ Hos Ht as %t Ht Hk
     rw [os.file_ty_eq, os.File_ty_eq,
       show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]

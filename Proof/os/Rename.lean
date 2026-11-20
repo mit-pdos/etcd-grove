@@ -43,36 +43,45 @@ private theorem rename_fileNE :
     (h h' : NamesH) (qc : Qp),
   NameOk bs → NameOk bt → N.Mem bs → N'.Mem bt → (j, N) ≠ (j', N') →
   h.cur !! bs = some (.file i) → (∀ J, h'.cur !! bt ≠ some (.dir J)) →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm qc ∗
+  SameRootR R (child d bs) (child d' bt) → PathFits (child d bs) ∧ PathFits (child d' bt) →
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
       osNames j N (DFrac.own 1) h ∗ osNames j' N' (DFrac.own 1) h' }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d' bt)))
-  {{ RET #interface.nil; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm qc ∗
+  {{ RET #interface.nil; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
       ∃ h1 h2 : NamesH, ⌜h1.cur = GMap.delete bs h.cur ∧ h2.cur = <[bt := .file i]> h'.cur⌝ ∗
         osNames j N (DFrac.own 1) h1 ∗ osNames j' N' (DFrac.own 1) h2 }}
  := by
-  intro Sio _ hS d bs d' bt j j' i N N' R dq dq' h h' qc hbs hbt hN hN' hkey hsrc htgt
+  intro Sio _ hS d bs d' bt j j' i N N' R dq dq' h h' qc hbs hbt hN hN' hkey hsrc htgt hsr hfit
   wp_start as ⟨#Hos, #Hsi, Hp, Hp', Hperm, Hn1, Hn2⟩
   imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn1 with ⟨Hn1, #Hlb1⟩
   imod osNames_next R j' N' _ h' CoPset.subseteq_top $$ Hsi Hn2 with ⟨Hn2, #Hlb2⟩
   ihave #Hlb := osLogLb_max h.next h'.next $$ [Hlb1 Hlb2]
   · iframe #
   iclear Hlb1 Hlb2
-  wp_apply wp_osCallBeginS R qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
+  imod osSharedInv_rootsOk R CoPset.subseteq_top $$ Hsi with %hRo
+  icases osPathS_callKey R d _ _ $$ Hp with ⟨Hp, %hkd⟩
+  icases osPathS_callKey R d' _ _ $$ Hp' with ⟨Hp', %hkd'⟩
+  have hk : callKey R (child d' bt) = callKey R d := by
+    rw [callKey_of_sameRoot hRo hsr, hkd]
+  ihave Hperm := osCallPerm_congr qc hk.symm $$ Hperm
+  wp_apply wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osLstatDirS_mem R d' bt j' N' dq' (DFrac.own 1) h' t s0 qc hbt hN'
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp' Hn2 Hk as %isDir %e %hd Hperm Hp' Hn2
+  ihave Hperm := osCallPerm_congr qc ((hkd' bt).symm.trans hk) $$ Hperm
   have hd1 : isDir ≠ 1 := fun h1 => by obtain ⟨⟨J, hJ⟩, -⟩ := hd h1; exact htgt J hJ
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
   wp_auto
-  wp_apply +noauto wp_osCallBeginS R qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply +noauto wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t2 %s1 %hs1 Hk Hls
   iclear Hls
   wp_auto
   wp_bind (ExternalOp _ _ _)
   iapply wp_osRenameFileSNE Sio hS R d bs d' bt j j' i N N' dq dq' h h' t2 s1 qc hbs hbt hN hN'
     hkey hsrc htgt (Nat.le_trans (Nat.le_max_left _ _) hs1)
-    (Nat.le_trans (Nat.le_max_right _ _) hs1) CoPset.subseteq_top CoPset.subseteq_top
+    (Nat.le_trans (Nat.le_max_right _ _) hs1) hsr hfit CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hp' Hn1 Hn2 Hk
   iintro Hperm Hp Hp' ⟨%x, -, Hn1, Hn2⟩
   wp_auto
@@ -108,7 +117,7 @@ theorem osNames_keys_ne [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (j j' : In
 /-- See the file header. -/
 theorem os.Rename.wp_proof [os.Assumptions] :
     os.Rename.spec (GF := GF) (hG := hG) := by
-  intro src dst D γ
+  intro src dst D γ hpar
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.fileAt, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
@@ -121,17 +130,23 @@ theorem os.Rename.wp_proof [os.Assumptions] :
     iintro %Φ ⟨Hs, ⟨%i', #Hino, Hd⟩⟩ HΦ
     icases Hs with ⟨%i, ⟨%R, %d, %bs, %dq, %j, %qc, %h, %hp, #Hinv, #Hsh, Hp, Hcp, Hn⟩, Hf⟩
     icases Hd with ⟨%R', %d', %bt, %dq', %j', %qc', %hh, %hp', -, #Hsh', Hp', Hcp', Hn'⟩
-    obtain ⟨rfl, hbs, hi⟩ := hp
-    obtain ⟨rfl, hbt, hi'⟩ := hp'
+    obtain ⟨rfl, hbs, hi, hfs⟩ := hp
+    obtain ⟨rfl, hbt, hi', hft⟩ := hp'
+    -- (B1) one directory: the two spines are of `d`, whose spine puts both names in one root
+    have hdd : d = d' := by
+      rw [Fs.parentOf_child' _ _ hbs, Fs.parentOf_child' _ _ hbt] at hpar
+      exact Option.some.inj hpar
+    subst hdd
     icases osNames_keys_ne j j' bs bt h hh $$ [Hn Hn'] with ⟨%hkey, Hn, Hn'⟩
     · iframe Hn Hn'
     -- the two invariants' roots, at the call's first step
     iapply Fs.wp_osSharedAgree (L := hG.goose_localGS) R R' _ rfl CoPset.subseteq_top Φ $$ Hsh Hsh'
     iintro %hR
     subst hR
-    wp_apply (h' Sio hpath d bs d' bt j j' i (.only [bs]) (.only [bt]) R dq dq' h hh qc hbs hbt
+    icases Fs.osPathS_sameRoot R d bs bt _ j $$ Hp with ⟨Hp, %hsr⟩
+    wp_apply (h' Sio hpath d bs d bt j j' i (.only [bs]) (.only [bt]) R dq dq' h hh qc hbs hbt
       (by simp [Fs.NameSet.Mem]) (by simp [Fs.NameSet.Mem]) hkey hi
-      (fun J hJ => by rw [hi'] at hJ; cases hJ))
+      (fun J hJ => by rw [hi'] at hJ; cases hJ) hsr ⟨hfs, hft⟩)
       $$ [$Hinv $Hsh $Hp $Hp' $Hcp $Hn $Hn'] as ⟨Hp, Hp', Hcp, %h1, %h2, %hc, Hn1, Hn2⟩
     iapply HΦ
     isplitr
@@ -139,15 +154,15 @@ theorem os.Rename.wp_proof [os.Assumptions] :
     isplitl [Hp' Hcp' Hn2 Hf]
     · iexists i
       iframe Hf
-      iexists R, d', bt, dq', j', qc', h2
+      iexists R, d, bt, dq', j', qc', h2
       iframe Hinv Hsh Hp' Hcp' Hn2
       ipureintro
-      refine ⟨rfl, hbt, ?_⟩
+      refine ⟨rfl, hbt, ?_, hft⟩
       rw [hc.2]; exact GMap.lookup_insert _ _ _
     · iexists R, d, bs, dq, j, qc, h1
       iframe Hinv Hsh Hp Hcp Hn1
       ipureintro
-      refine ⟨rfl, hbs, ?_⟩
+      refine ⟨rfl, hbs, ?_, hfs⟩
       rw [hc.1]; exact GMap.lookup_delete _ _
 
 end proof

@@ -111,7 +111,7 @@ logger, the feature gate, the URLs, read through `bootCfgRO` -- are `Main`'s all
 `leaseexpiry` of a new cluster with token `leaseexpiry`, data directory `leaseexpiry.etcd`, raft's clock `100`
 ms and `10` ticks. -/
 def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Name' = go!"leaseexpiry" ∧ cfg.DataDir' = go!"leaseexpiry.etcd" ∧
+  cfg.Name' = go!"leaseexpiry" ∧ cfg.DataDir' = go!"/tmp/etcd-grove-data/leaseexpiry.etcd" ∧
     cfg.InitialClusterToken' = go!"leaseexpiry" ∧ cfg.NewCluster' = true ∧
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 

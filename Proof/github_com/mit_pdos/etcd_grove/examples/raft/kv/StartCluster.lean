@@ -349,7 +349,8 @@ theorem StartCluster.wp_proof
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl (fun h => absurd Hmd0 h) (Or.inl rfl) (by simp [StorContents.b]) (by simp [StorContents.commit])
-      (by rw [Hbl0]; simp [StorContents.commit]) (by rw [← Hγv]; exact kvConfState_is γr) rfl Htr0)
+      (by rw [Hbl0]; simp [StorContents.commit]) (by rw [← Hγv]; exact kvConfState_is γr)
+      (fun h => by have := clusterNoSnap_boot _ h; omega) rfl Htr0)
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
       as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, ⟨HrS, %HS⟩, #HmsInv⟩
     · have hA : uint.nat (nodeConfig id0 st).Applied' = 0 := rfl

@@ -96,7 +96,7 @@ private theorem bbolt.kvGlue_Open
     iintro %Φ ⟨#Hpkg, Hf, Hbo, %Hok, #Hlog⟩ HΦ
     unfold fileHoldsF
     icases Hf with ⟨%R, %d, %b, %dqp, %j, %qc, %hn, %hpb, #Hinv, #Hsh, Hpath, Hcp, Hnm, Hnh⟩
-    obtain ⟨hp, hb⟩ := hpb
+    obtain ⟨hp, hb, hfit⟩ := hpb
     subst hp
     icases optsAt_bolt opts dq o Hok.1 Hok.2 $$ Hbo with ⟨%f, %Hok', Hbo, Hback⟩
     ihave #Hlog' : ⌜(o.toBolt false f).logger = GoInterface.nil⌝ ∨
@@ -113,7 +113,7 @@ private theorem bbolt.kvGlue_Open
       ipureintro; exact dbNs_osN _
     icases Hres with (⟨%He, %γ, %i, %hnc, #Hdb, #Hino, Hst, Hcl⟩ | %Hbad)
     rotate_left
-    · exact absurd hne Hbad.2
+    · exact Hbad.2.elim (absurd hne) (absurd hfit)
     obtain ⟨hns, hci⟩ := hnc
     icases crOut_file j b hn (DFrac.own 1) oc i hci $$ Hcr with ⟨%h'', Hnm, %hh'⟩
     ihave Hbo := Hback $$ Hbo
@@ -137,7 +137,7 @@ private theorem bbolt.kvGlue_Open
     unfold nameAtF
     iexists R, d, b, dqp, j, qc, h''
     iframe Hinv Hsh Hpath Hcp Hnm
-    ipureintro; exact ⟨rfl, hb, hh'⟩
+    ipureintro; exact ⟨rfl, hb, hh', hfit⟩
 
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000 in

@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `r.getLatestTickTs()`, with one of `tickMu`'s reader slots (returned): some time. -/
 abbrev raftNode.getLatestTickTs.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r mu : Loc),
+  ∀ (E : RNEnv GF) (γ : RNNames GF) (r mu : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ rnTickMuAddr r ↦□ mu ∗ sync.ownRWMutex mu (rnTickInv r) }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"getLatestTickTs")) (Val #()))
   {{ (t : time.Time), RET #t; sync.ownRWMutex mu (rnTickInv r) }}

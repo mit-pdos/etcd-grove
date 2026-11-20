@@ -1566,6 +1566,67 @@ noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
+/-- WaitForReady configures the RPC's behavior when the client is in
+    TRANSIENT_FAILURE, which occurs when all addresses fail to connect.  If
+    waitForReady is false, the RPC will fail immediately.  Otherwise, the client
+    will wait until a connection becomes available or the RPC's deadline is
+    reached.
+
+    By default, RPCs do not "wait for ready".
+
+    go: rpc_util.go:341:6 -/
+noncomputable def WaitForReady.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "waitForReady"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "waitForReady" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "waitForReady"))
+  (Let "$r0" (App (Val (GoInstruction (Convert FailFastCallOption.ty CallOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "waitForReady")))
+  (App (Val (GoInstruction (CompositeLiteral FailFastCallOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"FailFast")) (ElementExpression go.bool (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
+/-- MaxCallRecvMsgSize returns a CallOption which sets the maximum message size
+    in bytes the client can receive. If this is not set, gRPC uses the default
+    4MB.
+
+    go: rpc_util.go:407:6 -/
+noncomputable def MaxCallRecvMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "bytes"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "bytes" (App (Val (GoInstruction (GoAlloc go.int))) (Var "bytes"))
+  (Let "$r0" (App (Val (GoInstruction (Convert MaxRecvMsgSizeCallOption.ty CallOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "bytes"))
+  (App (Val (GoInstruction (CompositeLiteral MaxRecvMsgSizeCallOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MaxRecvMsgSize")) (ElementExpression go.int (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
+/-- MaxCallSendMsgSize returns a CallOption which sets the maximum message size
+    in bytes the client can send. If this is not set, gRPC uses the default
+    `math.MaxInt32`.
+
+    go: rpc_util.go:461:6 -/
+noncomputable def MaxCallSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "bytes"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "bytes" (App (Val (GoInstruction (GoAlloc go.int))) (Var "bytes"))
+  (Let "$r0" (App (Val (GoInstruction (Convert MaxSendMsgSizeCallOption.ty CallOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "bytes"))
+  (App (Val (GoInstruction (CompositeLiteral MaxSendMsgSizeCallOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MaxSendMsgSize")) (ElementExpression go.int (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
   pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.metadata]
 
@@ -1575,6 +1636,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1711,7 +1773,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc EnableTracing go.bool)) (Val #()))))))))
 
 opaque BackoffConfig.nonempty_type : NonemptyType.{0}
 def BackoffConfig : Type := BackoffConfig.nonempty_type.type
@@ -5005,6 +5069,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
+  WaitForReady_unfold : FuncUnfold WaitForReady [] WaitForReady.impl
+  MaxCallRecvMsgSize_unfold : FuncUnfold MaxCallRecvMsgSize [] MaxCallRecvMsgSize.impl
+  MaxCallSendMsgSize_unfold : FuncUnfold MaxCallSendMsgSize [] MaxCallSendMsgSize.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
 
@@ -5135,6 +5202,9 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
+  Assumptions.WaitForReady_unfold
+  Assumptions.MaxCallRecvMsgSize_unfold
+  Assumptions.MaxCallSendMsgSize_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_metadata_Assumption
 

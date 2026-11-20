@@ -225,6 +225,88 @@ theorem opsIG_of (s0 : List EtcdKv) (r : w64) :
       exact ⟨h1', fun h0 => findKey_keep r k _ s hs (h2 h0) h1⟩
 end
 
+/-! ### A transaction's keys distinct (auth-lease S4 item 7b step 6, decided by etcd-grove-03) -/
+
+theorem delsPresent_append (r : w64) (s : List EtcdKv) (a b : List Change)
+    (ha : DelsPresent r s a) (hb : DelsPresent r (applyChanges r s a) b) : DelsPresent r s (a ++ b) := by
+  intro i k hi
+  by_cases hlt : i < a.length
+  · rw [List.getElem?_append_left hlt] at hi
+    rw [List.take_append_of_le_length (Nat.le_of_lt hlt)]
+    exact ha i k hi
+  · have hle : a.length ≤ i := Nat.le_of_not_lt hlt
+    rw [List.getElem?_append_right hle] at hi
+    have h := hb (i - a.length) k hi
+    rw [List.take_append, List.take_of_length_le hle, applyChanges_append]
+    exact h
+
+/-- Deleting distinct present keys deletes present keys. -/
+theorem delsPresent_dels (r : w64) :
+    ∀ (ks : List GoString) (s : List EtcdKv), ks.Nodup → (∀ k ∈ ks, (findKey k s).isSome) →
+      DelsPresent r s (ks.map Change.del)
+  | [], _, _, _ => fun i k h => by simp at h
+  | k :: ks, s, hnd, hp => by
+    rw [List.map_cons, show Change.del k :: ks.map Change.del = [Change.del k] ++ ks.map Change.del from rfl]
+    apply delsPresent_append
+    · intro i k' h
+      cases i with
+      | zero => simp at h; subst h; exact hp k List.mem_cons_self
+      | succ i => simp at h
+    · apply delsPresent_dels r ks _ (List.nodup_cons.1 hnd).2
+      intro k' hk'
+      have hne : k ≠ k' := fun e => (List.nodup_cons.1 hnd).1 (e ▸ hk')
+      simp only [applyChanges_cons, applyChange]
+      change (findKey k' (List.filter (fun x => !decide (x.key = k)) s)).isSome = true
+      rw [findKey_filter_ne]
+      simp only [hne, ↓reduceIte]
+      exact hp k' (List.mem_cons_of_mem _ hk')
+
+/-- The keys of a sorted state are distinct. -/
+theorem keys_nodup_of_sorted : ∀ (s : List EtcdKv), s.Pairwise etcdKvLess → (s.map EtcdKv.key).Nodup
+  | [], _ => List.nodup_nil
+  | v :: s, h => by
+    rw [List.map_cons, List.nodup_cons]
+    refine ⟨fun hm => ?_, keys_nodup_of_sorted s (List.pairwise_cons.1 h).2⟩
+    obtain ⟨w, hw, hk⟩ := List.mem_map.1 hm
+    have hlt := (List.pairwise_cons.1 h).1 w hw
+    unfold etcdKvLess at hlt
+    rw [hk] at hlt
+    exact go.goStringLt_irrefl _ hlt
+
+mutual
+/-- **The server's run deletes present keys** (`DelsPresent`): a delete's keys are those of its range at the state
+it runs at, distinct. -/
+theorem delsPresent_srvOp (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (op : TxnOp), s.Pairwise etcdKvLess → DelsPresent r s (srvOp s0 r s op).1
+  | _, .get _, _ => fun i k h => by simp [srvOp] at h
+  | _, .put _ _ _, _ => fun i k h => by cases i <;> simp [srvOp] at h
+  | _, .putKeep _ _, _ => fun i k h => by cases i <;> simp [srvOp] at h
+  | _, .putIgnVal _ _, _ => fun i k h => by cases i <;> simp [srvOp] at h
+  | s, .delete o, hs => by
+    rw [srvOp_delete]
+    have hdel : delChanges s o = ((rangeIn s o).map EtcdKv.key).map Change.del := by
+      unfold delChanges; rw [List.map_map]; rfl
+    rw [hdel]
+    apply delsPresent_dels r _ s (keys_nodup_of_sorted _ (hs.filter _))
+    intro k hk
+    obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hk
+    have hvs : v ∈ s := (List.mem_filter.1 hv).1
+    rw [findKey_of_mem_sorted hs hvs]; rfl
+  | s, .txn cs ts es, hs => by
+    rw [srvOp_txn]
+    cases cs.all (cmpHolds s0)
+    · exact delsPresent_srvOps s0 r s es hs
+    · exact delsPresent_srvOps s0 r s ts hs
+
+theorem delsPresent_srvOps (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (ops : List TxnOp), s.Pairwise etcdKvLess → DelsPresent r s (srvOps s0 r s ops).1
+  | _, [], _ => fun i k h => by simp [srvOps] at h
+  | s, op :: ops, hs => by
+    rw [srvOps_cons]
+    exact delsPresent_append r s _ _ (delsPresent_srvOp s0 r s op hs)
+      (delsPresent_srvOps s0 r _ ops (applyChanges_sorted r _ hs))
+end
+
 end txn
 
 open go_etcd_io.etcd.server.v3.etcdserver
@@ -334,16 +416,17 @@ theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainCover rq)
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hk
   split <;> simp_all
 
-/-- **The shape of a covered transaction request** from its transaction's shape. -/
+/-- **The shape of a covered transaction request** from its transaction's shape and distinct keys. -/
 theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainCover rq)
-    (hk : apply.dispatchKind rq = .txn) (ht : ∀ t, rq.txn = some t → txn.txnShape t) :
+    (hk : apply.dispatchKind rq = .txn) (ht : ∀ t, rq.txn = some t → txn.txnShape t)
+    (hn : ∀ t, rq.txn = some t → txn.txnKeysNodup t) :
     rqShape .none rq := by
   refine ⟨dispatchOk_of_plain rq h, fun log hs => ?_⟩
   unfold rqSmall at hs
   unfold apply.rqOk
   rw [hk] at hs ⊢
   intro t ht'
-  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht').1, (hs t ht').1.1, (hs t ht').2⟩
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht').1, (hs t ht').1.1, hn t ht', (hs t ht').2⟩
 
 end EtcdGrove
 end Perennial

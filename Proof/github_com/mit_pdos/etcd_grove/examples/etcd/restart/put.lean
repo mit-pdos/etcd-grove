@@ -157,7 +157,9 @@ theorem put.wp_proof
   imod (show ⊢ |==> srvApi.kvLogLb (GF := GF) E.γs [] by
     unfold srvApi.kvLogLb; exact monoListLbOwn_nil _) with #HF0
   -- `s.Put(ctx, &pb.PutRequest{Key: key(i), Value: value(i)})`
-  wp_apply (wp_Put s E ρ ctx cd «$a1_ptr» (r1PutOp i)
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  wp_apply (wp_Put s E ρ ctx cd none «$a1_ptr» (r1PutOp i)
       (fun _ => monoNatAuthOwn γc (1 : Qp).half (i + 1)) []) $$ [Hlt HRD Hau]
     as %resp %err ⟨Hlt, HRD, Hout⟩
   · rw [hE]

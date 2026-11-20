@@ -2,8 +2,11 @@
 # `callOpts` (`[]CallOption`), and of `clientv3.Config.DialOptions`; and (unit C1, the client
 # meets the server) the interface `ClientConnInterface`, the type of the generated KV stub's
 # `cc` field (`etcdserverpb.kVClient`), whose `Invoke` names `context.Context`: hence the import
-# of `context`, without which the interface is axiomatized.
-translate = ["!*"]
+# of `context`, without which the interface is axiomatized. (const-inits, 2026-11-19) `EnableTracing`
+# (`var EnableTracing bool`, no initializer) translated: its allocation, the package fact's cell.
+# (prove-smallinits, 2026-11-20) the call options `clientv3.defaultCallOpts` holds: `WaitForReady`,
+# `MaxCallSendMsgSize`, `MaxCallRecvMsgSize` (struct literals of one scalar field).
+translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCallRecvMsgSize"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata"]
 
 # translate the definitions of all type declarations goose supports

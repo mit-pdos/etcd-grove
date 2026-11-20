@@ -28,10 +28,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- The guard's proof, both modes, with why it refused (auth-guard-completeness G2): `AuthInfoFromCtx`'s
 reasons at the lower bound (`specLb`) and, with auth on, the bound request side's rows at it. -/
 theorem EtcdServer.requireAuthInfo.wp_proofC
-    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG)) :
+    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG)) :
     EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) := by
-  intro s E ctx cd n
-  wp_start as ⟨#Hau, #Hlb, #Hctx, #Hlib, HRD⟩
+  intro s E ctx cd n tok
+  wp_start as ⟨#Hau, #Hlb, #Hctx, #Hlib, #Htok, HRD⟩
   iunfold srvAuthAt at Hau
   icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
   iunfold apply.isAuthStore at Hast
@@ -47,6 +47,14 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
     iframe HRD
     isplitr
     rotate_left
+    isplitr
+    · iintro -
+      iunfold authedFrom
+      rcases (Bool.eq_false_or_eq_true E.authMode.isOn).symm with hon | hon
+      · iright
+        iexists ({ Username' := [], Revision' := W64 0 } : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+        iintro !> %h; rw [hon] at h; cases h
+      · ileft; iapply HbLb; ipureintro; exact hon
     · iunfold authErrVarIs; ileft; ipureintro; rfl
     iunfold authedOutC
     isplitr
@@ -66,11 +74,11 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
   · (try wp_auto)
     ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
     ihave #HbLb' := HbLb $$ %Hon
-    wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n)
+    wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n tok)
       $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, #Hae, #Hz, #Hne, -⟩
     · iframe #
     ihave #Herr := authApplyErrIs_apply _ $$ Herr0
-    ihave #Hbnd : ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a $$ []
+    ihave #Hbnd : ctxBoundOrTLS s E.authMode tok a $$ []
     · iapply Hbnd; ipureintro; exact Hon
     ihave #Hz' := Hz $$ %Hon
     ihave #Hne' := Hne $$ %Hon
@@ -81,6 +89,8 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
       iframe HRD
       isplitr
       rotate_left
+      isplitr
+      · iintro %h; cases h
       · iapply Hae; ipureintro; exact Hon
       iunfold authedOutC
       isplitr
@@ -120,6 +130,9 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
         (try wp_auto)
         iapply HΦ
         iframe HRD HvUE
+        isplitr
+        rotate_left
+        · iintro %h; first | cases h | simp_all
         iunfold authedOutC
         isplitr
         · iunfold authedOutB
@@ -138,7 +151,7 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
           isplitr
           · iunfold auth.authErrOf; iexists eUE; simp only [auth.AuthErr.var]; iframe HeUE
           · iapply Hz'; exact ⟨rfl, rfl⟩
-      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hbnd $Hau]
+      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode tok a user rev $$ [$Hbnd $Hau]
         iunfold authInfoIs at Hau
         icases Hau with ⟨%Hann, -, -⟩
         (try wp_auto)
@@ -148,6 +161,12 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
         iframe HRD
         isplitr
         rotate_left
+        isplitr
+        · iintro -
+          iunfold authedFrom
+          iright
+          iexists { Username' := user, Revision' := rev }
+          iintro !> -; iexact Hpb
         · iunfold authErrVarIs; ileft; ipureintro; rfl
         iunfold authedOutC
         isplitr
@@ -168,14 +187,15 @@ theorem EtcdServer.requireAuthInfo.wp_proofC
 /-- `spec`, of `specC` (auth-guard-completeness G2): the reason dropped, at the lower bound `0`
 (`authPubLbM_zero`). -/
 theorem EtcdServer.requireAuthInfo.wp_proof
-    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG)) :
+    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG)) :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) := by
-  intro s E ctx cd
-  iintro %Φ ⟨#Hpkg, #Hau, #Hctx, #Hlib, HRD⟩ HΦ
+  intro s E ctx cd tok
+  iintro %Φ ⟨#Hpkg, #Hau, #Hctx, #Hlib, #Htok, HRD⟩ HΦ
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
-  iapply (EtcdServer.requireAuthInfo.wp_proofC hAI s E ctx cd 0) $$ [HRD]
+  iapply (EtcdServer.requireAuthInfo.wp_proofC hAI s E ctx cd 0 tok) $$ [HRD]
+
   · iframe; iframe #
-  iintro !> %err ⟨HRD, #Hout, #Hv⟩
+  iintro !> %err ⟨HRD, #Hout, -, #Hv⟩
   iapply HΦ
   iframe HRD Hv
   iapply authedOutB_of_C $$ Hout

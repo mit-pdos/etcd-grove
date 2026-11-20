@@ -5,7 +5,7 @@ whose one descriptor is named `BuildFQName(opts.Namespace, opts.Subsystem, opts.
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 
 @[expose] public section
 
@@ -25,7 +25,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `prometheus.NewCounter(opts)` of label-free options with a valid name returns a counter
-(mvcc's `counterSpec`: `Inc` and `Add` of a non-negative value return) that describes one
+(`metric.counterSpec`: `Inc` and `Add` of a non-negative value return) that describes one
 descriptor, of `opts`' fully-qualified name. -/
 abbrev prometheus.NewCounter.spec : Prop :=
   ∀ (o : github_com.prometheus.client_golang.prometheus.CounterOpts) (ns sub name help : GoString),
@@ -34,7 +34,7 @@ abbrev prometheus.NewCounter.spec : Prop :=
   {{ (True : IProp GF) }}
     (App (Val (@! github_com.prometheus.client_golang.prometheus.NewCounter)) (Val #o))
   {{ (c : GoInterfaceOk), RET #(GoInterface.ok c);
-      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c ∗
+      prometheus.metric.counterSpec c ∗
       ⌜prometheus.collectorName c (prometheus.fqName ns sub name)⌝ }}
 
 end spec

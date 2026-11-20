@@ -31,9 +31,6 @@ roots \bclient\.watchClient_Watch$
 roots \bv3rpc\.(new_stream_interceptor|etcd_watch_served_etcd_chain)$
 roots \bclient\.(client_watcher_rangeWatcher|client_newWatcher_rangeWatcher|client_watcher_etcdWatcher|client_watcher_progressNotifier)$
 axiom api.IsCapabilityEnabled.wp_proof
-axiom attribute.Bool.wp_proof
-axiom attribute.Int64.wp_proof
-axiom attribute.String.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom context.WithCancelValCtx.wp_proof
@@ -41,7 +38,6 @@ axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom fmt.Errorf.wp_proof
-axiom fmt.ErrorfWrap.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.GenericClientStream.CloseSend.wp_proof
@@ -56,9 +52,7 @@ axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcSrvCfgRaw
-axiom incomingOf_cancelCtx
 axiom metadata.FromIncomingContext.wp_proof
-axiom metadata.MD.Get.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
@@ -84,10 +78,8 @@ axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof
-axiom trace.WithAttributes.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.ctxCauseOk_cancellable
-axiom v3rpc.incomingOf_cancellableContext
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg

@@ -82,6 +82,9 @@ variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci 
 @[simp] theorem snapE_γs : (snapE E γ' TM' ci d' g γB al ast lp cl be).γs = E.γs := rfl
 @[simp] theorem snapE_Nx : (snapE E γ' TM' ci d' g γB al ast lp cl be).Nx = E.Nx := rfl
 @[simp] theorem snapE_Cp : (snapE E γ' TM' ci d' g γB al ast lp cl be).Cp = E.Cp := rfl
+@[simp] theorem snapE_win : (snapE E γ' TM' ci d' g γB al ast lp cl be).win = E.win := rfl
+@[simp] theorem snapE_Wt : (snapE E γ' TM' ci d' g γB al ast lp cl be).Wt = E.Wt := rfl
+@[simp] theorem snapE_stq : (snapE E γ' TM' ci d' g γB al ast lp cl be).stq = E.stq := rfl
 @[simp] theorem snapE_Pk :
     (snapE E γ' TM' ci d' g γB al ast lp cl be).Pk = fun _ => batchLockInv γ' TM' := rfl
 @[simp] theorem snapE_BkTie :

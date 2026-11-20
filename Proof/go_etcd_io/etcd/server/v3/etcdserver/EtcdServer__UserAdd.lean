@@ -43,7 +43,7 @@ theorem EtcdServer.UserAdd.wp_proof
   iunfold auth.userOptsAt at Hopts'
   icases Hopts' with ⟨%ou, -, Hopts'⟩
   iunfold auth.userOptsIs at Hopts'
-  icases Hopts' with (%Hon | ⟨%Honn, %ms, %uf, %sc, %u, -, #Hom, -⟩)
+  icases Hopts' with (%Hon | ⟨%Honn, %uf, %u, -, #NoPassword, -, -, -⟩)
   · obtain ⟨rfl, rfl, -⟩ := Hon
     wp_auto
     wp_apply wp_string_to_bytes pw as %psl ⟨Hpsl, -⟩
@@ -149,10 +149,7 @@ theorem EtcdServer.UserAdd.wp_proof
         iframe HQ
         ipureintro; exact ⟨rfl, He⟩
       · exact absurd rfl He
-  · ihave Homf := typedPointsto_split _ _ _ $$ Hom
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Homf
-    simp only [Honn, decide_false]
+  · simp only [Honn, decide_false]
     (try wp_auto)
     cases b
     · (try wp_auto)

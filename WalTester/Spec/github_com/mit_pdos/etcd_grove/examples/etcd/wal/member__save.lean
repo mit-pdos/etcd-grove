@@ -48,7 +48,7 @@ abbrev member.save.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
-      osCallPerm (GF := GF) qc ∗
+      tPerm (GF := GF) e qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ m.[member, go!"o"] ↦ v ∗
       oracleRep v o ∗ tOrOwn γ os none ∗ tWalOwn γ (some d) ∗ esl ↦*□ es ∗
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
@@ -57,7 +57,7 @@ abbrev member.save.spec : Prop :=
       WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
       WalFs.walLenLb (W := W) w (tWalDir e.area) d.H.length }}
     (App (App (Val (m @!! go.GoType.PointerType member.ty @!! go!"save")) (Val #h)) (Val #esl))
-  {{ (b : Bool), RET #b; DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
+  {{ (b : Bool), RET #b; DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ tPerm (GF := GF) e qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗ (∃ os' : TOracle, tOrOwn γ os' none) ∗
       if b then ∃ d' : WalDur, oracleRep v' (tSaveO o h es) ∗ tWalOwn γ (some d') ∗

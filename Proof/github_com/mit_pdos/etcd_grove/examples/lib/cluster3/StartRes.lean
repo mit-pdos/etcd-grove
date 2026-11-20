@@ -32,7 +32,8 @@ namespace cluster3
 open Iris Iris.BI Iris.ProofMode
 
 section startRes
-variable [GooseExts] {GF : BundledGFunctors}
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **The cluster's members**: each member's name and the addresses the program listens on for it
 (its peer address and its client address). -/

@@ -72,11 +72,13 @@ public import Proof.k8s_io.client_go.tools.cache.cache__Transaction
 public import Proof.k8s_io.client_go.tools.cache.cache__Update
 public import Proof.k8s_io.utils.clock.RealClock__Now
 public import Proof.k8s_io.client_go.tools.cache.controller__processLoop
+public import Proof.k8s_io.apimachinery.pkg.api.errors.IsTooManyRequests
 public import Proof.errors.Join
 public import Proof.k8s_io.client_go.tools.cache.handleWatch
 public import Proof.k8s_io.client_go.tools.cache.isExpiredError
 public import Proof.k8s_io.client_go.tools.cache.isUnsupportedTableListObject
 public import Proof.k8s_io.client_go.tools.cache.isWatchErrorRetriable
+public import Proof.k8s_io.apimachinery.pkg.api.meta.ListAccessor
 public import Proof.k8s_io.client_go.tools.cache.newStoreMetrics
 public import Proof.k8s_io.client_go.tools.cache.noopMetric__Set
 public import Proof.k8s_io.client_go.tools.pager.ListPager__ListWithAlloc
@@ -143,7 +145,6 @@ public import Spec.k8s_io.utils.clock.RealClock__After
 public import Spec.k8s_io.apimachinery.pkg.api.errors.IsGone
 public import Spec.k8s_io.apimachinery.pkg.api.errors.IsInternalError
 public import Spec.k8s_io.apimachinery.pkg.api.errors.IsResourceExpired
-public import Spec.k8s_io.apimachinery.pkg.api.errors.IsTooManyRequests
 public import Spec.k8s_io.client_go.tools.cache.handleAnyWatch
 public import Spec.k8s_io.client_go.tools.cache.isTooLargeResourceVersionError
 public import Spec.github_com.go_logr.logr.Logger__Info
@@ -151,12 +152,12 @@ public import Spec.github_com.go_logr.logr.Logger__Info_ptr
 public import Spec.github_com.go_logr.logr.Logger__V_ptr
 public import Spec.k8s_io.apimachinery.pkg.api.meta.ExtractListWithAlloc
 public import Spec.k8s_io.apimachinery.pkg.api.meta.LenList
-public import Spec.k8s_io.apimachinery.pkg.api.meta.ListAccessor
 public import Spec.k8s_io.apimachinery.pkg.util.net.IsConnectionRefused
 public import Spec.math.rand.Float64
 public import Spec.k8s_io.client_go.tools.cache.retryWithDeadlineImpl__After
 public import Spec.k8s_io.client_go.tools.cache.threadSafeMap__Transaction
 public import Spec.k8s_io.utils.trace.Trace__Step
+public import Spec.k8s_io.client_go.tools.cache.typedListMeta
 public import Spec.k8s_io.klog.v2.FromContext
 public import Spec.k8s_io.apimachinery.pkg.util.wait.Group__Start
 public import Proof.fmt.Link
@@ -369,6 +370,10 @@ theorem pager.wp_SimplePageFunc :
     EtcdGrove.pager.SimplePageFunc.spec (GF := GF) (hG := hG) :=
   EtcdGrove.pager.SimplePageFunc.wp_proof
 
+theorem apimeta.wp_ListAccessor :
+    EtcdGrove.apimeta.ListAccessor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimeta.ListAccessor.wp_proof
+
 theorem cache.retryWithDeadlineImpl.wp_reset :
     EtcdGrove.cache.retryWithDeadlineImpl.reset.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.retryWithDeadlineImpl.reset.wp_proof
@@ -380,6 +385,10 @@ theorem clock.RealClock.wp_Now :
 theorem cache.retryWithDeadlineImpl.wp_ShouldRetry :
     EtcdGrove.cache.retryWithDeadlineImpl.ShouldRetry.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.retryWithDeadlineImpl.ShouldRetry.wp_proof cache.retryWithDeadlineImpl.wp_reset clock.RealClock.wp_Now _root_.Perennial.time.Time.wp_Sub
+
+theorem apierrors.wp_IsTooManyRequests :
+    EtcdGrove.apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.IsTooManyRequests.wp_proof
 
 theorem cache.Reflector.wp_resyncChan :
     EtcdGrove.cache.Reflector.resyncChan.spec (GF := GF) (hG := hG) :=
@@ -650,7 +659,6 @@ variable (h_clock_RealClock__After : EtcdGrove.clock.RealClock.After.spec (GF :=
 variable (h_errors_IsGone : EtcdGrove.apierrors.IsGone.spec (GF := GF) (hG := hG))
 variable (h_errors_IsInternalError : EtcdGrove.apierrors.IsInternalError.spec (GF := GF) (hG := hG))
 variable (h_errors_IsResourceExpired : EtcdGrove.apierrors.IsResourceExpired.spec (GF := GF) (hG := hG))
-variable (h_errors_IsTooManyRequests : EtcdGrove.apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG))
 variable (h_handleAnyWatch : EtcdGrove.cache.handleAnyWatch.spec (GF := GF) (hG := hG))
 variable (h_isTooLargeResourceVersionError : EtcdGrove.cache.isTooLargeResourceVersionError.spec (GF := GF) (hG := hG))
 variable (h_logr_Logger__Info : EtcdGrove.logr.Logger.Info.spec (GF := GF) (hG := hG))
@@ -658,15 +666,15 @@ variable (h_logr_Logger__Info_ptr : EtcdGrove.logr.Logger.Info_ptr.spec (GF := G
 variable (h_logr_Logger__V_ptr : EtcdGrove.logr.Logger.V_ptr.spec (GF := GF) (hG := hG))
 variable (h_meta_ExtractListWithAlloc : EtcdGrove.apimeta.ExtractListWithAlloc.spec (GF := GF) (hG := hG))
 variable (h_meta_LenList : EtcdGrove.apimeta.LenList.spec (GF := GF) (hG := hG))
-variable (h_meta_ListAccessor : EtcdGrove.apimeta.ListAccessor.spec (GF := GF) (hG := hG))
 variable (h_net_IsConnectionRefused : EtcdGrove.net.IsConnectionRefused.spec (GF := GF) (hG := hG))
 variable (h_rand_Float64 : EtcdGrove.rand.Float64.spec (GF := GF) (hG := hG))
 variable (h_retryWithDeadlineImpl__After : EtcdGrove.cache.retryWithDeadlineImpl.After.spec (GF := GF) (hG := hG))
 variable (h_threadSafeMap__Transaction : EtcdGrove.cache.threadSafeMap.Transaction.spec (GF := GF) (hG := hG))
 variable (h_trace_Trace__Step : EtcdGrove.trace.Trace.Step.spec (GF := GF) (hG := hG))
+variable (h_typedListMeta : EtcdGrove.cache.typedListMeta.spec (GF := GF) (hG := hG))
 variable (h_v2_FromContext : EtcdGrove.klog.FromContext.spec (GF := GF) (hG := hG))
 variable (h_wait_Group__Start : EtcdGrove.wait.Group.Start.spec (GF := GF) (hG := hG))
-include h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start
+include h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start
 
 theorem cache.wp_isExpiredError :
     EtcdGrove.cache.isExpiredError.spec (GF := GF) (hG := hG) :=
@@ -674,15 +682,15 @@ theorem cache.wp_isExpiredError :
 
 theorem pager.ListPager.wp_list :
     EtcdGrove.pager.ListPager.list.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.pager.ListPager.list.wp_proof h_meta_ListAccessor h_errors_IsResourceExpired
+  EtcdGrove.pager.ListPager.list.wp_proof apimeta.wp_ListAccessor h_typedListMeta h_errors_IsResourceExpired
 
 theorem pager.ListPager.wp_ListWithAlloc :
     EtcdGrove.pager.ListPager.ListWithAlloc.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.pager.ListPager.ListWithAlloc.wp_proof (pager.ListPager.wp_list h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start)
+  EtcdGrove.pager.ListPager.ListWithAlloc.wp_proof (pager.ListPager.wp_list h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start)
 
 theorem cache.Reflector.wp_list :
     EtcdGrove.cache.Reflector.list.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.Reflector.list.wp_proof cache.Reflector.wp_relistResourceVersion cache.Reflector.wp_setIsLastSyncResourceVersionUnavailable cache.Reflector.wp_setLastSyncResourceVersion cache.Reflector.wp_syncWith (cache.wp_isExpiredError h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) h_isTooLargeResourceVersionError cache.wp_isUnsupportedTableListObject pager.wp_New pager.wp_SimplePageFunc (pager.ListPager.wp_ListWithAlloc h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) h_meta_ListAccessor h_meta_ExtractListWithAlloc h_meta_LenList trace.wp_New trace.Trace.wp_LogIfLong h_trace_Trace__Step fmt.wp_Errorf
+  EtcdGrove.cache.Reflector.list.wp_proof cache.Reflector.wp_relistResourceVersion cache.Reflector.wp_setIsLastSyncResourceVersionUnavailable cache.Reflector.wp_setLastSyncResourceVersion cache.Reflector.wp_syncWith (cache.wp_isExpiredError h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) h_isTooLargeResourceVersionError cache.wp_isUnsupportedTableListObject pager.wp_New pager.wp_SimplePageFunc (pager.ListPager.wp_ListWithAlloc h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) apimeta.wp_ListAccessor h_typedListMeta h_meta_ExtractListWithAlloc h_meta_LenList trace.wp_New trace.Trace.wp_LogIfLong h_trace_Trace__Step fmt.wp_Errorf
 
 theorem cache.wp_handleWatch :
     EtcdGrove.cache.handleWatch.spec (GF := GF) (hG := hG) :=
@@ -690,11 +698,11 @@ theorem cache.wp_handleWatch :
 
 theorem cache.wp_isWatchErrorRetriable :
     EtcdGrove.cache.isWatchErrorRetriable.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.isWatchErrorRetriable.wp_proof h_net_IsConnectionRefused h_errors_IsTooManyRequests
+  EtcdGrove.cache.isWatchErrorRetriable.wp_proof h_net_IsConnectionRefused apierrors.wp_IsTooManyRequests
 
 theorem cache.Reflector.wp_watch :
     EtcdGrove.cache.Reflector.watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.Reflector.watch.wp_proof (cache.wp_handleWatch h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) cache.Reflector.wp_LastSyncResourceVersion cache.Reflector.wp_setLastSyncResourceVersion cache.wp_NewRetryWithDeadline h_retryWithDeadlineImpl__After cache.retryWithDeadlineImpl.wp_ShouldRetry (cache.wp_isExpiredError h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) (cache.wp_isWatchErrorRetriable h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) h_v2_FromContext h_logr_Logger__V_ptr h_logr_Logger__Info h_logr_Logger__Info_ptr clock.RealClock.wp_Now h_clock_RealClock__After h_rand_Float64 time.Duration.wp_Seconds_ptr h_errors_IsTooManyRequests h_errors_IsInternalError
+  EtcdGrove.cache.Reflector.watch.wp_proof (cache.wp_handleWatch h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) cache.Reflector.wp_LastSyncResourceVersion cache.Reflector.wp_setLastSyncResourceVersion cache.wp_NewRetryWithDeadline h_retryWithDeadlineImpl__After cache.retryWithDeadlineImpl.wp_ShouldRetry (cache.wp_isExpiredError h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) (cache.wp_isWatchErrorRetriable h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) h_v2_FromContext h_logr_Logger__V_ptr h_logr_Logger__Info h_logr_Logger__Info_ptr clock.RealClock.wp_Now h_clock_RealClock__After h_rand_Float64 time.Duration.wp_Seconds_ptr apierrors.wp_IsTooManyRequests h_errors_IsInternalError
 
 theorem cache.Reflector.wp_startResync :
     EtcdGrove.cache.Reflector.startResync.spec (GF := GF) (hG := hG) :=
@@ -702,11 +710,11 @@ theorem cache.Reflector.wp_startResync :
 
 theorem cache.Reflector.wp_watchWithResync :
     EtcdGrove.cache.Reflector.watchWithResync.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.Reflector.watchWithResync.wp_proof (cache.Reflector.wp_watch h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) (cache.Reflector.wp_startResync h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) h_wait_Group__Start
+  EtcdGrove.cache.Reflector.watchWithResync.wp_proof (cache.Reflector.wp_watch h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) (cache.Reflector.wp_startResync h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) h_wait_Group__Start
 
 theorem cache.Reflector.wp_ListAndWatchWithContext :
     EtcdGrove.cache.Reflector.ListAndWatchWithContext.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.Reflector.ListAndWatchWithContext.wp_proof (cache.Reflector.wp_list h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) (cache.Reflector.wp_watchWithResync h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) h_v2_FromContext h_logr_Logger__V_ptr h_logr_Logger__Info
+  EtcdGrove.cache.Reflector.ListAndWatchWithContext.wp_proof (cache.Reflector.wp_list h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) (cache.Reflector.wp_watchWithResync h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) h_v2_FromContext h_logr_Logger__V_ptr h_logr_Logger__Info
 
 theorem cache.cache.wp_Transaction :
     EtcdGrove.cache.cache.Transaction.spec (GF := GF) (hG := hG) :=
@@ -718,7 +726,7 @@ theorem cache.controller.wp_processLoop :
 
 theorem cache.wp_processDeltasInBatch :
     EtcdGrove.cache.processDeltasInBatch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.processDeltasInBatch.wp_proof cache.cache.wp_GetByKey (cache.cache.wp_Transaction h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start) errors.wp_Join
+  EtcdGrove.cache.processDeltasInBatch.wp_proof cache.cache.wp_GetByKey (cache.cache.wp_Transaction h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start) errors.wp_Join
 
 theorem cache.processorListener.wp_pop :
     EtcdGrove.cache.processorListener.pop.spec (GF := GF) (hG := hG) :=
@@ -726,7 +734,7 @@ theorem cache.processorListener.wp_pop :
 
 theorem cache.sharedIndexInformer.wp_handleBatchDeltas :
     EtcdGrove.cache.sharedIndexInformer.handleBatchDeltas.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.sharedIndexInformer.handleBatchDeltas.wp_proof (cache.wp_processDeltasInBatch h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_errors_IsTooManyRequests h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_meta_ListAccessor h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_v2_FromContext h_wait_Group__Start)
+  EtcdGrove.cache.sharedIndexInformer.handleBatchDeltas.wp_proof (cache.wp_processDeltasInBatch h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_clock_RealClock__After h_errors_IsGone h_errors_IsInternalError h_errors_IsResourceExpired h_handleAnyWatch h_isTooLargeResourceVersionError h_logr_Logger__Info h_logr_Logger__Info_ptr h_logr_Logger__V_ptr h_meta_ExtractListWithAlloc h_meta_LenList h_net_IsConnectionRefused h_rand_Float64 h_retryWithDeadlineImpl__After h_threadSafeMap__Transaction h_trace_Trace__Step h_typedListMeta h_v2_FromContext h_wait_Group__Start)
 
 end links_pending
 

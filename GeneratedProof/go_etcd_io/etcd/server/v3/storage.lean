@@ -4,11 +4,15 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.Masterminds.semver.v3
+public import GeneratedProof.github_com.dustin.go_humanize
+public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.server.v3.config
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.cindex
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal.walpb
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
@@ -225,12 +229,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 noncomputable instance storage_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.storage :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.storage where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"lg" l) v.lg' dq ∗
+    "s" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"s" l) v.s' dq ∗
+    "mux" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"mux" l) v.mux' dq ∗
+    "w" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"w" l) v.w' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance storage_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.storage go_etcd_io.etcd.server.v3.storage.storage.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.storage go_etcd_io.etcd.server.v3.storage.storage.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance storage_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.storage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance storage_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.storage) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.storage.storage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance storage_access_load_s (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.storage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"s" l) v.s' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance storage_access_store_s (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.storage) (s' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"s" l) s' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : go_etcd_io.etcd.server.v3.storage.storage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance storage_access_load_mux (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.storage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"mux" l) v.mux' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"mux" l) v.mux' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance storage_access_store_mux (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.storage) (mux' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"mux" l) v.mux' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"mux" l) mux' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mux' := mux' } : go_etcd_io.etcd.server.v3.storage.storage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance storage_access_load_w (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.storage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"w" l) v.w' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance storage_access_store_w (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.storage) (w' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.storage go!"w" l) w' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := w' } : go_etcd_io.etcd.server.v3.storage.storage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end storage

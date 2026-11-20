@@ -21,6 +21,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/etcd/partition"
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // maxMembers is the bound of etcd_txnlinfaultsN_safe's member count.
@@ -161,6 +162,7 @@ func TestMainRun(t *testing.T) {
 	}
 	t.Logf("txnlinfaultsN: k=%d (rerun with TXNLINFAULTSN_MEMBERS=%d)", k, k)
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "txnlinfaultsN") // the members' WAL areas (wal-link P2)
 	sched := schedule(int(k))
 
 	start := time.Now()

@@ -109,19 +109,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply HErrorf _ _ [GoInterface.ok ie] [ie] (by
-          intro ii hii
-          right
-          simpa using hii) $$ [Hasl] as %err2 #Herr2
+    wp_apply HErrorf _ _ [GoInterface.ok ie] [ie] ?wf $$ [Hasl] as %err2 #Herr2
+    case wf => errargs_wf
     · iframe
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗
         errIsTerm (GoInterface.ok e)))).2
       iframe Hterm
-      unfold fmtErrorOkOrNil fmtErrorOk
-      icases Herr with ⟨-, H⟩
-      unfold errOk
-      rw [fmt.stringMethodSpec_unfold]
-      iexact H
+      iapply errOk_of_fmtErrorOkOrNil
+      iexact Herr
     try wp_auto
     iapply HΦ
     iframe

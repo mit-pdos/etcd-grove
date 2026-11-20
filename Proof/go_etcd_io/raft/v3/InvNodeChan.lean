@@ -617,7 +617,9 @@ def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
       □ (⌜st.msg.Type' = MsgSnap⌝ -∗
          ∃ (sv : SnapshotM) (scfg : CSLists),
            ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-             uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
+             uint.Z sv.Metadata'.Index' < 2^61 ∧
+             -- (auth-lease S4, 2026-11-16) outside the no-snapshot mode (`isRaftMsg`'s clause)
+             γ.raft.reNoSnap = false⌝ ∗
            isMessageC γ.raft (absSnap st.msg sv scfg) ∗
            -- (D22 S-r, 2026-10-21) and its data certificate (the sender's `msgDat`)
            snapDataOk γ.raft sv.Metadata'.Index' sv.Data' ∗
@@ -784,7 +786,7 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- term and commit index (`commitWit`), the commit index bounding the committed log handed out;
     -- (D22l) the witness of `prevHardSt` after the `Ready`, `p'` (`phsNext p h`, `p` the last
     -- non-empty one handed out, `RNState.phs`): a `nil` or empty one leaves it `p`
-    (∃ h : HardStateM, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
+    (∃ h : HardStateM, hsOptC rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
     hsWit γ.raft p' (d ++ ce).length ∗
     -- (2026-10-16, stage R7a, D10) the soft state: `nil`, or `Lead`/`RaftState` read-only
     softStateRO rd.SoftState' ∗
@@ -835,7 +837,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
-    (∃ h : HardStateM, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
+    (∃ h : HardStateM, hsOptC rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
     -- (2026-10-31) bounding the committed log up to the snapshot (until then `d ++ ce`)
     hsWit γ.raft p' l.dlv.length ∗
     softStateRO rd.SoftState' ∗
@@ -849,6 +851,8 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
     -- (2026-11-01, J8b) past the bootstrap log (`snapLocOk`: `restore` is above the commit index)
     ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗
+    -- (auth-lease S4, 2026-11-16; U9 had dropped the guard) outside the no-snapshot mode
+    ⌜γ.raft.reNoSnap = false⌝ ∗
     -- (raft-final phase 2, 2026-10-30) the snapshot's certificate (raft's, from the `MsgSnap` it
     -- restored, `ksnCert` through `certLink`): what the API's `readyRecv_open` makes the client's
     -- `snapshotCert` of (until U8 v2 the storage's registry, `storageCertLink`)

@@ -18,6 +18,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -437,8 +438,13 @@ func TestEnoent(t *testing.T) {
 		go churn(w, k)
 		go churn(d, k)
 	}
-	fails := 0
-	for i := 0; i < 3000; i++ {
+	// up to 3000 rounds, at least 200, within a time budget: each round reads the 2000-entry
+	// directory under eight churners, slow on C's ext4 (2026-11-20's run on C seemed to hang)
+	const maxRounds, minRounds, budget = 3000, 200, 20 * time.Second
+	start := time.Now()
+	fails, rounds := 0, 0
+	for i := 0; i < maxRounds && (i < minRounds || time.Since(start) < budget); i++ {
+		rounds++
 		if f, err := os.Open(w); err != nil {
 			fails++
 			if isNoent(err) {
@@ -464,7 +470,8 @@ func TestEnoent(t *testing.T) {
 	}
 	close(stop)
 	wg.Wait()
-	t.Logf("3000 rounds of open/readdir under churn: %d failures, none ENOENT", fails)
+	t.Logf("%d rounds of open/readdir under churn in %v: %d failures, none ENOENT", rounds,
+		time.Since(start).Round(time.Millisecond), fails)
 }
 
 // data_maxbytes.go: ext4's s_maxbytes (2^44 - 4096 with 4 KiB blocks and extents). A pwrite

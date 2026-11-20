@@ -12,19 +12,20 @@ theorem backend.batchTxBuffered.UnsafeCreateBucket.wp_proof [go_etcd_io.bbolt.As
       0 < List.length bi.name →
         List.length bi.name ≤ backend.maxKeySize →
           sint.Z st.pend + 1 < 2 ^ 58 →
-            ⊢
-              ∀ Φ,
-                isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-                    backend.isBackend γ P W Pk b ∗
-                      typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
-                        backend.batchLocked γ P b st ∗ backend.isBucket bk bi ∗ backend.rbPut γ P bi.name st.S -∗
-                  ▷
-                      (backend.batchLocked γ P b (st.create bi) ∗ backend.rbPut γ P bi.name (st.create bi).S -∗
-                        Φ (intoVal ())) -∗
-                    WP
-                      ((intoVal
-                          (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
-                            go!"UnsafeCreateBucket"
-                            (intoVal t)))
-                        (intoVal bk))
-                      {{ Φ }}
+            ∀ (c k : Bool) {_hkc : k ≤ c},
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+                      backend.isBackend γ P W Pk b ∗
+                        typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
+                          backend.batchLocked γ P b st c ∗ backend.isBucket bk bi ∗ backend.rbPut γ P bi.name st.S k -∗
+                    ▷
+                        (backend.batchLocked γ P b (st.create bi) c ∗ backend.rbPut γ P bi.name (st.create bi).S k -∗
+                          Φ (intoVal ())) -∗
+                      WP
+                        ((intoVal
+                            (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
+                              go!"UnsafeCreateBucket"
+                              (intoVal t)))
+                          (intoVal bk))
+                        {{ Φ }}

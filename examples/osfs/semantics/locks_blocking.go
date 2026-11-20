@@ -12,9 +12,10 @@ import (
 // Blocking lock requests wait (2026-11-15, pending review,
 // notes/wal-units/locks.md).
 //
-// Decision: F_OFD_SETLKW and flock without LOCK_NB follow the non-blocking
-// rule (LockStep with nb false): success only when no other description holds
-// a conflicting lock, so while one does the call takes no successful step (it
+// Decision: F_OFD_SETLKW and flock without LOCK_NB follow the same rule as
+// the non-blocking requests (LockStep, whose outcomes do not depend on nb
+// since 2026-11-19, locks_spurious_eagain.go): success only when no other
+// description holds a conflicting lock, so while one does the call takes no successful step (it
 // waits); it may fail at any time with any nonzero errno and no change.
 //
 // Lean: Impl.lean: LockStep (nb), IsFsStep "OfdLock" (cmd 38), "Flock" (no

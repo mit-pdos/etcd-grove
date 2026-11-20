@@ -59,18 +59,21 @@ theorem context.Err.wp_proof : context.Err.spec (GF := GF) (hG := hG) := by
     inext
     iintro %str -
     iapply HΨ
-  · -- (premise-fixes-4) the two errors' types, from `isCtxErr`: no `Format`
+  · -- (premise-fixes-4) the two errors' types, from `isCtxErr`: no `Format`, `Error() string`
     unfold context.isCtxErr
     icases Hce with (⟨-, %x, %hx, -⟩ | ⟨-, %hv⟩)
     · rw [hx] at he; cases he
       have h := go.method_set_is
         (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format"
-      simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
-      ipureintro; exact h
+      have h2 := go.method_set_is
+        (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Error"
+      simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h h2
+      ipureintro; exact ⟨h, h2⟩
     · rw [hv] at he; cases he
       have h := go.method_set_is (t := context.deadlineExceededError.ty) go!"Format"
-      simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
-      ipureintro; exact h
+      have h2 := go.method_set_is (t := context.deadlineExceededError.ty) go!"Error"
+      simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h h2
+      ipureintro; exact ⟨h, h2⟩
 
 end proof
 

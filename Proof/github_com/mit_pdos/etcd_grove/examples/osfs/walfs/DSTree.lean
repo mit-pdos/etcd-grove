@@ -46,11 +46,11 @@ rest of the history: it fails, the history unchanged. -/
 theorem wp_osUnlinkNoDir (d b : GoString) (hb : NameOk b) (R : Roots) (V : Hist) (q1 q : Qp)
     (k s' : Nat) (hq : q1 + q = 1) (hn : ∃ rj ∈ R, CanonBelow rj.1 (child d b))
     (hd : ∀ J, lookupH R V d ≠ some (.dir J)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' (child d b) q -∗
       (∀ (e : w64) (V' : Hist), ⌜e ≠ 0 ∧ V' = V⌝ -∗
         osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  refine wp_metaStep "Unlink" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  refine wp_metaStep "Unlink" _ (by simp [val.isPanic]) R V q1 q k s' (child d b) hq _ ?_ ?_ hE Φ
   · intro st hp
     have htn : st.TreeName (child d b) := by rw [OsState.TreeName, hp.roots]; exact hn
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, htn,
@@ -59,7 +59,7 @@ theorem wp_osUnlinkNoDir (d b : GoString) (hb : NameOk b) (R : Roots) (V : Hist)
     have hd' : ∀ J, st.lookup d ≠ some (.dir J) := fun J => by rw [lookup_pre hp d]; exact hd J
     obtain ⟨p, k', start, hv, -, hk', hres⟩ := hst
     obtain ⟨rfl, rfl⟩ := tokPath_inj hv
-    obtain rfl := start_eq hp hk'
+    obtain ⟨rfl, -⟩ := start_eq hp hk'
     rcases hres with ⟨i, j0, b0, -, hpar, -⟩ | ⟨e, he, rfl, rfl⟩
     · rw [parent_child_noDir hb hd'] at hpar; cases hpar
     · exact ⟨e, rfl, (metaPost_end hp).1, he, (metaPost_end hp).2⟩
@@ -69,11 +69,11 @@ rest of the history: it fails, the history unchanged. -/
 theorem wp_osRmdirNoDir (d b : GoString) (hb : NameOk b) (R : Roots) (V : Hist) (q1 q : Qp)
     (k s' : Nat) (hq : q1 + q = 1) (hn : ∃ rj ∈ R, CanonBelow rj.1 (child d b))
     (hd : ∀ J, lookupH R V d ≠ some (.dir J)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' (child d b) q -∗
       (∀ (e : w64) (V' : Hist), ⌜e ≠ 0 ∧ V' = V⌝ -∗
         osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  refine wp_metaStep "Rmdir" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  refine wp_metaStep "Rmdir" _ (by simp [val.isPanic]) R V q1 q k s' (child d b) hq _ ?_ ?_ hE Φ
   · intro st hp
     have htn : st.TreeName (child d b) := by rw [OsState.TreeName, hp.roots]; exact hn
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, htn,
@@ -82,7 +82,7 @@ theorem wp_osRmdirNoDir (d b : GoString) (hb : NameOk b) (R : Roots) (V : Hist) 
     have hd' : ∀ J, st.lookup d ≠ some (.dir J) := fun J => by rw [lookup_pre hp d]; exact hd J
     obtain ⟨p, k', start, hv, -, hk', hres⟩ := hst
     obtain ⟨rfl, rfl⟩ := tokPath_inj hv
-    obtain rfl := start_eq hp hk'
+    obtain ⟨rfl, -⟩ := start_eq hp hk'
     rcases hres with ⟨j', j0, b0, -, hpar, -⟩ | ⟨e, he, rfl, rfl⟩
     · rw [parent_child_noDir hb hd'] at hpar; cases hpar
     · exact ⟨e, rfl, (metaPost_end hp).1, he, (metaPost_end hp).2⟩

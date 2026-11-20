@@ -41,7 +41,7 @@ request goroutines (`srvStartReaders`, the leader-change notifier's readers), an
 `start`'s right to stop the server (`srvStopRight`; a caller that never stops drops it). -/
 abbrev EtcdServer.Start.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
+    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗

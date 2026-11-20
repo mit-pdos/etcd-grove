@@ -12,6 +12,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Run
+public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.buildPath
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.checkKV
@@ -108,6 +109,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeDeleteLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__ID
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__IsSafeRangeBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__Name
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.leaseIDToBytes
 public import Proof.sort.StringSlice__Sort
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.stream__act
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.stream__cancel
@@ -361,9 +363,17 @@ theorem sort.StringSlice.wp_Sort :
     EtcdGrove.sort.StringSlice.Sort.spec (GF := GF) (hG := hG) :=
   EtcdGrove.sort.StringSlice.Sort.wp_proof
 
+theorem binary.bigEndian.wp_PutUint64 :
+    EtcdGrove.binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.binary.bigEndian.PutUint64.wp_proof
+
+theorem schema.wp_leaseIDToBytes :
+    EtcdGrove.schema.leaseIDToBytes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.schema.leaseIDToBytes.wp_proof binary.bigEndian.wp_PutUint64
+
 theorem schema.wp_UnsafeDeleteLease :
     EtcdGrove.schema.UnsafeDeleteLease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.schema.UnsafeDeleteLease.wp_proof
+  EtcdGrove.schema.UnsafeDeleteLease.wp_proof schema.wp_leaseIDToBytes
 
 theorem history.wp_addComp :
     EtcdGrove.mvccfull.history.addComp.spec (GF := GF) (hG := hG) :=
@@ -572,7 +582,7 @@ theorem runner.wp_shut [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem heap.wp_Init_ :
     EtcdGrove.heap.Init_.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.Init_.wp_proof
+  EtcdGrove.heap.Init_.wp_proof heap.wp_down
 
 theorem lease.LeaseExpiredNotifier.wp_Init :
     EtcdGrove.lease.LeaseExpiredNotifier.Init.spec (GF := GF) (hG := hG) :=

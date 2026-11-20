@@ -63,8 +63,6 @@ attribute [irreducible] emptyObjectKind.ty
 noncomputable def EmptyObjectKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime/schema.EmptyObjectKind"
 
-opaque EmptyObjectKind.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ParseResourceArg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime/schema.ParseResourceArg"
 
@@ -86,6 +84,50 @@ noncomputable def bestMatch [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def FromAPIVersionAndKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime/schema.FromAPIVersionAndKind"
 
+/-- go: group_version.go:69:25 -/
+noncomputable def GroupResource.String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "gr"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "gr" (App (Val (GoInstruction (GoAlloc GroupResource.ty))) (Var "gr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef GroupResource.ty go!"Resource"))) (Var "gr"))) (Val #(go!".")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef GroupResource.ty go!"Group"))) (Var "gr")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef GroupResource.ty go!"Group"))) (Var "gr")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef GroupResource.ty go!"Resource"))) (Var "gr")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: group_version.go:102:33 -/
+noncomputable def GroupVersionResource.Empty.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "gvr"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "gvr" (App (Val (GoInstruction (GoAlloc GroupVersionResource.ty))) (Var "gvr"))
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef GroupVersionResource.ty go!"Group"))) (Var "gvr")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef GroupVersionResource.ty go!"Version"))) (Var "gvr")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef GroupVersionResource.ty go!"Resource"))) (Var "gvr")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.runtime.schema where
   pkgImportedPkgs := []
 
@@ -95,8 +137,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.runtime.schema)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral emptyObjectKind.ty))) (LiteralValue []))
   (App (Val doExecute)
-  (App (Val EmptyObjectKind.init) (Val #())))))))
+  (App (Val (GoInstruction (GoStore emptyObjectKind.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr EmptyObjectKind))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc EmptyObjectKind emptyObjectKind.ty)) (Val #()))))))))
 
 structure GroupResource [GooseExts] where
   mk ::
@@ -129,6 +175,9 @@ class GroupResource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_Resource : ∀ (x : GroupResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupResource.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : GroupResource)))
   method_set : go.MethodSetIs GroupResource.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupResource.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
+  String_unfold : MethodUnfold GroupResource.ty go!"String" GroupResource.String.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType GroupResource.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve GroupResource.ty go!"String"))) (App (Val (GoInstruction (GoLoad GroupResource.ty))) (Var "$r"))))
 
 attribute [instance] GroupResource.TypeAssumptions.type_repr
   GroupResource.TypeAssumptions.underlying
@@ -138,6 +187,8 @@ attribute [instance] GroupResource.TypeAssumptions.type_repr
   GroupResource.TypeAssumptions.set_Resource
   GroupResource.TypeAssumptions.method_set
   GroupResource.TypeAssumptions.ptr_method_set
+  GroupResource.TypeAssumptions.String_unfold
+  GroupResource.TypeAssumptions.ptr_String_unfold
 
 structure GroupVersionResource [GooseExts] where
   mk ::
@@ -174,6 +225,9 @@ class GroupVersionResource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_Resource : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : GroupVersionResource)))
   method_set : go.MethodSetIs GroupVersionResource.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupResource", (some (go.signature.Signature [] false [GroupResource.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersionResource.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupResource", (some (go.signature.Signature [] false [GroupResource.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  Empty_unfold : MethodUnfold GroupVersionResource.ty go!"Empty" GroupVersionResource.Empty.impl
+  ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType GroupVersionResource.ty) go!"Empty" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve GroupVersionResource.ty go!"Empty"))) (App (Val (GoInstruction (GoLoad GroupVersionResource.ty))) (Var "$r"))))
 
 attribute [instance] GroupVersionResource.TypeAssumptions.type_repr
   GroupVersionResource.TypeAssumptions.underlying
@@ -185,6 +239,8 @@ attribute [instance] GroupVersionResource.TypeAssumptions.type_repr
   GroupVersionResource.TypeAssumptions.set_Resource
   GroupVersionResource.TypeAssumptions.method_set
   GroupVersionResource.TypeAssumptions.ptr_method_set
+  GroupVersionResource.TypeAssumptions.Empty_unfold
+  GroupVersionResource.TypeAssumptions.ptr_Empty_unfold
 
 structure GroupKind [GooseExts] where
   mk ::

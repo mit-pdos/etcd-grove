@@ -128,11 +128,13 @@ def hookRun (P : BParams) (st0 st : BSess) (ui ut : Bool) : Prop :=
   st.C = st0.C ∧ st.R = st0.R ∧ sData P st.S = sData P st0.S ∧ rbData P st.S = rbData P st0.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = bkOf st0.W.bks i) ∧
   sint.Z st.pend = sint.Z st0.pend + (if ui then 1 else 0) + (if ut then 1 else 0) ∧
-  st.ndel = st0.ndel ∧ st.tx = st0.tx ∧ (st.cnt = st0.cnt ∧ st.dl = st0.dl ∧ st.win = st0.win)
+  st.ndel = st0.ndel ∧ st.tx = st0.tx ∧
+  (st.cnt = st0.cnt ∧ st.dl = st0.dl ∧ st.win = st0.win ∧ trkKept P st0 st)
 
 theorem hookRun_refl (P : BParams) (st0 : BSess) :
     hookRun P st0 st0 false false :=
-  ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, by simp, rfl, rfl, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, by simp, rfl, rfl, rfl, rfl, rfl,
+    fun _ _ _ _ => rfl, fun _ _ => rfl, rfl⟩
 
 /-- A run of the hook is a hook step (at most two puts). -/
 theorem hookStep_of_run {P : BParams} (hP : ciKeys P) {st0 st : BSess} {ui ut : Bool}
@@ -140,7 +142,7 @@ theorem hookStep_of_run {P : BParams} (hP : ciKeys P) {st0 st : BSess} {ui ut : 
   obtain ⟨hC, hR, hS, hB, hW, hp, hn, htx, hc⟩ := h
   have h2 := hP.2.2.1
   refine ⟨hC, hR, hS, hB, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc.1,
-    by rw [hc.2.1], hc.2.2⟩
+    by rw [hc.2.1], hc.2.2.1, hc.2.2.2⟩
   · rw [hp]; split <;> split <;> omega
   · rw [hp]; split <;> split <;> omega
 
@@ -152,7 +154,8 @@ theorem hookRun_put {P : BParams} (hPw : P.Wf) (hP : ciKeys P) {st0 st : BSess} 
       (ut || decide (kb = schema.termKeyBytes)) := by
   obtain ⟨hC, hR, hS, hB, hW, hp, hn, htx, hc⟩ := h
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
-  refine ⟨hC, hR, ?_, ?_, ?_, ?_, hn, htx, hc⟩
+  refine ⟨hC, hR, ?_, ?_, ?_, ?_, hn, htx, hc.1, hc.2.1, hc.2.2.1,
+    trkKept_put_other hPw hP.1 hP.2.2.2.2.2 hc.2.2.2⟩
   · show sData P (st.S.insert mvcc.metaBI.name ((bktOf st.S mvcc.metaBI.name).insert kb vb)) = _
     rw [storage.sData_put_HB (n := mvcc.metaBI.name) hP.2.1]; exact hS
   · rw [rbData_put_other _ _ _ _ _ hP.2.2.2.2.2]; exact hB
@@ -298,7 +301,7 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   have hhk : P.hk mvcc.metaBI.name schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   have hhk' : P.hk schema.metaName schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.ciKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) (by rw [u64Be_length]; decide) hpend hSB (fun h => absurd h (by decide)))
+      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)) false false)
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -, -⟩
   · iframe #
     rw [fkPut_eq γ _ _ (by decide)]
@@ -365,7 +368,7 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   have hhk : P.hk mvcc.metaBI.name schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   have hhk' : P.hk schema.metaName schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.termKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) (by rw [u64Be_length]; decide) hpend hSB (fun h => absurd h (by decide)))
+      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)) false false)
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -, -⟩
   · iframe #
     rw [fkPut_eq γ _ _ (by decide)]

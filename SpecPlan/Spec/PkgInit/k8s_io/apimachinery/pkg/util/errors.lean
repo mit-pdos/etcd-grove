@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.errors
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 noncomputable section

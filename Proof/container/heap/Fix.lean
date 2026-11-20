@@ -41,7 +41,7 @@ theorem heap.Fix.wp_proof
   inext
   iintro %n ⟨HR, %Hn⟩
   wp_auto
-  wp_apply (hdown A h R E xs i n Hi0 Hil Hn) $$ [$Hiface $HR] as %b ⟨%ys, HR, %Hys⟩
+  wp_apply (hdown A h R E xs i n Hi0 (by omega) (by omega)) $$ [$Hiface $HR] as %b ⟨%ys, HR, %Hys⟩
   cases b
   · wp_auto
     wp_apply (hup A h R E ys i Hi0 (by rw [Hys.length_eq]; exact Hil)) $$ [$Hiface $HR]

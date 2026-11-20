@@ -4,7 +4,7 @@
 
 `walOpenWFR P Mr w dir k` (sealed): `walOpenWF` whose tail's stream, written and pending
 (`o0 + |out| + |pend|`), ends at least `k` bytes before `maxBytes` (ext4's `s_maxbytes`, `fsExt`'s file size
-bound). The no-error specs (`Close.specNoErr`, `SaveSnapshot.specNoErr`) take it: a write that reaches
+bound). The no-error specs (`Close.spec`, `Save.spec`, `SaveSnapshot.spec`, through `walHdl`) take it: a write that reaches
 `maxBytes` fails with `EFBIG` whether or not `NoIoErr` holds (no write can succeed there), so an error-free
 flush needs the stream to end before it. How a client comes by it (a law from `Create`'s post, the fresh
 tail's headers being far below `maxBytes`; from `Save`'s cut; or a public measure of the tail) is open:
@@ -57,12 +57,12 @@ theorem createStream_room (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCrea
   have h2 := frame_walRecEnc_tight metadataType (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) md
     (by decide) (by omega)
   have h3 := frame_walRecEnc_tight snapshotType (hash.crc32.crc32c (hash.crc32.crc32c
-    (hash.crc32.crc32c 0#32 []) md) (Mr.encSnap snapC0.model)) (Mr.encSnap snapC0.model) (by decide)
+    (hash.crc32.crc32c 0#32 []) md) (Mr.encSnap snapC0.model true)) (Mr.encSnap snapC0.model true) (by decide)
     (by
-      have h4 : (Mr.encSnap snapC0.model).length < 2 ^ 8 := by
+      have h4 : (Mr.encSnap snapC0.model true).length < 2 ^ 8 := by
         rw [hMr.2, hMr.1]; simp [snapC0, snapEnc, optVarintField, optBytesField, varintEnc]
       omega)
-  have h4 : (Mr.encSnap snapC0.model).length < 2 ^ 8 := by
+  have h4 : (Mr.encSnap snapC0.model true).length < 2 ^ 8 := by
     rw [hMr.2, hMr.1]; simp [snapC0, snapEnc, optVarintField, optBytesField, varintEnc]
   simp only [List.length_nil, List.length_append] at h1 ⊢
   omega

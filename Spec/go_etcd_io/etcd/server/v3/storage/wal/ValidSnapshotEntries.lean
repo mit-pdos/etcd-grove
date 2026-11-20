@@ -50,12 +50,12 @@ abbrev wal.ValidSnapshotEntries.spec (Mr : WalMarshal) : Prop :=
   InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
-      osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
+      osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
       AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
         <{ WalFs.walDirIs dir o, COMM Q o }> }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.ValidSnapshotEntries)) (Val #lg)) (Val #dir))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
-      osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
+      osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
       ∃ o : Option WalDur, Q o ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ∃ (d : WalDur) (ps : List Loc), ⌜o = some d⌝ ∗ sl ↦*□ ps ∗
         walSnapsAt ps (walValidSnaps (d.H.map WalOpG.toM) d.cut)) }}

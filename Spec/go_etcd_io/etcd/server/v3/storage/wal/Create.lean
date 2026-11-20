@@ -96,7 +96,7 @@ abbrev wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   md.length < 2 ^ 41 → md ≠ [] → WalMarshalCreateOk Mr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk walCodec Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
-      walAreaRes jr ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
+      walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
       AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o ∗ ⌜Pv o⌝ }> @ walAuMask, ∅
         <{ WalFs.walDiskAt dir (walDurFresh md), COMM Q }> }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Create)) (Val #lg)) (Val #dir))
@@ -104,11 +104,11 @@ abbrev wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
       ((⌜err = interface.nil⌝ ∗ Q ∗ walOpenWF P Mr w dir ∗ WalFs.walNamed dir ∗ WalFs.walLenLb w dir 0 ∗
-          WalFs.walSyncedLb dir 0 ∗ WalFs.walPurgeW w dir ∗ osCallPerm (1 : Qp).half) ∨
-        (⌜err ≠ interface.nil⌝ ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
+          WalFs.walSyncedLb dir 0 ∗ WalFs.walPurgeW w dir ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
+        (⌜err ≠ interface.nil⌝ ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
           AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o ∗ ⌜Pv o⌝ }> @ walAuMask, ∅
         <{ WalFs.walDiskAt dir (walDurFresh md), COMM Q }>) ∨
-        (⌜err ≠ interface.nil⌝ ∗ Q ∗ osCallPerm (1 : Qp).half)) }}
+        (⌜err ≠ interface.nil⌝ ∗ Q ∗ osCallPerm (callKey R r) (1 : Qp).half)) }}
 
 end spec
 

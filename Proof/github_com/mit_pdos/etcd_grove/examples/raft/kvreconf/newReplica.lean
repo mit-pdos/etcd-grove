@@ -46,7 +46,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     newReplica.spec (GF := GF) (hG := hG) := by
   intro γr vs id n st sts cs0 tick f ms γs hs K Htick Hnd Hvl Hcsm
   wp_start as ⟨#Hcci, #Hcl, #Hstats, #HisNode, Hdrv, Hraft, Hrun, Hcfg, #Hrec, #HmsInv, Hmeta,
-    Hsnap, #Hcs0, #Hsend, Hseq, %Hmd⟩
+    Hsnap, #Hcs0, #Hsend, Hseq, %Hmd, %Hnsn⟩
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
   try wp_auto
@@ -132,7 +132,9 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
   · unfold isReplica
     simp only [named]
     iframe #
-    ipureintro; exact Hmd
+    isplitr
+    · ipureintro; exact Hmd
+    ipureintro; exact Hnsn
   ihave #HR : isReplicaR γr vs id «$r0_ptr» n st sts ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K⟩ $$ []
   · unfold isReplicaR
     simp only [named]

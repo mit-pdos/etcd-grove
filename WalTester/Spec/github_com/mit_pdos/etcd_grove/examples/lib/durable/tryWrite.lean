@@ -37,10 +37,10 @@ abbrev github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.spec : Prop 
   f.Ok → data.length ≤ 0x40000000 → (∃ s, DurOk f s p) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ isPkgInit (PROP := IProp GF) pkg_id.path.filepath ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ durInv (GF := GF) γ f ∗
-      durHandleP (GF := GF) γ f R p ∗ osCallPerm (GF := GF) qc ∗ durWOwe (GF := GF) γ f data p Ψ }}
+      durHandleP (GF := GF) γ f R p ∗ osCallPerm (GF := GF) (callKey R f.d) qc ∗ durWOwe (GF := GF) γ f data p Ψ }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite)) (Val #f.name))
       (Val #data))
-  {{ (ok : Bool), RET #ok; osCallPerm qc ∗ ∃ p' : DurPhys, durHandleP γ f R p' ∗
+  {{ (ok : Bool), RET #ok; osCallPerm (callKey R f.d) qc ∗ ∃ p' : DurPhys, durHandleP γ f R p' ∗
       ((⌜ok = true ∧ p'.alt = none⌝ ∗ Ψ) ∨ (⌜ok = false⌝ ∗ durWOwe γ f data p' Ψ)) }}
 
 end spec

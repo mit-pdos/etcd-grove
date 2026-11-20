@@ -3,7 +3,9 @@
 (`k8s.io/apiserver/pkg/storage/etcd3/store.go:1005-1018`): a fresh aggregator's `Aggregate()` is
 `nil`; a `nil` items slice (`IsNil`, empty by its post) becomes an empty one (`MakeSlice`, `Set`);
 the versioner's `UpdateList` writes the list's metadata (`listContractOk`); `SetShardInfoOnList` is
-a no-op (no shard selector, `selPredOk`). The list then holds the items with the metadata given.
+a no-op (no shard selector, `selPredOk`). The list then holds the items with the metadata given,
+in a non-nil slice (2026-11-19, stage 7g: `IsNil` false only of a non-nil slice, `MakeSlice` never nil;
+`UpdateList` touches only the metadata).
 Proved (stage 7e-2, `notes/k8s-7e-2-draft.md` §3.6). Lean-first (no Rocq counterpart).
 -/
 module
@@ -46,7 +48,9 @@ abbrev store.finalizeList.spec : Prop :=
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"finalizeList")) (Val #lx)) (Val #pred))
       (Val #rev)) (Val #cont)) (Val #rem)) (Val #ag)) (Val #v))
-  {{ RET #GoInterface.nil; L.listAt lx os rev cont remV }}
+  {{ RET #GoInterface.nil; ∃ (pl' : Loc) (s : GoSlice),
+      ⌜lx = interface.mkOk (go.GoType.PointerType L.listTy) #pl'⌝ ∗ ⌜pl' ≠ null⌝ ∗ ⌜s ≠ slice.nil⌝ ∗
+      L.itemsRef pl' ↦ s ∗ L.itemsAt s os ∗ L.metaAt pl' rev cont remV }}
 
 end spec
 

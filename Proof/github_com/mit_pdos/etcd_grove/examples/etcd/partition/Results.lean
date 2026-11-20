@@ -128,7 +128,7 @@ theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
-    (HDs : dataDirsAbsent (linkv3pProgram clients ops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
+    (HDs : dataDirsAbsent (linkv3pProgram clients ops steps) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (linkv3pProgram clients ops steps))
     (n : Nat)
@@ -136,6 +136,8 @@ theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -145,39 +147,7 @@ theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
-    Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
-
-/-- **`etcd_partition_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_partition_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_partition_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_partition.BootFacts id₁ id₂ id₃ ps ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (clients ops : w64) (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31)
-    (Hops : 0 ≤ sint.Z ops) (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
-    (Hsteps : steps.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (linkv3pProgram clients ops steps) linkv3pNames)
-    (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
-    (HDs : dataDirsAbsent (linkv3pProgram clients ops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
-    (HEnv : verifyEnvOff (linkv3pProgram clients ops steps))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC linkvGF,
-      ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(linkv3pProgram clients ops steps, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
-    (etcd_partition_safe
-      Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops Hmul
-      steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2
-      hexec (by omega)).2
+    Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 /-- **The watch run over the partitioned cluster is safe, in the operational semantics**
 (`etcd_partition_watch_adequate`, see the file header and `AdequacyWatch.lean`). -/
@@ -204,7 +174,7 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
-    (HDs : dataDirsAbsent (linkv3pWatchProgram nw nops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
+    (HDs : dataDirsAbsent (linkv3pWatchProgram nw nops steps) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (linkv3pWatchProgram nw nops steps))
     (n : Nat)
@@ -212,6 +182,8 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_partition.name₁), (memberDataDir etcd_partition.name₂), (memberDataDir etcd_partition.name₃)])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -221,41 +193,7 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_partition_watch_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo nw nops H0 H31
-    Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
-
-/-- **`etcd_partition_watch_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_partition_watch_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_partition_watch_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
-      ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_partition.BootFacts id₁ id₂ id₃ ps ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk) (nw nops : w64)
-    (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
-    (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
-    (Hsteps : steps.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pNames)
-    (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
-    (HDs : dataDirsAbsent (linkv3pWatchProgram nw nops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
-    (HEnv : verifyEnvOff (linkv3pWatchProgram nw nops steps))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC linkvGF,
-      ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(linkv3pWatchProgram nw nops steps, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
-    (etcd_partition_watch_safe
-      Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul steps
-      Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec
-      (by omega)).2
+    Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 

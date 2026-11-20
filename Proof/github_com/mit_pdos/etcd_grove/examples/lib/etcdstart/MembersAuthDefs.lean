@@ -57,16 +57,16 @@ instance bootPremiseOn_persistent (N : Nat) (ps : List w64) (bootLog : List Entr
 def memberPreOn (N : Nat) (token : GoString) (ms : List GMember) (ps : List w64)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
-    (x : GMember × MemberG GF) : IProp GF :=
+    (x : GMember × MemberG GF) (m : lease.Mode := .none) : IProp GF :=
   iprop(bootPremiseOn N ps bootLog ctxs dir token x.1.Name' (urlsN ms x.1) x.2.id ∗
-    memberBootOn x.2.γ ctxs x.2.ρ x.2.E Φs x.2.id ∗ netHttpOk γn x.2.id ∗
+    memberBootOn x.2.γ ctxs x.2.ρ x.2.E Φs x.2.id false m ∗ netHttpOk γn x.2.id ∗
     memberFreshRes x.1.Name' ⟨some x.1.Peer', none⟩ γn)
 
 /-- A started member's thread token, out of its `memberUpOn` (its `srvGoRes`), and back (auth3's). -/
 theorem memberUpOn_tok (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) (γa : auth.AuthNames) :
-    memberUpOn s ρ E₀ lg γn id γa ⊢
-      threadTok ∗ (threadTok -∗ memberUpOn s ρ E₀ lg γn id γa) := by
+    (id : w64) (γa : auth.AuthNames) (m : lease.Mode := .none) :
+    memberUpOn s ρ E₀ lg γn id γa m ⊢
+      threadTok ∗ (threadTok -∗ memberUpOn s ρ E₀ lg γn id γa m) := by
   iintro H
   iunfold memberUpOn at H
   icases H with ⟨%E, %cfg, %γw, %HE, H1, H2, #H3, #H4, #H5, Hgo, H7, H8, #H9, #H10, H11, H12,

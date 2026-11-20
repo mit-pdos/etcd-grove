@@ -1,6 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`step(c, in, out)` (k8s_etcd3.go): the configurations `c` steps to by `(in, out)` (`stepL`): a
+`step(c, in, out)` (k8s_etcd3.go): the configurations `c` steps to by `(in, out)` (`stepL` on `out`'s plain
+value, `plainOut`: `outEqual` ignores its `Raw`): a
 watch keeps `c` if `watchOk` passes, and drops it otherwise; a call that returned no error took
 effect and answered the model's output (a list `mlist`'s, which changes nothing; any other call
 `mstep`'s, the history advanced); a failed write becomes pending; a failed read does nothing. Its
@@ -40,7 +41,7 @@ abbrev step.spec : Prop :=
           ∀ n, parseRVD x.MinRV' = some n → uint.Z n < 2 ^ 63)⌝ }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step)) (Val #c)) (Val #x)) (Val #y))
   {{ (r : GoSlice) (cs : List mcfg), RET #r;
-      r ↦* cs ∗ [∗list] c';g' ∈ cs;stepL g x y, cfgOwn c' g' }}
+      r ↦* cs ∗ [∗list] c';g' ∈ cs;stepL g x (plainOut y), cfgOwn c' g' }}
 
 end spec
 

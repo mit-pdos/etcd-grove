@@ -73,9 +73,9 @@ theorem os.peOk_fmt (pe : Loc) (hpn : pe ≠ null) :
   iapply (os.pathError_fmtErrorOk pe op path err) $$ Hop Hpath Herr Hok
 
 /-- The call permission's two halves. -/
-theorem os.osCallPerm_halves (q : Qp) :
-    osCallPerm (GF := GF) q.half ∗ osCallPerm q.half ⊣⊢ osCallPerm q := by
-  have h := osCallPerm_split (GF := GF) q.half q.half
+theorem os.osCallPerm_halves (r : GoString) (q : Qp) :
+    osCallPerm (GF := GF) r q.half ∗ osCallPerm r q.half ⊣⊢ osCallPerm r q := by
+  have h := osCallPerm_split (GF := GF) r q.half q.half
   rw [Qp.half_add_half] at h
   exact ⟨h.2, h.1⟩
 
@@ -85,10 +85,11 @@ local macro "rm_fin" qc:term:max fin:tacticSeq : tactic => `(tactic| (
   try wp_auto
   wp_apply wp_osLstatDirGuardS R (child d b) t sg ($qc).half hp CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hg as %isDir %e5 %- Hg
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
   iapply HΦ
   iframe
   isplitl [Hperm Hg]
-  · iapply (os.osCallPerm_halves $qc).1; iframe
+  · iapply (os.osCallPerm_halves _ $qc).1; iframe
   ($fin)))
 
 theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG := hG) := by
@@ -100,8 +101,9 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
   wp_auto
   wp_apply os.wp_endsWithDot_child d b hb
   imod osLogLb_0 with #Hlb
-  icases (os.osCallPerm_halves qc).2 $$ Hperm with ⟨Hg, Hperm⟩
-  wp_apply +noauto wp_osCallBeginGuardS R qc.half 0 CoPset.subseteq_top CoPset.subseteq_top
+  icases (os.osCallPerm_halves _ qc).2 $$ Hperm with ⟨Hg, Hperm⟩
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
+  wp_apply +noauto wp_osCallBeginGuardS R _ qc.half 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
   wp_auto
   have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := fun J h' => by rw [hn] at h'; cases h'
@@ -180,8 +182,9 @@ theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) 
   wp_auto
   wp_apply os.wp_endsWithDot_child d b hb
   imod osLogLb_0 with #Hlb
-  icases (os.osCallPerm_halves 1).2 $$ Hperm with ⟨Hg, Hperm⟩
-  wp_apply +noauto wp_osCallBeginGuardS R (1 : Qp).half 0 CoPset.subseteq_top
+  icases (os.osCallPerm_halves _ 1).2 $$ Hperm with ⟨Hg, Hperm⟩
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
+  wp_apply +noauto wp_osCallBeginGuardS R _ (1 : Qp).half 0 CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
   wp_auto
   have hqg : (1 : Qp).half + (1 : Qp).half = 1 := Qp.half_add_half 1

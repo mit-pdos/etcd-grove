@@ -3,8 +3,10 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
+public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
 
 @[expose] public section
 noncomputable section

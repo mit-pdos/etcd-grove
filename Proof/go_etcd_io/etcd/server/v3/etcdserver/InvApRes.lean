@@ -583,6 +583,20 @@ theorem applyKV_hookRO (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV
   rw [← mvcc.api.etcdStorage_hookIs]
   iexact Hhk
 
+/-- The frozen hook (`applyKV_hookRO`) at the apply thread's window. -/
+theorem srvApplyKVW_hookRO (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV)
+    (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
+    srvApplyKVW (GF := GF) E ua x ⊢ srvApplyKVW E ua x ∗ backend.plHookRO d.γB E.f := by
+  iintro H
+  iunfold srvApplyKVW at H
+  icases H with ⟨%wn, %Hwn, H⟩
+  ihave ⟨H, #Hh⟩ := applyKV_hookRO { E with win := wn } ua x d hd $$ H
+  iframe Hh
+  iunfold srvApplyKVW
+  iexists wn
+  iframe H
+  ipureintro; exact Hwn
+
 /-- The frozen hook (`applyKV_hookRO`), from the apply thread's applier state. -/
 theorem srvApplyKV_hookRO (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
@@ -590,7 +604,7 @@ theorem srvApplyKV_hookRO (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   iintro H
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hrest⟩
-  ihave ⟨Hkv, #Hh⟩ := applyKV_hookRO E ua x d hd $$ Hkv
+  ihave ⟨Hkv, #Hh⟩ := srvApplyKVW_hookRO E ua x d hd $$ Hkv
   iframe Hh
   iunfold srvApplyKV
   iexists ua

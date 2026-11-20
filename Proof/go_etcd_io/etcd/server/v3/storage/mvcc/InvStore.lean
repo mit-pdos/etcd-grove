@@ -244,14 +244,15 @@ instance dbNames_countable : Pos.Countable backend.DBNames := bbolt.boltName_cou
 
 instance bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
-    (fun x : backend.BNames => ((x.dls, x.fkd, x.dbf, x.rq), x.rbD, (x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
+    (fun x : backend.BNames => ((x.dls, x.fkd, x.dbf, x.rq, x.rbr, x.rbc), x.rbD, (x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
       x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk)))
     (fun pr0 => let pr := pr0.2; let r0' := pr.2; let r := r0'.2; let r' := r.2; let r0 := r'.2; let q0 := r0.2; let q := q0.2; let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1, r'.1, r.1, r0'.1, pr0.1.2.2.1, pr0.1.2.2.2, pr.1, pr0.1.2.1, pr0.1.1⟩)
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1, r'.1, r.1, r0'.1, pr0.1.2.2.1, pr0.1.2.2.2.1, pr.1, pr0.1.2.1, pr0.1.1,
+      pr0.1.2.2.2.2.1, pr0.1.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 /-- A real instance's parameters are its record's, whatever its compaction mode (the server's
@@ -1977,34 +1978,70 @@ them and returns `nil`. The items are read. `SetRangeDeleter(f)`
 sets the deleter, by its owner (`lease.rdOwn γl`, unit T3): `NewStore` passes the closure
 `func() lease.TxnDelete { return s.Write(traceutil.TODO()) }` (the store's own verified
 `store.Write`), `newWatchableStore` the watchable store's. The lessor's ghost name `γl` is its
-own (it exists before the store). -/
+own (it exists before the store). (Item 7b, 2026-11-17, decided by etcd-grove-03: the three
+calls hold at any lessor window `w` (`lease.leaseOwnW … w`; `Attach`/`Detach` with `winStep`, which
+holds at `w = none`), as the real lessor's specs prove.) -/
 def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
   iprop(∃ lp : Loc, ⌜le = lease.lessorIface lp⌝ ∗ lease.lessorPin γl lp ∗
     □ (∀ (item : go_etcd_io.etcd.server.v3.lease.LeaseItem) (L : List w64)
-        (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
-      {{ lease.lessorRd lp γl ∗ lease.leaseOwn γl L I }}
+        (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (w : Option lease.LWin),
+      {{ lease.lessorRd lp γl ∗ lease.leaseOwnW γl L I w }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"GetLease" #lp)) (Val #item))
-      {{ RET #((I.lookup item).getD (W64 0)); lease.lessorRd lp γl ∗ lease.leaseOwn γl L I }}) ∗
+      {{ RET #((I.lookup item).getD (W64 0)); lease.lessorRd lp γl ∗ lease.leaseOwnW γl L I w }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
-        (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
-      {{ lease.leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
+        (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+        (w : Option lease.LWin),
+      {{ lease.leaseOwnW γl L I w ∗ ⌜lease.winStep w I (lease.insertAll I l id)⌝ ∗ ⌜id ∈ L⌝ ∗
           ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗
           ⌜∀ it ∈ l, (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Attach" #lp)) (Val #id)) (Val #items))
-      {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.insertAll I l id) ∗ items ↦*{dq} l }}) ∗
+      {{ RET #(GoInterface.nil); lease.leaseOwnW γl L (lease.insertAll I l id) w ∗ items ↦*{dq} l }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
-        (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
-      {{ lease.leaseOwn γl L I ∗ ⌜l ≠ []⌝ ∗ ⌜∀ it ∈ l, I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
+        (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+        (w : Option lease.LWin),
+      {{ lease.leaseOwnW γl L I w ∗ ⌜lease.winStep w I (lease.deleteAll I l)⌝ ∗ ⌜l ≠ []⌝ ∗
+          ⌜∀ it ∈ l, I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Detach" #lp)) (Val #id)) (Val #items))
-      {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.deleteAll I l) ∗ items ↦*{dq} l }}) ∗
+      {{ RET #(GoInterface.nil); lease.leaseOwnW γl L (lease.deleteAll I l) w ∗ items ↦*{dq} l }}) ∗
     □ (∀ (f0 f : GoFunc),
       {{ lease.rdOwn γl f0 }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"SetRangeDeleter" #lp)) (Val #f))
       {{ RET #(); lease.rdOwn γl f }}))
+
+/-- **A delete of the keys `ks`, one by one, in a lessor window** (auth-lease S4 item 7b): the whole range's move
+toward the target gives each delete's. -/
+theorem winMove_dels_take {w : Option lease.LWin} {ilog : mvcc.Log} {pend : List mvcc.Change} {ks : List GoString} {j : Nat}
+    {kj : GoString} (h : lease.winMove w (mvcc.pendItems ilog pend) (mvcc.pendItems ilog (pend ++ ks.map mvcc.Change.del)))
+    (hkj : ks[j]? = some kj) :
+    lease.winMove w (mvcc.pendItems ilog (pend ++ (ks.take j).map mvcc.Change.del))
+      (mvcc.pendItems ilog (pend ++ (ks.take j).map mvcc.Change.del ++ [mvcc.Change.del kj])) := by
+  have h1 := lease.winMove_between_right (J := pendItems ilog (pend ++ (ks.take j).map mvcc.Change.del)) h (fun it => by
+    rw [mvcc.pendItems_dels_lookup, mvcc.pendItems_dels_lookup]
+    by_cases hm : it.Key' ∈ ks.take j
+    · right; rw [if_pos hm, if_pos (List.mem_of_mem_take hm)]
+    · left; rw [if_neg hm])
+  refine lease.winMove_between_left h1 (fun it => ?_)
+  rw [mvcc.pendItems_del_lookup, mvcc.pendItems_dels_lookup, mvcc.pendItems_dels_lookup]
+  by_cases hk : it.Key' = kj
+  · right; rw [if_pos hk, if_pos (hk ▸ List.mem_of_getElem? hkj)]
+  · left; rw [if_neg hk]
+
+/-- **A range delete in a lessor window** (auth-lease S4 item 7b): the window dropping the range's items gives the
+move of the deletes the range finds. -/
+theorem winMove_dels_of_drops {w : Option lease.LWin} {ilog : mvcc.Log} {pend : List mvcc.Change} {endNil : Bool}
+    {k e : GoString}
+    (h : lease.winDrops w (mvcc.pendItems ilog pend) (fun it => mvcc.delSel endNil k e it.Key')) :
+    lease.winMove w (mvcc.pendItems ilog pend)
+      (mvcc.pendItems ilog (pend ++ (mvcc.delKeys ilog pend endNil k e).map mvcc.Change.del)) :=
+  lease.winMove_of_drops h (fun it => by
+    rw [mvcc.pendItems_dels_lookup]
+    by_cases hm : it.Key' ∈ mvcc.delKeys ilog pend endNil k e
+    · right; exact ⟨if_pos hm, mvcc.delKeys_sel _ _ _ _ _ _ hm⟩
+    · left; rw [if_neg hm])
 
 instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor (GF := GF) le γl) := by
   unfold isLessor; infer_instance
@@ -5624,14 +5661,18 @@ theorem ctxErrorf_ok (err : GoInterface) :
   | ok ii => iexists ii; ipureintro; rfl
 
 /-- **`rangeKeys`' error for a done context** (persistent; k8s etcd3 7c-2 part 2, G2-a,
-2026-11-06): `ctxErrorf`, with the description `fmt.ErrorfWrap`'s post gives it (N1b): it starts
-with the format's text before `%w`, `"rangeKeys: context cancelled: "` (`kvstore_txn.go:121`), so
-that it is not one of the descriptions the gRPC layer gives mvcc's read errors; and its `Error()`
-returns a message with that text first (the model's error or Go's `*fmt.wrapError`,
-`fmt.errorfWrapIs`; S5: what `togRPCError`'s fallback makes a description of). -/
+2026-11-06): `ctxErrorf`; `fmt.ErrorfWrap`'s error (`fmt.errorfWrapIs`: the model's, with its
+message cell, or Go's `*fmt.wrapError`) with the description `fmt.ErrorfWrap`'s post gives Go's
+(N1b; conditional on Go's `Unwrap` method since H0, 2026-11-18): it starts with the format's text
+before `%w`, `"rangeKeys: context cancelled: "` (`kvstore_txn.go:121`), so that it is not one of the
+descriptions the gRPC layer gives mvcc's read errors; and its `Error()` returns a message with that
+text first (S5: what `togRPCError`'s fallback makes a description of). -/
 def rangeKeysErr (err : GoInterface) : IProp GF :=
   iprop(ctxErrorf err ∗
-    ⌜go!"rangeKeys: context cancelled: " <+: go_etcd_io.etcd.cache.v3.errDesc err⌝ ∗
+    (∃ (ii : GoInterfaceOk) (inner : GoInterface), ⌜err = GoInterface.ok ii⌝ ∗
+      EtcdGrove.fmt.errorfWrapIs ii inner go!"rangeKeys: context cancelled: " ∗
+      ⌜methodSet ii.ty !! go!"Unwrap" = some (go.Signature [] false [go.error]) →
+        go!"rangeKeys: context cancelled: " <+: go_etcd_io.etcd.cache.v3.errDesc err⌝) ∗
     ∃ (ii : GoInterfaceOk) (s : GoString), ⌜err = GoInterface.ok ii⌝ ∗
       □ ∀ Φ : val → IProp GF, ▷ Φ #(go!"rangeKeys: context cancelled: " ++ s) -∗
         WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }})

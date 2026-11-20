@@ -42,11 +42,11 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   iunfold apply.kvRest at Hkv
   icases Hkv with ⟨Hbk, Hhk, Hlive, Hard⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL, HWt⟩
   ihave %HLT := apply.ltHalf_agree E L T Hlg $$ [HltL HltT]
   · iframe HltL HltT
   subst HLT
-  iunfold EtcdGrove.lease.lessorUser at Hu
+  iunfold EtcdGrove.lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
@@ -68,13 +68,13 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, HU, #Hreq, ⟨%t, #Hlt, %Htge, HRO⟩⟩)
   · ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
     · iright; iexact HPre
-    ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL]
+    ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL HWt]
     · iunfold apply.leasesLive
       iexists L
       isplitl []
       · iexact Hknown
-      iunfold EtcdGrove.lease.lessorUser
-      iframe Hown Hrdo Hrvk HltL
+      iunfold EtcdGrove.lease.lessorUserW
+      iframe Hown Hrdo Hrvk HltL HWt
     cases err with
     | nil => exact absurd rfl Hne.1
     | ok ei =>
@@ -119,14 +119,14 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ihave HPP : iprop(Post ∨ Pre) $$ [HPost]
     · ileft; iexact HPost
     imod apply.ltHalf_update E L L (L ++ [g.id]) $$ HltL HltT with ⟨HltL, HltT⟩
-    ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL]
+    ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL HWt]
     · iunfold apply.leasesLive
       iexists (L ++ [g.id])
       isplitl []
       · iapply EtcdGrove.apply.leasesKnown_mono L (L ++ [g.id]) _
           (fun x hx => List.mem_append_left _ hx) $$ Hknown
-      iunfold EtcdGrove.lease.lessorUser
-      iframe Hown Hrdo Hrvk HltL
+      iunfold EtcdGrove.lease.lessorUserW
+      iframe Hown Hrdo Hrvk HltL HWt
     iunfold apply.leaseTTLIs at Hlease
     icases Hlease with ⟨%Hln, #HlID, #HTTL⟩
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩

@@ -2,9 +2,12 @@
 # interceptors `v3rpc.Server` installs (`ServerMetrics.UnaryServerInterceptor`,
 # `StreamServerInterceptor`; `InitializeMetrics` takes a `reflection.ServiceInfoProvider`: hence
 # the import), made by `NewServerMetrics` with options (`ServerMetricsOption`, a function type:
-# `getServerMetrics` appends one).
+# `getServerMetrics` appends one). prometheus is imported for `ServerMetrics`'s field types, so that
+# `ServerMetrics` translates (an implementation can allocate one: etcd-refimpl's reference
+# implementation).
 translate = ["!*"]
-imports = ["!*", "google.golang.org/grpc", "google.golang.org/grpc/reflection"]
+imports = ["!*", "google.golang.org/grpc", "google.golang.org/grpc/reflection",
+  "github.com/prometheus/client_golang/prometheus"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

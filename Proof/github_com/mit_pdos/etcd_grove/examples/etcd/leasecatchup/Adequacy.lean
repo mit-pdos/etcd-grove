@@ -12,7 +12,7 @@ unless that listing also lists the lease granted through member 3 -- started fro
 package initialized, one thread): for every real execution of `n` steps, the main thread's result,
 if it has one, is `#()`, no thread is stuck, and no thread has ended in a panic.
 
-As `examples/etcd/partition`'s and `k8s_compactor_partition_adequate`'s (`etcd_adequate_members`
+As `examples/etcd/partition`'s and the retired `k8s_compactor_partition_adequate`'s (`etcd_adequate_members`
 with the cluster's members and its bridges, hub step 7's A3), at this program's configuration,
 with leasegrant's lease hypotheses: `leasePeersOk` (the peers answer the lease handler's path as
 etcd's lease handler does) and `lease.leasesNoExpiry` (no lease of any lessor the program creates,
@@ -33,7 +33,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -44,6 +47,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Pk
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.InitLinked
 
 @[expose] public section
 
@@ -63,21 +68,6 @@ attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdF
 
 /-! ## The ghost-state bundle -/
 
-/-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def leasecatchupGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
-
 /-- The universal camera at slot 0. -/
 def leasecatchupGF_allG : AllG leasecatchupGF := ⟨⟨0, rfl⟩⟩
 
@@ -89,41 +79,10 @@ instance leasecatchupGF_gooseGpreS : GooseGpreS leasecatchupGF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := leasecatchupGF_allG
 
-/-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
-every instance of the ghost state whose Go local context is the semantics' own). -/
-abbrev heapAtLcu (hG : HeapGS .hasLC leasecatchupGF) (lctx : GoLocalContext) :
-    HeapGS .hasLC leasecatchupGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `leasecatchup`'s initialization, then `Main()`. -/
-def leasecatchupProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Main) #()
-
-/-- The read package's two metric names, which `leasecatchup`'s initialization registers
-(`readRegPerm`, D16). -/
-def leasecatchupNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
-
-/-- The program's addresses: the three members' peer addresses, their client addresses, and the
-bridges' addresses (`clusterCfg`'s). -/
-def leasecatchupAddrs : List GoString :=
-  [etcd_leasecatchup.clusterCfg.Peer1', etcd_leasecatchup.clusterCfg.Peer2',
-    etcd_leasecatchup.clusterCfg.Peer3',
-    etcd_leasecatchup.clusterCfg.Client1', etcd_leasecatchup.clusterCfg.Client2',
-    etcd_leasecatchup.clusterCfg.Client3',
-    etcd_leasecatchup.clusterCfg.Bridge1', etcd_leasecatchup.clusterCfg.Bridge2',
-    etcd_leasecatchup.clusterCfg.Bridge3']
-
-/-- The members' data directories `<name>.etcd` (sweep repairs 1, W3/W4: until then their WAL directories). -/
-def leasecatchupDataDirs : List GoString :=
-  [(etcd_leasecatchup.clusterCfg.Name1' ++ go!".etcd"),
-    (etcd_leasecatchup.clusterCfg.Name2' ++ go!".etcd"),
-    (etcd_leasecatchup.clusterCfg.Name3' ++ go!".etcd")]
 
 /-- **The multi-member lease example is safe** (see the file header): every real execution of
 `leasecatchupProgram` from a fresh state with one thread, of `n` steps: if the main thread has
@@ -155,13 +114,15 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
           etcd_leasecatchup.clusterCfg n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) leasecatchupDataDirs)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([leasecatchupProgram], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := leasecatchupGF) (hAsLit := by decide) (HEnv := HEnv)
+  refine etcd_adequate_members (GF := leasecatchupGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) leasecatchupAddrs (by decide)

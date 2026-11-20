@@ -38,9 +38,9 @@ theorem apply.newQuotaApplierV3.wp_proof
     (hLG : apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG)) :
     apply.newQuotaApplierV3.spec (GF := GF) (hG := hG) := by
   intro lg cfg be base Hbuq
-  wp_start as #Hlg
+  wp_start as ⟨#Hlg, #HB⟩
   wp_auto
-  wp_apply hNBQ _ _ _ _ Hbuq $$ [$Hlg] as %q #Hq
+  wp_apply hNBQ _ _ _ _ Hbuq $$ [$Hlg $HB] as %q #Hq
   wp_alloc p as Hp
   iStructNamed Hp
   ipersist applierV3
@@ -82,7 +82,7 @@ theorem apply.newQuotaApplierV3.wp_proof
     wp_call
     wp_auto
     iunfold apply.deletePre at Hpre
-    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, %Tw, %Hwt⟩
     ihave #Hcp := apply.certPre_quota _ _ _ _ $$ Hcp
     icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
     ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ applierV3 Hres
@@ -92,8 +92,10 @@ theorem apply.newQuotaApplierV3.wp_proof
       iframe #
       isplitr
       · ipureintro; exact Hk
-      iapply apply.mPre_of_rest
-      iframe
+      isplitl
+      · iapply apply.mPre_of_rest
+        iframe
+      iexists Tw; ipureintro; exact Hwt
     inext
     iintro %resp %trace %err ⟨Hpost, Htrc, Htt⟩
     iapply HΦ'
@@ -169,7 +171,7 @@ theorem apply.newQuotaApplierV3.wp_proof
     wp_call
     wp_auto
     iunfold apply.revokePre at Hpre
-    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, Hrr⟩
+    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, Hrr, %Hwr⟩
     ihave #Hcp := apply.certPre_quota _ _ _ _ $$ Hcp
     icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
     ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ applierV3 Hres
@@ -179,8 +181,10 @@ theorem apply.newQuotaApplierV3.wp_proof
       iframe # Hrr
       isplitr
       · ipureintro; exact Hk
-      iapply apply.mPre_of_rest
-      iframe
+      isplitl
+      · iapply apply.mPre_of_rest
+        iframe
+      ipureintro; exact Hwr
     inext
     iintro %resp %err ⟨Hpost, Htt⟩
     iapply HΦ'

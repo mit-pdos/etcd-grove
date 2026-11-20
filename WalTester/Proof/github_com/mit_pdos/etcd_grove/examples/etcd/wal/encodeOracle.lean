@@ -5,7 +5,7 @@ public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.en
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putOps
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putHS
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putU64
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putOps
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putOpsLemmas
 
 @[expose] public section
 

@@ -36,9 +36,9 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.CheckDirPermission.spec : Prop :=
   ∀ (p : GoString) (perm : w32) (R : Roots) (J : Ino) (dq : DFrac) (qc : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗
-      osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq J ∗ osCallPerm (GF := GF) qc }}
+      osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq J ∗ osCallPerm (GF := GF) (callKey R p) qc }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.CheckDirPermission)) (Val #p)) (Val #perm))
-  {{ (err : GoInterface), RET #err; osPathS R p dq J ∗ osCallPerm qc }}
+  {{ (err : GoInterface), RET #err; osPathS R p dq J ∗ osCallPerm (callKey R p) qc }}
 
 end spec
 

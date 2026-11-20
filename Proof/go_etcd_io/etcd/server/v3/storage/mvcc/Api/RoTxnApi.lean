@@ -324,7 +324,7 @@ theorem txnReadWrite.Changes.wp_api
 
 /-- **`Txn.Put.contract` at `*txnReadWrite`** (vacuous: no write transaction is a wrapper). -/
 theorem txnReadWrite.Put.wp_api : txnReadWrite.Put.spec (GF := GF) := by
-  intro t0 (γ : mvcc.StoreNames) trace te σ pend key value k vv leaseID L
+  intro t0 (γ : mvcc.StoreNames) trace te σ pend key value k vv leaseID L w
   iintro %Φ ⟨#Hpkg, Htx, -⟩ HΦ
   iunfold mvccTxn at Htx
   simp only [mvccTxnI]
@@ -335,7 +335,7 @@ theorem txnReadWrite.Put.wp_api : txnReadWrite.Put.spec (GF := GF) := by
 /-- **`Txn.DeleteRange.contract` at `*txnReadWrite`** (vacuous, as `Put`). -/
 theorem txnReadWrite.DeleteRange.wp_api :
     ∀ t : Loc, Txn.DeleteRange.contract (GF := GF) (go.GoType.PointerType txnReadWrite.ty) #t := by
-  intro t0 (γ : mvcc.StoreNames) trace σ pend key endk k e L
+  intro t0 (γ : mvcc.StoreNames) trace σ pend key endk k e L w
   iintro %Φ ⟨#Hpkg, Htx, -⟩ HΦ
   iunfold mvccTxn at Htx
   simp only [mvccTxnI]

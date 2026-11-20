@@ -26,6 +26,7 @@ import (
 	"go.etcd.io/raft/v3/raftpb"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 func mustPanic(t *testing.T, name string, f func()) {
@@ -194,6 +195,7 @@ func checkVersion(t *testing.T, name string, s *etcdserver.EtcdServer) {
 // S4 on what the server stores.
 func TestRealPathOneMember(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "snapr1") // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	caddr := freeAddr(t)
 	s, err := etcdstart.StartServer("snapr1", freeAddr(t), caddr, lg)
@@ -280,6 +282,7 @@ func (c capture) Write(e zapcore.Entry, fs []zapcore.Field) error {
 // third's cluster bucket restored from the snapshot (Recover's path).
 func TestRealPathSnapshotSend(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "snapr-a", "snapr-b", "snapr-c") // the members' WAL areas (wal-link P2)
 	c := capture{mu: &sync.Mutex{}, recs: &[]string{}, vals: map[string]*[]int64{}}
 	for _, k := range []string{"sending database snapshot", "sent database snapshot", "sent database snapshot to writer",
 		"received and saved database snapshot", "applied snapshot", "failed to send database snapshot"} {

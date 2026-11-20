@@ -25,15 +25,15 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The reader `r` over the auth buckets `D` (its roles encodings) under `H`: returns the role
-named `name` of `D.roles`, owned, or nil. -/
+/-- The reader `r` over the auth buckets `D` (its roles the encodings of the records `dR` names) under `H`: returns the role
+named `name` of `D.roles`, owned (the record `dR name`), or nil. -/
 abbrev schema.unsafeGetRole.spec : Prop :=
-  ∀ (lg : Loc) (r : GoInterfaceOk) (name : GoString) (H : IProp GF) (D : schema.AuthData),
-  lg ≠ null → schema.rolesWf D.roles →
+  ∀ (lg : Loc) (r : GoInterfaceOk) (name : GoString) (H : IProp GF) (D : schema.AuthData) (dR : GoString → auth.RoleRec),
+  schema.rolesDec D.roles dR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.authReader r H D ∗ H }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeGetRole)) (Val #lg)) (Val #(GoInterface.ok r)))
       (Val #name))
-  {{ (u : Loc), RET #u; H ∗ schema.roleOutDX u D.roles name }}
+  {{ (u : Loc), RET #u; H ∗ schema.roleOutDX u D.roles name dR }}
 
 end spec
 

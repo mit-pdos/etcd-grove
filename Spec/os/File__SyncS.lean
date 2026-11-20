@@ -9,6 +9,7 @@ triple. Proved in `Proof/os/File__SyncS.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.os.SharedAu
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -35,7 +36,7 @@ abbrev os.File.Sync.specDirS : Prop :=
       osLogLb n }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osDirFdS fd j ph ∗
-      (⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
+      ((⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
 
 end spec
 

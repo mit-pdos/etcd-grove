@@ -187,6 +187,27 @@ theorem treeName_child {st : OsState} {d b : GoString} {j : Ino} (hd : st.lookup
   · exact hcs c h
   · exact hb
 
+/-- `a` and `b` are in one tree of the roots `R` (`OsState.SameRoot`, over given roots). -/
+def SameRootR (R : List (GoString × Ino)) (a b : GoString) : Prop := ∃ rj ∈ R, IsUnder rj.1 a ∧ IsUnder rj.1 b
+
+theorem sameRoot_of_R {st : OsState} {R : List (GoString × Ino)} {a b : GoString} (h : st.fs.roots = R)
+    (hs : SameRootR R a b) : st.SameRoot a b := by
+  unfold OsState.SameRoot; rw [h]; exact hs
+
+/-- A path built from a root is in its tree. -/
+theorem isUnder_joinPath (r : GoString) (cs : List GoString) : IsUnder r (joinPath r cs) := by
+  cases cs with
+  | nil => left; simp [joinPath]
+  | cons c cs =>
+    right; exact ⟨c ++ cs.flatMap (fun c => slashB :: c), by simp [joinPath, List.flatMap_cons]⟩
+
+/-- Two names of one directory of the tree are in one root's tree. -/
+theorem sameRoot_child_child {st : OsState} {d a b : GoString} {j : Ino}
+    (hd : st.lookup d = some (.dir j)) : st.SameRoot (child d a) (child d b) := by
+  obtain ⟨r, j0, cs, hrj, -, rfl, -⟩ := lookup_some hd
+  exact ⟨(r, j0), hrj, by rw [← joinPath_snoc]; exact isUnder_joinPath _ _,
+    by rw [← joinPath_snoc]; exact isUnder_joinPath _ _⟩
+
 /-- A directory of the tree is a path of the tree. -/
 theorem treePath_of_lookup {st : OsState} {d : GoString} {n : Node} (hd : st.lookup d = some n) :
     st.TreePath d := by

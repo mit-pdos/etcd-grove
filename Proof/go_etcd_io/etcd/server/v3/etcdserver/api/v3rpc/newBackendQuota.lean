@@ -41,9 +41,13 @@ theorem v3rpc.newBackendQuota.wp_proof
   · iframe; iframe #
   iunfold srvBemuReader at Hbr
   icases Hbr with ⟨%γbe, Hbr⟩
-  wp_apply wp_Backend s γbe $$ [Hbr] as %be ⟨Hbr, -⟩
+  wp_apply wp_Backend s γbe $$ [Hbr] as %be ⟨Hbr, %d, %Heq, #Hro⟩
   · iframe
-  wp_apply wp_NewBackendQuota _ _ _ _ Hbuq $$ [$Hlgn] as %qv #Hq
+  subst be
+  iunfold srvBeRO at Hro
+  icases Hro with ⟨%gx, %Pk, #Hb⟩
+  ihave #HqbData := apply.quotaBackend_of_isBackend _ _ _ _ _ $$ Hb
+  wp_apply wp_NewBackendQuota _ _ _ _ Hbuq $$ [$Hlgn $HqbData] as %qv #Hq
   iapply HΦ
   iframe
   iframe #

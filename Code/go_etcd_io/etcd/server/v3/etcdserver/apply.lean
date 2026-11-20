@@ -120,8 +120,6 @@ attribute [irreducible] uberApplier.ty
 noncomputable def alarms [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.alarms"
 
-opaque alarms.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Apply [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.Apply"
 
@@ -4061,10 +4059,20 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"alarms"))
+  (Let "$v3" (Val #(go!"Alarms for every member in cluster. 1 for 'server_id' label with current ID. 2 for 'alarm_type' label with type of this alarm"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$a1" (Let "$v0" (Val #(go!"server_id"))
+  (Let "$v1" (Val #(go!"alarm_type"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val alarms.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr alarms))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -4118,7 +4126,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.errors.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc alarms (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))))
 
 abbrev applierV3 [GooseExts] : Type := GoInterface
 

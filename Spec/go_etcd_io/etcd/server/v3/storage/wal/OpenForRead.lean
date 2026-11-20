@@ -38,13 +38,13 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.OpenForRead.spec (Mr : WalMarshal) 
   InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
-      osCallPerm 1 ∗ walSnapIdTerm sp s ∗ WalFs.walUnlockedTok ∗
+      osCallPerm (callKey R r) 1 ∗ walSnapIdTerm sp s ∗ WalFs.walUnlockedTok ∗
       AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
         <{ WalFs.walDirIs dir o, COMM Q o }> }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.OpenForRead)) (Val #lg))
       (Val #dir)) (Val #sp))
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
-      osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗ ∃ o : Option WalDur, Q o ∗
+      osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗ ∃ o : Option WalDur, Q o ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walUnlockedTok) ∨
        (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗ walReadOnlyF w dir s)) }}
 

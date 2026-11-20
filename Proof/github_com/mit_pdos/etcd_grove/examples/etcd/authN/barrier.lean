@@ -13,9 +13,10 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authN.newUserCli
 public import Spec.context.ErrAny
 public import Spec.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
-public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CallLaws
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
+public import Proof.go_etcd_io.etcd.client.v3.ServeLaws
 
 @[expose] public section
 
@@ -60,7 +61,9 @@ set_option maxHeartbeats 800000 in
 theorem barrier.wp_proof
     (wp_newUserClient : newUserClient.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (wp_WithTimeout : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
+    (wp_WithTimeout : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (h_client_Get_on : etcd_auth.client_Get_on.law (GF := GF) (hG := hG))
+    (h_authTokReg_of : client.authTokReg_of.law (GF := GF) (hG := hG)) :
     barrier.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC addr lg V s E ρ cid mid γa γz hs Lset Lc r Hpe Htb HEo hAs
   wp_start as ⟨#Hlgz, #HAu, #HKV, #Hrd, #Hfz, #HLs, %Hh, #HLc, %HLcst⟩
@@ -77,7 +80,7 @@ theorem barrier.wp_proof
       (fun t => auth.tokIssued γa t go!"root") Hpe Htb (by unfold strsSizeOk; decide))
     as %rcl %rerr Hrc
   · iframe #
-    iapply (client.authTokReg_of _ _ _ γa)
+    iapply (h_authTokReg_of _ _ _ γa)
     iexact HAu
   icases Hrc with (⟨%Hrerr, #Hrnc, #Hrtk⟩ | %Hrfail)
   rotate_left
@@ -114,7 +117,7 @@ theorem barrier.wp_proof
   iunfold akKVOn at HKV
   icases HKV with ⟨-, #Hrange, -, -⟩
   iapply wp_fupd
-  wp_apply (client_Get_on rcl rapi rconn addr s E ρ.rd cid mid
+  wp_apply (h_client_Get_on rcl rapi rconn addr s E ρ.rd cid mid
       (W64 (uint.Z ρ.raft.ai0 + Lc.length)) 0 ectx ecd go!"z/barrier" slice.nil []
       iprop(True) (fun _ => iprop(True)) []
       (opSizeOk_opGetModel (K := 16) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide)

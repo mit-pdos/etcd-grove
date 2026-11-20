@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.client.v3.lessor__Leases
 public import Perennial.Spec.context.Background
 public import Spec.context.WithTimeoutBackground
 public import Spec.context.ErrAny
+public import Proof.go_etcd_io.etcd.client.v3.LessorPlain
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
@@ -48,6 +49,8 @@ theorem check.wp_proof
     (wp_TimeToLive : lessor.TimeToLive.spec (GF := GF) (hG := hG))
     (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG)) :
     check.spec (GF := GF) (hG := hG) := by
+  have wp_TimeToLive := lessor.TimeToLive.specP_of wp_TimeToLive
+  have wp_Leases := lessor.Leases.specP_of wp_Leases
   intro CRE CEC addr lg V Hpe Htb hAs
   wp_start as ⟨#Hlgz, #Hlr⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
