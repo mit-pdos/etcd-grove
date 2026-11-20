@@ -1,6 +1,20 @@
 # wal-fsfix handoff
 
-## START HERE (2026-11-20 z4) — at the LAND STOP (report sent to etcd-grove-03)
+## START HERE (2026-11-20 z5) — at the LAND STOP (report sent to etcd-grove-03)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`. Builds: plain build-slot (never BUILD_SLOT_BIG).
+- full4 was killed at 20795/22416 (no errors). Merged lean f7f4930794 (k8s-unified; clean merge, no edit needed:
+  the name-bound premises are discharged inside the k8s drivers' `Main.wp_proof`s, so `examples/k8s/all` is untouched).
+- Verified at the merge: full timed build `20261120-152138-738785` green; tcb-report --check 674 axioms/2 sorries
+  (lean's baseline); 69 collections match (k8s-all included); goose/gen-init/copy-part/raft-tla/k8s-deep --check;
+  59 gen-link modes + btree; api, interfaces --check --layout; tier, bounds, mode, axiom-tok (+selftest),
+  reader-slot, errorf-wrap, model-param, pbschema, featuregate, k8s-correctness, issues: all ok.
+- Closed statements vs lean: only `mvccrand_robust.spec`, `mvccfull_robust.spec` (+ `Hrfit : Fs.DirFits r`).
+- After the land stop do not commit unless the coordinator says so. Follow-ups (after landing, approved order):
+  `config.snapDirOf` as Go's `filepath.Join(d,"member","snap")`; `cut.specNoErr`; `rnNewStorageOk_holds`.
+
+## History (2026-11-20 z4)
 
 - Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`. Builds: plain build-slot (never BUILD_SLOT_BIG).
