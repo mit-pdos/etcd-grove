@@ -25,7 +25,7 @@
   `bootCfgFresh` need `.2.2.1` for the UTF-8 part now). `bootstrapContract` (a closed premise) thereby changes: its
   precondition gains `DirFits`, its `bootOk`'s `Hsfree` (`snapFreeAll` → `fileFree`) now carries `PathFits` of each
   snapshot path: list both in the land report.
-- **Next (in order)**: build `GooseLang.Ext.Fs.*` (a run was queued on build-slot: log /shared/tmp/walfsfix/fsbuild.log), then `Proof.os.*`, bbolt `Open`,
+- **Next (in order)**: build `GooseLang.Ext.Fs.*` (the queued run was terminated, exit 143, while still waiting for a build slot: nothing built since the edits), then `Proof.os.*`, bbolt `Open`,
   backend; then the producers of the name claims: (a) `start_fileHolds` callers: mvccrand/mvccfull `Adequacy`
   (+ their `TopLevelRobustness` Spec/Proof): new premise `Fs.DirFits r` (closed-statement change: report) and a
   length lemma for `mvccfullNames` (as `mvccfullNames_ok`); (b) the etcd examples' snapshot names
