@@ -823,10 +823,17 @@ PROJECTS = [
         local="models",
         root="Net",
         # (`bufio`: the main tree's translation, as for project etcd's part)
+        # (`net/url`, `path`, `crypto/tls`: the main tree's names-only translations; `net/textproto` and the
+        # vendored `httpguts`, which the model's server calls, names only here)
         lean_roots=["models.lab=Net", "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=",
-                    "internal/syscall=", "bufio="],
-        packages=["net/rpc", "net/http"],
-        owned=[os.path.join("net", "rpc"), os.path.join("net", "http")],
+                    "internal/syscall=", "bufio=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
+                    "golang.org/x/net/http/httpguts=Net", "go/token=Net"],
+        packages=["net/rpc", "net/http", "net/textproto", "vendor/golang.org/x/net/http/httpguts",
+                  "go/token"],
+        owned=[os.path.join("net", "rpc"), os.path.join("net", "http"),
+               os.path.join("net", "textproto"),
+               os.path.join("vendor", "golang_org", "x", "net", "http", "httpguts"),
+               os.path.join("go", "token")],
         std_models=["net/rpc", "net/http"],
     ),
     Project(

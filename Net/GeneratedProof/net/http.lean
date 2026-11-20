@@ -2,6 +2,23 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.bufio
+public import Perennial.GeneratedProof.context
+public import GeneratedProof.crypto.tls
+public import Perennial.GeneratedProof.errors
+public import Perennial.GeneratedProof.fmt
+public import Net.GeneratedProof.golang_org.x.net.http.httpguts
+public import Perennial.GeneratedProof.io
+public import Net.GeneratedProof.net
+public import Net.GeneratedProof.net.textproto
+public import GeneratedProof.net.url
+public import GeneratedProof.path
+public import Perennial.GeneratedProof.runtime
+public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.strings
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Net.Code.net.http
 public import Net.GeneratedProof.net.http.chunk1
@@ -9,6 +26,9 @@ public import Net.GeneratedProof.net.http.chunk2
 public import Net.GeneratedProof.net.http.chunk3
 public import Net.GeneratedProof.net.http.chunk4
 public import Net.GeneratedProof.net.http.chunk5
+public import Net.GeneratedProof.net.http.chunk6
+public import Net.GeneratedProof.net.http.chunk7
+public import Net.GeneratedProof.net.http.chunk8
 
 @[expose] public section
 

@@ -2,6 +2,23 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.bufio
+public import Perennial.GeneratedProof.context
+public import GeneratedProof.crypto.tls
+public import Perennial.GeneratedProof.errors
+public import Perennial.GeneratedProof.fmt
+public import Net.GeneratedProof.golang_org.x.net.http.httpguts
+public import Perennial.GeneratedProof.io
+public import Net.GeneratedProof.net
+public import Net.GeneratedProof.net.textproto
+public import GeneratedProof.net.url
+public import GeneratedProof.path
+public import Perennial.GeneratedProof.runtime
+public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.strings
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Net.Code.net.http
 
@@ -16,25 +33,6 @@ open Iris Iris.BI
 noncomputable section
 namespace net.http
 
-namespace Client
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance Client_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Client :=
-  sorry -- axiomatized type
-
-noncomputable instance Client_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Client net.http.Client.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Client
-
 namespace cancelTimerBody
 section def_
 
@@ -44,53 +42,70 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
 noncomputable instance cancelTimerBody_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.cancelTimerBody :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.http.cancelTimerBody where
+  typedPointstoDef l v dq := iprop(
+    "stop" ∷ typedPointsto (structFieldRef net.http.cancelTimerBody go!"stop" l) v.stop' dq ∗
+    "rc" ∷ typedPointsto (structFieldRef net.http.cancelTimerBody go!"rc" l) v.rc' dq ∗
+    "reqDidTimeout" ∷ typedPointsto (structFieldRef net.http.cancelTimerBody go!"reqDidTimeout" l) v.reqDidTimeout' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance cancelTimerBody_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.cancelTimerBody net.http.cancelTimerBody.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.http.cancelTimerBody net.http.cancelTimerBody.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance cancelTimerBody_access_load_stop (l : Loc) (v : net.http.cancelTimerBody) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"stop" l) v.stop' dq)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"stop" l) v.stop' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance cancelTimerBody_access_store_stop (l : Loc) (v : net.http.cancelTimerBody) (stop' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"stop" l) v.stop' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"stop" l) stop' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stop' := stop' } : net.http.cancelTimerBody) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance cancelTimerBody_access_load_rc (l : Loc) (v : net.http.cancelTimerBody) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"rc" l) v.rc' dq)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"rc" l) v.rc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance cancelTimerBody_access_store_rc (l : Loc) (v : net.http.cancelTimerBody) (rc' : io.ReadCloser) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"rc" l) v.rc' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"rc" l) rc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rc' := rc' } : net.http.cancelTimerBody) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance cancelTimerBody_access_load_reqDidTimeout (l : Loc) (v : net.http.cancelTimerBody) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"reqDidTimeout" l) v.reqDidTimeout' dq)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"reqDidTimeout" l) v.reqDidTimeout' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance cancelTimerBody_access_store_reqDidTimeout (l : Loc) (v : net.http.cancelTimerBody) (reqDidTimeout' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"reqDidTimeout" l) v.reqDidTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.cancelTimerBody go!"reqDidTimeout" l) reqDidTimeout' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqDidTimeout' := reqDidTimeout' } : net.http.cancelTimerBody) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end cancelTimerBody
-
-namespace ClientConn
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance ClientConn_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.ClientConn :=
-  sorry -- axiomatized type
-
-noncomputable instance ClientConn_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.ClientConn net.http.ClientConn.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ClientConn
-
-namespace newClientConner
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance newClientConner_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.newClientConner :=
-  sorry -- axiomatized type
-
-noncomputable instance newClientConner_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.newClientConner net.http.newClientConner.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end newClientConner
 
 namespace http1ClientConn
 section def_
@@ -132,7 +147,7 @@ noncomputable instance http1ClientConn_access_store_pconn (l : Loc) (v : net.htt
 end def_
 end http1ClientConn
 
-namespace Cookie
+namespace mapping
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -140,18 +155,56 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance Cookie_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Cookie :=
-  sorry -- axiomatized type
+noncomputable instance mapping_typed_pointsto {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] :
+    TypedPointsto (GF := GF) (net.http.mapping K' V') where
+  typedPointstoDef l v dq := iprop(
+    "s" ∷ typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) v.s' dq ∗
+    "m" ∷ typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) v.m' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance Cookie_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Cookie net.http.Cookie.underlying :=
-  sorry -- axiomatized type
+noncomputable instance mapping_into_val_typed (K : go.GoType) {K' : Type} [ZeroVal K'] [TypedPointsto (GF := GF) K'] [IntoValTyped (GF := GF) K' K] (V : go.GoType) {V' : Type} [ZeroVal V'] [TypedPointsto (GF := GF) V'] [IntoValTyped (GF := GF) V' V] :
+    IntoValTypedUnderlying (GF := GF) (net.http.mapping K' V') (net.http.mapping.underlying K V) := by
+  solve_into_val_typed_struct
+
+noncomputable instance mapping_access_load_s {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] (l : Loc) (v : (net.http.mapping K' V')) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) v.s' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance mapping_access_store_s {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] (l : Loc) (v : (net.http.mapping K' V')) (s' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) s' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : (net.http.mapping K' V')) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance mapping_access_load_m {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] (l : Loc) (v : (net.http.mapping K' V')) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) v.m' dq)
+      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) v.m' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance mapping_access_store_m {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] (l : Loc) (v : (net.http.mapping K' V')) (m' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) v.m' (DFrac.own 1))
+      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) m' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := m' } : (net.http.mapping K' V')) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
-end Cookie
+end mapping
 
-namespace CrossOriginProtection
+namespace routingIndex
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -159,16 +212,145 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-noncomputable instance CrossOriginProtection_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.CrossOriginProtection :=
-  sorry -- axiomatized type
+noncomputable instance routingIndex_typed_pointsto :
+    TypedPointsto (GF := GF) net.http.routingIndex where
+  typedPointstoDef l v dq := iprop(
+    "segments" ∷ typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) v.segments' dq ∗
+    "multis" ∷ typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) v.multis' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance CrossOriginProtection_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.CrossOriginProtection net.http.CrossOriginProtection.underlying :=
-  sorry -- axiomatized type
+noncomputable instance routingIndex_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.http.routingIndex net.http.routingIndex.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance routingIndex_access_load_segments (l : Loc) (v : net.http.routingIndex) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) v.segments' dq)
+      (typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) v.segments' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance routingIndex_access_store_segments (l : Loc) (v : net.http.routingIndex) (segments' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) v.segments' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) segments' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with segments' := segments' } : net.http.routingIndex) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance routingIndex_access_load_multis (l : Loc) (v : net.http.routingIndex) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) v.multis' dq)
+      (typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) v.multis' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance routingIndex_access_store_multis (l : Loc) (v : net.http.routingIndex) (multis' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) v.multis' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) multis' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with multis' := multis' } : net.http.routingIndex) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
-end CrossOriginProtection
+end routingIndex
+
+namespace serveMux121
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+
+noncomputable instance serveMux121_typed_pointsto :
+    TypedPointsto (GF := GF) net.http.serveMux121 where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef net.http.serveMux121 go!"mu" l) v.mu' dq ∗
+    "m" ∷ typedPointsto (structFieldRef net.http.serveMux121 go!"m" l) v.m' dq ∗
+    "es" ∷ typedPointsto (structFieldRef net.http.serveMux121 go!"es" l) v.es' dq ∗
+    "hosts" ∷ typedPointsto (structFieldRef net.http.serveMux121 go!"hosts" l) v.hosts' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance serveMux121_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.http.serveMux121 net.http.serveMux121.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance serveMux121_access_load_mu (l : Loc) (v : net.http.serveMux121) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serveMux121_access_store_mu (l : Loc) (v : net.http.serveMux121) (mu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : net.http.serveMux121) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serveMux121_access_load_m (l : Loc) (v : net.http.serveMux121) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"m" l) v.m' dq)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"m" l) v.m' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serveMux121_access_store_m (l : Loc) (v : net.http.serveMux121) (m' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"m" l) v.m' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"m" l) m' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := m' } : net.http.serveMux121) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serveMux121_access_load_es (l : Loc) (v : net.http.serveMux121) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"es" l) v.es' dq)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"es" l) v.es' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serveMux121_access_store_es (l : Loc) (v : net.http.serveMux121) (es' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"es" l) v.es' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"es" l) es' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with es' := es' } : net.http.serveMux121) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serveMux121_access_load_hosts (l : Loc) (v : net.http.serveMux121) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"hosts" l) v.hosts' dq)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"hosts" l) v.hosts' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serveMux121_access_store_hosts (l : Loc) (v : net.http.serveMux121) (hosts' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"hosts" l) v.hosts' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.serveMux121 go!"hosts" l) hosts' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hosts' := hosts' } : net.http.serveMux121) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end serveMux121
 
 namespace noopHandler
 section def_
@@ -202,12 +384,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
 noncomputable instance populateResponse_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.populateResponse :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.http.populateResponse where
+  typedPointstoDef l v dq := iprop(
+    "res" ∷ typedPointsto (structFieldRef net.http.populateResponse go!"res" l) v.res' dq ∗
+    "ch" ∷ typedPointsto (structFieldRef net.http.populateResponse go!"ch" l) v.ch' dq ∗
+    "wroteHeader" ∷ typedPointsto (structFieldRef net.http.populateResponse go!"wroteHeader" l) v.wroteHeader' dq ∗
+    "hasContent" ∷ typedPointsto (structFieldRef net.http.populateResponse go!"hasContent" l) v.hasContent' dq ∗
+    "sentResponse" ∷ typedPointsto (structFieldRef net.http.populateResponse go!"sentResponse" l) v.sentResponse' dq ∗
+    "pw" ∷ typedPointsto (structFieldRef net.http.populateResponse go!"pw" l) v.pw' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance populateResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.populateResponse net.http.populateResponse.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.http.populateResponse net.http.populateResponse.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance populateResponse_access_load_res (l : Loc) (v : net.http.populateResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"res" l) v.res' dq)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"res" l) v.res' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_store_res (l : Loc) (v : net.http.populateResponse) (res' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"res" l) v.res' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.populateResponse go!"res" l) res' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with res' := res' } : net.http.populateResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_load_ch (l : Loc) (v : net.http.populateResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"ch" l) v.ch' dq)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"ch" l) v.ch' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_store_ch (l : Loc) (v : net.http.populateResponse) (ch' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"ch" l) v.ch' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.populateResponse go!"ch" l) ch' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ch' := ch' } : net.http.populateResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_load_wroteHeader (l : Loc) (v : net.http.populateResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"wroteHeader" l) v.wroteHeader' dq)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"wroteHeader" l) v.wroteHeader' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_store_wroteHeader (l : Loc) (v : net.http.populateResponse) (wroteHeader' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"wroteHeader" l) v.wroteHeader' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.populateResponse go!"wroteHeader" l) wroteHeader' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wroteHeader' := wroteHeader' } : net.http.populateResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_load_hasContent (l : Loc) (v : net.http.populateResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"hasContent" l) v.hasContent' dq)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"hasContent" l) v.hasContent' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_store_hasContent (l : Loc) (v : net.http.populateResponse) (hasContent' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"hasContent" l) v.hasContent' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.populateResponse go!"hasContent" l) hasContent' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hasContent' := hasContent' } : net.http.populateResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_load_sentResponse (l : Loc) (v : net.http.populateResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"sentResponse" l) v.sentResponse' dq)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"sentResponse" l) v.sentResponse' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_store_sentResponse (l : Loc) (v : net.http.populateResponse) (sentResponse' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"sentResponse" l) v.sentResponse' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.populateResponse go!"sentResponse" l) sentResponse' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sentResponse' := sentResponse' } : net.http.populateResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_load_pw (l : Loc) (v : net.http.populateResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"pw" l) v.pw' dq)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"pw" l) v.pw' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance populateResponse_access_store_pw (l : Loc) (v : net.http.populateResponse) (pw' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.populateResponse go!"pw" l) v.pw' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.populateResponse go!"pw" l) pw' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pw' := pw' } : net.http.populateResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end populateResponse
@@ -373,12 +661,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
 noncomputable instance stringWriter_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.stringWriter :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.http.stringWriter where
+  typedPointstoDef l v dq := iprop(
+    "w" ∷ typedPointsto (structFieldRef net.http.stringWriter go!"w" l) v.w' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance stringWriter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.stringWriter net.http.stringWriter.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.http.stringWriter net.http.stringWriter.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance stringWriter_access_load_w (l : Loc) (v : net.http.stringWriter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.stringWriter go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef net.http.stringWriter go!"w" l) v.w' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance stringWriter_access_store_w (l : Loc) (v : net.http.stringWriter) (w' : io.Writer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.stringWriter go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.stringWriter go!"w" l) w' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := w' } : net.http.stringWriter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end stringWriter
@@ -592,12 +901,220 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
 noncomputable instance HTTP2Config_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.HTTP2Config :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.http.HTTP2Config where
+  typedPointstoDef l v dq := iprop(
+    "MaxConcurrentStreams" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxConcurrentStreams" l) v.MaxConcurrentStreams' dq ∗
+    "StrictMaxConcurrentRequests" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"StrictMaxConcurrentRequests" l) v.StrictMaxConcurrentRequests' dq ∗
+    "MaxDecoderHeaderTableSize" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxDecoderHeaderTableSize" l) v.MaxDecoderHeaderTableSize' dq ∗
+    "MaxEncoderHeaderTableSize" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxEncoderHeaderTableSize" l) v.MaxEncoderHeaderTableSize' dq ∗
+    "MaxReadFrameSize" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReadFrameSize" l) v.MaxReadFrameSize' dq ∗
+    "MaxReceiveBufferPerConnection" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerConnection" l) v.MaxReceiveBufferPerConnection' dq ∗
+    "MaxReceiveBufferPerStream" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerStream" l) v.MaxReceiveBufferPerStream' dq ∗
+    "SendPingTimeout" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"SendPingTimeout" l) v.SendPingTimeout' dq ∗
+    "PingTimeout" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"PingTimeout" l) v.PingTimeout' dq ∗
+    "WriteByteTimeout" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"WriteByteTimeout" l) v.WriteByteTimeout' dq ∗
+    "PermitProhibitedCipherSuites" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"PermitProhibitedCipherSuites" l) v.PermitProhibitedCipherSuites' dq ∗
+    "CountError" ∷ typedPointsto (structFieldRef net.http.HTTP2Config go!"CountError" l) v.CountError' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance HTTP2Config_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.HTTP2Config net.http.HTTP2Config.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.http.HTTP2Config net.http.HTTP2Config.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance HTTP2Config_access_load_MaxConcurrentStreams (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxConcurrentStreams" l) v.MaxConcurrentStreams' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxConcurrentStreams" l) v.MaxConcurrentStreams' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_MaxConcurrentStreams (l : Loc) (v : net.http.HTTP2Config) (MaxConcurrentStreams' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxConcurrentStreams" l) v.MaxConcurrentStreams' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxConcurrentStreams" l) MaxConcurrentStreams' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConcurrentStreams' := MaxConcurrentStreams' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_StrictMaxConcurrentRequests (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"StrictMaxConcurrentRequests" l) v.StrictMaxConcurrentRequests' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"StrictMaxConcurrentRequests" l) v.StrictMaxConcurrentRequests' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_StrictMaxConcurrentRequests (l : Loc) (v : net.http.HTTP2Config) (StrictMaxConcurrentRequests' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"StrictMaxConcurrentRequests" l) v.StrictMaxConcurrentRequests' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"StrictMaxConcurrentRequests" l) StrictMaxConcurrentRequests' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StrictMaxConcurrentRequests' := StrictMaxConcurrentRequests' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_MaxDecoderHeaderTableSize (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxDecoderHeaderTableSize" l) v.MaxDecoderHeaderTableSize' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxDecoderHeaderTableSize" l) v.MaxDecoderHeaderTableSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_MaxDecoderHeaderTableSize (l : Loc) (v : net.http.HTTP2Config) (MaxDecoderHeaderTableSize' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxDecoderHeaderTableSize" l) v.MaxDecoderHeaderTableSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxDecoderHeaderTableSize" l) MaxDecoderHeaderTableSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxDecoderHeaderTableSize' := MaxDecoderHeaderTableSize' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_MaxEncoderHeaderTableSize (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxEncoderHeaderTableSize" l) v.MaxEncoderHeaderTableSize' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxEncoderHeaderTableSize" l) v.MaxEncoderHeaderTableSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_MaxEncoderHeaderTableSize (l : Loc) (v : net.http.HTTP2Config) (MaxEncoderHeaderTableSize' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxEncoderHeaderTableSize" l) v.MaxEncoderHeaderTableSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxEncoderHeaderTableSize" l) MaxEncoderHeaderTableSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxEncoderHeaderTableSize' := MaxEncoderHeaderTableSize' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_MaxReadFrameSize (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReadFrameSize" l) v.MaxReadFrameSize' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReadFrameSize" l) v.MaxReadFrameSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_MaxReadFrameSize (l : Loc) (v : net.http.HTTP2Config) (MaxReadFrameSize' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReadFrameSize" l) v.MaxReadFrameSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReadFrameSize" l) MaxReadFrameSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxReadFrameSize' := MaxReadFrameSize' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_MaxReceiveBufferPerConnection (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerConnection" l) v.MaxReceiveBufferPerConnection' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerConnection" l) v.MaxReceiveBufferPerConnection' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_MaxReceiveBufferPerConnection (l : Loc) (v : net.http.HTTP2Config) (MaxReceiveBufferPerConnection' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerConnection" l) v.MaxReceiveBufferPerConnection' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerConnection" l) MaxReceiveBufferPerConnection' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxReceiveBufferPerConnection' := MaxReceiveBufferPerConnection' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_MaxReceiveBufferPerStream (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerStream" l) v.MaxReceiveBufferPerStream' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerStream" l) v.MaxReceiveBufferPerStream' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_MaxReceiveBufferPerStream (l : Loc) (v : net.http.HTTP2Config) (MaxReceiveBufferPerStream' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerStream" l) v.MaxReceiveBufferPerStream' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"MaxReceiveBufferPerStream" l) MaxReceiveBufferPerStream' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxReceiveBufferPerStream' := MaxReceiveBufferPerStream' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_SendPingTimeout (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"SendPingTimeout" l) v.SendPingTimeout' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"SendPingTimeout" l) v.SendPingTimeout' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_SendPingTimeout (l : Loc) (v : net.http.HTTP2Config) (SendPingTimeout' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"SendPingTimeout" l) v.SendPingTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"SendPingTimeout" l) SendPingTimeout' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendPingTimeout' := SendPingTimeout' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_PingTimeout (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"PingTimeout" l) v.PingTimeout' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"PingTimeout" l) v.PingTimeout' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_PingTimeout (l : Loc) (v : net.http.HTTP2Config) (PingTimeout' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"PingTimeout" l) v.PingTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"PingTimeout" l) PingTimeout' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PingTimeout' := PingTimeout' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_WriteByteTimeout (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"WriteByteTimeout" l) v.WriteByteTimeout' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"WriteByteTimeout" l) v.WriteByteTimeout' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_WriteByteTimeout (l : Loc) (v : net.http.HTTP2Config) (WriteByteTimeout' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"WriteByteTimeout" l) v.WriteByteTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"WriteByteTimeout" l) WriteByteTimeout' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WriteByteTimeout' := WriteByteTimeout' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_PermitProhibitedCipherSuites (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"PermitProhibitedCipherSuites" l) v.PermitProhibitedCipherSuites' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"PermitProhibitedCipherSuites" l) v.PermitProhibitedCipherSuites' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_PermitProhibitedCipherSuites (l : Loc) (v : net.http.HTTP2Config) (PermitProhibitedCipherSuites' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"PermitProhibitedCipherSuites" l) v.PermitProhibitedCipherSuites' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"PermitProhibitedCipherSuites" l) PermitProhibitedCipherSuites' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PermitProhibitedCipherSuites' := PermitProhibitedCipherSuites' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_load_CountError (l : Loc) (v : net.http.HTTP2Config) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"CountError" l) v.CountError' dq)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"CountError" l) v.CountError' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HTTP2Config_access_store_CountError (l : Loc) (v : net.http.HTTP2Config) (CountError' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"CountError" l) v.CountError' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.HTTP2Config go!"CountError" l) CountError' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CountError' := CountError' } : net.http.HTTP2Config) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end HTTP2Config
@@ -660,44 +1177,6 @@ noncomputable instance http2ServerConfig_access_store_s (l : Loc) (v : net.http.
 
 end def_
 end http2ServerConfig
-
-namespace http2ExternalServerConfig
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance http2ExternalServerConfig_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.http2ExternalServerConfig :=
-  sorry -- axiomatized type
-
-noncomputable instance http2ExternalServerConfig_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.http2ExternalServerConfig net.http.http2ExternalServerConfig.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end http2ExternalServerConfig
-
-namespace http2ExternalTransportConfig
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance http2ExternalTransportConfig_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.http2ExternalTransportConfig :=
-  sorry -- axiomatized type
-
-noncomputable instance http2ExternalTransportConfig_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.http2ExternalTransportConfig net.http.http2ExternalTransportConfig.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end http2ExternalTransportConfig
 
 namespace http2ErringRoundTripper
 section def_
@@ -816,82 +1295,6 @@ noncomputable instance transportConfig_access_store_t (l : Loc) (v : net.http.tr
 
 end def_
 end transportConfig
-
-namespace CookieJar
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance CookieJar_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.CookieJar :=
-  sorry -- axiomatized type
-
-noncomputable instance CookieJar_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.CookieJar net.http.CookieJar.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end CookieJar
-
-namespace mapping
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance mapping_typed_pointsto {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] :
-    TypedPointsto (GF := GF) (net.http.mapping K' V') where
-  typedPointstoDef l v dq := iprop(
-    "s" ∷ typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) v.s' dq ∗
-    "m" ∷ typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) v.m' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance mapping_into_val_typed (K : go.GoType) {K' : Type} [ZeroVal K'] [TypedPointsto (GF := GF) K'] [IntoValTyped (GF := GF) K' K] (V : go.GoType) {V' : Type} [ZeroVal V'] [TypedPointsto (GF := GF) V'] [IntoValTyped (GF := GF) V' V] :
-    IntoValTypedUnderlying (GF := GF) (net.http.mapping K' V') (net.http.mapping.underlying K V) := by
-  solve_into_val_typed_struct
-
-noncomputable instance mapping_access_load_s {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] (l : Loc) (v : (net.http.mapping K' V')) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) v.s' dq)
-      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) v.s' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance mapping_access_store_s {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] (l : Loc) (v : (net.http.mapping K' V')) (s' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"s" l) s' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : (net.http.mapping K' V')) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance mapping_access_load_m {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] (l : Loc) (v : (net.http.mapping K' V')) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) v.m' dq)
-      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) v.m' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance mapping_access_store_m {K' : Type} [TypedPointsto (GF := GF) K'] {V' : Type} [TypedPointsto (GF := GF) V'] (l : Loc) (v : (net.http.mapping K' V')) (m' : GoMap) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) v.m' (DFrac.own 1))
-      (typedPointsto (structFieldRef (net.http.mapping K' V') go!"m" l) m' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := m' } : (net.http.mapping K' V')) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end mapping
 
 namespace entry
 section def_
@@ -1057,409 +1460,6 @@ noncomputable instance pattern_access_store_loc (l : Loc) (v : net.http.pattern)
 
 end def_
 end pattern
-
-namespace segment
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance segment_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.segment where
-  typedPointstoDef l v dq := iprop(
-    "s" ∷ typedPointsto (structFieldRef net.http.segment go!"s" l) v.s' dq ∗
-    "wild" ∷ typedPointsto (structFieldRef net.http.segment go!"wild" l) v.wild' dq ∗
-    "multi" ∷ typedPointsto (structFieldRef net.http.segment go!"multi" l) v.multi' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance segment_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.segment net.http.segment.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance segment_access_load_s (l : Loc) (v : net.http.segment) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.segment go!"s" l) v.s' dq)
-      (typedPointsto (structFieldRef net.http.segment go!"s" l) v.s' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance segment_access_store_s (l : Loc) (v : net.http.segment) (s' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.segment go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.segment go!"s" l) s' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : net.http.segment) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance segment_access_load_wild (l : Loc) (v : net.http.segment) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.segment go!"wild" l) v.wild' dq)
-      (typedPointsto (structFieldRef net.http.segment go!"wild" l) v.wild' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance segment_access_store_wild (l : Loc) (v : net.http.segment) (wild' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.segment go!"wild" l) v.wild' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.segment go!"wild" l) wild' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wild' := wild' } : net.http.segment) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance segment_access_load_multi (l : Loc) (v : net.http.segment) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.segment go!"multi" l) v.multi' dq)
-      (typedPointsto (structFieldRef net.http.segment go!"multi" l) v.multi' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance segment_access_store_multi (l : Loc) (v : net.http.segment) (multi' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.segment go!"multi" l) v.multi' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.segment go!"multi" l) multi' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with multi' := multi' } : net.http.segment) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end segment
-
-namespace ProtocolError
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance ProtocolError_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.ProtocolError where
-  typedPointstoDef l v dq := iprop(
-    "ErrorString" ∷ typedPointsto (structFieldRef net.http.ProtocolError go!"ErrorString" l) v.ErrorString' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance ProtocolError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.ProtocolError net.http.ProtocolError.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance ProtocolError_access_load_ErrorString (l : Loc) (v : net.http.ProtocolError) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.ProtocolError go!"ErrorString" l) v.ErrorString' dq)
-      (typedPointsto (structFieldRef net.http.ProtocolError go!"ErrorString" l) v.ErrorString' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance ProtocolError_access_store_ErrorString (l : Loc) (v : net.http.ProtocolError) (ErrorString' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.ProtocolError go!"ErrorString" l) v.ErrorString' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.ProtocolError go!"ErrorString" l) ErrorString' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorString' := ErrorString' } : net.http.ProtocolError) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end ProtocolError
-
-namespace Request
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance Request_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Request :=
-  sorry -- axiomatized type
-
-noncomputable instance Request_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Request net.http.Request.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Request
-
-namespace requestBodyReadError
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance requestBodyReadError_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.requestBodyReadError where
-  typedPointstoDef l v dq := iprop(
-    "error" ∷ typedPointsto (structFieldRef net.http.requestBodyReadError go!"error" l) v.error' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance requestBodyReadError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.requestBodyReadError net.http.requestBodyReadError.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance requestBodyReadError_access_load_error (l : Loc) (v : net.http.requestBodyReadError) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.requestBodyReadError go!"error" l) v.error' dq)
-      (typedPointsto (structFieldRef net.http.requestBodyReadError go!"error" l) v.error' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance requestBodyReadError_access_store_error (l : Loc) (v : net.http.requestBodyReadError) (error' : GoError) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.requestBodyReadError go!"error" l) v.error' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.requestBodyReadError go!"error" l) error' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with error' := error' } : net.http.requestBodyReadError) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end requestBodyReadError
-
-namespace MaxBytesError
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance MaxBytesError_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.MaxBytesError where
-  typedPointstoDef l v dq := iprop(
-    "Limit" ∷ typedPointsto (structFieldRef net.http.MaxBytesError go!"Limit" l) v.Limit' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance MaxBytesError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.MaxBytesError net.http.MaxBytesError.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance MaxBytesError_access_load_Limit (l : Loc) (v : net.http.MaxBytesError) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.MaxBytesError go!"Limit" l) v.Limit' dq)
-      (typedPointsto (structFieldRef net.http.MaxBytesError go!"Limit" l) v.Limit' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance MaxBytesError_access_store_Limit (l : Loc) (v : net.http.MaxBytesError) (Limit' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.MaxBytesError go!"Limit" l) v.Limit' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.MaxBytesError go!"Limit" l) Limit' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Limit' := Limit' } : net.http.MaxBytesError) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end MaxBytesError
-
-namespace maxBytesReader
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance maxBytesReader_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.maxBytesReader :=
-  sorry -- axiomatized type
-
-noncomputable instance maxBytesReader_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.maxBytesReader net.http.maxBytesReader.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end maxBytesReader
-
-namespace Response
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance Response_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Response :=
-  sorry -- axiomatized type
-
-noncomputable instance Response_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Response net.http.Response.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Response
-
-namespace routingIndex
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance routingIndex_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.routingIndex where
-  typedPointstoDef l v dq := iprop(
-    "segments" ∷ typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) v.segments' dq ∗
-    "multis" ∷ typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) v.multis' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance routingIndex_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.routingIndex net.http.routingIndex.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance routingIndex_access_load_segments (l : Loc) (v : net.http.routingIndex) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) v.segments' dq)
-      (typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) v.segments' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance routingIndex_access_store_segments (l : Loc) (v : net.http.routingIndex) (segments' : GoMap) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) v.segments' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.routingIndex go!"segments" l) segments' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with segments' := segments' } : net.http.routingIndex) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance routingIndex_access_load_multis (l : Loc) (v : net.http.routingIndex) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) v.multis' dq)
-      (typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) v.multis' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance routingIndex_access_store_multis (l : Loc) (v : net.http.routingIndex) (multis' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) v.multis' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.routingIndex go!"multis" l) multis' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with multis' := multis' } : net.http.routingIndex) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end routingIndex
-
-namespace routingIndexKey
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance routingIndexKey_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.routingIndexKey where
-  typedPointstoDef l v dq := iprop(
-    "pos" ∷ typedPointsto (structFieldRef net.http.routingIndexKey go!"pos" l) v.pos' dq ∗
-    "s" ∷ typedPointsto (structFieldRef net.http.routingIndexKey go!"s" l) v.s' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance routingIndexKey_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.routingIndexKey net.http.routingIndexKey.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance routingIndexKey_access_load_pos (l : Loc) (v : net.http.routingIndexKey) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.routingIndexKey go!"pos" l) v.pos' dq)
-      (typedPointsto (structFieldRef net.http.routingIndexKey go!"pos" l) v.pos' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance routingIndexKey_access_store_pos (l : Loc) (v : net.http.routingIndexKey) (pos' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.routingIndexKey go!"pos" l) v.pos' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.routingIndexKey go!"pos" l) pos' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pos' := pos' } : net.http.routingIndexKey) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance routingIndexKey_access_load_s (l : Loc) (v : net.http.routingIndexKey) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.routingIndexKey go!"s" l) v.s' dq)
-      (typedPointsto (structFieldRef net.http.routingIndexKey go!"s" l) v.s' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance routingIndexKey_access_store_s (l : Loc) (v : net.http.routingIndexKey) (s' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.routingIndexKey go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.routingIndexKey go!"s" l) s' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : net.http.routingIndexKey) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end routingIndexKey
-
-namespace serveMux121
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance serveMux121_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.serveMux121 :=
-  sorry -- axiomatized type
-
-noncomputable instance serveMux121_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.serveMux121 net.http.serveMux121.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end serveMux121
-
-namespace Hijacker
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance Hijacker_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Hijacker :=
-  sorry -- axiomatized type
-
-noncomputable instance Hijacker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Hijacker net.http.Hijacker.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Hijacker
 
 end net.http
 end

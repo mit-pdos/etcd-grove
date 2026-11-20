@@ -8,7 +8,7 @@ public import Perennial.Code.log
 public import Net.Code.net
 public import Net.Code.net.http
 public import Perennial.Code.sync
-public import Perennial.Code.go.token
+public import Net.Code.go.token
 public import Perennial.Code.strings
 public import Perennial.Golang.Defn
 

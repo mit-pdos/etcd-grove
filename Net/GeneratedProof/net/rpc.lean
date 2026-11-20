@@ -4,7 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.bufio
 public import Perennial.GeneratedProof.errors
-public import Perennial.GeneratedProof.go.token
+public import Net.GeneratedProof.go.token
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Net.GeneratedProof.net
