@@ -5,8 +5,9 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.mvcc`
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`mvccInit`, `Base.lean`): its error variables (translated `errors.New` calls), its
-metrics (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`; a counter's `Add` only
-of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
+metrics (`metrics.go`, translated: `prometheus.NewCounter`, `NewGauge` and `NewHistogram` of an
+options literal, the trust-boundary axioms of those constructors and of `ExponentialBuckets`; a
+counter's `Add` only of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
 fact). `opaqueInitsOk` states its other untranslated initializers run.
 -/
 module
@@ -88,81 +89,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `rangeCounter = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
-axiom rangeCounter_init :
-    {{ (True : IProp GF) }} (App (Val rangeCounter.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr rangeCounter ↦ GoInterface.ok m ∗ counterSpec m }}
-
-/-- `putCounter = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
-axiom putCounter_init :
-    {{ (True : IProp GF) }} (App (Val putCounter.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr putCounter ↦ GoInterface.ok m ∗ counterSpec m }}
-
-/-- `deleteCounter = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
-axiom deleteCounter_init :
-    {{ (True : IProp GF) }} (App (Val deleteCounter.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr deleteCounter ↦ GoInterface.ok m ∗ counterSpec m }}
-
-/-- `txnCounter = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
-axiom txnCounter_init :
-    {{ (True : IProp GF) }} (App (Val txnCounter.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr txnCounter ↦ GoInterface.ok m ∗ counterSpec m }}
-
-/-- `dbCompactionKeysCounter = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
-axiom dbCompactionKeysCounter_init :
-    {{ (True : IProp GF) }} (App (Val dbCompactionKeysCounter.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦ GoInterface.ok m ∗ counterSpec m }}
-
-/-- `watchStreamGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom watchStreamGauge_init :
-    {{ (True : IProp GF) }} (App (Val watchStreamGauge.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr watchStreamGauge ↦ GoInterface.ok m ∗ gaugeSpec m }}
-
-/-- `watcherGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom watcherGauge_init :
-    {{ (True : IProp GF) }} (App (Val watcherGauge.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr watcherGauge ↦ GoInterface.ok m ∗ gaugeSpec m }}
-
-/-- `pendingEventsGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom pendingEventsGauge_init :
-    {{ (True : IProp GF) }} (App (Val pendingEventsGauge.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr pendingEventsGauge ↦ GoInterface.ok m ∗ gaugeSpec m }}
-
-/-- `totalPutSizeGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom totalPutSizeGauge_init :
-    {{ (True : IProp GF) }} (App (Val totalPutSizeGauge.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr totalPutSizeGauge ↦ GoInterface.ok m ∗ gaugeSpec m }}
-
-/-- `slowWatcherGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom slowWatcherGauge_init :
-    {{ (True : IProp GF) }} (App (Val slowWatcherGauge.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr slowWatcherGauge ↦ GoInterface.ok m ∗ gaugeSpec m ∗ gaugeSetSpec m }}
-
-/-- `keysGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom keysGauge_init :
-    {{ (True : IProp GF) }} (App (Val keysGauge.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr keysGauge ↦ GoInterface.ok m ∗ gaugeSpec m ∗ gaugeSetSpec m }}
-
-/-- `dbCompactionLast = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom dbCompactionLast_init :
-    {{ (True : IProp GF) }} (App (Val dbCompactionLast.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr dbCompactionLast ↦ GoInterface.ok m ∗ gaugeSetSpec m }}
-
-/-- `indexCompactionPauseMs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom indexCompactionPauseMs_init :
-    {{ (True : IProp GF) }} (App (Val indexCompactionPauseMs.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr indexCompactionPauseMs ↦ GoInterface.ok m ∗ histSpec m }}
-
-/-- `dbCompactionPauseMs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom dbCompactionPauseMs_init :
-    {{ (True : IProp GF) }} (App (Val dbCompactionPauseMs.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr dbCompactionPauseMs ↦ GoInterface.ok m ∗ histSpec m }}
-
-/-- `dbCompactionTotalMs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom dbCompactionTotalMs_init :
-    {{ (True : IProp GF) }} (App (Val dbCompactionTotalMs.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr dbCompactionTotalMs ↦ GoInterface.ok m ∗ histSpec m }}
 
 end go_etcd_io.etcd.server.v3.storage.mvcc
 end opaqueInits

@@ -1911,16 +1911,36 @@ def _metric(x, kind, preds, file='metrics.go'):
     ctor = {'counter': 'NewCounter', 'gauge': 'NewGauge', 'hist': 'NewHistogram'}[kind]
     return dict(doc=f'/-- `{x} = prometheus.{ctor}(...)` (`{file}`): {what}. -/', post=post, pat=pat)
 
+# (metric-inits, 2026-11-19) a metric whose initializer is translated: `prometheus.New<Kind>` of an
+# options literal (a histogram's buckets `ExponentialBuckets(start, 2, n)`), over prometheus's
+# constructor specs; the steps before its store (`before`, keyed by the variable)
+PROM_CTORS = [f'Proof.github_com.prometheus.client_golang.prometheus.{f}'
+              for f in ['NewCounter', 'NewGauge', 'NewHistogram', 'ExponentialBuckets']]
+
+def metric_steps(x, kind):
+    P = 'EtcdGrove.prometheus'
+    if kind == 'counter':
+        return [f'wp_apply {P}.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#C{x}, -⟩',
+                'try wp_auto']
+    if kind == 'gauge':
+        return [f'wp_apply {P}.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#C{x}, #D{x}, -⟩',
+                'try wp_auto']
+    assert kind == 'hist'
+    return [f'wp_apply {P}.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %b{x} B{x}',
+            'try wp_auto',
+            f'wp_apply {P}.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) ({P}.expBuckets_ok (by decide))'
+            f' (by decide) $$ B{x} as %c{x} ⟨#C{x}, -⟩',
+            'try wp_auto']
+
 _MV_CNT = ['rangeCounter', 'putCounter', 'deleteCounter', 'txnCounter', 'dbCompactionKeysCounter']
 _MV_GAU = ['watchStreamGauge', 'watcherGauge', 'pendingEventsGauge', 'totalPutSizeGauge']
 _MV_HIS = ['indexCompactionPauseMs', 'dbCompactionPauseMs', 'dbCompactionTotalMs']
-_mv_custom = {x: _metric(x, 'counter', ['counterSpec']) for x in _MV_CNT}
-_mv_custom.update({x: _metric(x, 'gauge', ['gaugeSpec']) for x in _MV_GAU})
-_mv_custom['slowWatcherGauge'] = _metric('slowWatcherGauge', 'gauge', ['gaugeSpec', 'gaugeSetSpec'])
-# (restore plan R4) `restore` sets it (`keysGauge.Set(0)`)
-_mv_custom['keysGauge'] = _metric('keysGauge', 'gauge', ['gaugeSpec', 'gaugeSetSpec'])
-_mv_custom['dbCompactionLast'] = _metric('dbCompactionLast', 'gauge', ['gaugeSetSpec'])
-_mv_custom.update({x: _metric(x, 'hist', ['histSpec']) for x in _MV_HIS})
+# (metric-inits, 2026-11-19) its metrics' initializers are translated (`metric_steps`): until then
+# the trust-boundary axioms `<X>_init`
+_MV_GAU += ['slowWatcherGauge', 'keysGauge', 'dbCompactionLast']
+_MV_METRICS = ([(x, 'counter') for x in _MV_CNT] + [(x, 'gauge') for x in _MV_GAU] +
+               [(x, 'hist') for x in _MV_HIS])
+_mv_custom = {}
 _MV_ERR = {'ErrRevisionNotFound': 'RNF', 'ErrCompacted': 'CP', 'ErrFutureRev': 'FR',
            'ErrWatcherNotExist': 'WNE', 'ErrEmptyWatcherRange': 'EWR', 'ErrWatcherDuplicateID': 'WDI'}
 # (R2 of the restore plan) the metrics reporters `setupMetricsReporter` sets, each under its lock.
@@ -1929,13 +1949,15 @@ _MV_REPORT = ['reportDbTotalSizeInBytes', 'reportDbTotalSizeInUseInBytes', 'repo
 
 SPECIAL['go_etcd_io.etcd.server.v3.storage.mvcc'] = dict(
     doc="""Its fact (`mvccInit`, `Base.lean`): its error variables (translated `errors.New` calls), its
-metrics (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`; a counter's `Add` only
-of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
+metrics (`metrics.go`, translated: `prometheus.NewCounter`, `NewGauge` and `NewHistogram` of an
+options literal, the trust-boundary axioms of those constructors and of `ExponentialBuckets`; a
+counter's `Add` only of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
 fact). `opaqueInitsOk` states its other untranslated initializers run.""",
     imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.errors.NewVarCell',
-             'Perennial.Proof.sync.RWMutexGuard'],
+             'Perennial.Proof.sync.RWMutexGuard'] + PROM_CTORS,
     custom=_mv_custom,
     alloc_types={**{f'{x}Mu': '_root_.Perennial.sync.RWMutex' for x in _MV_REPORT},
+                 **{x: 'GoInterface' for x, _ in _MV_METRICS},
                  **{x: 'GoFunc' for x in _MV_REPORT},
                  'watchBatchMaxRevs': 'w64', 'ErrWatcherDuplicateID': 'GoInterface',
                  'ErrEmptyWatcherRange': 'GoInterface', 'ErrWatcherNotExist': 'GoInterface',
@@ -1951,9 +1973,10 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
             '$inits': [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                        for t in ['WNE', 'EWR']] +
                       [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
-                       for t in ['WDI']]},
+                       for t in ['WDI']],
+            **{x: metric_steps(x, k) for x, k in _MV_METRICS}},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
-            [f'ipersist H{x}' for x in list(_mv_custom)] +
+            [f'ipersist H{x}' for x in list(_mv_custom)] + [f'ipersist H{x}' for x, _ in _MV_METRICS] +
             ['ipersist HdefaultCompactionBatchLimit', 'ipersist HdefaultCompactionSleepInterval'] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
              'ipersist HwatchBatchMaxRevs', 'ipersist HrestoreChunkKeys',

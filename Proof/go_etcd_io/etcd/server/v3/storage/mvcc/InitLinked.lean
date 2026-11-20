@@ -31,6 +31,10 @@ public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.hash.Init
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -79,6 +83,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) watchResyncPeriod _ as HwatchResyncPeriod
   wp_apply wp_GlobalAlloc (V := w64) maxWatchersPerSync _ as HmaxWatchersPerSync
   wp_apply wp_GlobalAlloc (V := w64) chanBufLen _ as HchanBufLen
+  wp_apply wp_GlobalAlloc (V := GoInterface) totalPutSizeGauge _ as HtotalPutSizeGauge
   wp_apply wp_GlobalAlloc (V := GoFunc) reportCompactRev _ as HreportCompactRev
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCompactRevMu _ as HreportCompactRevMu
   wp_apply wp_GlobalAlloc (V := GoFunc) reportCurrentRev _ as HreportCurrentRev
@@ -89,6 +94,20 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInUseInBytesMu _ as HreportDbTotalSizeInUseInBytesMu
   wp_apply wp_GlobalAlloc (V := GoFunc) reportDbTotalSizeInBytes _ as HreportDbTotalSizeInBytes
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInBytesMu _ as HreportDbTotalSizeInBytesMu
+  wp_apply wp_GlobalAlloc (V := GoInterface) dbCompactionKeysCounter _ as HdbCompactionKeysCounter
+  wp_apply wp_GlobalAlloc (V := GoInterface) dbCompactionLast _ as HdbCompactionLast
+  wp_apply wp_GlobalAlloc (V := GoInterface) dbCompactionTotalMs _ as HdbCompactionTotalMs
+  wp_apply wp_GlobalAlloc (V := GoInterface) dbCompactionPauseMs _ as HdbCompactionPauseMs
+  wp_apply wp_GlobalAlloc (V := GoInterface) indexCompactionPauseMs _ as HindexCompactionPauseMs
+  wp_apply wp_GlobalAlloc (V := GoInterface) pendingEventsGauge _ as HpendingEventsGauge
+  wp_apply wp_GlobalAlloc (V := GoInterface) slowWatcherGauge _ as HslowWatcherGauge
+  wp_apply wp_GlobalAlloc (V := GoInterface) watcherGauge _ as HwatcherGauge
+  wp_apply wp_GlobalAlloc (V := GoInterface) watchStreamGauge _ as HwatchStreamGauge
+  wp_apply wp_GlobalAlloc (V := GoInterface) keysGauge _ as HkeysGauge
+  wp_apply wp_GlobalAlloc (V := GoInterface) txnCounter _ as HtxnCounter
+  wp_apply wp_GlobalAlloc (V := GoInterface) deleteCounter _ as HdeleteCounter
+  wp_apply wp_GlobalAlloc (V := GoInterface) putCounter _ as HputCounter
+  wp_apply wp_GlobalAlloc (V := GoInterface) rangeCounter _ as HrangeCounter
   wp_apply wp_GlobalAlloc (V := w64) defaultCompactionSleepInterval _ as HdefaultCompactionSleepInterval
   wp_apply wp_GlobalAlloc (V := w64) defaultCompactionBatchLimit _ as HdefaultCompactionBatchLimit
   wp_apply wp_GlobalAlloc (V := w64) restoreChunkKeys _ as HrestoreChunkKeys
@@ -138,21 +157,55 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.wp_New_errorString_cell as %xCP ⟨#MCP, #CCP⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xFR ⟨#MFR, #CFR⟩
   -- translated initializer of defaultCompactionSleepInterval))
-  wp_apply rangeCounter_init as ⟨%mrangeCounter, HrangeCounter, #S0rangeCounter⟩
-  wp_apply putCounter_init as ⟨%mputCounter, HputCounter, #S0putCounter⟩
-  wp_apply deleteCounter_init as ⟨%mdeleteCounter, HdeleteCounter, #S0deleteCounter⟩
-  wp_apply txnCounter_init as ⟨%mtxnCounter, HtxnCounter, #S0txnCounter⟩
-  wp_apply keysGauge_init as ⟨%mkeysGauge, HkeysGauge, #S0keysGauge, #S1keysGauge⟩
-  wp_apply watchStreamGauge_init as ⟨%mwatchStreamGauge, HwatchStreamGauge, #S0watchStreamGauge⟩
-  wp_apply watcherGauge_init as ⟨%mwatcherGauge, HwatcherGauge, #S0watcherGauge⟩
-  wp_apply slowWatcherGauge_init as ⟨%mslowWatcherGauge, HslowWatcherGauge, #S0slowWatcherGauge, #S1slowWatcherGauge⟩
+  -- translated initializer of rangeCounter))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %crangeCounter ⟨#CrangeCounter, -⟩
+  try wp_auto
+  -- translated initializer of putCounter))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cputCounter ⟨#CputCounter, -⟩
+  try wp_auto
+  -- translated initializer of deleteCounter))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cdeleteCounter ⟨#CdeleteCounter, -⟩
+  try wp_auto
+  -- translated initializer of txnCounter))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %ctxnCounter ⟨#CtxnCounter, -⟩
+  try wp_auto
+  -- translated initializer of keysGauge))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %ckeysGauge ⟨#CkeysGauge, #DkeysGauge, -⟩
+  try wp_auto
+  -- translated initializer of watchStreamGauge))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwatchStreamGauge ⟨#CwatchStreamGauge, #DwatchStreamGauge, -⟩
+  try wp_auto
+  -- translated initializer of watcherGauge))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwatcherGauge ⟨#CwatcherGauge, #DwatcherGauge, -⟩
+  try wp_auto
+  -- translated initializer of slowWatcherGauge))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cslowWatcherGauge ⟨#CslowWatcherGauge, #DslowWatcherGauge, -⟩
+  try wp_auto
   wp_apply (opaqueInitsOk totalEventsCounter.init (by mem_tac))
-  wp_apply pendingEventsGauge_init as ⟨%mpendingEventsGauge, HpendingEventsGauge, #S0pendingEventsGauge⟩
-  wp_apply indexCompactionPauseMs_init as ⟨%mindexCompactionPauseMs, HindexCompactionPauseMs, #S0indexCompactionPauseMs⟩
-  wp_apply dbCompactionPauseMs_init as ⟨%mdbCompactionPauseMs, HdbCompactionPauseMs, #S0dbCompactionPauseMs⟩
-  wp_apply dbCompactionTotalMs_init as ⟨%mdbCompactionTotalMs, HdbCompactionTotalMs, #S0dbCompactionTotalMs⟩
-  wp_apply dbCompactionLast_init as ⟨%mdbCompactionLast, HdbCompactionLast, #S0dbCompactionLast⟩
-  wp_apply dbCompactionKeysCounter_init as ⟨%mdbCompactionKeysCounter, HdbCompactionKeysCounter, #S0dbCompactionKeysCounter⟩
+  -- translated initializer of pendingEventsGauge))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cpendingEventsGauge ⟨#CpendingEventsGauge, #DpendingEventsGauge, -⟩
+  try wp_auto
+  -- translated initializer of indexCompactionPauseMs))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bindexCompactionPauseMs BindexCompactionPauseMs
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BindexCompactionPauseMs as %cindexCompactionPauseMs ⟨#CindexCompactionPauseMs, -⟩
+  try wp_auto
+  -- translated initializer of dbCompactionPauseMs))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bdbCompactionPauseMs BdbCompactionPauseMs
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdbCompactionPauseMs as %cdbCompactionPauseMs ⟨#CdbCompactionPauseMs, -⟩
+  try wp_auto
+  -- translated initializer of dbCompactionTotalMs))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bdbCompactionTotalMs BdbCompactionTotalMs
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdbCompactionTotalMs as %cdbCompactionTotalMs ⟨#CdbCompactionTotalMs, -⟩
+  try wp_auto
+  -- translated initializer of dbCompactionLast))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cdbCompactionLast ⟨#CdbCompactionLast, #DdbCompactionLast, -⟩
+  try wp_auto
+  -- translated initializer of dbCompactionKeysCounter))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cdbCompactionKeysCounter ⟨#CdbCompactionKeysCounter, -⟩
+  try wp_auto
   -- translated initializer of reportDbTotalSizeInBytes))
   wp_apply (opaqueInitsOk dbTotalSize.init (by mem_tac))
   -- translated initializer of reportDbTotalSizeInUseInBytes))
@@ -165,7 +218,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk currentRev.init (by mem_tac))
   -- translated initializer of reportCompactRev))
   wp_apply (opaqueInitsOk compactRev.init (by mem_tac))
-  wp_apply totalPutSizeGauge_init as ⟨%mtotalPutSizeGauge, HtotalPutSizeGauge, #S0totalPutSizeGauge⟩
+  -- translated initializer of totalPutSizeGauge))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %ctotalPutSizeGauge ⟨#CtotalPutSizeGauge, #DtotalPutSizeGauge, -⟩
+  try wp_auto
   -- translated initializer of chanBufLen))
   -- translated initializer of maxWatchersPerSync))
   -- translated initializer of watchResyncPeriod))
