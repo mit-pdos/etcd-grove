@@ -1,5 +1,5 @@
 /-
-`typed.toFieldSetWalkerRec`: the cluster's Löb induction (Draft: `sorry`).
+`typed.toFieldSetWalkerRec`: the cluster's Löb induction.
 -/
 module
 
@@ -39,7 +39,45 @@ theorem typed.toFieldSetWalkerRec.wp_proof
     (h_toFieldSetWalker_visitListItems_body : typed.toFieldSetWalker.visitListItems.specBody (GF := GF))
     (h_toFieldSetWalker_visitMapItems_body : typed.toFieldSetWalker.visitMapItems.specBody (GF := GF)) :
     typed.toFieldSetWalkerRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ typed.toFieldSetWalkerRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H0 := h_toFieldSetWalker_doList_body $$ IH
+    ihave H1 := h_toFieldSetWalker_doMap_body $$ IH
+    ihave H2 := h_toFieldSetWalker_toFieldSet_body $$ IH
+    ihave H3 := h_toFieldSetWalker_visitListItems_body $$ IH
+    ihave H4 := h_toFieldSetWalker_visitMapItems_body $$ IH
+    unfold typed.toFieldSetWalkerRec.specI
+    isplit
+    · iexact H0
+    isplit
+    · iexact H1
+    isplit
+    · iexact H2
+    isplit
+    · iexact H3
+    iexact H4
+  unfold typed.toFieldSetWalkerRec.specI typed.toFieldSetWalker.doList.specI typed.toFieldSetWalker.doMap.specI typed.toFieldSetWalker.toFieldSet.specI typed.toFieldSetWalker.visitListItems.specI typed.toFieldSetWalker.visitMapItems.specI at H
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨HH, -, -, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, HH, -, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, -, HH, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, -, -, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, -, -, -, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

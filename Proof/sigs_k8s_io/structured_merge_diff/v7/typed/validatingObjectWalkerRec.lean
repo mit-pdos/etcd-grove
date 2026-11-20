@@ -1,5 +1,5 @@
 /-
-`typed.validatingObjectWalkerRec`: the cluster's Löb induction (Draft: `sorry`).
+`typed.validatingObjectWalkerRec`: the cluster's Löb induction.
 -/
 module
 
@@ -39,7 +39,45 @@ theorem typed.validatingObjectWalkerRec.wp_proof
     (h_validatingObjectWalker_visitListItems_body : typed.validatingObjectWalker.visitListItems.specBody (GF := GF))
     (h_validatingObjectWalker_visitMapItems_body : typed.validatingObjectWalker.visitMapItems.specBody (GF := GF)) :
     typed.validatingObjectWalkerRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ typed.validatingObjectWalkerRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H0 := h_validatingObjectWalker_doList_body $$ IH
+    ihave H1 := h_validatingObjectWalker_doMap_body $$ IH
+    ihave H2 := h_validatingObjectWalker_validate_body $$ IH
+    ihave H3 := h_validatingObjectWalker_visitListItems_body $$ IH
+    ihave H4 := h_validatingObjectWalker_visitMapItems_body $$ IH
+    unfold typed.validatingObjectWalkerRec.specI
+    isplit
+    · iexact H0
+    isplit
+    · iexact H1
+    isplit
+    · iexact H2
+    isplit
+    · iexact H3
+    iexact H4
+  unfold typed.validatingObjectWalkerRec.specI typed.validatingObjectWalker.doList.specI typed.validatingObjectWalker.doMap.specI typed.validatingObjectWalker.validate.specI typed.validatingObjectWalker.visitListItems.specI typed.validatingObjectWalker.visitMapItems.specI at H
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨HH, -, -, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, HH, -, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, -, HH, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, -, -, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, -, -, -, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

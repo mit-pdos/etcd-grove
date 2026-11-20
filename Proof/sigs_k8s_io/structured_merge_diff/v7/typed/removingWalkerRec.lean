@@ -1,5 +1,5 @@
 /-
-`typed.removingWalkerRec`: the cluster's Löb induction (Draft: `sorry`).
+`typed.removingWalkerRec`: the cluster's Löb induction.
 -/
 module
 
@@ -35,7 +35,31 @@ theorem typed.removingWalkerRec.wp_proof
     (h_removingWalker_doList_body : typed.removingWalker.doList.specBody (GF := GF))
     (h_removingWalker_doMap_body : typed.removingWalker.doMap.specBody (GF := GF)) :
     typed.removingWalkerRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ typed.removingWalkerRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H0 := h_removeItemsWithSchema_body $$ IH
+    ihave H1 := h_removingWalker_doList_body $$ IH
+    ihave H2 := h_removingWalker_doMap_body $$ IH
+    unfold typed.removingWalkerRec.specI
+    isplit
+    · iexact H0
+    isplit
+    · iexact H1
+    iexact H2
+  unfold typed.removingWalkerRec.specI typed.removeItemsWithSchema.specI typed.removingWalker.doList.specI typed.removingWalker.doMap.specI at H
+  refine ⟨?_, ?_, ?_⟩
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨HH, -, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · repeat iintro %_
+    iintro HP HΦ
+    ihave ⟨-, -, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 
