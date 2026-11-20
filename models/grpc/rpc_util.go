@@ -35,7 +35,6 @@ import (
 	"google.golang.org/grpc/encoding/proto"
 	"google.golang.org/grpc/internal"
 	"google.golang.org/grpc/internal/grpcutil"
-	"google.golang.org/grpc/internal/transport"
 	"google.golang.org/grpc/mem"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -776,7 +775,7 @@ type parser struct {
 // If there is an error, possible values are:
 //   - io.EOF, when no messages remain
 //   - io.ErrUnexpectedEOF
-//   - of type transport.ConnectionError
+//   - of type connectionError (MODEL: transport.ConnectionError)
 //   - an error from the status package
 //
 // No other error values or types must be returned, which also means
@@ -1143,9 +1142,9 @@ func toRPCErr(err error) error {
 	}
 
 	switch e := err.(type) {
-	case transport.ConnectionError:
+	case connectionError: // MODEL: transport.ConnectionError
 		return status.Error(codes.Unavailable, e.Desc)
-	case *transport.NewStreamError:
+	case *newStreamError: // MODEL: *transport.NewStreamError
 		return toRPCErr(e.Err)
 	}
 

@@ -31,7 +31,6 @@ import (
 	"google.golang.org/grpc/internal"
 	internalbackoff "google.golang.org/grpc/internal/backoff"
 	"google.golang.org/grpc/internal/binarylog"
-	"google.golang.org/grpc/internal/transport"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/mem"
 	"google.golang.org/grpc/resolver"
@@ -81,7 +80,7 @@ type dialOptions struct {
 	timeout                     time.Duration
 	authority                   string
 	binaryLogger                binarylog.Logger
-	copts                       transport.ConnectOptions
+	copts                       connectOptions // MODEL: transport.ConnectOptions (model_transport.go)
 	callOptions                 []CallOption
 	channelzParent              channelz.Identifier
 	disableServiceConfig        bool
@@ -718,7 +717,7 @@ func WithDisableHealthCheck() DialOption {
 
 func defaultDialOptions() dialOptions {
 	return dialOptions{
-		copts: transport.ConnectOptions{
+		copts: connectOptions{
 			ReadBufferSize:    defaultReadBufSize,
 			WriteBufferSize:   defaultWriteBufSize,
 			SharedWriteBuffer: true,
