@@ -989,3 +989,8 @@ the Prove phase's. To do before the walkers' proofs.
   always builds field elements with a nil Key (C4 found the gap).
 - (round 2, B2c) `FieldList.Sort` reaches `sort.SliceStable` again: its trust-boundary axiom is back in
   `etc/tcb-collections/smd.txt`'s reach (the four standard-library axioms as at the freeze).
+- (round 2, D2d, ownership rule) the reconcile cluster takes `(F.getD ∅).CardLt (2^63)` (`visit*Items`:
+  `F.CardLt (2^63)`), `ReconcileFieldSetWithSchema` takes `s.CardLt (2^63)`; `MWSt`/`CWSt` gain an
+  `alloc` field (the allocator kept across a method); the merging/compare/reconcile `prepareDescent`
+  posts give `sp ≠ null → sp' = sp`; `visitMapItem` (merging, compare) pre `(fs.map (·.1)).Nodup`
+  (from `S.WF`).
