@@ -41198,6 +41198,16 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 `PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
 
+## Recognizing bbolt's interrupted first write (2026-11-20)
+
+The first write initializes two zero meta pages, a freelist and an empty root. Zero meta pages
+alone were an ambiguous signature. A writable Open at the fork pin 3f8520bd replaced even files
+with unrelated payload or a fifth page. Recovery now checks the first write's size and every
+byte present. A byte may be zero or its intended value, allowing partial persistence. The
+shared data-page initializer supplies the expected bytes at the configured page size.
+The public Open triple still covers empty and well-formed files. Tests cover the interrupted
+and damaged images. [Regression test and fork pins](../issues/bbolt-open-zero-meta-reinitializes-data.md)
+
 
 ## Carry the stored snapshot's source through raft (2026-11-20)
 
