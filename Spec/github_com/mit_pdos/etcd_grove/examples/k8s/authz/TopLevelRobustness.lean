@@ -17,7 +17,7 @@ it (to audit); the proof is in
 module
 
 public import Code.github_com.mit_pdos.etcd_grove.examples.k8s.authz
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import GooseLang.Ext.IdIssue.Specs
 public import Robustness.Statement
 
 @[expose] public section
@@ -34,7 +34,7 @@ namespace k8s_authz
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] idIssueExts idIssueExtsSemantics idIssueExtsInterp idIssueExts_hasExt
 
 section program
 

@@ -25,7 +25,7 @@ namespace k8s_authz
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] idIssueExts idIssueExtsSemantics idIssueExtsInterp idIssueExts_hasExt
 
 section program
 

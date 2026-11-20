@@ -11,17 +11,20 @@
 * **`k8s_authz_safe`**: the closed theorem. Every real execution of `n` steps of the driver's
   initialization followed by `Main()`, from a fresh state (no package initialized,
   one thread): if the main thread has finished, its result is `#()`; no thread is stuck; no thread
-  has an unrecovered panic. From Perennial's `goose_adequacy` through `etcdstart`'s
-  `init_adequate`, the trivial extension, the ghost-state bundle `authzGF`, the generated package
-  initialization (`Init.lean`, at the program's table `PkgTable.lean`) and `wp_Main`.
+  has an unrecovered panic. From Perennial's `goose_adequacy` directly (as `goose/prophkv`'s
+  closed theorem; 2026-11-20, until then through `etcdstart`'s `init_adequate`, whose import
+  brought etcd's server into this example's closure), at the extensions `idIssueExts` (the issue
+  record alone, `GooseLang/Ext/IdIssue/Specs.lean`: the same closure as `etcdstart`'s
+  `trivialExts`, which the other examples name), the ghost-state bundle `authzGF`, the generated
+  package initialization (`Init.lean`, at the program's table `PkgTable.lean`) and `wp_Main`.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.PkgTable
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import GooseLang.Ext.IdIssue.Specs
+public import Perennial.GooseLang.Adequacy
 public import Robustness.Statement
 
 @[expose] public section
@@ -51,7 +54,7 @@ end results
 
 /-! ## The ghost-state bundle -/
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] idIssueExts idIssueExtsSemantics idIssueExtsInterp idIssueExts_hasExt
 
 /-- The functors: the universal camera (`AllG`) at slot 0, then invariants, later credits,
 GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
@@ -84,6 +87,13 @@ instance authzGF_gooseGpreS : GooseGpreS authzGF where
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
+/-- An execution of at most `n` steps from a single thread has fewer than `n + 2` live threads. -/
+theorem realThreadsBelow_single {n : Nat} {ρ : List Expr × CfgState}
+    (h1 : ρ.2.1.threads = 1) : RealThreadsBelow (n + 2) n ρ := by
+  intro k κs ρ' hk h
+  have := real_nsteps_threads h
+  omega
+
 /-- **Conditional authorization never panics** (see the file header). Parametric in the Go
 semantics: any `go.Semantics` at the state's local context and any package assumptions (the
 translated bodies behind the driver's, the authorizer's, the union's and their imports' names). -/
@@ -98,15 +108,27 @@ theorem k8s_authz_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine init_adequate (GF := authzGF) github_com.mit_pdos.etcd_grove.examples.k8s.authz.initialize'
-    ((@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩
-    ⟨trivial, trivial⟩ Hlctx Hinit Hthreads n κs t2 σ2 Hsteps fun hG _ _ => ?_
-  letI : HeapGS .hasLC authzGF := heapWith hG lctx
-  unfold progOk0
-  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.k8s.authz.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.k8s.authz.getIsPkgInit_wf, ?_⟩
-  iintro #Hpkg -
+  refine goose_adequacy (GF := authzGF) (n + 1) (n + 2) _ σ g (fun v => v = #())
+    (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ ?_
+    n κs t2 σ2 Hsteps (by omega) Hthreads (realThreadsBelow_single Hthreads)
+  intro hG _ _ Hlctx'
+  rw [Hlctx] at Hlctx'
+  obtain ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
+  subst Hlctx'
+  letI hG : HeapGS .hasLC authzGF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
+  unfold IsInit at Hinit
+  rw [Hinit]
+  iintro - - Hgs -
+  imodintro
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.authz.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.k8s.authz.getIsPkgInit_wf $$ [Hgs] as ⟨-, #Hpkg⟩
+  · rw [ownInitializing_unseal]
+    unfold ownInitializingDef
+    iexists ∅
+    iframe Hgs
+    iintro !>
+    iapply BigSepM.bigSepM_empty.2
+    iempintro
   wp_apply wp_Main
   ipureintro
   rfl
