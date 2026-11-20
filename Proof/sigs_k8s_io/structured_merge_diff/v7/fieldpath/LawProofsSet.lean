@@ -79,6 +79,23 @@ theorem ne_diff {A B : PathSet} (hA : [] ∉ A) : [] ∉ PathSet.diff A B := by
 theorem ne_rdiff {A B : PathSet} (hA : [] ∉ A) : [] ∉ PathSet.rdiff A B := by
   rw [mem_rdiff]; grind
 
+theorem under_deep (A : PathSet) (e : PE) : A.deep.under e = A.under e := by
+  apply FSet.ext'; intro q
+  rw [mem_under, mem_under, mem_deep]
+  constructor
+  · rintro ⟨h1, h2, -⟩; exact ⟨h1, h2⟩
+  · rintro ⟨h1, h2⟩; refine ⟨h1, h2, ?_⟩
+    match q, h1 with
+    | _ :: _, _ => simp
+
+/-- No head, nothing below it. -/
+theorem under_empty (A : PathSet) (e : PE) (h : e ∉ A.heads) : A.under e = PathSet.ofList [] := by
+  apply FSet.ext'; intro q
+  rw [mem_under, PathSet_mem_ofList_law_holds]
+  constructor
+  · rintro ⟨h1, h2⟩; exact absurd ((mem_heads A e).2 ⟨q, h1, h2⟩) h
+  · rintro ⟨h1, -⟩; simp at h1
+
 end fpS
 
 section laws
@@ -118,6 +135,44 @@ theorem ownSet_ne_law_holds : ownSet_ne.law (GF := GF) := fun p S => by
     iexists t
     iframe
     ipureintro; exact ht
+
+mutual
+theorem fpS.trieOwn_persist (p : Loc) : (t : Trie) → trieOwn (GF := GF) p t ⊢ |==> trieRep p t
+  | .mk ms cs => by
+      rw [trieOwn.eq_1, trieRep.eq_1]
+      iintro ⟨%v, %es, %ns, Hp, Hes, -, #Hpel, Hns, -, Hc⟩
+      imod (typedPointsto_dfractional _ _).dfractional_persist _ $$ Hp with #Hp
+      imod ownSlice_persist _ _ _ $$ Hes with #Hes
+      imod ownSlice_persist _ _ _ $$ Hns with #Hns
+      imod fpS.trieOwnC_persist ns cs $$ Hc with #Hc
+      imodintro
+      iexists v, es, ns
+      iframe #
+  termination_by structural t => t
+theorem fpS.trieOwnC_persist : (ns : List fieldpath.setNode) → (cs : List (PE × Trie)) →
+    trieOwnC (GF := GF) ns cs ⊢ |==> trieRepC ns cs
+  | [], [] => by rw [trieOwnC.eq_1, trieRepC.eq_1]; iintro _; imodintro; ipureintro; trivial
+  | [], _ :: _ => by unfold trieOwnC; iintro %h; exact h.elim
+  | _ :: _, [] => by unfold trieOwnC; iintro %h; exact h.elim
+  | n :: ns, (pe, t) :: cs => by
+      rw [trieOwnC.eq_2, trieRepC.eq_2]
+      iintro ⟨#Hpe, Ht, Hc⟩
+      imod fpS.trieOwn_persist n.set' t $$ Ht with #Ht
+      imod fpS.trieOwnC_persist ns cs $$ Hc with #Hc
+      imodintro
+      iframe #
+  termination_by structural _ cs => cs
+end
+
+/-- An owned set given up for good (the root's `ownSet_persist`, restated here). -/
+theorem fpS.ownSet_persist (p : Loc) (S : PathSet) : ownSet (GF := GF) p S ⊢ |==> isSet p S := by
+  unfold ownSet isSet
+  iintro ⟨%t, %h, Ht⟩
+  imod fpS.trieOwn_persist p t $$ Ht with #Ht
+  imodintro
+  iexists t
+  iframe #
+  ipureintro; exact h
 
 /-- **A set from its two halves**: a set struct, persistent, whose members are `S`'s tops and
 whose children are `S`'s deep paths. -/
