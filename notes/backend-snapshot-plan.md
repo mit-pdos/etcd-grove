@@ -150,6 +150,34 @@ entry in the invariant `∃ R Q, savedProp γR ½ R ∗ savedPred γΨ ½ (λ D,
 ⌜n < c → obsAt P Q Dc⌝`. At the commit point each wand is applied to `▷ R` and the inputs, kept by
 `P ⊢ P ∧ P` (the conclusion is pure: `◇`).
 
+**Done so far (B2):** the registry and its arming (`RegLemmas.lean`: `entry_arm`, `entries_arm`,
+`regs_arm`, `obsIn_of_lock`); `batchTx.commit` arms at its commit point or a no-op (`cmt_arm_noop`), over a
+frame `F` with `F ⊢ obsIn` (kept whole); `unsafeCommit`/`batchTxBuffered.commit` take `cntLb n` and `W`
+(out of a stop and a window) and give `cntLb (n + 1)`; `Commit.specCnt` (and `Commit.spec` from it);
+`CommitAndStop`, `run`, `Unlock` pass `cntLb 0`. **Left in B2:** the window case's frame is a `sorry`
+(`unsafeCommit`), step (c).
+
+**Step (c), concretely (2026-11-20).** The window opens in `Unlock` with `rtRes_wb_close … true`, which
+deposits the clients' half `bView γ 1 vd` in `cacheInv` (`(win = false) ∨ ∃ vd, bView γ 1 vd`); the commit
+runs with `readTx.mu` held whole (`rtRes_cm_open` … `rtRes_cm_close`); `unsafeCommit`'s post gives
+`bView γ 1 L'` (`L' = relog P vd st`) and `Unlock` applies the caller's `bView γ 1 L' -∗ W ∗ Q` after it.
+Plan: (1) `cacheInv`'s window case gains a third alternative, `bvTaken γ` (the deposit taken, while
+`readTx.mu` is held: no reader is in); (2) in `unsafeCommit`, before `batchTx.commit`, take the deposit,
+move the view's three fractions to `L'` (`view_upd3`: the lock's quarter, the readers' in `rtCm`, the
+clients' half), apply the caller's wand (now in `unsafeCommit.spec`'s window pre; its post gives `W ∗ Q`
+in place of `bView γ 1 L'`) for `W`, arm from `obsIn` at `S` (the quarter at `L'`: `thinV (sData S) L'`
+is `Hpre`, `dlsOk P st' L'` is `Hdlc.2`); (3) `rtRes_cm_close`'s window branch takes the view already at
+`L'` and `bvTaken` instead of the deposit. Risks: `rtCm`'s readers' quarter is `viewQ … (vData (C, R)) L`
+with `cacheValid (C, R) idx L`: at `L'` these need `thinV (vData (C, R)) L'` (to check) and `cacheValid`
+(vacuous under `poisonAt`, as the close's own argument).
+
+**Found for B4 (2026-11-20):** `Snapshot`'s goroutine calls `snapshotTransferSec.Observe` (`metrics.go`),
+a package variable today under `opaqueInitsOk` only: proving `Snapshot` would need a new
+`snapshotTransferSec_init` axiom, a net zero. Instead translate the backend's `metrics.go` histograms
+over a constructor spec (`prometheus.NewHistogram`, the options literal, `ExponentialBuckets`): the four
+`commitSec`/`rebalanceSec`/`spillSec`/`writeSec` `_init` axioms go too (floats are stepped now), for a net
+reduction.
+
 **Next steps, in order:** (a) B2 registry defs (`ObsQ`, `obsAt`, `obsWand`, entries with saved
 `R`/saved predicate, `γ.txb` as the map's authority; `viewAt`/`viewAtD` moved to `InvBackend`); (b) arming
 at an ordinary commit (unsafeCommit, before `batchTx.commit`, from `thinV_trans`, `dlVd_of_dlsOk`,
