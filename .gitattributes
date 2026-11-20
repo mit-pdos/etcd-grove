@@ -1,0 +1,4 @@
+# Merge drivers for the two notes files nearly every merge touches (etc/merge-status.py); a clone
+# without them configured (etc/setup-merge-drivers.sh) merges these files as git always does.
+notes/STATUS.md merge=etcd-status
+notes/status-history.md merge=etcd-history

@@ -242,6 +242,9 @@ if python3 etc/issues-status.py --check > "$tmp/issues.log" 2>&1; then
 else
   echo "issues: FAILED"; tail -10 "$tmp/issues.log"; fail=1
 fi
+# the notes' merge drivers (etc/merge-status.py; .gitattributes): replays this week's real merges of
+# notes/STATUS.md and notes/status-history.md, and synthetic cases (reads git only; ~15s)
+python3 etc/merge-status.py --selftest || fail=1
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs
