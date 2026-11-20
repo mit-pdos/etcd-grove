@@ -31,13 +31,13 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.validatingObjectWalker.finished.wp_proof
     (h_sync_Pool_Put : _root_.Perennial.sync.Pool.Put.spec (GF := GF)) :
-    typed.validatingObjectWalker.finished.spec (GF := GF) := fun w sc S st => by
+    typed.validatingObjectWalker.finished.spec (GF := GF) := fun w sc S st sp => by
   wp_start as Hown
   ihave #HP := typedPkgInit_poolsAt $$ Hpkg
   unfold typedPoolsAt
   icases HP with ⟨-, -, -, -, -, #Pv, -⟩
   unfold vwOwn vwCore
-  icases Hown with ⟨%sp, ⟨%tr, Hw, -, -, -⟩, Hsp, Ha⟩
+  icases Hown with ⟨⟨%tr, Hw, -, -, -⟩, Hsp, Ha⟩
   wp_auto
   wp_apply h_sync_Pool_Put (globalAddr typed.vPool) typed.vwNewV iprop(True)
     (pooledAs typed.validatingObjectWalker.ty vwPooled) $$ [Hw Hsp Ha]

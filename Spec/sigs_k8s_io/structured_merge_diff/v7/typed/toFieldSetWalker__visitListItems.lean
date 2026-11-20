@@ -31,12 +31,12 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.toFieldSetWalker.visitListItems.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : TWSt) (s : Loc) (F : PathSet) (tp : Loc) (e : TypeRef)
-    (ks : List GoString) (ll : value.List') (vs : List UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ twOwn w sc S st s F ∗ isListRep tp e .associative ks ∗ isListV ll vs ∗
+    (ks : List GoString) (ll : value.List') (vs : List UVal) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ twOwn w sc S st s F sp ∗ isListRep tp e .associative ks ∗ isListV ll vs ∗
       ⌜S.find st.t.name = some (.list e .associative ks) ∧ conforms S st.t (.list vs) ∧
         (F.union (fieldsL S e ks st.path vs)).CardLt (2 ^ 63 - 1)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ll))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ twOwn w sc S st s (F.union (fieldsL S e ks st.path vs)) }}
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ (∃ sp' : Loc, twOwn w sc S st s (F.union (fieldsL S e ks st.path vs)) sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }}
 
 end spec
 

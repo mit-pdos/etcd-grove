@@ -42,17 +42,16 @@ theorem typed.validatingObjectWalker.validate.wp_proofBody
     typed.validatingObjectWalker.doMap.specI typed.validatingObjectWalker.visitListItems.specI
     typed.validatingObjectWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %dq %x %f
+  iintro %w %sc %S %st %dq %x %f %sp
   wp_start as ⟨Hown, Hv, %Hfind, %Hc⟩
   obtain ⟨A, hA⟩ := Option.isSome_iff_exists.1 Hfind
   iunfold vwOwn at Hown
-  icases Hown with ⟨%sp, Hcore, Hsp, Ha⟩
+  icases Hown with ⟨Hcore, Hsp, Ha⟩
   iunfold vwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   wp_auto
-  ihave Hown : vwOwn w sc S st $$ [Hw Hsp Ha]
+  ihave Hown : vwOwn w sc S st sp $$ [Hw Hsp Ha]
   · unfold vwOwn vwCore
-    iexists sp
     iframe Hsp Ha
     iexists tr
     iframe Hw
@@ -60,8 +59,9 @@ theorem typed.validatingObjectWalker.validate.wp_proofBody
     ipureintro; exact Hwf
   icases IH with ⟨#HdL, #HdM, -, -, -⟩
   wp_apply h_resolveSchema sc S tr st.t A st.value dq (some x)
-    (go.GoType.PointerType typed.validatingObjectWalker.ty) #w iprop(vwOwn w sc S st)
-    (fun errs => iprop(noErrs errs ∗ isValO st.value dq (some x) ∗ vwOwn w sc S st))
+    (go.GoType.PointerType typed.validatingObjectWalker.ty) #w iprop(vwOwn w sc S st sp)
+    (fun errs => iprop(noErrs errs ∗ isValO st.value dq (some x) ∗
+      ∃ sp' : Loc, vwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝))
     $$ [Hv Hown] as %errs ⟨Herrs, Hv, Hown⟩
   · iframe #
     unfold isValO
@@ -75,11 +75,12 @@ theorem typed.validatingObjectWalker.validate.wp_proofBody
       icases (isAtomOpt_scalar_law_holds atm s).1 $$ Hat with ⟨#Hs, -⟩
       imodintro
       iintro %Φ2 ⟨Hv, Hown⟩ HΦ2
-      wp_apply h_validatingObjectWalker_doScalar w sc S st dq x atm.Scalar' s $$ [Hv Hown]
+      wp_apply h_validatingObjectWalker_doScalar w sc S st dq x atm.Scalar' s sp $$ [Hv Hown]
         as %errs ⟨Herrs, Hv, Hown⟩
       · iframe #; iframe; ipureintro; exact ⟨hA, Hc⟩
       iapply HΦ2
       iframe
+      ipureintro; intro; rfl
     | list e rel ks =>
       simp only [atomHandlerOk]
       icases (isAtomOpt_list_law_holds atm e rel ks).1 $$ Hat with ⟨-, #Hl⟩

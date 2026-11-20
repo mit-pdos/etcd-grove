@@ -29,8 +29,8 @@ variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.validatingObjectWalker.finished.spec : Prop :=
-  ∀ (w sc : Loc) (S : Schema) (st : VWSt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st }}
+  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"finished")) (Val #()))
   {{ RET #(); True }}
 

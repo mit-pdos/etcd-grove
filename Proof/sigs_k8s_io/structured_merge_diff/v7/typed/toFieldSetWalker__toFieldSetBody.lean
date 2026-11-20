@@ -31,6 +31,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
+set_option synthInstance.maxHeartbeats 200000 in
+set_option synthInstance.maxSize 4096 in
 theorem typed.toFieldSetWalker.toFieldSet.wp_proofBody
     (h_resolveSchema : typed.resolveSchema.spec (GF := GF))
     (h_toFieldSetWalker_doScalar : typed.toFieldSetWalker.doScalar.spec (GF := GF)) :
@@ -40,26 +42,26 @@ theorem typed.toFieldSetWalker.toFieldSet.wp_proofBody
     typed.toFieldSetWalker.doMap.specI typed.toFieldSetWalker.visitListItems.specI
     typed.toFieldSetWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %s %F %dq %x
+  iintro %w %sc %S %st %s %F %dq %x %sp
   wp_start as ⟨Hown, Hv, %Hpre⟩
   obtain ⟨Hc, Hcard⟩ := Hpre
   obtain ⟨A, hA⟩ := Option.isSome_iff_exists.1 (LawA.conforms_find S st.t x Hc)
   iunfold twOwn at Hown
-  icases Hown with ⟨%ps, %sp, Hcore, Hps, Hsp, Ha, Hs⟩
+  icases Hown with ⟨%ps, Hcore, Hps, Hsp, Ha, Hs⟩
   iunfold twCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   wp_auto
-  ihave Hown : twOwn w sc S st s F $$ [Hw Hps Hsp Ha Hs]
+  ihave Hown : twOwn w sc S st s F sp $$ [Hw Hps Hsp Ha Hs]
   · unfold twOwn twCore
-    iexists ps, sp
+    iexists ps
     iframe
     iframe #
     ipureintro; exact Hwf
   icases IH with ⟨#HdL, #HdM, -, -, -⟩
   wp_apply h_resolveSchema sc S tr st.t A st.value dq (some x)
-    (go.GoType.PointerType typed.toFieldSetWalker.ty) #w iprop(twOwn w sc S st s F)
+    (go.GoType.PointerType typed.toFieldSetWalker.ty) #w iprop(twOwn w sc S st s F sp)
     (fun errs => iprop(noErrs errs ∗ isValO st.value dq (some x) ∗
-      twOwn w sc S st s (F.union (fieldsAt S st.t st.path x))))
+      ∃ sp' : Loc, twOwn w sc S st s (F.union (fieldsAt S st.t st.path x)) sp' ∗ ⌜sp ≠ null → sp' = sp⌝))
     $$ [Hv Hown] as %errs ⟨Herrs, Hv, Hown⟩
   · iframe #
     unfold isValO
@@ -73,11 +75,12 @@ theorem typed.toFieldSetWalker.toFieldSet.wp_proofBody
       icases (isAtomOpt_scalar_law_holds atm s').1 $$ Hat with ⟨#Hs', -⟩
       imodintro
       iintro %Φ2 ⟨Hv, Hown⟩ HΦ2
-      wp_apply h_toFieldSetWalker_doScalar w sc S st s F dq x atm.Scalar' $$ [Hv Hown]
+      wp_apply h_toFieldSetWalker_doScalar w sc S st s F dq x atm.Scalar' sp $$ [Hv Hown]
         as %errs ⟨Herrs, Hv, Hown⟩
       · iframe #; iframe; ipureintro; exact ⟨⟨s', hA⟩, Hc, Hcard⟩
       iapply HΦ2
       iframe
+      ipureintro; intro; rfl
     | list e rel ks =>
       simp only [atomHandlerOk]
       icases (isAtomOpt_list_law_holds atm e rel ks).1 $$ Hat with ⟨-, #Hl⟩

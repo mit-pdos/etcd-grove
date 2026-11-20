@@ -45,15 +45,15 @@ theorem typed.TypedValue.ToFieldSet.wp_proof
   try wp_auto
   wp_method_call
   try wp_auto
-  wp_apply h_TypedValue_toFieldSetWalker tv sc S t x $$ [] as %w ⟨%s, %a, Hown⟩
+  wp_apply h_TypedValue_toFieldSetWalker tv sc S t x $$ [] as %w ⟨%s, %a, %sp, Hown⟩
   · iframe #
   try wp_auto
   unfold isTVv
   icases Htv with ⟨%Hsc, #Hv, -, -, %Hc⟩
   have hu : (PathSet.empty.union (fieldsAt S t [] x)) = fieldsAt S t [] x :=
     LawB.fset_empty_union _
-  wp_apply h_toFieldSetWalker_toFieldSet w sc S ⟨tv.value', t, [], a⟩ s PathSet.empty DFrac.discard x
-    $$ [Hown] as %errs ⟨Herrs, -, Hown⟩
+  wp_apply h_toFieldSetWalker_toFieldSet w sc S ⟨tv.value', t, [], a⟩ s PathSet.empty DFrac.discard x sp
+    $$ [Hown] as %errs ⟨Herrs, -, %sp', Hown, -⟩
   · iframe; iframe #
     ipureintro
     refine ⟨Hc.2, ?_⟩
@@ -63,12 +63,12 @@ theorem typed.TypedValue.ToFieldSet.wp_proof
   ihave %Hlen := noErrs_len $$ Herrs
   rw [hu]
   iunfold twOwn at Hown
-  icases Hown with ⟨%ps, %sp, Hcore, -, Hsp, -, Hs⟩
+  icases Hown with ⟨%ps, Hcore, -, Hsp, -, Hs⟩
   iunfold twCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc', %HWF⟩
   rw [show decide (errs.len = W64 0) = true by simp; word]
   wp_auto
-  wp_apply h_toFieldSetWalker_finished w sc S ⟨tv.value', t, [], a⟩ ps s sp a $$ [Hw Hsp]
+  wp_apply h_toFieldSetWalker_finished w sc S ⟨tv.value', t, [], a⟩ ps s sp' a $$ [Hw Hsp]
   · iframe Hsp
     unfold twCore
     iexists tr

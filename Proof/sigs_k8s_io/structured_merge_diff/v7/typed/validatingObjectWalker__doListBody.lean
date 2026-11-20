@@ -41,13 +41,13 @@ theorem typed.validatingObjectWalker.doList.wp_proofBody
     typed.validatingObjectWalker.doMap.specI typed.validatingObjectWalker.visitListItems.specI
     typed.validatingObjectWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %dq %x %tp %e %rel %ks
+  iintro %w %sc %S %st %dq %x %tp %e %rel %ks %sp
   wp_start as ⟨Hown, Hv, #Hl, %Hfind, %Hc⟩
   have Hx : x = .null ∨ (listOfO (some x)).isSome := by
     unfold conforms at Hc
     cases x <;> simp_all [conformsB, listOfO]
   iunfold vwOwn at Hown
-  icases Hown with ⟨%sp, Hcore, Hsp, Ha⟩
+  icases Hown with ⟨Hcore, Hsp, Ha⟩
   iunfold vwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   wp_auto
@@ -70,13 +70,15 @@ theorem typed.validatingObjectWalker.doList.wp_proofBody
       isplitr
       · iapply (ownSlice_nil (V := typed.ValidationError))
       · iapply ownSliceCap_nil
-    unfold vwOwn vwCore
     iexists sp
+    unfold vwOwn vwCore
     iframe Hsp Ha
-    iexists tr
-    iframe Hw
-    iframe #
-    ipureintro; exact Hwf
+    isplitl [Hw]
+    · iexists tr
+      iframe Hw
+      iframe #
+      ipureintro; exact Hwf
+    ipureintro; intro; rfl
   · obtain ⟨vs, rfl⟩ : ∃ vs, x = .list vs := by
       cases x <;> simp [listOfO] at Hx ⊢
     simp only [listOfO, isListO]
@@ -89,11 +91,10 @@ theorem typed.validatingObjectWalker.doList.wp_proofBody
       rw [Hai]
       wp_auto
       icases IH with ⟨-, -, -, #HvL, -⟩
-      wp_apply HvL $$ %w %sc %S %st %tp %e %rel %ks %_ %vs [Hw Hsp Ha] as %errs ⟨Herrs, Hown⟩
+      wp_apply HvL $$ %w %sc %S %st %tp %e %rel %ks %_ %vs %sp [Hw Hsp Ha] as %errs ⟨Herrs, Hown⟩
       · iframe #
         isplitl [Hw Hsp Ha]
         · unfold vwOwn vwCore
-          iexists sp
           rw [Hai]
           iframe Hsp Ha
           iexists tr
@@ -102,16 +103,17 @@ theorem typed.validatingObjectWalker.doList.wp_proofBody
           ipureintro; exact Hwf
         ipureintro; exact ⟨Hfind, Hc⟩
       iunfold vwOwn at Hown
-      icases Hown with ⟨%sp', Hcore', Hsp', Ha'⟩
+      icases Hown with ⟨%sp', ⟨Hcore', Hsp', Ha'⟩, %Hsp'⟩
       rw [Hai]
       wp_apply Hfree $$ %_ [Ha'] as Ha'
       · iframe; ihave ⟨-, Hf⟩ := (freeable_view_law_holds).2.1 _ vs $$ Hlv; iexact Hf
       iapply HΦ
       iframe Herrs Hv
-      unfold vwOwn
       iexists sp'
+      unfold vwOwn
       rw [Hai]
       iframe
+      ipureintro; exact Hsp'
 
 end proof
 

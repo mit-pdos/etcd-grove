@@ -31,11 +31,11 @@ variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.validatingObjectWalker.doScalar.spec : Prop :=
-  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (tp : Loc) (s : Scalar),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ tp ↦□ s.goName ∗ ⌜S.find st.t.name = some (.scalar s)⌝ ∗ ⌜conforms S st.t x⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (tp : Loc) (s : Scalar) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp ∗ isValF st.value dq x ∗ tp ↦□ s.goName ∗ ⌜S.find st.t.name = some (.scalar s)⌝ ∗ ⌜conforms S st.t x⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"doScalar")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
-      vwOwn w sc S st }}
+      vwOwn w sc S st sp }}
 
 end spec
 

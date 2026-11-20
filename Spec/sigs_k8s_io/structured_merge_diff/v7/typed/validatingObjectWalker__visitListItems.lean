@@ -34,11 +34,11 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.validatingObjectWalker.visitListItems.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : VWSt) (tp : Loc) (e : TypeRef) (rel : ElemRel)
-    (ks : List GoString) (ll : value.List') (vs : List UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isListRep tp e rel ks ∗ isListV ll vs ∗
+    (ks : List GoString) (ll : value.List') (vs : List UVal) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp ∗ isListRep tp e rel ks ∗ isListV ll vs ∗
       ⌜S.find st.t.name = some (.list e rel ks) ∧ conforms S st.t (.list vs)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ll))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ vwOwn w sc S st }}
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ (∃ sp' : Loc, vwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }}
 
 end spec
 

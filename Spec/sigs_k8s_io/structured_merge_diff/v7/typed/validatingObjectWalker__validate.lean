@@ -38,11 +38,11 @@ variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.validatingObjectWalker.validate.spec : Prop :=
-  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ ⌜(S.find st.t.name).isSome⌝ ∗ ⌜conforms S st.t x⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (f : GoFunc) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp ∗ isValF st.value dq x ∗ ⌜(S.find st.t.name).isSome⌝ ∗ ⌜conforms S st.t x⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"validate")) (Val #f))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
-      vwOwn w sc S st }}
+      (∃ sp' : Loc, vwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }}
 
 end spec
 

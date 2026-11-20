@@ -45,7 +45,7 @@ theorem typed.TypedValue.Validate.wp_proof
   try wp_auto
   wp_method_call
   try wp_auto
-  wp_apply h_TypedValue_walker tv S t $$ [] as %w ⟨%a, Hown⟩
+  wp_apply h_TypedValue_walker tv S t $$ [] as %w ⟨%a, %sp, Hown⟩
   · rw [Hsc]; iframe #; ipureintro; exact HWF
   ihave %hl := ownSlice_len _ _ _ $$ Hopts
   ihave HI : (∃ j : w64, "i" ∷ i_ptr ↦ j ∗ "%Hj" ∷ ⌜j = W64 0⌝ : IProp GF) $$ [i]
@@ -54,14 +54,14 @@ theorem typed.TypedValue.Validate.wp_proof
   subst Hj
   wp_if_destruct
   · exfalso; simp at hl; word
-  wp_apply h_validatingObjectWalker_validate w tv.schema' S ⟨tv.value', t, a⟩ dq x func.nil
-    $$ [Hown Hv] as %errs ⟨Herrs, Hv, Hown⟩
+  wp_apply h_validatingObjectWalker_validate w tv.schema' S ⟨tv.value', t, a⟩ dq x func.nil sp
+    $$ [Hown Hv] as %errs ⟨Herrs, Hv, %sp', Hown, -⟩
   · iframe
     ipureintro; exact ⟨LawA.conforms_find S t x Hc, Hc⟩
   ihave %Hlen := noErrs_len $$ Herrs
   rw [show decide (errs.len = W64 0) = true by simp; word]
   wp_auto
-  wp_apply h_validatingObjectWalker_finished w tv.schema' S ⟨tv.value', t, a⟩ $$ [Hown]
+  wp_apply h_validatingObjectWalker_finished w tv.schema' S ⟨tv.value', t, a⟩ sp' $$ [Hown]
   · iexact Hown
   iapply HΦ
   iframe

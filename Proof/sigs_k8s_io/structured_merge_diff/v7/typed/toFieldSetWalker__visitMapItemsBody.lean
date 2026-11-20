@@ -35,6 +35,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
+set_option synthInstance.maxHeartbeats 200000 in
+set_option synthInstance.maxSize 4096 in
 theorem typed.toFieldSetWalker.visitMapItems.wp_proofBody
     (h_Set_Insert : fieldpath.Set.Insert.spec (GF := GF))
     (h_mapUnstructuredString_Iterate : value.mapUnstructuredString.Iterate.spec (GF := GF))

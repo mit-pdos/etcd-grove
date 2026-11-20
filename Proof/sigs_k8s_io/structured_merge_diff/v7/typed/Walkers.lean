@@ -388,10 +388,10 @@ def twCore (w sc : Loc) (S : Schema) (st : TWSt) (ps : fieldpath.Path) (s sp : L
     w ↦ (typed.toFieldSetWalker.mk st.value sc tr s ps sp a) ∗
     isTypeRef tr st.t ∗ isSchema sc S ∗ ⌜S.WF⌝)
 
-/-- **`twOwn w sc S st s F`**: the active field-set walker, the set at `s` holding `F` so far
-(owned). -/
-def twOwn (w sc : Loc) (S : Schema) (st : TWSt) (s : Loc) (F : PathSet) : IProp GF :=
-  iprop(∃ (ps : fieldpath.Path) (sp : Loc),
+/-- **`twOwn w sc S st s F sp`**: the active field-set walker, the set at `s` holding `F` so far
+(owned), its spare walkers at `sp` (explicit, as `mwOwn`'s). -/
+def twOwn (w sc : Loc) (S : Schema) (st : TWSt) (s : Loc) (F : PathSet) (sp : Loc) : IProp GF :=
+  iprop(∃ ps : fieldpath.Path,
     twCore w sc S st ps s sp st.alloc ∗ ownPath ps st.path ∗ spareWalkers typed.toFieldSetWalker sp ∗
     isAlloc st.alloc ∗ ownSet s F)
 
@@ -419,10 +419,10 @@ def vwCore (w sc : Loc) (S : Schema) (st : VWSt) (sp : Loc) (a : value.Allocator
     w ↦ (typed.validatingObjectWalker.mk st.value sc tr false sp a) ∗
     isTypeRef tr st.t ∗ isSchema sc S ∗ ⌜S.WF⌝)
 
-/-- **`vwOwn w sc S st`**: the active validating walker. -/
-def vwOwn (w sc : Loc) (S : Schema) (st : VWSt) : IProp GF :=
-  iprop(∃ sp : Loc,
-    vwCore w sc S st sp st.alloc ∗ spareWalkers typed.validatingObjectWalker sp ∗ isAlloc st.alloc)
+/-- **`vwOwn w sc S st sp`**: the active validating walker, its spare walkers at `sp` (explicit,
+as `mwOwn`'s). -/
+def vwOwn (w sc : Loc) (S : Schema) (st : VWSt) (sp : Loc) : IProp GF :=
+  iprop(vwCore w sc S st sp st.alloc ∗ spareWalkers typed.validatingObjectWalker sp ∗ isAlloc st.alloc)
 
 /-- **`vwPooled w`**: a validating walker in `vPool` (spare walkers; allocator or nil). -/
 def vwPooled (w : Loc) : IProp GF :=

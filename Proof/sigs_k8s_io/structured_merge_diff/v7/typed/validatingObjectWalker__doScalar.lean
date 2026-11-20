@@ -31,13 +31,13 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.validatingObjectWalker.doScalar.wp_proof
     (h_validateScalar : typed.validateScalar.spec (GF := GF)) :
-    typed.validatingObjectWalker.doScalar.spec (GF := GF) := fun w sc S st dq x tp s => by
+    typed.validatingObjectWalker.doScalar.spec (GF := GF) := fun w sc S st dq x tp s sp => by
   wp_start as ⟨Hown, Hv, #Htp, %Hfind, %Hc⟩
   have hok : scalarOk s x = true := by
     unfold conforms at Hc
     cases x <;> simp [conformsB, Hfind] at Hc ⊢ <;> exact Hc
   unfold vwOwn vwCore
-  icases Hown with ⟨%sp, ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩, Hsp, Ha⟩
+  icases Hown with ⟨⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩, Hsp, Ha⟩
   wp_auto
   wp_apply h_validateScalar tp s st.value dq (some x) (go!"") $$ [Hv] as %errs ⟨Hv, Herrs⟩
   · iframe #; unfold isValO; iframe Hv; ipureintro; exact hok
@@ -56,7 +56,6 @@ theorem typed.validatingObjectWalker.doScalar.wp_proof
   · isplitr
     · iapply (ownSlice_nil (V := typed.ValidationError))
     · iapply ownSliceCap_nil
-  iexists sp
   iframe Hsp Ha
   iexists tr
   iframe Hw

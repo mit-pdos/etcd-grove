@@ -33,7 +33,7 @@ abbrev typed.TypedValue.walker.spec : Prop :=
   ∀ (tv : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue) (S : Schema) (t : TypeRef),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isTypeRef tv.typeRef' t ∗ isSchema tv.schema' S ∗ ⌜S.WF⌝ }}
     (App (Val (tv @!! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue.ty @!! go!"walker")) (Val #()))
-  {{ (w : Loc), RET #w; ∃ a : value.Allocator, vwOwn w tv.schema' S ⟨tv.value', t, a⟩ }}
+  {{ (w : Loc), RET #w; ∃ (a : value.Allocator) (sp : Loc), vwOwn w tv.schema' S ⟨tv.value', t, a⟩ sp }}
 
 end spec
 

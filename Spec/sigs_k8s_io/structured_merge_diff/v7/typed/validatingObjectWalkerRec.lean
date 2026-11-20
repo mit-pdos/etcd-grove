@@ -36,49 +36,49 @@ variable [package_sem : typed.Assumptions]
 /-- `typed.validatingObjectWalker.doList.spec` inside the logic (Löb's hypothesis of `typed.validatingObjectWalkerRec`). -/
 def typed.validatingObjectWalker.doList.specI : IProp GF :=
   iprop(
-  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (tp : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ isListRep tp e rel ks ∗ ⌜S.find st.t.name = some (.list e rel ks)⌝ ∗ ⌜conforms S st.t x⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (tp : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp ∗ isValF st.value dq x ∗ isListRep tp e rel ks ∗ ⌜S.find st.t.name = some (.list e rel ks)⌝ ∗ ⌜conforms S st.t x⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"doList")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
-      vwOwn w sc S st }})
+      (∃ sp' : Loc, vwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- `typed.validatingObjectWalker.doMap.spec` inside the logic (Löb's hypothesis of `typed.validatingObjectWalkerRec`). -/
 def typed.validatingObjectWalker.doMap.specI : IProp GF :=
   iprop(
-  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel)⌝ ∗ ⌜conforms S st.t x⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp ∗ isValF st.value dq x ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel)⌝ ∗ ⌜conforms S st.t x⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"doMap")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
-      vwOwn w sc S st }})
+      (∃ sp' : Loc, vwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- `typed.validatingObjectWalker.validate.spec` inside the logic (Löb's hypothesis of `typed.validatingObjectWalkerRec`). -/
 def typed.validatingObjectWalker.validate.specI : IProp GF :=
   iprop(
-  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isValF st.value dq x ∗ ⌜(S.find st.t.name).isSome⌝ ∗ ⌜conforms S st.t x⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : VWSt) (dq : DFrac) (x : UVal) (f : GoFunc) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp ∗ isValF st.value dq x ∗ ⌜(S.find st.t.name).isSome⌝ ∗ ⌜conforms S st.t x⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"validate")) (Val #f))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ isValF st.value dq x ∗
-      vwOwn w sc S st }})
+      (∃ sp' : Loc, vwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- `typed.validatingObjectWalker.visitListItems.spec` inside the logic (Löb's hypothesis of `typed.validatingObjectWalkerRec`). -/
 def typed.validatingObjectWalker.visitListItems.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : VWSt) (tp : Loc) (e : TypeRef) (rel : ElemRel)
-    (ks : List GoString) (ll : value.List') (vs : List UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isListRep tp e rel ks ∗ isListV ll vs ∗
+    (ks : List GoString) (ll : value.List') (vs : List UVal) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp ∗ isListRep tp e rel ks ∗ isListV ll vs ∗
       ⌜S.find st.t.name = some (.list e rel ks) ∧ conforms S st.t (.list vs)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ll))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ vwOwn w sc S st }})
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ (∃ sp' : Loc, vwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- `typed.validatingObjectWalker.visitMapItems.spec` inside the logic (Löb's hypothesis of `typed.validatingObjectWalkerRec`). -/
 def typed.validatingObjectWalker.visitMapItems.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : VWSt) (tp : Loc) (fs : List (GoString × TypeRef))
-    (e : Option TypeRef) (rel : ElemRel) (m : value.Map) (kvs : List (GoString × UVal)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st ∗ isMapRep tp fs e rel ∗ isMapV m kvs ∗
+    (e : Option TypeRef) (rel : ElemRel) (m : value.Map) (kvs : List (GoString × UVal)) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ vwOwn w sc S st sp ∗ isMapRep tp fs e rel ∗ isMapV m kvs ∗
       ⌜S.find st.t.name = some (.map fs e rel) ∧ conforms S st.t (.map kvs)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.validatingObjectWalker.ty @!! go!"visitMapItems")) (Val #tp)) (Val #m))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ vwOwn w sc S st }})
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ (∃ sp' : Loc, vwOwn w sc S st sp' ∗ ⌜sp ≠ null → sp' = sp⌝) }})
 
 /-- **The cluster's specs inside the logic**: what each member's body assumes under a later
 (`<member>.specBody`), and what Löb's induction proves. -/

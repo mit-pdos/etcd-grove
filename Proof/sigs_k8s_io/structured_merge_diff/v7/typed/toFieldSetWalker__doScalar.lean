@@ -32,12 +32,12 @@ variable [package_sem : typed.Assumptions]
 theorem typed.toFieldSetWalker.doScalar.wp_proof
     (h_Set_Insert : fieldpath.Set.Insert.spec (GF := GF)) :
     typed.toFieldSetWalker.doScalar.spec (GF := GF) :=
-    fun w sc S st s F dq x tp => by
+    fun w sc S st s F dq x tp sp => by
   wp_start as ⟨Hown, Hv, %Hpre⟩
   obtain ⟨⟨s', Hfind⟩, Hc, Hcard⟩ := Hpre
   rw [LawA.fieldsAt_scalar S st.t s' st.path x Hfind Hc] at Hcard ⊢
   unfold twOwn
-  icases Hown with ⟨%ps, %sp, Hcore, Hps, Hsp, Ha, Hs⟩
+  icases Hown with ⟨%ps, Hcore, Hps, Hsp, Ha, Hs⟩
   unfold twCore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %HWF⟩
   unfold ownPath
