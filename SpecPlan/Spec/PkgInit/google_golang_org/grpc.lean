@@ -5,6 +5,7 @@ public import GeneratedProof.google_golang_org.grpc
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.peer
 
 @[expose] public section
 noncomputable section

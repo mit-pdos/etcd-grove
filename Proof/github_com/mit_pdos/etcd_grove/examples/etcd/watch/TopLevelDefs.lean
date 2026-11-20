@@ -43,8 +43,9 @@ def watchkvProgram [GoSemanticsFunctions] (nw nops : w64) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.watch.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.watch.Main) #nw #nops
 
-/-- The read package's two metric names, which `watchkv`'s initialization registers. -/
-def watchkvNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def watchkvNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.watch.initNames
 
 end adequacy
 end EtcdGrove

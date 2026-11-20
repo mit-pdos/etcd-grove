@@ -30,7 +30,12 @@ or its ID is registered, or a registered descriptor has its name with other labe
 `c`'s collector ID (the XOR of its descriptor IDs) is registered. Here `c` describes one valid
 descriptor named `n` without labels (`collectorName`), so its collector ID is that descriptor's
 ID, and `nameFree n` says no registered descriptor is named `n` or has that ID, and no collector
-has it: `Register` registers `c` and returns `nil`. The slice is only read. -/
+has it: `Register` registers `c` and returns `nil`. The slice is only read. (mustreg, 2026-11-20)
+The same holds of a metric vector (`collectorName` of a `*CounterVec`, `*GaugeVec` or
+`*HistogramVec`): its `Describe` (`MetricVec.Describe`, `vec.go:124`, `metricMap.Describe`) sends
+its one descriptor, whose variable labels enter its `dimHash` but not its ID (`desc.go`), and
+`Register` compares the `dimHash` only with a registered descriptor of the same name, which
+`nameFree n` excludes. -/
 axiom prometheus.MustRegister.wp_proof : prometheus.MustRegister.spec (GF := GF) (hG := hG)
 
 end proof

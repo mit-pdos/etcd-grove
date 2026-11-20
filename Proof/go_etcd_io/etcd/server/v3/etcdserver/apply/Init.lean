@@ -39,6 +39,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.runtime.PkgInitRes
 
 @[expose] public section
 
@@ -55,26 +57,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.etcdserver.apply
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.apply`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.server.v3.etcdserver.apply
-end opaqueInits
 
 section errVarLeafOfNew
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -97,5 +79,24 @@ theorem EtcdGrove.errVarLeaf_of_newVar (X msg : GoString) :
   iexact Hm
 
 end errVarLeafOfNew
+
+namespace go_etcd_io.etcd.server.v3.etcdserver.apply
+
+/-- The fully-qualified names of the metrics this package's `init()` registers with
+prometheus's default registry, in its order (`MustRegister`; `metrics.go`). -/
+def regNames : List GoString :=
+  [EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"server" go!"alarms"]
+
+/-- The packages of this package's import closure (itself included) whose initializers
+register metrics, with their names: their registration rights are its initializer's
+resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
+def regQs : List (GoString × List GoString) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames)]
+
+/-- The metric names its initializer registers, with those of its import closure: its
+`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
+def initNames : List GoString := regQs.flatMap (·.2)
+
+end go_etcd_io.etcd.server.v3.etcdserver.apply
 
 end Perennial

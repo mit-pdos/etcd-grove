@@ -1,9 +1,9 @@
 # The applier chain (server/v3/etcdserver/apply), with bodies: apply.go, uber_applier.go,
 # backend.go, auth.go, quota.go, capped.go, corrupt.go and interface.go (the promoted methods of
 # the wrappers' embedded applierV3 interface are goose's MethodUnfold wrappers). metrics.go's
-# `init.0` (which registers the gauge vector `alarms`) is names only; `alarms`' initializer is
+# `init.0` (which registers the gauge vector `alarms`; names only until mustreg, 2026-11-20) and `alarms`' initializer are
 # translated (metric-vecs, 2026-11-19), over prometheus's `NewGaugeVec` spec.
-translate = ["*", "!init.*"]
+translate = ["*"]  # (mustreg, 2026-11-20) `init.0` translated too
 imports = ["!*", "context", "errors", "sync", "time",
   "go.uber.org/zap", "google.golang.org/protobuf/proto",
   "github.com/prometheus/client_golang/prometheus",

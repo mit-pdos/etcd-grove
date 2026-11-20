@@ -824,7 +824,7 @@ io_Pipe:
 io_PipeWriter__CloseWithError:
 snap_NewMessage:
 snap_Message__CloseNotify:
-snap_Message__GetTo:
+snap_Message__GetTo: raftpb_Message__GetTo
 # (2026-10-24, rafthttp stage 7d) the snapshot sender's: the merged message's fields and close (D22's
 # interface, pending the D22 owner), `io.MultiReader` (names-only in Perennial)
 snap_Message__fields:

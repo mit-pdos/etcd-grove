@@ -85,9 +85,9 @@ def putgetProgram [GoSemanticsFunctions] : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.putget.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.putget.Main) #()
 
-/-- The read package's two metric names, which `putget`'s initialization registers (`readRegPerm`,
-D16). -/
-def putgetNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def putgetNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.putget.initNames
 
 end adequacy
 end EtcdGrove

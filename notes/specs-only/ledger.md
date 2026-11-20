@@ -3242,3 +3242,34 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   error arms `¬ FsNoErr ∨ ¬ PathFits p`; a bound on the member's data directory in `bootCfgFresh`, discharged in
   the examples from the member name (≤ 200 bytes).
 - **Decision.** Option 2, the user, 2026-11-20, via etcd-grove-03; flock left to `NoMapLockErr` the same day.
+
+## 2026-11-20: `grpclog.SetLoggerV2` panics on a component logger (prove-grpcsmall)
+
+- **Spec.** `grpclog.SetLoggerV2.spec` (`Spec/google_golang_org/grpc/grpclog/SetLoggerV2.lean`), a trust-boundary axiom.
+- **Defect.** Precondition `True` for any `l`; grpc v1.84.0's `SetLoggerV2` (`grpclog/loggerv2.go:35-41`) panics when `l`
+  is a `*componentData`, which the exported `grpclog.Component` returns.
+- **Evidence.** Code reading of the pinned grpc; `notes/axiom-review/setloggerv2.md`.
+- **Proposed change.** `l : GoInterface` with the premise that its dynamic type is not `*componentData`; the one caller
+  (`etcd3`'s `init`) discharges it from the `klogWrapper` conversion, whose axiom now names the interface it returns.
+- **Decision.** Applied (prove-grpcsmall, 2026-11-20; a weakening of the axiom, the caller's obligation discharged).
+
+## 2026-11-20: `v3rpc.isClientCtxErr` calls `status.FromError` without its premise (prove-grpcsmall)
+
+- **Spec.** `v3rpc.isClientCtxErr.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/isClientCtxErr.lean`), an axiom.
+- **Defect.** Holds for any `err`; with `ctxErr == nil` the body calls `status.FromError(err)`, which calls `err.Error()`:
+  an error whose `Error()` panics makes it panic. `status.FromError.spec` requires `statusErrOk err` and a stable `Error()`.
+- **Evidence.** Code reading (`util.go`); `notes/axiom-review/setloggerv2.md`.
+- **Proposed change.** Premise `⌜ctxErr ≠ nil⌝ ∨ statusErrOk err`. The receive-error callers have `statusErrOk`; the
+  send-error callers (`sendLoop`, `leaseKeepAlive`) have only `streamErr` from `srvStreamIs`'s `Send`, which would have to
+  carry `statusErrOk` too (true of grpc, but an extension of the trusted server model's assumption).
+- **Decision.** Open: recorded only (the brief's "skip if discharging is hard").
+
+## 2026-11-20: `snap.Message.GetTo` takes raftpb's initialization (prove-grpcsmall)
+
+- **Spec.** `snap.Message.GetTo.spec`, an axiom until this change.
+- **Defect.** Not false, but unprovable: the body is raftpb's promoted getter, whose spec needs `isPkgInit raftpb` and the
+  raft message's content, neither of which `msgIs` held.
+- **Evidence.** The proof (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Message__GetTo.lean`).
+- **Proposed change.** `isPkgInit raftpb` in the precondition (the one caller, `sendMergedSnap`, gets it by `iPkgInit`);
+  `msgRO` keeps the raft message's read-only content (`∃ st, msgOwn ml □ st`), which `NewMessage`'s precondition gives.
+- **Decision.** Applied (prove-grpcsmall, 2026-11-20).
