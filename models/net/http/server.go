@@ -1954,6 +1954,11 @@ func (c *conn) serve(ctx context.Context) {
 	var inFlightResponse *response
 	defer func() {
 		if err := recover(); err != nil && err != ErrAbortHandler {
+			// MODEL: what the model does not model is not a handler's panic: it stops the
+			// program (textproto_model.go).
+			if nm, ok := err.(interface{ NotModelled() }); ok {
+				panic(nm)
+			}
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
@@ -1979,62 +1984,9 @@ func (c *conn) serve(ctx context.Context) {
 	type handshakeContexter interface {
 		HandshakeContext(ctx context.Context) error
 	}
-	if connStater, ok := c.rwc.(connectionStater); ok {
-		tlsTO := c.server.tlsHandshakeTimeout()
-		if tlsTO > 0 {
-			dl := time.Now().Add(tlsTO)
-			c.rwc.SetReadDeadline(dl)
-			c.rwc.SetWriteDeadline(dl)
-		}
-		var err error
-		if handshaker, ok := c.rwc.(handshakeContexter); ok {
-			err = handshaker.HandshakeContext(ctx)
-		}
-		if err != nil {
-			// If the handshake failed due to the client not speaking
-			// TLS, assume they're speaking plaintext HTTP and write a
-			// 400 response on the TLS conn's underlying net.Conn.
-			var reason string
-			if re, ok := err.(tls.RecordHeaderError); ok && re.Conn != nil && tlsRecordHeaderLooksLikeHTTP(re.RecordHeader) {
-				io.WriteString(re.Conn, "HTTP/1.0 400 Bad Request\r\n\r\nClient sent an HTTP request to an HTTPS server.\n")
-				re.Conn.Close()
-				reason = "client sent an HTTP request to an HTTPS server"
-			} else {
-				reason = err.Error()
-			}
-			c.server.logf("http: TLS handshake error from %s: %v", c.rwc.RemoteAddr(), reason)
-			return
-		}
-		// Restore Conn-level deadlines.
-		if tlsTO > 0 {
-			c.rwc.SetReadDeadline(time.Time{})
-			c.rwc.SetWriteDeadline(time.Time{})
-		}
-		c.tlsState = new(tls.ConnectionState)
-		*c.tlsState = connStater.ConnectionState()
-		proto := c.tlsState.NegotiatedProtocol
-		if proto == "h2" && c.server.h2 != nil {
-			// net/http/internal/http2 path.
-			//
-			// Mark freshly created HTTP/2 as active and prevent any server state hooks
-			// from being run on these connections. This prevents closeIdleConns from
-			// closing such connections. See issue https://golang.org/issue/39776.
-			c.setState(c.rwc, StateActive, skipHooks)
-			const sawClientPreface = false
-			c.server.serveHTTP2Conn(ctx, c.rwc, serverHandler{c.server}, sawClientPreface, nil, nil)
-			return
-		}
-		tlsConn, tlsConnOK := c.rwc.(*tls.Conn)
-		if validNextProto(proto) && tlsConnOK {
-			// Legacy TLSNextProto path.
-			if fn := c.server.TLSNextProto[proto]; fn != nil {
-				h := initALPNRequest{ctx, tlsConn, serverHandler{c.server}}
-				// Mark freshly created HTTP/2 as active (see above).
-				c.setState(c.rwc, StateActive, skipHooks)
-				fn(c.server, tlsConn, h)
-			}
-			return
-		}
+	if _, ok := c.rwc.(connectionStater); ok {
+		// MODEL: a TLS connection is not modelled (textproto_model.go).
+		panic(notModelled("net/http model: serving a TLS connection is not modelled"))
 	}
 
 	// HTTP/1.x or unencrypted HTTP/2.
@@ -2061,9 +2013,8 @@ func (c *conn) serve(ctx context.Context) {
 
 	protos := c.server.protocols()
 	if c.tlsState == nil && protos.UnencryptedHTTP2() {
-		if c.maybeServeUnencryptedHTTP2(ctx) {
-			return
-		}
+		// MODEL: unencrypted HTTP/2 is not modelled (textproto_model.go).
+		panic(notModelled("net/http model: unencrypted HTTP/2 is not modelled"))
 	}
 	if !protos.HTTP1() {
 		return

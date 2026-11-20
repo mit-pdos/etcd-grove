@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net/textproto"
 	"net/url"
 	"strconv"
 	"strings"
@@ -155,14 +154,16 @@ func (r *Response) Location() (*url.URL, error) {
 // Clients must call resp.Body.Close when finished reading resp.Body.
 // After that call, clients can inspect resp.Trailer to find key/value
 // pairs included in the response trailer.
+//
+// MODEL: the status line and the header are read by the model's modelReadLine and
+// modelReadMIMEHeader (textproto_model.go) in place of net/textproto's Reader.
 func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
-	tp := textproto.NewReader(r)
 	resp := &Response{
 		Request: req,
 	}
 
 	// Parse the first line of the response.
-	line, err := tp.ReadLine()
+	line, err := modelReadLine(r)
 	if err != nil {
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF
@@ -189,7 +190,7 @@ func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
 	}
 
 	// Parse the response headers.
-	mimeHeader, err := tp.ReadMIMEHeader()
+	mimeHeader, err := modelReadMIMEHeader(r, math.MaxInt64)
 	if err != nil {
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF

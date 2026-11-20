@@ -78,6 +78,14 @@ type Codec struct {
 	Receiver func(rcvr any) *Receiver
 }
 
+// notModelled is the value the model panics with where it does not model Go's behavior (the
+// net/http model's server panics again with a value that has a NotModelled method, instead of
+// recovering it as a handler's panic).
+type notModelled string
+
+// NotModelled marks the value as the models' panic.
+func (notModelled) NotModelled() {}
+
 var codecMu sync.Mutex
 var codec *Codec
 
@@ -87,7 +95,7 @@ func SetCodec(c *Codec) {
 	codecMu.Lock()
 	if codec != nil {
 		codecMu.Unlock()
-		panic("net/rpc model: a second codec registered")
+		panic(notModelled("net/rpc model: a second codec registered"))
 	}
 	codec = c
 	codecMu.Unlock()
@@ -98,7 +106,7 @@ func getCodec() *Codec {
 	c := codec
 	codecMu.Unlock()
 	if c == nil {
-		panic("net/rpc model: no codec registered (the program's generated codec registers it)")
+		panic(notModelled("net/rpc model: no codec registered (the program's generated codec registers it)"))
 	}
 	return c
 }

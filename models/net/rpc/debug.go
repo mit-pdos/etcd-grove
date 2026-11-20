@@ -26,5 +26,5 @@ type debugHTTP struct {
 
 // Runs at /debug/rpc
 func (server debugHTTP) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	panic("net/rpc model: the debugging page is not modelled")
+	panic(notModelled("net/rpc model: the debugging page is not modelled"))
 }

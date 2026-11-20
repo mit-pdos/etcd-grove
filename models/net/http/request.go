@@ -1095,15 +1095,14 @@ func readRequest(b *bufio.Reader) (req *Request, err error) {
 	return readRequestLimit(b, math.MaxInt64)
 }
 
+// MODEL: the request line and the header are read by the model's modelReadLine and
+// modelReadMIMEHeader (textproto_model.go) in place of net/textproto's Reader.
 func readRequestLimit(b *bufio.Reader, maxHeaders int64) (req *Request, err error) {
-	tp := newTextprotoReader(b)
-	defer putTextprotoReader(tp)
-
 	req = new(Request)
 
 	// First line: GET /index.html HTTP/1.0
 	var s string
-	if s, err = tp.ReadLine(); err != nil {
+	if s, err = modelReadLine(b); err != nil {
 		return nil, err
 	}
 	defer func() {
@@ -1149,7 +1148,7 @@ func readRequestLimit(b *bufio.Reader, maxHeaders int64) (req *Request, err erro
 	}
 
 	// Subsequent lines: Key: value.
-	mimeHeader, err := readMIMEHeader(tp, math.MaxInt64, maxHeaders)
+	mimeHeader, err := modelReadMIMEHeader(b, maxHeaders)
 	if err != nil {
 		// TODO: Add a distinguishable error to net/textproto.
 		if err.Error() == "message too large" {
