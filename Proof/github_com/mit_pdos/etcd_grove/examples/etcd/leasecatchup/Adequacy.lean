@@ -12,7 +12,7 @@ unless that listing also lists the lease granted through member 3 -- started fro
 package initialized, one thread): for every real execution of `n` steps, the main thread's result,
 if it has one, is `#()`, no thread is stuck, and no thread has ended in a panic.
 
-As `examples/etcd/partition`'s and `k8s_compactor_partition_adequate`'s (`etcd_adequate_members`
+As `examples/etcd/partition`'s and the retired `k8s_compactor_partition_adequate`'s (`etcd_adequate_members`
 with the cluster's members and its bridges, hub step 7's A3), at this program's configuration,
 with leasegrant's lease hypotheses: `leasePeersOk` (the peers answer the lease handler's path as
 etcd's lease handler does) and `lease.leasesNoExpiry` (no lease of any lessor the program creates,

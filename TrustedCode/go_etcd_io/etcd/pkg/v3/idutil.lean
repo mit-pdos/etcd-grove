@@ -20,8 +20,10 @@ records `id ↦ g`. Perennial's `assume` does not return when its argument is `f
 the model excludes the executions in which two generators issue one id, and is Go's in every other.
 
 **Why the model is faithful** (the issue's precondition, `nonissues/etcd-request-id-restart-reuse.md`):
-generators of distinct members differ in the prefix (the member ids' 16 low bits distinct, a premise
-of the examples, `TestMemberIDs`); a member's generators -- one per start of the member -- issue
+generators of distinct members of the process differ in the prefix (the 16 low bits of the ids of the
+process's every member distinct, a premise of the examples, `TestMemberIDs`: of the one cluster an
+example starts, and, for `examples/k8s/all`, which starts two, of both clusters' members, `k8s_safe`'s
+`Hlow`); a member's generators -- one per start of the member -- issue
 distinct ids if the wall clock does not step back across a restart and the earlier generator, started
 at millisecond t0, issues in all (handlers of the stopped incarnation may still call it) at most
 256·(t1 − t0) ids, t1 the later one's start: the later one's first id is the earlier one's

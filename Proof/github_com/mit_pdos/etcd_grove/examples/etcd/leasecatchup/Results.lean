@@ -14,7 +14,7 @@ the build log (`#print axioms`). Lean-first (no Rocq counterpart).
   theorem. Every real execution of `n` steps of `leasecatchup`'s initialization followed by
   `Main()`, from a fresh state with one thread, has no stuck thread, no thread ended in a panic, and
   the main thread's result, if any, is `#()`; under the hypotheses of the three-member partition
-  examples (`k8s_compactor_partition_safe`'s, without its schedule and `clock.RealClock.After`) and
+  examples (the retired `k8s_compactor_partition_safe`'s, without its schedule and `clock.RealClock.After`) and
   leasegrant's lease hypotheses (`leasePeersOk`, `lease.leasesNoExpiry`). It is the first closed
   result over a configuration in which a member's lessor is rebuilt from a snapshot in Go (the
   example's test counts a merged snapshot sent to member 3 and its lease store restored, every run;
