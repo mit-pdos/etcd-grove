@@ -144,7 +144,67 @@ theorem fieldpath.Set.Insert.wp_proof
     iexists es; isplitl
     · iapply Hback; iexact Hsl
     iexact Hpes
-  · sorry
+  · have hrest : q.drop (sint.nat k + 1) ≠ [] := by
+      have h2 : (es.drop (sint.nat k)).length ≠ 1 := by
+        rw [hlk.1]; intro h; apply Hif; word
+      simp at h2 ⊢; omega
+    simp only [show (0 : Int) ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len from ⟨by decide, hsl0⟩,
+      ↓reduceIte]
+    wp_apply (wp_load_slice_index sl (sint.Z (W64 0)) _ dq e (by decide)) $$ [$Hsl] as Hsl
+    · ipureintro; exact he0
+    have hcl := Nat.le_trans (fpI.card_children ms cs hcan hwc) hcard
+    wp_apply (h_SetNodeMap_Descend (c.[fieldpath.Set', go!"Children"]) cs e a) $$ [$HN $Ha]
+      as %q' ⟨%tch, %hlkc, Htch, Hwd⟩
+    · ipureintro; exact ⟨hcan.2.1, by omega⟩
+    ihave %hwf := ownSlice_wf $$ Hsl
+    have hb1 : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z sl.len ∧ sint.Z sl.len ≤ sint.Z sl.cap :=
+      ⟨by decide, by word, hwf.2⟩
+    rw [if_pos hb1]
+    icases (ownSlice_slice (W64 1) sl.len sl dq (es.drop (sint.nat k))
+      ⟨by decide, by word, Int.le_refl _⟩).1 $$ Hsl with ⟨H0, Hmid, H3⟩
+    have hsub : subslice (sint.nat (W64 1)) (sint.nat sl.len) (es.drop (sint.nat k)) =
+        es.drop (sint.nat (k + W64 1)) := by
+      unfold subslice
+      rw [List.take_of_length_le (Nat.le_of_eq hlk.1), List.drop_drop, hk1]
+      rfl
+    have hcanch : Trie.Canonical tch := by
+      rcases hlkc with h | ⟨-, rfl⟩
+      · exact (fpC.canonicalC_mem cs a tch hcan.2.2 (fpI.lookup_mem a cs tch h)).1
+      · exact fpI.canon_empty
+    have hcardch : (fpC.tset tch).card ≤ S.card := by
+      rcases hlkc with h | ⟨-, rfl⟩
+      · exact Nat.le_trans (fpI.card_child ms cs a tch h) hcard
+      · rw [fpI.tset_empty_card]; exact Nat.zero_le _
+    wp_auto
+    wp_for_post
+    iframe
+    iexists k + W64 1, slice.slice sl fieldpath.PathElement (W64 1) sl.len, q', tch
+    iframe
+    rw [← hsub]
+    iframe
+    isplitl [H0 H3 Hback]
+    · iintro Hmid
+      iapply Hback
+      iapply (ownSlice_slice (W64 1) sl.len sl dq (es.drop (sint.nat k))
+        ⟨by decide, by word, Int.le_refl _⟩).2
+      iframe
+    isplitl [HW Hwd Hop HM]
+    · iintro %tq' Htq' %h
+      ihave HN := Hwd $$ Htq'
+      icases Hop $$ HM HN with ⟨%ms', %hms', Htc⟩
+      rw [hk1] at h
+      obtain ⟨hcan1, hp1⟩ := fpI.descend_step hcan hwc haw hlkc h.1 h.2
+      obtain ⟨hcan2, hp2⟩ := fpI.members_congr hcan1 hms'.1 hms'.2
+      have hfin : Trie.Canonical (Trie.mk ms' (nodesSet a tq' cs)) ∧ ∀ x,
+          Trie.paths (Trie.mk ms' (nodesSet a tq' cs)) x ↔
+            Trie.paths (Trie.mk ms cs) x ∨ x = q.drop (sint.nat k) :=
+        ⟨hcan2, fun x => by rw [hp2, hp1, hqd]⟩
+      iapply HW $$ Htc %hfin
+    ipureintro
+    rw [hk1]
+    refine ⟨by word, ?_, hcanch, hcardch⟩
+    have := List.length_pos_iff.2 hrest
+    simp at this; omega
 
 end proof
 
