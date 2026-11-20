@@ -309,7 +309,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proofNE
       (hpc _ _ ⟨xs.drop k, by simp only [List.append_assoc, List.take_append_drop]⟩ hok)) $$ [Hw] [Hpw Hout] as %err0 ⟨Hpw, Hres⟩
     · iexact Hw
     · iframe
-    icases Hres with (⟨%Herr0, Hout⟩ | ⟨%Herr0, Hbad⟩)
+    icases Hres with (⟨%Herr0, Hout⟩ | ⟨%Herr0, -, Hbad⟩)
     rotate_left
     · -- the flush failed
       rcases err0 with ei | _
@@ -398,7 +398,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proofNE
             omega
           rw [hdk]; omega) [Hout H1] as %c %werr ⟨H1, Hres⟩
       · iframe
-      icases Hres with (⟨%Hc, Hout⟩ | ⟨%Herr, Hbad⟩)
+      icases Hres with (⟨%Hc, Hout⟩ | ⟨%Herr, -, Hbad⟩)
       rotate_left
       · -- the pages' write failed
         rcases werr with ei | _

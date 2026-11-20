@@ -28,7 +28,8 @@ variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] [S : ExtSemantics fs
 /-- **`rename(2)` of the file `d/bs` onto `d'/bt`, no directory, has a success**: the source a
 file, the names distinct. -/
 theorem renameFile_succ {st : OsState} {d bs d' bt : GoString} {j j' i : Ino} {k s0 : Nat}
-    (hw : FsTreeWf st) (hcall : st.proc.calls !! k = some s0)
+    (hw : FsTreeWf st) (hcall : st.proc.calls !! k = some (s0, child d bs))
+    (hsr : st.SameRoot (child d bs) (child d' bt))
     (hd : st.lookup d = some (.dir j)) (hd' : st.lookup d' = some (.dir j')) (hbs : NameOk bs)
     (hbt : NameOk bt) (hsrc : st.tree.entry j bs = some (.file i)) (hne : child d bs ≠ child d' bt)
     (htgt : ∀ J, st.tree.entry j' bt ≠ some (.dir J)) :
@@ -38,7 +39,7 @@ theorem renameFile_succ {st : OsState} {d bs d' bt : GoString} {j j' i : Ino} {k
     rw [lookup_child hw.roots hd hbs, hsrc]
   have hlt : st.lookup (child d' bt) = st.tree.entry j' bt := lookup_child hw.roots hd' hbt
   have hex : (∃ J, st.lookup (child d bs) = some (.dir J)) →
-      ∀ k' s', st.proc.calls !! k' = some s' → k' = k := by
+      ∀ k' s' p', st.proc.calls !! k' = some (s', p') → k' = k ∨ ¬ st.SameRoot (child d bs) p' := by
     rintro ⟨J, hJ⟩; rw [hls] at hJ; cases hJ
   have hok : RenameOk st (child d bs) (child d' bt) := by
     refine ⟨hne, ⟨_, parent_child hd hbs⟩, ⟨_, parent_child hd' hbt⟩, ?_⟩
@@ -50,7 +51,7 @@ theorem renameFile_succ {st : OsState} {d bs d' bt : GoString} {j j' i : Ino} {k
       (.rename j bs j' bt (.file i) (st.lookup (child d' bt))) :=
     ⟨j, bs, j', bt, .file i, parent_child hd hbs, parent_child hd' hbt, hls, rfl⟩
   exact ⟨_, child d bs, child d' bt, k, s0, rfl, treeName_child hd hbs, treeName_child hd' hbt,
-    hcall, hex, .inl ⟨hok, _, hop, .inl ⟨rfl, rfl⟩⟩⟩
+    hsr, hcall, hex, .inl ⟨hok, _, hop, .inl ⟨rfl, rfl⟩⟩⟩
 
 end step
 
@@ -62,7 +63,7 @@ variable {s : Stuckness} {E : CoPset}
 
 /-- **`wp_logStepS` whose `hpost` also gets the semantics' own step** (from `wp_logStepSWQ`, as
 `wp_logStepSN` is from `wp_logStepSW`). -/
-theorem wp_logStepSQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
+theorem wp_logStepSQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
     (q : Qp) (o : MetaOp) (cl : List ClaimW) (F : IProp GF) (P : OsState → Prop)
     (W : val → Bool → Prop)
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
@@ -73,18 +74,18 @@ theorem wp_logStepSQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R pc → k' = k) → P st →
       ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R pc → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' →
       (∃ hh hh', ExtSemantics.step (E := fsExt) op v hh st () e' hh' st' ()) →
       ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
          (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧ W w true)))
-    (hfs : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
+    (hfs : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R pc → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → FilesSame st st')
     (htree : ∀ st, FsTreeWf st → st.fs.roots = R → P st → ClaimsAt st cl →
       TreeWf R (o.apply st.tree) ∧ (∀ i, Named (o.apply st.tree) i → Named st.tree i) ∧
@@ -92,14 +93,15 @@ theorem wp_logStepSQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2))
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp])
     (hM : op ≠ "Mmap" := by decide) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
-      osCallS (L := L) k s0 q -∗
-      (∀ w, osCallPerm (L := L) q -∗ F -∗
+      osCallS (L := L) k s0 pc q -∗
+      (∀ w, osCallPerm (L := L) (callKey R pc) q -∗ F -∗
         ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
          (⌜W w true⌝ ∗ ∃ x, osLogged (L := L) x ⟨o, s0⟩ ∗
            ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1)
@@ -108,7 +110,7 @@ theorem wp_logStepSQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
              ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ
-  iapply wp_logStepSWQ op v hv R k s0 q (fun _ => o) cl (fun _ c => c.2.2.2) F P W
+  iapply wp_logStepSWQ op v hv R k s0 pc q (fun _ => o) cl (fun _ c => c.2.2.2) F P W
     (fun _ _ _ => emp) hne (fun _ => hwr) (fun _ => hslots) hnext (fun _ => hdir) (fun _ => hadd)
     hF hprog
     (fun st e' st' hw hR hcall hsole hP hat Hst Hsem => by
@@ -140,20 +142,20 @@ theorem wp_logStepSQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     · iexists x; iexact Hp
 
 /-- **`rename(2)` of the file `d/bs` (inode `i`) onto `d'/bt` (a file or nothing) with no error**
-(shared mode, the two claims whole, of distinct keys; `wp_osRenameFileS'` under `NoIoErr`, the
-paths covered): the rename logged, errno 0. -/
+(shared mode, the two claims whole, of distinct keys, the paths of one root; `wp_osRenameFileS'`
+under `NoIoErr`, the paths covered): the rename logged, errno 0. -/
 theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
     (hS : ∀ p, Sio.path p) (R : Roots) (d bs d' bt : GoString) (j j' i : Ino)
     (N N' : NameSet) (dq dq' : DFrac) (h h' : NamesH) (k s0 : Nat) (q : Qp) (hbs : NameOk bs)
     (hbt : NameOk bt) (hN : N.Mem bs) (hN' : N'.Mem bt) (hkey : (j, N) ≠ (j', N'))
     (hsrc : h.cur !! bs = some (.file i)) (htgt : ∀ J, h'.cur !! bt ≠ some (.dir J))
-    (hs : h.next ≤ s0) (hs' : h'.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
-    (Φ : val → IProp GF) :
+    (hs : h.next ≤ s0) (hs' : h'.next ≤ s0) (hsr : SameRootR R (child d bs) (child d' bt))
+    (hfit : PathFits (child d bs) ∧ PathFits (child d' bt)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osPathS (L := L) R d' dq' j' -∗
       osNames (L := L) j N (DFrac.own 1) h -∗ osNames (L := L) j' N' (DFrac.own 1) h' -∗
-      osCallS (L := L) k s0 q -∗
-      (osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osPathS (L := L) R d' dq' j' -∗
+      osCallS (L := L) k s0 (child d bs) q -∗
+      (osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗ osPathS (L := L) R d' dq' j' -∗
         (∃ x, osLogged (L := L) x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) ∗
            osNames (L := L) j N (DFrac.own 1) (h.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (GMap.delete bs h.cur)) ∗
            osNames (L := L) j' N' (DFrac.own 1) (h'.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (<[bt := .file i]> h'.cur))) -∗
@@ -182,16 +184,18 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
     have hjj : j = j' := by
       have := hp.1.symm.trans hp.2; simp at this; exact this
     exact hdisj st hat hjj bs hN hN'
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d bs) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d bs) → k' = k) →
+      P st → ClaimsAt st cl →
       ∃ e' st', IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st
         e' st' ∧ FilesSame st st' := by
-    intro st hw _ hcall _ hp hat
-    refine ⟨_, _, renameStep_err hp.1 hp.2 hbs hbt hcall (fun ⟨J, hJ⟩ => ?_),
+    intro st hw hR hcall _ hp hat
+    refine ⟨_, _, renameStep_err hp.1 hp.2 hbs hbt (sameRoot_of_R hR hsr) hcall (fun ⟨J, hJ⟩ => ?_),
       filesSame_metaEnd st k⟩
     rw [lookup_child hw.roots hp.1 hbs, hsrcE st hat] at hJ; cases hJ
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d bs) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d bs) → k' = k) →
+      P st → ClaimsAt st cl →
       IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st' →
       (∃ hh hh', ExtSemantics.step (E := fsExt) "Rename"
         (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) hh st () e' hh' st' ()) →
@@ -199,15 +203,15 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
         ((st' = st.metaEnd k ∧ (fun w lg => w = #(0 : w64) ∧ lg = true) w false) ∨
          (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧
           (fun w lg => w = #(0 : w64) ∧ lg = true) w true)) := by
-    intro st e' st' hw _ hcall _ hp hat Hst Hsem
+    intro st e' st' hw hR hcall _ hp hat Hst Hsem
     obtain ⟨hh, hh', Hsem⟩ := Hsem
     obtain ⟨htw, -, hlt⟩ := wf_tree hw
     -- the premise: a success exists, so the step has errno 0
     have hz : e' = Val (#(0 : w64)) := by
-      obtain ⟨st'', hst''⟩ := renameFile_succ hw hcall hp.1 hp.2 hbs hbt (hsrcE st hat)
+      obtain ⟨st'', hst''⟩ := renameFile_succ hw hcall (sameRoot_of_R hR hsr) hp.1 hp.2 hbs hbt (hsrcE st hat)
         (hneq st hp hat) (fun J hJ => htgt J (by rw [← htgtE st hat]; exact hJ))
       have := noIoErr_step (Sio := Sio) Hsem
-        (by simp only [IoCovers]; exact ⟨k, child d bs, child d' bt, rfl, .inl (hS _)⟩)
+        (by simp only [IoCovers]; exact ⟨k, child d bs, child d' bt, rfl, .inl (hS _), hfit.1, hfit.2⟩)
         ⟨_, st'', hst'', rfl⟩
       exact this
     obtain ⟨e, rfl, hr⟩ := renameStep_cases hw hcall hp.1 hp.2 hbs hbt (hsrcE st hat)
@@ -231,7 +235,8 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) := by
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d bs) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
     intro st hw hR hp hat
     obtain ⟨htw, -, -⟩ := wf_tree hw
     have hjm := mem_of_reach htw (reach_of_lookup hp.1)
@@ -242,7 +247,8 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
         (hsrcE st hat) hnt _ _,
       named_rename _ _ _ _ _ _ _, fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
       fun _ => ⟨⟨hjm, hjm', hsrcE st hat, htgtE st hat⟩, fun _ _ _ he => by simp [o] at he⟩,
-      fun c hc => ?_⟩
+      fun c hc => ?_,
+      rootClause_two hw.roots hR hp.1 hp.2 hsr (by intro c hc; rcases (hcl c).1 hc with rfl | rfl <;> simp)⟩
     · rcases mem_rename _ _ _ _ _ _ _ _ hx with rfl | rfl | hx
       · exact .inl hjm
       · exact .inl hjm'
@@ -279,7 +285,7 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
           have hbt' : bt ≠ b := fun h0 => hb (h0 ▸ hN')
           rw [GMap.lookup_insert_ne _ _ hbt', hat.out _ hm2 b hb]
   iintro #Hinv #Hsi Hp Hp' Hn Hn' Hk HΦ
-  iapply wp_logStepSQ "Rename" _ (by simp [val.isPanic]) R k s0 q o cl
+  iapply wp_logStepSQ "Rename" _ (by simp [val.isPanic]) R k s0 (child d bs) q o cl
     iprop(osPathS (L := L) R d dq j ∗ osPathS (L := L) R d' dq' j') P
     (fun w lg => w = #(0 : w64) ∧ lg = true)
     (fun c hc => by
@@ -335,6 +341,7 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
   · obtain ⟨rfl, -⟩ := hW
     icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hn, Hl⟩
     icases (BigSepL.bigSepL_singleton).1 $$ Hl with Hn'
+    icases osCallPerm_unchild R d bs _ j _ $$ Hp Hq with ⟨Hp, Hq⟩
     iapply HΦ $$ Hq Hp Hp'
     iexists x
     isplitl [Hlg]

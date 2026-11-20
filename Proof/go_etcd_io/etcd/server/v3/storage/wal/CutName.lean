@@ -75,15 +75,6 @@ theorem walFileName_lt (sq ix sq' ix' : Nat) (h : sq < sq') (h' : sq' < 2 ^ 64) 
   unfold go.GoStringLt at hl ⊢
   exact lex_append_eqlen _ _ hl (by rw [fmt.length_hexPad, fmt.length_hexPad])
 
-/-- No hexadecimal digit is `/`. -/
-theorem hexDigit_ne_slash : ∀ k : Fin 16, hexDigit k.val ≠ (47 : w8) := by decide
-
-theorem hex16_ne_slash (n : Nat) : ∀ c ∈ hex16 n, c ≠ (47 : w8) := by
-  intro c hc
-  unfold hex16 at hc
-  obtain ⟨i, -, rfl⟩ := List.mem_map.1 hc
-  exact hexDigit_ne_slash ⟨_, Nat.mod_lt _ (by decide)⟩
-
 /-- A segment name is a clean path segment (no `/`, not `.` or `..`). -/
 theorem cleanSeg_walFileName (sq ix : Nat) : path.cleanSeg (walFileName sq ix) := by
   have hl := walFileName_length sq ix
@@ -97,14 +88,6 @@ theorem cleanSeg_walFileName (sq ix : Nat) : path.cleanSeg (walFileName sq ix) :
   · simp at h; subst h; decide
   · exact hex16_ne_slash ix c h
   · simp at h; rcases h with h | h | h | h <;> (subst h; decide)
-
-theorem hexDigit_ne_nul : ∀ k : Fin 16, hexDigit k.val ≠ (0 : w8) := by decide
-
-theorem hex16_ne_nul (n : Nat) : ∀ c ∈ hex16 n, c ≠ (0 : w8) := by
-  intro c hc
-  unfold hex16 at hc
-  obtain ⟨i, -, rfl⟩ := List.mem_map.1 hc
-  exact hexDigit_ne_nul ⟨_, Nat.mod_lt _ (by decide)⟩
 
 /-- **A segment name is a valid directory entry name** (`NameOk`: `filepath.Join`, the rename). -/
 theorem walFileName_nameOk (sq ix : Nat) : NameOk (walFileName sq ix) := by

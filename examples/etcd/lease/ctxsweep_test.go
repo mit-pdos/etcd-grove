@@ -16,6 +16,7 @@ import (
 	"go.etcd.io/etcd/server/v3/lease/leasehttp"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // sweepPanicTraceCtx: every method is the inner *cancelCtx's (so isContext's clauses hold), except
@@ -40,6 +41,7 @@ func typeName(k any) string {
 // isContext. notes/leasetimetolive-value-refuted.md.
 func TestLeaseTimeToLiveFollowerValuePanics(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "ctxsweep", "ctxcause") // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	peers := []string{"127.0.0.1:24951", "127.0.0.1:24952", "127.0.0.1:24953"}
 	clients := []string{"127.0.0.1:24956", "127.0.0.1:24957", "127.0.0.1:24958"}
@@ -116,6 +118,7 @@ func (causeBadErr) Is(error) bool { panic("causeBadErr.Is called") }
 // causeBadErr.Is: a panic inside the axiomatized leaseTimeToLive.
 func TestLeaseTimeToLiveFollowerCausePanics(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "ctxsweep", "ctxcause") // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	peers := []string{"127.0.0.1:24961", "127.0.0.1:24962", "127.0.0.1:24963"}
 	clients := []string{"127.0.0.1:24966", "127.0.0.1:24967", "127.0.0.1:24968"}

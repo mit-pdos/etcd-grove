@@ -45,7 +45,7 @@ theorem qQuarter_three : qQuarter + ((1 : Qp).half + qQuarter) = 1 := by
 /-- What the absent case's open gives (see the file header). -/
 def repBrokenNewA (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (X : List GoString) (hj : NamesH)
     (o : WalOut) (bt : GoString) (qc : Qp) : Option (Nat × Nat × Ino) → Bool → IProp GF :=
-  fun x ok => iprop(osPathS R dir dq j ∗ osCallPerm qc ∗ walBrokenQ (W := W) dir j X hj o bt x ∗
+  fun x ok => iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ walBrokenQ (W := W) dir j X hj o bt x ∗
     crOutN j (.except X) bt hj (DFrac.own qQuarter) x ∗ crTr (ok = true) x)
 
 /-- **The absent case's open spec** (see the file header). -/
@@ -54,7 +54,7 @@ theorem repBroken_tripleNew (wp_OpenN : os.OpenFile.specCreateTruncSncN (GF := G
     (bt : GoString) (qc : Qp) (hb : NameOk bt) (hN : (NameSet.except X).Mem bt)
     (hcur : hj.cur !! bt = none) :
     fileutil.OpenTriple
-      iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm qc ∗
+      iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
         osNames j (.except X) (DFrac.own qQuarter) hj ∗
         osAUnc (osNames j (.except X) (DFrac.own ((1 : Qp).half + qQuarter)) hj)
           (crOutN j (.except X) bt hj (DFrac.own ((1 : Qp).half + qQuarter)))
@@ -97,7 +97,7 @@ theorem repBroken_tripleNew (wp_OpenN : os.OpenFile.specCreateTruncSncN (GF := G
 /-- What the leftover case's open gives (see the file header). -/
 def repBrokenOldA (R : Roots) (dir : GoString) (dq dqn : DFrac) (j : Ino) (X : List GoString)
     (hj : NamesH) (i : Ino) (qc : Qp) : Unit → Bool → IProp GF :=
-  fun _ ok => iprop(osPathS R dir dq j ∗ osNames j (.except X) dqn hj ∗ osCallPerm qc ∗
+  fun _ ok => iprop(osPathS R dir dq j ∗ osNames j (.except X) dqn hj ∗ osCallPerm (callKey R dir) qc ∗
     trFile i (ok = true))
 
 /-- **The leftover case's open spec** (see the file header). -/
@@ -106,7 +106,7 @@ theorem repBroken_tripleOld (R : Roots) (dir : GoString) (dq dqn : DFrac) (j : I
     (hcur : hj.cur !! bt = some (.file i)) :
     fileutil.OpenTriple
       iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osNames j (.except X) dqn hj ∗
-        osCallPerm qc ∗ trFile i False)
+        osCallPerm (callKey R dir) qc ∗ trFile i False)
       (child dir bt) (wal.walOpenFlag true) (W32 384) (repBrokenOldA (GF := GF) R dir dq dqn j X hj i qc)
       (fun _ i' => i' = i) := by
   obtain ⟨hfl, -, htr⟩ := walOpenFlag_ok

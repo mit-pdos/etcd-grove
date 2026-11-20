@@ -2,6 +2,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preOk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preMsg
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mdelete
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.delItem
@@ -36,6 +37,7 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     (wp_notFound : notFound.spec (GF := GF) (hG := hG))
     (wp_preOk : preOk.spec (GF := GF) (hG := hG))
     (wp_invalidObj : invalidObj.spec (GF := GF) (hG := hG))
+    (wp_preMsg : preMsg.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG))
     (wp_validateFor : validateFor.spec (GF := GF) (hG := hG)) :
     mdelete.spec (GF := GF) (hG := hG) := by
@@ -63,16 +65,18 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     wp_apply wp_preOk
     cases hp : preOkL x it.obj'
     · (try wp_auto)
+      wp_apply wp_preMsg
+      (try wp_auto)
       wp_apply wp_invalidObj
       iapply HΦ
-      have : mdeleteL x g = (g, invalidObjL x.Key') := by simp [mdeleteL, hn, ← hit, hp]
+      have : mdeleteL x g = (g, invalidObjL x.Key' (preMsgL x it.obj')) := by simp [mdeleteL, hn, ← hit, hp]
       rw [this]
       iframe Hk
       ipureintro; exact ⟨Hr, rfl⟩
     (try wp_auto)
     wp_apply context.wp_Background
     (try wp_auto)
-    wp_apply wp_validateFor as %vf #Hvf
+    wp_apply wp_validateFor as %vf ⟨-, #Hvf, -⟩
     iunfold validateD at Hvf
     (try wp_auto)
     cases hr : rejects x.HasReject' x.Reject' it.obj'.Node'

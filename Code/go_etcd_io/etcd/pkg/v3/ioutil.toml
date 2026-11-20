@@ -4,8 +4,10 @@
 # (the WAL over fsExt, until 2026-11-15 in the part `LinuxFs/`) the WAL's page writer, with its body
 # (pagewriter.go). The rest (the exact reader, `WriteAndSyncFile`) names only.
 translate = ["!*", "NewLimitedBufferReader", "limitedBufferReader.Read", "ReaderAndCloser.Read",
-  "ReaderAndCloser.Close", "defaultBufferBytes", "PageWriter", "NewPageWriter", "PageWriter.*"]
-imports = ["!*", "io", "net/http", "go.etcd.io/etcd/client/pkg/v3/verify"]
+  "ReaderAndCloser.Close", "defaultBufferBytes", "PageWriter", "NewPageWriter", "PageWriter.*",
+  # (prove-errinits, 2026-11-19) the `fmt.Errorf` errors translated
+  "ErrShortRead", "ErrExpectEOF"]
+imports = ["!*", "fmt", "io", "net/http", "go.etcd.io/etcd/client/pkg/v3/verify"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

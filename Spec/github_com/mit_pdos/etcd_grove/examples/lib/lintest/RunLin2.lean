@@ -10,7 +10,8 @@ the trace's length `clients * ops + clients2 * ops2 < 2^60`.
 
 **If the library is linearizable, porcupine never reports `Illegal`**, and with no timeout it
 reports `Ok`; and on `Ok` the second result holds all `clients * ops + clients2 * ops2`
-operations of the trace in an order that linearizes them (as `RunLin`'s). `RunLin` is
+operations of the trace in an order that linearizes them (as `RunLin`'s), each called no later than
+it returns (`HistOk`, porcupine's premise: k8s 7g, for a second check of the trace). `RunLin` is
 `RunLin2` with an empty second group.
 -/
 module
@@ -55,7 +56,7 @@ abbrev RunLin2.spec : Prop :=
       ⌜r ≠ go!"Illegal" ∧ (sint.Z dur ≤ 0 → r = go!"Ok")⌝ ∗
       (⌜r = go!"Ok"⌝ -∗ ∃ lops : List Operation, lsl ↦* lops ∗ opsIoOk S lops ∗
         ⌜(lops.length : Int) = sint.Z clients * sint.Z ops + sint.Z clients2 * sint.Z ops2 ∧
-          Theory.IsLinearization S.M (histOf lops) (List.range lops.length)⌝) }}
+          Theory.IsLinearization S.M (histOf lops) (List.range lops.length) ∧ HistOk lops⌝) }}
 
 end spec
 

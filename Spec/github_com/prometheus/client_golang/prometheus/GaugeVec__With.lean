@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 
 @[expose] public section

@@ -1,11 +1,12 @@
 /-
-`(*EtcdServer).purgeFile()` (`server.go`): the trust boundary (names-only; one of the goroutines `Start`
-attaches). Lean-first (the request path's unit 4c).
+`(*EtcdServer).purgeFile()` (`server.go:608-625`; one of the goroutines `Start` attaches). Lean-first (the
+request path's unit 4c; with its body since wal-link L2, 2026-11-17, `notes/wal-link-scope.md` §1 #9: until
+then an axiom). Proved in `Proof/.../etcdserver/EtcdServer__purgeFile.lean`.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 
 @[expose] public section
 
@@ -23,20 +24,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.purgeFile()` returns (names-only: until `stopping` is closed it purges old WAL files, if
-`MaxWALFiles > 0`). (Sweep repairs 1, R1-3, 2026-11-08: the fork's `purgeFile` no longer purges
-`.snap.db` files, a4d2bb172, `nonissues/etcd-purge-snapdb-unopened.md`; until then it removed the
-oldest beyond five, `.snap.db` files `snapDirInv` keeps, and this triple was false next to it. The
-WAL purge's right, `walPurgeRight`, is sweep repairs 1's W1, not yet here.) It reads `s.Logger()` and logs through it (`PurgeFileWithoutFlock`'s
-`lg.Info`), and `s.stopping`: its premise is the server's read-side fields (`isServerReadM`, whose
-`srvReadFieldsAtM` holds `zapLoggerOk` of `s.lg`; premise fixes 6, family axiom #23: until then
-nothing on `s`). -/
+/-- `s.purgeFile()` returns, once `s.stopping` is closed, under a configuration that purges no WAL file
+(`s.Cfg.MaxWALFiles` zero, read-only: `srvMonitorsOff`'s; no example sets it, `notes/wal-link-scope.md`
+C7): it starts no purge, takes `s.Logger()` (an `lgMu` reader slot borrowed from `GoAttach`'s pool,
+`raftPool` in `srvGoAttachOk`, with its goroutine's level-1 token, and given back), and waits on a nil
+channel (never ready) and `s.stopping`. Over `GoAttach`'s protocol (the logger, the `stopping` channel,
+the pool) and its goroutine's thread tokens, given back.
+
+(Sweep repairs 1, R1-3, 2026-11-08: the fork's `purgeFile` no longer purges `.snap.db` files, a4d2bb172,
+`nonissues/etcd-purge-snapdb-unopened.md`.) Until wal-link L2 an axiom over `isServerReadM` (premise
+fixes 6, family axiom #23). A configuration that purges WAL files is wal-link L6. -/
 abbrev EtcdServer.purgeFile.spec : Prop :=
-  ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames),
+  ∀ (s : Loc) (γg : GoNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReadM on s E γr }}
+      srvGoAttachOk s γg ∗ srvCfgFieldAddr s go!"MaxWALFiles" ↦□ (W64 0) ∗ threadTokFrom 1 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"purgeFile")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTokFrom 1 }}
 
 end spec
 

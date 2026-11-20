@@ -4,10 +4,11 @@ token: `notes/decisions.md`, "The WAL's API", change 6; sweep repairs 1, W3/W4, 
 data directory, until then `walDirFresh` of its WAL directory). Lean-first.
 
 `dataDirFresh dd` (timeless; axiomatized, as `netAddrFree`): the data directory `dd` is absent or
-empty, so it holds no WAL in `config.walDirOf dd ""` (`wal.Exist` false) and no backend file at
-`config.backendPathOf dd`, and `bootstrap` on a configuration with data directory `dd` and no
-dedicated WAL directory starts a new member over an empty backend (`bootstrapContract`'s `"%HD"`,
-`"%HDr"`, `"%HmEmpty"`). Program start gives it once for each data directory of the members the
+empty, so it holds no backend file at `config.backendPathOf dd`, and `bootstrap` on a configuration
+with data directory `dd` starts a new member over an empty backend (`bootstrapContract`'s `"%HD"`,
+`"%HDr"`, `"%HmEmpty"`). It says nothing of the WAL (wal-link P2, 2026-11-19: the WAL is in a dedicated
+WAL directory outside `dd`, whose fresh area is `walAreaFresh`, allocated at adequacy; until then
+also no WAL in `dd`'s WAL directory, `wal.Exist` false). Program start gives it once for each data directory of the members the
 program starts (`goose_adequacy_start`'s `startRights`, under the environment premise
 `dataDirsAbsent`); a first start's `bootstrap` consumes it (`wal.bootRes`). Nothing else produces
 it, so a directory is started fresh once in a run; a restart reads a closed WAL's

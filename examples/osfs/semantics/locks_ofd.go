@@ -19,7 +19,9 @@ import (
 // description with no OFD lock succeeds only when no other description of the
 // file holds a conflicting OFD lock (exclusive against any, shared against
 // exclusive), and then the description holds it; it fails with any nonzero
-// errno and no change, EAGAIN (= EWOULDBLOCK) only when there is a conflict.
+// errno and no change, EAGAIN (= EWOULDBLOCK) included even when the model sees
+// no conflict (since 2026-11-19: another process may keep a closed description,
+// and its lock, alive: locks_spurious_eagain.go).
 // F_UNLCK releases (success also with no lock). F_WRLCK needs a writable fd,
 // F_RDLCK a readable one; the other case is stuck (Linux: EBADF). Re-locking a
 // description (the same type or a conversion; Linux accepts both) is stuck:
@@ -34,13 +36,16 @@ import (
 //
 // Allowed: below, the second lock fails (EAGAIN or another errno) while the
 // first fd is open, and may succeed once it is closed or unlocked.
-// Excluded: the second lock succeeding while the first is held; EAGAIN from a
-// lock with no conflict.
+// Excluded: the second lock succeeding while the first is held. (EAGAIN from a
+// lock with no conflict in the model was excluded until 2026-11-19, wrongly:
+// locks_spurious_eagain.go.)
 //
 // Why: measured on C (locks_test.go: TestLocksOFDConflict,
 // TestLocksOFDRemoveThenClose, TestLocksOFDSameDescription,
 // TestLocksOFDMisuse); fs/locks.c: posix_lock_inode returns -EAGAIN only on
-// a conflicting lock when the request may not sleep, and inserts the lock
+// a conflicting lock, held by some description (one the process closed among
+// them, while another process holds a reference to it), when the request may
+// not sleep, and inserts the lock
 // after its checks and allocations; fs/fcntl.c: check_fmode_for_setlk
 // (EBADF), the l_pid check of the OFD commands (EINVAL). etcd's fileutil
 // (client/pkg/fileutil/lock_linux.go) takes F_OFD_SETLK/F_OFD_SETLKW write

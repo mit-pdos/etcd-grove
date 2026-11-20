@@ -80,7 +80,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 of a new cluster with token `auth3`, data directory `name.etcd`, raft's clock `100` ms and `10`
 ticks, and the simple token provider (authkv's `cfgOk` at the member's name). -/
 def cfgOk (name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Name' = name ∧ cfg.DataDir' = name ++ go!".etcd" ∧
+  cfg.Name' = name ∧ cfg.DataDir' = memberDataDir name ∧
     cfg.InitialClusterToken' = go!"auth3" ∧ cfg.NewCluster' = true ∧
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10 ∧ cfg.AuthToken' = go!"simple"
 

@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 theorem go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.wp_proofWalSnap (Mr : WalMarshal)
     (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr := by
-  intro sp sm cs hsz
+  intro sp sm al cs hsz
   wp_start as #Hs
   iunfold walSnapAt at Hs
   icases Hs with ⟨%c, #Hro, %Hc⟩

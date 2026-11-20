@@ -12,6 +12,7 @@ import (
 	"github.com/anishathalye/porcupine"
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
@@ -88,6 +89,9 @@ func TestMainCluster(t *testing.T) {
 func inChild(t *testing.T, test string, sub string, body func(t *testing.T)) {
 	if os.Getenv("K8SETCD3_CHILD") != "" {
 		t.Chdir(os.Getenv("K8SETCD3_DIR"))
+		// the members' WAL areas (wal-link P2): every member a child starts
+		walarea.Reset(t, "k8setcd3")
+		walarea.ResetFamily(t, "k8setcd3N")
 		body(t)
 		return
 	}

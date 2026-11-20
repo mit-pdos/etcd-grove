@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.reflection
 

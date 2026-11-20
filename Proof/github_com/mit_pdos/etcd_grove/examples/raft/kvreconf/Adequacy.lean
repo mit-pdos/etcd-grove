@@ -47,6 +47,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.MainN
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.TopLevelDefs
 
 @[expose] public section
 
@@ -110,11 +111,6 @@ abbrev kvrMainSpec : Prop :=
     [github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions],
     raft_kvreconf.Main.spec (GF := kvrGF) (hG := hG)
 
-/-- The store's program: the package's initialization, then `Main()`. -/
-def kvreconfProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Main) #()
-
 /-- **Porcupine never rejects the reconfiguring store's trace**, from `Main`'s spec (`wp_Main`, at
 every `HeapGS` of `kvrGF` and every semantics): every real execution of `kvreconfProgram` (the
 store package's initialization, then `Main()`) from a fresh state -- no package initialized
@@ -163,11 +159,6 @@ abbrev kvrMainNSpec : Prop :=
   ∀ [hG : HeapGS HasLC.hasLC kvrGF] [go.Semantics]
     [github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions],
     raft_kvreconf.MainN.spec (GF := kvrGF) (hG := hG)
-
-/-- The store's program on `k` voters: the package's initialization, then `MainN(k)`. -/
-def kvreconfProgramN [GoSemanticsFunctions] (k : Nat) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.MainN) #(W64 (k : Int))
 
 /-- **Porcupine never rejects the reconfiguring store's trace on `k` voters** (2026-11-16, kvraftN),
 from `MainN`'s spec: `kvreconf_adequate_of` for `kvreconfProgramN k`, `1 ≤ k ≤ 1000`. -/

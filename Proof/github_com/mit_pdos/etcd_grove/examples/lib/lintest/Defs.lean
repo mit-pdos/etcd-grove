@@ -12,8 +12,13 @@ Lean-first (no Rocq counterpart).
 - `applySpec S inOk libState Eapp f`: the library `f` is logically atomic against
   porcupine's sequential model `S.M` over the library's abstract state `libState s`: given an
   input `i` with `inOk i`, at its linearization point it takes the state from `s` to `s'`
-  with the output `o` it then returns, and `S.M.step s (i, o) = some s'`; it returns what
-  porcupine's `Step` needs of the input and output (`S.ioOk i o`). It is lent the calling
+  with the output `o`, and `S.M.step s (i, o) = some s'`; it returns an output `o'` the model
+  cannot tell apart from `o` (`S.M.step s (i, o') = S.M.step s (i, o)` for every `s`: `o' = o`
+  for most libraries; one whose answer holds a value made after the linearization point, a
+  store's error, returns that), with what porcupine's `Step` needs of the input and the returned
+  output (`S.ioOk i o'`). (Until 2026-11-19 it returned the committed `o` itself, which the k8s
+  driver's `Apply` cannot meet: its answer holds the store's error, allocated after the store's
+  read.) It is lent the calling
   goroutine's thread token (`threadTok`), which it gives back: every call is made by one of
   `Run`'s clients, a goroutine of its own, and a library may need the token for a resource
   bounded by the live threads (an `RWMutex`'s reader slot: Perennial lends them against thread
@@ -82,7 +87,8 @@ def applySpec (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF) (libState 
   iprop(∀ i : GoInterface,
     {{ inOk i ∗ threadTok }} <<{ ∀∀ s, libState s }>> (App (Val #f) (Val #i)) @@ Eapp
     <<{ ∃∃ s' o, libState s' ∗ ⌜S.M.step s (i, o) = some s'⌝ }>>
-    {{ RET #o; S.ioOk i o ∗ threadTok }})
+    {{ (o' : GoInterface), RET #o'; ⌜∀ s, S.M.step s (i, o') = S.M.step s (i, o)⌝ ∗
+        S.ioOk i o' ∗ threadTok }})
 
 /-- The input generator (see the file header). -/
 def genSpec (f : GoFunc) (inOk : GoInterface → IProp GF) : IProp GF :=

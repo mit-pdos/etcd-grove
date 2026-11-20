@@ -15,7 +15,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesCode
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesDefs
-public import Proof.go_etcd_io.bbolt.Spill.Split
+public import Proof.go_etcd_io.bbolt.Spill.SplitDefs
 public import Spec.go_etcd_io.bbolt.Tx__allocate
 public import Spec.go_etcd_io.bbolt.Tx__page
 public import Spec.go_etcd_io.bbolt.node__write

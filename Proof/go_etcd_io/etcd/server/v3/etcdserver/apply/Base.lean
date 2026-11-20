@@ -31,6 +31,7 @@ module
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.encoding.json
+public import GeneratedProof.google_golang_org.grpc.stats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
@@ -47,6 +48,8 @@ public import Perennial.Proof.errors
 public import Perennial.Proof.log
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
+-- (wal-link L2, 2026-11-17) `server/v3/storage` imports the WAL since its storage has bodies
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 
 @[expose] public section
 
@@ -69,11 +72,14 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 `Is` method (`*errorString` has only `Error`; the model's method sets are uninterpreted, so this
 is stated, not derived; as the recipes' `errNewLeaf`), nor a `GRPCStatus` method (k8s etcd3 7c,
 HS-6: grpc's `status.FromError` accepts it, `statusErrOk`), nor a `Format` method (premise-fixes-4,
-2026-11-10: `fmt` prints it with its `Error`, `statusErrOk`). -/
+2026-11-10: `fmt` prints it with its `Error`, `statusErrOk`), and its `Error` is `Error() string`
+(fmt soundness 2, 2026-11-18: `statusErrOk`). -/
 def errLeaf (e : GoInterfaceOk) : Prop :=
   _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
-    methodSet e.ty !! go!"GRPCStatus" = none ∧ methodSet e.ty !! go!"Format" = none
+    methodSet e.ty !! go!"GRPCStatus" = none ∧
+    (methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
 
 /-- `errLeaf` without the `Format` conjunct (premise-fixes-4): what the premise
 `EtcdGrove.ContextReadErrs` states of `context.Canceled` (`errVarLeafW`), unchanged; the `Format`
@@ -245,7 +251,9 @@ theorem applyErrIs_srvErrOk (err : GoInterface) :
 accepts** (k8s etcd3 7c, HS-6). -/
 theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
-    (hG : methodSet e.ty !! go!"GRPCStatus" = none) (hF : methodSet e.ty !! go!"Format" = none) :
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none)
+    (hF : methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
     errMsgOk (GF := GF) e ⊢ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
@@ -339,7 +347,9 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
     (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
-    (hG : methodSet e.ty !! go!"GRPCStatus" = none) (hF : methodSet e.ty !! go!"Format" = none) :
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none)
+    (hF : methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
     errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
   iintro #Hm
   iunfold applyErrIs
@@ -486,8 +496,8 @@ theorem errTreeOk_chain [_root_.Perennial.errors.Assumptions]
     subst Hii
     icases Hb with (#Hm | ⟨%mid, #Hw, #Hch⟩)
     · iunfold EtcdGrove.fmt.modelErrIs at Hm
-      icases Hm with ⟨%Hx, %s0, #Hs⟩
-      obtain ⟨x, rfl⟩ := Hx
+      icases Hm with ⟨%x, %Hx, %s0, -, #Hs⟩
+      subst Hx
       ihave #HA : applyErrIs (GoInterface.ok
           ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩) $$ []
       · iapply applyErrIs_leaf _ (hleaf x)
@@ -529,8 +539,8 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
       iright
       icases Hb with (#Hm | ⟨%mid, #Hw2, -⟩)
       · iunfold EtcdGrove.fmt.modelErrIs at Hm
-        icases Hm with ⟨%Hx, %s0, #Hs⟩
-        obtain ⟨x, rfl⟩ := Hx
+        icases Hm with ⟨%x, %Hx, %s0, -, #Hs⟩
+        subst Hx
         isplitr
         · ipureintro; exact safeMapKey_ptrErr _ ⟨_, x, rfl, rfl⟩
         iexists _
@@ -729,6 +739,26 @@ end encoding.json
 -- `api/membership` (names only but `RaftCluster.ID`; 2026-10-13, the request path's unit 4c: the
 -- package variable `ClusterVersionMetrics`, which the server's `start` sets, holds some
 -- `*GaugeVec`, with its label name `cluster_version`: D19l (iii), 2026-10-18)
+-- (prove-errinits, 2026-11-19: membership imports `path` for its store paths; until then in
+-- the server's `BaseApply.lean`)
+namespace internal.bytealg
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.internal.bytealg :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.internal.bytealg :=
+  build_get_is_pkg_init_wf
+
+end internal.bytealg
+
+namespace path
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
+  build_get_is_pkg_init_wf
+
+end path
+
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
 /-- (D43 M4, 2026-10-26) The package's error variables and their messages (`errors.go`: each an
@@ -774,6 +804,17 @@ end go_etcd_io.etcd.server.v3.etcdserver.api
 -- (D22 S-f, 2026-10-19: moved here from the server's `BaseApply.lean`, unchanged) `config` and
 -- `snap`, which `storage` imports since `OpenSnapshotBackend` is translated, and the packages
 -- `config` imports (`otelgrpc`, `transport` and its `crypto/tls`, `featuregate`, `v3discovery`)
+
+-- grpc's `stats` (types and names only: `stats.Handler`, the type of otelgrpc's
+-- `NewServerHandler`'s result; otelgrpc imports it, 2026-11-19)
+namespace google_golang_org.grpc.stats
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.stats
 
 namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
@@ -840,7 +881,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 -- `server/v3/storage` (names only: `Quota`, `BackendQuota`; with bodies: the hooks and, D22 S-f,
--- `OpenSnapshotBackend`)
+-- `OpenSnapshotBackend`, and, wal-link L2, the WAL storage of `storage.go`)
 namespace go_etcd_io.etcd.server.v3.storage
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=

@@ -41,6 +41,24 @@ const (
 	KeepAliveTimeout = 6 * time.Second
 )
 
+// WALBase is the directory of the members' WAL areas: member name's WAL is in the dedicated WAL
+// directory WALBase + "/" + name + ".etcd" + "/wal" (etcd's --wal-dir, ServerConfig.DedicatedWALDir),
+// alone in its area WALBase + "/" + name + ".etcd". The proofs model the WAL over the Linux file
+// extension, which resolves only absolute paths under its roots: each member's area is a root that
+// exists, empty, when the program starts (the closed theorems' premise etcdWalAreasInit; the tests
+// make it so, walarea.Reset), and nothing but the WAL is in it. The data directory holds the backend
+// and the snapshots only (see DataBase).
+const WALBase = "/tmp/etcd-grove-wal"
+
+// DataBase is the directory of the members' data directories: member name's data directory
+// (ServerConfig.DataDir) is DataBase + "/" + name + ".etcd", an absolute path. The proofs model the
+// backend's and the snapshots' files over the Linux file extension, which resolves only absolute paths
+// under its roots: each member's data directory is a root that exists, empty, when the program starts
+// (the closed theorems' premise etcdWalAreasInit; the tests make it so, walarea.Reset). Until
+// 2026-11-19 it was relative (name + ".etcd"), which no claim of the file model can name
+// (notes/datadir-relative-unsat.md).
+const DataBase = "/tmp/etcd-grove-data"
+
 // The snapshot settings of the examples that do not exercise snapshots: etcd's default snapshot
 // count, and more catch-up entries than any run applies, so that raft's log is compacted at index
 // 1 only and a leader never has to send a follower a snapshot (NewServer's spec allows any values
@@ -69,7 +87,9 @@ func newServerMode(name string, peer types.URLs, client string, cluster types.UR
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	cfg := config.ServerConfig{
 		Name:    name,
-		DataDir: name + ".etcd",
+		DataDir: DataBase + "/" + name + ".etcd",
+		// the WAL in its own area, under WALBase (see WALBase)
+		DedicatedWALDir: WALBase + "/" + name + ".etcd" + "/wal",
 		// the initial members: a new cluster
 		InitialPeerURLsMap:  cluster,
 		PeerURLs:            peer,

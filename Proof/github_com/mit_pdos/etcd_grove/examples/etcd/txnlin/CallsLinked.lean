@@ -7,6 +7,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLaws
 
 @[expose] public section
 
@@ -103,6 +104,9 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     iapply HΦ
     iright
     ipureintro; exact Herr.1
+
+theorem client_List_st_law_holds : client_List_st.law (GF := GF) (hG := hG) :=
+  client_List_st
 
 /-- **`Commit()` of the model's transaction** through a client of the members `ms` (see the file
 header): its update by its kind, one per member. -/
@@ -242,6 +246,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       isplitl
       · ipureintro; first | exact Herr | exact Herr.1
       · iexact Hke
+
+theorem txn_Commit_st_law_holds : txn_Commit_st.law (GF := GF) (hG := hG) :=
+  txn_Commit_st
 
 end proofs
 

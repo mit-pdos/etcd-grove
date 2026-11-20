@@ -8,7 +8,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.ready
 public import Perennial.Spec.context.Background
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
 @[expose] public section
 
@@ -33,7 +33,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.As
 theorem ready.wp_proof
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
-    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     ready.spec (GF := GF) (hG := hG) := by
   intro _ _ _ _ cl ms V
   wp_start as ⟨#Hcl, #Hregs, #Hst⟩
@@ -59,7 +60,7 @@ theorem ready.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
-  wp_apply (client.client_Get_st cl ms V ctx cd k8s.compactRevKey slice.nil (fun _ => iprop(True))
+  wp_apply (h_client_Get_st cl ms V ctx cd k8s.compactRevKey slice.nil (fun _ => iprop(True))
       (opSizeOk_opGetModel (K := 15) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)))
     $$ [] as %resp %err -
   · iframe #

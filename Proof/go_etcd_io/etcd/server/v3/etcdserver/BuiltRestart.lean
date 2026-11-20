@@ -53,7 +53,7 @@ tokens at `P`, the apply thread's resources at the backend's log `γn.a0`, and, 
 the snapshot path's resources, `srvSnapOwn`, at the ghost index `ai₀ + |γn.a0|`: route (C)), `HEr` without `γn.a0 = []`. (restart3 A1, 2026-11-15: no `Hwpend`; until
 then from `srvRestartRows`.) -/
 def srvBuiltR (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
   srvBuiltRC .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
 
@@ -68,7 +68,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`start`'s construction premise from the restart's built part** and the stop's slot. -/
 theorem srvBuiltR_C (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     srvBuiltR (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvStop.slot s E γn Er ⊢
       isServerBuiltC .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by

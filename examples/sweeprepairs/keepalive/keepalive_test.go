@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 	"go.uber.org/zap"
 )
 
@@ -43,6 +44,7 @@ func freeAddr(t *testing.T) string {
 
 func TestKeepAliveCloserAsksOnlyStoredContexts(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "ka1") // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	caddr := freeAddr(t)
 	s, err := etcdstart.StartServer("ka1", freeAddr(t), caddr, lg)

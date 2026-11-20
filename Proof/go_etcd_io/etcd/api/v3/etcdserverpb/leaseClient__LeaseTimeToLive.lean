@@ -58,7 +58,7 @@ theorem leaseClient.LeaseTimeToLive.wp_proof
   ihave Hblank : pbLeaseTimeToLiveResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbLeaseTimeToLiveResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseTimeToLive" pbLeaseTimeToLiveRequestT
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseTimeToLive" pbLeaseTimeToLiveRequestT
     pbLeaseTimeToLiveResponseT pbLeaseTimeToLiveRequestT_reg pbLeaseTimeToLiveResponseT_reg Spec (req.ID', req.Keys') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
   simp only [pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT] at hI
   rw [show (pbLeaseTimeToLiveRequest (GF := GF)).ty = etcdserverpb.LeaseTimeToLiveRequest.ty from rfl,

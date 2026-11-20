@@ -1,0 +1,53 @@
+/- Lean-first (no Rocq counterpart).
+
+# `lib/lintest/logkvsnap`: the definitions its top-level statement is written in
+
+The program the example's top-level theorem is about, and the other definitions its statement
+names, moved here unchanged out of `Adequacy.lean` so that the statement
+(`Spec/.../TopLevelRobustness.lean`) imports no proof (CLAUDE.md, "Import tiers").
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.PkgTable
+public import Proof.runtime.Threads
+public import Robustness.Statement
+
+@[expose] public section
+
+noncomputable section
+
+section
+
+set_option linter.unusedSectionVars false
+
+namespace Perennial
+
+namespace EtcdGrove
+
+namespace lintest
+
+namespace logkvsnap
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+
+section adequacy
+
+variable [go_gctx : GoGlobalContext]
+
+/-- The register's program: the package's initialization, then `Main()`. -/
+def logkvsnapProgram [GoSemanticsFunctions] : Expr :=
+  github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Main) #()
+
+end adequacy
+end logkvsnap
+end lintest
+end EtcdGrove
+end Perennial
+
+end
+
+end

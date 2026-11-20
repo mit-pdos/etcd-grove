@@ -88,6 +88,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__P
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__Txn
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendQuota__Cost
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
+public import Proof.strconv.FormatUint
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
@@ -149,9 +150,13 @@ theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.TODO.wp_proof
 
+theorem strconv.wp_FormatUint :
+    EtcdGrove.strconv.FormatUint.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.FormatUint.wp_proof
+
 theorem types.ID.wp_String :
     EtcdGrove.types.ID.String.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.types.ID.String.wp_proof
+  EtcdGrove.types.ID.String.wp_proof strconv.wp_FormatUint
 
 theorem etcdserverpb.AlarmType.wp_String :
     EtcdGrove.etcdserverpb.AlarmType.String.spec (GF := GF) (hG := hG) :=

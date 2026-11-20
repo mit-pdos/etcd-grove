@@ -3,7 +3,7 @@ title: storage.storage.Release.wp_proof is false (ReleaseSnapDBs deletes a snaps
 found: 2026-11-17
 by: etcd-grove-03's releasesnap attack (/shared/tmp/releasesnap-attack/); Go test examples/axiomcx/releasesnap
 blocks-proof: no (no current proof is known to reach it: etcd Releases after the rename, the fork's fix for issues/etcd-release-snapdb-before-open.md)
-status: open; fix in the WAL link's L2
+status: route closed on branch wal-link (T1, 2026-11-17); the axiom itself goes at the WAL link's L3
 ---
 # `storage.storage.Release.wp_proof` is false
 
@@ -23,3 +23,12 @@ below it: etcd releases after the rename (the fork's fix for
 
 **Fix.** In the WAL link's L2: seal `snapDirInv`, drop `snapDir_take` as a client lemma, and have
 `OpenSnapshotBackend` take the file at its rename.
+
+**Status (2026-11-17, branch `wal-link`).** The route is closed by T1: `snapDirInv` is sealed
+(`rafthttp/Net.lean`), the take is a generic sealed token `snapHeld p D R'` (`storage/SnapHeld.lean`,
+`@[no_expose]`, gated in `etc/import-all.txt`) consumed only by `OpenSnapshotBackend` at the rename,
+`snapDir_take` is no longer a client lemma, and the narrower axiom `snap.Snapshotter.ReleaseSnapDBs.wp_proof`
+(attacked twice: round 1 refuted, round 2 survives, `notes/axiom-review/releasesnapdbs.md`) frames no
+held file. `storage.storage.Release.wp_proof` itself stays an axiom until L3, where `storage.Release.spec`
+is replaced in place by the proved statement (`ReleaseNext.lean`, from `ReleaseLockTo` + `ReleaseSnapDBs`)
+and the axiom is removed.

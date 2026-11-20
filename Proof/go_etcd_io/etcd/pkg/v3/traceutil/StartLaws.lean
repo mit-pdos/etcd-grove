@@ -39,7 +39,7 @@ theorem traceutil.Tracer.Start.spec_txn (hTS : traceutil.Tracer.Start.spec (GF :
       (∃ vs : GMap GoInterface GoInterface, mvcc.txnCtx ctx' { cd with Values := vs } ∗
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
       □ (∀ o : Option Loc, traceutil.ctxTraceIs ctx o -∗ traceutil.ctxTraceIs ctx' o) ∗
-      ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
+      □ (∀ md, metadata.ctxInMD ctx md -∗ metadata.ctxInMD ctx' md) ∗
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
       □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') ∗

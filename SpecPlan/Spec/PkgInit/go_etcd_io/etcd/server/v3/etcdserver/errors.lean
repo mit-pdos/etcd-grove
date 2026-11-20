@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 noncomputable section

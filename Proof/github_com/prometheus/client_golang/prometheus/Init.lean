@@ -10,6 +10,7 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untrans
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
+public import Perennial.Proof.time.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -91,6 +92,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk rmNamesForMemStatsMetrics.init (by mem_tac))
   wp_apply (opaqueInitsOk nativeHistogramBounds.init (by mem_tac))
   wp_apply (opaqueInitsOk DefBuckets.init (by mem_tac))

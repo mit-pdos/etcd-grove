@@ -270,7 +270,7 @@ theorem Main.wp_proof
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Haf
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) (by decide) Haf
       Hbuq Hdbo) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
     iExactEq Hq₁; rfl
@@ -296,7 +296,7 @@ theorem Main.wp_proof
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Haf
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) (by decide) Haf
       Hbuq Hdbo) $$ [Hfr₂ Htok Hmb₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
     iExactEq Hq₂; rfl
@@ -322,7 +322,7 @@ theorem Main.wp_proof
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Haf
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) (by decide) Haf
       Hbuq Hdbo) $$ [Hfr₃ Htok Hmb₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
     iExactEq Hq₃; rfl

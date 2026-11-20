@@ -31,6 +31,8 @@ def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : Nod
 def (sealed) isReadCtx (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp GF) :
     IProp GF
 
+def (sealed) clusterNoSnap (γ : Cluster) : Prop
+
 theorem nodeAppliedLb_persistent (γ : Cluster) (K : GName) (k : Nat) : Persistent (nodeAppliedLb γ K
     k)
 
@@ -206,6 +208,9 @@ theorem readyRest_ents_start [package_sem : Assumptions] (γ : Cluster) (N : Nam
     readyRest γ N id rd st ce es h none ms ss ∗ ⌜∀ (e0 : EntryM), es.head? = some e0 → uint.nat
     e0.Index' ≤ st.durable.last + 1⌝
 
+theorem sentMsg_mode [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64) (st :
+    MsgSt) : sentMsg γ N src st ⊢ ⌜clusterNoSnap γ → st.msg.Type' ≠ MsgSnap⌝
+
 def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF)) (err :
     GoInterface) : IProp GF :=
   iprop(nodeErrS n γ N cd err ∨ stepErr err)
@@ -276,7 +281,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
         ([∗list] q ∈ ms, iprop(msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
           ([∗list] q ∈ ms, snapTo γ id q.st) ∗
-            hsOpt rd.HardState' h ∗
+            hsOptC rd.HardState' h ∗
               softStateIs rd.SoftState' ss ∗
                 ⌜∃ Lx,
                       Lx < 2 ^ 64 ∧
@@ -498,6 +503,8 @@ theorem propErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace) (cd : conte
 theorem readStateOk_persistent (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : Persistent
     (readStateOk γ N c idx)
 
+theorem clusterNoSnap_boot (γ : Cluster) (h : clusterNoSnap γ) : 0 < γ.bootLen
+
 def (sealed) sentMsg (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : IProp GF
 
 theorem deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
@@ -587,6 +594,11 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
                     storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
                 nodeAppliedLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
                   nodeCommitLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
-                    nodeSnapLocal γ id l.snap.Metadata'.Index' ∗ ⌜↑γ.bootLen < uint.Z l.snap.Metadata'.Index'⌝)
+                    nodeSnapLocal γ id l.snap.Metadata'.Index' ∗
+                      ⌜↑γ.bootLen < uint.Z l.snap.Metadata'.Index'⌝ ∗ ⌜¬clusterNoSnap γ⌝)
+
+theorem readySnap_mode [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
+    Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) : readySnap
+    γ N id rd st ce es (some l) ⊢ ⌜¬clusterNoSnap γ⌝ ∗ readySnap γ N id rd st ce es (some l)
 
 def (sealed) snapTo (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF

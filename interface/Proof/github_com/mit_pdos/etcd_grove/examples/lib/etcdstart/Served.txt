@@ -42,14 +42,14 @@ theorem etcdstart.etcdKVAt_regs [HasExt idIssueExt] [v3rpc_sem :
 theorem etcdstart.memberUpOn_intro [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (ρ : ReqNames) (E₀ :
     apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv
-    GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) : ⌜envAgree E E₀ ∧
-    E.authMode = auth.AuthMode.on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
-    cfg.WatchProgressNotifyInterval' = 0⌝ ∗ srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
-    isServerReqM E.authOn s E { wait := γw, rd := ρ.rd } ∗ isServerReadM E.authOn s E ρ.rd ∗
-    srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗ srvGoRes s ∗ srvLgReader s ∗
-    srvBemuReader s ∗ ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s ρ.rd) ∗
-    etcdstart.srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ⊢
-    etcdstart.memberUpOn s ρ E₀ lg γn id γa
+    GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) (m : lease.Mode :=
+    lease.Mode.none) : ⌜envAgree E E₀ ∧ E.authMode = auth.AuthMode.on γa ∧ cfg.Logger' = lg ∧
+    cfg.TracerOptions' = slice.nil ∧ cfg.WatchProgressNotifyInterval' = 0⌝ ∗ srvServeStock s E ∗
+    srvRunReadStock s ρ.rd ∗ isServerReqM E.authOn s E { wait := γw, rd := ρ.rd } ∗ isServerReadM
+    E.authOn s E ρ.rd ∗ srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗ srvGoRes s ∗
+    srvLgReader s ∗ srvBemuReader s ∗ ([∗list] _x ∈ List.replicate etcdstart.memberReadN (),
+    srvReadReader s ρ.rd) ∗ etcdstart.srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn
+    s E.RD ∗ etcdstart.srvLeaseRd s E m ⊢ etcdstart.memberUpOn s ρ E₀ lg γn id γa m
 
 theorem etcdstart.etcdKVAt_persistent [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (E : apply.AEnv
@@ -58,13 +58,14 @@ theorem etcdstart.etcdKVAt_persistent [v3rpc_sem :
 
 theorem etcdstart.memberUpOn_served [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (ρ : ReqNames) (E₀ :
-    apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) :
-    etcdstart.memberUpOn s ρ E₀ lg γn id γa ⊢ ∃ E cfg γw, ⌜envAgree E E₀ ∧ E.authMode =
-    auth.AuthMode.on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+    apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (m : lease.Mode :=
+    lease.Mode.none) : etcdstart.memberUpOn s ρ E₀ lg γn id γa m ⊢ ∃ E cfg γw, ⌜envAgree E E₀ ∧
+    E.authMode = auth.AuthMode.on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
     cfg.WatchProgressNotifyInterval' = 0⌝ ∗ isServerReqM E.authOn s E { wait := γw, rd := ρ.rd } ∗
     isServerReadM E.authOn s E ρ.rd ∗ srvAuthLb s E ∗ srvServeFacts s E cfg ∗ srvGoRes s ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvWatchBuilt s E ∗ etcdstart.kvServeStocks s E ρ.rd ∗
-    etcdstart.srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD
+    etcdstart.srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗
+    etcdstart.srvLeaseRd s E m
 
 def etcdstart.kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(srvServeStock s E ∗ srvRunReadStock s γr)

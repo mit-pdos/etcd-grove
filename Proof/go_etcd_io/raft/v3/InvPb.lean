@@ -275,6 +275,18 @@ def hsRO (p : Loc) (hs : HardStateM) : IProp GF :=
     "HC" ∷ p.[raftpb.HardState, go!"Commit"] ↦□ pc ∗ "#cC" ∷ cellRO pc hs.Commit' ∗
     "#Hpb" ∷ pbMsg raftpb.HardState p uf)
 
+/-- **A canonical `*pb.HardState`** at `p` holding `hs` (2026-11-17, wal-link L1b, decided by
+etcd-grove-03): `hsRO` with its three cells set (non-`nil`) and no unknown fields, as `hardState()`
+builds it (`raft.go:504-510`); the bytes protobuf-go writes for it are a function of `hs` (the WAL's
+state records, `walHsCanon`). -/
+def hsROC (p : Loc) (hs : HardStateM) : IProp GF :=
+  iprop(∃ (pt pv pc : Loc),
+    "%Hnn" ∷ ⌜p ≠ null⌝ ∗
+    "HT" ∷ p.[raftpb.HardState, go!"Term"] ↦□ pt ∗ "#cT" ∷ pt ↦□ hs.Term' ∗
+    "HV" ∷ p.[raftpb.HardState, go!"Vote"] ↦□ pv ∗ "#cV" ∷ pv ↦□ hs.Vote' ∗
+    "HC" ∷ p.[raftpb.HardState, go!"Commit"] ↦□ pc ∗ "#cC" ∷ pc ↦□ hs.Commit' ∗
+    "#Hpb" ∷ pbMsg raftpb.HardState p [])
+
 /-! ## Messages -/
 
 /-- A `*pb.Message` at `l` holding `ms` (D3): its pointer fields at `dq`, its `Entries` slice's
@@ -679,6 +691,53 @@ theorem hsRO_of_struct (p : Loc) (v : raftpb.HardState) (hs : HardStateM) (E : C
   imodintro
   iunfold hsRO
   iexists v.Term', v.Vote', v.Commit', []
+  isplitr
+  · ipureintro; exact Hnn
+  iframe Term cT Vote cV Commit cC Hpb
+
+instance hsROC_persistent (p : Loc) (hs : HardStateM) : Persistent (hsROC (GF := GF) p hs) := by
+  unfold hsROC; infer_instance
+
+/-- A canonical hard state is read-only. -/
+theorem hsROC_hsRO (p : Loc) (hs : HardStateM) : hsROC (GF := GF) p hs ⊢ hsRO p hs := by
+  iintro H
+  iunfold hsROC at H
+  icases H with ⟨%pt, %pv, %pc, %Hnn, #HT, #cT, #HV, #cV, #HC, #cC, #Hpb⟩
+  iunfold hsRO
+  iexists pt, pv, pc, []
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HT HV HC Hpb
+  unfold cellRO
+  isplitr; · iright; iexact cT
+  isplitr; · iright; iexact cV
+  iright; iexact cC
+
+/-- **A freshly allocated `*pb.HardState`** (hidden fields zero) whose cells are fresh and hold `hs`'s:
+canonical (`hardState()`'s). -/
+theorem hsROC_of_struct (p : Loc) (v : raftpb.HardState) (hs : HardStateM) (E : CoPset)
+    (Hu : v.unknownFields' = slice.nil) :
+    (p ↦ v ∗ v.Term' ↦ hs.Term' ∗ v.Vote' ↦ hs.Vote' ∗ v.Commit' ↦ hs.Commit' :
+      IProp GF) ⊢ |={E}=> hsROC p hs := by
+  iintro ⟨Hp, cT, cV, cC⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  imod (typedPointsto_dfractional (GF := GF) _ hs.Term').dfractional_persist _ $$ cT with #cT
+  imod (typedPointsto_dfractional (GF := GF) _ hs.Vote').dfractional_persist _ $$ cV with #cV
+  imod (typedPointsto_dfractional (GF := GF) _ hs.Commit').dfractional_persist _ $$ cC with #cC
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨state, Term, Vote, Commit, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.HardState p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imod (typedPointsto_dfractional (GF := GF) _ v.Term').dfractional_persist _ $$ Term with #Term
+  imod (typedPointsto_dfractional (GF := GF) _ v.Vote').dfractional_persist _ $$ Vote with #Vote
+  imod (typedPointsto_dfractional (GF := GF) _ v.Commit').dfractional_persist _ $$ Commit with #Commit
+  imodintro
+  iunfold hsROC
+  iexists v.Term', v.Vote', v.Commit'
   isplitr
   · ipureintro; exact Hnn
   iframe Term cT Vote cV Commit cC Hpb

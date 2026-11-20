@@ -7,13 +7,22 @@
 # `raftpb` and `semver` for the interface `Storage` (the raft wrapper's WAL), whose methods'
 # signatures name them (otherwise an axiomatized type); `sync`, `zap`, `cindex`, `schema` and
 # `proto` for the hooks; `fmt`, `os`, `config` and `snap` for `OpenSnapshotBackend`.
+# (wal-link L2, 2026-11-17, `notes/wal-link-scope.md` §2) The server's WAL storage (storage.go) with
+# bodies: `NewStorage` and the `*storage` methods `SaveSnap`, `Release`, `Save`, `Close`, `Sync`,
+# over the WAL (`wal`, `walpb`, translated with bodies in this project); `MinimalEtcdVersion` stays
+# names only (reached only through `schema.UnsafeMigrate` on a downgrade: Scope R6).
 translate = ["!*", "NewBackendHooks", "BackendHooks.OnPreCommitUnsafe", "BackendHooks.SetConfState",
-  "OpenSnapshotBackend"]
-imports = ["!*", "sync", "go.uber.org/zap", "google.golang.org/protobuf/proto", "fmt", "os",
+  "OpenSnapshotBackend", "NewStorage", "storage.SaveSnap", "storage.Release", "storage.Save",
+  "storage.Close", "storage.Sync",
+  # (prove-errinits, 2026-11-19) the quota's package variables: a gauge and two `humanize.Bytes`
+  "quotaBackendBytes", "DefaultQuotaSize", "maxQuotaSize", "DefaultQuotaBytes", "MaxQuotaBytes"]
+imports = ["!*", "sync", "github.com/dustin/go-humanize",
+  "github.com/prometheus/client_golang/prometheus", "go.uber.org/zap", "google.golang.org/protobuf/proto", "fmt", "os",
   "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
   "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/storage/backend",
   "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/raft/v3/raftpb",
-  "github.com/Masterminds/semver/v3"]
+  "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/server/v3/storage/wal",
+  "go.etcd.io/etcd/server/v3/storage/wal/walpb"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

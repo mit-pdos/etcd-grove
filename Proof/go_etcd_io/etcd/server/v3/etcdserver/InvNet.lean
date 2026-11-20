@@ -41,7 +41,7 @@ log; 2026-10-27, the node API's, until then raft's no-snapshot and no-transfer m
 (2026-11-01, J8a) `γd` the member's snapshot directory (`SrvRaft.snapLoc`), where the transport saves
 a `MsgSnap`'s file before `Process` steps it (`netSnapRecv`). -/
 def srvProcOk (γn : NetNames GF) (s : Loc) (id : w64) (γd : GName) : IProp GF :=
-  iprop(∃ (l c st : Loc) (γ : RNNames),
+  iprop(∃ (l c st : Loc) (γ : RNNames GF),
     srvLgAddr s ↦□ l ∗ zapLoggerOk l ∗ srvMemberIDAddr s ↦□ id ∗ ⌜γ.id = id⌝ ∗
     srvClusterAddr s ↦□ c ∗ membership.isRaftCluster c ∗
     srvStatsAddr s ↦□ st ∗ ⌜st ≠ null⌝ ∗
@@ -69,7 +69,7 @@ receiver's copy is the message's wire fields with no responses, at its content, 
 when the cluster bounds proposed data (`netRecv`, raft-entsize §4); (2026-11-01, J8a) a
 `MsgSnap`'s snapshot saved in the member's directory `γd` (`netSnapRecv`) is local to it
 (`snapLocalMsg`). -/
-theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet γ.node)
+theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames GF) (HN : γn.N = srvNet γ.node)
     {γd : GName} (Hd : γ.node.snapLoc γ.id = some γd) (ml : Loc) :
     srvClusterOk (GF := GF) γ.srv ∗ netRecv γn γ.id γd ml ⊢
       |==> stepIn γ.node.cl srvClusterN γ.id ml := by

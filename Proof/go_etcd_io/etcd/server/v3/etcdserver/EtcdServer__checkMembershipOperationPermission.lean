@@ -27,13 +27,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- The guard's proof, both modes, with why it refused (auth-guard-completeness G2): `AuthInfoFromCtx`'s
-reasons at the lower bound (`specLb`) and, with auth on, the bound request side's rows at it. -/
+reasons at the lower bound and, with auth on, the bound request side's rows at it. -/
 theorem EtcdServer.checkMembershipOperationPermission.wp_proof
-    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) := by
-  intro s E ctx cd n
-  wp_start as ⟨#Hau, #Hlb, #Hctx, #Hlib, HRD⟩
+  intro s E ctx cd tok n
+  wp_start as ⟨#Hau, #Hlb, #Hctx, #Hlib, #HtokC, HRD⟩
   ihave #Hnil := srvAdminNilOk_of_srvAuthAt s E $$ Hau
   iunfold srvAuthAt at Hau
   icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
@@ -49,7 +49,7 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
   subst Hai2'
   subst Hai
   (try wp_auto)
-  wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n)
+  wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n tok)
     $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -, #Hz, #Hne, -⟩
   · iframe #
   ihave #Herr := authApplyErrIs_apply _ $$ Herr0
@@ -98,7 +98,7 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
           iintro !> -; iunfold principalBound; itrivial
         · iintro %_; iapply (adminWhy_off s E.authMode n _ _ hon)
       · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-        ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
+        ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode tok a user rev $$ [$Hb $Hau]
         iunfold authInfoIs at Hau
         icases Hau with ⟨%Hann, -, -⟩
         (try wp_auto)
@@ -147,7 +147,7 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
           iapply (adminWhy_none s E.authMode n _ _ hne) $$ [] Hv
           iapply Hz'; exact ⟨rfl, rfl⟩
       · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-        ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
+        ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode tok a user rev $$ [$Hb $Hau]
         ihave #Hpb' := Hpb $$ %hon
         iunfold authInfoIs at Hau
         icases Hau with ⟨%Hann, -, -⟩

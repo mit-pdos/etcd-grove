@@ -128,24 +128,6 @@ theorem v3rpc.valueAt_cc (l : Loc) (c : GoInterfaceOk) (k : GoInterface) (R : Go
   inext
   iexact HΦ
 
-/-- **The wrapper has its embedded context's library values** (`libCtxOk`, the WP form). -/
-theorem v3rpc.libCtxOk_cc (l : Loc) (c : GoInterfaceOk) :
-    (v3rpc.ccField l ↦□ (GoInterface.ok c) : IProp GF) ∗ context.libCtxOk c ⊢
-      context.libCtxOk (v3rpc.ccCtx l) := by
-  iintro ⟨#Hf, #H⟩
-  unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
-    trace.spanValOk
-  icases H with ⟨⟨%vi, %hvi, #Hi⟩, ⟨%vo, %hvo, #Ho⟩, #Hp, #Hs⟩
-  isplitl []
-  · iexists vi; iframe %hvi
-    iapply v3rpc.valueAt_cc; iframe #
-  isplitl []
-  · iexists vo; iframe %hvo
-    iapply v3rpc.valueAt_cc; iframe #
-  isplitl []
-  · iapply v3rpc.valueAt_cc; iframe #
-  · iapply v3rpc.valueAt_cc; iframe #
-
 /-- **The wrapper has its embedded context's span fact** (`trace.spanCtxOk`). -/
 theorem v3rpc.spanCtxOk_cc (l : Loc) (c : GoInterfaceOk) :
     (v3rpc.ccField l ↦□ (GoInterface.ok c) : IProp GF) ∗ trace.spanCtxOk c ⊢
@@ -166,6 +148,63 @@ theorem v3rpc.spanCtxOk_cc (l : Loc) (c : GoInterfaceOk) :
   iexact HΦ
 
 variable [ctx_sem : _root_.Perennial.context.Assumptions]
+
+theorem v3rpc.ccCtx_notSpecial (l : Loc) :
+    (v3rpc.ccCtx l).ty ∉ _root_.Perennial.context.valueSpecialTypes := by
+  simp only [_root_.Perennial.context.valueSpecialTypes, List.mem_cons,
+    List.not_mem_nil, or_false, not_or]
+  unfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext.ty
+    _root_.Perennial.context.valueCtx.ty _root_.Perennial.context.cancelCtx.ty
+    _root_.Perennial.context.withoutCancelCtx.ty _root_.Perennial.context.timerCtx.ty
+    _root_.Perennial.context.backgroundCtx.ty _root_.Perennial.context.todoCtx.ty
+  simp
+
+/-- **etcd's wrapper has its embedded context's incoming metadata** (was the axiom
+`v3rpc.incomingOf_cancellableContext`, refuted in meaning: `notes/axiom-review/incomingof.md`; now a
+theorem): the wrapper's type is one `context.value()` does not special-case, so the chain calls its
+promoted `Value` (`v3rpc.valueAt_cc`), which answers as the embedded context's. -/
+theorem v3rpc.ctxInMD_cc (l : Loc) (c : GoInterfaceOk) md :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      (v3rpc.ccField l ↦□ (GoInterface.ok c) : IProp GF) ∗ metadata.ctxInMD c md ⊢
+      metadata.ctxInMD (v3rpc.ccCtx l) md := by
+  iintro ⟨#Hpkg, #Hf, #H⟩
+  ihave ⟨%v, #Hv, #Hh⟩ := metadata.ctxInMD_valueAt c md $$ [$Hpkg $H]
+  iapply metadata.ctxInMD_raw (v3rpc.ccCtx l) v md (v3rpc.ccCtx_notSpecial l)
+  iframe #
+  iapply v3rpc.valueAt_cc; iframe #
+
+/-- **etcd's stream wrapper over `WithCancel(ci)` has `ci`'s incoming metadata** (whatever it is):
+the `*cancellableContext` `l` whose field holds the `*cancelCtx` `c` whose field holds `ci`
+(`metadata.ctxInMD_cancel`, then `v3rpc.ctxInMD_cc`; perheap 1b, in place of the pure equation of
+the refuted axioms). -/
+theorem v3rpc.ctxInMD_wrapper (l c : Loc) (ci : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      (v3rpc.ccField l ↦□
+        (GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c)) ∗
+      _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok ci) : IProp GF) ⊢
+      □ ∀ md, metadata.ctxInMD ci md -∗ metadata.ctxInMD (v3rpc.ccCtx l) md := by
+  iintro ⟨#Hpkg, #Hl, #Hc⟩ !> %md #H
+  ihave #H1 := metadata.ctxInMD_cancel c ci md $$ [$Hc $H]
+  iapply v3rpc.ctxInMD_cc; iframe #
+
+/-- **The wrapper has its embedded context's library values** (`libCtxOk`, the WP form). -/
+theorem v3rpc.libCtxOk_cc (l : Loc) (c : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      (v3rpc.ccField l ↦□ (GoInterface.ok c) : IProp GF) ∗ context.libCtxOk c ⊢
+      context.libCtxOk (v3rpc.ccCtx l) := by
+  iintro ⟨#Hpkg, #Hf, #H⟩
+  unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
+    trace.spanValOk
+  icases H with ⟨⟨%md, #Hi⟩, ⟨%vo, %hvo, #Ho⟩, #Hp, #Hs⟩
+  isplitl []
+  · iexists md
+    iapply v3rpc.ctxInMD_cc; iframe #
+  isplitl []
+  · iexists vo; iframe %hvo
+    iapply v3rpc.valueAt_cc; iframe #
+  isplitl []
+  · iapply v3rpc.valueAt_cc; iframe #
+  · iapply v3rpc.valueAt_cc; iframe #
 
 /-- **The library facts of etcd's stream wrapper** (step 3): the `*cancellableContext` `l` whose
 `Context` field holds `c`, a child of grpc's run context `ci` by `WithCancel` (`ctxValueFrom ci c`,

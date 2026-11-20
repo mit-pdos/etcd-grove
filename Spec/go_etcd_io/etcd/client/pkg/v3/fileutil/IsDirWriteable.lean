@@ -38,10 +38,10 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.spec : Prop :=
   ∀ (dir : GoString) (R : Roots) (J : Ino) (dq : DFrac) (hJ : NamesH) (qc : Qp),
   dir.length < 2 ^ 60 → hJ.cur !! go!".touch" = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗
-      osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R dir dq J ∗ osCallPerm (GF := GF) qc ∗
+      osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R dir dq J ∗ osCallPerm (GF := GF) (callKey R dir) qc ∗
       osNames (GF := GF) J (.only [go!".touch"]) (DFrac.own 1) hJ }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable)) (Val #dir))
-  {{ (err : GoInterface), RET #err; osPathS R dir dq J ∗ osCallPerm qc ∗
+  {{ (err : GoInterface), RET #err; osPathS R dir dq J ∗ osCallPerm (callKey R dir) qc ∗
       ∃ hJ', osNames J (.only [go!".touch"]) (DFrac.own 1) hJ' ∗
         (⌜hJ'.cur !! go!".touch" = none⌝ ∨
           ∃ i, ⌜hJ'.cur !! go!".touch" = some (.file i)⌝ ∗ trFile i False) ∗

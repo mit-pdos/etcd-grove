@@ -212,7 +212,7 @@ variable [GooseExts]
 /-- The hard-state step of a fold (`walLastHS`'s). -/
 def walHsStep (p : HardStateM) : WalOp → HardStateM
   | .save h _ => phsNext p h
-  | .snap _ => p
+  | .snap _ _ => p
 
 theorem walLastHS_eq (H : WalHist) : walLastHS H = H.foldl walHsStep hsZero := by
   unfold walLastHS
@@ -228,7 +228,7 @@ theorem walFoldChkFrom_hs {σ σ' : StorContents} {H : WalHist} (h : walFoldChkF
   | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; rfl
   | cons o H ih =>
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h
       rw [ih h, walSaveSnap_hs]; rfl
     | save hs es =>
@@ -243,7 +243,7 @@ theorem walHsStep_filter (c : Nat) (p : HardStateM) (H : WalHist) :
   | cons o H ih =>
     cases o with
     | save h es => simp only [List.filter_cons, walKeep, ite_true, List.foldl_cons, ih]
-    | snap m =>
+    | snap m al =>
       simp only [List.filter_cons, walKeep, List.foldl_cons]
       by_cases hc : uint.nat m.Index' ≤ c
       · simp only [hc, decide_true, ite_true, List.foldl_cons, walHsStep, ih]
@@ -382,7 +382,7 @@ theorem walNewestPair_fold_self {L : List (w64 × w64)} {s : w64 × w64}
 
 /-- The (index, term) pairs of a history's snapshot records, in order. -/
 def walSnapPairs (H : WalHist) : List (w64 × w64) :=
-  H.filterMap (fun o => match o with | .snap m => some (m.Index', m.Term') | .save _ _ => none)
+  H.filterMap (fun o => match o with | .snap m _ => some (m.Index', m.Term') | .save _ _ => none)
 
 /-- A base's (index, term). -/
 def walBasePair (b : entryID) : w64 × w64 := (b.index', b.term')
@@ -394,7 +394,7 @@ theorem walFoldChkFrom_base {σ σ' : StorContents} {H : WalHist} (h : walFoldCh
   | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; rfl
   | cons o H ih =>
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h
       rw [ih h]
       simp only [walSnapPairs, List.filterMap_cons, List.foldl_cons]
@@ -426,7 +426,7 @@ theorem walFoldChkFrom_snapInv (P : Option SnapshotM → entryID → Prop)
   | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; exact h0
   | cons o H ih =>
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h
       apply ih _ h
       rcases walSaveSnap_cases σ m with he | ⟨h1, h2⟩
@@ -439,7 +439,7 @@ theorem walFoldChkFrom_snapInv (P : Option SnapshotM → entryID → Prop)
 
 theorem walSnapPairs_filter (c : Nat) (I : WalHist) :
     walSnapPairs (I.filter (walKeep c)) = I.filterMap (fun o => match o with
-      | .snap m => if uint.nat m.Index' ≤ c then some (m.Index', m.Term') else none
+      | .snap m _ => if uint.nat m.Index' ≤ c then some (m.Index', m.Term') else none
       | .save _ _ => none) := by
   induction I with
   | nil => rfl
@@ -448,7 +448,7 @@ theorem walSnapPairs_filter (c : Nat) (I : WalHist) :
     | save h es =>
       simp only [List.filter_cons, walKeep, ite_true, walSnapPairs, List.filterMap_cons] at ih ⊢
       exact ih
-    | snap m =>
+    | snap m al =>
       simp only [List.filter_cons, walKeep, List.filterMap_cons]
       by_cases hc : uint.nat m.Index' ≤ c
       · simp only [hc, decide_true, ite_true, walSnapPairs, List.filterMap_cons] at ih ⊢
@@ -471,7 +471,7 @@ theorem walNewest_pair (H : WalHist) :
     | save h es =>
       simp only [List.foldl_cons, walSnapPairs, List.filterMap_cons] at ih ⊢
       exact ih b
-    | snap m =>
+    | snap m al =>
       simp only [List.foldl_cons, walSnapPairs, List.filterMap_cons] at ih ⊢
       rw [ih]
       congr 1
@@ -628,7 +628,7 @@ theorem walFoldChkFrom_wf {σ σ' : StorContents} {H : WalHist} (hw : walEntsWf 
   | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; exact hw
   | cons o H ih =>
     cases o with
-    | snap m => simp only [walFoldChkFrom] at h; exact ih (walSaveSnap_wf m hw) h
+    | snap m al => simp only [walFoldChkFrom] at h; exact ih (walSaveSnap_wf m hw) h
     | save hs es =>
       simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
       obtain ⟨ents, he, h⟩ := h
@@ -723,7 +723,7 @@ theorem walFoldChkFrom_ents_sub {σ σ' : StorContents} {H : WalHist}
     exact fun x hx => Or.inl hx
   | cons o H ih =>
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h
       intro x hx
       rcases ih h x hx with hx | ⟨hs, es, h1, h2⟩
@@ -766,7 +766,7 @@ theorem walReadCut_ents_sub_raw {I : List (WalOpG WalEnt)} {k : Nat} {σ : StorC
   obtain ⟨hs, es, h1, h2⟩ := walReadCut_ents_sub h e he
   obtain ⟨o, ho, hoe⟩ := List.mem_map.1 h1
   cases o with
-  | snap m => simp [WalOpG.toM] at hoe
+  | snap m al => simp [WalOpG.toM] at hoe
   | save hs' es' =>
     simp only [WalOpG.toM, WalOpG.save.injEq] at hoe
     obtain ⟨-, rfl⟩ := hoe
@@ -778,38 +778,38 @@ theorem walReadCut_ents_sub_raw {I : List (WalOpG WalEnt)} {k : Nat} {σ : StorC
 /-- Every entry and snapshot index of `I` is at most `B`. -/
 def walIdxLe (B : Nat) (I : WalHist) : Prop :=
   (∀ hs es e, WalOpG.save hs es ∈ I → e ∈ es → uint.nat e.Index' ≤ B) ∧
-  (∀ m, WalOpG.snap m ∈ I → uint.nat m.Index' ≤ B)
+  (∀ m al, WalOpG.snap m al ∈ I → uint.nat m.Index' ≤ B)
 
 theorem walFoldChkFrom_b_le {B : Nat} {σ σ' : StorContents} {H : WalHist}
-    (hH : ∀ m, WalOpG.snap m ∈ H → uint.nat m.Index' ≤ B) (h0 : σ.b ≤ B)
+    (hH : ∀ m al, WalOpG.snap m al ∈ H → uint.nat m.Index' ≤ B) (h0 : σ.b ≤ B)
     (h : walFoldChkFrom σ H = some σ') : σ'.b ≤ B := by
   induction H generalizing σ with
   | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; exact h0
   | cons o H ih =>
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h
-      refine ih (fun m' hm' => hH m' (List.mem_cons_of_mem _ hm')) ?_ h
+      refine ih (fun m' al' hm' => hH m' al' (List.mem_cons_of_mem _ hm')) ?_ h
       rcases walSaveSnap_cases σ m with he | ⟨-, h2⟩
       · rw [he]; exact h0
-      · simp only [StorContents.b, h2]; exact hH m (List.mem_cons_self ..)
+      · simp only [StorContents.b, h2]; exact hH m al (List.mem_cons_self ..)
     | save hs es =>
       simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
       obtain ⟨ents, -, h⟩ := h
       exact ih (σ := { σ with hs := phsNext σ.hs hs, ents := ents })
-        (fun m' hm' => hH m' (List.mem_cons_of_mem _ hm')) h0 h
+        (fun m' al' hm' => hH m' al' (List.mem_cons_of_mem _ hm')) h0 h
 
 theorem walNewest_mem {H : WalHist} {m : SnapshotMetadataM} (h : walNewest H = some m) :
-    ∃ m', WalOpG.snap m' ∈ H ∧ m'.Index' = m.Index' := by
+    ∃ m' al, WalOpG.snap m' al ∈ H ∧ m'.Index' = m.Index' := by
   have hp := walNewest_pair H
   rw [h, Option.map_some] at hp
   have hm := walNewestPair_mem hp.symm
   obtain ⟨o, ho, hoe⟩ := List.mem_filterMap.1 hm
   cases o with
   | save _ _ => cases hoe
-  | snap m' =>
+  | snap m' al =>
     simp only [Option.some.injEq, Prod.mk.injEq] at hoe
-    exact ⟨m', ho, hoe.1⟩
+    exact ⟨m', al, ho, hoe.1⟩
 
 /-- **A4: a read's last index is at most a bound of the history's indexes** (restart S3's
 `walRead_wf`, its second half, at `B = 2^61`). -/
@@ -821,7 +821,7 @@ theorem walReadCut_last_le {B : Nat} {I : WalHist} {k : Nat} {σ : StorContents}
     unfold walReadCut at h
     split at h
     · unfold walRead at h
-      refine walFoldChkFrom_b_le (fun m hm => hB.2 m ((List.mem_filter.1 hm).1)) ?_ h
+      refine walFoldChkFrom_b_le (fun m al hm => hB.2 m al ((List.mem_filter.1 hm).1)) ?_ h
       simp [walFresh, StorContents.b]
     · unfold walReadFrom at h
       simp only at h
@@ -829,11 +829,11 @@ theorem walReadCut_last_le {B : Nat} {I : WalHist} {k : Nat} {σ : StorContents}
       · cases h
       · next m hm =>
         refine walFoldChkFrom_b_le
-          (fun m hm' => hB.2 m (List.mem_of_mem_drop ((List.mem_filter.1 hm').1))) ?_ h
-        obtain ⟨m', h1, h2⟩ := walNewest_mem hm
+          (fun m al hm' => hB.2 m al (List.mem_of_mem_drop ((List.mem_filter.1 hm').1))) ?_ h
+        obtain ⟨m', al', h1, h2⟩ := walNewest_mem hm
         simp only [StorContents.b]
         rw [← h2]
-        exact hB.2 m' (List.mem_of_mem_drop ((List.mem_filter.1 h1).1))
+        exact hB.2 m' al' (List.mem_of_mem_drop ((List.mem_filter.1 h1).1))
   · have hlt : σ.ents.length - 1 < σ.ents.length := by omega
     have hj : σ.ents[σ.ents.length - 1]? = some (σ.ents[σ.ents.length - 1]'hlt) :=
       List.getElem?_eq_getElem hlt
@@ -916,7 +916,7 @@ theorem lastFilt_eq_none (P : Nat → Bool) : ∀ (n : Nat), (∀ i, i < n → P
 /-- Whether position `i` of `H` holds a snapshot record of index `a` (`walLastSnapPos`'s filter). -/
 def walSnapIdxAt {E : Type} (H : List (WalOpG E)) (a : w64) (i : Nat) : Bool :=
   match H[i]? with
-  | some (WalOpG.snap m) => decide (m.Index' = a)
+  | some (WalOpG.snap m _) => decide (m.Index' = a)
   | _ => false
 
 theorem walLastSnapPos_eq {E : Type} (H : List (WalOpG E)) (a : w64) :
@@ -937,7 +937,7 @@ theorem walLastSnapPos_le {E : Type} (H : List (WalOpG E)) (a : w64) :
 /-- **One more operation**: a snapshot record of index `a` is the new last; anything else keeps it. -/
 theorem walLastSnapPos_snoc {E : Type} (H : List (WalOpG E)) (o : WalOpG E) (a : w64) :
     walLastSnapPos (H ++ [o]) a =
-      (match o with | .snap m => if m.Index' = a then H.length else walLastSnapPos H a
+      (match o with | .snap m _ => if m.Index' = a then H.length else walLastSnapPos H a
                     | .save _ _ => walLastSnapPos H a) := by
   have hc : ∀ i, i < H.length → walSnapIdxAt (H ++ [o]) a i = walSnapIdxAt H a i := by
     intro i hi; simp only [walSnapIdxAt, List.getElem?_append_left hi]
@@ -945,14 +945,14 @@ theorem walLastSnapPos_snoc {E : Type} (H : List (WalOpG E)) (o : WalOpG E) (a :
       (List.range H.length).filter (walSnapIdxAt H a) :=
     List.filter_congr (fun i hi => hc i (List.mem_range.1 hi))
   have hn : walSnapIdxAt (H ++ [o]) a H.length =
-      (match o with | .snap m => decide (m.Index' = a) | .save _ _ => false) := by
+      (match o with | .snap m _ => decide (m.Index' = a) | .save _ _ => false) := by
     simp only [walSnapIdxAt, List.getElem?_append_right (Nat.le_refl _), Nat.sub_self,
       List.getElem?_cons_zero]
     cases o <;> rfl
   rw [walLastSnapPos_eq, List.length_append, List.length_singleton, lastFilt_succ, hfl, hn]
   cases o with
   | save h es => rfl
-  | snap m =>
+  | snap m al =>
     by_cases hm : m.Index' = a
     · simp [hm]
     · simp [hm, walLastSnapPos_eq]
@@ -1078,9 +1078,9 @@ theorem walHasMaxIdx_snoc {H : WalHist} {o : WalOp} (hH : ¬ walHasMaxIdx H) (ho
 new operation (clause 4). -/
 theorem walRelGuard_snoc {H : WalHist} {a : w64} {p : Nat} (o : WalOp) (hg : walRelGuard H a p)
     (h1 : p < H.length + 1 → uint.nat a ≤ uint.nat (walLastHS (H ++ [o])).Commit')
-    (h2 : ∀ hs es, o = .save hs es → (∃ (q : Nat) (m : SnapshotMetadataM), H[q]? = some (WalOpG.snap m) ∧ uint.nat a ≤ uint.nat m.Index') →
+    (h2 : ∀ hs es, o = .save hs es → (∃ (q : Nat) (m : SnapshotMetadataM) (al : Bool), H[q]? = some (WalOpG.snap m al) ∧ uint.nat a ≤ uint.nat m.Index') →
       ∀ e ∈ es, uint.nat a < uint.nat e.Index')
-    (h3 : ∀ m, o = .snap m → p < H.length → uint.nat a ≤ uint.nat m.Index')
+    (h3 : ∀ m al, o = .snap m al → p < H.length → uint.nat a ≤ uint.nat m.Index')
     (h4 : ¬ walHasMaxIdx [o]) :
     walRelGuard (H ++ [o]) a p := by
   obtain ⟨g1, g2, g3, g4⟩ := hg
@@ -1094,30 +1094,30 @@ theorem walRelGuard_snoc {H : WalHist} {a : w64} {p : Nat} (o : WalOp) (hg : wal
       subst this
       rw [List.take_of_length_le (by simp)]
       exact h1 (by omega)
-  · intro q j m hs es e hq ham hqj hj he
+  · intro q j m al hs es e hq ham hqj hj he
     have hjl := getElem?_some_lt hj
     simp only [List.length_append, List.length_singleton] at hjl
     rcases Nat.lt_or_ge j H.length with hlt | hge
     · rw [List.getElem?_append_left hlt] at hj
       rw [List.getElem?_append_left (by omega)] at hq
-      exact g2 q j m hs es e hq ham hqj hj he
+      exact g2 q j m al hs es e hq ham hqj hj he
     · have : j = H.length := by omega
       subst this
       rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_cons_zero,
         Option.some.injEq] at hj
       rw [List.getElem?_append_left hqj] at hq
-      exact h2 hs es hj ⟨q, m, hq, ham⟩ e he
-  · intro j m hpj hj
+      exact h2 hs es hj ⟨q, m, al, hq, ham⟩ e he
+  · intro j m al hpj hj
     have hjl := getElem?_some_lt hj
     simp only [List.length_append, List.length_singleton] at hjl
     rcases Nat.lt_or_ge j H.length with hlt | hge
     · rw [List.getElem?_append_left hlt] at hj
-      exact g3 j m hpj hj
+      exact g3 j m al hpj hj
     · have : j = H.length := by omega
       subst this
       rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_cons_zero,
         Option.some.injEq] at hj
-      exact h3 m hj hpj
+      exact h3 m al hj hpj
 
 
 /-! ## C (first half). The purged read against the unpurged read: what needs no release bound
@@ -1158,9 +1158,9 @@ theorem walReadCut_b_le_commit {I : WalHist} {k : Nat} {σ : StorContents}
   have hc : σ.commit = uint.nat (walLastHS I).Commit' := by
     simp only [StorContents.commit, walReadCut_hs h]
   rw [hc]
-  have hkept : ∀ (H : WalHist) m, WalOpG.snap m ∈ H.filter (walKeep (uint.nat (walLastHS I).Commit')) →
+  have hkept : ∀ (H : WalHist) m al, WalOpG.snap m al ∈ H.filter (walKeep (uint.nat (walLastHS I).Commit')) →
       uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit' := by
-    intro H m hm
+    intro H m al hm
     have := (List.mem_filter.1 hm).2
     simpa [walKeep] using this
   unfold walReadCut at h
@@ -1173,10 +1173,10 @@ theorem walReadCut_b_le_commit {I : WalHist} {k : Nat} {σ : StorContents}
     · cases h
     · next m hm =>
       refine walFoldChkFrom_b_le (hkept _) ?_ h
-      obtain ⟨m', h1, h2⟩ := walNewest_mem hm
+      obtain ⟨m', al', h1, h2⟩ := walNewest_mem hm
       simp only [StorContents.b]
       rw [← h2]
-      exact hkept _ m' h1
+      exact hkept _ m' al' h1
 
 /-- **`σ`'s snapshot is a record at its base** (what a purged read starts from). -/
 def walSnapAtBase (σ : StorContents) : Prop :=
@@ -1257,12 +1257,12 @@ to `M` with no entry, then `M`'s record (the plan's risk R1; notes/decisions.md,
 /-- The last entry record's index (`walLastIdx`'s first fold). -/
 def walLastEntF (x : Nat) : WalOp → Nat
   | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
-  | .snap _ => x
+  | .snap _ _ => x
 
 /-- The highest snapshot record's index (`walLastIdx`'s second fold). -/
 def walMaxSnapF (x : Nat) : WalOp → Nat
   | .save _ _ => x
-  | .snap m => max x (uint.nat m.Index')
+  | .snap m _ => max x (uint.nat m.Index')
 
 theorem walLastIdx_eq (P : WalHist) :
     walLastIdx P = max (P.foldl walLastEntF 0) (P.foldl walMaxSnapF 0) := by
@@ -1277,18 +1277,18 @@ theorem walMaxSnap_ge : ∀ (L : WalHist) (x : Nat), x ≤ L.foldl walMaxSnapF x
     intro x
     cases o with
     | save h es => exact ih x
-    | snap m => exact Nat.le_trans (Nat.le_max_left _ _) (ih _)
+    | snap m al => exact Nat.le_trans (Nat.le_max_left _ _) (ih _)
 
-theorem walMaxSnap_mem : ∀ (L : WalHist) (x : Nat) (m : SnapshotMetadataM), WalOpG.snap m ∈ L →
+theorem walMaxSnap_mem : ∀ (L : WalHist) (x : Nat) (m : SnapshotMetadataM) (al : Bool), WalOpG.snap m al ∈ L →
     uint.nat m.Index' ≤ L.foldl walMaxSnapF x := by
   intro L
   induction L with
-  | nil => intro x m hm; cases hm
+  | nil => intro x m al hm; cases hm
   | cons o L ih =>
-    intro x m hm
+    intro x m al hm
     rcases List.mem_cons.1 hm with rfl | hm
     · exact Nat.le_trans (Nat.le_max_right _ _) (walMaxSnap_ge L _)
-    · exact ih _ m hm
+    · exact ih _ m al hm
 
 theorem walLastEnt_noNE : ∀ (L : WalHist) (x : Nat), (∀ h es, WalOpG.save h es ∈ L → es = []) →
     L.foldl walLastEntF x = x := by
@@ -1302,7 +1302,7 @@ theorem walLastEnt_noNE : ∀ (L : WalHist) (x : Nat), (∀ h es, WalOpG.save h 
       have he := hne h es (List.mem_cons_self ..)
       subst he
       exact ih x (fun h' es' hm => hne h' es' (List.mem_cons_of_mem _ hm))
-    | snap m => exact ih x (fun h' es' hm => hne h' es' (List.mem_cons_of_mem _ hm))
+    | snap m al => exact ih x (fun h' es' hm => hne h' es' (List.mem_cons_of_mem _ hm))
 
 /-- The filter lowers the highest snapshot record. -/
 theorem walLastIdx_filter (c : Nat) : ∀ (L : WalHist) (x y : Nat), x ≤ y →
@@ -1316,7 +1316,7 @@ theorem walLastIdx_filter (c : Nat) : ∀ (L : WalHist) (x y : Nat), x ≤ y →
     | save h es =>
       simp only [List.filter_cons, walKeep, ite_true, List.foldl_cons, walMaxSnapF]
       exact ih x y hxy
-    | snap m =>
+    | snap m al =>
       simp only [List.filter_cons, walKeep, List.foldl_cons, walMaxSnapF]
       by_cases hc : uint.nat m.Index' ≤ c
       · simp only [hc, decide_true, ite_true, List.foldl_cons, walMaxSnapF]
@@ -1333,7 +1333,7 @@ theorem walLastEnt_filter (c : Nat) : ∀ (L : WalHist) (x : Nat),
     intro x
     cases o with
     | save h es => simp only [List.filter_cons, walKeep, ite_true, List.foldl_cons]; exact ih _
-    | snap m =>
+    | snap m al =>
       simp only [List.filter_cons, walKeep, List.foldl_cons]
       by_cases hc : uint.nat m.Index' ≤ c
       · simp only [hc, decide_true, ite_true, List.foldl_cons, walLastEntF]; exact ih _
@@ -1386,7 +1386,7 @@ theorem walFoldChkFrom_last : ∀ {L : WalHist} {τ τ' : StorContents} {x y : N
   | cons o L ih =>
     intro τ τ' x y hb hl h
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h
       simp only [List.foldl_cons, walMaxSnapF, walLastEntF]
       refine ih ?_ ?_ h
@@ -1420,7 +1420,7 @@ theorem walFoldChkFrom_append : ∀ (A B : WalHist) (τ : StorContents),
   | cons o A ih =>
     intro B τ
     cases o with
-    | snap m => simp only [List.cons_append, walFoldChkFrom]; exact ih B _
+    | snap m al => simp only [List.cons_append, walFoldChkFrom]; exact ih B _
     | save hs es =>
       simp only [List.cons_append, walFoldChkFrom, Option.bind_eq_bind]
       cases es.foldlM (fun ents e => readEnt τ.b ents e) τ.ents with
@@ -1505,18 +1505,18 @@ theorem readEnts_sync {M b : Nat} (hb : b ≤ M) : ∀ {es : List EntryM} {ents 
 /-- No record of index `M` before a `Save` with entries. -/
 def walNEBefore (M : Nat) (L : WalHist) : Prop :=
   ∃ (L1 : WalHist) (h : HardStateM) (es : List EntryM) (L2 : WalHist),
-    L = L1 ++ WalOpG.save h es :: L2 ∧ es ≠ [] ∧ ∀ m, WalOpG.snap m ∈ L1 → uint.nat m.Index' ≠ M
+    L = L1 ++ WalOpG.save h es :: L2 ∧ es ≠ [] ∧ ∀ m al, WalOpG.snap m al ∈ L1 → uint.nat m.Index' ≠ M
 
-theorem walNEBefore_snap {M : Nat} {m : SnapshotMetadataM} {L : WalHist}
-    (h : walNEBefore M (WalOpG.snap m :: L)) : uint.nat m.Index' ≠ M ∧ walNEBefore M L := by
+theorem walNEBefore_snap {M : Nat} {m : SnapshotMetadataM} {al : Bool} {L : WalHist}
+    (h : walNEBefore M (WalOpG.snap m al :: L)) : uint.nat m.Index' ≠ M ∧ walNEBefore M L := by
   obtain ⟨L1, hs, es, L2, hL, hes, hL1⟩ := h
   cases L1 with
   | nil => simp at hL
   | cons x L1 =>
     simp only [List.cons_append, List.cons.injEq] at hL
     obtain ⟨rfl, rfl⟩ := hL
-    exact ⟨hL1 m (List.mem_cons_self ..),
-      L1, hs, es, L2, rfl, hes, fun m' hm' => hL1 m' (List.mem_cons_of_mem _ hm')⟩
+    exact ⟨hL1 m al (List.mem_cons_self ..),
+      L1, hs, es, L2, rfl, hes, fun m' al hm' => hL1 m' al (List.mem_cons_of_mem _ hm')⟩
 
 theorem walNEBefore_save_nil {M : Nat} {hs : HardStateM} {L : WalHist}
     (h : walNEBefore M (WalOpG.save hs [] :: L)) : walNEBefore M L := by
@@ -1528,7 +1528,7 @@ theorem walNEBefore_save_nil {M : Nat} {hs : HardStateM} {L : WalHist}
   | cons x L1 =>
     simp only [List.cons_append, List.cons.injEq] at hL
     obtain ⟨rfl, rfl⟩ := hL
-    exact ⟨L1, hs', es, L2, rfl, hes, fun m' hm' => hL1 m' (List.mem_cons_of_mem _ hm')⟩
+    exact ⟨L1, hs', es, L2, rfl, hes, fun m' al hm' => hL1 m' al (List.mem_cons_of_mem _ hm')⟩
 
 /-- The state of the two folds before the newest record `M` is reached: synced, the unpurged read's
 last index below `M` (after a received snapshot), or the purged read empty with a `Save` with entries
@@ -1537,10 +1537,10 @@ def walPairSt (M : Nat) (τ τ' : StorContents) (L : WalHist) : Prop :=
   τ'.ents = τ.ents.drop (M - τ.b) ∨ (τ.last < M ∧ τ.commit ≤ τ.last) ∨
     (τ'.ents = [] ∧ walNEBefore M L)
 
-theorem walSaveSnap_pairSt {M : Nat} {τ τ' : StorContents} {m : SnapshotMetadataM} {L : WalHist}
-    (hmM : uint.nat m.Index' < M) (hb : τ.b ≤ M) (hst : walPairSt M τ τ' (WalOpG.snap m :: L)) :
+theorem walSaveSnap_pairSt {M : Nat} {τ τ' : StorContents} {m : SnapshotMetadataM} {al : Bool} {L : WalHist}
+    (hmM : uint.nat m.Index' < M) (hb : τ.b ≤ M) (hst : walPairSt M τ τ' (WalOpG.snap m al :: L)) :
     (walSaveSnap τ m).b ≤ M ∧ walPairSt M (walSaveSnap τ m) τ' L := by
-  have hD : τ'.ents = [] ∧ walNEBefore M (WalOpG.snap m :: L) → τ'.ents = [] ∧ walNEBefore M L :=
+  have hD : τ'.ents = [] ∧ walNEBefore M (WalOpG.snap m al :: L) → τ'.ents = [] ∧ walNEBefore M L :=
     fun ⟨h1, h2⟩ => ⟨h1, (walNEBefore_snap h2).2⟩
   unfold walSaveSnap
   split
@@ -1567,19 +1567,19 @@ theorem walSaveSnap_pairSt {M : Nat} {τ τ' : StorContents} {m : SnapshotMetada
 
 /-- **The two folds agree once the newest record `M` is reached** (the induction of C2). -/
 theorem walFoldChk_sim (M : Nat) : ∀ (L : WalHist) (τ τ' σ σ' : StorContents),
-    (∀ m, WalOpG.snap m ∈ L → uint.nat m.Index' ≤ M) →
-    (∃ m, WalOpG.snap m ∈ L ∧ uint.nat m.Index' = M) →
+    (∀ m al, WalOpG.snap m al ∈ L → uint.nat m.Index' ≤ M) →
+    (∃ m al, WalOpG.snap m al ∈ L ∧ uint.nat m.Index' = M) →
     τ'.hs = τ.hs → τ'.b = M → τ.b ≤ M → walPairSt M τ τ' L → walCommitLeFrom τ L →
     walFoldChkFrom τ L = some σ → walFoldChkFrom τ' L = some σ' → σ' = σ := by
   intro L
   induction L with
-  | nil => intro τ τ' σ σ' _ hex; obtain ⟨m, hm, -⟩ := hex; cases hm
+  | nil => intro τ τ' σ σ' _ hex; obtain ⟨m, al, hm, -⟩ := hex; cases hm
   | cons o L ih =>
     intro τ τ' σ σ' hle hex hhs hb' hb hst hcl h h'
     have hcl' : ∀ τ1, walFoldChkFrom τ [o] = some τ1 → walCommitLeFrom τ1 L :=
       fun τ1 h1 => walCommitLeFrom_append (A := [o]) hcl h1
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h h'
       by_cases hmM : uint.nat m.Index' = M
       · have hc : τ'.commit = τ.commit := by simp only [StorContents.commit, hhs]
@@ -1603,17 +1603,17 @@ theorem walFoldChk_sim (M : Nat) : ∀ (L : WalHist) (τ τ' σ σ' : StorConten
         rw [heq, h] at h'
         exact (Option.some.inj h').symm
       · have hlt : uint.nat m.Index' < M := by
-          have := hle m (List.mem_cons_self ..); omega
+          have := hle m al (List.mem_cons_self ..); omega
         have hτ' : walSaveSnap τ' m = τ' := by
           unfold walSaveSnap; simp only [show uint.nat m.Index' < τ'.b by omega, ite_true]
         rw [hτ'] at h'
         obtain ⟨hb2, hst2⟩ := walSaveSnap_pairSt hlt hb hst
-        refine ih _ _ σ σ' (fun m' hm' => hle m' (List.mem_cons_of_mem _ hm')) ?_ ?_ hb' hb2 hst2
+        refine ih _ _ σ σ' (fun m' al hm' => hle m' al (List.mem_cons_of_mem _ hm')) ?_ ?_ hb' hb2 hst2
           (hcl' _ (by simp only [walFoldChkFrom])) h h'
-        · obtain ⟨m', hm', hm'M⟩ := hex
+        · obtain ⟨m', al', hm', hm'M⟩ := hex
           rcases List.mem_cons.1 hm' with he | hm'
           · cases he; exact absurd hm'M hmM
-          · exact ⟨m', hm', hm'M⟩
+          · exact ⟨m', al', hm', hm'M⟩
         · rw [walSaveSnap_hs]; exact hhs
     | save hs es =>
       simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h h'
@@ -1622,11 +1622,11 @@ theorem walFoldChk_sim (M : Nat) : ∀ (L : WalHist) (τ τ' σ σ' : StorConten
       have hcl1 := hcl' { τ with hs := phsNext τ.hs hs, ents := x }
         (by simp only [walFoldChkFrom, Option.bind_eq_bind, hx, Option.bind_some])
       refine ih { τ with hs := phsNext τ.hs hs, ents := x } { τ' with hs := phsNext τ'.hs hs, ents := x' }
-        σ σ' (fun m' hm' => hle m' (List.mem_cons_of_mem _ hm')) ?_ (by simp only [hhs]) hb' hb ?_ hcl1 h h'
-      · obtain ⟨m', hm', hm'M⟩ := hex
+        σ σ' (fun m' al hm' => hle m' al (List.mem_cons_of_mem _ hm')) ?_ (by simp only [hhs]) hb' hb ?_ hcl1 h h'
+      · obtain ⟨m', al', hm', hm'M⟩ := hex
         rcases List.mem_cons.1 hm' with he | hm'
         · cases he
-        · exact ⟨m', hm', hm'M⟩
+        · exact ⟨m', al', hm', hm'M⟩
       · cases es with
         | nil =>
           simp only [List.foldlM_nil, Option.pure_def, Option.some.injEq] at hx hx'
@@ -1653,12 +1653,12 @@ theorem walFoldChk_sim (M : Nat) : ∀ (L : WalHist) (τ τ' σ σ' : StorConten
 
 /-- The newest record has the highest index. -/
 theorem walNewest_max {H : WalHist} {m : SnapshotMetadataM} (h : walNewest H = some m) :
-    ∀ m', WalOpG.snap m' ∈ H → uint.nat m'.Index' ≤ uint.nat m.Index' := by
-  intro m' hm'
+    ∀ m' al, WalOpG.snap m' al ∈ H → uint.nat m'.Index' ≤ uint.nat m.Index' := by
+  intro m' al hm'
   have hp := walNewest_pair H
   rw [h, Option.map_some] at hp
   have := walNewestPair_max hp.symm (m'.Index', m'.Term')
-    (List.mem_filterMap.2 ⟨WalOpG.snap m', hm', rfl⟩)
+    (List.mem_filterMap.2 ⟨WalOpG.snap m' al, hm', rfl⟩)
   exact this
 
 theorem lastFilt_getD_mem (P : Nat → Bool) (n : Nat)
@@ -1684,20 +1684,20 @@ theorem walNameBound_witness {I : WalHist} {k a : Nat} (hk0 : 0 < k) (hk : k ≤
 record `a` of the history within its commit, is the unpurged read** (given `walCommitLe`). -/
 theorem walReadFrom_eq {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
     (hk0 : 0 < k) (hk : k ≤ walNameBound I (uint.nat a) false) (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = a)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = a)
     (hac : uint.nat a ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) (h' : walReadFrom I k = some σ') : σ' = σ := by
   obtain ⟨b0, hkb0, hb0, hidx⟩ := walNameBound_witness hk0 hk hmax
   -- the records before `b0`: every snapshot record below `a`
-  have hsnap0 : ∀ m, WalOpG.snap m ∈ I.take b0 → uint.nat m.Index' + 1 ≤ uint.nat a := by
-    intro m hm
-    have := walMaxSnap_mem _ 0 m hm
+  have hsnap0 : ∀ m al, WalOpG.snap m al ∈ I.take b0 → uint.nat m.Index' + 1 ≤ uint.nat a := by
+    intro m al hm
+    have := walMaxSnap_mem _ 0 m al hm
     rw [walLastIdx_eq] at hidx
     omega
   have htake : I.take b0 = I.take k ++ (I.drop k).take (b0 - k) := by
     rw [← List.take_add]; congr 1; omega
-  have hsnapk : ∀ m, WalOpG.snap m ∈ I.take k → uint.nat m.Index' + 1 ≤ uint.nat a :=
-    fun m hm => hsnap0 m (by rw [htake]; exact List.mem_append_left _ hm)
+  have hsnapk : ∀ m al, WalOpG.snap m al ∈ I.take k → uint.nat m.Index' + 1 ≤ uint.nat a :=
+    fun m al hm => hsnap0 m al (by rw [htake]; exact List.mem_append_left _ hm)
   unfold walReadFrom at h'
   simp only at h'
   split at h'
@@ -1715,17 +1715,17 @@ theorem walReadFrom_eq {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
     rw [walFoldChkFrom_append, Option.bind_eq_some_iff] at h
     obtain ⟨σ₀, h0, h⟩ := h
     have hsnapR := walNewest_max hN
-    obtain ⟨mR, hmR, hmRi⟩ := walNewest_mem hN
+    obtain ⟨mR, alR, hmR, hmRi⟩ := walNewest_mem hN
     -- `a ≤ M`: the record of index `a` is past `b0`
     have haM : uint.nat a ≤ uint.nat mN.Index' := by
-      obtain ⟨i, ma, hi, hma⟩ := ha
+      obtain ⟨i, ma, ala, hi, hma⟩ := ha
       have hib : b0 ≤ i := by
         rcases Nat.lt_or_ge i b0 with hlt | hge
-        · have := hsnap0 ma (List.mem_of_getElem? (by rw [List.getElem?_take_of_lt hlt]; exact hi))
+        · have := hsnap0 ma ala (List.mem_of_getElem? (by rw [List.getElem?_take_of_lt hlt]; exact hi))
           rw [hma] at this; omega
         · exact hge
       rw [← hma]
-      apply hsnapR ma
+      apply hsnapR ma ala
       apply List.mem_filter.2
       refine ⟨List.mem_of_getElem? (i := i - k) ?_, ?_⟩
       · rw [List.getElem?_drop]; rw [show k + (i - k) = i by omega]; exact hi
@@ -1733,14 +1733,14 @@ theorem walReadFrom_eq {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
     -- the unpurged prefix's base is below `a`
     have hb0 : σ₀.b + 1 ≤ uint.nat a := by
       have := walFoldChkFrom_b_le (B := uint.nat a - 1)
-        (fun m hm => by have := hsnapk m (List.mem_filter.1 hm).1; omega)
+        (fun m al hm => by have := hsnapk m al (List.mem_filter.1 hm).1; omega)
         (by simp [walFresh, StorContents.b]) h0
       have : 1 ≤ uint.nat a := by omega
       omega
     -- the hard states agree
     have hhs : walLastHS (I.take k) = σ₀.hs := by
       rw [walFoldChkFrom_hs h0, walHsStep_filter, walLastHS_eq]; rfl
-    refine walFoldChk_sim (uint.nat mN.Index') _ σ₀ _ σ σ' hsnapR ⟨mR, hmR, by rw [hmRi]⟩
+    refine walFoldChk_sim (uint.nat mN.Index') _ σ₀ _ σ σ' hsnapR ⟨mR, alR, hmR, by rw [hmRi]⟩
       hhs rfl (by omega) ?_ (walCommitLeFrom_append hcl0 h0) h h'
     -- the starting state: synced, or a `Save` with entries ahead
     by_cases hne : ∃ hs es, WalOpG.save hs es ∈ (I.drop k).take (b0 - k) ∧ es ≠ []
@@ -1755,12 +1755,12 @@ theorem walReadFrom_eq {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
       obtain ⟨A, B, hAB⟩ := List.append_of_mem hmemF
       refine ⟨A, hs, es, B ++ (I.drop b0).filter (walKeep (uint.nat (walLastHS I).Commit')), ?_, hes, ?_⟩
       · rw [hdrop, List.filter_append, hAB]; simp
-      · intro m hm
-        have hmX : WalOpG.snap m ∈ (I.drop k).take (b0 - k) := by
-          have : WalOpG.snap m ∈ ((I.drop k).take (b0 - k)).filter
+      · intro m al hm
+        have hmX : WalOpG.snap m al ∈ (I.drop k).take (b0 - k) := by
+          have : WalOpG.snap m al ∈ ((I.drop k).take (b0 - k)).filter
               (walKeep (uint.nat (walLastHS I).Commit')) := by rw [hAB]; exact List.mem_append_left _ hm
           exact (List.mem_filter.1 this).1
-        have := hsnap0 m (by rw [htake]; exact List.mem_append_right _ hmX)
+        have := hsnap0 m al (by rw [htake]; exact List.mem_append_right _ hmX)
         omega
     · left
       have hnoNE : ∀ hs es, WalOpG.save hs es ∈ (I.drop k).take (b0 - k) → es = [] := by
@@ -1784,7 +1784,7 @@ theorem walReadFrom_eq {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
 /-- **C2: the purged read is a compaction of the unpurged read** (here, the read itself). -/
 theorem walReadFrom_compacts {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
     (hk0 : 0 < k) (hk : k ≤ walNameBound I (uint.nat a) false) (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = a)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = a)
     (hac : uint.nat a ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) (h' : walReadFrom I k = some σ') : StorCompacts σ σ' := by
   rw [walReadFrom_eq hk0 hk hmax ha hac hcl h h']
@@ -1793,7 +1793,7 @@ theorem walReadFrom_compacts {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorCon
 /-- **C3/C4: the read from any `k` at or below the name bound is the unpurged read.** -/
 theorem walReadCut_eq {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
     (hk : k ≤ walNameBound I (uint.nat a) false) (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = a)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = a)
     (hac : uint.nat a ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) (h' : walReadCut I k = some σ') : σ' = σ := by
   by_cases hk0 : k = 0
@@ -1804,7 +1804,7 @@ theorem walReadCut_eq {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
 /-- **C3: `walReadCut_compacts`.** -/
 theorem walReadCut_compacts {I : WalHist} {k : Nat} {a : w64} {σ σ' : StorContents}
     (hk : k ≤ walNameBound I (uint.nat a) false) (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = a)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = a)
     (hac : uint.nat a ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) (h' : walReadCut I k = some σ') : StorCompacts σ σ' := by
   rw [walReadCut_eq hk hmax ha hac hcl h h']
@@ -1815,7 +1815,7 @@ the unpurged read.** No `walNoDormant` premise: the name bound leaves no dormant
 prefix. -/
 theorem walReadR_eq {I : WalHist} {p : Nat} {a : w64} {σ σ' : StorContents}
     (hp : p ≤ walNameBound I (uint.nat a) false) (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = a)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = a)
     (hac : uint.nat a ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) (h' : walReadR I p σ') : σ' = σ := by
   obtain ⟨k, hk, h'⟩ := h'
@@ -1824,7 +1824,7 @@ theorem walReadR_eq {I : WalHist} {p : Nat} {a : w64} {σ σ' : StorContents}
 /-- **C3: `walReadR_compacts`.** -/
 theorem walReadR_compacts {I : WalHist} {p : Nat} {a : w64} {σ σ' : StorContents}
     (hp : p ≤ walNameBound I (uint.nat a) false) (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = a)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = a)
     (hac : uint.nat a ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) (h' : walReadR I p σ') : StorCompacts σ σ' := by
   rw [walReadR_eq hp hmax ha hac hcl h h']
@@ -1833,7 +1833,7 @@ theorem walReadR_compacts {I : WalHist} {p : Nat} {a : w64} {σ σ' : StorConten
 /-- C4 at `Open`'s position (`walOpenPos`, W4a.2). -/
 theorem walReadR_eq_openPos {I : WalHist} {p : Nat} {a : w64} {σ σ' : StorContents}
     (hp : p ≤ walOpenPos I a) (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = a)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = a)
     (hac : uint.nat a ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) (h' : walReadR I p σ') : σ' = σ :=
   walReadR_eq (Nat.le_trans hp (Nat.min_le_right _ _)) hmax ha hac hcl h h'
@@ -1841,7 +1841,7 @@ theorem walReadR_eq_openPos {I : WalHist} {p : Nat} {a : w64} {σ σ' : StorCont
 /-- C4 at `ReleaseLockTo`'s position (`walReleasePos`, W4a.2). -/
 theorem walReadR_eq_releasePos {I : WalHist} {p : Nat} {a : w64} {σ σ' : StorContents}
     (hp : p ≤ walReleasePos I a) (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = a)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = a)
     (hac : uint.nat a ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) (h' : walReadR I p σ') : σ' = σ :=
   walReadR_eq_openPos (Nat.le_trans hp (walReleasePos_le_openPos I a)) hmax ha hac hcl h h'

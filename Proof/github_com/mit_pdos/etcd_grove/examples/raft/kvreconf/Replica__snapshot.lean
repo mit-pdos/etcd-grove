@@ -133,7 +133,9 @@ theorem Replica.snapshot.wp_proof
         iexists e; iexact He
       isplitl []
       · unfold kvrJ
-        iapply nodeAppliedLb_mono γr.cluster ρ.key (uint.nat q.compact') _ (by word) $$ Hal
+        isplitr
+        · iapply nodeAppliedLb_mono γr.cluster ρ.key (uint.nat q.compact') _ (by word) $$ Hal
+        ipureintro; intro h; exact absurd h Hnsn
       iapply (memSnapLb_mono ρ.γs (uint.nat k1) (uint.nat (fi + rb)) (by word))
       iexact Hkn1
     try wp_auto

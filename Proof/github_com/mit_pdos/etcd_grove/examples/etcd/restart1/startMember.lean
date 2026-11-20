@@ -78,7 +78,7 @@ theorem startMember.wp_proof
       urlsOk [id] bootLog ctxs (dir id) id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2
       Hdirok (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _)
       ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty)
-      Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
+      (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -, #Hdd⟩)
   · cases err with

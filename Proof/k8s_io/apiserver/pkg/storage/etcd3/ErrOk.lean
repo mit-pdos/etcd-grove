@@ -58,7 +58,8 @@ theorem kErrOk_intro (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG)) 
     (hshape : (e.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty → ∃ x : Loc, e.v = #x) ∧
       (e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
         ∃ y : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, e.v = #y))
-    (hF : methodSet e.ty !! go!"Format" = none) (hleaf : _root_.Perennial.errors.isLeafError e)
+    (hF : methodSet e.ty !! go!"Format" = none ∧ methodSet e.ty !! go!"Error" = some noArgStringSig)
+    (hleaf : _root_.Perennial.errors.isLeafError e)
     (hne : e.ty ≠ go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)
     (hund : underlying e.ty ≠
       go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty) :
@@ -130,10 +131,15 @@ theorem kErrOk_errorString (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG :=
     have := go.MethodSetIs.method_set_is
       (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format"
     simpa [go.methodSetLookup_cons, go.methodSetLookup_nil] using this
+  have hE : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !! go!"Error" =
+      some noArgStringSig := by
+    have := go.MethodSetIs.method_set_is
+      (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Error"
+    simpa [go.methodSetLookup_cons, go.methodSetLookup_nil, noArgStringSig] using this
   iapply (kErrOk_intro wp_AsLeafTy ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
     ⟨fun _ => ⟨x, rfl⟩, fun h => by
       exfalso; revert h; unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; simp⟩
-    hF hleaf
+    ⟨hF, hE⟩ hleaf
     (by unfold k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty
           _root_.Perennial.errors.errorString.ty; simp)
     (by rw [go.is_underlying (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)]
@@ -345,6 +351,9 @@ theorem kErrOk_statusError (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG :=
   have hF : methodSet (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) !!
       go!"Format" = none := by
     simpa [go.methodSetLookup_cons, go.methodSetLookup_nil] using hms go!"Format"
+  have hE : methodSet (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) !!
+      go!"Error" = some noArgStringSig := by
+    simpa [go.methodSetLookup_cons, go.methodSetLookup_nil, noArgStringSig] using hms go!"Error"
   ihave #Hstr : fmt.stringMethodSpec (GF := GF)
       ⟨go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty, #l⟩ go!"Error" $$ []
   · unfold fmt.stringMethodSpec
@@ -360,7 +369,7 @@ theorem kErrOk_statusError (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG :=
       exfalso; revert h; unfold k8s_io.apimachinery.pkg.api.errors.StatusError.ty
         _root_.Perennial.errors.errorString.ty; simp,
     fun h => by exfalso; revert h; unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; simp⟩
-    hF hleaf
+    ⟨hF, hE⟩ hleaf
     (by unfold k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty
           k8s_io.apimachinery.pkg.api.errors.StatusError.ty; simp)
     (by rw [go.is_underlying (t := go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty)]

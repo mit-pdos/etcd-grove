@@ -14,6 +14,7 @@ public import Perennial.Code.time
 public import Code.github_com.dustin.go_humanize
 public import Code.go_uber_org.zap
 public import Code.google_golang_org.protobuf.proto
+public import Code.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.pkg.v3.pbutil
 public import Code.go_etcd_io.etcd.server.v3.config
@@ -278,7 +279,8 @@ opaque purgeFileInterval [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def maxPendingRevokes [GooseExts] [GoGlobalContext] : val :=
   #(16 : Int)
 
-opaque recommendedMaxRequestBytes [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def recommendedMaxRequestBytes [GooseExts] [GoGlobalContext] : val :=
+  #(10485760 : Int)
 
 opaque readyPercentThreshold [GooseExts] [GoGlobalContext] : val
 
@@ -306,62 +308,38 @@ opaque initialStreamChunkLimit [GooseExts] [GoGlobalContext] : val
 noncomputable def hasLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.hasLeader"
 
-opaque hasLeader.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def isLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader"
-
-opaque isLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaderChanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.leaderChanges"
 
-opaque leaderChanges.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def learnerPromoteFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.learnerPromoteFailed"
-
-opaque learnerPromoteFailed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def learnerPromoteSucceed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.learnerPromoteSucceed"
 
-opaque learnerPromoteSucceed.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def heartbeatSendFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.heartbeatSendFailures"
-
-opaque heartbeatSendFailures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def applySnapshotInProgress [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshotInProgress"
 
-opaque applySnapshotInProgress.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def proposalsCommitted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsCommitted"
-
-opaque proposalsCommitted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def proposalsApplied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsApplied"
 
-opaque proposalsApplied.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def proposalsPending [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsPending"
-
-opaque proposalsPending.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def proposalsFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsFailed"
 
-opaque proposalsFailed.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def requestDurationSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.requestDurationSec"
-
-opaque requestDurationSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaseExpired [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.leaseExpired"
@@ -369,32 +347,20 @@ noncomputable def leaseExpired [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def currentVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.currentVersion"
 
-opaque currentVersion.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def currentGoVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.currentGoVersion"
-
-opaque currentGoVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def serverID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.serverID"
 
-opaque serverID.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def serverFeatureEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.serverFeatureEnabled"
-
-opaque serverFeatureEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def fdUsed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.fdUsed"
 
-opaque fdUsed.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def fdLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.fdLimit"
-
-opaque fdLimit.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def enableAllRuntimeMetricsOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.enableAllRuntimeMetricsOnce"
@@ -412,8 +378,6 @@ opaque monitorVersionInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def recommendedMaxRequestBytesString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.recommendedMaxRequestBytesString"
-
-opaque recommendedMaxRequestBytesString.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewServerVersionAdapter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewServerVersionAdapter"
@@ -2302,6 +2266,70 @@ noncomputable def EtcdServer.start.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))
+  (Val #()))))
+
+/-- purgeFile purges the WAL files beyond --max-wals. It does not purge
+    .snap.db files: a received snapshot's .snap.db may be waiting for the apply
+    loop to open it, and keeping only the newest few by name would delete it
+    (applySnapshot then panics). Snapshotter.ReleaseSnapDBs removes the .snap.db
+    files below a snapshot once that snapshot is applied or taken.
+
+    go: server.go:608:22 -/
+noncomputable def EtcdServer.purgeFile.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "werrc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly go.error)))) (Val #())))
+  (Let "wdonec" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly go.error)))) (Var "werrc"))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase go.error (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (Let "e" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to purge wal file"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "e"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "e") (Var "$r0"))))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "wdonec")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "wdonec")))))
+  (App (Val doExecute)
+  (Val #()))))))]))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"MaxWALFiles"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #(W64 0)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"WALDir"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #()))
+  (Let "$a2" (Val #(go!"wal"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"MaxWALFiles"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))
+  (Let "$a4" (Val purgeFileInterval)
+  (Let "$a5" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))
+  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.PurgeFileWithDoneNotify []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly go.error)))) (Pair (Var "werrc") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "wdonec") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))
   (Val #()))))
@@ -10017,7 +10045,7 @@ noncomputable def EtcdServer.requireAuthInfo.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.encoding.json, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp, pkg_id.encoding.base64, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.encoding.json, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp, pkg_id.encoding.base64, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -10098,6 +10126,107 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"has_leader"))
+  (Let "$v3" (Val #(go!"Whether or not a leader exists. 1 is existence, 0 is not."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"is_leader"))
+  (Let "$v3" (Val #(go!"Whether or not this member is a leader. 1 if is, 0 otherwise."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"leader_changes_seen_total"))
+  (Let "$v3" (Val #(go!"The number of leader changes seen."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"learner_promote_failures"))
+  (Let "$v3" (Val #(go!"The total number of failed learner promotions (likely learner not ready) while this member is leader."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$a1" (Let "$v0" (Val #(go!"Reason"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounterVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"learner_promote_successes"))
+  (Let "$v3" (Val #(go!"The total number of successful learner promotions while this member is leader."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"heartbeat_send_failures_total"))
+  (Let "$v3" (Val #(go!"The total number of leader heartbeat send failures (likely overloaded from slow disk)."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"snapshot_apply_in_progress_total"))
+  (Let "$v3" (Val #(go!"1 if the server is applying the incoming snapshot. 0 if none."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"proposals_committed_total"))
+  (Let "$v3" (Val #(go!"The total number of consensus proposals committed."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"proposals_applied_total"))
+  (Let "$v3" (Val #(go!"The total number of consensus proposals applied."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"proposals_pending"))
+  (Let "$v3" (Val #(go!"The current number of pending proposals to commit."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"proposals_failed_total"))
+  (Let "$v3" (Val #(go!"The total number of failed proposals seen."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"request_duration_seconds"))
+  (Let "$v3" (Val #(go!"Response latency distribution in seconds for each type."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4562254508917369340))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 14))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (Let "$a1" (Let "$v0" (Val #(go!"type"))
+  (Let "$v1" (Val #(go!"success"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogramVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
   (Let "$v1" (Val #(go!"server"))
   (Let "$v2" (Val #(go!"lease_expired_total"))
@@ -10105,13 +10234,58 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"version"))
+  (Let "$v3" (Val #(go!"Which version is running. 1 for 'server_version' label with current version."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$a1" (Let "$v0" (Val #(go!"server_version"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"go_version"))
+  (Let "$v3" (Val #(go!"Which Go version server is running with. 1 for 'server_go_version' label with current version."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$a1" (Let "$v0" (Val #(go!"server_go_version"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"id"))
+  (Let "$v3" (Val #(go!"Server or member ID in hexadecimal format. 1 for 'server_id' label with current ID."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$a1" (Let "$v0" (Val #(go!"server_id"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_server_feature_enabled"))
+  (Let "$v1" (Val #(go!"Whether or not a feature is enabled. 1 is enabled, 0 is not."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v1")))]))))
+  (Let "$a1" (Let "$v0" (Val #(go!"name"))
+  (Let "$v1" (Val #(go!"stage"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"os"))
+  (Let "$v1" (Val #(go!"fd"))
+  (Let "$v2" (Val #(go!"used"))
+  (Let "$v3" (Val #(go!"The number of used file descriptors."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"os"))
+  (Let "$v1" (Val #(go!"fd"))
+  (Let "$v2" (Val #(go!"limit"))
+  (Let "$v3" (Val #(go!"The file descriptor limit."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val recommendedMaxRequestBytes))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.dustin.go_humanize.Bytes []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -10122,47 +10296,47 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
-  (App (Val recommendedMaxRequestBytesString.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr recommendedMaxRequestBytesString))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val monitorVersionInterval.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val fdLimit.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr fdLimit))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val fdUsed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr fdUsed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val serverFeatureEnabled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr serverFeatureEnabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val serverID.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr serverID))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val currentGoVersion.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr currentGoVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val currentVersion.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr currentVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseExpired))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val requestDurationSec.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr requestDurationSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val proposalsFailed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr proposalsFailed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val proposalsPending.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr proposalsPending))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val proposalsApplied.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr proposalsApplied))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val proposalsCommitted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr proposalsCommitted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val applySnapshotInProgress.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr applySnapshotInProgress))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val heartbeatSendFailures.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr heartbeatSendFailures))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val learnerPromoteSucceed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr learnerPromoteSucceed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val learnerPromoteFailed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr learnerPromoteFailed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val leaderChanges.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaderChanges))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val isLeader.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr isLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val hasLeader.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr hasLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
@@ -10191,6 +10365,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.proto.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -10280,11 +10456,49 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc hasLeader _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc isLeader _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc leaderChanges _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc learnerPromoteFailed (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc learnerPromoteSucceed _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc heartbeatSendFailures _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc applySnapshotInProgress _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc proposalsCommitted _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc proposalsApplied _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc proposalsPending _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc proposalsFailed _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc requestDurationSec (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty))) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc leaseExpired _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc currentVersion (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc currentGoVersion (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc serverID (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc serverFeatureEnabled (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc fdUsed _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc fdLimit _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc raftStatusMu _root_.Perennial.sync.Mutex.ty)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc raftStatus (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty])))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc raftStatus (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc recommendedMaxRequestBytesString go.string)) (Val #()))))))))
 
 structure serverVersionAdapter [GooseExts] where
   mk ::
@@ -11684,6 +11898,7 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_newHeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"newHeader" EtcdServer.newHeader.impl
   ptr_parseProposeCtxErr_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"parseProposeCtxErr" EtcdServer.parseProposeCtxErr.impl
   ptr_processInternalRaftRequestOnce_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"processInternalRaftRequestOnce" EtcdServer.processInternalRaftRequestOnce.impl
+  ptr_purgeFile_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"purgeFile" EtcdServer.purgeFile.impl
   ptr_raftRequest_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"raftRequest" EtcdServer.raftRequest.impl
   ptr_requireAuthInfo_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"requireAuthInfo" EtcdServer.requireAuthInfo.impl
   ptr_restoreAlarms_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"restoreAlarms" EtcdServer.restoreAlarms.impl
@@ -11888,6 +12103,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_newHeader_unfold
   EtcdServer.TypeAssumptions.ptr_parseProposeCtxErr_unfold
   EtcdServer.TypeAssumptions.ptr_processInternalRaftRequestOnce_unfold
+  EtcdServer.TypeAssumptions.ptr_purgeFile_unfold
   EtcdServer.TypeAssumptions.ptr_raftRequest_unfold
   EtcdServer.TypeAssumptions.ptr_requireAuthInfo_unfold
   EtcdServer.TypeAssumptions.ptr_restoreAlarms_unfold
@@ -12338,6 +12554,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_humanize_Assumption : _root_.Perennial.github_com.dustin.go_humanize.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import_fileutil_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_pbutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.Assumptions
   import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
@@ -12446,6 +12663,7 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.import_humanize_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_proto_Assumption
+  Assumptions.import_fileutil_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_pbutil_Assumption
   Assumptions.import_config_Assumption

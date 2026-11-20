@@ -54,12 +54,14 @@ case, or `rangeKeys`' wrapped context error, which Perennial's errorf model leav
 (`rangeWhy_of_authErr`). -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (o : OpFull)
     (ot : Option Loc) (te : Bool) (Q : List EntryModel → IProp GF) (F : mvcc.Log) (n : Nat),
   E.authMode ≠ .any →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
       auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
       kvDep γr.kv Q (kvStM E.authOn γr.kv) ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
@@ -67,11 +69,11 @@ abbrev EtcdServer.Range.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
           (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗ apply.rangeClassFrom E.authMode m info o ∗
-            infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗ auth.authPubLbM E.authMode m ∗
+            infoBoundM E.authOn s E tok info ∗ auth.authPubLbM E.authMode m ∗
             (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           rangeReadOkM E.authOn E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
-          rangeErrOut E.authOn E γr c F o Q err ∗ rangeWhyOut s E.authMode n (GoInterface.ok ctx) o err)) }}
+          rangeErrOut E.authOn E γr c F o Q err ∗ rangeWhyOut s E.authMode n tok o err)) }}
 
 end spec
 

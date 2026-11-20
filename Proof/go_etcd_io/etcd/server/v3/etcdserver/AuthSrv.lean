@@ -14,8 +14,8 @@ mode (`authStoreKit M tp`): `NewAuthStore`'s axiom's triple with the apply contr
 * **auth on** (`authSrvTP_on`): the simple provider (`"simple"`, a positive TTL); the auth names
   allocated over the boot state with the provider's token names (`auth.authBoot_alloc`), the store
   from its proof in the mode `on γa` (`auth.newAuthStore_on`), its request side and apply contract
-  of its invariant (`authSrvContracts_on`). What only D22 can prove is the named premise
-  `authSchemaSrv`: given the batch lock's half of the history at the boot state, schema's auth
+  of its invariant (`authSrvContracts_on`). D22's part, `authSchemaSrv` (`AuthSnapKit.lean`; a named
+  premise until auth-schema-srv A7, now proved by its realization, `authReal.real_srv`): given the batch lock's half of the history at the boot state, schema's auth
   backend over the server's backend meets the store's backend contracts (`authBackendOk`,
   `authWBackendOkR`, `CreateAuthBuckets`), taking the backend resources `NewAuthStore`'s axiom
   takes and giving back what it gives back (as `auth.authSchemaBoot`, E2e, at the server's
@@ -28,6 +28,7 @@ mode (`authStoreKit M tp`): `NewAuthStore`'s axiom's triple with the apply contr
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSnapKit
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthRealSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
@@ -58,73 +59,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
--- `authOpenQ`, `authBkts`, `ablOn`, `authWAtHook`, `authRdSlots`, `authRdSupply`, `authSchemaSnap`:
--- `AuthSnapKit.lean`'s (below `SnapRO`, which carries the snapshot clause).
-
-/-- **`authSchemaSrv`, restated** (the premise of `NewServer.specM true`; one trusted premise for
-boot and every snapshot): for any auth names, given what `NewAuthStore`'s axiom takes of the
-server's backend, its open share `authOpenQ`, the batch lock's share of the history at the boot
-state and **half the published index's authority** (decision 2), schema's auth backend `abl` over
-`d` meets, for fresh names `γc`: the guarded read contract at a reader resource `R`, with the whole
-currency; the write contract (with the hook `P f`) and at every schema auth backend on `d` at its
-frozen hook, `CreateAuthBuckets`, at the write token `T := authWTok γc`; the publication quarter
-and the lifecycle (its realization keeping the open share and a quarter of the published index's
-authority); `authRdN` copies of `R` (tickets, backed by the store's share of the backend's reader
-slots, `authRdSlots`, taken; N4); the constructor's critical section, whose `Post`
-gives back the open share and the hook; and the snapshot clause at `R`. It takes the client's idle
-half of the (empty) auth buckets (decision 1: their write authority stays with the realization; the
-client keeps the others') and the succession right (one live backend).
-
-**Write-back** (auth-schema-fix F1, decided by etcd-grove-81, 2026-11-12): the realization owns no
-backend write-back tokens and makes none; each write spends the server's (`Wb := backend.wbTok d.γB`,
-paid from the apply loop's receipts and, at boot, `NewServer`'s): a batch `Unlock` two (schema's
-`authBatchTx.Unlock` is the backend batch's `Unlock` then `Commit`), `ForceCommit` one,
-`CreateAuthBuckets` one, `GetAllRoles` two (a batch). Until F1 the premise handed it a bag of two
-tokens (`ownToks d.γB.wb 2`) for every batch it would ever commit.
-**The lend** (`authBkLend`, F2): a read-only observation of the auth buckets (an abstract `RL` with a
-law against the batch lock's `rbOwn`), with no write authority; until F2 it lent the buckets'
-`rbPart`, through which a client could write them.
-**The write contract's text** (`auth.authBatchTxLkR`): `GetAllRoles` lists only `auth.roleListed`
-names (F3: Go's range `[0x00, 0xff)`); `UnsafePutUser` takes valid UTF-8 roles (F4: a proto3
-`string`); both puts take a non-empty name of a message without unknown fields (the axiom
-re-review's m1 and M1, 2026-11-13).
-
-Refutations fixed against earlier texts: S0's four (`notes/auth-schema-srv-refuted.md`, F1-F4, the
-four above); before them, five: (1) the latest clause took `T`; (2) the published index's authority
-was shared with the realization, publication needed `T`; (3) no `rbOwn` of the auth buckets came
-back; (4) `Cu`/`T` stood for an open share the realization keeps until both are surrendered; (5) `T`
-and `Cu` were functions of `γc`, which `beP` and the apply thread share. Review rounds A1/A2: the
-auth buckets taken idle (no pending write: the readers see `r`); the succession right taken (one
-live backend). -/
-def authSchemaSrv : IProp GF :=
-  iprop(□ ∀ (γa : auth.AuthNames) (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
-      (r : GMap GoString backend.BktData),
-    ⌜lg ≠ null⌝ -∗
-    ⌜(r.lookup go!"auth").getD ∅ = ∅ ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
-      (r.lookup go!"authRoles").getD ∅ = ∅⌝ -∗
-    ablOn abl d.be lg -∗
-    ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ -∗
-    backend.isBackend d.γB d.P W Pk d.be -∗ backend.bOpen d.γB qo -∗
-    backend.bOpen d.γB authOpenQ -∗ authRdSlots d -∗
-    backend.plHook d.γB func.nil -∗ backend.rbOwnIn d.γB authBkts r -∗
-    auth.authSucc γa -∗
-    auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
-    |={⊤}=> ∃ (R P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
-      auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
-      auth.authWBackendOkR (authBkIface abl) (.on γa) P f (auth.authWTok γc) (backend.wbTok d.γB) ∗
-      authWAtHook γa d γc ∗ authBkLend γa γc d ∗
-      □ ({{ auth.authWTok γc ∗ backend.wbTok d.γB }} (App (Val #(methods
-          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
-          go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc }}) ∗
-      auth.authWTok γc ∗ auth.authPubTok γa ∗
-      auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
-      srvApi.csContractA P f Pre Q Post ∗
-      ([∗list] _x ∈ List.replicate backend.authRdN (), R) ∗
-      (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
-      authSchemaSnap γa R)
-
-instance authSchemaSrv_persistent : Persistent (authSchemaSrv (GF := GF)) := by
-  unfold authSchemaSrv; infer_instance
+-- `authOpenQ`, `authBkts`, `ablOn`, `authWAtHook`, `authRdSlots`, `authRdSupply`, `authSchemaSnap`,
+-- `authSchemaSrv`: `AuthSnapKit.lean`'s (below `SnapRO`, which carries the snapshot clause; `authSchemaSrv`
+-- since A7 of auth-schema-srv, so that its realization, `AuthRealSrv.lean`, which `authStoreKit_on` uses, need
+-- not import this file).
 
 /-- **What the store's construction takes beside the backend, in the mode `M`** (the auth-on
 snapshot plan's Prove step, 2026-11-03; `authSchemaSrv`'s): in `on γa`, the realization's open share
@@ -207,6 +145,11 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
   iprop(∃ K : IProp GF, K ∗ □ ∀ (lg : Loc) (ab : GoInterface) (abl : Loc)
       (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (r : GMap GoString backend.BktData) (cost : w64),
     {{ K ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
+        -- (auth-schema-srv A7) what the realization of `authSchemaSrv` takes (`authReal.real_srv`): the
+        -- backend's and schema's package initialization and the receipt bound
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+        ⌜receiptBound GF ≤ 2 ^ 48⌝ ∗
         ⌜tp ≠ GoInterface.nil⌝ ∗ ⌜authRecordsFit⌝ ∗ ⌜ab = authBkIface abl⌝ ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -338,7 +281,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   iexists iprop(True)
   isplitr
   · itrivial
-  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe,
+  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, #Hlg, -, -, -, %Htp, %Hfit, %Hab, #Habbe,
     #Hablg, #HB, Ho, Hh, Hwb, Hrb, -, %Hr, %Hhas⟩ HΦ
   -- (the auth-on snapshot plan's Prove step) the axiom at the auth buckets, idle
   ihave Hrb := backend.rbOwnIn_part _ _ _ $$ Hrb
@@ -415,8 +358,9 @@ theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
 
 set_option maxRecDepth 16384 in
 /-- **The kit in the mode `on γa`** (see the file header): the store's proof in the mode `on γa`
-at the boot state, over D22's named premise, with the admin side's authority, the batch lock's
-half and the other half of the latest state's variable at the boot state, the provider's
+at the boot state, over D22's `authSchemaSrv` (proved: `authReal.real_srv` over the backend's and
+schema's specs, at the kit's package initializations and receipt bound; auth-schema-srv A7), with the
+admin side's authority, the batch lock's half and the other half of the latest state's variable at the boot state, the provider's
 contract with its admin resource `A`, and the token rights' empty authority (C1's A1). -/
 theorem authStoreKit_on
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
@@ -426,7 +370,6 @@ theorem authStoreKit_on
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hCtxLb : auth.authStore.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
     (hAdminLbO : auth.authStore.IsAdminPermitted.specLbO (GF := GF) (hG := hG))
     (hTLS : auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG))
     (hPut : auth.authStore.IsPutPermitted.spec (GF := GF) (hG := hG))
@@ -452,7 +395,53 @@ theorem authStoreKit_on
     (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
     (hCP : auth.authStore.CheckPassword.spec (GF := GF) (hG := hG))
     (hGT : auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG))
-    (hD22 : ⊢ authSchemaSrv (GF := GF))
+    (rLk : schema.authBatchTx.Lock.spec (GF := GF) (hG := hG))
+    (rUn : schema.authBatchTx.Unlock.spec (GF := GF) (hG := hG))
+    (rPU : schema.authBatchTx.UnsafePutUser.spec (GF := GF) (hG := hG))
+    (rDU : schema.authBatchTx.UnsafeDeleteUser.spec (GF := GF) (hG := hG))
+    (rPR : schema.authBatchTx.UnsafePutRole.spec (GF := GF) (hG := hG))
+    (rDR : schema.authBatchTx.UnsafeDeleteRole.spec (GF := GF) (hG := hG))
+    (rSE : schema.authBatchTx.UnsafeSaveAuthEnabled.spec (GF := GF) (hG := hG))
+    (rSR : schema.authBatchTx.UnsafeSaveAuthRevision.spec (GF := GF) (hG := hG))
+    (rGU : schema.authBatchTx.UnsafeGetUser.spec (GF := GF) (hG := hG))
+    (rGR : schema.authBatchTx.UnsafeGetRole.spec (GF := GF) (hG := hG))
+    (rEn : schema.authBatchTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG))
+    (rRev : schema.authBatchTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG))
+    (rGA : schema.authBatchTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG))
+    (rBTs : schema.authBackend.BatchTx.spec (GF := GF) (hG := hG))
+    (rFCs : schema.authBackend.ForceCommit.spec (GF := GF) (hG := hG))
+    (rGUb : schema.authBackend.GetUser.spec (GF := GF) (hG := hG))
+    (rGRb : schema.authBackend.GetRole.spec (GF := GF) (hG := hG))
+    (rGAb : schema.authBackend.GetAllUsers.spec (GF := GF) (hG := hG))
+    (rGARs : schema.authBackend.GetAllRoles.spec (GF := GF) (hG := hG))
+    (rBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (rFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (rRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (rRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (rRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (rURr : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (rFEr : backend.readTx.UnsafeForEach.spec (GF := GF) (hG := hG))
+    (rLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (rUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (rCm : backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG))
+    (rUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (rDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (rUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (rFE : backend.batchTxBuffered.UnsafeForEach.spec (GF := GF) (hG := hG))
+    (rID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (rName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (rSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (rRTs : schema.authBackend.ReadTx.spec (GF := GF) (hG := hG))
+    (rRLs : schema.authReadTx.RLock.spec (GF := GF) (hG := hG))
+    (rRUs : schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (rGUt : schema.authReadTx.UnsafeGetUser.spec (GF := GF) (hG := hG))
+    (rGRt : schema.authReadTx.UnsafeGetRole.spec (GF := GF) (hG := hG))
+    (rEnt : schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG))
+    (rRevt : schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG))
+    (rGAt : schema.authReadTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG))
+    (rCABs : schema.authBackend.CreateAuthBuckets.spec (GF := GF) (hG := hG))
+    (rLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (rCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
     (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF) :
     auth.tokenProviderOkA tp (.on γa) A ∗ A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
       auth.authStoreInit γa [auth.bootState] auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ∗
@@ -471,8 +460,8 @@ theorem authStoreKit_on
     auth.authSucc γa ∗ ghostVar γa.bk 1 γ0 ∗ auth.authPubQ γa (1 : Qp).half 0)
   iframe HA Hown Hcur HI Hfr Hcap Hsucc Hbk HpubQ
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI, Hfr, Hcap, Hsucc, Hbk,
-    HpubQ⟩, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, HkIn, %Hr,
-    %Hhas⟩ HΦ
+    HpubQ⟩, #Hpkg, #Hlg, #Hbpkg, #Hspkg, %HRB, %Htp, %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb,
+    Hrbo, HkIn, %Hr, %Hhas⟩ HΦ
   simp only [authKitIn]
   icases HkIn with ⟨HopQ, Hslots0, Hwb3, Hwb4⟩
   -- (auth-schema-fix F1) the boot's four write-back tokens: the kit's two and `authKitIn`'s two
@@ -481,7 +470,10 @@ theorem authStoreKit_on
   · iunfold backend.wbTok; iexact Hwb1
   ihave Hwb2 : backend.wbTok d.γB $$ [Hwb2]
   · iunfold backend.wbTok; iexact Hwb2
-  ihave #HD := hD22
+  -- (auth-schema-srv A7) D22's `authSchemaSrv`, of its realization
+  ihave #HD := authReal.real_srv rLk rUn rPU rDU rPR rDR rSE rSR rGU rGR rEn rRev rGA rBTs rFCs rGUb rGRb rGAb
+    rGARs rBT rFC rRT rRL rRU rURr rFEr rLI rUL rCm rUP rDel rUR rFE rID rName rSafe HRB rRTs rRLs rRUs rGUt
+    rGRt rEnt rRevt rGAt rCABs rLO rCB $$ [$Hbpkg $Hspkg]
   -- (E2k) the fuel at the history the store starts at (`[bootState, bump bootState]`)
   ihave Hfu := auth.authFuel_boot (GF := GF)
   imod Hfu
@@ -506,7 +498,7 @@ theorem authStoreKit_on
   wp_apply (auth.newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg
       (authBkIface abl) tp cost
       (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
-        #abl) γa γc R P f (auth.authWTok γc) (backend.wbTok d.γB) A Pre Q Post [auth.bootState] auth.bootState rfl
+        #abl) γa γc R P f (iprop(auth.authWTok γc ∗ backend.plHook d.γB func.nil)) (backend.wbTok d.γB) A Pre Q Post [auth.bootState] auth.bootState rfl
       auth.bootState_permsFit ⟨auth.bootState, List.mem_singleton_self _, rfl⟩
       (backend.authRdN - 1) hR)
     $$ [$Hpkg $Hrdok Hbk $Hcu $HwokR $HCreate $HT $Hwb1 $Hwb2 $Hwb3 $Hwb4 $Hcs $HtpA $HA $Hown $Hcur $Hcn]
@@ -516,9 +508,10 @@ theorem authStoreKit_on
     isplitr
     · ipureintro; rfl
     unfold auth.authBkCur; iexact Hbk
-  ihave ⟨Hopen, Hhook⟩ := Hback $$ HPost
+  ihave Hopen := Hback $$ HPost
   iunfold auth.authWRAt at HWR
-  icases HWR with ⟨⟨Hbe, #Hwok⟩, HT', Hen, Hca⟩
+  -- (fix (A)) the boot write token back: the write token and the unset hook
+  icases HWR with ⟨⟨Hbe, -⟩, ⟨HT', Hhook⟩, Hen, Hca⟩
   -- (E2k) the boot state's revision is `0`: the history `[bootState, bump bootState]`, its fuel
   have hhs' : hs' = [auth.bootState, auth.bump auth.bootState] := by
     rcases Hhs' with ⟨h, -⟩ | ⟨-, h⟩
@@ -548,7 +541,7 @@ theorem authStoreKit_on
   -- (E3t) publication, of its invariant
   ihave #HstPub := authPublishM_of_authInv stp R γa $$ Hinv
   -- (E3zb) the request side bound to the request context's token, of its invariant
-  ihave #HbB := isReqAuthBound_of_authInv hCtx hEnLb hCtxLb hAdminLbO stp R (.on γa) $$ [$Hpkg $Hinv]
+  ihave #HbB := isReqAuthBound_of_authInv hEnLb hCtx hAdminLbO stp R (.on γa) $$ [$Hpkg $Hinv]
   subst hhs'
   -- (E2v) the halves tied to the start's history, whose states are disabled
   ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
@@ -563,7 +556,12 @@ theorem authStoreKit_on
   · unfold authApplyResPre
     iexists [auth.bootState, auth.bump auth.bootState], P, f, γc, (authBkIface abl)
     iunfold auth.authOwnFu
-    iframe Hown' Hfu HX HtpAd Hwok Hfr Hpt
+    iframe Hown' Hfu HX HtpAd Hfr Hpt
+    isplitr
+    · iexists abl, lg
+      isplitr
+      · ipureintro; rfl
+      iunfold ablOn; iframe Habbe Hablg
     isplitl [HT' Hbk']
     · iunfold auth.authWHeld; iframe HT'; unfold auth.authBkCur; iexact Hbk'
     isplitr
@@ -611,8 +609,7 @@ theorem authStoreKit_on
     iframe Hbe Habbe Hablg
     iapply zapLoggerOk_ne_null; iexact Hlg
   isplitl [Hslots HRs]
-  · icases replicate_takeN _ (backend.authRdN - 1) _ (by omega) $$ HRs with ⟨HRs, -⟩
-    ihave Hsl := BigSepL.bigSepL_sep_eqv.2 $$ [Hslots HRs]
+  · ihave Hsl := BigSepL.bigSepL_sep_eqv.2 $$ [Hslots HRs]
     · iframe Hslots HRs
     unfold authRdSupply
     iapply (replicate_mono _ (auth.authRd stp R (.on γa)) _

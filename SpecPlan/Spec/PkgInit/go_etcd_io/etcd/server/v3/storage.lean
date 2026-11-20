@@ -14,7 +14,11 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.cindex
+public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
+public import SpecPlan.Spec.PkgInit.github_com.dustin.go_humanize
 public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.wal
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.wal.walpb
 
 @[expose] public section
 noncomputable section

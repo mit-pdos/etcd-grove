@@ -13,6 +13,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.ResultsOn
 public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CallLaws
 
 @[expose] public section
 
@@ -63,7 +64,7 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
   wp_pures
   wp_auto
   imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
-  wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
     ileft
     imodintro
@@ -82,6 +83,9 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     isplitl
     · ipureintro; exact Herr.1
     · iexact Hke
+
+theorem client_Put_on_law_holds : client_Put_on.law (GF := GF) (hG := hG) :=
+  client_Put_on
 
 /-- **`cli.Put(ctx, key, val)` with the update told the put's grant** (Work's puts, F-C1's second
 `Put` spec): `client_put_on`'s persistent update through the `*Client` method, so that the caller's
@@ -110,7 +114,7 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
   iapply HΦ
   icases Hout with (⟨%Herr, Hr⟩ | ⟨%Herr, #Hke⟩)
@@ -161,6 +165,9 @@ theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     ipureintro; exact Hg
   iapply HΦ
   iexact Hout
+
+theorem client_Get_on_law_holds : client_Get_on.law (GF := GF) (hG := hG) :=
+  client_Get_on
 
 /-- **`cli.Delete(ctx, key)` through a client whose `KV` is a `*kv` over `conn`** to a member with
 auth on, the update persistent and told the delete's grant: `client_delete_on` through the
@@ -224,6 +231,9 @@ theorem client_Txn_on (cl api conn : Loc) (addr : GoString) (ci : GoInterfaceOk)
   iexists tp
   iframe Hobj Hkt
   ipureintro; exact Ht
+
+theorem client_Txn_on_law_holds : client_Txn_on.law (GF := GF) (hG := hG) :=
+  client_Txn_on
 
 end proof
 

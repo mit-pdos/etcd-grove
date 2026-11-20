@@ -16,8 +16,10 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.txnRes
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withRes
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlainSpec
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLaws
+public import Spec.go_etcd_io.etcd.client.v3.txn__If
 
 @[expose] public section
 
@@ -47,7 +49,12 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
     (wp_opsOf : opsOf.spec (GF := GF) (hG := hG)) (wp_thenOf : thenOf.spec (GF := GF) (hG := hG))
     (wp_elseOf : elseOf.spec (GF := GF) (hG := hG)) (wp_txnRes : txnRes.spec (GF := GF) (hG := hG))
-    (wp_withRes : withRes.spec (GF := GF) (hG := hG)) :
+    (wp_withRes : withRes.spec (GF := GF) (hG := hG))
+    (h_client_Txn_st : client.client_Txn_st.law (GF := GF) (hG := hG))
+    (wp_If : EtcdGrove.txn.If.spec (GF := GF) (hG := hG))
+    (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
+    (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
+    (h_txn_Commit_st : txn_Commit_st.law (GF := GF) (hG := hG)) :
     callTxn.spec (GF := GF) (hG := hG) := by
   intro _ CRE CEC cl ms V hAs x cs t e Q hx hne hb
   obtain ⟨hn, hcs, ht, he⟩ := decIn_txn x cs t e hx
@@ -74,23 +81,23 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   (try wp_auto)
   imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   (try wp_auto)
-  wp_apply (client.client_Txn_st cl ms V cctx ccd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
+  wp_apply (h_client_Txn_st cl ms V cctx ccd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_If tp (ms.map client.SrvAt.addr) cctx ccd TxnBuild.empty csl
+  wp_apply (wp_If tp (ms.map client.SrvAt.addr) cctx ccd TxnBuild.empty csl
       (cs.map linkv.cmpOf)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then_plain tp (ms.map client.SrvAt.addr) cctx ccd _ tos (t.map clientOp)
+  wp_apply ((EtcdGrove.txn.Then.spec_plain wp_Then) tp (ms.map client.SrvAt.addr) cctx ccd _ tos (t.map clientOp)
       (t.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨txnOpOf_clientOps t, rfl, rfl⟩
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Else_plain tp (ms.map client.SrvAt.addr) cctx ccd _ eos (e.map clientOp)
+  wp_apply ((EtcdGrove.txn.Else.spec_plain wp_Else) tp (ms.map client.SrvAt.addr) cctx ccd _ eos (e.map clientOp)
       (e.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
@@ -100,7 +107,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   · iExactEq Hobj
     simp [TxnModel.empty, clientTxn]
   (try wp_auto)
-  wp_apply (txn_Commit_st tp ms cctx ccd
+  wp_apply (h_txn_Commit_st tp ms cctx ccd
       ⟨clientTxn cs t e, true, true, true⟩ Q cs t e rfl hne
       (by
         show txnSizeOk (txnWireOf (clientTxn cs t e))

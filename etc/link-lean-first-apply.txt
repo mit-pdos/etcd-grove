@@ -11,7 +11,8 @@ pbutil_MustUnmarshalMessage:
 MustParse:
 Version__LessThan:
 Version__String:
-types_ID__String:
+strconv_FormatUint:
+types_ID__String: strconv_FormatUint
 etcdserverpb_AlarmType__String:
 zap_Logger__Debug:
 zap_Logger__Info:

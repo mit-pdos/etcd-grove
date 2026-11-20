@@ -102,7 +102,7 @@ theorem processorListener.run.wp_proof
       iintro %fl ⟨Hfl, Hflc⟩
       simp only [go.arrayLiteralSize, List.foldl]
       (try wp_auto)
-      wp_apply wp_tnew as %tr -
+      wp_apply wp_tnew as %tr %Htr
       (try wp_auto)
       iframe
       isplitr
@@ -110,7 +110,8 @@ theorem processorListener.run.wp_proof
       imodintro
       iintro %Ψ HΨ
       wp_auto
-      wp_apply wp_tlog
+      wp_apply (wp_tlog tr _) $$ []
+      · ipureintro; exact Htr
       (try wp_auto)
       wp_apply wp_HandleCrash
       iexact HΨ

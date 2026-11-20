@@ -19,6 +19,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 type statusRec struct {
@@ -34,7 +35,8 @@ func (s *statusRec) Flush() {
 }
 
 func TestPeerRequests(t *testing.T) {
-	t.Chdir(t.TempDir()) // the members' data directories
+	t.Chdir(t.TempDir())        // the members' data directories
+	walarea.ResetFamily(t, "p") // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	// the peer listeners first, each on a port the kernel picks, kept open until served: no port
 	// fixed in advance (33811-33813 were, in the ephemeral range: another process's connection

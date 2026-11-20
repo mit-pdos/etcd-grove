@@ -14,7 +14,8 @@ is retried, and opens the file it made. The new file's `OsMeta` (empty) goes to 
   fresh `*os.File` on a fresh fd, at offset 0 (`os.ownOff`), with the access mode of `flag`
   (`openFd`), on the file the outcome left at `b`. A failure witnesses that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr` names, with
   `d/b` among its paths, `open` does not fail; session S6 folded the former `specCreateSNoErr` into
-  this spec).
+  this spec), or that `d/b` does not fit (`¬ PathFits`: `NoIoErr` covers only paths that fit, the
+  user's decision of 2026-11-19, A1; wal-fsfix, 2026-11-20).
 
 Proved in `Proof/os/OpenFileS.lean`, over `wp_osOpenCreateS` and `wp_osOpenFileS`. Lean-first (no
 Rocq counterpart).
@@ -25,6 +26,7 @@ public import Proof.os.SharedAu
 public import Proof.os.Off
 public import Spec.fmt.ErrorOk
 public import GooseLang.Ext.Fs.FsNoErr
+public import GooseLang.Ext.Fs.Premises
 
 @[expose] public section
 
@@ -69,16 +71,17 @@ abbrev os.OpenFile.specCreateS : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crMeta o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null ∧ ¬ FsNoErr⌝ ∗ fmtErrorOkOrNil err) }}
+         ⌜err ≠ interface.nil ∧ f = null ∧ (¬ FsNoErr ∨ ¬ PathFits (child d b))⌝ ∗
+           fmtErrorOkOrNil err) }}
 
 /-- `specCreateS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
 `notCrashed`, so a client can open an invariant with a crash branch (the WAL's `walInv`) at it; it
@@ -89,11 +92,11 @@ abbrev os.OpenFile.specCreateSnc : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAUnc (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crMeta o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗

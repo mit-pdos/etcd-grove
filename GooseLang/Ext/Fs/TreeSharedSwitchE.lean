@@ -1,10 +1,12 @@
 /-
-**The mode switch at any step** (S3e, 2026-11-17): `wp_osShare'` (`TreeSharedSwitch.lean`) at the
-step of any expression that is not a value, not only an operation of the extension. The switch reads
-and rewrites only the extension's part of the state interpretation, which every step of the program
-gives access to (`wp_ext_acc`), so it may be done before the program's first step: a closed theorem
-that starts in the legacy mode (`fs_start`'s whole tree) switches at once, before handing the proof
-of its program the shared mode's claims (`Proof/runtime/StartFiles.lean`). Untrusted.
+**The mode switch at any step** (S3e, 2026-11-17; per-root resources since wal-link's L4, merged
+2026-11-19): `wp_osShare'` (`TreeSharedSwitch.lean`) at the step of any expression that is not a
+value, not only an operation of the extension. The switch reads and rewrites only the extension's part
+of the state interpretation, which every step of the program gives access to (`wp_ext_acc`), so it may
+be done before the program's first step: a closed theorem that starts in the legacy mode (`fs_start`'s
+whole tree) switches at once, before handing the proof of its program the shared mode's claims
+(`Proof/runtime/StartFiles.lean`; the etcd examples' closed theorems, which allocate their WAL areas at
+adequacy). Untrusted.
 -/
 module
 
@@ -27,11 +29,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-/-- **The mode switch, at the step of any expression that is not a value**: `wp_osShare'`. -/
+/-- **The mode switch before any step of a non-value `e`** (see the file header): the whole legacy
+history `V` (no legacy call or directory fd) for the shared mode's resources: its invariant, the whole
+call permission, the log's length, a claim on all names of every directory of the tree; key `[]`'s
+whole permission goes into its dispenser (`osAboveInv`). Irreversible. -/
 theorem wp_osShareE (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
-      (osSharedInv (L := L) R -∗ osCallPerm (L := L) 1 -∗ osLogLb (L := L) V.2.length -∗
+      (osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) R -∗
+        osLogLb (L := L) V.2.length -∗
         ([∗list] j ∈ (GMap.toList V.now).map (·.1),
           osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
         WP e @ s; E {{ Φ }}) -∗
@@ -50,7 +56,7 @@ theorem wp_osShareE (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE 
   obtain ⟨rfl, rfl⟩ := Heq
   icases whole_alone _ _ Γdf Γc $$ Hh Hrd Hcr with ⟨%Hal, Hh, -, -⟩
   obtain ⟨hdf, hcl⟩ := Hal
-  have hcohS := cohS_switch hns.2 hdf hcl
+  have hcohS := cohS_switch hns.1 hns.2 hdf hcl
   have hV : V = (σ.fs.treeDur, σ.fs.metaLog) := hns.2.hist
   subst hdf hcl
   imod gAuth_insert _ _ _ () (σ.fs.roots, V) (by rfl) $$ Has with ⟨Has, Hs⟩
@@ -59,6 +65,12 @@ theorem wp_osShareE (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE 
     mono_nat_own_update (γ := (gooseOsGS (L := L)).γlen) V.2.length (Nat.zero_le _)) $$ Halen
     with ⟨Halen, #Hlb⟩
   imod log_alloc _ V.2 $$ Halog with Halog
+  imod perm_alloc _ σ.fs.roots $$ Hperm with Hperm
+  icases (BigSepM.bigSepM_delete (M := GMap GoString)
+    (Φ := fun (r' : GoString) (u : Unit) => gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm r'
+      (DFrac.own 1) u) (permMap_lookup σ.fs.roots [] (.inl rfl))).1 $$ Hperm with ⟨Hp0, Hperm⟩
+  imod inv_alloc osAbN E iprop(∃ q, osCallPerm (L := L) [] q) $$ [Hp0] with #Hab
+  · inext; iexists 1; unfold osCallPerm; iexact Hp0
   imod claims_alloc _ V _ (GMap.toList_keys_nodup _) $$ Han with ⟨Han, Hcl⟩
   imod inv_alloc osShN E iprop(∃ (Vs : Hist) (Γn : GMap (Ino × NameSet) NamesH),
     gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γs () (DFrac.own 1) (σ.fs.roots, Vs) ∗
@@ -89,8 +101,10 @@ theorem wp_osShareE (R : Roots) (V : Hist) (e : Expr) (he : toVal e = none) (hE 
     · iapply BigSepM.bigSepM_empty.2; itrivial
   iframe Hg
   simp only [osNames_except]
-  unfold osSharedInv osCallPerm osLogLb
-  iapply HΦ $$ Hsi Hperm Hlb Hcl
+  ihave Hab' : osAboveInv (L := L) $$ [Hab]
+  · unfold osAboveInv; iexact Hab
+  unfold osSharedInv osCallPerms osCallPerm osLogLb
+  iapply HΦ $$ Hsi Hab' Hperm Hlb Hcl
 
 end specs
 

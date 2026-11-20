@@ -1,0 +1,183 @@
+# wal-fsfix handoff
+
+## START HERE (2026-11-20 z5) — at the LAND STOP (report sent to etcd-grove-03)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`. Builds: plain build-slot (never BUILD_SLOT_BIG).
+- full4 was killed at 20795/22416 (no errors). Merged lean f7f4930794 (k8s-unified; clean merge, no edit needed:
+  the name-bound premises are discharged inside the k8s drivers' `Main.wp_proof`s, so `examples/k8s/all` is untouched).
+- Verified at the merge: full timed build `20261120-152138-738785` green; tcb-report --check 674 axioms/2 sorries
+  (lean's baseline); 69 collections match (k8s-all included); goose/gen-init/copy-part/raft-tla/k8s-deep --check;
+  59 gen-link modes + btree; api, interfaces --check --layout; tier, bounds, mode, axiom-tok (+selftest),
+  reader-slot, errorf-wrap, model-param, pbschema, featuregate, k8s-correctness, issues: all ok.
+- Closed statements vs lean: only `mvccrand_robust.spec`, `mvccfull_robust.spec` (+ `Hrfit : Fs.DirFits r`).
+- After the land stop do not commit unless the coordinator says so. Follow-ups (after landing, approved order):
+  `config.snapDirOf` as Go's `filepath.Join(d,"member","snap")`; `cut.specNoErr`; `rnNewStorageOk_holds`.
+
+## History (2026-11-20 z4)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`. Builds: plain build-slot (never BUILD_SLOT_BIG).
+- Verified at dc31a67d3a (lean 4d716f5f47 merged): full timed build `20261120-134300-368428` green; tcb-report
+  --check 680 axioms/2 sorries (unchanged); 70 collections unchanged; interfaces regenerated (backend, bbolt,
+  etcdstart); tier/bounds/api checks ok. Then lean 5a18d777d2 (merge-origin10) merged (clean, STATUS by the merge
+  driver); its full timed build: `/shared/tmp/walfsfix/full4.log` (if it is not green, repair; then tcb --check and
+  the collections again, `--reuse` after one full run).
+- After the land stop do not commit unless the coordinator says so. Open work (separate stages): `cut.specNoErr`
+  (add `[FsStepSat (NoMapLockErr Sio)]` and `Fs.DirFits dir`; NE callee specs missing), `rnNewStorageOk_holds`
+  (blocked), `Create.specNoErr` (STOP), and whether to define `config.snapDirOf` as Go's `Join` (attack item 3).
+
+## History (2026-11-20 z3)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. **Merged lean 4d716f5f47**
+  (merge-origin9): pin c44b74871, `--packages=/shared/tmp/manifest-c44.json` (`.lake/package-overrides.json` its
+  copy), `PERENNIAL_DIR=/shared/perennial-c44b74871`. Builds: plain build-slot (never BUILD_SLOT_BIG).
+- **Built before the merge** (build 20261120-123233-66776 at 85b6ae6c71): everything but mvccfull/Adequacy and
+  auth3/Main, both fixed and lean-checked in 01a5c355d1. The attack's text fixes applied (4cf7f724a9).
+- **Running**: the full timed build after the merge, `/shared/tmp/walfsfix/full3.log` (its `BUILD rc` line; the
+  id in `timed-build: recorded build ...`).
+- **Next**: repair what it shows → `etc/tcb-report.py --check --update` (LAKE_OPTS=--packages=...c44), the
+  collections (`--collection etc/tcb-collections/<c>.txt --check --update` for those that moved),
+  `etc/gen-interface.py etc/api/<pkg>.txt` for APIs whose interface moved (bbolt `Open`, os) → land-stop report.
+- `cut.specNoErr`: not started (a stage of its own): a hypothesis carried by `wp_Save`/`wp_SaveSnapshot` (Link), so
+  its form can change: add `[FsStepSat (NoMapLockErr Sio)]` (fileutil's flock fallback) and `Fs.DirFits dir`;
+  needs NE callee specs that do not exist (Truncate specAu, syncCut, walPipe open, Rename, FsyncDir, Close,
+  LockFile over OFD+flock). `rnNewStorageOk_holds` blocked on it and on Create.specNoErr (a STOP); its premise is in
+  `etcdstart.commonPremises`, so every etcd example's closed statement keeps it (24 examples, list in the report).
+- Land-stop items: mvccrand/mvccfull `Hrfit : Fs.DirFits r` (new closed premise; the only existing root premise is
+  `RootsOk`/`RootForm` inside `FsInit`, shared by every fs example: not used); bootstrapContract pre gains `DirFits`
+  (weaker assumption), its post's claims carry `PathFits` of `snapDirOf` paths (`snapDirOf` opaque: asserted, true
+  of Go: attack item 3); Premises.lean: flock out of IoCovers (NoMapLockErr, still "pending the user's review", now
+  its only coverage), text fixes; the internal specs' name-bound premises; cluster3.cfgOk gains len1-3.
+
+## History (2026-11-20 z2)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. Pin 3afd77e35:
+  `--packages=/shared/tmp/manifest-3af.json`. Builds: plain `/shared/tmp/build-slot.sh ...` (never BUILD_SLOT_BIG).
+- **Done this session**: Fs layer builds (`NoMapLockErrSpecs` over MapDesc/LockStep (b), `OpenFileS`); the name
+  bound threaded (9cff19a579: `name.length ≤ 200` premises on etcdstart's `newServerMode`, `newServer`, `NewMember`,
+  `BuildServer`, `StartMember(Auth)`, `StartServer`, `Start{Compacting,Periodic}Server`, `StartMembers(Auth)`,
+  auth3/restart/restartN specs; `memberAt_name_len`, each N-example's `members_names_len`, `cluster3.cfgOk.len1-3`;
+  discharged by `decide` for literal names); the independent attack (noioerr.md session 10: no refutation).
+- **Pending text fixes NOT in the tree** (kept out so intermediate builds do not cascade): apply
+  `git apply /shared/tmp/walfsfix/premises-text.patch` (Premises.lean's false OFD sentence, "one premise per call";
+  WalLayoutFits docstring) BEFORE the final full timed build.
+- **Next**: the full build (`/shared/tmp/walfsfix/full2.log`) → repair (expected: etcdstart/examples arg order,
+  `dirFits_memberDataDir name HnL` defeq against the literal's `DataDir'`) → apply the patch → full timed build
+  (report id) → `etc/tcb-report.py --check --update`, collections, `etc/gen-interface.py` for touched APIs → land
+  stop. `cut.specNoErr`: not started; it is a hypothesis carried by `wp_Save`/`wp_SaveSnapshot` (Link), so its form
+  can change: add `[FsStepSat (NoMapLockErr Sio)]` (fileutil's flock fallback) and `Fs.DirFits dir`; it needs NE
+  callee specs that do not exist yet (Truncate specAu, syncCut, walPipe open, Rename, FsyncDir, Close, LockFile
+  over OFD+flock): a stage of its own. `rnNewStorageOk_holds` blocked on it and on Create.specNoErr (a STOP).
+- Land-stop items: mvccrand/mvccfull `Hrfit : Fs.DirFits r` (new closed premise; RootsOk/RootForm is the only
+  existing root premise, shared by every fs example: not used); bootstrapContract pre gains `DirFits`, its post's
+  claims carry `PathFits` of `snapDirOf` paths (opaque: asserted, true of Go); Premises.lean flock out (NoMapLockErr,
+  still "pending the user's review", now its only coverage); attack's text fixes.
+
+## History (2026-11-20 z)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. Pin 3afd77e35:
+  `--packages=/shared/tmp/manifest-3af.json`. `.lake/build` seeded from wal-link's at lean 94ea36b029 (merged: c7b7c8d8f1).
+- **The user's decisions of 2026-11-20** (questions.md, ledger "2026-11-20: the error-free open/rename specs need
+  the paths to fit"): (1) member-name bound in `bootCfgFresh`, `PathFits` premises up the stack; (2) flock out of
+  `NoIoErr` (NoMapLockErr covers it). Config-C runs recorded (noioerr.md session 9; both pass after 768dbff487).
+- **Done, uncommitted-then-committed in the WIP commit after this handoff** (not yet built past `GooseLang/Ext/Fs`):
+  - trusted text: `Premises.lean` (no `"Flock"` in `IoCovers`, docstrings), Go texts `premise_no_io_err.go`, `doc.go`;
+  - `NoMapLockErr.lean`'s `noIoErr_noMapLockErr_keeps` back to "disjoint but open"; `NoIoErr.lean` Flock case gone;
+  - new `GooseLang/Ext/Fs/PathFitsLemmas.lean` (`WinOk`, `DirFits`, `winOk_short`, `winOk_child`,
+    `pathFits_child`, `pathFits_of_dirFits`; lean-check clean);
+  - `NoErrSpecsOpenFile` (`hS : Sio.path p ∧ PathFits p`), `NoErrSpecsRename` (`hfit`): lean-check clean;
+  - `os.OpenFile.specCreateS`'s error arm `¬ FsNoErr ∨ ¬ PathFits (child d b)` (Spec + Proof/os/OpenFileS.lean);
+    bbolt `Open.spec`'s error arm the same (Spec + Proof `Open.wp_proof`, `openFileDb_shared`);
+  - `InvBbolt.lean`: `fileHoldsF`/`nameAtF`/`fileFreeF` carry `PathFits path` (last conjunct); `bPath_join`,
+    `fileAt_fileHolds` fixed; `newBackend.lean`'s `kvGlue_Open`, `Proof/os/Rename.lean` (`rename_fileNE` takes
+    `hfit`) fixed; `StartFiles.lean`: `hok : ∀ b ∈ bs, NameOk b ∧ PathFits (child r b)`.
+- **Also done (d78e350c1e and the commit after)**: mvccrand/mvccfull `Adequacy`, `Results`, `TopLevelRobustness`
+  (Spec+Proof) take `Hrfit : Fs.DirFits r` (closed-statement change) with `mvccfullNames_len`; new
+  `storage/WalLayoutFits.lean` (`memberDataDir_child`, `dirFits_memberDataDir`: name ≤ 200 → `DirFits`, lean-check
+  clean); `bootCfgFresh`'s last conjunct `(∀ k, … utf8Valid k) ∧ Fs.DirFits cfg.DataDir'` (destructuring sites of
+  `bootCfgFresh` need `.2.2.1` for the UTF-8 part now). `bootstrapContract` (a closed premise) thereby changes: its
+  precondition gains `DirFits`, its `bootOk`'s `Hsfree` (`snapFreeAll` → `fileFree`) now carries `PathFits` of each
+  snapshot path: list both in the land report.
+- **Next (in order)**: build `GooseLang.Ext.Fs.*` (the queued run was terminated, exit 143, while still waiting for a build slot: nothing built since the edits), then `Proof.os.*`, bbolt `Open`,
+  backend; then the producers of the name claims: (a) `start_fileHolds` callers: mvccrand/mvccfull `Adequacy`
+  (+ their `TopLevelRobustness` Spec/Proof): new premise `Fs.DirFits r` (closed-statement change: report) and a
+  length lemma for `mvccfullNames` (as `mvccfullNames_ok`); (b) the etcd examples' snapshot names
+  (`snapFreeAll` in `InvBoot`'s `Hsfree`, produced in etcdstart, `Dir.lean`/`Alloc3`/...) and the backend path:
+  `bootCfgFresh` gains `DirFits cfg.DataDir'` (form decided, questions.md), discharged in etcdstart from
+  `memberDataDir name` with a name bound (≤ 200 bytes) in the examples' member premises (`AdequacyMembers` `ms`,
+  concrete names elsewhere: `winOk_child (winOk_short …)`); `snapDBPath sd i` component is 29 bytes.
+  Find what breaks with `etc/importers.py --uses fileHoldsF/nameAtF/fileFreeF/specCreateS/bootCfgFresh`.
+- Then: full timed build, tcb --check --update (+ collections, interfaces), cut.specNoErr, rnNewStorageOk_holds,
+  independent attack (fresh read-only subagent, axiom skill) on Premises.lean's flock change, PathFits and the
+  new conjunct, STOP at the land stop listing old → new closed statements (mvccrand/mvccfull `Hrfit`, etcd examples'
+  name bound, rnNewStorageOk gone). Create.specNoErr stays a STOP (directory read permission).
+- Pitfalls: Go tests here as root; `/shared` idmapped; no loop devices here; SaveDBFrom's axiom now reads
+  `fileFree`/`fileAt` with `PathFits` (same path in and out: no new claim; mention in the land report).
+
+## History (2026-11-20 y)
+
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head: `git log -1`. Pin 3afd77e35:
+  `--packages=/shared/tmp/manifest-3af.json` (`.lake/package-overrides.json` = its copy). `.lake/build` seeded
+  (cp -a) from wal-link's at lean 94ea36b029.
+- c7b7c8d8f1 = merge of lean 94ea36b029 (wal-link landed). wal-link's split revert 28d300ba17 is NOT taken (the merge
+  is of lean with that revert undone, so NoIoErr (a)/PathErrno stay). fb1fd2cef1 = the Fs repairs (NoIoErr.lean,
+  NoMapLockErr.lean build, `lean-check -a`).
+- **STOPPED (coordinator decision)**: lean's error-free open/rename specs (`NoErrSpecsOpenFile`: `open_failure_eintr`,
+  `wp_osOpenCreateSNE`, `wp_osOpenFileSNE`; `NoErrSpecsRename`: `wp_osRenameFileSNE`) build `IoCovers "Open"/"Rename"`
+  for ANY path; this branch's A1 decision covers only `PathFits` paths. Their callers (`Proof/os/OpenFileS.lean`,
+  `Proof/os/Rename.lean`: `os.Rename.spec`, bbolt's `Open_sharedNoErr`, the server's snapshot backend) get paths from
+  `memberDataDir name` with a generic `name`: a path-length fact must come from somewhere: a closed-statement
+  premise (member names short) or a decision change. Options in the report (and below).
+- Full timed build NOT run (would fail at NoErrSpecsRename/OpenFile and everything above them).
+- Then: full build, tcb --check --update, collections, interfaces; cut.specNoErr (reuse `wp_osRenameFileSNE` etc.;
+  `LockFile`'s blocking flock is named by both NoIoErr and NoMapLockErr now: a twin of trusted coverage, see report);
+  rnNewStorageOk_holds; Create.specNoErr is a STOP (directory read permission, final attack finding 2).
+- Config-C run at f5823538f2 done by the user (`/shared/tmp/walfsfix-cmodels/t.out`): the failures were harness
+  bugs, fixed in 768dbff487 (Go/scripts only). Rerun for the user: commit 768dbff487, `examples/osfs/semantics/run-models-on-c.sh -v
+  -run '^(TestNoIoErrPermissions|TestNoIoErrPermAncestor|TestNoIoErrPermFileWrite|TestNoIoErrProtectedSymlinks|TestDirRenameScopedToRoot|TestEnoent)$'`.
+- Pitfalls: Go tests here as root; `/shared` idmapped; no loop devices in this container.
+
+## History (2026-11-19 x)
+
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head: `git log -1`. NOT merged with lean e95ce79ce9
+  (pin 3afd77e35). Current pin f551a1b46: `--packages=/shared/tmp/manifest-f55.json`.
+- Done: b65bc3e75c = the user's decisions on attack 7 (env clauses F1' no close during a lock call, F2' fd limits;
+  F3' wording; nits; `env_no_close_during_lock.go`, `TestLocksCloseDuringLock`, `TestNoIoErrEmfile`). f5823538f2 =
+  the final attack's findings recorded as known model gaps (noioerr.md session 8, notes/audit.md); no STOP.
+- Full timed build of f5823538f2's Lean (same as b65bc3e75c): green, id 20261119-133559-4041148; no proof repair
+  was needed (the LockStep/IoCovers changes of d1b49ad308 build).
+- **STOPPED at the lean merge**: lean e95ce79ce9 (merge-origin4: origin's real bbolt, S3d `wp_logStepSWGQ`,
+  `FsStep = FsStepV ∨ MmapStall`, `NoMapLockErr`, `NoErrSpecs{Open,OpenFile,Rename}`) conflicts in 55 files with
+  wal-link's call-key change (`osCallS k s0 pc q`, `callKey R pc`) that this branch carries; origin's new bbolt and
+  NoErrSpecs proofs use the old call API. Resolution belongs to wal-link's lean merge (aborted here). Resolved in
+  the try: NoIoErr.lean (`fsStepV_of_ne` + `noIoErr_good`), Impl.lean's Mmap comment (both), TreeSharedStep/
+  TreeSpecsMeta (HEAD + `hM`); TreeSharedLog/TreeSharedCreate need pc threaded through lean's Q variants.
+- Next after the merge: tcb --check --update, collections, interfaces; cut.specNoErr (reuse lean's
+  `wp_osRenameFileSNE` etc.: no twins), Create.specNoErr (needs directory READ permission in C's permissions
+  first: final attack finding 2, a STOP), rnNewStorageOk_holds.
+- Config-C run for the user: commit f5823538f2, filter
+  `^(TestLocks|TestNoIoErr|TestDirRenameScopedToRoot|TestCrossRootRenameExcluded)` (report).
+- Pitfalls: Go tests here as root; `/shared` idmapped (permission tests on /dev/shm); no loop devices in this
+  container (run-models-on-c.sh must run on a host with them).
+
+## History (2026-11-19 w)
+
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head: see `git log -1` (merge of lean 1e4cb38613 on
+  d1b49ad308). Pin f551a1b46: `--packages=/shared/tmp/manifest-f55.json`; `.lake/package-overrides.json` = its copy.
+- Done: d1b49ad308 = the user's decisions of 2026-11-19 on the attack on 9017eb196d (LockStep option (b), NoIoErr
+  blocking-only locks + `PathFits`, permission texts, A3 revert, Go examples/tests); noioerr.md session 7.
+- **STOPPED at the independent attack** (noioerr.md, session 7, last section): refutation F1' (a blocking lock call
+  succeeds after its fd's close), false texts F2' (EMFILE) and F3' (ENAMETOOLONG wording), nits. Decisions needed.
+- NOT done: no Lean build yet over the new semantics (Impl.lean and TrustedCode/syscall.lean are imported by ~15k
+  modules: a full timed build); `.lake/build` seeded from wal-link's (cp -a, 2026-11-19).
+- Next after the decisions: fix the texts (each with Go example/measurement), re-attack if trusted text changes,
+  full timed build (`/shared/tmp/build-slot.sh etc/timed-build.py --packages=/shared/tmp/manifest-f55.json`, run in
+  background), repair bbolt/WAL proofs (expected mechanical: one conjunct fewer in LockStep's failure arm; IoCovers
+  gains conjuncts), then cut.specNoErr (needs PathFits of the WAL paths: a dir-length premise), Create.specNoErr,
+  rnNewStorageOk_holds (brief: wal-link's notes/wal-fsfix-brief.md).
+- Pitfalls: df on /shared is tight (~30 GB free after the seed); Go tests here as root; `/shared` is idmapped
+  (lchown → EOVERFLOW: run permission tests with SEMANTICS_C_DIR on /dev/shm); os.Chmod needs os.ModeSticky, not 0o1000.

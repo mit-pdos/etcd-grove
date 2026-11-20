@@ -161,7 +161,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     -- the monotone mode: the lease reads and the grant at the lessor's history
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
     icases srvLeaseRd_srvInv s E .mono (by decide) $$ Hlr with ⟨%on, #Hli⟩
-    ihave #HGL := v3rpc.lessorGrantOkL_server s E ρ iprop(client.etcdRunSlot s E γr ∗ levelTok 0)
+    ihave #HGL := v3rpc.lessorGrantOkLM_server s E ρ iprop(client.etcdRunSlot s E γr ∗ levelTok 0)
         hlg (by rw [hm]; decide) on $$ []
     · iframe #
       isplitr
@@ -175,7 +175,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       iframe Hlt Hrd
       iintro ⟨Hlt, Hrd⟩
       iframe
-    ihave #Hlms := client.etcd_leaseGrantMethodsOk pl ql s C.A lcid lmid E γr il im iu
+    ihave #Hlms := client.etcd_leaseGrantMethodsOk pl ql s C.A lcid lmid E ρ γr il im iu
         (by rw [HCA]; rfl) Hoff hNx $$ []
     · iframe #
     ihave #Hks := client.srvRunOks_of_slot s E γr [il, im, iu]
@@ -219,9 +219,9 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     -- the revocable mode: the lease reads and the live grant
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
     icases srvLeaseRd_srvInv s E .revocable (by decide) $$ Hlr with ⟨%on, #Hli⟩
-    ihave #HGL := v3rpc.lessorGrantOkLive_server s E ρ
-        iprop(client.etcdRunSlot s E γr ∗ levelTok 0) hlg (fun q => q.2 = W64 0)
-        (fun _ h _ => h) $$ []
+    ihave #HGL := v3rpc.lessorGrantOkLiveM_server s E ρ
+        iprop(client.etcdRunSlot s E γr ∗ levelTok 0) (fun q => q.2 = W64 0)
+        (fun _ h _ => h) hlg $$ []
     · iframe #
       isplitr
       · iintro !>
@@ -234,7 +234,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       iframe Hlt Hrd
       iintro ⟨Hlt, Hrd⟩
       iframe
-    ihave #Hlms := client.etcd_leaseGrantLiveMethodsOk pl ql s C.A lcid lmid E γr il im iu
+    ihave #Hlms := client.etcd_leaseGrantLiveMethodsOk pl ql s C.A lcid lmid E ρ γr il im iu
         (by rw [HCA]; rfl) Hoff hNx $$ []
     · iframe #
     ihave #Hks := client.srvRunOks_of_slot s E γr [il, im, iu]

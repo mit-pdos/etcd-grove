@@ -32,9 +32,9 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.spec : Prop :=
   ∀ (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (n : Nat),
   {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
-      osCallPerm (GF := GF) qc ∗ osLogLb (GF := GF) n }}
+      osCallPerm (GF := GF) (callKey R p) qc ∗ osLogLb (GF := GF) n }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir)) (Val #p))
-  {{ (err : GoInterface), RET #err; osPathS R p dq j ∗ osCallPerm qc ∗
+  {{ (err : GoInterface), RET #err; osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
       (⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
 
 /-- `syncDir(p)` of a strict ancestor of a root (`os.AboveRoot`): any error, nothing changed: `OpenDir`
@@ -43,11 +43,11 @@ pending the user's review), whose `Sync` claims nothing. A hypothesis of `TouchD
 final loop syncs the parent of every directory its `Exist` loop found missing, the root's parent
 included when `Stat` of the root failed. Proved: `syncDir.wp_proofAboveRoot`. -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.specAboveRoot : Prop :=
-  ∀ (p : GoString) (R : Roots) (qc : Qp),
+  ∀ (p : GoString) (R : Roots),
   os.AboveRoot R p →
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) qc }}
+  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osAboveInv (GF := GF) }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir)) (Val #p))
-  {{ (err : GoInterface), RET #err; osCallPerm qc }}
+  {{ (err : GoInterface), RET #err; True }}
 
 end spec
 

@@ -1,7 +1,8 @@
 /-
 `(*storage.Preconditions).Check(key, obj)` (`k8s.io/apiserver/pkg/storage/interfaces.go:145`):
 `nil` when the preconditions `pp` (`nil`: none) hold of the object `obj`'s UID and resource version
-string (`KPre.ok`), else `NewInvalidObjError(key, _)` (`invalidErrIs`). The object is a
+string (`KPre.ok`), else `NewInvalidObjError(key, msg)` with the message `msg` it formats
+(`KPre.failMsg`; `invalidErrMsg`, which gives `invalidErrIs`). The object is a
 `metav1.Object` whose `GetUID`/`GetResourceVersion` answer `uid`/`rvs` (`metaAt`, which the
 store's objects give, `ObjSpec.metaOk`), so `meta.Accessor`'s error branch is not reached; its
 ownership `R` comes back. Lean-first (no Rocq counterpart). Stage 7b of
@@ -9,7 +10,7 @@ ownership `R` comes back. Lean-first (no Rocq counterpart). Stage 7b of
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apiserver.pkg.storage.InvalidMsg
 
 @[expose] public section
 
@@ -36,7 +37,8 @@ abbrev storage.Preconditions.Check.spec : Prop :=
     (App (App (Val (pp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.Preconditions.ty @!! go!"Check")) (Val #key)) (Val #obj))
   {{ (err : GoInterface), RET #err; R ∗
-      (if p.ok uid rvs then ⌜err = GoInterface.nil⌝ else invalidErrIs err key) }}
+      (if p.ok uid rvs then ⌜err = GoInterface.nil⌝
+        else invalidErrMsg err key (p.failMsg uid rvs)) }}
 
 end spec
 

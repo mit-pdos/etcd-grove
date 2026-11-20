@@ -4,7 +4,8 @@
 
 theorem etcdstart.Serve.wp_proof [HasExt idIssueExt] (wp_KEP : grpc.KeepaliveEnforcementPolicy.spec)
     (wp_Server : v3rpc.Server.spec) (wp_Listen : net.Listen.spec) (wp_Serve :
-    grpc.Server.Serve.spec) : etcdstart.Serve.spec
+    grpc.Server.Serve.spec) (h_grpcCfgOk_of_startedM : client.grpcCfgOk_of_startedM.law)
+    (h_raftKV_serverM : v3rpc.raftKV_serverM.law) : etcdstart.Serve.spec
   -- `Perennial.EtcdGrove.etcdstart.Serve.spec`, unfolded:
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (Q : w64 → w64 → v3rpc.WSrv GF → IProp GF),

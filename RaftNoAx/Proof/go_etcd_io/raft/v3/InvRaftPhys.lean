@@ -954,25 +954,49 @@ theorem LogNsOk.of_outbox {s : NState} (o : List Msg) (H : LogNsOk s)
 theorem LogNsOk.off {s : NState} (h : s.gh.ns = false) : LogNsOk s :=
   fun h' => absurd (h.symm.trans h') (by decide)
 
-/-- (U8 v2, 2026-10-29) **The no-snapshot mode is off** (`ownRaftPhys`'s `Hnscap`, at the mode `ns`; the
-storage argument is unused). Until U8 v2 this was the mode's cap of the storage (`storCap st 1`: never
-compacted past index `1`, so that a leader in the mode never fell back to a snapshot); the new storage
-contract (`isStorageP`) bounds compaction only by what raft applied, so the mode is dropped at raft's
-level: every node has `NGhost.ns = false` (and so, by `NsLink`, the cluster's `reNoSnap = false`), and
-the mode's facts (`LogNsOk`, `PrOkN`'s `PrLo`, ...) hold vacuously. The name is kept for its call
-sites; the mode itself goes at the node level (step 4). -/
-def NsCap (ns : Bool) (_st : Storage) : IProp GF := iprop(⌜ns = false⌝)
+/-- (auth-lease S4, 2026-11-16) **The storage `st` is never compacted past `k`** (persistent): from
+the contract's justification (`isStorageP`'s `Hbound`) in the cluster's no-snapshot mode
+(`storBnd`'s clause), under an update at `⊤` as the contract's. -/
+def storCapF (st : Storage) (k : Nat) : IProp GF :=
+  iprop(□ ∀ c : Nat, storCompacted st c ={⊤}=∗ ⌜c ≤ k⌝)
+
+instance storCapF_persistent (st : Storage) (k : Nat) : Persistent (storCapF (GF := GF) st k) := by
+  unfold storCapF; infer_instance
+
+/-- (D21 M3, 2026-10-19; U8 v2, 2026-10-29, off at raft's level; auth-lease S4, 2026-11-16, revived)
+**The no-snapshot mode's cap of the storage** (`ownRaftPhys`'s `Hnscap`, at the mode `ns`): outside
+the mode nothing, in it the storage never compacted past index `1` (`storCapF`), so that a leader in
+the mode never falls back to a snapshot (`maybeSendAppend`: its peers' `Next` at least `2`, `PrLo`).
+Set with the mode (`ownRaftPhysC_set_ns`), from the storage contract's justification. -/
+def NsCap (ns : Bool) (st : Storage) : IProp GF := iprop(⌜ns = false⌝ ∨ storCapF st 1)
 
 instance NsCap_persistent (ns : Bool) (st : Storage) : Persistent (NsCap (GF := GF) ns st) := by
   unfold NsCap; infer_instance
 
 theorem NsCap.off (st : Storage) : ⊢ NsCap (GF := GF) false st := by
-  unfold NsCap; ipureintro; rfl
+  unfold NsCap; ileft; ipureintro; rfl
+
+/-- In the mode, the storage is compacted at most to `1` (`storPast`'s bound). -/
+theorem NsCap.past_le (st : Storage) (m : Int) :
+    ⊢ NsCap (GF := GF) true st -∗ storPast st m ={⊤}=∗ ⌜m ≤ 1⌝ := by
+  iintro #Hc #Hp
+  iunfold NsCap at Hc
+  icases Hc with (%Hf | #Hc)
+  · cases Hf
+  iunfold storPast at Hp
+  icases Hp with ⟨%n, %hn, #Hn⟩
+  iunfold storCut at Hn
+  iunfold storCapF at Hc
+  imod Hc $$ %n.toNat Hn with %h
+  imodintro
+  ipureintro; omega
 
 /-- A log change that keeps `LogNsKeep` keeps the storage in the no-snapshot mode. -/
 theorem NsCap.of_keep {s : NState} {ls' : LogState} (Hg : LogNsKeep s ls') :
     NsCap (GF := GF) s.gh.ns s.logst.storage ⊢ NsCap s.gh.ns ls'.storage := by
-  unfold NsCap; exact .rfl
+  cases h : s.gh.ns
+  · unfold NsCap; iintro _; ileft; ipureintro; rfl
+  · rw [(Hg h).2.2.1]
 
 theorem LogNsOk.of_ghOk' {s s' : NState} {ls' : LogState} (H : LogNsOk s) (Hg : LogNsKeep s ls')
     (hg : s'.gh.ns = s.gh.ns) (hl : s'.logst = ls') (ho : ∀ m ∈ s'.outbox, m ∈ s.outbox) :
@@ -2189,8 +2213,27 @@ theorem ownRaftPhysC_raise_tc (r : Loc) (id : w64) (s : NState) (tc : w64)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) HmsgsAA_ok Hout_term' Hgh_out Hgh_unst Hvoter (by phys_pure) Hnsl (by first | exact Hxf | exact Hxf.term_le Hle) Hlq
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
 
--- (U8 v2, 2026-10-29) `ownRaftPhysC_set_ns` (the no-snapshot mode set, with the storage's cap) removed:
--- the mode is dropped at raft's level (`NsCap`).
+/-- (2026-10-19, D21 M3; U8 v2 removed it; auth-lease S4, 2026-11-16, revived) **The no-snapshot mode
+set** (a ghost step, `NGhost.ns`): at a node that leads no one (so `PrvalsOk` asks nothing more), with
+no pending snapshot, its log's boundary at most `1`, its commit index at least `1`, no `MsgSnap` in its
+outbox, and its storage never compacted past `1` (`storCapF`). -/
+theorem ownRaftPhysC_set_ns (r : Loc) (id : w64) (s : NState) (Hrole : s.role ≠ .leader)
+    (Hsn : s.logst.snap = none) (Hp : uint.Z s.logst.prev.index' ≤ 1)
+    (Hc : 1 ≤ uint.Z s.logst.committed) (Ho : ∀ m ∈ s.outbox, m.ty ≠ .snap) :
+    ⊢ storCapF (GF := GF) s.logst.storage 1 -∗ ownRaftPhysCV c V r id s -∗
+      ownRaftPhysCV c V r id { s with gh := { s.gh with ns := true } } := by
+  iintro #Hcap H
+  iNamed_physC H
+  ihave #Hnscap' : NsCap (GF := GF) true s.logst.storage $$ []
+  · unfold NsCap; iright; iexact Hcap
+  iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with ns := true } } _ msgs msgsAA lok
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
+    (PrvalsOk.not_leader Hrole) (fun _ => ⟨Hsn, Hp, Hc, Ho⟩)
+    (by first | exact Hxf | exact Hxf.of_fields rfl rfl rfl rfl) Hlq
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap' Hscert
 
 -- (raft-final phase 1, 2026-10-29, U9) `ownRaftPhysC_set_bt` and `ownRaftPhysC_xf_off` (the
 -- no-transfer mode's ghost steps, `NGhost.bt`/`xf`) deleted with the mode.
@@ -2225,17 +2268,16 @@ theorem ownRaftPhysC_ns (r : Loc) (id : w64) (s : NState) :
   iframe Hnscap
   resealC c s
 
-/-- (U8 v2, 2026-10-29) The no-snapshot mode is off (`NsCap`), and the log's storage names are the
-ghost state's mirror (`GhLogOk`), read out. -/
+/-- (U8 v2, 2026-10-29) The no-snapshot mode's facts of the log (`LogNsOk`; auth-lease S4, 2026-11-16:
+until then the mode off, `NsCap`), and the log's storage names are the ghost state's mirror
+(`GhLogOk`), read out. -/
 theorem ownRaftPhysC_sn (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜s.gh.ns = false ∧ s.logst.sn = s.gh.sn⌝ ∗ ownRaftPhysCV c V r id s := by
+      ⌜LogNsOk s ∧ s.logst.sn = s.gh.sn⌝ ∗ ownRaftPhysCV c V r id s := by
   iintro H
   iNamed_physC H
-  ihave %Hns : ⌜s.gh.ns = false⌝ $$ [Hnscap]
-  · iunfold NsCap at Hnscap; iexact Hnscap
   isplitr
-  · ipureintro; exact ⟨Hns, Hgh_unst.2.2⟩
+  · ipureintro; exact ⟨Hnsl, Hgh_unst.2.2⟩
   resealC c s
 
 theorem raft.wp_store_VoteC (r : Loc) (id : w64) (s : NState) (v : w64) :

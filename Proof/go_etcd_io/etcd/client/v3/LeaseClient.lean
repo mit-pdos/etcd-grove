@@ -17,6 +17,7 @@ public import Spec.go_etcd_io.etcd.client.v3.lessor__Revoke
 public import Spec.go_etcd_io.etcd.client.v3.lessor__KeepAlive
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Init
+public import Proof.go_etcd_io.etcd.client.v3.LessorPlain
 
 @[expose] public section
 
@@ -54,6 +55,8 @@ theorem isEtcdLease_of_lessor
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
     isEtcdLease (lessorIfaceOf l) := by
+  have wp_Grant := lessor.Grant.specP_of wp_Grant
+  have wp_Revoke := lessor.Revoke.specP_of wp_Revoke
   iintro ⟨#Hp, #Hl, #HG0, #HR0, #Hstr, #Heof, #Hall, #Htg⟩
   ihave #HG := (isGrpcRpcs_singleton addr _ _).1 $$ HG0
   ihave #HR := (isGrpcRpcs_singleton addr _ _).1 $$ HR0

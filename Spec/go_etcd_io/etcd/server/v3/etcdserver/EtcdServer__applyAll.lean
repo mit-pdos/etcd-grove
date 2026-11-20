@@ -55,7 +55,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (sa : auth.AuthState) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : WTNames) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64),
+    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames GF) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
       -- the mode, `logShapeM`)
@@ -69,7 +69,10 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         uint.Z ai = A.length ∧ lastTermIs A at0 ∧
         storage.diskOk ∧ uint.Z g ≤ uint.Z (ciEff γ st.k) ∧
         uint.Z (ciEff γ st.k) ≤ uint.Z g ∧ uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
-        (A ++ unapplied ai ms).length ≤ n⌝ ∗
+        (A ++ unapplied ai ms).length ≤ n ∧
+        -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode, the applied
+        -- index within the write tokens taken (`snapshotIfNeededAndCompactRaftLog`'s)
+        (clusterNoSnap γr.raft.raft.cl → uint.nat ai ≤ w)⌝ ∗
       isServerC C s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
@@ -189,7 +192,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
     (x : apply.ApplyKV) (A : List EntryModel) (mst : Loc) (γs : MemStorNames) (γp : WTNames)
-    (γnc : NotifyNames) (w : Nat) (nid : w64) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat)
+    (γnc : NotifyNames) (w : Nat) (nid : w64) (nk : GName) (q : Qp) (γn : RNNames GF) (rt : w64) (n : Nat)
     (sa : auth.AuthState)
     -- (R2d'a task 4; the swap, 2026-11-06) the ghost applied index `g` (Go's `ai` at most it) and the rest
     -- buckets' image `r0`
@@ -215,6 +218,9 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   -- grants no lease, the lease-grant plan's D2 interim restriction)
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
+  -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (the payload's, `rnApSnap`): the
+  -- snapshot path frees the lessor window
+  ¬ clusterNoSnap γr.raft.raft.cl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ srvMemberIDAddr s ↦□ nid ∗
       -- the payload (`rnApSnap`'s)
@@ -225,7 +231,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- (sweep repairs 1, W2) the first send's payload: the WAL's records at or above the
       -- snapshot's index (`rnApSnap`'s)
       taNotifycAddr ap ↦□ nc ∗
-      isNotify2 γnc nc (walBaseLb γn.wal.loc (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+      isNotify2 γnc nc iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
       notifyRcvN γnc 0 ∗
       taRaftAdvancedCAddr ap ↦□ rac ∗
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft

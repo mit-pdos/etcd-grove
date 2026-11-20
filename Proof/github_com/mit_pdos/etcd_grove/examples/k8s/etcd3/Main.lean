@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchServedLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.SeedRun
 
 @[expose] public section
 
@@ -123,7 +124,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg (LogEntry.toEntries boot 0) ctxs
       (k8setcd3Dir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [k8setcd3Dir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [k8setcd3Dir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -306,7 +307,7 @@ theorem Main.wp_proof
           subst hy; exact Hnr)
       (by simp [storeCfgD]) (by omega) H0 Hw0 H31 Hops Hwops Hmul
       (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp)
-      (by simp [g0s, st3]))
+      (by simp [g0s, st3]) runOk_g0s)
     $$ [Hks Hst0 Hhs] as %r %hr
   · rw [show (storeCfgD kc cl [x] V mt lt γh).ms = [x] from rfl]
     iframe #

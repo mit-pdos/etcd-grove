@@ -2,7 +2,7 @@
 
 # The fdatasync of a lent tail `ZeroToEnd` left partway: the invariant's update (unit `synclent`)
 
-`Close` of a failed `ReadAll`'s handle (`WAL.Close.specFailed`) syncs the tail `ZeroToEnd` left
+`Close` of a failed `ReadAll`'s handle (`WAL.Close.spec` (state `failed`)) syncs the tail `ZeroToEnd` left
 (`walTailPE`, `WAL.sync.specLentE`): lent by the token of kind `false`, its bytes from `wr` on a torn
 frame's with a zero length word, a resize window maybe open. Its fdatasync keeps the tail lent, the
 layout replaced by `syncLay_anyE`'s (F-Z or `TailPend`, `TailSyncLayP.lean`), and the token's recorded

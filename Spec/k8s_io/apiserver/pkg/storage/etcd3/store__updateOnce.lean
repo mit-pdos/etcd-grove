@@ -50,7 +50,7 @@ abbrev store.updateOnce.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (span : Loc) (key : GoString) (dest : GoInterface)
     (o0 : Obj) (rv0 : GoString) (st : Loc) (s : OState Obj) (x : GoInterface) (dsl : GoSlice)
     (v : _root_.Perennial.reflect.Value) (p : Loc) (ign : Bool)
-    (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) (o' : Obj) (W : IProp GF)
+    (pre : KPreF Obj) (f : Obj → Nat → Except E Obj) (o' : Obj) (W : IProp GF)
     (Φ : KVState → IProp GF),
   c.pfx <+: key → key.length ≤ opKeyMax →
   pre s.o (uint.nat s.rev) = true →

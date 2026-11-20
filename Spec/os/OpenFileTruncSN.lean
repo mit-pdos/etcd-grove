@@ -42,11 +42,11 @@ abbrev os.OpenFile.specCreateTruncSncN : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 1 →
   NameOk b → N.Mem b → h.cur !! b = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j N (DFrac.own q) h ∗
       osAUnc (osNames j N (DFrac.own r) h) (crOutN j N b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, Q o ∗ crOutN j N b h (DFrac.own q) o ∗ crTr (err = interface.nil) o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗

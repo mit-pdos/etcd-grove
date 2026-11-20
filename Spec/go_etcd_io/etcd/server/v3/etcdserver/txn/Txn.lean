@@ -45,18 +45,20 @@ state. The logger nil or a zap logger (`EnsureTrace`'s; premise fixes 6).
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. The wand's `PathsIgnOk`: decided by
 the coordinator, 2026-11-06, `clients-txn.md` §8; its `PathsLeaseOk`: auth-lease S3a2, approved by etcd-grove-81,
-2026-11-15, ledger 2026-11-15 "txn.Txn's write wand is not told the lease check".) -/
+2026-11-15, ledger 2026-11-15 "txn.Txn's write wand is not told the lease check". Auth-lease S4 item 7b,
+2026-11-17: in the lessor window `w`, each operation of the run within it, `WinOps`, the caller's at the begin:
+`txnBeginAUW`.) -/
 abbrev txn.Txn.specSole : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
     (kv le : GoInterface) (skip : Bool) (γ : MvccName) (log : mvcc.Log) (t : TxnModel) (q : Qp)
     (B : MvccStorage) (P Pre Q Post : IProp GF) (f : GoFunc) (L : List w64) (ot : Option Loc) (te : Bool)
-    (Qr Qw : MvccState → IProp GF),
+    (Qr Qw : MvccState → IProp GF) (w : Option lease.LWin),
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.kvBackend γ q B P f ∗
       txn.isTxnLessor le (mvccLeases γ) ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗ zapLoggerOrNil lg ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗
-      lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+      lease.lessorUserW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) w ∗
       ⌜txn.TxnPreA log t ∧ t.putsLe etcdKeyMax⌝ ∗
       txn.csA P f Pre Q Post ∗
       txn.readAU γ (fun σ => iprop(⌜σ.log = log⌝ ∗ Qr σ)) ∗
@@ -64,7 +66,7 @@ abbrev txn.Txn.specSole : Prop :=
        else iprop(∀ σ : MvccState,
          ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
            txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
-         Qr σ -∗ txn.txnBeginAU γ log t Qw)) }}
+         Qr σ -∗ txn.txnBeginAUW γ w log t Qw)) }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
@@ -75,7 +77,7 @@ abbrev txn.Txn.specSole : Prop :=
               (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter log)
               L (t.branch (txn.txnOk (mvcc.stateAfter log) t))))⌝ ∗ txn.checkErrIs err ∗
           Pre ∗ Qr σr ∗
-          lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+          lease.lessorUserW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) w ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
             ⌜∀ t0, ot = some t0 → te = false → t' = t0⌝)) ∨
        (⌜err = GoInterface.nil ∧ trace ≠ null ∧
@@ -89,8 +91,8 @@ abbrev txn.Txn.specSole : Prop :=
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
         txn.leasesKnown L (mvcc.stateAfter (mvcc.commitLog log (txn.txnChs log t))) ∗
-        lease.lessorUser (mvccLeases γ) L
-          (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.txnChs log t)))) ∗
+        lease.lessorUserW (mvccLeases γ) L
+          (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.txnChs log t)))) w ∗
         (if txn.txnReadonly t then iprop(Pre ∗ Qr σr)
          else iprop(Post ∗ ∃ σw : MvccState, ⌜σw.log = log⌝ ∗ Qw σw)))) }}
 

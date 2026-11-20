@@ -71,7 +71,7 @@ theorem etcd_lease_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
     (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent leasekvProgram [go!"leasekv.etcd"])
+    (HDs : dataDirsAbsent leasekvProgram [go!"/tmp/etcd-grove-data/leasekv.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff leasekvProgram)
     (n : Nat)
@@ -79,6 +79,8 @@ theorem etcd_lease_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_lease.premises (GF := leasekvGF) (hG := heapAtLkv hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/leasekv.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -87,34 +89,8 @@ theorem etcd_lease_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_lease_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs HEnv n Hprem σ g Hfs
+  etcd_lease_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs HEnv n Hprem σ g Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-/-- **`etcd_lease_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_lease_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_lease_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.lease.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC leasekvGF, ContextReadErrs (GF := leasekvGF) (hG := heapAtLkv hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC leasekvGF, ContextErrsClient (GF := leasekvGF) (hG := heapAtLkv hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_lease.BootFacts id ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (Hlp : leasePeersOk) (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
-    (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
-    (HDs : dataDirsAbsent leasekvProgram [go!"leasekv.etcd"]) (HEnv : verifyEnvOff leasekvProgram)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC leasekvGF,
-      ⊢ etcd_lease.premises (GF := leasekvGF) (hG := heapAtLkv hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(leasekvProgram, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_lease_safe
-      Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs HEnv n (Hprem n (by omega)) σ g
-      Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 

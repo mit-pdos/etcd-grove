@@ -140,6 +140,39 @@ theorem walHandleIn_seek (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
   ipureintro
   exact ⟨Hen, Hlt, Hpure⟩
 
+/-- **The handle's file pipeline field, non-nil** (`SaveSnapshot`'s `w.fp == nil` test before a cut, the fork's
+fix 0008), out and back. -/
+theorem walHandleIn_fp (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (h : WalHS) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
+    ⊢ walHandleIn (W := W) P Mr w dir h tm -∗ ∃ fp : Loc,
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ ⌜fp ≠ null⌝ ∗
+      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp -∗
+        walHandleIn (W := W) P Mr w dir h tm) := by
+  iintro Hh
+  iunfold walHandleIn at Hh
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
+    %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk,
+    Hopen, %Hpure⟩
+  iunfold walPipeH at Hpipe
+  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, Hisp, Hmain, Htmp, %hnk, %hfpn, %hR⟩
+  iexists fp
+  iframe Hfp
+  isplitr
+  · ipureintro; exact hfpn
+  iintro Hfp
+  ihave Hpipe : walPipeH (W := W) fp dir j h.pc $$ [Hisp Hmain Htmp]
+  · iunfold walPipeH
+    iexists γp, Rp, dqp, szp, np
+    iframe Hisp Hmain Htmp
+    ipureintro; exact ⟨hnk, hfpn, hR⟩
+  iunfold walHandleIn
+  iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+  iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
+    Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
+  ipureintro
+  exact ⟨Hen, Hlt, Hpure⟩
+
 /-- The handle's pure index facts (see the file header). -/
 theorem walHandleIn_idx (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (h : WalHS) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :

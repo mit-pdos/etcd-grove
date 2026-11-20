@@ -242,7 +242,7 @@ theorem rc_open (hfresh : mvccImage_fresh.law (GF := GF)) (hopen : etcdStorage_o
   iintro ⟨Hreg, Hnew⟩
   ihave #Hks := mvcc.keySized_all (GF := GF)
   iunfold backend.newPostK at Hnew
-  icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
+  icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr, -⟩
   iunfold backend.bFresh at Hk
   icases Hk with ⟨Hwb, Ho⟩
   icases (backend.bOpen_one_pool γB).1 $$ Ho with ⟨Hoh, Hpl, Hos⟩

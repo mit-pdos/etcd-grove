@@ -56,6 +56,7 @@ import (
 	"go.etcd.io/etcd/server/v3/lease"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 const (
@@ -150,6 +151,7 @@ type member struct {
 // rebuilds it), then Serve and a client.
 func startMember(t *testing.T, name, peerAddr, clientAddr string, delay time.Duration) *member {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, name) // the members' WAL areas (wal-link P2)
 	core, logs := observer.New(zapcore.WarnLevel)
 	lg := zap.New(core)
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}

@@ -1,6 +1,6 @@
 /-
 `(*wal.WAL).sync` (S/wal.go:976-1001) of a failed `ReadAll`'s handle whose tail is lent zeroed (`walFailLent`'s
-`walTailP` form: `ReadAll`'s fdatasync after `ZeroToEnd` failed; `WAL.Close.specFailed`): no encoder, the
+`walTailP` form: `ReadAll`'s fdatasync after `ZeroToEnd` failed; `WAL.Close.spec` (state `failed`)): no encoder, the
 fdatasync of the tail (`Fdatasync.specWalPend`); on success the key back and the tail unregistered at the next
 step (`walInvBody_untail`: the tails' program half empty, the program's halves of the synced tail); on failure
 the tail as it was. Unit `closefailed`. Lean-first.

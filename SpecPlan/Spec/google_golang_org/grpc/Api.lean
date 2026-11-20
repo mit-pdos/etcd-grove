@@ -919,10 +919,9 @@ def icHandler_call.spec : Prop := ∀ (ics : List GoFunc) (info : Loc) (k h : va
 def ctxInMD_persistent.spec : Prop :=
   (∀ ctx o, Persistent (ctxInMD (GF := GF) ctx o)) ∧ (∀ ctx c, Persistent (ctxPeerCN (GF := GF) ctx c))
 
-/-- One context, one incoming metadata, one peer identity. -/
-def ctxInMD_agree.spec : Prop :=
-  (∀ ctx o o', ctxInMD (GF := GF) ctx o ∗ ctxInMD ctx o' ⊢ ⌜o = o'⌝) ∧
-  (∀ ctx c c', ctxPeerCN (GF := GF) ctx c ∗ ctxPeerCN ctx c' ⊢ ⌜c = c'⌝)
+-- (2026-11-18, ledger entry "`ctxInMD_agree.spec` -- unprovable from the definitions, false in the
+-- intended model", accepted by etcd-grove-03) No agreement law: two `ctxInMD` of one context relate
+-- nothing; a spec relating a context's metadata to something else takes the metadata as a parameter.
 
 /-- **A run's context**: its incoming metadata is the run's (grpc decoded it), and it has a peer
 identity (the connection's). -/

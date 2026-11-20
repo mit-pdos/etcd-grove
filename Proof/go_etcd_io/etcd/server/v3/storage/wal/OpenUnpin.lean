@@ -151,7 +151,7 @@ theorem walParked_putSegsRes (Ls : GMap GoString WalLay) (cl : List Claim) (S : 
     rw [filter_del_cons]
 
 /-- **`Open`'s put-back without the names fragment** (`walInvBody_unpin` for any holder of the lock, its
-names fragment kept: `Close.specU` of `Create`'s handle before naming, whose fragment is the pending
+names fragment kept: `Close.spec` (state `unnamed`) of `Create`'s handle before naming, whose fragment is the pending
 registration; `walUnlockedTokX`): at the invariant's contents at any `s`, the lock,
 the holder's empty half of the tails' authority, its record of what it took (the segments `S`, the WAL
 directory's claim `(j, .except X)`, the pipeline names of `dir` in write mode), the exact halves of `S`

@@ -73,6 +73,8 @@ def snapOpt (p : Loc) (dq : DFrac) : Option SnapshotM → IProp GF :=
 def msgIn (l : Loc) (dqe : DFrac) (ms : MsgSt) : IProp GF :=
   msgPtsC l (DFrac.own 1) dqe (needsCap ms.msg) ms
 
+theorem hsROC_hsRO [package_sem : Assumptions] (p : Loc) (hs : HardStateM) : hsROC p hs ⊢ hsRO p hs
+
 theorem cellRO_cases {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : cellRO p v ⊢ ⌜p =
     null ∧ v = zero_val V⌝ ∨ typedPointsto p v DFrac.discard ∗ ⌜p ≠ null⌝
 
@@ -287,6 +289,8 @@ theorem smPts_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.Snapsh
 theorem cellRO_persistent {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : Persistent
     (cellRO p v)
 
+theorem hsROC_persistent (p : Loc) (hs : HardStateM) : Persistent (hsROC p hs)
+
 theorem csPts_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al :
     Bool) : csPts p (dq1 • dq2) c al ⊢ csPts p dq1 c al ∗ csPts p dq2 c al
 
@@ -352,6 +356,11 @@ theorem csPts_persistent (p : Loc) (c : ConfStateM) (al : Bool) : Persistent (cs
 theorem cellRO_alloc {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : typedPointsto p v
     (DFrac.own 1) ⊢ |==> cellRO p v
 
+theorem hsROC_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.HardState) (hs :
+    HardStateM) (E : CoPset) (Hu : v.unknownFields' = slice.nil) : typedPointsto p v (DFrac.own 1) ∗
+    typedPointsto v.Term' hs.Term' (DFrac.own 1) ∗ typedPointsto v.Vote' hs.Vote' (DFrac.own 1) ∗
+    typedPointsto v.Commit' hs.Commit' (DFrac.own 1) ⊢ |={E}=> hsROC p hs
+
 theorem entRO_persistent (l : Loc) (e : EntryM) : Persistent (entRO l e)
 
 theorem snapOpt_combine [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (o : Option
@@ -388,6 +397,18 @@ def csOptA (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF :=
 
 def ownCSM (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF :=
   csPts p dq c false
+
+def hsROC (p : Loc) (hs : HardStateM) : IProp GF :=
+  iprop(∃ pt pv pc,
+      "%Hnn" ∷ ⌜p ≠ null⌝ ∗
+        "HT" ∷ typedPointsto (structFieldRef raftpb.HardState go!"Term" p) pt DFrac.discard ∗
+          "#cT" ∷ typedPointsto pt hs.Term' DFrac.discard ∗
+            "HV" ∷ typedPointsto (structFieldRef raftpb.HardState go!"Vote" p) pv DFrac.discard ∗
+              "#cV" ∷ typedPointsto pv hs.Vote' DFrac.discard ∗
+                "HC" ∷
+                    typedPointsto (structFieldRef raftpb.HardState go!"Commit" p) pc
+                      DFrac.discard ∗
+                  "#cC" ∷ typedPointsto pc hs.Commit' DFrac.discard ∗ "#Hpb" ∷ pbMsg raftpb.HardState p [])
 
 def ConfStateM.lists (c : ConfStateM) : CSLists :=
   { voters := c.Voters', learners := c.Learners', outgoing := c.VotersOutgoing', learnersNext := c.LearnersNext' }

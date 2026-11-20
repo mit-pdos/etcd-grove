@@ -31,22 +31,22 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec : Prop :=
   ∀ (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp),
   {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
-      osCallPerm (GF := GF) qc }}
+      osCallPerm (GF := GF) (callKey R p) qc }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir)) (Val #p))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
       ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
           osDirFdS fd j .idle) ∨
-       ⌜err ≠ interface.nil ∧ f = null⌝) }}
+       ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
 
 /-- `OpenDir(p)` of a strict ancestor of a root (`os.AboveRoot`): an fd of a directory outside the
 roots' trees (`osOutFd`: only `Sync` and `Close` on it), or an error (2026-11-13, the extension's
 `Open` outside case). -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specAboveRoot : Prop :=
-  ∀ (p : GoString) (R : Roots) (qc : Qp),
+  ∀ (p : GoString) (R : Roots),
   os.AboveRoot R p →
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) qc }}
+  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osAboveInv (GF := GF) }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir)) (Val #p))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm qc ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
       ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
        ⌜err ≠ interface.nil ∧ f = null⌝) }}
 

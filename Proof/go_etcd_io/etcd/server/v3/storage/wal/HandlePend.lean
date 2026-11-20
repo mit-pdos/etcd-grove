@@ -115,7 +115,7 @@ def walTailP (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
 
 /-- **The handle's tail after a failed `ZeroToEnd`** (W4c U5, fifth session): `walTailP` with the lent
 token of kind `false` (`ZeroToEnd`'s first step), the file's offset unknown, `TailMetaE o0`. `Close`
-(`WAL.Close.specFailed`) syncs it and puts it back. -/
+(`WAL.Close.spec` (state `failed`)) syncs it and puts it back. -/
 def walTailPE (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 : Nat) (k : Nat) : IProp GF :=
   letI := walAllG (W := W)

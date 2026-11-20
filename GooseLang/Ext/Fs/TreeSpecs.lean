@@ -4,7 +4,7 @@ each path step ends), `LstatDir`, `FdKind` of a directory fd, and the ghost lemm
 specs share (`TreeSpecs2.lean`, `TreeSpecs3.lean`, `TreeSpecsDir.lean`). Untrusted.
 
 **Calls.** `CallBegin` takes a fraction `q` of the tree's history from its caller into the state
-interpretation (`callRes`) and gives the token `osCall t s q`, `s` the history's length; the call's
+interpretation (`callRes`) and gives the token `osCall t s p q`, `s` the history's length; the call's
 step returns it. A metadata step needs the whole history: the caller's part and its call's.
 **Paths.** A spec states where a path leads by `lookupH R V p`, the resolution of `p` with the
 roots `R` over the history `V`'s tree, which is the state's (`lookupH_eq`).
@@ -170,8 +170,8 @@ theorem fsTreeWf_meta {st st' : OsState} (hw : FsTreeWf st) {o : MetaOp} {s : Na
 /-- **The coherence after a step that held the whole history** (no directory fd open, no other call
 in flight): the history with the entry logged. -/
 theorem treeCoh_meta {st st' : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
-    {Γc : GMap Nat (Nat × Qp)} (hc : TreeCoh st V Γdf Γc) (hΓdf : Γdf = ∅) {k s : Nat} {q : Qp}
-    (hk : Γc !! k = some (s, q)) (hΓc : GMap.delete k Γc = ∅) {o : MetaOp}
+    {Γc : GMap Nat CallV} (hc : TreeCoh st V Γdf Γc) (hΓdf : Γdf = ∅) {k s : Nat} {p : GoString}
+    {q : Qp} (hk : Γc !! k = some ((s, p), q)) (hΓc : GMap.delete k Γc = ∅) {o : MetaOp}
     (hlog : st'.fs.metaLog = st.fs.metaLog ++ [⟨o, s⟩]) (hdur : st'.fs.treeDur = st.fs.treeDur)
     (hdfds : st'.proc.dfds = ∅) (hcalls : st'.proc.calls = GMap.delete k st.proc.calls) :
     TreeCoh st' (V.push ⟨o, s⟩) ∅ ∅ := by
@@ -191,7 +191,7 @@ theorem treeCoh_meta {st st' : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirP
       rw [this]; rfl
 
 /-- With no directory fd in the ghost state, none in the state. -/
-theorem dfds_empty {st : OsState} {V : Hist} {Γc : GMap Nat (Nat × Qp)}
+theorem dfds_empty {st : OsState} {V : Hist} {Γc : GMap Nat CallV}
     (hc : TreeCoh st V ∅ Γc) : st.proc.dfds = ∅ := by
   apply GMap.ext; intro fd
   have := hc.fds fd
@@ -215,18 +215,18 @@ theorem osTree_split (q1 q2 : Qp) (R : Roots) (V : Hist) :
 
 /-- A call ended: its token and its fraction of the history leave the state interpretation, and
 the fraction comes back to the caller. -/
-theorem call_end (R : Roots) (V : Hist) (Γc : GMap Nat (Nat × Qp)) (k s : Nat) (q : Qp) :
+theorem call_end (R : Roots) (V : Hist) (Γc : GMap Nat CallV) (k s : Nat) (p : GoString) (q : Qp) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc Γc -∗
-      callRes (gooseOsGS (L := L)) Γc -∗ osCall (L := L) k s q ==∗
-      ⌜Γc !! k = some (s, q)⌝ ∗
+      callRes (gooseOsGS (L := L)) Γc -∗ osCall (L := L) k s p q ==∗
+      ⌜Γc !! k = some ((s, p), q)⌝ ∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) ∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc (GMap.delete k Γc) ∗
       callRes (gooseOsGS (L := L)) (GMap.delete k Γc) ∗ osTree (L := L) (DFrac.own q) R V := by
   iintro HAd HAc Hcr Hk
-  icases osCall_auth Γc k s q $$ HAc Hk with %hk
+  icases osCall_auth Γc k s p q $$ HAc Hk with %hk
   unfold callRes
-  icases (BigSepM.bigSepM_delete (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+  icases (BigSepM.bigSepM_delete (Φ := fun (_t : Nat) (x : CallV) =>
       iprop(∃ RV : Roots × Hist, gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () (DFrac.own x.2) RV))
       hk).1 $$ Hcr with ⟨⟨%RV, Hq⟩, Hcr⟩
   icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hq with %hRV
@@ -242,7 +242,7 @@ theorem call_end (R : Roots) (V : Hist) (Γc : GMap Nat (Nat × Qp)) (k s : Nat)
 
 /-- The holder of the whole history knows that no directory fd is open and no call is in flight. -/
 theorem whole_alone (R : Roots) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
-    (Γc : GMap Nat (Nat × Qp)) :
+    (Γc : GMap Nat CallV) :
     ⊢ osTree (L := L) (DFrac.own 1) R V -∗ rdRes (gooseOsGS (L := L)) Γdf -∗
       callRes (gooseOsGS (L := L)) Γc -∗
       ⌜Γdf = ∅ ∧ Γc = ∅⌝ ∗ osTree (L := L) (DFrac.own 1) R V ∗
@@ -258,7 +258,7 @@ theorem whole_alone (R : Roots) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
         | some x => exact absurd ⟨t, x, h⟩ hn
       obtain ⟨t, x, hx⟩ := this
       unfold callRes
-      icases (BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      icases (BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (x : CallV) =>
           iprop(∃ RV : Roots × Hist, gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () (DFrac.own x.2) RV))
           hx) $$ Hcr with ⟨%RV, Hq⟩
       unfold osTree
@@ -280,13 +280,14 @@ theorem whole_alone (R : Roots) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
 
 /-! ## `CallBegin` -/
 
-/-- **`CallBegin()`**, with a fraction `q1 + q2` of the history: a call in flight, holding `q2` of
-it, begun when the log had `V`'s length. -/
-theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+/-- **`CallBegin(p)`**, with a fraction `q1 + q2` of the history: a call on `p` in flight, holding
+`q2` of it, begun when the log had `V`'s length. -/
+theorem wp_osCallBegin (R : Roots) (V : Hist) (p : GoString) (q1 q2 : Qp) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own (q1 + q2)) R V -∗
-      (∀ t : Nat, osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) t V.2.length q2 -∗
+      (∀ t : Nat, osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) t V.2.length p q2 -∗
         Φ (osTokV t)) -∗
-      WP (ExternalOp fsExt.name "CallBegin" (Val (#()))) @ s; E {{ Φ }} := by
+      WP (ExternalOp fsExt.name "CallBegin" (Val (#p))) @ s; E {{ Φ }} := by
   iintro #Hinv Hh HΦ
   iapply wp_fs_stepT "CallBegin" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_tree _ _ _) $$ Hinv Hh
   iintro Hh %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
@@ -300,19 +301,20 @@ theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   obtain ⟨t, ht1, ht2⟩ := exists_fresh2 st.proc.calls st.proc.inflight
   have hs : FilesSame st (st.setProc { st.proc with
-      calls := <[t := st.fs.metaLog.length]> st.proc.calls }) := ⟨rfl, rfl, rfl, rfl, rfl⟩
+      calls := <[t := (st.fs.metaLog.length, p)]> st.proc.calls }) := ⟨rfl, rfl, rfl, rfl, rfl⟩
   imodintro
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf hs Hag
-    exact ⟨_, h, _, ⟨t, rfl, ht1, ht2, rfl, rfl⟩, hfr, hr⟩
+    exact ⟨_, h, _, ⟨t, p, rfl, ht1, ht2, rfl, rfl⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
-  obtain ⟨t', -, h1', h2', rfl, rfl⟩ := Hst
+  obtain ⟨t', p', hpv, h1', h2', rfl, rfl⟩ := Hst
+  cases go.intoVal_inj hpv
   imod osWorld_filesSame (st := st)
-    (st' := st.setProc { st.proc with calls := <[t' := st.fs.metaLog.length]> st.proc.calls })
+    (st' := st.setProc { st.proc with calls := <[t' := (st.fs.metaLog.length, p)]> st.proc.calls })
     ⟨rfl, rfl, rfl, rfl, rfl⟩ Hr Hfr $$ [HAb HAm HAf HAt Htok Hcells Hσ]
     with Hw
   · unfold osWorld; iframe; ipureintro; exact ⟨hwf, hcoh⟩
@@ -321,11 +323,11 @@ theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (
     cases h0 : Γc !! t' with
     | none => rfl
     | some x => rw [h0] at this; cases this
-  imod gAuth_insert _ _ _ _ ((st.fs.metaLog.length, q2) : Nat × Qp) hΓc $$ HAc with ⟨HAc, Hk⟩
+  imod gAuth_insert _ _ _ _ (((st.fs.metaLog.length, p), q2) : CallV) hΓc $$ HAc with ⟨HAc, Hk⟩
   icases (osTree_split q1 q2 _ _).1 $$ Hh with ⟨H1, H2⟩
   imodintro
   iexists Γb, Γm, Γf, Γt, V, Γdf,
-    <[t' := ((st.fs.metaLog.length, q2) : Nat × Qp)]> Γc
+    <[t' := (((st.fs.metaLog.length, p), q2) : CallV)]> Γc
   dsimp only
   unfold osWorld
   isplitl [Hw]
@@ -337,7 +339,7 @@ theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (
     · ipureintro
       refine ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩,
         ⟨hc.hist, hc.seq, hc.fds, hc.ph, hc.rd, fun t0 => ?_, fun t0 x hx => ?_⟩⟩
-      · show _ = (<[t' := st.fs.metaLog.length]> st.proc.calls) !! t0
+      · show _ = (<[t' := (st.fs.metaLog.length, p)]> st.proc.calls) !! t0
         by_cases h0 : t' = t0
         · subst h0; simp
         · rw [GMap.lookup_insert_ne _ _ h0, GMap.lookup_insert_ne _ _ h0]; exact hc.calls t0
@@ -345,7 +347,7 @@ theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (
         · subst h0; rw [GMap.lookup_insert] at hx; cases hx; rfl
         · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.start t0 x hx
     · unfold callRes
-      iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (x : CallV) =>
         iprop(∃ RV : Roots × Hist, gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () (DFrac.own x.2) RV))
         hΓc).2
       iframe Hcr
@@ -363,11 +365,11 @@ roots' trees, is no directory: `isDir = 0`; the call's fraction comes back. -/
 theorem wp_osLstatDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s' : Nat)
     (hp : (Hist.st R V).TreePath p) (hnd : ∀ j, lookupH R V p ≠ some (.dir j)) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' p q -∗
       (∀ e : w64, osTree (L := L) (DFrac.own (q1 + q)) R V -∗ Φ (PairV (#(0 : w64)) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#p)))) @ s; E {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "LstatDir" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iapply wp_fs_stepT "LstatDir" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _ _) $$ Hinv Hk
   iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold osWorld treeWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -376,9 +378,9 @@ theorem wp_osLstatDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s' : 
   obtain ⟨hw, hc⟩ := Hns
   icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  icases osCall_auth Γc k s' q $$ HAc Hk with %hk
+  icases osCall_auth Γc k s' p q $$ HAc Hk with %hk
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hcall : st.proc.calls !! k = some s' := by rw [← hc.calls k, hk]; rfl
+  have hcall : st.proc.calls !! k = some (s', p) := by rw [← hc.calls k, hk]; rfl
   have hV : V = (st.fs.treeDur, st.fs.metaLog) := hc.hist
   subst hV
   have hs : FilesSame st (st.metaEnd k) := ⟨rfl, rfl, rfl, rfl, rfl⟩
@@ -404,7 +406,7 @@ theorem wp_osLstatDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s' : 
   imod osWorld_filesSame (st := st) (st' := st.metaEnd k') hs Hr Hfr
     $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
   · unfold osWorld; iframe; ipureintro; exact ⟨hwf, hcoh⟩
-  imod call_end _ _ Γc k' s' q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
+  imod call_end _ _ Γc k' s' p q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
   imodintro
   iexists Γb, Γm, Γf, Γt, (st.fs.treeDur, st.fs.metaLog), Γdf, GMap.delete k' Γc
   unfold osWorld

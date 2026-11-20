@@ -46,6 +46,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kv.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kv.MainN
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.TopLevelDefs
 
 @[expose] public section
 
@@ -110,11 +111,6 @@ abbrev kvMainSpec : Prop :=
     [github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions],
     raft_kv.Main.spec (GF := kvGF) (hG := hG)
 
-/-- The store's program: the package's initialization, then `Main()`. -/
-def kvProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.raft.kv.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.raft.kv.Main) #()
-
 /-- **Porcupine never rejects the store's trace**, from `Main`'s spec (`wp_Main`, at every
 `HeapGS` of `kvGF` and every semantics): every real execution of `kvProgram` (the store package's initialization,
 then `Main()`) from a fresh state -- no package initialized (`IsInit`), one live thread -- of
@@ -160,11 +156,6 @@ abbrev kvMainNSpec : Prop :=
   ∀ [hG : HeapGS HasLC.hasLC kvGF] [go.Semantics]
     [github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions],
     raft_kv.MainN.spec (GF := kvGF) (hG := hG)
-
-/-- The store's program on `k` replicas: the package's initialization, then `MainN(k)`. -/
-def kvProgramN [GoSemanticsFunctions] (k : Nat) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.raft.kv.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.raft.kv.MainN) #(W64 (k : Int))
 
 /-- **Porcupine never rejects the store's trace on `k` replicas** (2026-11-15, kvraftN), from
 `MainN`'s spec: `kv_adequate_of` for `kvProgramN k`, `1 ≤ k ≤ 1000`. -/

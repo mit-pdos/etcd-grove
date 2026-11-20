@@ -19,6 +19,7 @@ public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -286,7 +287,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       have hlen : (ur.roles ++ [rn0]).length ≤ 2 ^ 62 := by
         have := Hbound st0 roles Hl0 Hlook
         rw [List.length_append, Hurr]; simp only [List.length_singleton]; omega
-      wp_apply (_root_.Perennial.sort.wp_Strings s2 (ur.roles ++ [rn0])) $$ [$Hs2]
+      wp_apply +noauto (_root_.Perennial.sort.wp_Strings s2 (ur.roles ++ [rn0])) $$ [$Hs2]
         as %xs' ⟨Hs2, %Hperm, %Hsrt⟩
       · ipureintro; exact hlen
       have hxs : xs'.Pairwise go.GoStringLt :=
@@ -295,7 +296,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
             fun a ha b hb => by simp at hb; subst hb; exact fun he => hnin (he ▸ ha)⟩)
           Hperm.symm Hsrt
       imod (ownSlice_persist _ _ _) $$ Hs2 with #Hs2
-      (try wp_auto)
+      wp_take_receipt as Hrc
       let msgN : authpb.User := authpb.User.mk ums unm upw s2 uo slice.nil usc
       ihave Hup : u ↦ msgN $$ [state Name Password Roles Options unknownFields sizeCache]
       · iapply typedPointsto_combine u _ _ hunn
@@ -313,8 +314,8 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         rw [if_neg hc, if_neg hnin']
         exact ⟨xs', by rw [← Hurr]; exact Hperm.symm, hxs, rfl⟩
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
-      iapply HPutU $$ %st0 %Post %u %urN %AuthSess.init [HL Hsw Hup]
-      · iframe HL Hsw
+      iapply HPutU $$ %st0 %Post %u %urN %AuthSess.init [HL Hrc Hsw Hup]
+      · iframe HL Hrc Hsw
         isplitl [Hup]
         · iunfold ownUser
           iexists ums, unm, upw, s2, uo, usc

@@ -16,7 +16,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatchBridge
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PredOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PredOkDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__Watch
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo

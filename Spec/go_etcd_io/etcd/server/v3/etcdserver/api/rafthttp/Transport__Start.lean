@@ -44,7 +44,7 @@ goroutines borrow their `R`s from the pool (until J8a-6: eight from `AddPeer`, a
 `AddRemote`), each request the handler serves one from `Serve`, `Handler`'s.) -/
 abbrev rafthttp.Transport.Start.spec : Prop :=
   ∀ (γn : NetNames GF) (t : Loc) (tv : rafthttp.Transport) (R : IProp GF) (γd : GName)
-    (Rm : w64 → IProp GF) (uvs : List net.url.URL) (L : List w64),
+    (Rm : w64 → IProp GF) (sd : GoString) (uvs : List net.url.URL) (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       t ↦ tv ∗
       zapLoggerOk tv.Logger' ∗
@@ -52,8 +52,8 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
         tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ [] ∧ L.Nodup ∧
         trURLsOk (netRh γn) tv.ID' uvs⌝ ∗
       tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
-      snap.isSnapshotter tv.Snapshotter' ∗
-      inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
+      snap.isSnapshotter tv.Snapshotter' sd ∗
+      inv snapDirN (snapDirInv sd γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
       v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 ∗
       raftPool R }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Start")) (Val #()))

@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestMemberIDs checks the premise on the member ids etcd computes for Main's cluster (from the
@@ -60,6 +61,7 @@ func TestMemberIDs(t *testing.T) {
 // event, and that u's permitted writes took effect (so that the history check was not vacuous).
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "auth3-1", "auth3-2", "auth3-3") // the members' WAL areas (wal-link P2)
 	if r := Main(); r != auth.Ok {
 		t.Fatalf("got %v", r)
 	}
@@ -161,6 +163,7 @@ func mainServers(p1, p2, p3, c1, c2, c3 string) (int, [3]*etcdserver.EtcdServer)
 // and values at member 1's revision (a local read of each store, keys below 0x7f: every key Main writes, as a serializable read).
 func TestFollowersApplied(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "auth3-1", "auth3-2", "auth3-3") // the members' WAL areas (wal-link P2)
 	r, ss := mainServers("127.0.0.1:24151", "127.0.0.1:24152", "127.0.0.1:24153",
 		"127.0.0.1:24161", "127.0.0.1:24162", "127.0.0.1:24163")
 	if r != auth.Ok {

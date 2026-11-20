@@ -1,11 +1,14 @@
 /-
 `storage.NewInvalidObjError(key, msg)` (`k8s.io/apiserver/pkg/storage/errors.go`): a new
-`*StorageError` with code `ErrCodeInvalidObj` (`4`), the key, and an inner error (`errors.New(msg)`).
-Lean-first (no Rocq counterpart; stage 7b of `notes/k8s-etcd3-plan.md`).
+`*StorageError` with code `ErrCodeInvalidObj` (`4`), the key, and an inner error `errors.New(msg)`:
+an `*errorString` holding `msg`, read-only (stage 7g: the maintainers' checker compares
+two such errors by their messages). Lean-first (no Rocq counterpart; stage 7b of
+`notes/k8s-etcd3-plan.md`).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apiserver.pkg.storage.InvalidMsg
 
 @[expose] public section
 
@@ -28,8 +31,10 @@ abbrev storage.NewInvalidObjError.spec : Prop :=
   ∀ (key msg : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage }}
     (App (App (Val (@! k8s_io.apiserver.pkg.storage.NewInvalidObjError)) (Val #key)) (Val #msg))
-  {{ (p : Loc), RET #p; ∃ e : GoInterface,
-      p ↦ k8s_io.apiserver.pkg.storage.StorageError.mk (W64 4) key (W64 0) e }}
+  {{ (p : Loc), RET #p; ∃ x : Loc,
+      p ↦ k8s_io.apiserver.pkg.storage.StorageError.mk (W64 4) key (W64 0)
+        (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) ∗
+      x ↦□ _root_.Perennial.errors.errorString.mk msg }}
 
 end spec
 

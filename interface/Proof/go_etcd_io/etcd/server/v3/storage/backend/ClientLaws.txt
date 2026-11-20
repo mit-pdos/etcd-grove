@@ -11,7 +11,8 @@ theorem backend.newPostK_named (γ : backend.BNames) (P : backend.BParams) (W Pk
     ∷ K γ ∗ "HnV" ∷ backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
     "HnH" ∷ backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ ("HnRT" ∷
     [∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗
-    "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b
+    "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b ∗ "HnTok" ∷
+    backend.rbClaimToks γ P fun x => True
 
 theorem backend.thinV_intro (γ : backend.BNames) (vd L : backend.VData) : (⌜∀ (nk : GoString ×
     GoString) (v : GoString), vd !! nk = some v → L !! nk = some v⌝ ∗ □ ∀ nk, ⌜L !! nk ≠ none ∧ vd

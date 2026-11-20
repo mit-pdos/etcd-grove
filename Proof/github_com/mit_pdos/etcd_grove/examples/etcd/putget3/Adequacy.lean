@@ -34,7 +34,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -44,6 +47,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.PkgTabl
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.InitLinked
 
 @[expose] public section
 
@@ -63,21 +68,6 @@ attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdF
 
 /-! ## The ghost-state bundle -/
 
-/-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def putget3GF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
-
 /-- The universal camera at slot 0. -/
 def putget3GF_allG : AllG putget3GF := ⟨⟨0, rfl⟩⟩
 
@@ -89,28 +79,10 @@ instance putget3GF_gooseGpreS : GooseGpreS putget3GF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putget3GF_allG
 
-/-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
-every instance of the ghost state whose Go local context is the semantics' own). -/
-abbrev heapAt3 (hG : HeapGS .hasLC putget3GF) (lctx : GoLocalContext) : HeapGS .hasLC putget3GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `putget3`'s initialization, then `Main()`. -/
-def putget3Program [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main) #()
-
-/-- The program's addresses: the three members' peer addresses and the first's client address. -/
-def putget3Addrs : List GoString :=
-  [etcd_putget3.peerAddr₁, etcd_putget3.peerAddr₂, etcd_putget3.peerAddr₃, etcd_putget3.clientAddr₁]
-
-/-- The read package's two metric names, which `putget3`'s initialization registers (`readRegPerm`,
-D16). -/
-def putget3Names : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **putget3 is safe** (see the file header): every real execution of
 `putget3Program` from a fresh state with one thread, of `n` steps: if the main thread has finished,
@@ -131,7 +103,7 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
-    (HDs : dataDirsAbsent putget3Program [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")])
+    (HDs : dataDirsAbsent putget3Program [(memberDataDir etcd_putget3.name₁), (memberDataDir etcd_putget3.name₂), (memberDataDir etcd_putget3.name₃)])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff putget3Program)
     (n : Nat)
@@ -139,6 +111,8 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_putget3.name₁), (memberDataDir etcd_putget3.name₂), (memberDataDir etcd_putget3.name₃)])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -147,9 +121,9 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putget3GF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize'
+  refine etcd_adequate_members (GF := putget3GF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")] (by decide)
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [(memberDataDir etcd_putget3.name₁), (memberDataDir etcd_putget3.name₂), (memberDataDir etcd_putget3.name₃)] (by decide)
     -- (hub step 7) the members' start bundles: the three peers, member 1's client; the program's
     -- address list has member 1's client last (a permutation)
     [(etcd_putget3.name₁, ⟨some etcd_putget3.peerAddr₁, some etcd_putget3.clientAddr₁⟩),

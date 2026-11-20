@@ -1620,6 +1620,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«5» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
@@ -1711,7 +1712,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc EnableTracing go.bool)) (Val #()))))))))
 
 opaque BackoffConfig.nonempty_type : NonemptyType.{0}
 def BackoffConfig : Type := BackoffConfig.nonempty_type.type

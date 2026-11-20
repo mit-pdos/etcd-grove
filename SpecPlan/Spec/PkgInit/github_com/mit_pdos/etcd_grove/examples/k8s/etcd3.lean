@@ -23,6 +23,7 @@ public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.labels
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime.schema
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.types
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.watch
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage.etcd3
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage.value
@@ -31,7 +32,7 @@ public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.third_party.bridge
-public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.watch
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness
 
 @[expose] public section
 noncomputable section

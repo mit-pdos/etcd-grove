@@ -1,6 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`minRV(m, d, c, hasC)` (k8setcd3.go; stage 7b): `minRVL`, a `Get`'s minimum resource version.
+`minRV(m, d, c, hasC, floor)` (k8setcd3.go; stage 7b, the floor k8s 7g): `minRVL`, a `Get`'s minimum resource
+version.
 -/
 module
 
@@ -27,10 +28,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev minRV.spec : Prop :=
-  ∀ (m d : w64) (c : Obj) (hasC : Bool),
+  ∀ (m d : w64) (c : Obj) (hasC : Bool) (f : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.minRV)) (Val #m)) (Val #d)) (Val #c)) (Val #hasC))
-  {{ RET #(minRVL m d c hasC); True }}
+    (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.minRV)) (Val #m)) (Val #d)) (Val #c)) (Val #hasC)) (Val #f))
+  {{ RET #(minRVL m d c hasC f); True }}
 
 end spec
 

@@ -77,7 +77,9 @@ abbrev newReplica.spec : Prop :=
       ⌜∀ k, (Kv !! k).getD [] = raft_kvreconf.kvFold (raft_kvreconf.logHist ap) k⌝ ∗
       ⌜raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap)⌝ ∗ sendSpec γ id f ∗
       -- (raft-entsize §2, 2026-11-09) no bound on proposed data (the replica's `%Hmd`)
-      ⌜γ.r.cluster.maxData = none⌝ }}
+      ⌜γ.r.cluster.maxData = none⌝ ∗
+      -- (auth-lease S4, 2026-11-16) outside raft's no-snapshot mode (`isReplica`'s)
+      ⌜¬ clusterNoSnap γ.r.cluster⌝ }}
     (App (App (App (App (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.newReplica)) (Val #id)) (Val #(kdFileName dir id)))
       (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st)) (Val #mK)) (Val #mA))

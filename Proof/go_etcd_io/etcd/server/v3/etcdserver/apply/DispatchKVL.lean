@@ -70,6 +70,13 @@ def kvOutLT (M : auth.AuthMode) (lg : Bool) (hs : List auth.AuthState) (ai : aut
     (rq : IRRModel) (log : mvcc.Log) (T : List w64) (oc : Outcome) : Prop :=
   kvOutL M hs ai ci rq log oc ∧ (lg = true → leaseExactL T rq log oc)
 
+/-- **The lessor window's target, asked when the auth layer may pass** (auth-lease S4 item 7b, 2026-11-17): `winTgt`
+for `rq` at `log` whenever an outcome the latest-state verdict admits is not the auth layer's rejection (a request
+the auth layer refuses reaches no backend). -/
+def winTgtL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM) (ci : Chain) (rq : IRRModel)
+    (log : mvcc.Log) (w : Option lease.LWin) (T : List w64) : Prop :=
+  (∃ oc, kvOutL M hs ai ci rq log oc ∧ oc ≠ .rejected .auth) → winTgt w rq log T
+
 /-- **The KV request's checked permissions are of the cache's shape** at the latest state whenever
 auth is enabled (the model's `kvDet`): what the methods' exact verdicts take; (auth-lease S2) the leases' keys of the
 log's state too. -/
@@ -227,7 +234,9 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
       apply.kvOwnPre v3 E log Pre Q Post ∗
       apply.certPreVW v3 E c rq log (apply.kvOutLT E.authMode E.lg hs (auth.authInfoM info) ci rq log T) ∗
-      ⌜apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗
+      ⌜apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
+      ⌜(E.lg = true → apply.winTgtL E.authMode hs (auth.authInfoM info) ci rq log E.win T) ∧
+        (E.lg = false → E.win = none)⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗
       srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.ltHalf E T ∗ apply.revokeOwn E rq ∗
       apply.applierKVL E c ci a L ∗ L hs ∗
@@ -505,7 +514,13 @@ theorem apply.uberApplier.dispatch.wp_kvL
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.kvSpecL (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log F Pre Q Post rs info ci L hh T
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, %Hok, %HcE, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, #HKV, HL, %Hx⟩
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, %Hok, %Hwin, %HcE, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, #HKV, HL, %Hx⟩
+  have hwL : ∀ L' : List w64, (E.lg = true → L' = T) →
+      (∃ oc, apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc ∧ oc ≠ .rejected .auth) →
+      apply.winTgt E.win rq log L' := fun L' h hx => by
+    cases hlg : E.lg
+    · rw [Hwin.2 hlg]; exact apply.winTgt_none _ _ _
+    · rw [h hlg]; exact Hwin.1 hlg hx
   obtain ⟨Hkk, Hsh⟩ := Hx
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
@@ -742,6 +757,8 @@ theorem apply.uberApplier.dispatch.wp_kvL
             fun hlg => HLm hlg ▸ h.2⟩) $$ Hcp
         iframe HR
         iexists Lm
+        isplitr
+        · ipureintro; exact fun ⟨oc, hX, hne⟩ => hwL Lm HLm ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩
         iframe HcpK Hmp
       ipureintro; exact hsh
     iunfold apply.kvPostFL at Hpost
@@ -778,6 +795,8 @@ theorem apply.uberApplier.dispatch.wp_kvL
           (fun oc h => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩, fun _ =>
             apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)⟩) $$ Hcp
         iframe HR HcpK Hmp
+        iexists T; ipureintro
+        exact fun ⟨oc, hX, hne⟩ => hwL T (fun _ => rfl) ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩
       ipureintro; exact hsh
     iunfold apply.kvPostFL at Hpost
     icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
@@ -817,12 +836,16 @@ theorem apply.uberApplier.dispatch.wp_kvL
       isplitl [Hmp]
       · iunfold apply.txnPreW
         isplitr
-        · ipureintro; exact ⟨hs, hk, hok x hs⟩
+        · ipureintro; exact ⟨hs, hk, (hok x hs).1, (hok x hs).2.1, (hok x hs).2.2.2⟩
         ihave #HcpK := apply.certPreW_mono E c rq log _ _
           (fun oc (h : _ ∧ apply.leaseExactL Lm rq log oc) => ⟨by simp only [apply.kvOutL, hk]; exact ⟨tw, htw, h.1⟩,
             fun hlg => HLm hlg ▸ h.2⟩) $$ Hcp
         iframe HR
         iexists Lm
+        isplitr
+        · ipureintro
+          exact ⟨fun ⟨oc, hX, hne⟩ => hwL Lm HLm ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨tw, htw, hX⟩, hne⟩,
+            (hok x hs).2.2.1⟩
         iframe HcpK Hmp
       ipureintro; exact ⟨htw, hsh⟩
     iunfold apply.kvPostFL at Hpost
@@ -882,7 +905,8 @@ theorem apply.uberApplier.dispatch.wp_kvL
         iunfold apply.revokeRes
         iframe
         iframe #
-        ipureintro; exact hok.1
+        ipureintro
+        exact ⟨hok.1, fun ⟨oc, hX, hne⟩ => hwL T (fun _ => rfl) ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩⟩
       ipureintro; exact hsh
     iunfold apply.kvPostFL at Hpost
     icases Hpost with ⟨%oc, %Hst0, ⟨Hans, HRa⟩, Hkv, Hres, HPP, #Hcls, -⟩

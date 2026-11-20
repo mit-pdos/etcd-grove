@@ -1,5 +1,5 @@
 /-
-`(*schema.GroupVersionResource).Empty()`: the trust boundary (apimachinery's `runtime/schema` is translated types and names only). Lean-first; phase 4 of `notes/k8s-daemonset-plan.md` (the informers' FIFO, whose
+`(*schema.GroupVersionResource).Empty()` (proved since 2026-11-19 over its translated body; was a trust boundary). Lean-first; phase 4 of `notes/k8s-daemonset-plan.md` (the informers' FIFO, whose
 slow-queue trace calls it).
 -/
 module

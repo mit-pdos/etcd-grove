@@ -178,7 +178,7 @@ variable {s : Stuckness} {E : CoPset}
 
 /-- The tree's world, from its parts. -/
 theorem treeWorld_mk {st st' : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
-    {Γc : GMap Nat (Nat × Qp)} (hroots : st'.fs.roots = st.fs.roots) (hw' : FsTreeWf st')
+    {Γc : GMap Nat CallV} (hroots : st'.fs.roots = st.fs.roots) (hw' : FsTreeWf st')
     (hc' : TreeCoh st' V Γdf Γc) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (st.fs.roots, V)) -∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf -∗
@@ -232,7 +232,7 @@ the path names the directory `j`: a new directory fd, not read, which holds the 
 until its close; or an errno, the call's fraction back. -/
 theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : Nat) (j : Ino)
     (hl : lookupH R V p = some (.dir j)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
         (if e = 0 then osTree (L := L) (DFrac.own q1) R V ∗
             osDirFd (L := L) fd (DFrac.own 1) (j, .idle (dview V j) q)
@@ -241,15 +241,15 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _ _) $$ Hinv Hk
   iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  icases osCall_auth Γc k s0 q $$ HAc Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := by rw [← hc.calls k, hk]; rfl
+  icases osCall_auth Γc k s0 p q $$ HAc Hk with %hk
+  have hcall : st.proc.calls !! k = some (s0, p) := by rw [← hc.calls k, hk]; rfl
   have hV := hc.hist
   subst hV
   have hl' : st.lookup p = some (.dir j) := hl
@@ -279,7 +279,7 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
   rw [hcall] at hk'; cases hk'
   simp only [hcr, htr, hacc, Bool.false_eq_true, ↓reduceIte] at hres
   have hl0 : (st.metaEnd k').lookup p = some (.dir j) := hl'
-  imod call_end _ _ Γc k' s0 q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
+  imod call_end _ _ Γc k' s0 p q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
   obtain ⟨-, hres⟩ := hres
@@ -358,7 +358,7 @@ file `i`: a new fd on `i`; or an errno. Either way the call's fraction comes bac
 theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : Nat)
     (i : Ino) (hfl : OpenFlagsOk fl.toNat) (htr : fl.toNat / O_TRUNC % 2 = 0)
     (hl : lookupH R V p = some (.file i)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
         osTree (L := L) (DFrac.own (q1 + q)) R V -∗
         (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
@@ -366,15 +366,15 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#fl))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _ _) $$ Hinv Hk
   iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  icases osCall_auth Γc k s0 q $$ HAc Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := by rw [← hc.calls k, hk]; rfl
+  icases osCall_auth Γc k s0 p q $$ HAc Hk with %hk
+  have hcall : st.proc.calls !! k = some (s0, p) := by rw [← hc.calls k, hk]; rfl
   have hV := hc.hist
   subst hV
   have hl' : st.lookup p = some (.file i) := hl
@@ -403,7 +403,7 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
   rw [hcall] at hk'; cases hk'
   simp only [htr', Bool.false_eq_true, ↓reduceIte] at hres
   have hl0 : (st.metaEnd k').lookup p = some (.file i) := hl'
-  imod call_end _ _ Γc k' s0 q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
+  imod call_end _ _ Γc k' s0 p q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
   ihave Hh : osTree (L := L) (DFrac.own (q1 + q)) st.fs.roots (st.fs.treeDur, st.fs.metaLog)
     $$ [Hh Hq]
   · iapply (osTree_split q1 q _ _).2; iframe
@@ -489,10 +489,10 @@ theorem filesSame_created (st : OsState) (k : Nat) (j : Ino) (b : GoString) (s0 
 
 /-- **What creating `b` in the directory `j` keeps**, from a state where the call `k` holds the rest
 of the whole history (no directory fd, no other call). -/
-theorem create_facts {st : OsState} {Γb Γm Γf Γt} {V : Hist} {Γc : GMap Nat (Nat × Qp)}
+theorem create_facts {st : OsState} {Γb Γm Γf Γt} {V : Hist} {Γc : GMap Nat CallV}
     {k : Nat} {j : Ino} {b : GoString} {s0 : Nat} {q : Qp}
     (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hw : FsTreeWf st) (hc : TreeCoh st V ∅ Γc)
-    (hk : Γc !! k = some (s0, q)) (hΓc : GMap.delete k Γc = ∅)
+    {pc : GoString} (hk : Γc !! k = some ((s0, pc), q)) (hΓc : GMap.delete k Γc = ∅)
     (hj : Reach st.fs.roots st.tree j) (hb : NameOk b) (he : st.tree.entry j b = none) :
     let n := st.fs.nextIno
     st.file n = none ∧ Γm !! n = none ∧
@@ -593,7 +593,7 @@ created. Either way the roots are well formed (`RootsOk`, which a retry needs to
 theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : Nat) (j : Ino)
     (hb : NameOk b) (hd : lookupH R V d = some (.dir j)) (hn : lookupH R V (child d b) = none)
     (hq : q1 + q = 1) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 (child d b) q -∗
       (∀ fd : w64, ∀ e : w64, ⌜RootsOk R⌝ -∗
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i, osTree (L := L) (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
             osMeta (L := L) i (DFrac.own 1) newMeta ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
@@ -604,15 +604,15 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
         @ s; E {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _ _) $$ Hinv Hk
   iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  icases osCall_auth Γc k s0 q $$ HAc Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := by rw [← hc.calls k, hk]; rfl
+  icases osCall_auth Γc k s0 (child d b) q $$ HAc Hk with %hk
+  have hcall : st.proc.calls !! k = some (s0, child d b) := by rw [← hc.calls k, hk]; rfl
   have hs0 : s0 = st.fs.metaLog.length := hc.start k _ hk
   have hV := hc.hist
   subst hV
@@ -647,7 +647,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
   rw [hcall] at hk'; cases hk'
   simp only [hcr, htr, hacc] at hres
   -- the whole history, and what it tells
-  imod call_end _ _ Γc k' s0 q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
+  imod call_end _ _ Γc k' s0 (child d b) q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
   ihave Hh : osTree (L := L) (DFrac.own 1) st.fs.roots (st.fs.treeDur, st.fs.metaLog) $$ [Hh Hq]
   · rw [← hq]; iapply (osTree_split q1 q _ _).2; iframe
   icases whole_alone _ _ Γdf (GMap.delete k' Γc) $$ Hh Hrd Hcr with ⟨%Hal, Hh, Hrd, Hcr⟩

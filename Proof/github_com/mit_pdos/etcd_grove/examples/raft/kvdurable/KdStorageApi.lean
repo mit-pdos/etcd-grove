@@ -156,8 +156,8 @@ theorem kdJ_bnd (γ : Cluster) (K : GName) (c : Nat) (htr : Cluster.trace γ = n
     memBnd (kdJ (GF := GF) γ K) c ⊢ storBnd γ K c := by
   -- (2026-11-12, Q39 (a)) through raft's law: `storBnd` is sealed and gated on the trace
   unfold memBnd kdJ
-  iintro ⟨%k, %Hk, #Hl⟩
-  iapply storBnd_intro_untraced γ K k c htr $$ Hl
+  iintro ⟨%k, %Hk, #Hl, %Hns⟩
+  iapply storBnd_intro_untraced γ K k c htr Hns $$ Hl
   ipureintro; exact Hk
 
 /-- **The store's storage meets the storage contract of key `K`** (under `kdStorageModel`;
@@ -321,6 +321,8 @@ theorem kd_restartStorage
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms bp : Loc) (γs : MemStorNames) (f : StorFile) (boot : ConfStateM) (e0 : EntryM)
     (γ : Cluster) (A : Nat) (F : GName → IProp GF) (htr : Cluster.trace γ = none) (hmd : γ.maxData = none)
+    -- (auth-lease S4, 2026-11-16) outside raft's no-snapshot mode (`RestartNode`'s scope)
+    (hns : ¬ clusterNoSnap γ)
     (Hok : KdFileOk f) (He0 : e0.Term' = f.prevTerm)
     (Hbf : uint.nat f.prev ≤ uint.nat f.snap.Metadata'.Index')
     (Hsc : uint.nat f.snap.Metadata'.Index' ≤ uint.nat f.hs.Commit') :
@@ -395,7 +397,9 @@ theorem kd_restartStorage
   ihave #HB : □ (∀ k, ⌜k ≤ uint.nat f.prev⌝ -∗ (kdJ γ K).B k) $$ []
   · iintro !> %k %hk
     simp only [kdJ]
-    iapply nodeAppliedLb_mono γ K _ k (by omega) $$ HAl
+    isplitr
+    · iapply nodeAppliedLb_mono γ K _ k (by omega) $$ HAl
+    ipureintro; intro h; exact absurd h hns
   ihave Hsv : (⌜(kdFreshSnap f).Metadata'.Index' = W64 0⌝ ∨
       (kdJ γ K).SV (kdFreshSnap f) ∗ (kdJ γ K).DL (uint.nat (kdFreshSnap f).Metadata'.Index'))
     $$ [Hval]

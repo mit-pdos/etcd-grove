@@ -6,8 +6,8 @@ WAL's proofs take as a hypothesis (W6 of `notes/wal-fsext-plan.md`: "the proofs 
 `pbutil` is names-only (the main tree's spec, `Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustMarshalMessage.lean`,
 is over a registered protobuf type's content).
 
-`walSnapAt Mr sp sm cs` (`walpb/PbSnapshot.lean`) is a frozen `walpb.Snapshot` at a content `c` whose
-encoding `snapEnc c` (protobuf-go's, `snapEncC_ok`) is `Mr.encSnap sm`, so the law holds of the real
+`walSnapAt Mr sp sm al cs` (`walpb/PbSnapshot.lean`) is a frozen `walpb.Snapshot` at a content `c` whose
+encoding `snapEnc c` (protobuf-go's, `snapEncC_ok`) is `Mr.encSnap sm al`, so the law holds of the real
 `MustMarshalMessage`: it is the main tree's generic spec at the registered `pbSnapC` (`pbSnapC_reg`;
 `pbEncC pbSnapC c = snapEnc c`), plus protobuf-go's non-nil result (`Marshal` returns a non-nil slice,
 empty or not), which the generic spec does not state (derived here from the encoding's non-emptiness, `Index` being set:
@@ -39,13 +39,13 @@ variable [sem : go.Semantics]
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (Mr : WalMarshal) : Prop :=
-  ∀ (sp : Loc) (sm : SnapshotMetadataM) (cs : Bool), (Mr.encSnap sm).length < 2 ^ 48 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ walSnapAt Mr sp sm cs }}
+  ∀ (sp : Loc) (sm : SnapshotMetadataM) (al cs : Bool), (Mr.encSnap sm al).length < 2 ^ 48 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ walSnapAt Mr sp sm al cs }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty) #sp)))
   {{ (d : GoSlice), RET #d;
-      ⌜d ≠ slice.nil⌝ ∗ d ↦* Mr.encSnap sm ∗ ownSliceCap w8 d (DFrac.own 1) }}
+      ⌜d ≠ slice.nil⌝ ∗ d ↦* Mr.encSnap sm al ∗ ownSliceCap w8 d (DFrac.own 1) }}
 
 end spec
 

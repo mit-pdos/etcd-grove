@@ -6,7 +6,7 @@ over a semantics with no I/O error on the covered files (`FsStepSat (NoIoErr Sio
 **Not proved** (no proof file): `cut` locks the new segment (`fileutil.LockFile`, step 8 of S/wal.go:875-965, an OFD lock
 or `flock` request), and `NoIoErr` does not cover the lock calls (`IoCovers` names neither `OfdLock` nor
 `Flock`; the lock semantics lets a request fail with any errno at any time). Whether to extend the premise
-to them is the user's decision (`notes/wal-units/noioerr.md`, third session). `Save.specNoErr` is proved
+to them is the user's decision (`notes/wal-units/noioerr.md`, third session). `Save.spec` (its covered case) is proved
 over this spec. Lean-first.
 -/
 module

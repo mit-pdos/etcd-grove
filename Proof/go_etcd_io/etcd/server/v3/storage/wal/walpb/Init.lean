@@ -19,6 +19,7 @@ public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.ErrIsTerm
+public import Proof.errors.ErrorStringOk
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -119,11 +120,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   unfold EtcdGrove.walpb.walpbInit
   iexists _
   iframe HErrCRCMismatch TC
-  unfold EtcdGrove.errOk
-  iintro !> %Φ' HΦ'
-  iapply EC
-  inext
-  iapply HΦ'
+  iapply EtcdGrove.errorString_errOk
+  iexact EC
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
