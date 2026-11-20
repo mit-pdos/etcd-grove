@@ -20,7 +20,9 @@ type is axiomatized: its methods name `storage.Feature`, an alias, Goose's gap G
 `notes/k8s-etcd3-goose.md`) and `storage`'s (`storageInit`: `RequestWatchProgress` and
 `tooLargeResourceVersionCauseMsg`, `NewTooLargeResourceVersionError`'s, hold strings, and `Everything`,
 which `createWatchChan` reads, a predicate with no shard selector and the selectors of
-`labels.Everything()` and `fields.Everything()`, whose `Empty()` is `true`: `everythingOk`). As in the cache's `Base.lean`, these
+`labels.Everything()` and `fields.Everything()`, whose `Empty()` is `true`: `everythingOk`) and
+apimachinery's `util/validation/field`'s (`fieldInit`, 2026-11-19: `omitValue`'s address is not
+`nil`, for `(*Error).ErrorBody`'s load of it). As in the cache's `Base.lean`, these
 are assumptions about package initialization only once an `Init.lean` proves a package's
 `wp_initialize'` from them (none does yet: the packages are not in `etc/gen-init.py`'s `ROOTS`).
 -/
@@ -63,6 +65,13 @@ some error; `txnError`'s result must be one grpc's `status` accepts, `statusErrO
 abbrev metricsInit : IProp GF :=
   EtcdGrove.errorsNewVar k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict
     go!"transaction conflict"
+
+/-- `util/validation/field`'s fact (2026-11-19): the variable `omitValue` (of the field-less struct
+type `OmitValueType`, whose points-to is otherwise empty) has an address that is not `nil`, as
+every allocated variable's: what `(*Error).ErrorBody`'s load of it, in its comparison
+`e.BadValue == omitValue`, needs (`field/ErrorMethods.lean`). -/
+abbrev fieldInit : IProp GF :=
+  iprop(⌜globalAddr k8s_io.apimachinery.pkg.util.validation.field.omitValue ≠ null⌝)
 
 /-- `util/feature`'s fact: `DefaultMutableFeatureGate` and `DefaultFeatureGate` hold the same
 feature gate, for good (Go never writes the variables after). (Sweep repairs 1, B5: until then
@@ -168,14 +177,6 @@ instance k8s_io_apimachinery_pkg_util_wait_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait :=
   build_get_is_pkg_init_wf
 
--- (sets: moved from the cacher's Base, `endpoints/request` imports it since prove-k8s, 2026-11-20)
-instance k8s_io_apimachinery_pkg_util_sets_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_apimachinery_pkg_util_sets_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
-  build_get_is_pkg_init_wf
-
 -- (selection: moved from kubernetes' Base, labels imports it since prove-k8s, 2026-11-20)
 instance k8s_io_apimachinery_pkg_selection_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
@@ -257,6 +258,16 @@ instance k8s_io_apimachinery_pkg_api_errors_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors :=
   build_get_is_pkg_init_wf
 
+-- (2026-11-19, moved here from `storage/cacher/Base.lean`: `field` imports it since
+-- `ErrorList.ToAggregate` is translated with its body; before `errors`, which imports it since
+-- `aggregate.Error` is, 2026-11-20)
+instance k8s_io_apimachinery_pkg_util_sets_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_sets_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_apimachinery_pkg_util_errors_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.errors :=
   define_is_pkg_init iprop(True)
@@ -273,7 +284,7 @@ instance k8s_io_apimachinery_pkg_api_meta_get_is_pkg_init_wf_inst :
 
 instance k8s_io_apimachinery_pkg_util_validation_field_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.validation.field :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init fieldInit
 instance k8s_io_apimachinery_pkg_util_validation_field_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.validation.field :=
   build_get_is_pkg_init_wf

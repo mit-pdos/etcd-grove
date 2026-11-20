@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.errors
+public import Code.k8s_io.apimachinery.pkg.util.sets
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -68,8 +69,273 @@ noncomputable def Reduce [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def AggregateGoroutines [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.AggregateGoroutines"
 
+/-- NewAggregate converts a slice of errors into an Aggregate interface, which
+    is itself an implementation of the error interface.  If the slice is empty,
+    this returns nil.
+    It will check if any of the element of input error list is nil, to avoid
+    nil pointer panic when call Error().
+
+    go: errors.go:48:6 -/
+noncomputable def NewAggregate.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "errlist"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Aggregate.ty))) (App (Val (GoInstruction (GoZeroVal Aggregate.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "errlist" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.error)))) (Var "errlist"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "errs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.error)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert aggregate.ty Aggregate.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Aggregate.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Aggregate.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Aggregate.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errlist"))
+  (Let "e" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val (slice.forRange go.error)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "e")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errs"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.error))) (Var "e"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.error)))) (LiteralValue [(KeyedElement none (ElementExpression go.error (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "errs") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "e") (Var "$value"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (Var "errlist"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Aggregate.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Aggregate.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad Aggregate.ty))) (Var "$res0")))))
+
+/-- Error is part of the error interface.
+
+    go: errors.go:71:22 -/
+noncomputable def aggregate.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "agg"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "agg" (App (Val (GoInstruction (GoAlloc aggregate.ty))) (Var "agg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #slice.nil)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.NewString []))) (Val #())) (Var "$a0")))
+  (Let "seenerrs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!""))
+  (Let "result" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"[")) (App (Val (GoInstruction (GoLoad go.string))) (Var "result")))) (Val #(go!"]"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty))) (Var "seenerrs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "result"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (Lam "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #()))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "result") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "result")) (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty))) (Var "seenerrs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "result") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "result")) (Val #(go!", ")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Insert"))) (Var "seenerrs")) (Var "$a0")))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty) go!"Has"))) (Var "seenerrs")) (Var "$a0")))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "msg") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType aggregate.ty) go!"visit"))) (Var "agg")) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "result") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String.ty))) (Pair (Var "seenerrs") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad aggregate.ty))) (Var "agg"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [aggregate.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (IndexRef aggregate.ty))) (Pair (App (Val (GoInstruction (GoLoad aggregate.ty))) (Var "agg")) (Val #(W64 0)))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad aggregate.ty))) (Var "agg"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [aggregate.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: errors.go:105:22 -/
+noncomputable def aggregate.visit.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "agg"
+  (Lam "f"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "agg" (App (Val (GoInstruction (GoAlloc aggregate.ty))) (Var "agg"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))))) (Var "f"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad aggregate.ty))) (Var "agg"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val (slice.forRange go.error)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$y" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 aggregate.ty))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "err" (App (Val (GoInstruction (GoAlloc aggregate.ty))) (Var "$x"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))))) (Var "f"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType aggregate.ty) go!"visit"))) (Var "err")) (Var "$a0")))
+  (Let "match" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "match"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "match"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "match") (Var "$r0"))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 Aggregate.ty))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "err" (App (Val (GoInstruction (GoAlloc Aggregate.ty))) (Var "$x"))
+  (Let "$range" (App (App (Val (GoInstruction (MethodResolve Aggregate.ty go!"Errors"))) (App (Val (GoInstruction (GoLoad Aggregate.ty))) (Var "err"))) (Val #()))
+  (Let "nestedErr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val (slice.forRange go.error)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "nestedErr"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))))) (Var "f")) (Var "$a0")))
+  (Let "match" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "match"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "match"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "match") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "nestedErr") (Var "$value")))))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))))) (Var "f")) (Var "$a0")))
+  (Let "match" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "match"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "match"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "match") (Var "$r0"))))))))))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.errors where
-  pkgImportedPkgs := [pkg_id.errors]
+  pkgImportedPkgs := [pkg_id.errors, pkg_id.k8s_io.apimachinery.pkg.util.sets]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -79,12 +345,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"precondition is violated"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrPreconditionViolated))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrPreconditionViolated go.error)) (Val #()))))))))
 
@@ -125,10 +394,20 @@ class aggregate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq aggregate.ty aggregate.underlying
   method_set : go.MethodSetIs aggregate.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/util/errors.visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType aggregate.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"k8s.io/apimachinery/pkg/util/errors.visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))] false [go.bool])))]
+  Error_unfold : MethodUnfold aggregate.ty go!"Error" aggregate.Error.impl
+  visit_unfold : MethodUnfold aggregate.ty go!"visit" aggregate.visit.impl
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType aggregate.ty) go!"Error" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve aggregate.ty go!"Error"))) (App (Val (GoInstruction (GoLoad aggregate.ty))) (Var "$r"))))
+  ptr_visit_unfold : MethodUnfold (go.GoType.PointerType aggregate.ty) go!"visit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve aggregate.ty go!"visit"))) (App (Val (GoInstruction (GoLoad aggregate.ty))) (Var "$r"))))
 
 attribute [instance] aggregate.TypeAssumptions.underlying
   aggregate.TypeAssumptions.method_set
   aggregate.TypeAssumptions.ptr_method_set
+  aggregate.TypeAssumptions.Error_unfold
+  aggregate.TypeAssumptions.visit_unfold
+  aggregate.TypeAssumptions.ptr_Error_unfold
+  aggregate.TypeAssumptions.ptr_visit_unfold
 
 abbrev Matcher [GooseExts] : Type := GoFunc
 
@@ -149,13 +428,17 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Aggregate_instance : Aggregate.TypeAssumptions
   aggregate_instance : aggregate.TypeAssumptions
   Matcher_instance : Matcher.TypeAssumptions
+  NewAggregate_unfold : FuncUnfold NewAggregate [] NewAggregate.impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_sets_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions
 
 attribute [instance] Assumptions.MessageCountMap_instance
   Assumptions.Aggregate_instance
   Assumptions.aggregate_instance
   Assumptions.Matcher_instance
+  Assumptions.NewAggregate_unfold
   Assumptions.import_errors_Assumption
+  Assumptions.import_sets_Assumption
 
 end k8s_io.apimachinery.pkg.util.errors
 
