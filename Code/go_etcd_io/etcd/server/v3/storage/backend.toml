@@ -4,6 +4,8 @@
 # commit, Close); the snapshot (since S4b, 2026-11-18, with its goroutine), the hash and defragmentation are names only, as are the lock
 # checks (verify.go: they read the goroutine's stack) and the metrics (metrics.go).
 translate = ["!*",
+  # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
+  "commitSec", "rebalanceSec", "spillSec", "writeSec",
   # tx_buffer.go
   "bucketBufferInitialSize", "txBuffer.reset", "txWriteBuffer.put", "txWriteBuffer.putSeq",
   "txWriteBuffer.putInternal", "txWriteBuffer.reset", "txWriteBuffer.writeback",

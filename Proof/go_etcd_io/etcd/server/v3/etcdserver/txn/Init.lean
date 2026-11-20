@@ -5,8 +5,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.txn`
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`txnInit`, `Base.lean`): `lease.ErrLeaseNotFound` and `etcdserver/errors.ErrKeyNotFound`
-(from their packages' facts) and its counter `slowApplies` (`metrics.go`, untranslated: the
-trust-boundary axiom `slowApplies_init`). `opaqueInitsOk` states its other untranslated
+(from their packages' facts) and its counter `slowApplies` (`metrics.go`, translated: `NewCounter`'s
+spec; until 2026-11-19 the trust-boundary axiom `slowApplies_init`). `opaqueInitsOk` states its other untranslated
 initializers run.
 -/
 module
@@ -71,11 +71,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `slowApplies = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`, whose `Inc` returns. -/
-axiom slowApplies_init :
-    {{ (True : IProp GF) }} (App (Val slowApplies.init) (Val #()))
-    {{ RET #(); ∃ c : GoInterfaceOk, globalAddr slowApplies ↦ GoInterface.ok c ∗ go_etcd_io.etcd.server.v3.lease.counterSpec c }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.txn
 end opaqueInits
