@@ -226,7 +226,12 @@ abbrev rafthttpInit : IProp GF :=
     (∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦□ d) ∗
     -- (2026-10-24, rafthttp stage 7d) `SendSnapshot`'s error for a message without a peer
     -- (`util.go`, untranslated): some error, read-only for good
-    (∃ e : GoInterface, globalAddr errMemberNotFound ↦□ e))
+    (∃ e : GoInterface, globalAddr errMemberNotFound ↦□ e) ∗
+    -- (prove-etcdserver, 2026-11-20) the connections' write timeout (`peer.go`, translated):
+    -- `DefaultConnWriteTimeout`, five seconds, read-only for good (tests change it), which the
+    -- server's `monitorVersionInterval` reads at its initialization (last, so that the positional
+    -- patterns before it keep their places)
+    globalAddr ConnWriteTimeout ↦□ (W64 5000000000))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

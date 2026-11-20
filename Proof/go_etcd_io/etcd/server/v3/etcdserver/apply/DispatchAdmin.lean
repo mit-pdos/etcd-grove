@@ -158,7 +158,8 @@ set_option hygiene false in
 /-- The deferred metrics with `success` (`ar.Err == nil`). -/
 local macro "ok_path" : tactic => `(tactic| (
   wp_apply time.wp_Since as %d -
-  wp_apply hASO
+  wp_apply hASO $$ []
+  · ipureintro; exact ⟨by decide, by first | exact Hop | decide⟩
   wp_alloc s1 as Hs1
   wp_auto
   wp_apply hWER $$ [Hs1]
@@ -191,7 +192,8 @@ local macro "err_path" : tactic => `(tactic| (
     $$ [] as %b -
   · iframe Htree; ipureintro; exact HS.1
   wp_apply time.wp_Since as %d -
-  wp_apply hASO
+  wp_apply hASO $$ []
+  · ipureintro; exact ⟨by decide, by first | exact Hop | decide⟩
   wp_alloc s1 as Hs1
   wp_auto
   wp_apply hWER $$ [Hs1]
@@ -269,7 +271,10 @@ local macro "join_ar" : tactic => `(tactic| (
   persist_ar
   imodintro
   iexists _, _, _, _, _
-  iframe a r ar op H0 HeI Htt Hrt))
+  iframe a r ar op H0 HeI Htt Hrt
+  -- (prove-etcdserver, 2026-11-20) `op` is a literal operation name: valid UTF-8, for the metrics
+  isplitr
+  · ipureintro; decide))
 
 
 set_option linter.unusedVariables false in
@@ -431,7 +436,7 @@ theorem apply.uberApplier.dispatch.wp_admin
   -- once per request kind)
   wp_join iprop(|==> ∃ (resp : google_golang_org.protobuf.reflect.protoreflect.ProtoMessage)
       (err : GoError) (physc : GoChan) (trace : Loc) (opS : GoString),
-      a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
+      a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗ ⌜utf8Valid opS⌝ ∗
       «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
       (apply.applyTok E ∗ apply.bkRTOf E ∗
         apply.chainResAny c (GoInterface.ok ai) ∗ structFieldRef uberApplier go!"applyV3" p ↦ GoInterface.ok ai ∗
@@ -960,7 +965,7 @@ theorem apply.uberApplier.dispatch.wp_admin
   exact Hdok.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
   -- after the join: `return ar` and the deferred metrics
   iintro Hj
-  imod Hj with ⟨%resp, %err, %physc, %trace, %opS, a, r, ar, op, #H0, #HeI, Hpost⟩
+  imod Hj with ⟨%resp, %err, %physc, %trace, %opS, a, r, ar, op, %Hop, #H0, #HeI, Hpost⟩
   ihave #H0' := H0
   iStructNamed H0'
   dtail

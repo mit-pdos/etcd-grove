@@ -20,8 +20,9 @@ axiom `NewCounter.wp_proof`), which
 `revokeExpiredLeases` increments. (prove-errinits, 2026-11-19) Its other metrics (`learnerPromoteFailed`,
 `learnerPromoteSucceed`, `currentVersion`, `currentGoVersion`, `fdUsed`, `fdLimit`),
 and `recommendedMaxRequestBytesString` (`humanize.Bytes`, over its spec) are translated too;
-`opaqueInitsOk` keeps `monitorVersionInterval` (`rafthttp.ConnWriteTimeout - time.Second`, which
-reads a variable rafthttp's fact does not hold) and `_` (`var _ serverversion.Server = ...`).
+(prove-etcdserver, 2026-11-20) and `monitorVersionInterval` (`rafthttp.ConnWriteTimeout - time.Second`,
+from rafthttp's fact) and `_` (`var _ serverversion.Server = ...`, a conversion): no untranslated
+initializer is left.
 -/
 module
 
@@ -69,12 +70,14 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
 public import Proof.go_etcd_io.etcd.server.v3.features.Init
 public import Proof.go_etcd_io.etcd.server.v3.lease.Init
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Init
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.otel.attribute.Init
@@ -107,15 +110,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([«_».init,
-        monitorVersionInterval.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only

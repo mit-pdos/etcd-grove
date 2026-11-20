@@ -24,8 +24,11 @@ zapcore_CheckedEntry__Write:
 zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Panic:
 context_TODO:
-txn_RangeSecObserve:
-txn_ApplySecObserve:
+# (prove-etcdserver, 2026-11-20) the observers, proved over FormatBool's and WithLabelValues' specs
+strconv_FormatBool:
+prometheus_HistogramVec__WithLabelValues:
+txn_RangeSecObserve: strconv_FormatBool prometheus_HistogramVec__WithLabelValues
+txn_ApplySecObserve: strconv_FormatBool prometheus_HistogramVec__WithLabelValues
 # mvcc, through its API (strict M1, 2026-11-05; the `origin/lean` merge, 2026-11-06): the txn
 # proofs take the API's laws and `NewReadOnlyTxnWrite`'s API spec, not mvcc's internal specs
 # (the store's and the transactions' methods are interface calls, their contracts inside

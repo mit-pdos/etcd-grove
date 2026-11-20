@@ -400,7 +400,8 @@ trust-boundary axioms `<X>_init`).''',
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
             'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',
-            'ipersist HRaftSnapshotPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
+            'ipersist HRaftSnapshotPrefix', 'ipersist HConnReadTimeout', 'ipersist HConnWriteTimeout',
+            'ipersist HlinkHeartbeatSize',
             'ipersist HreadBytesLimit', 'ipersist HerrUnsupportedStreamType',
             'ipersist HsupportedStream', 'ipersist HsnapResponseReadTimeout', 'ipersist HerrMemberNotFound',
             'ipersist Hss'] + [f'ipersist Sss{i}' for i in range(13)] + [
@@ -2483,11 +2484,11 @@ initializers run.""",
     before={'slowApplies': metric_steps_to('slowApplies', 'counter', 'go_etcd_io.etcd.server.v3.lease.counterSpec')},
     finish=['ipersist HslowApplies',
             'ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []',
-            '· iapply isPkgInit_access $$ Hd11',
+            '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.lease}',
             'icases Hli with ⟨#HLNF0, -⟩',
             'iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0',
             'icases HLNF0 with ⟨%eLNF, #HLNF, -⟩'] +
-           errVarFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', 'Hd10', 'KNF') +
+           errVarFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', '{Hd:go_etcd_io.etcd.server.v3.etcdserver.errors}', 'KNF') +
            ['iunfold EtcdGrove.errorsNewVar at NKNF', 'icases NKNF with ⟨%xKNF, #HKNF, -⟩'] +
            FIN_PRE[:6] + ['imodintro', 'unfold txnInit', 'iframe #'],
 )
@@ -2674,11 +2675,21 @@ _SV['before'].update({'learnerPromoteSucceed': metric_steps('learnerPromoteSucce
                           'wp_apply EtcdGrove.go_humanize.Bytes.wp_proof $$ {Hd:github_com.dustin.go_humanize} as %sRMR -',
                           'try wp_auto']})
 _SV['imports'] = _SV['imports'] + ['Proof.github_com.dustin.go_humanize.Bytes']
+# (prove-etcdserver, 2026-11-20) `monitorVersionInterval = rafthttp.ConnWriteTimeout - time.Second`,
+# translated: `ConnWriteTimeout` from rafthttp's fact (its last part); and `_`, the adapter's
+# interface conversion (`serverversion.Server` translated): `opaqueInitsOk` is empty
+_SV['alloc_types']['monitorVersionInterval'] = 'w64'
+_SV['before']['monitorVersionInterval'] = [
+    'ihave Hrhi : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []',
+    '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp}',
+    'icases Hrhi with ⟨' + '-, ' * 34 + '#HCWT⟩',
+    'try wp_auto']
 _SV['doc'] += """ (prove-errinits, 2026-11-19) Its other metrics (`learnerPromoteFailed`,
 `learnerPromoteSucceed`, `currentVersion`, `currentGoVersion`, `fdUsed`, `fdLimit`),
 and `recommendedMaxRequestBytesString` (`humanize.Bytes`, over its spec) are translated too;
-`opaqueInitsOk` keeps `monitorVersionInterval` (`rafthttp.ConnWriteTimeout - time.Second`, which
-reads a variable rafthttp's fact does not hold) and `_` (`var _ serverversion.Server = ...`)."""
+(prove-etcdserver, 2026-11-20) and `monitorVersionInterval` (`rafthttp.ConnWriteTimeout - time.Second`,
+from rafthttp's fact) and `_` (`var _ serverversion.Server = ...`, a conversion): no untranslated
+initializer is left."""
 
 _V_ERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided', 'ErrGRPCLeaseProvided',
            'ErrGRPCTooManyOps', 'ErrGRPCDuplicateKey', 'ErrGRPCKeyNotFound', 'ErrGRPCNoSpace',
@@ -2988,6 +2999,9 @@ _T['doc'] = _T['doc'].replace("`opaqueInitsOk` states its other untranslated\nin
     "Its histogram vectors `applySec` and\n`rangeSec` are translated too (`NewHistogramVec`'s spec; prove-smallinits, 2026-11-20, until then\n`opaqueInitsOk`).")
 promvec(_T, 'applySec', 'Histogram', ['version', 'op', 'success'])
 promvec(_T, 'rangeSec', 'Histogram', ['success'])
+# (prove-etcdserver, 2026-11-20) the two vectors are in the fact (`txnInit`), for the observers
+_T['finish'][0:0] = ['ipersist HapplySec', 'ipersist HrangeSec']
+_T['doc'] = _T['doc'].replace("`opaqueInitsOk`).", "`opaqueInitsOk`), and in its fact with their label\nnames (prove-etcdserver, 2026-11-20: `metrics.go`'s observers, translated, read them).")
 
 def map_lit_steps(h, K, V, kt, vt, n):
     """A map literal of `n` entries (`map[kt]vt{...}`, Lean types `K`, `V`): made (`%m<h> <h>`), then its

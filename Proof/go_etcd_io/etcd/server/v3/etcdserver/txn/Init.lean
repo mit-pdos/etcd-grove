@@ -8,7 +8,8 @@ Its fact (`txnInit`, `Base.lean`): `lease.ErrLeaseNotFound` and `etcdserver/erro
 (from their packages' facts) and its counter `slowApplies` (`metrics.go`, translated: `NewCounter`'s
 spec; until 2026-11-19 the trust-boundary axiom `slowApplies_init`). Its histogram vectors `applySec` and
 `rangeSec` are translated too (`NewHistogramVec`'s spec; prove-smallinits, 2026-11-20, until then
-`opaqueInitsOk`).
+`opaqueInitsOk`), and in its fact with their label
+names (prove-etcdserver, 2026-11-20: `metrics.go`'s observers, translated, read them).
 -/
 module
 
@@ -18,6 +19,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.math.Link
 public import Perennial.Proof.sort.Link
+public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.prometheus.client_golang.prometheus.Init

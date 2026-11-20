@@ -570,6 +570,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HRaftStreamPrefix
   ipersist HRaftSnapshotPrefix
   ipersist HConnReadTimeout
+  ipersist HConnWriteTimeout
   ipersist HlinkHeartbeatSize
   ipersist HreadBytesLimit
   ipersist HerrUnsupportedStreamType
