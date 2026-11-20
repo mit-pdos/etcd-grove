@@ -8,6 +8,7 @@ module
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__Length
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__Length_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.mapUnstructuredString__Empty
 
 @[expose] public section
 
@@ -55,6 +56,25 @@ theorem isListV_Length
     iapply hLp p vs $$ [Hpre] [HΦ]
     · iframe; iexact Hpkg
     · iexact HΦ
+
+/-- `Empty` of a map view, from the concrete spec (`mapUnstructuredString`, the only kind). -/
+theorem isMapV_Empty
+    (hE : value.mapUnstructuredString.Empty.spec (GF := GF)) (m : value.Map)
+    (kvs : List (GoString × UVal)) :
+    isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isMapV m kvs ⊢
+      ∃ i, ⌜m = .ok i⌝ ∗ □ ({{ isMapV (.ok i) kvs }}
+        (App (Val #(methods i.ty go!"Empty" i.v)) (Val #()))
+        {{ (r : Bool), RET #r; ⌜r = true ↔ kvs = []⌝ }}) := by
+  iintro ⟨#Hpkg, Hm⟩
+  icases isMapV_concrete_law_holds m kvs $$ Hm with ⟨%gm, %rfl⟩
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %Φ !> Hpre HΦ
+  iapply hE gm kvs $$ [Hpre] [HΦ]
+  · iframe; iexact Hpkg
+  · iexact HΦ
 
 end lemmas
 
