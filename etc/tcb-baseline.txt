@@ -576,7 +576,6 @@ axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
 axiom tracing.SpanFromContext.wp_proof
 axiom tracing.Start.wp_proof
-axiom transport.IsClosedConnError.wp_proof
 axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
