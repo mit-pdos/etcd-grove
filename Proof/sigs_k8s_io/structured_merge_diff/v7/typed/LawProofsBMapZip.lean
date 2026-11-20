@@ -285,6 +285,11 @@ theorem unionAll_perm (f : GoString → Cmp) {l l' : List GoString} (h : l.Perm 
   rw [a1, a2, a3, b1, b2, b3]
   simp only [h.mem_iff, iff_self, and_self]
 
+theorem cmp_union_nil (C : Cmp) (f : GoString → Cmp) :
+    C.union (Cmp.unionAll (([] : List GoString).map f)) = C := by
+  obtain ⟨r, m, a⟩ := C
+  simp only [List.map_nil, Cmp.unionAll, List.foldr_nil, Cmp.none, Cmp.union, LawB.ps_union_empty]
+
 /-- One more key's comparison. -/
 theorem unionAll_snoc (C : Cmp) (f : GoString → Cmp) (done : List GoString) (k : GoString) :
     (C.union (Cmp.unionAll (done.map f))).union (f k) =
@@ -324,6 +329,48 @@ theorem cardLt_keys (C : Cmp) (f : GoString → Cmp) (l1 l2 : List GoString)
     · exact Or.inl hx
     · exact Or.inr ⟨k, hsub k hk, hx⟩
 
+/-! ## A key of the zip of two conforming maps -/
+
+theorem mapItems_kvs (o : Option (List (GoString × UVal))) :
+    mapItems (o.map UVal.map) = kvsOrEmpty o := by cases o <;> rfl
+
+theorem confO_lookup (S : Schema) (fs : List (GoString × TypeRef)) (em : Option TypeRef)
+    (L : List (GoString × UVal))
+    (cL : ∀ k v, (k, v) ∈ L → ∃ t', fieldType fs em k = some t' ∧ conforms S t' v)
+    (k : GoString) (t' : TypeRef) (ht : fieldType fs em k = some t') :
+    confO S t' (lookupKV k L) := by
+  cases h : lookupKV k L with
+  | none => trivial
+  | some v =>
+    obtain ⟨t'', h1, h2⟩ := cL k v (LawProofs.lookupKV_mem' h)
+    rw [ht] at h1; cases h1
+    exact h2
+
+/-- A key of the zip of two maps conforming to a map type: its field type, a side holding it,
+both sides conforming to the field type. -/
+theorem key_conf (S : Schema) (t : TypeRef) (fs : List (GoString × TypeRef)) (em : Option TypeRef)
+    (rel : ElemRel) (hf : S.find t.name = some (.map fs em rel))
+    (ol or_ : Option (List (GoString × UVal)))
+    (hl : confO S t (ol.map UVal.map)) (hr : confO S t (or_.map UVal.map))
+    (k : GoString) (hk : k ∈ zipKeys ol or_) :
+    ∃ t', fieldType fs em k = some t' ∧
+      ((lookupKV k (kvsOrEmpty ol)).isSome ∨ (lookupKV k (kvsOrEmpty or_)).isSome) ∧
+      confO S t' (lookupKV k (kvsOrEmpty ol)) ∧ confO S t' (lookupKV k (kvsOrEmpty or_)) := by
+  have hs := (zipKeys_mem_law_holds ol or_ k).1 hk
+  have cL := LawB.confO_map S t fs em rel _ hf hl
+  have cR := LawB.confO_map S t fs em rel _ hf hr
+  rw [mapItems_kvs] at cL cR
+  have ht : ∃ t', fieldType fs em k = some t' := by
+    rcases hs with h | h
+    · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 h
+      obtain ⟨t', h1, -⟩ := cL k v (LawProofs.lookupKV_mem' hv)
+      exact ⟨t', h1⟩
+    · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 h
+      obtain ⟨t', h1, -⟩ := cR k v (LawProofs.lookupKV_mem' hv)
+      exact ⟨t', h1⟩
+  obtain ⟨t', ht⟩ := ht
+  exact ⟨t', ht, hs, confO_lookup S fs em _ cL k t' ht, confO_lookup S fs em _ cR k t' ht⟩
+
 end LawBMZ
 
 /-! ## The merged map's interface -/
@@ -354,6 +401,15 @@ theorem isIface_entries (m : GoMap) (M : GMap GoString GoInterface)
   iintro %kv %hkv
   iapply H $$ %kv.1 %kv.2
   ipureintro; exact lkv_of_mem_nodup _ _ _ hnd hkv
+
+theorem isMapO_sorted (m : value.Map) (o : Option (List (GoString × UVal))) :
+    isMapO (GF := GF) m o ⊢ ⌜keysSorted (kvsOrEmpty o) = true⌝ := by
+  cases o with
+  | none => iintro -; ipureintro; rfl
+  | some kvs => exact isMapV_sorted_law_holds m kvs
+
+theorem optValF_isValO (v : value.Value) (o : Option UVal) :
+    optValF (GF := GF) v o = isValO v (DFrac.own 1) o := by cases o <;> rfl
 
 end LawBMZ
 
