@@ -25,8 +25,7 @@ open Iris Iris.BI Iris.ProofMode
 open sigs_k8s_io.structured_merge_diff.v7
 
 /-- A set without the empty path counts at most its trie's nodes: each path is one of its own
-non-empty prefixes. (`PathSet.card_nodes.law` as stated, without `[] ∉ S`, is false: `{[]}` has
-one member and no nodes.) -/
+non-empty prefixes (`PathSet.card_nodes.law`). -/
 theorem PathSet_card_nodes_of_ne (S : PathSet) (hne : [] ∉ S) : S.card ≤ S.nodes.card := by
   apply FSet.card_le_of_subset
   intro q hq
@@ -41,6 +40,30 @@ theorem PathSet_card_nodes_of_ne (S : PathSet) (hne : [] ∉ S) : S.card ≤ S.n
   rw [List.mem_map]
   refine ⟨q.length - 1, List.mem_range.2 (by omega), ?_⟩
   rw [Nat.sub_add_cancel hl, List.take_length]
+
+theorem PathSet_card_nodes_law_holds : PathSet.card_nodes.law := PathSet_card_nodes_of_ne
+
+namespace fpN
+
+theorem dedupL_length_le {α : Type} [DecidableEq α] : (l : List α) → (FSet.dedupL l).length ≤ l.length
+  | [] => by simp [FSet.dedupL]
+  | x :: xs => by
+    have := dedupL_length_le xs
+    unfold FSet.dedupL; split <;> simp <;> omega
+
+/-- `NewSet`'s count: the set of `k` paths has at most `k` members. -/
+theorem card_ofList_le (l : List Path) : (PathSet.ofList l).card ≤ l.length := by
+  show (FSet.dedupL (l.filter _)).length ≤ _
+  exact Nat.le_trans (dedupL_length_le _) (List.length_filter_le _ _)
+
+/-- `NewSet`'s step: one more path inserted. -/
+theorem ofList_take_succ (ps : List Path) (k : Nat) (p : Path) (h : ps[k]? = some p) :
+    PathSet.union (PathSet.ofList (ps.take k)) (PathSet.single p) = PathSet.ofList (ps.take (k + 1)) := by
+  rw [List.take_add_one, h]
+  show FSet.ofList _ = FSet.ofList _
+  simp only [Option.toList_some, List.filter_append]
+
+end fpN
 
 namespace fpS
 open fpC
@@ -187,6 +210,48 @@ theorem fpS.isSet_of_parts (r : Loc) (v : fieldpath.Set') (S : PathSet) (T : FSe
   · iexact Hr
   iframe
   ipureintro; exact hne
+
+/-- Persistent paths are paths lent at the discarded fraction (`NewSet`'s argument). -/
+theorem fpN.isPaths_isPathsF : (ss : List GoSlice) → (ps : List Path) →
+    isPaths (GF := GF) ss ps ⊣⊢ isPathsF ss DFrac.discard ps
+  | [], [] => by unfold isPaths isPathsF; exact .rfl
+  | [], _ :: _ => by unfold isPaths isPathsF; exact .rfl
+  | _ :: _, [] => by unfold isPaths isPathsF; exact .rfl
+  | s :: ss, p :: ps => by
+    unfold isPaths isPathsF
+    exact sep_congr (isPath_isPathF_law_holds s p) (fpN.isPaths_isPathsF ss ps)
+
+theorem fpN.isPathsF_length (dq : DFrac) : (ss : List GoSlice) → (ps : List Path) →
+    isPathsF (GF := GF) ss dq ps ⊢ ⌜ss.length = ps.length⌝
+  | [], [] => by iintro _; ipureintro; rfl
+  | [], _ :: _ => by unfold isPathsF; iintro %h; exact h.elim
+  | _ :: _, [] => by unfold isPathsF; iintro %h; exact h.elim
+  | s :: ss, p :: ps => by
+    unfold isPathsF
+    iintro ⟨-, H⟩
+    ihave %h := fpN.isPathsF_length dq ss ps $$ H
+    ipureintro; simp [h]
+
+/-- The `k`-th path of lent paths, and the way back. -/
+theorem fpN.isPathsF_acc (dq : DFrac) : (ss : List GoSlice) → (ps : List Path) → (k : Nat) →
+    (s0 : GoSlice) → (p0 : Path) → ss[k]? = some s0 → ps[k]? = some p0 →
+    isPathsF (GF := GF) ss dq ps ⊢ isPathF s0 dq p0 ∗ (isPathF s0 dq p0 -∗ isPathsF ss dq ps)
+  | [], _, _, _, _, h, _ => by simp at h
+  | _ :: _, [], _, _, _, _, h => by simp at h
+  | s :: ss, p :: ps, 0, s0, p0, h1, h2 => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h1 h2
+    subst h1 h2
+    unfold isPathsF
+    iintro ⟨H1, H2⟩
+    iframe
+    iintro H1; iframe
+  | s :: ss, p :: ps, k + 1, s0, p0, h1, h2 => by
+    simp only [List.getElem?_cons_succ] at h1 h2
+    unfold isPathsF
+    iintro ⟨H1, H2⟩
+    icases fpN.isPathsF_acc dq ss ps k s0 p0 h1 h2 $$ H2 with ⟨H, Hb⟩
+    iframe
+    iintro H; iframe; iapply Hb; iexact H
 
 end laws
 

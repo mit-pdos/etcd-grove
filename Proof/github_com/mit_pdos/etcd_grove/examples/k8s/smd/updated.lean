@@ -9,6 +9,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewVersionedSet
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Sets
+import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsSet
 
 @[expose] public section
 
@@ -36,7 +37,8 @@ theorem updated.wp_proof_of (hPersist : ownSet_persist.law (GF := GF))
     updated.spec (GF := GF) := fun s dq ss ps => by
   wp_start as ⟨Hs, Hps⟩
   wp_auto
-  wp_apply wp_NewSet $$ [$Hs $Hps] as %p ⟨Hs, Hp⟩
+  ihave Hps := (fpN.isPaths_isPathsF ss ps).mp $$ Hps
+  wp_apply wp_NewSet $$ [$Hs $Hps] as %p ⟨Hs, -, Hp⟩
   imod (hPersist p _) $$ Hp with Hp
   wp_apply (wp_NewVersionedSet p _ version false) $$ [Hp] as %i Hi
   · iexact Hp

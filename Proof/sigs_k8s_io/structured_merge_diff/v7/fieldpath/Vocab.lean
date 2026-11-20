@@ -152,6 +152,14 @@ instance at the discarded fraction (`isPath_isPathF`). -/
 def isPathF (s : GoSlice) (dq : DFrac) (p : Path) : IProp GF :=
   iprop(∃ es : List fieldpath.PathElement, s ↦*{dq} es ∗ isPEs es p)
 
+/-- **`isPathsF ss dq ps`**: each `Path` slice of `ss` holds the path of `ps` at its position, its
+elements at fraction `dq` (`NewSet`'s argument: paths lent for the call, e.g. a walker's reused
+path; `isPaths ss ps` is the instance at the discarded fraction, `fpN.isPaths_isPathsF`). -/
+def isPathsF : List GoSlice → DFrac → List Path → IProp GF
+  | [], _, [] => iprop(True)
+  | s :: ss, dq, p :: ps => iprop(isPathF s dq p ∗ isPathsF ss dq ps)
+  | _, _, _ => iprop(False)
+
 /-- A `PathElementSet` value whose `members` slice, at fraction `dq`, holds the set `S`, strictly
 sorted (internal: sealed). -/
 @[no_expose] def isPESetV (v : fieldpath.PathElementSet) (dq : DFrac) (S : FSet PE) : IProp GF :=
@@ -283,8 +291,10 @@ def FSet.cardLt_mono.law : Prop :=
 /-- A union counts at most its two sides. -/
 def FSet.card_union.law : Prop :=
   ∀ {α : Type} [DecidableEq α] (a b : FSet α), (FSet.union a b).card ≤ a.card + b.card
-/-- A set counts at most its trie's nodes (D9: from the managed sets' bound to their counts). -/
-def PathSet.card_nodes.law : Prop := ∀ (S : PathSet), S.card ≤ S.nodes.card
+/-- A set counts at most its trie's nodes (D9: from the managed sets' bound to their counts); for
+sets without the empty path (as every `isSet`'s, `isSet_ne`): `{[]}` has one member and no nodes
+(premise added 2026-11-20, authorized: no user yet). -/
+def PathSet.card_nodes.law : Prop := ∀ (S : PathSet), [] ∉ S → S.card ≤ S.nodes.card
 
 /-! ### Sets of paths (pure) -/
 

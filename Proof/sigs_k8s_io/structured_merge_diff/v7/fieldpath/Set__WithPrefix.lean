@@ -45,8 +45,8 @@ theorem fieldpath.Set.WithPrefix.wp_proof
     iapply wp_fupd
     wp_auto
     ihave Hnil := ownSlice_nil (V := GoSlice) (GF := GF) DFrac.discard
-    wp_apply (h_NewSet slice.nil DFrac.discard [] []) $$ [$Hnil] as %r ⟨-, Hr⟩
-    · unfold isPaths; itrivial
+    wp_apply (h_NewSet slice.nil DFrac.discard DFrac.discard [] []) $$ [$Hnil] as %r ⟨-, -, Hr⟩
+    · unfold isPathsF; itrivial
     imod fpS.ownSet_persist r _ $$ Hr with #Hr
     imodintro
     iapply HΦ
