@@ -43,6 +43,12 @@ theorem members_names_utf8 (k : Nat) : ∀ m ∈ members k, utf8Valid m.Name' :=
   obtain ⟨i, -, rfl⟩ := members_mem k m hm
   exact memberAt_name_utf8 _ (fun b hb => by revert b; decide) _ _ _
 
+/-- The members' names are at most 200 bytes (wal-fsfix: their data directories fit). -/
+theorem members_names_len (k : Nat) : ∀ m ∈ members k, m.Name'.length ≤ 200 := by
+  intro m hm
+  obtain ⟨i, -, rfl⟩ := members_mem k m hm
+  exact memberAt_name_len _ (by decide) _ _ _
+
 theorem members_peers_nodup (k : Nat) (hk : k ≤ 1000) : ((members k).map (·.Peer')).Nodup := by
   unfold members membersOf
   rw [List.map_map]

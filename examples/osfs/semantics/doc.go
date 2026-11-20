@@ -27,6 +27,9 @@
 //	env_restarts.go               restarts are machine crashes       OsCrash := MachineCrash
 //	env_journal_order.go          metadata in journal order          Follows, Closed, MachineCrash, DirSync
 //	env_roots_only.go             only the roots' trees              TreeName, TreePath, AtOrAboveRoot, CanonBelow, RootsOk
+//	env_no_close_during_lock.go   no close of an fd while a lock     Impl.lean header ("Environment", "Locks"),
+//	                              call on it is in flight            LockStep, Close; NoIoErr ("Fds and locks")
+//	                              (2026-11-19)
 //
 // File contents and sizes:
 //
@@ -68,7 +71,12 @@
 //	locks_flock.go                flock locks per description        OsFd.flk, LockStep, flockReq, Flock
 //	locks_flock_vs_ofd.go         the two kinds are independent      LockKind, OsFd.lk, LockConflict
 //	locks_blocking.go             blocking requests wait (or fail)   LockStep (nb)
-//	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit (unchanged)
+//	locks_spurious_eagain.go      EAGAIN with no conflict in the     LockStep (failure arm), Close's comment;
+//	                              model, non-blocking (2026-11-19)   Premises.lean: IoCovers (blocking OFD only),
+//	                                                                 MapLockOk "Flock" (2026-11-20)
+//	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit
+//	locks_mmap_close.go           a mapping keeps them past close    MapDesc, ProcState.mapDesc, Close,
+//	                              until its munmap (2026-11-19)      Mmap, Munmap, LockConflict
 //	locks_posix_not_modelled.go   F_SETLK/F_SETLKW: not modelled     syscall.lean, unix.lean: FcntlFlock.impl
 //
 // Mappings:
@@ -105,6 +113,31 @@
 //	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
 //	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
 //	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
+//	                              + OFD lock requests, dir reads     IoCovers "OfdLock"/"DirReadNext",
+//	                              (assumed, measured as support:     ErrnoZero "DirReadNext" (ENOENT kept)
+//	                              premise_no_io_err_test.go; user,
+//	                              2026-11-19)
+//	                              + errnos of a failing unlink/rmdir PathErrno (ENOENT, EISDIR, ENOTEMPTY;
+//	                              (assumed, measured as support:     NoIoErr.lean: noIoErr_good)
+//	                              TestNoIoErrPathErrno; user,
+//	                              2026-11-19)
+//	                              + C's permissions: search (also    NoIoErr's docstring, Impl.lean's
+//	                              of ancestors)/write, file write,   "Environment" (env_config.go)
+//	                              no sticky, immutable, append-only,
+//	                              protected_symlinks/regular,
+//	                              unmapped idmapped ids, LSM,
+//	                              seccomp or fanotify denial
+//	                              (assumed; contrasts: TestNoIoErrPerm*,
+//	                              TestNoIoErrProtected*; user, 2026-11-19)
+//	                              - non-blocking lock requests and   IoCovers "OfdLock" (blocking only),
+//	                              paths that do not fit (user,       PathFits
+//	                              2026-11-19; TestLocksProcReaderEagain,
+//	                              TestNoIoErrNameTooLong)
+//	                              + C's fd limits: no EMFILE/ENFILE  NoIoErr's docstring, Impl.lean's
+//	                              (assumed; contrast:                "Environment" (env_config.go)
+//	                              TestNoIoErrEmfile; user, 2026-11-19)
+//	                              - flock (NoMapLockErr's: one       IoCovers (no "Flock")
+//	                              premise per call; user, 2026-11-20)
 //	premise_no_map_lock_err.go    no flock/mmap/munmap/madvise error NoMapLockErr, MapLockCovers, MapLockOk
 //	                              on chosen files (mmap: a mapping,  (NoMapLockErr.lean: noMapLockErr_keeps,
 //	                              or no return with no room left);   isFsStep_open_eintr)

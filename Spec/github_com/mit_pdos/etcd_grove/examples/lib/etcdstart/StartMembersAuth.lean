@@ -43,6 +43,9 @@ abbrev StartMembersAuth.spec : Prop :=
   bootLog.length ≤ 2 ^ 60 → γn.dir = dir → netDirOk dir → rafthttp.bootCfg dir ps →
   -- the members' names distinct and valid UTF-8 (`bootPremise`'s condition on the map's keys)
   (xs.map (·.1.Name')).Nodup → (∀ x ∈ xs, utf8Valid x.1.Name') →
+  -- (wal-fsfix, 2026-11-20, the user's decision) the members' names at most 200 bytes, so that their
+  -- data directories fit (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
+  (∀ x ∈ xs, x.1.Name'.length ≤ 200) →
   -- each member's names the cluster's, its peer URL its directory entry
   (∀ x ∈ xs, x.2.γ.vs = ps ∧ x.2.γ.rule = srvRule (W64 0) bootLog ∧ x.2.γ.boot = bootLog ∧
     γn.N = srvNet x.2.γ ∧ go!"http://" ++ x.1.Peer' ∈ dir x.2.id) →

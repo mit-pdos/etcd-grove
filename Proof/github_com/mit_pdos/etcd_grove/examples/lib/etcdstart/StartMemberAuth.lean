@@ -43,7 +43,7 @@ theorem StartMemberAuth.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMemberAuth.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn m Htb Hrb48
-    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Haf Hbuq Hdbo Hcu
+    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 HnL Haf Hbuq Hdbo Hcu
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   -- the peer address's listen right and raft protocol, out of the fresh bundle (to `net.Listen` and
   -- `http.Serve`); the rest to `NewServer`
@@ -94,7 +94,7 @@ theorem StartMemberAuth.wp_proof
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (bootCfgOk_of _ rfl rfl rfl rfl)
-      ⟨rfl, discoveryZero_len, HU8⟩
+      ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩
       HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
   · iframe

@@ -63,6 +63,9 @@ abbrev newServerMode.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
+  -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
+  -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
+  name.length ≤ 200 →
   -- the compactor's slot (`v3compactor.bootCfg`, `NewServer`'s premise; K1 of
   -- `notes/k8s-compactor-plan.md`): off in either compaction mode, or on in compaction mode
   v3compactor.bootCfg mode retention cmp ρ.rd.kv.cret →

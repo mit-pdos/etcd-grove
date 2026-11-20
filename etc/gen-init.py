@@ -108,6 +108,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
          # K4 of notes/k8s-compactor-plan.md (2026-11-04): Kubernetes' compactor example
          'github_com.mit_pdos.etcd_grove.examples.k8s.compactor',
+         # (2026-11-20, notes/k8s-unified-scope.md) the one closed Kubernetes theorem's program: the two
+         # drivers at once; no package variable, its fact `True` (`Base.lean`), so no `SPECIAL`
+         'github_com.mit_pdos.etcd_grove.examples.k8s.all',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -3312,8 +3315,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.restartN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
@@ -3370,8 +3371,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
+            'github_com.mit_pdos.etcd_grove.examples.k8s.all':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'

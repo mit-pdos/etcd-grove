@@ -31,20 +31,10 @@ theorem isFsStep_flock_maps {v : val} {st : OsState} {e' : Expr} {st' : OsState}
     (hs : IsFsStep "Flock" v st e' st') : st'.proc.maps = st.proc.maps := by
   simp only [IsFsStep] at hs
   obtain ⟨fd, how, d, req, nb, -, -, -, hl⟩ := hs
-  unfold LockStep at hl
-  rcases req with _ | ex
-  · rcases hl with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩ <;> rfl
-  · obtain ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩⟩ := hl <;> rfl
+  exact lockStep_maps hl
 
 /-- The `IoSet` covering every inode and every path. -/
 def IoSet.all : IoSet := ⟨fun _ _ => True, fun _ => True⟩
-
-/-- An `open` of a path is a call `IoCovers` names (for the `IoSet` covering everything). -/
-theorem openCovers_io {S : IoSet} {v : val} {st : OsState}
-    (h : ∃ (t : Nat) (p : GoString) (fl : w64), v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ S.path p) :
-    IoCovers IoSet.all "Open" v st := by
-  obtain ⟨t, p, fl, hv, -⟩ := h
-  exact ⟨t, p, fl, hv, trivial⟩
 
 /-- **`open` with no success ends with `EINTR`**: from a state where its arguments are accepted (a
 step `hs`), `open` has the failure `EINTR`, the call ended and nothing else changed. -/
@@ -220,7 +210,10 @@ theorem noMapLockErr_keeps (S : IoSet) : StepKeeps (NoMapLockErr S) := by
       by_cases hroom : MmapRoom st h len.toNat
       · obtain ⟨base, hpos, hal, hnone, hmax, hfree⟩ := hroom
         obtain ⟨h'', hr''⟩ := heapRendered_map st base ⟨d.ino, len.toNat⟩ hr hnone hfree
-        refine ⟨osRes (#base) 0, h'', _, .inl ⟨?_, ?_, hr''⟩, fun _ _ => Or.inl ⟨_, rfl⟩⟩
+        refine ⟨osRes (#base) 0, h'', st.setProc { st.proc with
+            maps := <[base := ⟨d.ino, len.toNat⟩]> st.proc.maps,
+            mapDesc := <[base := .live fd]> st.proc.mapDesc }, .inl ⟨?_, ?_, hr''⟩,
+          fun _ _ => Or.inl ⟨_, rfl⟩⟩
         · simp only [IsFsStep]
           exact ⟨fd, off, len, prot, fl, d, hv, hfd, hrd, hoff, hlen, hprot, hfl,
             .inl ⟨base, hpos, hal, hnone, rfl, rfl⟩⟩
@@ -236,7 +229,9 @@ theorem noMapLockErr_keeps (S : IoSet) : StepKeeps (NoMapLockErr S) := by
     simp only [IsFsStep] at hst
     obtain ⟨base, len, cap, m, hv, hm, hlen, hcap, hres⟩ := hst
     have hsucc : ∀ h2 : GMap Loc (NonAtomic val),
-        HeapRendered st (st.setProc { st.proc with maps := GMap.delete base st.proc.maps }) h h2 →
+        HeapRendered st (st.setProc
+          { st.proc with maps := GMap.delete base st.proc.maps, mapDesc := GMap.delete base st.proc.mapDesc })
+          h h2 →
         ∃ e'' h'' st'', FsStep "Munmap" v h st () e'' h'' st'' () ∧
           NoMapLockErr S "Munmap" v st e'' st'' := by
       intro h2 hr2
@@ -256,9 +251,8 @@ theorem noMapLockErr_keeps (S : IoSet) : StepKeeps (NoMapLockErr S) := by
     · rw [hst'] at hr
       exact hsucc h' hr
   · -- Open (no free fd): the outcome the premise names, the heap re-rendered
-    have hc' := openCovers_io (st := st) hcov.1
-    have h1 := isFsStep_maps hc' hst
-    have h2 := isFsStep_maps hc' hs''
+    have h1 := isFsStep_open_maps hst
+    have h2 := isFsStep_open_maps hs''
     obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq h1 h2 hr
     exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same h2, hr''⟩, fun _ _ => hz⟩
   · -- Madvise: the outcome the premise names (no outcome changes anything)
@@ -286,29 +280,25 @@ theorem stepKeeps_and (P Q : StepPrem) (hP : StepKeeps P) (hQ : StepKeeps Q)
     exact ⟨e'', h'', st'', hs'', hp, hq _ _⟩
 
 /-- **`NoIoErr` and `NoMapLockErr` keep steps together.** They name disjoint operations but `open`
-(`stepKeeps_and`): `flock`, `mmap`, `munmap` only `NoMapLockErr`; `open` from a state with a free fd
-and the rest only `NoIoErr`. An `open` with no free fd (both name it): its outcome with errno 0 if
-the semantics has one (both hold of it), and otherwise its `EINTR` (`NoIoErr` then says nothing). -/
+(`stepKeeps_and`): `flock`, `mmap`, `munmap`, `madvise` only `NoMapLockErr`; `open` from a state with
+a free fd and the rest only `NoIoErr`. An `open` with no free fd (both may name it): its outcome with
+errno 0 if the semantics has one (both hold of it), and otherwise its `EINTR` (`NoIoErr` then says
+nothing). -/
 theorem noIoErr_noMapLockErr_keeps (S T : IoSet) :
     StepKeeps (StepPrem.and (NoIoErr S) (NoMapLockErr T)) := by
   intro _ _ o v h st e' h' st' huniq hs
   by_cases hO : o = "Open" ∧ ∀ fd, ¬ FdFree st fd
   · obtain ⟨rfl, -⟩ := hO
-    have hsV := fsStepV_of_ne (by decide) hs
-    obtain ⟨hst, -, hr⟩ := hsV
-    have hcv : IoCovers IoSet.all "Open" v st := by
-      simp only [IsFsStep] at hst
-      rcases hst with ⟨p, fl, t, start, hv, -⟩ | ⟨p, fl, t, start, hv, -⟩ <;>
-        exact ⟨t, p, fl, hv, trivial⟩
+    obtain ⟨hst, -, hr⟩ := fsStepV_of_ne (by decide) hs
     by_cases hz : ∃ e'' st'', IsFsStep "Open" v st e'' st'' ∧ ErrnoZero "Open" e''
     · obtain ⟨e'', st'', hs'', hz''⟩ := hz
-      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_maps hcv hst) (isFsStep_maps hcv hs'') hr
-      exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same (isFsStep_maps hcv hs''), hr''⟩,
-        fun _ _ => hz'', fun _ _ => Or.inl hz''⟩
+      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_open_maps hst) (isFsStep_open_maps hs'') hr
+      exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same (isFsStep_open_maps hs''), hr''⟩,
+        fun _ => ⟨fun _ => hz'', fun hn => absurd ⟨e'', st'', hs'', hz''⟩ hn⟩, fun _ _ => Or.inl hz''⟩
     · obtain ⟨st'', hs'', hm''⟩ := isFsStep_open_eintr hst
-      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_maps hcv hst) hm'' hr
+      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_open_maps hst) hm'' hr
       exact ⟨_, h'', st'', .inl ⟨hs'', mapsFresh_same hm'', hr''⟩,
-        fun _ hex => absurd hex hz, fun _ _ => Or.inr rfl⟩
+        fun _ => ⟨fun hex => absurd hex hz, fun _ => trivial⟩, fun _ _ => Or.inr rfl⟩
   have hdisj : (∀ e' st', NoIoErr S o v st e' st') ∨ (∀ e' st', NoMapLockErr T o v st e' st') := by
     by_cases ho : o = "Flock" ∨ o = "Mmap" ∨ o = "Munmap" ∨ o = "Madvise"
     · left

@@ -77,6 +77,28 @@ theorem openEffect_maps {st : OsState} {p : GoString} {acc : Nat} {creat trunc :
     split <;> rfl
   · obtain ⟨-, j, b, -, rfl, -⟩ := h; rfl
 
+/-- A lock request's step leaves the mappings. -/
+theorem lockStep_maps {st : OsState} {k : LockKind} {fd : w64} {d : OsFd} {req : Option Bool}
+    {nb : Bool} {e' : Expr} {st' : OsState} (h : LockStep st k fd d req nb e' st') :
+    st'.proc.maps = st.proc.maps := by
+  unfold LockStep at h
+  cases req with
+  | some ex => rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩ <;> rfl
+  | none => rcases h with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩ <;> rfl
+
+/-- Every outcome of `open` leaves the mappings as they were. -/
+theorem isFsStep_open_maps {v : val} {st : OsState} {e' : Expr} {st' : OsState}
+    (hs : IsFsStep "Open" v st e' st') : st'.proc.maps = st.proc.maps := by
+  simp only [IsFsStep] at hs
+  rcases hs with ⟨p, fl, t, start, -, -, -, -, -, ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩⟩ |
+    ⟨p, fl, t, start, -, -, -, -, -, ⟨fd, -, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩
+  · have : st1.proc.maps = st.proc.maps := (openEffect_maps he).trans rfl
+    cases tgt <;> exact this
+  · rfl
+  · exact (openEffect_maps he).trans rfl
+  · rfl
+  · rfl
+
 /-- Every operation `IoCovers` names leaves the mappings as they were. -/
 theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Expr} {st' : OsState}
     (hc : IoCovers S o v st) (hs : IsFsStep o v st e' st') : st'.proc.maps = st.proc.maps := by
@@ -101,14 +123,7 @@ theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Ex
   · -- DirClose
     obtain ⟨fd, e, df, -, -, rfl, -⟩ := hs; rfl
   · -- Open
-    rcases hs with ⟨p, fl, t, start, -, -, -, -, -, ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩⟩ |
-      ⟨p, fl, t, start, -, -, -, -, -, ⟨fd, -, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩
-    · have : st1.proc.maps = st.proc.maps := (openEffect_maps he).trans rfl
-      cases tgt <;> exact this
-    · rfl
-    · exact (openEffect_maps he).trans rfl
-    · rfl
-    · rfl
+    exact isFsStep_open_maps hs
   · -- Rename
     obtain ⟨s, t, k, start, -, -, -, -, -, -, h⟩ := hs
     rcases h with ⟨-, o, -, ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩⟩ | ⟨-, -, rfl, -⟩ | ⟨e, -, -, rfl⟩ <;> rfl
@@ -121,21 +136,79 @@ theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Ex
   · -- Rmdir
     obtain ⟨p, k, start, -, -, -, h⟩ := hs
     rcases h with ⟨j', j, b, -, -, ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩⟩ | ⟨e, -, -, rfl⟩ <;> rfl
+  · -- OfdLock
+    obtain ⟨fd, cmd, typ, d, req, -, -, -, -, -, -, h⟩ := hs; exact lockStep_maps h
+  · -- DirReadNext
+    obtain ⟨fd, df, u, s, r, -, -, -, h⟩ := hs
+    rcases h with ⟨b, -, -, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩ <;> rfl
   · exact hc.elim
+
+/-- A covered call has an outcome satisfying what `NoIoErr` asks of it. -/
+theorem noIoErr_good {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Expr} {st' : OsState}
+    (hs : IsFsStep o v st e' st') :
+    ∃ e'' st'', IsFsStep o v st e'' st'' ∧
+      ((∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e'') → ErrnoZero o e'') ∧
+      (¬ (∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e'') → PathErrno o v st e'') := by
+  by_cases hsucc : ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e''
+  · obtain ⟨e'', st'', hs'', hz⟩ := hsucc
+    exact ⟨e'', st'', hs'', fun _ => hz, fun h => absurd ⟨e'', st'', hs'', hz⟩ h⟩
+  have hno : (∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e'') → ∀ x : Expr, ErrnoZero o x :=
+    fun h => absurd h hsucc
+  by_cases hu : o = "Unlink"
+  · subst hu
+    have hs0 := hs
+    simp only [IsFsStep] at hs
+    obtain ⟨p, k, start, hv, htn, hc, -⟩ := hs
+    let e0 : w64 := if st.lookup p = none then ENOENT else EISDIR
+    have he0 : e0 ≠ 0 := by
+      show (if st.lookup p = none then ENOENT else EISDIR) ≠ 0
+      split <;> decide
+    refine ⟨Val (#e0), st.metaEnd k, ?_, fun h => hno h _, fun _ => ?_⟩
+    · simp only [IsFsStep]
+      exact ⟨p, k, start, hv, htn, hc, .inr ⟨e0, he0, rfl, rfl⟩⟩
+    · refine ⟨k, p, hv, ?_⟩
+      refine ⟨fun h => ?_, fun ⟨j, h⟩ => ?_⟩
+      · show Val (#(if st.lookup p = none then ENOENT else EISDIR)) = _
+        rw [if_pos h.1]
+      · show Val (#(if st.lookup p = none then ENOENT else EISDIR)) = _
+        rw [if_neg (by rw [h]; exact Option.some_ne_none _)]
+  by_cases hr : o = "Rmdir"
+  · subst hr
+    simp only [IsFsStep] at hs
+    obtain ⟨p, k, start, hv, htn, hc, -⟩ := hs
+    let e0 : w64 := if st.lookup p = none then ENOENT else ENOTEMPTY
+    have he0 : e0 ≠ 0 := by
+      show (if st.lookup p = none then ENOENT else ENOTEMPTY) ≠ 0
+      split <;> decide
+    refine ⟨Val (#e0), st.metaEnd k, ?_, fun h => hno h _, fun _ => ?_⟩
+    · simp only [IsFsStep]
+      exact ⟨p, k, start, hv, htn, hc, .inr ⟨e0, he0, rfl, rfl⟩⟩
+    · refine ⟨k, p, hv, ?_⟩
+      refine ⟨fun h => ?_, fun ⟨j, b, n, h, _⟩ => ?_⟩
+      · show Val (#(if st.lookup p = none then ENOENT else ENOTEMPTY)) = _
+        rw [if_pos h.1]
+      · show Val (#(if st.lookup p = none then ENOENT else ENOTEMPTY)) = _
+        rw [if_neg (by rw [h]; exact Option.some_ne_none _)]
+  refine ⟨e', st', hs, fun h => hno h _, fun _ => ?_⟩
+  unfold PathErrno
+  split
+  · exact absurd rfl hu
+  · exact absurd rfl hr
+  · trivial
 
 end keeps
 
 /-- **`NoIoErr S` keeps a step** (see the file header). -/
 theorem noIoErr_keeps (S : IoSet) : StepKeeps (NoIoErr S) := by
   intro _ _ o v h st e' h' st' huniq hs
-  by_cases hc : IoCovers S o v st ∧ ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e''
-  · obtain ⟨hc, e'', st'', hs'', hz⟩ := hc
-    have hs := fsStepV_of_ne (by rintro rfl; simp [IoCovers] at hc) hs
+  by_cases hc : IoCovers S o v st
+  · have hs := fsStepV_of_ne (by rintro rfl; simp [IoCovers] at hc) hs
+    obtain ⟨e'', st'', hs'', hz, hp⟩ := noIoErr_good (S := S) hs.1
     have h1 := isFsStep_maps hc hs.1
     have h2 := isFsStep_maps hc hs''
     obtain ⟨h'', hr⟩ := heapRendered_restamp huniq h1 h2 hs.2.2
-    exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same h2, hr⟩, fun _ _ => hz⟩
-  · exact ⟨e', h', st', hs, fun hc' hex => absurd ⟨hc', hex⟩ hc⟩
+    exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same h2, hr⟩, fun _ => ⟨hz, hp⟩⟩
+  · exact ⟨e', h', st', hs, fun hc' => absurd hc' hc⟩
 
 end Fs
 end Perennial

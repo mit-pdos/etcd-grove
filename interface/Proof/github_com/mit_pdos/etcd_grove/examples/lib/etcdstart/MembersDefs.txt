@@ -52,6 +52,8 @@ theorem bytesSplit.eq_def (c : w8) (x✝ : List w8) : bytesSplit c x✝ = match 
 theorem etcdstart.decNumeral_decStr (p : w64) (hp : 0 < BitVec.toNat p) : decNumeral? (decStr p) =
     some (BitVec.toNat p)
 
+theorem etcdstart.decStr_length_le (p : w64) : List.length (decStr p) ≤ 65
+
 theorem etcdstart.decStr_digits (p : w64) (c : w8) : c ∈ decStr p → 48 ≤ BitVec.toNat c ∧
     BitVec.toNat c ≤ 57
 
@@ -115,6 +117,9 @@ theorem etcdstart.take_succ_names (ms : List etcdstart.GMember) (j : Nat) (m : e
 
 theorem etcdstart.digitChar_digit (d : Nat) (hd : d < 10) : 48 ≤ BitVec.toNat (digitChar d) ∧
     BitVec.toNat (digitChar d) ≤ 57 ∧ BitVec.toNat (digitChar d) - 48 = d
+
+theorem etcdstart.memberAt_name_len (pfx : GoString) (hp : List.length pfx ≤ 134) (pb cb i : w64) :
+    List.length (etcdstart.memberAt pfx pb cb i).Name' ≤ 200
 
 theorem etcdstart.netAddrLit_loopback (p : w64) (h1 : 1 ≤ BitVec.toNat p) (h2 : BitVec.toNat p ≤
     65535) : netAddrLit (go!"127.0.0.1:" ++ decStr p) = true

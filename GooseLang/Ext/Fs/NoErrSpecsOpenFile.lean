@@ -28,7 +28,7 @@ variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] [S : ExtSemantics fs
 free fd (`hsucc`): with a free fd, `NoIoErr` asks for errno 0; with none, `NoMapLockErr` for `EINTR`
 (its outcome `isFsStep_open_eintr`). -/
 theorem open_failure_eintr {Sio : IoSet} [hio : FsStepSat (NoIoErr Sio)]
-    [hml : FsStepSat (NoMapLockErr Sio)] {k : Nat} {p : GoString} {fl : w64} (hS : Sio.path p)
+    [hml : FsStepSat (NoMapLockErr Sio)] {k : Nat} {p : GoString} {fl : w64} (hS : Sio.path p ∧ PathFits p)
     {h : GMap Loc (NonAtomic val)} {st : OsState} {e' : Expr} {h' : GMap Loc (NonAtomic val)}
     {st' : OsState}
     (hsucc : ∀ fd, FdFree st fd →
@@ -46,11 +46,11 @@ theorem open_failure_eintr {Sio : IoSet} [hio : FsStepSat (NoIoErr Sio)]
   by_cases hf : ∃ fd', FdFree st fd'
   · obtain ⟨fd', hfd'⟩ := hf
     obtain ⟨st'', hs''⟩ := hsucc fd' hfd'
-    obtain ⟨r, hr⟩ := hio.sat _ _ _ _ _ _ _ _ _ hs ⟨k, p, fl, rfl, hS⟩
+    obtain ⟨r, hr⟩ := (hio.sat _ _ _ _ _ _ _ _ _ hs ⟨k, p, fl, rfl, hS.1, hS.2⟩).1
       ⟨_, st'', hs'', ⟨_, rfl⟩⟩
     exact absurd hr (hzero r)
   · have hc : MapLockCovers Sio "Open" (PairV (osTokV k) (PairV (#p) (#fl))) st :=
-      ⟨⟨k, p, fl, rfl, hS⟩, fun fd' h => hf ⟨fd', h⟩⟩
+      ⟨⟨k, p, fl, rfl, hS.1⟩, fun fd' h => hf ⟨fd', h⟩⟩
     obtain ⟨st'', hs'', -⟩ := isFsStep_open_eintr hst
     rcases hml.sat _ _ _ _ _ _ _ _ _ hs hc ⟨_, st'', hs'', Or.inr rfl⟩ with ⟨r, hr⟩ | hr
     · exact absurd hr (hzero r)
@@ -129,8 +129,8 @@ theorem wp_osOpenCreateSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)] [FsStepSat (N
     (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
     (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat) (hcr : fl.toNat / O_CREAT % 2 = 1)
     (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
-    (hs : h.next ≤ s0) (hS : Sio.path (child d b)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
-    (Φ : val → IProp GF) :
+    (hs : h.next ≤ s0) (hS : Sio.path (child d b) ∧ PathFits (child d b)) (hE : ↑osN ⊆ E)
+    (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ fd : w64, ∀ e : w64, ⌜e ≠ 0 → e = EINTR⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗
@@ -157,7 +157,7 @@ theorem wp_osOpenFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)] [FsStepSat (NoM
     (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
     (h : NamesH) (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat)
     (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
-    (hi : h.cur !! b = some (.file i)) (hS : Sio.path (child d b)) (hE : ↑osN ⊆ E)
+    (hi : h.cur !! b = some (.file i)) (hS : Sio.path (child d b) ∧ PathFits (child d b)) (hE : ↑osN ⊆ E)
     (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
