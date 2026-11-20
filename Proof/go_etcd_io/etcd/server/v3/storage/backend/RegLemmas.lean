@@ -10,6 +10,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 
 @[expose] public section
 
@@ -81,18 +82,22 @@ theorem regs_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc S : Data) (n 
   iintro ⟨Hi, Hr, #Hlb⟩
   iunfold cmtRegs at Hr
   icases Hr with ⟨%gm, %gc, %c, %M, Hn, Hc, Hm, Hs⟩
-  iunfold cntLb at Hlb
-  icases Hlb with ⟨%gm', %gc', #Hn', #Hl⟩
   iapply except0_bupd
   iunfold cmtNames at Hn
   imod Hn with #Hn
   imod Hc with Hc
   imod Hm with Hm
-  unfold cmtNames
-  icombine Hn Hn' gives %Hag
-  simp only [Prod.mk.injEq] at Hag
-  obtain ⟨-, rfl, rfl⟩ := Hag
-  ihave %Hle := monoNatLbOwn_valid gc 1 c n $$ Hc Hl
+  -- the lower bound before: `n ≤ c`
+  ihave %Hle : ⌜n ≤ c⌝ $$ [Hc]
+  · iunfold cntLb at Hlb
+    icases Hlb with (%H0 | ⟨%gm', %gc', #Hn', #Hl⟩)
+    · ipureintro; omega
+    unfold cmtNames
+    icombine Hn Hn' gives %Hag
+    simp only [Prod.mk.injEq] at Hag
+    obtain ⟨-, rfl, rfl⟩ := Hag
+    ihave %Hv := monoNatLbOwn_valid gc 1 c n $$ Hc Hl
+    ipureintro; exact Hv.2
   imod entries_arm γ P W Pk c Dc S M F hF $$ [$Hi $Hs] with ⟨Hi, Hs⟩
   imodintro
   imod mono_nat_own_update (c + 1) (by omega) $$ Hc with ⟨Hc, #Hl'⟩
@@ -105,10 +110,37 @@ theorem regs_arm (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc S : Data) (n 
     iframe Hc Hm Hs
     unfold cmtNames; iexact Hn
   iunfold cntLb
+  iright
   iexists gm, gc
   unfold cmtNames
   iframe Hn
   iapply monoNatLbOwn_le (n + 1) (by omega) $$ Hl'
+
+/-- **The batch lock's inputs from its own pieces**, out of an `Unlock`'s window (the deleted
+entries agreeing with the lock's logical view `Lb`): the client resources, the view quarter (thin of
+`Lb` through the physical view, `thinV_trans`; the deleted entries exactly, `dlVd_of_dlsOk`), the
+hook's keys and tracked buckets (`trkSide`), the compaction keys' values and deleted entries
+(`fkHalf`). A frame for the commit point (`regs_arm`), kept whole. -/
+theorem obsIn_of_lock (γ : BNames) (P : BParams) (W Pk : IProp GF) (st : BSess) (Lb : VData)
+    (hd : dlsOk P st Lb) :
+    iprop(W ∗ Pk ∗ viewQ γ (1 : Qp).half.half (vData P (st.C, st.R)) Lb ∗
+      thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗ trkSide γ P st ∗ fkHalf γ P st) ⊢
+    obsIn (GF := GF) γ P W Pk st.S := by
+  unfold obsIn viewAtD trkSide trkHalf fkHalf hkOwn
+  iintro ⟨HW, HPk, Hv, #Hpre, ⟨⟨Hhk, Hrb⟩, -⟩, ⟨-, Hfkd, Hdls⟩⟩
+  iunfold viewQ at Hv
+  icases Hv with ⟨Hv, #Hth⟩
+  iframe HW HPk Hhk Hfkd
+  isplitl [Hv Hdls]
+  · iexists (dlR P st.dl)
+    iframe Hdls
+    iexists Lb
+    unfold viewQ
+    iframe Hv
+    isplitr
+    · iapply thinV_trans γ (sData P st.S) (vData P (st.C, st.R)) Lb $$ [$Hpre $Hth]
+    ipureintro; exact dlVd_of_dlsOk hd
+  iapply rbSide_rbOwn γ P _ _ $$ Hrb
 
 end lemmas
 

@@ -45,8 +45,10 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
   ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True) ⊤
-  wp_apply (hC γ P W Pk b t rt st false true 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True) ⊤ CoPset.subseteq_top) $$ [$Hl $HWR Ho Hq HX]
-    as ⟨HY, -, HWR, -, Hpost⟩
+  ihave #Hlb0 := backend.cntLb_zero (GF := GF) γ
+  wp_apply (hC γ P W Pk b t rt st false true 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True) ⊤ 0
+      CoPset.subseteq_top) $$ [$Hl $HWR Ho Hq HX]
+    as ⟨HY, -, HWR, -, Hpost, -⟩
   · iframe #
     isplitr
     · ipureintro
@@ -66,7 +68,11 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
       · iexact Ho
       · iexact Hq
     iframe HX
-    ipureintro; exact ⟨List.nodup_nil, by simp⟩
+    isplitr
+    · ipureintro; exact ⟨List.nodup_nil, by simp⟩
+    try simp only [↓reduceIte]
+    try iframe Hlb0
+    try iempintro
   try simp only [↓reduceIte]
   icases Hpost with ⟨Hown, Hpend, #Hbs, Hout, Htok⟩
   wp_method_call

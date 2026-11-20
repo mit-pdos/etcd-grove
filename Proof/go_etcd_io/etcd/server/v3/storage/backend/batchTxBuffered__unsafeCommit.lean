@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadSide
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RegLemmas
 public import Spec.go_etcd_io.bbolt.Tx__Rollback
 
 @[expose] public section
@@ -65,8 +66,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
   replace hRollback := bbolt.kvGlue_Tx__Rollback_kv hRollback
-  intro γ P W Pk b t rt st win stop m u X Y L' c Sc Rr E hE
-  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, %Hdlw, %Hhw0, Hpay, HX, #Hrq, %Hsc, HRr, #Hacc⟩
+  intro γ P W Pk b t rt st win stop m u X Y L' c Sc Rr E nc hE
+  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, %Hdlw, %Hhw0, Hpay, HX, #Hrq, %Hsc, HRr, #Hacc, #Hlb, HWc⟩
   obtain ⟨Hroom, Hp0, HWe, Htk⟩ := Hc
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
@@ -230,18 +231,39 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       simp only [↓reduceIte]
       iframe Hpay
   icases Hsplit with ⟨Hsp, Hpay⟩
-  wp_apply (hBC γ P W Pk b t db st' stop) $$ [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu $Hopn $Hsp] as ⟨Hmu, Hres⟩
-  · iframe #
-    unfold btW
-    iframe
+  have hSC : st'.pend = W64 0 → st'.S = st'.C := sessWf_pendC Hwf'
   iapply wp_fupd
   cases stop
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hres with (⟨%HA, Hw, Hdb, #Htxdb, Hopn⟩ | ⟨%HB, Hdb, Hpend, %tx', Htxf, Hrest⟩)
-    · unfold btW
+  · -- (backend-snapshot B2) not stopping: the commit point's inputs, a frame kept whole through it
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    have hF : iprop((if win then emp else W) ∗ Pk ∗
+        viewQ γ (1 : Qp).half.half (vData P (st'.C, st'.R)) Lb ∗
+        (if win then thinV γ (sData P st.S) L' else thinV γ (sData P st.S) (vData P (st.C, st.R))) ∗
+        trkSide γ P st' ∗ fkHalf γ P st') ⊢ obsIn (GF := GF) γ P W Pk st'.S := by
+      cases win
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        have e1 : sData P st.S = sData P st'.S := by rw [hSs, setHw_S]
+        have e2 : st.C = st'.C := by rw [hC, setHw_C]
+        have e3 : st.R = st'.R := by rw [hR, setHw_R]
+        rw [e1, e2, e3]
+        exact obsIn_of_lock γ P W Pk st' Lb (by simpa using Hdlc.2)
+      · -- (backend-snapshot B2, temporary) a window's commit point: plan step (c)
+        sorry
+    wp_apply (hBC γ P W Pk b t db st' false nc _ hF) $$
+        [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu $Hopn HWc HWR Hv Hpre Hhkd Hfkh] as ⟨Hmu, Hres⟩
+    · iframe #
+      unfold btW
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe
+      iframe Hlb
+      ipureintro; exact hSC
+    icases Hres with (⟨%HA0, Hw, Hdb, #Htxdb, Hopn, ⟨HWc, HWR, Hv, Hpre, Hhkd, Hfkh⟩, #Hlb'⟩ |
+      ⟨%HB, Hdb, Hpend, %tx', Htxf, Hrest⟩)
+    · have HA : st'.pend = W64 0 ∧ false = false := by first | exact ⟨HA0, rfl⟩ | exact HA0
+      unfold btW
       icases Hw with ⟨Htxf, Hpend, Hwtx⟩
       rw [HA.1]
-      wp_auto
+      try wp_auto
       wp_apply (hBegin γ.db b db st'.C false) $$ [$Hmu $Hdb Htok] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -274,6 +296,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       iapply HΦ
       iframe Hrr HWR Hpo HY HRr
       try simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe Hlb' HWc
       iexists (commitSt st' st'.C st'.tx cnt'), db
       iframe Hown Hg
       try unfold batchPhys
@@ -287,8 +310,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         exact ⟨hfo, hv, by simp [commitSt], Hs.2.2.2.1⟩
       iexact Hbv
     · try simp only [Bool.false_eq_true, ↓reduceIte]
-      icases Hrest with ⟨Hwtx, #Htxdb', Hopn⟩
-      wp_auto
+      icases Hrest with ⟨Hwtx, #Htxdb', Hopn, ⟨HWc, HWR, Hv, Hpre, Hhkd, Hfkh⟩, #Hlb'⟩
+      try wp_auto
       wp_apply (hBegin γ.db b db st'.S false) $$ [$Hmu $Hdb Htok] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -321,6 +344,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       iapply HΦ
       iframe Hrr HWR Hpo HY HRr
       try simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe Hlb' HWc
       iexists (commitSt st' st'.S tx' cnt'), db
       iframe Hown Hg
       try unfold batchPhys
@@ -333,10 +357,18 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       · ipureintro
         exact ⟨hfo, hv, by simp [commitSt], Hs.2.2.2.1⟩
       iexact Hbv
-  · icases Hres with (⟨%HA, -⟩ | ⟨%HB, Hdb, Hpend, %tx', Htxf, Hrest⟩)
-    · exact absurd HA.2 (by decide)
-    wp_auto
-    simp only [↓reduceIte]
+  · simp only [↓reduceIte]
+    wp_apply (hBC γ P W Pk b t db st' true nc (obsIn γ P W Pk st'.S) .rfl) $$
+        [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu $Hopn Hsp] as ⟨Hmu, Hres⟩
+    · iframe #
+      unfold btW
+      simp only [↓reduceIte]
+      iframe
+      ipureintro; exact hSC
+    icases Hres with (⟨%HA, -⟩ | ⟨%HB, Hdb, Hpend, %tx', Htxf, Hrest⟩)
+    · first | exact HA.elim | exact absurd HA.2 (by decide)
+    try wp_auto
+    try simp only [↓reduceIte]
     -- (backend-snapshot B1) the stop's commit stopped the backend and took the commit invariant's half
     icases Hrest with ⟨#Hbs, Hhalf⟩
     ihave Hpre : (if win then thinV γ (vData P (st'.S, st'.R.reset)) L'

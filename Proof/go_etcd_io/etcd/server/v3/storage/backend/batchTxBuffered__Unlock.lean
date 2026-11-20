@@ -116,9 +116,10 @@ set_option hygiene false in
 /-- `commit` of the written-back batch (`vw`: whether a view update is owed, `L` the logical view
 it comes back at; `Hpc` the commit's thinness premise), up to its outcome `Hpost` (both commit tests, with or without the view). -/
 local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| (
+    ihave #Hlb0 := backend.cntLb_zero (GF := GF) γ
     ihave #HaccC := rbAcc_mono (hG := hG) γ Sc (unlockOk P st) (fun n _ v => v = bktOf ($S).S n) Rr E
       (fun n o v _ h => Or.inl h) $$ Hacc
-    wp_apply (hC γ P W Pk b t rt $S $vw false 2 0 iprop(True) iprop(True) $L true Sc Rr E hE) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc HRr] as ⟨-, HRr, HPk, -, Hpost⟩
+    wp_apply (hC γ P W Pk b t rt $S $vw false 2 0 iprop(True) iprop(True) $L true Sc Rr E 0 hE) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc HRr HWc] as ⟨-, HRr, HPk, -, Hpost, Hcnt⟩
     · iframe #
       unfold batchLockedW batchGhostW batchPhys
       isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
@@ -159,9 +160,13 @@ local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| 
       · iapply commitReq_true
       isplitr
       · ipureintro; exact ⟨Hnd, Or.inr HcwWb⟩
-      iexact HRr
+      iframe HRr
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      try iframe Hlb0
+      try iexact HWc
     try simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, Hbv2⟩
+    icases Hcnt with ⟨-, HWc⟩
   ))
 
 set_option hygiene false in
@@ -300,10 +305,20 @@ private theorem unlock_coreC
         · rw [wbSt_S, wbSt_C, wbSt_R, hsame]
           iexact Hth
         wp_if_destruct
-        · bu_commit (wbSt P st) false (vData P (st.C, st.R))
+        · ihave HWc : W $$ [HWv]
+          · iexact HWv
+          bu_commit (wbSt P st) false (vData P (st.C, st.R))
+          ihave HWv : W $$ [HWc]
+          · try simp only [Bool.false_eq_true, ↓reduceIte]
+            iexact HWc
           bu_release
         wp_if_destruct
-        · bu_commit (wbSt P st) false (vData P (st.C, st.R))
+        · ihave HWc : W $$ [HWv]
+          · iexact HWv
+          bu_commit (wbSt P st) false (vData P (st.C, st.R))
+          ihave HWv : W $$ [HWc]
+          · try simp only [Bool.false_eq_true, ↓reduceIte]
+            iexact HWc
           bu_release
         exfalso
         rcases hcond with h | h
@@ -379,11 +394,15 @@ private theorem unlock_coreC
             (fun _ _ h => h) rfl rfl
           iexact Hfkh
         wp_if_destruct
-        · bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
+        · ihave HWc : iprop(emp) $$ []
+          · iempintro
+          bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
           icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         wp_if_destruct
-        · bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
+        · ihave HWc : iprop(emp) $$ []
+          · iempintro
+          bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
           icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         exfalso

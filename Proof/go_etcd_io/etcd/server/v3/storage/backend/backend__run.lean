@@ -93,8 +93,10 @@ theorem backend.backend.run.wp_proof
       · iframe #
       ihave Hl := batchLocked_W γ P b st $$ Hl
       ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True) ⊤
-      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True) (vData P (st.C, st.R)) false [] iprop(True) ⊤ CoPset.subseteq_top) $$ [$Hl $HWR Hus]
-        as ⟨-, -, HWR, Hpo, Hpost⟩
+      ihave #Hlb0 := backend.cntLb_zero (GF := GF) γ
+      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True) (vData P (st.C, st.R)) false [] iprop(True) ⊤ 0
+          CoPset.subseteq_top) $$ [$Hl $HWR Hus HWv]
+        as ⟨-, -, HWR, Hpo, Hpost, Hcnt⟩
       · iframe #
         isplitr
         · ipureintro
@@ -112,12 +114,17 @@ theorem backend.backend.run.wp_proof
         iframe Hus Hlb
         isplitr
         · iapply commitReq_true
-        ipureintro; exact ⟨List.nodup_nil, by simp⟩
+        isplitr
+        · ipureintro; exact ⟨List.nodup_nil, by simp⟩
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        try iframe Hlb0
+        iexact HWv
       unfold payOut
       rw [if_pos ⟨rfl, rfl⟩]
       icases Hpo with ⟨%u', Hus⟩
       try simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, -⟩
+      icases Hcnt with ⟨-, HWv⟩
       rw [method_unfold (t := go.GoType.PointerType batchTxBuffered.ty) (m := go!"Unlock") #t]
       wp_call
       unfold batchPhys

@@ -340,6 +340,11 @@ theorem pend_add_one_ne {p : w64} (h0 : 0 ≤ sint.Z p) (h1 : sint.Z p < 2 ^ 58)
   rw [h] at h2
   word
 
+/-- (backend-snapshot B2) Nothing pending, the writer's contents are the committed data. -/
+theorem sessWf_pendC {P : BParams} {st : BSess} (h : sessWf P st) (hp : st.pend = W64 0) :
+    st.S = st.C :=
+  h.2.2.2.2.2.2.2.2.2.2.2 hp
+
 /-- The state's facts when the batch lock is free. -/
 def freeOk (P : BParams) (st : BSess) : Prop :=
   sessWf P st ∧ sint.Z st.pend < sint.Z P.limit ∧ st.ndel = W64 0 ∧

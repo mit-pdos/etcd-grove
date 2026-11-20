@@ -1735,7 +1735,11 @@ def cmtBody (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
 
 /-- **A commit point came after the count `n`** (persistent): a lower bound of the commit counter. -/
 def cntLb (γ : BNames) (n : Nat) : IProp GF :=
-  iprop(∃ gm gc : GName, cmtNames γ gm gc ∗ monoNatLbOwn gc n)
+  iprop(⌜n = 0⌝ ∨ ∃ gm gc : GName, cmtNames γ gm gc ∗ monoNatLbOwn gc n)
+
+/-- The trivial lower bound. -/
+theorem cntLb_zero (γ : BNames) : ⊢ cntLb (GF := GF) γ 0 := by
+  unfold cntLb; ileft; ipureintro; rfl
 
 instance cntLb_persistent (γ : BNames) (n : Nat) : Persistent (cntLb (GF := GF) γ n) := by
   unfold cntLb; infer_instance
