@@ -1,6 +1,41 @@
 # wal-fsfix2 handoff
 
-## START HERE (2026-11-20 a4) — item 2: WalA fields done (satL, fits, covP); next the cut proof
+## START HERE (2026-11-20 a5) — item 2: cut's callees get error witnesses; then the cut proof
+
+- Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2` (WIP commit 0469050f3a + handoff); pin c44b74871
+  (`--packages=/shared/tmp/manifest-c44.json`, `PERENNIAL_DIR=/shared/perennial-c44b74871`). lean not merged since
+  9d6a486a91 (lean is at d45f8b140e or later: merge before the full build). `WAL__cut.lean` and the WAL `Link` do
+  NOT build now (callee specs changed under them): expected until step (3).
+- **Design (forms decided, no trusted text):** a callee's error arm carries a witness that the file system can fail,
+  `Fs.FsNoErrOn Ps` (`GooseLang/Ext/Fs/FsNoErr.lean`: `∃ Sio`, every inode, both premises, the paths `Ps`;
+  `FsNoErrIno` = no path) as `bbolt`'s `¬ FsNoErr` does. The pipeline needs NO Sio threading: `pipeErrP`'s sent error
+  will carry `⌜¬ (DirFits dir ∧ FsNoErrOn (children of dir))⌝`. `cut.spec` becomes ONE spec parametrized by `Sio`
+  (as `Save.spec`): error arm `⌜err ≠ nil ∧ ¬ walCov Sio⌝`, premises `walCov Sio → DirFits dir ∧ ∀ b, Sio.path
+  (child dir b)` and `walCov Sio → room ≤ maxBytes`, `[FsStepSat (NoMapLockErr Sio)]`; delete `cut.specNoErr` and
+  `CalleeCov.walCov_cut` (no twins: report this form; the brief said "corollaries"). `Save`/`SaveSnapshot` get the
+  `NoMapLockErr` instance and `⌜walCov Sio → DirFits dir ∧ covP⌝` (storage specs: from `WalH.fits/covP`).
+- **Done (0469050f3a, lean-checked file by file; targeted build b1 green before the WriteAt part, b2 =
+  `/shared/tmp/walfsfix2/b2.log`, green: Create, SaveSnapshot, cutPre, PreSync, WriteAt/WriteLong/Off, osfs, bbolt writeMeta/init, WalTester tryWrite):** witnesses on `os.File.Sync.specDirS`/`fileutil.Fsync.specDirS`
+  (`wp_osDirSyncSW`), `os.File.Truncate.specAu` + `specWalTail` (`¬ FsNoErrIno ∨ maxBytes < tg`; `ResizeAu`'s
+  `wp_osFtruncateFinish_au`/`wp_osFallocFinish_au` give `⌜e ≠ 0 → …⌝`, `NoIoErrResize.lean`), `os.Rename.specFileSnc/S`
+  (`(err = nil → o.isSome) ∧ (err ≠ nil → ¬ (FsNoErrOn (· = child d' bt) ∧ PathFits … ∧ PathFits …))`,
+  `wp_osRenameFileSW`), `syscall.Fdatasync.spec`/`fileutil.Fdatasync.spec`/`walPreSyncOk` (`¬ FsNoErrIno`),
+  `specPreL`/`specPre` error arm `B ∨ (⌜¬ FsNoErrIno⌝ ∗ W)`, `WriteAt.specLong` (`wp_ino`, `wp_osPWriteFinishW`),
+  `Write.wp_long`, `os.fileB`; `os.File.writerStreamINE` (PNE stream, `B ∗ ⌜¬ FsNoErrIno⌝`); `specPreL` and
+  `saveState.specPre` now over `io.writerStreamPNE` (proofs over `flush.specPNE`, `encode.specGNE`: Link args change).
+- **Next, in order:** (1) remaining witnesses: shared-mode open of an existing file (`os.OpenFile.wp_fileS`, `NsS.lean`;
+  a `wp_osOpenFileSW` over `wp_osOpenFileSNE`, as `wp_osRenameFileSW`) and `specCreateTruncSnc` (alloc's create);
+  the OFD lock (`syscall.FcntlFlock.wp_lock`: an `ofdLock_noErr` from `NoIoErr`'s `"OfdLock"` clause, blocking
+  `F_OFD_SETLKW`) and the `flock` fallback (`flock_noErr`, `NoMapLockErr`); `fileutil.lockPost`'s error arm
+  `∃ b, A x b ∗ ⌜b = true → ¬ FsNoErrIno⌝`; `createNewWALFile.specLocked`; `fileutil.Preallocate.spec` (over
+  `FallocateAu`, whose finish now gives the fact). (2) the pipeline: `pipeErrP`, `alloc.spec`/`run.spec`/`Open.spec`
+  error arms with `¬ (DirFits dir ∧ FsNoErrOn (fun p => ∃ b, p = child dir b))`. (3) `cut.spec` restated (above) and
+  `WAL__cut.lean` reworked: `sync.specCut` at a call from `sync.spec`+`sync.specNoErr` (as `walCov_sync`), N.tmp writes
+  via `writerStreamINE` + `saveCrc.specNE`/`encode.specGNE`/`saveState.specPre`, each error refuted by
+  `Fs.fsNoErrOn_of Sio …`. (4) Save/SaveSnapshot/storage specs, `etc/gen-link.py --walfs` (and modes), item 3.
+- Caution: `by tac, x` inside `⟨…⟩` swallows the comma: write `(by tac)`. In WAL spec files write `Fs.FsNoErrIno`.
+
+## START HERE (2026-11-20 a4, superseded) — item 2: WalA fields done (satL, fits, covP); next the cut proof
 
 - Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`). Plain build-slot; lean-check `--max-open 2`. Decisions: `questions.md`.
