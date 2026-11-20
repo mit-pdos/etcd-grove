@@ -703,7 +703,8 @@ _WAL_NEW_ERRS = [('errBadWALName', 'BW'), ('ErrMetadataConflict', 'MC'), ('ErrFi
                  ('ErrSliceOutOfRange', 'SO'), ('ErrDecoderNotFound', 'DN'), ('ErrSaveBatchTooLarge', 'BL')]
 _WAL_METRICS = ['walFsyncSec', 'walWriteSec', 'walWriteBytes']
 _WAL_ERRS = ['errBadWALName', 'ErrMetadataConflict', 'ErrFileNotFound', 'ErrCRCMismatch',
-             'ErrSnapshotMismatch', 'ErrSnapshotNotFound', 'ErrSliceOutOfRange', 'ErrDecoderNotFound']
+             'ErrSnapshotMismatch', 'ErrSnapshotNotFound', 'ErrSliceOutOfRange', 'ErrDecoderNotFound',
+             'ErrSaveBatchTooLarge']
 
 
 def _walErrVar(x, tag):
@@ -765,7 +766,8 @@ def _walMetric(x, spec):
 LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal'] = dict(
     doc='''Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
-`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, `MaxSaveBatchBytes`
+`2^42` (fix 0009), every error
 variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
 `openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
@@ -791,7 +793,7 @@ says returns.''',
                           'rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
                           'wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab',
                           'try wp_auto']),
-    finish=[f'ipersist H{x}' for x in _WAL_ERRS + ['crcTable', 'SegmentSizeBytes', 'walFsyncSec',
+    finish=[f'ipersist H{x}' for x in _WAL_ERRS + ['crcTable', 'SegmentSizeBytes', 'MaxSaveBatchBytes', 'walFsyncSec',
                                                     'walWriteSec', 'walWriteBytes', 'openWALFilesFn']] +
            [l for x, t in _WAL_NEW_ERRS for l in _walErrVar(x, t)] +
            ['ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []',

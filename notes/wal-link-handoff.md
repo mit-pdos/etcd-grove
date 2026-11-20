@@ -1,6 +1,24 @@
 # WAL link: handoff
 
-## START HERE (2026-11-20 z5, PAUSED by 03 for merge-origin7; lean 34986d22ae MERGED)
+## START HERE (2026-11-20 z6, lean 3ce5a9e526 MERGED; land list in progress)
+
+- **Branch** `wal-link` b6a2d8d787 (+ this note), pin 3afd77e35 (`/shared/tmp/manifest-3af.json`). Merged lean
+  34986d22ae, cee6468281 (S4, 7g, merge-origin7), 621788348a (auth-schema port: hD22 gone), 3ce5a9e526
+  (merge-driver, merge-origin8: wal metric initializers translated; `etc/gen-init.py` wal entry = lean's + our
+  `MaxSaveBatchBytes`/`ErrSaveBatchTooLarge`; `Code/` regenerated with `goose.py --project etcd`).
+- **Done since z5:** merge repairs (`RNNames GF` in S4's InvRaftNode/AuthCompRows; applySnapshot's `γw q` + S4's
+  `hns`); authlease (new on lean) got data dirs over `memberDataDir`, `HWal`, Go test reset; gates repairs
+  (SaveSnapshot imports `sync.specPre`'s Spec, not the proof; `RaftModel.Laws` out of tier-linking; tier baseline
+  shrunk; etcdstart API lists WalAreasInit/WalAreas; featuregate allow at the fork pin d3feef9bc).
+- **Builds:** full timed 20261120-034357-3465343 (rc 0, pre-621788348a), 20261120-051450-3837525 (rc 0); after
+  3ce5a9e526: log `/shared/tmp/wallink/full-z11.log` (`run-full-z5.sh`).
+- **Gates** (`/shared/tmp/wallink/gates-z9.log`, before the last merge) still to fix: tcb + 30 collections
+  (`--check --update`: gone `storage.storage.Release.wp_proof`, `walFiles`), axiom-tok stale entry, reader-slot
+  `MIN_SCANNED` 181→180 (Release proved), interfaces (regenerate). Then rerun gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock` (env in the z9 command), Go suite (gates ran it), STATUS, land stop.
+- **Re-attack** (z5) done: no refutation; Go-harness suspects (ResetFamily absent dirs; global data dirs) for later.
+
+### START HERE (2026-11-20 z5, PAUSED by 03 for merge-origin7; lean 34986d22ae MERGED)
 
 - **Branch** `wal-link` 2e27f70edc (merge of lean 34986d22ae: merge-origin6, fmt-soundness-2; pin still 3afd77e35,
   `--packages=/shared/tmp/manifest-3af.json`). Conflicts: `Snapshotter.DBFilePath.spec` (ours over `sd` + lean's

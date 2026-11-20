@@ -75,7 +75,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply wp_GlobalAlloc (V := TODO) ErrSaveBatchTooLarge _ as HErrSaveBatchTooLarge
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSaveBatchTooLarge _ as HErrSaveBatchTooLarge
   wp_apply wp_GlobalAlloc (V := w64) MaxSaveBatchBytes _ as HMaxSaveBatchBytes
   wp_apply wp_GlobalAlloc (V := Loc) crcTable _ as HcrcTable
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrDecoderNotFound _ as HErrDecoderNotFound
@@ -207,8 +207,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrSnapshotNotFound
   ipersist HErrSliceOutOfRange
   ipersist HErrDecoderNotFound
+  ipersist HErrSaveBatchTooLarge
   ipersist HcrcTable
   ipersist HSegmentSizeBytes
+  ipersist HMaxSaveBatchBytes
   ipersist HwalFsyncSec
   ipersist HwalWriteSec
   ipersist HwalWriteBytes
