@@ -53,7 +53,7 @@ theorem typed.listItemToPathElement.wp_proof
   wp_auto
   wp_apply h_keyedAssociativeListItemToPathElement a sc S lp e .associative ks fs el r child dq x tn
     $$ [Ha Hv] as %pe %err Hpost
-  · iframe; iframe #; ipureintro; exact ⟨Hwf, Hne, Hfe, Hft, Hc, Hk⟩
+  · iframe; iframe #; ipureintro; exact ⟨Hwf, rfl, Hne, Hfe, Hft, Hc, Hk⟩
   try wp_auto
   iapply HΦ
   iexact Hpost

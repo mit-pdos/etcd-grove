@@ -40,7 +40,7 @@ abbrev typed.keyedAssociativeListItemToPathElement.spec : Prop :=
     (ks : List GoString) (fs : List (GoString × TypeRef)) (el : Option TypeRef) (r : ElemRel)
     (child : value.Value) (dq : DFrac) (x : UVal) (tn : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isAlloc a ∗ isSchema sc S ∗ isListRep lp e rel ks ∗ isValF child dq x ∗
-      ⌜S.WF ∧ ks ≠ [] ∧ S.find e.name = some (.map fs el r) ∧ S.find tn = some (.list e rel ks) ∧
+      ⌜S.WF ∧ rel = .associative ∧ ks ≠ [] ∧ S.find e.name = some (.map fs el r) ∧ S.find tn = some (.list e rel ks) ∧
         conforms S e x ∧ (keyOf ks x).isSome⌝ }}
     (App (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.keyedAssociativeListItemToPathElement)) (Val #a)) (Val #sc)) (Val #lp)) (Val #child))
   {{ (pe : fieldpath.PathElement) (err : GoInterface), RET (PairV #pe #err);
