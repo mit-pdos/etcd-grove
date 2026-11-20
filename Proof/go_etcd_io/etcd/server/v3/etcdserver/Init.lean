@@ -4,8 +4,9 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`, untranslated: the
-trust-boundary axioms `<X>_init`; the vectors with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
+Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`: the gauges and counters
+translated, over prometheus's constructor specs, until 2026-11-19 the trust-boundary axioms
+`<X>_init`; the vectors untranslated, the axioms `<X>_init`, with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
@@ -124,51 +125,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `hasLeader = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom hasLeader_init :
-    {{ (True : IProp GF) }} (App (Val hasLeader.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr hasLeader ↦ GoInterface.ok m ∗ gaugeSetSpec m }}
-
-/-- `isLeader = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom isLeader_init :
-    {{ (True : IProp GF) }} (App (Val isLeader.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr isLeader ↦ GoInterface.ok m ∗ gaugeSetSpec m }}
-
-/-- `proposalsCommitted = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom proposalsCommitted_init :
-    {{ (True : IProp GF) }} (App (Val proposalsCommitted.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr proposalsCommitted ↦ GoInterface.ok m ∗ gaugeSetSpec m }}
-
-/-- `proposalsApplied = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom proposalsApplied_init :
-    {{ (True : IProp GF) }} (App (Val proposalsApplied.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr proposalsApplied ↦ GoInterface.ok m ∗ gaugeSetSpec m }}
-
-/-- `leaderChanges = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
-axiom leaderChanges_init :
-    {{ (True : IProp GF) }} (App (Val leaderChanges.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr leaderChanges ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec m }}
-
-/-- `heartbeatSendFailures = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
-axiom heartbeatSendFailures_init :
-    {{ (True : IProp GF) }} (App (Val heartbeatSendFailures.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr heartbeatSendFailures ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec m }}
-
-/-- `proposalsFailed = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
-axiom proposalsFailed_init :
-    {{ (True : IProp GF) }} (App (Val proposalsFailed.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr proposalsFailed ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec m }}
-
-/-- `proposalsPending = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom proposalsPending_init :
-    {{ (True : IProp GF) }} (App (Val proposalsPending.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr proposalsPending ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec m }}
-
-/-- `applySnapshotInProgress = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom applySnapshotInProgress_init :
-    {{ (True : IProp GF) }} (App (Val applySnapshotInProgress.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr applySnapshotInProgress ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec m }}
 
 /-- `serverFeatureEnabled = prometheus.NewGaugeVec(..., []string{"name", "stage"})`
 (`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/

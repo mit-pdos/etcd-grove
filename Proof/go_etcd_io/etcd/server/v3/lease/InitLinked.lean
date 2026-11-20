@@ -21,6 +21,10 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.leasepb.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.InitLinked
 public import Proof.go_uber_org.zap.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -61,6 +65,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) leaseTotalTTLs _ as HleaseTotalTTLs
+  wp_apply wp_GlobalAlloc (V := GoInterface) leaseRevoked _ as HleaseRevoked
+  wp_apply wp_GlobalAlloc (V := GoInterface) leaseGranted _ as HleaseGranted
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseTTLTooLarge _ as HErrLeaseTTLTooLarge
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseExists _ as HErrLeaseExists
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseNotFound _ as HErrLeaseNotFound
@@ -95,14 +102,36 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrLeaseNotFound))
   -- translated initializer of ErrLeaseExists))
   -- translated initializer of ErrLeaseTTLTooLarge))
+  -- translated initializer of leaseGranted))
   wp_apply _root_.Perennial.context.wp_New_errorString as %xNP ⟨-, #MNP⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xEx ⟨#MEx, #CEx⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xTL ⟨#MTL, #CTL⟩
-  wp_apply leaseGranted_init as ⟨%cleaseGranted, HleaseGranted, #SleaseGranted⟩
-  wp_apply leaseRevoked_init as ⟨%cleaseRevoked, HleaseRevoked, #SleaseRevoked⟩
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cleaseGranted ⟨#CleaseGranted, -⟩
+  try wp_auto
+  ihave #EleaseGranted : (go_etcd_io.etcd.server.v3.lease.counterSpec cleaseGranted : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at CleaseGranted
+    icases CleaseGranted with ⟨#K, -, -⟩
+    unfold go_etcd_io.etcd.server.v3.lease.counterSpec
+    iexact K
+  -- translated initializer of leaseRevoked))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cleaseRevoked ⟨#CleaseRevoked, -⟩
+  try wp_auto
+  ihave #EleaseRevoked : (go_etcd_io.etcd.server.v3.lease.counterSpec cleaseRevoked : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at CleaseRevoked
+    icases CleaseRevoked with ⟨#K, -, -⟩
+    unfold go_etcd_io.etcd.server.v3.lease.counterSpec
+    iexact K
   wp_apply (opaqueInitsOk leaseRenewed.init (by mem_tac))
-  wp_apply leaseTotalTTLs_init as ⟨%hleaseTotalTTLs, HleaseTotalTTLs, #SleaseTotalTTLs⟩
+  -- translated initializer of leaseTotalTTLs))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bleaseTotalTTLs BleaseTotalTTLs
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BleaseTotalTTLs as %cleaseTotalTTLs ⟨#CleaseTotalTTLs, -⟩
+  try wp_auto
+  ihave #EleaseTotalTTLs : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cleaseTotalTTLs : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CleaseTotalTTLs
+    unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
+    iexact CleaseTotalTTLs
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HErrNotPrimary
   ipersist HErrLeaseNotFound

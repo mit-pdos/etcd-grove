@@ -14,7 +14,7 @@
 # server's apply package, the raft request (`InternalRaftRequest`, its `RequestHeader`, the
 # `InternalRaftStringer` the logs wrap it in), the requests it reads and the responses it builds
 # (compaction, lease, alarm, auth), the alarm actions and types.
-translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetKey", "RangeResponse", "WatchResponse",
+translate = ["!*", "RangeRequest_SortOrder_name", "RangeRequest_SortTarget_name", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetKey", "RangeResponse", "WatchResponse",
   "Compare", "Compare_Version", "Compare_CreateRevision", "Compare_ModRevision", "Compare_Value",
   "Compare_Lease", "Compare_EQUAL", "Compare_GREATER", "Compare_LESS", "Compare_NOT_EQUAL",
   "Compare_VERSION", "Compare_CREATE", "Compare_MOD", "Compare_VALUE", "Compare_LEASE",

@@ -8,8 +8,9 @@ Its fact (`backendInit`, `Base.lean`): the commit's histograms `rebalanceSec`,
 `spillSec`, `writeSec`, `commitSec` hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`), and `defaultBatchInterval`,
 `defaultBatchLimit`, `InitialMmapSize` their translated initializers' constants. Its initializer
 allocates and sets its translated constants, initializes its imports and runs its variables'
-untranslated initializers; the trust-boundary axioms `<X>_init` state the four the fact reads
-(`metrics.go`: `prometheus.NewHistogram(...)`), `opaqueInitsOk` the others.
+untranslated initializers: the four the fact reads are translated (`metrics.go`:
+`prometheus.NewHistogram(...)` of `ExponentialBuckets`, over their specs; until 2026-11-19 the
+trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.
 -/
 module
 
@@ -74,26 +75,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `commitSec = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom commitSec_init :
-    {{ (True : IProp GF) }} (App (Val commitSec.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr commitSec ↦ GoInterface.ok h ∗ histSpec h }}
-
-/-- `rebalanceSec = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom rebalanceSec_init :
-    {{ (True : IProp GF) }} (App (Val rebalanceSec.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr rebalanceSec ↦ GoInterface.ok h ∗ histSpec h }}
-
-/-- `spillSec = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom spillSec_init :
-    {{ (True : IProp GF) }} (App (Val spillSec.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr spillSec ↦ GoInterface.ok h ∗ histSpec h }}
-
-/-- `writeSec = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom writeSec_init :
-    {{ (True : IProp GF) }} (App (Val writeSec.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr writeSec ↦ GoInterface.ok h ∗ histSpec h }}
 
 /-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems, but the file model is Linux's, configuration C): read-write options with the default page size and `OpenFile`, `NoFreelistSync`, no `Timeout`. (S3e, 2026-11-18: until then possibly nil.) -/
 axiom boltOpenOptions_init :

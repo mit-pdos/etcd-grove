@@ -8,7 +8,8 @@ Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
 `ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
-(`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
+(`metrics.go`, translated: over prometheus's constructor specs; until 2026-11-19 the trust-boundary
+axioms `<X>_init`); `opaqueInitsOk` states the
 other untranslated initializers run.
 -/
 module
@@ -77,21 +78,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `leaseGranted = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`, whose `Inc` returns. -/
-axiom leaseGranted_init :
-    {{ (True : IProp GF) }} (App (Val leaseGranted.init) (Val #()))
-    {{ RET #(); ∃ c : GoInterfaceOk, globalAddr leaseGranted ↦ GoInterface.ok c ∗ counterSpec c }}
-
-/-- `leaseRevoked = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`, whose `Inc` returns. -/
-axiom leaseRevoked_init :
-    {{ (True : IProp GF) }} (App (Val leaseRevoked.init) (Val #()))
-    {{ RET #(); ∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦ GoInterface.ok c ∗ counterSpec c }}
-
-/-- `leaseTotalTTLs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom leaseTotalTTLs_init :
-    {{ (True : IProp GF) }} (App (Val leaseTotalTTLs.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦ GoInterface.ok h ∗ go_etcd_io.etcd.server.v3.storage.backend.histSpec h }}
 
 end go_etcd_io.etcd.server.v3.lease
 end opaqueInits

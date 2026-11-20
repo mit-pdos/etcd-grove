@@ -29,6 +29,10 @@ public import Proof.hash.crc32.Init
 public import Proof.os.Init
 public import Proof.path.filepath.Init
 public import Proof.hash.crc32.MakeTable
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -71,7 +75,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSaveBatchTooLarge _ as HErrSaveBatchTooLarge
+  wp_apply wp_GlobalAlloc (V := TODO) ErrSaveBatchTooLarge _ as HErrSaveBatchTooLarge
   wp_apply wp_GlobalAlloc (V := w64) MaxSaveBatchBytes _ as HMaxSaveBatchBytes
   wp_apply wp_GlobalAlloc (V := Loc) crcTable _ as HcrcTable
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrDecoderNotFound _ as HErrDecoderNotFound
@@ -84,6 +88,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoFunc) openWALFilesFn _ as HopenWALFilesFn
   wp_apply wp_GlobalAlloc (V := w64) SegmentSizeBytes _ as HSegmentSizeBytes
   wp_apply wp_GlobalAlloc (V := GoInterface) errBadWALName _ as HerrBadWALName
+  wp_apply wp_GlobalAlloc (V := GoInterface) walWriteBytes _ as HwalWriteBytes
+  wp_apply wp_GlobalAlloc (V := GoInterface) walWriteSec _ as HwalWriteSec
+  wp_apply wp_GlobalAlloc (V := GoInterface) walFsyncSec _ as HwalFsyncSec
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize'
       EtcdGrove.ExternalInit.go_etcd_io_raft_v3 _root_.Perennial.go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd23⟩
   wp_apply (_root_.Perennial.hash.crc32.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd22⟩
@@ -118,9 +125,32 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
       EtcdGrove.ExternalInit.encoding_binary _root_.Perennial.encoding.binary.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply walFsyncSec_init as ⟨%hwalFsyncSec, HwalFsyncSec, #SwalFsyncSec⟩
-  wp_apply walWriteSec_init as ⟨%hwalWriteSec, HwalWriteSec, #SwalWriteSec⟩
-  wp_apply walWriteBytes_init as ⟨%hwalWriteBytes, HwalWriteBytes, #SwalWriteBytes⟩
+  -- translated initializer of walFsyncSec))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwalFsyncSec BwalFsyncSec
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwalFsyncSec as %cwalFsyncSec ⟨#CwalFsyncSec, -⟩
+  try wp_auto
+  ihave #EwalFsyncSec : (EtcdGrove.wal.histSpec cwalFsyncSec : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwalFsyncSec
+    unfold EtcdGrove.wal.histSpec
+    iexact CwalFsyncSec
+  -- translated initializer of walWriteSec))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwalWriteSec BwalWriteSec
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwalWriteSec as %cwalWriteSec ⟨#CwalWriteSec, -⟩
+  try wp_auto
+  ihave #EwalWriteSec : (EtcdGrove.wal.histSpec cwalWriteSec : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwalWriteSec
+    unfold EtcdGrove.wal.histSpec
+    iexact CwalWriteSec
+  -- translated initializer of walWriteBytes))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwalWriteBytes ⟨#CwalWriteBytes, #DwalWriteBytes, -⟩
+  try wp_auto
+  ihave #EwalWriteBytes : (EtcdGrove.wal.gaugeAddSpec cwalWriteBytes : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at CwalWriteBytes
+    icases CwalWriteBytes with ⟨-, -, #K⟩
+    unfold EtcdGrove.wal.gaugeAddSpec
+    iexact K
   -- translated initializer of errBadWALName))
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xBW #EBW
@@ -177,10 +207,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrSnapshotNotFound
   ipersist HErrSliceOutOfRange
   ipersist HErrDecoderNotFound
-  ipersist HErrSaveBatchTooLarge
   ipersist HcrcTable
   ipersist HSegmentSizeBytes
-  ipersist HMaxSaveBatchBytes
   ipersist HwalFsyncSec
   ipersist HwalWriteSec
   ipersist HwalWriteBytes

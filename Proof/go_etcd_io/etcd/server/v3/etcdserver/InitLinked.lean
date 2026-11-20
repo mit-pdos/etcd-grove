@@ -64,6 +64,9 @@ public import Proof.go_uber_org.zap.Init
 public import Proof.golang_org.x.crypto.bcrypt.Init
 public import Proof.net.http.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -111,6 +114,15 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoFunc) raftStatus _ as HraftStatus
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) raftStatusMu _ as HraftStatusMu
   wp_apply wp_GlobalAlloc (V := GoInterface) leaseExpired _ as HleaseExpired
+  wp_apply wp_GlobalAlloc (V := GoInterface) proposalsFailed _ as HproposalsFailed
+  wp_apply wp_GlobalAlloc (V := GoInterface) proposalsPending _ as HproposalsPending
+  wp_apply wp_GlobalAlloc (V := GoInterface) proposalsApplied _ as HproposalsApplied
+  wp_apply wp_GlobalAlloc (V := GoInterface) proposalsCommitted _ as HproposalsCommitted
+  wp_apply wp_GlobalAlloc (V := GoInterface) applySnapshotInProgress _ as HapplySnapshotInProgress
+  wp_apply wp_GlobalAlloc (V := GoInterface) heartbeatSendFailures _ as HheartbeatSendFailures
+  wp_apply wp_GlobalAlloc (V := GoInterface) leaderChanges _ as HleaderChanges
+  wp_apply wp_GlobalAlloc (V := GoInterface) isLeader _ as HisLeader
+  wp_apply wp_GlobalAlloc (V := GoInterface) hasLeader _ as HhasLeader
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd58⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -240,17 +252,51 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1))
     $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply hasLeader_init as ⟨%mhasLeader, HhasLeader, #S0hasLeader⟩
-  wp_apply isLeader_init as ⟨%misLeader, HisLeader, #S0isLeader⟩
-  wp_apply leaderChanges_init as ⟨%mleaderChanges, HleaderChanges, #S0leaderChanges⟩
+  -- translated initializer of hasLeader))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %chasLeader ⟨#ChasLeader, #DhasLeader, -⟩
+  try wp_auto
+  ihave #EhasLeader : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec chasLeader : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec at DhasLeader
+    unfold go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec
+    iexact DhasLeader
+  -- translated initializer of isLeader))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisLeader ⟨#CisLeader, #DisLeader, -⟩
+  try wp_auto
+  ihave #EisLeader : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cisLeader : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec at DisLeader
+    unfold go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec
+    iexact DisLeader
+  -- translated initializer of leaderChanges))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cleaderChanges ⟨#CleaderChanges, -⟩
+  try wp_auto
   wp_apply (opaqueInitsOk learnerPromoteFailed.init (by mem_tac))
   wp_apply (opaqueInitsOk learnerPromoteSucceed.init (by mem_tac))
-  wp_apply heartbeatSendFailures_init as ⟨%mheartbeatSendFailures, HheartbeatSendFailures, #S0heartbeatSendFailures⟩
-  wp_apply applySnapshotInProgress_init as ⟨%mapplySnapshotInProgress, HapplySnapshotInProgress, #S0applySnapshotInProgress⟩
-  wp_apply proposalsCommitted_init as ⟨%mproposalsCommitted, HproposalsCommitted, #S0proposalsCommitted⟩
-  wp_apply proposalsApplied_init as ⟨%mproposalsApplied, HproposalsApplied, #S0proposalsApplied⟩
-  wp_apply proposalsPending_init as ⟨%mproposalsPending, HproposalsPending, #S0proposalsPending⟩
-  wp_apply proposalsFailed_init as ⟨%mproposalsFailed, HproposalsFailed, #S0proposalsFailed⟩
+  -- translated initializer of heartbeatSendFailures))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cheartbeatSendFailures ⟨#CheartbeatSendFailures, -⟩
+  try wp_auto
+  -- translated initializer of applySnapshotInProgress))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %capplySnapshotInProgress ⟨#CapplySnapshotInProgress, #DapplySnapshotInProgress, -⟩
+  try wp_auto
+  -- translated initializer of proposalsCommitted))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsCommitted ⟨#CproposalsCommitted, #DproposalsCommitted, -⟩
+  try wp_auto
+  ihave #EproposalsCommitted : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cproposalsCommitted : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec at DproposalsCommitted
+    unfold go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec
+    iexact DproposalsCommitted
+  -- translated initializer of proposalsApplied))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsApplied ⟨#CproposalsApplied, #DproposalsApplied, -⟩
+  try wp_auto
+  ihave #EproposalsApplied : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cproposalsApplied : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec at DproposalsApplied
+    unfold go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec
+    iexact DproposalsApplied
+  -- translated initializer of proposalsPending))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsPending ⟨#CproposalsPending, #DproposalsPending, -⟩
+  try wp_auto
+  -- translated initializer of proposalsFailed))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsFailed ⟨#CproposalsFailed, -⟩
+  try wp_auto
   wp_apply requestDurationSec_init as ⟨%vrequestDurationSec, HrequestDurationSec, #LrequestDurationSec⟩
   -- translated initializer of leaseExpired))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩
@@ -266,18 +312,18 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   wp_apply (initFuncsOk init.«1» (by mem_tac))
   wp_apply (initFuncsOk init.«2» (by mem_tac))
+  ipersist HserverFeatureEnabled
+  ipersist HserverID
+  ipersist HrequestDurationSec
   ipersist HhasLeader
   ipersist HisLeader
   ipersist HproposalsCommitted
   ipersist HproposalsApplied
+  ipersist HproposalsPending
+  ipersist HapplySnapshotInProgress
   ipersist HleaderChanges
   ipersist HheartbeatSendFailures
   ipersist HproposalsFailed
-  ipersist HproposalsPending
-  ipersist HapplySnapshotInProgress
-  ipersist HserverFeatureEnabled
-  ipersist HserverID
-  ipersist HrequestDurationSec
   ipersist HleaseExpired
   imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM
   · inext
