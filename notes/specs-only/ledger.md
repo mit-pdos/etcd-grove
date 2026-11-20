@@ -3284,3 +3284,32 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03: the narrow `WalA.covP : ∀ b, Sio.path (Fs.child
   dir b)`; the forms (the fields in `WalA`, `fits` from the name bound via `hmsL`) accepted. An independent attack on
   `covP` with `satL`/`fits` before relying on it.
+
+## 2026-11-20: `cut` under `walCov` can still fail: a blocking lock request in conflict may fail (no premise excludes it)
+
+- **Spec.** `WAL.cut.spec` in the decided one-spec form (error arm `err ≠ nil ∧ ¬ walCov Sio`), and through it `Save`/
+  `SaveSnapshot`'s covered case and item 3 (`rnNewStorageOk_holds`).
+- **Defect.** `cut` makes two blocking lock requests: the pipeline's `LockFile(dir/<n>.tmp, O_CREATE|O_WRONLY)` on the
+  fresh temporary file and step 8's `LockFile(dir/<seq>-<idx>.wal, O_WRONLY)` after `newTail.Close()` released the
+  lock (fileutil: `F_OFD_SETLKW`, or `flock(LOCK_EX)` without `LOCK_NB`). The lock rule (`LockStep`, `Impl.lean`) has a
+  success only when no other description holds a conflicting lock (`LockConflict`); otherwise only failures (any
+  errno: the model's "waits, or fails", `locks_blocking.go`, the user's 2026-11-15 choice, `locks.md` §2.4). `NoIoErr`'s
+  `OfdLock` clause and `NoMapLockErr`'s `Flock` clause ask errno 0 only where a success exists, so in a conflict they
+  allow every errno. Nothing in the logic excludes a conflict at those steps: the locks' ghost state (`lockCtx`,
+  `Locks.lean`) tracks exclusive locks only, and only while held (step 8 runs after the close released the token);
+  no resource says no other description on the inode exists or holds a shared lock. So the planned witness
+  `e ≠ 0 → ¬ FsNoErrIno` on the lock calls is not provable, and `cut`'s error arm `¬ walCov Sio` is not either.
+- **Evidence.** wal-fsfix2 a6 (reading `LockStep`, `IoCovers "OfdLock"`, `MapLockOk "Flock"`, `wp_osLockStep`,
+  `fileutil.wp_ofdLockFile`/`wp_flockLockFile`, `WAL__cut.lean` step 8). On Linux a blocking request in conflict waits
+  (measured, `TestLocksBlocking`); the model's failure there is what the premises leave open.
+- **Proposed change.** (A, recommended; trusted) the semantics gives a blocking request in conflict a wait step (the
+  call steps to itself, as `MmapStall`; `locks_blocking.go` updated: "waits" becomes a step), and the premises say a
+  covered blocking request ends errno 0 or waits (`NoIoErr` "OfdLock", `NoMapLockErr` "Flock"; `StepKeeps` holds: the
+  wait step is always there). The base semantics keeps its failures (§2.4 unchanged); only the covered case loses them,
+  resting on `SA_RESTART` (measured) and no allocation failure at entry (already the premises' assumption). Then the
+  lock witness is `e ≠ 0 → ¬ FsNoErrIno` and the decided plan goes on unchanged. (B, untrusted, large) a lock right per
+  inode and kind in `lockCtx` (shared locks tracked too), a fraction needed for every lock request, the whole one kept
+  by the WAL for its segments: changes every lock spec (fileutil `LockFile`/`TryLockFile`, bbolt's `flock`, the purge's
+  `TryLockFile` on WAL files), and the purge's concurrent locks must fit it. (C) `cut`'s error arm keeps a lock
+  disjunct: item 3 then stays unprovable.
+- **Decision.** Pending (STOP, wal-fsfix2 a6).

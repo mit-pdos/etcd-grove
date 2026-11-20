@@ -1,6 +1,20 @@
 # wal-fsfix2 handoff
 
-## START HERE (2026-11-20 a5) — item 2: cut's callees get error witnesses; then the cut proof
+## START HERE (2026-11-20 a6) — STOP: the lock calls in `cut` cannot be witnessed; a5 below otherwise current
+
+- Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`). No Lean changed since a5 (0469050f3a); `WAL__cut.lean` and the WAL
+  `Link` still do not build (expected until a5's step 3). lean not merged (at 951d520138 now).
+- Recorded: etcd-grove-03's decision (the one-spec `cut.spec` form; witness approach accepted), `questions.md`.
+- **Blocker** (ledger, 2026-11-20 third entry): `cut`'s two blocking `LockFile`s (pipeline's on `N.tmp`, step 8's after
+  `newTail.Close()`) may fail under `NoIoErr`/`NoMapLockErr` when another description holds a conflicting lock
+  (`LockStep` has no success then; the premises constrain only where a success exists), and no resource excludes a
+  conflict (`lockCtx` tracks exclusive locks only while held). So `cut.spec`'s `¬ walCov Sio` error arm is unprovable.
+  Proposal (A, trusted, recommended): a wait step for a blocking request in conflict, covered case "errno 0 or wait".
+- After the decision: a5's steps (1)-(4) unchanged (with (A), the lock witness is `e ≠ 0 → ¬ FsNoErrIno` via a
+  `ofdLock_noErr`/`flockBlock_noErr` over the new clauses).
+
+## START HERE (2026-11-20 a5, steps still current) — item 2: cut's callees get error witnesses; then the cut proof
 
 - Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2` (WIP commit 0469050f3a + handoff); pin c44b74871
   (`--packages=/shared/tmp/manifest-c44.json`, `PERENNIAL_DIR=/shared/perennial-c44b74871`). lean not merged since
