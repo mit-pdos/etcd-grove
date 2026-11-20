@@ -71,6 +71,12 @@ jobs:
           key: lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.run_id }}
           restore-keys: |
             lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
+      # On a cache miss (a new pin: the key hashes lake-manifest.json) there is no .lake/packages
+      # until the build, but the checks below read Perennial's sources (etc/gen-init.py, loaded by
+      # etc/copy-part.py: Perennial's translations). Clone what the manifest pins, without
+      # updating it or building; a no-op on a cache hit.
+      - name: Fetch dependencies
+        run: lake env true
       # etcd's go.mod (the fork pinned in etc/goose.py) asks for Go 1.27.
       # (Any 1.27; `etc/goose.py` itself runs `go` with its pinned GOTOOLCHAIN.)
       - name: Install Go
