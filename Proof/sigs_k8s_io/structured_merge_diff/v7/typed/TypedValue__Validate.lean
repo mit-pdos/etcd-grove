@@ -57,8 +57,6 @@ theorem typed.TypedValue.Validate.wp_proof
   wp_apply h_validatingObjectWalker_validate w tv.schema' S ⟨tv.value', t, a⟩ dq x func.nil
     $$ [Hown Hv] as %errs ⟨Herrs, Hv, Hown⟩
   · iframe
-    isplitr
-    · unfold prefixOk; ileft; ipureintro; rfl
     ipureintro; exact ⟨LawA.conforms_find S t x Hc, Hc⟩
   ihave %Hlen := noErrs_len $$ Herrs
   rw [show decide (errs.len = W64 0) = true by simp; word]

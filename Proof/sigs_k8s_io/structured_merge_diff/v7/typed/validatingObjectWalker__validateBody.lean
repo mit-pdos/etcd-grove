@@ -43,7 +43,7 @@ theorem typed.validatingObjectWalker.validate.wp_proofBody
     typed.validatingObjectWalker.visitMapItems.specI
   iintro #IH
   iintro %w %sc %S %st %dq %x %f
-  wp_start as ⟨Hown, Hv, Hf, %Hfind, %Hc⟩
+  wp_start as ⟨Hown, Hv, %Hfind, %Hc⟩
   obtain ⟨A, hA⟩ := Option.isSome_iff_exists.1 Hfind
   iunfold vwOwn at Hown
   icases Hown with ⟨%sp, Hcore, Hsp, Ha⟩
