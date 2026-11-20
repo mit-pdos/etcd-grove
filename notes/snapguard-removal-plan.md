@@ -1,5 +1,62 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## HANDOFF (2026-11-20, first session paused by the coordinator)
+
+**Done** (branch `prove-nosnapguard/2026-11-20`, worktree `/shared/etcd-grove-wt/prove-nosnapguard`, off
+`lean` ed714ac34e; notes only, no Lean or fork change, nothing landed or pushed): b1adece81f (plan, (I)
+argued true), d92dbc16a8 (refined design: the raft registry; replay-window analysis), and this handoff.
+A baseline VM build of the clean branch was started (`/shared/tmp/nosnapguard/build0.log`, `rc=` at its
+end). Fork checkout at d3feef9bc: `/shared/tmp/nosnapguard/etcd`; raft d2c16c558: `/shared/tmp/nosnapguard/raft`.
+The user approved the raft API / storage-contract change (2026-11-20) and wants the replay-window
+deferral (6e8f0c004) fixed properly afterwards (no drop/defer/report-failure as a resolution).
+
+**Exact next step: stage 1 (R1), found plumbing.** The source distinction already exists inside raft:
+`tsSrc sn ty snap` (`InvRaftPhys.lean:1015`) = `svCert sn sv` (storage-sourced, the pin `sn.gsv` of the
+contract's `SV`) `∨ ksnCert sn …` (received/restored); the outbox carries it as `qSrcs` (`ownRaftPhys`'s
+`Hscert`), and a `Ready` converts it to `qCerts` (`RawNode__readyWithoutAccept.lean:159`,
+`RawNode__acceptReady.lean:272`), losing the source. So R1 needs **no new pin**: put the client tag in the
+pinned `SV`.
+1. `InvStorage.lean`: lemma `isStorageP_mono_SV` (SV occurs only in `HSnapshot`'s post).
+2. `InvNodeRule.lean:775`: `isStorageT γ K Tg st := isStorageP … (fun sv => snapshotValid γ sv ∗ Tg sv) …`;
+   `isStorage := isStorageT … (fun _ => True)` (clients that build `isStorage` from `isStorageP` at
+   `snapshotValid` go through the mono lemma: `MemstorageApi.memStorage_isStorage`, kv `KVStorageInstance`,
+   kvreconf `KvrStorageApi`, kvdurable `KdStorageApi`, `TracedApiDraft`).
+3. `RestartNode.lean`/`TracedStartNode.lean` (and `Spec/.../RestartNode.lean`, `StartNode.lean`): take
+   `isStorageT … Tg`, allocate the `gsv` pin at `snapshotValid γ ∗ Tg` (line ~546 / ~431), generalize
+   `certLink_make` (line ~200 / ~220: take the left conjunct after `saved_pred_agree`), and give the client a
+   persistent `nodeTagPin γ n Tg` (`∃ γn, nodeTabOk γ n γn ∗ savedPredOwn γn.sn.gsv (snapshotValid γ ∗ Tg)`;
+   `cfgNamesOf` already includes `sn.gsv`, `sn.gk`).
+4. Ready slot: follow the path of restart S7.3's `snapToOk` slot exactly (`LemmasReadyR.lean:305`,
+   `InvRawnodeReady.lean:1533/2254/2481/2880`, `RawNode__readyWithoutAccept.lean:623`,
+   `InvNodeChan.lean:902`, `InvApi.lean:2164/2859`, `InvNode.lean:834` `readyRest`,
+   `TracedRawNodeReady.lean:65`), adding `[∗list] q ∈ ms, qSrc s.gh.sn q` (persistent, from `Hscert`)
+   and at the API `snapSrcN γ n st` (`∃ γn, nodeTabOk γ n γn ∗ tsSrc γn.sn …`); `readyRest` needs the node
+   `n` or an existential over `γn` tied to it. Law: `snapSrcN γ n st ∗ nodeTagPin γ n Tg ⊢ ⌜ty ≠ MsgSnap⌝ ∨
+   ∃ sv, ⌜snap = some sv⌝ ∗ (▷ Tg sv ∨ nodeSnapRecv γ n sv)` (`nodeSnapRecv` opaque, enriched in stage 2).
+   Clients destructuring `readyRest` (kvreconf/kvdurable `Replica__run`, server `InvRaftNode`) update patterns.
+5. `MemstorageApi.lean`: `memStorJT γ K Tg` (SV := `snapshotValid γ ∗ Tg`), `memStorInvT`,
+   `memStorage_isStorageT`; keep `memStorJ`/`memStorInv` as they are (the `True` instance) so other
+   clients are untouched. The memstorage method specs need no change (`J.SV` already guards
+   `ApplySnapshot`/`CreateSnapshot`/`Snapshot`).
+6. Regenerate `interface/` (`etc/gen-interface.py etc/api/raft.txt`, after the build), `etc/gen-raft-tla.py`
+   (RaftTla copies) and the RaftNoAx copies by their script; `etc/tcb-report.py --check` unchanged; supersede
+   `notes/decisions.md` "The merged snapshot's index guard" (the user's 2026-11-20 instruction supersedes the
+   2026-10-31 deferral of (A)/(D)) when landing stage 1.
+
+**Gotchas.** `memStorInv_alloc` (`MemstorageApi.lean`) is a `sorry` (PORT, durability stage II): do not
+add a second one, prove `memStorInvT_alloc` from `memStorInvP_alloc` or reuse whatever the server's
+attach really uses. `StorNames`/`MemStorNames` are stored as tuples in ghost maps (`storKeyNames`,
+`cfgNamesOf`, `MemStorNamesRec`): adding fields there is costly, which is why the plan avoids it. Stage 2's
+registry is the hard part (time ordering; see "Refined design"). All Lean runs on the VM
+(`/shared/tmp/vm-build.sh`, `VM_CMD=...`); land with `ETCD_GROVE_GATES=/shared/tmp/vm-gates.sh etc/land.sh`.
+
+**Open question (replay-window fix, after the guard removal).** Labelling the in-window merged snapshot with
+the backend's own `(ci, term at ci, conf state at ci)` is right when `ci ≤` the sender's committed index
+(graceful restarts). After a power loss `ci` can exceed the WAL's (hence raft's) commit index
+(`nonissues/etcd-backward-snapshot-install-panics-watcher.md`, crash path): what should the merge send
+then? Its label must be an index raft has committed (`isMessage_snap_recontent` needs a `commitWit` of
+`m.Term` with `c ≥` the label), but the backend's content is at `ci`; no deferral is acceptable.
+
 Goal (the user's): delete `&& m.GetSnapshot().GetMetadata().GetIndex() <= ep.appliedi` from
 `applyAll`'s `msgSnapC` branch (fork commit 633036387, `goose-lean-snapguard`; `notes/decisions.md`,
 "The merged snapshot's index guard") by proving what it stands in for:
