@@ -50,6 +50,7 @@ local macro "map_cmp_main" : tactic => `(tactic| (
       isplitr; iexact Hl
       isplitr; iexact Hr
       isplitr; ipureintro; right; rfl
+      isplitr; ipureintro; intro _; omega
       isplitr
       · iunfold zipFnOk
         imodintro
