@@ -53,6 +53,7 @@ theorem v3rpc.ClusterServer.MemberUpdate.wp_proof
   · iframe #
     iunfold memberSlices
     iframe
+    iexact Hn
   (try wp_auto)
   iunfold memberSlices at Hsls
   icases Hsls with ⟨Hps, -⟩
@@ -65,7 +66,7 @@ theorem v3rpc.ClusterServer.MemberUpdate.wp_proof
       · iframe #
       (try wp_auto)
       wp_apply (hM2P sl ms) $$ [Hms] as %psl' -
-      · iframe #
+      · iframe
       (try wp_auto)
       iapply HΦ
       iframe HRD Hrid Hrpu Hps

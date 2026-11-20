@@ -60,7 +60,7 @@ theorem v3rpc.ClusterServer.MemberRemove.wp_proof
       · iframe #
       (try wp_auto)
       wp_apply (hM2P sl ms) $$ [Hms] as %psl -
-      · iframe #
+      · iframe
       (try wp_auto)
       iapply HΦ
       iframe HRD Hr

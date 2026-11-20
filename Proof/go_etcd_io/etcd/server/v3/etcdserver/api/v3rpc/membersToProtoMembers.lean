@@ -41,11 +41,13 @@ theorem v3rpc.membersToProtoMembers.wp_proof :
   try rw [if_pos (by refine ⟨by word, by word, by word⟩)]
   (try wp_auto)
   ihave %Hpl := ownSlice_len $$ Hpsl
-  ihave IH : iprop(∃ (n : w64) (ps : List Loc),
-      "i" ∷ i_ptr ↦ n ∗ "Hsl" ∷ sl ↦* ms ∗ "Hown" ∷ ([∗list] m ∈ ms, membership.ownMember m) ∗
+  rename_i iu_ptr
+  irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
+  ihave IH : iprop(∃ (n k : w64) (ps : List Loc),
+      "i" ∷ i_ptr ↦ n ∗ "Hiu" ∷ iu_ptr ↦ k ∗ "Hsl" ∷ sl ↦* ms ∗ "Hown" ∷ ([∗list] m ∈ ms, membership.ownMember m) ∗
       "Hpsl" ∷ psl ↦* ps ∗ "%Hps" ∷ ⌜ps.length = ms.length⌝ ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms.length : Int)⌝) $$ [i Hsl Hown Hpsl]
-  · iexists W64 0, _
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms.length : Int)⌝) $$ [i Hiu Hsl Hown Hpsl]
+  · iexists W64 0, _, _
     simp only [named]
     iframe
     ipureintro
@@ -90,15 +92,19 @@ theorem v3rpc.membersToProtoMembers.wp_proof :
     · iframe; ipureintro; exact Hm0
     (try wp_auto)
     have hpl : sint.Z n < (ps.length : Int) := by rw [Hps]; word
-    wp_auto
+    have Hbp : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z psl.len := by
+      simp only [List.length_replicate] at Hpl; exact ⟨Hn.1, by word⟩
+    rw [ite_eq_left Hbp]
     wp_apply (wp_store_slice_index psl (sint.Z n) ps _) $$ [$Hpsl] as Hpsl
     · ipureintro; exact ⟨Hn.1, hpl⟩
     (try wp_auto)
     ihave Hm : membership.ownMember m0 $$ [Hid Hpu Hil Hnm Hcu Hpus Hcus]
     · iunfold membership.ownMember; iexists id
       iunfold membership.memberIs
+      isplitl []
+      · ipureintro; exact Hmn
+      iexists pu, cu, il, nm, pus, cus
       iframe
-      ipureintro; exact Hmn
     ihave Hown := Hclose $$ Hm
     have hs : ms.set (sint.nat n) m0 = ms := by
       apply List.ext_getElem?
@@ -110,7 +116,7 @@ theorem v3rpc.membersToProtoMembers.wp_proof :
     rw [hs]
     wp_for_post
     iframe
-    iexists n + W64 1, _
+    iexists n + W64 1, _, _
     simp only [named]
     iframe
     ipureintro

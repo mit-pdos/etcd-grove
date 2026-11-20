@@ -48,7 +48,7 @@ theorem v3rpc.ClusterServer.MemberList.wp_proof
   · iPkgInit
   wp_auto
   wp_apply (hML s E ρ γr ctx cd tok r lin dq c g Q n) $$ [$HRD $Hr $Hrr]
-    as %sl %err ⟨HRD, Hr, Hrr, #Hae, #Hwhy, Hok⟩
+    as %sl %err ⟨HRD, Hr, Hrr, #Hae, Hwhy, Hok⟩
   · iframe #
   (try wp_auto)
   rcases err with ei | _
@@ -59,7 +59,7 @@ theorem v3rpc.ClusterServer.MemberList.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe HRD Hr Hrr Hse
-    isplitr
+    isplitl [Hwhy]
     · iintro %_
       isplitr
       · ipureintro; rfl
@@ -67,13 +67,14 @@ theorem v3rpc.ClusterServer.MemberList.wp_proof
       isplitr
       · ipureintro; nofun
       iframe Hgo
-      iapply Hwhy; nofun
+      ispecialize Hwhy $$ %(by nofun)
+      iexact Hwhy
     · iintro %h; exact absurd h He
   · (try wp_auto)
     ispecialize Hok $$ %rfl
     icases Hok with ⟨⟨%ms, Hms⟩, #Hai, Hlin⟩
     wp_apply (hM2P sl ms) $$ [Hms] as %psl -
-    · iframe #
+    · iframe
     (try wp_auto)
     wp_apply (hHdr p s cl) $$ [] as %h -
     · iframe #
