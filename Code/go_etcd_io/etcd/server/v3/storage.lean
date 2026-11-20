@@ -12,6 +12,8 @@ public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.sync
 public import Code.google_golang_org.protobuf.proto
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.cindex
+public import Code.github_com.prometheus.client_golang.prometheus
+public import Code.github_com.dustin.go_humanize
 public import Code.github_com.Masterminds.semver.v3
 public import Perennial.Golang.Defn
 
@@ -64,9 +66,13 @@ attribute [irreducible] storage.ty
 
 opaque storage.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque DefaultQuotaBytes [GooseExts] [GoGlobalContext] : val
+/-- 2GB -/
+@[reducible] noncomputable def DefaultQuotaBytes [GooseExts] [GoGlobalContext] : val :=
+  #(W64 2147483648)
 
-opaque MaxQuotaBytes [GooseExts] [GoGlobalContext] : val
+/-- 8GB -/
+@[reducible] noncomputable def MaxQuotaBytes [GooseExts] [GoGlobalContext] : val :=
+  #(W64 8589934592)
 
 opaque leaseOverhead [GooseExts] [GoGlobalContext] : val
 
@@ -75,20 +81,14 @@ opaque kvOverhead [GooseExts] [GoGlobalContext] : val
 noncomputable def quotaBackendBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.quotaBackendBytes"
 
-opaque quotaBackendBytes.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def quotaLogOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.quotaLogOnce"
 
 noncomputable def DefaultQuotaSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.DefaultQuotaSize"
 
-opaque DefaultQuotaSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def maxQuotaSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.maxQuotaSize"
-
-opaque maxQuotaSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.newBackend"
@@ -296,7 +296,7 @@ noncomputable def BackendHooks.SetConfState.impl [GooseExts] [GoGlobalContext] :
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage where
-  pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.github_com.Masterminds.semver.v3]
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.github_com.dustin.go_humanize, pkg_id.github_com.Masterminds.semver.v3]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -319,14 +319,29 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"quota_backend_bytes"))
+  (Let "$v3" (Val #(go!"Current backend storage quota size in bytes."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (Val DefaultQuotaBytes))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.dustin.go_humanize.Bytes []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (Val MaxQuotaBytes))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.dustin.go_humanize.Bytes []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val maxQuotaSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr maxQuotaSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val DefaultQuotaSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultQuotaSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val quotaBackendBytes.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr quotaBackendBytes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -350,7 +365,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.dustin.go_humanize.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc quotaBackendBytes _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultQuotaSize go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc maxQuotaSize go.string)) (Val #()))))))))
 
 structure BackendHooks [GooseExts] where
   mk ::
@@ -553,6 +578,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
   import_cindex_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions
+  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import_humanize_Assumption : _root_.Perennial.github_com.dustin.go_humanize.Assumptions
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
 
 attribute [instance] Assumptions.BackendHooks_instance
@@ -574,6 +601,8 @@ attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.import_sync_Assumption
   Assumptions.import_proto_Assumption
   Assumptions.import_cindex_Assumption
+  Assumptions.import_prometheus_Assumption
+  Assumptions.import_humanize_Assumption
   Assumptions.import_semver_Assumption
 
 end go_etcd_io.etcd.server.v3.storage

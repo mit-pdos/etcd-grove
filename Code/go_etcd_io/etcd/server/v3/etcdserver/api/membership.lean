@@ -12,6 +12,7 @@ public import Code.go_etcd_io.etcd.pkg.v3.notify
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.version
 public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.errors
+public import Code.path
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -109,7 +110,8 @@ attribute [irreducible] DowngradeInfoBackend.ty
 
 opaque DefaultMaxLearners [GooseExts] [GoGlobalContext] : val
 
-opaque storePrefix [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def storePrefix [GooseExts] [GoGlobalContext] : val :=
+  #(go!"/0")
 
 opaque attributesSuffix [GooseExts] [GoGlobalContext] : val
 
@@ -139,22 +141,14 @@ noncomputable def ClusterVersionMetrics [GooseExts] [GoGlobalContext] : GoString
 noncomputable def knownPeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.knownPeers"
 
-opaque knownPeers.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def isLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.isLearner"
-
-opaque isLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def StoreMembersPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.StoreMembersPrefix"
 
-opaque StoreMembersPrefix.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def storeRemovedMembersPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.storeRemovedMembersPrefix"
-
-opaque storeRemovedMembersPrefix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewClusterFromURLsMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.NewClusterFromURLsMap"
@@ -1036,7 +1030,7 @@ noncomputable def MembersByID.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership where
-  pkgImportedPkgs := [pkg_id.encoding.json, pkg_id.sort, pkg_id.sync, pkg_id.github_com.Masterminds.semver.v3, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.errors]
+  pkgImportedPkgs := [pkg_id.encoding.json, pkg_id.sort, pkg_id.sync, pkg_id.github_com.Masterminds.semver.v3, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.errors, pkg_id.path]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -1044,6 +1038,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1089,20 +1088,43 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"network"))
+  (Let "$v2" (Val #(go!"known_peers"))
+  (Let "$v3" (Val #(go!"The current number of known peers."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$a1" (Let "$v0" (Val #(go!"Local"))
+  (Let "$v1" (Val #(go!"Remote"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"is_learner"))
+  (Let "$v3" (Val #(go!"Whether or not this member is a learner. 1 if is, 0 otherwise."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val storePrefix))
+  (Let "$sl1" (Val #(go!"members"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.path.Join []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val storePrefix))
+  (Let "$sl1" (Val #(go!"removed_members"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.path.Join []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val storeRemovedMembersPrefix.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr storeRemovedMembersPrefix))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val StoreMembersPrefix.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr StoreMembersPrefix))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val isLearner.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr isLearner))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val knownPeers.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr knownPeers))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ClusterVersionMetrics))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1140,6 +1162,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.path.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrIDRemoved go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrIDExists go.error)) (Val #()))))))
@@ -1152,7 +1176,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrTooManyLearners go.error)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc ClusterVersionMetrics (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc ClusterVersionMetrics (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc knownPeers (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc isLearner _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc StoreMembersPrefix go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc storeRemovedMembersPrefix go.string)) (Val #()))))))))
 
 abbrev MembershipBackend [GooseExts] : Type := GoInterface
 
@@ -1633,6 +1665,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_path_Assumption : _root_.Perennial.path.Assumptions
 
 attribute [instance] Assumptions.RaftCluster_instance
   Assumptions.ConfigChangeContext_instance
@@ -1659,6 +1692,7 @@ attribute [instance] Assumptions.RaftCluster_instance
   Assumptions.import_version_Assumption
   Assumptions.import_raftpb_Assumption
   Assumptions.import_errors_Assumption
+  Assumptions.import_path_Assumption
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.membership
 

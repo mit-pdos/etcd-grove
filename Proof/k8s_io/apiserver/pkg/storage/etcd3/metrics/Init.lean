@@ -4,16 +4,17 @@ Package initialization of `k8s_io.apiserver.pkg.storage.etcd3.metrics`
 
 Its fact (`metricsInit`, `storage/etcd3/Base.lean`): `ErrTransactionConflict` holds an
 `errors.New("transaction conflict")` error (`EtcdGrove.errorsNewVar`). Its initializer runs its
-variables' untranslated initializers (`metrics.go`); the trust-boundary axiom `errorsNewVarsInit`
-states the one the fact reads (`metrics.go:42` at the apiserver pin `9c4ec15b8038`; checked by
-`examples/premisefix/recordetcdrequest`), `opaqueInitsOk` the others.
+variables' initializers (`metrics.go`): the one the fact reads translated (an `errors.New` call,
+`metrics.go:42` at the apiserver pin `9c4ec15b8038`; until 2026-11-19 the trust-boundary axiom
+`errorsNewVarsInit`), the others untranslated (`opaqueInitsOk`).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.errors.Link
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.Init
 public import Proof.k8s_io.component_base.metrics.Init
-public import Proof.errors.NewVarCell
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -64,13 +65,6 @@ axiom opaqueInitsOk :
         «_».init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
-/-- **The trust boundary: `k8s_io.apiserver.pkg.storage.etcd3.metrics`'s variables initialized by `errors.New`.** Each
-listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
-it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
-axiom errorsNewVarsInit :
-    ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrTransactionConflict.init, ErrTransactionConflict, go!"transaction conflict")] : List (val × GoString × GoString)) →
-    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
-
 end k8s_io.apiserver.pkg.storage.etcd3.metrics
 end opaqueInits
 
@@ -95,10 +89,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply (_root_.Perennial.k8s_io.component_base.metrics.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (errorsNewVarsInit ErrTransactionConflict.init ErrTransactionConflict go!"transaction conflict" (by mem_tac))
-    as ⟨%xErrTransactionConflict, HErrTransactionConflict, #MErrTransactionConflict, #CErrTransactionConflict⟩
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrTransactionConflict _ as HErrTransactionConflict
+  wp_apply (_root_.Perennial.k8s_io.component_base.metrics.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of ErrTransactionConflict))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTransactionConflict #MErrTransactionConflict
   wp_apply (opaqueInitsOk etcdRequestLatency.init (by mem_tac))
   wp_apply (opaqueInitsOk etcdRequestCounts.init (by mem_tac))
   wp_apply (opaqueInitsOk etcdRequestErrorCounts.init (by mem_tac))

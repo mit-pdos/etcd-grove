@@ -2,7 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
 public import GeneratedProof.go_etcd_io.etcd.client.v3
+public import Perennial.GeneratedProof.math
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 

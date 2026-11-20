@@ -18,10 +18,19 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.path.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.path.Join
+public import Proof.path.Clean
+public import Proof.path.lazybuf__index
+public import Proof.path.lazybuf__append
+public import Proof.path.lazybuf__string
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -61,6 +70,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoString) storeRemovedMembersPrefix _ as HstoreRemovedMembersPrefix
+  wp_apply wp_GlobalAlloc (V := GoString) StoreMembersPrefix _ as HStoreMembersPrefix
+  wp_apply wp_GlobalAlloc (V := GoInterface) isLearner _ as HisLearner
+  wp_apply wp_GlobalAlloc (V := Loc) knownPeers _ as HknownPeers
   wp_apply wp_GlobalAlloc (V := Loc) ClusterVersionMetrics _ as HClusterVersionMetrics
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrTooManyLearners _ as HErrTooManyLearners
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrMemberNotLearner _ as HErrMemberNotLearner
@@ -68,6 +81,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrIDNotFound _ as HErrIDNotFound
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrIDExists _ as HErrIDExists
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrIDRemoved _ as HErrIDRemoved
+  wp_apply (_root_.Perennial.path.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
@@ -107,10 +121,31 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"cluster_version"] _ _ rfl (by decide) (by decide) $$ [$SClusterVersionMetrics] as %vClusterVersionMetrics #LClusterVersionMetrics
   try wp_auto
-  wp_apply (opaqueInitsOk knownPeers.init (by mem_tac))
-  wp_apply (opaqueInitsOk isLearner.init (by mem_tac))
-  wp_apply (opaqueInitsOk StoreMembersPrefix.init (by mem_tac))
-  wp_apply (opaqueInitsOk storeRemovedMembersPrefix.init (by mem_tac))
+  -- translated initializer of knownPeers))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"Local", go!"Remote"])); isplitr; (· ipureintro; rfl); iintro %sknownPeers ⟨SknownPeers, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"Local", go!"Remote"] _ _ rfl (by decide) (by decide) $$ [$SknownPeers] as %vknownPeers #LknownPeers
+  try wp_auto
+  -- translated initializer of isLearner))
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisLearner ⟨#CisLearner, #DisLearner, -⟩
+  try wp_auto
+  -- translated initializer of StoreMembersPrefix))
+  try wp_auto
+  try simp only [storePrefix]
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"/0", go!"members"])); isplitr; (· ipureintro; rfl); iintro %pjM ⟨SjM, -⟩
+  try wp_auto
+  wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof EtcdGrove.path.lazybuf.string.wp_proof)) _ [go!"/0", go!"members"] _ (by decide) $$ [$SjM] as %rjM ⟨%HjM, -⟩
+  try wp_auto
+  -- translated initializer of storeRemovedMembersPrefix))
+  try wp_auto
+  try simp only [storePrefix]
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"/0", go!"removed_members"])); isplitr; (· ipureintro; rfl); iintro %pjR ⟨SjR, -⟩
+  try wp_auto
+  wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof EtcdGrove.path.lazybuf.string.wp_proof)) _ [go!"/0", go!"removed_members"] _ (by decide) $$ [$SjR] as %rjR ⟨%HjR, -⟩
+  try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HClusterVersionMetrics
   ipersist HErrIDRemoved

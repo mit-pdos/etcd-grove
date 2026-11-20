@@ -8,8 +8,11 @@
 # signatures name them (otherwise an axiomatized type); `sync`, `zap`, `cindex`, `schema` and
 # `proto` for the hooks; `fmt`, `os`, `config` and `snap` for `OpenSnapshotBackend`.
 translate = ["!*", "NewBackendHooks", "BackendHooks.OnPreCommitUnsafe", "BackendHooks.SetConfState",
-  "OpenSnapshotBackend"]
-imports = ["!*", "sync", "go.uber.org/zap", "google.golang.org/protobuf/proto", "fmt", "os",
+  "OpenSnapshotBackend",
+  # (prove-errinits, 2026-11-19) the quota's package variables: a gauge and two `humanize.Bytes`
+  "quotaBackendBytes", "DefaultQuotaSize", "maxQuotaSize", "DefaultQuotaBytes", "MaxQuotaBytes"]
+imports = ["!*", "sync", "github.com/dustin/go-humanize",
+  "github.com/prometheus/client_golang/prometheus", "go.uber.org/zap", "google.golang.org/protobuf/proto", "fmt", "os",
   "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
   "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/storage/backend",
   "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/raft/v3/raftpb",

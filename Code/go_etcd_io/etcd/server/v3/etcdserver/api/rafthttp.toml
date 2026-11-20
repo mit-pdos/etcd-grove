@@ -11,13 +11,10 @@
 translate = ["*", "!init.*",
   "!addPeerToProber", "!monitorProbingStatus",
   "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper", "!waitSchedule",
-  # the package variables' initializers (errors, the stream table, timeouts, URL prefixes):
-  # untranslated for now, run by `Init.lean`'s `opaqueInitsOk`; their values become facts with
-  # the HTTP boundary (stage 2), where the proofs first read them
-  "!errMemberRemoved", "!linkHeartbeatSize",
-  "!errUnsupportedStreamType", "!errStopped",
-  "!ErrExceedSizeLimit", "!ErrClusterIDMismatch",
-  "!errIncompatibleVersion"]
+  # `linkHeartbeatSize`'s initializer (`proto.Size`) untranslated, the axiom `linkHeartbeatSize_init`;
+  # (prove-errinits, 2026-11-19) the `errors.New`/`fmt.Errorf` errors translated (until then
+  # untranslated, the axiom `errorsNewVarsInit`)
+  "!linkHeartbeatSize"]
 # (2026-10-24, rafthttp stage 6d) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
 # translated: `path.Join(RaftPrefix, ...)`, their values facts of `rafthttpInit`
 imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",

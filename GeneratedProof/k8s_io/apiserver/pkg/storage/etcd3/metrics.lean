@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
 public import GeneratedProof.k8s_io.component_base.metrics
 public import Perennial.Golang.Theory

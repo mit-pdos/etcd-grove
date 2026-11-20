@@ -9,8 +9,8 @@ Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
 (`metrics.go`, translated: over prometheus's constructor specs; until 2026-11-19 the trust-boundary
-axioms `<X>_init`); `opaqueInitsOk` states the
-other untranslated initializers run.
+axioms `<X>_init`). Its other variables' initializers are translated too (2026-11-19, until then
+`opaqueInitsOk`): the rate and interval constants (`lessor.go`) and the counter `leaseRenewed`.
 -/
 module
 
@@ -55,19 +55,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.lease`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([defaultLeaseRevokeRate.init,
-        leaseCheckpointRate.init,
-        defaultLeaseCheckpointInterval.init,
-        maxLeaseCheckpointBatchSize.init,
-        defaultExpiredleaseRetryInterval.init,
-        leaseRenewed.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.lease`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only

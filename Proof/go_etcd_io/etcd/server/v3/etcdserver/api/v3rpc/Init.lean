@@ -93,15 +93,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([sentBytes.init,
-        receivedBytes.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
 here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which

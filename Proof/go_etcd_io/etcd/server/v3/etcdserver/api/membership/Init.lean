@@ -10,7 +10,9 @@ fixed pointer (a `*prometheus.GaugeVec`, with its label names: D19l (iii)), and 
 initializer allocates its error variables, initializes its imports, runs their translated
 initializers (`errors.go`: `errors.New` calls, Perennial's `errors.wp_New_errorString`; translated
 since 2026-11-19, until then the trust-boundary axiom `errorsNewVarsInit`) and its other variables'
-untranslated initializers (`opaqueInitsOk`), but the one the fact reads, `ClusterVersionMetrics`
+initializers (translated 2026-11-19, until then untranslated, `opaqueInitsOk`: the gauge vector
+`knownPeers`, the gauge `isLearner`, and the store paths `StoreMembersPrefix` and
+`storeRemovedMembersPrefix`, `path.Join` calls, over its proof), and the one the fact reads, `ClusterVersionMetrics`
 (`metrics.go`: `prometheus.NewGaugeVec(...)`, translated, over its spec; until 2026-11-19 the
 trust-boundary axiom `ClusterVersionMetrics_init`).
 -/
@@ -28,6 +30,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.path.Init
 public import Perennial.Proof.errors.NewVar
 
 @[expose] public section
@@ -52,17 +55,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.membership`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([knownPeers.init,
-        isLearner.init,
-        StoreMembersPrefix.init,
-        storeRemovedMembersPrefix.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.membership`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
