@@ -19,7 +19,7 @@ public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.encoding.json.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
-public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.InitLinked
 public import Proof.go_opentelemetry_io.otel.attribute.Init

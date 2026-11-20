@@ -34,7 +34,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Init
-public import Proof.go_etcd_io.etcd.server.v3.auth.Init
+public import Proof.go_etcd_io.etcd.server.v3.auth.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.config.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Init

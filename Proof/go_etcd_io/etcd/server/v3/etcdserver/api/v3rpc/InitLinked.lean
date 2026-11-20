@@ -18,14 +18,14 @@ public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prome
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
-public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.credentials.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
-public import Proof.go_etcd_io.etcd.server.v3.auth.Init
+public import Proof.go_etcd_io.etcd.server.v3.auth.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.config.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.InitLinked

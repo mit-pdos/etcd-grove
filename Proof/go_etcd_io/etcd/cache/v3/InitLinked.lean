@@ -15,7 +15,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
-public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Proof.fmt.Link
