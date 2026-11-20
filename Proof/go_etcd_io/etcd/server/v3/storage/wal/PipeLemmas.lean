@@ -241,8 +241,8 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         iexact Htr
     wp_apply wp_create (child dir b) true _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn]
       as %lf %err Hpost
-    unfold fileutil.lockPost
-    icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA⟩)⟩
+    unfold fileutil.lockPostW
+    icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
     · simp only [A]
       icases HA with ⟨Hp, Hperm, Ho, Htr⟩
       iapply HΦ
@@ -334,8 +334,8 @@ theorem wp_createTmp [os.file.FieldAssumptions]
           iapply trFile_mono i _ _ (fun h => by cases h) $$ Htr
       wp_apply wp_create (child dir b) true _ _ A (fun _ i' => i' = i) hT
         $$ [$Hos $Hpkg $Hsi $Hp $Hn $Hperm $Hent] as %lf %err Hpost
-      unfold fileutil.lockPost
-      icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i', %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA⟩)⟩
+      unfold fileutil.lockPostW
+      icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i', %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
       · simp only [A]
         icases HA with ⟨Hp, Hn, Hperm, Htr⟩
         obtain ⟨hfd, rfl⟩ := hc

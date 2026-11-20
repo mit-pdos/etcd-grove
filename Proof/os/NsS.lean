@@ -17,6 +17,7 @@ public import Proof.os.SharedExt
 public import Proof.os.ErrorOk
 public import Proof.os.Off
 public import Proof.os.ErrnoPathErr
+public import GooseLang.Ext.Fs.NoErrSpecsOpenFile
 
 @[expose] public section
 
@@ -51,7 +52,8 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
             os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err ∗
-           ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e) }} := by
+           ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e ∗
+             ⌜¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
@@ -62,9 +64,9 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
   iclear Hls
   rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
-  wp_apply +noauto wp_osOpenFileS R d b j i N dq dqn h t s0 qc fl hfl htr hb hN hi
+  wp_apply +noauto wp_osOpenFileSW R d b j i N dq dqn h t s0 qc fl hfl htr hb hN hi
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk
-    as %fd %e %hres Hperm Hp Hn Hfd
+    as %fd %e %hres %hW Hperm Hp Hn Hfd
   by_cases he0 : e = W64 0
   · subst he0
     have hfd0 : 0 ≤ fd.toInt := by rcases hres with ⟨-, h⟩ | ⟨h, -⟩; exact h; exact absurd rfl h
@@ -120,7 +122,11 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he0) $$ Herr
     iexists e
     iframe Herr
-    ipureintro; exact he0
+    ipureintro
+    refine ⟨he0, ?_⟩
+    rcases hW he0 with h4 | h4
+    · exfalso; apply he4; rw [h4]; rfl
+    · exact h4
 
 /-- `os.OpenFile(p, O_RDONLY, perm)` of the directory `j` (a spine to it): a shared directory fd,
 not read, holding nothing; or a `*PathError` of a nonzero errno. -/

@@ -12,6 +12,7 @@ public import GeneratedProof.syscall
 public import Proof.syscall.Base
 public import GooseLang.Ext.Fs.Falloc
 public import GooseLang.Ext.Fs.Locks
+public import GooseLang.Ext.Fs.NoMapLockErrSpecs
 
 @[expose] public section
 
@@ -76,7 +77,8 @@ theorem flock_ty_eq : syscall.model.Flock_t = syscall.Flock_t.ty := by
 
 /-- `syscall.FcntlFlock(fd, cmd, lk)` for `F_OFD_SETLK` (37) or `F_OFD_SETLKW` (38) with a whole-file
 description `*lk` (`Whence`, `Start`, `Len`, `Pid` all 0) of type `F_RDLCK`, `F_WRLCK` or `F_UNLCK`
-(`ofdReq`: the request `req`): the extension's OFD lock (`wp_osOfdLock`), `*lk` read only. -/
+(`ofdReq`: the request `req`): the extension's OFD lock (`wp_osOfdLockW`), `*lk` read only; a blocking
+request's error witnessed (`¬ FsNoErrIno`). -/
 theorem syscall.FcntlFlock.wp_lock (fd cmd : w64) (lk : Loc) (v : syscall.Flock_t)
     (d : OsFd) (req : Option Bool) (hcmd : cmd = W64 37 ∨ cmd = W64 38)
     (hwh : v.Whence' = 0) (hst : v.Start' = 0) (hln : v.Len' = 0) (hpid : v.Pid' = 0)
@@ -85,7 +87,8 @@ theorem syscall.FcntlFlock.wp_lock (fd cmd : w64) (lk : Loc) (v : syscall.Flock_
     {{ osInv (GF := GF) ∗ (lk ↦ v : IProp GF) ∗ osFd (GF := GF) fd (DFrac.own 1) d ∗
         lockTok (GF := GF) .ofd fd d }}
       (App (App (App (Val (@! syscall.FcntlFlock)) (Val #fd)) (Val #cmd)) (Val #lk))
-    {{ (e : w64), RET #(errnoErr e); lk ↦ v ∗ lockOut (GF := GF) .ofd fd d req e }} := by
+    {{ (e : w64), RET #(errnoErr e); lk ↦ v ∗ ⌜cmd = W64 38 → e ≠ 0 → ¬ FsNoErrIno⌝ ∗
+        lockOut (GF := GF) .ofd fd d req e }} := by
   wp_start as ⟨#Hinv, Hlk, Hfd, Ht⟩
   have hty : v.Type' = 0 ∨ v.Type' = 1 ∨ v.Type' = 2 := by
     have h := hreq; unfold ofdReq at h
@@ -98,11 +101,12 @@ theorem syscall.FcntlFlock.wp_lock (fd cmd : w64) (lk : Loc) (v : syscall.Flock_
     rw [hwh, hst, hln, hpid]
     wp_auto
     rcases hty with h0 | h0 | h0 <;> rw [h0] <;> wp_auto <;>
-    · wp_apply wp_osOfdLock fd _ _ d req CoPset.subseteq_top (by decide) (hreq' _ (by rw [h0]; rfl))
-        hw hr hfree $$ Hinv Hfd Ht as %e Hout
+    · wp_apply wp_osOfdLockW fd _ _ d req CoPset.subseteq_top (by decide) (hreq' _ (by rw [h0]; rfl))
+        hw hr hfree $$ Hinv Hfd Ht as %e %hW Hout
       iapply wp_errno
       iapply HΦ
       iframe
+      ipureintro; exact hW
 
 
 /-- `syscall.FcntlFlock(fd, F_OFD_GETLK, lk)` on any fd (fileutil's package initializer, on fd 0):

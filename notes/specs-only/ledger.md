@@ -3312,4 +3312,10 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   by the WAL for its segments: changes every lock spec (fileutil `LockFile`/`TryLockFile`, bbolt's `flock`, the purge's
   `TryLockFile` on WAL files), and the purge's concurrent locks must fit it. (C) `cut`'s error arm keeps a lock
   disjunct: item 3 then stays unprovable.
-- **Decision.** Pending (STOP, wal-fsfix2 a6).
+- **Decision.** Option (A), approved by the user 2026-11-20 via etcd-grove-03. Done: `LockStep` takes the call itself
+  (`self`) and has a third outcome, `nb = false ∧ LockConflict … ∧ st' = st ∧ e' = self`; `ErrnoZero "OfdLock"` and
+  `MapLockOk "Flock"` count the wait as no error; `locks_blocking.go` and `doc.go` updated; the lock calls are no longer
+  `FsRetOp` (not atomic: `CrashFile.lean`); `wp_osLockStep` handles the wait by Löb induction. Old → new meaning: a
+  blocking lock request in conflict waited by failing or by taking no step → it may step to itself; under
+  `NoIoErr`/`NoMapLockErr`, a covered blocking request ends with errno 0 or waits (was: any errno in a conflict).
+  An independent attack before relying on it.
