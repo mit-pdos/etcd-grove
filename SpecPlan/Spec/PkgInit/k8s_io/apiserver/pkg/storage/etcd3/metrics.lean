@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3.metrics
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime.schema
 public import SpecPlan.Spec.PkgInit.k8s_io.component_base.metrics
 

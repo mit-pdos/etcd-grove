@@ -196,18 +196,24 @@ SPECIAL = {}
 NEWVAR_IMPORTS = ['Perennial.Proof.errors.NewVar']
 NEWVAR_CELL_IMPORTS = ['Proof.errors.NewVarCell']
 
-def newvar_steps(x, cell=False, errorf=False):
-    pre = ['try wp_auto'] + (['wp_func_call', 'wp_call', 'try wp_auto'] if errorf else [])
+def newvar_steps(x, cell=False, errorf=None):
+    # `errorf`: the format of a `fmt.Errorf(format)` call (no argument); the step into `Errorf`'s
+    # model is true of Go only for a format without `%` (no verb, so no `%w`: Go's `Errorf` returns
+    # `errors.New(format)`, as the model does; `etc/errorf-wrap-check.py`)
+    if errorf is not None:
+        assert '%' not in errorf, (x, errorf)
+    pre = ['try wp_auto'] + ([f'-- `fmt.Errorf({json.dumps(errorf)})`: no verb, Go returns `errors.New` of the format, as Perennial\'s model',
+                              'wp_func_call', 'wp_call', 'try wp_auto'] if errorf is not None else [])
     if cell:
         return pre + [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{x} ⟨#M{x}, #C{x}⟩']
     return pre + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
 
-def newvars_cfg(cfg, names, cell=False, errorf=()):
+def newvars_cfg(cfg, names, cell=False, errorf={}):
     """Add the translated `errors.New` variables `names` to the package config `cfg` (those in
-    `errorf` are verb-less `fmt.Errorf` calls)."""
+    `errorf`, a map to their formats, are `fmt.Errorf` calls without arguments or `%`)."""
     cfg.setdefault('alloc_types', {}).update({x: 'GoInterface' for x in names})
     cfg.setdefault('before', {}).update(
-        {x: newvar_steps(x, cell, x in errorf) for x in names})
+        {x: newvar_steps(x, cell, errorf.get(x)) for x in names})
     imps = cfg.setdefault('imports', [])
     imps += [m for m in NEWVAR_IMPORTS + (NEWVAR_CELL_IMPORTS if cell else []) if m not in imps]
     return cfg
@@ -659,7 +665,7 @@ good. Its initializer stores that value and runs the translated initializers of 
     finish=['ipersist HdefaultBufferBytes'] + FIN_PRE[:-2],
 )
 newvars_cfg(LFS_SPECIAL['go_etcd_io.etcd.pkg.v3.ioutil'], ['ErrShortRead', 'ErrExpectEOF'],
-            errorf=('ErrShortRead', 'ErrExpectEOF'))
+            errorf={'ErrShortRead': 'ioutil: short read', 'ErrExpectEOF': 'ioutil: expect EOF'})
 # (WAL package init, 2026-11-13) the part's `walpb`: `ErrCRCMismatch`, a translated `errors.New`
 LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal.walpb'] = dict(
     doc='''Its fact (`walpbInit`, `PkgInit.lean`): `ErrCRCMismatch` holds for good an error whose `Error()`
@@ -1400,7 +1406,8 @@ promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'], 'rttSec', 
 newvars_cfg(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'],
             ['ErrExceedSizeLimit', 'errIncompatibleVersion', 'ErrClusterIDMismatch', 'errStopped',
              'errMemberRemoved', 'errUnsupportedStreamType'], cell=True,
-            errorf=('errMemberRemoved', 'errUnsupportedStreamType'))
+            errorf={'errMemberRemoved': 'the member has been permanently removed from the cluster',
+                    'errUnsupportedStreamType': 'unsupported stream type'})
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HreceivedBytes', 'ipersist HrecvFailures', 'ipersist HsentBytes', 'ipersist HsentFailures',
     'ipersist HactivePeers', 'ipersist HdisconnectedPeers', 'ipersist HrttSec']

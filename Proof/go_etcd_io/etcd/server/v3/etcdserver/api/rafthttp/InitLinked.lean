@@ -308,6 +308,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of snapResponseReadTimeout))
   -- translated initializer of errUnsupportedStreamType))
   try wp_auto
+  -- `fmt.Errorf("unsupported stream type")`: no verb, Go returns `errors.New` of the format, as Perennial's model
   wp_func_call
   wp_call
   try wp_auto
@@ -378,6 +379,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
   -- translated initializer of errMemberRemoved))
   try wp_auto
+  -- `fmt.Errorf("the member has been permanently removed from the cluster")`: no verb, Go returns `errors.New` of the format, as Perennial's model
   wp_func_call
   wp_call
   try wp_auto

@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasehttp
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.time.Base
 
 @[expose] public section
 noncomputable section

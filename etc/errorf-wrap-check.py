@@ -24,6 +24,11 @@ REVIEWED = {
     'Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Errorf.lean': 'premise (W8 37) ∉ format',
     # premise-fixes-4: `wp_Errorf_errStrOk` (post: some `Error()` string, no `Format` method)
     'Proof/go_etcd_io/etcd/cache/v3/Base.lean': 'premise ArgsWf: no argument is an error, so Go wraps nothing and returns errors.New(s)',
+    # (prove-errinits, 2026-11-19) generated initializers of `var X = fmt.Errorf("...")` (`etc/gen-init.py`,
+    # `newvar_steps`, which asserts the format has no `%`); not matched by MODEL (the call is in the
+    # translation), listed for the review
+    'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/InitLinked.lean': 'formats without %: Go returns errors.New(format), the model',
+    'Proof/go_etcd_io/etcd/pkg/v3/ioutil/Init.lean': 'formats without %: Go returns errors.New(format), the model',
 }
 
 MODEL = re.compile(r'@! (_root_\.)?Perennial\.fmt\.Errorf\b')

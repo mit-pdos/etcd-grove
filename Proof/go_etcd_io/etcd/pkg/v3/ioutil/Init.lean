@@ -64,12 +64,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of defaultBufferBytes))
   -- translated initializer of ErrShortRead))
   try wp_auto
+  -- `fmt.Errorf("ioutil: short read")`: no verb, Go returns `errors.New` of the format, as Perennial's model
   wp_func_call
   wp_call
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrShortRead #MErrShortRead
   -- translated initializer of ErrExpectEOF))
   try wp_auto
+  -- `fmt.Errorf("ioutil: expect EOF")`: no verb, Go returns `errors.New` of the format, as Perennial's model
   wp_func_call
   wp_call
   try wp_auto
