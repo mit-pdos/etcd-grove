@@ -133,6 +133,56 @@ theorem isEmpty_false_iff {α : Type} [DecidableEq α] (s : FSet α) :
     simp only [List.any_cons, Bool.true_or, Bool.not_true, true_iff]
     exact List.length_pos_iff.2 (dedupL_ne _ (by simp))
 
+/-! ## `ReconcileFieldSetWithSchema`'s tail: `RecursiveDifference` is `reconcile`'s filter -/
+
+theorem nePrefixes_any (q : Path) (N : PathSet) (hN : [] ∉ N) :
+    q.nePrefixes.any (fun r => FSet.mem N r) = N.any (fun p => p.isPrefixOf q) := by
+  apply Bool.eq_iff_iff.2
+  rw [List.any_eq_true]
+  induction N using Quotient.inductionOn with | h ln =>
+  change (∃ r, r ∈ q.nePrefixes ∧ r ∈ FSet.ofList ln) ↔ ln.any _ = true
+  rw [List.any_eq_true]
+  simp only [FSet.mem_ofList']
+  have hN' : [] ∉ ln := fun h => hN ((FSet.mem_ofList' ln []).2 h)
+  constructor
+  · rintro ⟨r, hr, hrN⟩
+    refine ⟨r, hrN, ?_⟩
+    simp only [Path.nePrefixes, List.mem_map, List.mem_range] at hr
+    obtain ⟨k, hk, rfl⟩ := hr
+    exact List.isPrefixOf_iff_prefix.2 (List.take_prefix _ _)
+  · rintro ⟨p, hpN, hp⟩
+    refine ⟨p, ?_, hpN⟩
+    have hpp := List.isPrefixOf_iff_prefix.1 hp
+    have hne : p ≠ [] := fun h => hN' (h ▸ hpN)
+    have hpos : 0 < p.length := List.length_pos_iff.2 hne
+    simp only [Path.nePrefixes, List.mem_map, List.mem_range]
+    refine ⟨p.length - 1, ?_, ?_⟩
+    · have := hpp.length_le; omega
+    · rw [Nat.sub_add_cancel hpos]; exact (List.prefix_iff_eq_take.1 hpp).symm
+
+theorem rdiff_eq_filter (s N : PathSet) (hN : [] ∉ N) :
+    PathSet.rdiff s N = s.filter (fun q => !N.any (fun p => p.isPrefixOf q)) := by
+  unfold PathSet.rdiff
+  congr 1
+  funext q
+  rw [nePrefixes_any q N hN]
+
+/-- The root's accumulators never hold the empty path. -/
+theorem reconOut_root_ne (S : Schema) (t : TypeRef) (s N : PathSet)
+    (h : reconOut S t [] false s = some N) : [] ∉ N := by
+  unfold reconOut at h
+  dsimp only at h
+  split at h
+  · cases h
+    intro hm
+    rcases (FSet.mem_union' _ _ _).1 hm with hm | hm
+    · split at hm
+      · rw [ins_nil] at hm; exact absurd hm (by decide)
+      · exact absurd hm (by decide)
+    · rw [fset_map_append_nil, atomicNodes, FSet.mem_filter'] at hm
+      simp at hm
+  · cases h
+
 end LawB
 
 end smd
