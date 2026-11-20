@@ -1,6 +1,5 @@
 /-
-`value.mapUnstructuredInterface.EqualsUsing`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Its callees' specs (and the interface bundles' laws, `Objects.lean`) are its
+`value.mapUnstructuredInterface.EqualsUsing`: proved: the precondition is `False`. Its callees' specs (and the interface bundles' laws, `Objects.lean`) are its
 hypotheses. Lean-first (2026-11-19), Draft.
 -/
 module
@@ -28,8 +27,9 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.mapUnstructuredInterface.EqualsUsing.wp_proof :
-    value.mapUnstructuredInterface.EqualsUsing.spec (GF := GF) := by
-  sorry
+    value.mapUnstructuredInterface.EqualsUsing.spec (GF := GF) := fun _ _ _ => by
+  wp_start_folded as %h
+  exact h.elim
 
 end proof
 
