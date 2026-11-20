@@ -24,6 +24,7 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Init
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Init
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Init
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.InitClosures
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 

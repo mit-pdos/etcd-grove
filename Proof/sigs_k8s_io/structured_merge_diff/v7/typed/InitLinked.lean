@@ -86,7 +86,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave #HR := EtcdGrove.smd.ruleKeepRHSV_ok
       (EtcdGrove.smd.value.valueUnstructured.Unstructured_ptr.wp_proof
         EtcdGrove.smd.value.valueUnstructured.Unstructured.wp_proof)
-      (by sorry) $$ Hd5
+      EtcdGrove.smd.isValF_concrete_law_holds $$ Hd5
   ipersist HruleKeepRHS
   imod EtcdGrove.smd.init_typedPool _ _ (EtcdGrove.smd.newSpec_mwNewV _) _ _ $$ [HmwPool] with #PmwPool
   · iframe HmwPool; ipureintro; exact ⟨rfl, rfl⟩

@@ -2452,7 +2452,8 @@ initializers of `ssParser` and `DeducedParseableType`
 (`TrustedCode/sigs_k8s_io/structured_merge_diff/v7/typed.lean`: models that do nothing).''',
     imports=['Proof.sigs_k8s_io.structured_merge_diff.v7.typed.InitClosures',
              'Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured',
-             'Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured_ptr'],
+             'Proof.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured_ptr',
+             'Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs'],
     alloc_types=_ALLOC_ANY,
     # the pools' literals: their `New` function values, folded to `Closures.lean`'s names
     before={'ruleKeepRHS': ['try wp_auto'],
@@ -2462,7 +2463,7 @@ initializers of `ssParser` and `DeducedParseableType`
     finish=(['ihave #HR := EtcdGrove.smd.ruleKeepRHSV_ok',
              '    (EtcdGrove.smd.value.valueUnstructured.Unstructured_ptr.wp_proof',
              '      EtcdGrove.smd.value.valueUnstructured.Unstructured.wp_proof)',
-             '    (by sorry) $$ {Hd:sigs_k8s_io.structured_merge_diff.v7.value}',
+             '    EtcdGrove.smd.isValF_concrete_law_holds $$ {Hd:sigs_k8s_io.structured_merge_diff.v7.value}',
              'ipersist HruleKeepRHS'] +
             [l for pool, (n, w, pr) in [('mwPool', ('mwNewV', 'mergingWalker', 'mwPooled')),
                                        ('cmpwPool', ('cwNewV', 'compareWalker', 'cwPooled')),
