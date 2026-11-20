@@ -276,12 +276,13 @@ theorem mvccfullNames_len [GooseExts] [GoGlobalContext] : ∀ b ∈ mvccfullName
   unfold mvccfullNames filePathsM at hb
   rcases List.mem_append.1 hb with h | h
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
-    rcases h with rfl | rfl <;> simp [memberPathM, mainConfigM, itoaM] <;> decide
+    rcases h with rfl | rfl <;> simp [memberPathM, mainConfigM, itoaM] <;>
+      first | decide | (have := decDigits_length_le' 1 1 (by decide); omega)
   · obtain ⟨k, hk, rfl⟩ := List.mem_map.1 h
     have hk' : k < 10 ^ 20 := by
       rw [List.mem_range'_1] at hk
       have : sint.nat (mainConfigM go!"mvccfull" (zeroValDef : Mix)).Ops' ≤ 12000 := by
-        simp [mainConfigM]; decide
+        simp [mainConfigM] <;> decide
       omega
     have := hi k hk'
     simp only [buildPathM, mainConfigM, List.length_append] at this ⊢
