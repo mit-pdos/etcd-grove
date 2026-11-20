@@ -12,6 +12,7 @@ states it (to audit); the proof is in
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -54,11 +55,13 @@ def etcd_restart3_robust.spec : Prop :=
     (HNs : prometheus.namesUnclaimed restart3Program restart3Names)
     (HAs : addrsUnclaimed restart3Program restart3Addrs)
     (HDs : dataDirsAbsent restart3Program
-      [(etcd_restart.name₁ ++ go!".etcd"), (etcd_restart.name₂ ++ go!".etcd"), (etcd_restart.name₃ ++ go!".etcd")])
+      [(memberDataDir etcd_restart.name₁), (memberDataDir etcd_restart.name₂), (memberDataDir etcd_restart.name₃)])
     (HEnv : verifyEnvOff restart3Program)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC restart3GF,
       ⊢ etcd_restart.premises (GF := restart3GF) (hG := heapAtR3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_restart.name₁), (memberDataDir etcd_restart.name₂), (memberDataDir etcd_restart.name₃)]),
     Robustness.Robust [] [(restart3Program, σ)] g (2 ^ 28 - 1)
 
 end adequacy

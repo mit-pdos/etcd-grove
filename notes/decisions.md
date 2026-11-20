@@ -32958,7 +32958,10 @@ delegation, 2026-11-06).
 
 **2026-11-06 · decided by etcd-grove-82 under the user's delegation (user offline, pending the
 user's review) · supersedes "`fmt.Errorf`'s `%w` errors: the model's body, not the axiom"
-(2026-10-13) · the fix is the stage `errorf-wrap` (branch `errorf-wrap`)**
+(2026-10-13) · the fix is the stage `errorf-wrap` (branch `errorf-wrap`)** · *superseded in part*
+2026-11-18 by "fmt soundness: `ErrorfWrap` a theorem, the model's facts in the model's disjunct"
+(below): the rule's "no fact from the model" now reads "no fact of the model attributed to Go"; the
+`%w` spec is proved from the model, and the text search is a term-level gate.
 
 **What was wrong.** Perennial's model of `fmt.Errorf` is `errors.New(format)`: it ignores the
 arguments and does not model `%w` (`Perennial/TrustedCode/fmt.lean`). The 2026-10-13 entry knew
@@ -40476,6 +40479,20 @@ code that we can't yet reason about"): not done in unit `locks`, session 2; what
 to the WAL's own files (a set given by the WAL's paths, which needs a data-step lifting that sees the tree)
 is later work; the premise is stated generally, so it can replace (a) without touching the semantics.
 
+**Lock requests and directory reads covered (the user's approval, 2026-11-19, option (a) of
+`notes/wal-units/noioerr.md`, "Blocked"; branch `wal-link`).** `wal.Create` locks its first segment and reads
+its fresh temporary directory, `WAL.cut` locks its new tail, and neither call was covered, so their errors
+(on which etcd panics) were not excluded. `IoCovers` gains `Flock`, `OfdLock` (an fd of a covered inode) and
+`DirReadNext` (a directory fd of a covered inode), in the same "succeeds whenever it can" form: a lock
+request with no conflicting lock among the process's fds succeeds, an unlock succeeds, a read with a name
+left or at its end does not fail. `ErrnoZero "DirReadNext"` also accepts `ENOENT`: the semantics gives it
+only for a removed directory, as Linux does, and a premise excluding it there would be false of Linux.
+Not covered, though named in the approval: `LstatDir` (its outcome `isDir = 0` is both a non-directory and a
+failed `lstat` of a directory, so there is no success to name; the WAL never reaches it on a directory) and
+the queries `PathKind`, `FdKind` (one answer from each state; "covering" them would add text and exclude
+nothing). Go example: `premise_no_io_err.go` (assumed; measured as support on C:
+`premise_no_io_err_test.go`).
+
 **Not an I/O error: `EFBIG` at `maxBytes`** (unit `noioerr`, second session). A write that reaches ext4's
 `s_maxbytes` fails whatever the premise (no success exists there), so an error-free flush needs the tail's
 stream to end before it: the no-error specs that write take a sealed handle with room
@@ -40619,6 +40636,37 @@ translation is about a build nobody ships; the stage-2 merge had made every raft
 - **Tooling.** `etc/gen-init.py` generates the trace check's `Init`/`PkgTable` under `RaftTla/`
   (`tla_outs`: the part's translations over the main tree's); `etc/import-all-check.py` reads
   `RaftTla/`; `etc/proof_roots.py` finds the part from `etc/goose.py`.
+
+## fmt soundness: `ErrorfWrap` a theorem, the model's facts in the model's disjunct (2026-11-18)
+
+**2026-11-18 · approved by the user, 2026-11-18, via etcd-grove-03 (H0 of `notes/perheap-scope.md`
+§5a, landed ahead of the per-heap redesign) · branch `fmt-soundness` · supersedes in part "`fmt.Errorf`
+with `%w`: no fact from the model" (2026-11-06)**
+
+- **What was wrong.** `fmt.ErrorfWrap.wp_proof` (an axiom) gave `⌜pre <+: errDesc (ok err)⌝` of the
+  value it returns, unconditionally. True per run of Go, but `errDesc` is an opaque function of the
+  value, and the model allocates `Errorf`'s result like any `errors.New`: two programs
+  `Errorf("A%w", e)` and `Errorf("B%w", e)` reaching one address give both prefixes of one value
+  (F1). The pure fact must not hold of what the model returns.
+- **The choice.** The conjunct becomes conditional on an `Unwrap() error` method in the error's
+  method set: Go's `*fmt.wrapError` has it, the model's `*errors.errorString` does not (goose's
+  generated method set), so it is vacuous of the model and Go's side keeps the prefix (the right
+  disjunct `fmt.wrapErrIs` states the method). The model's disjunct `fmt.modelErrIs` gains its
+  message cell (`errStrCell x (pre ++ s)`), a model fact, in the model's disjunct only: no proof
+  learns it of Go's error. With that text the spec is *provable from the model*
+  (`Proof/fmt/ErrorfWrap.lean`, 20 lines): the axiom leaves the trust base. A proof that needs the
+  prefix cases on the disjunction: Go's side by the method, the model's by the cell
+  (`ServerKVOn.rangeErrOther_facts`: the cell against mvcc's variables' cells, and a leaf
+  `*errorString` passed through by `togRPCError` is a context error's value).
+- **The rule now.** A proof may step into Perennial's `fmt.Errorf` model only when its statement is
+  true of Go's `Errorf` too: Go wraps `%w` (`*fmt.wrapError`/`*fmt.wrapErrors`) and calls the
+  arguments' formatting methods (`Error`, `String`, `Format`, `GoString`), so the premise must make
+  those calls harmless (`fmt.argsOk`: basic arguments, or methods with a persistent resource-free
+  spec and no `Format`) and the post must say nothing the model and Go disagree on, or say it in a
+  disjunct of the model's own. `etc/errorf-wrap-check.py` enforces the review on proof terms
+  (`etc/tcb-report.lean` marks every constant using `fmt.Assumptions.Errorf_unfold` or
+  `fmt.Errorf.impl`), in place of the text search, which missed `Proof/fmt/Errorf{Errs,Strs,Any}.lean`.
+  The general fix is Perennial's (`notes/perennial-changes.md`, 2026-11-18).
 
 ## fsExt: `mmap` out of address space does not return; `NoMapLockErr` excludes every `mmap` error (2026-11-17 · **pending the user's review** · branch `bbolt-oom`)
 

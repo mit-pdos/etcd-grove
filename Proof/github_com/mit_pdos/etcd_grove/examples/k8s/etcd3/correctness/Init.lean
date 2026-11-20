@@ -1,0 +1,46 @@
+/-
+Package initialization of `github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness`
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
+
+Its fact is `True`. Its initializer initializes its imports (it has no initialized
+variable).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Base
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.math.Link
+public import Perennial.Proof.slices.Link
+public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
+public import Perennial.Proof.time.Link
+public import Proof.github_com.google.go_cmp.cmp.Init
+public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
+public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
+public import Proof.k8s_io.apimachinery.pkg.runtime.Init
+public import Proof.k8s_io.apimachinery.pkg.watch.Init
+public import Proof.k8s_io.apiserver.pkg.storage.Init
+public import Proof.maps.Init
+public import Proof.reflect.Init
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+set_option linter.iris.dupNamespace false
+
+noncomputable section
+
+namespace Perennial
+
+/-- `x ∈ [a, ..., x, ...]`, linear in the list (`simp` overflows on the long ones). -/
+local macro "mem_tac" : tactic =>
+  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+end Perennial

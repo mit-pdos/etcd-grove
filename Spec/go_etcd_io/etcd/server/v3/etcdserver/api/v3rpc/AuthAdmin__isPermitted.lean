@@ -38,13 +38,15 @@ code, and the same silence with auth off); `srvAdminNilOk` is not a premise (`au
 `srvAuthAt` gives it). -/
 abbrev v3rpc.AuthAdmin.isPermitted.spec : Prop :=
   ∀ (aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString)
     (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗
-      context.libCtxOk ctx ∗ E.RD }}
+      context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD }}
     (App (Val (aa @!! go.GoType.PointerType v3rpc.AuthAdmin.ty @!! go!"isPermitted"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutC s E.authMode n (GoInterface.ok ctx) err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutC s E.authMode n tok err }}
 
 end spec
 

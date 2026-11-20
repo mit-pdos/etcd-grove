@@ -847,7 +847,7 @@ theorem srvApplyKVOn_authOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : app
   iintro H
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hw⟩
-  ihave ⟨Hkv, %Ha⟩ := applyKV_authOn E ua x $$ Hkv
+  ihave ⟨Hkv, %Ha⟩ := srvApplyKVW_authOn E ua x $$ Hkv
   isplitl [Hua Hkv Hw]
   · iunfold srvApplyKVOn
     iexists ua
@@ -876,11 +876,7 @@ theorem srvApplyKVOn_writer [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.As
   obtain ⟨⟨h1, h2, h3, h4⟩, -⟩ := Hwit
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp', Ho, Hk, Hc⟩
-  iunfold apply.kvOwn at Hk
-  icases Hk with ⟨⟨%c, Hw⟩, Hk⟩
-  imod srvApi.writer_facts E.Nx E.Cp Hp Hr E.kv E.γ E.γs x.log c $$ Hs Hw with ⟨Hw, #Hlb, #Hnx, #Hrc, %Hre⟩
+  imod srvApplyKVW_writer Hp Hr E ⟨h1, h2, h3, h4⟩ ua x $$ Hs Hkv with ⟨Hkv, #Hlb, #Hnx, #Hrc, %Hre⟩
   imodintro
   iframe Hlb Hnx Hrc
   isplitl
@@ -892,18 +888,10 @@ theorem srvApplyKVOn_writer [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.As
     · iexact Hb
     isplitr
     · iexact Hap
-    isplitl [Ho Hc Hk Hw]
-    · iunfold apply.applyKV
-      iexists p
-      iframe Ho Hc
-      isplitr
-      · ipureintro; exact Hp'
-      iunfold apply.kvOwn
-      iframe Hk
-      iexists c
-      iframe Hw
+    isplitl [Hkv]
+    · iexact Hkv
     · iexact Hrest
-  · ipureintro; exact ⟨c, Hre⟩
+  · ipureintro; exact Hre
 
 /-- **The apply thread's compaction revision, with auth on, is `-1`** (R6, 2026-11-07): its
 compaction right's quarter (`cmpOwn`'s `crOwn`) agrees with the store invariant's, whose permit
@@ -914,14 +902,11 @@ theorem srvApplyKVOn_crev (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (st₀
       ⌜x.crev = -1⌝ := by
   iintro #Hk H
   iunfold srvKVInvsOn at Hk
-  icases Hk with ⟨-, -, -, -, #Hs, %Hwit, -, %Hcl⟩
+  icases Hk with ⟨-, -, -, -, #Hs, %Hwit, -, %Hcl, -⟩
   obtain ⟨-, hCp⟩ := Hwit
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp', Ho, Hk, Hc⟩
-  iunfold apply.cmpOwn at Hc
-  icases Hc with ⟨Hop, Hcr⟩
+  icases srvApplyKVW_crOwn E ua x $$ Hkv with ⟨Hcr, Hkv⟩
   iunfold srvApi.crOwn at Hcr
   iunfold srvApi.kvStoreInvG at Hs
   icases Hs with ⟨-, #Hinv⟩
@@ -929,7 +914,8 @@ theorem srvApplyKVOn_crev (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (st₀
   iinv Hinv with ⟨%σ, Hm, Hst, >Hcrσ, Hsl, Hnl, Hnx1, Hnx2, Hrc, HCp⟩ Hclose
   iunfold kvCpOk at HCp
   icases HCp with ⟨HA, >%Hcf⟩
-  icombine Hcrσ Hcr gives %Heq
+  icombine Hcrσ Hcr gives %Hcq
+  have Heq : x.crev = -1 := by rw [← Hcq.2]; exact Hcf Hcl.1
   ihave Hcr : srvApi.crOwn E.γs x.crev $$ [Hcr]
   · iunfold srvApi.crOwn; iexact Hcr
   imod Hclose $$ [Hm Hst Hcrσ Hsl Hnl Hnx1 Hnx2 Hrc HA] with -
@@ -939,6 +925,7 @@ theorem srvApplyKVOn_crev (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (st₀
     iunfold kvCpOk
     iframe HA
     ipureintro; exact Hcf
+  ihave Hkv := Hkv $$ Hcr
   imodintro
   isplitl
   · iunfold srvApplyKVOn
@@ -949,17 +936,10 @@ theorem srvApplyKVOn_crev (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (st₀
     · iexact Hb
     isplitr
     · iexact Hap
-    isplitl [Ho Hk Hop Hcr]
-    · iunfold apply.applyKV
-      iexists p
-      iframe Ho Hk
-      isplitr
-      · ipureintro; exact Hp'
-      iunfold apply.cmpOwn
-      iframe Hop Hcr
+    isplitl [Hkv]
+    · iexact Hkv
     iexact Hrest
-  · ipureintro
-    rw [← Heq.2]; exact Hcf Hcl.1
+  · ipureintro; exact Heq
 
 /-- `srvApplyKVOn`'s backend ownership, lent (`srvApplyKV_beOwn`'s). -/
 theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
@@ -1057,7 +1037,7 @@ theorem srvApplyKVOn_hookRO (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : app
   iintro H
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hrest⟩
-  ihave ⟨Hkv, #Hh⟩ := applyKV_hookRO E ua x d hd $$ Hkv
+  ihave ⟨Hkv, #Hh⟩ := srvApplyKVW_hookRO E ua x d hd $$ Hkv
   iframe Hh
   iunfold srvApplyKVOn
   iexists ua

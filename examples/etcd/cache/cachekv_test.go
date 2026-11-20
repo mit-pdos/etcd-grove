@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestMainRun runs Main for real: one member in a fresh data directory (Main's DataDir is
@@ -19,6 +20,7 @@ import (
 // running whether the Puts took effect (so that the check was not vacuous).
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "cachekv") // the members' WAL areas (wal-link P2)
 	if r := Main(4, 25); r != Ok {
 		t.Fatalf("got %v", r)
 	}

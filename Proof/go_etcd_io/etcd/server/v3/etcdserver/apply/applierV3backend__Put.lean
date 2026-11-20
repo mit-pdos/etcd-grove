@@ -35,24 +35,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- A put's pending changes at the writer's state: none (the key missing for an ignore flag), else
-its one change. -/
-theorem apply.putPend_cases (o : OpFull) (log : mvcc.Log) (c : Int) :
-    (txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none ∧
-        txn.putPend o (srvApi.stAt log c) = []) ∨
-      ((txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome) ∧
-        txn.putPend o (srvApi.stAt log c) =
-          [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]) := by
-  unfold txn.putPend
-  simp only [srvApi.stAt]
-  by_cases h : txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none
-  · left; exact ⟨h.1, h.2, by simp [h]⟩
-  · right
-    refine ⟨fun hn => ?_, by simp [h]⟩
-    cases hf : mvcc.findKey o.key (mvcc.stateAfter log) with
-    | none => exact absurd ⟨hn, hf⟩ h
-    | some _ => rfl
-
 theorem apply.applierV3backend.Put.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hPut : txn.Put.spec (GF := GF) (hG := hG)) :
@@ -62,11 +44,11 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.applyTok at Htt
   icases Htt with Hmr
   iunfold apply.putPre at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, %L, #Hcp, Hpre⟩
+  icases Hpre with ⟨%Hrq, #Hr, %L, %Hwt, #Hcp, Hpre⟩
   iunfold apply.mPreAt at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLiveAt at Hlive
-  icases Hlive with ⟨#Hknown, Hu, HltL⟩
+  icases Hlive with ⟨#Hknown, Hu, HltL, HWt⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -86,12 +68,12 @@ theorem apply.applierV3backend.Put.wp_proof
   ihave #Hlok := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
   -- the put's updates (only for a live lease; else the writer's half kept)
   ihave Hif : iprop((if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then
-        txn.putAU E.γ o L (mvcc.leaseItemsOf (mvcc.stateAfter log))
+        txn.putAUW E.γ E.win o L (mvcc.leaseItemsOf (mvcc.stateAfter log))
           (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
-            srvApi.wSt E.γs (mvcc.commitLog log (txn.putPend o σ)) c))
+            srvApi.wStQ E.γs E.stq (mvcc.commitLog log (txn.putPend o σ)) c ∗ E.Wt E.win))
       else iprop(True)) ∗
       (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then iprop(True)
-       else srvApi.wSt E.γs log c)) $$ [Hw]
+       else iprop(srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win))) $$ [Hw HWt]
   · by_cases hl : o.leaseID = W64 0 ∨ o.leaseID ∈ L
     · simp only [hl, decide_true, ↓reduceIte]
       -- the witness of the log the put commits: only now, the lease live (S3a2)
@@ -112,22 +94,30 @@ theorem apply.applierV3backend.Put.wp_proof
                 exact ⟨fun h => (hl.elim h.1 h.2).elim, fun h => by cases h⟩)
           simp only [apply.Outcome.logAfter]
           iexact Hc
-      isplitl [Hw Hnx]; rotate_left
+      isplitl [Hw Hnx HWt]; rotate_left
       · itrivial
-      unfold txn.putAU
+      unfold txn.putAUW
       iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
       iapply HauB $$ %log %c %_ Hw
       iintro Hw
       isplitr
-      · ipureintro; rfl
+      · ipureintro
+        refine ⟨rfl, fun hn => ?_⟩
+        simp only [srvApi.stAt] at hn
+        exact apply.putWinMove E.win rq o log L Hwt Hrq.1 Hrq.2.1 hl hn
       isplitr
       · cases hig : o.ignoreLease
         · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
         · simp only [↓reduceIte]
           simp only [srvApi.stAt]
           iapply Hlok; ipureintro; first | exact hig | trivial | rfl
+      iintro #Hwit
+      ihave #Hwit' : Perennial.EtcdGrove.lease.winWit (mvcc.api.mvccLeases E.γ) E.win (mvcc.leaseItemsOf (mvcc.stateAfter
+          (mvcc.commitLog log (txn.putPend o (srvApi.stAt log c))))) $$ [Hwit]
+      · rw [← txn.pendItems_commitLog]; simp only [srvApi.stAt] at *; iexact Hwit
       iapply apply.commitAU_of_auEnd
-      ihave He := HauE $$ %log %c %_ Hw Hnx
+      ihave He := HauE $$ %log %c %_ %E.win Hw HWt Hnx
+        %(fun _ => apply.putWinTgt E.win rq o log c L Hwt Hrq.1 Hrq.2.1 hl) Hwit'
       iapply apply.auEnd_wand $$ He
       iintro HY
       isplitr
@@ -136,7 +126,7 @@ theorem apply.applierV3backend.Put.wp_proof
     · simp only [hl, decide_false, Bool.false_eq_true, ↓reduceIte]
       isplitr
       · itrivial
-      iexact Hw
+      iframe Hw HWt
   icases Hif with ⟨Hau, Hw0⟩
   ihave Hkb : txn.kvBackend E.γ 1 B (E.Pk B) E.f $$ [Hbk Hhk]
   · iunfold txn.kvBackend; iframe Hbk Hhk
@@ -147,7 +137,7 @@ theorem apply.applierV3backend.Put.wp_proof
   wp_apply hTODO
   ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV' E.γ r o 1 B (E.Pk B)
-      Pre Q Post E.f L (mvcc.leaseItemsOf (mvcc.stateAfter log)) none false _)
+      Pre Q Post E.f L (mvcc.leaseItemsOf (mvcc.stateAfter log)) none false _ E.win)
       $$ [$Hkv $Hmr $Hle $Hu $Hr $HlgN $Hkb $Hcs $Hau]
     as %resp %trace %err ⟨Hmr, Hkb, %Htrn, ⟨%te', Htrc⟩, -, Hout⟩
   · isplitr
@@ -242,6 +232,8 @@ theorem apply.applierV3backend.Put.wp_proof
       rotate_left
       · try isimp only [show decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) = false from decide_eq_false hl,
           Bool.false_eq_true, ↓reduceIte] at Hw0
+        icases Hw0 with ⟨Hw0, -⟩
+        icases Hw' with ⟨Hw', -⟩
         iexfalso
         iapply (apply.wSt_ne_false E.γs log
           (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) c c

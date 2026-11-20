@@ -74,16 +74,16 @@ theorem wp_existAnc (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spe
     (hm : (joinPath [] rcs, j0) ∈ R) (hrcs : rcs ≠ []) (hcs : ∀ c ∈ cs, NameOk c) (hname : NameOk name)
     (hnone : h.cur !! name = none) (hk : k ≤ full.length) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osSpine j0 cs (DFrac.own qp) jp ∗
-        osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm 1 }}
+        osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm (callKey R (joinPath [] rcs)) 1 }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Exist)) (Val #(os.ancPath (full.take k))))
     {{ (b : Bool), RET #b; osSpine j0 cs (DFrac.own qp) jp ∗ osNames jp (.only [name]) (DFrac.own 1) h ∗
-        osCallPerm 1 ∗ ⌜k = full.length → b = false⌝ }} := by
+        osCallPerm (callKey R (joinPath [] rcs)) 1 ∗ ⌜k = full.length → b = false⌝ }} := by
   iintro %Φ ⟨#Hinv, #Hsi, Hs, Hn, Hperm⟩ HΦ
   by_cases hkn : k = full.length
   · subst hkn
     have hdir : os.ancPath (full.take full.length) = child (joinPath (joinPath [] rcs) cs) name := by
       rw [List.take_length, ancPath_ne (by subst hfull; simp), hfull, joinPath_snoc, joinPath_joinPath]
-    rw [hdir]
+    rw [hdir, ← callKey_joinPath hR hm cs]
     ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).2 $$ Hs
     wp_apply wp_Exist (child (joinPath (joinPath [] rcs) cs) name) _ _
       (os.Stat.wp_absentS _ name R jp (.only [name]) (DFrac.own qp) (DFrac.own 1) h 1 hname

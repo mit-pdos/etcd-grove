@@ -431,7 +431,8 @@ variable [StorageModel GF] [AllG GF]
 `nodeAppliedLb`, `storDL` now `nodeCommitLb`). -/
 def kdJ (γ : Cluster) (K : GName) : MemJust GF where
   SV := snapshotValid γ
-  B k := nodeAppliedLb γ K k
+  -- (auth-lease S4, 2026-11-16, L-r2) with the no-snapshot mode's cap, as `memStorJ`
+  B k := iprop(nodeAppliedLb γ K k ∗ ⌜clusterNoSnap γ → k ≤ 1⌝)
   DL := nodeCommitLb γ K
   SV_pers := fun sv => by infer_instance
   B_pers := fun k => by infer_instance

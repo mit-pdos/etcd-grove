@@ -192,9 +192,11 @@ def longestLin (M : SeqModel σ OpV) (longest : GoSlice) (h : List (Theory.Op Op
     linSlice M h sl)
 
 /-- One partition's entry of `LinearizationInfo.partialLinearizations` (a `[][]int`): its
-linearizations, at least one if the partition is not empty. -/
+linearizations, exactly one if the partition is not empty (`checkSingle` sets every operation's
+longest linearization to the same complete one, and `checkParallel` keeps them as a set of pointers;
+what Kubernetes' `realCheck` reads, `len(...[0]) == 1`). -/
 def partLins (M : SeqModel σ OpV) (h : List (Theory.Op OpV)) (psl : GoSlice) : IProp GF :=
-  iprop(∃ lsls : List GoSlice, psl ↦*{DFrac.discard} lsls ∗ ⌜h ≠ [] → lsls ≠ []⌝ ∗
+  iprop(∃ lsls : List GoSlice, psl ↦*{DFrac.discard} lsls ∗ ⌜h ≠ [] → lsls.length = 1⌝ ∗
     [∗list] lsl ∈ lsls, linSlice M h lsl)
 
 instance partLins_persistent (M : SeqModel σ OpV) (h : List (Theory.Op OpV)) (psl : GoSlice) :

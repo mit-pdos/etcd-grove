@@ -2,7 +2,7 @@
 `(*wal.WAL).cleanupWAL(lg)` (S/wal.go:300-317, with the fork's fix: it returns its error instead of
 panicking; W4 of `notes/wal-fsext-plan.md`, `notes/wal-units/create.md`): `Create`'s deferred cleanup
 after its commit, over the handle before naming (`walOpenWFU`, design P). `w.Close()`
-(`WAL.Close.specU`), then, if it returned `nil`, `os.Rename(w.dir, w.dir + ".broken." + <time>)`
+(`WAL.Close.spec` (state `unnamed`)), then, if it returned `nil`, `os.Rename(w.dir, w.dir + ".broken." + <time>)`
 (`os.Rename.specDirAnySnc`). Internal and `Create`-specific: the rename's claims and atomic update
 are the caller's, given by a law at the timestamp (the claim on `nm` and the broken name, which the
 caller assembles from what `Close` returned and its own resources, and the update that commits the
@@ -54,7 +54,7 @@ def cleanupLaw (R : Roots) (jr : Ino) (r nm : GoString) (Rp : Roots) (qp : Qp) (
       osAUnc (osNames jr N (DFrac.own rr) h)
         (renDirOutA jr J N nm (brokenName nm ts) h (DFrac.own rr) lb) Qr ∗
       ∀ err : GoInterface, notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-        osPathS R r (DFrac.own qd) jr -∗ osCallPerm 1 -∗
+        osPathS R r (DFrac.own qd) jr -∗ osCallPerm (callKey R r) 1 -∗
         ((⌜err ≠ interface.nil ∧ os.renameErrOk err⌝ ∗ osNames jr N (DFrac.own q) h ∗
             osAUnc (osNames jr N (DFrac.own rr) h)
               (renDirOutA jr J N nm (brokenName nm ts) h (DFrac.own rr) lb) Qr) ∨
@@ -64,9 +64,10 @@ def cleanupLaw (R : Roots) (jr : Ino) (r nm : GoString) (Rp : Roots) (qp : Qp) (
 
 /-- **`w.cleanupWAL(lg)`** of the handle before naming of the WAL directory `r/nm` (see the file
 header), the caller holding the other half of the call permission (the rename needs it whole) and the
-frame `Fr`. Three outcomes: `Close` failed in its sync (`WAL.Close.specU`'s error arm: the lock token
+frame `Fr`. Three outcomes: `Close` failed in its sync (`WAL.Close.spec` (state `unnamed`)'s error arm: the lock token
 still held, the tail lock's file open); `Close` returned everything but an error (no rename); or the
-rename was called, the law's `Fin err`. -/
+rename was called, the law's `Fin err`, with the rename's error one `fmt` formats by its `Error()`
+(`fmtErrorOkOrNil`: fmt soundness, 2026-11-18, for `Create`'s `fmt.Errorf` of it). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (P : WalPbIn GF) (Mr : WalMarshal) :
     Prop :=
   ∀ (R : Roots) (jr : Ino) (r nm : GoString) (w lg : Loc) (Rp : Roots) (qp : Qp) (tf : Loc)
@@ -74,20 +75,20 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (P : WalPbIn GF
   NameOk nm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWFU P Mr w (child r nm) Rp qp tf ∗
-      WalFs.walPurgeW w (child r nm) ∗ osCallPerm (1 : Qp).half ∗ Fr ∗
+      WalFs.walPurgeW w (child r nm) ∗ osCallPerm (callKey R r) (1 : Qp).half ∗ Fr ∗
       cleanupLaw (W := W) R jr r nm Rp qp tf Fr Fin }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
       go!"cleanupWAL")) (Val #lg))
   {{ (err : GoInterface), RET #err;
-      (⌜err ≠ interface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some (child r nm)) ∗
-        osCallPerm (1 : Qp).half ∗ Fr ∗
+      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some (child r nm)) ∗
+        osCallPerm (callKey R r) (1 : Qp).half ∗ Fr ∗
         ∃ (fd : w64) (nmf : GoString) (d : OsFd),
           os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) ∨
-      (⌜err ≠ interface.nil⌝ ∗ WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some (child r nm)) ∗
-        osCallPerm (1 : Qp).half ∗ Fr ∗
+      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some (child r nm)) ∗
+        osCallPerm (callKey R r) (1 : Qp).half ∗ Fr ∗
         (∃ j : Ino, osPathS Rp (child r nm) (DFrac.own qp) j ∗ osPathS Rp (child r nm) (DFrac.own qp) j) ∗
         ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
-      Fin err }}
+      (Fin err ∗ fmtErrorOkOrNil err) }}
 
 end spec
 

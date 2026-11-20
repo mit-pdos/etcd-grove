@@ -36,13 +36,13 @@ theorem v3rpc.kvServer.Compact.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid n aa E ctx cd r Pin Q na
-  wp_start as ⟨#Hsrv, #Haaf, #Haa, #Hlb, #Hctx, #Hlib, HRD, HPin, #Hin⟩
+  intro p s A cid mid n aa E ctx cd tok r Pin Q na
+  wp_start as ⟨#Hsrv, #Haaf, #Haa, #Hlb, #Hctx, #Hlib, #HtokC, HRD, HPin, #Hin⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.kvServerIs at Hsrv'
   icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, -⟩
   (try wp_auto)
-  wp_apply (hP aa s E ctx cd na) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
+  wp_apply (hP aa s E ctx cd tok na) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
   · iframe #
   ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout

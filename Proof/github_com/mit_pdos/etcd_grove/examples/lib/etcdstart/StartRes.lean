@@ -8,14 +8,16 @@ What a member's starters take of the program's start resources, as three sealed 
 `import all` this module, `etc/import-all.txt`):
 
 * `memberStartRes name a`: what a `Main` takes per member, from program start (`startRights`): the
-  member's data directory fresh (`dataDirFresh (memberDataDir name)`), and, for each address the
+  member's data directory fresh (`dataDirFresh (memberDataDir name)`), (wal-link P2) its WAL area
+  fresh (`memberAreasFresh (memberDataDir name)`, allocated at adequacy from the member's
+  `fsExt` root, `WalAreas.lean`), and, for each address the
   program listens on for the member (`a : MemberAddrs`), the right to listen on it (`netAddrFree`);
   the peer address also with its HTTP protocol unregistered (`httpProtoFree`).
 * `memberFreshRes name a γn`: what a first-start starter takes, after the cluster's network
   allocation (`alloc1`, `alloc3`): the same, the peer address's protocol reserved for the raft
   protocol of the network `γn` (`http.httpProtoOwn p (raftProto (netRh γn))`).
 * `memberRestartRes name a γn γ ρ id`: what a restart starter takes, what a member's stop gives back:
-  the member's disk image in its data directory `name ++ ".etcd"` (`srvDiskImage`, which holds the
+  the member's disk image in its data directory `memberDataDir name` (`srvDiskImage`, which holds the
   WAL's and the backend's files), and the same addresses' rights as `memberFreshRes`.
 
 The addresses are optional (D3): the one-member examples listen on a client address only, and the
@@ -58,18 +60,18 @@ structure MemberAddrs where
 /-- The addresses of `a`, peer first. -/
 def MemberAddrs.addrs (a : MemberAddrs) : List GoString := a.peer.toList ++ a.client.toList
 
-/-- **A member's data directory**: `name ++ ".etcd"`, holding its WAL (no dedicated WAL directory,
-every starter's configuration). (Sweep repairs 1, W3/W4: until then `memberWalDir`, the WAL
-directory `config.walDirOf (name ++ ".etcd") ""`.) -/
-abbrev memberDataDir [GooseExts] (name : GoString) : GoString :=
-  name ++ go!".etcd"
+-- (2026-11-19) `memberDataDir` moved to `storage/WalLayout.lean`: absolute, `/tmp/etcd-grove-data/<name>.etcd`
+-- (`notes/datadir-relative-unsat.md`); until then this abbreviation, `name ++ ".etcd"`, relative.
+
 
 section start
-variable [GooseExts] {GF : BundledGFunctors}
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **What a `Main` takes per member** (program start's resources; see the file header). -/
 @[no_expose] def memberStartRes (name : GoString) (a : MemberAddrs) : IProp GF :=
-  iprop(envVerifyOff ∗ dataDirFresh (memberDataDir name) ∗
+  iprop(envVerifyOff ∗ dataDirFresh (memberDataDir name) ∗ memberAreasFresh (memberDataDir name) ∗
     (match a.peer with | some p => netAddrFree p ∗ httpProtoFree p | none => emp) ∗
     (match a.client with | some c => netAddrFree c | none => emp))
 
@@ -85,7 +87,7 @@ variable [sem : go.Semantics]
 the cluster's network `γn`. -/
 @[no_expose] def memberFreshRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF) :
     IProp GF :=
-  iprop(envVerifyOff ∗ dataDirFresh (memberDataDir name) ∗
+  iprop(envVerifyOff ∗ dataDirFresh (memberDataDir name) ∗ memberAreasFresh (memberDataDir name) ∗
     (match a.peer with
       | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
       | none => emp) ∗
@@ -94,7 +96,7 @@ the cluster's network `γn`. -/
 /-- **What a restart starter takes** (see the file header): what the member's stop gave back. -/
 @[no_expose] def memberRestartRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF)
     (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
-  iprop(srvDiskImage γ ρ id (name ++ go!".etcd") ∗
+  iprop(srvDiskImage γ ρ id (memberDataDir name) ∗
     (match a.peer with
       | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
       | none => emp) ∗
@@ -125,7 +127,7 @@ theorem memberFreshRes_client (n : GoString) (a : MemberAddrs) (γn : NetNames G
     memberFreshRes (GF := GF) n a γn ⊢ netAddrFree c ∗ memberFreshRes n { a with client := none } γn := by
   unfold memberFreshRes
   rw [h]
-  iintro ⟨#Hv, Hw, Hp, Hc⟩
+  iintro ⟨#Hv, Hw, Ha, Hp, Hc⟩
   iframe; try iframe #
 
 /-- **The peer address's listen right and raft protocol, out of a fresh bundle** (to the member's
@@ -137,7 +139,7 @@ theorem memberFreshRes_peer (n : GoString) (a : MemberAddrs) (γn : NetNames GF)
         memberFreshRes n { a with peer := none } γn := by
   unfold memberFreshRes
   rw [h]
-  iintro ⟨#Hv, Hw, Hp, Hc⟩
+  iintro ⟨#Hv, Hw, Ha, Hp, Hc⟩
   iframe; try iframe #
 
 /-- **The peer address's listen right and raft protocol, out of a restart bundle**. -/
@@ -155,7 +157,7 @@ theorem memberRestartRes_peer (n : GoString) (a : MemberAddrs) (γn : NetNames G
 restart path; the restart contract's input slot when the restart owner defines one). -/
 theorem memberRestartRes_boot (n : GoString) (γn : NetNames GF) (γ : SrvRaft) (ρ : ReqNames)
     (id : w64) :
-    memberRestartRes (GF := GF) n {} γn γ ρ id ⊢ srvDiskImage γ ρ id (n ++ go!".etcd") := by
+    memberRestartRes (GF := GF) n {} γn γ ρ id ⊢ srvDiskImage γ ρ id (memberDataDir n) := by
   unfold memberRestartRes
   iintro ⟨Hd, -, -⟩
   iexact Hd
@@ -174,10 +176,10 @@ theorem memberRestartRes_raft (n : GoString) (a : MemberAddrs) (γn : NetNames G
   iframe; try iframe #
 
 /-- **A restart bundle, from a member's stop** (its disk image in the data directory
-`n ++ ".etcd"`, and its peer address's listen right and raft protocol). -/
+`memberDataDir n`, and its peer address's listen right and raft protocol). -/
 theorem memberRestartRes_intro (n : GoString) (p : GoString) (γn : NetNames GF) (γ : SrvRaft)
     (ρ : ReqNames) (id : w64) :
-    srvDiskImage (GF := GF) γ ρ id (n ++ go!".etcd") ∗ netAddrFree p ∗
+    srvDiskImage (GF := GF) γ ρ id (memberDataDir n) ∗ netAddrFree p ∗
         http.httpProtoOwn p (raftProto (netRh γn)) ⊢
       memberRestartRes n { peer := some p } γn γ ρ id := by
   unfold memberRestartRes
@@ -186,10 +188,10 @@ theorem memberRestartRes_intro (n : GoString) (p : GoString) (γn : NetNames GF)
   iframe; try iframe #
 
 /-- **A restart bundle without addresses, from a member's stop** (restart S7.5: a member that serves
-no address, `restart1`'s): its disk image in the data directory `n ++ ".etcd"` alone. -/
+no address, `restart1`'s): its disk image in the data directory `memberDataDir n` alone. -/
 theorem memberRestartRes_intro0 (n : GoString) (γn : NetNames GF) (γ : SrvRaft) (ρ : ReqNames)
     (id : w64) :
-    srvDiskImage (GF := GF) γ ρ id (n ++ go!".etcd") ⊢ memberRestartRes n {} γn γ ρ id := by
+    srvDiskImage (GF := GF) γ ρ id (memberDataDir n) ⊢ memberRestartRes n {} γn γ ρ id := by
   unfold memberRestartRes
   simp only
   iintro Hd
@@ -200,16 +202,17 @@ theorem memberRestartRes_intro0 (n : GoString) (γn : NetNames GF) (γ : SrvRaft
 /-! ## L2: the WAL's boot slot -/
 
 /-- **The WAL's boot slot, out of a fresh bundle without addresses** (to `NewServer`, through
-`wal.bootRes_intro`): at a configuration whose data directory is `n ++ ".etcd"` and with no
-dedicated WAL directory. -/
+`wal.bootRes_intro`): at a configuration whose data directory is `memberDataDir n` and whose dedicated
+WAL directory is its (`srvWalDirOf`; wal-link P2, until then none). -/
 theorem memberFreshRes_boot [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (n : GoString) (γn : NetNames GF)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (hd : cfg.DataDir' = n ++ go!".etcd") (hw : cfg.DedicatedWALDir' = go!"") :
+    (hd : cfg.DataDir' = memberDataDir n) (hw : cfg.DedicatedWALDir' = srvWalDirOf (memberDataDir n)) :
     memberFreshRes (GF := GF) n {} γn ⊢ wal.bootRes cfg := by
   unfold memberFreshRes
-  iintro ⟨-, Hw, -, -⟩
+  iintro ⟨-, Hw, Ha, -, -⟩
   iapply wal.bootRes_intro _ _ hd hw
-  iexact Hw
+  unfold memberAreasFresh
+  iframe Hw Ha
 
 /-- (Sweep repairs 1, B4) **`ETCD_VERIFY` off, out of a fresh bundle** (to `NewServer`). -/
 theorem memberFreshRes_verify (n : GoString) (a : MemberAddrs) (γn : NetNames GF) :
@@ -221,7 +224,9 @@ theorem memberFreshRes_verify (n : GoString) (a : MemberAddrs) (γn : NetNames G
 end laws
 
 section startLaws
-variable [GooseExts] {GF : BundledGFunctors}
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **The client address's listen right, out of a start bundle** (to `Serve`). -/
 theorem memberStartRes_client (n : GoString) (a : MemberAddrs) (c : GoString)
@@ -229,7 +234,7 @@ theorem memberStartRes_client (n : GoString) (a : MemberAddrs) (c : GoString)
     memberStartRes (GF := GF) n a ⊢ netAddrFree c ∗ memberStartRes n { a with client := none } := by
   unfold memberStartRes
   rw [h]
-  iintro ⟨#Hv, Hw, Hp, Hc⟩
+  iintro ⟨#Hv, Hw, Ha, Hp, Hc⟩
   iframe; try iframe #
 
 /-! ## L3: the introduction from program start -/
@@ -237,57 +242,64 @@ theorem memberStartRes_client (n : GoString) (a : MemberAddrs) (c : GoString)
 /-- One member's start bundle from its share of program start's lists. -/
 private theorem memberStartRes_of_lists (n : GoString) (a : MemberAddrs) :
     ([∗list] x ∈ a.addrs, netAddrFree (GF := GF) x) ∗ ([∗list] x ∈ a.addrs, httpProtoFree (GF := GF) x) ∗
-      dataDirFresh (GF := GF) (memberDataDir n) ∗ envVerifyOff ⊢ memberStartRes n a := by
+      dataDirFresh (GF := GF) (memberDataDir n) ∗ memberAreasFresh (GF := GF) (memberDataDir n) ∗
+      envVerifyOff ⊢ memberStartRes n a := by
   unfold memberStartRes MemberAddrs.addrs
   obtain ⟨p, c⟩ := a
   cases p <;> cases c <;>
     simp only [Option.toList, List.nil_append, List.cons_append]
-  · iintro ⟨-, -, Hw, #Hv⟩
+  · iintro ⟨-, -, Hw, Ha, #Hv⟩
     iframe; try iframe #
     iframe #; isplitl <;> iempintro
-  · iintro ⟨⟨Hc, -⟩, -, Hw, #Hv⟩
+  · iintro ⟨⟨Hc, -⟩, -, Hw, Ha, #Hv⟩
     iframe; try iframe #
-  · iintro ⟨⟨Hp, -⟩, ⟨Hf, -⟩, Hw, #Hv⟩
+  · iintro ⟨⟨Hp, -⟩, ⟨Hf, -⟩, Hw, Ha, #Hv⟩
     iframe; try iframe #
-  · iintro ⟨⟨Hp, Hc, -⟩, ⟨Hf, -⟩, Hw, #Hv⟩
+  · iintro ⟨⟨Hp, Hc, -⟩, ⟨Hf, -⟩, Hw, Ha, #Hv⟩
     iframe; try iframe #
 
 /-- The members' start bundles from their shares of program start's lists, member by member. -/
 private theorem memberStartRes_of_lists_all (ms : List (GoString × MemberAddrs)) :
     ([∗list] x ∈ ms.flatMap (fun m => m.2.addrs), netAddrFree (GF := GF) x) ∗
       ([∗list] x ∈ ms.flatMap (fun m => m.2.addrs), httpProtoFree (GF := GF) x) ∗
-      ([∗list] d ∈ ms.map (fun m => memberDataDir m.1), dataDirFresh (GF := GF) d) ∗ envVerifyOff ⊢
+      ([∗list] d ∈ ms.map (fun m => memberDataDir m.1), dataDirFresh (GF := GF) d) ∗
+      ([∗list] d ∈ ms.map (fun m => memberDataDir m.1), memberAreasFresh (GF := GF) d) ∗
+      envVerifyOff ⊢
       [∗list] m ∈ ms, memberStartRes m.1 m.2 := by
   induction ms with
   | nil => iintro -; iapply BigSepL.bigSepL_nil.2; iempintro
   | cons m ms ih =>
     simp only [List.flatMap_cons, List.map_cons]
-    iintro ⟨Ha, Hf, Hd, #Hv⟩
+    iintro ⟨Ha, Hf, Hd, Hw, #Hv⟩
     icases BigSepL.bigSepL_append.1 $$ Ha with ⟨Ha1, Ha2⟩
     icases BigSepL.bigSepL_append.1 $$ Hf with ⟨Hf1, Hf2⟩
     icases BigSepL.bigSepL_cons.1 $$ Hd with ⟨Hd1, Hd2⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hw with ⟨Hw1, Hw2⟩
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Ha1 Hf1 Hd1]
+    isplitl [Ha1 Hf1 Hd1 Hw1]
     · iapply memberStartRes_of_lists
       iframe; try iframe #
     · iapply ih
       iframe; try iframe #
 
 /-- **`memberStartRes_intro`** (L3, D2): program start's three lists (`startRights`': every address
-of `As` free, with its HTTP protocol unregistered, and every directory of `Ds` fresh) give the start
+of `As` free, with its HTTP protocol unregistered, and every directory of `Ds` fresh) and (wal-link P2)
+the WAL area of every directory of `Ds` fresh (`WalAreas.lean`'s allocation) give the start
 bundles of the members `ms` and the listen rights of the other addresses `Bs` (a cluster's bridges),
 when the members' addresses and `Bs` are `As` up to order and the members' data directories are `Ds`
 up to order. The client addresses' (and `Bs`') unregistered protocols are dropped. -/
 theorem memberStartRes_intro (ms : List (GoString × MemberAddrs)) (Bs As Ds : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
     (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds) :
-    ([∗list] a ∈ As, netAddrFree (GF := GF) a) ∗ ([∗list] a ∈ As, httpProtoFree (GF := GF) a) ∗
-        ([∗list] d ∈ Ds, dataDirFresh (GF := GF) d) ∗ envVerifyOff ⊢
+    (([∗list] a ∈ As, netAddrFree (GF := GF) a) ∗ ([∗list] a ∈ As, httpProtoFree (GF := GF) a) ∗
+        ([∗list] d ∈ Ds, dataDirFresh (GF := GF) d) ∗ envVerifyOff) ∗
+        ([∗list] d ∈ Ds, memberAreasFresh (GF := GF) d) ⊢
       ([∗list] m ∈ ms, memberStartRes m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b := by
-  iintro ⟨Ha, Hf, Hd, #Hv⟩
+  iintro ⟨⟨Ha, Hf, Hd, #Hv⟩, Hw⟩
   ihave Ha := (BigSepL.bigSepL_perm hA).2 $$ Ha
   ihave Hf := (BigSepL.bigSepL_perm hA).2 $$ Hf
   ihave Hd := (BigSepL.bigSepL_perm hD).2 $$ Hd
+  ihave Hw := (BigSepL.bigSepL_perm hD).2 $$ Hw
   icases BigSepL.bigSepL_append.1 $$ Ha with ⟨Ha, Hb⟩
   icases BigSepL.bigSepL_append.1 $$ Hf with ⟨Hf, -⟩
   iframe Hb

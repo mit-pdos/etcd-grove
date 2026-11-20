@@ -171,7 +171,7 @@ theorem walImg_toRaw {H : List (WalOpG WalEnt)} {m : Nat} {J : WalHist}
     rw [List.getElem?_map, List.getElem?_eq_getElem hjl] at hj
     simp only [Option.map_some, Option.some.injEq] at hj
     cases hH : H[j] with
-    | snap m => rw [hH] at hj; cases hj
+    | snap m al => rw [hH] at hj; cases hj
     | save hs' es' =>
       rw [hH] at hj
       simp only [WalOpG.toM, WalOpG.save.injEq] at hj

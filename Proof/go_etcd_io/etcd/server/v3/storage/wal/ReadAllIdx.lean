@@ -124,7 +124,7 @@ theorem entG_start (U : WalUnmarshal) :
 def lastEntF (x : Nat) (o : WalOp) : Nat :=
   match o with
   | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
-  | .snap _ => x
+  | .snap _ _ => x
 
 theorem walLastIdx_eq (P : WalHist) :
     walLastIdx P = max (P.foldl lastEntF 0) (walMaxSnapIdx P) := rfl
@@ -161,7 +161,7 @@ theorem entG_opDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (o : WalOp) 
     split at htd
     · cases htd
     · simp only [List.mem_singleton] at htd; subst htd; exact (by simp [entryType, stateType, snapshotType, metadataType, crcType])
-  | snap m =>
+  | snap m al =>
     simp only [opDs, List.foldl_cons, List.foldl_nil, lastEntF]
     unfold entG; rw [if_neg (by simp [entryType, stateType, snapshotType, metadataType, crcType])]
 
@@ -199,15 +199,15 @@ theorem segsDs_entG {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : List
 
 /-- **Every snapshot operation's record is among the segments' records**. -/
 theorem snap_mem_segsDs (M : WalMarshal) (md : List w8) :
-    ∀ (first : Bool) (P : WalHist) (Ss : List WalHist) (m : SnapshotMetadataM),
-      WalOpG.snap m ∈ Ss.flatten → (snapshotType, M.encSnap m) ∈ (segsDs M md first P Ss).flatten
-  | _, _, [], _, h => by cases h
-  | first, P, S :: Ss, m, h => by
+    ∀ (first : Bool) (P : WalHist) (Ss : List WalHist) (m : SnapshotMetadataM) (al : Bool),
+      WalOpG.snap m al ∈ Ss.flatten → (snapshotType, M.encSnap m al) ∈ (segsDs M md first P Ss).flatten
+  | _, _, [], _, _, h => by cases h
+  | first, P, S :: Ss, m, al, h => by
     simp only [segsDs, List.flatten_cons, List.mem_append] at h ⊢
     rcases h with h | h
     · left; right
       exact List.mem_flatMap.2 ⟨_, h, by simp [opDs]⟩
-    · right; exact snap_mem_segsDs M md false (P ++ S) Ss m h
+    · right; exact snap_mem_segsDs M md false (P ++ S) Ss m al h
 
 /-- What each record of the segments is: a header record, or one of an operation's. -/
 theorem segsDs_mem (M : WalMarshal) (md : List w8) :
@@ -232,20 +232,20 @@ theorem segsDs_mem (M : WalMarshal) (md : List w8) :
 
 /-- The snapshot maximum's fold below a bound. -/
 theorem snapMax_le : ∀ (P : WalHist) (x X : Nat), x ≤ X →
-    (∀ m, WalOpG.snap m ∈ P → uint.nat m.Index' ≤ X) →
+    (∀ m al, WalOpG.snap m al ∈ P → uint.nat m.Index' ≤ X) →
     P.foldl (fun x o => match o with
       | .save _ _ => x
-      | .snap m => max x (uint.nat m.Index')) x ≤ X
+      | .snap m _ => max x (uint.nat m.Index')) x ≤ X
   | [], _, _, h, _ => h
   | o :: P, x, X, h, hm => by
     simp only [List.foldl_cons]
-    apply snapMax_le P _ X _ (fun m h' => hm m (List.mem_cons_of_mem _ h'))
+    apply snapMax_le P _ X _ (fun m al h' => hm m al (List.mem_cons_of_mem _ h'))
     cases o with
     | save _ _ => exact h
-    | snap m => exact Nat.max_le.2 ⟨h, hm m (List.mem_cons_self ..)⟩
+    | snap m al => exact Nat.max_le.2 ⟨h, hm m al (List.mem_cons_self ..)⟩
 
 theorem walMaxSnapIdx_append (P Q : WalHist) (X : Nat) (hP : walMaxSnapIdx P ≤ X)
-    (hQ : ∀ m, WalOpG.snap m ∈ Q → uint.nat m.Index' ≤ X) : walMaxSnapIdx (P ++ Q) ≤ X := by
+    (hQ : ∀ m al, WalOpG.snap m al ∈ Q → uint.nat m.Index' ≤ X) : walMaxSnapIdx (P ++ Q) ≤ X := by
   unfold walMaxSnapIdx at hP ⊢
   rw [List.foldl_append]
   exact snapMax_le Q _ X hP hQ
@@ -303,11 +303,11 @@ theorem readAll_idxD {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : Lis
   generalize hD : (segsDs M md first P Ss).flatten = D at hix
   have hsn := raIdxT_snap_le U s D (W64 0, W64 0)
   rw [hix] at hsn
-  have hsnap : ∀ m, WalOpG.snap m ∈ Ss.flatten → uint.nat m.Index' ≤ uint.nat ix.2 := by
-    intro m hm
-    have hmem := snap_mem_segsDs M md first P Ss m hm
+  have hsnap : ∀ m al, WalOpG.snap m al ∈ Ss.flatten → uint.nat m.Index' ≤ uint.nat ix.2 := by
+    intro m al hm
+    have hmem := snap_mem_segsDs M md first P Ss m al hm
     rw [hD] at hmem
-    exact hsn.2 _ hmem rfl _ (hU.snap m)
+    exact hsn.2 _ hmem rfl _ (hU.snap m al)
   have hms : walMaxSnapIdx I ≤ uint.nat ix.2 := by
     rw [hI]
     apply walMaxSnapIdx_append P _ _ _ hsnap
@@ -354,7 +354,7 @@ theorem readAll_idxD {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : Lis
           · split at h
             · cases h
             · simp only [List.mem_singleton] at h; subst h; exact absurd ht (by simp [entryType, stateType, snapshotType, metadataType, crcType])
-        | snap m =>
+        | snap m al =>
           simp only [opDs, List.mem_singleton] at h; subst h; exact absurd ht (by simp [entryType, stateType, snapshotType, metadataType, crcType])
     · intro td htd ht p hp
       rw [← hD] at htd
@@ -379,13 +379,13 @@ theorem readAll_idxD {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : Lis
           · split at h
             · cases h
             · simp only [List.mem_singleton] at h; subst h; exact absurd ht (by simp [entryType, stateType, snapshotType, metadataType, crcType])
-        | snap m =>
+        | snap m al =>
           simp only [opDs, List.mem_singleton] at h
           subst h
           rw [hU.snap m] at hp
           cases hp
           have hidx : uint.nat m.Index' ≠ 2 ^ 64 - 1 := fun h =>
-            hnm ⟨WalOpG.snap m, by rw [hI]; exact List.mem_append_right _ ho, h⟩
+            hnm ⟨WalOpG.snap m al, by rw [hI]; exact List.mem_append_right _ ho, h⟩
           have : uint.nat m.Index' < 2 ^ 64 := (show uint.nat m.Index' < 2 ^ 64 from m.Index'.isLt)
           simp only
           omega

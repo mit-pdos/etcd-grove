@@ -227,7 +227,7 @@ theorem lease.srvInv_lessorRd (on : Bool) (s : Loc) (E : apply.AEnv GF) (m : lea
 /-- (the lease-expiry plan's X2, 2026-11-04) **A grant's mode-free fact in the monotone mode**: a
 lease live in the lessor's history from `i` (what the grant's reply carries, `leaseLiveFrom`) was
 granted at an index `j ≥ i` of the monotone history (`leaseGrantedAt`, which every later listing
-lists). What v3rpc's `lessorGrantOkL_of_server` takes. Whatever the first snapshot. -/
+lists). What v3rpc's `lessorGrantOkLM_of_server` takes. Whatever the first snapshot. -/
 theorem lease.srvInvAt_grantedAt (on : Bool) (s : Loc) (E : apply.AEnv GF) (σ₀ : lease.LSnap)
     (i : Nat) (id : w64) (l : Loc) :
     lease.srvInvAt on s E .mono σ₀ ∗ lease.leaseLiveFrom (mvcc.api.mvccLeases E.γ) i id l ⊢

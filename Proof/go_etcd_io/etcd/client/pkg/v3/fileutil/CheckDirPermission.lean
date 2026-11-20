@@ -29,10 +29,10 @@ variable [os_sem : os.Assumptions] [os.fileStat.FieldAssumptions]
 
 /-- `os.Stat` of a directory, its result dropped (the form `fileutil.Exist.spec` takes). -/
 theorem wp_statDir_err' (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Stat)) (Val #p))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R p dq J ∗
-        osCallPerm qc }} := by
+        osCallPerm (callKey R p) qc }} := by
   iintro %Φ Hpre HΦ
   wp_apply os.Stat.wp_dirS p R J dq qc $$ Hpre as %fi %err ⟨Hp, Hperm, -⟩
   iapply HΦ

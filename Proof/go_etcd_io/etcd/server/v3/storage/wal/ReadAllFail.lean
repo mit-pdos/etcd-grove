@@ -8,7 +8,7 @@ yet zeroed, idle: it unregisters it on the spot (`walInv_untailPend`, `walInvBod
 pending token). An exit after the fdatasync that follows `ZeroToEnd` (the directory's `Fsync`, `syncDir`,
 `!match`) holds its key and the tail synced (`TailMetaS`): it unregisters it the same way
 (`walInv_untailKey`, `walInvBody_untail`). Both leave the failed handle's idle form (`walFailIdle`), so
-`Close` syncs an idle tail and puts it back as `Close.specOpening` does. The two exits in between
+`Close` syncs an idle tail and puts it back as `Close.spec` (state `opening`) does. The two exits in between
 (`ZeroToEnd`'s error, the fdatasync's) leave the tail lent (`walFailLent`), for `Close`'s `w.sync()`.
 
 `walReadFailedF_idle`/`walReadFailedF_lent` build the sealed handle from the pieces each exit holds.
@@ -121,7 +121,7 @@ def walFailCommon (w : Loc) (dir : GoString) (lg : Loc) (locks : GoSlice) (ls : 
     sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
       (BI.pure True : IProp GF) ∗ encEnv ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
-    os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (1 : Qp).half.half ∗
+    os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨(gs0 ++ [gL]).map (·.ino), [(j, .except X)], [dir]⟩ ∗
     walNamesFrag (W := W) none ∗ walDirKey (W := W) dir j X ∗
@@ -262,7 +262,7 @@ theorem walReadFailedF_idleIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
       sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
         (BI.pure True : IProp GF) ∗ encEnv ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
-      os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (1 : Qp).half.half ∗
+      os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       walOutFrag (W := W) ⟨(gs0 ++ [gL]).map (·.ino), [(j, .except X)], [dir]⟩ ∗
       walNamesFrag (W := W) none ∗ walDirKey (W := W) dir j X ∗
@@ -314,7 +314,7 @@ theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
       sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
         (BI.pure True : IProp GF) ∗ encEnv ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
-      os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (1 : Qp).half.half ∗
+      os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       walOutFrag (W := W) ⟨(gs0 ++ [gL]).map (·.ino), [(j, .except X)], [dir]⟩ ∗
       walNamesFrag (W := W) none ∗ walDirKey (W := W) dir j X ∗
@@ -342,11 +342,11 @@ theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
   iframe
   ipureintro; exact ⟨hwr, segs, gLL, hcl, hgLL⟩
 
-theorem osCallPerm_halves' :
-    osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half.half (1 : Qp).half.half
+theorem osCallPerm_halves' (k : GoString) :
+    osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ∗
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ⊢
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half.half (1 : Qp).half.half
   rw [Qp.half_add_half] at h
   exact h.2
 
@@ -452,7 +452,7 @@ theorem readAll_failPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) 
       sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
         (BI.pure True : IProp GF) -∗ encEnv -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df -∗
-      os.ownFile df dfd dir (DFrac.own 1) -∗ osDirFdS dfd j ph -∗ osCallPerm (1 : Qp).half.half -∗
+      os.ownFile df dfd dir (DFrac.own 1) -∗ osDirFdS dfd j ph -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], [dir]⟩ -∗
       walNamesFrag (W := W) none -∗ walDirKey (W := W) dir j X -∗
@@ -495,6 +495,8 @@ theorem readAll_failPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) 
   iintro %dq HQ Hfail
   iapply Hcont $$ HQ
   rw [← hgetD] at *
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
+  ihave Hph := walPerm_toW hWR dir _ $$ Hph
   iapply walReadFailedF_idleIntro Mr w dir lg locks ls lt fp j X hj gs0 gl fls df dfd ph fsI gl fdl
     (walSegFd true lo lk gl.ino) null hfI hlI (by rw [hfll]; simp)
     (fun k F g h1 h2 => (hfk k F g (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 h1).1]; exact h1)
@@ -535,7 +537,7 @@ theorem readAll_failSynced {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots
       sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
         (BI.pure True : IProp GF) -∗ encEnv -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df -∗
-      os.ownFile df dfd dir (DFrac.own 1) -∗ osDirFdS dfd j ph -∗ osCallPerm (1 : Qp).half.half -∗
+      os.ownFile df dfd dir (DFrac.own 1) -∗ osDirFdS dfd j ph -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       walOutFrag (W := W) ⟨(gs0 ++ [gl]).map (·.ino), [(j, .except X)], [dir]⟩ -∗
       walNamesFrag (W := W) none -∗ walDirKey (W := W) dir j X -∗
@@ -564,6 +566,8 @@ theorem readAll_failSynced {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots
   iapply readAll_failWpQ walCodec Mr R jr r w dir sn Q dc e Φ h $$ Hinv Hgh HQ
   iintro %dq HQ Hfail
   iapply Hcont $$ HQ
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
+  ihave Hph := walPerm_toW hWR dir _ $$ Hph
   iapply walReadFailedF_idleIntro Mr w dir lg locks ls lt fp j X hj gs0 gl fls df dfd ph fsI ⟨gl.name, gl.ino, m, bs⟩
     fdl ⟨gl.ino, rd, true, lo, lk⟩ enc hfI hlI hfll hfk hlastN hiL hXt hsz ⟨rfl, hTM.1.1.symm⟩ rfl
   iframe

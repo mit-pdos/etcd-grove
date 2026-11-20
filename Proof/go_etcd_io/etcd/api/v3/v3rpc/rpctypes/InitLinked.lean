@@ -409,7 +409,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipureintro
   repeat' (first
     | assumption
-    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat⟩
+    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat, EtcdGrove.RpctypesEtcdErrorMethods.errorSig⟩
     | constructor)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

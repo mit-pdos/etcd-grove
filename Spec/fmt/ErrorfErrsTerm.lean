@@ -8,6 +8,13 @@ result. **A hypothesis** (of `readWALNames`' and `openWALFiles`' proofs), not pr
 (`errors.New(format)`, a leaf). The general fix is a Perennial change (`notes/perennial-changes.md`, 2026-11-14,
 "`errors.Is` on `fmt.Errorf`'s result"). Ledger 2026-11-14, "no `errors.Is` termination on their errors"
 (`wal-vsnap4`). Lean-first.
+
+Restated 2026-11-18 (fmt soundness; approved by the user, 2026-11-18, via etcd-grove-03): the premise is
+`fmt.ErrorfErrs.spec`'s, `fmt.errArgsWf` (an error argument only under `%v`/`%s`/`%w`, no `#` in the format) with
+`errOk` = `fmtErrorOk` (`Error() string`, no `Format`), so that Go calls only the error arguments'
+`Error()`; the post's `errOk err` says `fmtErrorOk` of the result (true of Go's three result types and of
+the model's). Until then any verb and any type with an `Error()` WP were admitted, which Go does not satisfy
+(`Format` methods, `Error() int`: `Spec/fmt/ErrorfErrs.lean`'s header).
 -/
 module
 
@@ -31,7 +38,7 @@ variable [sem : go.Semantics]
 /-- See the file header. -/
 abbrev fmt.ErrorfErrsTerm.spec : Prop :=
   ∀ (format : GoString) (args_sl : GoSlice) (args : List GoAny) (errs : List GoInterfaceOk),
-  (∀ ii, interface.ok ii ∈ args → fmt.ArgWf ii ∨ ii ∈ errs) →
+  fmt.errArgsWf errs format args →
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args ∗
         [∗list] e ∈ errs, errOk e ∗ errIsTerm (GoInterface.ok e) }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))

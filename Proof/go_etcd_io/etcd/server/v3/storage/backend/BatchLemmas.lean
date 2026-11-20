@@ -277,12 +277,13 @@ the write buffer) keeps the bounds. -/
 theorem bgOk_step {P : BParams} {st st' : BSess} {n w u : Nat}
     (h : bgOk P st false n w u) (hR : st'.R = st.R) (hc : st'.cnt = st.cnt)
     (hp : sint.nat st'.pend = sint.nat st.pend + 1)
-    (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1) :
+    (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1)
+    (hT : trkOk P st st.tk → trkOk P st' st'.tk) :
     bgOk P st' false n w u := by
   unfold bgOk at h ⊢
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10, ht, -⟩ := h
   rw [hR, hc]
-  refine ⟨h1, h2, h3, by omega, h5, h6, ?_, ?_, by simp, h10⟩
+  refine ⟨h1, h2, h3, by omega, h5, h6, ?_, ?_, by simp, h10, hT ht, by simp⟩
   · intro i
     obtain ⟨a1, a2⟩ := h7 i
     have := hW i

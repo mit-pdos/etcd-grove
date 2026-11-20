@@ -59,7 +59,7 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     iintro ⟨Hlc5, Hlc6, Hlc7, _⟩
     iapply broadcast_chan_receive dnc γ.done _ _ .Unknown $$ Hdnci
     iintro ⟨#Hesc, _⟩
-    imod rn_esc_take E γ apc (storage.walOf st') A $$ Hapci Hesc Hsc Happ Hlc5 Hlc6
+    imod rn_esc_take E γ apc A $$ Hapci Hesc Hsc Happ Hlc5 Hlc6
       with ⟨Hvac, %S, %σ, HrS, Hcl, %Hord, #Hσc, #Hl'⟩
     wp_auto
     iapply HΦ
@@ -81,7 +81,7 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     · iexact Hdch
     iapply broadcast_chan_receive dnc γ.done _ _ .Unknown $$ Hdnci
     iintro ⟨#Hesc, _⟩
-    imod rn_esc_take E γ apc (storage.walOf st') A $$ Hapci Hesc Hsc Happ Hlc3 Hlc4
+    imod rn_esc_take E γ apc A $$ Hapci Hesc Hsc Happ Hlc3 Hlc4
       with ⟨Hvac, %S, %σ, HrS, Hcl, %Hord, #Hσc, #Hl'⟩
     wp_auto
     iapply HΦ

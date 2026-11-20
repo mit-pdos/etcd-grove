@@ -3,7 +3,7 @@
 # The fdatasync of an idle tail, the step (the W7-W12 log of `notes/wal-fsext-plan.md`, sixth session)
 
 `wp_idleFsync`: the extension's `Fsync` on the tail of a WAL no handle has registered (`Close` of
-`Open`'s handle before `ReadAll`, `WAL.Close.specOpening`), the program holding half of the tail's
+`Open`'s handle before `ReadAll`, `WAL.Close.spec` (state `opening`)), the program holding half of the tail's
 `OsMeta` and bytes and half of the WAL directory's claim, in which the file is at the last `.wal` name
 (what `openAtIndex` opened last: `readWALNames` sorts the names, `selectWALFiles` takes a suffix). It
 opens `walInv`, joins the halves with the invariant's (`walInvBody_syncIdle`, `TailSyncIdle.lean`) and

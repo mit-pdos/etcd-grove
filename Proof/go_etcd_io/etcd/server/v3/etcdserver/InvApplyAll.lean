@@ -131,7 +131,7 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     -- (this member's sends); (restart3 A1, 2026-11-15, D-A0-2) the wrapper's node
     -- and its inbound methods (`rnStepIfc`, `srvProcOk`'s), which `ReportSnapshot` of a deferred or
     -- dropped merged snapshot reads
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
+    (∃ γm : RNNames GF, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
       rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γm ∗ rnStepIfc γm (rnNodeIface γm)) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
@@ -139,7 +139,10 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads (2026-10-30, the
     -- repair: no bound; until then past the receipts' bound, `NewServer.spec`'s run bound, so
     -- that every compaction was at index `1`)
-    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu) ∗
+    -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode at least the
+    -- receipts' bound (which bounds the applied index: compactions at index `1` only)
+    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu ∗
+      ⌜clusterNoSnap γr.raft.raft.cl → receiptBound GF ≤ uint.Z scu⌝) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`, which `compactRaftLog` reads and
     -- `sendMergedSnap` writes
     srvInflight s ∗

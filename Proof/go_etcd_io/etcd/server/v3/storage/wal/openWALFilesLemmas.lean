@@ -316,11 +316,7 @@ theorem walOpen_succ (jj : w64) (n : Nat) (hj0 : 0 ≤ sint.Z jj) (hn : n < 2 ^ 
 /-- A `fmtErrorOk` error is `errOk` (as `fileutil.errOk_of_fmtErrorOk`, a proof file's lemma). -/
 theorem walOpen_errOk (e : GoInterfaceOk) :
     fmtErrorOkOrNil (GF := GF) (GoInterface.ok e) ⊢ errOk e := by
-  unfold fmtErrorOkOrNil fmtErrorOk
-  iintro ⟨-, H⟩
-  unfold errOk
-  rw [fmt.stringMethodSpec_unfold]
-  iexact H
+  exact errOk_of_fmtErrorOkOrNil e
 
 /-- `os.OpenFile(d/b, flag, 0600)` of a file `b` of a claim, as `TryLockFile` takes it: the
 claim's resources lent and given back, the inode `i`. -/
@@ -330,9 +326,9 @@ theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
     fileutil.OpenTriple (X := Unit)
-      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc))
+      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (child d b) flag (W32 384)
-      (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc))
+      (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (fun _ i' => i' = i) := by
   unfold fileutil.OpenTriple
   iintro %Φ ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ

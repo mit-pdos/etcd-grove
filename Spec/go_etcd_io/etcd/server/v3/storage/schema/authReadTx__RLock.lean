@@ -23,12 +23,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- An `authReadTx` whose `tx` is the transaction `rt` over the auth buckets for `R`: `R` becomes
-the token of a well-formed snapshot, under which the transaction's reads are the snapshot's. -/
+the token of a well-formed snapshot, under which the transaction's reads are the snapshot's; and a later credit
+(auth-schema-srv A6, form: the realization observes its invariant after the call). -/
 abbrev schema.authReadTx.RLock.spec : Prop :=
-  ∀ (atx : Loc) (rt : GoInterfaceOk) (R : IProp GF) (Held : schema.AuthData → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.authRTx rt R Held ∗ R }}
+  ∀ (atx : Loc) (rt : GoInterfaceOk) (R : IProp GF) (Held : Loc → schema.AuthData → IProp GF)
+    {ι : Type} (L : ι → IProp GF) (i : ι),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.authRTx rt R L Held ∗ R ∗ L i }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"RLock")) (Val #()))
-  {{ RET #(); ∃ D : schema.AuthData, ⌜schema.authWf D⌝ ∗ Held D ∗ schema.authReader rt (Held D) D }}
+  {{ RET #(); (∃ (x : Loc) (D : schema.AuthData), ⌜schema.authWf D⌝ ∗ Held x D ∗ L i ∗ schema.authReader rt (Held x D) D) ∗ £ 1 }}
 
 end spec
 

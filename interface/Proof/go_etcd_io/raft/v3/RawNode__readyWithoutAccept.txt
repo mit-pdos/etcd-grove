@@ -49,7 +49,7 @@ theorem RawNode.readyWithoutAccept.wp_proof [package_sem : Assumptions] (wp_raft
                                           "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
                                             "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
                                               ("#Hrs_ok" ∷ [∗list] st ∈ sts, readStateRaw γ st) ∗
-                                                "#Hhard" ∷ hsOpt rd.HardState' h ∗
+                                                "#Hhard" ∷ hsOptC rd.HardState' h ∗
                                                   "#Hhsw" ∷
                                                     hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length -∗
                       Φ (intoVal rd)) -∗

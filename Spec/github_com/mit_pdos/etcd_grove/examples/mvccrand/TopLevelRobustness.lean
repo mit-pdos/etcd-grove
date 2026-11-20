@@ -15,6 +15,7 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
 public import Spec.sort.Slice
+public import GooseLang.Ext.Fs.PathFitsLemmas
 
 @[expose] public section
 
@@ -55,7 +56,8 @@ def mvccrand_robust.spec : Prop :=
     (HEnv : verifyEnvOff (mvccrandProgram r)) (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
-    (Habs : (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 go!"mvccrand.db" = none),
+    (Habs : (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 go!"mvccrand.db" = none)
+    (Hrfit : Fs.DirFits r),
     Robustness.Robust [] [(mvccrandProgram r, σ)] g (2 ^ 28 - 1)
 
 end adequacy

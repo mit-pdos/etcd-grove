@@ -186,7 +186,7 @@ theorem compactor.getCompactRev.wp_proof
       iright; ileft
       isplitr
       · iexact He2
-      · ipureintro; exact He2t.1
+      · ipureintro; exact He2t
     ipureintro; simp
   -- the `Get` succeeded
   subst Herr

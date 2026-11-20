@@ -218,9 +218,9 @@ half (for `newHeader`), the chain's resources, the contract at the backend `B`'s
 of the thread's KV resources to rebuild `kvOwn` with the half. -/
 theorem mPre_split (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    mPre E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wSt E.γs log cr ∗
+    mPre E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wStQ E.γs E.stq log cr ∗
       chainRes c a info ∗ srvApi.csContractA (E.Pk B) E.f Pre Q Post ∗
-      (srvApi.wSt E.γs log cr -∗ kvOwn E log) := by
+      (srvApi.wStQ E.γs E.stq log cr -∗ kvOwn E log) := by
   iintro H
   iunfold mPre at H
   icases H with ⟨⟨%cr, Hw⟩, Hll, Hrd, Hres, %B, Hbk, Hhk, Htie, Hcs⟩

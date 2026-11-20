@@ -1,6 +1,6 @@
 /-
 **The server's `LeaseGrant` meets the handler's contract at the lessor's history** (the lease-grant
-plan's 2.4, `notes/lease-grant-plan.md`): `lessorGrantOkL s E S` (`InvLeaseGrant.lean`) from the
+plan's 2.4, `notes/lease-grant-plan.md`): `lessorGrantOkLM E.authOn s E ρ S` (`InvLeaseGrant.lean`) from the
 server's `EtcdServer.LeaseGrant.spec`, in a cluster that grants leases, at a run's resource `S`
 lending the request path's readers. Lean-first (no Rocq counterpart).
 -/
@@ -35,27 +35,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **The grant contract is monotone in its success fact** (the lease-expiry plan's X2,
-2026-11-04): a contract at `G` is one at any `G'` that `G` entails (at every request); (E3, 2026-11-04) and at any
-request filter `R'` narrower than its `R`. -/
-theorem lessorGrantOkG_mono (s : Loc) (E : apply.AEnv GF) (S : IProp GF)
-    (G G' : w64 × w64 → w64 → IProp GF) (R R' : w64 × w64 → Prop) (hR : ∀ m, R' m → R m) :
-    □ (∀ (m : w64 × w64) (id : w64), G m id -∗ G' m id) ∗ lessorGrantOkG s E S G R ⊢
-      lessorGrantOkG s E S G' R' := by
-  iintro ⟨#HGG, #HL⟩
-  unfold lessorGrantOkG
-  iintro %ci %cd %r %m !> %Φ ⟨HS0, Hctx, Hrc, Hreq, Hid, %HR'⟩ HΦ
-  wp_apply HL $$ [HS0 Hctx Hrc Hreq Hid] as %resp %err ⟨HSr, Hans, Hg⟩
-  · iframe; ipureintro; exact hR m HR'
-  iapply HΦ
-  iframe HSr Hans
-  icases Hg with (%Hne | ⟨%id, #Hid, Hg⟩)
-  · ileft; ipureintro; exact Hne
-  iright
-  iexists id
-  iframe Hid
-  iapply HGG $$ %m %id Hg
-
 /-- **The server's `LeaseGrant` meets the grant contract at the mode-free fact** (`grantLiveG`; the
 lease-expiry plan's X2, 2026-11-04) in a cluster that grants leases, given the
 run's resource `S` lending the request path's readers (`EtcdServer.LeaseGrant.spec`'s), with the auth store's contract
@@ -65,8 +44,7 @@ gRPC layer can take (`srvErrIs_of_applyErrIs`). (E3, 2026-11-04) For the request
 that, in the revocable lease mode, has only `ID = 0` (`EtcdServer.LeaseGrant.spec`'s premise).
 (Auth-lease S3c, decision D6/C5′, 2026-11-15: at the environment's auth mode, the server's view
 `isServerReqM E.authOn` and the contract `lessorGrantOkGM E.authOn`, the client's update passed
-through and the result at the request context's token; the auth-off contract is its `_false`
-instance.) -/
+through and the result at the request context's token.) -/
 theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvGrantsLeases E ρ)
     (R : w64 × w64 → Prop) (hR : ∀ m, R m → ρ.rd.kv.lm = .revocable → m.2 = W64 0) :
@@ -76,15 +54,15 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       lessorGrantOkGM E.authOn s E ρ S (grantLiveG E) R := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
   unfold lessorGrantOkGM
-  iintro %ci %cd %r %m %Q !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq, Hid, %HRm, Hp⟩ HΦ
+  iintro %ci %tok %cd %r %m %Q %n !> %Φ ⟨HSr, #Hn, #Hctx, #Hrun, #HtokC, #Hreq, Hid, %HRm, Hp⟩ HΦ
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   -- the permit at the server's context form (`hdrBoundM_tok`)
-  ihave Hp := leaseGrantPermitM_mono E.authOn ρ.raft ρ.kv _ (hdrBoundM true s E (GoInterface.ok ci)) m.1 Q
-    (fun hm => hdrBoundM_tok s E (GoInterface.ok ci) hm) $$ Hp
-  wp_apply (hLG s E ρ ci cd r m.1 m.2 Q) $$ [Hlt HRD Hid Hp] as %resp %err ⟨Hlt, HRD, Hans⟩
+  ihave Hp := leaseGrantPermitM_mono E.authOn ρ.raft ρ.kv _ (hdrBoundM true s E tok) m.1 Q
+    (fun hm => hdrBoundM_tok s E tok hm) $$ Hp
+  wp_apply (hLG s E ρ ci cd tok r m.1 m.2 Q n) $$ [Hlt HRD Hid Hp] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD
     isplitr
     · ipureintro; exact ⟨h, hR m HRm⟩
@@ -100,7 +78,7 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
   · iframe Hlt HRD
   iapply HΦ
   iframe HSr
-  icases Hans with (⟨%He, Hresp, -, Hres⟩ | ⟨%He, #HaE⟩)
+  icases Hans with (⟨%He, Hresp, -, #Hfr, Hres⟩ | ⟨%He, #HaE⟩)
   · obtain ⟨rfl, hnn⟩ := He
     iunfold leaseGrantedResp at Hresp
     icases Hresp with ⟨%id, %ttl, %e, %i, %hh, %rv, #Hh, #Hrv, %Hrv0, #Hlb, Hown, #Hid', %Hid0,
@@ -137,9 +115,12 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       icases Hgr with ⟨%l, #Hgl, #Hgreq⟩
       iexists i, l
       iframe Hgl Hgreq
+    isplitl [Hres]
+    rotate_left
+    · iapply leaseCheckFrom_of_authedFrom $$ Hfr
     cases hon : E.authOn
     · iapply leaseGrantResT_false
-    · ihave ⟨%id', #Hid2, HT⟩ := leaseGrantResT_true s E ρ ci m.1 resp Q $$ Hres
+    · ihave ⟨%id', #Hid2, HT⟩ := leaseGrantResT_true s E ρ tok m.1 resp Q $$ Hres
       icombine Hid' Hid2 gives %Hii
       subst Hii
       iexact HT
@@ -150,42 +131,27 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       iapply srvErrIs_of_applyErrIs _ hne $$ HaE
     ileft; ipureintro; exact hne
 
-/-- **`lessorGrantOkLive_of_server` with auth off** (the server's view `isServerReq`), at the auth-off
-contract `lessorGrantOkG` (`lessorGrantOkGM_false`). -/
-theorem lessorGrantOkLive_of_server_off (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
-    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvGrantsLeases E ρ)
-    (R : w64 × w64 → Prop) (hR : ∀ m, R m → ρ.rd.kv.lm = .revocable → m.2 = W64 0) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
-      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorGrantOkG s E S (grantLiveG E) R := by
-  iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
-  ihave %hoff := isServerReq_authOn s E ρ $$ Hq
-  have hthm := lessorGrantOkLive_of_server hLG s E ρ S h R hR
-  rw [hoff, isServerReqM_false] at hthm
-  iapply (lessorGrantOkGM_false s E ρ S (grantLiveG E) R).1
-  iapply hthm
-  iframe #
-
-/-- **The server's `LeaseGrant` meets `lessorGrantOkL`** (the grant at the lessor's history) in a
+/-- **The server's `LeaseGrant` meets `lessorGrantOkLM`** (the grant at the lessor's history) in a
 cluster that grants leases, (the lease-expiry plan's X2, 2026-11-04) in the monotone lease mode
 (`lease.srvInv … .mono`), which turns the reply's mode-free fact (`lessorGrantOkLive_of_server`)
 into the grant at the history (`lease.srvInv_grantedAt`); (E3) the names' lease mode not
-revocable, so every request is covered. -/
-theorem lessorGrantOkL_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
+revocable, so every request is covered. (Auth-lease S4, the C5′ merge, 2026-11-16: at the
+environment's auth mode, the server's view `isServerReqM E.authOn`; until then `lessorGrantOkL_of_server`,
+with auth off.) -/
+theorem lessorGrantOkLM_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (h : srvGrantsLeases E ρ)
     (hlm : ρ.rd.kv.lm ≠ .revocable) (on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       lease.srvInv on s E .mono ∗
-      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorGrantOkL s E S := by
+      lessorGrantOkLM E.authOn s E ρ S := by
   iintro ⟨#Hpkg, #Hli, #Hq, #Hau, #Hcred, #HS⟩
-  ihave #HL := lessorGrantOkLive_of_server_off hLG s E ρ S h (fun _ => True)
+  ihave #HL := lessorGrantOkLive_of_server hLG s E ρ S h (fun _ => True)
       (fun _ _ hr => absurd hr hlm) $$ []
   · iframe #
-  unfold lessorGrantOkL
-  iapply lessorGrantOkG_mono s E S (grantLiveG E) _ (fun _ => True) (fun _ => True) (fun _ h => h)
+  unfold lessorGrantOkLM
+  iapply lessorGrantOkGM_mono E.authOn s E ρ S (grantLiveG E) _ (fun _ => True) (fun _ => True) (fun _ h => h)
   iframe HL
   iintro !> %m %id Hg
   iunfold grantLiveG at Hg

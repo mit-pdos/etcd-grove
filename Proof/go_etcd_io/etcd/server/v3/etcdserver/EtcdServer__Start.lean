@@ -116,17 +116,26 @@ theorem EtcdServer.Start.wp_proof
     · iframe #; iframe Hrc; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
     iapply HΦ'
     try itrivial
-  -- `s.purgeFile`
-  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  -- `s.purgeFile` (wal-link L2): over `GoAttach`'s protocol and its goroutine's tokens, with no WAL
+  -- purge (`srvMonitorsOff`'s `MaxWALFiles`)
+  iunfold srvGoResAt at Hgr
+  icases Hgr with ⟨Hwr, Hgt⟩
+  iunfold srvWgReaderAt at Hwr
+  icases Hwr with ⟨#Hgok, Hwm⟩
+  ihave Hgr : srvGoResAt s γg $$ [Hwm Hgt]
+  · iunfold srvGoResAt; iunfold srvWgReaderAt; iframe Hwm Hgt; iframe #
+  ihave #Hoff' := Hoff
+  iunfold srvMonitorsOff at Hoff'
+  icases Hoff' with ⟨-, -, -, #Hmwf⟩
+  wp_apply wp_GoAttach_tokT hGA s γg _ iprop(True) $$ [Hgr] as Hgr
   · iframe Hgr
     isplitr
     · itrivial
-    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
-    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
-    wp_apply hPurge C.isOn s E γr $$ []
-    · iframe #
+    iintro !> %Φ' ⟨-, Hrun, Htf⟩ HΦ'
+    wp_apply hPurge s γg $$ [Htf] as Htf
+    · iframe #; iframe Htf
     iapply HΦ'
-    try itrivial
+    iframe
   -- `func() { monitorFileDescriptor(s.Logger(), s.stopping) }`
   wp_apply wp_GoAttach_tok hGA s γg _ (srvLgReader s) $$ [Hgr Hlgm] as Hgr
   · iframe Hgr Hlgm
@@ -178,7 +187,7 @@ theorem EtcdServer.Start.wp_proof
   -- `s.monitorKVHash`, `s.monitorCompactHash`, `s.monitorDowngrade`
   -- (audit B4a) off: `srvMonitorsOff`
   iunfold srvMonitorsOff at Hoff
-  icases Hoff with ⟨#Hcct, #Hdct, %fg, #Hfgf, #Hfgo⟩
+  icases Hoff with ⟨#Hcct, #Hdct, ⟨%fg, #Hfgf, #Hfgo⟩, -⟩
   wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
   · iframe Hgr
     isplitr

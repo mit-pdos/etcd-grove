@@ -119,7 +119,7 @@ theorem rnFixed_split (a : Loc) (rv : raftNode) :
 `r` field, after the copy and the transport set), its fresh `tickMu`, the components' predicates
 and what the node and the server provide give `isRaftNode E γ a` and the right to close `done`.
 A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RWMutex`). -/
-theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raftNode) :
+theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : raftNode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnLogFits γ ∗ rnReadStateBridge E γ ∗
       -- (restart S3 item 7) the restart data
@@ -128,15 +128,14 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       isRaftNodeIfc E γ rv.raftNodeConfig'.Node' ∗
       isRNIDRemoved rv.raftNodeConfig'.isIDRemoved' ∗
       ⌜rv.raftNodeConfig'.raftStorage' = γ.ms⌝ ∗ isRNMemStor γ γ.ms ∗
-      isWalStorage rv.raftNodeConfig'.storage' ∗
+      isWalStorage rv.raftNodeConfig'.storage' γ.wal.h γ.ss ∗
       -- (2026-11-03, R2b-1 stage 3c) the WAL's durability invariant
-      rnDurInv γ.node.cl γ.wal (storage.walOf rv.raftNodeConfig'.storage') ∗
+      rnDurInv γ.node.cl γ.wal γ.wal.h ∗
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
       rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
-      ownBroadcastChan rv.done' γ.done (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage'))
-        .Pending ⊢
+      ownBroadcastChan rv.done' γ.done (rnDoneEsc γ) .Pending ⊢
       |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
@@ -177,7 +176,7 @@ in every cluster), the loop's half of the running token, and `applyc`'s halves w
 `[[]]` (`newRaftNode`'s). (2026-10-27: over the node API. 2026-11-01, durability layer 4: the
 driver at the storage's key `γ.key`, and the node's durable state at `RaftState.init`, which goes
 into the loop's token beside the driver.) -/
-theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = []) (ha : γ.a0 = []) (ht : γ.t0 = W64 0)
+theorem rnToks_of_start (γ : RNNames GF) (hpre : γ.pre = []) (ha : γ.a0 = []) (ht : γ.t0 = W64 0)
     (hc0 : γ.commit0 = 0) (hs0 : γ.snap0 = 0)
     (hcfg : srvCfgOk γ.node.cfg [] ⟨0, Membership.simple γ.node.cfg⟩) :
     (letI := srvStor (GF := GF) γ.node;
@@ -253,7 +252,7 @@ restored hard state `p`; the durable state `S`; a follower), its view `v` after 
 (`newRaftNode`'s at `L₀ = P`), the loop's WAL view at `⟨S, p, none, srvLE γ.srv P⟩`, `P`'s frozen terms
 (the restarted storage's, `srvFrozenTerms_restart`), `P`'s indices from `1`, and the loop's fact
 (`commit0 ≤ p.Commit'`). -/
-theorem rnToks_of_restart (γ : RNNames) (P : List EntryModel) (p : HardStateM) (S : RaftState)
+theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardStateM) (S : RaftState)
     (v : ConfigView) (hpre : γ.pre = []) (hidx : srvIdxOkW (W64 0) P)
     (hc0 : γ.commit0 ≤ uint.nat p.Commit')
     (hcfg : srvCfgOk γ.node.cfg (rnGhost γ P) v) :
@@ -476,7 +475,7 @@ theorem srvMem_bootStorage
   · iintro !> %k %hk
     have : k = 0 := by omega
     subst this
-    unfold memStorJ
+    iapply memStorJ_B_le_one γr.cl K 0 (by decide)
     iapply nodeAppliedLb_zero γr.cl K
   · ileft; ipureintro; rfl
   ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
@@ -581,7 +580,9 @@ theorem srvMem_restartStorage
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) (A : Nat)
     (F : GName → IProp GF) (Hbc : σ.b ≤ σ.commit)
-    (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true) :
+    (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true)
+    -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
+    (Hns : ¬ clusterNoSnap γr.cl) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorRestarted ms γs σ cs ∗
@@ -636,7 +637,7 @@ theorem srvMem_restartStorage
   iintro %K #HA #HD
   ihave #HB : □ (∀ k, ⌜k ≤ σ.b⌝ -∗ (memStorJ γr.cl K).B k) $$ []
   · iintro !> %k %hk
-    simp only [memStorJ]
+    iapply memStorJ_B_off γr.cl K k Hns
     iapply nodeAppliedLb_mono γr.cl K _ k (by omega) $$ HA
   ihave Hsv : (⌜(walSnapCS σ cs).Metadata'.Index' = W64 0⌝ ∨
       (memStorJ γr.cl K).SV (walSnapCS σ cs) ∗
@@ -688,9 +689,9 @@ and the trust boundary provide, yields the wrapper's struct value, the tokens, t
 peers' slice back, and the installer of `isRaftNode` at the address the server copies the struct
 to (which takes the server's names and raft invariant in `rnEnvOk`). -/
 abbrev NodeStartSpec : Prop :=
-  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (ν : WalNames)
+    (ν : WalNames GF)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
@@ -706,7 +707,7 @@ abbrev NodeStartSpec : Prop :=
         -- `rnEnvOk` ties the names.)
         "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧
           ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧ γr.vs = ps ∧
-          storage.walReady wal ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧
+          wal = ν.h.w ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧
           -- (2026-11-09, Q8 stage 0) the cluster untraced (`srvClusterOk`'s)
           Cluster.trace γr.cl = none⌝ ∗
         -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode` logs through it)
@@ -736,24 +737,26 @@ abbrev NodeStartSpec : Prop :=
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
+        -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
+        "#Hssi" ∷ snap.isSnapshotter ss sd ∗
         -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (`wal.bootOk_start`): its invariant, the
         -- loop's view at the start and its token
-        "#Hdur" ∷ rnDurInv γr.cl ν wal ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
+        "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
         "Hwok" ∷ token ν.ok }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
-        ∃ (γw : RNNames) (rv : raftNode),
+        ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧ γw.a0 = [] ∧
+            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = [] ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
-            rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
-            -- (D22 J1a) the storage a `*storage` over the snapshotter `ss`
-            rnStorageOf rv.raftNodeConfig'.storage' ss ∧
-            -- (2026-10-31) over the WAL `wal` (whose open token `bootstrap`'s contract gives)
-            storage.walOf rv.raftNodeConfig'.storage' = wal⌝ ∗
+            rv.raftNodeConfig'.Node' = rnNodeIface γw⌝ ∗
+          -- (wal-link L3: until then the pure `rnStorageOf … ss ∧ storage.walOf … = wal`) the storage over the
+          -- open WAL `ν.h` and the snapshotter `ss`, with its two reader tokens (the loop's, the apply thread's)
+          isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss ∗
+          walStorRd rv.raftNodeConfig'.storage' γw.wal.h ∗ walStorRd rv.raftNodeConfig'.storage' γw.wal.h ∗
           -- the struct value, to be copied; its fresh mutex
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
           -- (D21 M2) the node's inbound methods (`Process`'s), from the start
@@ -800,9 +803,9 @@ snapshot valid by `walSnapCS_valid`), the WAL's durability at the view `⟨S, σ
 `snap0` the restored commit and base), and the installer. (restart3 A1, 2026-11-15: until then the
 installer took the restart-only premise `rnSnapTermAbove`, row 4, for `isRaftNode`'s `rnRestartOk`.) -/
 abbrev NodeStartSpecR : Prop :=
-  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (ν : WalNames) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
+    (ν : WalNames GF) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
     (σ : StorContents) (cs : ConfStateM) (S : RaftState) (m : Membership) (A₀ : List EntryModel),
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
@@ -812,13 +815,15 @@ abbrev NodeStartSpecR : Prop :=
         -- `srvCfgOk`), the backend's consistent index between the records' base and commit, the
         -- bootstrap log within the commit, the records holding `S`, the snapshot record's term the
         -- base's, the backend's conf state the voters' (D4, S6's) within raft's bounds
-        "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ 0 < sint.Z bv.heartbeat' ∧ storage.walReady wal ∧
+        "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ 0 < sint.Z bv.heartbeat' ∧ wal = ν.h.w ∧
           receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧ W64 0 ∉ γr.cfg ∧ GMap.size γr.cfg < 2 ^ 62 ∧
           σ.b ≤ A₀.length ∧ A₀.length ≤ σ.commit ∧ γr.cl.bootLen ≤ σ.commit ∧ StorageHolds S σ ∧
           (∀ m' : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m') → m'.Term' = σ.base.term') ∧
           confStateIs cs (Membership.simple γr.cfg) ∧
           (cs.Voters'.length + cs.Learners'.length + cs.VotersOutgoing'.length +
-            cs.LearnersNext'.length : Int) ≤ 2 ^ 62⌝ ∗
+            cs.LearnersNext'.length : Int) ≤ 2 ^ 62 ∧
+          -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
+          ¬ clusterNoSnap γr.cl⌝ ∗
         "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
         -- the registered `MemoryStorage` as `bootstrappedWAL.MemoryStorage` rebuilds it
@@ -840,24 +845,26 @@ abbrev NodeStartSpecR : Prop :=
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
+        -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
+        "#Hssi" ∷ snap.isSnapshotter ss sd ∗
         -- the WAL's durability at the restart's view (`rnDur_alloc_view`)
-        "#Hdur" ∷ rnDurInv γr.cl ν wal ∗
+        "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗
         "Hwview" ∷ ghostVar ν.view (1 : Qp).half
           (⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ : WalView) ∗
         "Hwok" ∷ token ν.ok }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
-        ∃ (γw : RNNames) (rv : raftNode),
+        ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧ γw.a0 = A₀ ∧ γw.t0 = σ.hs.Term' ∧ γw.commit0 = σ.commit ∧
+            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = A₀ ∧ γw.t0 = σ.hs.Term' ∧ γw.commit0 = σ.commit ∧
             γw.snap0 = σ.b ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
-            rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
-            rnStorageOf rv.raftNodeConfig'.storage' ss ∧
-            storage.walOf rv.raftNodeConfig'.storage' = wal⌝ ∗
+            rv.raftNodeConfig'.Node' = rnNodeIface γw⌝ ∗
+          isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss ∗
+          walStorRd rv.raftNodeConfig'.storage' γw.wal.h ∗ walStorRd rv.raftNodeConfig'.storage' γw.wal.h ∗
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
           rnStepIfc γw (rnNodeIface γw) ∗
           -- the tokens at `P` (Q34 (a))

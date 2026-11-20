@@ -53,75 +53,26 @@ open Iris Iris.BI backend
 /-- **bbolt opens the server's database files** (opaque; see the file header). -/
 opaque dbOpensOk : Prop
 
-/-- **The server's storage `p` was made over the snapshotter `ss`** (opaque; D22 receiver epochs,
-S8d, 2026-10-24): `NewStorage(lg, w, ss)` returned `p` (the `*storage` wrapping the WAL and `ss`,
-names-only: its struct is not translated). What `storage.Release`'s axiom names the snapshot
-directory by. -/
-opaque storageSnap (p ss : Loc) : Prop
-
-/-- **The server's storage releases succeed** (opaque, a named premise about the program's
-environment; D22 receiver epochs, S8d, 2026-10-24): `storage.Release`'s closing of the WAL's lock
-files below a snapshot and removal of the older `.snap.db` files do not fail (I/O). -/
-opaque releaseOk : Prop
-
-/-- (2026-10-31, `notes/axiom-review/savesnap.md`) **`w` is a WAL ready to write** (opaque): a
-`*wal.WAL` that `ReadAll` has read (its encoder set, a lock file held), as `bootstrapWAL` hands the
-server's (`bootstrap.go:666`). What `serverstorage.NewStorage`'s contract (`rnNewStorageOk`) is for:
-over a nil WAL, or one opened and not read, `Close`, `Save`, `SaveSnap` and `Sync` panic. -/
-opaque walReady (w : Loc) : Prop
-
-/-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL records a snapshot** (opaque, a named
-premise about the program's environment, as `releaseOk`): no write or sync of the WAL's records by
-`wal.Save` or `wal.SaveSnapshot` fails (I/O), in any incarnation of the program. Its uses: the `Save`
-and `SaveSnapshot` laws commit only under it (a failure gives `¬ walSaveOk`: `WAL__Save`'s post,
-`walSaveRn_spec`), and `bootstrapRestartContract`'s premise takes it (out_size C3, the restart clause:
-no `Save` into the sized WAL failed, `walRecs`' and `walFiles`' `sized`). -/
-opaque walSaveOk : Prop
-
-/-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL closes** (opaque, a named premise about
-the program's environment, as `walSaveOk`): `wal.Close`'s sync and closes of its files do not fail
-(I/O). -/
-opaque walCloseOk : Prop
-
-/-- (2026-10-31, the user's decision: `notes/decisions.md`, "The WAL's readiness and one disk
-premise") **The ghost name of the WAL `w`'s open token** (opaque): one per WAL, not per storage
-over it, so that every `NewStorage` over `w` shares its token (`walOpen`). -/
-opaque walGName (w : Loc) : GName
-
-/-- (2026-10-31) **The WAL a server storage writes** (opaque; `storage.st.w`, names-only: the
-struct is not translated): `NewStorage(lg, w, ss)`'s result's is `w` (`rnNewStorageOk`). -/
-opaque walOf [GooseExts] (st : GoInterface) : Loc
-
 /-- **The file system cooperates for an applied snapshot's files** (a named premise about the
 program's environment, as `dbOpensOk`; D22 receiver epochs, S8d, 2026-10-24): the snapshot
-directories' reads (`snap.dirReadOk`), the renames of a held file onto an owned entry
-(`backend.renameOk`), the storage's releases (`releaseOk`) and (W7, 2026-10-25) bbolt's close of the
-old backend (`backend.dbCloseOk`) do not fail. `applySnapshot` panics otherwise (`server.go:1063`,
+directories' reads (`snap.dirReadOk`, which since wal-link L3 also covers the storage's releases: until then
+their own opaque `releaseOk`), the renames of a held file onto an owned entry (`backend.renameOk`) and
+(W7, 2026-10-25) bbolt's close of the old backend (`backend.dbCloseOk`) do not fail. `applySnapshot` panics otherwise (`server.go:1063`,
 `:1105`, `:1138`); `applySnapshot.spec` takes it. The user's decision (W5, 2026-10-25): its own
 environment premise, not folded into `dbOpensOk`; not yet a premise of any closed theorem (it may
 become one at S-l). -/
 def snapOpensOk : Prop :=
-  (∀ ss : Loc, snap.dirReadOk ss) ∧ (∀ src dst : GoString, renameOk src dst) ∧ releaseOk ∧
-    dbCloseOk
-
-/-- (2026-11-03, the final whole-`bootOk` review's M1) **The WAL is created** (opaque, a named
-premise about the program's environment, as `walSaveOk`): at a first start, `wal.Create`'s file
-operations (the temporary directory, the first segment's creation, lock, preallocation and header
-write, the rename into place, the syncs) do not fail (I/O), and no other process creates a WAL in
-the directory meanwhile (one process per data directory, as `dbOpensOk`: `wal.Create` returns
-`ErrExist` if one appears after `bootstrap`'s check, `wal.go:103-105`, `bootstrap.go:77`).
-`bootstrapNewWAL` panics otherwise (`bootstrap.go:719`; `TestSpecBootstrapDisk`), and `wal.Create`
-itself panics on a failed cleanup of a failed creation (`cleanupWAL`, `wal.go:283-287`). -/
-opaque walCreateOk : Prop
+  (∀ ss : Loc, snap.dirReadOk ss) ∧ (∀ src dst : GoString, renameOk src dst) ∧ dbCloseOk
 
 /-- (2026-10-31, the user's decision: `notes/decisions.md`, "The WAL's readiness and one disk
 premise") **The disk cooperates** (a named premise about the program's environment, the one the
-exported results take): bbolt opens the database files (`dbOpensOk`), the snapshot's files and the
-storage's releases (`snapOpensOk`), and the WAL's snapshot records and close (`walSaveOk`,
-`walCloseOk`) do not fail, and (2026-11-03, the final whole-`bootOk` review's M1) the WAL is
-created (`walCreateOk`). Until 2026-10-31 the exported results took `dbOpensOk` alone. -/
+exported results take): bbolt opens the database files (`dbOpensOk`), and the snapshot's files and the
+storage's releases (`snapOpensOk`) do not fail. Until 2026-10-31 the exported results took `dbOpensOk`
+alone; from then to wal-link L3 (2026-11-19) also the WAL's records, close and creation (`walSaveOk`,
+`walCloseOk`, `walCreateOk`), which the real WAL's no-I/O-error premise (`NoIoErr` over every inode, the
+closed theorems' file semantics) replaces. -/
 def diskOk : Prop :=
-  dbOpensOk ∧ snapOpensOk ∧ walSaveOk ∧ walCloseOk ∧ walCreateOk
+  dbOpensOk ∧ snapOpensOk
 
 /-- **The configuration's mmap size is one the process can map** (2026-10-29, the `axiom` skill's
 `notes/axiom-review/openbackend.md`; 2026-10-30, `notes/axiom-review/openbackend-post.md`;
@@ -183,24 +134,6 @@ theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : 
   imod Hmk $$ %γ Hk with ⟨HW, HPk⟩
   imodintro
   iframe HW HPk Hf
-
-/-- (2026-10-31) **The WAL `w` open, at the fraction `q`** (`walGName w`'s ghost variable): every
-fraction lets the storages over `w` write it (`Save`, `SaveSnap`, `Sync`), the whole closes it
-(`Close`), so no write follows a close (`wal.Save` past its shortcut `cut()`s through `w.fp`, nil
-after `Close`). `bootstrap`'s contract (`bootOk`) gives the whole of the WAL it opens. -/
-def walOpen (w : Loc) (q : Qp) : IProp GF :=
-  dghostVar (walGName w) (.own q) ()
-
-instance walOpen_fractional (w : Loc) : Fractional (fun q => walOpen (GF := GF) w q) := by
-  unfold walOpen; infer_instance
-
-instance walOpen_as_fractional (w : Loc) (q : Qp) :
-    AsFractional (walOpen (GF := GF) w q) ioΦ (fun q => walOpen w q) ioq q where
-  as_fractional := .rfl
-  as_fractional_fractional := walOpen_fractional w
-
-instance walOpen_timeless (w : Loc) (q : Qp) : Timeless (walOpen (GF := GF) w q) := by
-  unfold walOpen; infer_instance
 
 end preds
 

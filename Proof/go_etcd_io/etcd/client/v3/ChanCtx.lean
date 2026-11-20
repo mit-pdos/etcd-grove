@@ -75,12 +75,18 @@ theorem chanCtx_valueNil (wp_Value : wait.channelContext.Value.spec (GF := GF) (
   ipureintro; rfl
 
 /-- **A `channelContext`'s library values are well formed** (`nil` at each key). -/
-theorem chanCtx_libCtxOk (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
+theorem chanCtx_libCtxOk [_root_.Perennial.context.Assumptions]
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
     (sc : GoChan) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ⊢
       context.libCtxOk (chanCtxVal sc) := by
   iintro #Pw
   iapply context.libCtxOk_of_nil
+  · simp [_root_.Perennial.context.valueSpecialTypes,
+      k8s_io.apimachinery.pkg.util.wait.channelContext.ty,
+      _root_.Perennial.context.valueCtx.ty, _root_.Perennial.context.cancelCtx.ty,
+      _root_.Perennial.context.withoutCancelCtx.ty, _root_.Perennial.context.timerCtx.ty,
+      _root_.Perennial.context.backgroundCtx.ty, _root_.Perennial.context.todoCtx.ty]
   iintro !> %k -
   iapply chanCtx_valueNil wp_Value sc k $$ Pw
 
@@ -141,7 +147,8 @@ theorem canceledOk_of_init
       go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
     unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
   ihave ⟨%Hc, #Hs⟩ := client.clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
-    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat $$ Hm
+    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat
+    EtcdGrove.errorString_errorSig $$ Hm
   isplitr
   · ipureintro; exact ⟨nofun, Hc⟩
   iframe Hs

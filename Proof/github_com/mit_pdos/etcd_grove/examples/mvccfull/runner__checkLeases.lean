@@ -143,7 +143,7 @@ theorem runner.checkLeases.wp_proof
       simp only [Option.isSome_none, Bool.false_eq_true, decide_false]
       (try wp_auto)
       wp_apply (wp_GetLease v.lp (mvccLeases v.ι.kv) (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk x)
-        _ _) $$ [$Hlrd $Hlo $Hlinv] as ⟨Hlrd, Hlo⟩
+        _ _ none) $$ [$Hlrd $Hlo $Hlinv] as ⟨Hlrd, Hlo⟩
       (try wp_auto)
       wp_apply wp_check
       · ipureintro; simp only [decide_eq_true_eq]; rw [hl, hlx]; rfl
@@ -158,7 +158,7 @@ theorem runner.checkLeases.wp_proof
       simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
       (try wp_auto)
       wp_apply (wp_GetLease v.lp (mvccLeases v.ι.kv) (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk x)
-        _ _) $$ [$Hlrd $Hlo $Hlinv] as ⟨Hlrd, Hlo⟩
+        _ _ none) $$ [$Hlrd $Hlo $Hlinv] as ⟨Hlrd, Hlo⟩
       (try wp_auto)
       wp_apply wp_check
       · ipureintro; simp only [decide_eq_true_eq]; rw [hl, hlx]
@@ -231,19 +231,19 @@ theorem runner.checkLeases.wp_proof
         intro h; have := (hLeases.2.1 id0 hidL).1; rw [h] at this; simp at this
       ihave ⟨Hlo, #Hlb0⟩ := lease.leaseOwn_lb (mvccLeases v.ι.kv) _ _ $$ Hlo
       wp_apply (wp_Lookup v.lp (mvccLeases v.ι.kv) id0 0
-          (some (leasesAfter ks ops v.ops, I))) $$
+          (some (leasesAfter ks ops v.ops, I)) none) $$
         [Hlrd Hlo] as %l ⟨Hlrd, -, Ho⟩
-      · iframe Hlinv Hlrd Hlb0; rw [lease.lookupView_some]; iexact Hlo
+      · iframe Hlinv Hlrd Hlb0; rw [lease.lookupViewW_some]; iexact Hlo
       ihave ⟨%Hl, Ho⟩ : iprop(⌜l = null ↔ id0 ∉ leasesAfter ks ops v.ops⌝ ∗
           ((⌜l = null⌝ ∗ lease.leaseOwn (mvccLeases v.ι.kv) (leasesAfter ks ops v.ops)
               I) ∨
             lease.leaseOwnOpen (mvccLeases v.ι.kv) (leasesAfter ks ops v.ops)
               I id0 l)) $$ [Ho]
-      · rw [← lease.lookupViewAfter_some]; iexact Ho
+      · rw [← lease.lookupViewAfterW_some]; iexact Ho
       have hlnn : l ≠ null := fun h => (Hl.1 h) hidL
       icases Ho with (⟨%Hnl, -⟩ | Ho)
       · exact absurd Hnl hlnn
-      iunfold lease.leaseOwnOpen at Ho
+      iunfold lease.leaseOwnOpen at Ho; iunfold lease.leaseOwnOpenW at Ho
       icases Ho with ⟨%HIs, #Hlobj, Hio, Hslot, Hback2⟩
       (try wp_auto)
       wp_apply wp_check

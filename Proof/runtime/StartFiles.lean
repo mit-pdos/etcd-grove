@@ -7,7 +7,8 @@ file's name in the tree's shared mode, it is derived instead, from what the file
 gives (`osStart`: the whole tree, `fs_start`) and a premise on the initial state (no file at the
 names): `start_fileHolds` switches the tree to the shared mode at the program's first step
 (`wp_osShareE`), splits the claim on the root directory's names into one claim per fresh name
-(`claims_split`), and gives each name a share of the call permission and the root's path. Untrusted.
+(`claims_split`), and gives each name a share of the root's call permission (its key's, since
+wal-link's L4: `osCallPerms_root`) and the root's path. Untrusted.
 
 The fresh files are names `b` of one root `r` of the file system's roots (`(r, j0) ∈ roots`): an
 absolute directory the program owns (`Impl.lean`'s environment: no other process changes it), with no
@@ -40,14 +41,14 @@ variable [sem : go.Semantics]
 
 /-- **Fresh files from a claim on a directory's names**: the claim on all names of `j0` but `acc`,
 split along fresh names `bs` (none of them in `acc`, none present: `h.cur !! b = none`), each with a
-share of the call permission and the path of the root `r` (`j0`'s), is `fileHoldsF (child r b) ∅` of
+share of the root `r`'s call permission (`callKey R r`, wal-link L4) and the path of the root `r` (`j0`'s), is `fileHoldsF (child r b) ∅` of
 each name `b`. -/
 theorem files_of_claim (R : Roots) (r : GoString) (j0 : Ino) (hr : (r, j0) ∈ R) :
     ∀ (bs acc : List GoString) (h : NamesH) (q : Qp), bs.Nodup → (∀ b ∈ bs, b ∉ acc) →
-      (∀ b ∈ bs, NameOk b) → (∀ b ∈ bs, h.cur !! b = none) →
+      (∀ b ∈ bs, NameOk b ∧ PathFits (child r b)) → (∀ b ∈ bs, h.cur !! b = none) →
       ⊢ osInv (L := hG.goose_localGS) -∗ osSharedInv (L := hG.goose_localGS) R -∗
         osNames (L := hG.goose_localGS) j0 (.except acc) (DFrac.own 1) h -∗
-        osCallPerm (L := hG.goose_localGS) q ={⊤}=∗
+        osCallPerm (L := hG.goose_localGS) (callKey R r) q ={⊤}=∗
         [∗list] b ∈ bs, backend.fileHoldsF (GF := GF) (child r b) ∅
   | [], _, _, _, _, _, _, _ => by
     iintro - - - -
@@ -64,7 +65,7 @@ theorem files_of_claim (R : Roots) (r : GoString) (j0 : Ino) (hr : (r, j0) ∈ R
     rw [hin, hdiff] at hsplit
     imod hsplit $$ Hsh Hn with ⟨Hb, Hrest⟩
     rw [← Qp.half_add_half q]
-    icases (osCallPerm_split (L := hG.goose_localGS) q.half q.half).1 $$ Hp with ⟨Hp1, Hp2⟩
+    icases (osCallPerm_split (L := hG.goose_localGS) (callKey R r) q.half q.half).1 $$ Hp with ⟨Hp1, Hp2⟩
     imod osPathS_root (E := ⊤) (L := hG.goose_localGS) R r j0 (DFrac.own 1) hr
       (fun _ _ => CoPset.mem_full) $$ Hsh with Hpath
     have hnd' := List.nodup_cons.1 hnd
@@ -88,7 +89,7 @@ theorem files_of_claim (R : Roots) (r : GoString) (j0 : Ino) (hr : (r, j0) ∈ R
     iexists R, r, b, DFrac.own 1, j0, q.half, h.restrict j0 (.only [b])
     iframe Hinv Hsh Hpath Hp1 Hb
     isplitr
-    · ipureintro; exact ⟨rfl, hok b (List.mem_cons_self ..)⟩
+    · ipureintro; exact ⟨rfl, (hok b (List.mem_cons_self ..)).1, (hok b (List.mem_cons_self ..)).2⟩
     unfold bbolt.nameHolds
     iright
     ipureintro
@@ -104,7 +105,8 @@ resources (`osStart` of an `FsInit` state), at the step of the program `e` (not 
 proof of `e` gets `backend.fileHolds (child r b) ∅` for each fresh name `b` of the root `r`. The
 tree is switched to the shared mode: the program's proof gets nothing else of the tree. -/
 theorem start_fileHolds (σ : OsState) (hfs : FsInit σ) (r : GoString) (j0 : Ino)
-    (bs : List GoString) (hr : (r, j0) ∈ σ.fs.roots) (hbs : bs.Nodup) (hok : ∀ b ∈ bs, NameOk b)
+    (bs : List GoString) (hr : (r, j0) ∈ σ.fs.roots) (hbs : bs.Nodup)
+    (hok : ∀ b ∈ bs, NameOk b ∧ PathFits (child r b))
     (habs : ∀ b ∈ bs, σ.fs.treeDur.entry j0 b = none) (e : Expr) (he : toVal e = none)
     (Φ : val → IProp GF) :
     ⊢ osStart (gooseOsGS (L := hG.goose_localGS)) σ -∗
@@ -120,7 +122,8 @@ theorem start_fileHolds (σ : OsState) (hfs : FsInit σ) (r : GoString) (j0 : In
   · unfold osTree; iexact Hd
   iapply wp_osShareE (L := hG.goose_localGS) σ.fs.roots (σ.fs.treeDur, []) e he
     (fun _ _ => CoPset.mem_full) Φ $$ Hinv Ht
-  iintro #Hsh Hperm - Hcl
+  iintro #Hsh #- Hperms - Hcl
+  icases osCallPerms_root (L := hG.goose_localGS) σ.fs.roots r j0 hfs.2.2.2.1 hr $$ Hperms with ⟨Hperm, -⟩
   -- the root's claim
   have hnow : Hist.now (σ.fs.treeDur, ([] : List LogEntry)) = σ.fs.treeDur := rfl
   have hj0 : j0 ∈ σ.fs.treeDur := hfs.2.2.2.2.1.1 j0 (Reach.root r j0 hr)

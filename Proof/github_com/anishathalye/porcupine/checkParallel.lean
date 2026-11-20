@@ -644,10 +644,21 @@ theorem checkParallel.wp_proof
             have : ¬ (sint.Z j < sint.Z l.len) := Hif
             word
           have hin : p0 ∈ keys := (Hkset p0).2 (HMs2 0 p0 hjl hps0 Hp0n)
-          intro hxs
-          rw [hxs] at Hxl
-          have : 0 < keys.length := List.length_pos_of_mem hin
-          simp at Hxl
+          have hall : ∀ k ∈ keys, k = p0 := fun k hk => by
+            have := (HMs k ((Hkset k).1 hk)).1
+            rw [Hpsrep] at this
+            exact List.eq_of_mem_replicate this
+          have hk1 : keys.length = 1 := by
+            match keys, Hknodup, hall, hin with
+            | [], _, _, h => cases h
+            | [_], _, _, _ => rfl
+            | a :: b :: t, hn, h, _ =>
+              exfalso
+              have ha := h a (by simp)
+              have hb := h b (by simp)
+              subst ha hb
+              simp at hn
+          rw [← Hklen, hk1] at Hxl
           omega
         · iright; iexact HD
       wp_auto

@@ -1,5 +1,5 @@
 /-
-**What a failed `Close` of a failed read leaves** (unit `locks`, session 3; ledger 2026-11-15, "`WAL.Close.specFailed`'s
+**What a failed `Close` of a failed read leaves** (unit `locks`, session 3; ledger 2026-11-15, "`WAL.Close.spec` (state `failed`)'s
 error arm for the boot path's `Repair`", P7 continued). `(*wal.WAL).Close()` returns `w.sync()`'s error before it
 closes any lock (S/wal.go:1060-1066): the locks stay held, the handle's ghost (the lock token) cannot be put back,
 and what the handle held of the WAL directory stays the caller's. `walCloseLeft dir` is that: the shared
@@ -30,16 +30,17 @@ open Iris Iris.BI Fs WalEnc
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 
-/-- **What a failed `Close` of a failed read leaves** (see the file header). -/
+/-- **What a failed `Close` of a failed read leaves** (see the file header); its roots the ghost
+names' (`W.roots`). -/
 def walCloseLeft (dir : GoString) : IProp GF :=
   iprop(∃ (R : Roots) (j : Ino) (X : List GoString) (hj : NamesH) (segs : List SegG) (gL : SegG) (qd : Qp)
       (k : LockKind) (fd : w64),
-    ⌜CloseLeftOk X hj segs gL⌝ ∗ osSharedInv R ∗ osPathS R dir (DFrac.own qd) j ∗
+    ⌜CloseLeftOk X hj segs gL⌝ ∗ osSharedInv R ∗ ⌜R = W.roots⌝ ∗ osPathS R dir (DFrac.own qd) j ∗
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-    osLock k gL.ino fd ∗ fileutil.lockKind k ∗ osCallPerm (1 : Qp).half)
+    osLock k gL.ino fd ∗ fileutil.lockKind k ∗ osCallPerm (callKey R dir) (1 : Qp).half)
 
 end defs
 

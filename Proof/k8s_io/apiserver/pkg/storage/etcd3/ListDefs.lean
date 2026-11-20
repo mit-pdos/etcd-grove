@@ -216,7 +216,7 @@ def ListSpec.listAt (L : ListSpec GF Obj) (lx : GoInterface) (os : List (Obj × 
 
 /-- **The reflect calls on the items** (Draft §6, #9 at the store's abstract element type; the
 `…` spots filled at Prove, one clause per call): `meta.GetItemsPtr` of a list; `MakeSlice(rt, 0,
-m)`, an empty items slice; `MakeSlice(rt, n, m)` for `n` items, whose `Copy(w, v)` then moves the
+m)`, an empty items slice, never nil (2026-11-19, stage 7g: `reflect.MakeSlice.spec`'s `s ≠ slice.nil`); `MakeSlice(rt, n, m)` for `n` items, whose `Copy(w, v)` then moves the
 items of `v`'s slice into it (`growSlice`); `Append(v, [e])` of an object, one item more
 (`processListItem`). -/
 def listContractOk' (S : ObjSpec GF Obj) (L : ListSpec GF Obj) : IProp GF :=
@@ -229,7 +229,7 @@ def listContractOk' (S : ObjSpec GF Obj) (L : ListSpec GF Obj) : IProp GF :=
     (□ ∀ (rt : _root_.Perennial.reflect.Type') (m : w64) (Φ : val → IProp GF),
       ⌜reflType rt (go.GoType.SliceType S.objTy) ∧ 0 ≤ sint.Z m ∧ sint.Z m ≤ 2 ^ 41⌝ -∗
       ▷ (∀ (w : _root_.Perennial.reflect.Value) (s' : GoSlice), ⌜reflSliceV w S.objTy s'⌝ -∗
-          L.itemsAt s' [] -∗ Φ #w) -∗
+          ⌜s' ≠ slice.nil⌝ -∗ L.itemsAt s' [] -∗ Φ #w) -∗
       WP (App (App (App (Val (@! _root_.Perennial.reflect.MakeSlice)) (Val #rt)) (Val #(W64 0)))
         (Val #m)) {{ Φ }}) ∗
     (□ ∀ (rt : _root_.Perennial.reflect.Type') (n m : w64) (os : List (Obj × GoString))
@@ -261,7 +261,9 @@ instance listContractOk'_persistent (S : ObjSpec GF Obj) (L : ListSpec GF Obj) :
   unfold listContractOk'; infer_instance
 
 /-- **The list half of the contract** (Draft §6): the reflect calls, the decoder's
-`DecodeListItem` and the versioner's `UpdateList`, and the list type is not unstructured. -/
+`DecodeListItem` and the versioner's `UpdateList` (on the list's metadata only, so the items slice
+stays: 2026-11-19, stage 7g, for `finalizeList`'s non-nil items), and the list type is not
+unstructured. -/
 def listContractOk (c : StoreCfg GF Obj) (L : ListSpec GF Obj) : IProp GF :=
   iprop(listContractOk' c.S L ∗
     □ (∀ (ctx : GoInterface) (dsl : GoSlice) (d : GoString) (rev : w64) (nf : GoFunc)
@@ -274,10 +276,10 @@ def listContractOk (c : StoreCfg GF Obj) (L : ListSpec GF Obj) : IProp GF :=
           Φ (PairV #x #err)) -∗
       WP (App (App (App (App (Val #(methods c.di.ty go!"DecodeListItem" c.di.v)) (Val #ctx))
         (Val #dsl)) (Val #rev)) (Val #nf)) {{ Φ }}) ∗
-    □ (∀ (pl : Loc) (os : List (Obj × GoString)) (rv rv' : w64) (cont cont' : GoString)
+    □ (∀ (pl : Loc) (rv rv' : w64) (cont cont' : GoString)
         (rem : Loc) (remV rem0 : Option w64) (Φ : val → IProp GF),
-      L.listAtItems pl os rv cont rem0 -∗ remIs rem remV -∗
-      ▷ (∀ err, ⌜err = GoInterface.nil⌝ ∗ L.listAtItems pl os rv' cont' remV -∗ Φ #err) -∗
+      L.metaAt pl rv cont rem0 -∗ remIs rem remV -∗
+      ▷ (∀ err, ⌜err = GoInterface.nil⌝ ∗ L.metaAt pl rv' cont' remV -∗ Φ #err) -∗
       WP (App (App (App (App (Val #(methods c.vi.ty go!"UpdateList" c.vi.v))
         (Val #(interface.mkOk (go.GoType.PointerType L.listTy) #pl : GoInterface))) (Val #rv'))
         (Val #cont')) (Val #rem)) {{ Φ }}) ∗
@@ -304,14 +306,36 @@ instance lastKeyIs_persistent (lk : GoSlice) (kvs : List EtcdKv) (n : Nat) :
   unfold lastKeyIs; split <;> infer_instance
 
 /-- **A list's answer** in the list object `lx` (Draft §2): the items (each object at its mod
-revision's string), the list's resource version, the continue token (`encL` of the last match's
+revision's string; the items slice never nil, 2026-11-19, stage 7g), the list's resource version,
+the continue token (`encL` of the last match's
 key and `"\x00"`, the prefix and the revision, iff more) and the remaining count (iff more and the
 predicate is empty). -/
 def listIs (c : StoreCfg GF Obj) (L : ListSpec GF Obj) (kp : GoString) (emp : Bool) (lim : w64)
     (R : w64) (a : k8s_etcd3.ListModel.LState w8 (Obj × Nat)) (lx : GoInterface) : IProp GF :=
-  L.listAt lx (a.items.reverse.map fun x => (x.1, c.S.fmtRV (W64 (x.2 : Int)))) R
-    (if a.more then k8s_etcd3.encL (a.last.getD [] ++ [W8 0]) kp R else [])
-    (if a.more ∧ emp then some (W64 (a.total : Int) - lim) else none)
+  iprop(∃ (pl : Loc) (s : GoSlice),
+    ⌜lx = interface.mkOk (go.GoType.PointerType L.listTy) #pl⌝ ∗ ⌜pl ≠ null⌝ ∗ ⌜s ≠ slice.nil⌝ ∗
+    L.itemsRef pl ↦ s ∗ L.itemsAt s (a.items.reverse.map fun x => (x.1, c.S.fmtRV (W64 (x.2 : Int)))) ∗
+    L.metaAt pl R
+      (if a.more then k8s_etcd3.encL (a.last.getD [] ++ [W8 0]) kp R else [])
+      (if a.more ∧ emp then some (W64 (a.total : Int) - lim) else none))
+
+open Iris.ProofMode in
+/-- `listIs` forgets that the items are non-nil: `listAt`. -/
+theorem listIs_listAt (c : StoreCfg GF Obj) (L : ListSpec GF Obj) (kp : GoString) (emp : Bool)
+    (lim R : w64) (a : k8s_etcd3.ListModel.LState w8 (Obj × Nat)) (lx : GoInterface) :
+    listIs c L kp emp lim R a lx ⊢
+      L.listAt lx (a.items.reverse.map fun x => (x.1, c.S.fmtRV (W64 (x.2 : Int)))) R
+        (if a.more then k8s_etcd3.encL (a.last.getD [] ++ [W8 0]) kp R else [])
+        (if a.more ∧ emp then some (W64 (a.total : Int) - lim) else none) := by
+  unfold listIs ListSpec.listAt ListSpec.listAtItems
+  iintro ⟨%pl, %s, %hlx, %hpl, %hs, Hp, Hit, Hm⟩
+  iexists pl
+  isplitr
+  · ipureintro; exact hlx
+  isplitr
+  · ipureintro; exact hpl
+  iexists s
+  iframe
 
 /-- **A list's error** whose outcome tells nothing (Draft §2, the driver's `EOther`): the
 client's, or the 410 `interpretListError` makes of an `ErrCompacted` (`NewResourceExpired`: reason

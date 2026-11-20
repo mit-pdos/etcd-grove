@@ -2,18 +2,20 @@
 **A context's outgoing metadata** (grpc's `metadata`, names-only; the auth plan's E2f,
 2026-10-25). Lean-first (no Rocq counterpart).
 
-The counterpart of `incomingOf` (`Incoming.lean`) on a call's side: the metadata a context
+The call side's counterpart of a context's incoming metadata (`metadata.ctxInMD`,
+`Proof/context/LibKeys.lean`; until perheap 1b the pure `incomingOf`): the metadata a context
 carries under grpc's outgoing-metadata key (`metadata.NewOutgoingContext`,
 `AppendToOutgoingContext`; read by `FromOutgoingContext` and by grpc's transport, which sends it as
 the call's header fields), a function of the context value (`outgoingOf`, opaque) for the same
 reason: a context is immutable. `mdAdd md k v` is the metadata with `v` appended to the values of
 `k` (as `AppendToOutgoingContext(ctx, k, v)` adds it, for a lower-case `k`); `mdSet md k vs`, with
 them set to `vs` (`MD.Set`). The client's auth
-contract (`examples/etcd/auth/ClientAuth.lean`, C1-C4) is stated over the two.
+contract (`examples/etcd/auth/ClientAuth.lean`, C1-C4) is stated over it and `ctxInMD`. It stays a
+pure function of a pointer until Part II of the per-heap redesign (`notes/perheap-scope.md`).
 -/
 module
 
-public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 
 @[expose] public section
 

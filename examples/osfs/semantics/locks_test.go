@@ -8,7 +8,9 @@ package semantics
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"testing"
@@ -308,5 +310,277 @@ func TestLocksPosixPerProcess(t *testing.T) {
 	a.Close() // releases the process's POSIX lock on the file, b's included
 	if err := ofdLk(c, unix.F_OFD_SETLK, syscall.F_WRLCK); err != nil {
 		t.Fatalf("OFD after closing a: %v, want nil", err)
+	}
+}
+
+// locks_mmap_close.go: a live mapping keeps its description, and its OFD and flock locks, after
+// the fd's close; the locks go with the last mapping made through it. For each kind: a locks
+// exclusively, maps the file twice, closes; b's non-blocking exclusive request gets EAGAIN while a
+// mapping is live (after one munmap too) and succeeds after the second. Without a mapping (the
+// control), b's request succeeds right after the close.
+func TestLocksMmapKeepsDescription(t *testing.T) {
+	name := extDir(t) + "/f"
+	if err := os.WriteFile(name, []byte("hello"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	type kind struct {
+		name   string
+		lock   func(*os.File) error
+		unlock func(*os.File) error
+	}
+	kinds := []kind{
+		{"ofd", func(f *os.File) error { return ofdLk(f, unix.F_OFD_SETLK, syscall.F_WRLCK) },
+			func(f *os.File) error { return ofdLk(f, unix.F_OFD_SETLK, syscall.F_UNLCK) }},
+		{"flock", func(f *os.File) error { return syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) },
+			func(f *os.File) error { return syscall.Flock(int(f.Fd()), syscall.LOCK_UN) }},
+	}
+	for _, k := range kinds {
+		for _, nmaps := range []int{0, 1, 2} {
+			a := openRW(t, name)
+			if err := k.lock(a); err != nil {
+				t.Fatalf("%s: a's lock: %v", k.name, err)
+			}
+			var ms [][]byte
+			for i := 0; i < nmaps; i++ {
+				m, err := syscall.Mmap(int(a.Fd()), 0, 5, syscall.PROT_READ, syscall.MAP_SHARED)
+				if err != nil {
+					t.Fatalf("%s: mmap: %v", k.name, err)
+				}
+				ms = append(ms, m)
+			}
+			if err := a.Close(); err != nil {
+				t.Fatalf("%s: close: %v", k.name, err)
+			}
+			b := openRW(t, name)
+			for i := 0; i < nmaps; i++ {
+				if err := k.lock(b); err != syscall.EAGAIN {
+					t.Fatalf("%s, %d maps, %d unmapped: b's lock: %v, want EAGAIN", k.name, nmaps, i, err)
+				}
+				if string(ms[i]) != "hello" {
+					t.Fatalf("%s: mapping reads %q", k.name, ms[i])
+				}
+				if err := syscall.Munmap(ms[i]); err != nil {
+					t.Fatalf("%s: munmap: %v", k.name, err)
+				}
+			}
+			// the control: b's lock succeeds once every mapping is gone. Retried on EAGAIN for a
+			// while: another process reading /proc/<pid>/fdinfo of a's closed fd keeps its
+			// description a moment longer (locks_spurious_eagain.go), which is not a mapping.
+			var err error
+			for try := 0; try < 200; try++ {
+				if err = k.lock(b); err != syscall.EAGAIN {
+					break
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			if err != nil {
+				t.Fatalf("%s, %d maps, all unmapped: b's lock: %v, want nil", k.name, nmaps, err)
+			}
+			if err := k.unlock(b); err != nil {
+				t.Fatal(err)
+			}
+			b.Close()
+		}
+	}
+}
+
+// locks_spurious_eagain.go: a non-blocking request may get EAGAIN although the process holds no
+// other fd or mapping of the file, while another process reads /proc/<pid>/fdinfo/<fd> of the fd
+// it closed (the reader's reference keeps the description, and its lock, alive past close(2)).
+// For each kind: a locks exclusively (non-blocking) and closes; b, a fresh open, asks for the same
+// lock, non-blocking. With the reader (a child process: this test binary, as
+// TestLocksProcReaderHelper), some round's b gets EAGAIN; at most 200000 rounds per kind. The
+// control (no reader) is only logged: the claim is that EAGAIN happens, not how often.
+func TestLocksProcReaderEagain(t *testing.T) {
+	if os.Getenv("LOCKS_PROC_READER") != "" {
+		t.Skip("helper's own run")
+	}
+	name := extDir(t) + "/f"
+	if err := os.WriteFile(name, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	type kind struct {
+		name string
+		lock func(int) error
+	}
+	kinds := []kind{
+		{"ofd", func(fd int) error {
+			lk := syscall.Flock_t{Type: syscall.F_WRLCK}
+			return syscall.FcntlFlock(uintptr(fd), unix.F_OFD_SETLK, &lk)
+		}},
+		{"flock", func(fd int) error { return syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB) }},
+	}
+	// rounds runs up to n rounds, stopping at the first EAGAIN when stop; it returns the count.
+	rounds := func(k kind, n int, stop bool) (eagain, done int) {
+		for i := 0; i < n; i++ {
+			a, err := syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := k.lock(a); err != nil {
+				// the previous round's b, or a lingering description: try again
+				syscall.Close(a)
+				continue
+			}
+			if err := syscall.Close(a); err != nil {
+				t.Fatal(err)
+			}
+			b, err := syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = k.lock(b)
+			syscall.Close(b)
+			done++
+			switch err {
+			case nil:
+			case syscall.EAGAIN:
+				eagain++
+				if stop {
+					return
+				}
+			default:
+				t.Fatalf("%s: b's lock: %v", k.name, err)
+			}
+		}
+		return
+	}
+	// the fd number a gets each round: the lowest free one
+	fd0, err := syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syscall.Close(fd0)
+	for _, k := range kinds {
+		e, n := rounds(k, 5000, false)
+		t.Logf("%s, no reader: EAGAIN in %d of %d rounds", k.name, e, n)
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestLocksProcReaderHelper$", "-test.count=1")
+	cmd.Env = append(os.Environ(), fmt.Sprintf("LOCKS_PROC_READER=/proc/%d/fdinfo/%d", os.Getpid(), fd0))
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { cmd.Process.Kill(); cmd.Wait() }()
+	time.Sleep(300 * time.Millisecond)
+	for _, k := range kinds {
+		e, n := rounds(k, 200000, true)
+		if e == 0 {
+			t.Fatalf("%s, with the reader: no EAGAIN in %d rounds", k.name, n)
+		}
+		t.Logf("%s, with the reader: EAGAIN after %d rounds (a closed, no mapping)", k.name, n)
+	}
+}
+
+// The reader of TestLocksProcReaderEagain (runs only with LOCKS_PROC_READER set): 8 goroutines
+// open, read and close the fdinfo file, forever.
+func TestLocksProcReaderHelper(t *testing.T) {
+	path := os.Getenv("LOCKS_PROC_READER")
+	if path == "" {
+		t.Skip("helper")
+	}
+	buf := make([]byte, 4096)
+	for k := 0; k < 8; k++ {
+		go func() {
+			for {
+				fd, err := syscall.Open(path, syscall.O_RDONLY, 0)
+				if err != nil {
+					continue
+				}
+				syscall.Read(fd, buf)
+				syscall.Close(fd)
+			}
+		}()
+	}
+	select {}
+}
+
+// env_no_close_during_lock.go (the run the environment excludes): a lock call blocked on a
+// conflict holds its own reference to the description, so after another goroutine's close(2) of
+// its fd returned 0 and the conflict is released, the call returns 0. For each kind (OFD's
+// F_OFD_SETLKW, flock's LOCK_EX) and each release (the holder's close, its unlock). Afterwards a
+// fresh description's non-blocking lock succeeds (the closed fd's lock went at the call's fdput).
+func TestLocksCloseDuringLock(t *testing.T) {
+	name := extDir(t) + "/f"
+	if err := os.WriteFile(name, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	lock := func(kind string, fd int, nb bool) error {
+		if kind == "flock" {
+			how := syscall.LOCK_EX
+			if nb {
+				how |= syscall.LOCK_NB
+			}
+			return syscall.Flock(fd, how)
+		}
+		cmd := unix.F_OFD_SETLKW
+		if nb {
+			cmd = unix.F_OFD_SETLK
+		}
+		lk := syscall.Flock_t{Type: syscall.F_WRLCK}
+		return syscall.FcntlFlock(uintptr(fd), cmd, &lk)
+	}
+	unlock := func(kind string, fd int) error {
+		if kind == "flock" {
+			return syscall.Flock(fd, syscall.LOCK_UN)
+		}
+		lk := syscall.Flock_t{Type: syscall.F_UNLCK}
+		return syscall.FcntlFlock(uintptr(fd), unix.F_OFD_SETLK, &lk)
+	}
+	open := func() int {
+		fd, err := syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return fd
+	}
+	for _, kind := range []string{"ofd", "flock"} {
+		for _, release := range []string{"close", "unlock"} {
+			holder := open()
+			if err := lock(kind, holder, true); err != nil {
+				t.Fatalf("%s: the holder's lock: %v", kind, err)
+			}
+			fd := open()
+			done := make(chan error, 1)
+			go func() { done <- lock(kind, fd, false) }()
+			time.Sleep(200 * time.Millisecond)
+			select {
+			case err := <-done:
+				t.Fatalf("%s: the blocking lock returned %v while the holder holds", kind, err)
+			default:
+			}
+			if err := syscall.Close(fd); err != nil {
+				t.Fatalf("%s: close of the waiting call's fd: %v", kind, err)
+			}
+			time.Sleep(100 * time.Millisecond)
+			if release == "close" {
+				syscall.Close(holder)
+			} else if err := unlock(kind, holder); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case err := <-done:
+				if err != nil {
+					t.Fatalf("%s, released by %s: the call on the closed fd returned %v, want nil", kind, release, err)
+				}
+				t.Logf("%s, released by %s: close(fd) returned 0, then the blocking lock on fd returned 0 (excluded by the model; the environment rules the run out)", kind, release)
+			case <-time.After(5 * time.Second):
+				t.Fatalf("%s, released by %s: the call on the closed fd still waits", kind, release)
+			}
+			fresh := open()
+			var err error
+			for try := 0; try < 200; try++ { // a /proc reader may delay it: locks_spurious_eagain.go
+				if err = lock(kind, fresh, true); err != syscall.EAGAIN {
+					break
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			if err != nil {
+				t.Fatalf("%s: a fresh lock afterwards: %v", kind, err)
+			}
+			syscall.Close(fresh)
+			if release == "unlock" {
+				syscall.Close(holder)
+			}
+		}
 	}
 }

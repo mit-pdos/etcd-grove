@@ -44,18 +44,25 @@ theorem wp_linkError (op old new : GoString) (e : w64) (Φ : val → IProp GF) :
   iapply HΦ
 
 theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) := by
-  intro d bs d' bt j j' i N N' R dq dq' h h' q1 r1 q2 r2 qc Q hbs hbt hN hN' hkey hsrc htgt hq1 hq2
+  intro d bs d' bt j j' i N N' R dq dq' h h' q1 r1 q2 r2 qc Q hbs hbt hN hN' hkey hsrc htgt hq1 hq2 hsr
   wp_start as ⟨#Hos, #Hsi, Hp, Hp', Hperm, Hn1, Hn2, Hau⟩
   imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn1 with ⟨Hn1, #Hlb1⟩
   imod osNames_next R j' N' _ h' CoPset.subseteq_top $$ Hsi Hn2 with ⟨Hn2, #Hlb2⟩
   ihave #Hlb := osLogLb_max h.next h'.next $$ [Hlb1 Hlb2]
   · iframe #
   iclear Hlb1 Hlb2
-  wp_apply wp_osCallBeginS R qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
+  imod osSharedInv_rootsOk R CoPset.subseteq_top $$ Hsi with %hRo
+  icases osPathS_callKey R d _ _ $$ Hp with ⟨Hp, %hkd⟩
+  icases osPathS_callKey R d' _ _ $$ Hp' with ⟨Hp', %hkd'⟩
+  have hk : callKey R (child d' bt) = callKey R d := by
+    rw [callKey_of_sameRoot hRo hsr, hkd]
+  ihave Hperm := osCallPerm_congr qc hk.symm $$ Hperm
+  wp_apply wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osLstatDirS_mem R d' bt j' N' dq' (DFrac.own q2) h' t s0 qc hbt hN'
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp' Hn2 Hk as %isDir %e %hd Hperm Hp' Hn2
+  ihave Hperm := osCallPerm_congr qc ((hkd' bt).symm.trans hk) $$ Hperm
   have hd1 : isDir ≠ 1 := fun h1 => by obtain ⟨⟨J, hJ⟩, -⟩ := hd h1; exact htgt J hJ
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
   wp_auto
@@ -66,7 +73,8 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
     $$ [Hau Hn1 Hn2]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp Hp' HSt HΦ
-  wp_apply +noauto wp_osCallBeginS R qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply +noauto wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn1, Hn2⟩ | ⟨%xs, HQ, Hout⟩)
@@ -79,7 +87,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
     ihave Hw2 := (osNames_join j' N' q2 r2 h' hq2).1 $$ [Hn2 Hr2]
     · iframe
     iapply wp_osRenameFileS R d bs d' bt j j' i N N' dq dq' h h' t s0 qc hbs hbt hN hN' hkey hsrc
-      htgt (Nat.le_trans (Nat.le_max_left _ _) hs) (Nat.le_trans (Nat.le_max_right _ _) hs)
+      htgt (Nat.le_trans (Nat.le_max_left _ _) hs) (Nat.le_trans (Nat.le_max_right _ _) hs) hsr
       osN_sub_au osShN_sub_au $$ Hos Hsi Hp Hp' Hw1 Hw2 Hk
     iintro %e Hperm Hp Hp' Hres
     icases Hres with (⟨%he, Hw1, Hw2⟩ | ⟨%x, Hlog, Hw1, Hw2⟩)
@@ -154,7 +162,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
     have habs : (h.log x (renFileEnt j bs j' bt i h' sx) (GMap.delete bs h.cur)).cur !! bs = none := by
       simp only [NamesH.log]; exact GMap.lookup_delete _ _
     wp_apply +noauto wp_osRenameAbsentS R d bs d' bt j j' N dq dq' (DFrac.own q1) _ t s0 qc hbs hbt
-      hN habs CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hp' Hn1 Hk
+      hN habs hsr CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hp' Hn1 Hk
       as %e %he Hperm Hp Hp' Hn1
     ihave Hout : renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) (some (x, sx))
       $$ [Hn1 Hn2]
@@ -178,10 +186,10 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
 
 /-- `specFileS` from `specFileSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := by
-  intro d bs d' bt j j' i N N' R dq dq' h h' q1 r1 q2 r2 qc Q hbs hbt hN hN' hkey hsrc htgt hq1 hq2
+  intro d bs d' bt j j' i N N' R dq dq' h h' q1 r1 q2 r2 qc Q hbs hbt hN hN' hkey hsrc htgt hq1 hq2 hsr
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hp', Hperm, Hn1, Hn2, Hau⟩ HΦ
   iapply os.Rename.wp_proofFileSnc d bs d' bt j j' i N N' R dq dq' h h' q1 r1 q2 r2 qc Q hbs hbt
-    hN hN' hkey hsrc htgt hq1 hq2 $$ [Hp Hp' Hperm Hn1 Hn2 Hau] HΦ
+    hN hN' hkey hsrc htgt hq1 hq2 hsr $$ [Hp Hp' Hperm Hn1 Hn2 Hau] HΦ
   iframe Hos Hsi Hp Hp' Hperm Hn1 Hn2
   iapply osAU_osAUnc $$ Hau
 
@@ -194,7 +202,8 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     · rw [Nat.max_eq_right hle]; iexact Hlb0
     · rw [Nat.max_eq_left hle]; iexact Hlb1
   iclear Hlb0 Hlb1
-  wp_apply wp_osCallBeginS R 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R d bt _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osLstatDirS_mem R d bt j N (DFrac.own qd) (DFrac.own q) h t s0 1 hbt hN'
@@ -209,7 +218,8 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
-  wp_apply +noauto wp_osCallBeginS R 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply +noauto wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout⟩)
@@ -295,8 +305,9 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     ihave Hpp := (osPathS_frac R d qd.half qd.half j).1 $$ [Hp]
     · rw [Qp.half_add_half]; iexact Hp
     icases Hpp with ⟨Hp1, Hp2⟩
+    icases osPathS_sameRoot R d bs bt _ j $$ Hp1 with ⟨Hp1, %hsr⟩
     wp_apply +noauto wp_osRenameAbsentS R d bs d bt j j N (DFrac.own qd.half) (DFrac.own qd.half)
-      (DFrac.own q) _ t s0 1 hbs hbt hN habs CoPset.subseteq_top CoPset.subseteq_top
+      (DFrac.own q) _ t s0 1 hbs hbt hN habs hsr CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hp1 Hp2 Hn Hk as %e %he Hperm Hp1 Hp2 Hn
     ihave Hp := (osPathS_frac R d qd.half qd.half j).2 $$ [Hp1 Hp2]
     · iframe

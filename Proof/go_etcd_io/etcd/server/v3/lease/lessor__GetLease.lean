@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (hG := hG) := by
-  intro lp γl item L0 I0
+  intro lp γl item L0 I0 w
   wp_start as ⟨#Hinv, Hrd, Hown⟩
   iunfold lessorInv at Hinv
   icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
@@ -38,7 +38,7 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   -- the owner's half of the item map agrees with the lock's
-  iunfold leaseOwn at Hown
+  iunfold leaseOwnW at Hown
   icases Hown with ⟨Hown, Hcls⟩
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs⟩
@@ -62,7 +62,7 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   iapply HΦ
   iunfold lessorRd
   iframe Hrd
-  iunfold leaseOwn
+  iunfold leaseOwnW
   iframe Hown
   iunfold leaseClosers
   iexists lp, γga, γcl, C, im

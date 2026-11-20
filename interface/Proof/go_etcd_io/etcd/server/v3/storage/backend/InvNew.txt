@@ -49,7 +49,7 @@ def backend.newPostK (γ : backend.BNames) (P : backend.BParams) (W Pk K : backe
             backend.plHook γ func.nil ∗
               backend.rbOwn γ (backend.rbData P D) ∗
                 ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗
-                  backend.dlInit γ ∗ backend.fkCl γ P D ∗ backend.srSlot b)
+                  backend.dlInit γ ∗ backend.fkCl γ P D ∗ backend.srSlot b ∗ backend.rbClaimToks γ P fun x => True)
 
 def backend.hooksAt (b : Loc) (h : GoInterface) : IProp GF :=
   typedPointsto (backend.bF go!"hooks" b) h DFrac.discard

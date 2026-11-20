@@ -15,6 +15,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.De
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -58,11 +59,13 @@ def etcd_compactwatch_robust.spec : Prop :=
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed compactkvProgram compactkvNames)
     (HAs : addrsUnclaimed compactkvProgram [go!"127.0.0.1:23794"])
-    (HDs : dataDirsAbsent compactkvProgram [go!"compactkv.etcd"])
+    (HDs : dataDirsAbsent compactkvProgram [go!"/tmp/etcd-grove-data/compactkv.etcd"])
     (HEnv : verifyEnvOff compactkvProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC compactkvGF,
       ⊢ etcd_compactwatch.premises (GF := compactkvGF) (hG := heapAtCkv hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/compactkv.etcd"]),
     Robustness.Robust [] [(compactkvProgram, σ)] g (2 ^ 28 - 1)
 
 end adequacy

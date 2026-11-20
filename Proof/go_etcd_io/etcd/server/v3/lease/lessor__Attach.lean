@@ -26,8 +26,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG := hG) := by
-  intro lp γl id items xs dq L0 I0
-  wp_start as ⟨#Hinv, Hown, %HidL, %Hxs0, %Hshort, Hxs⟩
+  intro lp γl id items xs dq L0 I0 w
+  wp_start as ⟨#Hinv, Hown, %Hws, %HidL, %Hxs0, %Hshort, Hxs⟩
   iunfold lessorInv at Hinv
   icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -40,13 +40,13 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
     %γrl, %hsl, #Hprl, Hhl, %Hlastl⟩
   wp_auto
   -- the owner's: the live set, the item map's half, the lease's element and item set's half
-  iunfold leaseOwn at Hown
+  iunfold leaseOwnW at Hown
   icases Hown with ⟨Hown, Hcls⟩
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcs,
-    %γr, %hs, %Sm, #Hpr, Ho, %Hlast, HSo⟩
+    %γr, %hs, %Sm, #Hpr, Ho, %Hlast, HSo, Hwo⟩
   obtain ⟨T, Hlast⟩ := Hlast
   obtain ⟨Tl, Hlastl⟩ := Hlastl
   icases lessorAuth_pin γl 1 lp lp' L0 M γga γcl $$ [$Ha $Hp] with ⟨%Hlp', Hcl, Hback⟩
@@ -122,6 +122,12 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
       simp only [Option.some.injEq, Prod.mk.injEq, true_and] at Hlastl
       exact Hlastl
     have hCM : C = M := hCMT.1
+    have hIL' : ∀ (it : LeaseItem) (id' : w64), (insertAll I ys id).lookup it = some id' → id' ∈ L0 := by
+      intro it id' h
+      rw [insertAll_lookup] at h
+      by_cases hi : it ∈ ys
+      · simp only [hi, ↓reduceIte, Option.some.injEq] at h; subst h; exact HidL
+      · simp only [hi, ↓reduceIte] at h; exact HIL it id' h
     iapply fupd_wp
     imod hist_append_set γl γr hs Sm (M, I, Tl) (M, insertAll I ys id, Tl) l S (insertAll S ys ()) ⊤
       (fun _ _ => CoPset.mem_full) Hlastl (fun hT => tieSub_items M I _ Tl hT)
@@ -139,8 +145,9 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
           · cases hx
             have hMl' : M.lookup id = some l := HMl
             left; show (M.lookup id).isSome; rw [hMl']; rfl
-          · exact Or.inr ⟨it, hx⟩)
-      $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hel] with ⟨Ho, Hhl, HSo, Hel⟩
+          · exact Or.inr ⟨it, hx⟩) w Hws
+      (fun _ => itemsLive_of Tl hIL' (by rw [← hCM]; exact HC))
+      $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hel $Hwo] with ⟨Ho, Hhl, HSo, Hel, Hwo⟩
     imodintro
     have hlast' : (hs ++ [(M, insertAll I ys id, Tl)]).getLast? = some (M, insertAll I ys id, Tl) := by
       simp
@@ -165,7 +172,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
       iframe Hpr; ipureintro; exact ⟨_, hlast'⟩
     iapply HΦ
     iframe Hxs
-    iunfold leaseOwn
+    iunfold leaseOwnW
     iframe Hown
     iunfold leaseClosers
     iexists lp, γga, γcl, C, im
@@ -173,12 +180,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
     isplitr
     · ipureintro; exact HC
     isplitr
-    · ipureintro
-      intro it id' h
-      rw [insertAll_lookup] at h
-      by_cases hi : it ∈ ys
-      · simp only [hi, ↓reduceIte, Option.some.injEq] at h; subst h; exact HidL
-      · simp only [hi, ↓reduceIte] at h; exact HIL it id' h
+    · ipureintro; exact hIL'
     isplitr
     · ipureintro
       exact itemKeysShort_insertAll I ys id HIS Hshort
@@ -193,7 +195,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
       ipureintro
       exact itemsFor_attach I id S ys HSI
     iexists γr, hs ++ [(M, insertAll I ys id, Tl)], Sm.insert l (insertAll S ys ())
-    iframe Hpr Ho HSo
+    iframe Hpr Ho HSo Hwo
     ipureintro; rw [hCM]; exact ⟨_, hlast'⟩
 
 end proof

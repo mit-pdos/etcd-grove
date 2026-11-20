@@ -157,11 +157,11 @@ local macro "msa_fetch" : tactic => `(tactic| (
       -- past `1`
       cases Hns : s.gh.ns
       case true =>
-        -- (U8 v2) the mode is off at raft's level (`NsCap`)
-        iexfalso
-        iunfold NsCap at Hnscap
-        icases Hnscap with %Hf
-        cases Hf
+        -- (auth-lease S4, 2026-11-16) in the mode the peer's `Next` is at least `2` (`PrLo`) and
+        -- the storage never compacted past `1` (`NsCap`)
+        imod NsCap.past_le _ _ $$ Hnscap Hcut_e with %Hle
+        have H2 := (Hpok0.2 Hns).1
+        exfalso; omega
       ihave #Hcompact : (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨
           storPast (GF := GF) s.logst.storage 1) $$ []
       · iright
@@ -171,7 +171,7 @@ local macro "msa_fetch" : tactic => `(tactic| (
       by_cases Htr : s.gh.tr = none
       case neg =>
         imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
-      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz (by tr_none) $$ [Hphys]
+      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (by tr_none) $$ [Hphys]
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
         try iexact Hcompact
@@ -475,11 +475,20 @@ theorem raft.maybeSendAppend.wp_proof
     -- and the storage is never compacted past `1`, so `term(Next - 1)` does not fail
     cases Hns : s.gh.ns
     case true =>
-      -- (U8 v2) the mode is off at raft's level (`NsCap`)
-      iexfalso
-      iunfold NsCap at Hnscap
-      icases Hnscap with %Hf
-      cases Hf
+      -- (auth-lease S4, 2026-11-16) in the mode the peer's `Next` is at least `2` (`PrLo`), the
+      -- log's boundary at most `1` (`LogNsOk`) and the storage never compacted past `1` (`NsCap`)
+      have H2 := (Hpok.2 Hns).1
+      have Hp1 := (Hnsl Hns).2.1
+      icases Hcut with (%Hc | #Hc)
+      · exfalso
+        rcases Hc with Hc | Hnot
+        · cases Hc
+        obtain ⟨h1, h2, -, -⟩ := Hpok.1
+        have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
+        apply Hnot
+        constructor <;> word
+      · imod NsCap.past_le _ _ $$ Hnscap Hc with %Hle
+        exfalso; word
     -- (D19i part 1) or the application compacted past it (`storPast`)
     ihave #Hcompact : (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨
         storPast (GF := GF) s.logst.storage 1) $$ []
@@ -501,7 +510,7 @@ theorem raft.maybeSendAppend.wp_proof
     case neg =>
       imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz (by tr_none) $$ [$Hphys $Hcompact]
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (by tr_none) $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     ihave HG : G ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox $$ [HG]
     · rw [Hidx Htr ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG

@@ -78,13 +78,8 @@ theorem auth.permSlice_isSorter (s : GoSlice) :
     ihave #Hb' := Hb $$ [] ; · ipureintro; exact List.mem_of_getElem? Hb
     iclear Ha Hb
     iunfold ownPermS at Ha' Hb'
-    icases Ha' with ⟨%Hann, %ast, %ak, %are, %asc, #Hap, #Hak, -⟩
-    icases Hb' with ⟨%Hbnn, %bst, %bk, %bre, %bsc, #Hbp, #Hbk, -⟩
-    icases typedPointsto_split _ _ _ $$ Hap with #Hap
-    icases typedPointsto_split _ _ _ $$ Hbp with #Hbp
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hap
-    iNamed Hbp
+    icases Ha' with ⟨%Hann, %ak, %are, -, #HaKey, -, -, -, #Hak, -⟩
+    icases Hb' with ⟨%Hbnn, %bk, %bre, -, #HbKey, -, -, -, #Hbk, -⟩
     rw [method_unfold (t := permSlice.ty)]
     wp_auto
     simp only [hib, _root_.and_self, ↓reduceIte]

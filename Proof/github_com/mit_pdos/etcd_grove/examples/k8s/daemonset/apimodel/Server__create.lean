@@ -413,7 +413,7 @@ theorem Server.create.wp_proof
                 iframe
                 ipureintro; rfl
               · (try wp_auto)
-                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
+                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst, -⟩
                 ipersist Hp
                 ipersist Hdv
                 ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
@@ -578,7 +578,7 @@ theorem Server.create.wp_proof
               iframe
               ipureintro; rfl
             · (try wp_auto)
-              wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
+              wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst, -⟩
               ipersist Hp
               ipersist Hdv
               ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
@@ -825,7 +825,7 @@ theorem Server.create.wp_proof
                   iframe
                   ipureintro; rfl
                 · (try wp_auto)
-                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
+                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst, -⟩
                   ipersist Hp
                   ipersist Hdv
                   ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
@@ -990,7 +990,7 @@ theorem Server.create.wp_proof
                 iframe
                 ipureintro; rfl
               · (try wp_auto)
-                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
+                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst, -⟩
                 ipersist Hp
                 ipersist Hdv
                 ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
@@ -1257,7 +1257,7 @@ theorem Server.create.wp_proof
                     iframe
                     ipureintro; rfl
                   · (try wp_auto)
-                    wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
+                    wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst, -⟩
                     ipersist Hp
                     ipersist Hdv
                     ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
@@ -1422,7 +1422,7 @@ theorem Server.create.wp_proof
                   iframe
                   ipureintro; rfl
                 · (try wp_auto)
-                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
+                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst, -⟩
                   ipersist Hp
                   ipersist Hdv
                   ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv

@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem newWCache.wp_proof :
     newWCache.spec (GF := GF) (hG := hG) := by
-  intro c unary total
+  intro c unary total f hf
   wp_start as -
   iapply wp_fupd
   wp_auto
@@ -63,11 +63,13 @@ theorem newWCache.wp_proof :
   ipersist watch
   ipersist unary
   ipersist total
+  ipersist floor
   imodintro
   iapply HΦ
-  unfold isCache
+  unfold isCache cacheFloor
   iframe #
   (try (iexists _, _, _; iframe #))
+  (try (ipureintro; word))
 
 end proof
 

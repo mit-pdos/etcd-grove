@@ -54,11 +54,11 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.specPinned (Mr
     (X : List GoString) (hj : NamesH),
   VsePinOk walCodec Mr jr d lay X hj → dir.length < 2 ^ 59 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
-      WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm 1 ∗
+      WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm (callKey R dir) 1 ∗
       ([∗list] g ∈ lay.segs, segRes g) ∗ osNames lay.j (.except X) (DFrac.own (1 : Qp).half) hj }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries)) (Val #lg)) (Val #dir))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
-      osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm 1 ∗
+      osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm (callKey R dir) 1 ∗
       ([∗list] g ∈ lay.segs, segRes g) ∗ osNames lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ wal.vseErrIs err) ∨
        (⌜err = GoInterface.nil⌝ ∗ ∃ ps : List Loc, sl ↦*□ ps ∗
@@ -69,12 +69,12 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.specAbsent : P
   ∀ (lg : Loc) (R : Roots) (r nm : GoString) (j : Ino) (qp : Qp) (N : NameSet) (h : NamesH),
   NameOk nm → N.Mem nm → h.cur !! nm = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
-      osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS R r (DFrac.own qp) j ∗ osCallPerm 1 ∗
+      osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS R r (DFrac.own qp) j ∗ osCallPerm (callKey R r) 1 ∗
       osNames j N (DFrac.own (1 : Qp).half) h }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries)) (Val #lg))
       (Val #(child r nm)))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
-      osPathS R r (DFrac.own qp) j ∗ osCallPerm 1 ∗ osNames j N (DFrac.own (1 : Qp).half) h ∗
+      osPathS R r (DFrac.own qp) j ∗ osCallPerm (callKey R r) 1 ∗ osNames j N (DFrac.own (1 : Qp).half) h ∗
       ⌜err ≠ GoInterface.nil⌝ ∗ wal.vseErrIs err }}
 
 end spec

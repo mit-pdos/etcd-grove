@@ -46,6 +46,7 @@ theorem loadOracle.wp_proof
   icases Hdeps with ⟨#Hdpkg, -⟩
   wp_auto
   rw [show tOrPath e.orDir = e.orFile.name from (tOrPath_child e.orDir).symm]
+  ihave Hperm := osCallPerm_congr qc (show callKey e.R e.orDir = callKey e.R e.orFile.d from rfl) $$ Hperm
   wp_apply (wp_Read γ.γd e.orFile e.R qc hf) $$ Hdpkg Hos Hsi Hdi Hh Hperm [-Hpkg]
   iauintro
   unfold atomic_acc
@@ -74,6 +75,7 @@ theorem loadOracle.wp_proof
     · inext; iunfold TInvBody; iexists s, o1, none, od1; iframe; iframe #; ipureintro; exact hfile
     imodintro
     iintro Hh Hperm
+    ihave Hperm := osCallPerm_congr qc (show callKey e.R e.orFile.d = callKey e.R e.orDir from rfl) $$ Hperm
     rcases hfile.1 with ⟨hc, hsm⟩ | ⟨hc, hfr⟩
     · rw [hc]
       simp only [DurFs.readRes, Option.getD_some, Option.isSome_some]

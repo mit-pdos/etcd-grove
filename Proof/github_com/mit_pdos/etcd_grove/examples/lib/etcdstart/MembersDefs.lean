@@ -18,6 +18,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.strconv.FormatUintDefs
+public import Proof.strconv.FormatIntDefs
 public import Proof.unicode.utf8.Valid
 
 @[expose] public section
@@ -155,6 +156,19 @@ theorem memberAt_name_utf8 (pfx : GoString) (hp : asciiStr pfx) (pb cb i : w64) 
     utf8Valid (memberAt pfx pb cb i).Name' :=
   utf8Valid_of_ascii _ (ascii_append (ascii_append hp (fun b hb => by
     simp only [List.mem_singleton] at hb; subst hb; decide)) (decStr_ascii i))
+
+/-- A 64-bit number's decimal form has at most 65 digits (a loose bound: 20 would do). -/
+theorem decStr_length_le (p : w64) : (decStr p).length ≤ 65 := by
+  rw [decStr_eq, List.length_map]
+  exact baseDigits_length_le 10 (by omega) 64 p.toNat p.isLt
+
+/-- **A member's name is at most 200 bytes**, of a prefix of at most 134 (wal-fsfix, 2026-11-20: the
+data directory's bound, `dirFits_memberDataDir`). -/
+theorem memberAt_name_len (pfx : GoString) (hp : pfx.length ≤ 134) (pb cb i : w64) :
+    (memberAt pfx pb cb i).Name'.length ≤ 200 := by
+  have := decStr_length_le i
+  simp only [memberAt, List.length_append, List.length_cons, List.length_nil]
+  omega
 
 /-- **The members' names are distinct.** -/
 theorem membersOf_names_nodup (pfx : GoString) (k : Nat) (hk : k ≤ 2 ^ 64) (pb cb : w64) :

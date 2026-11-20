@@ -47,7 +47,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG)) :
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) := by
-  intro s snapi ms γs γr K scu l Hpos
+  intro s snapi ms γs γr K scu l Hpos Hns
   letI : MemStorReg GF := ⟨γr.reg⟩
   wp_start as ⟨Hlr, #Hlgf, #Hlgn, #Hinf, #Hrs, ⟨#Hmsi, #Hapl⟩, #Hslb, #Hfr, #Hscu⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
@@ -116,7 +116,10 @@ theorem EtcdServer.compactRaftLog.wp_proof
              iframe #
              simp only [memStorJ]
              isplitr
-             · iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
+             · isplitr
+               · iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
+               ipureintro; intro hm
+               first | (have := Hns hm; word) | rfl | decide
              iapply memSnapLb_mono _ _ _ H.2 $$ Hslb)
         | (have H := Hci (W64 1) (by rw [if_neg (by word)]; word)
            ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (W64 1)) DFrac.discard [e]) ∨
@@ -127,7 +130,10 @@ theorem EtcdServer.compactRaftLog.wp_proof
              iframe #
              simp only [memStorJ]
              isplitr
-             · iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
+             · isplitr
+               · iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
+               ipureintro; intro hm
+               first | (have := Hns hm; word) | rfl | decide
              iapply memSnapLb_mono _ _ _ H.2 $$ Hslb)
       rcases Hor with Herr | Herr
       · -- compacted to `compacti`: log it

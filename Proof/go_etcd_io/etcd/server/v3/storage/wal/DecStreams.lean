@@ -1,5 +1,5 @@
 /-
-**The decoder's file streams out of it** (W10's `Close` of a handle not yet read, `WAL.Close.specOpening`;
+**The decoder's file streams out of it** (W10's `Close` of a handle not yet read, `WAL.Close.spec` (state `opening`);
 the W7-W12 log, fifth session): a decoder (`ownDecoder`) holds each file's stream state `F.S` inside its
 `*bufio.Reader` (`bufio.ownReader`, at the bytes delivered and buffered). `Close` does not read the
 decoder: it closes the files and syncs the tail through `w.locks`, and puts the program's halves of the

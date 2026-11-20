@@ -88,9 +88,13 @@ macro "save_main" : tactic => `(tactic| (
   · isplitl []
     · iexact Hsl
     · iexact Hnm
-  wp_apply (wp_store W e γ _ os (tSaveO1 o h es) (some d) qc hf hsm1) $$ [Hh Hperm Hrep1 Ho Hwo]
+  iunfold tPerm at Hperm
+  icases Hperm with ⟨Hpw_, Hperm⟩
+  wp_apply (wp_store W e γ _ os (tSaveO1 o h es) (some d) 1 hf hsm1) $$ [Hh Hperm Hrep1 Ho Hwo]
     as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
   · iframe; iframe #
+  ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+  · iunfold tPerm; iframe
   try wp_auto
   wp_apply (wp_slice_make3 (V := Loc) (W64 0) esl.len (by word)) as %rs0 ⟨Hrs, Hrcap, -⟩
   ihave HI : (∃ (j : w64) (rs : GoSlice) (ls : List Loc),
@@ -151,19 +155,81 @@ macro "save_main" : tactic => `(tactic| (
     wp_apply wp_toHS as %hp #Hhp
     try wp_auto
     imod ownSlice_persist $$ Hrs with #Hrs
+    obtain ⟨hidx, henc⟩ := tEnts_saveOk es hes
+    by_cases hfit : saveBatchBytes walRaftMr (es.map absEnt) ≤ maxSaveBatch
+    rotate_left
+    · -- (fix 0009) a batch past `MaxSaveBatchBytes`: refused before anything is committed (`Save`'s update
+      -- vacuous, its `Q` false), the member stops
+      iapply fupd_wp
+      imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
+        with ⟨%γs, Hws⟩
+      · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+      imodintro
+      wp_apply (lc := 1) (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) γs 1 hp (absHs h) rs ls
+          (es.map absEnt) true (fun _ => iprop(False))) $$ [Hws Hents]
+        as %err Hr
+      · iframe; iframe #
+        isplitr
+        · ipureintro; exact Or.inr rfl
+        isplitl []
+        · iapply (show walHsIn (GF := GF) hp (absHs h) ⊢ (walRaftP (GF := GF)).hsIn hp (absHs h) from .rfl)
+          iexact Hhp
+        isplitr
+        · ipureintro; exact hidx
+        isplitr
+        · ipureintro; exact henc
+        iintro %hle
+        exact absurd hle hfit
+      icases Hr with (⟨-, -, %d0, HF, -⟩ | ⟨-, %d0, HF⟩ | ⟨%Herr, -⟩)
+      · icases HF with %hF; exact hF.elim
+      · icases HF with %hF; exact hF.elim
+      cases err with
+      | nil => exact absurd rfl Herr.1
+      | ok ie =>
+      try wp_auto
+      iapply HΦ
+      iframe Hh Hperm Hpath Hw
+      iexists _
+      iframe Hov
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      isplitl [Ho]
+      · iexists _; iexact Ho
+      ipureintro; trivial
     ihave Hau := tInv_saveAu W e γ o c d h es hok hes ht hsim $$ [Hwo Ho]
     · iframe; iframe #
-    obtain ⟨hidx, henc⟩ := tEnts_saveOk es hes
-    wp_apply (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) hp (absHs h) rs ls
-        (es.map absEnt) true _) $$ [Hwf Hents Hau]
+    -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and
+    -- taken back after it
+    iapply fupd_wp
+    imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
+      with ⟨%γs, Hws⟩
+    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+    imodintro
+    wp_apply (lc := 1) (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) γs 1 hp (absHs h) rs ls
+        (es.map absEnt) true _) $$ [Hws Hents Hau]
       as %err Hr
-    · iframe; iframe #
+    · iframe Hws Hents; iframe #
+      isplitr
+      · ipureintro; exact Or.inr rfl
       isplitl []
       · iapply (show walHsIn (GF := GF) hp (absHs h) ⊢ (walRaftP (GF := GF)).hsIn hp (absHs h) from .rfl)
         iexact Hhp
-      ipureintro; exact ⟨hidx, henc⟩
-    icases Hr with (⟨%Herr, Hwf, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)
+      isplitr
+      · ipureintro; exact hidx
+      isplitr
+      · ipureintro; exact henc
+      iintro %_
+      iexact Hau
+    icases Hr with (⟨%Herr, Hws, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩ |
+      ⟨%Hbig, -⟩)
+    rotate_left 2
+    · exfalso; exact absurd hfit (Nat.not_le.mpr Hbig.2)
     · subst Herr
+      iapply fupd_wp
+      imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [Hws Hlc1]
+        with Hwf
+      · iframe Hws Hlc1
+      imodintro
+      ihave Hwf := walHdl_wf (W := W) ioNone _ _ _ _ $$ Hwf
       subst d0
       try wp_auto
       wp_apply wp_mustSync
@@ -214,10 +280,14 @@ macro "save_main" : tactic => `(tactic| (
         · isplitl []
           · rw [show (tSaveD d h es).H.length = d.H.length + 1 by simp [tSaveD]]; iexact Hsy
           · iexact Hnm
+        iunfold tPerm at Hperm
+        icases Hperm with ⟨Hpw_, Hperm⟩
         wp_apply (wp_store W e γ _ (tSaveO1 o h es) (tSynced (tSaveO1 o h es)) (some (tSaveD d h es))
-            qc hf hsm2) $$ [Hh Hperm Hrep1 Ho Hwo]
+            1 hf hsm2) $$ [Hh Hperm Hrep1 Ho Hwo]
           as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
         · iframe; iframe #
+        ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+        · iunfold tPerm; iframe
         try wp_auto
         wp_apply wp_phsNext
         try wp_auto
@@ -248,7 +318,7 @@ macro "save_main" : tactic => `(tactic| (
         iexact Hlen1
     · -- `Save` failed: the member stops
       cases err with
-      | nil => exact absurd rfl Herr
+      | nil => exact absurd rfl Herr.1
       | ok ie =>
       try wp_auto
       iapply HΦ
@@ -268,7 +338,8 @@ theorem member.save.wp_proof
     (wp_mustSync : walMustSync.spec (GF := GF) (hG := hG))
     (wp_phsNext : phsNext.spec (GF := GF) (hG := hG))
     (wp_Save : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) (Sio := ioNone) (walRaftP (GF := GF))
+        walRaftMr) :
     member.save.spec (GF := GF) (hG := hG) := by
   intro W e γ m w v o os c d qc h esl es hf hok hhs hes ht hsm1 hsm2 hsim hcwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Hes, #Harea, Hwf,

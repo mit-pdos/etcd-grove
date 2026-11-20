@@ -27,7 +27,7 @@ owned, D22 S-l sender: `rnMsgR`): a new slice of some of them (a message to a re
 all but the last `MsgAppResp` dropped, a `MsgSnap` handed to `msgSnapC`, owned, if it has room,
 else dropped), in reverse order. -/
 abbrev raftNode.processMessages.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (ms : GoSlice) (msL : List Loc),
+  ∀ (E : RNEnv GF) (γ : RNNames GF) (r : Loc) (ms : GoSlice) (msL : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
       ms ↦*□ msL ∗ [∗list] m ∈ msL, rnMsgR E γ m }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"processMessages")) (Val #ms))

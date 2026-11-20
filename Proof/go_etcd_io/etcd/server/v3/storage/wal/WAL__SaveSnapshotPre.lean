@@ -1,8 +1,7 @@
 /-
-The proofs of `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__SaveSnapshotPre.lean`:
-`w.sync()` and `w.SaveSnapshot(e)` before `Create`'s rename, over their callees' specs (the
-fdatasync is the spec's hypothesis triple; `MustMarshalMessage` the WAL's marshalling law,
-`pbutil.MustMarshalMessage.specWalSnap`).
+The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__SaveSnapshotPre.lean`'s `sync.specPre`:
+`w.sync()` before `Create`'s rename, over its callees' specs (the fdatasync is the spec's hypothesis
+triple). `w.SaveSnapshot(e)` before the rename is `WAL__SaveSnapshot.lean`'s `wp_pre`.
 -/
 module
 
@@ -62,7 +61,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
     as %err ⟨He, Hres⟩
   · iexact Hw
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Hout⟩ | ⟨%Herr, Hbad⟩)
+  icases Hres with (⟨%Herr, Hout⟩ | ⟨%Herr, -, Hbad⟩)
   rotate_left
   · -- the flush failed
     rcases err with ei | _
@@ -155,171 +154,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
     go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF) :=
   go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre_of_L
     (go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL wp_tail wp_flush wp_Now wp_Since wp_Seconds_ptr wp_Duration wp_Warn)
-
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofPre (Mr : WalMarshal)
-    (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF))
-    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec (GF := GF) (hG := hG))
-    (wp_Validate : go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.spec
-      (GF := GF) (hG := hG))
-    (wp_GetIndex : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF)
-      (hG := hG))
-    (wp_Marshal : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr)
-    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
-    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (GF := GF) Mr := by
-  intro w lg dir mds md e lt f snapi enti W B S lim out pend c sp sm cs hcs hlim hlim47 hsync
-  iintro #Hw
-  wp_start as ⟨#Henv, #Hzap, #Hpb, Hpre, He, Hout, #Hs⟩
-  ihave #Hs0 := Hs
-  iunfold walSnapAt at Hs
-  icases Hs with ⟨%sc, Hsr, -⟩
-  ihave %Hspn := snapRoC_ne sp sc $$ Hsr
-  try wp_auto
-  wp_apply wp_with_defer as %defer Hdefer
-  try wp_auto
-  simp only [decide_eq_false Hspn]
-  try wp_auto
-  wp_apply (wp_Validate Mr sp sm cs hcs) $$ []
-  · iexact Hs0
-  try wp_auto
-  have hsz48 : (Mr.encSnap sm).length < 2 ^ 48 := by
-    have h1 := recEnc_length (recOf ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩)
-    have h2 : (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩).length ≤
-        (snapFrame Mr c sm).length := by
-      unfold snapFrame WalEnc.frame; simp only [List.length_append]; omega
-    have h3 : (Mr.encSnap sm).length ≤
-        recSize (recOf ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩) := by
-      have hne : ¬ (snapshotType = crcType ∧ Mr.encSnap sm = []) := fun h => by
-        exact absurd h.1 (by decide)
-      unfold recSize recOf; simp only [if_neg hne]; omega
-    unfold walRecEnc at h2
-    simp only [List.length_append] at hlim; omega
-  wp_apply (wp_Marshal sp sm cs hsz48) $$ [] as %d ⟨%Hdn, Hd, Hdc⟩
-  · iframe #
-  try wp_auto
-  iunfold walPreIn at Hpre
-  icases Hpre with ⟨%locks, Hlg, #Hlgok, Hdir, Hmd, #Hmds, Hns, #Hmu, Henti, Hsnapi, Hfe, %Hen,
-    Hlocks, Hls, Hcap, #Hlt⟩
-  wp_apply wp_Lock $$ [] as ⟨Hown, -⟩
-  · iexact Hmu
-  try wp_auto
-  simp only [go_etcd_io.etcd.server.v3.storage.wal.SnapshotType]
-  try wp_auto
-  have hT : (W64 5) = snapshotType := rfl
-  have hfl : out.length + pend.length +
-      (WalEnc.frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩)).length
-      ≤ lim := by
-    simp only [snapFrame, List.length_append] at hlim; omega
-  have hsz : recSize (recOf ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩)
-      < 2 ^ 47 := by
-    have h1 : (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩).length =
-        recSize (recOf ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩) :=
-      recEnc_length _
-    have h2 : (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩).length ≤
-        (WalEnc.frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm),
-          Mr.encSnap sm⟩)).length := by
-      unfold WalEnc.frame; simp only [List.length_append]; omega
-    omega
-  ipersist «$v0»
-  ipersist Hd
-  wp_apply (wp_encode e (wal.fileWi f) W B lim out pend c _ snapshotType (Mr.encSnap sm) hsz hfl)
-    $$ [Hw] [He Hout «$r0»] as %err ⟨%pend', He, #Hrec, Hres⟩
-  · iexact Hw
-  · iframe; iframe #
-    iunfold encRecIn
-    iexists _
-    iframe «$r0»
-    rw [hT]
-    iframe #
-    have hro : (recOf ⟨snapshotType, 0#32, Mr.encSnap sm⟩).data = some (Mr.encSnap sm) := by
-      simp [recOf, snapshotType, crcType]
-    rw [hro]
-    simp only [recBytes]
-    isplitl []
-    · isplitr
-      · ipureintro; exact Hdn
-      · iexact Hd
-    · ipureintro; simp
-  icases Hres with (⟨%ys, ⟨%Herr, %Hys⟩, Hout⟩ | ⟨%a, %b, ⟨%Herr, %Hpe, %Hab⟩, Hbad⟩)
-  rotate_left
-  · -- the encode failed
-    rcases err with ei | _
-    rotate_left
-    · exact absurd rfl Herr
-    try wp_auto
-    wp_apply wp_Unlock $$ [Hown]
-    · iframe
-      isplitl []
-      · iexact Hmu
-      inext; itrivial
-    try wp_auto
-    iapply HΦ
-    iexists snapi, enti
-    iunfold walPreIn
-    isplitl [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap]
-    · iexists locks
-      iframe; iframe #; ipureintro; exact Hen
-    isplitr
-    · ipureintro; exact ⟨Or.inl rfl, Or.inl rfl⟩
-    iright
-    isplitr
-    · ipureintro; exact Herr
-    iexists _, _
-    iframe He
-    ileft; iexists _, _; iexact Hbad
-  subst Herr
-  have hlen2 : (out ++ ys).length + pend'.length ≤ lim := by
-    have := congrArg List.length Hys; simp only [List.length_append] at this ⊢; omega
-  have heq : out ++ ys ++ pend' = out ++ pend ++ snapFrame Mr c sm := by
-    rw [List.append_assoc, Hys, snapFrame, List.append_assoc]
-  try wp_auto
-  ihave #HsIT := walSnapAt_idTerm Mr sp sm cs $$ Hs0
-  wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []
-  · iexact HsIT
-  wp_if_destruct
-  all_goals (try (wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []; iexact HsIT))
-  all_goals (try wp_auto)
-  all_goals (try (wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []; iexact HsIT))
-  all_goals (try wp_auto)
-  all_goals wp_if_destruct
-  all_goals (try (wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []; iexact HsIT))
-  all_goals (try wp_auto)
-  all_goals (
-    wp_apply (wp_sync w lg dir mds md e lt f _ _ W B S lim (out ++ ys) pend'
-      (hash.crc32.crc32c c (Mr.encSnap sm)) hlen2 hsync) $$ [Hw]
-      [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap He Hout] as %err2 ⟨Hpre, He, Hres2⟩
-    · iexact Hw
-    · iframe; iframe #
-      iunfold walPreIn; iexists locks; iframe; iframe #; ipureintro; exact Hen
-    try wp_auto
-    wp_apply wp_Unlock $$ [Hown]
-    · iframe
-      isplitl []
-      · iexact Hmu
-      inext; itrivial
-    try wp_auto
-    iapply HΦ
-    iexists _, _
-    iframe Hpre
-    isplitr
-    · ipureintro
-      first
-        | exact ⟨Or.inl rfl, Or.inl rfl⟩
-        | exact ⟨Or.inl rfl, Or.inr rfl⟩
-        | exact ⟨Or.inr rfl, Or.inl rfl⟩
-        | exact ⟨Or.inr rfl, Or.inr rfl⟩
-    icases Hres2 with (⟨%H0, HS⟩ | ⟨%H0, Hbad⟩)
-    · ileft
-      rw [heq]
-      iframe; ipureintro; exact H0
-    · iright
-      isplitr
-      · ipureintro; exact H0
-      iexists _, _
-      iframe He
-      icases Hbad with (Hb | Hw')
-      · ileft; iexists _, _; iexact Hb
-      · iright; iexists _; iexact Hw')
 
 end proof
 

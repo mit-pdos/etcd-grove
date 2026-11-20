@@ -12,7 +12,7 @@ unless that listing also lists the lease granted through member 3 -- started fro
 package initialized, one thread): for every real execution of `n` steps, the main thread's result,
 if it has one, is `#()`, no thread is stuck, and no thread has ended in a panic.
 
-As `examples/etcd/partition`'s and `k8s_compactor_partition_adequate`'s (`etcd_adequate_members`
+As `examples/etcd/partition`'s and the retired `k8s_compactor_partition_adequate`'s (`etcd_adequate_members`
 with the cluster's members and its bridges, hub step 7's A3), at this program's configuration,
 with leasegrant's lease hypotheses: `leasePeersOk` (the peers answer the lease handler's path as
 etcd's lease handler does) and `lease.leasesNoExpiry` (no lease of any lessor the program creates,
@@ -33,7 +33,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -111,13 +114,15 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
           etcd_leasecatchup.clusterCfg n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) leasecatchupDataDirs)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([leasecatchupProgram], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := leasecatchupGF) (hAsLit := by decide) (HEnv := HEnv)
+  refine etcd_adequate_members (GF := leasecatchupGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) leasecatchupAddrs (by decide)

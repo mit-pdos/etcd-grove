@@ -46,7 +46,7 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-theorem mlistMatches.wp_proof
+theorem mlistMatches.wp_ok
     (wp_Matches : storage.SelectionPredicate.Matches.spec (GF := GF) (hG := hG))
     (wp_LM : labelSel.Matches.spec (GF := GF) (hG := hG))
     (wp_LE : labelSel.Empty.spec (GF := GF) (hG := hG))
@@ -78,7 +78,7 @@ theorem mlistMatches.wp_proof
   subst hpe
   iexact Ho
 
-theorem mlistPCT.wp_proof
+theorem mlistPCT.wp_ok
     (wp_PCT : storage.PrepareContinueToken.spec (GF := GF) (hG := hG))
     (wp_Matches : storage.SelectionPredicate.Matches.spec (GF := GF) (hG := hG))
     (wp_Empty : storage.SelectionPredicate.Empty.spec (GF := GF) (hG := hG))

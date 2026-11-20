@@ -2,6 +2,11 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem etcdFs_start [GoGlobalContext] (σ : state) (h : Fs.FsInit (extLocal Fs.fsExt σ.world)) : ⊢
+    extsLocalStart σ.world ={⊤}=∗ Fs.osInv ∗ ([∗map] i ↦ f ∈ (extLocal Fs.fsExt σ.world).fs.files,
+    Fs.osFileStart i f) ∗ Fs.osTree (DFrac.own 1) (extLocal Fs.fsExt σ.world).fs.roots ((extLocal
+    Fs.fsExt σ.world).fs.treeDur, [])
+
 def etcdSQ : Fs.StepPrem :=
   Fs.StepPrem.and (fun [GooseExts] [GoGlobalContext] => Fs.NoIoErr allIo) fun [GooseExts] [GoGlobalContext] =>
     Fs.NoMapLockErr allIo
@@ -10,10 +15,15 @@ theorem etcdFsNoErr : backend.FsNoErrAll
 
 theorem etcdFsSemOk : Fs.FsSemOk
 
+theorem etcdFsExts_sat : Fs.FsStepSat fun [GoGlobalContext] => Fs.NoIoErr allIo
+
 theorem etcdFsExts_hasFs : HasExt Fs.fsExt
 
 def etcdFsSem : ExtSemantics Fs.fsExt :=
   Fs.fsSemWithS (fun [GooseExts] [GoGlobalContext] => etcdSQ) fun x x_1 => True
+
+theorem etcdFsExts_localStart [GoGlobalContext] [L : GooseLocalGS GF] (w : ExtsLocalState exts) :
+    extsLocalStart w ⊢ Fs.osStart Fs.gooseOsGS (extLocal Fs.fsExt w)
 
 def etcdFsExtsSemantics : GooseSemantics :=
   { sems := (idIssue_semantics, etcdFsSem, PUnit.unit) }

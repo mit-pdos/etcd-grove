@@ -54,7 +54,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 
 /-- See the file header: `walHandleIn` with `w.fp` nil and no pipeline; the WAL directory's inode
 `j` a parameter (the pipeline's leftover name is claimed on it); the naming fact `nmd` as `walHandleIn`'s
-(`emp` for `Create`'s cleanup, `WAL.Close.specU`). -/
+(`emp` for `Create`'s cleanup, `WAL.Close.spec` (state `unnamed`)). -/
 def walHandleC (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta)
     (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir)

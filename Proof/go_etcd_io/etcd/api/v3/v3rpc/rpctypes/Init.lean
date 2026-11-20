@@ -199,15 +199,18 @@ class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemant
   noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none
   /-- (premise-fixes-4) nor a `Format` method (`fmt` prints it with its `Error`). -/
   noFormat : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none
+  /-- (fmt soundness 2) and its `Error` is `Error() string` (what `fmt.argOk` asks). -/
+  errorSig : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Error" =
+    some (go.signature.Signature [] false [go.string])
 
 instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :
     EtcdGrove.RpctypesEtcdErrorMethods := by
   have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m
   have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"
-  have hF := h go!"Format"
-  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF
-  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF⟩
+  have hF := h go!"Format"; have hE := h go!"Error"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF hE
+  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF, hE⟩
 
 /-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target
 `errors.As` accepts. -/

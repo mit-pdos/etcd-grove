@@ -144,7 +144,7 @@ variable {s : Stuckness} {E : CoPset}
 
 /-- The worlds after a step that leaves the files alone, from their parts. -/
 theorem worlds_close {st st' : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtomic val)} {V : Hist}
-    {Γdf : GMap w64 (Ino × DirPh)} {Γc : GMap Nat (Nat × Qp)}
+    {Γdf : GMap w64 (Ino × DirPh)} {Γc : GMap Nat CallV}
     (hs : FilesSame st st') (hr : HeapRendered st st' h h') (hfr : MapsFresh st st' h)
     (hroots : st'.fs.roots = st.fs.roots) (hw' : FsTreeWf st') (hc' : TreeCoh st' V Γdf Γc) :
     ⊢ osWorld (L := L) st Γb Γm Γf Γt h -∗

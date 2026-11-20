@@ -72,8 +72,10 @@ def authErrVar (g : GoString) : IProp GF :=
     ⌜_root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
       methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
       methodSet e.ty !! go!"GRPCStatus" = none ∧
-      -- (premise-fixes-4) nor a `Format` one (`fmt` prints it with its `Error`)
-      methodSet e.ty !! go!"Format" = none⌝ ∗
+      -- (premise-fixes-4) nor a `Format` one (`fmt` prints it with its `Error`); (fmt soundness 2)
+      -- its `Error` is `Error() string`
+      (methodSet e.ty !! go!"Format" = none ∧
+        methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))⌝ ∗
     ∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
       WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }})
 

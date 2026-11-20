@@ -17,7 +17,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newCancellableContext
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext__Cancel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CancellableLaws
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WrapperMd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeakLaws
 
 @[expose] public section
 
@@ -40,12 +40,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+/-- A context carries its own incoming metadata (the transfer to itself). -/
+theorem v3rpc.ctxInMD_transfer_refl (ci : GoInterfaceOk) :
+    ⊢ (□ ∀ md : GrpcMd, metadata.ctxInMD ci md -∗ metadata.ctxInMD (GF := GF) ci md : IProp GF) := by
+  iintro !> %md #H
+  iexact H
+
 set_option hygiene false in
 /-- The interceptor's last statement: `return handler(srv, ss)` on the same server end (as one with
 a weak context, `HssW`), from the handler's continuation `Hk`. -/
 local macro "handler_tail" : tactic => `(tactic| (
   icases Hk with ⟨Hk, -⟩;
-  ihave Hk := Hk $$ %(GoInterface.ok si) %ci %cd %rfl HssW;
+  ihave #Hid := v3rpc.ctxInMD_transfer_refl ci;
+  ihave Hk := Hk $$ %(GoInterface.ok si) %ci %cd Hid HssW;
   iunfold streamHandlerCall at Hk;
   wp_bind (App (App (Val #h) _) _);
   iapply (wp_wand (Φ := fun v =>
@@ -217,7 +224,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   ipersist info
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       ((∀ (st' : GoInterface) (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
-          ⌜metadata.incomingOf (GoInterface.ok ci') = metadata.incomingOf (GoInterface.ok ci)⌝ -∗
+          □ (∀ md : GrpcMd, metadata.ctxInMD ci md -∗ metadata.ctxInMD ci' md) -∗
           srvRawStreamIsW st' γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci' cd' -∗
           WP (streamHandlerCall #h #srv #st')
             {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
@@ -266,7 +273,9 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   · iunfold context.libCtxOk at Hlib
     icases Hlib with ⟨#H, -⟩
     iexact H
-  wp_apply wp_FromIncomingContext ci $$ [] as %md %ok Hmd
+  iunfold metadata.incomingCtxOk at Hinc
+  icases Hinc with ⟨%mdx, #Hmdx⟩
+  wp_apply wp_FromIncomingContext ci mdx $$ [] as %md %ok Hmd
   · iframe #
   icases Hmd with (%Hok | ⟨%md0, %m, %Hok, Hm, Hsls⟩)
   · obtain ⟨rfl, -⟩ := Hok
@@ -369,10 +378,9 @@ theorem v3rpc.newStreamInterceptor.wp_proof
         obtain rfl : c0 = c := by
           simp [interface.mk] at Hc1
           first | exact (intoVal_inj Hc1).symm | exact (go.intoVal_inj Hc1).symm
-        ihave %Heq := v3rpc.incomingOf_wrapper l _ ci $$ [Hfield Hcf]
-        · isplitl []
-          · iexact Hfield
-          · iexact Hcf
+        ihave #Heq := v3rpc.ctxInMD_wrapper l _ ci $$ [Hfield Hcf]
+        · iframe #
+          iPkgInit
         subst Hsi
         iunfold v3rpc.streamsMapIs at Hsm
         wp_apply sync.Mutex.wp_Lock $$ [$Hsm] as ⟨Hlocked, HR⟩
@@ -392,7 +400,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
           iframe Hcc
           ipureintro; rfl
         icases Hk with ⟨Hk, -⟩
-        ihave Hk := Hk $$ %(v3rpc.sKey t' ls l) %(v3rpc.ccCtx l) %_ %Heq HrawW
+        ihave Hk := Hk $$ %(v3rpc.sKey t' ls l) %(v3rpc.ccCtx l) %_ Heq HrawW
         iunfold streamHandlerCall at Hk
         wp_bind (App (App (Val #h) _) _)
         iapply (wp_wand (Φ := fun v =>

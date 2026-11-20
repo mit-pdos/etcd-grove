@@ -129,9 +129,9 @@ theorem readAll_success {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnm
       obtain ⟨q, hq⟩ : ∃ q, lay.first + kk = q + 1 := ⟨lay.first + kk - 1, by omega⟩
       have hmem : segStart lay.cuts (lay.first + kk) ∈ lay.cuts := by
         rw [hq, segStart_succ (by omega)]; exact List.getElem_mem _
-      obtain ⟨m, hm1, hm2⟩ := hm h0
+      obtain ⟨m, al, hm1, hm2⟩ := hm h0
       rw [hk] at hm1
-      exact ⟨hcp _ hmem, hle _ hmem, hnb h0, hsel sq ix hnm hix, m, hm1, hm2⟩
+      exact ⟨hcp _ hmem, hle _ hmem, hnb h0, hsel sq ix hnm hix, m, al, hm1, hm2⟩
   · exact hs
   · exact hok
 

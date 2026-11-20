@@ -57,9 +57,9 @@ theorem stop.wp_proof
   have Hba : ρ.rd.raft.raft.boot.length ≤ uint.nat v := by
     word
   -- `s.HardStop()`
-  wp_apply (wp_HardStop s E ρ.rd.raft.raft ρ id (name ++ go!".etcd")) $$ [Hsr Hrds] as Himg
+  wp_apply (wp_HardStop s E ρ.rd.raft.raft ρ id (memberDataDir name)) $$ [Hsr Hrds] as Himg
   · iframe Hsr
-    iapply srvStopReq_intro s E ρ (name ++ go!".etcd") Hsc
+    iapply srvStopReq_intro s E ρ (memberDataDir name) Hsc
     isplitr
     · iapply srvBootApplied_of_applied ρ v Hba $$ Hv
     isplitr

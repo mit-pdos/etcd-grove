@@ -41,10 +41,10 @@ abbrev github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec : Prop :=
   ⊢ ∀ Φ : val → IProp GF,
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.durable -∗
     osInv (GF := GF) -∗ osSharedInv (GF := GF) R -∗ durInv (GF := GF) γ f -∗
-    durHandle (GF := GF) γ f R -∗ osCallPerm (GF := GF) qc -∗
+    durHandle (GF := GF) γ f R -∗ osCallPerm (GF := GF) (callKey R f.d) qc -∗
     (AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
       <{ durSt (GF := GF) γ ⟨some data, some s.cur⟩, COMM
-        durWriteSync (GF := GF) γ iprop(durHandle (GF := GF) γ f R -∗ osCallPerm (GF := GF) qc -∗ Φ #()) }>) -∗
+        durWriteSync (GF := GF) γ iprop(durHandle (GF := GF) γ f R -∗ osCallPerm (GF := GF) (callKey R f.d) qc -∗ Φ #()) }>) -∗
     WP (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.Write)) (Val #f.name))
       (Val #data)) {{ Φ }}
 

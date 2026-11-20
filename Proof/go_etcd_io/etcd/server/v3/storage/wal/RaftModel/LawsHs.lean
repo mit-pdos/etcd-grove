@@ -86,8 +86,10 @@ theorem walRaftP_zero : WalPbIn.ZeroLaw (walRaftP (GF := GF)) := by
   · ipureintro
     exact ⟨rfl, Or.inl ⟨rfl, rfl, rfl⟩⟩
 
-/-- **`isHardStateEqual(a, b)`** (`node.go:117`): the three getters agree. -/
-theorem wp_isHardStateEqual (a b : Loc) (ha hb : HardStateM) :
+/-- **`isHardStateEqual(a, b)`** (`node.go:117`): the three getters agree. (wal-link, 2026-11-19:
+renamed from `wp_isHardStateEqual`, which raft's `Link` declares in the same namespace; the server's
+`Link` imports both.) -/
+theorem walRaft_isHardStateEqual (a b : Loc) (ha hb : HardStateM) :
     {{ hsGet (GF := GF) a ha ∗ hsGet b hb }}
       (App (App (Val (@! go_etcd_io.raft.v3.isHardStateEqual)) (Val #a)) (Val #b))
     {{ (r : Bool), RET #r; ⌜r = true ↔ (ha.Term' = hb.Term' ∧ ha.Vote' = hb.Vote' ∧ ha.Commit' = hb.Commit')⌝ }} := by
@@ -133,7 +135,7 @@ theorem walRaftP_isEmpty : WalPbIn.IsEmptyLaw (walRaftP (GF := GF)) := by
     iapply HΦ
     ipureintro
     exact ⟨fun _ => ⟨rfl, rfl, rfl⟩, fun _ => rfl⟩
-  · wp_apply (wp_isHardStateEqual hp es hs hsZero) $$ [] as %r %hr
+  · wp_apply (walRaft_isHardStateEqual hp es hs hsZero) $$ [] as %r %hr
     · iframe G Ges
     iapply HΦ
     ipureintro

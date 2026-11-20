@@ -76,7 +76,7 @@ theorem Server.Apply.wp_proof
     iframe Htt
     simp only [regS]
     ipureintro
-    exact ⟨true, ap, w, rfl, nofun⟩
+    exact ⟨fun _ => trivial, ⟨true, ap, w, rfl, nofun⟩⟩
   | false =>
     cases ap with
     | true =>
@@ -100,7 +100,7 @@ theorem Server.Apply.wp_proof
       iframe Htt
       simp only [regS]
       ipureintro
-      exact ⟨false, true, w, rfl, fun _ => nofun⟩
+      exact ⟨fun _ => trivial, ⟨false, true, w, rfl, fun _ => nofun⟩⟩
     | false =>
       wp_auto
       -- `s.Get()`: its update is the caller's, with the output the state read
@@ -124,7 +124,7 @@ theorem Server.Apply.wp_proof
       iframe Htt
       simp only [regS]
       ipureintro
-      exact ⟨false, false, w, rfl, fun _ _ => ⟨_, rfl⟩⟩
+      exact ⟨fun _ => trivial, ⟨false, false, w, rfl, fun _ _ => ⟨_, rfl⟩⟩⟩
 
 end proof
 

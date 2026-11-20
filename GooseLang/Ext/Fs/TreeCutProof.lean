@@ -7,12 +7,16 @@ The argument (`notes/wal-fsext-i2-design.md`, "Implementation log"):
    run held right after the slot's last kept writer (`kept_entry`): a kept entry's slots held, in
    the replay, what they held in the run when it took effect, because every earlier writer of them
    is kept (`PerSlotSeq`, `DirOpExcl`, closure).
-2. *Directories.* Let `a` be past the last kept directory operation. Every entry below `a` is kept
-   (`DirOpExcl`), so the replay up to `a` is the run's tree `T a`; after `a` only file operations are
-   kept, and the run has none but file operations from `a` to past the last kept entry. File
-   operations change no entry naming a directory and no directory key, so the replay has `T a`'s.
-3. *Files.* A kept file operation keeps the replay's files named once (a create's inode is new, a
-   rename moves the one entry naming its file).
+2. *Directories, per root.* For a root `r`, let `a r` be past the last kept directory operation of
+   `r` and the last kept legacy entry. Every legacy entry and every entry of `r` below `a r` is kept
+   (`DirOpExcl`), so up to `a r` the replay has the run's directories of `r` (`kept_keys_below`);
+   after `a r` only file operations of `r` are kept, and the run has, from `a r` to past the last kept
+   entry of `r`, only file operations of `r` and entries of other roots, which write no directory of
+   `r` (`RootTags`). So the replay has `T (a r)`'s directories of `r` and their entries naming
+   directories (`kept_keys_r`, `kept_slot_r`, `run_dirs_r`), and the roots' parts make a tree
+   (`treeWf_merge`). Without a kept entry past the legacy prefix, the replay is a prefix's tree.
+3. *Files.* A kept operation keeps the replay's files named once (a create's inode is new, a
+   rename moves the one entry naming what it moves, a `mkdir` and a removal name no file).
 -/
 module
 
@@ -249,20 +253,42 @@ def slotV (t : Nat) (j : Ino) (b : GoString) : Option Node :=
 end run
 
 section cut
-variable {T0 : Tree} {log : List LogEntry} {S : Nat → Prop} {s0 : Nat}
+variable {T0 : Tree} {log : List LogEntry} {S : Nat → Prop} {s0 : Nat} {ρ : Ino → GoString}
+  {R : List (GoString × Ino)}
+
+/-- An entry of the legacy prefix took effect before every later entry's call began. -/
+theorem legacy_before (hdx : DirOpExcl ρ log s0) {y z : Nat} {ey ez : LogEntry}
+    (hy : log[y]? = some ey) (hys : y < s0) (hyz : y < z) (hz : log[z]? = some ez) : y < ez.start :=
+  ((hdx y ey hy).1 hys).2 z ez hyz hz
+
+/-- A directory operation took effect before every later entry of its root began. -/
+theorem dirOp_before (hdx : DirOpExcl ρ log s0) {y z : Nat} {ey ez : LogEntry}
+    (hy : log[y]? = some ey) (hd : ey.op.IsDirOp) (hyz : y < z) (hz : log[z]? = some ez)
+    (ht : tagOf ρ ez = tagOf ρ ey) : y < ez.start :=
+  ((hdx y ey hy).2 hd).2 z ez hyz hz ht
+
+/-- An entry from `s0` on writes only directories of its root. -/
+theorem writer_tag (hρ : RootTags ρ R T0 log s0) {z : Nat} {ez : LogEntry} (hzs : s0 ≤ z)
+    (hz : log[z]? = some ez) {j : Ino} {b : GoString} (hw : ez.op.Writes j b) : tagOf ρ ez = ρ j :=
+  (hρ.ops z ez hzs hz j b hw).symm
 
 /-- An earlier writer of a slot a kept entry writes is kept. -/
-theorem kept_writer (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) {x y : Nat}
+theorem kept_writer (hρ : RootTags ρ R T0 log s0) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0)
+    (hc : Closed log S) {x y : Nat}
     {ex ey : LogEntry} (hx : log[x]? = some ex) (hy : log[y]? = some ey) (hSx : S x) (hyx : y < x)
     {sl : Slot} (hsl : sl ∈ ex.op.slots) (hw : ey.op.Writes sl.1 sl.2) : S y := by
   refine hc x y hSx ⟨hyx, ex, hx, ?_⟩
   rcases hw with h | ⟨j0, b0, h⟩
   · exact hps x y ex ey hyx hx hy ⟨sl, hsl, h⟩
-  · exact (hdx y ey hy (.inl (by rw [h]; trivial))).2 x ex hyx hx
+  · rcases Nat.lt_or_ge y s0 with hys | hys
+    · exact legacy_before hdx hy hys hyx hx
+    · refine dirOp_before hdx hy (by rw [h]; trivial) hyx hx ?_
+      rw [writer_tag hρ (by omega) hx (j := sl.1) (b := sl.2) (.inl hsl),
+        writer_tag hρ hys hy (j := sl.1) (b := sl.2) (.inr ⟨j0, b0, h⟩)]
 
 /-- A kept entry's slots hold, in the replay of the kept entries before it, what they held in the
 run when it took effect. -/
-theorem kept_reads (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) {x : Nat}
+theorem kept_reads (hρ : RootTags ρ R T0 log s0) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0) (hc : Closed log S) {x : Nat}
     {ex : LogEntry} (hx : log[x]? = some ex) (hSx : S x)
     (hA : ∀ j b, (replay (keptUpTo log S x) T0).entry j b = slotV T0 log S x j b)
     (sl : Slot) (hsl : sl ∈ ex.op.slots) :
@@ -274,7 +300,7 @@ theorem kept_reads (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed 
   -- no writer at all of the slot after the last kept one: each would be kept
   have hno : ∀ u, (∀ y, u ≤ y → y < x → ¬ KW log S y sl.1 sl.2) →
       ∀ y (e : LogEntry), u ≤ y → y < x → log[y]? = some e → ¬ e.op.Writes sl.1 sl.2 :=
-    fun u hk y e h1 h2 he hw => hk y h1 h2 ⟨kept_writer hps hdx hc hx he hSx h2 hsl hw, e, he, hw⟩
+    fun u hk y e h1 h2 he hw => hk y h1 h2 ⟨kept_writer hρ hps hdx hc hx he hSx h2 hsl hw, e, he, hw⟩
   revert hsp
   cases lastW log S x sl.1 sl.2 with
   | some w =>
@@ -289,12 +315,13 @@ theorem kept_reads (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed 
 
 /-- **The slots of the replay** of the kept entries below `t`: as right after their last kept
 writer. -/
-theorem kept_entry (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) :
+theorem kept_entry (hρ : RootTags ρ R T0 log s0) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0)
+    (hc : Closed log S) :
     ∀ t, t ≤ log.length → ∀ j b,
       (replay (keptUpTo log S t) T0).entry j b = slotV T0 log S t j b
   | 0, _, j, b => by simp [keptUpTo, replay, slotV, lastW]
   | t + 1, ht, j, b => by
-    have ih := kept_entry hps hdx hc t (by omega)
+    have ih := kept_entry hρ hps hdx hc t (by omega)
     obtain ⟨e, he⟩ : ∃ e, log[t]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
     rw [kept_succ T0 log S he]
     unfold slotV
@@ -305,7 +332,7 @@ theorem kept_entry (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed 
       · rw [if_pos ⟨hS, e, he, hw⟩]
         show _ = (prefTree T0 log (t + 1)).entry j b
         rw [prefTree_succ T0 log he]
-        exact apply_agree _ _ _ (fun sl hsl => kept_reads hps hdx hc he hS ih sl hsl) j b hw
+        exact apply_agree _ _ _ (fun sl hsl => kept_reads hρ hps hdx hc he hS ih sl hsl) j b hw
       · rw [if_neg (fun ⟨_, e', he', hw'⟩ => by rw [he] at he'; cases he'; exact hw hw'),
           apply_other _ _ _ _ hw, ih]; rfl
     · rw [if_neg hS, if_neg (fun h => hS h.1), ih]; rfl
@@ -397,57 +424,6 @@ theorem exists_greatest (P : Nat → Prop) : ∀ n, (∃ x, x ≤ n ∧ P x) →
       · omega
       · rw [show y = n + 1 by omega] at hpy; exact absurd hpy hn
 
-/-- Some `a`: every entry below it kept; from it to any kept entry, only file operations. -/
-theorem cut_base (hdx : DirOpExcl log s0) (hc : Closed log S) (hS : ∀ x, S x → x < log.length) :
-    ∃ a, a ≤ log.length ∧ (∀ y, y < a → S y) ∧
-      ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0) := by
-  let D : Nat → Prop := fun x => x < log.length ∧ S x ∧ ∃ e, log[x]? = some e ∧ (e.op.IsDirOp ∨ x < s0)
-  -- a kept entry after a directory operation keeps it
-  have hkeep : ∀ z x (ez : LogEntry), z ≤ x → S x → log[z]? = some ez → (ez.op.IsDirOp ∨ z < s0) → D z := by
-    intro z x ez hzx hSx hz hd
-    have hzL : z < log.length := (List.getElem?_eq_some_iff.1 hz).1
-    refine ⟨hzL, ?_, ez, hz, hd⟩
-    rcases Nat.lt_or_ge z x with h | h
-    · obtain ⟨ex, hx⟩ : ∃ e, log[x]? = some e := ⟨_, List.getElem?_eq_getElem (hS x hSx)⟩
-      exact hc x z hSx ⟨h, ex, hx, (hdx z ez hz hd).2 x ex h hx⟩
-    · rw [show z = x by omega]; exact hSx
-  by_cases hex : ∃ x, x ≤ log.length ∧ D x
-  · obtain ⟨x0, hx0, hD0⟩ := hex
-    obtain ⟨g, -, hg, hmax⟩ := exists_greatest D log.length ⟨x0, hx0, hD0⟩
-    refine ⟨g + 1, hg.1, fun y hy => ?_, fun z x ez h1 h2 hSx hz hd => ?_⟩
-    · obtain ⟨-, hSg, eg, heg, hdg⟩ := hg
-      rcases Nat.lt_or_ge y g with h | h
-      · exact hc g y hSg ⟨h, eg, heg, by rw [(hdx g eg heg hdg).1]; exact h⟩
-      · rw [show y = g by omega]; exact hSg
-    · have hDz := hkeep z x ez h2 hSx hz hd
-      have := hmax z (Nat.le_of_lt hDz.1) hDz
-      omega
-  · refine ⟨0, Nat.zero_le _, fun y hy => absurd hy (Nat.not_lt_zero _),
-      fun z x ez _ h2 hSx hz hd => hex ⟨z, ?_, hkeep z x ez h2 hSx hz hd⟩⟩
-    exact Nat.le_of_lt (List.getElem?_eq_some_iff.1 hz).1
-
-/-! ## The replay from `a` on -/
-
-/-- From `a`, a run of file operations keeps the entries naming directories and the keys. -/
-theorem run_dirs (hv : LogValid T0 log s0) {a : Nat} :
-    ∀ u, a ≤ u → u ≤ log.length →
-      (∀ z (ez : LogEntry), a ≤ z → z < u → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0)) →
-      (∀ j b J, (prefTree T0 log u).entry j b = some (.dir J) ↔
-        (prefTree T0 log a).entry j b = some (.dir J)) ∧
-      (∀ x, x ∈ prefTree T0 log u ↔ x ∈ prefTree T0 log a)
-  | 0, hau, _, _ => by rw [show a = 0 by omega]; exact ⟨fun _ _ _ => Iff.rfl, fun _ => Iff.rfl⟩
-  | u + 1, hau, hu, hf => by
-    rcases Nat.lt_or_ge u a with h | h
-    · rw [show a = u + 1 by omega]; exact ⟨fun _ _ _ => Iff.rfl, fun _ => Iff.rfl⟩
-    obtain ⟨e, he⟩ : ∃ e, log[u]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    have hnx := hf u e h (Nat.lt_succ_self _) he
-    have hnd : ¬ e.op.IsDirOp := fun h' => hnx (.inl h')
-    have hok := (hv u e he hnx).1
-    obtain ⟨ih1, ih2⟩ := run_dirs hv u h (by omega) (fun z ez h1 h2 hz => hf z ez h1 (by omega) hz)
-    rw [prefTree_succ T0 log he]
-    exact ⟨fun j b J => (fileOp_dirs hnd hok j b J).trans (ih1 j b J),
-      fun x => (fileOp_mem hnd (opOk_slots hnd hok) x).trans (ih2 x)⟩
-
 /-- Below `a`, everything is kept: the replay is the run. -/
 theorem kept_prefix {a : Nat} (ha : ∀ y, y < a → S y) :
     ∀ t, t ≤ a → t ≤ log.length → replay (keptUpTo log S t) T0 = prefTree T0 log t
@@ -457,41 +433,11 @@ theorem kept_prefix {a : Nat} (ha : ∀ y, y < a → S y) :
     rw [kept_succ T0 log S he, if_pos (ha t (by omega)), prefTree_succ T0 log he,
       kept_prefix ha t (by omega) (by omega)]
 
-/-- The replay's slot, as some tree of the run from `a` on (with file operations only from `a` to
-it) has it. -/
-theorem kept_slot (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) {a : Nat}
-    (haL : a ≤ log.length) (ha : ∀ y, y < a → S y)
-    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0))
-    (j : Ino) (b : GoString) :
-    ∃ g, a ≤ g ∧ g ≤ log.length ∧
-      (∀ z (ez : LogEntry), a ≤ z → z < g → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0)) ∧
-      (replay (keptUpTo log S log.length) T0).entry j b = (prefTree T0 log g).entry j b := by
-  rw [kept_entry hps hdx hc log.length (Nat.le_refl _)]
-  unfold slotV
-  have hsp := lastW_spec log S j b log.length
-  -- no writer below `a` after the last kept one
-  have hfr : ∀ u, u ≤ a → (∀ y, u ≤ y → y < log.length → ¬ KW log S y j b) →
-      (prefTree T0 log a).entry j b = (prefTree T0 log u).entry j b := fun u hu hk =>
-    prefTree_frame T0 log a hu haL (fun y e h1 h2 he hw =>
-      hk y h1 (by omega) ⟨ha y h2, e, he, hw⟩)
-  revert hsp
-  cases lastW log S log.length j b with
-  | some w =>
-    rintro ⟨hw1, hw2, hw3⟩
-    rcases Nat.lt_or_ge w a with h | h
-    · refine ⟨a, Nat.le_refl _, haL, fun z ez h1 h2 => absurd h2 (by omega), ?_⟩
-      exact (hfr (w + 1) (by omega) (fun y h1 h2 => hw3 y (by omega) h2)).symm
-    · exact ⟨w + 1, by omega, by omega, fun z ez h1 h2 hz => hb z w ez h1 (by omega) hw2.1 hz, rfl⟩
-  | none =>
-    intro hk
-    refine ⟨a, Nat.le_refl _, haL, fun z ez h1 h2 => absurd h2 (by omega), ?_⟩
-    rw [hfr 0 (Nat.zero_le _) (fun y _ h2 => hk y h2), prefTree_zero]
-
 /-- Some tree of the run, not later than `t`, has the replay's slot. -/
-theorem kept_slot_le (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) {t : Nat}
+theorem kept_slot_le (hρ : RootTags ρ R T0 log s0) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0) (hc : Closed log S) {t : Nat}
     (ht : t ≤ log.length) (j : Ino) (b : GoString) :
     ∃ g, g ≤ t ∧ (replay (keptUpTo log S t) T0).entry j b = (prefTree T0 log g).entry j b := by
-  rw [kept_entry hps hdx hc t ht]
+  rw [kept_entry hρ hps hdx hc t ht]
   unfold slotV
   have hsp := lastW_spec log S j b t
   revert hsp
@@ -499,67 +445,380 @@ theorem kept_slot_le (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Close
   | some w => rintro ⟨hw1, -, -⟩; exact ⟨w + 1, by omega, rfl⟩
   | none => intro _; exact ⟨0, Nat.zero_le _, by rw [prefTree_zero]⟩
 
-/-- From `a` on, the replay has the directory keys of `T a`. -/
-theorem kept_keys (hv : LogValid T0 log s0) {a : Nat} (ha : ∀ y, y < a → S y)
-    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0)) :
-    ∀ t, a ≤ t → t ≤ log.length → ∀ x,
-      x ∈ replay (keptUpTo log S t) T0 ↔ x ∈ prefTree T0 log a
-  | 0, hat, hL => by
-    rw [show a = 0 by omega, kept_prefix ha 0 (by omega) hL]; exact fun _ => Iff.rfl
-  | t + 1, hat, hL => by
-    rcases Nat.lt_or_ge t a with h | h
-    · rw [show a = t + 1 by omega, kept_prefix ha (t + 1) (by omega) hL]; exact fun _ => Iff.rfl
+/-! ## Directories an operation adds -/
+
+/-- A directory of a tree stays one after any operation. -/
+theorem mem_apply_of_mem (o : MetaOp) (m : Tree) (x : Ino) (h : x ∈ m) : x ∈ o.apply m := by
+  cases o with
+  | create j b i => simp only [MetaOp.apply]; rw [mem_upd]; exact .inr h
+  | mkdir j b J =>
+    simp only [MetaOp.apply]
+    rw [GMap.mem_iff]
+    by_cases hx : J = x
+    · subst hx; simp
+    · rw [GMap.lookup_insert_ne _ _ hx, ← GMap.mem_iff, mem_upd]; exact .inr h
+  | remove j b n => simp only [MetaOp.apply]; rw [mem_upd]; exact .inr h
+  | rename j b j' b' n old =>
+    simp only [MetaOp.apply]
+    split
+    · rw [mem_upd, mem_upd]; exact .inr (.inr h)
+    · exact h
+
+/-- An operation adds to a tree's directories only directories it writes. -/
+theorem mem_apply_writes (o : MetaOp) (m : Tree) (x : Ino) (h : x ∈ o.apply m) :
+    x ∈ m ∨ ∃ b, o.Writes x b := by
+  cases o with
+  | create j b i =>
+    simp only [MetaOp.apply] at h; rw [mem_upd] at h
+    rcases h with rfl | h
+    · exact .inr ⟨b, .inl (by simp [MetaOp.slots])⟩
+    · exact .inl h
+  | mkdir j b J =>
+    simp only [MetaOp.apply] at h
+    rw [GMap.mem_iff] at h
+    by_cases hx : J = x
+    · subst hx; exact .inr ⟨b, .inr ⟨j, b, rfl⟩⟩
+    · rw [GMap.lookup_insert_ne _ _ hx, ← GMap.mem_iff, mem_upd] at h
+      rcases h with rfl | h
+      · exact .inr ⟨b, .inl (by simp [MetaOp.slots])⟩
+      · exact .inl h
+  | remove j b n =>
+    simp only [MetaOp.apply] at h; rw [mem_upd] at h
+    rcases h with rfl | h
+    · exact .inr ⟨b, .inl (by simp [MetaOp.slots])⟩
+    · exact .inl h
+  | rename j b j' b' n old =>
+    simp only [MetaOp.apply] at h
+    split at h
+    · rw [mem_upd, mem_upd] at h
+      rcases h with rfl | rfl | h
+      · exact .inr ⟨b', .inl (by simp [MetaOp.slots])⟩
+      · exact .inr ⟨b, .inl (by simp [MetaOp.slots])⟩
+      · exact .inl h
+    · exact .inl h
+
+/-- An operation leaves a directory it does not write a directory or not. -/
+theorem mem_apply_other (o : MetaOp) (m : Tree) (x : Ino) (h : ∀ b, ¬ o.Writes x b) :
+    x ∈ o.apply m ↔ x ∈ m :=
+  ⟨fun hx => (mem_apply_writes o m x hx).resolve_right (fun ⟨b, hb⟩ => h b hb), mem_apply_of_mem o m x⟩
+
+/-- Whether an operation leaves `x` a directory depends only on whether it was one and on what the
+operation's slots held. -/
+theorem mem_apply_congr (o : MetaOp) (m1 m2 : Tree) (x : Ino) (hk : x ∈ m1 ↔ x ∈ m2)
+    (hs : ∀ sl ∈ o.slots, m1.entry sl.1 sl.2 = m2.entry sl.1 sl.2) :
+    x ∈ o.apply m1 ↔ x ∈ o.apply m2 := by
+  cases o with
+  | create j b i => simp only [MetaOp.apply, mem_upd, hk]
+  | mkdir j b J =>
+    simp only [MetaOp.apply]
+    by_cases hx : J = x
+    · subst hx; rw [GMap.mem_iff, GMap.mem_iff]; simp
+    · rw [GMap.mem_iff, GMap.mem_iff, GMap.lookup_insert_ne _ _ hx, GMap.lookup_insert_ne _ _ hx,
+        ← GMap.mem_iff, ← GMap.mem_iff]
+      simp only [mem_upd, hk]
+  | remove j b n => simp only [MetaOp.apply, mem_upd, hk]
+  | rename j b j' b' n old =>
+    have h0 := hs (j, b) (by simp [MetaOp.slots])
+    simp only at h0
+    simp only [MetaOp.apply]
+    rw [h0]
+    split
+    · simp only [mem_upd, hk]
+    · exact hk
+
+/-- Reachability carries over from `m` to `m'` for the directories of one root, when `m'` has `m`'s
+entries naming directories in that root's directories. -/
+theorem reach_restrict {m m' : Tree} {r : GoString}
+    (hents : ∀ j b J, m.entry j b = some (.dir J) → ρ J = ρ j)
+    (hd : ∀ j b J, ρ j = r → m.entry j b = some (.dir J) → m'.entry j b = some (.dir J)) :
+    ∀ {x}, Reach R m x → ρ x = r → Reach R m' x := by
+  intro x hx
+  induction hx with
+  | root r' j h => intro _; exact .root r' j h
+  | child j b j' _ he ih =>
+    intro hr
+    have hj : ρ j = r := (hents j b j' he).symm.trans hr
+    exact .child j b j' (ih hj) (hd j b j' hj he)
+
+/-- **A tree made of the roots' parts of trees**: if each directory of `K` and its entries naming
+directories are those of the tree `m r` of its root `r`, each `m r` a tree in which a directory named
+by an entry is in its parent's root, a directory of `K` empty when it is a removed one of its tree,
+and `K`'s names valid and its files named once, then `K` is a tree. -/
+theorem treeWf_merge {K : Tree} {m : GoString → Tree}
+    (hw : ∀ r, TreeWf R (m r))
+    (hents : ∀ r j b J, (m r).entry j b = some (.dir J) → ρ J = ρ j)
+    (hk : ∀ x, x ∈ K ↔ x ∈ m (ρ x))
+    (hd : ∀ j b J, K.entry j b = some (.dir J) ↔ (m (ρ j)).entry j b = some (.dir J))
+    (hempty : ∀ x, ¬ Reach R (m (ρ x)) x → (∀ b, (m (ρ x)).entry x b = none) →
+      ∀ b, K.entry x b = none)
+    (hn : ∀ j b n, K.entry j b = some n → NameOk b)
+    (hu : ∀ j1 b1 j2 b2 i, K.entry j1 b1 = some (.file i) → K.entry j2 b2 = some (.file i) →
+      j1 = j2 ∧ b1 = b2) :
+    TreeWf R K := by
+  have hKents : ∀ j b J, K.entry j b = some (.dir J) → ρ J = ρ j :=
+    fun j b J h => hents _ j b J ((hd j b J).1 h)
+  have hto : ∀ x, Reach R K x → Reach R (m (ρ x)) x := by
+    intro x hx
+    induction hx with
+    | root r j h => exact .root r j h
+    | child j b j' _ he ih =>
+      rw [hKents j b j' he]; exact .child j b j' ih ((hd j b j').1 he)
+  have hfrom : ∀ x, Reach R (m (ρ x)) x → Reach R K x := fun x hx =>
+    reach_restrict (r := ρ x) (hents (ρ x)) (fun j b J hj h => (hd j b J).2 (by rw [hj]; exact h)) hx rfl
+  refine ⟨fun x hx => (hk x).2 ((hw _).1 x (hto x hx)), fun x hx => ?_, fun j b n he => ⟨hn j b n he, ?_⟩,
+    fun j b j' he => (hw _).2.2.2.1 j b j' ((hd j b j').1 he), fun j1 b1 j2 b2 n h1 h2 => ?_⟩
+  · by_cases hr : Reach R (m (ρ x)) x
+    · exact .inl (hfrom x hr)
+    · rcases (hw (ρ x)).2.1 x ((hk x).1 hx) with h | ⟨he, hnn⟩
+      · exact absurd h hr
+      · refine .inr ⟨hempty x hr he, fun j0 b h0 => hnn j0 b ?_⟩
+        have h1 := (hd j0 b x).1 h0
+        rw [hKents j0 b x h0]; exact h1
+  · intro j' hj'
+    cases n with
+    | file i => simp [Node.dirIno] at hj'
+    | dir J =>
+      simp only [Node.dirIno, List.mem_singleton] at hj'; subst hj'
+      have h1 := ((hw (ρ j)).2.2.1 j b (.dir j') ((hd j b j').1 he)).2 j' (by simp [Node.dirIno])
+      rw [← hKents j b j' he] at h1
+      exact (hk j').2 h1
+  · cases n with
+    | file i => exact hu j1 b1 j2 b2 i h1 h2
+    | dir J =>
+      have g1 := (hd j1 b1 J).1 h1
+      have g2 := (hd j2 b2 J).1 h2
+      rw [← hKents j1 b1 J h1] at g1
+      rw [← hKents j2 b2 J h2] at g2
+      exact (hw (ρ J)).2.2.2.2 j1 b1 j2 b2 _ g1 g2
+
+/-! ## Each root's cut -/
+
+/-- The entries below `s0` and the directory operations of the root `r`, kept. -/
+def DR (ρ : Ino → GoString) (log : List LogEntry) (S : Nat → Prop) (s0 : Nat) (r : GoString) (x : Nat) :
+    Prop :=
+  x < log.length ∧ S x ∧ ∃ e, log[x]? = some e ∧ (x < s0 ∨ (e.op.IsDirOp ∧ tagOf ρ e = r))
+
+/-- **The cut of the root `r`**: some `a` past every kept legacy entry and kept directory operation of
+`r`; every legacy entry and every entry of `r` below it kept; from it to any kept entry of `r`, no
+legacy entry, and of `r`'s entries only file operations. -/
+theorem cut_base_r (hdx : DirOpExcl ρ log s0) (hc : Closed log S) (hS : ∀ x, S x → x < log.length)
+    (r : GoString) :
+    ∃ a, a ≤ log.length ∧ (∀ y, DR ρ log S s0 r y → y < a) ∧
+      (∀ y (ey : LogEntry), y < a → log[y]? = some ey → (y < s0 ∨ tagOf ρ ey = r) → S y) ∧
+      ∀ z x (ez ex : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → log[x]? = some ex →
+        tagOf ρ ex = r → s0 ≤ z ∧ (tagOf ρ ez = r → ¬ ez.op.IsDirOp) := by
+  have hkeep : ∀ z x (ez ex : LogEntry), z ≤ x → S x → log[z]? = some ez → log[x]? = some ex →
+      tagOf ρ ex = r → (z < s0 ∨ (ez.op.IsDirOp ∧ tagOf ρ ez = r)) → DR ρ log S s0 r z := by
+    intro z x ez ex hzx hSx hz hx htx hd
+    refine ⟨(List.getElem?_eq_some_iff.1 hz).1, ?_, ez, hz, hd⟩
+    rcases Nat.lt_or_ge z x with h | h
+    · refine hc x z hSx ⟨h, ex, hx, ?_⟩
+      rcases hd with hd | ⟨hd, htz⟩
+      · exact legacy_before hdx hz hd h hx
+      · exact dirOp_before hdx hz hd h hx (htx.trans htz.symm)
+    · rw [show z = x by omega]; exact hSx
+  have hpost : ∀ a, (∀ y, DR ρ log S s0 r y → y < a) →
+      ∀ z x (ez ex : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → log[x]? = some ex →
+        tagOf ρ ex = r → s0 ≤ z ∧ (tagOf ρ ez = r → ¬ ez.op.IsDirOp) := by
+    intro a ha z x ez ex h1 h2 hSx hz hx htx
+    refine ⟨Nat.le_of_not_lt fun hzs => ?_, fun htz hd => ?_⟩
+    · have := ha z (hkeep z x ez ex h2 hSx hz hx htx (.inl hzs)); omega
+    · have := ha z (hkeep z x ez ex h2 hSx hz hx htx (.inr ⟨hd, htz⟩)); omega
+  by_cases hex : ∃ x, x ≤ log.length ∧ DR ρ log S s0 r x
+  · obtain ⟨x0, hx0, hD0⟩ := hex
+    obtain ⟨g, -, hg, hmax⟩ := exists_greatest (DR ρ log S s0 r) log.length ⟨x0, hx0, hD0⟩
+    have hlt : ∀ y, DR ρ log S s0 r y → y < g + 1 :=
+      fun y hy => Nat.lt_succ_of_le (hmax y (Nat.le_of_lt hy.1) hy)
+    refine ⟨g + 1, hg.1, hlt, fun y ey hy hey hyr => ?_, hpost (g + 1) hlt⟩
+    obtain ⟨-, hSg, eg, heg, hdg⟩ := hg
+    rcases Nat.lt_or_ge y g with h | h
+    · refine hc g y hSg ⟨h, eg, heg, ?_⟩
+      rcases hdg with hgs | ⟨hgd, hgr⟩
+      · rw [((hdx g eg heg).1 hgs).1]; exact h
+      · rcases hyr with hys | hyr
+        · exact legacy_before hdx hey hys h heg
+        · exact Nat.lt_of_not_le fun hle =>
+            ((hdx g eg heg).2 hgd).1 y ey hle h hey (hyr.trans hgr.symm)
+    · rw [show y = g by omega]; exact hSg
+  · have hlt : ∀ y, DR ρ log S s0 r y → y < 0 :=
+      fun y hy => absurd ⟨y, Nat.le_of_lt hy.1, hy⟩ hex
+    exact ⟨0, Nat.zero_le _, hlt, fun y _ hy => absurd hy (Nat.not_lt_zero _), hpost 0 hlt⟩
+
+/-- From the cut of `r` on, a run of file operations of `r` and of entries of other roots keeps the
+entries naming directories in `r`'s directories, and `r`'s directories. -/
+theorem run_dirs_r (hρ : RootTags ρ R T0 log s0) (hv : LogValid T0 log s0) {r : GoString} {a : Nat} :
+    ∀ u, a ≤ u → u ≤ log.length →
+      (∀ z (ez : LogEntry), a ≤ z → z < u → log[z]? = some ez →
+        s0 ≤ z ∧ (tagOf ρ ez = r → ¬ ez.op.IsDirOp)) →
+      (∀ j b J, ρ j = r → ((prefTree T0 log u).entry j b = some (.dir J) ↔
+        (prefTree T0 log a).entry j b = some (.dir J))) ∧
+      (∀ x, ρ x = r → (x ∈ prefTree T0 log u ↔ x ∈ prefTree T0 log a))
+  | 0, hau, _, _ => by
+    rw [show a = 0 by omega]; exact ⟨fun _ _ _ _ => Iff.rfl, fun _ _ => Iff.rfl⟩
+  | u + 1, hau, hu, hf => by
+    rcases Nat.lt_or_ge u a with h | h
+    · rw [show a = u + 1 by omega]; exact ⟨fun _ _ _ _ => Iff.rfl, fun _ _ => Iff.rfl⟩
+    obtain ⟨e, he⟩ : ∃ e, log[u]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    obtain ⟨hus, hnd⟩ := hf u e h (Nat.lt_succ_self _) he
+    obtain ⟨ih1, ih2⟩ := run_dirs_r hρ hv u h (by omega)
+      (fun z ez h1 h2 hz => hf z ez h1 (by omega) hz)
+    rw [prefTree_succ T0 log he]
+    by_cases ht : tagOf ρ e = r
+    · have hnd' := hnd ht
+      have hok := (hv u e he (fun h' => h'.elim hnd' (fun hlt => by omega))).1
+      exact ⟨fun j b J hj => (fileOp_dirs hnd' hok j b J).trans (ih1 j b J hj),
+        fun x hx => (fileOp_mem hnd' (opOk_slots hnd' hok) x).trans (ih2 x hx)⟩
+    · have hnw : ∀ x b, ρ x = r → ¬ e.op.Writes x b := fun x b hx hw =>
+        ht ((writer_tag hρ hus he hw).trans hx)
+      exact ⟨fun j b J hj => by rw [apply_other _ _ _ _ (hnw j b hj)]; exact ih1 j b J hj,
+        fun x hx => (mem_apply_other _ _ _ (fun b => hnw x b hx)).trans (ih2 x hx)⟩
+
+/-- The replay's slot in a directory of `r`, as some tree of the run from `r`'s cut on (with, from
+the cut to it, no legacy entry and only file operations of `r`) has it. -/
+theorem kept_slot_r (hρ : RootTags ρ R T0 log s0) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0)
+    (hc : Closed log S) {r : GoString} {a : Nat} (haL : a ≤ log.length) (has : s0 ≤ a)
+    (ha : ∀ y (ey : LogEntry), y < a → log[y]? = some ey → (y < s0 ∨ tagOf ρ ey = r) → S y)
+    (hb : ∀ z x (ez ex : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → log[x]? = some ex →
+      tagOf ρ ex = r → s0 ≤ z ∧ (tagOf ρ ez = r → ¬ ez.op.IsDirOp))
+    (j : Ino) (b : GoString) (hj : ρ j = r) :
+    ∃ g, a ≤ g ∧ g ≤ log.length ∧
+      (∀ z (ez : LogEntry), a ≤ z → z < g → log[z]? = some ez →
+        s0 ≤ z ∧ (tagOf ρ ez = r → ¬ ez.op.IsDirOp)) ∧
+      (replay (keptUpTo log S log.length) T0).entry j b = (prefTree T0 log g).entry j b := by
+  rw [kept_entry hρ hps hdx hc log.length (Nat.le_refl _)]
+  unfold slotV
+  have hsp := lastW_spec log S j b log.length
+  have hkw : ∀ y (e : LogEntry), y < a → log[y]? = some e → e.op.Writes j b → KW log S y j b := by
+    intro y e hy he hw
+    refine ⟨ha y e hy he ?_, e, he, hw⟩
+    rcases Nat.lt_or_ge y s0 with h | h
+    · exact .inl h
+    · exact .inr ((writer_tag hρ h he hw).trans hj)
+  have hfr : ∀ u, u ≤ a → (∀ y, u ≤ y → y < log.length → ¬ KW log S y j b) →
+      (prefTree T0 log a).entry j b = (prefTree T0 log u).entry j b := fun u hu hk =>
+    prefTree_frame T0 log a hu haL (fun y e h1 h2 he hw => hk y h1 (by omega) (hkw y e h2 he hw))
+  revert hsp
+  cases lastW log S log.length j b with
+  | some w =>
+    rintro ⟨hw1, hw2, hw3⟩
+    rcases Nat.lt_or_ge w a with h | h
+    · refine ⟨a, Nat.le_refl _, haL, fun z ez h1 h2 => absurd h2 (by omega), ?_⟩
+      exact (hfr (w + 1) (by omega) (fun y h1 h2 => hw3 y (by omega) h2)).symm
+    · obtain ⟨hSw, ew, hew, hww⟩ := hw2
+      have htw : tagOf ρ ew = r := (writer_tag hρ (by omega) hew hww).trans hj
+      exact ⟨w + 1, by omega, by omega,
+        fun z ez h1 h2 hz => hb z w ez ew h1 (by omega) hSw hz hew htw, rfl⟩
+  | none =>
+    intro hk
+    refine ⟨a, Nat.le_refl _, haL, fun z ez h1 h2 => absurd h2 (by omega), ?_⟩
+    rw [hfr 0 (Nat.zero_le _) (fun y _ h2 => hk y h2), prefTree_zero]
+
+/-- Up to `r`'s cut, the replay has the run's directories of `r` (every legacy entry kept). -/
+theorem kept_keys_below (hρ : RootTags ρ R T0 log s0) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0)
+    (hc : Closed log S) {r : GoString} {a : Nat} (haL : a ≤ log.length)
+    (hlegacy : ∀ y, y < s0 → S y)
+    (ha : ∀ y (ey : LogEntry), y < a → log[y]? = some ey → (y < s0 ∨ tagOf ρ ey = r) → S y) :
+    ∀ t, s0 ≤ t → t ≤ a → ∀ x, ρ x = r →
+      (x ∈ replay (keptUpTo log S t) T0 ↔ x ∈ prefTree T0 log t)
+  | 0, hst, _, x, _ => by rw [kept_prefix hlegacy 0 (by omega) (by omega)]
+  | t + 1, hst, hta, x, hx => by
+    rcases Nat.lt_or_ge t s0 with h | h
+    · rw [kept_prefix hlegacy (t + 1) (by omega) (by omega)]
     obtain ⟨e, he⟩ : ∃ e, log[t]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    have ih := kept_keys hv ha hb t h (by omega)
+    have ih := kept_keys_below hρ hps hdx hc haL hlegacy ha t h (by omega) x hx
+    rw [kept_succ T0 log S he, prefTree_succ T0 log he]
+    by_cases ht : tagOf ρ e = r
+    · have hSt := ha t e (by omega) he (.inr ht)
+      rw [if_pos hSt]
+      have hA := kept_entry hρ hps hdx hc (T0 := T0) t (by omega)
+      exact mem_apply_congr _ _ _ x ih (fun sl hsl => kept_reads hρ hps hdx hc he hSt hA sl hsl)
+    · have hnw : ∀ b, ¬ e.op.Writes x b := fun b hw => ht ((writer_tag hρ h he hw).trans hx)
+      rw [mem_apply_other _ _ _ hnw]
+      by_cases hS : S t
+      · rw [if_pos hS, mem_apply_other _ _ _ hnw]; exact ih
+      · rw [if_neg hS]; exact ih
+
+/-- From `r`'s cut on, the replay has the directories of `r` of the run's tree at the cut. -/
+theorem kept_keys_r (hρ : RootTags ρ R T0 log s0) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0)
+    (hv : LogValid T0 log s0) (hc : Closed log S) {r : GoString} {a : Nat} (haL : a ≤ log.length)
+    (has : s0 ≤ a) (hlegacy : ∀ y, y < s0 → S y)
+    (ha : ∀ y (ey : LogEntry), y < a → log[y]? = some ey → (y < s0 ∨ tagOf ρ ey = r) → S y)
+    (hb : ∀ z x (ez ex : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → log[x]? = some ex →
+      tagOf ρ ex = r → s0 ≤ z ∧ (tagOf ρ ez = r → ¬ ez.op.IsDirOp)) :
+    ∀ t, a ≤ t → t ≤ log.length → ∀ x, ρ x = r →
+      (x ∈ replay (keptUpTo log S t) T0 ↔ x ∈ prefTree T0 log a)
+  | 0, hat, hL, x, hx => by
+    have h0 : a = 0 := by omega
+    subst h0
+    exact kept_keys_below hρ hps hdx hc haL hlegacy ha 0 has (Nat.le_refl _) x hx
+  | t + 1, hat, hL, x, hx => by
+    rcases Nat.lt_or_ge t a with h | h
+    · have h0 : a = t + 1 := by omega
+      subst h0
+      exact kept_keys_below hρ hps hdx hc haL hlegacy ha (t + 1) has (Nat.le_refl _) x hx
+    obtain ⟨e, he⟩ : ∃ e, log[t]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    have ih := kept_keys_r hρ hps hdx hv hc haL has hlegacy ha hb t h (by omega)
     rw [kept_succ T0 log S he]
     by_cases hS : S t
     · rw [if_pos hS]
-      have hnx := hb t t e h (Nat.le_refl _) hS he
-      have hnd : ¬ e.op.IsDirOp := fun h' => hnx (.inl h')
-      have hok := (hv t e he hnx).1
-      have hrd := (run_dirs hv t h (by omega)
-        (fun z ez h1 h2 hz => hb z t ez h1 (by omega) hS hz)).2
-      intro x
-      rw [fileOp_mem hnd (fun sl hsl => (ih _).2 ((hrd _).1 (opOk_slots hnd hok sl hsl))) x]
-      exact ih x
-    · rw [if_neg hS]; exact ih
+      by_cases ht : tagOf ρ e = r
+      · obtain ⟨hts, hnd⟩ := hb t t e e h (Nat.le_refl _) hS he he ht
+        have hnd' := hnd ht
+        have hok := (hv t e he (fun h' => h'.elim hnd' (fun hlt => by omega))).1
+        have hrd := (run_dirs_r hρ hv t h (by omega)
+          (fun z ez h1 h2 hz => hb z t ez e h1 (by omega) hS hz he ht)).2
+        have hsr : ∀ sl ∈ e.op.slots, ρ sl.1 = r :=
+          fun sl hsl => (writer_tag hρ hts he (j := sl.1) (b := sl.2) (.inl hsl)).symm.trans ht
+        rw [fileOp_mem hnd' (fun sl hsl => (ih sl.1 (hsr sl hsl)).2
+          ((hrd sl.1 (hsr sl hsl)).1 (opOk_slots hnd' hok sl hsl))) x]
+        exact ih x hx
+      · have hnw : ∀ b, ¬ e.op.Writes x b := fun b hw =>
+          ht ((writer_tag hρ (by omega) he hw).trans hx)
+        rw [mem_apply_other _ _ _ hnw]; exact ih x hx
+    · rw [if_neg hS]; exact ih x hx
 
-/-- From `a` on, the replay names each file once. -/
-theorem kept_inj (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hv : LogValid T0 log s0)
-    {R : List (GoString × Ino)} (hwf : ∀ t, t ≤ log.length → TreeWf R (prefTree T0 log t))
-    (hc : Closed log S) {a : Nat} (ha : ∀ y, y < a → S y)
-    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0)) :
-    ∀ t, a ≤ t → t ≤ log.length → ∀ j1 b1 j2 b2 i,
+/-- Past the last kept entry, the replay is unchanged. -/
+theorem kept_stop {a : Nat} (hb : ∀ y, a ≤ y → ¬ S y) :
+    ∀ t, a ≤ t → t ≤ log.length → replay (keptUpTo log S t) T0 = replay (keptUpTo log S a) T0
+  | 0, h, _ => by rw [show a = 0 by omega]
+  | t + 1, h, hL => by
+    rcases Nat.lt_or_ge t a with h' | h'
+    · rw [show a = t + 1 by omega]
+    obtain ⟨e, he⟩ : ∃ e, log[t]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    rw [kept_succ T0 log S he, if_neg (hb t h')]
+    exact kept_stop hb t h' (by omega)
+
+/-- With every legacy entry kept, the replay names each file once. -/
+theorem kept_inj (hρ : RootTags ρ R T0 log s0) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0)
+    (hv : LogValid T0 log s0) (hwf : ∀ t, t ≤ log.length → TreeWf R (prefTree T0 log t))
+    (hc : Closed log S) (hlegacy : ∀ y, y < s0 → S y) :
+    ∀ t, t ≤ log.length → ∀ j1 b1 j2 b2 i,
       (replay (keptUpTo log S t) T0).entry j1 b1 = some (.file i) →
       (replay (keptUpTo log S t) T0).entry j2 b2 = some (.file i) → j1 = j2 ∧ b1 = b2
-  | 0, hat, hL => by
-    rw [kept_prefix ha 0 (by omega) hL]
+  | 0, hL => by
+    rw [kept_prefix hlegacy 0 (Nat.zero_le _) hL]
     exact fun j1 b1 j2 b2 _ h1 h2 => (hwf 0 hL).2.2.2.2 j1 b1 j2 b2 _ h1 h2
-  | t + 1, hat, hL => by
-    rcases Nat.lt_or_ge t a with h | h
-    · rw [kept_prefix ha (t + 1) (by omega) hL]
+  | t + 1, hL => by
+    rcases Nat.lt_or_ge t s0 with h | h
+    · rw [kept_prefix hlegacy (t + 1) (by omega) hL]
       exact fun j1 b1 j2 b2 _ h1 h2 => (hwf (t + 1) hL).2.2.2.2 j1 b1 j2 b2 _ h1 h2
     obtain ⟨e, he⟩ : ∃ e, log[t]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    have ih := kept_inj hps hdx hv hwf hc ha hb t h (by omega)
+    have ih := kept_inj hρ hps hdx hv hwf hc hlegacy t (by omega)
     rw [kept_succ T0 log S he]
     by_cases hS : S t
     · rw [if_pos hS]
-      have hnx := hb t t e h (Nat.le_refl _) hS he
-      have hnd : ¬ e.op.IsDirOp := fun h' => hnx (.inl h')
-      have hval := hv t e he hnx
-      have hA := kept_entry hps hdx hc (T0 := T0) t (by omega)
-      have hrd := kept_reads hps hdx hc he hS hA
       have hfresh : ∀ j0 b0 i0, e.op = .create j0 b0 i0 → ∀ j b,
           (replay (keptUpTo log S t) T0).entry j b ≠ some (.file i0) := by
         intro j0 b0 i0 hop j b hjb
-        obtain ⟨g, hg, hgeq⟩ := kept_slot_le (T0 := T0) hps hdx hc (t := t) (by omega) j b
+        have hval := hv t e he (fun h' => h'.elim (fun hd => by rw [hop] at hd; exact hd)
+          (fun hlt => by omega))
+        obtain ⟨g, hg, hgeq⟩ := kept_slot_le (T0 := T0) hρ hps hdx hc (t := t) (by omega) j b
         exact hval.2 j0 b0 i0 hop g hg ⟨j, b, hgeq ▸ hjb⟩
-      revert hnd hval hrd hfresh
+      revert hfresh
       generalize replay (keptUpTo log S t) T0 = K at ih ⊢
-      intro hnd hval hrd hfresh
+      intro hfresh
       cases hop : e.op with
       | create j0 b0 i0 =>
-        rw [hop] at hval
         have fresh := hfresh j0 b0 i0 hop
         intro j1 b1 j2 b2 i h1 h2
         rw [entry_create] at h1 h2
@@ -578,82 +837,216 @@ theorem kept_inj (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hv : LogValid 
         split at h2
         · exact nomatch h2
         exact ih _ _ _ _ _ h1 h2
-      | rename j0 b0 j1' b1' n old =>
-        rw [hop] at hval
-        have hr : K.entry j0 b0 = some n :=
-          (hrd (j0, b0) (by rw [hop]; simp [MetaOp.slots])).trans hval.1.2.2.1
+      | mkdir j0 b0 J =>
         intro j1 b1 j2 b2 i h1 h2
-        rw [entry_rename, hr] at h1 h2
-        simp only at h1 h2
-        by_cases p1 : j1' = j1 ∧ b1' = b1 <;> by_cases p2 : j1' = j2 ∧ b1' = b2
-        · exact ⟨p1.1.symm.trans p2.1, p1.2.symm.trans p2.2⟩
-        · rw [if_pos p1] at h1; rw [if_neg p2] at h2
-          split at h2
-          · exact nomatch h2
-          · rename_i q2
-            have := ih j0 b0 j2 b2 i (h1 ▸ hr) h2
-            exact absurd this q2
-        · rw [if_neg p1] at h1; rw [if_pos p2] at h2
-          split at h1
-          · exact nomatch h1
-          · rename_i q1
-            have := ih j0 b0 j1 b1 i (h2 ▸ hr) h1
-            exact absurd this q1
-        · rw [if_neg p1] at h1; rw [if_neg p2] at h2
-          split at h1
-          · exact nomatch h1
-          split at h2
-          · exact nomatch h2
-          exact ih _ _ _ _ _ h1 h2
-      | mkdir => exact absurd (by rw [hop]; trivial) hnd
+        rw [entry_mkdir] at h1 h2
+        split at h1
+        · simp at h1
+        split at h1
+        · simp at h1
+        split at h2
+        · simp at h2
+        split at h2
+        · simp at h2
+        exact ih _ _ _ _ _ h1 h2
+      | rename j0 b0 j1' b1' n old =>
+        intro j1 b1 j2 b2 i h1 h2
+        rw [entry_rename] at h1 h2
+        cases hr : K.entry j0 b0 with
+        | none => rw [hr] at h1 h2; exact ih _ _ _ _ _ h1 h2
+        | some n' =>
+          rw [hr] at h1 h2
+          simp only at h1 h2
+          by_cases p1 : j1' = j1 ∧ b1' = b1 <;> by_cases p2 : j1' = j2 ∧ b1' = b2
+          · exact ⟨p1.1.symm.trans p2.1, p1.2.symm.trans p2.2⟩
+          · rw [if_pos p1] at h1; rw [if_neg p2] at h2
+            split at h2
+            · exact nomatch h2
+            · rename_i q2
+              have := ih j0 b0 j2 b2 i (h1 ▸ hr) h2
+              exact absurd this q2
+          · rw [if_neg p1] at h1; rw [if_pos p2] at h2
+            split at h1
+            · exact nomatch h1
+            · rename_i q1
+              have := ih j0 b0 j1 b1 i (h2 ▸ hr) h1
+              exact absurd this q1
+          · rw [if_neg p1] at h1; rw [if_neg p2] at h2
+            split at h1
+            · exact nomatch h1
+            split at h2
+            · exact nomatch h2
+            exact ih _ _ _ _ _ h1 h2
     · rw [if_neg hS]; exact ih
 
-/-- **The consistent-cut theorem** (`TreeCut.lean` states the disciplines). -/
-theorem closed_cut {R : List (GoString × Ino)}
-    (_hst : Starts log) (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hv : LogValid T0 log s0)
+/-- **The consistent-cut theorem** (`TreeCut.lean` states the disciplines): the replay of a closed
+set is a tree, each slot as right after its last kept writer, each file named in some tree of the
+run, and each directory one of some tree of the run (each root's part of the replay is that of one
+tree of the run: `kept_keys_r`, `kept_slot_r`). -/
+theorem closed_cut
+    (_hst : Starts log) (hps : PerSlotSeq log) (hdx : DirOpExcl ρ log s0)
+    (hρ : RootTags ρ R T0 log s0) (hv : LogValid T0 log s0)
     (hwf : ∀ t, t ≤ log.length → TreeWf R (prefTree T0 log t))
     (hS : ∀ x, S x → x < log.length) (hc : Closed log S) :
     TreeWf R (replay (keptOps log S) T0) ∧
     (∀ j b, (replay (keptOps log S) T0).entry j b = slotAfter T0 log S j b) ∧
     (∀ i, Named (replay (keptOps log S) T0) i → ∃ t, t ≤ log.length ∧ Named (prefTree T0 log t) i) ∧
-    (∃ t, t ≤ log.length ∧ ∀ j, j ∈ replay (keptOps log S) T0 ↔ j ∈ prefTree T0 log t) := by
-  obtain ⟨a, haL, ha, hb⟩ := cut_base hdx hc hS
+    (∀ j, j ∈ replay (keptOps log S) T0 → ∃ t, t ≤ log.length ∧ j ∈ prefTree T0 log t) := by
   have hK : keptOps log S = keptUpTo log S log.length := rfl
   rw [hK]
-  have hkeys := kept_keys hv ha hb log.length haL (Nat.le_refl _)
-  have hinj := kept_inj hps hdx hv hwf hc ha hb log.length haL (Nat.le_refl _)
-  have hdirs : ∀ j b J, (replay (keptUpTo log S log.length) T0).entry j b = some (.dir J) ↔
-      (prefTree T0 log a).entry j b = some (.dir J) := by
-    intro j b J
-    obtain ⟨g, hg1, hg2, hgw, heq⟩ := kept_slot (T0 := T0) hps hdx hc haL ha hb j b
-    rw [heq]; exact (run_dirs hv g hg1 hg2 hgw).1 j b J
-  refine ⟨?_, fun j b => kept_entry hps hdx hc log.length (Nat.le_refl _) j b, ?_, ⟨a, haL, hkeys⟩⟩
-  · refine treeWf_sameDirs (hwf a haL) hkeys hdirs ?_ ?_ ?_
-    · intro x hx _ b
-      obtain ⟨g, hg1, hg2, hgw, heq⟩ := kept_slot (T0 := T0) hps hdx hc haL ha hb x b
+  have hslots : ∀ j b, (replay (keptUpTo log S log.length) T0).entry j b = slotAfter T0 log S j b :=
+    fun j b => kept_entry hρ hps hdx hc log.length (Nat.le_refl _) j b
+  have hnamed : ∀ i, Named (replay (keptUpTo log S log.length) T0) i →
+      ∃ t, t ≤ log.length ∧ Named (prefTree T0 log t) i := by
+    rintro i ⟨j, b, h⟩
+    obtain ⟨g, hg, heq⟩ := kept_slot_le (T0 := T0) hρ hps hdx hc (t := log.length) (Nat.le_refl _) j b
+    exact ⟨g, hg, j, b, heq ▸ h⟩
+  by_cases hk : ∃ x, S x ∧ s0 ≤ x
+  · obtain ⟨x0, hSx0, hx0⟩ := hk
+    have hx0L := hS x0 hSx0
+    have hlegacy : ∀ y, y < s0 → S y := fun y hy => by
+      obtain ⟨e0, he0⟩ : ∃ e, log[x0]? = some e := ⟨_, List.getElem?_eq_getElem hx0L⟩
+      obtain ⟨ey, hey⟩ : ∃ e, log[y]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      exact hc x0 y hSx0 ⟨by omega, e0, he0, legacy_before hdx hey hy (by omega) he0⟩
+    have hcb := fun r => cut_base_r hdx hc hS r
+    let a : GoString → Nat := fun r => Classical.choose (hcb r)
+    have hspec := fun r => Classical.choose_spec (hcb r)
+    have haL : ∀ r, a r ≤ log.length := fun r => (hspec r).1
+    have has : ∀ r, s0 ≤ a r := fun r => by
+      rcases Nat.eq_zero_or_pos s0 with h0 | h0
+      · omega
+      · obtain ⟨e, he⟩ : ∃ e, log[s0 - 1]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        have : s0 - 1 < a r := (hspec r).2.1 (s0 - 1) ⟨by omega, hlegacy _ (by omega), e, he, .inl (by omega)⟩
+        omega
+    have hkeys : ∀ x, x ∈ replay (keptUpTo log S log.length) T0 ↔ x ∈ prefTree T0 log (a (ρ x)) :=
+      fun x => kept_keys_r hρ hps hdx hv hc (haL (ρ x)) (has (ρ x)) hlegacy (hspec (ρ x)).2.2.1
+        (hspec (ρ x)).2.2.2 log.length (haL _) (Nat.le_refl _) x rfl
+    have hslot := fun j b => kept_slot_r (T0 := T0) hρ hps hdx hc (haL (ρ j)) (has (ρ j))
+      (hspec (ρ j)).2.2.1 (hspec (ρ j)).2.2.2 j b rfl
+    refine ⟨treeWf_merge (m := fun r => prefTree T0 log (a r)) (fun r => hwf _ (haL r))
+      (fun r => hρ.ents (a r) (has r) (haL r)) hkeys (fun j b J => ?_) (fun x hx he b => ?_)
+      (fun j b n he => ?_) (kept_inj hρ hps hdx hv hwf hc hlegacy log.length (Nat.le_refl _)),
+      hslots, hnamed, fun j hj => ⟨a (ρ j), haL _, (hkeys j).1 hj⟩⟩
+    · obtain ⟨g, hg1, hg2, hgw, heq⟩ := hslot j b
+      rw [heq]; exact (run_dirs_r hρ hv g hg1 hg2 hgw).1 j b J rfl
+    · obtain ⟨g, hg1, hg2, hgw, heq⟩ := hslot x b
       rw [heq]
-      obtain ⟨hd, -⟩ := run_dirs hv g hg1 hg2 hgw
+      have hd := (run_dirs_r hρ hv g hg1 hg2 hgw).1
       by_cases hxg : x ∈ prefTree T0 log g
-      · rcases (hwf g hg2).2.1 x hxg with hr | ⟨he, -⟩
-        · exact absurd (reach_mono (fun j b j' h => (hd j b j').1 h) hr) hx
-        · exact he b
+      · rcases (hwf g hg2).2.1 x hxg with hr | ⟨he', -⟩
+        · exact absurd (reach_restrict (hρ.ents g (by have := has (ρ x); omega) hg2)
+            (fun j b J hj h => (hd j b J hj).1 h) hr rfl) hx
+        · exact he' b
       · have h0 : (prefTree T0 log g) !! x = none := by
           cases h : (prefTree T0 log g) !! x with
           | none => rfl
           | some _ => exact absurd (by rw [GMap.mem_iff, h]; rfl) hxg
         simp [Tree.entry, h0]
-    · intro j b n he
-      obtain ⟨g, -, hg2, -, heq⟩ := kept_slot (T0 := T0) hps hdx hc haL ha hb j b
-      rw [heq] at he; exact ((hwf g hg2).2.2.1 j b n he).1
-    · intro j1 b1 j2 b2 n h1 h2
-      cases n with
-      | file i => exact hinj j1 b1 j2 b2 i h1 h2
-      | dir J => exact (hwf a haL).2.2.2.2 j1 b1 j2 b2 _ ((hdirs _ _ _).1 h1) ((hdirs _ _ _).1 h2)
-  · rintro i ⟨j, b, h⟩
-    obtain ⟨g, -, hg2, -, heq⟩ := kept_slot (T0 := T0) hps hdx hc haL ha hb j b
-    exact ⟨g, hg2, j, b, heq ▸ h⟩
+    · obtain ⟨g, hg, heq⟩ := kept_slot_le (T0 := T0) hρ hps hdx hc (t := log.length) (Nat.le_refl _) j b
+      rw [heq] at he; exact ((hwf g hg).2.2.1 j b n he).1
+  · have hk' : ∀ x, S x → x < s0 := fun x hx => Nat.lt_of_not_le fun h => hk ⟨x, hx, h⟩
+    have hpre : ∃ a, a ≤ log.length ∧ (∀ y, y < a → S y) ∧ ∀ y, a ≤ y → ¬ S y := by
+      by_cases hex : ∃ x, x ≤ log.length ∧ S x
+      · obtain ⟨g, -, hg, hmax⟩ := exists_greatest S log.length hex
+        have hgL := hS g hg
+        refine ⟨g + 1, hgL, fun y hy => ?_, fun y hy hSy => ?_⟩
+        · rcases Nat.lt_or_ge y g with h | h
+          · obtain ⟨eg, heg⟩ : ∃ e, log[g]? = some e := ⟨_, List.getElem?_eq_getElem hgL⟩
+            exact hc g y hg ⟨h, eg, heg, by rw [((hdx g eg heg).1 (hk' g hg)).1]; exact h⟩
+          · rw [show y = g by omega]; exact hg
+        · have := hmax y (Nat.le_of_lt (hS y hSy)) hSy; omega
+      · exact ⟨0, Nat.zero_le _, fun y hy => absurd hy (Nat.not_lt_zero _),
+          fun y _ hSy => hex ⟨y, Nat.le_of_lt (hS y hSy), hSy⟩⟩
+    obtain ⟨a, haL, ha, hb⟩ := hpre
+    have hKa : replay (keptUpTo log S log.length) T0 = prefTree T0 log a := by
+      rw [kept_stop hb log.length haL (Nat.le_refl _), kept_prefix ha a (Nat.le_refl _) haL]
+    refine ⟨?_, hslots, hnamed, fun j hj => ⟨a, haL, ?_⟩⟩
+    · rw [hKa]; exact hwf a haL
+    · rw [hKa] at hj; exact hj
 
 end cut
+
+/-! ## The roots' tags of a tree -/
+
+theorem fst_eq_of_snd_nodup : ∀ {R : List (GoString × Ino)}, (R.map (·.2)).Nodup →
+    ∀ {r r' : GoString} {i : Ino}, (r, i) ∈ R → (r', i) ∈ R → r = r'
+  | [], _, _, _, _, h, _ => by simp at h
+  | (a, b) :: R, hn, r, r', i, h1, h2 => by
+    rw [List.map_cons, List.nodup_cons] at hn
+    simp only [List.mem_cons, Prod.mk.injEq] at h1 h2
+    rcases h1 with ⟨rfl, rfl⟩ | h1 <;> rcases h2 with ⟨rfl, h2'⟩ | h2
+    · rfl
+    · exact absurd (List.mem_map.2 ⟨(r', i), h2, rfl⟩) hn.1
+    · subst h2'; exact absurd (List.mem_map.2 ⟨(r, i), h1, rfl⟩) hn.1
+    · exact fst_eq_of_snd_nodup hn.2 h1 h2
+
+theorem reach_of_reachFrom {R : List (GoString × Ino)} {m : Tree} {r : GoString} {ri : Ino}
+    (hr : (r, ri) ∈ R) {j : Ino} (h : ReachFrom m ri j) : Reach R m j := by
+  induction h with
+  | root => exact .root r ri hr
+  | child j b j' _ he ih => exact .child j b j' ih he
+
+theorem reachFrom_of_reach {R : List (GoString × Ino)} {m : Tree} {j : Ino} (h : Reach R m j) :
+    ∃ rj ∈ R, ReachFrom m rj.2 j := by
+  induction h with
+  | root r j hr => exact ⟨(r, j), hr, .root⟩
+  | child j b j' _ he ih =>
+    obtain ⟨rj, hrj, h⟩ := ih
+    exact ⟨rj, hrj, .child j b j' h he⟩
+
+/-- In a tree, a directory is reachable from one root only. -/
+theorem reachFrom_unique {R : List (GoString × Ino)} {m : Tree} (hR : (R.map (·.2)).Nodup)
+    (hw : TreeWf R m) {r : GoString} {ri : Ino} (hr : (r, ri) ∈ R) {j : Ino} (h : ReachFrom m ri j) :
+    ∀ {r' : GoString} {ri' : Ino}, (r', ri') ∈ R → ReachFrom m ri' j → r = r' := by
+  induction h with
+  | root =>
+    intro r' ri' hr' h'
+    cases h' with
+    | root => exact fst_eq_of_snd_nodup hR hr hr'
+    | child j0 b _ _ he => exact absurd hr (hw.2.2.2.1 j0 b ri he r)
+  | child j0 b j _ he ih =>
+    intro r' ri' hr' h'
+    cases h' with
+    | root => exact absurd hr' (hw.2.2.2.1 j0 b _ he r')
+    | child j0' b' _ h0' he' =>
+      obtain ⟨rfl, rfl⟩ := hw.2.2.2.2 j0 b j0' b' _ he he'
+      exact ih hr' h0'
+
+/-- A tree's directories reachable from a root have that root's tag, under `ρ`, when `ρ` maps the
+roots' directories to the roots and a directory named by an entry to its parent's root. -/
+theorem rho_of_reachFrom {R : List (GoString × Ino)} {m : Tree} {ρ : Ino → GoString}
+    (hroots : ∀ r j, (r, j) ∈ R → ρ j = r)
+    (hents : ∀ j b J, m.entry j b = some (.dir J) → ρ J = ρ j) {r : GoString} {ri : Ino}
+    (hr : (r, ri) ∈ R) {j : Ino} (h : ReachFrom m ri j) : ρ j = r := by
+  induction h with
+  | root => exact hroots r ri hr
+  | child j b j' _ he ih => exact (hents j b j' he).trans ih
+
+open Classical in
+/-- **The roots' tags of a tree**: each directory reachable from a root mapped to that root. -/
+theorem rootTags_exists {R : List (GoString × Ino)} {m : Tree} (hR : (R.map (·.2)).Nodup)
+    (hw : TreeWf R m) :
+    ∃ ρ : Ino → GoString, (∀ r j, (r, j) ∈ R → ρ j = r) ∧
+      ∀ j b J, m.entry j b = some (.dir J) → ρ J = ρ j := by
+  let ρ : Ino → GoString := fun j =>
+    if h : ∃ rj ∈ R, ReachFrom m rj.2 j then (Classical.choose h).1 else []
+  have hρ : ∀ r ri j, (r, ri) ∈ R → ReachFrom m ri j → ρ j = r := by
+    intro r ri j hr h
+    have hex : ∃ rj ∈ R, ReachFrom m rj.2 j := ⟨(r, ri), hr, h⟩
+    have hs := Classical.choose_spec hex
+    show (if h : ∃ rj ∈ R, ReachFrom m rj.2 j then (Classical.choose h).1 else []) = r
+    rw [dif_pos hex]
+    exact (reachFrom_unique hR hw hr h hs.1 hs.2).symm
+  refine ⟨ρ, fun r j hr => hρ r j j hr .root, fun j b J he => ?_⟩
+  have hj : j ∈ m := by
+    cases h : m !! j with
+    | none => simp [Tree.entry, h] at he
+    | some _ => rw [GMap.mem_iff, h]; rfl
+  rcases hw.2.1 j hj with hr | ⟨hemp, -⟩
+  · obtain ⟨rj, hrj, h⟩ := reachFrom_of_reach hr
+    rw [hρ rj.1 rj.2 J hrj (.child j b J h he), hρ rj.1 rj.2 j hrj h]
+  · rw [hemp b] at he; cases he
+
 
 end Fs
 end Perennial

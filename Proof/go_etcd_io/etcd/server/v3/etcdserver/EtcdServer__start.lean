@@ -128,7 +128,7 @@ theorem EtcdServer.start.wp_proof
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe Hlgf; iframe Hlr Hlgn
   icases Hsc with ⟨%sc0, Hsc⟩
-  icases Hscu with ⟨%scu0, Hscu⟩
+  icases Hscu with ⟨%scu0, Hscu, %Hscu0⟩
   wp_auto
   -- the snapshot defaults
   wp_join iprop(∃ n : w64, srvSnapCountAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hsc s lg]
@@ -137,14 +137,27 @@ theorem EtcdServer.start.wp_proof
     wp_apply hZU as %f2 -
     start_info
     wp_join_done
-  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hscu s lg]
-    as ⟨%scu1, Hscu, s, lg⟩
+  -- (auth-lease S4) in the no-snapshot mode `SnapshotCatchUpEntries` stays at least the receipts'
+  -- bound: at `0` the mode is off or the bound `0`, below the default
+  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
+      ⌜clusterNoSnap γr.raft.raft.cl → receiptBound GF ≤ uint.Z n⌝ ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg)
+    with [Hscu s lg]
+    as ⟨%scu1, Hscu, %Hscu1, s, lg⟩
   · wp_apply hZU as %f1 -
     wp_apply hZU as %f2 -
     start_info
     simp only [DefaultSnapshotCatchUpEntries]
     wp_auto
     wp_join_done
+    iexists _
+    iframe
+    ipureintro; intro hm
+    have h := Hscu0 hm; have : uint.Z (W64 0) = 0 := rfl
+    word
+  · -- `SnapshotCatchUpEntries` kept
+    iexists scu0
+    iframe
+    ipureintro; exact Hscu0
   ipersist Hsc
   ipersist Hscu
   -- `s.w = wait.New()`
@@ -429,7 +442,7 @@ theorem EtcdServer.start.wp_proof
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    ipureintro; exact Hkv0
+    ipureintro; exact ⟨Hscu1, Hkv0⟩
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
@@ -619,6 +632,7 @@ theorem EtcdServer.start.wp_proof
   -- (R2d'a swap batch 5; restart S4) `run`'s start conjuncts in restart form, at `P` and the backend's
   -- ghost log `γn.a0`, rows 6 and 7 from row 8 in the raft node (Q38 (a), `srvRunRows_of_rn`)
   ihave %Hrows := srvRunRows_of_rn Er γn (srvRAddr s) $$ Hrn
+  ihave %Hrmode := isRaftNode_mode Er γn (srvRAddr s) $$ Hrn
   ihave HRr : srvRunRestartR C s γ ci b E { ρ with wait := γw } γr Er γn ai₀ at₀ c₀ x₀ γw
       $$ [Hsnap Hstart Hloop Happly]
   · iunfold srvRunRestartR
@@ -627,7 +641,7 @@ theorem EtcdServer.start.wp_proof
     isplitr
     · ipureintro
       obtain ⟨h1, h2, h3⟩ := HEr
-      refine ⟨h1, h2, h3, rfl, HPa.1, HPa.2, Hrows.1, ?_⟩
+      refine ⟨h1, h2, h3, rfl, HPa.1, HPa.2, Hrows.1, ?_, Hrmode⟩
       rw [h3.2.2]; exact Hrows.2
     iexists ms
     iframe Hms Hsnap

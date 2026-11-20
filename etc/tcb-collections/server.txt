@@ -34,7 +34,6 @@ axiom EtcdServer.monitorDowngrade.wp_proof
 axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
-axiom EtcdServer.purgeFile.wp_proof
 axiom EtcdServer.waitAppliedIndex.wp_proof
 axiom EtcdServer.waitLeader.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
@@ -82,7 +81,6 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
-axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -167,6 +165,8 @@ axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.MarshalPb.wp_proof
+axiom proto.MarshalRole.wp_proof
+axiom proto.MarshalUser.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.SizeMessage.wp_proof
 axiom proto.SizePb.wp_proof
@@ -210,7 +210,6 @@ axiom sort.StringSlice.Sort.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strconv.Itoa.wp_proof
@@ -243,7 +242,6 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
-axiom walFiles
 axiom zap.Bool.wp_proof
 axiom zap.ByteString.wp_proof
 axiom zap.Duration.wp_proof

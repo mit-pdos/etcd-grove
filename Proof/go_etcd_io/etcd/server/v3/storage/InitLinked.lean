@@ -17,6 +17,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.InitLinked
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.InitLinked
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.os.Init
@@ -53,6 +55,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.storage
 
@@ -70,6 +74,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoString) maxQuotaSize _ as HmaxQuotaSize
   wp_apply wp_GlobalAlloc (V := GoString) DefaultQuotaSize _ as HDefaultQuotaSize
   wp_apply wp_GlobalAlloc (V := GoInterface) quotaBackendBytes _ as HquotaBackendBytes
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
   wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (_root_.Perennial.github_com.dustin.go_humanize.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
   wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩

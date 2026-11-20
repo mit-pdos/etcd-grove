@@ -58,14 +58,15 @@ abbrev EtcdServer.snapshot.spec : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
     (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : WTNames) (ua : GoInterface) (q : Qp)
-    (γn : RNNames) (γm : GName),
-  loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+    (γn : RNNames GF) (γm : GName),
+  -- (wal-link L3, 2026-11-19: until then `storage.releaseOk`) the snapshot directory's reads not failing
+  -- (`snapOpensOk`, whose `dirReadOk` covers `Release`)
+  loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.snapOpensOk →
   -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters
   -- fewer than `2^61` (`SnapListsOk`)
   0 < uint.Z ai → GMap.size γr.raft.raft.cfg < 2 ^ 61 →
-  -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes: the WAL's write
-  -- not failing (I/O)
-  storage.walSaveOk →
+  -- (wal-link L3, 2026-11-19: until then the premise `storage.walSaveOk`, the WAL's write not failing, which
+  -- the run's no-I/O-error semantics now gives)
   -- (2026-11-03, R2b-1 stage 5) the raft wrapper's names the server's raft's, at a fresh start (no
   -- log before the wrapper's: the snapshot's index is the applied log's length)
   γn.node = γr.raft.raft → γr.raft.pre = [] →

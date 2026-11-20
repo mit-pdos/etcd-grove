@@ -29,6 +29,7 @@ public import Proof.path.filepath.Init
 public import Proof.syscall.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.syscall.FileOps
+public import Proof.errors.ErrorStringOk
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -113,13 +114,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
         ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0 ∧
           w.Pid' = W32 0⌝) $$ []
   · isplitl []
-    · unfold EtcdGrove.errOk
-      iexists _
+    · iexists _
       iframe HErrLocked
-      iintro !> %Φ' HΦ'
-      iapply EL
-      inext
-      iapply HΦ'
+      iapply EtcdGrove.errorString_errOk
+      iexact EL
     · iexists _
       iframe Hwrlck
       ipureintro

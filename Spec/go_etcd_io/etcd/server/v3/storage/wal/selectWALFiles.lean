@@ -55,11 +55,11 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.spec : Prop :=
   WalDirNamesOk N h →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
-      osCallPerm (GF := GF) qc ∗ osNames (GF := GF) j N dqn h ∗ walSnapIdTerm sp s }}
+      osCallPerm (GF := GF) (callKey R d) qc ∗ osNames (GF := GF) j N dqn h ∗ walSnapIdTerm sp s }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles)) (Val #lg))
       (Val #d)) (Val #sp))
   {{ (r : GoSlice) (k : w64) (err : GoInterface), RET (PairV (PairV #r #k) #err);
-      osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h ∗
+      osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h ∗
       ((∃ ws : List GoString, ⌜err = interface.nil ∧ 0 ≤ sint.Z k ∧
           WalSelected N h s.1 ws (sint.nat k)⌝ ∗ r ↦* ws) ∨
        ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) }}

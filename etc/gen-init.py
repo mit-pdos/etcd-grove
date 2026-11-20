@@ -100,12 +100,17 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth3',
          # authN (2026-11-15, notes/authN-plan.md): auth3 with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.authN',
+         # auth-lease S4 (2026-11-17, notes/auth-lease-s4-draft.md): authN's start with the lease rows
+         'github_com.mit_pdos.etcd_grove.examples.etcd.authlease',
          # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
          'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
          'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
          # K4 of notes/k8s-compactor-plan.md (2026-11-04): Kubernetes' compactor example
          'github_com.mit_pdos.etcd_grove.examples.k8s.compactor',
+         # (2026-11-20, notes/k8s-unified-scope.md) the one closed Kubernetes theorem's program: the two
+         # drivers at once; no package variable, its fact `True` (`Base.lean`), so no `SPECIAL`
+         'github_com.mit_pdos.etcd_grove.examples.k8s.all',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -677,14 +682,14 @@ leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated 
 Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
 initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.''',
-    imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.ErrIsTerm'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.ErrIsTerm', 'Proof.errors.ErrorStringOk'],
     alloc_types={'ErrCRCMismatch': 'GoInterface'},
     before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC',
                                'try wp_auto']},
     finish=['ipersist HErrCRCMismatch', 'ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ {Hd:errors}'] +
            FIN_PRE[:6] + [
         'imodintro', 'unfold EtcdGrove.walpb.walpbInit', 'iexists _',
-        'iframe HErrCRCMismatch TC', 'unfold EtcdGrove.errOk', "iintro !> %Φ' HΦ'", 'iapply EC', 'inext', "iapply HΦ'"],
+        'iframe HErrCRCMismatch TC', 'iapply EtcdGrove.errorString_errOk', 'iexact EC'],
 )
 # (WAL package init, 2026-11-13) the part's `fileutil`: the lock functions, chosen by its `init`'s
 # `F_OFD_GETLK` probe (`syscall.FcntlFlock.wp_getlk`: any errno, so either), `wrlck`, `ErrLocked`
@@ -696,7 +701,7 @@ LFS_SPECIAL['go_etcd_io.etcd.client.pkg.v3.fileutil'] = dict(
 `init` function (lock_linux.go), which probes OFD locks with `F_OFD_GETLK` on fd 0 and switches both
 functions to OFD's on success: the probe's errno is any (`syscall.FcntlFlock.wp_getlk`), so either
 outcome.''',
-    imports=['Perennial.Proof.errors.NewVar', 'Proof.syscall.FileOps'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.syscall.FileOps', 'Proof.errors.ErrorStringOk'],
     vars=['[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]'],
     alloc_types={'linuxLockFile': 'GoFunc', 'linuxTryLockFile': 'GoFunc', 'wrlck': 'syscall.Flock_t',
                  'ErrLocked': 'GoInterface'},
@@ -709,8 +714,8 @@ outcome.''',
         '    (∃ w : syscall.Flock_t, globalAddr wrlck ↦□ w ∗',
         "      ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0 ∧",
         "        w.Pid' = W32 0⌝) $$ []",
-        '· isplitl []', '  · unfold EtcdGrove.errOk', '    iexists _', '    iframe HErrLocked',
-        "    iintro !> %Φ' HΦ'", '    iapply EL', '    inext', "    iapply HΦ'",
+        '· isplitl []', '  · iexists _', '    iframe HErrLocked',
+        '    iapply EtcdGrove.errorString_errOk', '    iexact EL',
         '  · iexists _', '    iframe Hwrlck', '    ipureintro', '    exact ⟨rfl, rfl, rfl, rfl, rfl⟩',
         'by_cases he : e = 0'] +
         [l for ofd, eq, simps in
@@ -730,17 +735,18 @@ outcome.''',
 # error variables
 _WAL_NEW_ERRS = [('errBadWALName', 'BW'), ('ErrMetadataConflict', 'MC'), ('ErrFileNotFound', 'FN'),
                  ('ErrSnapshotMismatch', 'SM'), ('ErrSnapshotNotFound', 'SN'),
-                 ('ErrSliceOutOfRange', 'SO'), ('ErrDecoderNotFound', 'DN')]
+                 ('ErrSliceOutOfRange', 'SO'), ('ErrDecoderNotFound', 'DN'), ('ErrSaveBatchTooLarge', 'BL')]
 _WAL_METRICS = ['walFsyncSec', 'walWriteSec', 'walWriteBytes']
 _WAL_ERRS = ['errBadWALName', 'ErrMetadataConflict', 'ErrFileNotFound', 'ErrCRCMismatch',
-             'ErrSnapshotMismatch', 'ErrSnapshotNotFound', 'ErrSliceOutOfRange', 'ErrDecoderNotFound']
+             'ErrSnapshotMismatch', 'ErrSnapshotNotFound', 'ErrSliceOutOfRange', 'ErrDecoderNotFound',
+             'ErrSaveBatchTooLarge']
 
 
 def _walErrVar(x, tag):
     """The fact's clause of the error variable `x`, from `errors.New`'s `E<tag>`."""
     return [f'ihave #V{x} : (EtcdGrove.wal.errVar {x} : IProp GF) $$ []',
             '· unfold EtcdGrove.wal.errVar', '  iexists _', f'  iframe H{x}', '  isplitl []',
-            '  · unfold EtcdGrove.errOk', "    iintro !> %Φ' HΦ'", f'    iapply E{tag}', '    inext', "    iapply HΦ'",
+            '  · iapply EtcdGrove.errorString_errOk', f'    iexact E{tag}',
             f'  · iapply EtcdGrove.errIsTerm_errorString x{tag}; iexact {{Hd:errors}}']
 
 
@@ -802,7 +808,8 @@ def _walMetric(x, spec):
 LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal'] = dict(
     doc='''Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
-`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, `MaxSaveBatchBytes`
+`2^42` (fix 0009), every error
 variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
 `openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
@@ -812,9 +819,9 @@ translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbIn
 crc32.MakeTable(crc32.Castagnoli)` (`hash.crc32.MakeTable.wp_proof`), and its untranslated `init`
 function (`prometheus.MustRegister` of the metrics), which the trust-boundary axiom `initFuncsOk`
 says returns.''',
-    imports=['Perennial.Proof.errors.NewVar', 'Proof.hash.crc32.MakeTable', 'Proof.errors.ErrIsTerm'] + PROM_CTORS,
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.hash.crc32.MakeTable', 'Proof.errors.ErrIsTerm', 'Proof.errors.ErrorStringOk'] + PROM_CTORS,
     alloc_types=dict({x: 'GoInterface' for x in _WAL_ERRS + _WAL_METRICS}, crcTable='Loc', openWALFilesFn='GoFunc',
-                     SegmentSizeBytes='w64'),
+                     SegmentSizeBytes='w64', MaxSaveBatchBytes='w64'),
     before=dict({x: metric_steps_to(x, k, f'EtcdGrove.wal.{t}') for x, k, t in
                  [('walFsyncSec', 'hist', 'histSpec'), ('walWriteSec', 'hist', 'histSpec'),
                   ('walWriteBytes', 'gauge', 'gaugeAddSpec')]},
@@ -828,7 +835,7 @@ says returns.''',
                           'rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
                           'wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab',
                           'try wp_auto']),
-    finish=[f'ipersist H{x}' for x in _WAL_ERRS + ['crcTable', 'SegmentSizeBytes', 'walFsyncSec',
+    finish=[f'ipersist H{x}' for x in _WAL_ERRS + ['crcTable', 'SegmentSizeBytes', 'MaxSaveBatchBytes', 'walFsyncSec',
                                                     'walWriteSec', 'walWriteBytes', 'openWALFilesFn']] +
            [l for x, t in _WAL_NEW_ERRS for l in _walErrVar(x, t)] +
            ['ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []',
@@ -1266,7 +1273,7 @@ _K8E = [('errNotObj', 'NO'), ('errBadData', 'BD'), ('errBadRV', 'BR'),
 
 def _errVarOk(x, t):
     """`errVarOk x msg` (the driver's `Base.lean`) of the `errors.New` result `x<t>` (`#M<t>`,
-    its cell `#C<t>`)."""
+    its `errorString` `#C<t>`)."""
     return [f'iexists x{t}', f'iframe H{x} C{t}',
             'unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec',
             'iintro !> %Φ HΦ', f'iapply M{t}', 'inext', 'iapply HΦ']
@@ -1274,13 +1281,14 @@ def _errVarOk(x, t):
 SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8s.etcd3'] = dict(
     doc='''Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
 `errBadData`, `errBadRV`, `errDeleteRejected`, `errUpdateRejected`, translated
-`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
-its message (`wp_New_errorString_cell`). Its initializer allocates them, initializes its imports
-and runs their translated initializers.''',
+`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and which holds
+its message, read-only (`wp_New_errorString_struct`). Its initializer allocates them, initializes
+its imports and runs their translated initializers.''',
     imports=['Proof.errors.NewVarCell'],
     alloc_types={x: 'GoInterface' for x, _ in _K8E},
     before={'$end': ['try wp_auto'] + [l for _, t in _K8E for l in [
-        f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩', 'try wp_auto']]},
+        f'wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %x{t} ⟨#M{t}, #C{t}⟩',
+        'try wp_auto']]},
     finish=[f'ipersist H{x}' for x, _ in _K8E] + FIN_PRE[:6] + ['imodintro', 'unfold drvInit'] +
            [l for x, t in _K8E[:-1] for l in ['isplitr'] + ['· ' + m if j == 0 else '  ' + m
                                                      for j, m in enumerate(_errVarOk(x, t))]] +
@@ -1684,15 +1692,18 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
          '  noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none',
          '  /-- (premise-fixes-4) nor a `Format` method (`fmt` prints it with its `Error`). -/',
          '  noFormat : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none',
+         '  /-- (fmt soundness 2) and its `Error` is `Error() string` (what `fmt.argOk` asks). -/',
+         '  errorSig : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Error" =',
+         '    some (go.signature.Signature [] false [go.string])',
          '',
          'instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]',
          '    [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :',
          '    EtcdGrove.RpctypesEtcdErrorMethods := by',
          '  have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m',
          '  have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"',
-         '  have hF := h go!"Format"',
-         '  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF',
-         '  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF⟩',
+         '  have hF := h go!"Format"; have hE := h go!"Error"',
+         '  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF hE',
+         '  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF, hE⟩',
          '',
          '/-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target',
          '`errors.As` accepts. -/',
@@ -1756,7 +1767,7 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
             'ipureintro',
             'repeat\' (first',
             '  | assumption',
-            '  | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat⟩',
+            '  | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat, EtcdGrove.RpctypesEtcdErrorMethods.errorSig⟩',
             '  | constructor)'],
 )
 
@@ -1843,7 +1854,7 @@ runs their translated initializers.''',
             'isplitr',
             '· iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")',
             '  iexact MUR',
-            '· ipureintro; fmt_method_none'],
+            '· ipureintro; fmt_method_facts'],
 )
 
 _AUTH_ERRS = ['ErrRootUserNotExist', 'ErrRootRoleNotExist', 'ErrUserAlreadyExist', 'ErrUserEmpty',
@@ -2604,17 +2615,24 @@ _RD_CTX_PRE = [
     '  icombine Hd HDeadlineExceededTy gives %Heq2',
     '  have hF : methodSet e.ty !! go!"Format" = none := by',
     '    cases Heq; exact EtcdGrove.ErrorStringLeaf.noFormat',
+    '  have hE : methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]) := by',
+    '    cases Heq; exact EtcdGrove.ErrorStringLeaf.errorSig',
     '  have hF2 : methodSet d.ty !! go!"Format" = none := by',
     '    cases Heq2',
     '    have h := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"Format"',
     '    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h',
     '    exact h',
+    '  have hE2 : methodSet d.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]) := by',
+    '    cases Heq2',
+    '    have h := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"Error"',
+    '    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h',
+    '    exact h',
     '  isplitl',
     '  · iunfold EtcdGrove.errVarLeaf',
     '    iexists e; iframe He Hm',
-    '    ipureintro; exact ⟨Hl.1, Hl.2.1, Hl.2.2.1, Hl.2.2.2, hF⟩',
+    '    ipureintro; exact ⟨Hl.1, Hl.2.1, Hl.2.2.1, Hl.2.2.2, hF, hE⟩',
     '  · iexists d; iframe Hd Hdm',
-    '    ipureintro; exact ⟨Hdl.1, Hdl.2.1, Hdl.2.2.1, Hdl.2.2.2.1, Hdl.2.2.2.2, hF2⟩',
+    '    ipureintro; exact ⟨Hdl.1, Hdl.2.1, Hdl.2.2.1, Hdl.2.2.2.1, Hdl.2.2.2.2, hF2, hE2⟩',
     '',
     'end ctxFacts',
     '']
@@ -2911,8 +2929,10 @@ def exec_order(p):
         if m.group(1):
             items.append(('import', m.group(1)))
         elif m.group(2):
-            # an axiom of the translation, or a trusted variable's model (in `TrustedCode/`)
-            kind = 'opaque' if (f'axiom {m.group(2)}.init ' in t or f'opaque {m.group(2)}.init ' in t) else 'trusted'
+            # an untranslated initializer (an `opaque` of the translation since Perennial
+            # f551a1b46, an `axiom` before), or a trusted variable's model (in `TrustedCode/`)
+            x = m.group(2)
+            kind = 'opaque' if f'opaque {x}.init ' in t or f'axiom {x}.init ' in t else 'trusted'
             items.append((kind, m.group(2)))
         elif m.group(3):
             items.append(('alloc', m.group(3)))
@@ -3406,8 +3426,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.restartN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
@@ -3444,6 +3462,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.authN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.authlease':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
@@ -3462,8 +3482,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
+            'github_com.mit_pdos.etcd_grove.examples.k8s.all':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'

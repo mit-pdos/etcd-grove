@@ -50,6 +50,34 @@ theorem apply.kvPost_backend {E : apply.AEnv GF} {a : GoInterface}
   · iapply apply.chainClass_backend
   simp only [apply.chainLeaseClass]; itrivial
 
+/-- **A revocation's lessor-window target** (auth-lease S4 item 7b): the item map after the revocation. -/
+theorem apply.revokeWinTgt (w : Option lease.LWin) (rq : apply.IRRModel) (id : w64) (log : mvcc.Log) (T : List w64)
+    (h : apply.winTgt w rq log T) (hrq : rq.leaseRevoke = some id) (hk : apply.dispatchKind rq = .leaseRevoke) :
+    ∀ (s : Nat) (T' : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T') →
+      T' = mvcc.leaseItemsOf (mvcc.stateAfter (apply.revokeLog log id)) := by
+  intro s T' hw
+  have := h s T' hw (.applied (apply.revokeLog log id) false)
+    (by unfold apply.backendStep; rw [hk]; exact ⟨id, hrq, rfl⟩)
+    (by unfold apply.leaseExactL; rw [hk]; trivial)
+  simp only [apply.Outcome.logAfter] at this
+  exact this
+
+/-- **A revocation's window drops the lease's items** (item 7b): `revokeClause`'s `winDrops`. -/
+theorem apply.revokeWinDrops (w : Option lease.LWin) (rq : apply.IRRModel) (id : w64) (log : mvcc.Log)
+    (T : List w64) (h : apply.winTgt w rq log T) (hrq : rq.leaseRevoke = some id)
+    (hk : apply.dispatchKind rq = .leaseRevoke) :
+    Perennial.EtcdGrove.lease.winDrops w (mvcc.leaseItemsOf (mvcc.stateAfter log))
+      (fun it => (mvcc.leaseItemsOf (mvcc.stateAfter log)).lookup it = some id) := by
+  intro v hv it hsel _
+  obtain ⟨s, T'⟩ := v
+  have ht := apply.revokeWinTgt w rq id log T h hrq hk s T' hv
+  simp only at ht ⊢
+  subst ht
+  rw [txn.stateAfter_commitLog]
+  change (mvcc.pendItems log ([] ++ (mvcc.leaseDelKeys (mvcc.stateAfter log) id).map mvcc.Change.del)).lookup it = none
+  rw [mvcc.pendItems_dels_lookup, if_pos]
+  exact (mvcc.leaseDelKeys_mem (mvcc.stateAfter_sorted log) id it.Key').2 hsel
+
 /-- **`a.LeaseRevoke(lc)`** (the lease-revoke plan, 2026-10-31; until then vacuous, D14h): the
 lessor's `Revoke` (the contract's clause), then a response with `newHeader()`'s header. -/
 theorem apply.applierV3backend.LeaseRevoke.wp_proof
@@ -60,18 +88,18 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   -- revocable lessor and half of the live set `T`, the post by the outcome, X6's answer)
   wp_start as ⟨#Hb, Htt, Hpre⟩
   iunfold apply.revokePre at Hpre
-  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre, Hrr⟩
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre, Hrr, %Hwt⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, #Hhk, Htie, Hcs⟩
   iunfold apply.revokeRes at Hrr
   icases Hrr with ⟨Hrdat, #Hrev, HltT, HRO, %Hlm⟩
   have Hlgt : E.lg = true := apply.AEnv.lg_true_of_lm (by rw [Hlm]; decide)
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL, HWt⟩
   ihave %HLT := apply.ltHalf_agree E L T Hlgt $$ [HltL HltT]
   · iframe HltL HltT
   subst HLT
-  iunfold lease.lessorUser at Hu
+  iunfold lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hlrd, Hrvk⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
@@ -92,26 +120,30 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   -- the revocation's update, for a live lease only: the deleter's begin, its payload the end of
   -- the lease's deletions; otherwise the writer's half kept
   ihave Hau2 : (if decide (id ∈ L) then srvApi.auBegin E.γ (srvApi.stAt log c)
-      (srvApi.auEnd E.γ (srvApi.stAt log c)
+      iprop(Perennial.EtcdGrove.lease.winWit (mvcc.api.mvccLeases E.γ) E.win (mvcc.leaseItemsOf (mvcc.stateAfter
+          (mvcc.commitLog (srvApi.stAt log c).log (mvcc.leaseDels (mvcc.stateAfter (srvApi.stAt log c).log) id)))) -∗
+        srvApi.auEnd E.γ (srvApi.stAt log c)
         (mvcc.leaseDels (mvcc.stateAfter (srvApi.stAt log c).log) id)
-        (srvApi.wSt E.γs (apply.revokeLog log id) c)) else iprop(True)) ∗
-      (if decide (id ∈ L) then iprop(True) else srvApi.wSt E.γs log c) $$ [Hw Hnx]
+        iprop(srvApi.wStQ E.γs E.stq (apply.revokeLog log id) c ∗ E.Wt E.win)) else iprop(True)) ∗
+      (if decide (id ∈ L) then iprop(True) else iprop(srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win)) $$ [Hw Hnx HWt]
   · by_cases hid : id ∈ L
     · simp only [hid, decide_true, ↓reduceIte]
       isplitl
       · iapply HauB $$ %log %c %_ Hw
         iintro Hw
         rw [show (srvApi.stAt log c).log = log from rfl]
-        iapply HauE $$ %log %c %_ Hw Hnx
+        iintro #Hwit
+        iapply HauE $$ %log %c %_ %E.win Hw HWt Hnx
+          %(fun _ => apply.revokeWinTgt E.win rq id log L Hwt Hrq.1 Hrq.2.1) Hwit
       itrivial
     · simp only [hid, decide_false, Bool.false_eq_true, ↓reduceIte]
       isplitr
       · itrivial
-      iexact Hw
+      iframe Hw HWt
   icases Hau2 with ⟨Hau, Hwr⟩
   have hsl : (srvApi.stAt log c).log = log := rfl
-  ihave Hown : lease.leaseOwn (mvcc.api.mvccLeases E.γ) L
-      (mvcc.leaseItemsOf (mvcc.stateAfter (srvApi.stAt log c).log)) $$ [Hown]
+  ihave Hown : lease.leaseOwnW (mvcc.api.mvccLeases E.γ) L
+      (mvcc.leaseItemsOf (mvcc.stateAfter (srvApi.stAt log c).log)) E.win $$ [Hown]
   · rw [hsl]; iexact Hown
   ihave #Hknown0 : txn.leasesKnown L (mvcc.stateAfter (srvApi.stAt log c).log) $$ []
   · rw [hsl]; iexact Hknown
@@ -126,7 +158,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   wp_apply HRv $$ [$Hmr $Hrdat $Hrev $Hbk $Hhk $Htie $Hcs $Hau $Hown $Hrvk $Hknown0 $HRO]
     as %err ⟨Hmr, Hrdat, Hbk, Htie, #Herr, Hcase⟩
   · ipureintro
-    exact ⟨rfl, Hrq.2.2.2, Hreach⟩
+    exact ⟨⟨rfl, Hrq.2.2.2, Hreach⟩, apply.revokeWinDrops E.win rq id log L Hwt Hrq.1 Hrq.2.1⟩
   ihave Htt : apply.applyTok E $$ [Hmr]
   · iunfold apply.applyTok; iframe Hmr
   icases Hcase with
@@ -134,9 +166,10 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
      ⟨%Hok, Hw, HPost, Hown, Hrvk, #Hknown', HRO⟩)
   · -- not live: the error, nothing changed (the live set's filter the identity)
     -- the writer's half, kept: no update was taken for a lease not live
-    ihave Hw : srvApi.wSt E.γs log c $$ [Hwr]
+    ihave Hw2 : iprop(srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win) $$ [Hwr]
     · simp only [Hnf, decide_false, Bool.false_eq_true, ↓reduceIte]
       iexact Hwr
+    icases Hw2 with ⟨Hw, HWt⟩
     have hlog : apply.revokeLog log id = log := by
       try simp only [srvApi.stAt] at Hnd
       unfold apply.revokeLog; rw [Hnd]; rfl
@@ -177,8 +210,8 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       iframe Hbk Hhk Hard
       iunfold apply.leasesLive
       iexists L
-      iframe Hknown HltL
-      iunfold lease.lessorUser
+      iframe Hknown HltL HWt
+      iunfold lease.lessorUserW
       simp only [srvApi.stAt]
       iframe
     isplitr
@@ -187,6 +220,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   · -- live: the lease's keys deleted, the lease gone from both halves of the live set
     simp only [srvApi.stAt] at *
     imod apply.ltHalf_update E L L (L.filter (· != id)) $$ HltL HltT with ⟨HltL, HltT⟩
+    icases Hw with ⟨Hw, HWt⟩
     (try wp_auto)
     iapply wp_fupd
     wp_apply (hHdr E p (apply.revokeLog log id) c) $$ [$Hb $Htt $Hw]
@@ -249,8 +283,8 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       iframe Hbk Hhk Hard
       iunfold apply.leasesLive
       iexists (L.filter (· != id))
-      iframe Hknown' HltL
-      iunfold lease.lessorUser
+      iframe Hknown' HltL HWt
+      iunfold lease.lessorUserW
       iframe
     isplitr
     · simp only [apply.chainRes]; itrivial

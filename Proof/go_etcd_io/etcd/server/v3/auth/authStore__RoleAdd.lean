@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -146,9 +147,9 @@ theorem auth.authStore.RoleAdd.wp_tieB
   ihave %Hnone := roleOut_null st0 name $$ Hrl
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok st0 Hl0)
-  wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
+  wp_apply +noauto wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
   ipersist Hnsl
-  (try wp_auto)
+  wp_take_receipt as Hrc
   let rrN : RoleRec := ⟨name, []⟩
   ihave Hnr : ownRole «$r0_ptr» rrN $$ [«$r0»]
   · iunfold ownRole
@@ -162,7 +163,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
     · ipureintro; rfl
     · simp only [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #«$r0_ptr»))
-  iapply HPutR $$ %st0 %Post %«$r0_ptr» %rrN %rrN.toRole %AuthSess.init [$HL $Hsw $Hnr]
+  iapply HPutR $$ %st0 %Post %«$r0_ptr» %rrN %rrN.toRole %AuthSess.init [$HL $Hrc $Hsw $Hnr]
   · ipureintro; exact ⟨by decide, (List.length_pos_iff.2 hname), Hlen, List.Perm.refl _⟩
   inext
   iintro ⟨HL, Hsw, -⟩

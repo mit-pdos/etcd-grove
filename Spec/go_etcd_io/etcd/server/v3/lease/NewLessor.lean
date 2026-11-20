@@ -218,12 +218,20 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   `histCover` of `[]`, trivially) and the caller.
 * (The lease-expiry plan's S2–S4, Q-S6 (A-ii), the user's approval 2026-11-05) **The leases'
   requested TTLs** (`leaseReqIs`), ghost state only: a ghost map, allocated empty with the readers'
-  names (their fifth, `γr.2.2.2.2`), its whole authority in the readers' invariant, which keeps
+  names (their fifth, `γr.2.2.2.2.1`), its whole authority in the readers' invariant, which keeps
   `reqOk` of the single empty snapshot and the empty map trivially (no lease, no TTL, no request).
   Allocatable because a fresh ghost map at `∅` is (`ghost_map_alloc`), before `γl`'s element pins
   the names. It makes no claim about Go: no Go state is read or written for it, and nothing about
   `NewLessor`'s code depends on it; `Grant` and `Recover` (proved) are what insert requests and keep
   every TTL above them.
+* (Auth-lease S4 item 7b, decided by etcd-grove-03 2026-11-17, `questions.md` "Item 7b step 1") **The
+  windows** (`lessorWinTie γl []`, `winsOk`, `itemsLive`), ghost state only: a mono-list allocated at `[]`
+  (`mono_list_own_alloc`) with the readers' names (their sixth, `γr.2.2.2.2.2`; the requests map is their fifth's
+  first, `γr.2.2.2.2.1`), its authority split a half to the readers' invariant, a quarter to the owner (`leaseOwn`'s
+  closers, whose open window `lastWin [] = none` is `leaseOwn`'s), a quarter to the caller (`lessorWinTie`). The
+  invariant's `winsOk hs []` holds of any history (no window), and `itemsLive` of the single initial snapshot, whose
+  item map is empty. No Go state is read or written for it; `Attach`, `Detach`, `Grant`, `Revoke` and `Recover`
+  (proved) keep the facts at every push.
 * (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop it** (`lessorStopTok lp`,
   for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here. -/
 abbrev lease.NewLessor.spec : Prop :=
@@ -250,7 +258,8 @@ abbrev lease.NewLessor.spec : Prop :=
       lease.lessorCfg lp ∗ lease.lF go!"minLeaseTTL" lp ↦□ cfg.MinLeaseTTL' ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
-      lease.leaseOwn γl Lr ∅ ∗ lease.leaseEver γl (recs.map (·.1)) ∗ lease.leaseRevokers γl Lr ∗
+      lease.leaseOwn γl Lr ∅ ∗ lease.lessorWinTie γl [] ∗ lease.leaseEver γl (recs.map (·.1)) ∗
+      lease.leaseRevokers γl Lr ∗
       lease.rdOwn γl func.nil ∗
       lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
       lease.lessorStopTok lp ∗

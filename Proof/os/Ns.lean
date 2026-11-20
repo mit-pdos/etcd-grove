@@ -41,7 +41,7 @@ theorem os.OpenFile.wp_dir (p : GoString) (perm : w32) (q1 q : Qp) (R : Roots) (
          (⌜err ≠ interface.nil ∧ f = null⌝ ∗ osTree (DFrac.own (q1 + q)) R V)) }} := by
   wp_start as ⟨#Hinv, Hh⟩
   iloeb as IH generalizing Hh HΦ
-  wp_apply wp_osCallBegin R V q1 q CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
+  wp_apply wp_osCallBegin R V _ q1 q CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
   rw [os.file_ty_eq, os.File_ty_eq]
   rw [show (W64 0 ||| W64 524288) = flRO from by decide]
   (try wp_auto)
@@ -282,7 +282,7 @@ theorem os.OpenFile.wp_nsRO (p : GoString) (perm : w32) (q : Qp) (R : Roots) (V 
   wp_start as ⟨#Hinv, Hh⟩
   iloeb as IH generalizing Hh HΦ
   ihave Hh := (osTree_halves q R V).1 $$ Hh
-  wp_apply wp_osCallBegin R V q.half q.half CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
+  wp_apply wp_osCallBegin R V _ q.half q.half CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
   rw [os.file_ty_eq, os.File_ty_eq]
   rw [show (W64 0 ||| W64 524288) = flRO from by decide]
   (try wp_auto)

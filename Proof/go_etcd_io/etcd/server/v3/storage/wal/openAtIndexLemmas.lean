@@ -182,10 +182,10 @@ theorem walReadTie_facts {dir : GoString} {write : Bool} {gs : List SegG} {fs : 
   obtain ⟨hb, f, fd, lo, lk, hf, hS⟩ := h3 k F g hF hg
   exact ⟨hb, hnm g (List.mem_of_getElem? hg), f, fd, lo, lk, hf, hS⟩
 
-theorem osCallPerm_halves' :
-    osCallPerm (L := hG.goose_localGS) 1 ⊢
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half ∗ osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half
+theorem osCallPerm_halves' (k : GoString) :
+    osCallPerm (L := hG.goose_localGS) k 1 ⊢
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half ∗ osCallPerm (L := hG.goose_localGS) k (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at h
   exact h.1
 

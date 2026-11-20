@@ -31,10 +31,11 @@ theorem apply.uberApplier.Apply.wp_proof
     (hD : apply.uberApplier.dispatch.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.spec (GF := GF) (hG := hG) := by
   intro E p opts x r rq skip v3 F Pre Q Post rs T U
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, %Hok, #Hcpr, #Hgp, HLt, HEv, #HGf, Hrv, %Hskip, #HF, Htt,
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, %Hok, %Hwin, #Hcpr, #Hgp, HLt, HEv, #HGf, Hrv, %Hskip, #HF, Htt,
     HFS, HSp, %Hrr, HRO, Hco⟩
   iunfold apply.uberOwn at Hown
-  icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
+  icases Hown with ⟨%a, Ha, #HsW, %HcE, #Hsh⟩
+  ihave #Hs := apply.applierSpecW_at _ _ _ $$ HsW
   ihave #Hs' := Hs
   iunfold apply.applierSpec at Hs'
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
@@ -71,7 +72,7 @@ theorem apply.uberApplier.Apply.wp_proof
     iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs (apply.principalOf rq) x.crev T U) $$ [Hres Ha Hkv Htt HFS HSp HRO Hco HLt HEv Hrv]
     · iframe #
       iframe Hres Ha Hkv Htt HFS HSp HRO Hco HLt HEv Hrv
-      ipureintro; exact ⟨Hok, HcE, Hrr⟩
+      ipureintro; exact ⟨Hok, Hwin, HcE, Hrr⟩
     inext
     iintro %ar ⟨Htt, Hrt, Hres, HFS, Hco, HB⟩
     iapply HΦ'
@@ -90,7 +91,7 @@ theorem apply.uberApplier.Apply.wp_proof
       apply.revokeAnsRA]
     iframe Hkv HLt HEv Hrv HPP Hres Htr HRO Hcls Hadm Hco Hgr Hvr %Hgo
     isplitl [Ha']
-    · iunfold apply.uberOwn; iexists _; iframe Ha' Hs'' Hsh
+    · iunfold apply.uberOwn; iexists _; iframe Ha' HsW Hsh
       ipureintro; exact HcE
     ipureintro
     exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1, rfl⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
@@ -106,7 +107,7 @@ theorem apply.uberApplier.Apply.wp_proof
       apply.revokeRestA, apply.revokeAnsRA]
     iframe Hkv HLt HEv Hrv Hco
     isplitl [Ha]
-    · iunfold apply.uberOwn; iexists _; iframe Ha Hs Hsh; ipureintro; exact HcE
+    · iunfold apply.uberOwn; iexists _; iframe Ha HsW Hsh; ipureintro; exact HcE
     isplitl [HPre]
     · iapply apply.cPost_of_pre
       iexact HPre
