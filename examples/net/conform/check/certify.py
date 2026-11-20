@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Certification in Lean (README.md, "Certification in Lean"): run the checker on runs, write
 each admitted run's witness and calls, and replay them through the Lean replay
-(`lake exe nettcp-replay`, GooseLang/Ext/Tcp/Replay.lean); every admitted run must be CERTIFIED.
+(`lake exe net-replay`, GooseLang/Ext/Net/Replay.lean); every admitted run must be CERTIFIED.
 Then the negative tests: tampered witnesses of the sample, each NOT CERTIFIED at the step (or the
 call) the tampering touched.
 
   certify.py [PATH...] [--exe EXE] [--out DIR] [--no-negative] [--json FILE]
 
 PATH: runs as conform_check.py takes them (default: the sample, ../testdata/*.tar.gz). EXE: the
-replay (default: the repository's .lake/build/bin/nettcp-replay; build it with
-`lake build nettcp-replay`). DIR: where the witnesses and calls go (default: a fresh temporary
+replay (default: the repository's .lake/build/bin/net-replay; build it with
+`lake build net-replay`). DIR: where the witnesses and calls go (default: a fresh temporary
 directory, removed after). Exits 0 if every admitted run is CERTIFIED, every OUT OF SCOPE run that
 has a witness is NOT CERTIFIED (the replay certifies only runs wholly in the model), and every
 negative test is rejected where expected; 1 otherwise.
@@ -34,7 +34,7 @@ import checker  # noqa: E402
 import conform_check as CC  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", "..", ".."))
-EXE = os.path.join(ROOT, ".lake", "build", "bin", "nettcp-replay")
+EXE = os.path.join(ROOT, ".lake", "build", "bin", "net-replay")
 TESTDATA = os.path.join(HERE, "..", "testdata")
 
 
@@ -276,10 +276,10 @@ def main():
     ap.add_argument("--json", help="write the rows as JSON")
     a = ap.parse_args()
     if not os.path.exists(a.exe):
-        print(f"{a.exe}: no such file (lake build nettcp-replay)")
+        print(f"{a.exe}: no such file (lake build net-replay)")
         return 1
     paths = a.paths or sorted(os.path.relpath(p) for p in glob.glob(os.path.join(TESTDATA, "*.tar.gz")))
-    out = a.out or tempfile.mkdtemp(prefix="nettcp-certify-")
+    out = a.out or tempfile.mkdtemp(prefix="net-certify-")
     os.makedirs(out, exist_ok=True)
     rows = []
     try:

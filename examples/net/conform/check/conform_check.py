@@ -5,7 +5,7 @@
       check each run (a trace directory, a directory of them, or a .tar.gz of the sample);
       exit 0 if every run is ADMITTED or OUT OF SCOPE with no finding, 2 if one is NOT ADMITTED;
       --calls-out writes each run's processes and calls, verbatim, for the Lean replay
-      (`lake exe nettcp-replay`; README.md, "Certification in Lean")
+      (`lake exe net-replay`; README.md, "Certification in Lean")
   conform_check.py table PATH... [--json FILE]
       check every run under PATH and print one line per run: verdict, time, sizes
   conform_check.py mutate PATH... [-n N] [--seed S]
@@ -61,7 +61,7 @@ def calls_json(run):
                       "timens": h.get("timens"), "exit": ex["t"] if ex is not None else None})
     drivers = [{"pid": d.pid, "node": d.node, "timens": d.header.get("timens")} for d in run.drivers]
     calls = [{"pid": c.proc.pid, "b": c.b, "e": c.e} for p in run.procs for c in p.calls]
-    return {"format": "nettcp-calls", "version": 1, "run": run.name, "procs": procs,
+    return {"format": "net-calls", "version": 1, "run": run.name, "procs": procs,
             "drivers": drivers, "calls": calls}
 
 

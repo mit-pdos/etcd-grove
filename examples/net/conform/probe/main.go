@@ -1,5 +1,5 @@
 // Command probe drives, over real TCP on 127.0.0.1, the patterns of Go's net that stress the
-// TCP semantics (GooseLang/Ext/Tcp/Impl.lean), for the conformance traces
+// TCP semantics (GooseLang/Ext/Net/Impl.lean), for the conformance traces
 // (examples/net/conform/README.md, "The probe"). Each mode is one pattern, repeated:
 //
 //   - writeclose: a large Write to a slow reader while another goroutine Closes the writer's
@@ -16,7 +16,9 @@
 //     the address, the listener's Close, Accept and Dial after it;
 //   - dialtimeout: DialTimeout with tiny timeouts, again and again, while the listener accepts
 //     and reads each connection to its end (a connection whose DialTimeout failed may be
-//     accepted: abandoned dials).
+//     accepted: abandoned dials);
+//   - concwrite: two goroutines Write large buffers of distinct bytes to one end at once, to a
+//     slow reader (Go's write lock: each Write's bytes contiguous in the stream, D25).
 //
 // Each mode listens at its own address, 127.0.0.1:7191-7198 by default (outside the ephemeral
 // range, and outside the examples' 71xx: examples/net/README.md). It prints what it saw on
@@ -44,7 +46,7 @@ import (
 )
 
 var modes = []string{"writeclose", "writeclosewrite", "resetwrite", "killwrite", "deadlinewrite",
-	"emptywrite", "dialthenlisten", "dialtimeout"}
+	"emptywrite", "dialthenlisten", "dialtimeout", "concwrite"}
 
 var (
 	mode  = flag.String("mode", "", "the pattern: "+strings.Join(modes, ", "))
@@ -75,7 +77,7 @@ func main() {
 		*addr = fmt.Sprintf("127.0.0.1:%d", 7191+idx)
 	}
 	defIters := map[string]int{"writeclose": 6, "writeclosewrite": 6, "resetwrite": 6, "killwrite": 4,
-		"deadlinewrite": 4, "emptywrite": 4, "dialthenlisten": 4, "dialtimeout": 1}
+		"deadlinewrite": 4, "emptywrite": 4, "dialthenlisten": 4, "dialtimeout": 1, "concwrite": 4}
 	if *iters == 0 {
 		*iters = defIters[*mode]
 	}
@@ -97,6 +99,8 @@ func main() {
 		dialThenListen(st)
 	case "dialtimeout":
 		dialTimeout(st)
+	case "concwrite":
+		concWrite(st)
 	}
 	st.print(*mode)
 }
@@ -357,6 +361,70 @@ func raceWrite(st *stats, closeWrite bool) {
 	}
 }
 
+/* ---- concwrite ---- */
+
+// concWrite: per iteration, two goroutines Write -size bytes each (all 'A', all 'B') to the
+// dialer's end at once, while the acceptor reads slowly (64 KiB, a 1 ms pause) to EOF after the
+// dialer's Close; the reader checks each Write's bytes are contiguous (Go's poll.FD.Write holds
+// the fd's write lock for its whole loop).
+func concWrite(st *stats) {
+	l := listen(*addr)
+	defer l.Close()
+	for it := 0; it < *iters; it++ {
+		cli, srv, ok := pair(l, *addr)
+		if !ok {
+			st.add("pair failed")
+			return
+		}
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		for _, b := range []byte{'A', 'B'} {
+			wg.Add(1)
+			go func(b byte) {
+				defer wg.Done()
+				buf := make([]byte, *size)
+				for i := range buf {
+					buf[i] = b
+				}
+				<-start
+				k, err := cli.Write(buf)
+				st.add("concurrent Write: " + writeClass(k, *size, err))
+			}(b)
+		}
+		done := make(chan []byte)
+		go func() {
+			var got []byte
+			rb := make([]byte, 64<<10)
+			for {
+				n, err := srv.Read(rb)
+				got = append(got, rb[:n]...)
+				if err != nil {
+					break
+				}
+				time.Sleep(time.Millisecond)
+			}
+			done <- got
+		}()
+		close(start)
+		wg.Wait()
+		cli.Close()
+		got := <-done
+		srv.Close()
+		runs := 0
+		for i := 0; i < len(got); i++ {
+			if i == 0 || got[i] != got[i-1] {
+				runs++
+			}
+		}
+		if len(got) == 2**size && runs == 2 {
+			st.add("reader read each Write contiguous")
+		} else {
+			st.note("iteration %d: the reader read %d bytes in %d runs", it, len(got), runs)
+			st.add("reader read the Writes interleaved or short")
+		}
+	}
+}
+
 /* ---- resetwrite ---- */
 
 func resetWrite(st *stats) {
@@ -410,12 +478,12 @@ func killWrite(st *stats) {
 	l := listen(*addr)
 	defer l.Close()
 	var log *events.Log
-	node := os.Getenv("NETTCP_NODE")
+	node := os.Getenv("NET_NODE")
 	if node == "" {
 		node = "probe"
 	}
 	child := node + ".writer"
-	if dir := os.Getenv("NETTCP_TRACE_DIR"); dir != "" {
+	if dir := os.Getenv("NET_TRACE_DIR"); dir != "" {
 		var err error
 		if log, err = events.Open(dir, node); err != nil {
 			fatal("events: %v", err)
@@ -428,7 +496,7 @@ func killWrite(st *stats) {
 	}
 	for it := 0; it < *iters; it++ {
 		cmd := exec.Command(self, "-mode", "killwrite-child", "-addr", *addr, "-size", fmt.Sprint(*size), "-iter", fmt.Sprint(it))
-		cmd.Env = append(os.Environ(), "NETTCP_NODE="+child)
+		cmd.Env = append(os.Environ(), "NET_NODE="+child)
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
 			fatal("start the writer: %v", err)

@@ -1,0 +1,11 @@
+# The differential test of the protobuf codec generator (models/protobuf/pbgen.py) on fixed messages: every
+# message type of pb (arith.pb.go) and xpb (x.pb.go: the field kinds pb lacks), copied with their
+# .pb.go files from dsverify-lab's harness/rpcmodel/grpcdifftest (348a866; their embedded
+# descriptors keep that Go package path, which nothing reads). The fields are derived from the
+# registered descriptors (models.lab/pbdesc); only the roots are named here. Generate from the
+# repository root:
+#     models/protobuf/pbgen.py models/internal/pbdifftest/protobuf.toml models/internal/pbdifftest/codec --pkg codec
+# codec/pb_gen_test.go checks the codec against the messages' descriptors and the real module.
+[protobuf]
+imports = { pb = "models.lab/internal/pbdifftest/pb", xpb = "models.lab/internal/pbdifftest/xpb" }
+roots = ["pb.Args", "pb.Reply", "pb.Empty", "xpb.Kinds"]

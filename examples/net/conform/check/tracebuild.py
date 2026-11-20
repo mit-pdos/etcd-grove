@@ -73,7 +73,7 @@ class Trace:
                     fp.write(json.dumps(r) + "\n")
 
     def run(self):
-        d = tempfile.mkdtemp(prefix="nettcp-check-test-")
+        d = tempfile.mkdtemp(prefix="net-check-test-")
         try:
             self.write(d)
             return T.load_dir(d)

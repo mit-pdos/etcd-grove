@@ -14,8 +14,8 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/net/conform/overlay"
 )
 
-// Conformance tracing (examples/net/conform/README.md): only with NETTCP_CONFORM=1.
-var conformOn = os.Getenv("NETTCP_CONFORM") == "1"
+// Conformance tracing (examples/net/conform/README.md): only with NET_CONFORM=1.
+var conformOn = os.Getenv("NET_CONFORM") == "1"
 
 var conform struct {
 	mu      sync.Mutex
@@ -26,7 +26,7 @@ var conform struct {
 	logs    map[string]*events.Log // a trace directory's driver file
 }
 
-// conformOverlay is the tracer's overlay file: $NETTCP_OVERLAY if set (the collection makes it
+// conformOverlay is the tracer's overlay file: $NET_OVERLAY if set (the collection makes it
 // once), else one made for this test process.
 func conformOverlay(t *testing.T) string {
 	t.Helper()
@@ -35,11 +35,11 @@ func conformOverlay(t *testing.T) string {
 	if conform.overlay != "" {
 		return conform.overlay
 	}
-	if p := os.Getenv("NETTCP_OVERLAY"); p != "" {
+	if p := os.Getenv("NET_OVERLAY"); p != "" {
 		conform.overlay = p
 		return p
 	}
-	dir, err := os.MkdirTemp("", "nettcp-overlay-")
+	dir, err := os.MkdirTemp("", "net-overlay-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,9 +74,9 @@ func conformBuilt(t *testing.T, bin string) {
 	dir, ok := conform.dirs[t]
 	if !ok {
 		if conform.root == "" {
-			conform.root = os.Getenv("NETTCP_TRACE_DIR")
+			conform.root = os.Getenv("NET_TRACE_DIR")
 			if conform.root == "" {
-				r, err := os.MkdirTemp("", "nettcp-trace-")
+				r, err := os.MkdirTemp("", "net-trace-")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -120,7 +120,7 @@ func conformEnv(cmd *exec.Cmd, bin string) *events.Log {
 	if dir == "" {
 		panic("proctest: conformance tracing: " + bin + " was not built by Build")
 	}
-	cmd.Env = append(os.Environ(), "NETTCP_NODE="+filepath.Base(bin), "NETTCP_TRACE_DIR="+dir)
+	cmd.Env = append(os.Environ(), "NET_NODE="+filepath.Base(bin), "NET_TRACE_DIR="+dir)
 	return log
 }
 

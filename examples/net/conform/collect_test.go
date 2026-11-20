@@ -23,7 +23,7 @@ var examples = []string{"echo", "framed", "acceptloop", "duplex", "halfclose", "
 
 // The probe's modes (probe/main.go).
 var probeModes = []string{"writeclose", "writeclosewrite", "resetwrite", "killwrite", "deadlinewrite",
-	"emptywrite", "dialthenlisten", "dialtimeout"}
+	"emptywrite", "dialthenlisten", "dialtimeout", "concwrite"}
 
 // TestOverlay checks that the tracer's renames, call patches and re-implemented bodies match
 // the installed Go's net sources exactly (overlay.Make fails otherwise). It skips on a Go
@@ -92,7 +92,7 @@ func runProbe(t *testing.T, probe, dir, mode string, args ...string) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	out, err := runCmd(t, ".", []string{"NETTCP_TRACE_DIR=" + dir, "NETTCP_NODE=probe"}, 5*time.Minute,
+	out, err := runCmd(t, ".", []string{"NET_TRACE_DIR=" + dir, "NET_NODE=probe"}, 5*time.Minute,
 		probe, append([]string{"-mode", mode}, args...)...)
 	os.WriteFile(dir+".txt", []byte(out), 0o644)
 	if err != nil {
@@ -104,23 +104,23 @@ func runProbe(t *testing.T, probe, dir, mode string, args ...string) {
 
 // TestCollect builds the examples' commands and the probe with the tracer, runs the
 // examples' process tests (TestProcesses, TestServerCrashes) and every probe mode, and checks
-// the traces (README.md, "Collecting traces"). Only with NETTCP_CONFORM=1. The traces go to
-// $NETTCP_CONFORM_OUT (which must not exist or be empty), else a fresh temporary directory;
-// NETTCP_CONFORM_SEMANTICS=1 also traces the measured semantics tests (examples/net/semantics),
-// NETTCP_CONFORM_SAMPLE=1 also rewrites the committed sample (testdata/).
+// the traces (README.md, "Collecting traces"). Only with NET_CONFORM=1. The traces go to
+// $NET_CONFORM_OUT (which must not exist or be empty), else a fresh temporary directory;
+// NET_CONFORM_SEMANTICS=1 also traces the measured semantics tests (examples/net/semantics),
+// NET_CONFORM_SAMPLE=1 also rewrites the committed sample (testdata/).
 func TestCollect(t *testing.T) {
-	if os.Getenv("NETTCP_CONFORM") != "1" {
-		t.Skip("NETTCP_CONFORM=1 collects the conformance traces")
+	if os.Getenv("NET_CONFORM") != "1" {
+		t.Skip("NET_CONFORM=1 collects the conformance traces")
 	}
-	out := os.Getenv("NETTCP_CONFORM_OUT")
+	out := os.Getenv("NET_CONFORM_OUT")
 	if out == "" {
 		var err error
-		if out, err = os.MkdirTemp("", "nettcp-conform-"); err != nil {
+		if out, err = os.MkdirTemp("", "net-conform-"); err != nil {
 			t.Fatal(err)
 		}
 	} else {
 		if ents, err := os.ReadDir(out); err == nil && len(ents) > 0 {
-			t.Fatalf("NETTCP_CONFORM_OUT=%s is not empty", out)
+			t.Fatalf("NET_CONFORM_OUT=%s is not empty", out)
 		}
 		if err := os.MkdirAll(out, 0o755); err != nil {
 			t.Fatal(err)
@@ -140,7 +140,7 @@ func TestCollect(t *testing.T) {
 	for _, ex := range examples {
 		pkgs = append(pkgs, "./net/"+ex)
 	}
-	env := []string{"NETTCP_CONFORM=1", "NETTCP_TRACE_DIR=" + traces, "NETTCP_OVERLAY=" + ov}
+	env := []string{"NET_CONFORM=1", "NET_TRACE_DIR=" + traces, "NET_OVERLAY=" + ov}
 	o, err := runCmd(t, modRoot, env, 20*time.Minute, "go",
 		append([]string{"test", "-count=1", "-p=1", "-v", "-run", "^(TestProcesses|TestServerCrashes)$"}, pkgs...)...)
 	os.WriteFile(filepath.Join(out, "examples.txt"), []byte(o), 0o644)
@@ -159,10 +159,10 @@ func TestCollect(t *testing.T) {
 
 	// The semantics tests (their child processes are killed by the tests themselves, which
 	// record no events: checked leniently).
-	if os.Getenv("NETTCP_CONFORM_SEMANTICS") == "1" {
+	if os.Getenv("NET_CONFORM_SEMANTICS") == "1" {
 		dir := filepath.Join(traces, "semantics", "all")
 		os.MkdirAll(dir, 0o755)
-		o, err := runCmd(t, modRoot, []string{"NETTCP_TRACE_DIR=" + dir, "NETTCP_NODE=semantics"}, 20*time.Minute,
+		o, err := runCmd(t, modRoot, []string{"NET_TRACE_DIR=" + dir, "NET_NODE=semantics"}, 20*time.Minute,
 			"go", "test", "-overlay", ov, "-count=1", "./net/semantics")
 		os.WriteFile(filepath.Join(out, "semantics.txt"), []byte(o), 0o644)
 		if err != nil {
@@ -174,7 +174,7 @@ func TestCollect(t *testing.T) {
 	os.WriteFile(filepath.Join(out, "summary.txt"), []byte(st.String()), 0o644)
 	t.Logf("summary (%s/summary.txt):\n%s", out, st)
 
-	if os.Getenv("NETTCP_CONFORM_SAMPLE") == "1" {
+	if os.Getenv("NET_CONFORM_SAMPLE") == "1" {
 		writeSample(t, out, probe, traces)
 	}
 }
@@ -208,6 +208,33 @@ func check(t *testing.T, root string) *tracecheck.Stats {
 	return st
 }
 
+// sampleArgs are the probe's arguments for the sample, by mode (with "-iters 1").
+var sampleArgs = map[string][]string{"dialtimeout": {"-dials", "300"}, "concwrite": {"-size", "262144"}}
+
+// TestSampleMode, with NET_CONFORM_SAMPLE_MODE=M, rewrites only testdata/probe-M.tar.gz: the
+// probe built with the tracer, run in mode M once as for the sample (a new mode's sample, without
+// rewriting the others).
+func TestSampleMode(t *testing.T) {
+	m := os.Getenv("NET_CONFORM_SAMPLE_MODE")
+	if m == "" {
+		t.Skip("NET_CONFORM_SAMPLE_MODE=M rewrites testdata/probe-M.tar.gz")
+	}
+	out := t.TempDir()
+	ov, err := overlay.Make(filepath.Join(out, "overlay"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	modRoot, _ := filepath.Abs("../..")
+	probe := filepath.Join(out, "bin", "probe")
+	if o, err := runCmd(t, modRoot, nil, 5*time.Minute, "go", "build", "-overlay", ov, "-o", probe, "./net/conform/probe"); err != nil {
+		t.Fatalf("go build the probe: %v\n%s", err, o)
+	}
+	dir := filepath.Join(out, "sample", "probe", m)
+	runProbe(t, probe, dir, m, append([]string{"-iters", "1"}, sampleArgs[m]...)...)
+	writeTarGz(t, filepath.Join("testdata", "probe-"+m+".tar.gz"), dir, "probe/"+m)
+	check(t, filepath.Join(out, "sample"))
+}
+
 // writeSample rewrites testdata/: some of the examples' runs, and the probe's modes run small
 // (one iteration each), each directory a .tar.gz.
 func writeSample(t *testing.T, out, probe, traces string) {
@@ -222,7 +249,7 @@ func writeSample(t *testing.T, out, probe, traces string) {
 		writeTarGz(t, filepath.Join("testdata", strings.ReplaceAll(ex, "/", "-")+".tar.gz"), filepath.Join(traces, ex), ex)
 	}
 	small := filepath.Join(out, "sample")
-	args := map[string][]string{"dialtimeout": {"-dials", "300"}}
+	args := sampleArgs
 	for _, m := range probeModes {
 		dir := filepath.Join(small, "probe", m)
 		runProbe(t, probe, dir, m, append([]string{"-iters", "1"}, args[m]...)...)
