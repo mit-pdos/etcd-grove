@@ -34,11 +34,11 @@ theorem typed.validatingObjectWalker.prepareDescent.wp_proof :
   iunfold vwCore at Hcore
   icases Hcore with ⟨%tr0, Hw, #Htr0, #Hsc, %Hwf⟩
   wp_auto
-  wp_join iprop(∃ (sp' : Loc) (sl : GoSlice) (ws : List Loc), ⌜sp' ≠ null⌝ ∗ v_ptr ↦ w ∗
+  wp_join iprop(∃ (sp' : Loc) (sl : GoSlice) (ws : List Loc), ⌜sp' ≠ null⌝ ∗ ⌜sp ≠ null → sp' = sp⌝ ∗ v_ptr ↦ w ∗
       w ↦ (typed.validatingObjectWalker.mk st.value sc tr0 false sp' a) ∗ sp' ↦ sl ∗ sl ↦* ws ∗
       ownSliceCap Loc sl (DFrac.own 1) ∗
       [∗list] x ∈ ws, ∃ v : typed.validatingObjectWalker, x ↦ v)
-    with [v Hw Hsp] as ⟨%sp', %sl, %ws, %Hspn, v, Hw, Hsp', Hsl, Hcap, Hws⟩
+    with [v Hw Hsp] as ⟨%sp', %sl, %ws, %Hspn, %Hspe, v, Hw, Hsp', Hsl, Hcap, Hws⟩
   · wp_apply (wp_slice_literal (V := Loc) [])
     isplitr
     · ipureintro; rfl
@@ -51,6 +51,8 @@ theorem typed.validatingObjectWalker.prepareDescent.wp_proof :
     iframe v Hw Hsl Hcap Hr0
     isplitr
     · ipureintro; exact Hnn
+    isplitr
+    · ipureintro; intro h; contradiction
     iframe
     iapply BigSepL.bigSepL_nil.2
     itrivial
@@ -59,7 +61,9 @@ theorem typed.validatingObjectWalker.prepareDescent.wp_proof :
     · contradiction
     iexists sp, sl, ws
     iframe
-    ipureintro; assumption
+    isplitr
+    · ipureintro; assumption
+    ipureintro; intro; rfl
   wp_join iprop(∃ (w2 : Loc) (sl' : GoSlice) (ws' : List Loc), v_ptr ↦ w ∗ n_ptr ↦ sl.len ∗
       w ↦ (typed.validatingObjectWalker.mk st.value sc tr0 false sp' a) ∗ v2_ptr ↦ w2 ∗
       (∃ vv : typed.validatingObjectWalker, w2 ↦ vv) ∗ sp' ↦ sl' ∗ sl' ↦* ws' ∗
@@ -117,7 +121,9 @@ theorem typed.validatingObjectWalker.prepareDescent.wp_proof :
   · iright
     iexists sl', ws'
     iframe
-  ipureintro; exact Hspn
+  isplitr
+  · ipureintro; exact Hspn
+  ipureintro; exact Hspe
 
 end proof
 
