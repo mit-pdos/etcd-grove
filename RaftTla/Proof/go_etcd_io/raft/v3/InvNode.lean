@@ -419,6 +419,17 @@ theorem sentMsg_snapshotLeader (γ : Cluster) (N : Namespace) (id : w64) (st : M
   iintro ⟨-, #H, -⟩
   iapply isRaftMsg_snapshotLeader γ.raft id st ht $$ H
 
+/-- A snapshot in this node's outbox establishes its own leadership. -/
+theorem sentMsg_localSnapshotLeader (γ : Cluster) (N : Namespace) (id : w64) (st : MsgSt)
+    (ht : st.msg.Type' = MsgSnap) :
+    sentMsg (GF := GF) γ N id st ⊢ snapshotLeader γ id st.msg.Term' := by
+  iintro #H
+  ihave #Hl := sentMsg_snapshotLeader γ N id st ht $$ H
+  unfold sentMsg ApiImpl.sentMsg isRaftMsg
+  icases H with ⟨-, ⟨-, -, -, %Hfr, -⟩, -⟩
+  rw [← Hfr (Or.inr ht)]
+  iexact Hl
+
 /-- Election safety excludes a node restoring a snapshot from another leader
 and sending as leader in the same term. -/
 theorem snapshotLeader_terms_ne (γ : Cluster) (id sender t tr : w64) (hd : id ≠ sender) :
