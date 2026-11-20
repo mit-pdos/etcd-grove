@@ -174,6 +174,63 @@ theorem DB.metasZero.wp_proof_own
       · iapply fmtErrorOkOrNil_ne (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)
           (by intro h; cases h) $$ Hek
 
+/-- On the files held by a database handle, the empty file needs initialization and
+a nonempty file has at least one nonzero meta byte. -/
+theorem DB.needsInit.wp_own (hMZ : DB.metasZero.spec_own (GF := GF) (hG := hG))
+    (db f : Loc) (fd : w64) (p : BFile) (dqdb dqf dq dqb : DFrac) (d : OsFd)
+    (xs : List ByteG) (hrd : d.readable = true) (hp : d.ino = p.ino)
+    (hx : xs.length < 2 ^ 62)
+    (hmeta : xs.length = 0 ∨ ¬ ∀ b ∈ (xs.map Prod.fst).take 8192, b = W8 0) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+      db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs }}
+    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"needsInit"))
+      (Val #(W64 (xs.length : Int))))
+  {{ (z : Bool) (err : GoInterface), RET (PairV #z #err);
+      db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs ∗
+      (⌜err = interface.nil ∧ z = decide (xs.length = 0)⌝ ∨
+       (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err)) }} := by
+  wp_start as ⟨#Hos, Hf, Hps, Hfo, Hfd, Hb⟩
+  by_cases hz : xs.length = 0
+  · rw [hz]
+    wp_auto
+    iapply HΦ
+    iframe
+    ileft; ipureintro; exact ⟨rfl, rfl⟩
+  have hn : W64 (xs.length : Int) ≠ W64 0 := by word
+  try wp_auto
+  rw [decide_eq_false hn]
+  try wp_auto
+  wp_if_destruct
+  · try wp_auto
+    iapply HΦ
+    iframe
+    ileft; ipureintro; exact ⟨rfl, (decide_eq_false hz).symm⟩
+  · try wp_auto
+    wp_apply hMZ db f fd p dqdb dqf dq dqb d xs hrd hp hx $$ [Hf Hps Hfo Hfd Hb]
+      as %z %err ⟨Hf, Hps, Hfo, Hfd, Hb, Hz⟩
+    · iframe; iframe #
+    icases Hz with (%Hz | ⟨%He, #Hek⟩)
+    · obtain ⟨rfl, H⟩ := Hz
+      have hzf : z = false := by
+        cases z
+        · rfl
+        · exact absurd (H.1 rfl) (hmeta.resolve_left hz)
+      subst hzf
+      wp_auto
+      iapply HΦ
+      iframe
+      ileft; ipureintro; exact ⟨rfl, (decide_eq_false hz).symm⟩
+    · cases err with
+      | nil => exact absurd rfl He.1
+      | ok ei =>
+        wp_auto
+        iapply HΦ
+        iframe
+        iright; iframe Hek
+        ipureintro; exact He
+
 end spec
 
 end bbolt

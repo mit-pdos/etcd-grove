@@ -3,7 +3,7 @@ module github.com/mit-pdos/etcd-grove/examples/bbolt/bank
 go 1.26
 
 // bbolt: the fork at project bbolttest's pin in etc/goose.py (GO_MOD_PINS checks the two agree).
-replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261102202309-3207bacf270d
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261120224715-2e1663644f60
 
 // The driver and the vendored porcupine (third_party/porcupine/UPSTREAM.md), as translated.
 replace (

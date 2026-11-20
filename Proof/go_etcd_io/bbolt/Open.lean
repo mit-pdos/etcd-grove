@@ -673,8 +673,12 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   · iexact Hfs
   try wp_auto
   rw [← hxl]
-  wp_apply hMZ dbl f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    (dbFd p.ino) xs rfl rfl (by omega) $$ [file pageSize Hf Hfdo Hxs]
+  have hmeta : xs.length = 0 ∨ ¬ ∀ b ∈ (xs.map Prod.fst).take 8192, b = W8 0 := by
+    rcases hbr with h | ⟨C, hC⟩
+    · left; omega
+    · right; exact fileImage_metas_nonzero _ C hC.1 hC.2.1
+  wp_apply DB.needsInit.wp_own hMZ dbl f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
+    (dbFd p.ino) xs rfl rfl (by omega) hmeta $$ [file pageSize Hf Hfdo Hxs]
     as %z %zerr ⟨file, pageSize, Hf, Hfdo, Hxs, Hz⟩
   · iframe; iframe #
   icases Hz with (%Hz | ⟨%Hzerr, #Hze⟩)
@@ -693,7 +697,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
       · unfold closeMapRes; iempintro
       iright; iexists fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
     open_exit fmtVerbs_metaErr [interface.mkOk go.string #(p.path), GoInterface.ok ei]
-  obtain ⟨rfl, hz⟩ := Hz
+  obtain ⟨rfl, rfl⟩ := Hz
   try wp_auto
   -- a new file is initialized, an existing one's page size read
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗
@@ -712,10 +716,8 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     (∃ e : GoInterface, ⌜v = returnVal #() ∧ e ≠ GoInterface.nil ∧ Ek⌝ ∗ err_ptr ↦ e ∗
       fmtErrorOkOrNil e ∗ db_ptr ↦ null ∗ defer ↦ dv)))
     at next with [Hfm Hxs Hfs file pageSize writeAt Hf Hfdo readOnly opened freelist path Hmf
-      datasz err db Hdefer zero]
+      datasz err db Hdefer]
   · try wp_auto
-    wp_apply hSize fs _ $$ [Hfs] as Hfs
-    · iexact Hfs
     by_cases h0 : m.size = 0
     · -- a new file: `init`
       have hx0 : xs = [] := List.eq_nil_of_length_eq_zero (by omega)
@@ -764,15 +766,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         rcases hbr with h | h
         · exact absurd h.1 h0
         · exact h
-      have hzf : z = false := by
-        cases z
-        · rfl
-        · exact absurd (hz.1 rfl) (fileImage_metas_nonzero _ C hC.1 hC.2.1)
-      subst hzf
-      have hne : W64 (xs.length : Int) ≠ W64 0 := by
-        intro h; apply h0
-        have := congrArg BitVec.toNat h
-        simp at this; omega
+      have hne : xs.length ≠ 0 := by omega
       try rw [decide_eq_false hne]
       try wp_auto
       have h8 := openOK_size C D m xs hC
