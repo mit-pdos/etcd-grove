@@ -167,6 +167,68 @@ theorem fieldsL_take_sub (S : Schema) (e : TypeRef) (ks : List GoString) (p : Pa
     q ∈ fieldsL S e ks p vs := by
   rw [← List.take_append_drop j vs, mem_fieldsL_append]; exact Or.inl h
 
+/-- A map entry's fields (`fieldsM`'s summand). -/
+def entryF (S : Schema) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (p : Path)
+    (kv : GoString × UVal) : PathSet :=
+  match fieldType fs e kv.1 with
+  | some t => union (fieldsAt S t (p ++ [.field kv.1]) kv.2)
+      (if kv.2 = .null ∨ kv.2 = .map [] ∨ lookupKV kv.1 fs = none then ins (p ++ [.field kv.1])
+       else empty)
+  | none => empty
+
+theorem mem_fieldsM (S : Schema) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (p : Path)
+    (q : Path) : ∀ kvs : List (GoString × UVal),
+      q ∈ fieldsM S fs e p kvs ↔ ∃ kv ∈ kvs, q ∈ entryF S fs e p kv
+  | [] => by simp only [fieldsM, List.not_mem_nil, false_and, exists_false, iff_false]; exact FSet.mem_empty q
+  | (k, v) :: kvs => by
+    simp only [fieldsM, union, mem_pu, mem_fieldsM S fs e p q kvs, List.mem_cons, exists_eq_or_imp]
+    rfl
+
+theorem nodup_keys_unique {α : Type} : ∀ (kvs : List (GoString × α)), (kvKeys kvs).Nodup →
+    ∀ k a b, (k, a) ∈ kvs → (k, b) ∈ kvs → a = b
+  | [], _, _, _, _, ha, _ => by simp at ha
+  | (k', c) :: kvs, hnd, k, a, b, ha, hb => by
+    simp only [kvKeys, List.map_cons, List.nodup_cons] at hnd
+    simp only [List.mem_cons, Prod.mk.injEq] at ha hb
+    have hn : ∀ v, (k', v) ∉ kvs := fun v hv => hnd.1 (List.mem_map.2 ⟨_, hv, rfl⟩)
+    rcases ha with ⟨rfl, rfl⟩ | ha <;> rcases hb with ⟨h1, rfl⟩ | hb
+    · rfl
+    · exact absurd hb (hn b)
+    · subst h1; exact absurd ha (hn a)
+    · exact nodup_keys_unique kvs hnd.2 k a b ha hb
+
+/-- The entries visited so far (`done`) of a map with distinct keys, one more visited. -/
+theorem fieldsM_step (F : PathSet) (S : Schema) (fs : List (GoString × TypeRef)) (e : Option TypeRef)
+    (p : Path) (kvs : List (GoString × UVal)) (hnd : (kvKeys kvs).Nodup) (done : List GoString)
+    (k : GoString) (x : UVal) (hx : lookupKV k kvs = some x) (A : PathSet)
+    (hA : ∀ q, q ∈ A ↔ q ∈ entryF S fs e p (k, x)) :
+    PathSet.union (PathSet.union F (fieldsM S fs e p (kvs.filter (fun kv => decide (kv.1 ∈ done))))) A =
+      PathSet.union F (fieldsM S fs e p (kvs.filter (fun kv => decide (kv.1 ∈ done ++ [k])))) := by
+  apply FSet.ext'
+  intro q
+  have hmem : (k, x) ∈ kvs := ValuePure.lookupKV_mem' hx
+  simp only [mem_pu, mem_fieldsM, List.mem_filter, decide_eq_true_eq, List.mem_append,
+    List.mem_singleton, hA]
+  constructor
+  · rintro ((h | ⟨kv, ⟨hkv, hd⟩, hq⟩) | h)
+    · exact Or.inl h
+    · exact Or.inr ⟨kv, ⟨hkv, Or.inl hd⟩, hq⟩
+    · exact Or.inr ⟨(k, x), ⟨hmem, Or.inr rfl⟩, h⟩
+  · rintro (h | ⟨kv, ⟨hkv, hd | hd⟩, hq⟩)
+    · exact Or.inl (Or.inl h)
+    · exact Or.inl (Or.inr ⟨kv, ⟨hkv, hd⟩, hq⟩)
+    · have : kv = (k, x) := by
+        obtain ⟨k', v'⟩ := kv
+        simp only at hd; subst hd
+        rw [nodup_keys_unique kvs hnd k' v' x hkv hmem]
+      subst this; exact Or.inr hq
+
+theorem ins_iff {A B C c : Prop} (h : c) : (A ∨ B ∨ C) ↔ (A ∨ B ∨ (c ∧ C)) := by
+  simp [h]
+
+theorem noins_iff {A B C c : Prop} (h : ¬ c) : (A ∨ B) ↔ (A ∨ B ∨ (c ∧ C)) := by
+  simp [h]
+
 theorem cardLt_sub (A B : PathSet) (n : Nat) (h : ∀ q, q ∈ A → q ∈ B) (hB : B.CardLt n) :
     A.CardLt n :=
   Nat.lt_of_le_of_lt (FSet.card_le_of_subset _ _ h) hB
