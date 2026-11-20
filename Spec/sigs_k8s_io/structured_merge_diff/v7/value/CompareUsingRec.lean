@@ -35,7 +35,8 @@ variable [package_sem : value.Assumptions]
 def value.CompareUsing.specI : IProp GF :=
   iprop(
   ∀ (al : value.Allocator) (a b : value.Value) (dq1 dq2 : DFrac) (x y : UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isValF a dq1 x ∗ isValF b dq2 y }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isValF a dq1 x ∗ isValF b dq2 y ∗
+      ⌜UVal.mapLensOk x = true ∧ UVal.mapLensOk y = true⌝ }}
     (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsing)) (Val #al)) (Val #a)) (Val #b))
   {{ (r : w64), RET #r; isAlloc al ∗ isValF a dq1 x ∗ isValF b dq2 y ∗
       ⌜r.toInt = UVal.compare x y⌝ }})
@@ -44,7 +45,8 @@ def value.CompareUsing.specI : IProp GF :=
 def value.ListCompareUsing.specI : IProp GF :=
   iprop(
   ∀ (al : value.Allocator) (l r : value.List') (xs ys : List UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isListV l xs ∗ isListV r ys }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isListV l xs ∗ isListV r ys ∗
+      ⌜UVal.mapLensOk (.list xs) = true ∧ UVal.mapLensOk (.list ys) = true⌝ }}
     (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.ListCompareUsing)) (Val #al)) (Val #l)) (Val #r))
   {{ (c : w64), RET #c; isAlloc al ∗ ⌜c.toInt = UVal.compare (.list xs) (.list ys)⌝ }})
 
@@ -52,7 +54,8 @@ def value.ListCompareUsing.specI : IProp GF :=
 def value.MapCompareUsing.specI : IProp GF :=
   iprop(
   ∀ (al : value.Allocator) (lm rm : value.Map) (ol or_ : Option (List (GoString × UVal))),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isMapO lm ol ∗ isMapO rm or_ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isMapO lm ol ∗ isMapO rm or_ ∗
+      ⌜UVal.mapLensOk (.map (kvsOrEmpty ol)) = true ∧ UVal.mapLensOk (.map (kvsOrEmpty or_)) = true⌝ }}
     (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.MapCompareUsing)) (Val #al)) (Val #lm)) (Val #rm))
   {{ (c : w64), RET #c; isAlloc al ∗
       ⌜c.toInt = UVal.compare (.map (kvsOrEmpty ol)) (.map (kvsOrEmpty or_))⌝ }})

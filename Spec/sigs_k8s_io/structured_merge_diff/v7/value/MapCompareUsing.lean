@@ -33,7 +33,8 @@ variable [package_sem : value.Assumptions]
 /-- See the file header. -/
 abbrev value.MapCompareUsing.spec : Prop :=
   ∀ (al : value.Allocator) (lm rm : value.Map) (ol or_ : Option (List (GoString × UVal))),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isMapO lm ol ∗ isMapO rm or_ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isMapO lm ol ∗ isMapO rm or_ ∗
+      ⌜UVal.mapLensOk (.map (kvsOrEmpty ol)) = true ∧ UVal.mapLensOk (.map (kvsOrEmpty or_)) = true⌝ }}
     (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.MapCompareUsing)) (Val #al)) (Val #lm)) (Val #rm))
   {{ (c : w64), RET #c; isAlloc al ∗
       ⌜c.toInt = UVal.compare (.map (kvsOrEmpty ol)) (.map (kvsOrEmpty or_))⌝ }}

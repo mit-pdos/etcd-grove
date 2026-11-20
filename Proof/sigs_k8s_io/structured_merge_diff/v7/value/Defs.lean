@@ -156,6 +156,21 @@ def UVal.sizeM : List (GoString × UVal) → Nat
   | (_, v) :: kvs => UVal.size v + UVal.sizeM kvs
 end
 
+mutual
+/-- **`UVal.mapLensOk x`**: every map inside `x` (itself included) has at most `2^61` entries
+(`value.Compare`'s premise: its lexical map zip counts both maps' entries in an `int`). -/
+def UVal.mapLensOk : UVal → Bool
+  | .list vs => UVal.mapLensOkL vs
+  | .map kvs => decide (kvs.length ≤ 2 ^ 61) && UVal.mapLensOkM kvs
+  | _ => true
+def UVal.mapLensOkL : List UVal → Bool
+  | [] => true
+  | v :: vs => UVal.mapLensOk v && UVal.mapLensOkL vs
+def UVal.mapLensOkM : List (GoString × UVal) → Bool
+  | [] => true
+  | (_, v) :: kvs => UVal.mapLensOk v && UVal.mapLensOkM kvs
+end
+
 /-- `value.IntCompare`. -/
 def intCompare (a b : w64) : Int :=
   if a.toInt > b.toInt then 1 else if a.toInt == b.toInt then 0 else -1

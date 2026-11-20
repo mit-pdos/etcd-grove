@@ -165,6 +165,31 @@ theorem mapCmp_step (p xs ys : List (GoString × UVal)) (k : GoString) (rest : L
         rw [hn]
         simp [lookupKV, listCmp, pairCmp, e, gsCompare_of_not_lt e (by simpa using hl)]
 
+
+/-! ## `UVal.mapLensOk` of sub-values -/
+
+theorem mapLensOkL_mem {v : UVal} : ∀ {vs : List UVal}, v ∈ vs →
+    UVal.mapLensOkL vs = true → UVal.mapLensOk v = true
+  | [], h, _ => by simp at h
+  | w :: vs, h, hok => by
+    simp only [UVal.mapLensOkL, Bool.and_eq_true] at hok
+    rcases List.mem_cons.1 h with rfl | h
+    · exact hok.1
+    · exact mapLensOkL_mem h hok.2
+
+theorem mapLensOkM_mem {p : GoString × UVal} : ∀ {kvs : List (GoString × UVal)}, p ∈ kvs →
+    UVal.mapLensOkM kvs = true → UVal.mapLensOk p.2 = true
+  | [], h, _ => by simp at h
+  | (k, w) :: kvs, h, hok => by
+    simp only [UVal.mapLensOkM, Bool.and_eq_true] at hok
+    rcases List.mem_cons.1 h with rfl | h
+    · exact hok.1
+    · exact mapLensOkM_mem h hok.2
+
+theorem mapLensOk_map {kvs : List (GoString × UVal)} (h : UVal.mapLensOk (.map kvs) = true) :
+    kvs.length ≤ 2 ^ 61 ∧ UVal.mapLensOkM kvs = true := by
+  simpa [UVal.mapLensOk] using h
+
 end ValueCmp
 
 section lemmas

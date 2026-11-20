@@ -78,7 +78,7 @@ theorem value.CompareUsing.wp_proofBody
   iintro #IH
   iunfold value.CompareUsing.specI
   iintro %al %a %b %dq1 %dq2 %x %y
-  wp_start as ⟨Ha, Hx, Hy⟩
+  wp_start as ⟨Ha, Hx, Hy, %Hok⟩
   iunfold value.CompareUsingRec.specI at IH
   icases IH with ⟨-, #HLC, #HMC⟩
   iunfold value.ListCompareUsing.specI at HLC
@@ -189,7 +189,7 @@ theorem value.CompareUsing.wp_proofBody
     wp_apply h_valueUnstructured_AsListUsing_ptr q dq2 vy (GoInterface.ok ia) $$ [Hy] as %rv ⟨Hy, #Hrv⟩
     · iexact Hy
     wp_apply HLC $$ %(GoInterface.ok ia) %lv %rv %vx %vy [Ha] as %c ⟨Ha, %Hc⟩
-    · iframe; isplitr; iexact Hlv; iexact Hrv
+    · iframe; isplitr; iexact Hlv; isplitr; iexact Hrv; ipureintro; exact Hok
     wp_apply HFree $$ %rv [Ha] as Ha
     · iframe; ihave ⟨-, Hf⟩ := (freeable_view_law_holds).2.1 rv vy $$ Hrv; iexact Hf
     wp_apply HFree $$ %lv [Ha] as Ha
@@ -219,7 +219,8 @@ theorem value.CompareUsing.wp_proofBody
     wp_apply h_valueUnstructured_AsMapUsing_ptr q dq2 vy (GoInterface.ok ia) $$ [Hy] as %rv ⟨Hy, #Hrv⟩
     · iexact Hy
     wp_apply HMC $$ %(GoInterface.ok ia) %lv %rv %(some vx) %(some vy) [Ha] as %c ⟨Ha, %Hc⟩
-    · iframe; simp only [isMapO]; isplitr; iexact Hlv; iexact Hrv
+    · iframe; simp only [isMapO]; isplitr; iexact Hlv; isplitr; iexact Hrv
+      ipureintro; simpa [kvsOrEmpty] using Hok
     wp_apply HFree $$ %rv [Ha] as Ha
     · iframe; ihave ⟨-, Hf⟩ := (freeable_view_law_holds).1 rv vy $$ Hrv; iexact Hf
     wp_apply HFree $$ %lv [Ha] as Ha

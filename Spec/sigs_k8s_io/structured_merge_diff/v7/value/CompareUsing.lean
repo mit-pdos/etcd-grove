@@ -32,7 +32,8 @@ variable [package_sem : value.Assumptions]
 /-- See the file header. -/
 abbrev value.CompareUsing.spec : Prop :=
   ∀ (al : value.Allocator) (a b : value.Value) (dq1 dq2 : DFrac) (x y : UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isValF a dq1 x ∗ isValF b dq2 y }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isValF a dq1 x ∗ isValF b dq2 y ∗
+      ⌜UVal.mapLensOk x = true ∧ UVal.mapLensOk y = true⌝ }}
     (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.CompareUsing)) (Val #al)) (Val #a)) (Val #b))
   {{ (r : w64), RET #r; isAlloc al ∗ isValF a dq1 x ∗ isValF b dq2 y ∗
       ⌜r.toInt = UVal.compare x y⌝ }}

@@ -32,11 +32,11 @@ variable [package_sem : value.Assumptions]
 theorem value.Compare.wp_proof
     (h_CompareUsing : value.CompareUsing.spec (GF := GF)) :
     value.Compare.spec (GF := GF) := fun a b dq1 dq2 x y => by
-  wp_start as ⟨Hx, Hy⟩
+  wp_start as ⟨Hx, Hy, %Hok⟩
   icases valuePkg_globals $$ Hpkg with ⟨%ha, %er, #Hha, -⟩
   wp_auto
   wp_apply h_CompareUsing _ a b dq1 dq2 x y $$ [Hx Hy] as %r ⟨-, Hx, Hy, %Hr⟩
-  · iframe; iapply isAlloc_heap_intro
+  · iframe; isplitl; iapply isAlloc_heap_intro; ipureintro; exact Hok
   wp_end
 
 end proof
