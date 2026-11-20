@@ -1,22 +1,12 @@
-# Types and names only: function and method bodies are axiomatized, except (unit P3a) `Error`,
-# `ErrorDesc` and `EtcdError`'s methods `Error` and `Code` (the client's `ContextError` and
-# retry interceptor, the cache's `WatchResponse.Err` call `Error`), which call grpc's
-# `status.FromError` and `(*Status).Message`/`Code` (names only: hence the import of grpc's
-# `status`); the package's variables (`errStringToError`, the errors) stay names only (their
-# values are the package-init facts, `cache/v3/Base.lean`), but (const-inits, 2026-11-19) the
-# string constants (the token field names and metadata keys), translated; (prove-rpctypes,
-# 2026-11-20) so are the `status.Error(codes.X, "...")` errors the package fact reads (proved over
-# `status.Error`'s spec, `etc/gen-init.py`'s `status_steps`), and (prove-initmisc, 2026-11-20)
-# `ErrGRPCNotSupportedForLearner`, a pointer error (`errors.IsPointerError`) by that spec's post.
-translate = ["!*", "Error", "ErrorDesc", "EtcdError.Error", "EtcdError.Code",
-  "TokenFieldNameGRPC", "TokenFieldNameSwagger", "MetadataRequireLeaderKey", "MetadataHasLeader",
-  "MetadataClientAPIVersionKey",
-  "ErrGRPCFutureRev", "ErrGRPCCompacted", "ErrGRPCEmptyKey",
-  "ErrGRPCInvalidSortOption", "ErrGRPCValueProvided", "ErrGRPCLeaseProvided", "ErrGRPCTooManyOps",
-  "ErrGRPCDuplicateKey", "ErrGRPCKeyNotFound", "ErrGRPCNoSpace", "ErrGRPCNotCapable",
-  "ErrGRPCInvalidClientAPIVersion", "ErrGRPCNoLeader", "ErrGRPCInvalidAuthToken",
-  "ErrGRPCAuthOldRevision", "ErrGRPCUserEmpty", "ErrGRPCPermissionDenied", "ErrGRPCWatchCanceled",
-  "ErrGRPCNotSupportedForLearner"]
+# Everything (prove-rpcmap, 2026-11-20): the functions `Error`, `ErrorDesc` and `EtcdError`'s methods
+# `Error` and `Code` (unit P3a: the client's `ContextError` and retry interceptor, the cache's
+# `WatchResponse.Err` call `Error`), which call grpc's `status.FromError` and `(*Status).Message`/`Code`
+# (names only: hence the import of grpc's `status`), and every variable's initializer: the string
+# constants (const-inits, 2026-11-19), the `status.Error(codes.X, "...")` errors (prove-rpctypes,
+# prove-initmisc, 2026-11-20: over `status.Error`'s spec), the map `errStringToError` (keys
+# `ErrorDesc(ErrGRPC*)`) and the client-side `Err* = Error(ErrGRPC*)` (the initializer's proof:
+# `etc/gen-init.py`; until then names only, `opaqueInitsOk` and the trust-boundary axioms `<X>_init`).
+translate = ["*"]
 # `EtcdError`'s field `code` is a `codes.Code`: `client/v3/leasing`'s `acquire` allocates one.
 imports = ["!*", "google.golang.org/grpc/codes", "google.golang.org/grpc/status"]
 
