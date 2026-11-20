@@ -226,8 +226,6 @@ axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.Printf.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
-axiom fmt.SprintfID.wp_proof
-axiom fmt.SprintfNamed.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom fmt.SscanfWalName.wp_proof
