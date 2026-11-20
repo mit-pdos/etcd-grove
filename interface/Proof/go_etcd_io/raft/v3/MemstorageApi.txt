@@ -22,8 +22,27 @@ theorem memStorage_isStorage [package_sem : Assumptions] [MemStorReg GF] (wp_Las
     γ.maxData.isSome = true → γs.sz = true) (htr : γ.trace = none) : ⊢ memStorInv ms γs γ K -∗
     memStorReg ms γs -∗ isStorage γ K (memStorIface ms)
 
+theorem memStorage_isStorageT [package_sem : Assumptions] [MemStorReg GF] (wp_LastIndex :
+    MemoryStorage.LastIndex.spec) (wp_FirstIndex : MemoryStorage.FirstIndex.spec) (wp_Term :
+    MemoryStorage.Term.spec) (wp_Entries : MemoryStorage.Entries.spec) (wp_Snapshot :
+    MemoryStorage.Snapshot.spec) (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) (Tg :
+    SnapshotM → IProp GF) [∀ (sv : SnapshotM), Persistent (Tg sv)] (hsz : γ.maxData.isSome = true →
+    γs.sz = true) (htr : γ.trace = none) : ⊢ memStorInvT ms γs γ K Tg -∗ memStorReg ms γs -∗
+    isStorageT γ K Tg (memStorIface ms)
+
+def memStorInvT (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF)
+    [∀ (sv : SnapshotM), Persistent (Tg sv)] : IProp GF :=
+  memStorInvP ms γs (memStorJT γ K Tg)
+
 theorem memStorInv_persistent (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) : Persistent
     (memStorInv ms γs γ K)
+
+theorem memStorInvT_alloc [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
+    (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) [∀ (sv : SnapshotM), Persistent (Tg sv)]
+    (c : Nat) (sv : SnapshotM) (E : CoPset) (Hcap : clusterNoSnap γ → c ≤ 1) : ⊢ memStorLock ms γs
+    -∗ memStorFresh ms γs c sv -∗ nodeAppliedLb γ K c -∗ ⌜sv.Metadata'.Index' = W64 0⌝ ∨
+    (snapshotValid γ sv ∗ Tg sv) ∗ nodeCommitLb γ K (uint.nat sv.Metadata'.Index') ={E}=∗
+    memStorInvT ms γs γ K Tg
 
 theorem memStorInv_alloc [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) (γs : MemStorNames)
     (γ : Cluster) (K : GName) (c : Nat) (sv : SnapshotM) (E : CoPset) (Hcap : clusterNoSnap γ → c ≤
@@ -33,3 +52,16 @@ theorem memStorInv_alloc [package_sem : Assumptions] [MemStorReg GF] (ms : Loc) 
 
 theorem memStorJ_B_le_one [package_sem : Assumptions] [MemStorReg GF] (γ : Cluster) (K : GName) (k :
     Nat) (h : k ≤ 1) : nodeAppliedLb γ K k ⊢ (memStorJ γ K).B k
+
+def memStorJT (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) [∀ (sv : SnapshotM), Persistent
+    (Tg sv)] : MemJust GF :=
+  have __src := memStorJ γ K;
+  { SV := fun sv => iprop(snapshotValid γ sv ∗ Tg sv), B := __src.B, DL := __src.DL, SV_pers := ⋯, B_pers := ⋯,
+    B_timeless := ⋯, DL_pers := ⋯ }
+
+theorem MemJust.mk.congr_simp.{u_1} (SV SV✝ : SnapshotM → IProp GF) (e_SV : SV = SV✝) (B B✝ : Nat →
+    IProp GF) (e_B : B = B✝) (DL DL✝ : Nat → IProp GF) (e_DL : DL = DL✝) (SV_pers : ∀ (sv :
+    SnapshotM), Persistent (SV sv)) (B_pers : ∀ (k : Nat), Persistent (B k)) (B_timeless : ∀ (k :
+    Nat), Timeless (B k)) (DL_pers : ∀ (i : Nat), Persistent (DL i)) : { SV := SV, B := B, DL := DL,
+    SV_pers := SV_pers, B_pers := B_pers, B_timeless := B_timeless, DL_pers := DL_pers } = { SV :=
+    SV✝, B := B✝, DL := DL✝, SV_pers := ⋯, B_pers := ⋯, B_timeless := ⋯, DL_pers := ⋯ }
