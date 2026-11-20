@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+# (2026-11-19) with its body, proved (Proof/.../util/errors/NewAggregate.lean) instead of axiomatized
+translate = ["!*", "NewAggregate"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
