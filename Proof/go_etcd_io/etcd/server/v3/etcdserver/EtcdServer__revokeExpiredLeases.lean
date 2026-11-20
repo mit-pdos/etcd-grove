@@ -89,7 +89,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
   · iPkgInit
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, ⟨-, -, -, ⟨%cnt, #Hcnt, #Hcnts⟩⟩⟩
+  icases Hinit with ⟨-, -, ⟨-, -, -, ⟨%cnt, #Hcnt, #Hcnts⟩, -⟩⟩
   -- the caller's levels: 0, 1 (lent to `GoAttach`), 2 (`B`), the rest
   icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
   icases (threadTokFrom_succ (GF := GF) 1 (by word)).1 $$ Ht1 with ⟨H1, Ht2⟩
