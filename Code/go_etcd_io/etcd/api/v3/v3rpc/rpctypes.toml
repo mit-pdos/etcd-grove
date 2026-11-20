@@ -4,10 +4,18 @@
 # `status.FromError` and `(*Status).Message`/`Code` (names only: hence the import of grpc's
 # `status`); the package's variables (`errStringToError`, the errors) stay names only (their
 # values are the package-init facts, `cache/v3/Base.lean`), but (const-inits, 2026-11-19) the
-# string constants (the token field names and metadata keys), translated.
+# string constants (the token field names and metadata keys), translated; (prove-rpctypes,
+# 2026-11-20) so are the `status.Error(codes.X, "...")` errors the package fact reads (proved over
+# `status.Error`'s spec, `etc/gen-init.py`'s `status_steps`), but `ErrGRPCNotSupportedForLearner`,
+# whose fact says its value is a pointer (`errors.IsPointerError`), which the spec does not give.
 translate = ["!*", "Error", "ErrorDesc", "EtcdError.Error", "EtcdError.Code",
   "TokenFieldNameGRPC", "TokenFieldNameSwagger", "MetadataRequireLeaderKey", "MetadataHasLeader",
-  "MetadataClientAPIVersionKey"]
+  "MetadataClientAPIVersionKey",
+  "ErrGRPCFutureRev", "ErrGRPCCompacted", "ErrGRPCEmptyKey",
+  "ErrGRPCInvalidSortOption", "ErrGRPCValueProvided", "ErrGRPCLeaseProvided", "ErrGRPCTooManyOps",
+  "ErrGRPCDuplicateKey", "ErrGRPCKeyNotFound", "ErrGRPCNoSpace", "ErrGRPCNotCapable",
+  "ErrGRPCInvalidClientAPIVersion", "ErrGRPCNoLeader", "ErrGRPCInvalidAuthToken",
+  "ErrGRPCAuthOldRevision", "ErrGRPCUserEmpty", "ErrGRPCPermissionDenied", "ErrGRPCWatchCanceled"]
 # `EtcdError`'s field `code` is a `codes.Code`: `client/v3/leasing`'s `acquire` allocates one.
 imports = ["!*", "google.golang.org/grpc/codes", "google.golang.org/grpc/status"]
 

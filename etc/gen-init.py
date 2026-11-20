@@ -1974,6 +1974,33 @@ for x, (c, m) in _RWERRS.items():
 _R['finish'] = [f'ipersist H{x}' for x in _RERRS + list(_RKEYS) + list(_RWERRS)] + _R['finish']
 _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`.", "the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors\n`v3rpc`'s checks and interceptors return and its metadata keys, and (D19j) the `ErrGRPC*` errors its\nwatch server returns, whose `Error()` returns.")
 
+# (prove-rpctypes, 2026-11-20) the `ErrGRPC* = status.Error(codes.X, "...")` variables the fact reads are
+# translated: the steps of each initializer (`before`, keyed by the variable), `status.Error`'s spec
+# (`EtcdGrove.status.Error.wp_proof`; the code is not `OK`), then the error is an interface value
+# (`%e<x>`), grpc's `status` accepts it (`#O<x>`), its `Error()` returns (`#E<x>`, from `statusErrOk`'s
+# stable message) and its description is the literal (`%D<x>`; `desc`: restated with the fact's
+# name for it). Until then the trust-boundary axioms `<X>_init`. Not `ErrGRPCNotSupportedForLearner`,
+# whose fact says its value is a pointer (`errors.IsPointerError`), which the spec does not give.
+def status_steps(x, desc=None):
+    D = f'{CV3}.errDesc (GoInterface.ok e{x})'
+    return (['try wp_auto',
+             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} ⟨%N{x}, #O{x}, %D{x}, -⟩',
+             '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
+             f'obtain ⟨e{x}, rfl⟩ : ∃ e, r{x} = GoInterface.ok e := match r{x}, N{x} with | .ok e, _ => ⟨e, rfl⟩ | .nil, h => absurd rfl h',
+             f'ihave #E{x} : ({CV3}.errorStringSpec e{x} : IProp GF) $$ []',
+             f'· ihave ⟨%m{x}, #M{x}⟩ := {CV3}.statusErrOk_msg _ $$ O{x}',
+             f'  iapply {CV3}.errorMsgIs_errorStringSpec; iapply M{x}; ipureintro; rfl'] +
+            ([f'replace D{x} : {D} = {CV3}.{desc} := D{x}'] if desc else []) +
+            ['try wp_auto'])
+
+_RSTATUS = dict({x: None for x in _RERRS + list(_RWERRS)}, ErrGRPCFutureRev='futureRevDesc',
+                ErrGRPCCompacted='compactedDesc')
+for x, desc in _RSTATUS.items():
+    del _R['custom'][x]
+    _R.setdefault('before', {})[x] = status_steps(x, desc)
+    _R['alloc_types'][x] = 'GoInterface'
+_R['imports'].append('Proof.google_golang_org.grpc.status.Error')
+
 _P = SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb']
 _P['doc'] = """Its fact (`etcdserverpbInit`, `cache/v3/Base.lean`): the sort enumerations' name maps. Its
 initializer allocates and sets the translated gRPC service descriptors (`KV_ServiceDesc`, ...:
