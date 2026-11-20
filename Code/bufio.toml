@@ -8,11 +8,8 @@ translate = ["!*", "Reader", "NewReader", "NewReaderSize", "Reader.reset", "Read
   "Reader.readErr", "Reader.Buffered", "defaultBufSize", "minReadBufferSize",
   "errNegativeRead", "ErrInvalidUnreadByte", "ErrInvalidUnreadRune", "ErrBufferFull",
   "ErrNegativeCount", "errNegativeWrite", "ErrTooLong", "ErrNegativeAdvance", "ErrAdvanceTooFar",
-  "ErrBadReadCount", "ErrFinalToken",
-  # (prove-smallinits, 2026-11-20) `errorRune = []byte(string(utf8.RuneError))` (until then
-  # `opaqueInitsOk`)
-  "errorRune"]
-imports = ["!*", "io", "errors", "unicode/utf8"]
+  "ErrBadReadCount", "ErrFinalToken"]
+imports = ["!*", "io", "errors"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

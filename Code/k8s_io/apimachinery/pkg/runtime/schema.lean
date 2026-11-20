@@ -63,8 +63,6 @@ attribute [irreducible] emptyObjectKind.ty
 noncomputable def EmptyObjectKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime/schema.EmptyObjectKind"
 
-opaque EmptyObjectKind.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ParseResourceArg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime/schema.ParseResourceArg"
 
@@ -139,8 +137,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.runtime.schema)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral emptyObjectKind.ty))) (LiteralValue []))
   (App (Val doExecute)
-  (App (Val EmptyObjectKind.init) (Val #())))))))
+  (App (Val (GoInstruction (GoStore emptyObjectKind.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr EmptyObjectKind))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc EmptyObjectKind emptyObjectKind.ty)) (Val #()))))))))
 
 structure GroupResource [GooseExts] where
   mk ::

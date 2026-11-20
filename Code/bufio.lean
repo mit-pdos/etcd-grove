@@ -3,7 +3,6 @@ module
 
 public import Perennial.Code.errors
 public import Perennial.Code.io
-public import Code.unicode.utf8
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -95,6 +94,8 @@ noncomputable def ErrFinalToken [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def errorRune [GooseExts] [GoGlobalContext] : GoString :=
   go!"bufio.errorRune"
+
+opaque errorRune.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewReaderSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"bufio.NewReaderSize"
@@ -457,7 +458,7 @@ noncomputable def Reader.Buffered.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.bufio where
-  pkgImportedPkgs := [pkg_id.errors, pkg_id.io, pkg_id.unicode.utf8]
+  pkgImportedPkgs := [pkg_id.errors, pkg_id.io]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -465,8 +466,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.bufio)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -513,9 +512,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(go!"final token"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (Convert go.untypedRune go.string))) (Val #(65533 : Int))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr errorRune))) (Val #())) (Var "$r0")))))))
+  (App (Val errorRune.init) (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrFinalToken))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -543,8 +541,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.unicode.utf8.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrInvalidUnreadByte go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrInvalidUnreadRune go.error)) (Val #()))))))
@@ -565,9 +561,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrBadReadCount go.error)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc ErrFinalToken go.error)) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (go.GlobalAlloc errorRune (go.GoType.SliceType go.byte))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc ErrFinalToken go.error)) (Val #()))))))))
 
 structure Reader [GooseExts] where
   mk ::
@@ -861,7 +855,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewReader_unfold : FuncUnfold NewReader [] NewReader.impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_utf8_Assumption : _root_.Perennial.unicode.utf8.Assumptions
 
 attribute [instance] Assumptions.Reader_instance
   Assumptions.Writer_instance
@@ -872,7 +865,6 @@ attribute [instance] Assumptions.Reader_instance
   Assumptions.NewReader_unfold
   Assumptions.import_errors_Assumption
   Assumptions.import_io_Assumption
-  Assumptions.import_utf8_Assumption
 
 end bufio
 

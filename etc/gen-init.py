@@ -2793,6 +2793,25 @@ trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).''',
         'try wp_auto'] + [f'wp_apply (wp_mapInsert (K := GoString) (V := Bool) {_API}.Capability.ty) $$ He as He', 'try wp_auto'] * 2},
 )
 
+# (prove-smallinits, 2026-11-20) k8s's single-item lists: a func literal, an `errors.New` call, empty
+# struct literals, an integer constant and `var _ I = &T{}` checks, translated (until then each
+# package's `opaqueInitsOk`); their facts are `True`.
+_K8S_ALLOCS = {'k8s_io.utils.clock', 'k8s_io.apimachinery.pkg.util.validation.field'}
+for _p, _what in [('k8s_io.apimachinery.pkg.conversion', '`DefaultNameFunc`, a func literal'),
+                  ('k8s_io.apimachinery.pkg.runtime.schema', '`EmptyObjectKind`, an empty struct literal'),
+                  ('k8s_io.utils.clock', 'its `var _` conversions'),
+                  ('k8s_io.apimachinery.pkg.util.validation.field', '`var _ error = &Error{}` and `omitValue`, an empty struct literal')]:
+    assert _p not in SPECIAL, _p
+    SPECIAL[_p] = dict(doc=f'''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: {_what} (prove-smallinits, 2026-11-20; until then the trust-boundary
+axiom `opaqueInitsOk`).''', alloc_types=_ALLOC_ANY,
+        # the `&T{}` allocations
+        before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']} if _p in _K8S_ALLOCS else {})
+SPECIAL['k8s_io.apimachinery.pkg.util.errors'] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates `ErrPreconditionViolated` and
+runs its translated initializer, an `errors.New` call (prove-smallinits, 2026-11-20; until then the
+trust-boundary axiom `opaqueInitsOk`).'''), ['ErrPreconditionViolated'])
+
 
 def plain(ns):
     return ns.replace('«', '').replace('»', '')
