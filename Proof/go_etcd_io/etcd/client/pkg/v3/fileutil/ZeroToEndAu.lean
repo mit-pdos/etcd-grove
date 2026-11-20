@@ -82,7 +82,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
   icases Hr with (⟨%he, %zs, Hd⟩ | ⟨%he, Hd⟩)
   rotate_left
   · cases err with
-    | nil => exact absurd rfl he
+    | nil => exact absurd rfl he.1
     | ok ie =>
     wp_auto
     iapply HΦ

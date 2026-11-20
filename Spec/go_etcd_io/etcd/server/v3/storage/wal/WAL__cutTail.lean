@@ -6,7 +6,8 @@ seventh session), hypotheses of `WAL.cut.wp_proof` until proved:
   `SegFl` of `walTailsRes`, `CrashOk` across the resize; branch `wal-zte`). The tail's size becomes
   its write position (`walTailW` at `sz := o0 + |out|`), its resize window open until `cut`'s fdatasync
   (`TailMetaW`: a crash may leave the old size; `wal-tc3`). The tail may be in a window before too (a
-  `Save`'s writes past the preallocated size, W6 log, thirteenth session).
+  `Save`'s writes past the preallocated size, W6 log, thirteenth session). An error only when the file
+  system can fail on an inode or the position is past `maxBytes` (`specAu`'s witness, wal-fsfix2).
 * `WAL.sync.specCut`: `w.sync()` of a handle whose tail was so truncated (its window open,
   `walHandleIn … TailMetaW`; the post's handle exact again: the fdatasync closes it), the page writer's pending
   bytes written past its size: the tail sized to its stream, synced. `WAL.sync.spec` at a handle
@@ -17,6 +18,7 @@ seventh session), hypotheses of `WAL.cut.wp_proof` until proved:
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -52,7 +54,7 @@ abbrev os.File.Truncate.specWalTail (Mr : WalMarshal) : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walTailW f fd name dir γ i H md cuts o0 (o0 + out.length) out
           TailMetaW) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ (¬ FsNoErrIno ∨ maxBytes < o0 + out.length)⌝ }}
 
 /-- **`w.sync()` after `cut`'s truncate** (see the file header). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (P : WalPbIn GF) (Mr : WalMarshal) :

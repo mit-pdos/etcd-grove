@@ -4,7 +4,8 @@
 with the whole of the file's `OsMeta` and its bytes that may not be durable (those `m` says may
 not be, `m.Covers`), whole. On success the size and every byte are durable (`OsMeta.synced`, each
 byte its value alone, `durB`); on failure, which is never `EINTR`, nothing changes (no failed
-writeback: the semantics' rule).
+writeback: the semantics' rule), and the failure witnesses that the file system can fail on an inode
+(`¬ FsNoErrIno`, wal-fsfix2).
 `syscall.Fdatasync.specB` is the byte-less variant (`wp_osFsyncB`), for a client that holds none
 of the bytes (bbolt's `fdatasync`): on success the `OsMeta` is `m.bsynced c` for some change
 number `c` (size and mappings unchanged), on failure nothing changes, and the failure witnesses
@@ -46,7 +47,7 @@ abbrev syscall.Fdatasync.spec : Prop :=
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
       ((⌜e = 0⌝ ∗ osMeta d.ino (DFrac.own 1) m.synced ∗
           osBytes d.ino lo (DFrac.own 1) (xs.map (fun x => durB x.1))) ∨
-       (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.ino (DFrac.own 1) m ∗
+       (⌜e ≠ 0 ∧ e ≠ EINTR ∧ ¬ FsNoErrIno⌝ ∗ osMeta d.ino (DFrac.own 1) m ∗
           osBytes d.ino lo (DFrac.own 1) xs)) }}
 
 /-- The byte-less variant (see the file header). -/

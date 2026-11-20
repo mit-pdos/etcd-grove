@@ -335,6 +335,7 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     icases Hfr with (⟨%hfe, #Hpe⟩ | ⟨%hfe, #Hcm⟩)
     · -- `Fsync` failed: the parent closed (not by `dirCloser`, which would overwrite `perr`: the fork's
       -- fix, `nonissues/etcd-wal-create-parent-fsync-nil-nil.md`), logged, the deferred `cleanupWAL`
+      replace hfe := hfe.1
       rcases ferr with pei | _
       rotate_left
       · exact absurd rfl hfe

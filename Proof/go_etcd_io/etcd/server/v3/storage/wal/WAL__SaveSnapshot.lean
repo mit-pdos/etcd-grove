@@ -678,7 +678,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre
       · ipureintro; exact H0
       iexists _, _
       iframe He
-      icases Hbad with (Hb | Hw')
+      icases Hbad with (Hb | ⟨-, Hw'⟩)
       · ileft; iexists _, _; iexact Hb
       · iright; iexists _; iexact Hw'))
 

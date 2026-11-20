@@ -59,12 +59,13 @@ def snapFrame (Mr : WalMarshal) (c : w32) (sm : SnapshotMetadataM) (al : Bool) :
   frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm al), Mr.encSnap sm al⟩)
 
 /-- What an fdatasync of `f` does to the writer's state `W out`: on success `S out`, else `W out`
-back (the hypothesis triple of the specs below). -/
+back, the failure witnessing that the file system can fail on an inode (`¬ Fs.FsNoErrIno`, wal-fsfix2;
+the hypothesis triple of the specs below). -/
 abbrev walPreSyncOk (f : Loc) (W S : List w8 → IProp GF) : Prop :=
   ∀ out : List w8,
   {{ W out }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
-  {{ (en : w64), RET #(errnoErr en); (⌜en = 0⌝ ∗ S out) ∨ (⌜en ≠ 0⌝ ∗ W out) }}
+  {{ (en : w64), RET #(errnoErr en); (⌜en = 0⌝ ∗ S out) ∨ (⌜en ≠ 0 ∧ ¬ Fs.FsNoErrIno⌝ ∗ W out) }}
 
 /-- What `w.tail().Seek(0, io.SeekCurrent)` gives from the writer's state `W out` (the tail is the file `f`):
 the accepted length, the state kept (`SaveSnapshot`'s offset test before the rename, the fork's fix 0007; a
@@ -91,7 +92,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre : Prop :=
     {{ (err : GoInterface), RET #err;
         walPreIn w lg dir mds md e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c [] ∗
         ((⌜err = GoInterface.nil⌝ ∗ S (out ++ pend)) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗ (B out pend ∨ W (out ++ pend)))) }}
+         (⌜err ≠ GoInterface.nil⌝ ∗ (B out pend ∨ (⌜¬ Fs.FsNoErrIno⌝ ∗ W (out ++ pend))))) }}
 
 end spec
 
