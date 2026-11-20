@@ -28,10 +28,8 @@
   `NewClusterServer` posts `clusterServerIs`; Links (`--server`, `--v3rpc`); table rows 13, 14, 15, 17
   `contract`; row 16 (MemberList) stays `server` (its server spec takes `isServerReq`, auth off: ledger
   entry, reported); gate baseline; lean merged (`5ebda1039e`).
-- State at handoff: full timed build started after the merge (log `/shared/tmp/authmed/build1.log`,
-  not seeded: incremental from this worktree's build); its result is in the report to etcd-grove-03.
-- Next (M2 land stop): if the build failed, fix (likely candidates: importers of `v3rpc.errMsgP`, now in
-  `etcdserver/ErrMsg.lean`; `Server.lean` uses `NewClusterServer` as `%pc -`); then tcb-report `--check
+- State at handoff: full timed build `20261120-220353-2255437` after the lean merge: green.
+- Next (M2 land stop): tcb-report `--check
   --update` (expected delta: +2 axioms, the JSON Marshal specs, in the server/v3rpc collections), collections
   `--check --update`, every gen-link mode (`--server`, `--v3rpc` regenerated after the merge?), interfaces,
   tier, gen-init/goose `--check`, mode, bounds, axiom-tok, `etc/auth-mediation-check.py --check`; a STATUS
