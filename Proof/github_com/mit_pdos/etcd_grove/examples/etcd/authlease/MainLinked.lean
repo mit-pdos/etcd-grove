@@ -1,7 +1,7 @@
 /-
 `Main`'s callees linked (auth-lease S4, `notes/auth-lease-s4-draft.md`, 2026-11-19), by hand, as authN's
 (`authN/MainLinked.lean`) and leaseexpiryN's: `etcd_authlease.Main.wp_proof` applied to `zap.NewNop`'s axiom,
-`etcdstart.Members`, `StartMembersAuth` over `StartMemberAuth` (as authN's) (at D22's named hypothesis `authSchemaSrv`), authlease's
+`etcdstart.Members`, `StartMembersAuth` over `StartMemberAuth` (as authN's), authlease's
 `run` (with `barrier`, `barriers`, `newUserClient`, `grantPut`, `reqCtx`, `refused`, `noAuth`, `absent`,
 `foreign`) over authkv's linked `SetUp` (`auth/Link.lean`), the client's linked lease methods
 (`client/v3/Link.lean`) and the per-member lessor law `lessor_keys_of_read` (`LessorFollows.lean`); the expiry
@@ -114,12 +114,11 @@ theorem etcd_authlease.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **authlease's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/Main.lean`). -/
-theorem etcd_authlease.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+theorem etcd_authlease.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_authlease.Main.spec (GF := GF) (hG := hG) :=
   etcd_authlease.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     (etcdstart.StartMembersAuth.wp_proof (etcdstart.StartMemberAuth.wp_proof
-      etcdstart.features.wp_NewDefaultServerFeatureGate (server_new_auth_on hD22) etcdstart.net.wp_Listen
+      etcdstart.features.wp_NewDefaultServerFeatureGate server_new_auth_on etcdstart.net.wp_Listen
       EtcdServer.wp_RaftHandler server_Start)) etcd_authlease.wp_run
     (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)
     mvcc.api.mvccApi_names_nonempty_law_holds

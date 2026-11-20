@@ -2,8 +2,8 @@
 `Main`'s callees linked (authN, `notes/authN-plan.md`, 2026-11-16), by hand, as auth3's
 (`auth3/MainLinked.lean`) and putgetN's: `etcd_authN.Main.wp_proof` applied to `zap.NewNop`'s axiom,
 `etcdstart.Members` (`etcdstart/Link.lean`), `etcdstart.StartMembersAuth` over `StartMemberAuth`'s proof
-over the server's linked `NewServer.specM true` (`server_new_auth_on`, at D22's named hypothesis
-`authSchemaSrv`, as auth3's `startMember`), `net.Listen`, `RaftHandler` and `Start`, and authN's `run`
+over the server's linked `NewServer.specM true` (`server_new_auth_on`, as auth3's
+`startMember`), `net.Listen`, `RaftHandler` and `Start`, and authN's `run`
 (with `barrier` and `newUserClient`) over authkv's linked `SetUp`, `Work` and checks (`auth/Link.lean`);
 the transport's directory bound for up to `1000` members by `rafthttp.bootCfg_of_le` (putgetN's).
 `Results.lean` restates it.
@@ -47,17 +47,17 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions]
 
 /-- **A member started with auth on, at any token and snapshot settings** (`StartMemberAuth.lean`):
-`NewServer.specM true` (`server_new_auth_on`, at D22's named hypothesis), the raft handler served,
+`NewServer.specM true` (`server_new_auth_on`), the raft handler served,
 `Start.spec`. -/
-theorem etcd_authN.wp_StartMemberAuth (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+theorem etcd_authN.wp_StartMemberAuth :
     etcdstart.StartMemberAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMemberAuth.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    (server_new_auth_on hD22) etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
+    server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
 
 /-- **The `k` members started with auth on** (`StartMembersAuth.lean`). -/
-theorem etcd_authN.wp_StartMembersAuth (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+theorem etcd_authN.wp_StartMembersAuth :
     etcdstart.StartMembersAuth.spec (GF := GF) (hG := hG) :=
-  etcdstart.StartMembersAuth.wp_proof (etcd_authN.wp_StartMemberAuth hD22)
+  etcdstart.StartMembersAuth.wp_proof etcd_authN.wp_StartMemberAuth
 
 /-- **authN's `newUserClient`** (auth3's copy), over `clientv3.New`. -/
 theorem etcd_authN.wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
@@ -86,11 +86,10 @@ theorem etcd_authN.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **authN's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authN/Main.lean`). -/
-theorem etcd_authN.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+theorem etcd_authN.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_authN.Main.spec (GF := GF) (hG := hG) :=
   etcd_authN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
-    (etcd_authN.wp_StartMembersAuth hD22) etcd_authN.wp_run
+    etcd_authN.wp_StartMembersAuth etcd_authN.wp_run
     mvcc.api.mvccApi_names_nonempty_law_holds
     (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
 

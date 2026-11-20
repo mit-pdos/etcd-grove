@@ -24,7 +24,10 @@ is specific to the Lean port.
 Before you finish, update `notes/STATUS.md` if anything moved. Its "Last updated" line keeps the
 ten newest dated entries: add yours at the front and move the oldest to the list at the end of
 `notes/status-history.md`. In a merge conflict on that line, keep one copy of each entry (never
-both sides' lines whole: merges that did grew the header to 1.1 MB).
+both sides' lines whole: merges that did grew the header to 1.1 MB). `etc/setup-merge-drivers.sh` (once per clone) configures
+merge drivers (`etc/merge-status.py`, named in `.gitattributes`) that do both merges this way (where git
+runs no history driver, the entries beyond ten stay on the line, for the next update to move); a clone
+without them merges the two files as git always does.
 
 ## Branches
 

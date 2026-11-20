@@ -212,14 +212,10 @@ theorem auth.getMergedPerms.wp_proof
                 ownPermS (GF := GF) x.1 x.2) (l := pps.zip rr.perms) (i := sint.nat m) (x := (pp', w))
                 (by rw [List.getElem?_zip_eq_some]; exact ⟨hpp, hw⟩) $$ Hperms
               iunfold ownPermS at Hpw
-              icases Hpw with ⟨%Hppnn, %pms, %kk, %kre, %psc, #Hpp, #Hkk, #Hkre⟩
+              icases Hpw with ⟨%Hppnn, %kk, %kre, #PermType, #Key, #RangeEnd, -, -, #Hkk, #Hkre⟩
               dsimp only
               dsimp only at Hppnn
               obtain ⟨Hppnn, Hklen⟩ := Hppnn
-              -- the message's fields
-              icases typedPointsto_split _ _ _ $$ Hpp with Hpp
-              simp only [TypedPointsto.typedPointstoDef]
-              iNamed Hpp
               ihave %Hkrl := ownSlice_len _ _ _ $$ Hkre
               ihave %Hkkl := ownSlice_len _ _ _ $$ Hkk
               have hfit : (userPerms st ur.roles).length < 2 ^ 63 := Hfit name ur.roles hroles

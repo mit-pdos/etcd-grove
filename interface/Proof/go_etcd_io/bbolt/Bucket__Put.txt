@@ -15,13 +15,13 @@ theorem bbolt.Bucket.Put.wp_proof (hclone : bbolt.cloneBytes.spec) (hcur : ∀ [
       ∀ Φ,
         bbolt.boltTx tx γ 1 T ∗
             bbolt.boltBkt tx γ b n (T.gen n) ∗
-              ownSlice key kb dk ∗
-                ownSlice value vb DFrac.discard ∗
-                  ⌜T.rw = true ∧ T.cur !! n = some m ∧ List.length kb + List.length vb ≤ bbolt.bboltEntryMax⌝ -∗
+              ownSlice key kb dk ∗ ownSlice value vb DFrac.discard ∗ ⌜T.rw = true ∧ T.cur !! n = some m⌝ -∗
           (▷
               ∀ err,
                 (ownSlice key kb dk ∗
-                    if List.length kb = 0 ∨ bbolt.maxKeySize < List.length kb then
+                    if
+                        List.length kb = 0 ∨
+                          bbolt.maxKeySize < List.length kb ∨ bbolt.bboltEntryMax < List.length kb + List.length vb then
                       ⌜err ≠ GoInterface.nil⌝ ∗ bbolt.boltTx tx γ 1 T
                     else ⌜err = GoInterface.nil⌝ ∗ bbolt.boltTx tx γ 1 (T.setBkt n <[kb := vb]>m)) -∗
                   Φ (intoVal err)) -∗

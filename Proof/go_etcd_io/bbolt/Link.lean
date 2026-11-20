@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.bbolt.Bucket__Bucket_w
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor_i
 public import Proof.go_etcd_io.bbolt.Bucket__Delete
+public import Proof.go_etcd_io.bbolt.Bucket__ForEach
 public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_r
 public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_rP
 public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_w
@@ -601,14 +602,6 @@ theorem Cursor.wp_first_r :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.first_r.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.first_r.wp_proof _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_goToFirstElementOnTheStack_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_keyValue_r _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_pageNode_r _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Count _root_.Perennial.EtcdGrove.bbolt.internal.common.InBucket.wp_RootPage
 
-theorem Bucket.wp_ForEachBucket_r :
-    _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_r.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_r.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r
-
-theorem Bucket.wp_ForEachBucket_rP :
-    _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_rP.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_rP.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r
-
 theorem Cursor.wp_goToFirstElementOnTheStack_wQ :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.goToFirstElementOnTheStack_w.specQ (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.goToFirstElementOnTheStack_w.wp_proofQ _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_pageNode_wQ _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_IsLeafPage _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_BranchPageElement _root_.Perennial.EtcdGrove.bbolt.internal.common.branchPageElement.wp_Pgid _root_.Perennial.EtcdGrove.bbolt.internal.common.Inode.wp_Pgid
@@ -625,9 +618,33 @@ theorem Cursor.wp_first_wQ :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.first_w.specQ (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.first_w.wp_proofQ _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_pageNode_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_goToFirstElementOnTheStack_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_keyValue_wsQ _root_.Perennial.EtcdGrove.bbolt.internal.common.InBucket.wp_RootPage _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Count
 
+theorem Cursor.wp_First :
+    _root_.Perennial.EtcdGrove.bbolt.Cursor.First.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Cursor.First.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_wQ
+
+theorem Cursor.wp_next_r0 :
+    _root_.Perennial.EtcdGrove.bbolt.Cursor.next_r0.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Cursor.next_r0.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Count
+
 theorem Cursor.wp_next_weQ :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.next_we.specQ (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.next_we.wp_proofQ _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Count
+
+theorem Cursor.wp_Next :
+    _root_.Perennial.EtcdGrove.bbolt.Cursor.Next.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Cursor.Next.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r0 _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_weQ
+
+theorem Bucket.wp_ForEach :
+    _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEach.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEach.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_First _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_Next
+
+theorem Bucket.wp_ForEachBucket_r :
+    _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_r.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_r.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r
+
+theorem Bucket.wp_ForEachBucket_rP :
+    _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_rP.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_rP.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r
 
 theorem Bucket.wp_ForEachBucket_w :
     _root_.Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_w.spec (GF := GF) (hG := hG) :=
@@ -986,10 +1003,6 @@ theorem Bucket.wp_spill :
     _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof _root_.Perennial.EtcdGrove.bbolt.Spill.node.wp_spill' _root_.Perennial.EtcdGrove.bbolt.node.wp_root _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Pgid _root_.Perennial.EtcdGrove.bbolt.internal.common.InBucket.wp_SetRootPage _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_inlineable _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_seek_w _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_node _root_.Perennial.EtcdGrove.bbolt.node.wp_put _root_.Perennial.bytes.wp_Equal _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_free _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_write
 
-theorem Cursor.wp_First :
-    _root_.Perennial.EtcdGrove.bbolt.Cursor.First.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Cursor.First.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_wQ
-
 theorem Cursor.wp_last_r :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.last_r.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.last_r.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_pageNode_r _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_IsLeafPage _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_BranchPageElement _root_.Perennial.EtcdGrove.bbolt.internal.common.branchPageElement.wp_Pgid _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Count
@@ -1009,14 +1022,6 @@ theorem Cursor.wp_prev_wQ :
 theorem Cursor.wp_Last :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.Last.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.Last.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert _root_.Perennial.EtcdGrove.bbolt.internal.common.InBucket.wp_RootPage _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_pageNode_r _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Count _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_last_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_keyValue_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_keyValue_r0 _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_pageNode_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_last_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_prev_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_keyValue_wsQ
-
-theorem Cursor.wp_next_r0 :
-    _root_.Perennial.EtcdGrove.bbolt.Cursor.next_r0.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Cursor.next_r0.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Count
-
-theorem Cursor.wp_Next :
-    _root_.Perennial.EtcdGrove.bbolt.Cursor.Next.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Cursor.Next.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r0 _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_weQ
 
 theorem Cursor.wp_prev_r :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.prev_r.spec (GF := GF) (hG := hG) :=

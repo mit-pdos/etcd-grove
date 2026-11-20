@@ -1,8 +1,8 @@
 /-
 `Main`'s callees linked (the auth3 Scope's A1, 2026-11-14), by hand, as putget3's
 (`putget3/MainLinked.lean`): `etcd_auth3.Main.wp_proof` applied to `zap.NewNop`'s axiom, `startMember`'s
-proof over the server's linked `NewServer.specM true` (`server_new_auth_on`, at D22's named
-hypothesis `authSchemaSrv`, as authkv's `authkv_startServer`), `net.Listen`, `RaftHandler` and
+proof over the server's linked `NewServer.specM true` (`server_new_auth_on`, as authkv's
+`authkv_startServer`), `net.Listen`, `RaftHandler` and
 `Start`, and auth3's `run` (A2, 2026-11-14: `run.lean`, with `barrier` and `newUserClient`) over authkv's
 linked `SetUp`, `Work` and checks (`auth/Link.lean`). `Results.lean` restates it.
 -/
@@ -44,11 +44,11 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assumptions]
 
 /-- **A member started with auth on** (`startMember.lean`): `NewServer.specM true`
-(`server_new_auth_on`, at D22's named hypothesis), the raft handler served, `Start.spec`. -/
-theorem etcd_auth3.wp_startMember (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+(`server_new_auth_on`), the raft handler served, `Start.spec`. -/
+theorem etcd_auth3.wp_startMember :
     etcd_auth3.startMember.spec (GF := GF) (hG := hG) :=
   etcd_auth3.startMember.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    (server_new_auth_on hD22) etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
+    server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
 
 /-- **auth3's `newUserClient`** (authkv's copy), over `clientv3.New`. -/
 theorem etcd_auth3.wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
@@ -78,9 +78,9 @@ theorem etcd_auth3.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
 /-- **auth3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/Main.lean`). -/
 theorem etcd_auth3.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [EtcdGrove.ErrorStringLeaf] (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+    [EtcdGrove.ErrorStringLeaf] :
     etcd_auth3.Main.spec (GF := GF) (hG := hG) :=
-  etcd_auth3.Main.wp_proof zap.NewNop.wp_proof (etcd_auth3.wp_startMember hD22) etcd_auth3.wp_run
+  etcd_auth3.Main.wp_proof zap.NewNop.wp_proof etcd_auth3.wp_startMember etcd_auth3.wp_run
     mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results

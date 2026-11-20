@@ -10,21 +10,22 @@ theorem backend.batchTx.UnsafeSeqPut.wp_proof [go_etcd_io.bbolt.Assumptions]
     (bi : backend.BucketInfo) (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
     0 < List.length kb →
       List.length kb ≤ backend.maxKeySize →
-        List.length kb + List.length vb ≤ bbolt.bboltEntryMax →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-                  backend.isBackend γ P W Pk b ∗
-                    typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
-                      backend.btW γ t st ∗
-                        backend.isBucket bk bi ∗ ownSlice key kb dk ∗ ownSlice value vb DFrac.discard -∗
-                ▷ (backend.btW γ t (st.put bi kb vb true) ∗ ownSlice key kb dk -∗ Φ (intoVal ())) -∗
-                  WP
-                    ((((intoVal
-                            (methods go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty.PointerType
-                              go!"UnsafeSeqPut"
-                              (intoVal (backend.btOf t))))
-                          (intoVal bk))
-                        (intoVal key))
-                      (intoVal value))
-                    {{ Φ }}
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+                backend.isBackend γ P W Pk b ∗
+                  typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
+                    backend.btW γ t st ∗ backend.isBucket bk bi ∗ ownSlice key kb dk ∗ ownSlice value vb DFrac.discard -∗
+              ▷
+                  (⌜List.length kb + List.length vb ≤ bbolt.bboltEntryMax⌝ ∗
+                      backend.btW γ t (st.put bi kb vb true) ∗ ownSlice key kb dk -∗
+                    Φ (intoVal ())) -∗
+                WP
+                  ((((intoVal
+                          (methods go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty.PointerType
+                            go!"UnsafeSeqPut"
+                            (intoVal (backend.btOf t))))
+                        (intoVal bk))
+                      (intoVal key))
+                    (intoVal value))
+                  {{ Φ }}

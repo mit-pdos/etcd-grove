@@ -162,8 +162,8 @@ theorem lease.lessor.initAndRecover.wp_proof
     show sint.Z (st.pend + W64 1) + P.hookMax < 2 ^ 58
     omega
   ihave ⟨#Hth, %Hnw⟩ := backend.viewSame_thin γB P _ hvs
-  wp_apply (hUL γB P W Pk be t (st.create mvcc.leaseBI) iprop(True) S
-      (r.insert mvcc.leaseName ((r.lookup mvcc.leaseName).getD ∅)) Hfree.2.2.2.2 hroom)
+  wp_apply (backend.batchTxBuffered.Unlock.spec_free hUL γB P W Pk be t (st.create mvcc.leaseBI) iprop(True) S
+      (r.insert mvcc.leaseName ((r.lookup mvcc.leaseName).getD ∅)) Hfree.2.2.2.2.1 hroom)
     $$ [$HB $Ht $Hl $Hwb1 $Hrb HW HPk] as ⟨-, Hrb⟩
   · ileft; iframe HW HPk Hth; ipureintro; exact Hnw
   (try wp_auto)

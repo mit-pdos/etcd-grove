@@ -182,13 +182,17 @@ PROJECTS = [
         # under `metalock` (743299d8, verification only); then a writable `Open` fdatasyncs the file
         # before its first commit (c5a6065d, issues/bbolt-open-unsynced-meta-kill-then-power-loss.md;
         # 004c930 its robustness test), closing under the locks if that sync fails (ea4cab52, as the
-        # failed transaction's exit: the proof needs the locks' halves of the fields `close` clears). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # failed transaction's exit: the proof needs the locks' halves of the fields `close` clears); then
+        # `Put` refuses an entry (key plus value) above 2^28 bytes with `ErrValueTooLarge` (3f8520bd, branch
+        # `goose-lean-entrymax`; issues/bbolt-max-value-size-unusable.md: `Put` accepted values a page of four
+        # entries cannot hold within `MaxAllocSize`; the verified bbolt's `bboltEntryMax`; approved by the
+        # user 2026-11-19, auth-schema-srv port, route (d')). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="ea4cab5267973cc858b7393c5c010eee4014e75c",
+        rev="3f8520bd72989b6cf959eef13e151b90031ed6bc",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[

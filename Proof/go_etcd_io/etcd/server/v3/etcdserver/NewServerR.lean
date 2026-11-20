@@ -609,7 +609,7 @@ theorem NewServer.wp_proofRG
   · iExactEq Hrbo; rfl
   ihave HbkP : backend.bkRPool d.γB d.P d.be $$ [HbkP]
   · iExactEq HbkP; rfl
-  ihave HrdA : backend.rdAuth d.γB d.P d.be $$ [HrdA]
+  ihave HrdA : iprop(backend.rdAuth d.γB d.P d.be ∗ backend.rbClaimToks d.γB d.P (fun _ => True)) $$ [HrdA]
   · iExactEq HrdA; rfl
   ihave Hopen : backend.bOpen d.γB (1 : Qp).half $$ [Hopen]
   · iExactEq Hopen; rfl
@@ -920,7 +920,10 @@ theorem NewServer.wp_proofRG
   -- (`authKitIn`), the apply thread keeping `srvOpenQ M`
   icases (backend.rbOwnIn_split_compl (GF := GF) d.γB authBkts _).1 $$ Hrbo with ⟨HrbA, Hrbo⟩
   icases authKitIn_take M d $$ [Hopen HrdA Hwk1 Hwk2] with ⟨HkIn, Hopen⟩
-  · iframe Hopen Hwk1 Hwk2; iunfold authRdSlots; iexact HrdA
+  · iframe Hopen Hwk1 Hwk2; iunfold authRdSlots
+    icases HrdA with ⟨HrdA, HtokA⟩
+    iframe HrdA
+    iapply backend.rbClaimToks_sub d.γB d.P (fun _ => True) authBkts (fun _ _ => trivial) $$ HtokA
   ihave HKt' := HKt $$ %cfg.Logger' %ab %abl %d %(mvcc.api.mvccW d.gx)
     %(batchLockInv γA (metaTM d.γB d.P)) %(srvOpenQ M)
     %((backend.rbData d.P D).insert go!"lease" ((D.lookup go!"lease").getD ∅))
@@ -930,8 +933,13 @@ theorem NewServer.wp_proofRG
       #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HAb, #HauR, #HauC, #HauSK, #Hbc⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn Hzlg
+    -- (auth-schema-srv A7) the realization's package initialization
+    isplitr
+    · iPkgInit
+    isplitr
+    · iPkgInit
     ipureintro
-    refine ⟨Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
+    refine ⟨by omega, Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
     · rw [GMap.lookup_insert_ne _ _ (by decide), backend.rbData_lookup]
       split
       · exact Or.inr ⟨hMo, (imageRestAt_auth _ _ _ _ _ Himg).1⟩

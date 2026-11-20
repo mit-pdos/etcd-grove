@@ -27,8 +27,8 @@ counterpart).
   delivering such metadata (C2, C4) gives no auth info in the mode `on γa`.
 * **`authkv_startServer`** (the auth plan's E3zb; linked here, not in `Link.lean`, which links
   only `.spec`s): `startServer` starts the member with auth on (`memberUpOn`), from
-  `server_new_auth_on` (its named premise: D22's `authSchemaSrv`; until auth-schema-fix S1 also
-  the false `auth.ValidSpec`) and
+  `server_new_auth_on` (no named premise since auth-schema-srv A7: D22's `authSchemaSrv` is proved)
+  and
   `server_Start` at the auth slot's `on γa`.
 * **`authkv_SetUp`** (`Link.lean`'s `etcd_auth.wp_SetUp`; E2h, the auth-mode merge's 5b): `SetUp`,
   through a client with no user, at etcd's Auth specs, from the client's view of the auth history:
@@ -37,8 +37,7 @@ counterpart).
   2026-11-13): the closed theorem. Every real execution of `n` steps of `authkv`'s initialization
   followed by `Main()`, from a fresh state with one thread, has no stuck thread, no thread ended in
   a panic (so none of `Main`'s checks failed), and the main thread's result, if any, is `0`, `1`
-  or `2`; under watchkv's hypotheses at authkv's configuration and D22's `authSchemaSrv` (a named
-  hypothesis, trusted text: `Adequacy.lean`'s header).
+  or `2`; under watchkv's hypotheses at authkv's configuration (`Adequacy.lean`'s header).
 -/
 module
 
@@ -71,27 +70,24 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
 
 /-- **The member started with auth on** (`startServer.lean`; E3zb): `NewServer.specM true`
-(`server_new_auth_on`, with its named premises) and `Start.spec` (`server_Start`) at the auth slot's
+(`server_new_auth_on`) and `Start.spec` (`server_Start`) at the auth slot's
 `on γa`. (The auth component's stage 3, 2026-11-04: until then `Start.specOn`, `server_Start_on`,
 which also took `ErrorStringLeaf`.) -/
-theorem authkv_startServer (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+theorem authkv_startServer :
     etcd_auth.startServer.spec (GF := GF) (hG := hG) :=
   etcd_auth.startServer.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    (server_new_auth_on hD22) server_Start
+    server_new_auth_on server_Start
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_auth.wp_Main`). At the
 hypothesis on the semantics every client-building `Main` has (`DialWithBalancerBody`, through
 `newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...), and the member's start with auth on
-(`authkv_startServer`, 2026-10-30: `Link.lean` links only `.spec`s): its named premises
-(D22's `authSchemaSrv`; auth-schema-fix S1, 2026-11-12: no longer the false `auth.ValidSpec`) and
-hypotheses on the
+(`authkv_startServer`, 2026-10-30: `Link.lean` links only `.spec`s) and hypotheses on the
 semantics (`ErrorStringLeaf`). `Main.spec`'s named workload premises
 include `grpcRepliesFit` (2026-10-31, `grpc.start`'s: the replies' encoded size). -/
 theorem authkv_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [EtcdGrove.ErrorStringLeaf]
-    (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+    [EtcdGrove.ErrorStringLeaf] :
     etcd_auth.Main.spec (GF := GF) (hG := hG) :=
-  etcd_auth.wp_Main (authkv_startServer hD22)
+  etcd_auth.wp_Main authkv_startServer
 
 /-- **`Permitted(who, k)` is `permittedK who k`** (`Link.lean`'s `etcd_auth.wp_Permitted`). -/
 theorem authkv_Permitted : etcd_auth.Permitted.spec (GF := GF) (hG := hG) :=
@@ -197,8 +193,6 @@ theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    -- (D22) the auth store's backend with auth on: trusted text, a named hypothesis
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
     (Haf : authRecordsFit)
@@ -222,7 +216,7 @@ theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_auth_adequate Hctx Hcec hD22 id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem
+  etcd_auth_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem
     σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

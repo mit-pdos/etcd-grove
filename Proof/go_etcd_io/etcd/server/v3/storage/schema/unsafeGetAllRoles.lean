@@ -1,0 +1,185 @@
+/-
+Proof of `Spec/.../schema/unsafeGetAllRoles.lean`: the range of the roles bucket, then `proto.Unmarshal` of each value. Lean-first.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetAllRoles
+public import Spec.google_golang_org.protobuf.proto.UnmarshalRole
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
+
+/-- An entry of a bucket's sorted entries is one of its key-value pairs. -/
+private theorem bktEnts_lookup' {m : backend.BktData} {e : backend.Ent} (h : e ∈ backend.bktEnts m) :
+    m.lookup e.1 = some e.2 :=
+  (GMap.mem_toList m e.1 e.2).1 ((List.mergeSort_perm m.toList backend.entLe).mem_iff.1 h)
+
+/-- An entry of a range is one of the bucket's entries. -/
+private theorem rolesRangeEnts_mem {m : backend.BktData} {e : backend.Ent}
+    (h : e ∈ schema.rolesRangeEnts m) : e ∈ backend.bktEnts m := by
+  unfold schema.rolesRangeEnts backend.cursorRange at h
+  simp only at h
+  split at h
+  · exact List.mem_of_mem_drop ((List.takeWhile_sublist _).subset (List.mem_of_mem_take h))
+  · exact List.mem_of_mem_drop ((List.takeWhile_sublist _).subset (List.mem_of_mem_take h))
+
+/-- Zipping one more element in front of a longer list. -/
+private theorem zip_snoc' {α β : Type} (us : List α) (es : List β) (u : α) (e : β)
+    (h : es[us.length]? = some e) : (us ++ [u]).zip es = us.zip es ++ [(u, e)] := by
+  induction us generalizing es with
+  | nil =>
+    cases es with
+    | nil => simp at h
+    | cons x xs => simp at h; subst h; simp
+  | cons a t ih =>
+    cases es with
+    | nil => simp at h
+    | cons x xs =>
+      simp only [List.length_cons, List.getElem?_cons_succ] at h
+      simp [ih xs h]
+
+/-- Filling the next slot of a slice whose first slots are set. -/
+private theorem set_fill' {α : Type} (us : List α) (z u : α) (L : Nat) (h : us.length < L) :
+    (us ++ List.replicate (L - us.length) z).set us.length u =
+      (us ++ [u]) ++ List.replicate (L - (us ++ [u]).length) z := by
+  obtain ⟨k, hk⟩ : ∃ k, L - us.length = k + 1 := ⟨L - us.length - 1, by omega⟩
+  have hk' : L - (us ++ [u]).length = k := by simp; omega
+  rw [hk, hk', List.replicate_succ]
+  simp [List.set_append_right]
+
+theorem schema.unsafeGetAllRoles.wp_proof
+    (hUnm : proto.UnmarshalRole.spec (GF := GF) (hG := hG)) :
+    schema.unsafeGetAllRoles.spec (GF := GF) (hG := hG) := by
+  intro lg r H m dR hwf
+  wp_start as ⟨#HRR, HH⟩
+  ihave Hsi : (schema.schemaInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, ⟨%rb, #HRoles, -⟩, -⟩
+  iunfold schema.authRolesRange at HRR
+  wp_auto
+  wp_apply wp_slice_literal (V := w8) [W8 0]
+  isplitr
+  · ipureintro; rfl
+  iintro %k0 ⟨Hk0, -⟩
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := w8) [W8 255]
+  isplitr
+  · ipureintro; rfl
+  iintro %k1 ⟨Hk1, -⟩
+  (try wp_auto)
+  wp_bind (App (App (App (App (Val #(methods r.ty _ r.v)) _) _) _) _)
+  iapply HRR $$ %rb %_ %_ %_ %_ [$HRoles $HH $Hk0 $Hk1]
+  inext
+  iintro %ks %sl ⟨HH, -, -, %ss, Hsl, %Hlen, #Hss⟩
+  obtain ⟨es, hes⟩ : ∃ es, schema.rolesRangeEnts m = es := ⟨_, rfl⟩
+  rw [hes] at Hlen
+  rw [hes]
+  (try wp_auto)
+  irename vs => Hvs
+  ihave %Hsll := ownSlice_len $$ Hsl
+  wp_if_destruct
+  · have hss : ss = [] := List.eq_nil_of_length_eq_zero (by rw [Hsll.1]; word)
+    have hes : es = [] := List.eq_nil_of_length_eq_zero (by rw [← Hlen, hss]; rfl)
+    rw [hes]
+    (try wp_auto)
+    iapply HΦ
+    iframe HH
+    iunfold schema.rolesOutD
+    iexists []
+    isplitl []
+    · iapply (ownSlice_nil (V := Loc) (DFrac.own 1))
+    isplitl []
+    · ipureintro; rfl
+    simp only [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
+  wp_apply (wp_slice_make2 (V := Loc)) as %usl ⟨Husl, -⟩
+  · ipureintro; word
+  (try wp_auto)
+  rename_i gi_ptr
+  irename : (gi_ptr ↦ zero_val w64 : IProp GF) => gi
+  ihave IH : iprop(∃ (n kv : w64) (us : List Loc),
+      "i" ∷ i_ptr ↦ n ∗ "gi" ∷ gi_ptr ↦ kv ∗ "roles" ∷ roles_ptr ↦ usl ∗
+      "Husl" ∷ usl ↦* (us ++ List.replicate (sint.nat sl.len - us.length) (zero_val Loc)) ∗
+      "HH" ∷ H ∗ "Hvs" ∷ vs_ptr ↦ sl ∗ "Hsl" ∷ sl ↦* ss ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z sl.len ∧ us.length = sint.nat n⌝ ∗
+      "Hus" ∷ [∗list] x ∈ us.zip es, auth.ownRole x.1 (dR x.2.1)) $$ [i gi roles Husl HH Hvs Hsl]
+  · iexists (W64 0), (W64 0), []
+    iframe
+    isplitl []
+    · ipureintro; exact ⟨by word, by word, rfl⟩
+    simp only [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
+  wp_for IH
+  wp_if_destruct
+  · have Hlt : (sint.Z n).toNat < ss.length := by rw [Hsll.1]; word
+    obtain ⟨sv, Hsv⟩ : ∃ sv, ss[(sint.Z n).toNat]? = some sv :=
+      ⟨_, List.getElem?_eq_getElem Hlt⟩
+    simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len from ⟨Hn.1, Hif⟩]
+    wp_apply wp_load_slice_index sl (sint.Z n) ss (DFrac.own 1) sv Hn.1 $$ [Hsl] as Hsl
+    · iframe; ipureintro; exact Hsv
+    have Hlte : (sint.Z n).toNat < es.length := by rw [← Hlen]; exact Hlt
+    obtain ⟨e, He⟩ : ∃ e, es[(sint.Z n).toNat]? = some e :=
+      ⟨_, List.getElem?_eq_getElem Hlte⟩
+    have Hz : (ss.zip es)[(sint.Z n).toNat]? = some (sv, e) := by
+      rw [List.getElem?_zip_eq_some]; exact ⟨Hsv, He⟩
+    ihave #Hrc := BigSepL.bigSepL_lookup (Φ := fun _ x => schema.rdCap H x.1 x.2.2) Hz $$ Hss
+    have Hur := hwf e.1 e.2
+      (bktEnts_lookup' (rolesRangeEnts_mem (by rw [hes]; exact List.mem_of_getElem? He)))
+    simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len from ⟨Hn.1, Hif⟩]
+    wp_apply wp_load_slice_index sl (sint.Z n) ss (DFrac.own 1) sv Hn.1 $$ [Hsl] as Hsl
+    · iframe; ipureintro; exact Hsv
+    iunfold schema.rdCap at Hrc
+    icases Hrc $$ HH with ⟨%dq, Hs, Hback⟩
+    rw [Hur]
+    wp_apply (hUnm sv (dR e.1) _ _ dq) $$ [$Hs $«$r0»] as ⟨Hs, Hu⟩
+    ihave HH := Hback $$ Hs
+    imod (auth.ownRoleX_persist _ _ _) $$ Hu with Hu
+    ihave %Husll := ownSlice_len $$ Husl
+    have Hul : sint.Z usl.len = sint.Z sl.len := by
+      simp only [List.length_append, List.length_replicate] at Husll
+      have : us.length + (sint.nat sl.len - us.length) = sint.nat sl.len := by word
+      word
+    simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z usl.len from ⟨Hn.1, by rw [Hul]; exact Hif⟩]
+    wp_apply wp_store_slice_index usl (sint.Z n) _ _ $$ [Husl] as Husl
+    · iframe; ipureintro; simp; word
+    wp_for_post
+    iframe
+    iexists _, _, us ++ [«$r0_ptr»]
+    iframe
+    have Hnu : (sint.Z n).toNat = us.length := by word
+    rw [Hnu, set_fill' us _ _ _ (by word)]
+    iframe Husl
+    isplitl []
+    · ipureintro; refine ⟨by word, by word, ?_⟩; simp; word
+    rw [Hnu] at He
+    rw [zip_snoc' us es _ e He]
+    iapply BigSepL.bigSepL_snoc.2
+    iframe Hus Hu
+  · have Hul : us.length = es.length := by rw [← Hlen, Hsll.1]; word
+    rw [show sint.nat sl.len - us.length = 0 by word, List.replicate_zero, List.append_nil]
+    (try wp_auto)
+    iapply HΦ
+    iframe HH
+    iunfold schema.rolesOutD
+    iexists us
+    iframe Husl Hus
+    ipureintro; exact Hul
+
+
+end proof
+
+end EtcdGrove
+end Perennial

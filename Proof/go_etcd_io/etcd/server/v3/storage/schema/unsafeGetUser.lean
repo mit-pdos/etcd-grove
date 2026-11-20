@@ -27,13 +27,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 theorem schema.unsafeGetUser.wp_proof
     (hUnm : proto.UnmarshalUser.spec (GF := GF) (hG := hG)) :
     schema.unsafeGetUser.spec (GF := GF) (hG := hG) := by
-  intro lg r name H D hlg hwf
+  intro lg r name H D dU hwf
   wp_start as ⟨#Hrd, HH⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hsi with ⟨-, -, -, -, -, -, -, -, ⟨%ub, #HUsers, -⟩, -⟩
   iunfold schema.authReader at Hrd
-  icases Hrd with ⟨-, #HU, -⟩
+  icases Hrd with ⟨-, #HU, -, -⟩
   iunfold schema.authPointSpec at HU
   wp_auto
   wp_apply wp_string_to_bytes name as %key ⟨Hkey, -⟩
@@ -63,15 +63,12 @@ theorem schema.unsafeGetUser.wp_proof
     · iframe Hvs; ipureintro; rfl
     (try wp_auto)
     icases Hacc $$ HH with ⟨%dq, Hs, HHback⟩
-    obtain ⟨x, rfl⟩ := hwf name v hl
-    wp_apply (hUnm s x _ _ dq) $$ [$Hs $«$r0»] as ⟨Hs, Hu⟩
+    have hx := hwf name v hl; subst hx
+    wp_apply (hUnm s (dU name) _ _ dq) $$ [$Hs $«$r0»] as ⟨Hs, Hu⟩
     ihave HH := HHback $$ Hs
     (try wp_auto)
     iapply HΦ
-    iframe HH
-    iexists x
-    iframe Hu
-    ipureintro; rfl
+    iframe HH Hu
 
 end proof
 

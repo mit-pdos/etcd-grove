@@ -595,7 +595,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   iintro ⟨Hreg, Himg, Hbf, Hbp, Hnew⟩
   ihave #Hks := mvcc.keySized_all (GF := GF)
   icases backend.newPostK_named γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
-    backend.bFresh be D $$ Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
+    backend.bFresh be D $$ Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr, -⟩
   icases (backend.bFresh_eq γB).1 $$ Hk with ⟨Hwb, Ho⟩
   icases (backend.bOpen_one_pool γB).1 $$ Ho with ⟨Hoh, Hpl, Hos⟩
   imod backend.rdToks_pool hT ⊤ γB (mvccrand.rcP lim) be $$ Hrd with ⟨#Hpool, Hrs⟩

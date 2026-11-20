@@ -2969,6 +2969,107 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** The user's decision (A) of 2026-11-15 for this class of change; listed for the user's review
   with the earlier 25.
 
+## 2026-11-17: the backend's hook step keeps the tracked buckets' write buffer and kinds (auth-schema-srv A1)
+
+- **Spec.** `backend.hookStep` (`Model2.lean`): in the hooks' contract `hooksSpec`/`hookFnSpec` (inside `isBackend`),
+  in `BackendHooks.OnPreCommitUnsafe.spec`'s post and the exported `cindex_hook_backend`
+  (`etcdserver/Results.lean:1068`, post `⌜backend.hookStep P st st'⌝`).
+- **Defect.** None of Go; a gap of the model: the hook step left the tracked buckets' contents (`rbData`) but not what
+  the write buffer holds for them, so a hook could buffer a put there (one it then deletes) that a later write-back
+  shows readers; A1's read model over the tracked buckets (`notes/auth-schema-srv-a1-scope.md`, D2) needs it excluded.
+- **Evidence.** The server's hook (`BackendHooks.OnPreCommitUnsafe`) writes `meta` only (`storage/hooks.go`), not a
+  tracked bucket (`mvcc.KBReal.P`'s `RB`: the rest buckets).
+- **Change.** Old: `... ∧ dlR P st'.dl = dlR P st.dl ∧ st'.win = st.win`. New: the same `∧ (∀ n i, P.BT.lookup n =
+  some i → P.RB n = true → bkOf st'.W.bks i = bkOf st.W.bks i) ∧ (∀ n, P.RB n = true → st'.tk n = st.tk n)` (`tk` the
+  new ghost field `BSess.tk`, the session's bucket kinds). Stronger only: as a post (`cindex_hook_backend`,
+  `OnPreCommitUnsafe`) it says more; as the hook's obligation it asks more of the hook, which the server's meets.
+- **Decision.** Accepted by etcd-grove-03 (2026-11-17, A1 Scope decision 4); the user to be told by etcd-grove-03.
+- **Addendum (A1.4, 2026-11-17, form decided by the agent, reviewed at checkpoint).** One more conjunct in `trkKept`:
+  `∧ st'.cw = st.cw` (`cw` the new ghost field `BSess.cw`, the claimed buckets written through a claimed part). Same
+  direction (stronger as a post, more asked of a hook: the server's writes `meta` through an unclaimed part, which
+  keeps `cw`). Needed by `unsafeCommit`: the commit after the hook needs every claimed bucket still idle (or, from
+  A1.5, handed to `Unlock`'s accessor), and the hook's batch lock is in the client-facing mode, which allows claimed
+  writes inside the hook's window (`cwOk`).
+
+## 2026-11-17: a nested auth message's size cache in an invariant, its `state` not held (auth-schema-srv A3)
+
+- **Specs.** The predicates `auth.userOptsIs` (and through it `auth.userOptsAt`), `auth.ownPermW`, `auth.ownPermS`
+  (`auth/Buckets.lean`); through them the trusted `proto.UnmarshalUser`, `proto.MarshalIRR`,
+  `pbutil.MustUnmarshalMessage`, the gRPC models of `AuthUserAddRequest`/`AuthRoleGrantPermissionRequest`
+  (`PerTypeAuth.lean`), and the exported `v3rpc.userAdd_end_to_end_on` (`api/v3rpc/Results.lean:794`, premise
+  `auth.userOptsAt o b`; its only linked caller, `Results.lean:959`, still goes through).
+- **Defect.** The predicates held the nested message's whole struct `↦□`, its `sizeCache` and `state` included: false
+  of Go (`proto.Marshal` of a message holding it stores the nested size caches; `String()` and any `ProtoReflect` store
+  a nested `state`), so no spec of `Marshal` (`proto.MarshalUser`/`MarshalRole`, A3) could be stated over them, and
+  `MarshalIRR`'s precondition held read-only cells the call writes.
+- **Evidence.** `examples/authpbmarshal/` (`TestMarshalWritesNestedSizeCache`, `TestStateWrites`,
+  `TestConcurrentSharedNested`; the attack's `TestNestedOnlySizeCache`, `TestConcurrentEverything`); review
+  `notes/axiom-review/auth-a3-marshal.md`; Draft `notes/auth-schema-srv-a3-draft.md` §1-§4.
+- **Change.** Old: `o ↦□ {state' := st, NoPassword' := b, unknownFields' := uf, sizeCache' := sc} ∗ uf ↦*□ u` (and
+  likewise the `Permission` of `ownPermW`/`ownPermS`, `ownPermW`'s unknown-field bytes not held). New: each wire field
+  `↦□` (`NoPassword`, `unknownFields` with its bytes; `PermType`, `Key`, `RangeEnd`, `unknownFields`, with
+  `ownPermW` now holding `∃ ub, uf ↦*□ ub`), `inv pbSizeCacheN (∃ sc, sizeCache ↦ sc)`, no `state`.
+  `userAdd_end_to_end_on`'s premise text is unchanged; its meaning moves: old, the request's `Options` whole struct
+  read-only; new, its wire fields read-only and its size cache in an invariant. Incomparable; both follow from a
+  freshly allocated or decoded message, which is what gRPC's decoder and a client's literal give.
+- **Decision.** Accepted by etcd-grove-03 (2026-11-17, A3 decisions 1-3, after the independent attack).
+
+## 2026-11-17: the auth realization's premise hands out one reader ticket fewer (auth-schema-srv A6.1b)
+
+- **Spec.** `authSchemaSrv` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`; trusted text, the closed
+  auth theorems' named hypothesis `hD22`, discharged at A7).
+- **Defect.** Not realizable as stated over the backend's specs: its write contract's reads (`authBackendReads`:
+  `GetUser`, `GetRole`, `GetAllUsers`, `{{ T ∗ authOwn M hs }}`) take no reader ticket, while schema's code runs
+  `ReadTx().RLock()`, which takes a reader slot (`backend.readTx.RLock.spec`'s `rdTok`); the realization's slots are
+  the store's share `authRdSlots` (`backend.authRdN` of them) and the premise handed out `authRdN` tickets, each of
+  which may be in use concurrently with the apply thread's read: `authRdN + 1` readers on `authRdN` slots.
+- **Evidence.** questions.md "A6.1b" (the count); `RdPool.lean` (`rdAuth`: exactly `authRdN` `rdTok`s); the server
+  never used the `authRdN`-th ticket (`AuthSrv.lean`, `srv_auth_tp_on`'s proof dropped it: `authRdSupply` is
+  `authRdN - 1` copies, the auth applier reading with the write token).
+- **Change.** Old: `([∗list] _x ∈ List.replicate backend.authRdN (), R)`. New: `([∗list] _x ∈ List.replicate
+  (backend.authRdN - 1) (), R)`; the realization keeps one slot for the write token's reads (exchanged against `T`,
+  exclusive). The premise promises less, so the closed theorems taking it are stronger; their text is unchanged.
+  `authSchemaSnap`'s text has no ticket count (the boot's tickets work on every later backend): unchanged.
+- **Decision.** Option (b), decided by etcd-grove-03 (2026-11-17), after the supply check: `authRdSupply`
+  (`authRdN - 1` plain copies), `newAuthStore_on` (`N = authRdN - 1`), the server's 66: no consumer short.
+
+## 2026-11-18: the auth realization's boot write contract takes the unset hook (auth-schema-srv A6, fix (A))
+
+- **Spec.** `authSchemaSrv` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`; trusted text, the closed
+  auth theorems' named hypothesis `hD22`, discharged at A7).
+- **Defect.** False (`notes/auth-schema-srv-refuted.md`, third refutation): the boot write contract (persistent, at
+  `authWTok γc`, hook `P f` chosen at boot) outlives the unset hook, which the constructor's wand gave back; a
+  client that sets a panicking hook and calls the contract's `Lock` (schema: `LockInsideApply`, which runs the
+  hook) gets a no-panic triple of a panicking call.
+- **Evidence.** `batch_tx.go:113-120` (`LockInsideApply` runs `txPostLockInsideApplyHook`);
+  `backend.batchTxBuffered.LockInsideApply.spec` takes `plHookAt γ dq f`; questions.md "A6 STOP".
+- **Change.** Old: `authWBackendOkR … P f (authWTok γc) Wb`; `{{ authWTok γc ∗ Wb }} CreateAuthBuckets {{ authWTok γc
+  }}`; the token `authWTok γc` handed out; `(Post -∗ bOpen d.γB qo ∗ plHook d.γB func.nil)`. New: at `T_b :=
+  authWTok γc ∗ plHook d.γB func.nil` (the contract, the triple, the token handed out); `(Post -∗ bOpen d.γB qo)`.
+  The premise is unchanged (still takes `plHook d.γB func.nil`). The contract now promises its `Lock` only to the
+  holder of the unset hook; the hook comes back with the token rather than after `Post`. Server: passes `T_b` to
+  `newAuthStore_on` and splits the token it gets back; `authApplyResPre` (internal) names the schema auth backend
+  (`ablOn`) in place of the boot contract, `authApplyResB_of_pre` taking the contract at the frozen hook.
+- **Decision.** Fix (A), decided by etcd-grove-03 (2026-11-18); for the A7 trusted-text list.
+
+## 2026-11-18: the auth lend takes a revision of at least 1; the snapshot clause takes `permKeysOk` (auth-schema-srv A6, STOP 2)
+
+- **Spec.** `authBkLend` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthBkHook.lean`; trusted text, in both
+  `authSchemaSrv` and `authSchemaSnap`) and `authSchemaSnap` (`AuthSnapKit.lean`; trusted text).
+- **Defect.** (L) False (`notes/auth-schema-srv-refuted.md`, fourth refutation): `authSchemaSrv` hands out the lend at
+  boot, before the auth buckets exist or hold a revision; its law promises `authBucketsAt bootState r` (which needs the
+  `authRevision` key) of empty buckets; a client lends at `[bootState]` and runs `backend.Snapshot` with the lend's
+  `RL`, whose post then claims it of the real data. (P) `authSchemaSnap` is not realizable as stated: the read
+  contract's views need `authStateAt` (with `permKeysOk`) of the snapshot's state, which neither `authLockI st` nor
+  `authBucketsAt st r` gives.
+- **Evidence.** `backend.backend.Snapshot.spec` (the observation's `Q` of the committed data); a fresh backend has
+  no auth bucket before `CreateAuthBuckets`; `auth.authStateAt` (`Model.lean`); questions.md "A6 STOP 2".
+- **Change.** (L) `authBkLend`'s clause takes `⌜1 ≤ st.revision⌝` after `⌜hs.getLast? = some st⌝`; the consumer
+  (`srvAuthApplyResB_lend`) discharges it from `bump bootState` and the monotone revision. (P) `authSchemaSnap` takes
+  `⌜auth.permKeysOk st⌝` after `⌜authBucketsAt st r⌝`; its caller discharges it from `SnapAuthRecover.histWf`. Both
+  ask less of the realization (weaker hypotheses).
+- **Decision.** (L-rev) and (P2) approved by etcd-grove-03 (2026-11-18); for the A7 trusted-text list with fix (A).
+
 ## 2026-11-17: `proto.Marshal.spec` (KeyValue) -- the encoding's length unstated (S1b)
 
 - **Spec.** `Spec/google_golang_org/protobuf/proto/Marshal.lean` (`proto.Marshal.spec`, a trust-boundary axiom).
@@ -3063,3 +3164,67 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `snapDBPath sd i := sd ++ "/" ++ snapDBName i` (a definition); every spec over `sd`. Converges with `SpecPlan`'s
   `snap/Api.lean` (`isSnapshotter ss sd`, paths `dbPathOf sd i` over the directory).
 - **Decision.** Approved by the user, 2026-11-19, via etcd-grove-03; made on `wal-link`.
+
+## 2026-11-18: the batch lock's share of the auth history carries the states' permission keys (auth-schema-srv A6, STOP 3)
+
+- **Spec.** `auth.authLockQ` (Model.lean), through `authLockI`: `authSchemaSrv`'s premise `authLockI (.on γa) bootState`,
+  the write contract `authBatchTxLkR`'s `Lock` (gives it) and `Unlock` (takes it), `authSchemaSnap`'s lock share.
+- **Defect.** Unprovable as stated, not false: at the write contract's `Unlock` the realization holds only the lock's
+  quarter of the history; the write-back moves the auth buckets to the session's state `st`, which the invariant must
+  record (`authStateAt`, which includes `permKeysOk st`, as the read contract's views hand it to readers), and nothing
+  gives `permKeysOk st` (the quarter carried none; `roleEncode` opaque; `UnsafePutRole` allows an empty key).
+- **Evidence.** `questions.md` "A6 STOP 3"; the store's history carries the fact (`authHist`, `authHistHalf`).
+- **Proposed change.** `authLockQ γa hs := monoListAuthOwn γa.hist ¼ hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝` (P1'). Every
+  producer goes through `authHist_split`; independent read-only check: no producer lacks the fact, nothing new for a
+  client against the four forbidden laws. P2 kept (now redundant).
+- **Decision.** Approved by etcd-grove-03, 2026-11-18 (on the A7 list); made on branch `auth-schema-srv`.
+
+## 2026-11-19: `GetAllRoles` lists every role only below the range's implicit limit (auth-schema-srv A6, STOP 4, F-roles)
+
+- **Spec.** `auth.rolesOut` (InvAuth.lean; the trusted write contract's `GetAllRoles` clause, `auth.authBackendReads`) and
+  `auth.roleListOut` (Reads.lean; the post of the exported `auth.authStore.RoleList.spec`).
+- **Defect.** Unprovable as stated: both listed every role of the state (`n ∈ names ↔ role ∧ roleListed n`). schema's
+  `unsafeGetAllRoles` ranges with limit `-1`, which the backend's cursor reads as at most `2^63 - 1` entries
+  (`backend.cursorRange`), and nothing bounds a recorded state's roles (the snapshot clause installs any state).
+- **Evidence.** `questions.md` "A6 STOP 4"; `schema.rolesRangeEnts`, `mvcc.cursorRange_window`.
+- **Proposed change.** `auth.rolesListed names st`: the names each once, each a role of `st` that `roleListed`, and every
+  such role when `names.length < 2^63 - 1` (R-c); both texts use it. Weaker only in states with `2^63 - 1` or more roles.
+- **SpecPlan.** W0's model answers `.roleList` with every role (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, ~l.1262),
+  stronger than the code in two ways (F3's `0xff` names, this cap); not changed here (a SpecPlan entry for convergence).
+- **Decision.** Approved by etcd-grove-03, 2026-11-19 (on the A7 list for the user); made on branch `auth-schema-srv`.
+
+## 2026-11-19: `schema.authBucketsAre` holds a role's permissions in the state's order (auth-schema-srv A6, STOP 5, F-order)
+
+- **Spec.** `schema.authBucketsAre` (etcdserver/InvAuthBackend.lean), through `authBucketsAt` (ImageOn.lean) in the trusted
+  `authBkLend` (AuthBkHook.lean), `authSchemaSnap`'s premise (AuthSnapKit.lean) and the image certificates.
+- **Defect.** False of ordinary runs: its roles clause said `st.roles.lookup n = some rr.toRole`, the bucket's record exactly
+  the recorded state's role. Go's `RoleGrantPermission` appends and `sort.Sort`s by key (`server/auth/store.go:844-845`), the
+  model's `grantPerms` (Steps.lean:222) appends: grant key `b` then `a`, the history says `[b, a]`, the bucket `[a, b]`. The
+  write contract (`UnsafePutRole`) already allows a permutation; so the realization cannot prove `authBkLend` (the fifth
+  refutation of `authSchemaSrv`'s text, `notes/auth-schema-srv-refuted.md`).
+- **Evidence.** `questions.md` "A6 STOP 5" and its survey.
+- **Proposed change.** (O-a) up to permutation: `∃ ps, st.roles.lookup n = some ps ∧ rr.toRole.Perm ps` (as `rolesAt`).
+  (O-b, a sorting model) is not viable (Go's sort is unstable, equal keys); (O-c, a nondeterministic model order) is larger.
+- **Decision.** (O-a), decided by etcd-grove-03, 2026-11-19 (on the A7 list for the user); made on branch `auth-schema-srv`.
+
+## 2026-11-19: the auth records' size: the realization cannot meet `UnsafePut`'s entry bound (auth-schema-srv port, P5)
+
+- **Spec.** The schema write contract's `UnsafePutUser`/`UnsafePutRole` clauses (`auth.authBatchTxLk`, `auth.authBatchTxLkR`,
+  InvAuth.lean; inside `authSchemaSrv`'s text) and `authRecordsFit` (InvBoot.lean, opaque; a premise of
+  `NewAuthStore`'s axiom, `NewServer.spec`, `NewServerR.spec` and the closed theorems' `Haf`).
+- **Defect.** Since bbolt-integrate, `backend.batchTxBuffered.UnsafePut.spec` takes `kb.length + vb.length ≤
+  bbolt.bboltEntryMax` (2^28). The realization's `lk_put` (AuthRealWr) puts `userEncode ur`/`roleEncode rr`, whose size
+  neither the contract (key bounds only) nor `authSmall` (roles and permissions at most the revision, ≤ 2^61 + 2^48)
+  bounds; `authRecordsFit` is opaque (no law). Known runtime finding: `nonissues/etcd-auth-record-too-large-fatal.md`.
+- **Evidence.** Full timed build 20261119-190055-1577997 (`AuthRealWr.lean` l.1209, 1260); `questions.md` "BLOCKER
+  (2026-11-19 h)".
+- **Proposed change.** The user's option (1): the put clauses take `⌜name.length + enc.length ≤ bboltEntryMax⌝`;
+  `authRecordsFit` gets content as a bound on the auth state the store keeps (a size field in `authSmall`, kept by every
+  writer). Its concrete form: pending (questions.md "Option (1): concrete form").
+- **Decision.** Option (1) chosen by the user, 2026-11-19, via etcd-grove-03.
+- **Decision, revised.** Route (d') chosen by the user, 2026-11-19, via etcd-grove-03 (in place of option (1), whose
+  parameterless content would have been false): the goosed bbolt fork's `Put` refuses an entry above `2^28` bytes
+  (3f8520bd, branch `goose-lean-entrymax`, with a Go test); `bbolt.Bucket.Put.spec` in place (the size premise dropped,
+  an oversized-error branch); `backend.batchTx.unsafePut`/`UnsafePut`/`UnsafeSeqPut` drop the premise and their posts
+  say the entry was within the bound (else `lg.Fatal`); `batchTxBuffered.UnsafePut`/`UnsafeSeqPut` drop the premise.
+  `authRecordsFit` and the schema contracts unchanged; A7 stays "only `hD22` removed".

@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.AdminLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermSorter
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.bytes.Link
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -122,10 +123,7 @@ theorem auth.wp_permW_key (p : Loc) (w : PermW) :
     {{ (k : GoSlice), RET #k; k ↦*□ w.key }} := by
   wp_start as #Hp
   iunfold ownPermW at Hp
-  icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, #Hm, #Hk, #Hre⟩
-  icases typedPointsto_split _ _ _ $$ Hm with #Hm
-  simp only [TypedPointsto.typedPointstoDef]
-  iNamed Hm
+  icases Hp with ⟨%Hpn, %k, %re, %uf, %ub, -, #Key, -, -, -, -, #Hk, -⟩
   wp_apply (IntoValTyped.wp_load (t := go.GoType.SliceType go.byte) _ _ _) $$ Key as -
   iapply HΦ
   iexact Hk
@@ -138,10 +136,7 @@ theorem auth.wp_permW_rangeEnd (p : Loc) (w : PermW) :
     {{ (k : GoSlice), RET #k; k ↦*□ w.rangeEnd }} := by
   wp_start as #Hp
   iunfold ownPermW at Hp
-  icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, #Hm, #Hk, #Hre⟩
-  icases typedPointsto_split _ _ _ $$ Hm with #Hm
-  simp only [TypedPointsto.typedPointstoDef]
-  iNamed Hm
+  icases Hp with ⟨%Hpn, %k, %re, %uf, %ub, -, -, #RangeEnd, -, -, -, -, #Hre⟩
   wp_apply (IntoValTyped.wp_load (t := go.GoType.SliceType go.byte) _ _ _) $$ RangeEnd as -
   iapply HΦ
   iexact Hre
@@ -237,13 +232,10 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
   | some w =>
     ihave #Hw' := Hw
     iunfold ownPermW at Hw'
-    icases Hw' with ⟨%Hwp, %wst, %wk, %wre, %wuf, %wsc, #Hwm, #Hwk, #Hwre⟩
+    icases Hw' with ⟨%Hwp, %wk, %wre, %wuf, %wub, #PermType, #Key, #RangeEnd, -, -, -, #Hwk, #Hwre⟩
     have hpp : pp ≠ null := Hwp.1
     simp only [hpp, decide_false]
     (try wp_auto)
-    icases typedPointsto_split _ _ _ $$ Hwm with #Hwm'
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hwm'
     (try wp_auto)
     wp_apply (h_valid wk wre w.key w.rangeEnd DFrac.discard DFrac.discard) $$ [$Hwk $Hwre]
       as %bv ⟨-, -, %Hbv⟩
@@ -339,9 +331,9 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     ihave %Hkpl := ownSlice_len _ _ _ $$ Hkp
     have hzl' : locs.length = rr.perms.length := Hlocs.1
     -- the permission messages are only read from here on (the fork's code writes none)
-    ihave Hperms' : |==> [∗list] x ∈ locs.zip rr.perms, ownPermS x.1 x.2 $$ [Hperms]
-    · iapply BigSepL.bigSepL_bupd
-      iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist x.1 x.2)) $$ Hperms
+    ihave Hperms' : |={⊤}=> [∗list] x ∈ locs.zip rr.perms, ownPermS x.1 x.2 $$ [Hperms]
+    · iapply BigSepL2.bigSepL_fupd ⊤
+      iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist ⊤ x.1 x.2)) $$ Hperms
     imod Hperms' with #Hperms'
     ihave #Hpw : □ (∀ x : Loc × PermW, ⌜x ∈ locs.zip rr.perms⌝ → ownPermS x.1 x.2) $$ []
     · iintro !> %x %Hx
@@ -477,13 +469,10 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
         exact Nat.le_trans (List.length_filter_le _ _) (Nat.le_trans (List.length_take_le _ _) (by omega))
       (try wp_auto)
       ihave %Hnpn := typedPointsto_not_null $$ «$r0»
-      ipersist «$r0»
-      ihave #Hnpw : ownPermS «$r0_ptr» w $$ []
-      · iunfold ownPermS
+      imod ownPermS_freeze ⊤ «$r0_ptr» w _ wk wre _ $$ [«$r0»] with #Hnpw
+      · iframe Hwk Hwre
         isplitr
         · ipureintro; exact ⟨Hnpn, Hwp.2⟩
-        iexists _, wk, wre, _
-        iframe Hwk Hwre
         iexact «$r0»
       wp_apply wp_slice_literal (V := Loc) [«$r0_ptr»]
       isplitr
@@ -496,7 +485,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       ihave #Hsrt := auth.permSlice_isSorter s2 $$ Hpkg
       have hfst : (kl ++ [(«$r0_ptr», w)]).map Prod.fst = kl.map Prod.fst ++ [«$r0_ptr»] := by
         simp
-      wp_apply (_root_.Perennial.sort.wp_Sort (interface.mk permSlice.ty #s2) (auth.permsOwn s2) keyLt
+      wp_apply +noauto (_root_.Perennial.sort.wp_Sort (interface.mk permSlice.ty #s2) (auth.permsOwn s2) keyLt
           StrictWeakOrder_keyLt (kl ++ [(«$r0_ptr», w)])) $$ [Hs2]
         as %xs' ⟨Hxs, %Hperm, %Hsorted⟩
       · iframe Hsrt
@@ -511,7 +500,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
         ipureintro
         rw [List.length_append]
         have := Hlocs.2; simp only [List.length_singleton]; omega
-      (try wp_auto)
+      wp_take_receipt as Hrc
       iunfold auth.permsOwn at Hxs
       icases Hxs with ⟨Hxs, #Hxw⟩
       imod (ownSlice_persist _ _ _) $$ Hxs with #Hxs
@@ -548,8 +537,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       have hrn : ({ rr with perms := xs'.map Prod.snd } : RoleRec).name = name := Hrrn
       generalize ({ rr with perms := xs'.map Prod.snd } : RoleRec) = rr' at hgp hrn ⊢
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #rl))
-      iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) %AuthSess.init [HL Hsw Hrm]
-      · iframe HL Hsw Hrm; ipureintro; rw [hrn]
+      iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) %AuthSess.init [HL Hrc Hsw Hrm]
+      · iframe HL Hrc Hsw Hrm; ipureintro; rw [hrn]
         exact ⟨by decide, List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 name (by rw [Hlook]; rfl)),
           Hnamelen, hgp⟩
       inext

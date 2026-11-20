@@ -66,8 +66,6 @@ theorem etcd_authlease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    -- (D22) the auth store's backend with auth on: trusted text, a named hypothesis
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
@@ -118,7 +116,7 @@ theorem etcd_authlease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Hms, -⟩
   unfold etcd_authlease.startAddrs
   rw [BigSepL.bigSepL_map]
-  have hM := etcd_authlease.wp_Main (GF := putgetGF) (hD22 hG) k n ids ps ctxs boot hk1 hk Hlen Hbf Hap
+  have hM := etcd_authlease.wp_Main (GF := putgetGF) k n ids ps ctxs boot hk1 hk Hlen Hbf Hap
     (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega)
     (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo Hlp Hlne inferInstance
     EtcdGrove.rpctypesEtcdError_asTarget

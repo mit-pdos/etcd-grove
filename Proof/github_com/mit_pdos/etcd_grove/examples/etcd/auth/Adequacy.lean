@@ -25,12 +25,11 @@ It is a copy of watchkv's (`watch/Adequacy.lean`), at authkv's program, client a
 
 **Its hypotheses** are watchkv's (`etcd_watch_adequate`, putget's and the watch client's) at
 authkv's configuration (`etcd_auth.premises`, putget's with `AuthToken = "simple"`), without
-watchkv's bounds on `nw`/`nops` (`Main` takes no argument), and one more: **`hD22`**, D22's
-`authSchemaSrv` (`etcdserver/AuthSrv.lean`), the trusted text of the auth store's backend
-(`storage/schema`'s auth buckets over the backend) with auth on, a named hypothesis and not an axiom,
-so `#print axioms` does not show it (reviewed whole by the axiom skill, refuted four ways and fixed
-by stage auth-schema-fix, re-reviewed 2026-11-13: `notes/auth-schema-srv-refuted.md`,
-`notes/auth-unknown-fields-nested.md`; discharging it is D22's own track).
+watchkv's bounds on `nw`/`nops` (`Main` takes no argument). Until auth-schema-srv A7 (approved by the
+user, 2026-11-19) it took one more, `hD22`, D22's `authSchemaSrv` (`etcdserver/AuthSnapKit.lean`), the
+trusted text of the auth store's backend with auth on; it is now proved by its realization over the
+backend's and schema's proofs (`etcdserver/AuthRealSrv.lean`'s `authReal.real_srv`, used by
+`authStoreKit_on`).
 
 **Over Linux files** (2026-11-15, the user's decision (A) on `wal-lean`): the program's extensions are
 `[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own semantics, no premise on
@@ -88,8 +87,6 @@ theorem etcd_auth_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    -- (D22) the auth store's backend with auth on: trusted text, a named hypothesis
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
     (Haf : authRecordsFit)
@@ -133,7 +130,7 @@ theorem etcd_auth_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_auth.wp_Main (GF := putgetGF)
     (etcd_auth.startServer.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-      (server_new_auth_on (hD22 hG)) server_Start) n id ctxs boot Hbf
+      server_new_auth_on server_Start) n id ctxs boot Hbf
     (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

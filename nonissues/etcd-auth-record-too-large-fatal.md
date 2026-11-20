@@ -17,9 +17,12 @@ member, and again on replay.
 
 ## Proof
 
-no: the top-level adequacy proof needs no fix on the goosed fork for it; `auth.NewAuthStore`'s axiom takes the premise `authRecordsFit`
-(`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), a premise of `NewServer.spec` that
-etcd does not enforce.
+no: the theorems cover it as an exit. Since 2026-11-19 the goosed bbolt fork's `Put` refuses an entry
+above `2^28` bytes (3f8520bd, `issues/bbolt-max-value-size-unusable.md`), and the backend's
+`unsafePut` spec says it returns only for an entry within that bound (otherwise `lg.Fatal`): in the
+verified code **a record over 2^28 bytes makes the member exit via `lg.Fatal`** (today's fatal
+write, at a lower threshold than upstream's 2 GiB). The auth realization's puts need no size bound;
+`authRecordsFit` (an opaque premise of `NewAuthStore`'s axiom and `NewServer.spec`) is not used for it.
 
 ## Notes
 

@@ -245,13 +245,17 @@ instance authStepsAtHook_persistent (stl : Loc) (d : mvcc.KBReal) (γa : auth.Au
 
 /-- **The apply thread's auth resource before the hook is frozen** (E3n): `authApplyResB`'s with
 its hook-dependent facts for every frozen hook (`authStepsAtHook`), what the store's construction
-gives (`authStoreKit`'s post); `authApplyResB_of_pre` instantiates it at the server's hook. -/
+gives (`authStoreKit`'s post); `authApplyResB_of_pre` instantiates it at the server's hook. In place
+of `authApplyResB`'s write contract (at the hook `P f0`), the schema auth backend `be` is over `d`'s
+backend (`ablOn`), so that `authApplyResB_of_pre` takes the contract at the frozen hook
+(`authStepsAtHook`'s): the boot write contract is at the boot write token, which holds the unset hook
+(auth-schema-srv A6's fix (A), 2026-11-18), not at `authWTok T`. -/
 def authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (d : mvcc.KBReal)
     (RD : IProp GF) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f0 : GoFunc) (T : auth.AuthBkNames)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
-      auth.authWBackendOk be (.on γa) P f0 (auth.authWTok T) (backend.wbTok d.γB) ∗ auth.authWHeld γa T ∗
+      (∃ abl lg : Loc, ⌜be = authBkIface abl⌝ ∗ ablOn abl d.be lg) ∗ auth.authWHeld γa T ∗
       (∃ K : IProp GF, auth.authBkLife γa T K) ∗ auth.authPubTok γa ∗
       auth.tpAdmin stl (.on γa) ∗
       ⌜hs.getLast? = some st⌝ ∗ authStepsAtHook stl d γa (auth.authWTok T) RD ∗
@@ -484,13 +488,19 @@ theorem authApplyResB_of_pre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthStat
   cases M with
   | on γa =>
     unfold authApplyResPre authApplyResB authFreshInit authRdM
-    iintro ⟨⟨%hs, %P, %f0, %T, %be, Ho, HX, #Hw, HT, Hlife, Hpt, Htp, %Hl, #Hat, Hfr, #Hins⟩, #HB,
-      #Hhk, %Hnn, HRD⟩
+    iintro ⟨⟨%hs, %P, %f0, %T, %be, Ho, HX, ⟨%abl, %lg, %Hbe, #Habl⟩, HT, Hlife, Hpt, Htp, %Hl, #Hat,
+      Hfr, #Hins⟩, #HB, #Hhk, %Hnn, HRD⟩
     iunfold authStepsAtHook at Hat
     ihave ⟨#Hwa, #Hst⟩ := Hat $$ %W %Pk %f HB Hhk []
     · ipureintro; exact Hnn
+    ihave #Hw : auth.authWBackendOk be (.on γa) Pk f (auth.authWTok T) (backend.wbTok d.γB) $$ []
+    · iunfold ablOn at Habl
+      icases Habl with ⟨#H1, #H2⟩
+      iunfold authWBackendAt at Hwa
+      subst Hbe
+      iapply Hwa $$ %abl %lg H1 H2
     iframe Hfr
-    iexists hs, P, f0, T, be
+    iexists hs, Pk, f, T, be
     iframe Ho HX Hw HT Hlife Hpt Htp Hwa Hst Hins HRD
     ipureintro; exact Hl
   | off => unfold authApplyResPre authApplyResB authFreshInit; iintro -; isplit <;> itrivial
@@ -618,10 +628,10 @@ theorem ownFuT_lendC (stl bel : Loc) (γa : auth.AuthNames) (P : IProp GF) (f : 
   iframe Hbe Hok HT Hon
 
 /-- **The apply thread's auth row lends the auth buckets** (#7-on): in the mode `on`, its write
-token and its half of the history, at the latest state `st`, borrow the auth buckets' part
-(`authInstallPre`'s `authBkLend`), which hold `st`. -/
+token and its half of the history, at the latest state `st` (of revision at least 1, as the lend takes),
+borrow the auth buckets' part (`authInstallPre`'s `authBkLend`), which hold `st`. -/
 theorem srvAuthApplyResB_lend (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState)
-    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
+    (γa : auth.AuthNames) (hM : E.authMode = .on γa) (hrev : 1 ≤ st.revision) :
     srvAuthApplyResB (GF := GF) s E st ⊢
       bkLendW E authBkts (authBucketsAt st) (srvAuthApplyResB s E st) := by
   iintro H
@@ -645,7 +655,7 @@ theorem srvAuthApplyResB_lend (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState
   iunfold auth.authWHeld at Hwh
   icases Hwh with ⟨Hwt, Hbc⟩
   iunfold authBkLend at Hlend
-  imod Hlend $$ %hs %st %Hl Hwt Hhh with ⟨%RL, HRL, #Hlaw, Hback⟩
+  imod Hlend $$ %hs %st %Hl %hrev Hwt Hhh with ⟨%RL, HRL, #Hlaw, Hback⟩
   imodintro
   iexists RL
   iframe HRL

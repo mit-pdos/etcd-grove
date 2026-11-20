@@ -174,13 +174,13 @@ def newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ P (W γ) (Pk γ) b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwn γ (rbData P D) ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
-    dlInit γ ∗ fkCl γ P D ∗ srSlot b)
+    dlInit γ ∗ fkCl γ P D ∗ srSlot b ∗ rbClaimToks γ P (fun _ => True))
 
 /-- The constructor's post with the payment rights kept is `newPost`. -/
 theorem newPost_of_K (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :
     newPostK (GF := GF) γ P W Pk bFresh b D ⊢ newPost γ P W Pk b D := by
   unfold newPostK bFresh
-  iintro ⟨Hb, Hs, ⟨Ht, Ho⟩, Hv, Hh, Hr, Hrd, Hdl, Hfk, Hsr⟩
+  iintro ⟨Hb, Hs, ⟨Ht, Ho⟩, Hv, Hh, Hr, Hrd, Hdl, Hfk, Hsr, -⟩
   unfold newPost
   iframe Hb Hs Ho Hv Hh Ht Hr Hrd Hdl Hfk Hsr
 

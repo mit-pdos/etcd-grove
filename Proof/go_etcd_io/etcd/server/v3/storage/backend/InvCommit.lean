@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
 
 @[expose] public section
 
@@ -30,24 +31,29 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- The batch lock's share of the free state after a commit from `st` (the hook ran into
 `st'`), paid by `payIn`: the new committed data `C'`, write transaction `tx'`. -/
 theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (tx' : Loc)
-    (m u n w u0 : Nat) (L : VData)
+    (m u n w u0 : Nat) (L : VData) (cnt0 : BCnt)
     (hW : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = [])
     (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : hookStep P st st') (hst : sessWf P st)
-    (hb' : bgOk P st' false n w u0) (hC' : C' = st'.S ∨ C' = st'.C) (hdl : dlsS P st' ∧ dlsOk P st' L) :
+    (hb' : bgOk P st' false n w u0) (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C))
+    (hdl : dlsS P st' ∧ dlsOk P st' L)
+    (htk : ∀ n, P.RB n = true → st.tk n = .idle ∨ st.tk n = .del) (hst' : sessWf P st') :
     payIn (GF := GF) γ st false m u ∗ ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗
       ghostVar γ.used (1 : Qp).half u0 ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       viewQ γ (1 : Qp).half.half (vData P (C', st'.R.reset)) L ∗
       ghostVar γ.rvs (1 : Qp).half (((C', st'.R.reset) : RView), false) ∗
-      trkHalf γ P st'.S ∗ fkHalf γ P st' ⊢
+      trkSide γ P (commitSt st' C' tx' cnt0) ∗ fkHalf γ P st' ⊢
     |==> ∃ cnt' : BCnt, ⌜cnt'.hw = false⌝ ∗ batchGhostAt γ P (commitSt st' C' tx' cnt') true ∗
       payOut γ false m := by
   iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk, Hfk⟩
+  have hC0 : C' = st'.S ∨ C' = st'.C := hC'.imp id (fun h => h.2)
+  have hT := fun (cnt' : BCnt) =>
+    (trkOk_commitG (tx' := tx') (cnt' := cnt') hs htk hb'.2.2.2.2.2.2.2.2.2.2.1 hst' hC').1
   have hR := hs.2.1
   have hcnt := hs.2.2.2.2.2.2.2.2.2.1
   have hb'0 := hb'
   obtain ⟨hb1, hb2, hb3, -⟩ := hb'0
   have hwv : (w : Int) ≤ uint.Z st.R.ver := by
-    have := hb'.2.2.2.2.2.2.2.2.2; rw [hR] at this; exact this
+    have := hb'.2.2.2.2.2.2.2.2.2.1; rw [hR] at this; exact this
   rw [hcnt, hR] at hb1
   rw [hcnt] at hb3
   unfold payIn payOut
@@ -61,9 +67,11 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
+    ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
+      (fun _ _ => rfl) rfl false (fun _ _ _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') rfl rfl $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -74,7 +82,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       have hb4 : uint.Z st.R.ver + ((n - 1 : Nat) : Int) + ((st.cnt.k + 1 : Nat) : Int) < 2 ^ 40 := by
         omega
       refine (commit_bgOk (k' := st.cnt.k + 1) hW hp0 hs hst hb' (n - 1) w u0
-        hb4 hb2 ?_ hwv)
+        hb4 hb2 ?_ hwv (hT _))
       split at hb3 <;> split <;> omega
     · itrivial
   by_cases hm1 : m = 1
@@ -88,9 +96,11 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
+    ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
+      (fun _ _ => rfl) rfl false (fun _ _ _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') rfl rfl $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -99,7 +109,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       iframe Hr Ha Hm Hu Ho
       ipureintro
       refine (commit_bgOk (k' := st.cnt.k) hW hp0 hs hst hb' n w w
-        hb1 (Nat.le_refl _) ?_ hwv)
+        hb1 (Nat.le_refl _) ?_ hwv (hT _))
       have : u0 ≠ w := by omega
       simp only [this, ↓reduceIte] at hb3
       simp only [↓reduceIte]
@@ -112,9 +122,11 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
+    ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
+      (fun _ _ => rfl) rfl false (fun _ _ _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') rfl rfl $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -123,7 +135,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       iframe Hr Ha Hm Hu Ho
       ipureintro
       refine (commit_bgOk (k' := st.cnt.k) hW hp0 hs hst hb' n w u0
-        hb1 hb2 ?_ hwv)
+        hb1 hb2 ?_ hwv (hT _))
       rw [Hc0]
       split <;> omega
     · itrivial
@@ -174,16 +186,20 @@ theorem batchViewQW_win (γ : BNames) (P : BParams) (st : BSess) (win : Bool) :
     · ipureintro; intro _ hh; exact Hd.2.2 hh
 
 /-- The batch lock held at the hook's window, from its parts. -/
-theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) :
+theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) (c : Bool := false) :
     (bF go!"batchTx" b ↦□ t : IProp GF) ∗ sync.ownMutex (muOf t) ∗ batchPhys γ b t db st ∗
       batchViewQ γ P (st.setHw true) ∗
       (∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
         ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
         dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-        trkHalf γ P st.S ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝) ∗ ⌜sessWf P st⌝ ⊢
+        trkSide γ P st c ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝) ∗ ⌜sessWf P st⌝ ⊢
     batchLocked γ P b (st.setHw true) := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
   iintro ⟨#Ht, Hown, Hph, Hv, ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
+  -- (A1.5) in the hook's window the client-facing mode allows claimed writes
+  ihave Hk := trkSide_congr γ P st (st.setHw true) rfl rfl rfl (fun _ _ => rfl) rfl c
+    (fun _ _ h => by simp [BSess.setHw] at h) $$ Hk
+  ihave Hk := trkSide_mode_win γ P (st.setHw true) c false rfl $$ Hk
   iexists t, db
   rw [show batchPhys γ b t db (st.setHw true) = batchPhys γ b t db st from rfl]
   simp only [setHw_C, setHw_R, setHw_S]
@@ -198,12 +214,12 @@ theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BS
     exact sessWf_setHw Hwf
 
 /-- The commit opens the hook's window on the batch lock's state (`BSess.setHw`). -/
-theorem batchLockedW_setHw (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
-    batchLockedW (GF := GF) γ P b st false ⊢ batchLocked γ P b (st.setHw true) := by
+theorem batchLockedW_setHw (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool := false) :
+    batchLockedW (GF := GF) γ P b st false c ⊢ batchLocked γ P b (st.setHw true) := by
   unfold batchLockedW batchGhostW
   iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, Hrest⟩, %Hwf⟩
   ihave Hv := batchViewQ_setHw γ P st false (fun h => by cases h) $$ Hv
-  iapply batchLocked_setHw_mk γ P b t db st
+  iapply batchLocked_setHw_mk γ P b t db st c
   iframe Ht Hown Hph Hv Hrest
   ipureintro; exact Hwf
 
