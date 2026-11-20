@@ -984,3 +984,8 @@ the Prove phase's. To do before the walkers' proofs.
 - (round 2, coordinator) the reconcile walker cluster and `ReconcileFieldSetWithSchema` take a bound
   on the set's count (< 2^63, `CardLt`), so `Set.Size` is determined; `merge`'s
   `reconcileManagedFieldsWithSchemaChanges` discharges it from D9's `inputsSmall`.
+- (round 2, coordinator) fieldpath `isPE` (sealed), case `.field n`, carries `⌜e.Key' = null⌝`:
+  `SetNodeMap.EnsureNamedFieldsAreMembers` branches on `pe.Key != nil` for a field element; SMD
+  always builds field elements with a nil Key (C4 found the gap).
+- (round 2, B2c) `FieldList.Sort` reaches `sort.SliceStable` again: its trust-boundary axiom is back in
+  `etc/tcb-collections/smd.txt`'s reach (the four standard-library axioms as at the freeze).
