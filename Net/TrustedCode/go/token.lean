@@ -18,8 +18,8 @@ byte, and `IsUpper` of an ASCII rune is `'A' <= r && r <= 'Z'` (`unicode/letter.
 case: `false`. A name whose first byte is not ASCII is a **choice point** (`models/README.md`): the
 model returns an arbitrary boolean (`ArbitraryInt`'s low bit), so every result Go gives is one of
 the model's; a proof about such a name can rely on nothing. Go identifiers of the programs proved
-here are ASCII. Checked against Go by `models/internal/rpcdifftest` (`Register` of exported and
-unexported names) and by the test of this model's choice, `TestIsExportedASCII` there.
+here are ASCII. Checked against Go by `models/internal/rpcdifftest/isexported_test.go`
+(`TestIsExportedASCII`: every ASCII first byte, with several continuations, and the empty name).
 -/
 module
 
