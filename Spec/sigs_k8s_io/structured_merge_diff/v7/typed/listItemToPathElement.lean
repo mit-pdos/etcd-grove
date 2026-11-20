@@ -5,6 +5,9 @@ walker indexes their items), so this is `keyedAssociativeListItemToPathElement`'
 non-associative list (an error) and an associative list without keys (a set: `setItemToPathElement`)
 are out of the scope (`Schema.WF`).
 
+Post-freeze change (round 2, coordinator; D1d): as `keyedAssociativeListItemToPathElement`'s, the
+item has a key, the list type is `S.find tn`, the item conforms to the element type.
+
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
 -/
 module
@@ -34,15 +37,16 @@ variable [package_sem : typed.Assumptions]
 abbrev typed.listItemToPathElement.spec : Prop :=
   ∀ (a : value.Allocator) (sc : Loc) (S : Schema) (lp : Loc) (e : TypeRef) (ks : List GoString)
     (fs : List (GoString × TypeRef)) (el : Option TypeRef) (r : ElemRel)
-    (child : value.Value) (dq : DFrac) (x : UVal),
+    (child : value.Value) (dq : DFrac) (x : UVal) (tn : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isAlloc a ∗ isSchema sc S ∗ isListRep lp e .associative ks ∗ isValF child dq x ∗
-      ⌜S.WF ∧ ks ≠ [] ∧ S.find e.name = some (.map fs el r)⌝ }}
+      ⌜S.WF ∧ ks ≠ [] ∧ S.find e.name = some (.map fs el r) ∧ S.find tn = some (.list e .associative ks) ∧
+        conforms S e x ∧ (keyOf ks x).isSome⌝ }}
     (App (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.listItemToPathElement)) (Val #a)) (Val #sc)) (Val #lp)) (Val #child))
   {{ (pe : fieldpath.PathElement) (err : GoInterface), RET (PairV #pe #err);
       isAlloc a ∗ isValF child dq x ∗
       match keyOf ks x with
       | some k => iprop(⌜err = interface.nil⌝ ∗ isPE pe k)
-      | none => iprop(⌜err ≠ interface.nil⌝) }}
+      | none => iprop(False) }}
 
 end spec
 
