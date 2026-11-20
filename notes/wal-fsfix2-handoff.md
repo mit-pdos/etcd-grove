@@ -1,5 +1,19 @@
 # wal-fsfix2 handoff
 
+## START HERE (2026-11-20 a9) — item 2 at its land stop; item 3 (option (a), approved) next
+
+- Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`). lean `83ca62b0bc` merged (`817c466df2`, clean). Full timed build
+  `20261120-211745-2067095` green; `etc/gates.sh` (`/shared/tmp/walfsfix2/gates1.log`) all pass but interfaces
+  (etcdstart: a3's `hmsL`/`satL`/`fits`, regenerated). Trust base unchanged (673, 2), 70 collections match.
+- **Item 3 (approved by the user 2026-11-20 as option (a)):** register `raftpb.HardState` (`hsSchema` in `PbSchema.lean`'s
+  `pbSchemaOf`, `RaftModel/PbHardState.lean`: `hsDecode` opaque, `hsEncC_ok`, `pbHsC_reg`, `pbHsC_sat`; drafts in
+  `/shared/tmp/walfsfix2/item3/`), Go test `examples/stdlib/walpb/hardstate_test.go` + pbschema gate (root, negative
+  tests); independent attack; `walSrvP_marshalHs` (`RaftModel/LawsHsMarshal.lean`); linking module
+  `etcdserver/RnNewStorageLinked.lean` (`walStorSpecs_holds`, `rnNewStorageOk_law_holds`); form decided: the law
+  discharged in `bootstrappedRaft.newRaftNode`'s proof (`rnNewStorageOk.law`, `=` callee), `#Hns` out of newRaftNode/
+  NodeStart/NewServer(R) specs, `commonPremises`, `OneMember.premises`, auth/leaseexpiry/putget3 Defs and the Mains.
+
 ## START HERE (2026-11-20 a8) — item 2 done (cut proved, one spec); item 3 STOPPED (needs `MarshalHsLaw`); land stop
 
 - Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
