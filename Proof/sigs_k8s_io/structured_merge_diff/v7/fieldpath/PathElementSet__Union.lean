@@ -233,14 +233,59 @@ theorem fieldpath.PathElementSet.Union.wp_proof
       wp_if_destruct
       · ihave %hwf := ownSlice_wf $$ Hm
         simp only [hi0, hin, hwf.2, _root_.and_self, ↓reduceIte]
-        icases (ownSlice_slice i v.members'.len v.members' dq es ⟨hi0, hin, le_refl _⟩).1 $$ Hm
+        icases (ownSlice_slice i v.members'.len v.members' dq es ⟨hi0, hin, Int.le_refl _⟩).1 $$ Hm
           with ⟨Hm1, Hmid, Hm3⟩
         wp_apply (wp_slice_append (V := fieldpath.PathElement) osl oes _ _ dq) $$ [$Hos $Hocap $Hmid]
           as %osl1 ⟨Hos, Hocap, Hmid⟩
-        ihave Hm := (ownSlice_slice i v.members'.len v.members' dq es ⟨hi0, hin, le_refl _⟩).2 $$ [$Hm1 $Hmid $Hm3]
+        ihave Hm := (ownSlice_slice i v.members'.len v.members' dq es ⟨hi0, hin, Int.le_refl _⟩).2 $$ [$Hm1 $Hmid $Hm3]
         wp_if_destruct
         · exact absurd Hif hjm'
-        sorry
+        have hdy : ys.drop (sint.Z j).toNat = [] := List.drop_of_length_le (by
+          rw [← hly, hsy.1]; simp only [sint.nat, sint.Z] at hjm' ⊢; omega)
+        have hsl : subslice (sint.nat i) (sint.nat v.members'.len) es = es.drop (sint.Z i).toNat := by
+          unfold subslice; rw [List.take_of_length_le (by rw [hsx.1])]; rfl
+        rw [hsl]
+        ihave %hoel := fpL.isPEL_length _ _ $$ Hoe
+        iapply HΦ
+        isplitl [Hf Hback Hm]
+        · iexists v; isplitl [Hf Hback]
+          · iapply Hback; iexact Hf
+          iexists es, xs; iframe; isplit; iexact Hx; ipureintro; exact h
+        isplitl [Hf2 Hback2 Hm2]
+        · iexists v2; isplitl [Hf2 Hback2]
+          · iapply Hback2; iexact Hf2
+          iexists es2, ys; iframe; isplit; iexact Hy; ipureintro; exact h2
+        unfold ownPESet ownPESetV
+        iexists _
+        isplitl [Hoback Ho]
+        · iapply Hoback; iexact Ho
+        iexists (oes ++ es.drop (sint.Z i).toNat), (os ++ xs.drop (sint.Z i).toNat)
+        iframe Hos Hocap
+        isplitr
+        · iapply (fpL.isPEL_app oes _ os _ hoel).2
+          iframe Hoe
+          icases fpL.isPEL_take_drop es xs (sint.Z i).toNat $$ Hx with ⟨-, Hd⟩
+          iexact Hd
+        ipureintro
+        have hsub : ∀ o ∈ os, o ∈ xs.take (sint.Z i).toNat ++ ys.take (sint.Z j).toNat := by
+          intro o ho; rw [List.mem_append]; exact (hmem o).1 ho
+        constructor
+        · have := fpA.merge_fin h.1 h2.1 hos hfr hsub (Or.inr hdy)
+          rw [hdy, List.append_nil] at this; exact this
+        · rw [← h.2, ← h2.2]
+          apply FSet.ext'; intro x
+          rw [FSet.mem_union', FSet.mem_ofList', FSet.mem_ofList', FSet.mem_ofList',
+            fpA.mem_take_drop xs (sint.Z i).toNat x, fpA.mem_take_drop ys (sint.Z j).toNat x, hdy]
+          simp only [List.mem_append, hmem, List.not_mem_nil, or_false]
+          constructor
+          · rintro ((h | h) | h)
+            · exact Or.inl (Or.inl h)
+            · exact Or.inr h
+            · exact Or.inl (Or.inr h)
+          · rintro ((h | h) | h)
+            · exact Or.inl (Or.inl h)
+            · exact Or.inr h
+            · exact Or.inl (Or.inr h)
       · exact absurd hiL Hif
   · sorry
 

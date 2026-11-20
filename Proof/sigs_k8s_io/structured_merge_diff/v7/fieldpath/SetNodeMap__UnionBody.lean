@@ -99,7 +99,52 @@ theorem fieldpath.SetNodeMap.Union.wp_proofBody
         have := h2; simp only [sint.nat] at hj ⊢; rw [List.getElem?_eq_getElem hj] at this
         exact Option.some.inj this
       cases r
-      · sorry
+      · wp_auto
+        simp only [b1, b2, _root_.and_self, ↓reduceIte]
+        wp_auto
+        simp only [b1, b2, _root_.and_self, ↓reduceIte]
+        wp_pures; wp_method_call; wp_call; wp_auto
+        wp_apply (h_PathElement_Less n2.pathElement' n1.pathElement' pe2 pe1) $$ [$Hpe1 $Hpe2] as %r2 %hr2
+        cases r2
+        · wp_auto
+          repeat (simp only [b1, b2, _root_.and_self, ↓reduceIte]; wp_auto)
+          try simp only [b1, b2, _root_.and_self, ↓reduceIte]
+          wp_pures
+          icases IH with ⟨#HU, -⟩
+          wp_apply HU $$ %n1.set' %n2.set' %S1 %S2 [] as %p #Hp
+          · iframe #
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %nsl ⟨Hnsl, -⟩
+          wp_auto
+          wp_apply wp_slice_append $$ [$Hos $Hoc $Hnsl] as %osl' ⟨Hos, Hoc, -⟩
+          iapply wp_for_post_do
+          wp_pures
+          have hw1' : pe1.wf = true := hw1 pe1 S1 (by rw [← he1]; exact List.getElem_mem hi)
+          have hw2' : pe2.wf = true := hw2 pe2 S2 (by rw [← he2]; exact List.getElem_mem hj)
+          have heq : pe1 = pe2 := by
+            rcases fpC.lt_total hw1' hw2' with h | h | h
+            · exact absurd (hr.2 h) (by simp)
+            · exact h
+            · exact absurd (hr2.2 h) (by simp)
+          have he : nl1[sint.nat i].1 = nl2[sint.nat j].1 := by rw [he1, he2]; exact heq
+          obtain ⟨hf', ho'⟩ := fpC.union_step12 hok1.1 hok2.1 hfr hoi hi hj he
+          rw [he1, he2] at ho'
+          ihave #Hlo' := fpC.nodesL_snoc outs lo ⟨n1.pathElement', p⟩ pe1 (PathSet.union S1 S2)
+            $$ [$Hlo $Hpe1 $Hp]
+          iframe
+          iexists i + W64 1, j + W64 1, osl', outs ++ [⟨n1.pathElement', p⟩],
+            lo ++ [(pe1, PathSet.union S1 S2)]
+          iframe
+          isplit
+          · iexact Hlo'
+          ipureintro
+          have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+          have hs2 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+          rw [hs, hs2]
+          exact ⟨by word, by omega, by word, by omega, hf', ho'⟩
+        · sorry
       · wp_auto
         simp only [b1, b2, _root_.and_self, ↓reduceIte]
         wp_apply (wp_load_slice_index m1.members' (sint.Z i) ns1 DFrac.discard n1 hi0) $$ [Hns1] as -

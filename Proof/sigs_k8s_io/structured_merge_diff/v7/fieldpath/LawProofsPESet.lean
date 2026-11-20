@@ -470,6 +470,22 @@ theorem getElem_mem_drop {α : Type} (xs : List α) (i : Nat) (h : i < xs.length
     xs[i] ∈ xs.drop i := by
   rw [drop_cons' xs i h]; exact List.mem_cons_self
 
+/-- The end of the merge: one side is consumed, the rest of the other appended. -/
+theorem merge_fin {xs ys os : List PE} {i j : Nat} (hsx : PE.Sorted xs) (hsy : PE.Sorted ys)
+    (hos : PE.Sorted os) (hf : Front xs ys i j)
+    (hsub : ∀ o ∈ os, o ∈ xs.take i ++ ys.take j) (hend : xs.drop i = [] ∨ ys.drop j = []) :
+    PE.Sorted (os ++ (xs.drop i ++ ys.drop j)) := by
+  apply sorted_app hos
+  · rcases hend with h | h
+    · rw [h, List.nil_append]; exact sorted_drop hsy j
+    · rw [h, List.append_nil]; exact sorted_drop hsx i
+  · intro o ho b hb; exact hf o (hsub o ho) b hb
+
+theorem mem_take_drop {α : Type} (xs : List α) (i : Nat) (x : α) :
+    x ∈ xs ↔ x ∈ xs.take i ∨ x ∈ xs.drop i := by
+  conv => lhs; rw [← List.take_append_drop i xs]
+  exact List.mem_append
+
 /-- A consumed element is not left. -/
 theorem front_not_left {xs ys : List PE} {i j : Nat} (hf : Front xs ys i j) (hwx : AllWf xs)
     (hwy : AllWf ys) (a : PE) (ha : a ∈ xs.take i ++ ys.take j)
