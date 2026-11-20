@@ -48,6 +48,51 @@ theorem itemOf_take_succ (ks : List GoString) (vs : List UVal) (i : Nat) (x : UV
     simp only [Option.none_or, List.find?_cons, List.find?_nil]
     by_cases hk : keyOf ks x = some k <;> simp [hk]
 
+/-- No item has a key the list's keys do not hold. -/
+theorem itemOf_none (ks : List GoString) (vs : List UVal) (k : PE) (h : k ∉ keysOf ks vs) :
+    itemOf ks vs k = none := by
+  cases hi : itemOf ks vs k with
+  | none => rfl
+  | some y =>
+    exfalso; apply h
+    unfold itemOf at hi
+    have hm := List.mem_of_find?_eq_some hi
+    have hk := List.find?_some hi
+    simp only [decide_eq_true_eq] at hk
+    exact List.mem_filterMap.2 ⟨y, hm, hk⟩
+
+/-- A list's item by key is the item if its key is the key. -/
+theorem itemOf_isSome (ks : List GoString) (vs : List UVal) (k : PE) :
+    (itemOf ks vs k).isSome ↔ k ∈ keysOf ks vs := by
+  constructor
+  · intro h
+    refine Classical.byContradiction fun hn => ?_
+    rw [itemOf_none ks vs k hn] at h; cases h
+  · intro h
+    obtain ⟨y, hy, hk⟩ := List.mem_filterMap.1 h
+    unfold itemOf
+    cases hf : vs.find? (fun v => decide (keyOf ks v = some k)) with
+    | some _ => rfl
+    | none =>
+      exfalso
+      have := List.find?_eq_none.1 hf y hy
+      simp [hk] at this
+
+/-- The `i`-th item, of a fresh key `k`, is the prefix's item of key `k`. -/
+theorem itemOf_take_succ_eq (ks : List GoString) (vs : List UVal) (i : Nat) (x : UVal) (k : PE)
+    (hx : vs[i]? = some x) (hk : keyOf ks x = some k) (hf : k ∉ keysOf ks (vs.take i)) :
+    itemOf ks (vs.take (i + 1)) k = some x := by
+  rw [itemOf_take_succ ks vs i x k hx, itemOf_none ks _ k hf, if_pos hk]
+
+/-- The other keys' items are the shorter prefix's. -/
+theorem itemOf_take_succ_ne (ks : List GoString) (vs : List UVal) (i : Nat) (x : UVal) (k k' : PE)
+    (hx : vs[i]? = some x) (hk : keyOf ks x = some k) (hne : k' ≠ k) :
+    itemOf ks (vs.take (i + 1)) k' = itemOf ks (vs.take i) k' := by
+  rw [itemOf_take_succ ks vs i x k' hx]
+  cases itemOf ks (vs.take i) k' with
+  | some y => rfl
+  | none => rw [if_neg (by rw [hk]; intro h; exact hne (Option.some.inj h).symm)]
+
 /-- The item with key `k` of the whole list, from a prefix with all the keys. -/
 theorem itemOf_take_length (ks : List GoString) (vs : List UVal) (k : PE) :
     itemOf ks (vs.take vs.length) k = itemOf ks vs k := by

@@ -6,7 +6,9 @@ no error and no duplicate (the duplicate branches, an error or a `null` item, ar
 Each item value in the map is a fresh wrapper (`list.At`) whose interface is the item's: the map
 holds, for each key, a value of the item (persistent).
 
-Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
+Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows). Prove phase (2026-11-20,
+ownership rule: the only caller is `mergingWalker.visitListItems`): the pre adds the list type
+`S.find tn` and the items' conformance, which `listItemToPathElement`'s spec takes.
 -/
 module
 
@@ -35,11 +37,11 @@ variable [package_sem : typed.Assumptions]
 abbrev typed.mergingWalker.indexListPathElements.spec : Prop :=
   ∀ (w : Loc) (wv : _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker) (sc : Loc) (S : Schema) (tp : Loc) (e : TypeRef)
     (ks : List GoString) (fs : List (GoString × TypeRef)) (el : Option TypeRef) (r : ElemRel)
-    (ll : value.List') (ol : Option (List UVal)) (allowDup : Bool),
+    (ll : value.List') (ol : Option (List UVal)) (allowDup : Bool) (tn : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ w ↦ wv ∗ isAlloc wv.allocator' ∗ isSchema sc S ∗ ⌜wv.schema' = sc⌝ ∗
       isListRep tp e .associative ks ∗ isListO ll ol ∗
-      ⌜S.WF ∧ ks ≠ [] ∧ S.find e.name = some (.map fs el r) ∧
-        (∀ v ∈ ol.getD [], itemKeyOk ks v) ∧ (keysOf ks (ol.getD [])).Nodup⌝ }}
+      ⌜S.WF ∧ ks ≠ [] ∧ S.find e.name = some (.map fs el r) ∧ S.find tn = some (.list e .associative ks) ∧
+        (∀ v ∈ ol.getD [], conforms S e v ∧ itemKeyOk ks v) ∧ (keysOf ks (ol.getD [])).Nodup⌝ }}
     (App (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker.ty @!! go!"indexListPathElements")) (Val #tp)) (Val #ll)) (Val #allowDup))
   {{ (pes : GoSlice) (obs : fieldpath.PathElementValueMap) (errs : GoSlice),
       RET (PairV (PairV #pes #obs) #errs); w ↦ wv ∗ isAlloc wv.allocator' ∗ noErrs errs ∗
