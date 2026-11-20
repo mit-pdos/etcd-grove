@@ -22,19 +22,34 @@ model's unfolding (the instance field `fmt.Assumptions.Errorf_unfold`, the model
 depends on. This script reads `.lake/tcb.json` (which `etc/tcb-report.py` writes; it needs an
 up-to-date `lake build`) and fails on a step that some root reaches outside REVIEWED.
 
+A generated package initialization proof (`etc/gen-init.py`: `Proof/<pkg>/Init.lean` or
+`InitLinked.lean`, and a part's `<root>/Proof/...`) steps into the model without naming it: the
+`fmt.Errorf` call is in the translation's `initialize'`, not in the proof. So a second check
+(2026-11-19, prove-errinits; kept beside the term check by merge-origin9, 2026-11-20) reads the
+translations: for every package whose `initialize'` calls `fmt.Errorf`, each call's format must
+be a literal without `%` (no verb, so no `%w`: Go returns `errors.New(format)`, as the model), unless
+no init proof of the package steps into a function (`wp_func_call`) or uses Perennial's model lemmas
+(`Perennial.fmt.wp_`); and an init proof that does must be in REVIEWED_INIT (keyed by file: the
+step is in the translation, not in a declaration of the proof). (`gen-init.py`'s `newvar_steps`
+asserts the same of the formats it is given; this check does not trust its callers.)
+
 usage: etc/errorf-wrap-check.py [--reuse] [--json PATH] [-v]
   --reuse   read the existing .lake/tcb.json (as etc/tcb-report.py --reuse); else recompute it
   -v        list every step reached, reviewed or not
-(exit 1 on an unreviewed step)
+(exit 1 on an unreviewed step, or an unreviewed or unsafe init proof)
 """
 import argparse
 import os
+import pathlib
+import re
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(ROOT, "etc"))
 import proof_roots  # noqa: E402
+
+ROOT_P = pathlib.Path(ROOT)
 
 # declaration (the user-facing constant a step belongs to; auxiliary `_proof_n`/`match_n`
 # constants count as their declaration's): why its model step is true of Go. Keyed by constant, so
@@ -64,7 +79,68 @@ REVIEWED = {
     # Create's cleanup, uses ErrorfErrs.)
     'Perennial.EtcdGrove.fmt.ErrorfErrs.wp_proof': 'premise errArgsWf + errOk errs (no Format, '
         'Error() string, only %v/%s/%w without #); post errOk',
+    # (merge-origin9, 2026-11-20) the generated init proofs of origin's prove-errinits (REVIEWED_INIT
+    # below, by file), found here by the term check: each `fmt.Errorf` call of the initializer has a
+    # literal format without `%` and no argument (`#slice.nil`), so Go returns `errors.New(format)`,
+    # an `*errors.errorString` as the model's (rafthttp: 3 calls, ioutil: 2)
+    "Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_lb": 'formats '
+        'without %, no arguments: Go returns errors.New(format), the model',
+    "Perennial.go_etcd_io.etcd.pkg.v3.ioutil.wp_initialize'_lb": 'formats without %, no '
+        'arguments: Go returns errors.New(format), the model',
 }
+
+# generated init proof (file): why its steps into its package initializer's `fmt.Errorf` calls are
+# true of Go (`init_errors`)
+REVIEWED_INIT = {
+    # (prove-errinits, 2026-11-19) generated initializers of `var X = fmt.Errorf("...")` (`etc/gen-init.py`,
+    # `newvar_steps`, which asserts the format has no `%`); the call is in the translation,
+    # listed for the review (and `init_errors` checks their formats in the translation)
+    'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/InitLinked.lean': 'formats without %: Go returns errors.New(format), the model',
+    'Proof/go_etcd_io/etcd/pkg/v3/ioutil/Init.lean': 'formats without %: Go returns errors.New(format), the model',
+    # (prove-rpctypes, 2026-11-20) found by `init_errors`: `ErrNotReady = fmt.Errorf("cache: store not
+    # ready")` goes through `EtcdGrove.fmt.wp_Errorf` (an axiom true of Go), its steps are other functions'
+    'Proof/go_etcd_io/etcd/cache/v3/InitLinked.lean': 'format without %; its Errorf step is the axiom EtcdGrove.fmt.wp_Errorf',
+}
+
+
+INIT_CALL = re.compile(r'FuncResolve _root_\.Perennial\.fmt\.Errorf\b')
+# `(Let "$a0" (Val #(go!"<format>")) (Let "$a1" ...) (App ... (FuncResolve ... fmt.Errorf [])))`
+INIT_FMT = re.compile(r'\(Let "\$a0" \(Val #\(go!"((?:[^"\\]|\\.)*)"\)\)\s*\(Let "\$a1" [^\n]*\n\s*'
+                      r'\(App \(App \(App \(Val \(GoInstruction \(FuncResolve _root_\.Perennial\.fmt\.Errorf\b')
+INIT_STEP = re.compile(r'\bwp_func_call\b|Perennial\.fmt\.wp_')
+
+
+def init_errors():
+    """The init proofs that step into the model of a package whose `initialize'` calls `fmt.Errorf`
+    with a format that is not a literal without `%`, or that are not reviewed."""
+    bad = []
+    for code in sorted(ROOT_P.glob('**/Code/**/*.lean')):
+        rel = code.relative_to(ROOT_P)
+        if rel.parts[0] in ('.lake', 'old') or 'Code' not in rel.parts[:2]:
+            continue
+        s = code.read_text()
+        i = s.find("noncomputable def initialize'")
+        if i < 0:
+            continue
+        body = s[i:s.find('\n\n', i)]
+        calls = len(INIT_CALL.findall(body))
+        if not calls:
+            continue
+        fmts = INIT_FMT.findall(body)
+        unsafe = len(fmts) != calls or any('%' in f for f in fmts)
+        k = rel.parts.index('Code')
+        pdir = ROOT_P.joinpath(*rel.parts[:k], 'Proof', *rel.parts[k + 1:]).with_suffix('')
+        for pf in (pdir / 'Init.lean', pdir / 'InitLinked.lean'):
+            if not pf.exists() or not INIT_STEP.search(pf.read_text()):
+                continue
+            prel = str(pf.relative_to(ROOT_P))
+            if unsafe:
+                bad.append(f'{prel} steps into functions while {rel}\'s initializer calls `fmt.Errorf` '
+                           f'with a format that is not a literal without `%`')
+            elif prel not in REVIEWED_INIT:
+                bad.append(f'{prel} steps into {rel}\'s initializer\'s `fmt.Errorf` calls; review it '
+                           f'and add it to REVIEWED_INIT')
+    return bad
 
 
 def main():
@@ -94,13 +170,18 @@ def main():
             print(f"errorf-wrap: {'reviewed' if ok else 'UNREVIEWED'} {s['user']} ({s['module']}, "
                   f"line {s['line']}) steps into the `fmt.Errorf` model; reached by {len(rs)} "
                   f"roots, e.g. {', '.join(rs[:3])}", file=sys.stderr if not ok else sys.stdout)
+    init_bad = init_errors()
+    for m in init_bad:
+        print(f'errorf-wrap: {m}', file=sys.stderr)
     if bad:
         print("errorf-wrap: review the steps above (is the statement true of Go's Errorf, which "
               "wraps %w and calls the arguments' formatting methods?) and add their declarations to "
               "REVIEWED", file=sys.stderr)
+    if bad or init_bad:
         return 1
     print(f"errorf-wrap: ok ({len(reach)} model steps reached, all in the {len(REVIEWED)} "
-          "reviewed declarations)")
+          "reviewed declarations; init proofs: "
+          f"{len(REVIEWED_INIT)} reviewed)")
     return 0
 
 

@@ -5,7 +5,9 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter vector
-`clientRequests` with its label names (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
+`clientRequests` with its label names (the map untranslated: the trust-boundary axiom
+`toGRPCErrorMap_init`; the vector translated, over `NewCounterVec`'s spec, until 2026-11-19 an
+axiom `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
@@ -14,7 +16,7 @@ fact lacks it). Its precondition has the read package's registration rights
 (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to `etcdserver`'s initializer.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
 errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` (with its label
-names) and the four
+names; translated, over `NewCounterVec`'s spec, until 2026-11-19 an axiom) and the four
 `watchSendLoop*` histograms (translated, over prometheus's `NewHistogram` and `ExponentialBuckets`
 specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
@@ -91,15 +93,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([sentBytes.init,
-        receivedBytes.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
 here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
@@ -114,18 +107,6 @@ axiom initFuncsOk :
 axiom toGRPCErrorMap_init :
     {{ (True : IProp GF) }} (App (Val toGRPCErrorMap.init) (Val #()))
     {{ RET #(); ∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ □ (∀ (g : GoString) (k : GoInterface), ⌜g ∈ grpcErrKeyGlobals⌝ → globalAddr g ↦□ k -∗ ⌜(M !! k).isSome⌝) ∗ ⌜grpcErrMapOk M kf kc⌝ }}
-
-/-- `clientRequests = prometheus.NewCounterVec(..., []string{"type", "client_api_version"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom clientRequests_init :
-    {{ (True : IProp GF) }} (App (Val clientRequests.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr clientRequests ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"type", go!"client_api_version"]⌝ }}
-
-/-- `streamFailures = prometheus.NewCounterVec(..., []string{"Type", "API"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom streamFailures_init :
-    {{ (True : IProp GF) }} (App (Val streamFailures.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr streamFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"Type", go!"API"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 end opaqueInits

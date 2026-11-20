@@ -6,11 +6,12 @@ The closed theorem's shape (`notes/trace-validation-plan.md`, "The statement"; a
 `raft_kv_porcupine_safe`'s, `kv/Adequacy.lean`): the program `initialize'(); Main()` -- the
 tracecheck package's initialization (raft's, the checker's, `context`'s and the others' among its
 imports'), then `Main` -- from a fresh state (no package initialized, one thread), for every real
-execution of `n` steps with `n + 2 ≤ 2^31` (Q38, decided by the user, 2026-11-11), never gets stuck, no thread of it ends in a panic, and
+execution of `n` steps with `n + 4 ≤ 2^61` along which fewer than `2^31` threads are ever live at once
+(`RealNstepsBelow`; 2026-11-19, replacing Q38's `n + 2 ≤ 2^31`), never gets stuck, no thread of it ends in a panic, and
 the main thread's result, if it has one, is `#()`. `Main` panics unless `CheckTrace` answers `TLCOK`
 on the run's trace, so no panic means the trace passes raft's TLA+ trace validation.
 
-From Perennial's `goose_adequacy` through `examples/lib/etcdstart/Adequacy.lean`'s `init_adequate`,
+From Perennial's `goose_adequacy_below` through `examples/lib/etcdstart/Adequacy.lean`'s `init_adequate_below`,
 as the store's (`kv/Adequacy.lean`): the trivial extension, a ghost-state bundle `tcGF` (the store's
 without iris-lean's non-atomic invariants, which nothing here uses), the receipt bound `N = n + 1`, the
 package initialization (`Init.lean`, `PkgTable.lean`, generated) and `Main`'s spec as a hypothesis
@@ -21,9 +22,11 @@ package initialization (`Init.lean`, `PkgTable.lean`, generated) and `Main`'s sp
   entries, and raft's `readyFits` (`cluster_alloc`'s premise) is `receiptBound + bootLen ≤ 2^61`; the
   same bound gives the event count below the checker's `numBound = 2^61`. It also takes the thread
   bound `[ThreadBoundLe GF (2 ^ 31)]`: the harness starts a goroutine per message and counts them in a
-  `sync.WaitGroup`, which panics past `2^31` (`NetJoin.lean`). With `N = n + 1` and `T = n + 2`, the
-  theorem is about executions of `n + 2 ≤ 2^31` steps (`ThreadBoundLe.of_eq`; then
-  `receiptBound + 3 = n + 4 ≤ 2^61`).
+  `sync.WaitGroup`, which panics past `2^31` (`NetJoin.lean`). With `N = n + 1` and `T = 2^31` (the
+  execution's own thread bound, `RealNstepsBelow (2^31) n`), the theorem is about executions of
+  `n + 4 ≤ 2^61` steps (`receiptBound + 3 = n + 4`) in which fewer than `2^31` goroutines are live at
+  once. (Until 2026-11-19, `T = n + 2` over `goose_adequacy`, whose thread premise is about every
+  execution of `n` steps, so `n + 2 ≤ 2^31`: the step count was capped by the thread bound.)
 - **The premises** (Q32, decided by the user): the bootstrap log's pure facts
   (`tracecheck.BootLogFacts`) and, at every `HeapGS`, `proto.Marshal`'s contract at its conf changes
   (`tracecheck.premises`, `Defs.lean`), as `etcd_putget_adequate`.
@@ -84,7 +87,7 @@ abbrev tcMainSpec : Prop :=
 /-- **The trace check never fails**, from `Main`'s spec (at every `HeapGS` of `tcGF` and every
 semantics): every real execution of `tracecheckProgram` (the package's initialization, then
 `Main()`) from a fresh state -- no package initialized (`IsInit`), one live thread -- of `n` steps,
-`n + 2 ≤ 2^31`, given the bootstrap log's facts and premises: if the main thread has finished, its
+`n + 4 ≤ 2^61`, along which fewer than `2^31` threads are live at once, given the bootstrap log's facts and premises: if the main thread has finished, its
 result is `#()`; no thread is stuck; no thread has ended in a panic. -/
 theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
@@ -95,18 +98,18 @@ theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n + 2 ≤ 2 ^ 31) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow (2 ^ 31) n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine init_adequate (GF := tcGF) github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.initialize'
+  refine init_adequate_below (GF := tcGF) github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
-    Hthreads n κs t2 σ2 Hsteps fun hG HN HT => ?_
+    Hthreads (2 ^ 31) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   have Hprem1 := Hprem hG
   letI : HeapGS .hasLC tcGF := heapWith hG lctx
-  haveI : ThreadBoundLe tcGF (2 ^ 31) := ⟨by rw [HT]; exact Hn⟩
+  haveI : ThreadBoundLe tcGF (2 ^ 31) := ⟨Nat.le_of_eq HT⟩
   have Hbound : receiptBound tcGF + 3 ≤ 2 ^ 61 := by rw [HN]; omega
   unfold progOk0
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.wp_initialize' _

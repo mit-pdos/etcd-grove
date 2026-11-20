@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.math.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3
 
 @[expose] public section

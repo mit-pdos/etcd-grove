@@ -30,6 +30,7 @@ public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Proof.errors.NewVarCell
+public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 
 @[expose] public section
 

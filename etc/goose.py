@@ -54,6 +54,7 @@ import argparse
 import difflib
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -1898,8 +1899,9 @@ def host_env():
     """The environment without the target settings (`GOOS`, `GOARCH`, `CGO_ENABLED`, `CC`), for
     building the translator to run on this machine: those settings, when given, are for the
     translation only (the standard library's cgo-processed packages, e.g. `net`, translate
-    differently per target; the checked-in translations are linux/amd64's, so an arm64 host
-    checks them with `GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-linux-gnu-gcc`)."""
+    differently per target; the checked-in translations are linux/amd64's, which `main` makes the
+    default target: `GOOS=linux GOARCH=amd64 CGO_ENABLED=1`, and on a host that is not amd64
+    `CC=x86_64-linux-gnu-gcc`)."""
     target = {"GOOS", "GOARCH", "CGO_ENABLED", "CC"}
     return {k: v for k, v in os.environ.items() if k not in target}
 
@@ -2064,6 +2066,14 @@ def main():
     ap.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
     args = ap.parse_args()
     os.environ["GOTOOLCHAIN"] = GO_TOOLCHAIN
+    # The checked-in translations are linux/amd64's with cgo (the standard library's
+    # cgo-processed packages, e.g. `net`, translate differently per target): translate for that
+    # target on any host unless told otherwise (an arm64 host needs amd64's C cross-compiler for
+    # cgo). host_env() keeps these out of the translator's own build.
+    for k, v in (("GOOS", "linux"), ("GOARCH", "amd64"), ("CGO_ENABLED", "1")):
+        os.environ.setdefault(k, v)
+    if platform.machine() not in ("x86_64", "amd64"):
+        os.environ.setdefault("CC", "x86_64-linux-gnu-gcc")
 
     projects = [p for p in PROJECTS if not args.project or p.name in args.project]
     local = {p.name: os.environ[p.env] for p in PROJECTS if os.environ.get(p.env)}

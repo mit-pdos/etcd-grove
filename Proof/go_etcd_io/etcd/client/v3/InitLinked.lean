@@ -19,7 +19,7 @@ public import Proof.crypto.tls.Init
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
-public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.logutil.Init
 public import Proof.go_etcd_io.etcd.client.v3.credentials.Init
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.Init

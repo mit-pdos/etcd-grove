@@ -5,7 +5,7 @@ prometheus's `NewHistogram(opts)` (names only): a histogram whose one descriptor
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 
 @[expose] public section
 
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 
 /-- `prometheus.NewHistogram(opts)` of label-free options whose `Buckets` slice `s` holds strictly
 increasing finite non-negative bounds (`bucketsOk`), with a valid name, returns a histogram
-(mvcc's `histSpec`: `Observe` of any value returns) that describes one descriptor, of `opts`'
+(`metric.histSpec`: `Observe` of any value returns) that describes one descriptor, of `opts`'
 fully-qualified name. The histogram keeps `s` as its upper bounds (`upperBounds: opts.Buckets`,
 read by every `Observe`): the slice's points-to is consumed. -/
 abbrev prometheus.NewHistogram.spec : Prop :=
@@ -38,7 +38,7 @@ abbrev prometheus.NewHistogram.spec : Prop :=
   {{ (s ↦*{dq} bs : IProp GF) }}
     (App (Val (@! github_com.prometheus.client_golang.prometheus.NewHistogram)) (Val #o))
   {{ (h : GoInterfaceOk), RET #(GoInterface.ok h);
-      go_etcd_io.etcd.server.v3.storage.mvcc.histSpec h ∗
+      prometheus.metric.histSpec h ∗
       ⌜prometheus.collectorName h (prometheus.fqName ns sub name)⌝ }}
 
 end spec

@@ -3,15 +3,17 @@ Package initialization of `go_etcd_io.etcd.pkg.v3.ioutil`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`ioutilInit`, `PkgInit.lean`): `defaultBufferBytes` holds `128 * 1024`, read-only for
-good. Its initializer stores that value and runs the untranslated initializers of its other variables
-(`X.init`, axioms of the translation), which the trust-boundary axiom `opaqueInitsOk` says run without
-panicking.
+good. Its initializer stores that value and runs the translated initializers of its other variables,
+`ErrShortRead` and `ErrExpectEOF` (`readcloser.go`: `fmt.Errorf` without verbs, whose trusted model is
+`errors.New(format)`; until 2026-11-19 untranslated, `opaqueInitsOk`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.PkgInit
+public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -29,25 +31,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.pkg.v3.ioutil
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.pkg.v3.ioutil`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrShortRead.init,
-        ErrExpectEOF.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.pkg.v3.ioutil
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -70,13 +53,29 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrExpectEOF _ as HErrExpectEOF
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrShortRead _ as HErrShortRead
   wp_apply wp_GlobalAlloc (V := w64) defaultBufferBytes _ as HdefaultBufferBytes
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of defaultBufferBytes))
-  wp_apply (opaqueInitsOk ErrShortRead.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrExpectEOF.init (by mem_tac))
+  -- translated initializer of ErrShortRead))
+  try wp_auto
+  -- `fmt.Errorf("ioutil: short read")`: no verb, Go returns `errors.New` of the format, as Perennial's model
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrShortRead #MErrShortRead
+  -- translated initializer of ErrExpectEOF))
+  try wp_auto
+  -- `fmt.Errorf("ioutil: expect EOF")`: no verb, Go returns `errors.New` of the format, as Perennial's model
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrExpectEOF #MErrExpectEOF
   ipersist HdefaultBufferBytes
   iframe Hown
   imodintro

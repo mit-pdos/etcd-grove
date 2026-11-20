@@ -170,7 +170,7 @@ theorem WatchResponse.Err.wp_proof
         ipureintro; intro _
         exact errPtrOk_of_ty _ (by unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; simp)
       · -- a cancel reason: `rpctypes.Error(status.Error(codes.FailedPrecondition, reason))`
-        wp_apply wp_status_Error as %e1 ⟨%He1, #He1s, -, %He1ty⟩
+        wp_apply wp_status_Error as %e1 ⟨%He1, #He1s, -, %He1ty, -⟩
         · ipureintro
           simp only [google_golang_org.grpc.codes.OK]
           exact fun h => absurd (go.intoVal_inj h) (by decide)

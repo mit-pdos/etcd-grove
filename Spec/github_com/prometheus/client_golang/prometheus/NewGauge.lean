@@ -5,7 +5,7 @@ prometheus's `NewGauge(opts)` (names only): a gauge whose one descriptor is name
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 
 @[expose] public section
 
@@ -25,7 +25,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `prometheus.NewGauge(opts)` of label-free options (`GaugeOpts` is `Opts`, as `CounterOpts`:
-`counterOpts`) with a valid name returns a gauge (mvcc's `gaugeSpec` and `gaugeSetSpec`: `Inc`,
+`counterOpts`) with a valid name returns a gauge (`metric.gaugeSpec` and `metric.gaugeSetSpec`: `Inc`,
 `Dec`, `Add` and `Set` of any value return) that describes one descriptor, of `opts`'
 fully-qualified name. -/
 abbrev prometheus.NewGauge.spec : Prop :=
@@ -35,8 +35,8 @@ abbrev prometheus.NewGauge.spec : Prop :=
   {{ (True : IProp GF) }}
     (App (Val (@! github_com.prometheus.client_golang.prometheus.NewGauge)) (Val #o))
   {{ (g : GoInterfaceOk), RET #(GoInterface.ok g);
-      go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec g ∗
-      go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec g ∗
+      prometheus.metric.gaugeSpec g ∗
+      prometheus.metric.gaugeSetSpec g ∗
       ⌜prometheus.collectorName g (prometheus.fqName ns sub name)⌝ }}
 
 end spec

@@ -131,7 +131,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwalFsyncSec as %cwalFsyncSec ⟨#CwalFsyncSec, -⟩
   try wp_auto
   ihave #EwalFsyncSec : (EtcdGrove.wal.histSpec cwalFsyncSec : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwalFsyncSec
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CwalFsyncSec
     unfold EtcdGrove.wal.histSpec
     iexact CwalFsyncSec
   -- translated initializer of walWriteSec))
@@ -140,14 +140,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwalWriteSec as %cwalWriteSec ⟨#CwalWriteSec, -⟩
   try wp_auto
   ihave #EwalWriteSec : (EtcdGrove.wal.histSpec cwalWriteSec : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwalWriteSec
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CwalWriteSec
     unfold EtcdGrove.wal.histSpec
     iexact CwalWriteSec
   -- translated initializer of walWriteBytes))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwalWriteBytes ⟨#CwalWriteBytes, #DwalWriteBytes, -⟩
   try wp_auto
   ihave #EwalWriteBytes : (EtcdGrove.wal.gaugeAddSpec cwalWriteBytes : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at CwalWriteBytes
+  · iunfold EtcdGrove.prometheus.metric.gaugeSpec at CwalWriteBytes
     icases CwalWriteBytes with ⟨-, -, #K⟩
     unfold EtcdGrove.wal.gaugeAddSpec
     iexact K
