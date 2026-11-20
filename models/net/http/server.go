@@ -3366,15 +3366,8 @@ type serverHandler struct {
 	srv *Server
 }
 
-// ServeHTTP should be an internal detail,
-// but widely used packages access it using linkname.
-// Notable members of the hall of shame include:
-//   - github.com/erda-project/erda-infra
-//
-// Do not remove or change the type signature.
-// See go.dev/issue/67401.
-//
-//go:linkname badServeHTTP net/http.serverHandler.ServeHTTP
+// MODEL: the linkname declaration badServeHTTP (a body-less function, which goose cannot take)
+// is gone: no program of the model's links to serverHandler.ServeHTTP by name.
 func (sh serverHandler) ServeHTTP(rw ResponseWriter, req *Request) {
 	handler := sh.srv.Handler
 	if handler == nil {
@@ -3386,8 +3379,6 @@ func (sh serverHandler) ServeHTTP(rw ResponseWriter, req *Request) {
 
 	handler.ServeHTTP(rw, req)
 }
-
-func badServeHTTP(serverHandler, ResponseWriter, *Request)
 
 // AllowQuerySemicolons returns a handler that serves requests by converting any
 // unescaped semicolons in the URL query to ampersands, and invoking the handler h.

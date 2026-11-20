@@ -375,7 +375,9 @@ func (t *Transport) Clone() *Transport {
 	}
 	if t.Protocols != nil {
 		t2.Protocols = &Protocols{}
-		*t2.Protocols = *t.Protocols
+		// MODEL: copied through a local (goose does not take a copy between two memory places)
+		p := *t.Protocols
+		*t2.Protocols = p
 	}
 	if !t.tlsNextProtoWasNil {
 		npm := maps.Clone(t.TLSNextProto)
@@ -1734,13 +1736,14 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod, isClientConn
 		if err != nil {
 			return nil, wrapErr(err)
 		}
-		type connectionStater interface {
+		// MODEL: renamed from connectionStater (goose needs a package's local type names unique)
+		type tlsConnectionStater interface {
 			ConnectionState() tls.ConnectionState
 		}
 		type handshaker interface {
 			HandshakeContext(context.Context) error
 		}
-		if cstater, ok := pconn.conn.(connectionStater); ok {
+		if cstater, ok := pconn.conn.(tlsConnectionStater); ok {
 			if trace != nil && trace.TLSHandshakeStart != nil {
 				trace.TLSHandshakeStart()
 			}

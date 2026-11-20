@@ -1,0 +1,13 @@
+# Project models-net's net/http (etc/goose.py): the net/http model (models/net/http, Go 1.27.3's
+# source with the HTTP/1.x head parser replaced, chunked bodies, TLS, HTTP/2 and the Transport not
+# modelled; models/README.md). Types and names only for now, with the bodies of the model's own
+# head parser (textproto_model.go): goose takes the whole package with its bodies (checked
+# 2026-11-20: four Go 1.27.3 declarations it refused are changed in the model, marked MODEL), but
+# its translation is 4.4 MB of Lean; the Lean port (phase 5.3) widens this list to what the server's
+# specs need.
+translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessageTooLarge",
+             "notModelled", "notModelled.*", "modelChunked", "Method*", "Status*", "!StatusText"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

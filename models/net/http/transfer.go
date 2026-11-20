@@ -12,7 +12,6 @@ import (
 	"internal/godebug"
 	"io"
 	"maps"
-	"math"
 	"net/http/httptrace"
 	"net/http/internal"
 	"net/http/internal/ascii"
@@ -954,7 +953,9 @@ func (b *body) readTrailer() error {
 		return errors.New("http: suspiciously long trailer after chunked body")
 	}
 
-	hdr, err := readMIMEHeader(textproto.NewReader(b.r), math.MaxInt64, b.maxTrailerHeaders)
+	// MODEL: the model's header reader (textproto_model.go; a trailer follows a chunked body,
+	// which is not modelled).
+	hdr, err := modelReadMIMEHeader(b.r, b.maxTrailerHeaders)
 	if err != nil {
 		if err == io.EOF {
 			return errTrailerEOF

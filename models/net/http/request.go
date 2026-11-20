@@ -1075,10 +1075,8 @@ func ReadRequest(b *bufio.Reader) (*Request, error) {
 	return req, nil
 }
 
-// readMIMEHeader is defined in package [net/textproto].
-//
-//go:linkname readMIMEHeader net/textproto.readMIMEHeader
-func readMIMEHeader(r *textproto.Reader, maxMemory, maxHeaders int64) (textproto.MIMEHeader, error)
+// MODEL: readMIMEHeader, net/textproto's (a linkname declaration), is the model's
+// modelReadMIMEHeader (textproto_model.go).
 
 // readRequest should be an internal detail,
 // but widely used packages access it using linkname.
