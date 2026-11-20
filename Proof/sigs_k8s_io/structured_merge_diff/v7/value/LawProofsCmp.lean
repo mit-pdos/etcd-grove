@@ -190,6 +190,47 @@ theorem mapLensOk_map {kvs : List (GoString × UVal)} (h : UVal.mapLensOk (.map 
     kvs.length ≤ 2 ^ 61 ∧ UVal.mapLensOkM kvs = true := by
   simpa [UVal.mapLensOk] using h
 
+/-- `MapCompareUsing`'s callback step after the common prefix `p`: the zip's next key is `k`. -/
+theorem mapCmp_next (ol or_ : Option (List (GoString × UVal))) (p xs ys : List (GoString × UVal))
+    (k : GoString) (hL : kvsOrEmpty ol = p ++ xs) (hR : kvsOrEmpty or_ = p ++ ys)
+    (hst : mapIterStep true (zipKeys ol or_) (p.map (·.1)) k) :
+    ∃ rest, (zl xs ys).map (·.1) = k :: rest := by
+  simp only [mapIterStep, ↓reduceIte] at hst
+  rw [zipKeys_zl, hL, hR, zl_prefix, List.map_append, List.map_map] at hst
+  have e : ((fun x : GoString × Option UVal × Option UVal => x.1) ∘
+      fun e : GoString × UVal => (e.1, some e.2, some e.2)) = (·.1) := rfl
+  rw [e, List.prefix_append_right_inj] at hst
+  obtain ⟨t, ht⟩ := hst
+  exact ⟨t, ht.symm⟩
+
+/-- The zip ran to the end after the common prefix `p`: the two maps are equal. -/
+theorem mapCmp_done (ol or_ : Option (List (GoString × UVal))) (p xs ys : List (GoString × UVal))
+    (hL : kvsOrEmpty ol = p ++ xs) (hR : kvsOrEmpty or_ = p ++ ys)
+    (hd : mapIterDone true (zipKeys ol or_) (p.map (·.1))) :
+    kvsOrEmpty ol = kvsOrEmpty or_ := by
+  simp only [mapIterDone, ↓reduceIte] at hd
+  rw [zipKeys_zl, hL, hR, zl_prefix, List.map_append, List.map_map] at hd
+  have e : ((fun x : GoString × Option UVal × Option UVal => x.1) ∘
+      fun e : GoString × UVal => (e.1, some e.2, some e.2)) = (·.1) := rfl
+  rw [e] at hd
+  have h0 : (zl xs ys).map (·.1) = [] := by
+    have := congrArg List.length hd; simp at this
+    exact List.eq_nil_of_length_eq_zero (by simpa using this)
+  obtain ⟨rfl, rfl⟩ := zl_ne_nil (List.map_eq_nil_iff.1 h0)
+  rw [hL, hR]
+
+/-- A small count as a Go `int`, compared to a length. -/
+theorem W64_len_iff {n m : Nat} {v : w64} (hv : v.toInt = m) (hm : m ≤ 2 ^ 61) (hn : n ≤ m) :
+    W64 n = v ↔ n = m := by
+  constructor
+  · intro h; subst h
+    have : (W64 (n : Int)).toInt = n := by word
+    omega
+  · intro h; subst h; apply BitVec.eq_of_toInt_eq; rw [hv]; word
+
+theorem W64_succ (n : Nat) (hn : n < 2 ^ 61) : W64 (n : Int) + W64 1 = W64 ((n + 1 : Nat) : Int) := by
+  word
+
 end ValueCmp
 
 section lemmas
