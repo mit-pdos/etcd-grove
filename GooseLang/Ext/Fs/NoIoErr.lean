@@ -136,8 +136,6 @@ theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Ex
   · -- Rmdir
     obtain ⟨p, k, start, -, -, -, h⟩ := hs
     rcases h with ⟨j', j, b, -, -, ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩⟩ | ⟨e, -, -, rfl⟩ <;> rfl
-  · -- Flock
-    obtain ⟨fd, how, d, req, nb, -, -, -, h⟩ := hs; exact lockStep_maps h
   · -- OfdLock
     obtain ⟨fd, cmd, typ, d, req, -, -, -, -, -, -, h⟩ := hs; exact lockStep_maps h
   · -- DirReadNext

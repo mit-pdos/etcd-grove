@@ -112,7 +112,7 @@
 //	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
 //	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
 //	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
-//	                              + lock requests, directory reads   IoCovers "Flock"/"OfdLock"/"DirReadNext",
+//	                              + OFD lock requests, dir reads     IoCovers "OfdLock"/"DirReadNext",
 //	                              (assumed, measured as support:     ErrnoZero "DirReadNext" (ENOENT kept)
 //	                              premise_no_io_err_test.go; user,
 //	                              2026-11-19)
@@ -128,13 +128,15 @@
 //	                              seccomp or fanotify denial
 //	                              (assumed; contrasts: TestNoIoErrPerm*,
 //	                              TestNoIoErrProtected*; user, 2026-11-19)
-//	                              - non-blocking lock requests and   IoCovers "Flock"/"OfdLock" (blocking only),
+//	                              - non-blocking lock requests and   IoCovers "OfdLock" (blocking only),
 //	                              paths that do not fit (user,       PathFits
 //	                              2026-11-19; TestLocksProcReaderEagain,
 //	                              TestNoIoErrNameTooLong)
 //	                              + C's fd limits: no EMFILE/ENFILE  NoIoErr's docstring, Impl.lean's
 //	                              (assumed; contrast:                "Environment" (env_config.go)
 //	                              TestNoIoErrEmfile; user, 2026-11-19)
+//	                              - flock (NoMapLockErr's: one       IoCovers (no "Flock")
+//	                              premise per call; user, 2026-11-20)
 //	premise_no_map_lock_err.go    no flock/mmap/munmap/madvise error NoMapLockErr, MapLockCovers, MapLockOk
 //	                              on chosen files (mmap: a mapping,  (NoMapLockErr.lean: noMapLockErr_keeps,
 //	                              or no return with no room left);   isFsStep_open_eintr)

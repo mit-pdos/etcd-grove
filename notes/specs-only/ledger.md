@@ -3228,3 +3228,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   an oversized-error branch); `backend.batchTx.unsafePut`/`UnsafePut`/`UnsafeSeqPut` drop the premise and their posts
   say the entry was within the bound (else `lg.Fatal`); `batchTxBuffered.UnsafePut`/`UnsafeSeqPut` drop the premise.
   `authRecordsFit` and the schema contracts unchanged; A7 stays "only `hD22` removed".
+
+## 2026-11-20: the error-free open/rename specs need the paths to fit (wal-fsfix merge of lean 94ea36b029)
+
+- **Spec.** `Fs.wp_osOpenCreateSNE`, `wp_osOpenFileSNE`, `open_failure_eintr`, `wp_osRenameFileSNE`
+  (`GooseLang/Ext/Fs/NoErrSpecs{OpenFile,Rename}.lean`) and the specs above them (`os.OpenFile.specCreateS`,
+  `os.Rename.spec`, bbolt's `Open.spec`, the backend's glue, the server's snapshot backend).
+- **Defect.** They build `IoCovers "Open"/"Rename"` for any path; since the user's A1 decision (2026-11-19)
+  `NoIoErr` covers only paths that fit (`PathFits`: under 4096 bytes, no component over 255), so the specs are
+  unprovable on wal-fsfix: a path call on an over-long path may fail with `ENAMETOOLONG` (`TestNoIoErrNameTooLong`).
+- **Evidence.** The merge's build (2026-11-20): `NoErrSpecsRename.lean:214`, `NoErrSpecsOpenFile.lean`.
+- **Proposed change.** `PathFits` premises on the four lemmas; the shared-mode name claims carry `PathFits path`;
+  error arms `¬ FsNoErr ∨ ¬ PathFits p`; a bound on the member's data directory in `bootCfgFresh`, discharged in
+  the examples from the member name (≤ 200 bytes).
+- **Decision.** Option 2, the user, 2026-11-20, via etcd-grove-03; flock left to `NoMapLockErr` the same day.

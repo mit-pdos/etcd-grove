@@ -150,7 +150,7 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
     (hbt : NameOk bt) (hN : N.Mem bs) (hN' : N'.Mem bt) (hkey : (j, N) ≠ (j', N'))
     (hsrc : h.cur !! bs = some (.file i)) (htgt : ∀ J, h'.cur !! bt ≠ some (.dir J))
     (hs : h.next ≤ s0) (hs' : h'.next ≤ s0) (hsr : SameRootR R (child d bs) (child d' bt))
-    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hfit : PathFits (child d bs) ∧ PathFits (child d' bt)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osPathS (L := L) R d' dq' j' -∗
       osNames (L := L) j N (DFrac.own 1) h -∗ osNames (L := L) j' N' (DFrac.own 1) h' -∗
@@ -211,7 +211,7 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
       obtain ⟨st'', hst''⟩ := renameFile_succ hw hcall (sameRoot_of_R hR hsr) hp.1 hp.2 hbs hbt (hsrcE st hat)
         (hneq st hp hat) (fun J hJ => htgt J (by rw [← htgtE st hat]; exact hJ))
       have := noIoErr_step (Sio := Sio) Hsem
-        (by simp only [IoCovers]; exact ⟨k, child d bs, child d' bt, rfl, .inl (hS _)⟩)
+        (by simp only [IoCovers]; exact ⟨k, child d bs, child d' bt, rfl, .inl (hS _), hfit.1, hfit.2⟩)
         ⟨_, st'', hst'', rfl⟩
       exact this
     obtain ⟨e, rfl, hr⟩ := renameStep_cases hw hcall hp.1 hp.2 hbs hbt (hsrcE st hat)

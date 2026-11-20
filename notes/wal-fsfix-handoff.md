@@ -1,6 +1,41 @@
 # wal-fsfix handoff
 
-## START HERE (2026-11-20 y)
+## START HERE (2026-11-20 z)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. Pin 3afd77e35:
+  `--packages=/shared/tmp/manifest-3af.json`. `.lake/build` seeded from wal-link's at lean 94ea36b029 (merged: c7b7c8d8f1).
+- **The user's decisions of 2026-11-20** (questions.md, ledger "2026-11-20: the error-free open/rename specs need
+  the paths to fit"): (1) member-name bound in `bootCfgFresh`, `PathFits` premises up the stack; (2) flock out of
+  `NoIoErr` (NoMapLockErr covers it). Config-C runs recorded (noioerr.md session 9; both pass after 768dbff487).
+- **Done, uncommitted-then-committed in the WIP commit after this handoff** (not yet built past `GooseLang/Ext/Fs`):
+  - trusted text: `Premises.lean` (no `"Flock"` in `IoCovers`, docstrings), Go texts `premise_no_io_err.go`, `doc.go`;
+  - `NoMapLockErr.lean`'s `noIoErr_noMapLockErr_keeps` back to "disjoint but open"; `NoIoErr.lean` Flock case gone;
+  - new `GooseLang/Ext/Fs/PathFitsLemmas.lean` (`WinOk`, `DirFits`, `winOk_short`, `winOk_child`,
+    `pathFits_child`, `pathFits_of_dirFits`; lean-check clean);
+  - `NoErrSpecsOpenFile` (`hS : Sio.path p ∧ PathFits p`), `NoErrSpecsRename` (`hfit`): lean-check clean;
+  - `os.OpenFile.specCreateS`'s error arm `¬ FsNoErr ∨ ¬ PathFits (child d b)` (Spec + Proof/os/OpenFileS.lean);
+    bbolt `Open.spec`'s error arm the same (Spec + Proof `Open.wp_proof`, `openFileDb_shared`);
+  - `InvBbolt.lean`: `fileHoldsF`/`nameAtF`/`fileFreeF` carry `PathFits path` (last conjunct); `bPath_join`,
+    `fileAt_fileHolds` fixed; `newBackend.lean`'s `kvGlue_Open`, `Proof/os/Rename.lean` (`rename_fileNE` takes
+    `hfit`) fixed; `StartFiles.lean`: `hok : ∀ b ∈ bs, NameOk b ∧ PathFits (child r b)`.
+- **Next (in order)**: build `GooseLang.Ext.Fs.*` (a run was queued on build-slot), then `Proof.os.*`, bbolt `Open`,
+  backend; then the producers of the name claims: (a) `start_fileHolds` callers: mvccrand/mvccfull `Adequacy`
+  (+ their `TopLevelRobustness` Spec/Proof): new premise `Fs.DirFits r` (closed-statement change: report) and a
+  length lemma for `mvccfullNames` (as `mvccfullNames_ok`); (b) the etcd examples' snapshot names
+  (`snapFreeAll` in `InvBoot`'s `Hsfree`, produced in etcdstart, `Dir.lean`/`Alloc3`/...) and the backend path:
+  `bootCfgFresh` gains `DirFits cfg.DataDir'` (form decided, questions.md), discharged in etcdstart from
+  `memberDataDir name` with a name bound (≤ 200 bytes) in the examples' member premises (`AdequacyMembers` `ms`,
+  concrete names elsewhere: `winOk_child (winOk_short …)`); `snapDBPath sd i` component is 29 bytes.
+  Find what breaks with `etc/importers.py --uses fileHoldsF/nameAtF/fileFreeF/specCreateS/bootCfgFresh`.
+- Then: full timed build, tcb --check --update (+ collections, interfaces), cut.specNoErr, rnNewStorageOk_holds,
+  independent attack (fresh read-only subagent, axiom skill) on Premises.lean's flock change, PathFits and the
+  new conjunct, STOP at the land stop listing old → new closed statements (mvccrand/mvccfull `Hrfit`, etcd examples'
+  name bound, rnNewStorageOk gone). Create.specNoErr stays a STOP (directory read permission).
+- Pitfalls: Go tests here as root; `/shared` idmapped; no loop devices here; SaveDBFrom's axiom now reads
+  `fileFree`/`fileAt` with `PathFits` (same path in and out: no new claim; mention in the land report).
+
+## History (2026-11-20 y)
+
 
 - Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head: `git log -1`. Pin 3afd77e35:
   `--packages=/shared/tmp/manifest-3af.json` (`.lake/package-overrides.json` = its copy). `.lake/build` seeded

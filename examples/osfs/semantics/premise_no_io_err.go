@@ -39,14 +39,16 @@ import (
 // resolves as the call needs; the model always has a free fd for open, so
 // EMFILE and ENFILE are excluded too, which the environment's fd limits make
 // true: env_config.go, TestNoIoErrEmfile). Since 2026-11-19 also: a
-// blocking lock request on a covered file (flock LOCK_SH/LOCK_EX without
-// LOCK_NB, or fcntl F_OFD_SETLKW with F_RDLCK/F_WRLCK) failing although no
+// blocking OFD lock request on a covered file (fcntl F_OFD_SETLKW with
+// F_RDLCK/F_WRLCK) failing although no
 // other description holds a conflicting lock (another fd's, or one a live
 // mapping keeps after its fd's close, locks_mmap_close.go; ENOLCK, EINTR,
-// ...), a blocking unlock (LOCK_UN, F_OFD_SETLKW with F_UNLCK) failing; a step
+// ...), a blocking OFD unlock (F_OFD_SETLKW with F_UNLCK) failing (flock's
+// requests: premise_no_map_lock_err.go, NoMapLockErr, which covers them in the
+// same form: one premise per call, the user's decision of 2026-11-20); a step
 // of Readdirnames (getdents64) on a covered directory failing with an errno
 // other than ENOENT (EIO, ...) while the directory has a name left to return
-// or is at its end. Lean: IoCovers "Flock" (no LOCK_NB), "OfdLock" (cmd
+// or is at its end. Lean: IoCovers "OfdLock" (cmd
 // F_OFD_SETLKW) (an fd of a covered inode), "DirReadNext" (a directory fd of a
 // covered inode), "Open"/"Rename"/"Mkdir"/"Unlink"/"Rmdir" (PathFits);
 // ErrnoZero "DirReadNext" (errno 0, or ENOENT: a removed directory,
@@ -57,8 +59,8 @@ import (
 // EEXIST, ENOTEMPTY, EISDIR, ...), a lock request that conflicts with a lock
 // another description holds (another fd's, or a mapping's: EAGAIN, or for a blocking request any
 // errno: locks_blocking.go), ENOENT from a read of a removed directory, and
-// anything on a call the premise does not name: a non-blocking lock request
-// (flock with LOCK_NB, F_OFD_SETLK), which may fail with EAGAIN while another
+// anything on a call the premise does not name: flock (NoMapLockErr's), a
+// non-blocking OFD lock request (F_OFD_SETLK), which may fail with EAGAIN while another
 // process holds a reference to a description the program closed
 // (locks_spurious_eagain.go: a /proc/<pid>/fdinfo reader; a blocking request
 // waits for it instead), a path call on a path that does not fit (ENAMETOOLONG

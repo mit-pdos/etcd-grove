@@ -280,50 +280,40 @@ theorem stepKeeps_and (P Q : StepPrem) (hP : StepKeeps P) (hQ : StepKeeps Q)
     exact ⟨e'', h'', st'', hs'', hp, hq _ _⟩
 
 /-- **`NoIoErr` and `NoMapLockErr` keep steps together.** They name disjoint operations but `open`
-and `flock` (`stepKeeps_and`): `mmap`, `munmap`, `madvise` only `NoMapLockErr`; `open` from a state
-with a free fd and the rest only `NoIoErr`. An `open` with no free fd, or a `flock` (both may name
-them): its outcome with errno 0 if the semantics has one (both hold of it); otherwise, for `open`, its
-`EINTR`, and for `flock`, the outcome `NoMapLockErr` keeps (`NoIoErr` then says nothing). -/
+(`stepKeeps_and`): `flock`, `mmap`, `munmap`, `madvise` only `NoMapLockErr`; `open` from a state with
+a free fd and the rest only `NoIoErr`. An `open` with no free fd (both may name it): its outcome with
+errno 0 if the semantics has one (both hold of it), and otherwise its `EINTR` (`NoIoErr` then says
+nothing). -/
 theorem noIoErr_noMapLockErr_keeps (S T : IoSet) :
     StepKeeps (StepPrem.and (NoIoErr S) (NoMapLockErr T)) := by
   intro _ _ o v h st e' h' st' huniq hs
-  by_cases hO : (o = "Open" ∧ ∀ fd, ¬ FdFree st fd) ∨ o = "Flock"
-  · have hne : o ≠ "Mmap" := by rcases hO with ⟨rfl, -⟩ | rfl <;> decide
-    obtain ⟨hst, -, hr⟩ := fsStepV_of_ne hne hs
-    have hm : ∀ {e1 st1}, IsFsStep o v st e1 st1 → st1.proc.maps = st.proc.maps := by
-      rcases hO with ⟨rfl, -⟩ | rfl
-      · exact isFsStep_open_maps
-      · exact isFsStep_flock_maps
-    by_cases hz : ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e''
+  by_cases hO : o = "Open" ∧ ∀ fd, ¬ FdFree st fd
+  · obtain ⟨rfl, -⟩ := hO
+    obtain ⟨hst, -, hr⟩ := fsStepV_of_ne (by decide) hs
+    by_cases hz : ∃ e'' st'', IsFsStep "Open" v st e'' st'' ∧ ErrnoZero "Open" e''
     · obtain ⟨e'', st'', hs'', hz''⟩ := hz
-      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (hm hst) (hm hs'') hr
-      refine ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same (hm hs''), hr''⟩,
-        fun _ => ⟨fun _ => hz'', fun hn => absurd ⟨e'', st'', hs'', hz''⟩ hn⟩, fun _ _ => ?_⟩
-      rcases hO with ⟨rfl, -⟩ | rfl
-      · exact Or.inl hz''
-      · exact Or.inl hz''
-    · rcases hO with ⟨rfl, -⟩ | rfl
-      · obtain ⟨st'', hs'', hm''⟩ := isFsStep_open_eintr hst
-        obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (hm hst) hm'' hr
-        exact ⟨_, h'', st'', .inl ⟨hs'', mapsFresh_same hm'', hr''⟩,
-          fun _ => ⟨fun hex => absurd hex hz, fun _ => trivial⟩, fun _ _ => Or.inr rfl⟩
-      · obtain ⟨e'', h'', st'', hs'', hq⟩ := noMapLockErr_keeps T "Flock" v h st e' h' st' huniq hs
-        exact ⟨e'', h'', st'', hs'', fun _ => ⟨fun hex => absurd hex hz, fun _ => trivial⟩, hq⟩
+      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_open_maps hst) (isFsStep_open_maps hs'') hr
+      exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same (isFsStep_open_maps hs''), hr''⟩,
+        fun _ => ⟨fun _ => hz'', fun hn => absurd ⟨e'', st'', hs'', hz''⟩ hn⟩, fun _ _ => Or.inl hz''⟩
+    · obtain ⟨st'', hs'', hm''⟩ := isFsStep_open_eintr hst
+      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_open_maps hst) hm'' hr
+      exact ⟨_, h'', st'', .inl ⟨hs'', mapsFresh_same hm'', hr''⟩,
+        fun _ => ⟨fun hex => absurd hex hz, fun _ => trivial⟩, fun _ _ => Or.inr rfl⟩
   have hdisj : (∀ e' st', NoIoErr S o v st e' st') ∨ (∀ e' st', NoMapLockErr T o v st e' st') := by
-    by_cases ho : o = "Mmap" ∨ o = "Munmap" ∨ o = "Madvise"
+    by_cases ho : o = "Flock" ∨ o = "Mmap" ∨ o = "Munmap" ∨ o = "Madvise"
     · left
       intro e' st' hc
       unfold IoCovers at hc
-      rcases ho with rfl | rfl | rfl <;> exact hc.elim
+      rcases ho with rfl | rfl | rfl | rfl <;> exact hc.elim
     · right
       intro e' st' hc
       unfold MapLockCovers at hc
       split at hc
-      · exact absurd (Or.inr rfl) hO
       · exact absurd (Or.inl rfl) ho
       · exact absurd (Or.inr (Or.inl rfl)) ho
-      · exact absurd (Or.inl ⟨rfl, hc.2⟩) hO
-      · exact absurd (Or.inr (Or.inr rfl)) ho
+      · exact absurd (Or.inr (Or.inr (Or.inl rfl))) ho
+      · exact absurd ⟨rfl, hc.2⟩ hO
+      · exact absurd (Or.inr (Or.inr (Or.inr rfl))) ho
       · exact hc.elim
   rcases hdisj with hp | hq
   · obtain ⟨e'', h'', st'', hs'', hq⟩ := noMapLockErr_keeps T o v h st e' h' st' huniq hs
