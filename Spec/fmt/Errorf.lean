@@ -194,7 +194,7 @@ reflection, calling no method: `%d` of raft's `ConfChangeType`, which has `Strin
 and under `w` only for a type with `Error() string` (fmt soundness 2, 2026-11-18, the third attack's
 R2: `Errorf`'s `%w` of a value that is no `error` is a bad verb, and `fmt` reflects into it; a
 `String()` alone does not help; `/shared/tmp/fmtfix-attack3/wstringer`). -/
-def fmt.argOkAt (mv : List w8) (d : fmt.Directive) : GoInterface → IProp GF
+def fmt.argOkAtBase (mv : List w8) (d : fmt.Directive) : GoInterface → IProp GF
   | .nil => iprop(True)
   | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨
       ⌜d.verb ∉ mv ∧ _root_.Perennial.fmt.IsIntType (underlying ii.ty) ∧
@@ -202,6 +202,87 @@ def fmt.argOkAt (mv : List w8) (d : fmt.Directive) : GoInterface → IProp GF
       (⌜d.verb ∈ mv ∧ d.sharpV = false ∧
         (d.verb = W8 119 → methodSet ii.ty !! go!"Error" = some noArgStringSig)⌝ ∗
         fmt.argOk (.ok ii)))
+
+/-- **A slice argument** under `%v` or `%s` (no `#`), the method verbs being `mv` (2026-11-20, the
+user's request: `fmt.Errorf("... %v ...", sets.List(decisions))` of conditional authorization's
+union authorizer, and `Sprintf` of the same; until then no slice was admitted): the argument's
+dynamic type is an unnamed slice type `[]T` of a non-interface element type `T` (so the slice type
+has no methods), its value a slice `sl` read-only for good (`sl ↦*□ xs`: nothing writes it any more,
+so formatting it touches nothing the caller owns), and every element, as a value of type `T`, is
+`fmt.argOkAtBase` the same directive (no nesting).
+
+Why Go then calls nothing but the elements' admitted methods (go1.27.3, `src/fmt/print.go`):
+`printArg` (line 674) finds no simple case for a slice other than `[]byte`, so it calls
+`handleMethods` on it (line 750), which finds nothing (an unnamed slice type has no methods: no
+`Formatter`, `error`, `Stringer`), then `printValue(reflect.ValueOf(arg), verb, 0)` (line 753).
+`printValue`'s `reflect.Slice` case (line 856): under `%s` a slice of a `uint8`-kind element type is
+printed as bytes (line 861, no method called); otherwise it writes `[`, then for each element
+`p.printValue(f.Index(i), verb, depth+1)` (line 889), then `]` (`%#v` takes the other branch,
+line 880, excluded here). At depth 1 `printValue` (line 758) takes `value.Interface()` (the element,
+of dynamic type `T`: `T` is no interface type, so no `reflect.Interface` indirection) and calls
+`handleMethods(arg, value, verb)` (line 760) with the same verb: exactly what `fmt.argOkAtBase`
+admits of a top-level argument under that verb (`Format` excluded, `Error()`/`String()` with their
+WPs; an `fmt.ArgWf` value has no method and is printed by kind, line 768 on). A `nil` slice prints
+`[]`. A method's panic is recovered by `catchPanic`, but the WPs admitted rule it out anyway. -/
+def fmt.sliceArgOk (mv : List w8) (d : fmt.Directive) (ii : GoInterfaceOk) : IProp GF :=
+  iprop(⌜d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false⌝ ∗
+    ∃ (T : go.GoType) (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V)
+      (_ : IntoValTyped (GF := GF) V T) (sl : GoSlice) (xs : List V),
+      ⌜ii.ty = go.GoType.SliceType T ∧ ii.v = #sl ∧ go.isInterfaceType (underlying T) = false⌝ ∗
+      sl ↦*□ xs ∗ [∗list] x ∈ xs, fmt.argOkAtBase mv d (interface.mkOk T #x))
+
+/-- **One argument under the directive `d`**, the method verbs being `mv`: `nil` or `fmt.ArgWf`
+under any directive; under a verb that is not a method verb, also a value of a type whose
+underlying type is an integer type and that has no `Format` method (Go prints it as an integer by
+reflection, calling no method: `%d` of raft's `ConfChangeType`, which has `String()`); and
+`fmt.argOk` (its `Error()`/`String()` disjuncts) only under a method verb that is not `%#v`/`%#w` (`d.sharpV`),
+and under `w` only for a type with `Error() string` (fmt soundness 2, 2026-11-18, the third attack's
+R2: `Errorf`'s `%w` of a value that is no `error` is a bad verb, and `fmt` reflects into it; a
+`String()` alone does not help; `/shared/tmp/fmtfix-attack3/wstringer`); and (2026-11-20) a slice
+of such arguments under `%v`/`%s` (`fmt.sliceArgOk`). The first three disjuncts are
+`fmt.argOkAtBase`'s. -/
+def fmt.argOkAt (mv : List w8) (d : fmt.Directive) : GoInterface → IProp GF
+  | .nil => iprop(True)
+  | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨
+      ⌜d.verb ∉ mv ∧ _root_.Perennial.fmt.IsIntType (underlying ii.ty) ∧
+        methodSet ii.ty !! go!"Format" = none⌝ ∨
+      (⌜d.verb ∈ mv ∧ d.sharpV = false ∧
+        (d.verb = W8 119 → methodSet ii.ty !! go!"Error" = some noArgStringSig)⌝ ∗
+        fmt.argOk (.ok ii)) ∨
+      fmt.sliceArgOk mv d ii)
+
+/-- An argument `fmt.argOkAtBase` its directive is `fmt.argOkAt` it. -/
+theorem fmt.argOkAt_of_base {mv : List w8} {d : fmt.Directive} {a : GoInterface} :
+    fmt.argOkAtBase (GF := GF) mv d a ⊢ fmt.argOkAt mv d a := by
+  cases a with
+  | nil => unfold fmt.argOkAt; iintro _; itrivial
+  | ok ii =>
+    unfold fmt.argOkAtBase fmt.argOkAt
+    iintro (H | H | H)
+    · ileft; iexact H
+    · iright; ileft; iexact H
+    · iright; iright; ileft; iexact H
+
+/-- A read-only slice of arguments each `fmt.argOkAtBase` a `%v`/`%s` directive is `fmt.argOkAt`
+it (`fmt.sliceArgOk`). -/
+theorem fmt.argOkAt_slice {mv : List w8} {d : fmt.Directive} {T : go.GoType} {V : Type}
+    [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V T]
+    (sl : GoSlice) (xs : List V)
+    (hd : d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false)
+    (hT : go.isInterfaceType (underlying T) = false) :
+    sl ↦*□ xs ∗ ([∗list] x ∈ xs, fmt.argOkAtBase (GF := GF) mv d (interface.mkOk T #x)) ⊢
+      fmt.argOkAt mv d (interface.mkOk (go.GoType.SliceType T) #sl) := by
+  iintro ⟨#Hs, Hxs⟩
+  unfold fmt.argOkAt fmt.sliceArgOk
+  iright; iright; iright
+  isplitr
+  · ipureintro; exact hd
+  · iexists T, V, inferInstance, inferInstance, inferInstance, sl, xs
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl, hT⟩
+    isplitr
+    · iexact Hs
+    · iexact Hxs
 
 /-- The arguments under the directives: one each, in order; those left over are printed under
 `%v` (`EXTRA`). -/
@@ -237,7 +318,7 @@ theorem fmt.argOkAt_of_argOk {mv : List w8} {d : fmt.Directive} {a : GoInterface
   | ok ii =>
     unfold fmt.argOkAt
     iintro ⟨%h, H⟩
-    iright; iright
+    iright; iright; ileft
     isplitr
     · ipureintro; exact ⟨h.1, h.2.1, fun hw => absurd hw h.2.2⟩
     · iexact H
@@ -251,7 +332,7 @@ theorem fmt.argOkAt_of_error {mv : List w8} {d : fmt.Directive} {ii : GoInterfac
       fmt.argOkAt mv d (.ok ii) := by
   unfold fmt.argOkAt fmt.argOk
   iintro ⟨%h, #H, %hm⟩
-  iright; iright
+  iright; iright; ileft
   isplitr
   · ipureintro; exact ⟨h.1, h.2, fun _ => hm.2⟩
   · iright; ileft
@@ -362,7 +443,7 @@ macro "fmt_args_intro" : tactic => `(tactic| (
 macro "fmt_arg_method" : tactic => `(tactic| (
   first
     | (iapply Perennial.EtcdGrove.fmt.argOkAt_of_argOk; isplitr; (ipureintro; decide))
-    | (iright; iright; isplitr; (ipureintro; fmt_verb_ok))))
+    | (iright; iright; ileft; isplitr; (ipureintro; fmt_verb_ok))))
 
 /-- Proves `fmt.argsOk mv format xs` of a literal format and a literal argument list (as
 `wp_slice_literal` builds it): the format's directives by evaluation (premise fixes 6, D), then
@@ -388,7 +469,7 @@ macro "fmt_args_ok" : tactic => `(tactic| (
     | (iright; ileft; ipureintro
        refine ⟨by decide, ?_, by fmt_method_none⟩
        rw [go.is_underlying]; simp [_root_.Perennial.fmt.IsIntType])
-    | (iright; iright; isplitr; (ipureintro; fmt_verb_ok))
+    | (iright; iright; ileft; isplitr; (ipureintro; fmt_verb_ok))
     | (iapply Perennial.EtcdGrove.fmt.argOkAt_of_argOk; isplitr; (ipureintro; decide); iassumption)
     | (iright; ileft; isplitr; iassumption; ipureintro; assumption)
     | (iright; ileft; isplitr; iassumption; ipureintro; exact ‹_ ∧ _›)

@@ -9,6 +9,7 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking.
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.k8s_io.apimachinery.pkg.util.sets.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -65,6 +66,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk ErrPreconditionViolated.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish

@@ -249,6 +249,16 @@ instance k8s_io_apimachinery_pkg_api_errors_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors :=
   build_get_is_pkg_init_wf
 
+-- (2026-11-19, moved here from `storage/cacher/Base.lean`: `field` imports it since
+-- `ErrorList.ToAggregate` is translated with its body; before `errors`, which imports it since
+-- `aggregate.Error` is, 2026-11-20)
+instance k8s_io_apimachinery_pkg_util_sets_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_sets_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_apimachinery_pkg_util_errors_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.errors :=
   define_is_pkg_init iprop(True)
@@ -261,15 +271,6 @@ instance k8s_io_apimachinery_pkg_api_meta_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance k8s_io_apimachinery_pkg_api_meta_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.«meta» :=
-  build_get_is_pkg_init_wf
-
--- (2026-11-19, moved here from `storage/cacher/Base.lean`: `field` imports it since
--- `ErrorList.ToAggregate` is translated with its body)
-instance k8s_io_apimachinery_pkg_util_sets_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_apimachinery_pkg_util_sets_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_apimachinery_pkg_util_validation_field_is_pkg_init_inst :

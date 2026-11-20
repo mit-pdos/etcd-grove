@@ -37,6 +37,7 @@ theorem NewAggregate.wp_proof : NewAggregate.spec (GF := GF) (hG := hG) := by
   wp_if_destruct
   · iapply HΦ
     iframe
+    ileft; ipureintro; rfl
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
   ihave Hn : (slice.nil ↦* ([] : List GoInterface) : IProp GF) $$ []
   · iapply ownSlice_nil
@@ -49,11 +50,12 @@ theorem NewAggregate.wp_proof : NewAggregate.spec (GF := GF) (hG := hG) := by
       "Hc" ∷ ownSliceCap GoInterface sl (DFrac.own 1) ∗
       "e" ∷ e_ptr ↦ ev ∗
       "Hs" ∷ s ↦*{dq} es ∗
-      "%Hb" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ es.length⌝) $$ [i errs Hn Hc e Hs]
+      "%Hb" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ es.length⌝ ∗
+      "%Hys" ∷ ⌜∀ y ∈ ys, y ≠ interface.nil ∧ y ∈ es⌝) $$ [i errs Hn Hc e Hs]
   · iexists W64 0, slice.nil, [], _
     iframe
     ipureintro
-    refine ⟨by word, by word⟩
+    refine ⟨⟨by word, by word⟩, by simp⟩
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.nat n < es.length := by word
@@ -70,7 +72,7 @@ theorem NewAggregate.wp_proof : NewAggregate.spec (GF := GF) (hG := hG) := by
       iexists n + W64 1, _, _, _
       iframe
       ipureintro
-      refine ⟨by word, by word⟩
+      refine ⟨⟨by word, by word⟩, Hys⟩
     | ok i =>
       wp_auto
       wp_apply wp_slice_literal
@@ -83,12 +85,23 @@ theorem NewAggregate.wp_proof : NewAggregate.spec (GF := GF) (hG := hG) := by
       iexists n + W64 1, _, _, _
       iframe
       ipureintro
-      refine ⟨by word, by word⟩
-  · wp_if_destruct
+      refine ⟨⟨by word, by word⟩, fun y hy => ?_⟩
+      simp only [List.mem_append, List.mem_singleton] at hy
+      rcases hy with hy | rfl
+      · exact Hys y hy
+      · exact ⟨by simp, List.mem_of_getElem? Hx⟩
+  · imod ownSlice_persist $$ Hn with #Hn
+    wp_if_destruct
     · iapply HΦ
       iframe
+      ileft; ipureintro; rfl
     · iapply HΦ
       iframe
+      iright
+      iexists sl, ys
+      isplitr
+      · ipureintro; exact ⟨rfl, Hys⟩
+      · iexact Hn
 
 end proof
 
