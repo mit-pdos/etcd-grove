@@ -525,8 +525,8 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
    subchannels' health-check streams; the packages no longer reached (`internal/transport`, the
    balancers, `internal/idle`, the delegating resolver, ...: 18). Choice points `modelChoose`/
    `modelChooseN` (`model_choose.go`). The computed diff against v1.84.0 (the reached packages):
-   16 files of the root package differ, +2580 -3807 lines (the five `model_*.go` files added,
-   2326 lines; `balancer_wrapper.go`, `picker_wrapper.go`, `resolver_wrapper.go` and the two
+   16 files of the root package differ, +2590 -3807 lines (`models/diff.py grpc --stat`; the five `model_*.go` files added,
+   2336 lines; `balancer_wrapper.go`, `picker_wrapper.go`, `resolver_wrapper.go` and the two
    `clientconn_disconnect_reason` files removed; `clientconn.go` +94 -1217, `stream.go` +54 -849,
    `server.go` +87 -456, `service_config.go` +14 -231, `rpc_util.go` +3 -4, `dialoptions.go` +2 -3),
    and 18 packages dropped whole. *What etcd and the kits reference that had to be kept*: all of
