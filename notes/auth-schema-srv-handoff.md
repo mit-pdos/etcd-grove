@@ -1,6 +1,26 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 l, route (d') coded; build 5 next — agent handed off at 400k context)
+## START HERE (2026-11-20 m, AT THE LAND STOP: no commits until the coordinator says the land finished)
+
+- Branch `auth-schema-port` (worktree `/shared/etcd-grove-authschema`), pin 3afd77e35 (`--packages=/shared/tmp/manifest-3af.json`,
+  `.lake/package-overrides.json` = it, `PERENNIAL_DIR=/shared/perennial-3afd77e35`). lean `34986d22ae` merged (8798fdc497);
+  `auth-schema-srv` fast-forwarded to `auth-schema-port` (checkpoint B).
+- Build 5 `20261119-222252-2311069` green (162 modules, before the merge); build 6 `20261119-235631-2598891` green (7303 modules,
+  1h35m, after the merge).
+- Checks after build 6: every gen-link mode + btree (no change), interfaces --check --layout (6 packages; bbolt/backend
+  regenerated d049248bbe, `batchTxBuffered__Commit` importable 7f011bbc49), tier, gen-init/gen-raft-tla/copy-part/gen-k8s-deep
+  --check, goose --check (all projects), axiom-tok --check + selftest, bounds (allow entry 7f011bbc49), api-check, import-all,
+  errorf, mode, model-param, pbschema, reader-slot, bgcancel (needs a path manifest: `/shared/tmp/auth-schema-srv/manifest-path.json`),
+  issues-status. tcb `--check --update`: 785 → 787 axioms (+ `proto.MarshalUser/MarshalRole.wp_proof`, A3), 2 sorries; collections
+  auth3/authN/authkv + `proto.(Un)marshalUser/Role`, server + the Marshal pair (7c56732d06).
+- C: `python3 /shared/tmp/auth-schema-srv/stmtdiff2.py lean`: 20/20 OK, only hD22 removed. Trusted text (TrustedCode, GooseLang):
+  unchanged vs lean; `Code/go_etcd_io/bbolt.lean` re-translated from the fork (verified code).
+- Next: the coordinator's land go: merge lean once more if it moved (k8s 7g), rerun what the merge touches, then land.
+- Pitfalls: (46)-(49) below; (50) gen-init needs `PERENNIAL_DIR`, bgcancel a path manifest in `LAKE_PACKAGES`; never `git stash` with
+  uncommitted baselines (popped back once, 2026-11-20).
+
+## History (START HERE of 2026-11-19 l, superseded)
+
 
 - Branch `auth-schema-port` (worktree `/shared/etcd-grove-authschema`), head = this commit; pin 3afd77e35
   (`--packages=/shared/tmp/manifest-3af.json`, `.lake/package-overrides.json` = it, `PERENNIAL_DIR=/shared/perennial-3afd77e35`).
