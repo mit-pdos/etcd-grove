@@ -30,7 +30,8 @@ translations: for every package whose `initialize'` calls `fmt.Errorf`, each cal
 be a literal without `%` (no verb, so no `%w`: Go returns `errors.New(format)`, as the model), unless
 no init proof of the package steps into a function (`wp_func_call`) or uses Perennial's model lemmas
 (`Perennial.fmt.wp_`); and an init proof that does must be in REVIEWED_INIT (keyed by file: the
-step is in the translation, not in a declaration of the proof). (`gen-init.py`'s `newvar_steps` asserts the same of the formats it is given; this check does not trust its callers.)
+step is in the translation, not in a declaration of the proof). (`gen-init.py`'s `newvar_steps`
+asserts the same of the formats it is given; this check does not trust its callers.)
 
 usage: etc/errorf-wrap-check.py [--reuse] [--json PATH] [-v]
   --reuse   read the existing .lake/tcb.json (as etc/tcb-report.py --reuse); else recompute it
@@ -78,6 +79,14 @@ REVIEWED = {
     # Create's cleanup, uses ErrorfErrs.)
     'Perennial.EtcdGrove.fmt.ErrorfErrs.wp_proof': 'premise errArgsWf + errOk errs (no Format, '
         'Error() string, only %v/%s/%w without #); post errOk',
+    # (merge-origin9, 2026-11-20) the generated init proofs of origin's prove-errinits (REVIEWED_INIT
+    # below, by file), found here by the term check: each `fmt.Errorf` call of the initializer has a
+    # literal format without `%` and no argument (`#slice.nil`), so Go returns `errors.New(format)`,
+    # an `*errors.errorString` as the model's (rafthttp: 3 calls, ioutil: 2)
+    "Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_lb": 'formats '
+        'without %, no arguments: Go returns errors.New(format), the model',
+    "Perennial.go_etcd_io.etcd.pkg.v3.ioutil.wp_initialize'_lb": 'formats without %, no '
+        'arguments: Go returns errors.New(format), the model',
 }
 
 # generated init proof (file): why its steps into its package initializer's `fmt.Errorf` calls are
