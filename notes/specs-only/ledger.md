@@ -3281,4 +3281,6 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   with `satL` and `fits`. Old → new meaning of `bootstrapContract`'s `wal.bootOk`: the open WAL's files covered by
   `NoIoErr`/`NoMapLockErr` by inode → also its directory's names by path (a covered `open`/`rename` there that can
   succeed does). Alternative: `covP : ∀ p, Sio.path p` (simpler, as `FsNoErr`; claims more than `cut` needs).
-- **Decision.** Pending (wal-fsfix2's stop, 2026-11-20).
+- **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03: the narrow `WalA.covP : ∀ b, Sio.path (Fs.child
+  dir b)`; the forms (the fields in `WalA`, `fits` from the name bound via `hmsL`) accepted. An independent attack on
+  `covP` with `satL`/`fits` before relying on it.

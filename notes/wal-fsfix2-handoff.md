@@ -1,6 +1,29 @@
 # wal-fsfix2 handoff
 
-## START HERE (2026-11-20 a3) — item 2 stopped: the WalH change needs path coverage too
+## START HERE (2026-11-20 a4) — item 2: WalA fields done (satL, fits, covP); next the cut proof
+
+- Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`). Plain build-slot; lean-check `--max-open 2`. Decisions: `questions.md`.
+- **Approved by the user 2026-11-20** and done: `WalA` (`storage/WalRecs.lean`; `WalH` extends it) gained `satL :
+  FsStepSat (NoMapLockErr Sio)`, `fits : Fs.DirFits dir`, `covP : ∀ b, Sio.path (child dir b)`. Allocated at
+  adequacy (`etcdWalArea`: `etcdFsExts_satL`, `dirFits_srvWalDirOf_memberDataDir` from the member name ≤ 200 bytes,
+  `trivial` for `allIo`); `etcd_adequate_members`/`_alloc_members` take trailing `hmsL := by decide` (N variants:
+  `startAddrs_names_len k`). Docstrings old → new: `WalA`, `wal.bootOk`, `walAreaFresh`. Ledger: the two 2026-11-20
+  `cut.specNoErr` entries. Targeted builds green (27 adequacy modules, `RnNewStorage`); no full build yet.
+- Attacks: both found no refutation (first satL/fits; second with covP, its text gaps fixed after build
+  `b6.log`: docstring-only edits since, unbuilt). covP may be relied on.
+- **Next, in order** (coordinator 2026-11-20): (1) one proof of `cut` parametrized by coverage (`WAL__cut.lean`:
+  error arms `⌜err ≠ nil ∧ ¬ cov⌝`, callees at `CalleeCov.lean`'s "at a call" form), `cut.spec` (at `ioNone`) and
+  `cut.specNoErr` (+ `satL`, `fits`, `covP` premises) corollaries; (2) the file pipeline: `filePipeline.Open`'s
+  error comes from the background `alloc` (`filePipeline.run`), so `isFilePipe` must carry `Sio`/coverage/`DirFits`
+  from `newFilePipeline` (Create, openAtIndex): **STOP if it needs more trusted text than covP**; (3) no-error callee
+  specs (missing: truncate, fallocate, OFD lock; reuse `NoErrSpecsOpenFile`/`Rename`/`NoIoErrSpecs`/`NoMapLockErrSpecs`);
+  callees with error arms in `cut`: Truncate, `sync.specCut`, pipeline Open, `saveCrc`, `encode.specG`,
+  `saveState.specPre`, `sync.specPreL`, `Rename.specFileSnc`, `Fsync.specDirS`, `LockFile`; (4) Save/SaveSnapshot/
+  storage specs/`gen-link`; (5) item 3 (`rnNewStorageOk_holds`; no `Create.specNoErr` expected). Merge lean when it
+  moves. Land path and stops as in the brief.
+
+## START HERE (2026-11-20 a3, superseded) — item 2 stopped: the WalH change needs path coverage too
 
 - Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`). Plain build-slot; lean-check `--max-open 2`.

@@ -95,6 +95,7 @@ abbrev etcdWalArea (W : WalFs.WalGS GF) (hsat : Fs.FsStepSat (Fs.NoIoErr allIo))
   r := r
   dir := dir
   fits := hfits
+  covP := fun _ => trivial
 
 /-- The area is durable at the first boot (as WalTester's `dirDurable_boot0`). -/
 theorem walDirDurable_boot0 [W : WalFs.WalGS GF] (r : GoString) :
