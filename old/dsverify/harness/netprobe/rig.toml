@@ -1,0 +1,13 @@
+# The probe under the rig (harness/rig/README.md):
+#   python3 harness/rig/rig.py run harness/netprobe/rig.toml [--random SEED --span 2]
+# The programs use the rig's address of node 1 as a constant (netprobe.ServerAddr).
+module = ".."       # dsverify.lab/harness
+timeout = 30
+
+# Node 0: the client node (netprobe.ClientMain).
+[[node]]
+pkg = "./netprobe/cmd/client"
+
+# Node 1: the server node (netprobe.ServerMain).
+[[node]]
+pkg = "./netprobe/cmd/server"

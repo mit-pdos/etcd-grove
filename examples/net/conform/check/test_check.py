@@ -47,7 +47,7 @@ def read_outcome_enum(st, d, n, r, d2):
         return M.read_outcome(st, d, n, r, d2)
     if M.read_avail(st, d, n, r, d2):
         return True
-    return any(M.read_avail(st, M.TcpDir(d.bytes[:k], CUT), n, r, d2) for k in range(len(d.bytes) + 1))
+    return any(M.read_avail(st, M.NetDir(d.bytes[:k], CUT), n, r, d2) for k in range(len(d.bytes) + 1))
 
 
 def all_dirs(maxlen=3, alphabet=b"ab"):
@@ -55,11 +55,11 @@ def all_dirs(maxlen=3, alphabet=b"ab"):
     for L in range(maxlen + 1):
         for t in itertools.product(alphabet, repeat=L):
             for s in (OPEN, FIN, CUT):
-                out.append(M.TcpDir(bytes(t), s))
+                out.append(M.NetDir(bytes(t), s))
     return out
 
 
-ENDS = [M.TcpEnd(c, r, w) for c in (False, True) for r in (False, True) for w in (False, True)]
+ENDS = [M.NetEnd(c, r, w) for c in (False, True) for r in (False, True) for w in (False, True)]
 READ_RESULTS = [M.R_BYTES(b""), M.R_BYTES(b"a"), M.R_BYTES(b"ab"), M.R_BYTES(b"b"), M.R_EOF,
                 M.R_ERR(M.SYS), M.R_ERR(M.TIMEOUT), M.R_ERR(M.CLOSED)]
 
@@ -79,35 +79,35 @@ class ModelTest(unittest.TestCase):
         # Tests.lean: TestReadPartial, its excluded twin, in-order delivery, the empty read
         st0 = M.END_FRESH
         b3 = b"abc"
-        self.assertTrue(M.read_outcome(st0, M.TcpDir(b3, OPEN), 2, M.R_BYTES(b"a"), M.TcpDir(b"bc", OPEN)))
-        self.assertFalse(M.read_outcome(st0, M.TcpDir(b3, OPEN), 1, M.R_BYTES(b"ab"), M.TcpDir(b"c", OPEN)))
-        self.assertFalse(M.read_outcome(st0, M.TcpDir(b3, OPEN), 3, M.R_BYTES(b"b"), M.TcpDir(b"ac", OPEN)))
+        self.assertTrue(M.read_outcome(st0, M.NetDir(b3, OPEN), 2, M.R_BYTES(b"a"), M.NetDir(b"bc", OPEN)))
+        self.assertFalse(M.read_outcome(st0, M.NetDir(b3, OPEN), 1, M.R_BYTES(b"ab"), M.NetDir(b"c", OPEN)))
+        self.assertFalse(M.read_outcome(st0, M.NetDir(b3, OPEN), 3, M.R_BYTES(b"b"), M.NetDir(b"ac", OPEN)))
         stR = st0._replace(rdl=True)
-        self.assertTrue(M.read_outcome(stR, M.TcpDir(b3, OPEN), 0, M.R_BYTES(b""), M.TcpDir(b3, OPEN)))
+        self.assertTrue(M.read_outcome(stR, M.NetDir(b3, OPEN), 0, M.R_BYTES(b""), M.NetDir(b3, OPEN)))
         # a timeout needs the deadline
-        self.assertFalse(M.read_outcome(st0, M.TcpDir(b3, OPEN), 3, M.R_ERR(M.TIMEOUT), M.TcpDir(b3, OPEN)))
+        self.assertFalse(M.read_outcome(st0, M.NetDir(b3, OPEN), 3, M.R_ERR(M.TIMEOUT), M.NetDir(b3, OPEN)))
         # a break keeps a prefix; EOF after it
-        self.assertTrue(M.read_outcome(st0, M.TcpDir(b3, OPEN), 3, M.R_BYTES(b"a"), M.TcpDir(b"b", CUT)))
-        self.assertTrue(M.read_outcome(st0, M.TcpDir(b3, OPEN), 3, M.R_EOF, M.TcpDir(b"", CUT)))
+        self.assertTrue(M.read_outcome(st0, M.NetDir(b3, OPEN), 3, M.R_BYTES(b"a"), M.NetDir(b"b", CUT)))
+        self.assertTrue(M.read_outcome(st0, M.NetDir(b3, OPEN), 3, M.R_EOF, M.NetDir(b"", CUT)))
 
     def test_write_examples(self):
         st0, stW, stC = M.END_FRESH, M.END_FRESH._replace(wdl=True), M.END_FRESH._replace(closed=True)
         # one step of a Write (rs: what remains of its bytes)
-        o = M.TcpDir(b"x", OPEN)
-        self.assertTrue(M.write_outcome(st0, o, b"ab", 2, None, M.TcpDir(b"xab", OPEN)))  # finishes
-        self.assertTrue(M.write_outcome(st0, o, b"ab", 1, None, M.TcpDir(b"xa", OPEN)))   # goes on
-        self.assertFalse(M.write_outcome(st0, o, b"ab", 3, None, M.TcpDir(b"xab", OPEN)))
-        self.assertTrue(M.write_outcome(st0, o, b"ab", 0, M.SYS, M.TcpDir(b"x", CUT)))
-        self.assertFalse(M.write_outcome(st0, o, b"ab", 1, M.SYS, M.TcpDir(b"xa", CUT)))  # nothing appended
+        o = M.NetDir(b"x", OPEN)
+        self.assertTrue(M.write_outcome(st0, o, b"ab", 2, None, M.NetDir(b"xab", OPEN)))  # finishes
+        self.assertTrue(M.write_outcome(st0, o, b"ab", 1, None, M.NetDir(b"xa", OPEN)))   # goes on
+        self.assertFalse(M.write_outcome(st0, o, b"ab", 3, None, M.NetDir(b"xab", OPEN)))
+        self.assertTrue(M.write_outcome(st0, o, b"ab", 0, M.SYS, M.NetDir(b"x", CUT)))
+        self.assertFalse(M.write_outcome(st0, o, b"ab", 1, M.SYS, M.NetDir(b"xa", CUT)))  # nothing appended
         self.assertFalse(M.write_outcome(st0, o, b"ab", 0, M.TIMEOUT, o))
         self.assertTrue(M.write_outcome(stW, o, b"ab", 0, M.TIMEOUT, o))
         self.assertFalse(M.write_outcome(st0, o, b"ab", 0, M.CLOSED, o))  # D15 is gone: a Close first
         self.assertTrue(M.write_outcome(stC, o, b"ab", 0, M.CLOSED, o))
-        self.assertFalse(M.write_outcome(stC, o, b"ab", 2, None, M.TcpDir(b"xab", OPEN)))
-        f = M.TcpDir(b"", FIN)
+        self.assertFalse(M.write_outcome(stC, o, b"ab", 2, None, M.NetDir(b"xab", OPEN)))
+        f = M.NetDir(b"", FIN)
         self.assertTrue(M.write_outcome(st0, f, b"ab", 0, M.SYS, f))
         self.assertFalse(M.write_outcome(st0, f, b"ab", 2, None, f))   # the corner: only on a cut one
-        c = M.TcpDir(b"", CUT)
+        c = M.NetDir(b"", CUT)
         self.assertTrue(M.write_outcome(st0, c, b"ab", 2, None, c))
         self.assertTrue(M.write_outcome(st0, c, b"ab", 0, M.SYS, c))
         # v3.2 (D22): a step that counts none of a non-empty rs is a wait (a stutter), no outcome;
@@ -121,12 +121,12 @@ class ModelTest(unittest.TestCase):
 
     def test_close_and_closewrite(self):
         st0 = M.END_FRESH
-        o = M.TcpDir(b"x", OPEN)
-        self.assertTrue(M.close_outcome(st0, o, None, st0._replace(closed=True), M.TcpDir(b"x", FIN)))
+        o = M.NetDir(b"x", OPEN)
+        self.assertTrue(M.close_outcome(st0, o, None, st0._replace(closed=True), M.NetDir(b"x", FIN)))
         self.assertFalse(M.close_outcome(st0, o, M.SYS, st0, o))
         stC = st0._replace(closed=True)
         self.assertTrue(M.close_outcome(stC, o, M.CLOSED, stC, o))
-        self.assertTrue(M.close_write_outcome(st0, M.TcpDir(b"", CUT), None, M.TcpDir(b"", CUT)))
+        self.assertTrue(M.close_write_outcome(st0, M.NetDir(b"", CUT), None, M.NetDir(b"", CUT)))
         self.assertTrue(M.close_write_outcome(st0, o, M.SYS, o))
 
     def test_listen_at(self):
@@ -149,7 +149,7 @@ class ModelTest(unittest.TestCase):
 
     def test_dial_accept_steps(self):
         a = b"127.0.0.1:7101"
-        g = M.TcpGlobal({a: b"s"}, {})
+        g = M.NetGlobal({a: b"s"}, {})
         g1 = g.set_conn(1, M.conn_fresh(a))
         self.assertTrue(M.dial_step(a, g, (M.end_id(1, False), 0), g1))
         self.assertTrue(M.dial_step(a, g, M.fail_v(M.SYS), g))
@@ -197,7 +197,7 @@ def eager_wstep(c, s, rs, k, res):
     """Every model state one Write step (progress k, or a failure) allows from c."""
     d = c[2 + s]
     out = set()
-    for d2 in {d, M.TcpDir(d.bytes + rs[:k], d.status), d._replace(status=CUT)}:
+    for d2 in {d, M.NetDir(d.bytes + rs[:k], d.status), d._replace(status=CUT)}:
         if M.write_outcome(c[s], d, rs, k, res, d2):
             out.add(_sd(c, s, d2))
     return out
@@ -249,7 +249,7 @@ def eager_step(c, op, r):
         for i in range(len(b) + 1):
             for j in range(i, len(b) + 1):
                 for stt in (OPEN, FIN, CUT):
-                    cands.add(M.TcpDir(b[i:j], stt))
+                    cands.add(M.NetDir(b[i:j], stt))
         for d2 in cands:
             if read_outcome_enum(c[s], d, op[2], r, d2):
                 out.add(_sd(c, 1 - s, d2))
@@ -313,6 +313,11 @@ def eager_admits(ops, init):
             if op[0] == "W":
                 branches = {}
                 for c, pr in states:
+                    # D25: no step while another Write of the end is between its first step
+                    # and its last (it holds the end's write lock)
+                    if any(j != i and not done >> j & 1 and ops[j][0][0] == "W" and
+                           ops[j][0][1] == op[1] and pr[j] > 0 for j in range(n)):
+                        continue
                     for label, fin, np_, cs in eager_write_moves(c, op[1], op[2], pr[i], r):
                         pr2 = pr[:i] + (np_,) + pr[i + 1:]
                         b = branches.setdefault((label, fin), set())
@@ -353,15 +358,12 @@ def lazy_admits(ops, init_lazy):
         elif kind == "W":
             w = len(W)
             W.append(op[2])
-            hi = ret if ret is not None else float("inf")
-            split = any(j != i and o[0][0] == "W" and o[0][1] == s and o[2] <= hi and
-                        (o[3] if o[3] is not None else float("inf")) >= call for j, o in enumerate(ops))
             if r is PENDING:
-                step = (lambda st, dn, s=s, j=i, w=w, L=len(op[2]), sp=split:
-                        Z.write_pending(st, s, j, w, L, sp))
+                step = (lambda st, dn, s=s, j=i, w=w, L=len(op[2]):
+                        Z.write_pending(st, s, j, w, L, dn))
             else:
-                step = (lambda st, dn, s=s, j=i, w=w, L=len(op[2]), r=r, sp=split:
-                        Z.write(st, s, j, w, L, r[0], r[1], sp))
+                step = (lambda st, dn, s=s, j=i, w=w, L=len(op[2]), r=r:
+                        Z.write(st, s, j, w, L, r[0], r[1], dn))
         elif kind == "C":
             step = (lambda st, dn, s=s: Z.close_pending(st, s)) if r is PENDING else \
                 (lambda st, dn, s=s, r=r: Z.close(st, s, r))
@@ -467,7 +469,7 @@ class LazyVsEager(unittest.TestCase):
         for case in range(N):
             ops = gen(rng)
             abandoned = rng.random() < 0.15
-            init = (M.END_FRESH._replace(closed=True), M.END_FRESH, M.TcpDir(b"", FIN), M.DIR_FRESH) \
+            init = (M.END_FRESH._replace(closed=True), M.END_FRESH, M.NetDir(b"", FIN), M.DIR_FRESH) \
                 if abandoned else (M.END_FRESH, M.END_FRESH, M.DIR_FRESH, M.DIR_FRESH)
             hist = realize(rng, ops, init)
             e = eager_admits(hist, init)
@@ -629,14 +631,27 @@ class Positive(Base):
         self.assertEqual([(x["res"]["k"], x["res"]["code"]) for x in parts], [(3, 0), (0, 2)])
         self.assertEqual(parts[1]["data"], b"defgh".hex())
 
+    def test_overlapping_writes_contiguous(self):
+        # two Writes of one end overlapping in time: each one's bytes contiguous, in either order
+        # (D25, Go's write lock); their steps never interleave
+        for got in (b"AAAABB", b"BBAAAA"):
+            with self.subTest(got=got):
+                self.tr = Trace()
+                d, a = setup_conn(self.tr)
+                d.write(10, 30, "c1", b"AAAA", g=1)
+                d.write(11, 29, "c1", b"BB", g=2)
+                a.read(31, 32, "c1", 10, got)
+                self.admitted()
+
     def test_overlapping_writes_interleaved(self):
-        # two Writes of one end overlapping in time: the model lets their steps interleave
-        # (Go's fdMutex does not, but the model is what is checked)
+        # the same, interleaved: excluded since v3.3 (D25: a Write holds its end's write lock from
+        # its first step to its last, as Go's poll.FD.Write holds fdMutex's write lock)
         d, a = setup_conn(self.tr)
         d.write(10, 30, "c1", b"AAAA", g=1)
         d.write(11, 29, "c1", b"BB", g=2)
         a.read(31, 32, "c1", 10, b"AABBAA")
-        self.admitted()
+        r = self.check()
+        self.assertEqual(r["verdict"], "NOT ADMITTED", checker.report(r, verbose=True))
 
     def test_dialtimeout_abandoned(self):
         # D16: a DialTimeout fails (either timeout shape), and the listener accepts its connection,
@@ -1092,7 +1107,7 @@ class Sample(unittest.TestCase):
                 self.assertEqual(r["verdict"], "ADMITTED", checker.report(r, verbose=True))
                 self.assertIsNotNone(r["witness"])
                 n += 1
-        self.assertEqual(n, 14)
+        self.assertEqual(n, 15)
 
     def test_sample_mutants_rejected(self):
         files = sorted(glob.glob(os.path.join(TESTDATA, "*.tar.gz")))

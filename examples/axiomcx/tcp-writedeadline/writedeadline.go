@@ -1,5 +1,5 @@
-// Package tcpwritedeadline is a counterexample to the TCP extension's D2/D5
-// (GooseLang/Ext/Tcp/Impl.lean, WriteOutcome; notes/axiom-review/tcp-semantics.md,
+// Package tcpwritedeadline is a counterexample to the net extension's D2/D5
+// (GooseLang/Ext/Net/Impl.lean, WriteOutcome; notes/axiom-review/tcp-semantics.md,
 // "v3"): a Write is one step of the semantics, which may return a timeout only
 // if the end's write deadline is set at that step; but Go's Write is a loop of
 // write(2) calls, and a deadline set by another goroutine while it blocks,
@@ -23,7 +23,7 @@
 // about 99 of 100 runs; in the others the new connection is reset, an
 // *os.SyscallError). The semantics: the Write's error is never a timeout, its
 // Err is an *os.SyscallError or net.ErrClosed, whose Timeout() is false, so
-// Main never panics (NetTcp/Proof/github_com/mit_pdos/etcd_grove/examples/
+// Main never panics (Net/Proof/github_com/mit_pdos/etcd_grove/examples/
 // axiomcx/tcp_writedeadline/Main.lean).
 package tcpwritedeadline
 

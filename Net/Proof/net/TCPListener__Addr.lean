@@ -1,0 +1,46 @@
+/-
+The proof of `Net/Spec/net/TCPListener__Addr.lean`: the stored address (`TCPListener.Addr.impl`).
+-/
+module
+
+public import Net.Spec.net.TCPListener__Addr
+public import Net.Proof.net.Errors
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+
+namespace net
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [go.BasicIntoValInj]
+
+theorem TCPListener.Addr.wp_proof : TCPListener.Addr.spec (GF := GF) (hG := hG) := by
+  intro t l x
+  unfold lisAt
+  wp_start as ⟨%nw, %Hnw, #Ht, #Hx, %hl0⟩
+  (try wp_method_call)
+  (try unfold TCPListener.Addr.impl)
+  (try rw [TCPListener_ty_eq])
+  ihave #Ht2 := Ht
+  iStructNamed Ht2
+  (try iStructNamed conn)
+  wp_auto
+  (try (rw [show decide (l = W64 0) = false by simpa using hl0]; wp_auto))
+  iapply HΦ
+  itrivial
+
+end proof
+
+end net
+end Perennial

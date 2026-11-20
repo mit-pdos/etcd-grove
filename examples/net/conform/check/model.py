@@ -1,5 +1,5 @@
-"""A literal transcription of the TCP extension's semantics, `GooseLang/Ext/Tcp/Impl.lean` (v3,
-D1-D22, v3.2), and of `Deploy.lean`'s `PlanWellFormed` (D20). NOT PROVED to agree with the Lean: each
+"""A literal transcription of the net extension's semantics, `GooseLang/Ext/Net/Impl.lean` (v3,
+D1-D25, v3.3), and of `Deploy.lean`'s `PlanWellFormed` (D20). NOT PROVED to agree with the Lean: each
 definition names the Lean definition it transcribes (`[Lean: Name]`), keeps its case order and its
 conjuncts, and says where it departs from a word-for-word reading. Read it side by side with
 Impl.lean; the README's table maps every Lean name to its function here.
@@ -13,7 +13,7 @@ witness (`replay.py`) calls these predicates on every step: they are what the Le
 check.
 
 Representation: a `GoString` and a `List w8` are Python `bytes`; a `GMap` a dict (never mutated:
-every update copies); `Bool` a bool; `Option TcpErr` `None` or one of the kind strings; a `w64`
+every update copies); `Bool` a bool; `Option NetErr` `None` or one of the kind strings; a `w64`
 an int in [0, 2^64).
 """
 
@@ -24,84 +24,98 @@ W64 = 1 << 64
 # ---------------------------------------------------------------------------------------------
 # States
 
-OPEN, FIN, CUT = "open", "fin", "cut"  # [Lean: TcpStatus] .open .fin .cut
+OPEN, FIN, CUT = "open", "fin", "cut"  # [Lean: NetStatus] .open .fin .cut
 
 
-class TcpDir(NamedTuple):
-    """[Lean: TcpDir] bytes written and not yet read, oldest first; status."""
+class NetDir(NamedTuple):
+    """[Lean: NetDir] bytes written and not yet read, oldest first; status."""
     bytes: bytes
     status: str
 
 
-DIR_FRESH = TcpDir(b"", OPEN)  # [Lean: TcpDir.fresh]
+DIR_FRESH = NetDir(b"", OPEN)  # [Lean: NetDir.fresh]
 
 
-class TcpEnd(NamedTuple):
-    """[Lean: TcpEnd] closed, read deadline set, write deadline set."""
+class NetEnd(NamedTuple):
+    """[Lean: NetEnd] closed, read deadline set, write deadline set."""
     closed: bool
     rdl: bool
     wdl: bool
 
 
-END_FRESH = TcpEnd(False, False, False)  # [Lean: TcpEnd.fresh]
+END_FRESH = NetEnd(False, False, False)  # [Lean: NetEnd.fresh]
 
 
-class TcpConn(NamedTuple):
-    """[Lean: TcpConn] addr, accepted, dEnd (side False = 0, the dialer's), aEnd (side True = 1),
-    up (from the dialer to the acceptor), down (from the acceptor to the dialer)."""
+class NetConn(NamedTuple):
+    """[Lean: NetConn] addr, accepted, dEnd (side False = 0, the dialer's), aEnd (side True = 1),
+    up (from the dialer to the acceptor), down (from the acceptor to the dialer), and (v3.3, D25)
+    each end's write lock (dLock, aLock: held by a Write of that end between its first step and
+    its last)."""
     addr: bytes
     accepted: bool
-    dEnd: TcpEnd
-    aEnd: TcpEnd
-    up: TcpDir
-    down: TcpDir
+    dEnd: NetEnd
+    aEnd: NetEnd
+    up: NetDir
+    down: NetDir
+    dLock: bool = False
+    aLock: bool = False
 
 
 def conn_fresh(a):
-    """[Lean: TcpConn.fresh]"""
-    return TcpConn(a, False, END_FRESH, END_FRESH, DIR_FRESH, DIR_FRESH)
+    """[Lean: NetConn.fresh]"""
+    return NetConn(a, False, END_FRESH, END_FRESH, DIR_FRESH, DIR_FRESH)
 
 
 def conn_abandoned(a):
-    """[Lean: TcpConn.abandoned] D16: pending, the dialer's end closed, its direction shut and
+    """[Lean: NetConn.abandoned] D16: pending, the dialer's end closed, its direction shut and
     empty."""
-    return TcpConn(a, False, END_FRESH._replace(closed=True), END_FRESH, TcpDir(b"", FIN), DIR_FRESH)
+    return NetConn(a, False, END_FRESH._replace(closed=True), END_FRESH, NetDir(b"", FIN), DIR_FRESH)
 
 
 def end_st(c, s):
-    """[Lean: TcpConn.endSt] (`s` a bool: False the dialer, True the acceptor)."""
+    """[Lean: NetConn.endSt] (`s` a bool: False the dialer, True the acceptor)."""
     return c.aEnd if s else c.dEnd
 
 
 def out(c, s):
-    """[Lean: TcpConn.out] the direction from the end `s` (the one it writes)."""
+    """[Lean: NetConn.out] the direction from the end `s` (the one it writes)."""
     return c.down if s else c.up
 
 
 def set_end(c, s, st):
-    """[Lean: TcpConn.setEnd]"""
+    """[Lean: NetConn.setEnd]"""
     return c._replace(aEnd=st) if s else c._replace(dEnd=st)
 
 
 def set_out(c, s, d):
-    """[Lean: TcpConn.setOut]"""
+    """[Lean: NetConn.setOut]"""
     return c._replace(down=d) if s else c._replace(up=d)
 
 
-class TcpGlobal(NamedTuple):
-    """[Lean: TcpGlobal] plan (address -> host), conns (number -> TcpConn)."""
+def lock(c, s):
+    """[Lean: NetConn.lock] D25."""
+    return c.aLock if s else c.dLock
+
+
+def set_lock(c, s, b):
+    """[Lean: NetConn.setLock] D25."""
+    return c._replace(aLock=b) if s else c._replace(dLock=b)
+
+
+class NetGlobal(NamedTuple):
+    """[Lean: NetGlobal] plan (address -> host), conns (number -> NetConn)."""
     plan: dict
     conns: dict
 
     def set_conn(self, c, cn):
-        """[Lean: TcpGlobal.setConn]"""
+        """[Lean: NetGlobal.setConn]"""
         conns = dict(self.conns)
         conns[c] = cn
-        return TcpGlobal(self.plan, conns)
+        return NetGlobal(self.plan, conns)
 
 
-class TcpLocal(NamedTuple):
-    """[Lean: TcpLocal] host; lis (listener id -> (address, open))."""
+class NetLocal(NamedTuple):
+    """[Lean: NetLocal] host; lis (listener id -> (address, open))."""
     host: bytes
     lis: dict
 
@@ -125,8 +139,8 @@ def decode_end(e):
 # ---------------------------------------------------------------------------------------------
 # Errors (D14)
 
-CLOSED, TIMEOUT, SYS = "closed", "timeout", "sys"  # [Lean: TcpErr]
-ERR_CODE = {CLOSED: 1, TIMEOUT: 2, SYS: 3}         # [Lean: TcpErr.code]
+CLOSED, TIMEOUT, SYS = "closed", "timeout", "sys"  # [Lean: NetErr]
+ERR_CODE = {CLOSED: 1, TIMEOUT: 2, SYS: 3}         # [Lean: NetErr.code]
 CODE_ERR = {v: k for k, v in ERR_CODE.items()}
 EOF_CODE = 4                                        # [Lean: readRes] EOF's code
 
@@ -194,7 +208,7 @@ def read_outcome(st, d, n, r, d2, keep=None):
             return True
         # the connection breaks now
         ks = [keep] if keep is not None else _cut_keep_candidates(d, r, d2)
-        return any(k <= len(d.bytes) and read_avail(st, TcpDir(d.bytes[:k], CUT), n, r, d2) for k in ks)
+        return any(k <= len(d.bytes) and read_avail(st, NetDir(d.bytes[:k], CUT), n, r, d2) for k in ks)
 
 
 def write_outcome(st, d, rs, k, res, d2):
@@ -225,7 +239,7 @@ def write_outcome(st, d, rs, k, res, d2):
 
 
 def shut(d):
-    """[Lean: TcpDir.shut]"""
+    """[Lean: NetDir.shut]"""
     return d._replace(status=FIN) if d.status == OPEN else d
 
 
@@ -249,6 +263,42 @@ def deadline_outcome(st, kind, set_, res, st2):
         return res == CLOSED and st2 == st
     return res is None and st2 == st._replace(rdl=st.rdl if kind == 2 else set_,
                                               wdl=st.wdl if kind == 1 else set_)
+
+
+def keep_idle_valid(d):
+    """[Lean: keepIdleValid d] D24: Go's setKeepAliveIdle (tcpsockopt_unix.go) of the
+    time.Duration `d` (an int64, as a w64): None for d < 0 (no system call); else TCP_KEEPIDLE of
+    int32((d' + 1s - 1) / 1s), d' = 15 s for d = 0, valid iff in 1..32767 (Linux's
+    MAX_TCP_KEEPIDLE). Go's int64 arithmetic wraps, its division truncates toward zero."""
+    def s64(x):
+        x %= W64
+        return x - W64 if x >= W64 // 2 else x
+    di = s64(d)
+    if di < 0:
+        return None
+    if di == 0:
+        di = 15 * 10 ** 9
+    t = s64(di + 10 ** 9 - 1)
+    q = abs(t) // 10 ** 9 * (1 if t >= 0 else -1)
+    n = q % (1 << 32)
+    n = n - (1 << 32) if n >= 1 << 31 else n
+    return 1 <= n <= 32767
+
+
+def sock_opt_valid(kind, x):
+    """[Lean: sockOptValid kind x] D24: kind 1 is TCP_KEEPIDLE of the duration x
+    (keep_idle_valid), any other kind an option Linux never refuses (True)."""
+    return keep_idle_valid(x) if kind == 1 else True
+
+
+def sock_opt_outcome(st, valid, res):
+    """[Lean: SockOptOutcome st valid res] D24: no system call (None): success; else `closed` on a
+    closed end, success for a valid value, `sys` (EINVAL) for another."""
+    if valid is None:
+        return res is None
+    if st.closed:
+        return res == CLOSED
+    return res is None if valid else res == SYS
 
 
 def time_is_zero(wall, ext):
@@ -306,9 +356,9 @@ def listen_resolve(plan, host, a):
 # ---------------------------------------------------------------------------------------------
 # The step relation. An expression e' is represented by its value: a pair (word, code) for the
 # operations that return one (`PairV`), a code for those that return a word, a ReadRes for Read.
-# A stutter (`TcpStep`'s other case, D22: `e' = op`, nothing changed) is not a step of a trace: a
+# A stutter (`NetStep`'s other case, D22: `e' = op`, nothing changed) is not a step of a trace: a
 # call that waits leaves none, so none is transcribed; nor are the panics of invalid uses
-# (`IsTcpStep`'s `OrInvalid`), which no traced call makes (an argument outside them has no step
+# (`IsNetStep`'s `OrInvalid`), which no traced call makes (an argument outside them has no step
 # here).
 
 def read_step(c, s, n, g, r, g2, keep=None):
@@ -325,15 +375,24 @@ def read_step(c, s, n, g, r, g2, keep=None):
             g2 == g.set_conn(c, set_out(cn, not s, d2)))
 
 
-def write_step(c, s, bs, g, k, res, g2):
-    """[Lean: WriteStep c s bs g e' g'] e' = (k, errCode res)."""
+def write_last(rs, k, res):
+    """[Lean: writeLast rs k res] D25: the step ends its Write's loop (it fails, or it writes
+    every byte left)."""
+    return res is not None or k == len(rs)
+
+
+def write_step(c, s, bs, first, g, k, res, g2):
+    """[Lean: WriteStep c s bs first g e' g'] e' = (k, errCode res). D25: a Write's first step
+    (`first`) takes the end's write lock, which must be free (else the step waits: a stutter, no
+    outcome), a later one holds it; the lock is held after the step unless it is the loop's last."""
     cn = g.conns.get(c)
     cn2 = g2.conns.get(c)
     if cn is None or cn2 is None:
         return False
     d2 = out(cn2, s)
-    return (0 <= k < W64 and write_outcome(end_st(cn, s), out(cn, s), bs, k, res, d2) and
-            g2 == g.set_conn(c, set_out(cn, s, d2)))
+    return (lock(cn, s) == (not first) and 0 <= k < W64 and
+            write_outcome(end_st(cn, s), out(cn, s), bs, k, res, d2) and
+            g2 == g.set_conn(c, set_lock(set_out(cn, s, d2), s, not write_last(bs, k, res))))
 
 
 def close_step(c, s, g, res, g2):
@@ -425,7 +484,7 @@ def listen_step(a, g, L, e2, L2):
         return False
     for l in L2.lis:
         if (l != 0 and l not in L.lis and e2 == (l, 0) and
-                L2 == TcpLocal(L.host, {**L.lis, l: (a0, True)})):
+                L2 == NetLocal(L.host, {**L.lis, l: (a0, True)})):
             return True
     return False
 
@@ -437,11 +496,11 @@ def lis_close_outcome(is_open, res, is_open2):
     return res == CLOSED and is_open2 is False
 
 
-def tcp_step(op, v, L, g, e2, L2, g2, keep=None):
-    """[Lean: TcpStep op v h L g e' h' L' g', its outcome rules on valid arguments: IsTcpStep's
+def net_step(op, v, L, g, e2, L2, g2, keep=None):
+    """[Lean: NetStep op v h L g e' h' L' g', its outcome rules on valid arguments: IsNetStep's
     steps, not the stutter nor the panics, D22] (the heap, unchanged, left out; `v` the argument as
     a Python value: Listen, Dial an address; Accept, LisClose a listener id; Read (e, n); Write
-    (e, bs); Close, CloseWrite e; SetDeadline (e, kind, wall, ext)). The operations "AnyBool",
+    (e, bs, first); Close, CloseWrite e; SetDeadline (e, kind, wall, ext); SetSockopt (e, kind, x)). The operations "AnyBool",
     "AnyString", "AnyW64", "AnyErrno" are not steps of a trace (they are the trusted models'
     choices of the parts of a Go value the model does not explain) and are not transcribed."""
     if op == "Listen":
@@ -460,7 +519,7 @@ def tcp_step(op, v, L, g, e2, L2, g2, keep=None):
         o2 = L2.lis[l][1]
         res = None if e2 == 0 else CODE_ERR.get(e2)
         return (g2 == g and lis_close_outcome(o, res, o2) and e2 == err_code(res) and
-                L2 == TcpLocal(L.host, {**L.lis, l: (a, o2)}))
+                L2 == NetLocal(L.host, {**L.lis, l: (a, o2)}))
     if op == "Dial":
         return dial_step(v, g, e2, g2) and L2 == L
     if op == "Read":
@@ -468,11 +527,18 @@ def tcp_step(op, v, L, g, e2, L2, g2, keep=None):
         c, s = decode_end(e)
         return is_end(e, c, s) and read_step(c, s, n, g, e2, g2, keep) and L2 == L
     if op == "Write":
-        e, bs = v
+        e, bs, first = v
         c, s = decode_end(e)
         k, code = e2
         res = None if code == 0 else CODE_ERR.get(code, "?")
-        return is_end(e, c, s) and write_step(c, s, bs, g, k, res, g2) and L2 == L
+        return is_end(e, c, s) and write_step(c, s, bs, first, g, k, res, g2) and L2 == L
+    if op == "SetSockopt":
+        e, kind, x = v
+        c, s = decode_end(e)
+        cn = g.conns.get(c)
+        res = None if e2 == 0 else CODE_ERR.get(e2, "?")
+        return (is_end(e, c, s) and cn is not None and g2 == g and L2 == L and
+                sock_opt_outcome(end_st(cn, s), sock_opt_valid(kind, x), res))
     if op in ("Close", "CloseWrite"):
         c, s = decode_end(v)
         res = None if e2 == 0 else CODE_ERR.get(e2, "?")
@@ -488,8 +554,8 @@ def tcp_step(op, v, L, g, e2, L2, g2, keep=None):
 
 
 def crash(L, L2):
-    """[Lean: tcp_semantics.crash] D10: the host kept, the listeners dropped."""
-    return L2 == TcpLocal(L.host, {})
+    """[Lean: net_semantics.crash] D10: the host kept, the listeners dropped."""
+    return L2 == NetLocal(L.host, {})
 
 
 # ---------------------------------------------------------------------------------------------
