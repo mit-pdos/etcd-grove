@@ -78,6 +78,10 @@ structure cfgOk (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Conf
   utf1 : utf8Valid cfg.Name1'
   utf2 : utf8Valid cfg.Name2'
   utf3 : utf8Valid cfg.Name3'
+  -- (wal-fsfix, 2026-11-20) the names at most 200 bytes: the members' data directories fit
+  len1 : cfg.Name1'.length ≤ 200
+  len2 : cfg.Name2'.length ≤ 200
+  len3 : cfg.Name3'.length ≤ 200
   p12 : cfg.Peer1' ≠ cfg.Peer2'
   p13 : cfg.Peer1' ≠ cfg.Peer3'
   p23 : cfg.Peer2' ≠ cfg.Peer3'
