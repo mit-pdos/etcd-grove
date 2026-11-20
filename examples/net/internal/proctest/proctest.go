@@ -8,10 +8,10 @@
 // nothing outside the system uses its addresses); it waits for a listener by
 // reading the kernel's socket table, /proc/net/tcp.
 //
-// With NETTCP_CONFORM=1 (conformance tracing, examples/net/conform/README.md), Build
+// With NET_CONFORM=1 (conformance tracing, examples/net/conform/README.md), Build
 // builds each command with the tracer's overlay of Go's net package, and Start and Run give
-// each node's process NETTCP_NODE (the command's name) and NETTCP_TRACE_DIR (the test's
-// trace directory, $NETTCP_TRACE_DIR/<package>/<test>, or under a temporary directory), and
+// each node's process NET_NODE (the command's name) and NET_TRACE_DIR (the test's
+// trace directory, $NET_TRACE_DIR/<package>/<test>, or under a temporary directory), and
 // record its start, kill and exit in the directory's driver file (conform/events). Nothing
 // changes otherwise.
 package proctest

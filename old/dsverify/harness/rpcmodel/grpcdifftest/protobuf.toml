@@ -1,0 +1,106 @@
+# The difftest's [protobuf] (harness/kitgen/pbgen.py's format, as in a kit.toml): every message
+# type of pb (arith.pb.go), qp/raxos (QuePaxa's consensus.pb.go) and qp/client (QuePaxa's
+# client.pb.go), and of codec/xpb (x.pb.go: the field kinds the others lack). gen.py generates
+# the codec into codec/ from it; codec/pb_gen_test.go checks it against the messages'
+# descriptors and the real module. Started from `pbgen.py --from-pb pb/arith.pb.go
+# qp/raxos/consensus.pb.go qp/client/client.pb.go codec/xpb/x.pb.go --import ...`.
+[protobuf]
+imports = { client = "dsverify.lab/grpcdifftest/qp/client", pb = "dsverify.lab/grpcdifftest/pb", raxos = "dsverify.lab/grpcdifftest/qp/raxos", xpb = "dsverify.lab/grpcdifftest/codec/xpb" }
+enums = ["pb.Op", "xpb.Color"]
+[protobuf.messages]
+"pb.Args" = [["A", 1, "int64"],
+    ["B", 2, "int64"],
+    ["Id", 3, "uint64"],
+    ["Op", 4, "pb.Op"],
+    ["Tag", 5, "string"],
+    ["Blob", 6, "bytes"],
+    ["Flag", 7, "bool"],
+    ["Xs", 8, "[]int64"],
+    ["Names", 9, "[]string"],
+    ["Inner", 10, "pb.Inner"],
+    ["Inners", 11, "[]pb.Inner"],
+    ["Small", 12, "int32"],
+    ["Usmall", 13, "uint32"],
+    ["Big", 536870911, "int64"]]
+"pb.Inner" = [["K", 1, "string"],
+    ["V", 2, "int64"],
+    ["Sub", 3, "pb.Inner"]]
+"pb.Reply" = [["C", 1, "int64"],
+    ["Echo", 2, "pb.Args"]]
+"pb.Empty" = []
+"raxos.ProposerMessage" = [["Sender", 1, "int64"],
+    ["Index", 2, "int64"],
+    ["P", 3, "raxos.ProposerMessage_Proposal"],
+    ["S", 4, "int64"],
+    ["DecidedSlots", 5, "[]raxos.ProposerMessage_DecidedSlot"]]
+"raxos.RecorderResponse" = [["S", 1, "int64"],
+    ["F", 2, "raxos.RecorderResponse_Proposal"],
+    ["M", 3, "raxos.RecorderResponse_Proposal"],
+    ["ClientBatchesNotFound", 4, "bool"]]
+"raxos.DecideRequest" = [["Ids", 1, "[]string"]]
+"raxos.DecideResponse" = [["ClientBatches", 1, "[]raxos.DecideResponse_ClientBatch"]]
+"raxos.Decisions" = [["DecidedSlots", 5, "[]raxos.Decisions_DecidedSlot"]]
+"raxos.Empty" = []
+"raxos.ProposerMessage_ClientBatch" = [["Sender", 1, "int64"],
+    ["Messages", 2, "[]raxos.ProposerMessage_ClientBatch_SingleMessage"],
+    ["Id", 3, "string"]]
+"raxos.ProposerMessage_Proposal" = [["Priority", 1, "int64"],
+    ["ProposerId", 2, "int64"],
+    ["ThreadId", 3, "int64"],
+    ["Ids", 4, "[]string"],
+    ["ClientBatches", 5, "[]raxos.ProposerMessage_ClientBatch"]]
+"raxos.ProposerMessage_DecidedSlot" = [["Index", 1, "int64"],
+    ["Ids", 2, "[]string"],
+    ["Proposer", 3, "int64"]]
+"raxos.ProposerMessage_ClientBatch_SingleMessage" = [["Message", 1, "string"]]
+"raxos.RecorderResponse_Proposal" = [["Priority", 1, "int64"],
+    ["ProposerId", 2, "int64"],
+    ["ThreadId", 3, "int64"],
+    ["Ids", 4, "[]string"]]
+"raxos.DecideResponse_ClientBatch" = [["Sender", 1, "int64"],
+    ["Messages", 2, "[]raxos.DecideResponse_ClientBatch_SingleMessage"],
+    ["Id", 3, "string"]]
+"raxos.DecideResponse_ClientBatch_SingleMessage" = [["Message", 1, "string"]]
+"raxos.Decisions_DecidedSlot" = [["Index", 1, "int64"],
+    ["Ids", 2, "[]string"],
+    ["Proposer", 3, "int64"]]
+"client.ClientBatch" = [["Sender", 1, "int64"],
+    ["Messages", 2, "[]client.ClientBatch_SingleMessage"],
+    ["Id", 3, "string"]]
+"client.ClientStatus" = [["Sender", 1, "int64"],
+    ["Operation", 2, "int64"],
+    ["Message", 3, "string"]]
+"client.ClientBatch_SingleMessage" = [["Message", 1, "string"]]
+"xpb.Kinds" = [["I32", 1, "int32"],
+    ["Ri32", 16, "[]int32"],
+    ["I64", 2, "int64"],
+    ["Ri64", 17, "[]int64"],
+    ["U32", 3, "uint32"],
+    ["Ru32", 18, "[]uint32"],
+    ["U64", 4, "uint64"],
+    ["Ru64", 19, "[]uint64"],
+    ["S32", 5, "sint32"],
+    ["Rs32", 20, "[]sint32"],
+    ["S64", 6, "sint64"],
+    ["Rs64", 21, "[]sint64"],
+    ["F32", 7, "fixed32"],
+    ["Rf32", 22, "[]fixed32"],
+    ["F64", 8, "fixed64"],
+    ["Rf64", 23, "[]fixed64"],
+    ["Sf32", 9, "sfixed32"],
+    ["Rsf32", 24, "[]sfixed32"],
+    ["Sf64", 10, "sfixed64"],
+    ["Rsf64", 25, "[]sfixed64"],
+    ["B", 11, "bool"],
+    ["Rb", 26, "[]bool"],
+    ["S", 12, "string"],
+    ["Rs", 27, "[]string"],
+    ["By", 13, "bytes"],
+    ["Rby", 28, "[]bytes"],
+    ["E", 14, "xpb.Color"],
+    ["Re", 29, "[]xpb.Color"],
+    ["M", 15, "xpb.Other"],
+    ["Rm", 30, "[]xpb.Other"]]
+"xpb.Other" = [["Back", 1, "xpb.Kinds"],
+    ["N", 2047, "sint32"],
+    ["W", 2048, "[]string"]]

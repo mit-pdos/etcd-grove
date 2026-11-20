@@ -23,15 +23,15 @@ import (
 // The network-namespace tests (netns_test.go): their topology, and how they
 // get root without making the plain `go test` privileged.
 //
-// Gate. A namespace test is skipped unless NETTCP_NETNS=1. Unprivileged user
+// Gate. A namespace test is skipped unless NET_NETNS=1. Unprivileged user
 // namespaces are blocked on the measuring machine (apparmor), so the test
-// re-executes its own binary as root, `sudo -n env NETTCP_NETNS=1 <binary>
+// re-executes its own binary as root, `sudo -n env NET_NETNS=1 <binary>
 // -test.run '^TestX$'`, and passes or fails with it, logging its output;
 // run as root (euid 0), it runs the body itself. Nothing else in the package
 // runs as root.
 //
 // Topology. Three namespaces, created fresh for each test and named
-// nettcp-<pid>-<n>-{c,r,s}: the client c (10.213.1.1, eth0), the router r
+// net-<pid>-<n>-{c,r,s}: the client c (10.213.1.1, eth0), the router r
 // (10.213.1.254 on c0, 10.213.2.254 on s0, forwarding) and the server s
 // (10.213.2.1, eth0), joined by two veth pairs created inside the namespaces
 // (`ip -n c link add eth0 type veth peer name c0 netns r`), so no link, address,
@@ -67,12 +67,12 @@ var netnsSeq atomic.Int32
 // netnsTest gates and runs a namespace test: the body runs as root, with a
 // fresh topology.
 func netnsTest(t *testing.T, body func(t *testing.T, n *netnsTopo)) {
-	if os.Getenv("NETTCP_NETNS") != "1" {
-		t.Skip("a network-namespace test: set NETTCP_NETNS=1 (needs sudo -n)")
+	if os.Getenv("NET_NETNS") != "1" {
+		t.Skip("a network-namespace test: set NET_NETNS=1 (needs sudo -n)")
 	}
-	tag := os.Getenv("NETTCP_NETNS_TAG")
+	tag := os.Getenv("NET_NETNS_TAG")
 	if tag == "" {
-		tag = fmt.Sprintf("nettcp-%d-%d", os.Getpid(), netnsSeq.Add(1))
+		tag = fmt.Sprintf("net-%d-%d", os.Getpid(), netnsSeq.Add(1))
 	}
 	if os.Geteuid() != 0 {
 		t.Parallel()
@@ -84,7 +84,7 @@ func netnsTest(t *testing.T, body func(t *testing.T, n *netnsTopo)) {
 
 // netnsAsRoot re-runs the current test in the test binary as root.
 func netnsAsRoot(t *testing.T, tag string) {
-	cmd := exec.Command("sudo", "-n", "env", "NETTCP_NETNS=1", "NETTCP_NETNS_TAG="+tag,
+	cmd := exec.Command("sudo", "-n", "env", "NET_NETNS=1", "NET_NETNS_TAG="+tag,
 		os.Args[0], "-test.run=^"+t.Name()+"$", "-test.v", "-test.count=1", "-test.timeout=100s")
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out

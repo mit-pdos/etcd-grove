@@ -1,0 +1,37 @@
+/-
+`c.RemoteAddr()` on a `*TCPConn` (`net.go`, promoted from `*conn`): in the model
+(`TrustedCode/net.lean`, `conn.RemoteAddr.impl`), `c.fd.raddr`, an arbitrary `*TCPAddr` fixed
+when the connection was made (by `Dial` or `Accept`). The spec says that it returns (no panic)
+a non-`nil` `*TCPAddr` (`net.isTCPAddr`), whose `String()` returns some string
+(`net.wp_Addr_String`; `net.TCPConn.RemoteAddr.wp_String` for `c.RemoteAddr().String()`). Proved in
+`Proof/net/TCPConn__RemoteAddr.lean`.
+-/
+module
+
+public import Harness.Proof.net.Base
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI NetConn
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netConnExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [net.Assumptions] [net.model.Assumptions]
+
+/-- See the file header. -/
+abbrev net.TCPConn.RemoteAddr.spec : Prop :=
+  ∀ (c : Loc) (cid : w64) (side : Bool),
+  {{ net.ownTCPConn (GF := GF) c cid side }}
+    (App (Val (c @!! go.GoType.PointerType net.TCPConn.ty @!! go!"RemoteAddr")) (Val #()))
+  {{ (ad : GoInterface), RET #ad; ⌜net.isTCPAddr ad⌝ }}
+
+end spec
+
+end Perennial
