@@ -1093,12 +1093,22 @@ theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n + 2 ≤ 2 ^ 31) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow (2 ^ 31) n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false)
 ```
+
+**The thread bound on the execution (2026-11-19, asked by the user).** `Hn`/`Hsteps` were
+`n + 2 ≤ 2 ^ 31` and `RealNsteps n ...` (Q38, below): Perennial's `goose_adequacy` takes its thread
+bound as a premise about *every* execution of `n` steps, and the harness's goroutines can only be
+bounded by the run's length, so the thread bound `2^31` capped the step count. Over Perennial's
+`goose_adequacy_below` (`Perennial/GooseLang/AdequacyAlong.lean`) the thread bound is a property of
+the execution the theorem is about, `RealNstepsBelow (2 ^ 31) n`: fewer than `2^31` threads live in
+every configuration of it. The step count is then bounded by the receipts only, `n + 4 ≤ 2^61` (the
+pre-Q38 bound); the executions left out are those that have `2^31` goroutines live at once. It
+implies the Q38 statement (`RealNstepsBelow.of_one`, `.mono`), which is not kept.
 
 **What changes from `raft_tracecheck_safe_of`'s statement:** `hopen : TcOpen` is gone. Three
 binders are added: `boot`, `Hbf` and `Hprem` (Q32). The step bound is `n + 2 ≤ 2^31` (**decided by

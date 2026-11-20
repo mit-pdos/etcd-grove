@@ -28,6 +28,9 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -98,7 +101,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cslowApplies ⟨#CslowApplies, -⟩
   try wp_auto
   ihave #EslowApplies : (go_etcd_io.etcd.server.v3.lease.counterSpec cslowApplies : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at CslowApplies
+  · iunfold EtcdGrove.prometheus.metric.counterSpec at CslowApplies
     icases CslowApplies with ⟨#K, -, -⟩
     unfold go_etcd_io.etcd.server.v3.lease.counterSpec
     iexact K

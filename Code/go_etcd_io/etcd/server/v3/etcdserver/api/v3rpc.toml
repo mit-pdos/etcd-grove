@@ -7,6 +7,10 @@
 translate = ["!*",
   # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
   "watchSendLoopWatchStreamDuration", "watchSendLoopWatchStreamDurationPerEvent", "watchSendLoopControlStreamDuration", "watchSendLoopProgressDuration",
+  # (metric-vecs, 2026-11-19) metrics.go: the counter vectors, over prometheus's `NewCounterVec` spec
+  "clientRequests", "streamFailures",
+  # (prove-errinits, 2026-11-19) the byte counters
+  "sentBytes", "receivedBytes",
   # key.go
   "kvServer", "NewKVServer", "kvServer.Range", "kvServer.RangeStream", "kvServer.Put",
   "kvServer.DeleteRange", "kvServer.Txn", "kvServer.Compact",

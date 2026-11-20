@@ -2,7 +2,10 @@
 # server's helpers `ShouldApplyV3`, `ApplyBoth`, `ApplyV2storeOnly`, and the request path's
 # `RaftCluster.ID`, `RaftCluster.Members` with what it calls (unit P1b, 2026-10-14) with bodies;
 # the rest names only.
-translate = ["!*", "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly", "RaftCluster.ID",
+translate = ["!*",
+  # (metric-vecs, 2026-11-19) metrics.go: the cluster version's gauge vector, over prometheus's `NewGaugeVec` spec
+  "ClusterVersionMetrics",
+  "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly", "RaftCluster.ID",
   "RaftCluster.Members", "Member.Clone", "MembersByID.Len", "MembersByID.Less", "MembersByID.Swap",
   # the mutex's methods, promoted through the embedded `sync.Mutex` (`MethodUnfold` wrappers)
   "RaftCluster.Lock", "RaftCluster.Unlock",
@@ -21,8 +24,13 @@ translate = ["!*", "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly", "RaftCluste
   "RaftCluster.SetVersionChangedNotifier",
   # (prove-membership, 2026-11-19) the error variables (`errors.go`: `errors.New` calls), translated
   "ErrIDRemoved", "ErrIDExists", "ErrIDNotFound", "ErrPeerURLexists", "ErrMemberNotLearner",
-  "ErrTooManyLearners"]
-imports = ["!*", "errors", "sort", "sync", "go.uber.org/zap", "go.etcd.io/raft/v3/raftpb", "encoding/json", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version"]
+  "ErrTooManyLearners",
+  # (prove-errinits, 2026-11-19) the remaining package variables: the metrics `knownPeers` (a gauge
+  # vector) and `isLearner`, and the store paths (`path.Join` of `storePrefix`)
+  "knownPeers", "isLearner", "storePrefix", "StoreMembersPrefix", "storeRemovedMembersPrefix"]
+imports = ["!*", "errors", "path", "sort", "sync", "go.uber.org/zap", "go.etcd.io/raft/v3/raftpb", "encoding/json", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version",
+  # (metric-vecs, 2026-11-19) `ClusterVersionMetrics`' translated initializer
+  "github.com/prometheus/client_golang/prometheus"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -5,15 +5,3 @@
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initFuncsOk (f : GoString) : f ∈
     [go_etcd_io.etcd.server.v3.storage.mvcc.init.«0»] → ⊢ ∀ Φ, True -∗ ▷ (True -∗ Φ (intoVal ())) -∗
     WP ((intoVal (functions f [])) (intoVal ())) {{ Φ }}
-
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.opaqueInitsOk (v : val) : v ∈
-    [go_etcd_io.etcd.server.v3.storage.mvcc.totalEventsCounter.init,
-    go_etcd_io.etcd.server.v3.storage.mvcc.dbTotalSize.init,
-    go_etcd_io.etcd.server.v3.storage.mvcc.dbTotalSizeInUse.init,
-    go_etcd_io.etcd.server.v3.storage.mvcc.dbOpenReadTxN.init,
-    go_etcd_io.etcd.server.v3.storage.mvcc.hashSec.init,
-    go_etcd_io.etcd.server.v3.storage.mvcc.hashRevSec.init,
-    go_etcd_io.etcd.server.v3.storage.mvcc.currentRev.init,
-    go_etcd_io.etcd.server.v3.storage.mvcc.compactRev.init,
-    go_etcd_io.etcd.server.v3.storage.mvcc._.init] → ⊢ ∀ Φ, True -∗ ▷ (True -∗ Φ (intoVal ())) -∗ WP
-    (v (intoVal ())) {{ Φ }}

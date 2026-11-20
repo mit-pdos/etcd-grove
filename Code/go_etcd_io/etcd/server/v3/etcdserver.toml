@@ -6,6 +6,13 @@
 # the package is names only.
 translate = ["!*",
   # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
+  # (metric-vecs, 2026-11-19) and its metric vectors, over prometheus's `New<Kind>Vec` specs
+  "serverID", "serverFeatureEnabled", "requestDurationSec",
+  # (prove-errinits, 2026-11-19) the other metrics and the request-size string (`humanize.Bytes`);
+  # untranslated: `monitorVersionInterval` (it reads rafthttp's `ConnWriteTimeout`, which rafthttp's
+  # fact does not hold) and `_` (the adapter's interface check, a conversion `wp_auto` does not step)
+  "learnerPromoteFailed", "learnerPromoteSucceed", "currentVersion", "currentGoVersion", "fdUsed",
+  "fdLimit", "recommendedMaxRequestBytesString", "recommendedMaxRequestBytes",
   "hasLeader", "isLeader", "leaderChanges", "heartbeatSendFailures", "applySnapshotInProgress", "proposalsCommitted", "proposalsApplied", "proposalsPending", "proposalsFailed", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.MemberID", "EtcdServer.Lead", "EtcdServer.getLead", "EtcdServer.getTxPostLockInsideApplyHook", "EtcdServer.apply", "EtcdServer.applyEntryNormal", "EtcdServer.applyEntries", "EtcdServer.setAppliedIndex", "EtcdServer.setTerm", "EtcdServer", "raftNode", "raftNodeConfig", "etcdProgress", "toApply",
   # the raft wrapper (raft.go): the Ready loop and its helpers
   "raftReadyHandler", "raftNode.tick", "raftNode.getLatestTickTs", "raftNode.start",

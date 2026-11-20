@@ -1,9 +1,9 @@
 # Types and names only (the lease-renew plan, 2026-11-01: `EtcdServer.LeaseRenew`'s forwarding to
 # the leader, `RenewHTTP` and `LeasePrefix`): bodies axiomatized; (const-inits, 2026-11-19) the
-# string constants `LeasePrefix` and `LeaseInternalPrefix` translated (`applyTimeout` would need
-# `time` among the imports).
-translate = ["!*", "LeasePrefix", "LeaseInternalPrefix"]
-imports = ["!*"]
+# string constants `LeasePrefix` and `LeaseInternalPrefix` translated; (prove-errinits, 2026-11-19)
+# `applyTimeout` (`time.Second`) and `ErrLeaseHTTPTimeout` (`errors.New`) too.
+translate = ["!*", "LeasePrefix", "LeaseInternalPrefix", "applyTimeout", "ErrLeaseHTTPTimeout"]
+imports = ["!*", "errors", "time"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

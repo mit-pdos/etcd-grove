@@ -14,9 +14,12 @@ state empty (`IsInit`), from which the right to initialize (`ownInitializing`); 
 `UnrecoveredPanic`'s exclusion of a final `PanicV` turned into `isPanic = false`.
 
 * `adequate_of_unrecovered`: the last step, pure.
-* `init_adequate`: a program `init #() ;; body` over `goose_adequacy`, from its initializer's
-  triple and its body's WP (`progOk`, at every ghost-state instance at the state's local
-  context). Generic in Perennial's terms: a proposal for Perennial (`notes/perennial-changes.md`).
+* `init_adequate_below`: a program `init #() ;; body` over `goose_adequacy_below` (Perennial's
+  `AdequacyAlong.lean`: the thread bound `T` a property of the execution, `RealNstepsBelow T n`, not
+  of every execution of `n` steps), from its initializer's triple and its body's WP (`progOk`, at
+  every ghost-state instance at the state's local context). `init_adequate`: the same over all
+  executions of `n` steps, at `T = n + 2`. Generic in Perennial's terms: a proposal for Perennial
+  (`notes/perennial-changes.md`).
 * `etcd_adequate`: the same over `goose_adequacy_start`, for a program whose initializer takes
   the read package's two metric names (`read.readRegPerm`: every etcd example's) and whose body
   takes the addresses `As` (`startProgOk`).
@@ -27,6 +30,7 @@ Each example's closed theorem is an instance: its proof gives its initializer's 
 module
 
 public import Proof.runtime.Start
+public import Perennial.GooseLang.AdequacyAlong
 public import Proof.runtime.Threads
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Metrics
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeLevels
@@ -102,22 +106,24 @@ def progOk0 [hG : HeapGS .hasLC GF] (init : val) (body : Expr) (φ : val → Pro
       {{ RET #(); ownInitializing getInit ∗ I }}) ∧
     (⊢ I -∗ threadTok -∗ WP body @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
 
-/-- **A program's closed theorem over `goose_adequacy`** (see the file header): every real
-execution of `init #() ;; body` from a fresh state with one thread, of `n` steps: if the main
-thread has finished, its result is in `φ`; no thread is stuck; no thread has ended in a panic. -/
-theorem init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+/-- **A program's closed theorem over `goose_adequacy_below`** (see the file header): every real
+execution of `init #() ;; body` from a fresh state with one thread, of `n` steps, along which fewer
+than `T` threads are ever live at once (`RealNstepsBelow`): if the main thread has finished, its
+result is in `φ`; no thread is stuck; no thread has ended in a panic. The body's WP is proved at the
+thread bound `T`, whatever the step count. -/
+theorem init_adequate_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
-    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
+    (T n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow T n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = T →
       progOk0 (hG := heapWith hG lctx) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy (GF := GF) (n + 1) (n + 2) _ σ g φ hφ Hinitg Hinitw ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+  refine goose_adequacy_below (GF := GF) (n + 1) T _ σ g φ hφ Hinitg Hinitw ?_
+    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   have Hp := Hprog hG HN HT
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
@@ -132,6 +138,24 @@ theorem init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   imodintro
   wp_apply Hinitwp $$ Hown as ⟨-, HI⟩
   iapply Hbody $$ HI Htok
+
+/-- **A program's closed theorem over `goose_adequacy`** (see the file header): every real
+execution of `init #() ;; body` from a fresh state with one thread, of `n` steps: if the main
+thread has finished, its result is in `φ`; no thread is stuck; no thread has ended in a panic.
+`init_adequate_below` at `T = n + 2`, which bounds every such execution (`RealNstepsBelow.of_one`). -/
+theorem init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+    (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
+    (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
+      progOk0 (hG := heapWith hG lctx) init body φ) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
+  init_adequate_below init body φ hφ σ g Hinitg Hinitw Hlctx Hinit Hthreads (n + 2) n κs t2 σ2
+    (RealNstepsBelow.of_one Hsteps Hthreads) Hprog
 
 /-- **An etcd example's closed theorem over `goose_adequacy_start`, with ghost state allocated
 first** (2026-11-05, Q1 (c) of `notes/k8s-compactor-plan.md`): as `etcd_adequate` below, for a

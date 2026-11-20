@@ -126,27 +126,17 @@ noncomputable def forever [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultLeaseRevokeRate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.defaultLeaseRevokeRate"
 
-opaque defaultLeaseRevokeRate.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def leaseCheckpointRate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.leaseCheckpointRate"
-
-opaque leaseCheckpointRate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultLeaseCheckpointInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.defaultLeaseCheckpointInterval"
 
-opaque defaultLeaseCheckpointInterval.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def maxLeaseCheckpointBatchSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.maxLeaseCheckpointBatchSize"
 
-opaque maxLeaseCheckpointBatchSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultExpiredleaseRetryInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.defaultExpiredleaseRetryInterval"
-
-opaque defaultExpiredleaseRetryInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotPrimary [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.ErrNotPrimary"
@@ -168,8 +158,6 @@ noncomputable def leaseRevoked [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def leaseRenewed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.leaseRenewed"
-
-opaque leaseRenewed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaseTotalTTLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.leaseTotalTTLs"
@@ -1612,12 +1600,23 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.time.Time.ty))) (LiteralValue []))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 1000))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 1000))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val #(W64 60000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 1000))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 3)) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"not a primary lessor"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
@@ -1645,6 +1644,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"lease"))
+  (Let "$v2" (Val #(go!"renewed_total"))
+  (Let "$v3" (Val #(go!"The number of renewed leases seen by the leader."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
   (Let "$v1" (Val #(go!"lease"))
@@ -1662,7 +1667,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseTotalTTLs))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val leaseRenewed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseRenewed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseRevoked))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1676,15 +1681,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNotPrimary))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultExpiredleaseRetryInterval.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultExpiredleaseRetryInterval))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val maxLeaseCheckpointBatchSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr maxLeaseCheckpointBatchSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultLeaseCheckpointInterval.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultLeaseCheckpointInterval))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val leaseCheckpointRate.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseCheckpointRate))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultLeaseRevokeRate.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultLeaseRevokeRate))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr forever))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1718,6 +1723,16 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc forever _root_.Perennial.time.Time.ty)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultLeaseRevokeRate go.int)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc leaseCheckpointRate go.int)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultLeaseCheckpointInterval _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc maxLeaseCheckpointBatchSize go.int)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultExpiredleaseRetryInterval _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrNotPrimary go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrLeaseNotFound go.error)) (Val #()))))))
@@ -1729,6 +1744,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc leaseGranted _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc leaseRevoked _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc leaseRenewed _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc leaseTotalTTLs _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))))
 

@@ -6,6 +6,7 @@ public import Perennial.GeneratedProof.bytes
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
