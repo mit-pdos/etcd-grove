@@ -121,6 +121,7 @@ lit-mode unmoved ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/barrie
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/AuthFixed\.lean::  # 1 (auth3 A2, 2026-11-14): the barrier lemma over akAuthFixed_alloc's read view, as authkv's WorkEnv
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/run\.lean::  # 1 (auth3 A2, 2026-11-14): serve_member, authkv's Run's Serve step
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/StartMemberAuth\.lean::  # 3 (authN, 2026-11-15): auth3's startMember at any token and snapshot settings
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/run\.lean::  # 1 (auth-lease S4, 2026-11-19, decided by etcd-grove-03): serve_member_lease composes authN's serve_member with lease_served_on; moves with serve_member in the mode cleanup
 lit-mode unmoved ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authN/barrier\.lean::  # 1 (authN, 2026-11-15): auth3's barrier spec, copied
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/run\.lean::  # 2 (authN, 2026-11-15): serve_member (auth3's, copied) and its post as srvdAt
 
