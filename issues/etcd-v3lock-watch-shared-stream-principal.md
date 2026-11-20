@@ -1,8 +1,7 @@
 ---
-upstream: known
-checked: 2026-11-20
-links:
-  - etcd-io/etcd#17502 issue closed: the same bug, for Election (closed by the stale bot, not fixed); issues/etcd-v3election-shared-watch-wrong-user.md
+upstream: none
+checked: 2026-11-09
+links: []
 blocks-proof: no
 ---
 # v3lock/v3election: with auth enabled, a waiting `Lock` fails with permission denied while another user is waiting for a lock

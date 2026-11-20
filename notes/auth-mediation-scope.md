@@ -432,3 +432,5 @@ Approved by the user via etcd-grove-03: D2 (b-table, `client_port_mediated`), D3
 D4 (local JSON trust-boundary spec for the membership handlers, with a Perennial change proposed), D5 (M4 now, M5
 deferred), D6 ("every gRPC request", naming the public HTTP endpoints). D1: the gateway finding stays in
 etcd-grove-private. Stages M0-M4 queued after the WAL follow-up and (B').
+
+The v3lock issue's front-matter fix (upstream: known, a duplicate of #17502) is held for stage M0 (patch /shared/tmp/coord-03/authmed-issues.patch), so that this Scope lands notes-only.
