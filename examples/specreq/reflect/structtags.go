@@ -1,6 +1,6 @@
-package unsafereflect
+package reflect
 
-// Example 4: building a message's info from its struct tags, against its
+// building a message's info from its struct tags, against its
 // descriptor.
 //
 // Mirrors google.golang.org/protobuf@v1.36.12/internal/impl/message.go:
@@ -124,7 +124,7 @@ func getMessageInfo(mt reflect.Type) bool {
 	return ok
 }
 
-// REQ unsafereflect/struct-tags: building a generated message's info from its struct tags and its
+// REQ reflect/struct-tags: building a generated message's info from its struct tags and its
 // raw descriptor does not panic ("missing Go struct field", "invalid type"), each field info's
 // offset is its struct field's, and a zero message of the type is a ProtoMessage.
 // Users: every generated message's first ProtoReflect (internal/impl/message.go:54-200,
@@ -143,3 +143,28 @@ func ReqStructTags() []fieldInfo {
 	}
 	return fis
 }
+
+// The generated messages, as in examples/specreq/unsafe (codec.go, messagestate.go),
+// with their internal fields reduced to what the tags skip.
+
+type offset uintptr
+
+// ProtoMessage stands for protoreflect.ProtoMessage.
+type ProtoMessage interface{ ProtoReflect() any }
+
+type Node struct {
+	sizeCache     int32
+	unknownFields []byte
+
+	Term     uint64  `protobuf:"varint,2,opt,name=Term"`
+	Data     []byte  `protobuf:"bytes,4,opt,name=Data"`
+	Children []*Node `protobuf:"bytes,5,rep,name=Children"`
+}
+
+type Entry struct {
+	sizeCache int32
+	Term      uint64 `protobuf:"varint,2,opt,name=Term"`
+}
+
+// ProtoReflect stands for the generated method (unsafe's messagestate.go).
+func (x *Entry) ProtoReflect() any { return x }

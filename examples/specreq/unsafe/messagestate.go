@@ -1,6 +1,6 @@
-package unsafereflect
+package unsafe
 
-// Example 2: a generated message's ProtoReflect method.
+// a generated message's ProtoReflect method.
 //
 // Mirrors every generated *.pb.go (e.g. etcd's api/v3/etcdserverpb/rpc.pb.go,
 // raft's raftpb/raft.pb.go):
@@ -36,7 +36,8 @@ package unsafereflect
 //
 // Needs U2 (*Entry as *messageState: the first field is at offset 0; a
 // *MessageInfo field read as an unsafe.Pointer), U4 (pointer atomics on that
-// field), R3 (reflect.NewAt), R1 (the type the message info records).
+// field), and of examples/specreq/reflect R3 (reflect.NewAt) and R1 (the type
+// the message info records).
 
 import (
 	"reflect"
@@ -119,13 +120,13 @@ func (x *Entry) ProtoReflect() any {
 	return mi.nilMessage.Init(mi)
 }
 
-// REQ unsafereflect/message-state: ProtoReflect, called on one message from two goroutines at once,
+// REQ unsafe/message-state: ProtoReflect, called on one message from two goroutines at once,
 // gives one state whose message info is set (messageInfo does not panic) and which converts back
 // to the same message; on a nil message it gives the one shared nil wrapper.
 // Users: every generated *.pb.go's ProtoReflect (etcd's api/v3, raft's raftpb), called by
 // proto.Marshal/Size/Clone/Equal; internal/impl/pointer_unsafe.go:187-217.
 // Assumes: nothing.
-// Specs: none yet; needs U2, U4, R3 (doc.go).
+// Specs: none yet; needs U2, U4 (doc.go), and R3 of examples/specreq/reflect.
 func ReqMessageState() *Entry {
 	e := &Entry{Term: 7}
 	done := make(chan *messageState)

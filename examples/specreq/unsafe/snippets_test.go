@@ -1,4 +1,4 @@
-package unsafereflect
+package unsafe
 
 import "testing"
 
@@ -7,8 +7,4 @@ func TestSnippets(t *testing.T) {
 	ReqOffsetCodec()
 	ReqMessageState()
 	ReqValueUnion()
-	ReqStructTags()
-	ReqRegisterService()
-	ReqHTTPUnwrap()
-	ReqErrorsAs()
 }

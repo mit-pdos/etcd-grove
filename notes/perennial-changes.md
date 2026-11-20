@@ -30,11 +30,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   take a fork. grpc's and net/http's direct uses are few: `RegisterService`'s `Implements` check,
   `unwrapNopCloser`'s `Field(0)`, a type-name test, `reflect.DeepEqual`, and `go:linkname`
   (naming only). They also reach `errors.As`, `fmt`'s `%v`, `sort.Slice` and `atomic.Value`.
-- **Requirements.** `examples/specreq/unsafereflect/`: seven requirement snippets, each a
-  minimized copy of the real code with its location (the offset-driven codec, `ProtoReflect`'s
-  `*Msg`-as-`*messageState` pun with pointer atomics, `protoreflect.Value`'s interface headers
-  and `unsafe.String`, struct tags against the raw descriptor, grpc's registration, net/http's
-  unwrapping, `errors.As`). Its `doc.go` names the capabilities: U1 field layout for every type,
+- **Requirements.** Seven requirement snippets, each a minimized copy of the real code with its
+  location, one package per Go package whose semantics they constrain: `examples/specreq/unsafe/`
+  (the offset-driven codec, `ProtoReflect`'s `*Msg`-as-`*messageState` pun with pointer atomics,
+  `protoreflect.Value`'s interface headers and `unsafe.String`) and `examples/specreq/reflect/`
+  (struct tags against the raw descriptor, grpc's registration, net/http's unwrapping,
+  `errors.As`). Their `doc.go` files name the capabilities: U1 field layout for every type,
   U2 representation-compatible casts of pointer-carrying types (cells hold words with
   provenance, not bytes), U3 the representations of strings, slices and interfaces (empty and
   non-empty interfaces differ), U4 pointer atomics through casts; R1 type descriptors as values

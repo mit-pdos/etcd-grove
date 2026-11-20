@@ -1,6 +1,6 @@
-package unsafereflect
+package reflect
 
-// Example 5: grpc's service registration and dispatch.
+// grpc's service registration and dispatch.
 //
 // Mirrors google.golang.org/grpc@v1.84.0/server.go:778-818
 // (RegisterService: reflect.TypeOf(sd.HandlerType).Elem() is the service's
@@ -101,7 +101,7 @@ func (*quotaKVServer) Range(_ context.Context, r *RangeRequest) (*RangeResponse,
 	return &RangeResponse{Count: int64(len(r.Key))}, nil
 }
 
-// REQ unsafereflect/register-service: registering etcd's KV service with its server does not fail
+// REQ reflect/register-service: registering etcd's KV service with its server does not fail
 // (the handler implements the service interface, by reflection), and a Range dispatched by name
 // reaches the handler (the generated handler's assertion srv.(KVServer) succeeds).
 // Users: etcd's v3rpc.Server (server/etcdserver/api/v3rpc/grpc.go: pb.RegisterKVServer, ...);

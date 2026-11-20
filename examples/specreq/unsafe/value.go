@@ -1,6 +1,6 @@
-package unsafereflect
+package unsafe
 
-// Example 3: protoreflect.Value, a union packed by hand.
+// protoreflect.Value, a union packed by hand.
 //
 // Mirrors google.golang.org/protobuf@v1.36.12/reflect/protoreflect/
 // value_unsafe.go (all of it) and value_union.go (the accessors and their
@@ -123,7 +123,7 @@ func (v Value) Message() ProtoMessage {
 // UnsafeString is strs.UnsafeString: the string aliases b.
 func UnsafeString(b []byte) string { return unsafe.String(unsafe.SliceData(b), len(b)) }
 
-// REQ unsafereflect/value-union: a protoreflect.Value read with the accessor of its constructor
+// REQ unsafe/value-union: a protoreflect.Value read with the accessor of its constructor
 // gives the value back (the "type mismatch" panics are unreachable; bytes alias the original), a
 // message's Value gives the same message, and a string made by UnsafeString may be used for a map
 // lookup over a buffer that is written once the string is dead.

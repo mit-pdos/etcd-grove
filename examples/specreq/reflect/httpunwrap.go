@@ -1,6 +1,6 @@
-package unsafereflect
+package reflect
 
-// Example 6: net/http's reflection on readers and transports.
+// net/http's reflection on readers and transports.
 //
 // Mirrors Go 1.27.3's net/http:
 //   - transfer.go:1136-1150 (unwrapNopCloser): the reader's dynamic type is
@@ -70,7 +70,7 @@ func isHTTP2Transport(rt http.RoundTripper) bool {
 	return reflect.TypeOf(rt).String() == "*http2.Transport"
 }
 
-// REQ unsafereflect/http-unwrap: classifying a request body unwraps io.NopCloser by reflection
+// REQ reflect/http-unwrap: classifying a request body unwraps io.NopCloser by reflection
 // without panicking (Field(0) on a struct, Interface on an exported field, the assertion to
 // io.Reader), and sees through it to an in-memory reader; the transport-name test does not panic.
 // Users: net/http's transferWriter (transfer.go:1136-1160, on every client request with a body);

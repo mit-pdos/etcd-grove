@@ -1,6 +1,6 @@
-package unsafereflect
+package unsafe
 
-// Example 1: protobuf's table-driven codec.
+// protobuf's table-driven codec.
 //
 // Mirrors google.golang.org/protobuf@v1.36.12/internal/impl:
 //   - pointer_unsafe.go:18-145: `pointer` wraps an unsafe.Pointer; Apply adds a
@@ -23,12 +23,15 @@ package unsafereflect
 // as an invariant of the coder (one per message type, built lazily and cached
 // under a reflect.Type key).
 //
-// Needs U1 (base+Offset is the field), U2 (*[]*Entry read as *[]pointer;
-// pointer{p} as unsafe.Pointer), R1 (NumField, Field(i).Type/Offset, type
-// identity as a map key), R3 (v.Pointer() of a reflect.Value).
+// Needs U1 (base+Offset is the field), U2 (*[]*Node read as *[]pointer;
+// pointer{p} as unsafe.Pointer), and of examples/specreq/reflect R1
+// (NumField, Field(i).Type/Offset, type identity as a map key) and R3
+// (v.Pointer() of a reflect.Value).
 
 import (
 	"reflect"
+	"strconv"
+	"strings"
 	"sync"
 	"unsafe"
 )
@@ -108,7 +111,7 @@ func coderOfLocked(t reflect.Type) *coderInfo {
 	st := t.Elem()
 	for i := 0; i < st.NumField(); i++ {
 		sf := st.Field(i)
-		num, ok := fieldNumber(sf) // from the struct tag: ex4
+		num, ok := fieldNumber(sf) // from the struct tag: reflect/structtags.go
 		if !ok {
 			continue // internal fields: state, sizeCache, unknownFields
 		}
@@ -203,7 +206,7 @@ func (ci *coderInfo) marshal(b []byte, p pointer) []byte {
 // Node is a generated message (as raftpb.Entry, with a repeated message
 // field so that the []*Node -> []pointer cast is exercised).
 type Node struct {
-	state         MessageState // ex2
+	state         MessageState // messagestate.go
 	sizeCache     int32
 	unknownFields []byte
 
@@ -220,14 +223,15 @@ func Marshal(m any) []byte {
 	return ci.marshal(make([]byte, 0, ci.size(p)), p)
 }
 
-// REQ unsafereflect/offset-codec: proto.Marshal of a generated message (scalar, bytes and repeated
+// REQ unsafe/offset-codec: proto.Marshal of a generated message (scalar, bytes and repeated
 // message fields, a nil element) does not panic, is not stuck on a cast, and produces exactly
 // proto.Size bytes (grpc's codec relies on the size: encoding/proto/proto.go:51-64, UseCachedSize);
 // the coder is built once per type.
 // Users: every proto.Marshal/Size of etcd's messages (raftpb.Entry in the WAL, etcdserverpb in
 // every RPC), through internal/impl's coders (pointer_unsafe.go, codec_message.go, codec_field.go).
 // Assumes: no other goroutine writes the message during Marshal.
-// Specs: none yet; needs U1, U2, R1, R3 (doc.go) and the coder invariant (each coder field's
+// Specs: none yet; needs U1, U2 (doc.go), and R1, R3 of
+// examples/specreq/reflect and the coder invariant (each coder field's
 // offset and kind agree with the struct's field).
 func ReqOffsetCodec() []byte {
 	n := &Node{Term: 3, Data: []byte("put k v"), Children: []*Node{{Term: 2}, nil, {Data: []byte("x")}}}
@@ -241,4 +245,19 @@ func ReqOffsetCodec() []byte {
 		panic("offset-codec: coder not cached by type")
 	}
 	return b
+}
+
+// fieldNumber parses a `protobuf:"varint,2,opt,name=Term"` tag
+// (internal/encoding/tag.Unmarshal; the same as reflect/structtags.go's).
+func fieldNumber(sf reflect.StructField) (uint64, bool) {
+	tag := sf.Tag.Get("protobuf")
+	if tag == "" {
+		return 0, false
+	}
+	parts := strings.Split(tag, ",")
+	if len(parts) < 2 {
+		return 0, false
+	}
+	n, err := strconv.ParseUint(parts[1], 10, 32)
+	return n, err == nil
 }

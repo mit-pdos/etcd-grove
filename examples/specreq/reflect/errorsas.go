@@ -1,6 +1,6 @@
-package unsafereflect
+package reflect
 
-// Example 7: errors.As, as grpc's status.FromError uses it.
+// errors.As, as grpc's status.FromError uses it.
 //
 // Mirrors google.golang.org/grpc@v1.84.0/status/status.go (FromError:
 // `var grpcstatus interface{ GRPCStatus() *Status }; if errors.As(err,
@@ -51,7 +51,7 @@ func FromError(err error) (*Status, bool) {
 	return &Status{Code: 2, Msg: err.Error()}, false // codes.Unknown
 }
 
-// REQ unsafereflect/errors-as: status.FromError finds a gRPC status through fmt's %w wrapping and
+// REQ reflect/errors-as: status.FromError finds a gRPC status through fmt's %w wrapping and
 // through errors.Join (As does not panic on its interface-typed target, and stores the matched
 // error), and As with a concrete pointer target stores the same error.
 // Users: grpc@v1.84.0/status/status.go (FromError, on every RPC error); etcd's
