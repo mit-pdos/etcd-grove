@@ -191,6 +191,37 @@ theorem map_fields_nodup (S : Schema) (hS : S.WF) (n : GoString) (fs : List (GoS
   simp only [Atom.wf, Bool.and_eq_true, decide_eq_true_eq] at hw
   exact hw.1.1
 
+/-- A length read back as a `w64`: zero iff the list is empty. -/
+theorem w64_len_zero {α : Type} (n : w64) (vs : List α) (h : n.toInt = vs.length) :
+    n = W64 0 ↔ vs = [] := by
+  constructor
+  · rintro rfl
+    have : vs.length = 0 := by simp at h; omega
+    exact List.eq_nil_of_length_eq_zero this
+  · rintro rfl
+    simp at h
+    apply BitVec.eq_of_toInt_eq
+    simp [h]
+
+/-- The element relationship's Go name decides atomicity. -/
+theorem goName_atomic (rel : ElemRel) : ElemRel.goName rel = go!"atomic" ↔ rel = ElemRel.atomic := by
+  cases rel <;> decide
+
+
+section wst
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+
+/-- A walker state updated with its own `inLeaf`. -/
+theorem MWSt.with_inLeaf (st : MWSt) (x : Option UVal) (b : Bool) (h : st.inLeaf = b) :
+    { st with out := x, inLeaf := b } = { st with out := x } := by
+  cases st; simp only at h; subst h; rfl
+
+theorem CWSt.with_inLeaf (st : CWSt) (b : Bool) (h : st.inLeaf = b) :
+    { st with inLeaf := b } = st := by
+  cases st; simp only at h; subst h; rfl
+
+end wst
+
 end LawB
 
 end smd
