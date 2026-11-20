@@ -56,10 +56,10 @@ theorem typed.mergingWalker.merge.wp_proofBody
     typed.mergingWalker.visitListItems.specI typed.mergingWalker.visitMapItem.specI
     typed.mergingWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %dql %dqr %l %r %f
+  iintro %w %sc %S %st %dql %dqr %l %r %f %sp
   wp_start as ⟨Hown, Hl, Hr, %Hpre⟩
   iunfold mwOwn at Hown
-  icases Hown with ⟨%ps, %sp, %a, Hcore, Hp, Hsp, Ha⟩
+  icases Hown with ⟨%ps, %a, Hcore, Hp, Hsp, Ha⟩
   iunfold mwCore at Hcore
   icases Hcore with ⟨%tr, %rule, %o, Hw, #Htr, #Hsc, %Hwf, #Hrule, #Ho⟩
   ihave ⟨Hl, %Hln⟩ := isValO_nil $$ Hl
@@ -98,9 +98,9 @@ theorem typed.mergingWalker.merge.wp_proofBody
   wp_apply h_deduceAtom atm At st.rhs dqr r $$ [Hr] as Hr
   · iframe #; iframe
   ihave #Hah : atomHandlerOk At atm (go.GoType.PointerType typed.mergingWalker.ty) #w
-      iprop(mwOwn w sc S st ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r)
+      iprop(mwOwn w sc S st sp ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r)
       (fun errs => iprop(noErrs errs ∗ isValO st.lhs dql l ∗ isValO st.rhs dqr r ∗
-        mwOwn w sc S (MWSt.mk st.lhs st.rhs st.t st.path (mergeO S st.t l r) (leafAt S st.t l r)))) $$ []
+        (∃ sp' : Loc, mwOwn w sc S (MWSt.mk st.lhs st.rhs st.t st.path (mergeO S st.t l r) (leafAt S st.t l r)) sp' ∗ ⌜sp ≠ null → sp' = sp⌝))) $$ []
   · icases IH with ⟨#HdL, #HdM, -, -, -, -, -⟩
     cases At with
     | scalar sk =>
@@ -114,7 +114,10 @@ theorem typed.mergingWalker.merge.wp_proofBody
         exact ⟨hA, Hpre.1, Hpre.2.1, Hpre.2.2.1, Hpre.2.2.2.2⟩
       iapply HΦ2
       rw [LawB.leafAt_scalar S st.t sk l r hA]
-      iframe
+      iframe Herrs Hl Hr
+      iexists sp
+      iframe Hown
+      ipureintro; intro _; rfl
     | list e rel ks =>
       simp only [atomHandlerOk]
       icases (isAtomOpt_list_law_holds atm e rel ks).1 $$ Hat with ⟨-, #Hli⟩
@@ -134,20 +137,20 @@ theorem typed.mergingWalker.merge.wp_proofBody
   rcases r with _ | y
   · rw [Hrn.2 rfl]
     wp_auto
-    ihave Hown : mwOwn w sc S st $$ [Hw Hp Hsp Ha]
+    ihave Hown : mwOwn w sc S st sp $$ [Hw Hp Hsp Ha]
     · unfold mwOwn mwCore
       rw [Hrn.2 rfl]
-      iexists ps, sp, a
+      iexists ps, a
       iframe
       iframe #
       ipureintro; exact Hwf
     wp_apply h_handleAtom atm At tr (go.GoType.PointerType typed.mergingWalker.ty) #w
-      iprop(mwOwn w sc S st ∗ isValO st.lhs dql l ∗ isValO GoInterface.nil dqr none)
+      iprop(mwOwn w sc S st sp ∗ isValO st.lhs dql l ∗ isValO GoInterface.nil dqr none)
       (fun errs => iprop(noErrs errs ∗ isValO st.lhs dql l ∗ isValO GoInterface.nil dqr none ∗
-        mwOwn w sc S (MWSt.mk st.lhs GoInterface.nil st.t st.path (mergeO S st.t l none) (leafAt S st.t l none))))
+        (∃ sp' : Loc, mwOwn w sc S (MWSt.mk st.lhs GoInterface.nil st.t st.path (mergeO S st.t l none) (leafAt S st.t l none)) sp' ∗ ⌜sp ≠ null → sp' = sp⌝)))
       $$ [Hown Hl Hr] as %errs' HQ
     · iframe #; iframe
-    icases HQ with ⟨Hes, Hl, Hr, Hown⟩
+    icases HQ with ⟨Hes, Hl, Hr, %sp', Hown, %Hsp'⟩
     simp only [noErrs, ownErrs]
     icases Hes with ⟨Hes, Hcap⟩
     wp_apply (wp_slice_append (V := typed.ValidationError) slice.nil [] errs' [] (DFrac.own 1))
@@ -157,7 +160,7 @@ theorem typed.mergingWalker.merge.wp_proofBody
       · iapply ownSlice_nil
       · iapply ownSliceCap_nil
     iunfold mwOwn at Hown
-    icases Hown with ⟨%ps', %sp', %a', Hcore, Hp, Hsp, Ha⟩
+    icases Hown with ⟨%ps', %a', Hcore, Hp, Hsp, Ha⟩
     iunfold mwCore at Hcore
     icases Hcore with ⟨%tr', %rule', %o', Hw, #Htr', #Hsc', %Hwf', #Hrule', #Ho'⟩
     wp_auto
@@ -173,8 +176,11 @@ theorem typed.mergingWalker.merge.wp_proofBody
     subst he
     iapply HΦ
     iframe
+    iexists sp'
+    isplitl; rotate_left
+    · ipureintro; exact Hsp'
     unfold mwOwn mwCore
-    iexists ps', sp', a'
+    iexists ps', a'
     iframe
     iframe #
     ipureintro; exact Hwf'
@@ -183,20 +189,20 @@ theorem typed.mergingWalker.merge.wp_proofBody
     rcases l with _ | x
     · rw [Hln.2 rfl, Hpr]
       wp_auto
-      ihave Hown : mwOwn w sc S st $$ [Hw Hp Hsp Ha]
+      ihave Hown : mwOwn w sc S st sp $$ [Hw Hp Hsp Ha]
       · unfold mwOwn mwCore
         rw [Hln.2 rfl, Hpr]
-        iexists ps, sp, a
+        iexists ps, a
         iframe
         iframe #
         ipureintro; exact Hwf
       wp_apply h_handleAtom atm At tr (go.GoType.PointerType typed.mergingWalker.ty) #w
-        iprop(mwOwn w sc S st ∗ isValO GoInterface.nil dql none ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y))
+        iprop(mwOwn w sc S st sp ∗ isValO GoInterface.nil dql none ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y))
         (fun errs => iprop(noErrs errs ∗ isValO GoInterface.nil dql none ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y) ∗
-          mwOwn w sc S (MWSt.mk GoInterface.nil (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) st.t st.path (mergeO S st.t none (some y)) (leafAt S st.t none (some y)))))
+          (∃ sp' : Loc, mwOwn w sc S (MWSt.mk GoInterface.nil (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) st.t st.path (mergeO S st.t none (some y)) (leafAt S st.t none (some y))) sp' ∗ ⌜sp ≠ null → sp' = sp⌝)))
         $$ [Hown Hl Hr] as %errs' HQ
       · iframe #; iframe
-      icases HQ with ⟨Hes, Hl, Hr, Hown⟩
+      icases HQ with ⟨Hes, Hl, Hr, %sp', Hown, %Hsp'⟩
       simp only [noErrs, ownErrs]
       icases Hes with ⟨Hes, Hcap⟩
       wp_apply (wp_slice_append (V := typed.ValidationError) slice.nil [] errs' [] (DFrac.own 1))
@@ -206,7 +212,7 @@ theorem typed.mergingWalker.merge.wp_proofBody
         · iapply ownSlice_nil
         · iapply ownSliceCap_nil
       iunfold mwOwn at Hown
-      icases Hown with ⟨%ps', %sp', %a', Hcore, Hp, Hsp, Ha⟩
+      icases Hown with ⟨%ps', %a', Hcore, Hp, Hsp, Ha⟩
       iunfold mwCore at Hcore
       icases Hcore with ⟨%tr', %rule', %o', Hw, #Htr', #Hsc', %Hwf', #Hrule', #Ho'⟩
       wp_auto
@@ -222,8 +228,11 @@ theorem typed.mergingWalker.merge.wp_proofBody
       subst he
       iapply HΦ
       iframe
+      iexists sp'
+      isplitl; rotate_left
+      · ipureintro; exact Hsp'
       unfold mwOwn mwCore
-      iexists ps', sp', a'
+      iexists ps', a'
       iframe
       iframe #
       ipureintro; exact Hwf'
@@ -237,20 +246,20 @@ theorem typed.mergingWalker.merge.wp_proofBody
       · iframe #; iframe
       obtain rfl : b = true := Hb.2 rfl
       wp_auto
-      ihave Hown : mwOwn w sc S st $$ [Hw Hp Hsp Ha]
+      ihave Hown : mwOwn w sc S st sp $$ [Hw Hp Hsp Ha]
       · unfold mwOwn mwCore
         rw [Hpl, Hpr]
-        iexists ps, sp, a
+        iexists ps, a
         iframe
         iframe #
         ipureintro; exact Hwf
       wp_apply h_handleAtom atm At tr (go.GoType.PointerType typed.mergingWalker.ty) #w
-        iprop(mwOwn w sc S st ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) dql (some x) ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y))
+        iprop(mwOwn w sc S st sp ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) dql (some x) ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y))
         (fun errs => iprop(noErrs errs ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) dql (some x) ∗ isValO (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) dqr (some y) ∗
-          mwOwn w sc S (MWSt.mk (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) st.t st.path (mergeO S st.t (some x) (some y)) (leafAt S st.t (some x) (some y)))))
+          (∃ sp' : Loc, mwOwn w sc S (MWSt.mk (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pl) (interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #pr) st.t st.path (mergeO S st.t (some x) (some y)) (leafAt S st.t (some x) (some y))) sp' ∗ ⌜sp ≠ null → sp' = sp⌝)))
         $$ [Hown Hl Hr] as %errs' HQ
       · iframe #; iframe
-      icases HQ with ⟨Hes, Hl, Hr, Hown⟩
+      icases HQ with ⟨Hes, Hl, Hr, %sp', Hown, %Hsp'⟩
       simp only [noErrs, ownErrs]
       icases Hes with ⟨Hes, Hcap⟩
       wp_apply (wp_slice_append (V := typed.ValidationError) slice.nil [] errs' [] (DFrac.own 1))
@@ -260,7 +269,7 @@ theorem typed.mergingWalker.merge.wp_proofBody
         · iapply ownSlice_nil
         · iapply ownSliceCap_nil
       iunfold mwOwn at Hown
-      icases Hown with ⟨%ps', %sp', %a', Hcore, Hp, Hsp, Ha⟩
+      icases Hown with ⟨%ps', %a', Hcore, Hp, Hsp, Ha⟩
       iunfold mwCore at Hcore
       icases Hcore with ⟨%tr', %rule', %o', Hw, #Htr', #Hsc', %Hwf', #Hrule', #Ho'⟩
       wp_auto
@@ -276,8 +285,11 @@ theorem typed.mergingWalker.merge.wp_proofBody
       subst he
       iapply HΦ
       iframe
+      iexists sp'
+      isplitl; rotate_left
+      · ipureintro; exact Hsp'
       unfold mwOwn mwCore
-      iexists ps', sp', a'
+      iexists ps', a'
       iframe
       iframe #
       ipureintro; exact Hwf'

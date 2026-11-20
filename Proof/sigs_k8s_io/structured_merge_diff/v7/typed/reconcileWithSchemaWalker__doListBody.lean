@@ -39,10 +39,10 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
     typed.reconcileWithSchemaWalker.doMap.specI typed.reconcileWithSchemaWalker.visitListItems.specI
     typed.reconcileWithSchemaWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %F %R %A %tp %e %rel %ks
+  iintro %w %sc %S %st %F %R %A %tp %e %rel %ks %sp
   wp_start as ⟨Hown, #Hl, %Hfind, %Hat⟩
   iunfold rwOwn at Hown
-  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, %sp, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
+  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
   iunfold rwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   icases isListRep_elim_law_holds tp e rel ks $$ Hl with ⟨%lv, %ksl, #Hlv, %Hlv', -, -⟩
@@ -72,8 +72,11 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
       · iapply noErrs_nil
       iexists R, A
       isplitl
-      · unfold rwOwn rwCore
-        iexists ps, null, tv, rem, add, sp
+      · iexists sp
+        isplitl; rotate_left
+        · ipureintro; intro _; rfl
+        unfold rwOwn rwCore
+        iexists ps, null, tv, rem, add
         iframe
         isplitl [Hw]
         · iexists tr
@@ -98,7 +101,7 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
       · iframe #
         isplitl
         · unfold rwOwn rwCore
-          iexists ps, fs, tv, rem, add, sp
+          iexists ps, fs, tv, rem, add
           iframe
           isplitl [Hw]
           · iexists tr
@@ -131,8 +134,11 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
     · iapply noErrs_nil
     iexists R, A
     isplitl
-    · unfold rwOwn rwCore
-      iexists ps, null, tv, rem, add, sp
+    · iexists sp
+      isplitl; rotate_left
+      · ipureintro; intro _; rfl
+      unfold rwOwn rwCore
+      iexists ps, null, tv, rem, add
       iframe
       isplitl [Hw]
       · iexists tr

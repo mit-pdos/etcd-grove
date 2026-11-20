@@ -43,10 +43,10 @@ theorem typed.reconcileWithSchemaWalker.doMap.wp_proofBody
     typed.reconcileWithSchemaWalker.doMap.specI typed.reconcileWithSchemaWalker.visitListItems.specI
     typed.reconcileWithSchemaWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %F %R %A %tp %fs' %e %rel
+  iintro %w %sc %S %st %F %R %A %tp %fs' %e %rel %sp
   wp_start as ⟨Hown, #Hm, %Hfind, %Hat⟩
   iunfold rwOwn at Hown
-  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, %sp, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
+  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
   iunfold rwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   icases isMapRep_elim_law_holds tp fs' e rel $$ Hm with
@@ -80,8 +80,11 @@ theorem typed.reconcileWithSchemaWalker.doMap.wp_proofBody
         · iapply noErrs_nil
         iexists R, A
         isplitl
-        · unfold rwOwn rwCore
-          iexists ps, null, tv, rem, add, sp
+        · iexists sp
+          isplitl; rotate_left
+          · ipureintro; intro _; rfl
+          unfold rwOwn rwCore
+          iexists ps, null, tv, rem, add
           iframe
           isplitl [Hw]
           · iexists tr
@@ -116,8 +119,11 @@ theorem typed.reconcileWithSchemaWalker.doMap.wp_proofBody
       · iapply noErrs_nil
       iexists R, A
       isplitl
-      · unfold rwOwn rwCore
-        iexists ps, null, tv, rem, add, sp
+      · iexists sp
+        isplitl; rotate_left
+        · ipureintro; intro _; rfl
+        unfold rwOwn rwCore
+        iexists ps, null, tv, rem, add
         iframe
         isplitl [Hw]
         · iexists tr
@@ -142,7 +148,7 @@ theorem typed.reconcileWithSchemaWalker.doMap.wp_proofBody
       · iframe #
         isplitl
         · unfold rwOwn rwCore
-          iexists ps, fs, tv, rem, add, sp
+          iexists ps, fs, tv, rem, add
           iframe
           isplitl [Hw]
           · iexists tr
@@ -177,8 +183,11 @@ theorem typed.reconcileWithSchemaWalker.doMap.wp_proofBody
     · iapply noErrs_nil
     iexists R, A
     isplitl
-    · unfold rwOwn rwCore
-      iexists ps, null, tv, rem, add, sp
+    · iexists sp
+      isplitl; rotate_left
+      · ipureintro; intro _; rfl
+      unfold rwOwn rwCore
+      iexists ps, null, tv, rem, add
       iframe
       isplitl [Hw]
       · iexists tr
