@@ -10,7 +10,7 @@
 # initializers translated (metrics.go), over prometheus's `New<Kind>Vec` specs.
 translate = ["*", "!init.*",
   "!addPeerToProber", "!monitorProbingStatus",
-  "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper", "!waitSchedule",
+  "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper",
   # `linkHeartbeatSize`'s initializer (`proto.Size`) untranslated, the axiom `linkHeartbeatSize_init`;
   # (prove-errinits, 2026-11-19) the `errors.New`/`fmt.Errorf` errors translated (until then
   # untranslated, the axiom `errorsNewVarsInit`)
@@ -18,7 +18,7 @@ translate = ["*", "!init.*",
 # (2026-10-24, rafthttp stage 6d) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
 # translated: `path.Join(RaftPrefix, ...)`, their values facts of `rafthttpInit`
 imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",
-  "net/url", "path", "strings", "sync", "time",
+  "net/url", "path", "runtime", "strings", "sync", "time",
   "github.com/Masterminds/semver/v3", "github.com/dustin/go-humanize",
   "github.com/prometheus/client_golang/prometheus", "github.com/xiang90/probing",
   "go.etcd.io/etcd/api/v3/version", "go.etcd.io/etcd/client/pkg/v3/transport",

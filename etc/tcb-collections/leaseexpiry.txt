@@ -165,7 +165,6 @@ axiom clockwork.stampAt
 axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
-axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
@@ -366,7 +365,6 @@ axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
-axiom rafthttp.waitSchedule.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
@@ -411,7 +409,6 @@ axiom strings.ToLower.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom time.Unix.wp_proof
@@ -423,8 +420,6 @@ axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
-axiom types.ID.String.wp_proof
-axiom types.ID.String_ptr.wp_proof
 axiom types.NewURLs.wp_proof
 axiom types.URLs.StringSlice.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
@@ -442,7 +437,6 @@ axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof
-axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
