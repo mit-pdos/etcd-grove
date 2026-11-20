@@ -26,6 +26,8 @@ const noIoErrRounds = 20000
 // An uncontended whole-file OFD write lock, blocking (fileutil.LockFile's F_OFD_SETLKW) and not
 // (F_OFD_SETLK), and its F_UNLCK, succeed every round; so do flock's LOCK_EX (blocking and
 // LOCK_NB) and LOCK_UN on the same file (flock and OFD locks are independent: locks_flock_vs_ofd.go).
+// The OFD rounds support NoIoErr's IoCovers "OfdLock"; the flock rounds, since 2026-11-20,
+// NoMapLockErr's MapLockOk "Flock".
 func TestNoIoErrLocks(t *testing.T) {
 	name := extDir(t) + "/0000000000000000-0000000000000000.wal"
 	f := openRW(t, name)

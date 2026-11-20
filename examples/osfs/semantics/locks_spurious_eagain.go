@@ -24,8 +24,9 @@ import (
 //
 // Lean: Impl.lean: LockStep (the failure arm: no condition on EAGAIN), the
 // header's "Locks", IsFsStep "Close"'s comment. Premises.lean: IoCovers covers
-// a lock call only when it is blocking (flock without LOCK_NB, F_OFD_SETLKW),
-// so NoIoErr promises success only to those.
+// an OFD lock call only when it is blocking (F_OFD_SETLKW), so NoIoErr promises
+// success only to those; flock is NoMapLockErr's (MapLockOk "Flock": success
+// for a blocking request, EAGAIN allowed for a non-blocking one; 2026-11-20).
 //
 // Allowed: below, b's non-blocking request fails with EAGAIN although a, the
 // only other description the process had, is closed and no mapping holds it.

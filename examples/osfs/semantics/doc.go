@@ -72,7 +72,8 @@
 //	locks_flock_vs_ofd.go         the two kinds are independent      LockKind, OsFd.lk, LockConflict
 //	locks_blocking.go             blocking requests wait (or fail)   LockStep (nb)
 //	locks_spurious_eagain.go      EAGAIN with no conflict in the     LockStep (failure arm), Close's comment;
-//	                              model, non-blocking (2026-11-19)   Premises.lean: IoCovers (blocking only)
+//	                              model, non-blocking (2026-11-19)   Premises.lean: IoCovers (blocking OFD only),
+//	                                                                 MapLockOk "Flock" (2026-11-20)
 //	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit
 //	locks_mmap_close.go           a mapping keeps them past close    MapDesc, ProcState.mapDesc, Close,
 //	                              until its munmap (2026-11-19)      Mmap, Munmap, LockConflict

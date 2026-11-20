@@ -45,7 +45,7 @@ import (
 // mapping keeps after its fd's close, locks_mmap_close.go; ENOLCK, EINTR,
 // ...), a blocking OFD unlock (F_OFD_SETLKW with F_UNLCK) failing (flock's
 // requests: premise_no_map_lock_err.go, NoMapLockErr, which covers them in the
-// same form: one premise per call, the user's decision of 2026-11-20); a step
+// same form: one premise per call but for an open with no free fd, which both may name; the user's decision of 2026-11-20); a step
 // of Readdirnames (getdents64) on a covered directory failing with an errno
 // other than ENOENT (EIO, ...) while the directory has a name left to return
 // or is at its end. Lean: IoCovers "OfdLock" (cmd
@@ -123,9 +123,10 @@ import (
 // of another user's file in a sticky world-writable directory, where the
 // sysctl is set; skipped where it is 0). Measured on
 // C, as support only (premise_no_io_err_test.go, run by run-models-on-c.sh):
-// uncontended OFD (F_OFD_SETLKW) and flock (LOCK_EX) locks and their unlocks,
-// and the Readdirnames of a small directory, succeed every time over many
-// rounds.
+// uncontended OFD (F_OFD_SETLKW) locks and their unlocks, and the Readdirnames
+// of a small directory, succeed every time over many rounds; so do flock's
+// (LOCK_EX), which since 2026-11-20 support NoMapLockErr's MapLockOk "Flock",
+// not NoIoErr.
 //
 // The errnos of a failing unlink/rmdir (2026-11-19, the user's approval of item 3 of
 // notes/wal-units/noioerr.md, narrowed to the cases wal.Create needs): an unlink
