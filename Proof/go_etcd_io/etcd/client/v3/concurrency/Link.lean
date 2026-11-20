@@ -115,6 +115,8 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.writeSet__cmps
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.writeSet__get
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.writeSet__puts
 public import Proof.go_uber_org.zap.Int64
+public import Proof.go_uber_org.zap.Logger__check
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 
 @[expose] public section
 
@@ -286,9 +288,17 @@ theorem v3.wp_LeaseValue :
     EtcdGrove.LeaseValue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.LeaseValue.wp_proof
 
+theorem zap.Logger.wp_check :
+    EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+
 theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Warn.wp_proof
+  EtcdGrove.zap.Logger.Warn.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem v3.wp_ModRevision :
     EtcdGrove.ModRevision.spec (GF := GF) (hG := hG) :=

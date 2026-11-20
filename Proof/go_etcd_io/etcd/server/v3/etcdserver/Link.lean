@@ -592,7 +592,6 @@ public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Strings
 public import Proof.go_uber_org.zap.Uint64
-public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.net.http.Axioms
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.sync.Link
@@ -913,7 +912,7 @@ theorem prometheus.CounterVec.wp_WithLabelValues :
 
 theorem zap.Logger.wp_Debug :
     zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Debug.wp_proof
+  zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem binary.wp_ReadUint64 :
     binary.ReadUint64.spec (GF := GF) (hG := hG) :=
@@ -1357,11 +1356,7 @@ theorem auth.authStore.wp_AuthInfoFromTLS :
 
 theorem zap.Logger.wp_Check :
     zap.Logger.Check.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Check.wp_proof
-
-theorem zapcore.CheckedEntry.wp_Write :
-    zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  zapcore.CheckedEntry.Write.wp_proof
+  zap.Logger.Check.wp_proof zap.Logger.wp_check
 
 theorem auth.authStore.wp_BcryptCost :
     auth.authStore.BcryptCost.spec (GF := GF) (hG := hG) :=

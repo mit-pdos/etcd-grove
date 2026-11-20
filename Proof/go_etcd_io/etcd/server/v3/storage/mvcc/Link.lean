@@ -194,9 +194,11 @@ public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Panic
 public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint32
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
@@ -349,9 +351,17 @@ theorem zap.wp_Error :
     zap.Error.spec (GF := GF) (hG := hG) :=
   zap.Error.wp_proof
 
+theorem zap.Logger.wp_check :
+    zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  zapcore.CheckedEntry.Write.wp_proof
+
 theorem zap.Logger.wp_Warn :
     zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Warn.wp_proof
+  zap.Logger.Warn.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem proto.wp_Unmarshal :
     proto.Unmarshal.spec (GF := GF) (hG := hG) :=
@@ -359,7 +369,7 @@ theorem proto.wp_Unmarshal :
 
 theorem zap.Logger.wp_Info :
     zap.Logger.Info.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Info.wp_proof
+  zap.Logger.Info.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem mvcc.wp_UnsafeSetScheduledCompact :
     mvcc.UnsafeSetScheduledCompact.spec (GF := GF) (hG := hG) :=
@@ -475,7 +485,7 @@ theorem proto.wp_Marshal :
 
 theorem zap.Logger.wp_Error :
     zap.Logger.Error.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Error.wp_proof
+  zap.Logger.Error.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem mvcc.storeTxnCommon.wp_FirstRev :
     mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=

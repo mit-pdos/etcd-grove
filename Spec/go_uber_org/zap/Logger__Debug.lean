@@ -1,5 +1,5 @@
 /-
-`zap.Logger.Debug`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first (no Rocq counterpart).
+`zap.Logger.Debug`: proved over zap's code and `Logger.check`'s spec since 2026-11-20 (until then the trust boundary). Lean-first (no Rocq counterpart).
 -/
 module
 

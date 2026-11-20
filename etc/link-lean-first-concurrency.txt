@@ -44,7 +44,10 @@ Client__Ctx:
 Client__GetLogger:
 # zap (names only): the trust boundary (axioms, shared with the server's Link).
 zap_Int64:
-Logger__Warn:
+# (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
+zap_Logger__check:
+zapcore_CheckedEntry__Write:
+Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 # Session (client/v3/concurrency/session.go), see InvSession.lean.
 concurrency_WithTTL: zap_Int64 Logger__Warn
 concurrency_WithLease:

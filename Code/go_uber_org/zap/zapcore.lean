@@ -317,43 +317,52 @@ opaque WriteThenFatal [GooseExts] [GoGlobalContext] : val
 
 opaque UnknownType [GooseExts] [GoGlobalContext] : val
 
-opaque ArrayMarshalerType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ArrayMarshalerType [GooseExts] [GoGlobalContext] : val :=
+  #(W8 1)
 
 opaque ObjectMarshalerType [GooseExts] [GoGlobalContext] : val
 
 opaque BinaryType [GooseExts] [GoGlobalContext] : val
 
-opaque BoolType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def BoolType [GooseExts] [GoGlobalContext] : val :=
+  #(W8 4)
 
-opaque ByteStringType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ByteStringType [GooseExts] [GoGlobalContext] : val :=
+  #(W8 5)
 
 opaque Complex128Type [GooseExts] [GoGlobalContext] : val
 
 opaque Complex64Type [GooseExts] [GoGlobalContext] : val
 
-opaque DurationType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def DurationType [GooseExts] [GoGlobalContext] : val :=
+  #(W8 8)
 
 opaque Float64Type [GooseExts] [GoGlobalContext] : val
 
 opaque Float32Type [GooseExts] [GoGlobalContext] : val
 
-opaque Int64Type [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Int64Type [GooseExts] [GoGlobalContext] : val :=
+  #(W8 11)
 
-opaque Int32Type [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Int32Type [GooseExts] [GoGlobalContext] : val :=
+  #(W8 12)
 
 opaque Int16Type [GooseExts] [GoGlobalContext] : val
 
 opaque Int8Type [GooseExts] [GoGlobalContext] : val
 
-opaque StringType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StringType [GooseExts] [GoGlobalContext] : val :=
+  #(W8 15)
 
 opaque TimeType [GooseExts] [GoGlobalContext] : val
 
 opaque TimeFullType [GooseExts] [GoGlobalContext] : val
 
-opaque Uint64Type [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Uint64Type [GooseExts] [GoGlobalContext] : val :=
+  #(W8 18)
 
-opaque Uint32Type [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Uint32Type [GooseExts] [GoGlobalContext] : val :=
+  #(W8 19)
 
 opaque Uint16Type [GooseExts] [GoGlobalContext] : val
 
@@ -365,11 +374,14 @@ opaque ReflectType [GooseExts] [GoGlobalContext] : val
 
 opaque NamespaceType [GooseExts] [GoGlobalContext] : val
 
-opaque StringerType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StringerType [GooseExts] [GoGlobalContext] : val :=
+  #(W8 25)
 
-opaque ErrorType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ErrorType [GooseExts] [GoGlobalContext] : val :=
+  #(W8 26)
 
-opaque SkipType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def SkipType [GooseExts] [GoGlobalContext] : val :=
+  #(W8 27)
 
 opaque InlineMarshalerType [GooseExts] [GoGlobalContext] : val
 
@@ -378,11 +390,14 @@ opaque _hex [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def DebugLevel [GooseExts] [GoGlobalContext] : val :=
   #(W8 (-1))
 
-opaque InfoLevel [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def InfoLevel [GooseExts] [GoGlobalContext] : val :=
+  #(W8 0)
 
-opaque WarnLevel [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def WarnLevel [GooseExts] [GoGlobalContext] : val :=
+  #(W8 1)
 
-opaque ErrorLevel [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ErrorLevel [GooseExts] [GoGlobalContext] : val :=
+  #(W8 2)
 
 opaque DPanicLevel [GooseExts] [GoGlobalContext] : val
 
