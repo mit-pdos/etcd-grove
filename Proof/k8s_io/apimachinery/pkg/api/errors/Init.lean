@@ -2,9 +2,9 @@
 Package initialization of `k8s_io.apimachinery.pkg.api.errors`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: `var _ error = &StatusError{}` and `knownReasons`, a map literal of the
+19 known reasons (prove-k8s, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).
 -/
 module
 
@@ -31,25 +31,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace k8s_io.apimachinery.pkg.api.errors
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `k8s_io.apimachinery.pkg.api.errors`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([«_».init,
-        knownReasons.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end k8s_io.apimachinery.pkg.api.errors
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -70,13 +51,56 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply wp_GlobalAlloc (V := Loc) knownReasons _ as HknownReasons
   wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.net.http.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk knownReasons.init (by mem_tac))
+  -- translated initializer of knownReasons))
+  try wp_auto
+  wp_alloc_anon
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (go.GoType.StructType [])) as %mHkr Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Unit) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty) $$ Hkr as Hkr
+  try wp_auto
   iframe Hown
   is_pkg_init_finish
 

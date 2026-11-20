@@ -35,6 +35,7 @@ public import Proof.encoding.base64.Base
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
 public import Perennial.Proof.context.Base
+public import Proof.math.rand.Base
 
 @[expose] public section
 
@@ -165,6 +166,22 @@ instance k8s_io_apimachinery_pkg_util_wait_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance k8s_io_apimachinery_pkg_util_wait_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait :=
+  build_get_is_pkg_init_wf
+
+-- (sets: moved from the cacher's Base, `endpoints/request` imports it since prove-k8s, 2026-11-20)
+instance k8s_io_apimachinery_pkg_util_sets_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_sets_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  build_get_is_pkg_init_wf
+
+-- (selection: moved from kubernetes' Base, labels imports it since prove-k8s, 2026-11-20)
+instance k8s_io_apimachinery_pkg_selection_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_selection_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.selection :=
   build_get_is_pkg_init_wf
 
 -- (version: moved from the cacher's Base, featuregate imports it)

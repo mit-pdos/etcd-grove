@@ -6,8 +6,13 @@
 # And (2026-11-04, K4 of notes/k8s-compactor-plan.md) `ContextForChannel` and `channelContext`'s methods, the context
 # Kubernetes' compactor loop runs under.
 translate = ["!*", "ExponentialBackoff", "ContextForChannel", "channelContext.Done", "channelContext.Err",
-  "channelContext.Deadline", "channelContext.Value"]
-imports = ["!*", "time", "context", "k8s.io/utils/clock", "sync"]
+  "channelContext.Deadline", "channelContext.Value",
+  # (prove-k8s, 2026-11-20) the variables' initializers (until then `opaqueInitsOk`), and `ErrorInterrupted`,
+  # which `ErrWaitTimeout`'s calls
+  "ErrWaitTimeout", "errWaitTimeout", "RealTimer", "internalClock", "ForeverTestTimeout", "NeverStop",
+  "jitterRand", "_", "ErrorInterrupted"]
+# `errors` and `math/rand` (prove-k8s): `ErrWaitTimeout`'s `errors.New`, `jitterRand`'s `rand.Float64`
+imports = ["!*", "time", "context", "k8s.io/utils/clock", "sync", "errors", "math/rand"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
