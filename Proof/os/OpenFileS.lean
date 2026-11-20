@@ -546,7 +546,7 @@ theorem os.OpenFile.wp_proofCreateS : os.OpenFile.specCreateS (GF := GF) (hG := 
     icases H with (H | ⟨%he, Hok⟩)
     · ileft; iexact H
     · iright; iframe Hok; ipureintro
-      exact ⟨he.1, he.2, (not_and_or.1 hne)⟩
+      exact ⟨he.1, he.2, (Classical.not_and_iff_not_or_not.1 hne)⟩
 
 end proof
 

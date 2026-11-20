@@ -46,7 +46,8 @@ theorem munmap_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i
   obtain ⟨base, len, cap, m, hv, hm, hlen, hcap, -⟩ := hst
   have hz := noMapLockErr_step (Sio := Sio) hs
     (by simp only [MapLockCovers]; exact ⟨base, _, m, hv, hm, hS _ _⟩)
-    ⟨Val (#(0 : w64)), st.setProc { st.proc with maps := GMap.delete base st.proc.maps },
+    ⟨Val (#(0 : w64)), st.setProc { st.proc with
+        maps := GMap.delete base st.proc.maps, mapDesc := GMap.delete base st.proc.mapDesc },
       by simp only [IsFsStep]; refine ⟨base, len, cap, m, hv, hm, hlen, hcap, .inl ⟨?_, ?_⟩⟩ <;> trivial,
       (rfl : Val (#(0 : w64)) = Val (#(0 : w64)))⟩
   exact ⟨_, (hz : e' = Val (#(0 : w64))), rfl⟩
@@ -83,7 +84,7 @@ theorem flock_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i,
         refine ⟨Val (#EAGAIN), st, ?_, Or.inr ⟨fd, how, ex, rfl, ?_, rfl⟩⟩
         · simp only [IsFsStep]
           exact ⟨fd, how, d, some ex, true, rfl, hfd, hhow, hfree,
-            .inr ⟨EAGAIN, by decide, fun _ _ => hc, rfl, rfl⟩⟩
+            .inr ⟨EAGAIN, by decide, rfl, rfl⟩⟩
         · exact hhow
       · refine ⟨Val (#(0 : w64)), st.setFd fd (d.setLk .flock (some ex)), ?_, Or.inl rfl⟩
         simp only [IsFsStep]
@@ -153,7 +154,8 @@ theorem close_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.
   simp only [IsFsStep] at hst
   obtain ⟨fd', e, d, hv, hfd, -, -⟩ := hst
   have hz := noIoErr_step (Sio := Sio) hs (by simp only [IoCovers]; exact ⟨fd', d, hv, hfd, hS _ _⟩)
-    ⟨Val (#(0 : w64)), st.setProc { st.proc with fds := GMap.delete fd' st.proc.fds },
+    ⟨Val (#(0 : w64)), st.setProc { st.proc with
+        fds := GMap.delete fd' st.proc.fds, mapDesc := GMap.fmap (MapDesc.close fd' d) st.proc.mapDesc },
       by simp only [IsFsStep]; exact ⟨fd', 0, d, hv, hfd, rfl, rfl⟩,
       (rfl : Val (#(0 : w64)) = Val (#(0 : w64)))⟩
   exact ⟨_, (hz : e' = Val (#(0 : w64))), rfl⟩
