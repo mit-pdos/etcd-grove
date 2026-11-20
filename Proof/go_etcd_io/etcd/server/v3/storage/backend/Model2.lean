@@ -327,7 +327,18 @@ def sessWf (P : BParams) (st : BSess) : Prop :=
   sint.Z st.ndel ≤ sint.Z st.pend ∧
   (st.pend = W64 0 → ∀ i, bkOf st.R.bks i = []) ∧
   (st.ndel = W64 0 → agreeOff P.HB (dget st.S) (ovB P.BT st.W.bks (viewOf P st))) ∧
-  safeSt P st
+  safeSt P st ∧
+  -- (backend-snapshot B2, 2026-11-20) nothing pending, the writer's contents are the committed data
+  -- (every write counts in `pending`: `backend.Snapshot`'s own `Commit` arms its observation
+  -- without a commit when nothing is pending)
+  (st.pend = W64 0 → st.S = st.C)
+
+/-- One more pending operation is not none (`sessWf`'s bound: `pending` stays below `2 ^ 58`). -/
+theorem pend_add_one_ne {p : w64} (h0 : 0 ≤ sint.Z p) (h1 : sint.Z p < 2 ^ 58) : p + W64 1 ≠ W64 0 := by
+  intro h
+  have h2 : sint.Z (p + W64 1) = sint.Z p + 1 := by word
+  rw [h] at h2
+  word
 
 /-- The state's facts when the batch lock is free. -/
 def freeOk (P : BParams) (st : BSess) : Prop :=

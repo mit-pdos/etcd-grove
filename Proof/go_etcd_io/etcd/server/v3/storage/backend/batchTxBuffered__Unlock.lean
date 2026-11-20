@@ -275,7 +275,7 @@ private theorem unlock_coreC
         omega
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
-      have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
+      have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1.1
       icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRvG_of (fkOkG_wb f w h)) $$ Hfkh
         with ⟨Hfkh, #Hfkr⟩
       ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl rfl $$ Hfkh
@@ -348,7 +348,7 @@ private theorem unlock_coreC
         omega
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
-      have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
+      have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1.1
       icases fkHalf_rd γ P st (st.C, writebackR st.W st.R) (fun f w h => fkOkRvG_of (fkOkG_wb f w h)) $$ Hfkh
         with ⟨Hfkh, #Hfkr⟩
       ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl rfl $$ Hfkh

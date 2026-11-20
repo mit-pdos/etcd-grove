@@ -80,3 +80,32 @@ back; the server's apply thread holds one, delivered as the constructor's counte
 ## Log
 
 - 2026-11-20: scope and decision (this note).
+- 2026-11-20, **B1 done** (`4d67548d5b`): `ownDB` holds half of `boltState`, `cmtInv` (in `isBackend`
+  and `isBackendNH`) the other half (`dbHalf`) or, once stopped, `bStopped`. The commit glue
+  (`batchTx__commit.lean`) fires bbolt's update by opening `cmtInv` (the lock's quarter of the open
+  flag refutes the stopped case); a stop's commit (paid with `stopPay`, `payIn`'s stop case) stops the
+  backend at its commit point and takes the half out (`bDBOutG`'s `dbHalf`, for `Close`).
+  `batchTx.commit.spec` changed (the quarter, the stop's payment); `unsafeCommit`, `Close`,
+  `backend_init`, `newBackend` adjusted. The backend's `Link` builds.
+- 2026-11-20, B2 start: `sessWf` gains `st.pend = W64 0 → st.S = st.C` (every write counts in `pending`;
+  `pend_add_one_ne`): what lets `Snapshot`'s own `Commit` arm its registration when nothing is
+  pending. Positional uses fixed (`BatchLemmas`, `WritebackLemmas`, `CommitLemmas`, `Unlock`,
+  `st0_freeOk`).
+
+## Open: arming at an `Unlock` window's commit (B2)
+
+A registration must be armed for the image `S` *before* the commit point (a snapshotter's `Begin` may
+come right after it), from the lock's inputs at `S` (`bStopView γ P W Pk S`'s: `W`, `Pk`, the view
+quarter with the deleted entries, `hkOwn`, `rbOwn`, `fkdOwn`). For an ordinary commit they are all in
+`unsafeCommit`'s context before `batchTx.commit` (`thinV_trans`, `dlVd_of_dlsOk`). In an `Unlock`'s
+commit window (`win = true`) the lock's view quarter is at the physical view (`batchViewQ0`, only
+`dlsS`), and only the commit's close (`rtRes_cm_close`, after `tx.Commit`) moves `γ.view` to the
+session's logical view `L'`: before the commit point the inputs at `S` do not exist (the S4b note's
+"`dlsW` exemption"). Options:
+1. Move the window's view update (`γ.view` to `L'`) to the commit point: its fractions are reachable
+   there (the lock's quarter, `rtRes`'s quarter, held whole by the committer, the clients' half
+   deposited in `cacheInv`), but `cacheInv`'s use of the deposited half and `rtRes_cm_close` change.
+2. Arm after the commit, and make a snapshotter that `Begin`s inside an unarmed window wait or retry:
+   not Go's behavior (`Snapshot` does not retry), so no.
+3. SpecPlan's history statement for the snapshot (the client reasons about images): moves the same
+   question to mvcc's invariant, where the window's logical view is mvcc's own.

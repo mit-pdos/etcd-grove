@@ -48,7 +48,7 @@ theorem rv0_safe (P : BParams) (D : Data) : safeRv P (rv0 D) := by
 
 theorem st0_freeOk (P : BParams) (D : Data) (tx : Loc) (hP : P.Wf) : freeOk P (st0 D tx) := by
   have hview : viewOf P (st0 D tx) = dget D := ovB_empty _ _ _ (fun i => bkOf_empty i)
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, rfl, ?_, rfl, fun _ _ => rfl⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun _ => rfl⟩, ?_, rfl, ?_, rfl, fun _ _ => rfl⟩
   · intro id es h; simp [st0] at h
   · intro id es h; simp [st0, rb0] at h
   · intro i es h; simp [st0] at h
