@@ -234,6 +234,28 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
+# the library models (models/, models/README.md; notes/dsverify-net-port-plan.md phase 5): every
+# generated codec is exactly its generator's output for its derived input (pbgen: the roots'
+# descriptors; --check), every protobuf.toml in the tree (but old/) is one of them, the codec helpers
+# against protowire, unicode/utf8 and encoding/json, the generated codecs against protobuf-go and
+# encoding/json, pbgen's random-schema differential test and refusals (models/internal/pbgenrand),
+# and pbgen's codec of etcd's messages (examples/models)
+nm=0
+: > "$tmp/nm.log"
+pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
+examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd"
+for x in $pbinputs; do
+  IFS=: read -r t o p <<< "$x"
+  python3 models/protobuf/pbgen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
+done
+for t in $(git ls-files '*protobuf.toml' ':!old/'); do  # old/: reference copies, not built
+  grep -q "^$t:" <<< "$pbinputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
+done
+python3 models/json/jsongen.py models/internal/jsondifftest/json.toml models/internal/jsondifftest/codec \
+  --pkg codec --check >> "$tmp/nm.log" 2>&1 || nm=1
+(cd models && GOWORK=off go vet ./... && GOWORK=off gotest ./...) >> "$tmp/nm.log" 2>&1 || nm=1
+(cd examples && GOWORK=off gotest ./models/...) >> "$tmp/nm.log" 2>&1 || nm=1
+if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
 # deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
 # selftest
@@ -431,9 +453,11 @@ fi
 # K8S_KVSOWN_CONTROL=1), so that a passing TestDefaultNoRace means something
 # A run may miss the race under the gates' parallel load (it did once, 2026-11-11): retry a run
 # that misses it, up to 3 attempts; pass once one attempt fails with a data race reported.
+# Always -count=1: Go caches a passing test, so one missed race (a pass) was replayed as
+# `ok (cached)` by every later run and attempt, failing every landing (2026-11-19).
 kvc_ok=0; kvc_miss=""
 for kvc_try in 1 2 3; do
-  if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off gotest -race -timeout 10m \
+  if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off gotest -count=1 -race -timeout 10m \
       -run '^TestTracingRace$' . > "$tmp/kvc.$kvc_try.log" 2>&1); then
     kvc_miss="$kvc_miss attempt $kvc_try: passed (no race detected);"
   elif grep -q 'WARNING: DATA RACE' "$tmp/kvc.$kvc_try.log"; then

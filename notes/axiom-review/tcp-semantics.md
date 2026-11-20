@@ -947,3 +947,65 @@ Each was traced once (`go test -c -overlay`, `NETTCP_ST_ITERS=1`) and checked by
 - v3.1's "not tried" list (M1's stress test, a `Write` above `maxRW`, IPv6-only hosts, `GODEBUG`,
   memory exhaustion).
 
+
+## v3.3 (2026-11-19)
+
+The net extension v3.3 (branch `net-gaps`, phase 2 of `notes/dsverify-net-port-plan.md`): D23 the
+network `"tcp4"`, D24 socket options, D25 Go's write lock (`GooseLang/Ext/Net/Impl.lean`'s header;
+`notes/decisions.md`, "The net extension v3.3"). Reviewed by a fresh agent given the code only (the
+changed definitions of `Impl.lean`, the trusted models of `Net/TrustedCode/net.lean`,
+`examples/net/semantics/v33_test.go`, since split into `tcp4_test.go`, `sockopt_test.go`, `writelock_test.go`, and `doc.go`), not the author's reasoning; it read Go
+1.27.3's sources and ran its own experiments on this machine (Linux 7.0, `/tmp/agR/`, not kept).
+
+### Findings
+
+- **F1 (unsound, not reachable by a realistic program; D25 and, older, every blocking call).**
+  Go's `fdMutex` (`internal/poll/fd_mutex.go`) counts the waiters of an fd's read and write locks,
+  and its references, in 20 bits, and panics past 1048575 ("too many concurrent operations on a
+  single file or socket"). One `Write` holding the lock (the peer not reading) and 2^20 goroutines
+  each calling `Write` on the end: Go panics (the reviewer's program `ov`, measured); the model lets
+  them wait, a stutter. Not new in v3.3 (concurrent `Read`s and `Accept`s hit the same bound) but
+  D25 models the waiters, and the waiting step's having no outcome is what excludes the panic.
+  **Not fixed: a known limitation** (the user, 2026-11-19: keep the semantics simple; reaching it
+  needs more than 2^20 goroutines waiting on one socket): stated in `Impl.lean`'s header ("Known
+  limitation") and the `doc.go` row "(2^20 waiters)"; not an assumption of the theorems.
+  (Modeling it exactly would count waiters per end, and add a `Panic` outcome; the bounds plan,
+  `notes/bounds-plan.md`, could later make it a premise over thread tokens.)
+- **F2 (imprecise, harmless).** Go's `Close` returns only after the lock holder's `Write` dropped
+  its reference (`runtime_Semacquire(&fd.csema)`); the model's `Close` is one step, which a holder's
+  later step may follow. The model allows more, not less. Not changed.
+- **F3 (documentation, evidence).** (a) `TestWriteLock`'s comment said the waiting `Write` returns
+  `ErrClosed` after the holder's `Write`: false (`increfAndClose` wakes the waiter at once; 45 of 200
+  trials the waiter returned first). The model allows both orders. **Fixed:** the comment. (b)
+  `TestSockOpts`' comment claimed both ends in every state, the test checked the dialer only.
+  **Fixed:** the test checks the dialer and the acceptor (from Go's default MPTCP-capable listener)
+  fresh, after the peer's FIN, after FIN and its own `CloseWrite`, after its own `CloseWrite`, after
+  a reset. (c) With `GODEBUG=multipathtcp=1` both ends are MPTCP: the reviewer measured D24 there
+  too, no difference; the target configuration's MPTCP note (D13) covers the listener's default
+  only, which is the configuration claimed.
+
+### Checked, no finding
+
+- **D25.** `Close` takes no write lock: a blocked holder is woken (`pd.evict`) and fails, one between
+  `write(2)` calls may write on until `EAGAIN`, which the model orders before the `Close` step (any
+  count); the waiter then fails `closed`. `CloseWrite` and `SetDeadline` take a reference only; a
+  deadline that expires while a `Write` waits for the lock is checked only once it has it
+  (`prepareWrite`), as in the model. An empty `Write` takes and releases the lock in one step; a
+  failing first step is the last. Each end has its own lock. After a crash the lock stays held, but
+  connection ids are never reused. The only state with no outcome is a first step while the lock is
+  held, where Go waits too. "A later step without the lock panics" is unreachable from the models
+  (`first` is `nn = 0`; a step that does not end the loop counts at least one byte; only the
+  holder's last step releases). `ReadFrom`, `WriteTo`, `writeBuffers`, `SyscallConn`, `File` have
+  no model: a program reaching them is stuck, not silently routed to `Write`.
+- **D24.** All six options are `poll.FD.SetsockoptInt`/`SetsockoptLinger` (a reference, `int32` of the
+  value, `wrapSyscallError("setsockopt")`); `setKeepAliveIdle`'s `d < 0` returns before any system
+  call, `d = 0` is 15 s. `keepIdleValid`, compiled standalone, matched real `setsockopt` on 24
+  values (negatives, 0, 1 ns, 32767 s ± 1 ns, 32768 s, the `int32` wrap points, `MaxInt64` and the
+  values whose addition overflows, `MinInt64`) on both ends, TCP and MPTCP: 0 mismatches. Extreme
+  values of the other options: `nil`. Each `*OpError`'s `Op`, `Net`, `Source`, `Addr` matches
+  `tcpsock.go`/`net.go`; a zero `TCPConn`: bare `EINVAL` first, `SetKeepAlivePeriod(-1)` included.
+- **D23.** `Net` is the call's for `Dial`/`Listen`/`DialTimeout`, the listener's `fd.net` for `Accept`,
+  its `Close` and the connections it accepts, the dialer's for dialed connections. `"tcp4"` on
+  `"[::]:p"`, `":p"`, `"0.0.0.0:p"` binds `0.0.0.0:p` (`"tcp"`: dual-stack `[::]:p`); every pair of
+  `{tcp, tcp4} × {127.0.0.1, "", 0.0.0.0, [::]}` at one port: the second `Listen` fails. Other
+  network names (`"TCP"` included) make the model panic, which a proof must rule out.

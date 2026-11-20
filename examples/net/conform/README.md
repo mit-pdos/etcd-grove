@@ -1,6 +1,6 @@
 # conform: traces of real runs, for checking them against the TCP semantics
 
-The TCP extension's semantics (`GooseLang/Ext/Tcp/Impl.lean`) is trusted: every theorem over the
+The net extension's semantics (`GooseLang/Ext/Net/Impl.lean`) is trusted: every theorem over the
 examples holds for the behaviors it allows, and `examples/net/semantics/` backs each decision with
 one measured test. This directory records whole runs of real programs, every call of Go's `net`
 they make, so that a conformance checker can decide whether some execution of the semantics
@@ -11,22 +11,22 @@ search) comes after the semantics v3; "What the checker needs" says what it will
 
 | file | what |
 |---|---|
-| `overlay/zz_nettcp_trace.go.src` | the tracer: a file added to Go's own `net` package at build time |
-| `overlay/zz_nettcp_goid.go.src` | a file added to Go's `runtime`: the goroutine's id, for the tracer |
+| `overlay/zz_netext_trace.go.src` | the tracer: a file added to Go's own `net` package at build time |
+| `overlay/zz_netext_goid.go.src` | a file added to Go's `runtime`: the goroutine's id, for the tracer |
 | `overlay/overlay.go` | writes the `go build -overlay` file (`overlay.Make`); `cmd/overlay` is its command |
 | `events/events.go` | a driver's file of process events (start, kill, exit), written by `proctest` and the probe |
 | `probe/main.go` | the probe: one mode per pattern that stresses the semantics |
 | `tracecheck/tracecheck.go` | loads trace directories and checks they are well formed (not against the model); `cmd/tracecheck` is its command |
-| `collect_test.go` | `TestCollect` (the collection, with `NETTCP_CONFORM=1`), `TestSample` (the sample is well formed), `TestOverlay` (the renames match the installed Go) |
+| `collect_test.go` | `TestCollect` (the collection, with `NET_CONFORM=1`), `TestSample` (the sample is well formed), `TestOverlay` (the renames match the installed Go) |
 | `testdata/*.tar.gz` | the sample: 14 trace directories (452 KB), the checker's test inputs |
-| `../internal/proctest/conform.go` | `proctest`'s tracing, with `NETTCP_CONFORM=1` |
+| `../internal/proctest/conform.go` | `proctest`'s tracing, with `NET_CONFORM=1` |
 
 ## Collecting traces
 
 ```
 cd examples
-NETTCP_CONFORM=1 NETTCP_CONFORM_OUT=/tmp/nettcp-conform go test -count=1 -timeout 60m -v -run TestCollect ./net/conform
-go run ./net/conform/cmd/tracecheck /tmp/nettcp-conform/traces      # check again, print the counts
+NET_CONFORM=1 NET_CONFORM_OUT=/tmp/net-conform go test -count=1 -timeout 60m -v -run TestCollect ./net/conform
+go run ./net/conform/cmd/tracecheck /tmp/net-conform/traces      # check again, print the counts
 ```
 
 `TestCollect` writes the overlay (`overlay/`), runs the seven examples' `TestProcesses` and
@@ -34,16 +34,16 @@ go run ./net/conform/cmd/tracecheck /tmp/nettcp-conform/traces      # check agai
 probe with the overlay and runs each of its modes, then checks every trace directory with
 `tracecheck` and writes the counts to `summary.txt`. Options:
 
-- `NETTCP_CONFORM_OUT=DIR`: where everything goes (must be empty or absent); else a fresh temporary
+- `NET_CONFORM_OUT=DIR`: where everything goes (must be empty or absent); else a fresh temporary
   directory, logged.
-- `NETTCP_CONFORM_SEMANTICS=1`: also `go test -overlay` the measured semantics tests
+- `NET_CONFORM_SEMANTICS=1`: also `go test -overlay` the measured semantics tests
   (`traces/semantics/all`, one directory: the tests run in parallel in one process; their child
   processes are killed by the tests, which record no events, so this directory is checked
   leniently). A failing semantics test is logged, not fatal (see "Limitations").
-- `NETTCP_CONFORM_SAMPLE=1`: also rewrites `testdata/`: six of the examples' directories, and each
+- `NET_CONFORM_SAMPLE=1`: also rewrites `testdata/`: six of the examples' directories, and each
   probe mode run once more with one iteration (`dialtimeout` with 300 dials).
 
-Run `TestCollect` alone: `NETTCP_CONFORM=1 go test ./net/...` would run the examples' own process
+Run `TestCollect` alone: `NET_CONFORM=1 go test ./net/...` would run the examples' own process
 tests in parallel with the collection's runs of them, on the same ports.
 
 The layout of `DIR`:
@@ -53,30 +53,30 @@ overlay/overlay.json, overlay/net/*.go, overlay/runtime/*.go
 bin/probe
 traces/<example>/<Test>/         one directory per run of a process test (proctest)
 traces/probe/<mode>/             one per probe mode; traces/probe/<mode>.txt is the probe's report
-traces/semantics/all/            with NETTCP_CONFORM_SEMANTICS=1
+traces/semantics/all/            with NET_CONFORM_SEMANTICS=1
 examples.txt, semantics.txt      the go test outputs
 summary.txt                      tracecheck's counts
-sample/                          with NETTCP_CONFORM_SAMPLE=1
+sample/                          with NET_CONFORM_SAMPLE=1
 ```
 
 A trace directory is one run of one system: every process of it, each in its own file, and the
 driver files of the processes that started them. The checker checks a directory as a whole.
 
 **By hand.** `go run ./net/conform/cmd/overlay DIR` prints the overlay file's path; build with
-`go build -overlay PATH ...` (or `go test -overlay PATH ...`) and run with `NETTCP_TRACE_DIR` (and
-`NETTCP_NODE`) set. `proctest` does exactly this with `NETTCP_CONFORM=1`: `Build` builds with the
-overlay (`$NETTCP_OVERLAY` if set, else one it makes), `Start` and `Run` set `NETTCP_NODE` to the
-command's name and `NETTCP_TRACE_DIR` to `$NETTCP_TRACE_DIR/<package>/<test>` (a fresh one per
+`go build -overlay PATH ...` (or `go test -overlay PATH ...`) and run with `NET_TRACE_DIR` (and
+`NET_NODE`) set. `proctest` does exactly this with `NET_CONFORM=1`: `Build` builds with the
+overlay (`$NET_OVERLAY` if set, else one it makes), `Start` and `Run` set `NET_NODE` to the
+command's name and `NET_TRACE_DIR` to `$NET_TRACE_DIR/<package>/<test>` (a fresh one per
 test run; a temporary root if unset), and write the directory's driver file. Without
-`NETTCP_CONFORM=1` nothing changes: the same `go build` command, the same process environment.
+`NET_CONFORM=1` nothing changes: the same `go build` command, the same process environment.
 
 ## The tracer
 
 **How.** `go build -overlay` replaces four files of Go's own `net` package and adds one to `net`
 and one to `runtime`. In the replaced files (`net.go`, `dial.go`, `tcpsock.go`,
-`tcpsock_unix.go`) the only change is that each traced definition is renamed `nettcpOrig<Name>`,
+`tcpsock_unix.go`) the only change is that each traced definition is renamed `netextOrig<Name>`,
 plus one call inside `net` (`newTCPConn`'s `SetKeepAliveConfig`, which Go makes on its own, now
-calls the original: the trace holds only the program's calls). The added `zz_nettcp_trace.go`
+calls the original: the trace holds only the program's calls). The added `zz_netext_trace.go`
 defines `<Name>` as a wrapper: it builds the begin record, takes the time, writes the record,
 calls the original, takes the time, writes the end record. `overlay.Make` fails unless each of
 the 38 renames and the call patch matches exactly one line, unless the four bodies the wrappers
@@ -90,11 +90,11 @@ The toolchain on disk is not modified, and neither are the programs.
 directory, and `proctest` builds with the same command line (checked: `echo/cmd/server`,
 `halfclose/cmd/client` and `shutdown/cmd/node` built from the commit before this directory and
 after it, `-trimpath -buildvcs=false`, have the same sha256). A traced binary run without
-`NETTCP_TRACE_DIR` (or with it empty) calls the originals at once and writes nothing. With it
+`NET_TRACE_DIR` (or with it empty) calls the originals at once and writes nothing. With it
 set, a traced process that cannot create its trace file exits 97 at `net`'s initialization: a
 run that silently lost a process's trace would be checked as if the process had made no call.
 
-**Traced, in the model** (an op of its own; `NetTcp/Code/net.toml`'s trusted functions, and the
+**Traced, in the model** (an op of its own; `Net/Code/net.toml`'s trusted functions, and the
 v3 plan's `DialTimeout`, addresses): `Dial`, `DialTimeout`, `Listen`; `(*TCPListener).Accept`
 (also `Listener.Accept` on a `*TCPListener`, the same method), `Close` (op `ListenerClose`),
 `Addr` (op `ListenerAddr`); `(*conn)` `Read`, `Write`, `Close`, `SetDeadline`, `SetReadDeadline`,
@@ -121,11 +121,11 @@ or by the kernel at a process's exit leaves no record.
 
 ## The trace format
 
-Version 1. The tracer (`zz_nettcp_trace.go.src`, `nettcpVersion`), `events` (`Version`) and
+Version 1. The tracer (`zz_netext_trace.go.src`, `netextVersion`), `events` (`Version`) and
 `tracecheck` (`Version`) implement it; change them, and this section, together.
 
-**Files.** One file per process, in the directory `NETTCP_TRACE_DIR` names: a node's
-`<node>.<pid>.<t>.jsonl` (`<node>` is `NETTCP_NODE`, default the executable's base name, with
+**Files.** One file per process, in the directory `NET_TRACE_DIR` names: a node's
+`<node>.<pid>.<t>.jsonl` (`<node>` is `NET_NODE`, default the executable's base name, with
 bytes outside `[A-Za-z0-9._-]` replaced by `_`; `<t>` the monotonic time at the file's creation),
 a driver's `_driver.<pid>.<t>.jsonl`. Each line is one JSON object, a record, written by one
 `write(2)` on a file opened `O_APPEND` (records of one file are in the order they were written,
@@ -145,7 +145,7 @@ below 2^53: times, counts, pids).
 | `v` | 1, the format version |
 | `role` | `"node"` (a traced process) or `"driver"` (a process that started nodes) |
 | `pid`, `ppid` | the process's and its parent's pid |
-| `node` | the node's name (`NETTCP_NODE`); a driver's own name (`"proctest"`, the probe's node) |
+| `node` | the node's name (`NET_NODE`); a driver's own name (`"proctest"`, the probe's node) |
 | `exe`, `args` | `os.Executable()`, `os.Args` |
 | `go` | `runtime.Version()` |
 | `host` | `os.Hostname()` |
@@ -224,7 +224,7 @@ type (`"*net.TCPAddr"`). A TCP address's `s` is `IP:port` (`[IPv6]:port`).
 
 A driver (`proctest`; the probe's `killwrite`) records each node process it starts, kills and
 waits for. Fields: `pid`, `node` (the driver's), `s` (the event's number in the file, from 1),
-`ev`, `t`, `cnode` (the node's name, its `NETTCP_NODE`), `cpid` (its pid), and by event:
+`ev`, `t`, `cnode` (the node's name, its `NET_NODE`), `cpid` (its pid), and by event:
 
 | `ev` | meaning | more fields |
 |---|---|---|
@@ -286,12 +286,13 @@ notes any mismatch).
 | `emptywrite` | empty `Write`s on a live end (both ends), past an expired deadline, after `CloseWrite`, after `Close`, after a reset (twice); empty `Read`s; `LocalAddr`, `RemoteAddr`, the listener's `Addr` |
 | `dialthenlisten` | `Dial` and `DialTimeout` with no listener; `Listen`; a second `Listen` of the address; `Dial`, `Accept`, a byte, `Close`, EOF; a `Dial` never accepted, the listener's `Close`, a `Read` of that connection; `Accept` and `Close` after `Close`; `Dial` after it |
 | `dialtimeout` | 2000 `DialTimeout`s with timeouts of 1-300 µs, each success writing a byte and closing; the listener accepts every connection and reads it to its end |
+| `concwrite` | two goroutines `Write` 1 MiB each of distinct bytes to one end at once, the reader slow (64 KiB, 1 ms pauses); the reader checks each `Write`'s bytes are contiguous (v3.3, D25: Go's write lock); its sample (`testdata/probe-concwrite.tar.gz`, 256 KiB each) written by `TestSampleMode` (`NET_CONFORM_SAMPLE_MODE=concwrite`) |
 
 The probe always exits 0 (1 if its own `Listen` fails): the checker judges the run.
 
 ## What the traces show (a collection run, 2026-11-14)
 
-`TestCollect` with `NETTCP_CONFORM_SEMANTICS=1`, 55 s: 22 trace directories (14 process-test
+`TestCollect` with `NET_CONFORM_SEMANTICS=1`, 55 s: 22 trace directories (14 process-test
 runs, 8 probe modes, the semantics tests), 578 node processes and 14 driver files, 42,569
 records, 20,378 calls; 46 processes killed (SIGKILL), 46 calls cut short by a kill, 11 in
 progress at an exit (shutdown's node exits with goroutines blocked in `Accept`, `Read`,
@@ -334,7 +335,7 @@ model; the approach (renamed definitions in Go's own files, wrappers with the pu
   `ListenConfig.Listen`, `DialTCP`, `ListenTCP`, `AcceptTCP` are `Unmodeled` (their checker reads
   them as their in-model counterparts; ours has no step for them).
 - **Processes are nodes, and they crash**: every record carries `pid` and `node` (from
-  `NETTCP_NODE`, not the rig's `DSRIG_ID`); drivers record each process's start, kill and exit
+  `NET_NODE`, not the rig's `DSRIG_ID`); drivers record each process's start, kill and exit
   (their rig did not restart nodes); the probe kills a writer mid-`Write`.
 - **The goroutine** is recorded (`g`), through a two-line file added to `runtime` by the same
   overlay; theirs records none.

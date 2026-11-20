@@ -1,4 +1,4 @@
-// Package tcpsquat shows that the TCP extension's results rest on a
+// Package tcpsquat shows that the net extension's results rest on a
 // deployment assumption no theorem states (notes/axiom-review/tcp-semantics.md,
 // "The closed world"): that no process outside the system listens at a plan
 // address. examples/net/echo's echo_crash_safety says that echo's client never

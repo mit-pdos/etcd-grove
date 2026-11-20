@@ -1,0 +1,46 @@
+/-
+`t.SetKeepAlivePeriod(d)` on a `*TCPConn` `t` that is the end `s` of a TCP connection `cn` (`connAt`), D24
+(`GooseLang/Ext/Net/Impl.lean`; the model `TCPConn.SetKeepAlivePeriod.impl`,
+`Net/TrustedCode/net.lean`): `TCP_KEEPIDLE` of `d` rounded up to seconds (`tcpsockopt_unix.go`'s `setKeepAliveIdle`;
+`keepIdleValid d`: no system call for `d < 0`, Linux refuses a count outside 1..32767), the extension's `SetSockopt`, which changes no state. Its
+outcome the caller takes by a logically atomic update over the end's state (`SockOptOutcome`:
+`closed` on a closed end, else success, or `sys` for a count Linux refuses), its result `Q res` handed back with the error:
+`nil` for success, else the `*OpError{Op: "set"}` with `Source` `la`, `Addr` `ra` of the failure's kind
+(`resErr`; a `sys` error's call `"setsockopt"`). Proved in `Net/Proof/net/TCPConn__SetKeepAlivePeriod.lean`.
+-/
+module
+
+public import Net.Proof.net.Base
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Net
+
+namespace net
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+
+/-- See the file header. -/
+abbrev TCPConn.SetKeepAlivePeriod.spec : Prop :=
+  ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (d : w64)
+    (Q : Option NetErr → IProp GF),
+  {{ connAt (GF := GF) t cn s a la ra ∗
+      (|={⊤,∅}=> ∃ st, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗
+        ∀ res, ⌜SockOptOutcome st (keepIdleValid d) res⌝ -∗
+          netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ={∅,⊤}=∗ Q res) }}
+    (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlivePeriod" #t)) (Val #d))
+  {{ (err : GoInterface), RET #err;
+      ∃ res, Q res ∗ resErr res go!"set" la ra none (· = go!"setsockopt") err }}
+
+end spec
+
+end net
+end Perennial
