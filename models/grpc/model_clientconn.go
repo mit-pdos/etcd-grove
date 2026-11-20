@@ -104,10 +104,10 @@ func (ccr *ccResolverWrapper) update(addrs []resolver.Address, err error) {
 func (ccr *ccResolverWrapper) UpdateState(s resolver.State) error {
 	if s.ServiceConfig != nil {
 		if s.ServiceConfig.Err != nil {
-			panic("grpc model: not modelled: a resolver's service config error")
+			panic(notModelled("grpc: a resolver's service config error"))
 		}
 		if _, ok := s.ServiceConfig.Config.(*ServiceConfig); !ok {
-			panic("grpc model: not modelled: a service config not parsed by the ClientConn")
+			panic(notModelled("grpc: a service config not parsed by the ClientConn"))
 		}
 	}
 	addrs := append([]resolver.Address(nil), s.Addresses...)
@@ -356,7 +356,7 @@ func (cc *ClientConn) dialAddr(addr resolver.Address) (net.Conn, credentials.Aut
 	var err error
 	if fn := cc.dopts.copts.Dialer; fn != nil {
 		if networkType == "unix" && !strings.HasPrefix(address, "\x00") {
-			panic("grpc model: not modelled: a unix address with a custom dialer")
+			panic(notModelled("grpc: a unix address with a custom dialer"))
 		}
 		conn, err = fn(connectCtx, address)
 	} else {
@@ -373,7 +373,7 @@ func (cc *ClientConn) dialAddr(addr resolver.Address) (net.Conn, credentials.Aut
 		creds = cc.dopts.copts.CredsBundle.TransportCredentials()
 	}
 	if creds.Info().SecurityProtocol != "insecure" {
-		panic("grpc model: not modelled: transport credentials other than insecure")
+		panic(notModelled("grpc: transport credentials other than insecure"))
 	}
 	addr.ServerName = cc.getServerName(addr)
 	conn, authInfo, err := creds.ClientHandshake(connectCtx, addr.ServerName, conn)

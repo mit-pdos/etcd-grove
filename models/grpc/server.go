@@ -695,19 +695,19 @@ func NewServer(opt ...ServerOption) *Server {
 		done:         grpcsync.NewEvent(),
 	}
 	if len(opts.statsHandlers) != 0 {
-		panic("grpc model: not modelled: stats handlers")
+		panic(notModelled("grpc: stats handlers"))
 	}
 	if opts.binaryLogger != nil {
-		panic("grpc model: not modelled: binary logging")
+		panic(notModelled("grpc: binary logging"))
 	}
 	if opts.inTapHandle != nil {
-		panic("grpc model: not modelled: InTapHandle")
+		panic(notModelled("grpc: InTapHandle"))
 	}
 	if opts.cp != nil || opts.dc != nil {
-		panic("grpc model: not modelled: compression")
+		panic(notModelled("grpc: compression"))
 	}
 	if opts.creds != nil && opts.creds.Info().SecurityProtocol != "insecure" {
-		panic("grpc model: not modelled: transport credentials other than insecure")
+		panic(notModelled("grpc: transport credentials other than insecure"))
 	}
 	chainUnaryServerInterceptors(s)
 	chainStreamServerInterceptors(s)
@@ -1031,7 +1031,7 @@ var _ http.Handler = (*Server)(nil)
 //
 // MODEL: not modelled (gRPC over net/http's HTTP/2 server, which etcd uses only with TLS).
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	panic("grpc model: not modelled: Server.ServeHTTP")
+	panic(notModelled("grpc: Server.ServeHTTP"))
 }
 
 func (s *Server) addConn(addr string, st *serverTransport) bool {

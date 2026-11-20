@@ -137,7 +137,7 @@ func newInt(b int) *int {
 func parseServiceConfig(js string, maxAttempts int) *serviceconfig.ParseResult {
 	compact := strings.Join(strings.Fields(js), "")
 	if compact != `{"loadBalancingPolicy":"round_robin"}` && compact != "{}" {
-		panic("grpc model: not modelled: service config " + js)
+		panic(notModelled("grpc: service config " + js))
 	}
 	return &serviceconfig.ParseResult{Config: &ServiceConfig{rawJSONString: js}}
 }

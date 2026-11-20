@@ -178,13 +178,13 @@ func NewClient(target string, opts ...DialOption) (conn *ClientConn, err error) 
 	}
 
 	if len(cc.dopts.copts.StatsHandlers) != 0 {
-		panic("grpc model: not modelled: stats handlers")
+		panic(notModelled("grpc: stats handlers"))
 	}
 	if cc.dopts.binaryLogger != nil {
-		panic("grpc model: not modelled: binary logging")
+		panic(notModelled("grpc: binary logging"))
 	}
 	if cc.dopts.compressorV0 != nil || cc.dopts.dc != nil {
-		panic("grpc model: not modelled: compression")
+		panic(notModelled("grpc: compression"))
 	}
 
 	cc.csMgr = newConnectivityStateManager(cc.ctx)

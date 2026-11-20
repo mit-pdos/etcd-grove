@@ -379,7 +379,7 @@ func newClientStreamWithParams(ctx context.Context, desc *StreamDesc, cc *Client
 			if compressorV1 == nil {
 				return nil, status.Errorf(codes.Internal, "grpc: Compressor is not installed for requested grpc-encoding %q", ct)
 			}
-			panic("grpc model: not modelled: compression")
+			panic(notModelled("grpc: compression"))
 		}
 	} else if cc.dopts.compressorV0 != nil {
 		// MODEL: unreachable (NewClient panics on a compressor).
