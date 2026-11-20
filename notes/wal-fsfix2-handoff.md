@@ -1,6 +1,26 @@
 # wal-fsfix2 handoff
 
-## START HERE (2026-11-20 a7) — item 2, step (1) mostly done; next: Preallocate, pipeline, cut
+## START HERE (2026-11-20 a8) — item 2 done (cut proved, one spec); item 3 STOPPED (needs `MarshalHsLaw`); land stop
+
+- Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`). lean `5e22c9a3b5` merged (`c20016562f`; conflict k8s/all `Adequacy.lean`:
+  `hmsL` over both clusters, `k8s_compactorN.startAddrs_names_len` added). Full timed build and gates: see the report
+  (`/shared/tmp/walfsfix2/full1.log`, `gates*.log`).
+- **Done (48debd09fe, b3fb796306):** Preallocate witness (`preallocExtend`/`Preallocate` posts `err ≠ nil → ¬ FsNoErrIno`,
+  `syscall.Fallocate.wp_grow` over `wp_osFallocFinishW`); `pipeErrW dir` (alloc, `pipeErrP`, `Open`, `wp_walPipeH_open`);
+  **`cut.spec` one spec over `Sio`** (premises `walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)` and the room;
+  instances `NoIoErr`/`NoMapLockErr`; error `err ≠ nil ∧ ¬ walCov Sio`), proved (`WAL__cut.lean`); `cut.specNoErr`,
+  `walCov_cut`, `WAL__cutNoErr.lean` deleted; `sync.specCut` over `Sio`; `Save`/`SaveSnapshot`/storage `Save`/`SaveSnap`
+  take the instance and the premise (`RnNewStorage` from `WalH.fits/covP/satL`); `fsStepSat_ioNoneL`; WAL and
+  WalTester Links regenerated: `h_wal_WAL_cutNoErr` gone. Ledger: last 2026-11-20 entry. Forms: `questions.md` a8.
+- **Item 3 STOP**: `rnNewStorageOk_holds` needs no `Create.specNoErr`; its `walStorSpecs h` needs the WAL's `Save`/
+  `SaveSnapshot` linked at `walSrvP`, which take `h_WalPbIn_MarshalHsLaw walSrvP walSrvMr` (`pbutil.MustMarshalMessage`
+  of a `*raftpb.HardState`), unproved: registering `raftpb.HardState` as a `PbTypeC` (as `pbEntryC`) needs a trusted
+  encoder fact (`hsEncC_ok`, as `entryEncC_ok`): trust base. Proposal in the report. No closed statement changed.
+- Next after the decision: item 3 per the decision (a linking module instantiating the storage proofs at every
+  `WalH`, then `rnNewStorageOk` out of etcdstart's `commonPremises` and the examples' `Defs`).
+
+## START HERE (2026-11-20 a7, superseded) — item 2, step (1) mostly done; next: Preallocate, pipeline, cut
 
 - Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`). lean NOT merged (now 951d520138; merge before the full build, seed

@@ -3319,3 +3319,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   blocking lock request in conflict waited by failing or by taking no step → it may step to itself; under
   `NoIoErr`/`NoMapLockErr`, a covered blocking request ends with errno 0 or waits (was: any errno in a conflict).
   An independent attack before relying on it.
+
+## 2026-11-20: `cut.spec` restated as one spec over `Sio`; `sync.specCut`, `Save`, `SaveSnapshot` and the storage specs follow
+
+- **Spec.** `WAL.cut.spec` and `WAL.cut.specNoErr` (deleted), `WAL.sync.specCut`, `WAL.Save.spec`, `WAL.SaveSnapshot.spec`,
+  `storage.storage.Save.spec`, `storage.storage.SaveSnap.spec`.
+- **Defect.** Two specs for one function (`cut.spec`, any error; `cut.specNoErr`, unproved, its premises incomplete:
+  the three entries above); `Save`/`SaveSnapshot` chose between them at the call (`CalleeCov.walCov_cut`).
+- **Evidence.** wal-fsfix2 a5-a8; the decided form (etcd-grove-03, 2026-11-20, `questions.md`).
+- **Proposed change.** One `cut.spec` parameterised by `Sio`, with `[FsStepSat (NoIoErr Sio)]` and
+  `[FsStepSat (NoMapLockErr Sio)]`: premises `walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)` and
+  `walCov Sio → o0 + |out| + |pend| ≤ maxBytes`; error arm `err ≠ nil ∧ ¬ walCov Sio`. `sync.specCut` the same way
+  (room premise, error `¬ walCov Sio`; proved from `sync.spec` and `sync.specNoErr`). `Save.spec` gains the instance
+  and the premise `walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)` (a Lean premise); `SaveSnapshot.spec`'s
+  `shared` precondition the same premise as a pure assertion; the storage specs the same, discharged by
+  `RnNewStorage` from `WalH.fits`/`covP` (`satL` the instance).
+- **Decision.** Decided by etcd-grove-03 (the one-spec form, 2026-11-20). Done (wal-fsfix2 a8): `cut.spec` proved
+  (`WAL__cut.lean`: every callee's error witnessed, `Fs.fsNoErrOn_of` refutes it under `walCov`), `cut.specNoErr`,
+  `walCov_cut` and `WAL__cutNoErr.lean` deleted; the WAL Link's hypothesis `h_wal_WAL_cutNoErr` gone.
