@@ -47,9 +47,7 @@ theorem isPE_fieldName (e : fieldpath.PathElement) (pe : PE) :
       | _ => ⌜e.FieldName' = null⌝ := by
   rcases pe with n | fl | x | i <;> unfold isPE
   · iintro H; iexact H
-  · iintro ⟨%h, -⟩; ipureintro; exact h
-  · iintro ⟨%h, -⟩; ipureintro; exact h.1
-  · iintro ⟨%h, -⟩; ipureintro; exact h.1
+  all_goals (iintro ⟨%h, -⟩; ipureintro; first | exact h | exact h.1)
 
 /-- A set's pointer is not nil (its struct is allocated). -/
 theorem trieRep_not_null (p : Loc) (t : Trie) : trieRep (GF := GF) p t ⊢ ⌜p ≠ null⌝ := by
