@@ -5,11 +5,11 @@
 //   - config.snapDirOf dd = path.joinModel [dd, "member", "snap"] (wal-fsfix2, 2026-11-20): cfg.SnapDir()
 //     is filepath.Join(dd, "member", "snap");
 //   - config.backendPathOf dd = config.snapDirOf dd ++ "/db": cfg.BackendPath() is cfg.SnapDir() + "/db";
-//   - snap.snapDBPathOf dd i = config.snapDirOf dd ++ "/" ++ snapDBName i: the snapshotter
+//   - snap.snapDBPath (config.snapDirOf dd) i = config.snapDirOf dd ++ "/" ++ snapDBName i: the snapshotter
 //     bootstrap makes (snap.New(lg, cfg.SnapDir())) returns, from DBFilePath(i),
 //     cfg.SnapDir() + "/" + fmt.Sprintf("%016x.snap.db", i).
 //
-// Both hold because filepath.Join cleans: cfg.SnapDir() is clean and ends in the element "snap"
+// The last two hold because filepath.Join cleans: cfg.SnapDir() is clean and ends in the element "snap"
 // (so not in "/"), and "db" and the snapshot names are clean single elements. The test runs the real
 // etcd code (the fork at the pin) on data directories that are relative, absolute, empty, ".",
 // "..", with repeated and trailing slashes and with "." and ".." elements.

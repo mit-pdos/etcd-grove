@@ -1,9 +1,10 @@
 /-
 **`Clean` keeps a path that fits** (wal-fsfix2, 2026-11-20): `Clean(p)` of a non-empty `p` is no
 longer than `p`, and has no component longer than `p`'s longest (`Fs.WinOk`: every 256-byte infix
-holds a `/`, i.e. no run of 256 bytes without one). So `Join` of elements that fit gives a path that
-fits (`config.snapDirOf`, `Proof/go_etcd_io/etcd/server/v3/config/Defs.lean`). Lean-first; pure, over
-the model of `Proof/path/Model.lean`.
+holds a `/`, i.e. no run of 256 bytes without one). So `Join` of elements with the window property has
+it, and is no longer than their buffer (the elements joined by `/`): with a bound on that length, a
+path that fits (`config.snapDirOf`, `Proof/go_etcd_io/etcd/server/v3/config/PathFits.lean`). Lean-first;
+pure, over the model of `Proof/path/Model.lean`.
 
 The loop invariant (`CleanInv`): the output `o` has the window property and is no longer than the
 input read so far (`r`); a rooted output starts with `/` and `dotdot ≥ 1`; and before an element that

@@ -2,8 +2,8 @@
 **The snapshot directory's paths fit** (wal-fsfix2, 2026-11-20, approved by the user): with
 `config.snapDirOf` Go's `filepath.Join(d, "member", "snap")` (`config/Defs.lean`), a data directory
 that fits (`Fs.DirFits`: under 3800 bytes, no component over 255 bytes; `bootCfgFresh`'s) gives a
-snapshot directory at most 12 bytes longer with the window property (`Clean` lengthens nothing and
-makes no component: `Proof/path/CleanFits.lean`), so every name of at most 255 bytes in it fits
+snapshot directory at most 12 bytes longer with the window property (`Clean` of a non-empty path
+lengthens nothing and makes no longer component: `Proof/path/CleanFits.lean`), so every name of at most 255 bytes in it fits
 (`Fs.PathFits`): the backend's file (`backendPathOf`) and each snapshot file (`snap.snapDBPath`,
 `OpenSnapshotBackendLemmas`). These are the `PathFits` conjuncts of `bootOk`'s claims (`Hpath`,
 `Hsfree`): no longer asserted by the bootstrap contract beyond its precondition. And of a clean
