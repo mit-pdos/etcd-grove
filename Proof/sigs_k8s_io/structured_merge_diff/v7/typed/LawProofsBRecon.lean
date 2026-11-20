@@ -208,6 +208,58 @@ theorem goName_atomic (rel : ElemRel) : ElemRel.goName rel = go!"atomic" ↔ rel
   cases rel <;> decide
 
 
+/-- A granular list's compare below the node is its items' (`visitListItems`). -/
+theorem cmpBelow_list (S : Schema) (t e : TypeRef) (rel : ElemRel) (ks : List GoString) (p : Path)
+    (l r : Option UVal) (hf : S.find t.name = some (.list e rel ks)) (hleaf : leafAt S t l r = false) :
+    cmpBelow S t p l r = cmpListOut (fuelL (listItems l) (listItems r)) S e ks p (listItems l) (listItems r) := by
+  have hl2 := hleaf
+  simp only [leafAt, hf, Bool.or_eq_false_iff, decide_eq_false_iff_not, Bool.and_eq_false_iff] at hl2
+  obtain ⟨-, hemp⟩ := hl2
+  have hne : ¬((listItems l).isEmpty = true ∧ (listItems r).isEmpty = true) := by
+    rintro ⟨h1, h2⟩; rcases hemp with h | h <;> simp_all
+  unfold cmpBelow
+  rw [hleaf]
+  simp only [Bool.false_eq_true, ↓reduceIte, hf, cmpListOut]
+  refine map_congr' Cmp.unionAll ?_
+  intro pe _
+  have := list_child_fuel ks l r pe hne
+  exact cmpF_stable _ _ S e _ _ _ (by unfold fuelO at *; omega) this.2
+
+/-- A granular map's compare below the node is its entries' (`visitMapItems`). -/
+theorem cmpBelow_map (S : Schema) (t : TypeRef) (fs : List (GoString × TypeRef)) (e : Option TypeRef)
+    (rel : ElemRel) (p : Path) (l r : Option UVal) (hf : S.find t.name = some (.map fs e rel))
+    (hleaf : leafAt S t l r = false) :
+    cmpBelow S t p l r = cmpMapOut (fuelM (mapItems l) (mapItems r)) S fs e p (mapItems l) (mapItems r) := by
+  have hl2 := hleaf
+  simp only [leafAt, hf, Bool.or_eq_false_iff, decide_eq_false_iff_not, Bool.and_eq_false_iff] at hl2
+  obtain ⟨-, hemp⟩ := hl2
+  have hne : ¬((mapItems l).isEmpty = true ∧ (mapItems r).isEmpty = true) := by
+    rintro ⟨h1, h2⟩; rcases hemp with h | h <;> simp_all
+  unfold cmpBelow
+  rw [hleaf]
+  simp only [Bool.false_eq_true, ↓reduceIte, hf, cmpMapOut]
+  refine map_congr' Cmp.unionAll ?_
+  rintro ⟨k, a, b⟩ hmem
+  have := map_child_fuel l r _ hmem hne
+  simp only at this ⊢
+  split
+  · exact cmpF_stable _ _ S _ _ a b (by unfold fuelO at *; omega) this.2
+  · rfl
+
+/-- A count bound on `X ∪ (Y ∪ Z)` bounds `X ∪ Y`. -/
+theorem cardLt_union_mid (X Y Z : PathSet) (n : Nat)
+    (h : (PathSet.union X (PathSet.union Y Z)).CardLt n) : (PathSet.union X Y).CardLt n := by
+  refine FSet_cardLt_mono_law_holds _ _ n n (fun x hx => ?_) (Nat.le_refl n) h
+  rcases (FSet.mem_union' _ _ x).1 hx with h1 | h1
+  · exact (FSet.mem_union' _ _ x).2 (Or.inl h1)
+  · exact (FSet.mem_union' _ _ x).2 (Or.inr ((FSet.mem_union' _ _ x).2 (Or.inl h1)))
+
+/-- The compare bounds at a granular node give the bounds below it. -/
+theorem cmp_cardLt_below (C B N : Cmp) (n : Nat) (h1 : (C.union (B.union N)).removed.CardLt n)
+    (h2 : (C.union (B.union N)).modified.CardLt n) (h3 : (C.union (B.union N)).added.CardLt n) :
+    (C.union B).removed.CardLt n ∧ (C.union B).modified.CardLt n ∧ (C.union B).added.CardLt n :=
+  ⟨cardLt_union_mid _ _ _ n h1, cardLt_union_mid _ _ _ n h2, cardLt_union_mid _ _ _ n h3⟩
+
 section wst
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 
