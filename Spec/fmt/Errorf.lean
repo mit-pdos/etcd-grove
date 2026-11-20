@@ -213,16 +213,16 @@ so formatting it touches nothing the caller owns), and every element, as a value
 
 Why Go then calls nothing but the elements' admitted methods (go1.27.3, `src/fmt/print.go`):
 `printArg` (line 674) finds no simple case for a slice other than `[]byte`, so it calls
-`handleMethods` on it (line 750), which finds nothing (an unnamed slice type has no methods: no
-`Formatter`, `error`, `Stringer`), then `printValue(reflect.ValueOf(arg), verb, 0)` (line 753).
+`handleMethods` on it (line 746), which finds nothing (an unnamed slice type has no methods: no
+`Formatter`, `error`, `Stringer`), then `printValue(reflect.ValueOf(arg), verb, 0)` (line 749).
 `printValue`'s `reflect.Slice` case (line 856): under `%s` a slice of a `uint8`-kind element type is
 printed as bytes (line 861, no method called); otherwise it writes `[`, then for each element
 `p.printValue(f.Index(i), verb, depth+1)` (line 889), then `]` (`%#v` takes the other branch,
-line 880, excluded here). At depth 1 `printValue` (line 758) takes `value.Interface()` (the element,
+line 878, excluded here). At depth 1 `printValue` (line 756; its check, line 758) takes `value.Interface()` (the element,
 of dynamic type `T`: `T` is no interface type, so no `reflect.Interface` indirection) and calls
 `handleMethods(arg, value, verb)` (line 760) with the same verb: exactly what `fmt.argOkAtBase`
 admits of a top-level argument under that verb (`Format` excluded, `Error()`/`String()` with their
-WPs; an `fmt.ArgWf` value has no method and is printed by kind, line 768 on). A `nil` slice prints
+WPs; an `fmt.ArgWf` value has no method and is printed by kind, line 764 on). A `nil` slice prints
 `[]`. A method's panic is recovered by `catchPanic`, but the WPs admitted rule it out anyway. -/
 def fmt.sliceArgOk (mv : List w8) (d : fmt.Directive) (ii : GoInterfaceOk) : IProp GF :=
   iprop(⌜d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false⌝ ∗

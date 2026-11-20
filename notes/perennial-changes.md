@@ -17,6 +17,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `wp_apply` with a `have`-local spec can close the goal with `sorry` (2026-11-20, k8s-authz)
+
+- **Limitation.** In `Proof/k8s_io/apimachinery/pkg/util/errors/aggregate__visit.lean`, `have hrec :=
+  IHn m Hm sl' ys' f I; wp_apply hrec $$ [$HI] as HI` reported no error, skipped the tactics after it
+  ("never executed") and left the theorem using `sorry`; without `$$ [$HI]` it failed with `unknown free
+  variable`. The term check of `ProofMode.lean` ("the proof would contain `sorry`") did not catch it.
+- **Needed by.** Any proof that applies a local (induction-hypothesis) spec.
+- **Workaround.** `wp_bind` the call and `iapply hrec` (aggregate__visit, aggregate__Error).
+- **Proposed change.** Find why `wp_apply` loses the local hypothesis (its context reversion) and make
+  the elaboration failure an error.
+- **Status.** Not started.
+
 ### `unsafe` and `reflect` beyond plain bytes: what all of etcd needs (2026-11-20, survey)
 
 - **Limitation.** Perennial models byte views of pointer-free types only (R1-R5 of its
