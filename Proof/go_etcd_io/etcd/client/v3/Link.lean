@@ -237,8 +237,10 @@ public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 
 @[expose] public section
 
@@ -273,9 +275,17 @@ theorem zap.wp_Uint :
     EtcdGrove.zap.Uint.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Uint.wp_proof
 
+theorem zap.Logger.wp_check :
+    EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Debug.wp_proof
+  EtcdGrove.zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
@@ -283,7 +293,7 @@ theorem zap.wp_Error :
 
 theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Warn.wp_proof
+  EtcdGrove.zap.Logger.Warn.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem status.wp_Code :
     EtcdGrove.status.Code.spec (GF := GF) (hG := hG) :=
@@ -407,7 +417,7 @@ theorem zap.wp_Duration :
 
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Info.wp_proof
+  EtcdGrove.zap.Logger.Info.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 end links
 

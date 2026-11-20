@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.context
 public import Code.google_golang_org.grpc.metadata
+public import Code.google_golang_org.grpc.peer
 public import Perennial.Golang.Defn
 public import TrustedCode.google_golang_org.grpc
 
@@ -705,8 +706,6 @@ opaque Decompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 opaque gzipDecompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque callInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque PeerCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque PerRPCCredsCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -1566,8 +1565,105 @@ noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
+/-- StaticMethod returns a CallOption which specifies that a call is being made
+    to a method that is static, which means the method is known at compile time
+    and doesn't change at runtime. This can be used as a signal to stats plugins
+    that this method is safe to include as a key to a measurement.
+
+    go: rpc_util.go:256:6 -/
+noncomputable def StaticMethod.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert StaticMethodCallOption.ty CallOption.ty))) (App (Val (GoInstruction (CompositeLiteral StaticMethodCallOption.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
+/-- Peer returns a CallOption that retrieves peer information for a unary RPC.
+    The peer field will be populated *after* the RPC completes.
+
+    go: rpc_util.go:312:6 -/
+noncomputable def Peer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (Convert PeerCallOption.ty CallOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)))) (Var "p"))
+  (App (Val (GoInstruction (CompositeLiteral PeerCallOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"PeerAddr")) (ElementExpression (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
+/-- WaitForReady configures the RPC's behavior when the client is in
+    TRANSIENT_FAILURE, which occurs when all addresses fail to connect.  If
+    waitForReady is false, the RPC will fail immediately.  Otherwise, the client
+    will wait until a connection becomes available or the RPC's deadline is
+    reached.
+
+    By default, RPCs do not "wait for ready".
+
+    go: rpc_util.go:341:6 -/
+noncomputable def WaitForReady.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "waitForReady"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "waitForReady" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "waitForReady"))
+  (Let "$r0" (App (Val (GoInstruction (Convert FailFastCallOption.ty CallOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "waitForReady")))
+  (App (Val (GoInstruction (CompositeLiteral FailFastCallOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"FailFast")) (ElementExpression go.bool (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
+/-- MaxCallRecvMsgSize returns a CallOption which sets the maximum message size
+    in bytes the client can receive. If this is not set, gRPC uses the default
+    4MB.
+
+    go: rpc_util.go:407:6 -/
+noncomputable def MaxCallRecvMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "bytes"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "bytes" (App (Val (GoInstruction (GoAlloc go.int))) (Var "bytes"))
+  (Let "$r0" (App (Val (GoInstruction (Convert MaxRecvMsgSizeCallOption.ty CallOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "bytes"))
+  (App (Val (GoInstruction (CompositeLiteral MaxRecvMsgSizeCallOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MaxRecvMsgSize")) (ElementExpression go.int (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
+/-- MaxCallSendMsgSize returns a CallOption which sets the maximum message size
+    in bytes the client can send. If this is not set, gRPC uses the default
+    `math.MaxInt32`.
+
+    go: rpc_util.go:461:6 -/
+noncomputable def MaxCallSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "bytes"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc CallOption.ty))) (App (Val (GoInstruction (GoZeroVal CallOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "bytes" (App (Val (GoInstruction (GoAlloc go.int))) (Var "bytes"))
+  (Let "$r0" (App (Val (GoInstruction (Convert MaxSendMsgSizeCallOption.ty CallOption.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "bytes"))
+  (App (Val (GoInstruction (CompositeLiteral MaxSendMsgSizeCallOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MaxSendMsgSize")) (ElementExpression go.int (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.metadata]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -1575,6 +1671,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1713,6 +1810,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc EnableTracing go.bool)) (Val #()))))))))
 
@@ -2885,22 +2984,38 @@ attribute [instance] TrailerCallOption.TypeAssumptions.type_repr
   TrailerCallOption.TypeAssumptions.method_set
   TrailerCallOption.TypeAssumptions.ptr_method_set
 
-opaque PeerCallOption.nonempty_type : NonemptyType.{0}
-def PeerCallOption : Type := PeerCallOption.nonempty_type.type
-instance PeerCallOption.nonempty : Nonempty PeerCallOption := PeerCallOption.nonempty_type.property
-opaque PeerCallOption.zero_val : ZeroVal PeerCallOption := ⟨Classical.ofNonempty⟩
-attribute [instance] PeerCallOption.zero_val
+structure PeerCallOption [GooseExts] where
+  mk ::
+  PeerAddr' : Loc
+
+noncomputable instance PeerCallOption.zero_val [GooseExts] : ZeroVal PeerCallOption :=
+  ⟨PeerCallOption.mk zeroValDef⟩
+
+@[reducible] noncomputable def PeerCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"PeerAddr" (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty))]
+
+@[irreducible] noncomputable def PeerCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  PeerCallOption.fieldsUnsealed
+
+noncomputable instance equals_unfold_PeerCallOption [GooseExts] [GoGlobalContext] :
+    EqualsUnfold PeerCallOption.fields PeerCallOption.fieldsUnsealed :=
+  ⟨by unfold PeerCallOption.fields; rfl⟩
+
+@[reducible] noncomputable def PeerCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType PeerCallOption.fields)
 
 class PeerCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PeerCallOption.underlying PeerCallOption
   underlying : go.UnderlyingDirectedEq PeerCallOption.ty PeerCallOption.underlying
-  isUnderlying : go.IsUnderlying PeerCallOption.underlying PeerCallOption.underlying
+  get_PeerAddr : ∀ (x : PeerCallOption), go.IsGoStepPureDetTagged under (StructFieldGet PeerCallOption.underlying go!"PeerAddr") #x (Val #(x.PeerAddr'))
+  set_PeerAddr : ∀ (x : PeerCallOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet PeerCallOption.underlying go!"PeerAddr") (PairV #x #y) (Val #(({ x with PeerAddr' := y } : PeerCallOption)))
   method_set : go.MethodSetIs PeerCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PeerCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] PeerCallOption.TypeAssumptions.type_repr
   PeerCallOption.TypeAssumptions.underlying
-  PeerCallOption.TypeAssumptions.isUnderlying
+  PeerCallOption.TypeAssumptions.get_PeerAddr
+  PeerCallOption.TypeAssumptions.set_PeerAddr
   PeerCallOption.TypeAssumptions.method_set
   PeerCallOption.TypeAssumptions.ptr_method_set
 
@@ -5008,8 +5123,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
+  StaticMethod_unfold : FuncUnfold StaticMethod [] StaticMethod.impl
+  Peer_unfold : FuncUnfold Peer [] Peer.impl
+  WaitForReady_unfold : FuncUnfold WaitForReady [] WaitForReady.impl
+  MaxCallRecvMsgSize_unfold : FuncUnfold MaxCallRecvMsgSize [] MaxCallRecvMsgSize.impl
+  MaxCallSendMsgSize_unfold : FuncUnfold MaxCallSendMsgSize [] MaxCallSendMsgSize.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
 
 attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.ConnectParams_instance
@@ -5138,8 +5259,14 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
+  Assumptions.StaticMethod_unfold
+  Assumptions.Peer_unfold
+  Assumptions.WaitForReady_unfold
+  Assumptions.MaxCallRecvMsgSize_unfold
+  Assumptions.MaxCallSendMsgSize_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_metadata_Assumption
+  Assumptions.import_peer_Assumption
 
 end google_golang_org.grpc
 

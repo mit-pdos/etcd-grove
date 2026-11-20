@@ -47,6 +47,38 @@ noncomputable def up [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def down [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.down"
 
+/-- Init establishes the heap invariants required by the other routines in this package.
+    Init is idempotent with respect to the heap invariants
+    and may be called whenever the heap invariants may have been invalidated.
+    The complexity is O(n) where n = h.Len().
+
+    go: heap.go:41:6 -/
+noncomputable def Init.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Val #()))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 2)))) (Val #(W64 1))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve down []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
+  (Val #())))
+
 /-- Push pushes the element x onto the heap.
     The complexity is O(log n) where n = h.Len().
 
@@ -66,6 +98,40 @@ noncomputable def Push.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "x"))
   (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Push"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0"))))))))
   (Val #()))))
+
+/-- Pop removes and returns the minimum element (according to Less) from the heap.
+    The complexity is O(log n) where n = h.Len().
+    Pop is equivalent to [Remove](h, 0).
+
+    go: heap.go:59:6 -/
+noncomputable def Pop.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Val #())) (Val #(W64 1))))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Pop"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve down []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 0))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (App (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")))))
 
 /-- Fix re-establishes the heap ordering after the element at index i has changed its value.
     Changing the value of the element at index i and then calling Fix is equivalent to,
@@ -224,14 +290,18 @@ attribute [instance] Interface.TypeAssumptions.underlying
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Interface_instance : Interface.TypeAssumptions
+  Init_unfold : FuncUnfold Init [] Init.impl
   Push_unfold : FuncUnfold Push [] Push.impl
+  Pop_unfold : FuncUnfold Pop [] Pop.impl
   Fix_unfold : FuncUnfold Fix [] Fix.impl
   up_unfold : FuncUnfold up [] up.impl
   down_unfold : FuncUnfold down [] down.impl
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
 
 attribute [instance] Assumptions.Interface_instance
+  Assumptions.Init_unfold
   Assumptions.Push_unfold
+  Assumptions.Pop_unfold
   Assumptions.Fix_unfold
   Assumptions.up_unfold
   Assumptions.down_unfold

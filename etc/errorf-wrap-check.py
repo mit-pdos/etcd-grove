@@ -91,7 +91,8 @@ REVIEWED = {
     # below, by file), found here by the term check: each `fmt.Errorf` call of the initializer has a
     # literal format without `%` and no argument (`#slice.nil`), so Go returns `errors.New(format)`,
     # an `*errors.errorString` as the model's (rafthttp: 3 calls, ioutil: 2)
-    "Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_lb": 'formats '
+    # (mustreg, 2026-11-20: rafthttp's initializer is in the `_res` form, its `init()` registering)
+    "Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_res": 'formats '
         'without %, no arguments: Go returns errors.New(format), the model',
     "Perennial.go_etcd_io.etcd.pkg.v3.ioutil.wp_initialize'_lb": 'formats without %, no '
         'arguments: Go returns errors.New(format), the model',

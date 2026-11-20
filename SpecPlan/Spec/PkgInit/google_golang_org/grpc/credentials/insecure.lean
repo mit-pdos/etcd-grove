@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.credentials.insecure
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.credentials
 
 @[expose] public section
 noncomputable section

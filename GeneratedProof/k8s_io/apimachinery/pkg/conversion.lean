@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.reflect
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.conversion
 
@@ -25,34 +26,53 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
 
 noncomputable instance typePair_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.typePair :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.typePair where
+  typedPointstoDef l v dq := iprop(
+    "source" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) v.source' dq ∗
+    "dest" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) v.dest' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance typePair_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.typePair k8s_io.apimachinery.pkg.conversion.typePair.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.typePair k8s_io.apimachinery.pkg.conversion.typePair.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance typePair_access_load_source (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) v.source' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) v.source' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance typePair_access_store_source (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (source' : reflect.Type') :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) v.source' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) source' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with source' := source' } : k8s_io.apimachinery.pkg.conversion.typePair) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance typePair_access_load_dest (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) v.dest' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) v.dest' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance typePair_access_store_dest (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (dest' : reflect.Type') :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) v.dest' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) dest' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dest' := dest' } : k8s_io.apimachinery.pkg.conversion.typePair) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end typePair
-
-namespace NameFunc
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
-
-noncomputable instance NameFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.NameFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance NameFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.NameFunc k8s_io.apimachinery.pkg.conversion.NameFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end NameFunc
 
 namespace ConversionFuncs
 section def_

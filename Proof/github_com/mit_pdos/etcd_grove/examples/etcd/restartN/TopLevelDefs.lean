@@ -84,8 +84,9 @@ def restartNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.restartN.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Main) #(W64 (k : Int))
 
-/-- The read package's two metric names (restart3's). -/
-def restartNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def restartNNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.initNames
 
 end adequacy
 end EtcdGrove

@@ -191,9 +191,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_func_call
   wp_call
   try wp_auto
-  wp_apply klogWrapper_toLoggerV2 as %_ -
+  wp_apply klogWrapper_toLoggerV2
   try wp_auto
-  wp_apply EtcdGrove.grpclog.SetLoggerV2.wp_proof
+  wp_apply (EtcdGrove.grpclog.SetLoggerV2.wp_proof _
+      (k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_ne_componentData _))
   try wp_auto
   -- the translated init.«2»
   wp_func_call

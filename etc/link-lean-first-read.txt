@@ -21,8 +21,11 @@ traceutil_Trace__LogAllStepsIfLong: traceutil_Trace__LogWithStepThreshold
 zap_Error:
 zap_Uint64:
 zap_Duration:
-zap_Logger__Warn:
-zap_Logger__Info:
+# (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
+zap_Logger__check:
+zapcore_CheckedEntry__Write:
+zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
+zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 # The read package (read.go, util.go).
 read_uint64ToBigEndianBytes:
 read_isStopped: errors_Is

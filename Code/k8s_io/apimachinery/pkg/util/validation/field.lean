@@ -571,8 +571,6 @@ noncomputable def NewPath.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.validation.field where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.encoding.json, pkg_id.k8s_io.apimachinery.pkg.util.errors, pkg_id.k8s_io.apimachinery.pkg.util.sets]
 
-opaque «_».init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.validation.field)) (Lam BAnon
@@ -582,12 +580,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Error.ty) go.error))) (App (Val (GoInstruction (GoAlloc Error.ty))) (App (Val (GoInstruction (CompositeLiteral Error.ty))) (LiteralValue []))))
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral OmitValueType.ty))) (LiteralValue []))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore OmitValueType.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr omitValue))) (Val #())) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore OmitValueType.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr omitValue))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)

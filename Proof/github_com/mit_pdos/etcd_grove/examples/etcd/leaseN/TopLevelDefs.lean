@@ -43,8 +43,9 @@ def leaseNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Main) #(W64 (k : Int))
 
-/-- The read package's two metric names (putgetN's). -/
-def leaseNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def leaseNNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.initNames
 
 end adequacy
 end EtcdGrove

@@ -1,6 +1,10 @@
 # Types and names only: function and method bodies are axiomatized.
 # The log-level constant `DebugLevel` (zap's `DebugLevel` is it; the auth plan's S5, 2026-10-24).
-translate = ["!*", "DebugLevel"]
+# (2026-11-20, prove-zap) the levels zap's leveled methods use and the `FieldType`s its field
+# constructors set.
+translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
+  "ArrayMarshalerType", "BoolType", "ByteStringType", "DurationType", "Int64Type", "Int32Type",
+  "StringType", "StringerType", "Uint64Type", "Uint32Type", "ErrorType", "SkipType"]
 imports = ["!*", "time", "io"]
 
 # translate the definitions of all type declarations goose supports

@@ -3,8 +3,9 @@
 # (2026-11-19) with its body, proved (Proof/.../util/errors/NewAggregate.lean) instead of axiomatized
 # (2026-11-20) with their bodies, proved (Proof/.../util/errors/aggregate__Error.lean): `aggregate.Error`
 # and the `visit` it runs (`fmt.Errorf("%w", agg)` calls it: conditional authorization's validation)
-translate = ["!*", "NewAggregate", "aggregate.Error", "aggregate.visit"]
-imports = ["!*", "k8s.io/apimachinery/pkg/util/sets"]
+# (prove-smallinits, 2026-11-20) `ErrPreconditionViolated`, an `errors.New` call (until then `opaqueInitsOk`).
+translate = ["!*", "ErrPreconditionViolated", "NewAggregate", "aggregate.Error", "aggregate.visit"]
+imports = ["!*", "errors", "k8s.io/apimachinery/pkg/util/sets"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -1,8 +1,9 @@
 # A standard-library package Perennial does not translate: the lessor's expiry notifier pushes
 # and fixes its queue with `heap.Push` and `heap.Fix`, translated with the sift loops they call
 # (`up`, `down`) and proved (`Proof/container/heap/`); the rest names only. `sort` for the
-# interface `heap.Interface` embeds (`sort.Interface`).
-translate = ["!*", "Fix", "Push", "up", "down"]
+# interface `heap.Interface` embeds (`sort.Interface`). (prove-smallinits, 2026-11-20) `Init` and `Pop`
+# too (client-go's delaying queue, the lessor's expiry notifier).
+translate = ["!*", "Fix", "Push", "up", "down", "Init", "Pop"]
 imports = ["!*", "sort"]
 
 # translate the definitions of all type declarations goose supports

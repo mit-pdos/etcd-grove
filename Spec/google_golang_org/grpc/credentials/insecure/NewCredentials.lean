@@ -1,5 +1,6 @@
 /-
-`insecure.NewCredentials()` (grpc's `credentials/insecure`, names only; item 5). Lean-first.
+`insecure.NewCredentials()` (grpc's `credentials/insecure`; item 5). Proved over the real body since
+2026-11-20 (prove-grpcsmall). Lean-first.
 -/
 module
 

@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import ManualProof.google_golang_org.grpc
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.google_golang_org.grpc.metadata
+public import GeneratedProof.google_golang_org.grpc.peer
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
 
@@ -18,6 +19,25 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace google_golang_org.grpc
+
+namespace parser
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+noncomputable instance parser_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.parser :=
+  sorry -- axiomatized type
+
+noncomputable instance parser_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.parser google_golang_org.grpc.parser.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end parser
 
 namespace payloadInfo
 section def_

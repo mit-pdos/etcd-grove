@@ -4,9 +4,9 @@ Package initialization of `k8s_io.apimachinery.pkg.util.validation.field`
 
 Its fact (`fieldInit`, `storage/etcd3/Base.lean`): `omitValue`'s address is not `nil`
 (`(*Error).ErrorBody` loads it). Its initializer allocates it (the allocation gives its points-to,
-hence the address), initializes its imports, runs the untranslated initializer of `_`, which the
-trust-boundary axiom `opaqueInitsOk` says runs without panicking, and `omitValue`'s translated
-one (`OmitValueType{}`, `errors.go`).
+hence the address), initializes its imports, and runs its translated initializers: `omitValue`'s
+(`OmitValueType{}`, `errors.go`) and `var _ error = &Error{}` (an allocation; prove-smallinits,
+2026-11-20: until then `opaqueInitsOk`).
 -/
 module
 
@@ -32,24 +32,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace k8s_io.apimachinery.pkg.util.validation.field
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `k8s_io.apimachinery.pkg.util.validation.field`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([«_».init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end k8s_io.apimachinery.pkg.util.validation.field
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -78,9 +60,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   -- translated initializer of omitValue))
   try wp_auto
+  repeat (wp_alloc_anon; try wp_auto)
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ HomitValue
   iframe Hown
   imodintro

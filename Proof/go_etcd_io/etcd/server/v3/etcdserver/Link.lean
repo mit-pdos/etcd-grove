@@ -615,7 +615,6 @@ public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Strings
 public import Proof.go_uber_org.zap.Uint64
-public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.net.http.Axioms
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.sync.Link
@@ -936,7 +935,7 @@ theorem prometheus.CounterVec.wp_WithLabelValues :
 
 theorem zap.Logger.wp_Debug :
     zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Debug.wp_proof
+  zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem binary.wp_ReadUint64 :
     binary.ReadUint64.spec (GF := GF) (hG := hG) :=
@@ -1082,6 +1081,10 @@ theorem lease.LeaseQueue.wp_Push :
     lease.LeaseQueue.Push.spec (GF := GF) (hG := hG) :=
   lease.LeaseQueue.Push.wp_proof
 
+theorem heap.wp_down :
+    heap.down.spec (GF := GF) (hG := hG) :=
+  heap.down.wp_proof
+
 theorem consistentIndex.wp_ConsistentApplyingIndex :
     consistentIndex.ConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.ConsistentApplyingIndex.wp_proof
@@ -1169,10 +1172,6 @@ theorem lease.Lease.wp_forever :
 theorem schema.wp_MustUnsafePutLease :
     schema.MustUnsafePutLease.spec (GF := GF) (hG := hG) :=
   schema.MustUnsafePutLease.wp_proof
-
-theorem heap.wp_down :
-    heap.down.spec (GF := GF) (hG := hG) :=
-  heap.down.wp_proof
 
 theorem heap.wp_up :
     heap.up.spec (GF := GF) (hG := hG) :=
@@ -1368,11 +1367,7 @@ theorem auth.authStore.wp_IsAuthEnabled :
 
 theorem zap.Logger.wp_Check :
     zap.Logger.Check.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Check.wp_proof
-
-theorem zapcore.CheckedEntry.wp_Write :
-    zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  zapcore.CheckedEntry.Write.wp_proof
+  zap.Logger.Check.wp_proof zap.Logger.wp_check
 
 theorem auth.authStore.wp_BcryptCost :
     auth.authStore.BcryptCost.spec (GF := GF) (hG := hG) :=
@@ -2327,7 +2322,7 @@ theorem storage.wp_OpenSnapshotBackend :
 
 theorem heap.wp_Init_ :
     heap.Init_.spec (GF := GF) (hG := hG) :=
-  heap.Init_.wp_proof
+  heap.Init_.wp_proof heap.wp_down
 
 theorem lease.LeaseExpiredNotifier.wp_Init :
     lease.LeaseExpiredNotifier.Init.spec (GF := GF) (hG := hG) :=
@@ -2599,7 +2594,7 @@ theorem EtcdServer.wp_createMergedSnapshotMessage :
 
 theorem snap.Message.wp_GetTo :
     snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
-  snap.Message.GetTo.wp_proof
+  snap.Message.GetTo.wp_proof raftpb.Message.wp_GetTo
 
 theorem EtcdServer.wp_sendMergedSnap :
     EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=

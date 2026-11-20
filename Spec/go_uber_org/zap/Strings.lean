@@ -1,5 +1,5 @@
 /-
-`zap.Strings` (`go.uber.org/zap` is names-only): the trust boundary, as `zap.String`. The auth
+`zap.Strings`: proved over zap's code since 2026-11-20 (until then the trust boundary, as `zap.String`). The auth
 plan's S4 (2026-10-24): the admin side logs a user's roles. Lean-first.
 -/
 module
