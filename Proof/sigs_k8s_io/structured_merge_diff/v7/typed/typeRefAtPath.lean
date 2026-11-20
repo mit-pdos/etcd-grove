@@ -48,8 +48,65 @@ theorem typed.typeRefAtPath.wp_proof
       ipureintro; simp only [reduceCtorEq, iff_false]
       intro htr; rw [htr] at h; exact h rfl
   ihave %Hetz := hcmp e etv $$ Hetv
-  wp_auto
-  sorry
+  rcases pe' with n | fl | x | i
+  · ihave %Hfnn := typedPointsto_not_null _ _ _ $$ Hfn
+    wp_auto
+    wp_if_destruct
+    · exact absurd Hif Hfnn
+    wp_apply h_Map_FindField mp fs e rel n $$ [] as %sf %ok Hsf
+    · iframe #; ipureintro; exact Hnd
+    simp only [fieldType]
+    rcases hl : lookupKV n fs with _ | t
+    · simp only
+      icases Hsf with %Hsf
+      obtain ⟨rfl, rfl⟩ := Hsf
+      rcases e with _ | t
+      · have := Hetz.2 rfl; subst this
+        wp_auto
+        iapply HΦ
+        itrivial
+      · ihave Ht := (isTypeRefOpt_some_law_holds etv t).1 $$ Hetv
+        icases isTypeRef_elim_law_holds etv t $$ Ht with ⟨Hn, -⟩
+        ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hn
+        wp_auto
+        rw [show decide (etv.NamedType' = null) = false from decide_eq_false Hnn]
+        wp_auto
+        iapply HΦ
+        isplit
+        · ipureintro; rfl
+        · iexact Ht
+    · simp only
+      icases Hsf with ⟨%Hok, Hsf⟩
+      subst Hok
+      icases (isStructField_elim_law_holds sf (n, t)).1 $$ Hsf with ⟨%-, #Ht⟩
+      icases isTypeRef_elim_law_holds sf.Type' t $$ Ht with ⟨Hn, -⟩
+      ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hn
+      wp_auto
+      rw [show decide (sf.Type'.NamedType' = null) = false from decide_eq_false Hnn]
+      wp_auto
+      iapply HΦ
+      isplit
+      · ipureintro; rfl
+      · iexact Ht
+  all_goals
+    icases Hfn with %Hfn
+    wp_auto
+    rw [Hfn]
+    wp_auto
+    rcases e with _ | t
+    · have := Hetz.2 rfl; subst this
+      wp_auto
+      iapply HΦ
+      itrivial
+    · ihave Ht := (isTypeRefOpt_some_law_holds etv t).1 $$ Hetv
+      icases isTypeRef_elim_law_holds etv t $$ Ht with ⟨Hn, -⟩
+      ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hn
+      rw [show decide (etv.NamedType' = null) = false from decide_eq_false Hnn]
+      wp_auto
+      iapply HΦ
+      isplit
+      · ipureintro; rfl
+      · iexact Ht
 
 end proof
 

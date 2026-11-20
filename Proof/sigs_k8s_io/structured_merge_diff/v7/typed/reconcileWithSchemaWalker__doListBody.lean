@@ -6,6 +6,10 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doListBody
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBRecon
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBPers
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.LawProofs
 
 @[expose] public section
 
@@ -30,7 +34,120 @@ variable [package_sem : typed.Assumptions]
 theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
     (h_NewSet : fieldpath.NewSet.spec (GF := GF)) :
     typed.reconcileWithSchemaWalker.doList.specBody (GF := GF) := by
-  sorry
+  unfold typed.reconcileWithSchemaWalker.doList.specBody typed.reconcileWithSchemaWalkerRec.specI
+    typed.reconcileWithSchemaWalker.reconcile.specI typed.reconcileWithSchemaWalker.doList.specI
+    typed.reconcileWithSchemaWalker.doMap.specI typed.reconcileWithSchemaWalker.visitListItems.specI
+    typed.reconcileWithSchemaWalker.visitMapItems.specI
+  iintro #IH
+  iintro %w %sc %S %st %F %R %A %tp %e %rel %ks
+  wp_start as ⟨Hown, #Hl, %Hfind, %Hat⟩
+  iunfold rwOwn at Hown
+  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, %sp, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
+  iunfold rwCore at Hcore
+  icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
+  icases isListRep_elim_law_holds tp e rel ks $$ Hl with ⟨%lv, %ksl, #Hlv, %Hlv', -, -⟩
+  ihave ⟨Hlv2, %Hnn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hlv
+  iStructNamed Hlv2
+  rcases hb : st.isAtomic
+  · wp_auto
+    rw [Hlv'.1]
+    by_cases hr : rel = .atomic
+    · subst hr
+      -- the granular-to-atomic branch: `NewSet(v.path)` takes the walker's path as a persistent
+      -- `isPaths`, but the walker owns it (`ownPath`) and later appends overwrite it
+      sorry
+    have hg : decide (rel.goName = go!"atomic") = false := by
+      cases rel <;> first | exact absurd rfl hr | decide
+    rw [hg]
+    wp_auto
+    have ht : ∀ F', reconTouch S st.t false F' = false := fun F' => by
+      cases rel <;> simp_all [reconTouch]
+    rcases F with _ | F'
+    · iunfold isSetO at Hfs
+      icases Hfs with %Hfs
+      subst Hfs
+      wp_auto
+      iapply HΦ
+      isplitr
+      · iapply noErrs_nil
+      iexists R, A
+      isplitl
+      · unfold rwOwn rwCore
+        iexists ps, null, tv, rem, add, sp
+        iframe
+        isplitl [Hw]
+        · iexists tr
+          rw [hb]
+          iframe
+          iframe #
+          ipureintro
+          exact Hwf
+        iunfold isSetO
+        ipureintro; rfl
+      ipureintro
+      simp only [Option.getD]
+      rw [LawB.reconOut_empty _ _ _ _ (ht _), LawB.optU_self, LawB.optU_self]
+      exact ⟨rfl, rfl⟩
+    · iunfold isSetO at Hfs
+      ihave #Hfs := Hfs
+      ihave %Hfsn := isSet_not_null fs F' $$ Hfs
+      rw [decide_eq_false Hfsn]
+      wp_auto
+      icases IH with ⟨-, -, -, #HvL, -⟩
+      wp_apply HvL $$ [Hw Hp Hrem Hadd Hsp] as %errs ⟨Herrs, %R', %A', Hown, %HRA⟩
+      · iframe #
+        isplitl
+        · unfold rwOwn rwCore
+          iexists ps, fs, tv, rem, add, sp
+          iframe
+          isplitl [Hw]
+          · iexists tr
+            rw [hb]
+            iframe
+            iframe #
+            ipureintro
+            exact Hwf
+          iunfold isSetO
+          iexact Hfs
+        ipureintro
+        exact ⟨Hfind, hr⟩
+      wp_auto
+      iapply HΦ
+      iframe Herrs
+      iexists R', A'
+      iframe Hown
+      ipureintro
+      simp only [Option.getD]
+      rw [reconOut_granular_law_holds _ _ _ _ _ (ht _)]
+      exact HRA
+  · have hF := Hat hb
+    subst hF
+    iunfold isSetO at Hfs
+    icases Hfs with %Hfs
+    subst Hfs
+    wp_auto
+    iapply HΦ
+    isplitr
+    · iapply noErrs_nil
+    iexists R, A
+    isplitl
+    · unfold rwOwn rwCore
+      iexists ps, null, tv, rem, add, sp
+      iframe
+      isplitl [Hw]
+      · iexists tr
+        rw [hb]
+        iframe
+        iframe #
+        ipureintro
+        exact Hwf
+      iunfold isSetO
+      ipureintro; rfl
+    ipureintro
+    have ht : reconTouch S st.t true PathSet.empty = false := by simp [reconTouch]
+    simp only [Option.getD]
+    rw [LawB.reconOut_empty _ _ _ _ ht, LawB.optU_self, LawB.optU_self]
+    exact ⟨rfl, rfl⟩
 
 end proof
 

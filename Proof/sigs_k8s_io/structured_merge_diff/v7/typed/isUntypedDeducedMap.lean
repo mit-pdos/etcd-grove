@@ -6,6 +6,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.isUntypedDeducedMap
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.isUntypedDeducedRef
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.LawProofs
 
 @[expose] public section
 
@@ -29,8 +30,20 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.isUntypedDeducedMap.wp_proof
     (h_isUntypedDeducedRef : typed.isUntypedDeducedRef.spec (GF := GF)) :
-    typed.isUntypedDeducedMap.spec (GF := GF) := by
-  sorry
+    typed.isUntypedDeducedMap.spec (GF := GF) := fun mp fs e rel => by
+  wp_start as #Hm
+  icases isMapRep_elim_law_holds mp fs e rel $$ Hm with
+    ⟨%fsl, %sfs, %etv, #Hfl, -, -, -, -, #Het, #Hetv, -⟩
+  wp_auto
+  wp_apply h_isUntypedDeducedRef etv e $$ []
+  · iframe #
+  wp_if_destruct
+  · iapply HΦ
+    ipureintro
+    intro _; exact Hif
+  · iapply HΦ
+    ipureintro
+    simp
 
 end proof
 
