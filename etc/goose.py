@@ -470,6 +470,9 @@ PROJECTS = [
             "go.opentelemetry.io/otel/trace/embedded",
             "go.opentelemetry.io/otel/codes",
             "go.opentelemetry.io/otel/attribute",
+            # (prove-misc, 2026-11-20) names only but its package variables: the carrier interface
+            # otelgrpc's `metadataSupplier` is asserted to implement (`var _ propagation.TextMapCarrier`)
+            "go.opentelemetry.io/otel/propagation",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",

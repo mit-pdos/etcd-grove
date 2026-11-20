@@ -41,6 +41,7 @@ public import Proof.path.Clean
 public import Proof.path.lazybuf__index
 public import Proof.path.lazybuf__append
 public import Proof.path.lazybuf__string
+public import Proof.google_golang_org.protobuf.proto.SizePb
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
@@ -93,6 +94,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) errMemberNotFound _ as HerrMemberNotFound
   wp_apply wp_GlobalAlloc (V := GoInterface) errMemberRemoved _ as HerrMemberRemoved
+  wp_apply wp_GlobalAlloc (V := w64) linkHeartbeatSize _ as HlinkHeartbeatSize
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message) linkHeartbeatMessage _ as HlinkHeartbeatMessage
   wp_apply wp_GlobalAlloc (V := Loc) supportedStream _ as HsupportedStream
   wp_apply wp_GlobalAlloc (V := GoInterface) errUnsupportedStreamType _ as HerrUnsupportedStreamType
@@ -417,7 +419,18 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage
   · iframe HlinkHeartbeatMessage Hphb
-  wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
+  -- translated initializer of linkHeartbeatSize))
+  try wp_auto
+  icases (EtcdGrove.hbMsg_msgRoC _) $$ [HlinkHeartbeatMessage] with ⟨%chb, #Hchb, %Hchb⟩
+  · iexact HlinkHeartbeatMessage
+  have wpShb := EtcdGrove.proto.SizePb.wp_proof (GF := GF) (hG := hG) EtcdGrove.pbMessageC EtcdGrove.pbMessageC_reg (globalAddr linkHeartbeatMessage) chb
+  simp only [EtcdGrove.pbMessageC_ty, EtcdGrove.pbMessageC_roC, EtcdGrove.pbMessageC_size] at wpShb
+  wp_apply wpShb $$ [$Hchb] as %nlinkHeartbeatSize %HnlinkHeartbeatSize
+  have BlinkHeartbeatSize : 0 ≤ sint.Z nlinkHeartbeatSize ∧ sint.Z nlinkHeartbeatSize < 2 ^ 50 := by
+    have hlt := EtcdGrove.msgSize_lt_of_ok chb Hchb.2.2.2
+    have he := HnlinkHeartbeatSize (by omega)
+    omega
+  try wp_auto
   -- translated initializer of errMemberRemoved))
   try wp_auto
   -- `fmt.Errorf("the member has been permanently removed from the cluster")`: no verb, Go returns `errors.New` of the format, as Perennial's model
@@ -433,6 +446,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_func_call
   wp_call
   try wp_auto
+  -- translated initializer of linkHeartbeatMessage))
   -- translated initializer of ConnReadTimeout))
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))

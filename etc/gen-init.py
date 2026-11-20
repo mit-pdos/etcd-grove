@@ -333,7 +333,9 @@ error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-o
 initializer runs its variables' initializers: (prove-errinits, 2026-11-19) its errors' are translated,
 `errors.New` calls and verb-less `fmt.Errorf` calls (`msg_codec.go`, `http.go`, `peer.go`,
 `stream.go`; `fmt.Errorf`'s trusted model is `errors.New(format)`), until then the trust-boundary axiom
-`errorsNewVarsInit`; `linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`).
+`errorsNewVarsInit`; (prove-misc, 2026-11-20) `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)`
+(`stream.go`) is translated, over `proto.SizePb`'s spec at the registered `raftpb.Message` (until then
+the trust-boundary axiom `linkHeartbeatSize_init`).
 (const-inits, 2026-11-19) The timeouts and intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`,
 `proberInterval`, `statusMonitoringInterval`, `statusErrorInterval`), `errMemberNotFound`
 (`fmt.Errorf`, its proof) and `supportedStream` (a map literal of slice literals) are translated
@@ -346,20 +348,13 @@ literal frozen by `hbMsg_init`) are translated and set. (metric-vecs, 2026-11-19
 vectors (`metrics.go`: `sentBytes`, `activePeers`, `rttSec`, the snapshot metrics, ...), over
 prometheus's `New<Kind>Vec` specs, each with its label names (`vecLabels`; until then the
 trust-boundary axioms `<X>_init`).''',
-    custom={
-        # (2026-10-23, rafthttp stage 5b) the stream writer counts a heartbeat's size
-        'linkHeartbeatSize': dict(
-        doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
-        post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
-        pat='⟨%n@, H@, %B@⟩')},
-
     alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64',
                  'ProbingPrefix': 'GoString', 'RaftStreamPrefix': 'GoString',
                  'RaftSnapshotPrefix': 'GoString',
                  'linkHeartbeatMessage': '_root_.Perennial.go_etcd_io.raft.v3.raftpb.Message',
                  'snapResponseReadTimeout': 'w64', 'errMemberNotFound': 'GoInterface',
                  'ConnWriteTimeout': 'w64', 'proberInterval': 'w64', 'statusMonitoringInterval': 'w64',
-                 'statusErrorInterval': 'w64', 'supportedStream': 'Loc'},
+                 'statusErrorInterval': 'w64', 'supportedStream': 'Loc', 'linkHeartbeatSize': 'w64'},
     # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step;
     # (2026-10-24, rafthttp stage 6d) the three subpaths of `RaftPrefix`: `path.Join` (proved)
     before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto'],
@@ -386,7 +381,20 @@ trust-boundary axioms `<X>_init`).''',
                 'intro x; wp_start; wp_auto; iapply HΦ; iframe) (W32 8) as %phb Hphb',
                 'try wp_auto',
                 'imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage',
-                '· iframe HlinkHeartbeatMessage Hphb']},
+                '· iframe HlinkHeartbeatMessage Hphb'],
+            # (prove-misc, 2026-11-20) `proto.Size(&linkHeartbeatMessage)`: `SizePb` at the registered
+            # `raftpb.Message`, the heartbeat read-only at a content of bounded size (`hbMsg_msgRoC`)
+            'linkHeartbeatSize': ['try wp_auto',
+                'icases (EtcdGrove.hbMsg_msgRoC _) $$ [HlinkHeartbeatMessage] with ⟨%chb, #Hchb, %Hchb⟩',
+                '· iexact HlinkHeartbeatMessage',
+                'have wpShb := EtcdGrove.proto.SizePb.wp_proof (GF := GF) (hG := hG) EtcdGrove.pbMessageC EtcdGrove.pbMessageC_reg (globalAddr linkHeartbeatMessage) chb',
+                'simp only [EtcdGrove.pbMessageC_ty, EtcdGrove.pbMessageC_roC, EtcdGrove.pbMessageC_size] at wpShb',
+                'wp_apply wpShb $$ [$Hchb] as %nlinkHeartbeatSize %HnlinkHeartbeatSize',
+                'have BlinkHeartbeatSize : 0 ≤ sint.Z nlinkHeartbeatSize ∧ sint.Z nlinkHeartbeatSize < 2 ^ 50 := by',
+                '  have hlt := EtcdGrove.msgSize_lt_of_ok chb Hchb.2.2.2',
+                '  have he := HnlinkHeartbeatSize (by omega)',
+                '  omega',
+                'try wp_auto']},
     # (const-inits, 2026-11-19) a lookup in a map literal finds one of its values
     pre=['/-- A lookup in `<[k := v]> m` finds `v` or one of `m`\'s values. -/',
          'theorem EtcdGrove.lookup_insert_some {K V : Type} [DecidableEq K] (m : GMap K V) (k k\' : K) (v w : V)',
@@ -396,7 +404,9 @@ trust-boundary axioms `<X>_init`).''',
     imports=['Proof.path.Join', 'Proof.path.Clean', 'Proof.path.lazybuf__index',
              'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string',
              'Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum',
-             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2'],
+             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2',
+             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage',
+             'Proof.google_golang_org.protobuf.proto.SizePb'],
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
             'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',
@@ -3013,6 +3023,27 @@ its untranslated `init` function (it sets `internal.CanonicalString`, another pa
 which the trust-boundary axiom `initFuncsOk` says returns.''',
     alloc_types={'strToCode': 'Loc'},
     before={'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_GC}.Code.ty', 17)},
+)
+_OP = 'go_opentelemetry_io.otel.propagation'
+SPECIAL[_OP] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-misc, 2026-11-20): the interface assertions (`var _
+TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supportedVersion)`
+(Perennial's `fmt.wp_Sprintf`: some string, no panic).''',
+    alloc_types={'versionPart': 'GoString', 'handleExtractErrOnce': '_root_.Perennial.sync.Once'},
+    before={'versionPart': [
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mmc -',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType go.string)) as %mhc1 -',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType go.string)) as %mhc2 -',
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %svp ⟨Svp, -⟩',
+        'try wp_auto',
+        'wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        '(_root_.Perennial.fmt.IntArgValue.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Svp] as %rvp -',
+        'try wp_auto']},
 )
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
