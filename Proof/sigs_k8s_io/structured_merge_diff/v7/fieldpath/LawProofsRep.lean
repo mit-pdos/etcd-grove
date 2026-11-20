@@ -9,6 +9,8 @@ module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofs
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofsCompare
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofsAgree
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
@@ -171,19 +173,29 @@ end fpL
 `<X>_law_holds` once they exist. -/
 
 namespace fpL
-theorem uZ : UVal.compare_eq_zero.law := sorry
-theorem uA : UVal.compare_antisymm.law := sorry
-theorem uT : UVal.compare_trans.law := sorry
+theorem uZ : UVal.compare_eq_zero.law := UVal.compare_eq_zero_law_holds
+theorem uA : UVal.compare_antisymm.law := UVal.compare_antisymm_law_holds
+theorem uT : UVal.compare_trans.law := UVal.compare_trans_law_holds
 section
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 theorem valCanon : isValF_canon.law (GF := GF) := isValF_canon_law_holds
-theorem flAgree : isFieldList_agree.law (GF := GF) := sorry
+theorem flAgree : isFieldList_agree.law (GF := GF) := isFieldList_agree_law_holds
 /-- The root's `isValF_agree.law` (`v7/Laws.lean`, which imports every package), restated. -/
 theorem valAgree : ∀ (v : value.Value) dq1 dq2 x y,
-    isValF (GF := GF) v dq1 x ∗ isValF v dq2 y ⊢ ⌜x = y⌝ := sorry
+    isValF (GF := GF) v dq1 x ∗ isValF v dq2 y ⊢ ⌜x = y⌝ := fun v dq1 dq2 x y => by
+  iintro ⟨H1, H2⟩
+  iunfold isValF at H1 H2
+  icases H1 with ⟨%p, %i, %h1, Hp1, Hi1⟩
+  icases H2 with ⟨%p', %i', %h2, Hp2, Hi2⟩
+  rw [h1, interface_mkOk_inj, intoVal_eq_iff] at h2
+  obtain ⟨-, rfl⟩ := h2
+  icombine Hp1 Hp2 gives %h
+  cases h
+  iapply isIface_agree' i x y
+  iframe
 end
 end fpL
 
