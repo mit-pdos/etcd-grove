@@ -13,6 +13,10 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Set__Union
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet__Set
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__reconcileManagedFieldsWithSchemaChanges
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__update
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
+import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofs
+import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsMF
+import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 
 @[expose] public section
 
@@ -43,7 +47,26 @@ theorem merge.Updater.Update.wp_proof
     (h_versionedSet_Set : fieldpath.versionedSet.Set.spec (GF := GF))
     (h_Updater_reconcileManagedFieldsWithSchemaChanges : merge.Updater.reconcileManagedFieldsWithSchemaChanges.spec (GF := GF))
     (h_Updater_update : merge.Updater.update.spec (GF := GF)) :
-    merge.Updater.Update.spec (GF := GF) := by
+    merge.Updater.Update.spec (GF := GF) :=
+    fun u cv rion sc S t lp np live new ver mfm mf mgr => by
+  wp_start as ⟨#Hu, #Hcv, #Hl, #Hn, #Hmf, %hsmall⟩
+  have hsz : live.size < smdSizeMax ∧ new.size < smdSizeMax := by
+    obtain ⟨h1, -⟩ := hsmall
+    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil] at h1
+    omega
+  wp_auto
+  wp_apply (h_Updater_reconcileManagedFieldsWithSchemaChanges u cv _ _ rion sc S t lp live mfm mf)
+    as %r0 %err0 ⟨%herr0, Hr0⟩
+  · iframe Hu Hcv Hl Hmf
+  subst herr0
+  wp_auto
+  wp_apply (h_Updater_update u cv rion sc S t lp live np new ver r0 (reconcileMF S t mf) mgr true) $$ [Hr0]
+    as %r1 %cp %err1 Hpost
+  · iframe Hu Hcv Hl Hn Hr0; ipureintro; exact hsz
+  icases Hpost with ⟨%h1, Hr0, #Hcmp⟩
+  obtain ⟨rfl, rfl⟩ := h1
+  wp_auto
+  trace_state
   sorry
 
 end proof
