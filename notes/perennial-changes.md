@@ -17,6 +17,37 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `unsafe` and `reflect` beyond plain bytes: what all of etcd needs (2026-11-20, survey)
+
+- **Limitation.** Perennial models byte views of pointer-free types only (R1-R5 of its
+  `docs/design/unsafe-memory.md`, for bbolt), and `reflect` is names-only. That leaves 23
+  reflect axioms here (`Spec/reflect/`, `Proof/reflect/Values.lean`), and every protobuf
+  operation is an axiom per message type (`Spec/google_golang_org/protobuf/proto/`).
+- **Needed by.** A proof of etcd that includes grpc, net/http and protobuf-go (at etcd's pins:
+  grpc v1.84.0, protobuf-go v1.36.12, x/net v0.59.0, Go 1.27.3). Almost all of the `unsafe` is
+  in protobuf-go's `internal/impl` and `reflect/protoreflect`, which every generated `*.pb.go`
+  calls. v1.36.12 has no reflect-only `purego` build any more, so avoiding that `unsafe` would
+  take a fork. grpc's and net/http's direct uses are few: `RegisterService`'s `Implements` check,
+  `unwrapNopCloser`'s `Field(0)`, a type-name test, `reflect.DeepEqual`, and `go:linkname`
+  (naming only). They also reach `errors.As`, `fmt`'s `%v`, `sort.Slice` and `atomic.Value`.
+- **Requirements.** `examples/specreq/unsafereflect/`: seven requirement snippets, each a
+  minimized copy of the real code with its location (the offset-driven codec, `ProtoReflect`'s
+  `*Msg`-as-`*messageState` pun with pointer atomics, `protoreflect.Value`'s interface headers
+  and `unsafe.String`, struct tags against the raw descriptor, grpc's registration, net/http's
+  unwrapping, `errors.As`). Its `doc.go` names the capabilities: U1 field layout for every type,
+  U2 representation-compatible casts of pointer-carrying types (cells hold words with
+  provenance, not bytes), U3 the representations of strings, slices and interfaces (empty and
+  non-empty interfaces differ), U4 pointer atomics through casts; R1 type descriptors as values
+  (identity, Kind, Elem, fields with tags and offsets, method sets, Implements: Goose keeps no
+  struct tags today), R2 `reflect.Value`'s operations (map and slice ones included), R3 the
+  bridge (offsets, `Pointer`, `NewAt`). The reflective facts the snippets' panics depend on are
+  about constants (tags, raw descriptors, method sets), so a proof should discharge them by
+  computation on the translation, not by hand.
+- **Workaround here.** The axioms above.
+- **Proposed.** Not designed. A semantics of unsafe and reflect is adequate for etcd only if
+  every snippet is provably panic-free from it.
+- **Status.** Requirements only.
+
 ### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds)
 
 - **Limitation.** `goose_adequacy` (`Perennial/GooseLang/Adequacy.lean`) takes the thread bound as
