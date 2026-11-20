@@ -8,6 +8,7 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 public import Perennial.Proof.sync.Base
+public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
 public import Perennial.Proof.fmt.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.authpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.adt

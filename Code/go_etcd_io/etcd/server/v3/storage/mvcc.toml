@@ -55,6 +55,12 @@ translate = ["!*",
   "keysGauge", "watchStreamGauge", "watcherGauge", "slowWatcherGauge", "pendingEventsGauge",
   "totalPutSizeGauge", "dbCompactionLast",
   "indexCompactionPauseMs", "dbCompactionPauseMs", "dbCompactionTotalMs",
+  # (prove-initmisc, 2026-11-20) the rest of metrics.go: `totalEventsCounter`, `hashSec`, `hashRevSec`
+  # (over the same specs), the `prometheus.NewGaugeFunc` gauges (over its spec: the closure is not
+  # called), and `_` (watchable_store.go: `var _ WatchableKV = (*watchableStore)(nil)`, a conversion);
+  # until then the trust-boundary axiom `opaqueInitsOk`
+  "totalEventsCounter", "hashSec", "hashRevSec", "dbTotalSize", "dbTotalSizeInUse", "dbOpenReadTxN",
+  "currentRev", "compactRev", "_",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go

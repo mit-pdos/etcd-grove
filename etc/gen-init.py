@@ -762,6 +762,13 @@ def metric_steps(x, kind):
             f' (by decide) $$ B{x} as %c{x} ⟨#C{x}, -⟩',
             'try wp_auto']
 
+# (prove-initmisc, 2026-11-20) the `NewGaugeFunc` gauges (mvcc's, auth's)
+def gaugefunc_steps(x):
+    """`x = prometheus.NewGaugeFunc(opts, func() float64 {...})`, over `NewGaugeFunc`'s spec."""
+    return ['try wp_auto',
+            f'wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %c{x} -',
+            'try wp_auto']
+
 _MV = 'go_etcd_io.etcd.server.v3.storage.mvcc'
 
 def metric_conv(x, kind, tgt):
@@ -1847,10 +1854,13 @@ SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
 (the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`), and S5's two
 (`ErrAuthFailed`, `ErrAuthNotEnabled`), and E2g's `ErrInvalidAuthOpts` (translated
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
-`Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
-initializers are untranslated (`opaqueInitsOk`).''',
+`Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). (prove-initmisc,
+2026-11-20) Its other variables' initializers are translated too: `currentAuthRevision`
+(`prometheus.NewGaugeFunc`, over its spec), `knownOptions` (a map literal), `DefaultTTL`, `_` (`var _
+AuthStore = (*authStore)(nil)`), `rootPerm` (an `authpb.Permission` literal) and the JWT errors
+(until then the trust-boundary axiom `opaqueInitsOk`).''',
     imports=['Proof.errors.NewVar', 'Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar',
-             'Perennial.Proof.sync.RWMutexGuard'],
+             'Perennial.Proof.sync.RWMutexGuard', 'Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
                  # the simple provider's TTL default (the auth plan's S5b, 2026-10-24), a `time.Duration`
                  'simpleTokenTTLDefault': 'w64',
@@ -1858,11 +1868,28 @@ initializers are untranslated (`opaqueInitsOk`).''',
                  'simpleTokenTTLResolution': 'w64',
                  # the metrics reporter and its lock (the auth plan's E2a, 2026-10-25)
                  'reportCurrentAuthRevMu': '_root_.Perennial.sync.RWMutex',
-                 'reportCurrentAuthRev': 'GoFunc'},
+                 'reportCurrentAuthRev': 'GoFunc',
+                 # (prove-initmisc, 2026-11-20) the package's other variables, translated (until
+                 # then `opaqueInitsOk`)
+                 'currentAuthRevision': 'GoInterface', 'knownOptions': 'Loc', 'DefaultTTL': 'w64',
+                 'rootPerm': 'go_etcd_io.etcd.api.v3.authpb.Permission',
+                 **{x: 'GoInterface' for x in ['ErrInvalidAuthMethod', 'ErrMissingKey', 'ErrKeyMismatch',
+                                               'ErrVerifyOnly']}},
     before={
-        # the recipes run before the next untranslated variable's initializer, consuming the
-        # translated `errors.New` calls that precede it in `store.go`'s order
-        'ErrInvalidAuthMethod': _auth_news(_AUTH_ERRS),
+        'currentAuthRevision': gaugefunc_steps('currentAuthRevision'),
+        # `map[string]bool{optSignMethod: true, ...}`: made, then its four entries inserted
+        'knownOptions': ['try wp_auto',
+            'wp_apply (wp_map_make1 (K := GoString) (V := Bool) go.string go.bool) as %mko Hko',
+            'try wp_auto'] + ['wp_apply (wp_mapInsert (K := GoString) (V := Bool) go.string) $$ Hko as Hko',
+                              'try wp_auto'] * 4,
+        # `authpb.Permission{PermType: READWRITE, Key: []byte{}, RangeEnd: []byte{0}}`
+        'rootPerm': ['try wp_auto'] + [l for i in range(2) for l in [
+            f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %srp{i} ⟨Srp{i}, -⟩',
+            'try wp_auto']],
+        # the recipes run before the first JWT error's initializer, consuming the translated
+        # `errors.New` calls that precede it in `store.go`'s order, then the JWT errors' own
+        'ErrInvalidAuthMethod': _auth_news(_AUTH_ERRS) +
+            ['wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -', 'try wp_auto'] * 4,
     },
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] + ['ipersist HsimpleTokenTTLResolution'] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
@@ -1874,7 +1901,7 @@ initializers are untranslated (`opaqueInitsOk`).''',
             '  repeat (first | (isplitl []; · (iexists _; iframe #)) | (iexists _; iframe #))',
             '  try itrivial'] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
-            '· iapply isPkgInit_access $$ Hd17',
+            '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.api.v3.v3rpc.rpctypes}',
             'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩',
             # the metrics reporter's lock over the reporter (E2a)
             'imod (sync.init_RWMutex go_etcd_io.etcd.server.v3.auth.reportP (globalAddr reportCurrentAuthRevMu) (E := ⊤)) $$ [HreportCurrentAuthRev] HreportCurrentAuthRevMu with HRP',
@@ -1979,18 +2006,22 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 # (`EtcdGrove.status.Error.wp_proof`; the code is not `OK`), then the error is an interface value
 # (`%e<x>`), grpc's `status` accepts it (`#O<x>`), its `Error()` returns (`#E<x>`, from `statusErrOk`'s
 # stable message) and its description is the literal (`%D<x>`; `desc`: restated with the fact's
-# name for it). Until then the trust-boundary axioms `<X>_init`. Not `ErrGRPCNotSupportedForLearner`,
-# whose fact says its value is a pointer (`errors.IsPointerError`), which the spec does not give.
-def status_steps(x, desc=None):
+# name for it). Until then the trust-boundary axioms `<X>_init`. (prove-initmisc, 2026-11-20) also
+# `ErrGRPCNotSupportedForLearner`, whose fact says its value is a pointer (`errors.IsPointerError`,
+# `ptr`: from the spec's dynamic type and pointer value).
+def status_steps(x, desc=None, ptr=False):
     D = f'{CV3}.errDesc (GoInterface.ok e{x})'
+    pat = f'⟨%N{x}, #O{x}, %D{x}, %T{x}, %L{x}⟩' if ptr else f'⟨%N{x}, #O{x}, %D{x}, -⟩'
     return (['try wp_auto',
-             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} ⟨%N{x}, #O{x}, %D{x}, -⟩',
+             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
              f'obtain ⟨e{x}, rfl⟩ : ∃ e, r{x} = GoInterface.ok e := match r{x}, N{x} with | .ok e, _ => ⟨e, rfl⟩ | .nil, h => absurd rfl h',
              f'ihave #E{x} : ({CV3}.errorStringSpec e{x} : IProp GF) $$ []',
              f'· ihave ⟨%m{x}, #M{x}⟩ := {CV3}.statusErrOk_msg _ $$ O{x}',
              f'  iapply {CV3}.errorMsgIs_errorStringSpec; iapply M{x}; ipureintro; rfl'] +
             ([f'replace D{x} : {D} = {CV3}.{desc} := D{x}'] if desc else []) +
+            ([f'have P{x} : errors.IsPointerError e{x} := let ⟨l, hl⟩ := L{x} _ rfl; ⟨_, l, T{x} _ rfl, hl⟩']
+             if ptr else []) +
             ['try wp_auto'])
 
 _RSTATUS = dict({x: None for x in _RERRS + list(_RWERRS)}, ErrGRPCFutureRev='futureRevDesc',
@@ -1999,6 +2030,9 @@ for x, desc in _RSTATUS.items():
     del _R['custom'][x]
     _R.setdefault('before', {})[x] = status_steps(x, desc)
     _R['alloc_types'][x] = 'GoInterface'
+del _R['custom']['ErrGRPCNotSupportedForLearner']
+_R.setdefault('before', {})['ErrGRPCNotSupportedForLearner'] = status_steps('ErrGRPCNotSupportedForLearner', ptr=True)
+_R['alloc_types']['ErrGRPCNotSupportedForLearner'] = 'GoInterface'
 _R['imports'].append('Proof.google_golang_org.grpc.status.Error')
 
 _P = SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb']
@@ -2097,6 +2131,11 @@ _MV_HIS = ['indexCompactionPauseMs', 'dbCompactionPauseMs', 'dbCompactionTotalMs
 _MV_GAU += ['slowWatcherGauge', 'keysGauge', 'dbCompactionLast']
 _MV_METRICS = ([(x, 'counter') for x in _MV_CNT] + [(x, 'gauge') for x in _MV_GAU] +
                [(x, 'hist') for x in _MV_HIS])
+# (prove-initmisc, 2026-11-20) the metrics no fact names, translated too (until then `opaqueInitsOk`):
+# a counter and two histograms (`metric_steps`) and the `NewGaugeFunc` gauges (`gaugefunc_steps`)
+_MV_OTHER = [('totalEventsCounter', 'counter'), ('hashSec', 'hist'), ('hashRevSec', 'hist')]
+_MV_GFUNC = ['dbTotalSize', 'dbTotalSizeInUse', 'dbOpenReadTxN', 'currentRev', 'compactRev']
+
 _mv_custom = {}
 _MV_ERR = {'ErrRevisionNotFound': 'RNF', 'ErrCompacted': 'CP', 'ErrFutureRev': 'FR',
            'ErrWatcherNotExist': 'WNE', 'ErrEmptyWatcherRange': 'EWR', 'ErrWatcherDuplicateID': 'WDI'}
@@ -2109,12 +2148,17 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.mvcc'] = dict(
 metrics (`metrics.go`, translated: `prometheus.NewCounter`, `NewGauge` and `NewHistogram` of an
 options literal, the trust-boundary axioms of those constructors and of `ExponentialBuckets`; a
 counter's `Add` only of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
-fact). `opaqueInitsOk` states its other untranslated initializers run.""",
+fact). (prove-initmisc, 2026-11-20) Its other metrics (`totalEventsCounter`, `hashSec`,
+`hashRevSec`, and the `NewGaugeFunc` gauges, over that constructor's spec) and `_` (`var _
+WatchableKV = (*watchableStore)(nil)`) are translated too (until then the trust-boundary axiom
+`opaqueInitsOk`).""",
     imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.errors.NewVarCell',
-             'Perennial.Proof.sync.RWMutexGuard'] + PROM_CTORS,
+             'Perennial.Proof.sync.RWMutexGuard'] + PROM_CTORS +
+            ['Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc'],
     custom=_mv_custom,
     alloc_types={**{f'{x}Mu': '_root_.Perennial.sync.RWMutex' for x in _MV_REPORT},
-                 **{x: 'GoInterface' for x, _ in _MV_METRICS},
+                 **{x: 'GoInterface' for x, _ in _MV_METRICS + _MV_OTHER},
+                 **{x: 'GoInterface' for x in _MV_GFUNC},
                  **{x: 'GoFunc' for x in _MV_REPORT},
                  'watchBatchMaxRevs': 'w64', 'ErrWatcherDuplicateID': 'GoInterface',
                  'ErrEmptyWatcherRange': 'GoInterface', 'ErrWatcherNotExist': 'GoInterface',
@@ -2131,7 +2175,8 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
                        for t in ['WNE', 'EWR']] +
                       [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
                        for t in ['WDI']],
-            **{x: metric_steps(x, k) for x, k in _MV_METRICS}},
+            **{x: metric_steps(x, k) for x, k in _MV_METRICS + _MV_OTHER},
+            **{x: gaugefunc_steps(x) for x in _MV_GFUNC}},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] + [f'ipersist H{x}' for x, _ in _MV_METRICS] +
             ['ipersist HdefaultCompactionBatchLimit', 'ipersist HdefaultCompactionSleepInterval'] +

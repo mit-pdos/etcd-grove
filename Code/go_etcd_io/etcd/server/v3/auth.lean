@@ -6,6 +6,7 @@ public import Perennial.Code.errors
 public import Perennial.Code.time
 public import Code.go_uber_org.zap
 public import Perennial.Code.sync
+public import Code.github_com.prometheus.client_golang.prometheus
 public import Perennial.Code.fmt
 public import Code.go_etcd_io.etcd.api.v3.authpb
 public import Code.go_etcd_io.etcd.pkg.v3.adt
@@ -136,13 +137,17 @@ opaque tokenJWT.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque jwtOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque optSignMethod [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def optSignMethod [GooseExts] [GoGlobalContext] : val :=
+  #(go!"sign-method")
 
-opaque optPublicKey [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def optPublicKey [GooseExts] [GoGlobalContext] : val :=
+  #(go!"pub-key")
 
-opaque optPrivateKey [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def optPrivateKey [GooseExts] [GoGlobalContext] : val :=
+  #(go!"priv-key")
 
-opaque optTTL [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def optTTL [GooseExts] [GoGlobalContext] : val :=
+  #(go!"ttl")
 
 opaque letters [GooseExts] [GoGlobalContext] : val
 
@@ -163,8 +168,6 @@ opaque defaultSimpleTokenLength [GooseExts] [GoGlobalContext] : val
 noncomputable def currentAuthRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.currentAuthRevision"
 
-opaque currentAuthRevision.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def reportCurrentAuthRevMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.reportCurrentAuthRevMu"
 
@@ -174,12 +177,8 @@ noncomputable def reportCurrentAuthRev [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def knownOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.knownOptions"
 
-opaque knownOptions.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def DefaultTTL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.DefaultTTL"
-
-opaque DefaultTTL.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def simpleTokenTTLDefault [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.simpleTokenTTLDefault"
@@ -189,8 +188,6 @@ noncomputable def simpleTokenTTLResolution [GooseExts] [GoGlobalContext] : GoStr
 
 noncomputable def rootPerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.rootPerm"
-
-opaque rootPerm.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRootUserNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrRootUserNotExist"
@@ -252,22 +249,14 @@ noncomputable def ErrInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrInvalidAuthMethod [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrInvalidAuthMethod"
 
-opaque ErrInvalidAuthMethod.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrMissingKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrMissingKey"
-
-opaque ErrMissingKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrKeyMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrKeyMismatch"
 
-opaque ErrKeyMismatch.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrVerifyOnly [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrVerifyOnly"
-
-opaque ErrVerifyOnly.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newTokenProviderJWT [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.newTokenProviderJWT"
@@ -4801,14 +4790,21 @@ noncomputable def authStore.setupMetricsReporter.impl [GooseExts] [GoGlobalConte
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.auth where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.sort, pkg_id.sync.atomic, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
+  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.sort, pkg_id.sync.atomic, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.auth)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4860,14 +4856,56 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.float64))) (Var "$res0")))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"auth"))
+  (Let "$v2" (Val #(go!"revision"))
+  (Let "$v3" (Val #(go!"The current revision of auth store."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$a1" (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (App (Val (GoInstruction (GlobalVarAddr reportCurrentAuthRev))) (Val #()))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (GlobalVarAddr reportCurrentAuthRevMu))) (Val #())))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (GlobalVarAddr reportCurrentAuthRevMu))) (Val #()))) (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.float64))) (Var "$res0")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeFunc []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val optSignMethod))
+  (Let "$v1" (Val #true)
+  (Let "$k2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val optPublicKey))
+  (Let "$v3" (Val #true)
+  (Let "$k4" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val optPrivateKey))
+  (Let "$v5" (Val #true)
+  (Let "$k6" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val optTTL))
+  (Let "$v7" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.bool)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.bool (Var "$v5"))), (KeyedElement (some (KeyExpression go.string (Var "$k6"))) (ElementExpression go.bool (Var "$v7")))]))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val #(W64 60000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 300)) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1)) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType authStore.ty) AuthStore.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType authStore.ty)))) (Val UntypedNil)))
+  (Let "$r0" (Let "$v0" (Val #(W32 2))
+  (Let "$v1" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue []))
+  (Let "$v2" (Let "$v0" (Val #(W8 0))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"PermType")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"RangeEnd")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v2")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"auth: root user does not exist"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
@@ -4926,20 +4964,28 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(go!"auth: invalid auth management"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"auth: invalid auth signature method"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"auth: missing key data"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"auth: public and private keys don't match"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"auth: token signing attempted with verify-only key"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val ErrVerifyOnly.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrVerifyOnly))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrKeyMismatch.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrKeyMismatch))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrMissingKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrMissingKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrInvalidAuthMethod.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthMethod))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthMgmt))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -4979,19 +5025,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrRootUserNotExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val rootPerm.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr rootPerm))) (Val #())) (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr simpleTokenTTLResolution))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr simpleTokenTTLDefault))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val DefaultTTL.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultTTL))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val knownOptions.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr knownOptions))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val currentAuthRevision.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeFunc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr currentAuthRevision))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportCurrentAuthRev))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -5004,6 +5048,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -5029,13 +5075,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc currentAuthRevision _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeFunc.ty)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc reportCurrentAuthRevMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc reportCurrentAuthRev (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc knownOptions (go.GoType.MapType go.string go.bool))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultTTL _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc simpleTokenTTLDefault _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc simpleTokenTTLResolution _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc rootPerm _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrRootUserNotExist go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -5073,7 +5127,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrInvalidAuthOpts go.error)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc ErrInvalidAuthMgmt go.error)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc ErrInvalidAuthMgmt go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrInvalidAuthMethod go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrMissingKey go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrKeyMismatch go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrVerifyOnly go.error)) (Val #()))))))))
 
 opaque tokenJWT.nonempty_type : NonemptyType.{0}
 def tokenJWT : Type := tokenJWT.nonempty_type.type
@@ -5793,6 +5855,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
   import_adt_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Assumptions
@@ -5841,6 +5904,7 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_sync_Assumption
+  Assumptions.import_prometheus_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_authpb_Assumption
   Assumptions.import_adt_Assumption

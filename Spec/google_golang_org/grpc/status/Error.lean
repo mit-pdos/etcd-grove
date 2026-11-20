@@ -32,7 +32,12 @@ return; its description (`errDesc`, what `status.FromError(err).Message()` and
 `status.Error(codes.Unknown, err.Error())` carries the message as its description); its dynamic
 type is `*status.Error` of grpc's `internal/status` (k8s 7e-1, 2026-11-10, approved by
 etcd-grove-81: `status.New(c, msg).Err()` returns `&Error{s: s}` for `c ≠ OK`, the first of
-`clientErrTys`). Nothing about the code, nor about `codes.OK` (for which it returns `nil`). -/
+`clientErrTys`); and its value is that fresh pointer `#l` (prove-initmisc, 2026-11-20, a pure
+strengthening: grpc v1.84.0 `internal/status/status.go:129`, `func (s *Status) Err() error`'s
+`return &Error{s: s}` after `if s.Code() == codes.OK { return nil }`, which the pre's `c ≠ OK`
+excludes; `status.go:58`, `Error` is `New(c, msg).Err()`), so a pointer error
+(`errors.IsPointerError`, `rpctypes.ErrGRPCNotSupportedForLearner`'s fact). Nothing about the code,
+nor about `codes.OK` (for which it returns `nil`). -/
 abbrev status.Error.spec : Prop :=
   ∀ (c : w32) (msg : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗
@@ -40,7 +45,8 @@ abbrev status.Error.spec : Prop :=
     (App (App (Val (@! google_golang_org.grpc.status.Error)) (Val #c)) (Val #msg))
   {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ ∗ statusErrOk err ∗ ⌜errDesc err = msg⌝ ∗
       ⌜∀ ii, err = GoInterface.ok ii →
-        ii.ty = go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty⌝ }}
+        ii.ty = go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty⌝ ∗
+      ⌜∀ ii, err = GoInterface.ok ii → ∃ l : Loc, ii.v = #l⌝ }}
 
 end spec
 

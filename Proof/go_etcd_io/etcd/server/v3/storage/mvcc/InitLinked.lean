@@ -35,6 +35,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -86,20 +87,28 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) totalPutSizeGauge _ as HtotalPutSizeGauge
   wp_apply wp_GlobalAlloc (V := GoFunc) reportCompactRev _ as HreportCompactRev
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCompactRevMu _ as HreportCompactRevMu
+  wp_apply wp_GlobalAlloc (V := GoInterface) compactRev _ as HcompactRev
   wp_apply wp_GlobalAlloc (V := GoFunc) reportCurrentRev _ as HreportCurrentRev
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCurrentRevMu _ as HreportCurrentRevMu
+  wp_apply wp_GlobalAlloc (V := GoInterface) currentRev _ as HcurrentRev
+  wp_apply wp_GlobalAlloc (V := GoInterface) hashRevSec _ as HhashRevSec
+  wp_apply wp_GlobalAlloc (V := GoInterface) hashSec _ as HhashSec
   wp_apply wp_GlobalAlloc (V := GoFunc) reportDbOpenReadTxN _ as HreportDbOpenReadTxN
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbOpenReadTxNMu _ as HreportDbOpenReadTxNMu
+  wp_apply wp_GlobalAlloc (V := GoInterface) dbOpenReadTxN _ as HdbOpenReadTxN
   wp_apply wp_GlobalAlloc (V := GoFunc) reportDbTotalSizeInUseInBytes _ as HreportDbTotalSizeInUseInBytes
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInUseInBytesMu _ as HreportDbTotalSizeInUseInBytesMu
+  wp_apply wp_GlobalAlloc (V := GoInterface) dbTotalSizeInUse _ as HdbTotalSizeInUse
   wp_apply wp_GlobalAlloc (V := GoFunc) reportDbTotalSizeInBytes _ as HreportDbTotalSizeInBytes
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInBytesMu _ as HreportDbTotalSizeInBytesMu
+  wp_apply wp_GlobalAlloc (V := GoInterface) dbTotalSize _ as HdbTotalSize
   wp_apply wp_GlobalAlloc (V := GoInterface) dbCompactionKeysCounter _ as HdbCompactionKeysCounter
   wp_apply wp_GlobalAlloc (V := GoInterface) dbCompactionLast _ as HdbCompactionLast
   wp_apply wp_GlobalAlloc (V := GoInterface) dbCompactionTotalMs _ as HdbCompactionTotalMs
   wp_apply wp_GlobalAlloc (V := GoInterface) dbCompactionPauseMs _ as HdbCompactionPauseMs
   wp_apply wp_GlobalAlloc (V := GoInterface) indexCompactionPauseMs _ as HindexCompactionPauseMs
   wp_apply wp_GlobalAlloc (V := GoInterface) pendingEventsGauge _ as HpendingEventsGauge
+  wp_apply wp_GlobalAlloc (V := GoInterface) totalEventsCounter _ as HtotalEventsCounter
   wp_apply wp_GlobalAlloc (V := GoInterface) slowWatcherGauge _ as HslowWatcherGauge
   wp_apply wp_GlobalAlloc (V := GoInterface) watcherGauge _ as HwatcherGauge
   wp_apply wp_GlobalAlloc (V := GoInterface) watchStreamGauge _ as HwatchStreamGauge
@@ -181,7 +190,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of slowWatcherGauge))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cslowWatcherGauge ⟨#CslowWatcherGauge, #DslowWatcherGauge, -⟩
   try wp_auto
-  wp_apply (opaqueInitsOk totalEventsCounter.init (by mem_tac))
+  -- translated initializer of totalEventsCounter))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %ctotalEventsCounter ⟨#CtotalEventsCounter, -⟩
+  try wp_auto
   -- translated initializer of pendingEventsGauge))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cpendingEventsGauge ⟨#CpendingEventsGauge, #DpendingEventsGauge, -⟩
   try wp_auto
@@ -207,24 +218,46 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cdbCompactionKeysCounter ⟨#CdbCompactionKeysCounter, -⟩
   try wp_auto
   -- translated initializer of reportDbTotalSizeInBytes))
-  wp_apply (opaqueInitsOk dbTotalSize.init (by mem_tac))
+  -- translated initializer of dbTotalSize))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %cdbTotalSize -
+  try wp_auto
   -- translated initializer of reportDbTotalSizeInUseInBytes))
-  wp_apply (opaqueInitsOk dbTotalSizeInUse.init (by mem_tac))
+  -- translated initializer of dbTotalSizeInUse))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %cdbTotalSizeInUse -
+  try wp_auto
   -- translated initializer of reportDbOpenReadTxN))
-  wp_apply (opaqueInitsOk dbOpenReadTxN.init (by mem_tac))
-  wp_apply (opaqueInitsOk hashSec.init (by mem_tac))
-  wp_apply (opaqueInitsOk hashRevSec.init (by mem_tac))
+  -- translated initializer of dbOpenReadTxN))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %cdbOpenReadTxN -
+  try wp_auto
+  -- translated initializer of hashSec))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bhashSec BhashSec
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BhashSec as %chashSec ⟨#ChashSec, -⟩
+  try wp_auto
+  -- translated initializer of hashRevSec))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bhashRevSec BhashRevSec
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BhashRevSec as %chashRevSec ⟨#ChashRevSec, -⟩
+  try wp_auto
   -- translated initializer of reportCurrentRev))
-  wp_apply (opaqueInitsOk currentRev.init (by mem_tac))
+  -- translated initializer of currentRev))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %ccurrentRev -
+  try wp_auto
   -- translated initializer of reportCompactRev))
-  wp_apply (opaqueInitsOk compactRev.init (by mem_tac))
+  -- translated initializer of compactRev))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %ccompactRev -
+  try wp_auto
   -- translated initializer of totalPutSizeGauge))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %ctotalPutSizeGauge ⟨#CtotalPutSizeGauge, #DtotalPutSizeGauge, -⟩
   try wp_auto
   -- translated initializer of chanBufLen))
   -- translated initializer of maxWatchersPerSync))
   -- translated initializer of watchResyncPeriod))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   -- translated initializer of ErrWatcherNotExist))
   -- translated initializer of ErrEmptyWatcherRange))
   -- translated initializer of ErrWatcherDuplicateID))
@@ -233,6 +266,21 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.wp_New_errorString_cell as %xEWR ⟨#MEWR, #CEWR⟩
   wp_apply _root_.Perennial.context.wp_New_errorString as %xWDI ⟨-, #MWDI⟩
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of reportCompactRevMu))
+  -- translated initializer of reportCompactRevMu))
+  -- translated initializer of reportCompactRev))
+  -- translated initializer of reportCurrentRevMu))
+  -- translated initializer of reportCurrentRevMu))
+  -- translated initializer of reportCurrentRev))
+  -- translated initializer of reportDbOpenReadTxNMu))
+  -- translated initializer of reportDbOpenReadTxNMu))
+  -- translated initializer of reportDbOpenReadTxN))
+  -- translated initializer of reportDbTotalSizeInUseInBytesMu))
+  -- translated initializer of reportDbTotalSizeInUseInBytesMu))
+  -- translated initializer of reportDbTotalSizeInUseInBytes))
+  -- translated initializer of reportDbTotalSizeInBytesMu))
+  -- translated initializer of reportDbTotalSizeInBytesMu))
+  -- translated initializer of reportDbTotalSizeInBytes))
   ipersist HErrRevisionNotFound
   ipersist HErrCompacted
   ipersist HErrFutureRev

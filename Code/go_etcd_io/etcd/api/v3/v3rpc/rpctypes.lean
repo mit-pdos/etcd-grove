@@ -274,8 +274,6 @@ opaque ErrGRPCCorrupt.init [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrGRPCNotSupportedForLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotSupportedForLearner"
 
-opaque ErrGRPCNotSupportedForLearner.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCBadLeaderTransferee"
 
@@ -809,6 +807,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W32 3))
   (Let "$a1" (Val #(go!"etcdserver: key is not provided"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -918,6 +917,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: rpc not supported for learner"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1140,7 +1142,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCBadLeaderTransferee.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCNotSupportedForLearner.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotSupportedForLearner))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrGRPCCorrupt.init) (Val #()))))))
   (App (Val doExecute)
@@ -1291,6 +1293,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc ErrGRPCNoLeader go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCNotCapable go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCNotSupportedForLearner go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc MetadataRequireLeaderKey go.string)) (Val #()))))))
   (App (Val doExecute)

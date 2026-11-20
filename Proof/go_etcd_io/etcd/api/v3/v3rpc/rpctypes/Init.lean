@@ -177,11 +177,6 @@ axiom ErrAuthOldRevision_init :
     {{ (True : IProp GF) }} (App (Val ErrAuthOldRevision.init) (Val #()))
     {{ RET #(); ∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc' = go!"etcdserver: revision of auth store is old"⌝ }}
 
-/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29), which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6). -/
-axiom ErrGRPCNotSupportedForLearner_init :
-    {{ (True : IProp GF) }} (App (Val ErrGRPCNotSupportedForLearner.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}
-
 /-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/
 axiom ErrNoLeader_init :
     {{ (True : IProp GF) }} (App (Val ErrNoLeader.init) (Val #()))

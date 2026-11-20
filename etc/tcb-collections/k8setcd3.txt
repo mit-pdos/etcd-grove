@@ -58,7 +58,6 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthNotEnabled_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthOldRevision_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev_init
-axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrInvalidAuthToken_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrNoLeader_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrUserEmpty_init
@@ -77,7 +76,6 @@ axiom Perennial.go_etcd_io.etcd.client.v3.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.featuregate.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.auth.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.opaqueInitsOk
@@ -99,7 +97,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.initFuncsOk
@@ -437,6 +434,7 @@ axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewCounterVec.wp_proof
 axiom prometheus.NewGauge.wp_proof
+axiom prometheus.NewGaugeFunc.wp_proof
 axiom prometheus.NewGaugeVec.wp_proof
 axiom prometheus.NewHistogram.wp_proof
 axiom prometheus.NewHistogramVec.wp_proof

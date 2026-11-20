@@ -9,8 +9,11 @@ Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUser
 (the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`), and S5's two
 (`ErrAuthFailed`, `ErrAuthNotEnabled`), and E2g's `ErrInvalidAuthOpts` (translated
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
-`Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
-initializers are untranslated (`opaqueInitsOk`).
+`Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). (prove-initmisc,
+2026-11-20) Its other variables' initializers are translated too: `currentAuthRevision`
+(`prometheus.NewGaugeFunc`, over its spec), `knownOptions` (a map literal), `DefaultTTL`, `_` (`var _
+AuthStore = (*authStore)(nil)`), `rootPerm` (an `authpb.Permission` literal) and the JWT errors
+(until then the trust-boundary axiom `opaqueInitsOk`).
 -/
 module
 
@@ -25,6 +28,7 @@ public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
+public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
@@ -60,22 +64,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.auth`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([currentAuthRevision.init,
-        knownOptions.init,
-        DefaultTTL.init,
-        «_».init,
-        rootPerm.init,
-        ErrInvalidAuthMethod.init,
-        ErrMissingKey.init,
-        ErrKeyMismatch.init,
-        ErrVerifyOnly.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.auth`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
