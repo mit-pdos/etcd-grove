@@ -31,7 +31,7 @@ def bbolt.Open.spec : Prop :=
                                     ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗
                                       bbolt.isBolt db γ ∗
                                         bbolt.boltIno γ i ∗ bbolt.boltState γ 1 D ∗ bbolt.boltCloser γ) ∨
-                                ⌜err ≠ GoInterface.nil ∧ ¬Fs.FsNoErr⌝)) -∗
+                                ⌜err ≠ GoInterface.nil ∧ (¬Fs.FsNoErr ∨ ¬Fs.PathFits (Fs.child d b))⌝)) -∗
                     Φ (intoVal db, intoVal err)) -∗
               WP
                 ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal (Fs.child d b))) (intoVal mode))
