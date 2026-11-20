@@ -1,6 +1,29 @@
 # wal-fsfix handoff
 
-## START HERE (2026-11-20 z2)
+## START HERE (2026-11-20 z3)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. **Merged lean 4d716f5f47**
+  (merge-origin9): pin c44b74871, `--packages=/shared/tmp/manifest-c44.json` (`.lake/package-overrides.json` its
+  copy), `PERENNIAL_DIR=/shared/perennial-c44b74871`. Builds: plain build-slot (never BUILD_SLOT_BIG).
+- **Built before the merge** (build 20261120-123233-66776 at 85b6ae6c71): everything but mvccfull/Adequacy and
+  auth3/Main, both fixed and lean-checked in 01a5c355d1. The attack's text fixes applied (4cf7f724a9).
+- **Running**: the full timed build after the merge, `/shared/tmp/walfsfix/full3.log` (its `BUILD rc` line; the
+  id in `timed-build: recorded build ...`).
+- **Next**: repair what it shows → `etc/tcb-report.py --check --update` (LAKE_OPTS=--packages=...c44), the
+  collections (`--collection etc/tcb-collections/<c>.txt --check --update` for those that moved),
+  `etc/gen-interface.py etc/api/<pkg>.txt` for APIs whose interface moved (bbolt `Open`, os) → land-stop report.
+- `cut.specNoErr`: not started (a stage of its own): a hypothesis carried by `wp_Save`/`wp_SaveSnapshot` (Link), so
+  its form can change: add `[FsStepSat (NoMapLockErr Sio)]` (fileutil's flock fallback) and `Fs.DirFits dir`;
+  needs NE callee specs that do not exist (Truncate specAu, syncCut, walPipe open, Rename, FsyncDir, Close,
+  LockFile over OFD+flock). `rnNewStorageOk_holds` blocked on it and on Create.specNoErr (a STOP); its premise is in
+  `etcdstart.commonPremises`, so every etcd example's closed statement keeps it (24 examples, list in the report).
+- Land-stop items: mvccrand/mvccfull `Hrfit : Fs.DirFits r` (new closed premise; the only existing root premise is
+  `RootsOk`/`RootForm` inside `FsInit`, shared by every fs example: not used); bootstrapContract pre gains `DirFits`
+  (weaker assumption), its post's claims carry `PathFits` of `snapDirOf` paths (`snapDirOf` opaque: asserted, true
+  of Go: attack item 3); Premises.lean: flock out of IoCovers (NoMapLockErr, still "pending the user's review", now
+  its only coverage), text fixes; the internal specs' name-bound premises; cluster3.cfgOk gains len1-3.
+
+## History (2026-11-20 z2)
 
 - Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. Pin 3afd77e35:
   `--packages=/shared/tmp/manifest-3af.json`. Builds: plain `/shared/tmp/build-slot.sh ...` (never BUILD_SLOT_BIG).
