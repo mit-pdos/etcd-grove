@@ -7,10 +7,11 @@ reached by these).
 
 * the wire's helpers: `putU64`, `getU64`, `putString`, `putFrame`, `getString`;
 * the reads: `readFull` (gob's `recvMessage` errors: `io.EOF` between frames,
-  `io.ErrUnexpectedEOF` within one, the connection's `*OpError`), `readFrame`;
+  `io.ErrUnexpectedEOF` within one, the connection's `*OpError`), `readFrame`, and the client
+  codec's `ReadResponseHeader` (a frame of `respHdr seq sm e`, or `errFrame`, or a read error);
 * the codec registry: `SetCodec`, `getCodec` (`Codec.lean`: `CodecSpec`, `codecIs`, `codecSet`).
 
-Stated, not yet proved (the plan note, phase 5.2, lists what remains): the codecs' methods, the
+Not yet stated (the plan note, phase 5.2, lists what remains): the codecs' other methods, the
 Client (`Call`, `Go`, `Close`, `NewClient`, `Dial`, `DialHTTP(Path)`), the Server (`Register(Name)`,
 `ServeConn`/`ServeCodec`, `ServeHTTP`, `HandleHTTP`) and the generated `Codec`'s `Receiver`.
 -/
@@ -25,6 +26,7 @@ public import Net.Proof.net.rpc.readFull
 public import Net.Proof.net.rpc.readFrame
 public import Net.Proof.net.rpc.getCodec
 public import Net.Proof.net.rpc.SetCodec
+public import Net.Proof.net.rpc.clientCodec__ReadResponseHeader
 public import Net.Proof.net.Conn__Read
 public import Perennial.Proof.sync.Link
 
@@ -70,6 +72,9 @@ theorem readFull.wp : readFull.spec (GF := GF) (hG := hG) :=
 theorem readFrame.wp : readFrame.spec (GF := GF) (hG := hG) :=
   readFrame.wp_proof readFull.wp getU64.wp_proof
 
+theorem clientCodec.ReadResponseHeader.wp : clientCodec.ReadResponseHeader.spec (GF := GF) (hG := hG) :=
+  clientCodec.ReadResponseHeader.wp_proof readFrame.wp getU64.wp_proof getString.wp
+
 end results
 
 end net.rpc
@@ -84,3 +89,4 @@ end Perennial
 #print axioms Perennial.net.rpc.SetCodec.wp
 #print axioms Perennial.net.rpc.readFull.wp
 #print axioms Perennial.net.rpc.readFrame.wp
+#print axioms Perennial.net.rpc.clientCodec.ReadResponseHeader.wp
