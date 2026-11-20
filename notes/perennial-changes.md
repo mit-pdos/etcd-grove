@@ -2836,3 +2836,21 @@ parameter.
   `ReadOut` with `sint.Z`, would do.
 - **Proposed change.** `wp_slice_copy`'s post `sint.Z n = min vs.length vs'.length` (or
   `n = W64 (min ...)`). Status: not proposed.
+
+## 2026-11-20: goose does not take a `go build -overlay` file (models of standard-library packages, phase 5.2 of `notes/dsverify-net-port-plan.md`, branch `models-rpc-http`)
+
+- **Missing.** goose and proofgen load packages with golang.org/x/tools/go/packages, which parses the
+  files `go list` names by reading them from disk. With `-overlay` in GOFLAGS, `go list` applies the
+  overlay but go/packages then reads the real files (type-checking the original source) and cannot
+  open a file the overlay adds (tried: "zz_model.go: no such file or directory"). go/packages has
+  its own `Config.Overlay` (file contents by path), which goose does not set.
+- **Who.** The models of standard-library packages (`models/net/rpc`, `models/net/http`): the
+  standard library cannot be replaced by a module, so a model build substitutes files.
+- **Workaround here.** `models/goroot.py farm`: a GOROOT of symbolic links whose modelled packages'
+  Go files are the models'; `etc/goose.py` runs goose with `GOROOT` set to it for a project with
+  `std_models` (project `models-net`).
+- **Proposed change.** goose and proofgen take `-overlay FILE` (the go command's JSON format), read
+  it into `packages.Config.Overlay` and pass `-overlay` in `BuildFlags`, so one overlay file serves
+  `go build`, `go test` and the translation. General (any project translating patched sources),
+  small.
+- **Status.** Not proposed yet.
