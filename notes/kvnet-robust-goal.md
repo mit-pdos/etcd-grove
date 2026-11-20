@@ -44,6 +44,9 @@ def kvcheckProgram (cl : ClusterConfig) (addrs : GoString) : Expr :=
   (@! kvcheck.Check) #addrs #cl.voters #cl.preVote #cl.checkQuorum #cl.stepDownOnRemoval
     #cl.maxSizePerMsg #cl.maxCommittedSizePerReady #cl.maxInflightMsgs
 
+-- The extensions are fixed: the net extension and the Linux file extension, and nothing else.
+attribute [local instance] kvnetExts kvnetExtsSemantics kvnetExts_hasNet kvnetExts_hasFs
+
 abbrev fsOf (σ : state) : Fs.OsState := extLocal Fs.fsExt σ.world
 
 /-- **kvnet is robust.** Replica `i+1` listens at `replicas[i].1` and runs on the machine
@@ -202,4 +205,10 @@ extension's notes).
     predicates) hold of concrete machine states.
 15. `raft_kvnet_robust_example` from `raft_kvnet_robust`.
 
-**Open**: generic extensions (any list with net and fs) or a fixed bundle.
+16. The bundle `kvnetExts := ⟨[Net.netExt, Fs.fsExt]⟩` with its semantics, interpretation, crash
+    interpretation, `HasExt` instances and adequacy (today only `netExts := ⟨[netExt]⟩`,
+    `GooseLang/Ext/Net/Adequacy.lean:52`, and the fs extension's own bundles exist).
+
+Decided (the user's, 2026-11-20): the extensions are fixed in the statement, `kvnetExts` (net and
+fs, nothing else): the theorem names the extensions it trusts. Net changes needed are relayed to the
+agent working on net (2026-11-20).
