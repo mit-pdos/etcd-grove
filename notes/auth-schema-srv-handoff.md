@@ -3,7 +3,7 @@
 ## START HERE (2026-11-20 m, AT THE LAND STOP: no commits until the coordinator says the land finished)
 
 - Branch `auth-schema-port` (worktree `/shared/etcd-grove-authschema`), pin 3afd77e35 (`--packages=/shared/tmp/manifest-3af.json`,
-  `.lake/package-overrides.json` = it, `PERENNIAL_DIR=/shared/perennial-3afd77e35`). lean `34986d22ae` merged (8798fdc497);
+  `.lake/package-overrides.json` = it, `PERENNIAL_DIR=/shared/perennial-3afd77e35`). lean `cee6468281` merged (55df773d9d; authlease drops hD22, 1325fe06b5);
   `auth-schema-srv` fast-forwarded to `auth-schema-port` (checkpoint B).
 - Build 5 `20261119-222252-2311069` green (162 modules, before the merge); build 6 `20261119-235631-2598891` green (7303 modules,
   1h35m, after the merge).
@@ -13,7 +13,8 @@
   errorf, mode, model-param, pbschema, reader-slot, bgcancel (needs a path manifest: `/shared/tmp/auth-schema-srv/manifest-path.json`),
   issues-status. tcb `--check --update`: 785 → 787 axioms (+ `proto.MarshalUser/MarshalRole.wp_proof`, A3), 2 sorries; collections
   auth3/authN/authkv + `proto.(Un)marshalUser/Role`, server + the Marshal pair (7c56732d06).
-- C: `python3 /shared/tmp/auth-schema-srv/stmtdiff2.py lean`: 20/20 OK, only hD22 removed. Trusted text (TrustedCode, GooseLang):
+- Build 7 `20261120-024115-3182955` green (after the cee6468281 merge); tcb 791 axioms (lean 789 + 2), authlease collection +4 proto.
+- C: `python3 /shared/tmp/auth-schema-srv/stmtdiff2.py lean`: 24/24 OK (authlease added), only hD22 removed. Trusted text (TrustedCode, GooseLang):
   unchanged vs lean; `Code/go_etcd_io/bbolt.lean` re-translated from the fork (verified code).
 - Next: the coordinator's land go: merge lean once more if it moved (k8s 7g), rerun what the merge touches, then land.
 - Pitfalls: (46)-(49) below; (50) gen-init needs `PERENNIAL_DIR`, bgcancel a path manifest in `LAKE_PACKAGES`; never `git stash` with
