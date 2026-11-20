@@ -49,10 +49,11 @@ open sigs_k8s_io.structured_merge_diff.v7
 
 /-! ## The order of path elements -/
 
-/-- A well-formed path element: the values it holds are canonical (`isPE_wf`). -/
+/-- A well-formed path element: the values it holds are canonical, and every map inside them has
+at most `2^61` entries (`UVal.mapLensOk`: `value.Compare`'s premise) (`isPE_wf`). -/
 def PE.wf : PE → Bool
-  | .key fl => fl.all (fun f => f.2.canon)
-  | .value v => v.canon
+  | .key fl => fl.all (fun f => f.2.canon && f.2.mapLensOk)
+  | .value v => v.canon && v.mapLensOk
   | _ => true
 
 /-- `a` before `b` (`PathElement.Less`). -/

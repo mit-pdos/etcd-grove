@@ -276,11 +276,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`isPE e pe`**: the `fieldpath.PathElement` `e` is `pe` (its first non-nil field;
-persistent). -/
+persistent). The values a key or a value element holds have every map inside of at most `2^61`
+entries (`UVal.mapLensOk`, `value.Compare`'s premise: SMD compares path elements). -/
 @[no_expose] def isPE (e : fieldpath.PathElement) : PE → IProp GF
   | .field n => iprop(e.FieldName' ↦□ n)
-  | .key fl => iprop(⌜e.FieldName' = null⌝ ∗ ∃ s : GoSlice, e.Key' ↦□ s ∗ isFieldList s fl)
-  | .value x => iprop(⌜e.FieldName' = null ∧ e.Key' = null⌝ ∗
+  | .key fl => iprop(⌜e.FieldName' = null ∧ fl.all (fun f => f.2.mapLensOk) = true⌝ ∗
+      ∃ s : GoSlice, e.Key' ↦□ s ∗ isFieldList s fl)
+  | .value x => iprop(⌜e.FieldName' = null ∧ e.Key' = null ∧ x.mapLensOk = true⌝ ∗
       ∃ v : value.Value, e.Value' ↦□ v ∗ isVal v x)
   | .index i => iprop(⌜e.FieldName' = null ∧ e.Key' = null ∧ e.Value' = null⌝ ∗ e.Index' ↦□ i)
 

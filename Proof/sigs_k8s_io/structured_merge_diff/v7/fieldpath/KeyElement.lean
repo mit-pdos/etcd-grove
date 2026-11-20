@@ -31,7 +31,7 @@ variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.KeyElement.wp_proof :
     fieldpath.KeyElement.spec (GF := GF) := fun s fl => by
-  wp_start as #Hfl
+  wp_start as ⟨#Hfl, %hok⟩
   iapply wp_fupd
   wp_auto
   ipersist l
@@ -39,7 +39,7 @@ theorem fieldpath.KeyElement.wp_proof :
   iapply HΦ
   unfold isPE
   isplit
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, hok⟩
   · iexists s; iframe l Hfl
 
 end proof

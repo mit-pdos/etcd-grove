@@ -34,7 +34,8 @@ variable [package_sem : value.Assumptions]
 /-- See the file header. -/
 abbrev value.FieldList.Compare.spec : Prop :=
   ∀ (f g : GoSlice) (fl gl : FieldList),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isFieldList f fl ∗ isFieldList g gl }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isFieldList f fl ∗ isFieldList g gl ∗
+      ⌜fl.all (fun f => f.2.mapLensOk) = true ∧ gl.all (fun f => f.2.mapLensOk) = true⌝ }}
     (App (Val (f @!! value.FieldList.ty @!! go!"Compare")) (Val #g))
   {{ (r : w64), RET #r; ⌜r.toInt = flCompare fl gl⌝ }}
 

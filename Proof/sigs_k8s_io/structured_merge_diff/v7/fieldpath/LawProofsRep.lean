@@ -282,14 +282,18 @@ theorem isPE_wf' (e : fieldpath.PathElement) (pe : PE) : isPE (GF := GF) e pe �
   | index i => iintro _; ipureintro; rfl
   | key fl =>
     unfold isPE isFieldList
-    iintro ⟨-, %s, -, %fs, -, Hfs⟩
+    iintro ⟨%hm, %s, -, %fs, -, Hfs⟩
     ihave %h := isFieldsL_canon fs fl $$ Hfs
-    ipureintro; exact h
+    ipureintro
+    simp only [PE.wf, List.all_eq_true, Bool.and_eq_true] at h hm ⊢
+    exact fun x hx => ⟨h x hx, hm.2 x hx⟩
   | value x =>
     unfold isPE
-    iintro ⟨-, %v, -, Hv⟩
+    iintro ⟨%hm, %v, -, Hv⟩
     ihave %h := valCanon _ _ _ $$ Hv
-    ipureintro; exact h
+    ipureintro
+    simp only [PE.wf, Bool.and_eq_true]
+    exact ⟨h, hm.2.2⟩
 
 theorem isPE_null (e : fieldpath.PathElement) (pe : PE) : isPE (GF := GF) e pe ⊢
     ⌜match pe with
@@ -301,10 +305,10 @@ theorem isPE_null (e : fieldpath.PathElement) (pe : PE) : isPE (GF := GF) e pe �
   · iintro H; iapply typedPointsto_not_null; iexact H
   · iintro ⟨%h, %s, H, -⟩
     ihave %h' := typedPointsto_not_null $$ H
-    ipureintro; exact ⟨h, h'⟩
+    ipureintro; exact ⟨h.1, h'⟩
   · iintro ⟨%h, %v, H, -⟩
     ihave %h' := typedPointsto_not_null $$ H
-    ipureintro; exact ⟨h.1, h.2, h'⟩
+    ipureintro; exact ⟨h.1, h.2.1, h'⟩
   · iintro ⟨%h, H⟩
     ihave %h' := typedPointsto_not_null $$ H
     ipureintro; exact ⟨h.1, h.2.1, h.2.2, h'⟩

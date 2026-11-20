@@ -328,6 +328,10 @@ namespace fpL
 /-- A field list's values are canonical (`PE.wf` of a key). -/
 abbrev flWf (fl : FieldList) : Prop := fl.all (fun f => f.2.canon) = true
 
+theorem flWf_of {fl : FieldList} (h : fl.all (fun f => f.2.canon && f.2.mapLensOk) = true) :
+    flWf fl := by
+  simp only [flWf, List.all_eq_true, Bool.and_eq_true] at h ⊢; exact fun x hx => (h x hx).1
+
 section fl
 variable (hZ : UVal.compare_eq_zero.law) (hA : UVal.compare_antisymm.law)
   (hT : UVal.compare_trans.law)
@@ -436,8 +440,9 @@ theorem pe_zero_anti (a b : PE) (ha : a.wf = true) (hb : b.wf = true) :
     PE.value.injEq, PE.index.injEq, iff_false] at ha hb ⊢
   all_goals first
     | exact gs_za _ _
-    | exact fl_zero_anti hZ hA _ _ ha hb
-    | exact ⟨hZ _ _ ha hb, hA _ _ ha hb⟩
+    | exact fl_zero_anti hZ hA _ _ (flWf_of ha) (flWf_of hb)
+    | exact ⟨hZ _ _ (Bool.and_eq_true _ _ ▸ ha).1 (Bool.and_eq_true _ _ ▸ hb).1,
+        hA _ _ (Bool.and_eq_true _ _ ▸ ha).1 (Bool.and_eq_true _ _ ▸ hb).1⟩
     | exact int_za _ _
     | decide
 
@@ -456,8 +461,9 @@ theorem pe_trans (a b c : PE) (ha : a.wf = true) (hb : b.wf = true) (hc : c.wf =
   cases a <;> cases b <;> cases c <;> simp only [PE.compare, PE.wf] at ha hb hc ⊢ <;>
     intro h1 h2 <;> try omega
   · exact gs_trans _ _ _ h1 h2
-  · exact fl_trans hZ hT _ _ _ ha hb hc h1 h2
-  · exact hT _ _ _ ha hb hc h1 h2
+  · exact fl_trans hZ hT _ _ _ (flWf_of ha) (flWf_of hb) (flWf_of hc) h1 h2
+  · exact hT _ _ _ (Bool.and_eq_true _ _ ▸ ha).1 (Bool.and_eq_true _ _ ▸ hb).1
+      (Bool.and_eq_true _ _ ▸ hc).1 h1 h2
   · exact int_trans _ _ _ h1 h2
 
 include hZ hA hT in

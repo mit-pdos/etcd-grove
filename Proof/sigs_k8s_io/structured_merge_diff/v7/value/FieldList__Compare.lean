@@ -40,7 +40,7 @@ theorem value.FieldList.Compare.wp_proof
     (h_strings_Compare : _root_.Perennial.strings.Compare.spec (GF := GF))
     (h_Compare : value.Compare.spec (GF := GF)) :
     value.FieldList.Compare.spec (GF := GF) := fun f g fl gl => by
-  wp_start as ⟨#Hf, #Hg⟩
+  wp_start as ⟨#Hf, #Hg, %hml⟩
   icases isFieldList_val $$ Hf with ⟨%fs, #Hfs, #HfL⟩
   icases isFieldList_val $$ Hg with ⟨%gs, #Hgs, #HgL⟩
   ihave %Hfl := isFieldsL_length $$ HfL
@@ -111,8 +111,10 @@ theorem value.FieldList.Compare.wp_proof
           List.drop_eq_getElem_cons hjfl
         have hd2 : gl.drop (sint.nat j) = gl[sint.nat j]'hjgl :: gl.drop (sint.nat j + 1) :=
           List.drop_eq_getElem_cons hjgl
-        generalize fl[sint.nat j]'hjfl = e1 at he1 hd1
-        generalize gl[sint.nat j]'hjgl = e2 at he2 hd2
+        have hm1 : fl[sint.nat j]'hjfl ∈ fl := List.getElem_mem hjfl
+        have hm2 : gl[sint.nat j]'hjgl ∈ gl := List.getElem_mem hjgl
+        generalize fl[sint.nat j]'hjfl = e1 at he1 hd1 hm1
+        generalize gl[sint.nat j]'hjgl = e2 at he2 hd2 hm2
         obtain ⟨n1, v1⟩ := e1
         obtain ⟨n2, v2⟩ := e2
         ihave ⟨%x', %hx', #Hxval⟩ := isFieldsL_lookup fs fl (sint.nat j) n1 v1 he1 $$ HfL
@@ -136,6 +138,8 @@ theorem value.FieldList.Compare.wp_proof
           simp only [hj0, hjf, hjg, _root_.and_self, ↓reduceIte]
           wp_auto
           wp_apply (h_Compare _ _ DFrac.discard DFrac.discard v1 v2) $$ [$Hxval $Hyval] as %r ⟨-, -, %hr⟩
+          · iframe #; ipureintro
+            exact ⟨List.all_eq_true.1 hml.1 _ hm1, List.all_eq_true.1 hml.2 _ hm2⟩
           wp_if_destruct
           · wp_for_post
             iframe

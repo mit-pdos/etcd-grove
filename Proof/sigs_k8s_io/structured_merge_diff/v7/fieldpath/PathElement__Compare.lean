@@ -52,17 +52,19 @@ theorem fieldpath.PathElement.Compare.wp_proof
     simp only [PE.compare]
     exact fpL.compareResult_gs n n'
   case key.key fl fl' =>
-    icases Ha with ⟨-, %s, Hs, Hfl⟩
-    icases Hb with ⟨-, %s', Hs', Hfl'⟩
+    icases Ha with ⟨%hk, %s, Hs, Hfl⟩
+    icases Hb with ⟨%hk', %s', Hs', Hfl'⟩
     pe_if; pe_if; pe_if; pe_if
     wp_method_call; wp_call; wp_auto
     wp_apply (h_FieldList_Compare s s' fl fl') $$ [$Hfl $Hfl'] as %r %hr
+    · iframe #; ipureintro; exact ⟨hk.2, hk'.2⟩
     wp_end
   case value.value x x' =>
-    icases Ha with ⟨-, %v, Hs, Hv⟩
-    icases Hb with ⟨-, %v', Hs', Hv'⟩
+    icases Ha with ⟨%hk, %v, Hs, Hv⟩
+    icases Hb with ⟨%hk', %v', Hs', Hv'⟩
     pe_if; pe_if; pe_if; pe_if; pe_if; pe_if
     wp_apply (h_Compare v v' DFrac.discard DFrac.discard x x') $$ [$Hv $Hv'] as %r ⟨-, -, %hr⟩
+    · iframe; ipureintro; exact ⟨hk.2.2, hk'.2.2⟩
     wp_end
   case index.index i i' =>
     icases Ha with ⟨-, Hs⟩
