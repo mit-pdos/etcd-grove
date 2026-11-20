@@ -132,8 +132,17 @@ theorem RawNode.Step.wp_proof
       icases ownStepGhost_bootCommit γ _ cf id s $$ Hghost with ⟨%Hbc0, Hghost⟩
       icases ownStepGhost_term0 γ _ cf id s $$ Hghost
         with ⟨%Hb1, Hghost⟩
-      -- (raft-final phase 2) the no-snapshot mode is off (`NsCap`)
+      -- (auth-lease S4, 2026-11-16) a `MsgSnap` is outside the no-snapshot mode (`"#Hsnap"`), so the
+      -- node is (`NsLink`)
       icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
+      ihave %Hsnp : ⌜m.Type' = MsgSnap → γ.reNoSnap = false⌝ $$ []
+      · by_cases hty : m.Type' = MsgSnap
+        · ihave ⟨%sv0, %scfg0, %Hp0, -⟩ := Hsnap $$ %hty
+          ipureintro; exact fun _ => Hp0.2.2.2
+        · ipureintro; exact fun h => absurd h hty
+      icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
+      have Hnsm : m.Type' = MsgSnap → s.gh.ns = false := fun h => by
+        rw [Hnl.1]; exact Hsnp h
       have HnP : m.Type' ≠ MsgProp := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
       -- (D22 S-d3b) the log and what the storage will hold, before the step (`ackInv`'s carry)
@@ -150,7 +159,7 @@ theorem RawNode.Step.wp_proof
       icases Hlink with ⟨-, -, %Hszl, -⟩
       wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
           Hwf
-        (RNMode.pre_net Hpf (by not_net)) (fun _ => Hns0.1)
+        (RNMode.pre_net Hpf (by not_net)) Hnsm
         (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hm Hmb Hcred]
       · simp only [HnP, ↓reduceIte, named]
         -- (raft-final phase 2) a stamped transfer request's witness
@@ -188,7 +197,7 @@ theorem RawNode.Step.wp_proof
         icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0, #Hd0, -⟩
         iexists sv0, scfg0
         iframe Hm0 Hd0
-        ipureintro; exact Hp0
+        ipureintro; exact ⟨Hp0.1, Hp0.2.1, Hp0.2.2.1⟩
       simp only [HnP]
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Hxwf, %Htm, %Hresp,
         %Hsfr, %Htrc, -⟩

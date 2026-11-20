@@ -2,7 +2,7 @@
 # `Close`'s put-back without the update (W4 of `notes/wal-fsext-plan.md`, twenty-fifth session)
 
 `walCloseLawU`: `walCloseLaw` (`CloseLaw.lean`) with no client update to commit: the cleanup's `Close`
-(`WAL.Close.specU`, `Create`'s `cleanupWAL`: after the commit `Create` no longer holds `walDiskAt`,
+(`WAL.Close.spec` (state `unnamed`), `Create`'s `cleanupWAL`: after the commit `Create` no longer holds `walDiskAt`,
 the client does; ledger 2026-11-14). The tail unregistered (`walInvBody_untail`), then
 `walInvBody_unpinX` with the tail's halves, the directory claim and the pipeline names, and the lock:
 the free lock token back but its names fragment (`walUnlockedTokX`), which the handle before naming holds

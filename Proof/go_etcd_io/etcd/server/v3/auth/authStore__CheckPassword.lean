@@ -111,7 +111,7 @@ theorem auth.authStore.CheckPassword.wp_proof
   ipersist Password
   ipersist Options
   iunfold userOptsIs at Ho
-  icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, %u2, -, #Hov, -⟩)
+  icases Ho with (%Ho | ⟨%Hon, %uf2, %u2, -, #NoPassword, -, -, -⟩)
   · obtain ⟨Ho, -⟩ := Ho
     subst Ho
     (try wp_auto)
@@ -172,9 +172,6 @@ theorem auth.authStore.CheckPassword.wp_proof
     rw [hd]
     (try wp_auto)
     (try simp only)
-    icases typedPointsto_split _ _ _ $$ Hov with Hov
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hov
     (try wp_auto)
     cases hnp : ur.noPassword
     rotate_left

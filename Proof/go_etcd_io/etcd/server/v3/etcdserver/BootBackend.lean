@@ -128,14 +128,16 @@ theorem bootBackend_of_bootLeft
       -- (the backend-auth-split stage) the backend's pool of readers
       backend.bkRPool γ P b ∗
       -- (the auth-on snapshot plan's P1) the auth store's share of the reader slots
-      backend.rdAuth γ P b := by
+      backend.rdAuth γ P b ∗
+      -- (A6.2 of `auth-schema-srv`) the claim tokens
+      backend.rbClaimToks γ P (fun _ => True) := by
   unfold backend.newPostK bootLeft
-  iintro ⟨#HnB, #HnSC, ⟨HnWb, Ho⟩, HnV, HnH, HnRB, HnRd, HnDl, HnFk, HnSr⟩
+  iintro ⟨#HnB, #HnSC, ⟨HnWb, Ho⟩, HnV, HnH, HnRB, HnRd, HnDl, HnFk, HnSr, HnTok⟩
   icases (backend.bOpen_one_pool γ).1 $$ Ho with ⟨Ho, Hop, Hos⟩
   imod backend.rdToks_pool hT E γ P b $$ HnRd with ⟨HnPool, HnRA, HnRT⟩
   ihave HbkP := backend.bkRPool_intro γ P b $$ [$HnPool $Hop]
   imodintro
-  iframe HnB HnSC HnH HnRB HnDl HnSr HbkP HnRA HnWb
+  iframe HnB HnSC HnH HnRB HnDl HnSr HbkP HnRA HnWb HnTok
   ihave ⟨Hnc, Hfv⟩ := mvcc.bkNoCmp_fkV_of_fkCl γ _ hnc $$ HnFk
   iframe Hnc Hfv
   iunfold backend.rdStock at HnRT

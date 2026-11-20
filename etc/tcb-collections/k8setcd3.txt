@@ -25,7 +25,6 @@ axiom EtcdServer.monitorDowngrade.wp_proof
 axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
-axiom EtcdServer.purgeFile.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
@@ -41,6 +40,7 @@ axiom Perennial.github_com.Masterminds.semver.v3.opaqueInitsOk
 axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
 axiom Perennial.github_com.dustin.go_humanize.opaqueInitsOk
 axiom Perennial.github_com.go_logr.logr.opaqueInitsOk
+axiom Perennial.github_com.google.go_cmp.cmp.opaqueInitsOk
 axiom Perennial.github_com.jonboulle.clockwork.opaqueInitsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.opaqueInitsOk
@@ -185,8 +185,11 @@ axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apierrors.HasStatusCause.wp_proof
 axiom apierrors.IsTimeout.wp_proof
+axiom apierrors.IsTooManyRequests.wp_proof
 axiom apierrors.NewInternalError.wp_proof
+axiom apierrors.SuggestsClientDelay.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
+axiom apimeta.ListAccessor.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
@@ -218,6 +221,7 @@ axiom clockwork.realClock
 axiom clockwork.stampAt
 axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
+axiom cmp.Diff.wp_proof_eventRefs
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
@@ -245,7 +249,6 @@ axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
-axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
@@ -351,7 +354,6 @@ axiom http.respWriteHeader_ok
 axiom http.respWrite_ok
 axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
-axiom incomingOf_cancelCtx
 axiom insecure.NewCredentials.wp_proof
 axiom io.CopyN.wp_proof
 axiom io.MultiReader.wp_proof
@@ -372,6 +374,9 @@ axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.Stop.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom lease.lessorStopTok
+axiom maps.Clone.wp_proof_strBool
+axiom maps.Equal.wp_proof_strBool
+axiom maps.Keys.wp_proof_objMap
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
@@ -381,6 +386,7 @@ axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
 axiom membership.setIsLearnerMetric.wp_proof
+axiom meta.SetList.wp_proof_objList
 axiom metadata.FromIncomingContext.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
@@ -468,8 +474,10 @@ axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
+axiom recEncC_ok
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
+axiom reflect.DeepEqual.wp_proof_k8s
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.KindCompare.wp_proof
 axiom reflect.MakeSlice.wp_proof
@@ -523,7 +531,6 @@ axiom status.Status.Code.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strconv.Itoa.wp_proof
@@ -565,7 +572,6 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
-axiom v3rpc.incomingOf_cancellableContext
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
@@ -575,7 +581,6 @@ axiom verifyEnvOff
 axiom version.Cluster.wp_proof
 axiom wait.Jitter.wp_proof
 axiom waitRetryBackoff.wp_proof
-axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof

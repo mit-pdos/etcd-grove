@@ -52,7 +52,7 @@ theorem TreeCrashedLb.now {V V' : Hist} {n : Nat} (h : TreeCrashedLb V V' n) :
   exact ⟨k, hnk, hk, rfl, rfl⟩
 
 section after
-variable {st st' : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)} {Γc : GMap Nat (Nat × Iris.Qp)}
+variable {st st' : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)} {Γc : GMap Nat CallV}
 
 /-- **A machine crash keeps the committed entries**: from a state whose first `c` entries are
 committed, the new tree is a crash that kept at least `c` of them. -/

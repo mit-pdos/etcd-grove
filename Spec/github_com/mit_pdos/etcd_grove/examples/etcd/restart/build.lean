@@ -61,7 +61,7 @@ abbrev build.spec : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ etcdstart.memberBuilt s ρ E₀ lg γn id N false ∗
-          srvDataDir s (name ++ go!".etcd")) }}
+          srvDataDir s (memberDataDir name)) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev build.specRestart : Prop :=
@@ -89,7 +89,7 @@ abbrev build.specRestart : Prop :=
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
           ⌜restartNames ρ ρ'⌝ ∗ etcdstart.memberBuiltR s ρ' E₀' lg γn id N false ∗
-          srvDataDir s (name ++ go!".etcd")) }}
+          srvDataDir s (memberDataDir name)) }}
 
 end spec
 

@@ -46,8 +46,7 @@ def etcdstart.BuildServer.spec : Prop :=
                                                     threadTok ∗
                                                       etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0) (W64 0)
                                                           (W64 0) bootKV lm ∗
-                                                        leaseTTLRowR s ps ∗
-                                                          srvDataDir s (name ++ go!".etcd") -∗
+                                                        leaseTTLRowR s ps ∗ srvDataDir s (memberDataDir name) -∗
                                                 Φ (intoVal s, intoVal err)) -∗
                                           WP
                                             (((((((((intoVal
@@ -108,7 +107,7 @@ def etcdstart.BuildServer.specRestart : Prop :=
                                                     ∃ ρ' E₀',
                                                       ⌜restartNames ρ ρ'⌝ ∗
                                                         etcdstart.memberBuiltR s ρ' E₀' lg γn id N false ∗
-                                                          srvDataDir s (name ++ go!".etcd")) -∗
+                                                          srvDataDir s (memberDataDir name)) -∗
                                               Φ (intoVal s, intoVal err)) -∗
                                         WP
                                           (((((((((intoVal

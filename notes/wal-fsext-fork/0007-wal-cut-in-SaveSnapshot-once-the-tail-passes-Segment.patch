@@ -1,0 +1,130 @@
+From f01ae14c9b95338efae4e2ac2d62703bc873d178 Mon Sep 17 00:00:00 2001
+From: Frans Kaashoek <kaashoek@mit.edu>
+Date: Wed, 18 Nov 2026 19:45:42 +0000
+Subject: [PATCH] wal: cut in SaveSnapshot once the tail passes
+ SegmentSizeBytes, as Save does
+
+SaveSnapshot appended its record to the tail and synced, but never cut.
+The server saves a snapshot record from its apply thread once per applied
+batch past SnapshotCount, and raft hands a commit backlog out over Readys
+whose hard state and entries are empty (whose Save writes nothing, so no
+cut), so the snapshot records between two entry-writing Saves grow one
+tail file without bound, up to the file-size limit (EFBIG, and the apply
+thread panics). SaveSnapshot now checks the tail's offset after the record
+and cuts as Save does (cut syncs the old tail first). TestSaveSnapshotCuts
+fails before the change (one file) and passes after.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/storage/wal/savesnapshot_cut_test.go | 74 +++++++++++++++++++++
+ server/storage/wal/wal.go                   | 13 +++-
+ 2 files changed, 86 insertions(+), 1 deletion(-)
+ create mode 100644 server/storage/wal/savesnapshot_cut_test.go
+
+diff --git a/server/storage/wal/savesnapshot_cut_test.go b/server/storage/wal/savesnapshot_cut_test.go
+new file mode 100644
+index 000000000..287570944
+--- /dev/null
++++ b/server/storage/wal/savesnapshot_cut_test.go
+@@ -0,0 +1,74 @@
++// Copyright 2026 The etcd Authors
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package wal
++
++import (
++	"io"
++	"path/filepath"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"go.uber.org/zap/zaptest"
++
++	"go.etcd.io/etcd/server/v3/storage/wal/walpb"
++	"go.etcd.io/raft/v3/raftpb"
++)
++
++// TestSaveSnapshotCuts checks that snapshot records alone, saved with no
++// entry-writing Save between them, cut the tail once it passes
++// SegmentSizeBytes, as Save does, and that the WAL then opens at the last
++// snapshot with its hard state.
++func TestSaveSnapshotCuts(t *testing.T) {
++	p := t.TempDir()
++
++	restoreLater := SegmentSizeBytes
++	SegmentSizeBytes = 2 * 1024
++	defer func() { SegmentSizeBytes = restoreLater }()
++
++	w, err := Create(zaptest.NewLogger(t), p, []byte("metadata"))
++	require.NoError(t, err)
++
++	state := &raftpb.HardState{Term: new(uint64(1)), Commit: new(uint64(0))}
++	require.NoError(t, w.Save(state, nil))
++
++	// A ConfState with many voters makes each record a few hundred bytes.
++	cs := &raftpb.ConfState{}
++	for v := uint64(1); v <= 40; v++ {
++		cs.Voters = append(cs.Voters, v)
++	}
++	var last *walpb.Snapshot
++	for i := uint64(1); i <= 64; i++ {
++		last = &walpb.Snapshot{Index: new(i), Term: new(uint64(1)), ConfState: cs}
++		require.NoError(t, w.SaveSnapshot(last))
++	}
++	names, err := readWALNames(zaptest.NewLogger(t), p)
++	require.NoError(t, err)
++	require.Greaterf(t, len(names), 1, "SaveSnapshot never cut: %v", names)
++	off, err := w.tail().Seek(0, io.SeekCurrent)
++	require.NoError(t, err)
++	require.Less(t, off, SegmentSizeBytes)
++	require.NoError(t, w.Close())
++
++	nw, err := Open(zaptest.NewLogger(t), p, &walpb.Snapshot{Index: last.Index, Term: last.Term})
++	require.NoError(t, err)
++	defer nw.Close()
++	_, idx, err := parseWALName(filepath.Base(nw.tail().Name()))
++	require.NoError(t, err)
++	require.LessOrEqual(t, idx, last.GetIndex()+1)
++	_, st, ents, err := nw.ReadAll()
++	require.NoError(t, err)
++	require.Equal(t, state.GetTerm(), st.GetTerm())
++	require.Empty(t, ents)
++}
+diff --git a/server/storage/wal/wal.go b/server/storage/wal/wal.go
+index cd6e08913..376ed447a 100644
+--- a/server/storage/wal/wal.go
++++ b/server/storage/wal/wal.go
+@@ -1169,7 +1169,18 @@ func (w *WAL) SaveSnapshot(e *walpb.Snapshot) error {
+ 	if w.enti < e.GetIndex() {
+ 		w.enti = e.GetIndex()
+ 	}
+-	return w.sync()
++
++	// Cut as Save does: snapshot records saved between two Saves that write
++	// nothing (raft hands a commit backlog out over Readys with an empty hard
++	// state and no entries) would otherwise grow the tail without bound.
++	curOff, err := w.tail().Seek(0, io.SeekCurrent)
++	if err != nil {
++		return err
++	}
++	if curOff < SegmentSizeBytes {
++		return w.sync()
++	}
++	return w.cut()
+ }
+ 
+ func (w *WAL) saveCrc(prevCrc uint32) error {
+-- 
+2.53.0
+

@@ -67,7 +67,7 @@ theorem driver_listContractOk' (wp_GetItemsPtr : apimeta.GetItemsPtr.spec (GF :=
     wp_apply (wp_MakeSlice rt (W64 0) m) $$ [] as %w ⟨%s, %Hs, Hsl, Hcap⟩
     · iframe #
       ipureintro; exact ⟨Hh.1, by decide, Hh.2.1, Hh.2.2⟩
-    iapply HΦ $$ %w %s %Hs.1
+    iapply HΦ $$ %w %s %Hs.1 %Hs.2.2.2
     simp only [driverListSpec, itemsAtD]
     iexists []
     iframe
@@ -146,12 +146,14 @@ theorem driver_listContractOk (wp_GetItemsPtr : apimeta.GetItemsPtr.spec (GF := 
     simp only [driverSpec, driverCodec]
     cases decodeObjD d <;> simp only <;> iexact Hr
   isplitr
-  · iintro !> %pl %os %rv %rv' %cont %cont' %rem %remV %rem0 %Φ Hl Hrem HΦ
+  · iintro !> %pl %rv %rv' %cont %cont' %rem %remV %rem0 %Φ Hm Hrem HΦ
     simp only [versionerI]
-    wp_apply (wp_UpdateList pl os rv rv' cont cont' rem remV rem0) $$ [$Hl $Hrem] as Hl
+    simp only [driverListSpec]
+    wp_apply (wp_UpdateList pl rv rv' cont cont' rem remV rem0) $$ [$Hm $Hrem] as Hm
     iapply HΦ
-    iframe
-    ipureintro; rfl
+    isplitr
+    · ipureintro; rfl
+    iexact Hm
   ipureintro
   simp only [driverListSpec]
   intro h

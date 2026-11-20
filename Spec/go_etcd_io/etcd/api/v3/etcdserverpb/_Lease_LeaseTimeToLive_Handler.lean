@@ -26,33 +26,35 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **`_Lease_LeaseTimeToLive_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
 implements `LeaseServer` (a method-set fact) and whose `LeaseTimeToLive` meets `Spec` with the resource `S` and the interceptors' resources `Rs`, which the chain lends the call (per-type stage B3)
-(`grpcHandlerOk`), for messages whose types are `*LeaseTimeToLiveRequest`/`*LeaseTimeToLiveResponse` (a zero
+(`grpcHandlerOkMd`: at the run's incoming metadata; auth-lease S4, 2026-11-16, as `LeaseRevoke`'s, for
+the metadata-indexed read specs; a plain spec is `GrpcSpec.md`'s), for messages whose types are `*LeaseTimeToLiveRequest`/`*LeaseTimeToLiveResponse` (a zero
 `*LeaseTimeToLiveRequest` is the request's blank), under the chain `ics` of transparent interceptors with
 their resources `Rs`, for requests with `Q` (which the decoded request has;
 `srvInterceptorsOk`, given `grpcSrvChain ics interceptor`), with grpc's
-`dec` for the request at `m` and `Spec m Φ`: decodes a new `*LeaseTimeToLiveRequest` and runs `srv.LeaseTimeToLive`
+`dec` for the request at `m` and `Spec` of the run's metadata at `m` and `Φ`: decodes a new `*LeaseTimeToLiveRequest` and runs `srv.LeaseTimeToLive`
 through the chain; the resources come back, and on success the response (as `any`) is at some
 `m'` with `Φ m'`. -/
 abbrev etcdserverpb._Lease_LeaseTimeToLive_Handler.spec : Prop :=
-  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
-    (Φ : Rep.M → IProp GF)
+    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = etcdserverpb.LeaseTimeToLiveRequest.ty → Rep.ty = etcdserverpb.LeaseTimeToLiveResponse.ty →
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseTimeToLiveRequest) -∗ Req.blank l) ∗
-      grpcHandlerOk #(methods srv.ty go!"LeaseTimeToLive" srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOkMd #(methods srv.ty go!"LeaseTimeToLive" srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseTimeToLiveRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec m Φ }}
+      grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
     (methodHandlerCall (@! etcdserverpb._Lease_LeaseTimeToLive_Handler) #(GoInterface.ok srv)
       #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      go_etcd_io.etcd.cache.v3.srvErrOk err }}
+      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

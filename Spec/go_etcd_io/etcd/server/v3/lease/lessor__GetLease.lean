@@ -23,13 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 /-- `le.GetLease(item)` (read-locked): the item map's lease of `item` (`NoLease` if none), the
-lease owner's item map `I`'s (unit T3, L2b). -/
+lease owner's item map `I`'s (unit T3, L2b).
+(auth-lease S4 item 7b, 2026-11-17) In any window `w` of the owner (`leaseOwnW`), passed through. -/
 abbrev lease.lessor.GetLease.spec : Prop :=
-  ∀ (lp : Loc) (γl : GName) (item : LeaseItem) (L : List w64) (I : GMap LeaseItem w64),
+  ∀ (lp : Loc) (γl : GName) (item : LeaseItem) (L : List w64) (I : GMap LeaseItem w64)
+    (w : Option LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      lessorRd lp γl ∗ leaseOwn γl L I }}
+      lessorRd lp γl ∗ leaseOwnW γl L I w }}
     (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"GetLease")) (Val #item))
-  {{ RET #((I.lookup item).getD (W64 0)); lessorRd lp γl ∗ leaseOwn γl L I }}
+  {{ RET #((I.lookup item).getD (W64 0)); lessorRd lp γl ∗ leaseOwnW γl L I w }}
 
 end spec
 

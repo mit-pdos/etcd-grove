@@ -52,7 +52,9 @@ request (up to Go's stack), which then do not decode; this statement claims noth
 caller has a use for such bytes).
 
 The size caches protobuf-go stores in the messages (atomically) are outside the model:
-`internalRaftRequestIs` and the KV requests' predicates do not own them.
+`internalRaftRequestIs` and the KV requests' predicates do not own them; except a user addition's
+`Options` and a permission grant's `Permission`, whose caches are in invariants (`auth.userOptsIs`,
+`auth.ownPermW`; auth-schema-srv A3), which this call stores.
 -/
 module
 

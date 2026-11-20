@@ -43,7 +43,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -122,7 +125,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops watchers wops) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3Program clients ops watchers wops) [go!"127.0.0.1:23896"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"k8setcd3.etcd"])
+    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (k8setcd3Program clients ops watchers wops))
     (n : Nat)
@@ -130,6 +133,8 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -142,7 +147,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown"))
     (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => intoVal_ne_PanicV _ p h.symm)) ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩
-    k8setcd3Names [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (by decide) (by decide)
+    k8setcd3Names [go!"127.0.0.1:23896"] [go!"/tmp/etcd-grove-data/k8setcd3.etcd"] (by decide) (by decide)
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HNs HAs HDs ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
     (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
@@ -161,7 +166,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI := Hcec0
   unfold IsInit at Hinit
   rw [Hinit]
-  iintro _ _ Hgs Htok Hrights
+  iintro _ Hl Hgs Htok Hrights
   ihave Hown : ownInitializing
       (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getIsPkgInit (GF := k8setcd3GF)) $$ [Hgs]
   · rw [ownInitializing_unseal]
@@ -173,15 +178,22 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   icases Hrights with ⟨Hns, Hrs⟩
+  -- (wal-link P2) the member's WAL area, allocated before the program's first step (`wp_walAreas`)
+  imod etcdFs_start σ Hfs $$ Hl with ⟨#Hosi, -, Htree⟩
+  imodintro
+  iapply wp_walAreas ⟨k8setcd3GF_allG⟩ etcdFsExts_sat _ Hfs [go!"/tmp/etcd-grove-data/k8setcd3.etcd"]
+    (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HWal ⟨by rw [HN]; omega⟩ _ rfl _
+    $$ Hosi Htree
+  iintro Hw
   -- (hub step 7) the one member's start bundle: its client address, its data directory
   ihave Hms := etcdstart.memberStartRes_intro [(go!"k8setcd3", ⟨none, some go!"127.0.0.1:23896"⟩)] []
-    [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (List.Perm.refl _)
-    (List.Perm.refl _) $$ Hrs
+    [go!"127.0.0.1:23896"] [go!"/tmp/etcd-grove-data/k8setcd3.etcd"] (List.Perm.refl _)
+    (List.Perm.refl _) $$ [Hrs Hw]
+  · iframe
   simp only [k8setcd3Names, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Hns with ⟨Hn1, Hn2, -⟩
   icases Hms with ⟨⟨Hstart, -⟩, -⟩
   ihave #Hprem' := Hprem0
-  imodintro
   unfold k8setcd3Program
   wp_apply (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getIsPkgInit_wf) $$ [Hown Hn1 Hn2]
@@ -236,6 +248,8 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -244,7 +258,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := k8setcd3GF)
+  refine etcd_adequate_members (GF := k8setcd3GF) (hbody := rfl) (HWal := HWal) (hn := by omega)
     (hAsLit := k8s_etcd3N.k8setcd3NAddrs_lit k hk) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize'
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster))
@@ -321,6 +335,8 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -329,7 +345,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := k8setcd3GF)
+  refine etcd_adequate_members (GF := k8setcd3GF) (hbody := rfl) (HWal := HWal) (hn := by omega)
     (hAsLit := k8s_etcd3N.k8setcd3NAddrs_lit k hk) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize'
     (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))

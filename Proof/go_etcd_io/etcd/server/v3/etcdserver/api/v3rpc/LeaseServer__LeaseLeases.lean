@@ -42,8 +42,8 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E γl S ci cd r n m
-  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #Hpub, #Hllb⟩
+  intro p s A cid mid E γl S ci cd tok r n m
+  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #HtokC, #Hpub, #Hllb⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
@@ -55,10 +55,10 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
   ihave ⟨%eNF, #HNF, #HNFe, %HNFl⟩ := v3rpc.leaseNotFoundErr $$ Hlp
   have hpt : ptrTarget (GoInterface.ok eNF) := fun tii h => by cases h; exact HNFl.1
   wp_auto
-  wp_apply HLs $$ [HS HR] as %resp %err ⟨HS, HR, Hans⟩
+  wp_apply HLs $$ %ci %tok %cd %r %n %m [HS HR] as %resp %err ⟨HS, HR, Hans⟩
   · iframe; iframe #
   iunfold v3rpc.leasesAns at Hans
-  icases Hans with (⟨%He, %i, %ids, %cs, %ms, %Hmi, #Hids, Hresp, #Hchk⟩ | ⟨%Hn, #Hae⟩)
+  icases Hans with (⟨%He, %i, %ids, %cs, %ms, %Hmi, #Hids, Hresp, #Hchk⟩ | ⟨%Hn, #Hae, #Hnf⟩)
   · subst He
     wp_auto
     -- `errors.Is(nil, ErrLeaseNotFound)`: `false` (an empty tree; `err` nil)
@@ -100,7 +100,6 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     · ipureintro; rfl
     iexists w
     iframe Hw
-    ileft
     iexists i, ids
     iframe Hlist
     iframe #
@@ -138,58 +137,14 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
         iright
         ipureintro; exact ⟨rfl, He, HaOn⟩
       | true =>
-        wp_auto
-        -- `if errors.Is(err, lease.ErrLeaseNotFound)`, again
-        wp_apply hIs S' I' U' (GoInterface.ok ei) (GoInterface.ok eNF) hpt (HS.2.1 hpt) $$ []
-          as %b2 ⟨-, %Hw2⟩
-        · iframe #; ipureintro; exact HS.1
-        cases b2 with
-        | false =>
-          -- a `true`, then a `false`: impossible, the tree is exact (`applyErrIs_walk`)
-          exact absurd (_root_.Perennial.errors.isWalk_det HS.2.2.1 HS.2.2.2
-            (Hw1 (by simp) (by simp)) (Hw2 (by simp) (by simp))) (by decide)
-        | true =>
-          -- the empty listing `{Header: &pb.ResponseHeader{}, Leases: []*pb.LeaseStatus{}}`
-          (try wp_auto)
-          wp_apply (wp_slice_literal (V := Loc) [])
-          isplitr
-          · ipureintro; rfl
-          iintro %lsl ⟨Hlsl, -⟩
-          (try wp_auto)
-          ihave %Hvn := typedPointsto_not_null _ _ _ $$ «$v0»
-          iStructNamed «$v0»
-          ihave Hwh : v3rpc.hdrW «$v0_ptr» $$ [ClusterId MemberId RaftTerm LeaderId]
-          · iunfold v3rpc.hdrW
-            isplitr
-            · ipureintro; exact Hvn
-            iexists _, _, _, _
-            iframe
-          imod (v3rpc.hdrRev_in ⊤ A.revR «$v0_ptr» _) $$ [Revision HR] with ⟨Hin, Hkeep⟩
-          · iframe
-          wp_apply (hFill _ s A cid mid «$v0_ptr» _) $$ [Hwh Hin] as ⟨Hfd, %r', Hout⟩
-          · iframe; iframe #
-          ihave ⟨HR, %dq', Hrev, -⟩ := v3rpc.hdrRev_out A.revR «$v0_ptr» _ r' $$ [Hkeep Hout]
-          · iframe
-          (try wp_auto)
-          ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
-          iapply HΦ
-          iframe HSn
-          iframe HS HR
-          iunfold v3rpc.leaseLeasesOut
-          ileft
-          isplitr
-          · ipureintro; rfl
-          iexists _
-          iframe «$r0»
-          iright
-          isplitr
-          · ipureintro; exact HaOn
-          isplitl [Hfd Hrev]
-          · iunfold v3rpc.leaseHdrDone
-            iframe Hfd
-            iexists dq', r'
-            iframe Hrev
-          iexact Hlsl
+        -- `LeaseLeases` never returns `ErrLeaseNotFound` (Freeze §4.4 F4)
+        ihave Hit : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
+        · iunfold errIsTrue
+          iexists S', I', U'
+          iframe Htree
+          ipureintro; exact ⟨HS.1, HS.2.2, Hw1 (by simp) (by simp)⟩
+        iexfalso
+        iapply Hnf $$ %eNF HNF Hit
 
 end proof
 

@@ -26,13 +26,16 @@ variable [sem : go.Semantics]
 /-- An `authBackend` over the backend `bi` (`authBE`) with the logger `lg`, the read resource `R`:
 returns the user named `name` of some well-formed snapshot of the auth buckets, owned, or nil. -/
 abbrev schema.authBackend.GetUser.spec : Prop :=
-  ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : schema.AuthData → IProp GF)
-    (name : GoString),
+  ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : Loc → schema.AuthData → IProp GF)
+    {ι : Type} (L : ι → IProp GF) (i : ι)
+    (Φ : schema.AuthData → Prop) (dU : schema.AuthData → GoString → auth.UserRec) (name : GoString),
+  (∀ D : schema.AuthData, schema.authWf D → Φ D → schema.usersDec D.users (dU D)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.abeF go!"be" abe ↦□ (GoInterface.ok bi : GoInterface) ∗ schema.abeF go!"lg" abe ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗ schema.authBE bi R Held ∗ R }}
+      schema.authBE bi R L Held ∗ R ∗ L i ∗
+      □ (∀ (x : Loc) (D : schema.AuthData), Held x D -∗ Held x D ∗ ⌜Φ D⌝) }}
     (App (Val (abe @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty @!! go!"GetUser")) (Val #name))
-  {{ (u : Loc), RET #u; R ∗ ∃ D : schema.AuthData, ⌜schema.authWf D⌝ ∗
-      schema.userOutD u D.users name }}
+  {{ (u : Loc), RET #u; R ∗ L i ∗ ∃ D : schema.AuthData, ⌜schema.authWf D ∧ Φ D⌝ ∗
+      schema.userOutD u D.users name (dU D) }}
 
 end spec
 

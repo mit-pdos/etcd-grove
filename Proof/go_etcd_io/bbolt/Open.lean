@@ -1129,10 +1129,10 @@ private theorem openFileDb_shared
     (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (perm : w32)
     (D : Data) (hb : NameOk b) :
     openFileDb.spec (GF := GF) (hG := hG) (¬ FsNoErr) (· ≤ 0xFFFFFFFFFFFF)
-      iprop(osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+      iprop(osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
         osNames j (.only [b]) (DFrac.own 1) h ∗ nameHolds h b D)
       (fun oc : Option (Nat × Nat × Ino) =>
-        iprop(osPathS (GF := GF) R d dq j ∗ osCallPerm qc ∗ crOut j b h (DFrac.own 1) oc))
+        iprop(osPathS (GF := GF) R d dq j ∗ osCallPerm (callKey R d) qc ∗ crOut j b h (DFrac.own 1) oc))
       (fun oc i => crIno b h oc i) (child d b) perm D := by
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hnh⟩ HΦ
   obtain ⟨hfl, hcr, htr⟩ := boltOpenFlag_create

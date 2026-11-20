@@ -68,6 +68,9 @@ theorem backend.wp_rdAdd (γ : backend.BNames) (rtx : Loc) (D : backend.Data) (w
     D γo k q') -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods sync.WaitGroup.ty.PointerType go!"Add"
     (intoVal wg))) (intoVal (W64 1))) {{ Φ }}
 
+theorem backend.rbRd_frac (γ : backend.BNames) (n : GoString) (q1 q2 : Qp) (v : backend.BktData) :
+    backend.rbRd γ n (q1 + q2) v ⊣⊢ backend.rbRd γ n q1 v ∗ backend.rbRd γ n q2 v
+
 theorem backend.perm_sum_rat {l l' : List Rat} (h : l.Perm l') : l.sum = l'.sum
 
 theorem backend.fkRd_absF (γ : backend.BNames) (P : backend.BParams) (rv : backend.RView) :
@@ -111,6 +114,11 @@ theorem backend.rtHeld_read (γ : backend.BNames) (P : backend.BParams) (b rtx :
 
 theorem backend.lastVal_bktEnts (m : backend.BktData) (k : GoString) : backend.lastVal
     (backend.bktEnts m) k = m !! k
+
+theorem backend.rtHeldF_rbRd (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
+    backend.RView) (p : Qp) (n : GoString) (q : Qp) (v : backend.BktData) : backend.rtHeldF γ P b
+    rtx rv p ∗ backend.rbRd γ n q v ⊢ backend.rtHeldF γ P b rtx rv p ∗ backend.rbRd γ n q v ∗
+    ⌜backend.rvBkt P rv n = v⌝
 
 theorem backend.rdSlices_persistent (γd : backend.DBNames) (rtx : Loc) (ss : List GoSlice) (bs :
     List GoString) : Persistent (backend.rdSlices γd rtx ss bs)
@@ -186,6 +194,11 @@ theorem backend.rtIntv_size (γ : backend.BNames) (P : backend.BParams) (q : Qp)
     backend.rtIntv γ P q rd cm D p ∗ ⌜∀ (n : GoString) (m : backend.BktData), D !! n = some m →
     GMap.size m < 2 ^ 61⌝
 
+theorem backend.rbrHalves_agree (γ : backend.BNames) (P : backend.BParams) (q : Qp) (rv :
+    backend.RView) (n : GoString) (q' : Qp) (v : backend.BktData) (hn : γ.rbD !! n ≠ none) :
+    backend.rbrHalves γ P q rv ∗ n ↪[γ.rbr]{#q'} v ⊢ backend.rbrHalves γ P q rv ∗ n ↪[γ.rbr]{#q'} v
+    ∗ ⌜backend.rvBkt P rv n = v⌝
+
 theorem backend.tokPart_join (γ : backend.BNames) (a : Rat) (r : Qp) (h : 0 ≤ a) : backend.tokPart γ
     a ∗ ghostVar γ.txa r () ⊢ backend.tokPart γ (a + r.val)
 
@@ -206,6 +219,9 @@ theorem backend.rtHeldF_fkRd (γ : backend.BNames) (P : backend.BParams) (b rtx 
 
 theorem backend.tokPart_split (γ : backend.BNames) (a : Rat) (r : Qp) (h : r.val ≤ a) :
     backend.tokPart γ a ⊢ backend.tokPart γ (a - r.val) ∗ ghostVar γ.txa r ()
+
+theorem backend.rbRd_agree (γ : backend.BNames) (n : GoString) (q1 q2 : Qp) (v1 v2 :
+    backend.BktData) : backend.rbRd γ n q1 v1 ∗ backend.rbRd γ n q2 v2 ⊢ ⌜v1 = v2⌝
 
 theorem backend.wg_wgi_mask : ↑(backend.bN.@"wg") ⊆ ⊤ \ ↑(backend.bN.@"wgi")
 

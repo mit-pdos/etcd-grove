@@ -123,3 +123,9 @@ spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(newCancellable
 # of its own thread token to the renewals (`levelTok v3rpc.ctxErrLvl`, `threadTok_lend4`), as `sendLoop`'s.
 spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/LeaseServer__LeaseKeepAlive\.lean$
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/(lib/etcdstart/Serve|etcd/restart/serveClient)\.lean$
+
+# The auth realization's reader pools (auth-schema-srv A6, 2026-11-18; ported 2026-11-19): their owner,
+# `authReal`, builds its ticket and reserved pools from the backend's auth reader slots (`authRdN`) and
+# their open shares (`AuthRealPool`: the generic pool; `AuthRealLife`: its release; `AuthRealSrv`: the
+# tickets handed to the pools at the server's start).
+stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthReal(Pool|Life|Srv)\.lean$

@@ -40,12 +40,12 @@ variable [go_gctx : GoGlobalContext]
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/TopLevelRobustness.lean`). -/
 theorem etcd_txnlinfaultsN_robust : etcd_txnlinfaultsN_robust.spec := by
   intro lctx sem package_sem cache_sem _ _ Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf
-    Hdbo clients ops Hc0 Hc31 Hops Hmul steps Hsteps HNs HAs HDs HEnv Hprem σ g Hfs
+    Hdbo clients ops Hc0 Hc31 Hops Hmul steps Hsteps HNs HAs HDs HEnv Hprem σ g Hfs HWal
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
       (etcd_txnlinfaultsN_safe
         Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
-        Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2
+        Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2
         σ2 hexec (by omega)).2
 
 end adequacy

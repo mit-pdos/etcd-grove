@@ -7,7 +7,7 @@ reader's lower bound `n` of the published index (`authPubLbM`; without the bound
 cite the boot state, in which auth is disabled and no user exists):
 
 * `noPrincipalFrom`: the request side gave no principal: no token in the context, or auth disabled
-  at such a state (`AuthInfoFromCtx.specLb`, `FreshCtx.lean`);
+  at such a state (`authStore.AuthInfoFromCtx.spec`);
 * `tokRefusedFrom`: the context's token was refused (until token liveness, the Scope's G5, only that
   there was one);
 * `adminRefusalFrom`, `adminVerdictFromO`: `IsAdminPermitted`'s refusal, its error tied to its case
@@ -34,7 +34,8 @@ section defs
 variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- **No principal from the request side, seen with the lower bound `n`** (persistent): the flag
-read `true` at a state recorded at an index at least `n` and the context carries no token; or the flag
+read `true` at a state recorded at an index at least `n` and the request carries no token (`tok`, the
+token its context carries: `ctxToken`; perheap C1a); or the flag
 read `false` at such a state (`AuthInfoFromCtx`'s own read, `store.go:1073`). A guard refuses on the
 second only beside a read of `true` at such a state too (`reqSideWhy`): together they say the flag
 changed since `n`, a race with `AuthDisable` (`requireAuthInfo` reads `true`, then `AuthInfoFromCtx`
@@ -45,22 +46,22 @@ admin check: `AuthInfoFromCtx` reads `false`, then `IsAdminPermitted` `true`; th
 `nonissues/etcd-admin-check-authenable-race.md`). The two reads are not ordered here: the store's
 freshness (`revFresh`) gives each read's flag as some state's at an index at least the published one,
 not the later read's state as the later one. -/
-def noPrincipalFrom (M : AuthMode) (n : Nat) (ctx : GoInterface) : IProp GF :=
-  iprop((enabledVerdictFrom M n true ∗ ⌜ctxTokenOf ctx = none⌝) ∨ enabledVerdictFrom M n false)
+def noPrincipalFrom (M : AuthMode) (n : Nat) (tok : Option GoString) : IProp GF :=
+  iprop((enabledVerdictFrom M n true ∗ ⌜tok = none⌝) ∨ enabledVerdictFrom M n false)
 
-instance noPrincipalFrom_persistent (M : AuthMode) (n : Nat) (ctx : GoInterface) :
-    Persistent (noPrincipalFrom (GF := GF) M n ctx) := by
+instance noPrincipalFrom_persistent (M : AuthMode) (n : Nat) (tok : Option GoString) :
+    Persistent (noPrincipalFrom (GF := GF) M n tok) := by
   unfold noPrincipalFrom; infer_instance
 
-/-- **The context's token was refused, seen with the lower bound `n`** (persistent): the context
-carries a token. Nothing more: the token provider's contract (`tokenProviderOkA`'s `info`) says
+/-- **The request's token was refused, seen with the lower bound `n`** (persistent): the request
+carries a token (`tok`). Nothing more: the token provider's contract (`tokenProviderOkA`'s `info`) says
 nothing when it refuses, so a token valid at every state may be refused (the simple provider's TTL
 keeper may delete any token: the model has no clock). Token liveness is the Scope's G5. -/
-def tokRefusedFrom (_M : AuthMode) (_n : Nat) (ctx : GoInterface) : IProp GF :=
-  iprop(⌜∃ t : GoString, ctxTokenOf ctx = some t⌝)
+def tokRefusedFrom (_M : AuthMode) (_n : Nat) (tok : Option GoString) : IProp GF :=
+  iprop(⌜∃ t : GoString, tok = some t⌝)
 
-instance tokRefusedFrom_persistent (M : AuthMode) (n : Nat) (ctx : GoInterface) :
-    Persistent (tokRefusedFrom (GF := GF) M n ctx) := by
+instance tokRefusedFrom_persistent (M : AuthMode) (n : Nat) (tok : Option GoString) :
+    Persistent (tokRefusedFrom (GF := GF) M n tok) := by
   unfold tokRefusedFrom; infer_instance
 
 end defs

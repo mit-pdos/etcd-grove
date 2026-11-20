@@ -136,7 +136,8 @@ def backend.nameAtF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path
   iprop(∃ R d b dq j qc h,
       ⌜path = Fs.child d b ∧ NameOk b ∧ h.cur !! b = some (Fs.Node.file i)⌝ ∗
         Fs.osInv ∗
-          Fs.osSharedInv R ∗ Fs.osPathS R d dq j ∗ Fs.osCallPerm qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h)
+          Fs.osSharedInv R ∗
+            Fs.osPathS R d dq j ∗ Fs.osCallPerm (Fs.callKey R d) qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h)
 
 def backend.dbOpenOk : Prop :=
   True
@@ -231,7 +232,8 @@ def backend.fileFreeF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (pa
   iprop(∃ R d b dq j qc h,
       ⌜path = Fs.child d b ∧ NameOk b ∧ h.cur !! b = none⌝ ∗
         Fs.osInv ∗
-          Fs.osSharedInv R ∗ Fs.osPathS R d dq j ∗ Fs.osCallPerm qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h)
+          Fs.osSharedInv R ∗
+            Fs.osPathS R d dq j ∗ Fs.osCallPerm (Fs.callKey R d) qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h)
 
 theorem backend.theFs_eq (GF : BundledGFunctors) [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has
     : HasExt Fs.fsExt] [fa : os.file.FieldAssumptions] [fsa : os.fileStat.FieldAssumptions] [ne :
@@ -266,7 +268,8 @@ def backend.fileHoldsF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (p
         Fs.osInv ∗
           Fs.osSharedInv R ∗
             Fs.osPathS R d dq j ∗
-              Fs.osCallPerm qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗ bbolt.nameHolds h b D)
+              Fs.osCallPerm (Fs.callKey R d) qc ∗
+                Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗ bbolt.nameHolds h b D)
 
 theorem backend.isDB_persistent (db : Loc) (γ : backend.DBNames) : Persistent (backend.isDB db γ)
 

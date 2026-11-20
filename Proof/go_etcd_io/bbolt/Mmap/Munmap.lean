@@ -125,7 +125,10 @@ theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
     · iframe
       fmt_args_intro
       isplitl
-      · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
+      · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+        isplitr
+        · ipureintro; decide
+        · iapply fmtErrorOkOrNil_of $$ HeS
       · itrivial
     try wp_auto
     wp_method_call

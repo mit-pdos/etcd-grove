@@ -80,8 +80,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
+  have hrb := And.intro hrb0 hrb1
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %hok, Hcl⟩
+  icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc⟩
+  have hkd : callKey R dir = callKey R r := by rw [show dir = child r nm by rw [hin.2]; simp [child]; rfl]; exact hkc nm
+  rw [← hkd]
   have hnm := hin.1
   ihave %hlgn := zapLoggerOk_ne_null lg $$ Hzap
   try wp_auto
@@ -103,19 +108,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     subst hdc
     wp_apply wp_selectAbs lg r nm sp' R jr (DFrac.own qp) 1 N (DFrac.own (1 : Qp).half) h hnmO hNnm hcn
       $$ [Hp Hperm HN] as %rr %kk %err ⟨Hp, Hperm, HN, %e, %herr, #He⟩
-    · iframe; iframe #
+    · rw [hkd]; iframe; iframe #
+    rw [← hkd]
     subst herr
     try wp_auto
     wp_apply wp_slice_literal (V := GoAny) [interface.ok e]
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-        intro ii hii
-        right
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-        cases hii
-        simp) $$ [Hasl] as %e1 #He1
+    wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+    case wf => errargs_wf
     · iframe
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
       iexact He
@@ -172,12 +174,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         with ⟨Hnc, Hu⟩
       imodintro
       iframe Hnc
-      wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-          intro ii hii
-          right
-          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-          cases hii
-          simp) $$ [Hasl] as %e1 #He1
+      wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+      case wf => errargs_wf
       · iframe
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact He
@@ -228,12 +226,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         with ⟨Hnc, Hu⟩
       imodintro
       iframe Hnc
-      wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-          intro ii hii
-          right
-          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-          cases hii
-          simp) $$ [Hasl] as %e1 #He1
+      wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+      case wf => errargs_wf
       · iframe
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact He
@@ -397,8 +391,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iapply isPkgInit_access $$ Hpkg
       ihave #Hseg := wal.walInit_segSize $$ Hw2
       try wp_auto
-      ihave ⟨Hperm1, Hcp⟩ := osCallPerm_halves' $$ Hperm
-      icases osCallPerm_halfSplit (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm2⟩
+      ihave ⟨Hperm1, Hcp⟩ := osCallPerm_halves' _ $$ Hperm
+      icases osCallPerm_halfSplit _ (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm2⟩
       imod walTmpsRes_mem_except R lay.j X _ hj $$ Hsi Hj Ht with ⟨%hXt, Hj, Ht⟩
       ihave ⟨Ht0, Ht1⟩ := walTmpsRes_split lay.j $$ Ht
       iapply wp_notCrashed_acc _ _ rfl
@@ -454,7 +448,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iframe #
       isplitr
       · ipureintro; exact ⟨Nat.le_refl 0, trivial⟩
-      · ipureintro; exact hfpn
+      · ipureintro; exact ⟨hfpn, hWR.symm⟩
 
 end proof
 

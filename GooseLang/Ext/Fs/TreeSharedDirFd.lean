@@ -21,11 +21,11 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The shared coherence with a directory fd gone. -/
 theorem treeCohS_delDfd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (fd : w64) :
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (fd : w64) :
     TreeCohS (delDfd st fd) s0 (GMap.delete fd Γdf) Γc Γg := by
-  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, fun fd' => ?_, fun fd' x df hx hdf => ?_,
-    hc.calls, hc.callsLe, hc.whole, hc.after, hc.gcalls, hc.gdisj,
-    hc.cover, hc.pair⟩
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl, h.2.congr rfl rfl⟩), hc.valid, hc.s0le, fun fd' => ?_, fun fd' x df hx hdf => ?_,
+    hc.calls, hc.callsLe, hc.gcalls, hc.gdisj,
+    hc.cover⟩
   · show (GMap.delete fd Γdf !! fd').map (·.1) = (GMap.delete fd st.proc.dfds !! fd').map (·.ino)
     rw [GMap.lookup_delete_iff, GMap.lookup_delete_iff]
     split
@@ -54,7 +54,7 @@ theorem legacy_dirFdS_excl (st : OsState) (fd : w64) (j : Ino) (ph : DirPhS) :
 
 /-- A shared directory fd is one of the state's, on its directory. -/
 theorem dfdS_lookup {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {j : Ino} {ph : DirPhS}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {j : Ino} {ph : DirPhS}
     (h : Γdf !! fd = some (j, ph)) : ∃ df, st.proc.dfds !! fd = some df ∧ df.ino = j := by
   have := hc.fds fd; rw [h] at this
   cases h0 : st.proc.dfds !! fd with
@@ -226,7 +226,7 @@ theorem wp_osDirSyncS' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) 
   rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, hst⟩
   · -- success: the whole log committed
     have hw' : FsTreeWf st.commitAll := ⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩
-    have hc' : TreeCohS st.commitAll s0 Γdf Γc Γg := hc.congr rfl rfl rfl rfl
+    have hc' : TreeCohS st.commitAll s0 Γdf Γc Γg := hc.congr rfl rfl rfl rfl rfl
     imod osWorld_filesSame (st := st) (st' := st.commitAll) ⟨rfl, rfl, rfl, rfl, rfl⟩ Hr Hfr
       $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
     · unfold osWorld; iframe; ipureintro; exact Hwc

@@ -411,7 +411,7 @@ local macro "range_tail" : tactic => `(tactic| (
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       iright
-      ihave #HeW := rangeWhyOut_off s E.authMode n (GoInterface.ok ctx) o (GoInterface.ok ei) hon
+      ihave #HeW := rangeWhyOut_off s E.authMode n tok o (GoInterface.ok ei) hon
       iframe HeE HeO HeW
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
     · wp_auto_lc 6
@@ -489,7 +489,7 @@ local macro "range_tail" : tactic => `(tactic| (
         iright
         ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
         ihave #HsO := rangeErrOut_auth _ E γr c F o Q _ $$ HsE
-        ihave #HsW := rangeWhyOut_off s E.authMode n (GoInterface.ok ctx) o (GoInterface.ok sei) hon
+        ihave #HsW := rangeWhyOut_off s E.authMode n tok o (GoInterface.ok sei) hon
         iframe HsE1 HsO HsW
         ipureintro; exact ⟨rfl, by intro h; cases h⟩
       · ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
@@ -501,7 +501,7 @@ local macro "range_tail" : tactic => `(tactic| (
         iright
         ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
         ihave #HsO := rangeErrOut_auth _ E γr c F o Q _ $$ HsE
-        ihave #HsW := rangeWhyOut_off s E.authMode n (GoInterface.ok ctx) o (GoInterface.ok sei) hon
+        ihave #HsW := rangeWhyOut_off s E.authMode n tok o (GoInterface.ok sei) hon
         iframe HsE1 HsO HsW
         ipureintro; exact ⟨rfl, by intro h; cases h⟩))
 
@@ -509,7 +509,7 @@ set_option hygiene false in
 /-- `range_tail` with auth on (E3s): the check at the reader's lower bound (`HIRP` a
 `permCheck3Lb`), the read at the mode-`on` model. -/
 local macro "range_tailOn" : tactic => `(tactic| (
-  wp_apply (hDS ctx2 _ _ _
+  wp_apply (hDS ctx2 _ tok _ _
     iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗
       mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log) (crev : Int), resp_ptr ↦ respv ∗
@@ -634,7 +634,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       iright
-      ihave #HeW := rangeWhyOut_of_result s E.authMode n (GoInterface.ok ctx) o respv ei log _ crev $$ Hres
+      ihave #HeW := rangeWhyOut_of_result s E.authMode n tok o respv ei log _ crev $$ Hres
       iframe HeE HeO HeW
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
     · wp_auto_lc 6
@@ -664,7 +664,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
         isplitr
         · ipureintro; exact HnA
         isplitr
-        · iapply (infoBoundM_ctx true s E _ _ infoc (by rw [Hinc2, Hinc1])) $$ Hib
+        · iexact Hib
         isplitr
         · rw [hM]; iexact HnAlb
         rw [hM]; iexact Hfl
@@ -693,10 +693,8 @@ local macro "range_tailOn" : tactic => `(tactic| (
         rw [Ho]; simp only [txn.rangeOpOf.proj_base]; exact apply.authEndOf_rangeEndOf esl e Hel.1
       ihave #HsW1 := rangeWhy_of_serialWhy s E.authMode n nA HnA _ o e he (GoInterface.ok sei)
         (by intro h; cases h) $$ HsW
-      ihave #HsW2 := rangeWhy_ctx s E.authMode n _ (GoInterface.ok ctx) o (GoInterface.ok sei)
-        (by rw [Hinc2, Hinc1]) $$ HsW1
-      ihave #HsW : rangeWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) o (GoInterface.ok sei) $$ []
-      · unfold rangeWhyOut; ileft; iexact HsW2
+      ihave #HsW : rangeWhyOut (GF := GF) s E.authMode n tok o (GoInterface.ok sei) $$ []
+      · unfold rangeWhyOut; ileft; iexact HsW1
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
         ⟨%respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hrc, #Hcp, %Hlog, #Hres, Hhdr, Hown⟩)
       · wp_auto
@@ -762,8 +760,8 @@ theorem EtcdServer.Range.wp_proof
     (hRStr : RangeRequest.String.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Range.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r o ot te Q F n hany
-  wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, Hcall, #Hctx, #Hlib, #Hct, Hto, #Hr, %Hvst, #Hdep, #HF⟩
+  intro s E ρ γr c ctx cd tok r o ot te Q F n hany
+  wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, Hcall, #Hctx, #Hlib, #HtokC, #Hct, Hto, #Hr, %Hvst, #Hdep, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
@@ -861,7 +859,7 @@ theorem EtcdServer.Range.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -, -, #Hlibw, -⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hmd1, #Hsp, -, -, #Hlibw, -⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hlib1 := Hlibw $$ Hlib
   iunfold trace.isSpan at Hsp
@@ -883,7 +881,7 @@ theorem EtcdServer.Range.wp_proof
   iintro %fsl ⟨Hfl, Hflc⟩
   (try wp_auto)
   wp_apply hET ctx1 _ ot te w.lg _ _ $$ [Hto Hfl Hflc]
-    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2, -, -, #Hlibw2⟩
+    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, #Hmd2, %vs2, #Hctx2, -, -, #Hlibw2⟩
   · iframe #
     isplitr
     · iapply Hctr1 $$ Hct
@@ -895,6 +893,9 @@ theorem EtcdServer.Range.wp_proof
     exact traceutil.fieldsWf_cons_string _ _ _
       (traceutil.fieldsWf_cons_string _ _ _ traceutil.fieldsWf_nil)
   ihave #Hlib2 := Hlibw2 $$ Hlib1
+  ihave #HtokC2 : □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx2) tok) $$ []
+  · ihave #Htok1 := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+    iapply auth.ctxToken_transfer_gate E.authOn ctx1 ctx2 tok $$ [$Hmd2 $Htok1]
   (try wp_auto)
   wp_apply time.wp_Now as %start -
   (try wp_auto)
@@ -1011,7 +1012,7 @@ theorem EtcdServer.Range.wp_proof
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       iright
       ihave #HrO := rangeErrOut_read _ E γr c F o Q _ $$ HrdE
-      ihave #HrW := rangeWhyOut_read s E.authMode n (GoInterface.ok ctx) o _ $$ HrdE
+      ihave #HrW := rangeWhyOut_read s E.authMode n tok o _ $$ HrdE
       iframe HrE HrO HrW
       ipureintro; exact ⟨rfl, by intro h; cases h⟩
   · -- auth on
@@ -1023,6 +1024,8 @@ theorem EtcdServer.Range.wp_proof
       | on γa => exact ⟨γa, rfl⟩
     have hDS := hDS s E ρ γr
     rw [hon] at hDS
+    ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx2) tok) $$ []
+    · iintro !> -; iapply HtokC2; ipureintro; first | rfl | exact hon
     -- (E3s) the store's range check at the reader's lower bound `n`
     ihave #HaLbS := HaLb
     iunfold srvAuthLb at HaLb
@@ -1154,7 +1157,7 @@ theorem EtcdServer.Range.wp_proof
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       iright
       ihave #HrO := rangeErrOut_read _ E γr c F o Q _ $$ HrdE
-      ihave #HrW := rangeWhyOut_read s E.authMode n (GoInterface.ok ctx) o _ $$ HrdE
+      ihave #HrW := rangeWhyOut_read s E.authMode n tok o _ $$ HrdE
       iframe HrE HrO HrW
       ipureintro; exact ⟨rfl, by intro h; cases h⟩
 

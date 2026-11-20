@@ -14,6 +14,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 public import Spec.k8s_io.utils.clock.RealClock__After
 
@@ -60,14 +61,16 @@ def k8s_compactor_robust.spec : Prop :=
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed k8scompactorProgram k8scompactorNames)
     (HAs : addrsUnclaimed k8scompactorProgram [go!"127.0.0.1:23976"])
-    (HDs : dataDirsAbsent k8scompactorProgram [go!"k8scompactor.etcd"])
+    (HDs : dataDirsAbsent k8scompactorProgram [go!"/tmp/etcd-grove-data/k8scompactor.etcd"])
     (HEnv : verifyEnvOff k8scompactorProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8scompactorGF,
       ⊢ etcdstart.premises (GF := k8scompactorGF) (hG := heapAtKc hG lctx) go!"k8scompactor"
         go!"127.0.0.1:23986" go!"127.0.0.1:23976" n id ctxs boot)
     (Hafter : ∀ hG : HeapGS .hasLC k8scompactorGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8scompactor.etcd"]),
     Robustness.Robust [] [(k8scompactorProgram, σ)] g (2 ^ 28 - 1)
 
 /-- **`k8s_compactor_partition_safe` as a robustness statement** (`Robustness.Robust`,
@@ -97,7 +100,9 @@ def k8s_compactor_partition_robust.spec : Prop :=
         id₁ id₂ id₃ ps ctxs boot)
     (Hafter : ∀ hG : HeapGS .hasLC k8scompactorGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) k8scompactorPDataDirs),
     Robustness.Robust [] [(k8scompactorPProgram steps, σ)] g (2 ^ 28 - 1)
 
 end adequacy

@@ -17,7 +17,7 @@ do not depend on their bodies.
   (`DecFile.bs`, the page cache's values of `g.bs`) cannot change during the read.
 * `walReadTie dir write s j fs lfs`: the decoder's files are the WAL's segments from the opened one on
   (at least one: `selectWALFiles` fails with `ErrFileNotFound` on none; in write mode the last one at the
-  claim's last `.wal` name, so the handle's last file is the WAL's tail: `Close.specOpening`'s `wp_idleFsync`),
+  claim's last `.wal` name, so the handle's last file is the WAL's tail: `Close.spec` (state `opening`)'s `wp_idleFsync`),
   each read through `walFileS`; the program's half of the WAL directory's claim (`WalDirClaim`), so
   that the directory's names cannot change either (no atomic readdir needed), the segments' names the
   claim's `.wal` names from some position on (`(walNames hj.cur).drop kk = gs.map name`: with the
@@ -167,7 +167,7 @@ directory fd's inode `j` is the WAL's directory key's (`walDirKey dir j X`, pers
 `j` by the keys' agreement, `walDirKey_agree`), which `ReadAll` needs for the handle's `walDirH`
 (W3/W5 log, twenty-sixth session, obligation (f)). -/
 @[no_expose] def walOpeningF (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
-  iprop(walOpening (W := W) w dir s ∗ walReadH true w dir s ∗ osCallPerm (1 : Qp).half.half ∗
+  iprop(walOpening (W := W) w dir s ∗ walReadH true w dir s ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
     ∃ (df : Loc) (dfd : w64) (j : Ino) (X : List GoString),
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
     os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j .idle ∗ walDirKey (W := W) dir j X)
@@ -227,7 +227,7 @@ def walFailH (Mr : WalMarshal) (w : Loc) (dir : GoString) : IProp GF :=
     sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
       (BI.pure True : IProp GF) ∗ encEnv ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
-    os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (1 : Qp).half.half ∗
+    os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨(gs0 ++ [gL]).map (·.ino), [(j, .except X)], [dir]⟩ ∗
     walNamesFrag (W := W) none ∗ walDirKey (W := W) dir j X ∗

@@ -303,3 +303,127 @@ no `sorry`. `etc/gen-link.py --wal-tester --check` and `--durable --check` uncha
    `Open` (its goroutine's `OpenFile`/`Preallocate`), the encodes on `N.tmp`, `Rename`, the directory
    `Fsync`, `Close`, `LockFile`, `Seek`).
 3. `Create.specNoErr` by the flag parametrization.
+
+## Session 4 (2026-11-19, branch `wal-link`): option (a) implemented; item 3 is needed by `Create`
+
+The user approved option (a) (via etcd-grove-03, `questions.md`). Done in 3778c95957 (trusted, `Premises.lean`):
+`IoCovers` gains `Flock`, `OfdLock` (an fd of a covered inode) and `DirReadNext` (a directory fd of a covered
+inode); `ErrnoZero "DirReadNext"` is errno 0 **or `ENOENT`** (the semantics gives `ENOENT` only for a removed
+directory, as Linux, `meta_enoent.go`; excluding it there would make the premise false of Linux; the
+shared-mode specs already exclude it for a directory reachable through a claim,
+`wp_osDirReadNextChildS`). `noIoErr_keeps` extended (`lockStep_maps`; the reads change only `dfds`). Go
+example `premise_no_io_err.go` (excluded/allowed lists, the further assumptions: memory for lock records,
+no other process locking, no fatal signal), measurement `premise_no_io_err_test.go` (support only; for
+the user's run on C with `run-models-on-c.sh`).
+
+**Not covered, though named in the approval:** `LstatDir` (its outcome `isDir = 0` is both a
+non-directory and a failed `lstat` of a directory: no success to name; the WAL's `os.Rename`s target
+absent names, where `isDir = 0` is the only outcome), `PathKind` and `FdKind` (model queries with one
+answer per state: "covering" them in `NoIoErr`'s form is vacuous).
+
+**Item 3 is reached by `Create`** (so `Create.specNoErr` is blocked on it; `cut` is not):
+`renameWAL` starts with `os.RemoveAll(w.dir)`, and `w.dir` is absent at a first start (`wal.Exist` is
+false: no WAL directory, or an empty one; etcd's bootstrap does not make `member/wal` first). The
+`RemoveAll` model (`TrustedCode/os.lean`) on an absent path: `unlink` fails (no success exists, any
+errno), `rmdir` fails (any errno `e1`); `nil` only if `e1 = ENOENT` (or `e1 = ENOTDIR` and the unlink's
+errno is `ENOENT`), else it opens the parent and `removeAllFrom`'s `unlink` again needs `0`/`ENOENT`
+(or `EISDIR`/`EPERM`/`EACCES`, then the open needs `ENOENT`...). So with any other errno `RemoveAll`
+returns an error and `Create` fails, which `NoIoErr` does not exclude. What `Create` needs: "an
+`Unlink`/`Rmdir` of a covered path that has no entry, in an existing directory, fails with `ENOENT`"
+(Linux: `ENOENT` for a missing last component). With `w.dir` present and empty, `rmdir` succeeds (no
+item 3). `Exist(tmpdir)` (a `Stat`) and `MkdirAll`'s `Stat` of the absent `dir.tmp` take any errno as
+"absent", and the deferred `RemoveAll(dir.tmp)`'s result is ignored: neither needs item 3. A
+leftover `dir.tmp` (a crash's, if `Create.spec`'s area allows one) needs item 3 too: `RemoveAll` of a
+non-empty directory first `unlink`s it (no success: Linux `EISDIR`, the model any errno) and `rmdir`s it
+(no success: Linux `ENOTEMPTY`, the model any errno); an `ENOENT` there makes `RemoveAll` return `nil`
+with the tree still present (then `CreateDirAll`'s emptiness check fails), and `removeAllFrom` recurses
+only on `EISDIR`/`EPERM`/`EACCES` (any other errno is an error). So item 3's statement, for `Create`:
+a covered path's `Unlink`/`Rmdir` that cannot succeed fails with Linux's errno: `ENOENT` for an absent
+entry (its parent a directory), `EISDIR` for `unlink` of a directory, `ENOTEMPTY` for `rmdir` of a
+non-empty directory (Linux may also give `EEXIST` there; Go treats both alike), `ENOTDIR` for `rmdir` of
+a file. **Stopped for the decision** (the coordinator's instruction).
+
+### The independent attack on (a) (2026-11-19, read-only subagent with the axiom skill): STOPPED
+
+- **F1, refutation (pre-existing in `Impl.lean`, made stronger by (a)):** a lock outlives its fd's `close`
+  while a mapping of the file is live (the mapping holds the `struct file`; OFD/flock locks go at the last
+  `__fput`, `locks_remove_file`). `f1` locks (`F_OFD_SETLK F_WRLCK`, or `flock LOCK_EX|LOCK_NB`), `mmap`s,
+  closes; `f2`'s same request returns `EAGAIN` until the `munmap` (measured on Linux 7.0 / ext4:
+  `/shared/tmp/wallink-attack/mmaplock/main.go`). The model's `Close` drops the fd and its locks (`OsMap` has
+  no description), so `LockConflict` is false: plain `fsSem` already excludes `EAGAIN` there (`LockStep`'s
+  `nb → EAGAIN → conflict`); under `NoIoErr` with (a) every error is excluded. False texts:
+  `locks_close_crash.go` ("a lock surviving its fd's close" excluded), `Impl.lean`'s header sentence,
+  `NoIoErr`'s "no other fd of the process conflicts". Fixes proposed: descriptions with identity kept alive
+  by mappings (locks released at the last `Munmap`), or `Close` stuck while the description holds a lock
+  and a mapping of it is live (bbolt's order munmap → funlock → close stays provable). Untested second
+  route: Go's `poll.FD` defers `close(2)` while another goroutine is in a syscall on the file.
+- **F2, premise false of real runs (pre-existing since 2026-11-15, kept by (a)):** `RemoveAll` of a
+  directory with > 1024 entries while another goroutine creates an entry: Go's chunked passes remove the new
+  entry while an original remains (30/30, `/shared/tmp/wallink-attack/rmall/main.go`); the model reproduces
+  that only by `Unlink` failing with `ENOENT` and no effect on an existing entry, which `NoIoErr` (`Unlink`
+  covered) excludes. The WAL's `RemoveAll`s (no concurrency) are unaffected. Fix proposed: model the 1024-name
+  chunking directly (a read that stops before its end) instead of spurious `ENOENT`.
+- Checked, no gap: lock errnos without a conflict (`ENOLCK`/memory; `EINTR`/`EDEADLK` need a conflict;
+  `EBADF`/`EINVAL` stuck in the model), `getdents64` on live and dead directories (`ENOENT` kept),
+  `noIoErr_keeps`, the excluded/allowed lists, not covering `LstatDir`/`PathKind`/`FdKind`. Nit: add "no LSM
+  denies a lock" (`security_file_lock`) to C's environment.
+- No proof uses (a) yet.
+
+## Session 5 (2026-11-19 u, branch `wal-link`): item 3 narrowed (`PathErrno`); F1's approved fix blocked by bbolt; F2 a known gap
+
+**Decided by etcd-grove-03** (`questions.md`): (a)'s form accepted (`LstatDir`/`PathKind`/`FdKind` left out;
+`ENOENT` a success of a directory read); **F2 recorded as a known model gap, no fix now** (below); the nit
+"no security module denies a lock" added to configuration C's environment (`Impl.lean`, `env_config.go`).
+
+**F2, a known model gap** (not fixed, 2026-11-19): `NoIoErr` with `Unlink` covered excludes the runs where
+Go's `os.RemoveAll` of a directory of more than 1024 entries meets a concurrent creation (its chunked passes
+remove the new entry while an original stays, which the model reproduces only by an `Unlink` failing with
+`ENOENT` on an existing entry). Every `RemoveAll` of the WAL runs with no concurrent creation in the directory
+it removes, so no WAL theorem is affected. A fix models the 1024-name chunking (a directory read that stops
+before its end) instead of spurious `ENOENT`. Recorded in `notes/audit.md`.
+
+**Item 3, narrowed (approved by the user 2026-11-19), done:** `PathErrno` (`Premises.lean`): a covered
+`unlink`/`rmdir` with no outcome of errno 0 fails with `ENOENT` (no entry, parent a directory), `EISDIR`
+(`unlink` of a directory) or `ENOTEMPTY` (`rmdir` of a directory with an entry); `NoIoErr` asks it only when
+the semantics has no success (the cases are disjoint from the successes, but the model's `#` is not known
+injective on `w64`, so the guard keeps `noIoErr_keeps` provable). `noIoErr_good` (`NoIoErr.lean`) gives the
+kept step; `noIoErr_pathErrno` (`NoIoErrSpecs.lean`) is what specs use. Go example: `premise_no_io_err.go`
+(`NoIoErrPathErrno`), measurement `TestNoIoErrPathErrno` (passes here, not yet on C).
+
+**F1's approved fix (Close stuck while the description holds a lock and a live mapping exists) breaks bbolt
+non-mechanically: STOPPED, not implemented.** `DB.close` (`Proof/go_etcd_io/bbolt/Open/Close.lean`) runs
+munmap, funlock, close whatever each returns. The model lets `Munmap` fail keeping the mapping
+(`wp_osMunmap`'s second failure disjunct; Linux: a `do_vmi_munmap` allocation failure aborts with no change)
+and `flock(LOCK_UN)` fail keeping the lock (`LockStep`'s unlock failure; Linux: `flock_make_lock`'s allocation,
+`ENOMEM`). In that run the description holds a lock and a mapping is live at `close`: stuck, so
+`DB.close.spec_owned` (any `d`, any errors) has no proof. The same holds for any `d` with an OFD lock (bbolt's
+spec takes any `d`). The WAL closes locked files (`LockedFile.Close`) with no evidence about mappings (it holds
+no `osMeta` of them there), so the stuck form also needs a resource in `wp_osClose`'s precondition ("no
+mapping of the inode": the whole `osMeta` with no maps, or no lock) threaded through ~25 WAL/os proofs.
+Options in the session-u report.
+
+### The independent attack on item 3 (`PathErrno`) and on the bbolt claim (2026-11-19 u, read-only subagent, axiom skill)
+
+Measured on this machine (kernel 7.0.0-1014-aws, `/shared` ext4 `idmapped,discard,commit=30`, uid 0: not C);
+program `/shared/tmp/wallink-attack2/prog/main.go`.
+- **A1, premise false of real runs (also of `NoIoErr` before item 3):** the model bounds neither name nor path
+  length (`NameOk`, `CanonBelow`, `TreeName`, `lookup`). A 256-byte name or a path over `PATH_MAX` gets
+  `ENAMETOOLONG` (measured: unlink/rmdir/mkdir of a 256-byte name, `36`), where `PathErrno` asks `ENOENT` and the
+  existing `succ → ErrnoZero` asks errno 0 (`Mkdir`, `Open` `O_CREAT`, `Rename` succeed in the model). Fix: bound
+  names (≤ 255 bytes) and paths (< 4096) in `NameOk`/`TreeName` (longer is misuse, stuck), or leave such paths out
+  of `IoCovers`; with a Go example.
+- **A2, text inaccuracy:** permissions come first in `may_delete`: `EACCES` (no write on the parent), `EPERM` (sticky
+  parent, immutable/append-only attributes, LSM path hooks), measured as uid 65534. Neither `NoIoErr`'s docstring nor
+  `Impl.lean`'s Environment states "the process may search and write every covered directory; no sticky denial; no
+  immutable/append-only attribute; no LSM denies the path calls" (only the Go example does). Fix: state it in both.
+- **A3, nit:** the Go example's "RemoveAll returns nil for an absent path only when rmdir answers ENOENT" is too
+  strong (a later `ENOENT` from the parent's open or `unlinkat` also gives nil); "only `ENOENT` guarantees nil".
+- Checked, holding: errno order on ext4 (lookup `ENOENT`, then `EISDIR`, then `ENOTEMPTY`); the cases disjoint;
+  concurrent-race and dead-directory attacks fail; `noIoErr_keeps` proved; doc.go row and citations accurate.
+- **B (the bbolt claim), confirmed:** the model run munmap fails keeping the map → `flock(LOCK_UN)` fails keeping
+  the lock → `Close` stuck exists; `spec_owned` also takes any `d` (an OFD lock), and with `ms = none` nothing shows
+  the inode unmapped. Whether the run is real Linux: probably not (medium certainty, from memory: a whole-mapping
+  munmap fails only with a fatal signal pending; `flock(LOCK_UN)` allocates nothing on recent kernels, so fails only
+  via `security_file_lock`/`EBADF`; OFD `F_UNLCK` can fail with `ENOLCK`). The reviewer's route: `flock` unlock
+  always drops the lock (to be checked against 7.0's `fs/locks.c` and measured), plus `d.ofd = none` in
+  `spec_owned`, or a "no lock or no mapping" resource in the new `Close` spec.

@@ -244,11 +244,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   try rw [h1pc]
   try rw [h1pend]
   iunfold walDirH at Hdh
-  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, Hout, Htf, Hnf, %hdh⟩
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, #HRdW, Hperm, Hdfd, #Hnamed, Hout, Htf, Hnf, %hdh⟩
   obtain ⟨hnm0w, hnm0c, ⟨pd, hname⟩, htmps, hXw, ⟨sq, ix, hnm0, hsq0⟩, hlargest⟩ := hdh
   have hsq : sq + 1 < 2 ^ 64 := by omega
   iunfold walPipeH at Hpipe
-  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn⟩
+  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
   ihave #Hisfp' := Hisfp
   iunfold isFilePipe at Hisfp'
   icases Hisfp' with ⟨%plg, -, -, -, -, -, -, -, -, -, -, #Hos, -, #Hpkg, %hszp⟩
@@ -321,7 +321,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iframe Hmain Hpc Hisfp
     isplitr
     · ipureintro; exact hnp
-    · ipureintro; exact hfpn
+    · ipureintro; exact ⟨hfpn, hRpW⟩
   wp_apply (wp_walPipeH_open _wp_Open fp dir j h.pc hcnt) $$ [$Hpipe] as %ntl %oerr Hop
   icases Hop with (⟨%he, %γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpf, %hnp⟩ | %he)
   rotate_left
@@ -658,13 +658,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   have hgi : g.ino = i2 := by rw [← hg]
   have hbX : (NameSet.except X).Mem (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) :=
     fun hb => by rw [hXw _ hb] at hbtw; cases hbtw
+  icases osPathS_sameRoot Rd dir (pipeTmp np)
+    (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) _ j $$ Hpd1 with ⟨Hpd1, %hsr⟩
   wp_apply (_wp_Rename dir (pipeTmp np) dir
       (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) j j g.ino
       (.only [pipeTmp np]) (.except X) Rd (DFrac.own qd.half) (DFrac.own qd.half) ht hj
       (1 : Qp).half (1 : Qp).half qQuarter ((1 : Qp).half + qQuarter) (1 : Qp).half.half _
       (pipeTmp_nameOk np) (walFileName_nameOk _ _) (by simp [NameSet.Mem]) hbX (by simp)
       (by rw [hgi]; exact hcur2) (fun J hJ => by rw [hcurbt] at hJ; cases hJ)
-      (Qp.half_add_half 1) hq3)
+      (Qp.half_add_half 1) hq3 hsr)
     $$ [Hpd1 Hpd2 Hperm Hn2b Hcl2 Hau] as %rerr ⟨Hpd1, Hpd2, Hperm, %ro, %hro, HQ, Hro⟩
   · iframe; iframe #
   iclear Hlt1 Hmu0 Htab0 Ht1 Hmdsb «$res0»
@@ -699,7 +701,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   (try wp_auto)
   wp_apply (wp_FsyncDir df dfd dnm (DFrac.own 1) Rd j ph (x + 1)) $$ [Hdff Hdfd] as %ferr ⟨Hdff, Hdfd, Hfr⟩
   · iframe; iframe #
-  icases Hfr with (%hfe | ⟨%hfe, #Hcm⟩)
+  icases Hfr with (⟨%hfe, -⟩ | ⟨%hfe, #Hcm⟩)
   · rcases ferr with ei | _
     rotate_left
     · exact absurd rfl hfe
@@ -886,7 +888,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   · iunfold walDirH
     iexists Rd, qd, X, (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur)),
       bt, ph
-    iframe Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed
+    iframe Hdk Hcw Hpd Hsid HRdW Hperm Hdfd Hnamed
     rw [walOut_cut]
     iframe Hout Hnf
     isplitl [Htf Hlt0]
@@ -901,7 +903,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   isplitr
   · ipureintro; simp
   isplitl [Hmain Htm1 Htm2]
-  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp hfpn
+  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp.1 hfpn hnp.2
     iframe Hisfp Hmain
     iapply tmpClaim_absent j (pipeTmp np)
       (ht.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (GMap.delete (pipeTmp np) ht.cur))

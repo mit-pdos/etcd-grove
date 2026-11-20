@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // maxMembers is the bound of the theorem's member count.
@@ -195,6 +196,7 @@ func TestRun(t *testing.T) {
 	}
 	t.Logf("k = %d", k)
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "restartN") // the members' WAL areas (wal-link P2)
 	c := newCounts()
 	start := time.Now()
 	ok := Run(k, zap.New(c))

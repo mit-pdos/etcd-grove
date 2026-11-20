@@ -38,8 +38,8 @@ theorem grpcAccepted_notPanic (γ : GName) (c : GrpcSrvCfg GF) (r : val) :
     grpcAccepted γ c r ⊢ ⌜r.isPanic = false⌝ := by
   iintro Hacc
   iunfold grpcAccepted at Hacc
-  icases Hacc with (⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %Hr, -⟩ |
-    ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %Hr, -⟩) <;>
+  icases Hacc with (⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %Hr, -⟩ |
+    ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %Hr, -⟩) <;>
     (subst Hr; ipureintro; rfl)
 
 /-- **A run of an accepted call** (the model's `runCall`), given the fork's token and credit. -/
@@ -53,10 +53,10 @@ theorem grpc.model.runCall_wp
         {{ v, ⌜v.isPanic = false⌝ ∗ threadTok }} := by
   iintro ⟨HT, Hlc, #Hc, Hacc⟩
   iunfold grpcAccepted at Hacc
-  icases Hacc with (⟨%name, %mh, %srv, %ci, %cd, %dec, %ui, %Req, %Rep, %Spec, %m, %Φ, %Ψe, %Hr,
-      %Hin, %Hreg, Hat, Hctx, Hrc, Hd, Hch, HSpec, Hrep⟩ |
-    ⟨%name, %mh, %srv, %ci, %cd, %st, %info, %si, %Req, %Rep, %Up, %Spec, %γs, %Dn, %Hr, %Hin, %Hreg,
-      Hat, Hsch, #HSpec, Hraw, HRt, HSt, HAt, Hinfo⟩)
+  icases Hacc with (⟨%name, %mh, %srv, %ci, %cd, %dec, %ui, %Req, %Rep, %Spec, %m, %Φ, %Ψe, %md, %Hr,
+      %Hin, %Hreg, Hat, Hctx, Hrc, Hd, Hch, #Hmd, HSpec, Hrep⟩ |
+    ⟨%name, %mh, %srv, %ci, %cd, %st, %info, %si, %Req, %Rep, %Up, %Spec, %γs, %Dn, %md, %Hr, %Hin, %Hreg,
+      Hat, Hsch, #Hmd, #HSpec, Hraw, HRt, HSt, HAt, Hinfo⟩)
   · -- unary
     iunfold isGrpcRpcAt at Hat
     icases Hat with ⟨%c', %mh', %srv', #Hc', %Hin', #Hrun⟩
@@ -69,6 +69,10 @@ theorem grpc.model.runCall_wp
     wp_auto
     wp_pures
     iunfold grpcRunOkMd at Hrun
+    ihave HSpec : grpcSpecAt Spec ci m Φ Ψe $$ [HSpec]
+    · iunfold grpcSpecAt
+      iexists md
+      iframe Hmd HSpec
     wp_apply Hrun $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] as
       %resp %err ⟨HT, Hok, Herr, #Hse⟩
     · iframe
@@ -89,7 +93,11 @@ theorem grpc.model.runCall_wp
     subst Hr
     iunfold grpcStreamRunOk at Hrun
     icases Hrun with ⟨-, #Hrun⟩
-    ihave Hw := Hrun $$ %γs %Dn %ci %cd %st %info HSpec HT Hlc Hraw HRt HSt HAt Hinfo
+    ihave HSpec' : grpcStreamSpecAt Spec ci γs Dn $$ []
+    · iunfold grpcStreamSpecAt
+      iexists md
+      iframe Hmd HSpec
+    ihave Hw := Hrun $$ %γs %Dn %ci %cd %st %info HSpec' HT Hlc Hraw HRt HSt HAt Hinfo
     unfold model.runCall model.runStream
     wp_auto
     rcases hs : c.sics with _ | ⟨ic, ics'⟩

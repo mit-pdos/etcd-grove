@@ -40,23 +40,23 @@ variable [go_gctx : GoGlobalContext]
 (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/TopLevelRobustness.lean`). -/
 theorem k8s_compactor_robust : k8s_compactor_robust.spec := by
   intro lctx sem package_sem cache_sem _ _ Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
-    HEnv Hprem Hafter σ g Hfs
+    HEnv Hprem Hafter σ g Hfs HWal
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
       (k8s_compactor_safe
         Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n (Hprem n (by omega)) Hafter
-        σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
+        σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
 /-- `k8s_compactor_partition_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/TopLevelRobustness.lean`). -/
 theorem k8s_compactor_partition_robust : k8s_compactor_partition_robust.spec := by
   intro lctx sem package_sem cache_sem _ _ Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo
-    steps Hsteps HNs HAs HDs HEnv Hprem Hafter σ g Hfs
+    steps Hsteps HNs HAs HDs HEnv Hprem Hafter σ g Hfs HWal
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
       (k8s_compactor_partition_safe
         Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo steps Hsteps HNs HAs HDs HEnv n
-        (Hprem n (by omega)) Hafter σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
+        (Hprem n (by omega)) Hafter σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
 end adequacy
 end EtcdGrove

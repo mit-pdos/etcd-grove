@@ -85,7 +85,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
           "Hk" ∷ key_ptr ↦ kv0 ∗
           "%Hj" ∷ ⌜j ≤ ks.length⌝ ∗
           "Htx" ∷ mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ (ks.take j).map .del) crev Z ∗
-          "Hown" ∷ lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ (ks.take j).map .del)))
+          "Hown" ∷ lease.leaseOwnW γ.leases L (mvcc.pendItems ilog (pend ++ (ks.take j).map .del)) w)
           $$ [i key Htx Hown]
       · iexists 0, zero_val GoSlice
         simp only [named, List.take_zero, List.map_nil, List.append_nil]
@@ -126,18 +126,17 @@ local macro "del_range_tail" : tactic => `(tactic| (
             rw [List.getElem?_eq_getElem (by omega), hget, hkj]
           have := (List.Nodup.getElem?_inj (by omega) hnodup).1 h1
           omega
-        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj L crev Z)
+        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj L crev Z w)
           $$ [$(frameH `Htx) $(frameH `Hkj) $(frameH `Hown)] as ⟨Htx, Hown⟩
-        · isplitr
-          · ipureintro
-            rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
-                (pend ++ (ks.take j).map .del) =
-              mvcc.applyChanges (W64 (ilog.length : Int))
-                (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) pend)
-                ((ks.take j).map .del) by unfold mvcc.applyChanges; rw [List.foldl_append]]
-            rw [mvcc.findKey_applyChanges_dels _ _ _ _ hnot]
-            exact hpres kj hmem
-          · ipureintro; exact mvcc.findKey_key_le _ Hfit.1 Hfit.2 (hpres kj hmem)
+        · ipureintro
+          refine ⟨?_, mvcc.winMove_dels_take Hwm hkj, mvcc.findKey_key_le _ Hfit.1 Hfit.2 (hpres kj hmem)⟩
+          rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
+              (pend ++ (ks.take j).map .del) =
+            mvcc.applyChanges (W64 (ilog.length : Int))
+              (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) pend)
+              ((ks.take j).map .del) by unfold mvcc.applyChanges; rw [List.foldl_append]]
+          rw [mvcc.findKey_applyChanges_dels _ _ _ _ hnot]
+          exact hpres kj hmem
         (try wp_auto)
         wp_for_post
         (try wp_auto)
@@ -168,8 +167,8 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (hRange : mvcc.treeIndex.Range.spec (GF := GF) (hG := hG))
     (hDel : mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend key endk k e L crev Z
-  wp_start as ⟨Htw, #Hkey, #Hend, Hown, %Hfit⟩
+  intro trace tw s γ ilog pend key endk k e L crev Z w
+  wp_start as ⟨Htw, #Hkey, #Hend, Hown, %Hwm, %Hfit⟩
   generalize hks : mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e = ks at *
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw

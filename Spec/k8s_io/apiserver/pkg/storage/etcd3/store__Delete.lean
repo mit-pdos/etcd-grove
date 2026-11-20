@@ -12,7 +12,7 @@ precondition, `validateDeletion`'s error, nothing changed); or an error of the c
 callback, answering `validate` (`validateOk`).
 
 The preconditions `pp` hold `pr` (`preAt`; `nil`: none), checked as the model's `pre`
-(`ObjCodec.preOk`: the object's UID and resource version string); the cached object `cx` is `nil`
+(`ObjCodec.preF`: on the object's UID and resource version string, with `Check`'s message); the cached object `cx` is `nil`
 or one the key held at its resource version (`cachedOk`, `versionAt`; stage 7b). For now the key is
 valid, and the caller does not ask to delete a malformed object (`opts.ExpectTransformOrDecodeError` false: then the feature
 gate `AllowUnsafeMalformedObjectDeletion` does not matter, D30d).
@@ -54,13 +54,13 @@ abbrev store.Delete.spec : Prop :=
         opts.ExpectTransformOrDecodeError' = false⌝ ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗ preAt pp pr ∗
       cachedOk c (c.pathPrefix ++ k) cx ca ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep (c.pathPrefix ++ k) (c.S.preOk pr) validate) W Φ) ∗
+      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep (c.pathPrefix ++ k) (c.S.preF pr) validate) W Φ) ∗
       validateOk c validate vf }}
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Delete")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #out)) (Val #pp)) (Val #vf)) (Val #cx)) (Val #opts))
   {{ (err : GoInterface), RET #err;
-      delOut c (c.pathPrefix ++ k) (c.S.preOk pr) validate Φ err out }}
+      delOut c (c.pathPrefix ++ k) (c.S.preF pr) validate Φ err out }}
 
 end spec
 

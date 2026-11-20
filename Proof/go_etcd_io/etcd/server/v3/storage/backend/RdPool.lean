@@ -307,12 +307,14 @@ theorem newPost_pool (hT : threadBound GF ≤ rdPoolN) (E : CoPset)
   iframe
 
 /-- **`newPostK`, its reader slots split into the backend's pool and a counted stock** (as
-`newPost_pool`; the pool's open shares come with the open token, `newPostKP`). -/
+`newPost_pool`; the pool's open shares come with the open token, `newPostKP`); (A6.2 of `auth-schema-srv`,
+2026-11-17) with the claim tokens beside it (`newPostKP` holds none: the store's opener does not take them; the
+auth store's realization does, with the auth buckets' reader slots). -/
 theorem newPostK_pool (hT : threadBound GF ≤ rdPoolN) (E : CoPset)
     (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc) (D : Data) :
-    newPostK γ P W Pk K b D ⊢ |={E}=> newPostKP γ P W Pk K b D := by
+    newPostK γ P W Pk K b D ⊢ |={E}=> newPostKP γ P W Pk K b D ∗ rbClaimToks γ P (fun _ => True) := by
   unfold newPostK newPostKP
-  iintro ⟨Hb, Hs, Hk, Hv, Hh, Hr, Hrd, Hdl, Hfk, Hsr⟩
+  iintro ⟨Hb, Hs, Hk, Hv, Hh, Hr, Hrd, Hdl, Hfk, Hsr, Htok⟩
   imod rdToks_pool hT E γ P b $$ Hrd with ⟨Hp, Ha, Hst⟩
   imodintro
   iframe

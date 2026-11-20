@@ -177,6 +177,7 @@ theorem Cluster.app.wp_proof
     icases Hgot with ⟨%ce, %es, %h, %L, %qs, %ss, #Hce, #Hcomm, -, Hrest, -, Henter, #Hdl, -, Hcl⟩
     iunfold readyRest at Hrest
     icases Hrest with ⟨#Hes0, Hmsl, Hmsok, -, #Hhs, -, %Hbnd, Hsnap, -⟩
+    ihave #Hhs := hsOptC_hsOpt _ _ $$ Hhs
     ihave #Hes := readyEnts_entsRO W.cl rdv.Entries' es $$ Hes0
     cases L with
     | some l =>

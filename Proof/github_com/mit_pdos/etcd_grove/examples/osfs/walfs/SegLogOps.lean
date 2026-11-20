@@ -58,7 +58,7 @@ theorem wp_logUnlink (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hr
     (V : Hist) (k s : Nat) (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ logInv (GF := GF) R -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗
+      osCall (GF := GF) k s (child dir logB) (1 : Qp).half.half -∗
       (∀ (e : w64) (V' : Hist), ⌜UnlinkPost R V dir logB j e V'⌝ -∗
         osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child dir logB))))) {{ Φ }} := by
@@ -84,7 +84,7 @@ theorem wp_logRmdir (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj
     (V : Hist) (k s : Nat) (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ logInv (GF := GF) R -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗
+      osCall (GF := GF) k s (child dir logB) (1 : Qp).half.half -∗
       (∀ (e : w64) (V' : Hist), ⌜RmdirPost R V dir logB j e V'⌝ -∗
         osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child dir logB))))) {{ Φ }} := by
@@ -111,7 +111,7 @@ theorem wp_logCreate (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hr
     (V : Hist) (hn : V.now.entry j logB = none) (k s : Nat) (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ logInv (GF := GF) R -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗
+      osCall (GF := GF) k s (child dir logB) (1 : Qp).half.half -∗
       (∀ fd : w64, ∀ e : w64,
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i,
             osTree (GF := GF) (DFrac.own (1 : Qp).half) R (V.push ⟨.create j logB i, V.2.length⟩) ∗
@@ -201,7 +201,7 @@ theorem wp_removeLog (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hr
   wp_start as ⟨#Hos, #Hinv, Hh⟩
   iloeb as IH generalizing %V Hh
   ihave Hh := tree_half (L := hG.goose_localGS) _ R V $$ Hh
-  wp_apply wp_osCallBegin R V _ _ CoPset.subseteq_top $$ Hos Hh as %t Hh Hk
+  wp_apply wp_osCallBegin R V _ _ _ CoPset.subseteq_top $$ Hos Hh as %t Hh Hk
   (try wp_auto)
   wp_apply wp_logUnlink R hR dir j hrj V t _ $$ Hos Hinv Hh Hk as %e %V' %hres Hh
   by_cases he4 : e = W64 4
@@ -226,7 +226,7 @@ theorem wp_removeLog (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hr
   clear hres
   iloeb as IH2 generalizing %V' Hh
   ihave Hh := tree_half (L := hG.goose_localGS) _ R V' $$ Hh
-  wp_apply wp_osCallBegin R V' _ _ CoPset.subseteq_top $$ Hos Hh as %t1 Hh Hk
+  wp_apply wp_osCallBegin R V' _ _ _ CoPset.subseteq_top $$ Hos Hh as %t1 Hh Hk
   (try wp_auto)
   wp_apply wp_logRmdir R hR dir j hrj V' t1 _ $$ Hos Hinv Hh Hk as %e1 %V2 %hres1 Hh
   by_cases he14 : e1 = W64 4
@@ -296,7 +296,7 @@ theorem wp_openLog (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj 
   | none =>
     unfold crStateL
     ihave Hh := tree_half (L := hG.goose_localGS) _ R V $$ Hs
-    wp_apply wp_osCallBegin R V _ _ CoPset.subseteq_top $$ Hos Hh as %t Hh Hk
+    wp_apply wp_osCallBegin R V _ _ _ CoPset.subseteq_top $$ Hos Hh as %t Hh Hk
     rw [show (W64 66 ||| W64 524288) = flCreat from by decide]
     (try wp_auto)
     wp_apply wp_logCreate R hR dir j hrj V hn t _ $$ Hos Hinv Hh Hk as %fd %e Hr
@@ -351,7 +351,7 @@ theorem wp_openLog (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj 
     unfold crStateL
     icases Hs with ⟨Hh, Hm⟩
     ihave Hh := tree_half (L := hG.goose_localGS) _ R _ $$ Hh
-    wp_apply wp_osCallBegin R _ _ _ CoPset.subseteq_top $$ Hos Hh as %t Hh Hk
+    wp_apply wp_osCallBegin R _ _ _ _ CoPset.subseteq_top $$ Hos Hh as %t Hh Hk
     rw [show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
     (try wp_auto)
     have hl : lookupH R (V.push ⟨.create j logB i, V.2.length⟩) (child dir logB) =
@@ -425,7 +425,7 @@ theorem wp_openExisting (p : GoString) (fl : w64) (hfl : OpenFlagsOk (fl ||| W64
   wp_start as ⟨#Hos, Hh⟩
   iloeb as IH generalizing Hh HΦ
   ihave Hh := tree_half (L := hG.goose_localGS) q R V $$ Hh
-  wp_apply wp_osCallBegin R V q.half q.half CoPset.subseteq_top $$ Hos Hh as %t Hh Hk
+  wp_apply wp_osCallBegin R V _ q.half q.half CoPset.subseteq_top $$ Hos Hh as %t Hh Hk
   rw [os.file_ty_eq, os.File_ty_eq]
   (try wp_auto)
   wp_apply wp_osOpenFile p (fl ||| W64 524288) R V q.half q.half t _ i hfl htr hl

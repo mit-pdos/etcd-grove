@@ -257,20 +257,23 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "Hwal" ∷ wal.bootOk cfg id cid bw.w' ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
-    "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- (restart S6a, approved by the user 2026-11-13 via etcd-grove-81) in the data directory's
-    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `snap.snapDBPathOf`), so that a
-    -- restart's snapshotter writes the files of the first start's
-    "%Hssp" ∷ ⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `config.snapDirOf`), so that a
+    -- restart's snapshotter writes the files of the first start's (wal-link, 2026-11-19, approved
+    -- by the user via etcd-grove-03: the directory is the snapshotter's `dir` field, inside
+    -- `isSnapshotter`; until then the opaque `snap.snapDBPath bs.ss'` and an equation `Hssp`, a pure
+    -- function of the run's location, which made the premise of a cluster of several members
+    -- unsatisfiable: `notes/snapdir-crossworld.md`)
+    "#Hss" ∷ snap.isSnapshotter bs.ss' (config.snapDirOf cfg.DataDir') ∗
     -- (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81; the first start only,
     -- not `bootOkR`) the right to that snapshot directory: it holds no `.snap.db` file, and nothing
     -- outside the server's snapshotters writes `.snap.db` files there (`snap.snapDirOwn`), which
     -- names the one ghost map of its files (`snapDir_init`)
-    "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir') ∗
+    "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
     -- (S5, 2026-11-18) and the claims on that directory's snapshot names, every index's, free
     -- (`snapFreeAll`: the shared mode's claims on the names `bootstrap`'s new snapshot directory has,
     -- none of them a file), which the directory's invariant keeps for `SaveDBFrom`
-    "Hsfree" ∷ snapFreeAll (snap.snapDBPathOf cfg.DataDir') ∗
+    "Hsfree" ∷ snapFreeAll (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
@@ -512,8 +515,9 @@ which no update can), an error, or the record with `bootOk` (at the write-back b
 does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootWB ≤ wbInit`).
 (2026-11-03, the final whole-`bootOk` review's M1) On a disk that cooperates with `bootstrap`'s own
 I/O, where it would otherwise panic: bbolt opens the backend file (`storage.dbOpensOk`,
-`newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) and the WAL is created
-(`storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`); its other I/O failures return an error or
+`newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) (wal-link L3, 2026-11-19: until then also the WAL
+created, `storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`, which the run's no-I/O-error semantics over
+the real WAL now gives); its other I/O failures return an error or
 call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). (Sweep repairs 1, R1-2, L4,
 2026-11-07) With a zap logger (`zapLoggerOk cfg.Logger'`): `bootstrap` logs through it from its first
 line (`bootstrap.go:64`, `:92`), and on a zero `&zap.Logger{}` panics; until then the contract
@@ -526,12 +530,16 @@ was false of Go there (the premise attack; `examples/premisefix/bootfg`, `featur
 gate panics in `bootstrap`). The other configuration fields `bootstrap` reads and no precondition
 fixes (`MaxLearners`, `BackendBatchInterval`, `BackendFreelistType`, `UnsafeNoFsync`,
 `MaxRequestBytes`, `PreVote`, `PeerTLSInfo`, `BootstrapTimeout`) make it return an error or do
-what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. -/
+what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. (wal-link P2, 2026-11-19)
+The WAL's slot `wal.bootRes`: the data directory fresh, the configuration's dedicated WAL directory
+the member's (`srvWalDirOf`, under its own `fsExt` root) and that WAL area fresh (`walAreaFresh`:
+what `wal.Create` takes of it), over layer 1's resources; until then the data directory alone, no
+dedicated WAL directory. -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
   iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
-          storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
+          storage.dbOpensOk⌝ ∗
         -- (sweep repairs 1, L4) a zap logger
         zapLoggerOk cfg.Logger' ∗
         -- (premise fixes 1) the feature gate `nil` or one that answers `NonBlockingDefrag`
@@ -577,7 +585,7 @@ empty snapshot (index and term `0`), whole (metadata and conf state set), frozen
 reported): `Snapshot.spec` admits `ErrSnapshotTemporarilyUnavailable` for any storage, on which
 `run` panics; the bare `MemoryStorage` never returns it, but its spec does not say so. -/
 theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
+    (E : RNEnv GF) (γ : RNNames GF) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs memSnapEmpty -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs (W64 0) (W64 0) := by

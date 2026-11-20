@@ -11,6 +11,9 @@ public import Spec.fmt.Errorf
 public import Spec.os.Rename
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Spec.go_etcd_io.etcd.server.v3.storage.OpenBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackendLemmas
+-- (wal-link L2, T1) the only opener of the sealed take token
+import all Proof.go_etcd_io.etcd.server.v3.storage.SnapHeld
 
 @[expose] public section
 
@@ -49,8 +52,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_BackendPath : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
-  intro _ cfg ss sn mp hk dq dq' md P D W Pk K γo
-  wp_start as ⟨#Hss, Hmdp, Hsm, Hf, Hpo, Hpre⟩
+  intro _ cfg ss sn mp hk dq dq' md P D W Pk K γo R'
+  wp_start as ⟨#Hss, Hmdp, Hsm, Hhd, Hpo, Hpre⟩
+  iunfold snapHeld at Hhd
+  icases Hhd with ⟨Hf, HR'⟩
   ihave #Hraftpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
@@ -66,7 +71,8 @@ theorem storage.OpenSnapshotBackend.wp_proof
     iStructNamed Hcf
     wp_apply wp_BackendPath $$ [$DataDir] as -
     -- (S5) the rename, with no error: the file at the backend path, the snapshot's name free
-    wp_apply wp_Rename $$ [$Hf $Hpo] as %err2 ⟨%Hr, Hf, -⟩
+    have hpar := snap.snapDBPath_parent cfg.DataDir' md.Index'
+    wp_apply (wp_Rename _ _ _ _ hpar) $$ [$Hf $Hpo] as %err2 ⟨%Hr, Hf, -⟩
     subst Hr
     wp_auto
     ihave Hf := backend.fileAt_fileHolds _ _ $$ Hf
@@ -77,7 +83,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     isplitr
     · ipureintro; rfl
     iexists b, γ
-    iframe Hnew Hhka Hpo Hbf
+    iframe Hnew Hhka Hpo Hbf HR'
     ipureintro; rfl
   · obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by
       cases err with
@@ -91,14 +97,19 @@ theorem storage.OpenSnapshotBackend.wp_proof
     wp_apply wp_Errorf $$ [$Hfmt $Hsl Hok] as %e -
     · fmt_args_intro
       isplitl [Hok]
-      · fmt_arg_method; iexact Hok
+      · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+        isplitr
+        · ipureintro; decide
+        · iapply fmtErrorOkOrNil_of $$ Hok
       · itrivial
     iapply HΦ
     iframe Hmdp Hsm
     iright
-    iframe Hf Hpo
-    ipureintro
-    exact ⟨nofun, rfl, fun h => Herr.2 h.1⟩
+    iframe Hpo
+    isplitr
+    · ipureintro
+      exact ⟨nofun, rfl, fun h => Herr.2 h.1⟩
+    iunfold snapHeld; iframe Hf HR'
 
 end proof
 

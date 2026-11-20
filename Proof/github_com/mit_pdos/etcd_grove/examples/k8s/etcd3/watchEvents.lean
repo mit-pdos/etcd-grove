@@ -10,6 +10,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__Watch
 public import Proof.context.LibKeysChain
 public import Perennial.Proof.context.Results
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEventsLemmas
 
 @[expose] public section
 
@@ -31,39 +32,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-/-- **Every context's `Err()` returns client errors**, from the store's watcher (its client's
-watcher's connection facts; as `WatchCons.clientWatchOk_ctxErr`). -/
-theorem storeWatchOk_ctxErr [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (sp : Loc) (c : StoreCfg GF DObj) (W : WatchSpec GF DObj) (γk : KVNames) (ctx : GoInterfaceOk)
-    (cs : context.ContextDesc (IProp GF)) :
-    storeWatchOk sp c W γk ∗ context.isContext ctx cs ⊢ ctxErrClient ctx cs := by
-  iintro ⟨#Hsw, #Hctx⟩
-  iunfold storeWatchOk at Hsw
-  icases Hsw with ⟨%wp, %nf, %crv, %rse, -, -, -, -, -, -, -, -, -, -, -, -, #Hcw, -⟩
-  iunfold clientWatchOk at Hcw
-  icases Hcw with ⟨%w, %V, -, #Hw, -⟩
-  iunfold client.isClientWatcher at Hw
-  icases Hw with ⟨%cs', %vs, -, -, -, -, -, -, -, Hsf, -⟩
-  iunfold client.watchSrvFacts at Hsf
-  icases Hsf with ⟨-, Hcf⟩
-  iunfold client.watchConnFacts at Hcf
-  icases Hcf with ⟨-, -, -, -, -, -, #Hca, -, -⟩
-  iunfold client.ctxErrClientAllW at Hca
-  iapply Hca $$ Hctx
-
-/-- `watchOptions`' owned `SendInitialEvents` cell, persisted (`store.Watch` reads it). -/
-theorem sendInitOwn_persist (p : Loc) (sie : Option Bool) :
-    sendInitOwn (GF := GF) p sie ⊢ |==> sendInitIs p sie := by
-  cases sie with
-  | none => iintro Hp; iunfold sendInitOwn at Hp; iunfold sendInitIs; imodintro; iexact Hp
-  | some b =>
-    iintro Hp
-    iunfold sendInitOwn at Hp
-    ipersist Hp
-    iunfold sendInitIs
-    imodintro
-    iexact Hp
 
 theorem watchEvents.wp_proof
     (wp_Watch : store.Watch.spec (GF := GF) (hG := hG))
@@ -128,7 +96,7 @@ theorem watchEvents.wp_proof
   wp_auto
   wp_apply (wp_consume c wi γ _ γd (selD x) (predEmptyL x) (kScopeOf c k x.Recursive')
       (kModeOf (sieOfL x) x.Bookmarks' n) Q x hS rfl) $$ [$Hw $Hdt]
-    as %sl ⟨%wes, %kes, Hsl, %Hrel, Hseen, #HSO, Hlive, Hdt⟩
+    as %sl %rsl ⟨%rs, %kes, Hsl, #Hrs, %Hrel, Hseen, #HSO, Hlive, Hdt⟩
   iunfold kStopOk at HSO
   icases HSO with ⟨%wo, %Hwo, #HStop⟩
   subst Hwo
@@ -143,8 +111,9 @@ theorem watchEvents.wp_proof
   (try wp_auto)
   iapply HΦ
   rw [ite_eq_right Bool.false_ne_true]
-  iexists wes, kes
+  iexists rs, kes
   iframe
+  iframe #
   ipureintro; exact Hrel
 
 end proof

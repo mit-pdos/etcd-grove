@@ -17,6 +17,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Init
@@ -85,21 +86,23 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) errBadRV _ as HerrBadRV
   wp_apply wp_GlobalAlloc (V := GoInterface) errBadData _ as HerrBadData
   wp_apply wp_GlobalAlloc (V := GoInterface) errNotObj _ as HerrNotObj
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apimachinery.pkg.watch.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd30⟩
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd29⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd28⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd27⟩
-  wp_apply _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd26⟩
-  wp_apply _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd25⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apiserver.pkg.util.feature.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd27⟩
+  wp_apply _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd26⟩
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apiserver.pkg.util.feature.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd25⟩
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apiserver.pkg.storage.value.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd24⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apiserver.pkg.storage.value.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd23⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apiserver.pkg.storage.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd22⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apiserver.pkg.storage.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apimachinery.pkg.watch.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd21⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.k8s_io.apimachinery.pkg.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd20⟩
@@ -155,15 +158,15 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of errDeleteRejected))
   -- translated initializer of errUpdateRejected))
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xNO ⟨#MNO, #CNO⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xNO ⟨#MNO, #CNO⟩
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xBD ⟨#MBD, #CBD⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xBD ⟨#MBD, #CBD⟩
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xBR ⟨#MBR, #CBR⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xBR ⟨#MBR, #CBR⟩
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xDR ⟨#MDR, #CDR⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xDR ⟨#MDR, #CDR⟩
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xUR ⟨#MUR, #CUR⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xUR ⟨#MUR, #CUR⟩
   try wp_auto
   ipersist HerrNotObj
   ipersist HerrBadData

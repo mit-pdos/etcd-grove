@@ -43,16 +43,16 @@ set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.LeaseGrant.wp_proof
     (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG))
-    (hAuth : EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG))
+    (hAuth : EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG))
     (hRR0 : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hTTL : LeaseGrantRequest.GetTTL.spec (GF := GF) (hG := hG))
     (hTS : traceutil.Tracer.Start.spec (GF := GF) (hG := hG))
     (hWA : trace.WithAttributes.spec (GF := GF) (hG := hG))
     (hI64 : «attribute».Int64.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r ttl id0 Q
+  intro s E ρ ctx cd tok r ttl id0 Q n
   have hRR := hRR0 s E ρ
-  wp_start as ⟨%hg, #Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #Hspc, #Hst, Hreq, Hperm⟩
+  wp_start as ⟨%hg, #Hsrv, #Hau, #Hn, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #HtokC, #Hspc, #Hst, Hreq, Hperm⟩
   obtain ⟨hlg, hrev⟩ := hg
   iunfold leaseGrantReqOwn at Hreq
   icases Hreq with ⟨%hr, #HTTL, HID⟩
@@ -118,7 +118,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1, #Hlibw, -⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hmd1, #Hsp, #Hspw, #Hst1, #Hlibw, -⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
@@ -131,9 +131,12 @@ theorem EtcdServer.LeaseGrant.wp_proof
   subst Hsi
   (try wp_auto)
   -- `requireAuthInfo`: `nil` with auth off; with auth on, its error is returned
-  wp_apply hAuth s E ctx1 _ $$ [Hrd] as %aerr ⟨Hrd, #Hae, -⟩
+  ihave #HtokE := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+  · iintro !> %h; iapply HtokE; ipureintro; exact h
+  wp_apply hAuth s E ctx1 _ n tok $$ [Hrd] as %aerr ⟨Hrd, #HaeC, #Hfrom, -⟩
   · iframe #; iframe Hrd
-  ihave #Hae0 := authedOutB_ctx s E.authMode _ _ aerr Hinc1 $$ Hae
+  ihave #Hae := authedOutB_of_C s E.authMode n _ aerr $$ HaeC
   (try wp_auto)
   rcases aerr with ae | _
   · -- refused
@@ -147,6 +150,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
     icases Hae with ⟨#HaE, -⟩
     iframe HaE
     ipureintro; exact ⟨rfl, by intro h; cases h⟩
+  ihave #Hfr := Hfrom $$ %rfl
   (try wp_auto)
   -- `&pb.InternalRaftRequest{LeaseGrant: r}`
   ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
@@ -224,8 +228,10 @@ theorem EtcdServer.LeaseGrant.wp_proof
   cases hon : E.authOn
   · -- auth off
     rw [hon] at hRR
+    ihave #HtokR : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+    · iintro !> %h; cases h
     imod Hcred with Hc
-    wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
+    wp_apply hRR ctx1 _ tok «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
         (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hlt Hrd Hc Header Hgo] as %resp %err ⟨Hlt, Hrd, Hres⟩
     · iframe # Hlt Hrd Hc
@@ -294,7 +300,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
         iexists gl
         iframe Hgl Hgreq
       isplitr
-      · iexact Hae0
+      · iexact Hae
+      isplitr
+      · iexact Hfr
       iunfold leaseGrantResM; itrivial
     · obtain ⟨rfl, Hne⟩ := Hre
       (try wp_auto)
@@ -310,18 +318,20 @@ theorem EtcdServer.LeaseGrant.wp_proof
       · exact absurd rfl Hne
   · -- auth on (auth-lease S3b)
     rw [hon] at hRR
+    ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+    · iintro !> -; iapply HtokA; ipureintro; first | rfl | exact hon
     -- (auth-lease S3b) the client's update at the id the loop fixed, fired at the commit
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
     iunfold leaseGrantPermitM at Hperm
     ispecialize Hperm $$ %i
     imod Hcred with Hc
-    wp_apply hRR ctx1 _ «$a1_ptr» rq (grantQhOn ρ.kv i ttl γc Q) [] rfl
+    wp_apply hRR ctx1 _ tok «$a1_ptr» rq (grantQhOn ρ.kv i ttl γc Q) [] rfl
         (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hlt Hrd Hc Header Hgo Hperm] as %resp %err ⟨Hlt, Hrd, Hres⟩
     · iframe # Hlt Hrd Hc
       isplitl [Hgo Hperm]
       · iapply leaseGrantPermit_reqPropOk ρ.raft ρ.kv _ _ i ttl Q γc
-          (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc1) Hgp
+          (fun _ => BIBase.Entails.rfl) Hgp
         iframe Hperm Hgo
       iexists _; iexact Header
     (try wp_auto)
@@ -382,11 +392,13 @@ theorem EtcdServer.LeaseGrant.wp_proof
         iexists gl
         iframe Hgl Hgreq
       isplitr
-      · iexact Hae0
+      · iexact Hae
+      isplitr
+      · iexact Hfr
       iunfold leaseGrantResM
       iexists i, hm, Lq
       iframe Hid' HpAf HQ
-      iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+      iexact Hhb
     · obtain ⟨rfl, Hne⟩ := Hre
       (try wp_auto)
       rcases err with ei | _

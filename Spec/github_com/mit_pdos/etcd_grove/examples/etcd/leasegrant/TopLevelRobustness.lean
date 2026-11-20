@@ -15,6 +15,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -59,11 +60,13 @@ def etcd_leasegrant_robust.spec : Prop :=
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasegrantProgram leasegrantNames)
     (HAs : addrsUnclaimed leasegrantProgram [go!"127.0.0.1:23956"])
-    (HDs : dataDirsAbsent leasegrantProgram [go!"leasegrant.etcd"])
+    (HDs : dataDirsAbsent leasegrantProgram [go!"/tmp/etcd-grove-data/leasegrant.etcd"])
     (HEnv : verifyEnvOff leasegrantProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC leasegrantGF,
       ⊢ etcd_leasegrant.premises (GF := leasegrantGF) (hG := heapAtLgr hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/leasegrant.etcd"]),
     Robustness.Robust [] [(leasegrantProgram, σ)] g (2 ^ 28 - 1)
 
 end adequacy

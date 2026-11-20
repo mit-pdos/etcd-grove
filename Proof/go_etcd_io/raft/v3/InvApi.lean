@@ -166,12 +166,13 @@ def noDec : CCDec := fun _ _ => none
 
 
 /-- What the laws need of the cluster's names: raft's dynamic mode of the base decoder that decides
-nothing from `c0` (`noDec`), snapshots on, every data admitted, a registry of the snapshots made,
-and the client's decision map `g`. -/
+nothing from `c0` (`noDec`), every data admitted, a registry of the snapshots made, and the client's
+decision map `g`. (auth-lease S4, 2026-11-16: no longer snapshots on; the no-snapshot mode,
+`RaftNames.reNoSnap`, is the cluster's choice at allocation, L-r1.) -/
 def DecNames (γ : Cluster) (c0 : Membership) (g : GName) : Prop :=
   ∃ (h0 : CfgOk (stOf c0)), memValid c0 ∧
     γ.raft.dyn = some (DynCfg.ofFold noDec (stOf c0) h0) ∧
-    γ.raft.reNoSnap = false ∧ (∀ L d, γ.raft.reSnapOkRaw L d) ∧ γ.raft.reSnapReg ≠ none ∧
+    (∀ L d, γ.raft.reSnapOkRaw L d) ∧ γ.raft.reSnapReg ≠ none ∧
     γ.raft.reDec = some g
 
 /-- The cluster's names, and its nodes' mode the names' (`RNMode.all`); (2026-10-29, stage U11)
@@ -192,8 +193,8 @@ theorem cfgOf_inj {m1 m2 : Membership} (h : cfgOf m1 = cfgOf m2) : m1 = m2 := by
 /-- **The names' initial membership and decision map are the cluster's.** -/
 theorem ModeDec.uniq {γ : Cluster} {c1 c2 : Membership} {g1 g2 : GName}
     (h1 : ModeDec γ c1 g1) (h2 : ModeDec γ c2 g2) : c1 = c2 ∧ g1 = g2 := by
-  obtain ⟨⟨h01, -, hd1, -, -, -, hg1⟩, -⟩ := h1
-  obtain ⟨⟨h02, -, hd2, -, -, -, hg2⟩, -⟩ := h2
+  obtain ⟨⟨h01, -, hd1, -, -, hg1⟩, -⟩ := h1
+  obtain ⟨⟨h02, -, hd2, -, -, hg2⟩, -⟩ := h2
   refine ⟨?_, by rw [hg1] at hg2; exact Option.some.inj hg2⟩
   rw [hd1] at hd2
   have e := congrArg (fun D : DynCfg => D.fold ∅ []) (Option.some.inj hd2)
@@ -1494,12 +1495,13 @@ def SnapAtPure (γr : RaftNames) (k : SnapTrip) (L : List EntryM) (M : DecMap) :
 
 /-- **The snapshot `k` is certified** for the cluster: raft's configuration certificate, and its
 data what the cluster admits of a committed log as long as its index, which the client knows.
-(2026-10-27) Only outside raft's no-snapshot mode (a dynamic cluster's: `readySnap_dynamic`).
+(2026-10-27; auth-lease S4, 2026-11-16: in every mode, since a member of a cluster in raft's
+no-snapshot mode makes snapshots, only never installs one: `readySnap`'s mode fact.)
 (2026-10-28, stage U2) In a cluster that keeps a registry of the snapshots made
 (`RaftNames.reSnapReg`), what raft's `snapAtOk` says, of the client's committed log, and the
 registry's record of the snapshot (`snapRegOk`). -/
 def snapshotCert (γ : Cluster) (_N : Namespace) (k : SnapTrip) : IProp GF :=
-  iprop(⌜γ.raft.reNoSnap = false⌝ ∗ raftSnapCert γ.raft k ∗ ∃ (L : List EntryM) (M : DecMap),
+  iprop(raftSnapCert γ.raft k ∗ ∃ (L : List EntryM) (M : DecMap),
     isCommittedLogLb γ (strip L) ∗ decLb γ.raft M ∗
     ⌜IdxOk L ∧ L.length = uint.nat k.sid.index' ∧ γ.raft.reSnapOk L k.dat ∧ SnapAtPure γ.raft k L M⌝ ∗
     snapRegOk γ.raft k.sid.index' k.dat)
@@ -1517,7 +1519,7 @@ theorem IdxOk_base {L : List EntryM} (H : IdxOk L) :
   intro k e Hk; rw [H k e Hk]; push_cast; omega
 
 theorem snapshotCert_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
-    (Hns : γ.raft.reNoSnap = false) (k : SnapTrip) :
+    (k : SnapTrip) :
     ⊢ clusterInv (GF := GF) γ N -∗ raftSnapCertD γ.raft k ={E}=∗ snapshotCert γ N k := by
   iintro #Hci #Hk
   iunfold raftSnapCertD at Hk
@@ -1545,7 +1547,6 @@ theorem snapshotCert_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
   imodintro
   unfold snapshotCert
   iframe Hc
-  isplitr; · ipureintro; exact Hns
   iexists L, M
   iframe Hlb Hreg HM
   ipureintro; exact ⟨Hidx, HLp.1, HLp.2, Hap⟩
@@ -1555,7 +1556,7 @@ theorem raft_of_snapshotCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
     ⊢ clusterInv (GF := GF) γ N -∗ snapshotCert γ N k ={E}=∗ raftSnapCertD γ.raft k := by
   iintro #Hci #Hk
   iunfold snapshotCert at Hk
-  icases Hk with ⟨-, #Hc, %L, %M, #Hlb, -, %HL, #Hreg⟩
+  icases Hk with ⟨#Hc, %L, %M, #Hlb, -, %HL, #Hreg⟩
   imod api_lb_committed γ N E HE (strip L) $$ Hci Hlb with ⟨%D, %HD, #HDc⟩
   imod api_committed_lb γ N E HE D $$ Hci HDc with ⟨-, %HDi⟩
   have HDL : D = L := by
@@ -2022,7 +2023,7 @@ theorem sentMsg_snapshot_impl (γ : Cluster) (N : Namespace) (src : w64) (st : M
 /-- A message's snapshot certificate, from raft's (`isRaftMsg`'s abstraction and data
 certificate). -/
 theorem api_sentSnapCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
-    (Hns : γ.raft.reNoSnap = false) (src : w64) (st : MsgSt) :
+    (src : w64) (st : MsgSt) :
     ⊢ clusterInv (GF := GF) γ N -∗ isRaftMsg γ.raft src st ={E}=∗ sentSnapCert γ N st := by
   iintro #Hci #Hraft
   unfold sentSnapCert
@@ -2048,18 +2049,15 @@ theorem api_sentSnapCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
       unfold raftSnapCert; rfl
     · iExactEq Hd
       rfl
-  imod snapshotCert_of_raft γ N E HE Hns _ $$ Hci HD with #Hk
+  imod snapshotCert_of_raft γ N E HE _ $$ Hci HD with #Hk
   imodintro
   iright
   iexists sv
   iframe Hk
   ipureintro; exact Hsv
 
-/-- The cluster's names keep snapshots on. -/
-theorem UniNames.noSnap {γ : Cluster} {N : Namespace} (HU : UniNames γ N) :
-    γ.raft.reNoSnap = false := by
-  obtain ⟨⟨_, _, ⟨⟨_, _, _, h, _⟩, _⟩⟩, _⟩ := HU
-  exact h
+-- (auth-lease S4, 2026-11-16) `UniNames.noSnap` (the cluster's names keep snapshots on) deleted: the
+-- no-snapshot mode is the cluster's choice (L-r1); a sent `MsgSnap` is outside it (`isRaftMsg`).
 
 /-- A `MsgApp` is from the node that sent it (`AppFrom`). -/
 theorem sentMsg_appFrom_impl (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
@@ -2080,9 +2078,9 @@ theorem sentMsg_snap_bound (γ : Cluster) (N : Namespace) (src : w64) (st : MsgS
   ihave ⟨%sv, %Hsv, #Hk⟩ := sentMsg_snapshot_impl γ N src st Hty $$ Hs
   iunfold sentMsg at Hs
   icases Hs with ⟨-, -, -, -, -, %HU⟩
-  obtain ⟨⟨c0, g, ⟨⟨_, _, _, _, _, Hreg, _⟩, _⟩⟩, _⟩ := HU
+  obtain ⟨⟨c0, g, ⟨⟨_, _, _, _, Hreg, _⟩, _⟩⟩, _⟩ := HU
   iunfold snapshotCert at Hk
-  icases Hk with ⟨-, #Hc, -⟩
+  icases Hk with ⟨#Hc, -⟩
   iunfold raftSnapCert at Hc
   icases Hc with ⟨-, -, -, #Hat⟩
   iunfold snapAtOk at Hat
@@ -2137,7 +2135,9 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       snapLocal γ.raft id l.snap.Metadata'.Index' ∗
       -- (2026-11-01, J8b) past the bootstrap log: `restore` takes only an index above the commit
       -- index, which starts at the bootstrap log's length
-      ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝)
+      ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗
+      -- (auth-lease S4, 2026-11-16, L-r3) outside the cluster's no-snapshot mode (`clusterNoSnap`)
+      ⌜¬ γ.raft.reNoSnap = true⌝)
 
 /-- (raft-entsize §2, 2026-11-09) **A message a `Ready` hands out** (the draft's `msgOut`): owned at
 `dq` holding `st`, at a content raft pinned, in the handed-out set (`msgOutR`). -/
@@ -2164,7 +2164,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
     -- (restart S7.3, 2026-11-14) each message's `MsgSnap` facts (`snapToOk`: not to the node, to a
     -- voter or learner of a committed log's configuration), before the batch is durable
     ([∗list] q ∈ ms, snapToOk γ.raft id q.st) ∗
-    hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
+    hsOptC rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧
@@ -2320,7 +2320,7 @@ theorem api_msg (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (�
   iintro #Hci #Hpool ⟨Ho, #Hraft, #Htlb⟩ Htk
   ihave #Hraft' : isRaftMsg γ.raft γn.id q.st $$ []
   · rw [← Hγr]; iexact Hraft
-  imod api_sentSnapCert γ N E HE HU.noSnap γn.id q.st $$ Hci Hraft' with #Hsc
+  imod api_sentSnapCert γ N E HE γn.id q.st $$ Hci Hraft' with #Hsc
   imodintro
   iframe Ho
   unfold sentMsg msgCredits
@@ -2417,7 +2417,7 @@ theorem api_sentMsgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ 
     icases BigSepL.bigSepL_cons.1 $$ Ht with ⟨#Ht1, Ht⟩
     ihave #Hraft' : isRaftMsg γ.raft γn.id q.st $$ []
     · rw [← Hγr]; iexact Hr1
-    imod api_sentSnapCert γ N E HE HU.noSnap γn.id q.st $$ Hci Hraft' with #Hsc
+    imod api_sentSnapCert γ N E HE γn.id q.st $$ Hci Hraft' with #Hsc
     imod ih $$ Hci Hpool Hr Ht with H
     imodintro
     iapply BigSepL.bigSepL_cons.2
@@ -2985,7 +2985,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
     icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
-      ⟨%h, Hhs, %Hp'⟩, #Hhw, -, #Hidx, Hsnap, #Hdlv, #Hloc, %Hbl, #HD, -, %Hfacts, Hout⟩
+      ⟨%h, Hhs, %Hp'⟩, #Hhw, -, #Hidx, Hsnap, #Hdlv, #Hloc, %Hbl, %Hrns, #HD, -, %Hfacts, Hout⟩
     obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
     subst Hce0
     icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
@@ -3010,7 +3010,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     -- (2026-10-31) the witness of the hard state handed out, bounding the log up to the snapshot
     imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' l.dlv.length $$ Hci [Hhw] with #Hhc
     · rw [← Hγr]; iexact Hhw
-    imod snapshotCert_of_raft γ N ⊤ CoPset.subseteq_top HU.noSnap _ $$ Hci [HD] with #Hcert
+    imod snapshotCert_of_raft γ N ⊤ CoPset.subseteq_top _ $$ Hci [HD] with #Hcert
     · rw [← Hγr]; iexact HD
     iunfold readyIdx at Hidx
     icases Hidx with ⟨%Lx, #Hlr, %HLx⟩
@@ -3086,7 +3086,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       isplitr
       · iExactEq Hloc
         first | rw [Hγr] | rw [← Hγr] | simp only [Hγr]
-      ipureintro; rw [← Hγr]; exact Hbl
+      isplitr
+      · ipureintro; rw [← Hγr]; exact Hbl
+      ipureintro; rw [← Hγr, Hrns]; decide
     isplitr
     · iexact Hlm
     isplitl [Henter]
@@ -3782,7 +3784,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
   ihave #Hdat := isRaftMsg_dat γ.raft src st $$ Hraft
   ihave #Hraft0 := Hraft
   iunfold isRaftMsg at Hraft
-  icases Hraft with ⟨%Hsh, ⟨%a, %Habs, #Hl⟩, -, -, #Hxw, -⟩
+  icases Hraft with ⟨%Hsh, ⟨%a, %Habs, #Hl⟩, -, -, #Hxw, -, %Hnsm⟩
   have Hrs : st.resps = [] := Hsh.2.2.2.2.2.2.2
   have Hst : (⟨st.msg, st.ents, st.snap, st.ctx, []⟩ : MsgSt) = st := by
     cases st; simp only at Hrs ⊢; rw [Hrs]
@@ -3895,7 +3897,10 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
       rw [Hsv] at Hsv'; cases Hsv'
       iexists sv, sv.Metadata'.ConfState'.lists
       isplitr
-      · ipureintro; exact ⟨Hsv, rfl, Hix⟩
+      · ipureintro; refine ⟨Hsv, rfl, Hix, ?_⟩
+        cases Hc : γ.raft.reNoSnap
+        · rfl
+        · exact absurd Hty (Hnsm Hc)
       isplitr
       · simp only [Option.toList_some]
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ.raft x)).1

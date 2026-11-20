@@ -16,6 +16,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.TopLevel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -64,7 +65,9 @@ def etcd_leaseN_robust.spec : Prop :=
     (HEnv : verifyEnvOff (leaseNProgram k))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_leaseN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_leaseN.leaseNDirs k)),
     Robustness.Robust [] [(leaseNProgram k, σ)] g (2 ^ 28 - 1)
 
 end adequacy

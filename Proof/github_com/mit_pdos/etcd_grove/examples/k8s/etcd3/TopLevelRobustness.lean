@@ -40,12 +40,12 @@ variable [go_gctx : GoGlobalContext]
 (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/TopLevelRobustness.lean`). -/
 theorem k8s_etcd3_robust : k8s_etcd3_robust.spec := by
   intro lctx sem package_sem cache_sem _ _ _ _ _ _ _ Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo
-    clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv Hprem σ g Hfs
+    clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv Hprem σ g Hfs HWal
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
       (k8s_etcd3_safe
         Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops
-        Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec
+        Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec
         (by omega)).2
 
 /-- `k8s_etcd3_cluster_robust.spec`
@@ -53,12 +53,12 @@ theorem k8s_etcd3_robust : k8s_etcd3_robust.spec := by
 theorem k8s_etcd3_cluster_robust : k8s_etcd3_cluster_robust.spec := by
   intro lctx sem package_sem cache_sem _ _ _ _ _ _ _ Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf
     Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv Hprem
-    σ g Hfs
+    σ g Hfs HWal
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
       (k8s_etcd3_cluster_safe
         Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0
-        Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2
+        Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2
         κs t2 σ2 hexec (by omega)).2
 
 /-- `k8s_etcd3_partition_robust.spec`
@@ -66,12 +66,12 @@ theorem k8s_etcd3_cluster_robust : k8s_etcd3_cluster_robust.spec := by
 theorem k8s_etcd3_partition_robust : k8s_etcd3_partition_robust.spec := by
   intro lctx sem package_sem cache_sem _ _ _ _ _ _ _ Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf
     Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs
-    HDs HEnv Hprem σ g Hfs
+    HDs HEnv Hprem σ g Hfs HWal
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
       (k8s_etcd3_partition_safe
         Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0
-        Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1
+        Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1
         hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
 end adequacy

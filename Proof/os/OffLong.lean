@@ -10,6 +10,7 @@ module
 
 public import Proof.os.Off
 public import Spec.os.WriteLong
+public import Proof.os.ErrorOk
 
 @[expose] public section
 
@@ -43,7 +44,8 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     {{ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗ sl ↦*{dqs} ([] : List w8) }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Write")) (Val #sl))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        ⌜n = W64 0⌝ ∗ os.ownFile f fd name dqf ∗ os.ownOff f o ∗ sl ↦*{dqs} ([] : List w8) }} := by
+        ⌜n = W64 0⌝ ∗ os.ownFile f fd name dqf ∗ os.ownOff f o ∗ sl ↦*{dqs} ([] : List w8) ∗
+        fmtErrorOkOrNil err }} := by
   unfold os.ownOff
   wp_start as ⟨Hf, ⟨%inner, #Hfi, Ho⟩, Hsl⟩
   unfold os.model.inner
@@ -74,15 +76,20 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     iframe Hf Hsl
     isplitr
     · ipureintro; rfl
-    iexists inner; iframe; iassumption
+    isplitl
+    · iexists inner; iframe; iassumption
+    iapply fmtErrorOkOrNil_nil
   · rw [decide_eq_false he]
     wp_auto
-    wp_apply os.wp_wrapErrno _ inner name e $$ Hn0 as %pe
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn0 as %pe #Hpe
     iapply HΦ
     iframe Hf Hsl
     isplitr
     · ipureintro; rfl
-    iexists inner; iframe; iassumption
+    isplitl
+    · iexists inner; iframe; iassumption
+    iapply fmtErrorOkOrNil_of
+    iexact Hpe
 
 /-- `f.Write(b)` of a non-empty `b` of any length on an open fd at the offset `o` (`0 ≤ o ≤ size`,
 `o + len(b) < 2^62`), over `WriteAt`'s spec of any length at `o`: on success `len(b)`, the offset
@@ -110,7 +117,8 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
          (∃ (j A E : Nat) (ys : List ByteG), ⌜err ≠ interface.nil ∧ j ≤ A ∧ A ≤ data.length ∧
               os.PwOutA m o.toNat data A j xs ys ∧ os.PwCutE o.toNat data.length j E⌝ ∗
             osMeta d.ino (DFrac.own 1) (os.pwPostE m o.toNat A j E) ∗
-            osBytes d.ino o.toNat (DFrac.own 1) ys ∗ os.ownOff f (W64 (-1)))) }} := by
+            osBytes d.ino o.toNat (DFrac.own 1) ys ∗ os.ownOff f (W64 (-1)))) ∗
+        fmtErrorOkOrNil err }} := by
   unfold os.ownOff
   wp_start as ⟨#Hinv, Hf, ⟨%inner, #Hfi, Ho⟩, Hsl, Hosfd, Hm, Hbs, Hmc⟩
   unfold os.model.inner
@@ -146,7 +154,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
   wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d m xs hwr h0 hle h63 hn hlo hxs
-    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %A, %E, %ys, %Hres, Hm, Hbs, Hmc, -⟩
+    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %A, %E, %ys, %Hres, Hm, Hbs, Hmc, #Hek⟩
   · iframe; iexact Hinv
   obtain ⟨hjA, hAn, -, -, hEA, hout, hcut, hr⟩ := Hres
   cases err with
@@ -160,7 +168,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
       pwPost m o.toNat data.length data.length from rfl]
     wp_auto
     iapply HΦ
-    iframe Hf Hsl Hosfd Hmc
+    iframe Hf Hsl Hosfd Hmc Hek
     ileft
     iexists ys
     iframe Hm Hbs
@@ -171,7 +179,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     wp_auto
     wp_apply wp_ArbitraryInt as %x _
     iapply HΦ
-    iframe Hf Hsl Hosfd Hmc
+    iframe Hf Hsl Hosfd Hmc Hek
     iright
     iexists j, A, E, ys
     iframe Hm Hbs

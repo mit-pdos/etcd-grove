@@ -3,6 +3,7 @@
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth 4
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth3 5
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/authN 4
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/authlease 5
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/cache 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compacted 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 1
@@ -31,6 +32,7 @@ spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness 
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth 5
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth3 5
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/authN 3
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/authlease 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/cache 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compacted 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch 2

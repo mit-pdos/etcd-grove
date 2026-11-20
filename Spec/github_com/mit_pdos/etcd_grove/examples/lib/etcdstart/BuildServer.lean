@@ -94,7 +94,7 @@ abbrev BuildServer.spec : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
-          leaseTTLRowR s ps ∗ srvDataDir s (name ++ go!".etcd")) }}
+          leaseTTLRowR s ps ∗ srvDataDir s (memberDataDir name)) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev BuildServer.specRestart : Prop :=
@@ -133,7 +133,7 @@ abbrev BuildServer.specRestart : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
-          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd")) }}
+          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (memberDataDir name)) }}
 
 end spec
 

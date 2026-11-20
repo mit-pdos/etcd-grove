@@ -163,7 +163,7 @@ def srvApplyAllBuilt (s : Loc) (γr : ReadNames) : IProp GF :=
     -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`); (R2d'a A7,
     -- 2026-11-06, DRAFT) its node's id the server's member id (`isServerApplyAll`'s); (restart3 A1,
     -- 2026-11-15) the wrapper's node and its inbound methods, for `ReportSnapshot`
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
+    (∃ γm : RNNames GF, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc ∗
       rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γm ∗ rnStepIfc γm (rnNodeIface γm)) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s ∗
@@ -219,7 +219,7 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
-    (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
+    (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ srvApplyKVW E ua x₀) ∗
     revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKV`'s)
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
@@ -257,7 +257,7 @@ def srvTpPend (s : Loc) (M : auth.AuthMode) : IProp GF :=
 /-- **The construction premise** (see the file header; named conjuncts, what a `NewServer` proof
 discharges). -/
 def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     IProp GF :=
   iprop(-- the server's views but the fields `start` sets
@@ -330,7 +330,10 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
     -- (2026-10-30, the repair, P10: no run-length premise; until then the receipts' bound at most
     -- the value `start` sets, `5000` for `0`, plus one)
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
+    -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode at least the
+    -- receipts' bound (`isServerApplyAll`'s, `compactRaftLog` at index `1`)
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
+      ⌜clusterNoSnap γr.raft.raft.cl → receiptBound GF ≤ uint.Z n⌝) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     -- the ghost state `start` hands on

@@ -59,12 +59,12 @@ abbrev Open.spec : Prop :=
     (qc : Qp) (h : NamesH) (mode : w32) (opts : Loc) (dqo : DFrac) (o : OptsM) (D : Data),
   NameOk b →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⌜↑N ## ↑osN⌝ ∗
-      osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
+      osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
       nameHolds h b D ∗
       optsAtNoErr opts dqo o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #(child d b))) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAtNoErr opts dqo o ∗
-      osPathS R d dq j ∗ osCallPerm qc ∗
+      osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       (∃ oc : Option (Nat × Nat × Ino), crOut j b h (DFrac.own 1) oc ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
             ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗

@@ -9,7 +9,7 @@ registered (the names fragment `some dir`, `Create`'s pending registration) and 
 and its success exit. `renameWAL`'s two success arms converge on it (arm 1 through `Create`'s assembly,
 arm 2 as the retry returns it). At the success exit the parent's fsync gives `walNamed dir`
 (`walInv_named`), the registration turns the names fragment to `none` (`walInv_register`), and
-`walOpenWFU_seal` makes the client handle `walOpenWF`; on a cleanup `Close.specU` gives the pinned paths and
+`walOpenWFU_seal` makes the client handle `walOpenWF`; on a cleanup `Close.spec` (state `unnamed`) gives the pinned paths and
 the fragment back. `walDirH_split`/`walHandleIn_split` take the names fragment out and put another back,
 the naming fact changed; `walPipeH_mono` weakens the pipeline's pin. `walOpenWFU_dirAcc` lends the `dir`
 field (`Create` reads `w.dir` after `renameWAL`), `walOpenWFU_permAcc` the handle's quarter of the call
@@ -65,11 +65,11 @@ theorem walDirH_split (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name :
         (∀ R q, A R q -∗ B R q) -∗ walDirH (W := W) dir j dfd ino name k lfs cuts B nf' := by
   iintro Hd
   unfold walDirH
-  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hperm, Hdfd, Ha, Ho, Ht, Hnf, Hrest⟩
+  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hrw, Hperm, Hdfd, Ha, Ho, Ht, Hnf, Hrest⟩
   iframe Hnf
   iintro %nf' Hnf' Hw
   iexists R, q, X, hj, nm0, ph
-  iframe Hk Hn Hp Hsi Hperm Hdfd Ho Ht Hnf' Hrest
+  iframe Hk Hn Hp Hsi Hrw Hperm Hdfd Ho Ht Hnf' Hrest
   iapply Hw $$ Ha
 
 /-- **The pipeline's pin weakened.** -/
@@ -154,8 +154,8 @@ theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
 /-- **The handle's quarter of the call permission, lent** (`Create`'s parent fsync after `renameWAL`). -/
 theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
     (qp : Qp) (tf : Loc) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ osCallPerm (1 : Qp).half.half ∗
-      (osCallPerm (1 : Qp).half.half -∗ walOpenWFU (W := W) P Mr w dir Rp qp tf) := by
+    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
+      (osCallPerm (callKey W.roots dir) (1 : Qp).half.half -∗ walOpenWFU (W := W) P Mr w dir Rp qp tf) := by
   iintro H
   unfold walOpenWFU
   icases H with ⟨%h, Hh, Hr⟩
@@ -163,15 +163,17 @@ theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : G
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
     H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, Hd, Hh⟩
   unfold walDirH
-  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hperm, Hd⟩
+  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, %hRW, Hperm, Hd⟩
+  subst hRW
   iframe Hperm
   iintro Hperm
   iexists h
   iframe Hr
   iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
   iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 Hh
-  iexists R, q, X, hj, nm0, ph
+  iexists W.roots, q, X, hj, nm0, ph
   iframe Hk Hn Hp Hsi Hperm Hd
+  try (ipureintro; rfl)
 
 /-- **The fresh WAL's lower bounds** (`Create.spec`'s success post): its empty history written and
 synced, from the purge right's handle name and a past state with the fresh WAL. -/

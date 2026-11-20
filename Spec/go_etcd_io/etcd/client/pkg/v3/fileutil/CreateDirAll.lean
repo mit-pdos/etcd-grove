@@ -35,10 +35,10 @@ abbrev fileutil.CreateDirAll.spec : Prop :=
   ∀ (lg : Loc) (R : Roots) (jp : Ino) (d parent name : GoString) (qp : Qp) (h : NamesH),
   d = child parent name → NameOk name → d.length < 2 ^ 60 → h.cur !! name = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗
-      zapLoggerOk (GF := GF) lg ∗ osInv ∗ osSharedInv R ∗ osPathS R parent (DFrac.own qp) jp ∗
-      osCallPerm 1 ∗ osNames jp (.only [name]) (DFrac.own 1) h }}
+      zapLoggerOk (GF := GF) lg ∗ osInv ∗ osSharedInv R ∗ osAboveInv ∗ osPathS R parent (DFrac.own qp) jp ∗
+      osCallPerm (callKey R parent) 1 ∗ osNames jp (.only [name]) (DFrac.own 1) h }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.CreateDirAll)) (Val #lg)) (Val #d))
-  {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm 1 ∗
+  {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm (callKey R parent) 1 ∗
       ((⌜err ≠ interface.nil⌝ ∗ ∃ h', tmpDirH jp name h') ∨
         (⌜err = interface.nil⌝ ∗ ∃ (h' hJ : NamesH) (J : Ino) (n : Nat),
           ⌜h'.cur !! name = some (.dir J) ∧ h'.next ≤ n ∧ hJ.cur = ∅⌝ ∗

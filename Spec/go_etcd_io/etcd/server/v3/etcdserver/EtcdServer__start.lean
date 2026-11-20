@@ -51,7 +51,7 @@ construction premise carries (`srvBuiltRestartR`: `P = []` at a first start, the
 prefix of the backend's log at a restart). -/
 abbrev EtcdServer.start.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
+    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗

@@ -63,7 +63,7 @@ theorem startMember.wp_proof
   iunfold etcdstart.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, hlgf⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, -⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -83,8 +83,10 @@ theorem startMember.wp_proof
   -- `NewServer(cfg)` with auth on
   -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
   icases etcdstart.memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
+  have Hcu48 : (2 : Int) ^ 48 ≤ uint.Z (W64 281474976710656) := by word
   wp_apply (wp_NewServer _ ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule)
+      (fun _ => Hcu48) hc0 hch hlog hkcmp
       ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))
@@ -96,7 +98,7 @@ theorem startMember.wp_proof
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (fun _ => ⟨rfl, by word, by word⟩)
       -- (2026-11-04, the lease-expiry plan's Part C) the lease slot: auth on grants no lease
-      (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf))
+      (lease.bootCfg_none _ _ (lease.runCfg_lm hslg))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl)
@@ -109,7 +111,7 @@ theorem startMember.wp_proof
     · iapply Hboot
       ipureintro
       refine ⟨?_, HU, hvs, hrule, hboot⟩
-      unfold cfgOk; simp
+      unfold cfgOk; simp [memberDataDir]
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl
@@ -120,7 +122,7 @@ theorem startMember.wp_proof
     · iunfold memStorRegAuth; iexact Hreg
     -- the WAL's slot (`wal.bootRes`), from the member's fresh bundle
     isplitl [Hfresh]
-    · iapply etcdstart.memberFreshRes_boot _ _ _ rfl rfl; iexact Hfresh
+    · iapply etcdstart.memberFreshRes_boot _ _ _ rfl (srvWalDirOf_lit _); iexact Hfresh
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Haf
@@ -179,13 +181,16 @@ theorem startMember.wp_proof
     iapply isServerBuilt_of_gapM
     iframe
   iunfold srvMonitorCfg at Hmon
-  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
+  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm, #Hmw⟩
   ihave #Hoff : srvMonitorsOff srv $$ []
   · iunfold srvMonitorsOff
     isplitr; · iExactEq Hmc; rfl
     isplitr; · iExactEq Hmd; rfl
-    iexists _
-    iframe Hmf Hfgc
+    isplitr
+    · iexists _
+      iframe Hmf Hfgc
+    -- (wal-link L2) no WAL purge: the literal leaves `MaxWALFiles` zero
+    iExactEq Hmw; rfl
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row
@@ -217,6 +222,8 @@ theorem startMember.wp_proof
   ihave #Hrd' : isServerReadM E.authOn srv E ρ.rd $$ []
   · rw [hon]; iexact Hrd
   iclear Hreq Hrd
+  ihave #Hlr : etcdstart.srvLeaseRd srv E .none $$ []
+  · iapply etcdstart.srvLeaseRd_of_srvInv srv E .none _ $$ Hlsrv
   iapply etcdstart.memberUpOn_intro _ _ _ _ _ _ _ E _ γw
   -- (per-type stage B2) the raw run-pool stocks first, framed explicitly; the pure part last (the
   -- configuration is found by the framing)
@@ -238,6 +245,7 @@ theorem startMember.wp_proof
       iapply srvTLSId_false srv $$ [Ht]
       iframe Ht
       iExactEq Hcca; rfl
+    -- (auth-lease S4) the lessor's reader side `Hlr` is framed by `iframe #` above
     iapply HBF; ipureintro; first | rfl | trivial
   ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
 

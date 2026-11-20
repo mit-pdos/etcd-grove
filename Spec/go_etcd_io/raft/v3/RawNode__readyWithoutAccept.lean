@@ -55,7 +55,7 @@ others) holds the pointers of `ms : List QMsg`, each message owned at `readyDq` 
 `To`; the application gets those read-only, `nonissues/raft-ready-messages-read-after-handout.md`;
 every other message whole); `Habandon` takes them back. `Entries`/`CommittedEntries` are
 `entsRO` (`[]*pb.Entry`, read-only), the read states `readStatesPts` (their contexts bytes, D6),
-`rd.Snapshot` `nil` (was the zero `Snapshot`), and the hard state `hsOpt rd.HardState' h` (new:
+`rd.Snapshot` `nil` (was the zero `Snapshot`), and the hard state `hsOptC rd.HardState' h` (new; canonical since 2026-11-17:
 the `Ready` hands out `hardState()`'s fresh pointer, or `nil`). (D22 S-b, 2026-10-19: with the
 witness `hsWit` of a non-`nil` one: the node's term and commit index at the `Ready`, `commitWit`,
 and the committed log handed out within the commit index.) (D22l, 2026-10-20: the witness is of
@@ -113,7 +113,7 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateRaw γ st) ∗
       -- (2026-10-16, stage R5) the hard state: `nil` when unchanged, else `hardState()`'s fresh
       -- read-only one
-      "#Hhard" ∷ hsOpt rd.HardState' h ∗
+      "#Hhard" ∷ hsOptC rd.HardState' h ∗
       -- (D22 S-b) a non-`nil` one is the node's hard state: its witness (`hsWit`), bounding the
       -- committed log handed out; (D22l) of `prevHardSt` after the `Ready` (`phsNext`): a `nil`
       -- or empty one leaves the witness `prevHardSt`'s (`rs.phs`), the node's hard state then

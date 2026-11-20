@@ -46,7 +46,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (Mr : WalMarshal) 
   InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
-      osCallPerm 1 ∗ walSnapIdTerm sp s ∗ WalFs.walUnlockedTok ∗
+      osCallPerm (callKey R r) 1 ∗ walSnapIdTerm sp s ∗ WalFs.walUnlockedTok ∗
       AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
         <{ WalFs.walDirIs dir (if write then o.map (fun d =>
             { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) s.1) }) else o), COMM Q o }> }}
@@ -54,13 +54,13 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (Mr : WalMarshal) 
       (Val #dir)) (Val #sp)) (Val #write))
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ ∃ o : Option WalDur, Q o ∗
-      ((⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walUnlockedTok ∗ osCallPerm 1 ∗
+      ((⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R r) 1 ∗
         ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) ∨
        (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) ∗
         if write then iprop(WalFs.walOpening w dir s ∗ walReadH true w dir s ∗
-          osCallPerm (1 : Qp).half.half ∗ osCallPerm (1 : Qp).half)
-        else iprop(WalFs.walLockedTok ∗ walReadH false w dir s ∗ osCallPerm 1))) }}
+          osCallPerm (callKey R r) (1 : Qp).half.half ∗ osCallPerm (callKey R r) (1 : Qp).half)
+        else iprop(WalFs.walLockedTok ∗ walReadH false w dir s ∗ osCallPerm (callKey R r) 1))) }}
 
 end spec
 

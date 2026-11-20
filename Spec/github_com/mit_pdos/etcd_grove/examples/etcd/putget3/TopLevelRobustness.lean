@@ -14,6 +14,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -57,11 +58,13 @@ def etcd_putget3_robust.spec : Prop :=
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
-    (HDs : dataDirsAbsent putget3Program [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")])
+    (HDs : dataDirsAbsent putget3Program [(memberDataDir etcd_putget3.name₁), (memberDataDir etcd_putget3.name₂), (memberDataDir etcd_putget3.name₃)])
     (HEnv : verifyEnvOff putget3Program)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ etcd_putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_putget3.name₁), (memberDataDir etcd_putget3.name₂), (memberDataDir etcd_putget3.name₃)]),
     Robustness.Robust [] [(putget3Program, σ)] g (2 ^ 28 - 1)
 
 end adequacy

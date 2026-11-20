@@ -38,6 +38,7 @@ theorem makeTracingState.wp_proof
   wp_start as Hphys
   wp_auto
   wp_apply wp_raft_hardState r id s $$ [$Hphys] as %p ⟨#Hhs, Hphys⟩
+  ihave #Hhs := hsROC_hsRO _ _ $$ Hhs
   wp_apply wp_HardState_GetTerm.1 $$ [$Hhs]
   wp_apply wp_HardState_GetVote.1 $$ [$Hhs]
   wp_apply wp_FormatUint

@@ -37,7 +37,8 @@ theorem member.saveSnap.wp_proof
     (wp_store : storeOracle.spec (GF := GF) (hG := hG))
     (wp_newU64 : newU64.spec (GF := GF) (hG := hG))
     (wp_SaveSnapshot : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) (Sio := ioNone) (walRaftP (GF := GF))
+        walRaftMr) :
     member.saveSnap.spec (GF := GF) (hG := hG) := by
   intro W e γ m w v o os c d qc idx term hf hok hhs hi ht hsm1 hsim hcwf
   wp_start as Hres
@@ -84,9 +85,13 @@ theorem member.saveSnap.wp_proof
   · isplitl []
     · iexact Hsl
     · iexact Hnm
-  wp_apply (wp_store W e γ _ os (tSnapO1 o idx term) (some d) qc hf hsm1) $$ [Hh Hperm Hrep1 Ho Hwo]
+  iunfold tPerm at Hperm
+  icases Hperm with ⟨Hpw_, Hperm⟩
+  wp_apply (wp_store W e γ _ os (tSnapO1 o idx term) (some d) 1 hf hsm1) $$ [Hh Hperm Hrep1 Ho Hwo]
     as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
   · iframe; iframe #
+  ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+  · iunfold tPerm; iframe
   try wp_auto
   -- the literal
   wp_apply wp_slice_literal
@@ -102,16 +107,29 @@ theorem member.saveSnap.wp_proof
     «$v1» with #Hsnap
   ihave Hau := tInv_snapAu W e γ o c d idx term hok hi ht hsim $$ [Hwo Ho]
   · iframe; iframe #
-  wp_apply (wp_SaveSnapshot W e.R e.jr e.area w (tWalDir e.area) «$a0_ptr» (absSnapMd idx term) true true
-      _) $$ [Hwf Hau]
+  -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and taken back after it
+  iapply fupd_wp
+  imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
+    with ⟨%γs, Hws⟩
+  · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+  imodintro
+  wp_apply (lc := 1) (wp_SaveSnapshot W e.R e.jr e.area w (tWalDir e.area) (.shared γs 1) «$a0_ptr»
+      (absSnapMd idx term) true true _) $$ [Hws Hau]
     as %err Hr
-  · iframe; iframe #
+  · dsimp only
+    iframe; iframe #
     ipureintro
-    refine ⟨Or.inr rfl, ?_, absSnapMd_enc_lt idx term⟩
+    refine ⟨Or.inr rfl, Or.inr rfl, ?_, absSnapMd_enc_lt idx term⟩
     show uint.nat idx < 2 ^ 64 - 1
     omega
-  icases Hr with (⟨%Herr, Hwf, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, #Hsy⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)
+  icases Hr with (⟨%Herr, Hws, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, #Hsy⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)
   · subst Herr
+    iapply fupd_wp
+    imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [Hws Hlc1]
+      with Hwf
+    · iframe Hws Hlc1
+    imodintro
+    ihave Hwf := walHdl_wf (W := W) ioNone _ _ _ _ $$ Hwf
     subst d0
     try wp_auto
     have hd' := tMemOk_snap1 hok hi ht hsim
@@ -123,10 +141,14 @@ theorem member.saveSnap.wp_proof
       · iexact Hnm
     have hsm2 : tOrSmall (tSnapO o idx term) := by
       unfold tOrSmall at *; rw [tEncodeOracle_snapO]; rw [tEncodeOracle_snapO1] at hsm1; exact hsm1
+    iunfold tPerm at Hperm
+    icases Hperm with ⟨Hpw_, Hperm⟩
     wp_apply (wp_store W e γ _ (tSnapO1 o idx term) (tSnapO o idx term) (some (tSnapD d idx term))
-        qc hf hsm2) $$ [Hh Hperm Hrep1 Ho Hwo]
+        1 hf hsm2) $$ [Hh Hperm Hrep1 Ho Hwo]
       as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
     · iframe; iframe #; unfold tSnapO; iexact Hrel2
+    ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+    · iunfold tPerm; iframe
     try wp_auto
     iapply HΦ
     iunfold memOpPost
@@ -149,7 +171,7 @@ theorem member.saveSnap.wp_proof
     rw [show (tSnapD d idx term).H.length = d.H.length + 1 by simp [tSnapD]]
     iexact Hlen1
   · cases err with
-    | nil => exact absurd rfl Herr
+    | nil => exact absurd rfl Herr.1
     | ok ie =>
     try wp_auto
     iapply HΦ

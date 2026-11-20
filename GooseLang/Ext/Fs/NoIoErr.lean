@@ -110,7 +110,7 @@ theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Ex
     · rfl
     · rfl
   · -- Rename
-    obtain ⟨s, t, k, start, -, -, -, -, -, h⟩ := hs
+    obtain ⟨s, t, k, start, -, -, -, -, -, -, h⟩ := hs
     rcases h with ⟨-, o, -, ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩⟩ | ⟨-, -, rfl, -⟩ | ⟨e, -, -, rfl⟩ <;> rfl
   · -- Mkdir
     obtain ⟨p, k, start, -, -, -, h⟩ := hs

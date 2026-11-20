@@ -41,7 +41,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.wp_proof
   icases Hdeps with ⟨-, #Hospkg, #Hfp, #Hsync, -⟩
   iunfold durHandle at Hh
   icases Hh with ⟨%p, Hh, %halt⟩
-  ihave Howe : durWOwe γ f data p iprop(durHandle γ f R -∗ osCallPerm qc -∗ Φ #()) $$ [Hau]
+  ihave Howe : durWOwe γ f data p iprop(durHandle γ f R -∗ osCallPerm (callKey R f.d) qc -∗ Φ #()) $$ [Hau]
   · iunfold durWOwe; ileft; iframe Hau; ipureintro; exact halt
   wp_func_call; (try wp_call); (try wp_auto)
   wp_apply wp_with_defer as %defer defer
@@ -50,7 +50,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.wp_proof
     iprop(True) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
   (try wp_auto)
   ihave Hst : ∃ p : DurPhys, durHandleP γ f R p ∗
-      durWOwe γ f data p iprop(durHandle γ f R -∗ osCallPerm qc -∗ Φ #()) $$ [Hh Howe]
+      durWOwe γ f data p iprop(durHandle γ f R -∗ osCallPerm (callKey R f.d) qc -∗ Φ #()) $$ [Hh Howe]
   · iexists p; iframe
   wp_for
   icases Hst with ⟨%p', Hh, Howe⟩

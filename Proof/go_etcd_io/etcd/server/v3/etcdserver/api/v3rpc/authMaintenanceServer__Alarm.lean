@@ -36,8 +36,8 @@ theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
     (hR : v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG))
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.Alarm.spec (GF := GF) (hG := hG) := by
-  intro p ms aa s E ctx cd ar act Pin Q n
-  wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, HRD, HPin, #Hact, #Hin⟩
+  intro p ms aa s E ctx cd tok ar act Pin Q n
+  wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, #HtokC, HRD, HPin, #Hact, #Hin⟩
   ihave #Hams' := Hams
   iunfold v3rpc.amsIs at Hams'
   icases Hams' with ⟨%Hpn, #Hms, #Haaf⟩
@@ -49,7 +49,7 @@ theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
   by_cases hact : a = W32 0
   · rw [_root_.decide_eq_true hact]
     (try wp_auto)
-    wp_apply (hR p ms aa s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
+    wp_apply (hR p ms aa s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
     · iframe #
     ihave #Hout := authedOut_of_C _ _ _ _ _ $$ HoutC
     iunfold authedOut at Hout
@@ -87,7 +87,7 @@ theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
       iexact HQ
   · rw [_root_.decide_eq_false hact]
     (try wp_auto)
-    wp_apply (hP p ms aa s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
+    wp_apply (hP p ms aa s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
     · iframe #
     ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
     iunfold adminOut at Hout

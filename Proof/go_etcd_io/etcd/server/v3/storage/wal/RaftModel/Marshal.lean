@@ -36,7 +36,7 @@ variable [GooseExts]
 def walRaftMr : WalMarshal where
   encEntry := walEncEnt
   encState h := hsEnc (walHsCanon h)
-  encSnap m := snapEnc (walSnapCanon m)
+  encSnap m al := snapEnc (walSnapCanon m al)
   snap0 := snapEnc snapC0
 
 /-- **The raftpb instance's unmarshaller** (see the file header). -/
@@ -49,9 +49,9 @@ def walRaftU : WalUnmarshal where
 theorem walRaftU_ok : walRaftU.Ok walRaftMr where
   entry e := walDecEnt_enc e
   state h := walDecHs_enc h
-  snap m := walDecSnap_enc m
+  snap m al := walDecSnap_enc m al
   snap0 := by
-    have := walDecSnap_enc snapC0.model
+    have := walDecSnap_enc snapC0.model true
     rw [walSnapCanon_snapC0] at this
     exact this
 
@@ -62,7 +62,8 @@ theorem walRaftU_snapCoh : walRaftU.SnapCoh := by
   unfold walDecSnap at hs
   split at hs
   · rename_i h
-    refine ⟨walSnapCanon (Classical.choose h), walSnapCanon_levels _, Classical.choose_spec h, ?_⟩
+    refine ⟨walSnapCanon (Classical.choose h) (Classical.choose (Classical.choose_spec h)),
+      walSnapCanon_levels _ _, Classical.choose_spec (Classical.choose_spec h), ?_⟩
     rw [walSnapCanon_model]
     exact Option.some.inj hs
   · cases hs

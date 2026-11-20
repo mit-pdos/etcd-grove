@@ -54,6 +54,7 @@ theorem storeOracle.wp_proof
   wp_apply wp_enc $$ [$Hrep] as Hrep
   icases Hdeps with ⟨#Hdpkg, -⟩
   rw [show tOrPath e.orDir = e.orFile.name from (tOrPath_child e.orDir).symm]
+  ihave Hperm := osCallPerm_congr qc (show callKey e.R e.orDir = callKey e.R e.orFile.d from rfl) $$ Hperm
   wp_apply (wp_Write γ.γd e.orFile e.R qc (tEncodeOracle o') hf hs) $$ Hdpkg Hos Hsi Hdi Hh Hperm
     [Ho Hw Hrep HΦ]
   · iauintro
@@ -126,6 +127,7 @@ theorem storeOracle.wp_proof
           · iunfold tRelA; iempintro
         imodintro
         iintro Hh Hperm
+        ihave Hperm := osCallPerm_congr qc (show callKey e.R e.orFile.d = callKey e.R e.orDir from rfl) $$ Hperm
         wp_auto
         iapply HΦ
         unfold tOrOwn tWalOwn

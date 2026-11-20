@@ -48,9 +48,9 @@ position of `I` whose segment is named `ix ≤ a` above the prefix's last index,
 record of index `a` after `k`. -/
 theorem readPos_le_openPos {I : WalHist} {k ix : Nat} {a : w64}
     (h : k = 0 ∨ (walCutPos I k ∧ k ≤ I.length ∧ walLastIdx (I.take k) + 1 ≤ ix ∧ ix ≤ uint.nat a ∧
-      ∃ m, WalOpG.snap m ∈ I.drop k ∧ m.Index' = a)) :
+      ∃ m al, WalOpG.snap m al ∈ I.drop k ∧ m.Index' = a)) :
     k ≤ walOpenPos I a := by
-  rcases h with h0 | ⟨hcp, hkl, hix1, hix2, m, hm, hma⟩
+  rcases h with h0 | ⟨hcp, hkl, hix1, hix2, m, al, hm, hma⟩
   · subst h0; exact Nat.zero_le _
   unfold walOpenPos
   apply Nat.le_min.2
@@ -64,7 +64,7 @@ theorem readPos_le_openPos {I : WalHist} {k ix : Nat} {a : w64}
     · -- The last snapshot record of index `a` is at or after `m`'s.
       obtain ⟨i, hi, hgi⟩ := List.mem_iff_getElem.1 hm
       have hi' : k + i < I.length := by simp at hi; omega
-      have hgi' : I[k + i]? = some (WalOpG.snap m) := by
+      have hgi' : I[k + i]? = some (WalOpG.snap m al) := by
         rw [List.getElem?_eq_getElem hi', ← hgi, List.getElem_drop]
       unfold walLastSnapPos
       refine Nat.le_trans (Nat.le_add_right k i) (le_getLast_range_filter _ I.length (k + i) ?_)

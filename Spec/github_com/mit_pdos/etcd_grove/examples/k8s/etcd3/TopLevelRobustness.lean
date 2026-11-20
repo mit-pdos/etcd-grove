@@ -14,6 +14,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -64,11 +65,13 @@ def k8s_etcd3_robust.spec : Prop :=
     (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
     (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops watchers wops) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3Program clients ops watchers wops) [go!"127.0.0.1:23896"])
-    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"k8setcd3.etcd"])
+    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     (HEnv : verifyEnvOff (k8setcd3Program clients ops watchers wops))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"]),
     Robustness.Robust [] [(k8setcd3Program clients ops watchers wops, σ)] g (2 ^ 28 - 1)
 
 /-- **`k8s_etcd3_cluster_safe` as a robustness statement** (`Robustness.Robust`,
@@ -98,7 +101,9 @@ def k8s_etcd3_cluster_robust.spec : Prop :=
     (HEnv : verifyEnvOff (k8setcd3CProgram k clients ops watchers wops))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k)),
     Robustness.Robust [] [(k8setcd3CProgram k clients ops watchers wops, σ)] g (2 ^ 28 - 1)
 
 /-- **`k8s_etcd3_partition_safe` as a robustness statement** (`Robustness.Robust`,
@@ -130,7 +135,9 @@ def k8s_etcd3_partition_robust.spec : Prop :=
     (HEnv : verifyEnvOff (k8setcd3PProgram k clients ops watchers wops steps))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k)),
     Robustness.Robust [] [(k8setcd3PProgram k clients ops watchers wops steps, σ)] g (2 ^ 28 - 1)
 
 end adequacy

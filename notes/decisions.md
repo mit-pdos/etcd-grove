@@ -32958,7 +32958,10 @@ delegation, 2026-11-06).
 
 **2026-11-06 · decided by etcd-grove-82 under the user's delegation (user offline, pending the
 user's review) · supersedes "`fmt.Errorf`'s `%w` errors: the model's body, not the axiom"
-(2026-10-13) · the fix is the stage `errorf-wrap` (branch `errorf-wrap`)**
+(2026-10-13) · the fix is the stage `errorf-wrap` (branch `errorf-wrap`)** · *superseded in part*
+2026-11-18 by "fmt soundness: `ErrorfWrap` a theorem, the model's facts in the model's disjunct"
+(below): the rule's "no fact from the model" now reads "no fact of the model attributed to Go"; the
+`%w` spec is proved from the model, and the text search is a term-level gate.
 
 **What was wrong.** Perennial's model of `fmt.Errorf` is `errors.New(format)`: it ignores the
 arguments and does not model `%w` (`Perennial/TrustedCode/fmt.lean`). The 2026-10-13 entry knew
@@ -40619,6 +40622,37 @@ translation is about a build nobody ships; the stage-2 merge had made every raft
 - **Tooling.** `etc/gen-init.py` generates the trace check's `Init`/`PkgTable` under `RaftTla/`
   (`tla_outs`: the part's translations over the main tree's); `etc/import-all-check.py` reads
   `RaftTla/`; `etc/proof_roots.py` finds the part from `etc/goose.py`.
+
+## fmt soundness: `ErrorfWrap` a theorem, the model's facts in the model's disjunct (2026-11-18)
+
+**2026-11-18 · approved by the user, 2026-11-18, via etcd-grove-03 (H0 of `notes/perheap-scope.md`
+§5a, landed ahead of the per-heap redesign) · branch `fmt-soundness` · supersedes in part "`fmt.Errorf`
+with `%w`: no fact from the model" (2026-11-06)**
+
+- **What was wrong.** `fmt.ErrorfWrap.wp_proof` (an axiom) gave `⌜pre <+: errDesc (ok err)⌝` of the
+  value it returns, unconditionally. True per run of Go, but `errDesc` is an opaque function of the
+  value, and the model allocates `Errorf`'s result like any `errors.New`: two programs
+  `Errorf("A%w", e)` and `Errorf("B%w", e)` reaching one address give both prefixes of one value
+  (F1). The pure fact must not hold of what the model returns.
+- **The choice.** The conjunct becomes conditional on an `Unwrap() error` method in the error's
+  method set: Go's `*fmt.wrapError` has it, the model's `*errors.errorString` does not (goose's
+  generated method set), so it is vacuous of the model and Go's side keeps the prefix (the right
+  disjunct `fmt.wrapErrIs` states the method). The model's disjunct `fmt.modelErrIs` gains its
+  message cell (`errStrCell x (pre ++ s)`), a model fact, in the model's disjunct only: no proof
+  learns it of Go's error. With that text the spec is *provable from the model*
+  (`Proof/fmt/ErrorfWrap.lean`, 20 lines): the axiom leaves the trust base. A proof that needs the
+  prefix cases on the disjunction: Go's side by the method, the model's by the cell
+  (`ServerKVOn.rangeErrOther_facts`: the cell against mvcc's variables' cells, and a leaf
+  `*errorString` passed through by `togRPCError` is a context error's value).
+- **The rule now.** A proof may step into Perennial's `fmt.Errorf` model only when its statement is
+  true of Go's `Errorf` too: Go wraps `%w` (`*fmt.wrapError`/`*fmt.wrapErrors`) and calls the
+  arguments' formatting methods (`Error`, `String`, `Format`, `GoString`), so the premise must make
+  those calls harmless (`fmt.argsOk`: basic arguments, or methods with a persistent resource-free
+  spec and no `Format`) and the post must say nothing the model and Go disagree on, or say it in a
+  disjunct of the model's own. `etc/errorf-wrap-check.py` enforces the review on proof terms
+  (`etc/tcb-report.lean` marks every constant using `fmt.Assumptions.Errorf_unfold` or
+  `fmt.Errorf.impl`), in place of the text search, which missed `Proof/fmt/Errorf{Errs,Strs,Any}.lean`.
+  The general fix is Perennial's (`notes/perennial-changes.md`, 2026-11-18).
 
 ## fsExt: `mmap` out of address space does not return; `NoMapLockErr` excludes every `mmap` error (2026-11-17 · **pending the user's review** · branch `bbolt-oom`)
 

@@ -102,10 +102,14 @@ theorem member.restart.wp_proof
       · simp only [tCheckRestart] at hmark
         rw [hmark, hH]; iexact Hsl1
       · iexact Hnm1
+    iunfold tPerm at Hp1
+    icases Hp1 with ⟨Hpw_, Hp1⟩
     wp_apply (wp_store W e γ v2 (tWithOpens o ls) (tCheckRestart (tWithOpens o ls) c) (some d1)
-        (1 : Qp).half hf hsm2) $$ [Hh Hp1 Hrep2 Ho Hwo]
+        1 hf hsm2) $$ [Hh Hp1 Hrep2 Ho Hwo]
       as ⟨Hh, Hp1, Hrep2, Ho, Hwo⟩
     · iframe; iframe #
+    ihave Hp1 : tPerm (GF := GF) e (1 : Qp).half $$ [Hpw_ Hp1]
+    · iunfold tPerm; iframe
     try wp_auto
     wp_apply (wp_resume m vc c t vo cm b l tm) $$ [Ht Hv Hc Hb Hl Htm] as ⟨Ht, Hv, Hc, Hb, Hl, %tm', Htm, HM⟩
     · iframe; iframe #

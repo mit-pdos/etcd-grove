@@ -36,7 +36,7 @@ theorem apply.applierV3Corrupt.Txn.wp_proof :
   icases Hai with ⟨-, -, #Hev⟩
   icases applyErrVars_corrupt $$ Hev with ⟨%eC, #HeC, #HeI⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, -, %T, -, Hm⟩
+  icases Hpre with ⟨%Hk, -, %T, -, -, Hm⟩
   icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave Hm := apply.mPreRest_of_at _ _ _ _ _ _ $$ Hm
   icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩

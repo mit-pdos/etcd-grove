@@ -39,17 +39,18 @@ abbrev v3rpc.LeaseServer.LeaseKeepAlive.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (γl : GName)
     (S' : IProp GF) (st : GoInterface) (γs : StreamNames)
     (Up : Nat → KaReqM → IProp GF) (Dn : Nat → (w64 × w64) → IProp GF)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRenew s E γl S' ∗
       srvStreamIs st γs pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn ci cd ∗
-      v3rpc.kaStreamSpec s E γl γs (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗
+      v3rpc.kaStreamSpec s E γl γs tok Dn ∗
       v3rpc.kaUpOk E γl Up ∗
       srvRecvTok (Req := pbLeaseKeepAliveRequest) γs [] ∗
       srvSendTok (Rep := pbLeaseKeepAliveResponse) γs [] ∗ S' ∗ A.revR ∗ levelTok v3rpc.ctxErrLvl ∗ ⌜5 ≤ threadBound GF⌝ }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseKeepAlive")) (Val #st))
   {{ (err : GoInterface), RET #err; levelTok v3rpc.ctxErrLvl ∗
-      v3rpc.kaStreamSpec s E γl γs (auth.ctxTokenOf (GoInterface.ok ci)) Dn }}
+      v3rpc.kaStreamSpec s E γl γs tok Dn }}
 
 end spec
 

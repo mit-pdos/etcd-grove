@@ -39,6 +39,7 @@ public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.reflect.Values
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apiserver.pkg.storage.InvalidMsg
 
 @[expose] public section
 
@@ -92,6 +93,14 @@ variable {Obj : Type} [DecidableEq Obj]
 object with `o`'s UID and `r`'s string; `fmtRV 0` is the zero object's empty string). -/
 def ObjCodec.preOk (C : ObjCodec Obj) (p : KPre) (o : Obj) (r : Nat) : Bool :=
   p.ok (C.uid o) (C.fmtRV (W64 (r : Int)))
+
+/-- **The preconditions `p` as the model checks them** (stage 7g): whether they hold (`preOk`),
+and `Check`'s message when they do not (`KPre.failMsg` on the object's UID and resource version
+string). -/
+def ObjCodec.preF (C : ObjCodec Obj) (p : KPre) : KPreF Obj :=
+  ⟨C.preOk p, fun o r => p.failMsg (C.uid o) (C.fmtRV (W64 (r : Int)))⟩
+
+@[simp] theorem ObjCodec.preF_ok (C : ObjCodec Obj) (p : KPre) : (C.preF p).ok = C.preOk p := rfl
 
 /-- **What the store writes for `o` fits a request** (2026-10-30, `notes/invoke-size-b.md`): every
 value the transformer may store for `o`'s encoding is at most `2 ^ 28` bytes (with a key of at most

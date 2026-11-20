@@ -149,7 +149,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
     have hra : apply.cmpRevAfter crev rev = sint.Z rev := by
       unfold apply.cmpRevAfter; simp [Hlt]
     ihave HauR' := HauR $$ %log %(apply.cmpRevAfter crev rev)
-      %(srvApi.wSt E.γs log (apply.cmpRevAfter crev rev)) Hw []
+      %(srvApi.wStQ E.γs E.stq log (apply.cmpRevAfter crev rev)) Hw []
     · iintro Hw; iexact Hw
     iunfold srvApi.auRead at HauR'
     wp_apply wp_string_to_bytes as %ksl ⟨Hks, -⟩

@@ -66,7 +66,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -133,7 +136,7 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed k8scompactorProgram k8scompactorNames)
     (HAs : addrsUnclaimed k8scompactorProgram [go!"127.0.0.1:23976"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent k8scompactorProgram [go!"k8scompactor.etcd"])
+    (HDs : dataDirsAbsent k8scompactorProgram [go!"/tmp/etcd-grove-data/k8scompactor.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff k8scompactorProgram)
     (n : Nat)
@@ -145,6 +148,8 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8scompactor.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -153,9 +158,9 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_alloc_members (GF := k8scompactorGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
+  refine etcd_adequate_alloc_members (GF := k8scompactorGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [go!"k8scompactor.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [go!"/tmp/etcd-grove-data/k8scompactor.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(k8s_compactor.memberName, ⟨none, some k8s_compactor.clientAddr⟩)] [] (List.Perm.refl _)
     (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
@@ -214,6 +219,8 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) k8scompactorPDataDirs)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -222,7 +229,7 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_alloc_members (GF := k8scompactorGF) (hAsLit := by decide) (HEnv := HEnv)
+  refine etcd_adequate_alloc_members (GF := k8scompactorGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition)) (schedLit steps))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) k8scompactorPAddrs (by decide)

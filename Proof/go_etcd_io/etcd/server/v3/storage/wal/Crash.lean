@@ -137,7 +137,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' ={E}=∗
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D' : List Ino),
         walCrashWal W W' ∗
-        ⌜s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s' ∧ TreeWf R V'.now ∧
+        ⌜W'.roots = R ∧ s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s' ∧ TreeWf R V'.now ∧
           ∀ i ∈ D', InAreaDir V'.now jr i⌝ ∗
         walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
@@ -150,6 +150,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   have hu : UniqNames V'.now := uniqNames_of_wf hwf
   -- open the old invariant and close it with the crash tokens
   unfold walInv
+  icases Hinv with ⟨-, #Hinv⟩
   imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with (Hb | ⟨-, >Ht⟩)
   rotate_left
@@ -276,8 +277,8 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     exact ⟨lay.j, g.name, nm, he, hj⟩
   -- the new generation's ghost state
   ihave #Hst' := walStepsLb_mono s s' (fun _ hn => walsStepped_crash hcrash hn) $$ Hst
-  imod walGhost_init hPre s' hk' $$ Hst' with
-    ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp', Hpo', Hnm', Hnw', Hnwf', Hlt'⟩
+  imod walGhost_init hPre R s' hk' $$ Hst' with
+    ⟨%W', %hWR', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp', Hpo', Hnm', Hnw', Hnwf', Hlt'⟩
   imodintro
   iexists W', s', (((bootFiles V'.now jr).filter (fun i => decide (i ∉ segT))) ++ segT)
   rw [List.append_assoc]
@@ -289,7 +290,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     ipureintro; exact hcrash
   isplitr
   · ipureintro
-    refine ⟨by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
+    refine ⟨hWR', by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
       dirsRoots_crash hcrash Hbd.2, hwf, fun i hi => ?_⟩
     · rw [← hcrash.2.1]; exact hdd
     · rcases List.mem_append.1 hi with h | h
@@ -660,7 +661,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       (J, NameSet.except walTmps, h) ∈ cl → ClaimOnce (J, NameSet.except walTmps, h) cl ∧
         ∀ c' ∈ cl, c' ≠ (J, NameSet.except walTmps, h) → c'.1 = J →
           ∀ b, (NameSet.except walTmps).Mem b → ¬ c'.2.1.Mem b)
-    (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (Jm : GMap GoString Ino)
+    (hWR : W.roots = R) (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (Jm : GMap GoString Ino)
     (hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J)
     (hnames : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (jr, NameSet.only [nm], h) ∈ cl)
@@ -886,6 +887,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   imodintro
   unfold walInv
   iframe Hinv
+  isplitr
+  · ipureintro; exact hWR
   iexists Ls
   iframe Hc3 Hnwf
   ipureintro; exact ⟨hstart, hW⟩

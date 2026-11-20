@@ -141,7 +141,7 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops watchers wops) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3Program clients ops watchers wops) [go!"127.0.0.1:23896"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"k8setcd3.etcd"])
+    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (k8setcd3Program clients ops watchers wops))
     (n : Nat)
@@ -149,6 +149,8 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -158,7 +160,7 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_etcd3_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0
-    Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members is safe, in the
@@ -192,6 +194,8 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -201,7 +205,7 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_etcd3_cluster_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
-    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
@@ -238,6 +242,8 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -247,7 +253,7 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_etcd3_partition_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
-    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2
+    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2
     Hsteps' Hn
 
 end adequacy

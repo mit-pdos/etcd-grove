@@ -77,7 +77,7 @@ def leaseexpiryNAddrs (k : Nat) : List GoString :=
   (members k).map (·.Peer') ++ (members k).map (·.Client')
 
 /-- **The program's data directories**: the members' `leaseexpiryN-i.etcd`. -/
-def leaseexpiryNDirs (k : Nat) : List GoString := (members k).map (fun m => m.Name' ++ go!".etcd")
+def leaseexpiryNDirs (k : Nat) : List GoString := (members k).map (fun m => memberDataDir m.Name')
 
 /-- The program's start bundles, as `etcd_adequate_members` takes them. -/
 def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
@@ -106,9 +106,9 @@ theorem leaseexpiryNDirs_perm (k : Nat) :
 
 theorem leaseexpiryNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (leaseexpiryNDirs k).Nodup := by
   unfold leaseexpiryNDirs
-  rw [show (fun m : GMember => m.Name' ++ go!".etcd") = (fun n => n ++ go!".etcd") ∘ (·.Name') from rfl,
+  rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
-  exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
+  exact List.Pairwise.map _ (fun a b h e => h (memberDataDir_inj e)) (members_names_nodup k hk)
 
 /-- Every address of the program is `127.0.0.1:<p>` with `p` in one of the two ranges. -/
 theorem addr_port (k : Nat) (a : GoString) (ha : a ∈ leaseexpiryNAddrs k) :

@@ -12,11 +12,21 @@ public import Proof.k8s_io.apiserver.pkg.storage.AnnotateInitialEventsEndBookmar
 public import Proof.bytes.Buffer__Bytes
 public import Proof.bytes.Buffer__Write
 public import Proof.k8s_io.apimachinery.pkg.conversion.EnforcePtr
+public import Proof.k8s_io.apiserver.pkg.storage.HasInitialEventsEndBookmarkAnnotation
+public import Proof.k8s_io.apiserver.pkg.storage.IsNotFound
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__DeepCopyObject
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__GetContinue
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__GetResourceVersion
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__SetContinue
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__DeepCopyObject
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetAnnotations
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetResourceVersion
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetUID
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetAnnotations
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetResourceVersion
 public import Proof.k8s_io.apimachinery.pkg.runtime.SetZeroValue
+public import Proof.k8s_io.apiserver.pkg.storage.StorageError__Unwrap
+public import Proof.k8s_io.apimachinery.pkg.api.errors.SuggestsClientDelay
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.addConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.advance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.appendHist
@@ -33,6 +43,48 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec__Dec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec__Encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.configEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.consume
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change__toWatchEvent
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetReadConsistency
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListReadConsistency
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__Clone
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__Equal
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__Step
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__create
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__delete
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__equalListResponse
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__execute
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__get
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__initialEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__list
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__listItems
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__listResponseRV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__update
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__validCacherContinue
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__validateGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model__validateList
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.NewEmptyModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.NewReplay
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.NewWatchValidator
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay__EventsForRVs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay__InitialEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay__Validate
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay__validateGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay__validateList
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator__ValidateWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator__checkWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator__compareEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator__splitInitialEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator__toEventReference
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator__validateBookmarks
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator__validateInitialEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator__validateReliable
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.checkKey
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventResourceVersionRange
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.filterOutBookmarksAndErrors
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.keyInScope
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.objectRV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.validateMaybeLastEventError
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.watchRevisionRange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeWEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder__Decode
@@ -44,19 +96,23 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWith
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errOut
+public import Proof.k8s_io.apimachinery.pkg.api.errors.IsTooManyRequests
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.call
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.orderByLinearization
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.evRange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.eventsEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.failureFree
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSelFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__Empty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__Matches
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__RequiresExactMatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.firstBookmark
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.floored
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genWatch
@@ -70,10 +126,13 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformFromStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformToStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialPrefixOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.inputEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj
+public import Proof.k8s_io.apiserver.pkg.storage.isErrCode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.isWrite
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.keyFunc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.keyInScope
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__Empty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__Matches
@@ -87,6 +146,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mcreate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mdelete
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Accessor
 public import Proof.k8s_io.apimachinery.pkg.api.meta.GetItemsPtr
+public import Proof.k8s_io.apimachinery.pkg.api.meta.ListAccessor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mget
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.minRV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mlist
@@ -94,6 +154,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mstep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mupdate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newCache
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObjList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newStore
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newWCache
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.noStreaming
@@ -106,10 +167,14 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.outEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.pastRead
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.pick
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preMsg
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preconditions
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.predicate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.putField
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.realCheck
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.realEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.realRequest
 public import Proof.reflect.Append
 public import Proof.reflect.Copy
 public import Proof.reflect.MakeSlice
@@ -132,7 +197,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.splitKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
+public import Proof.strconv.FormatUint
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toEvent
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toPorcupineModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toWEvent
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.tryUpdateFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.uidOf
@@ -157,7 +224,16 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVa
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.reflect.DeepEqualK8s
+public import Proof.maps.Keys
+public import Proof.maps.Clone
+public import Proof.maps.Equal
+public import Proof.github_com.google.go_cmp.cmp.Diff
+public import Proof.k8s_io.apimachinery.pkg.api.meta.SetList
+public import Perennial.Proof.strconv.Link
 public import Proof.context.Link
+public import Proof.fmt.Link
+public import Proof.github_com.anishathalye.porcupine.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
@@ -194,9 +270,13 @@ theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.conversion.EnforcePtr.wp_proof
 
-theorem Obj.wp_GetAnnotations :
-    EtcdGrove.k8s_etcd3.Obj.GetAnnotations.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Obj.GetAnnotations.wp_proof
+theorem ObjList.wp_DeepCopyObject :
+    EtcdGrove.k8s_etcd3.ObjList.DeepCopyObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.ObjList.DeepCopyObject.wp_proof
+
+theorem ObjList.wp_GetContinue :
+    EtcdGrove.k8s_etcd3.ObjList.GetContinue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.ObjList.GetContinue.wp_proof
 
 theorem wp_rvBytes :
     EtcdGrove.k8s_etcd3.rvBytes.spec (GF := GF) (hG := hG) :=
@@ -205,6 +285,18 @@ theorem wp_rvBytes :
 theorem wp_rvString :
     EtcdGrove.k8s_etcd3.rvString.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.rvString.wp_proof wp_rvBytes
+
+theorem ObjList.wp_GetResourceVersion :
+    EtcdGrove.k8s_etcd3.ObjList.GetResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.ObjList.GetResourceVersion.wp_proof wp_rvString
+
+theorem ObjList.wp_SetContinue :
+    EtcdGrove.k8s_etcd3.ObjList.SetContinue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.ObjList.SetContinue.wp_proof
+
+theorem Obj.wp_GetAnnotations :
+    EtcdGrove.k8s_etcd3.Obj.GetAnnotations.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Obj.GetAnnotations.wp_proof
 
 theorem Obj.wp_GetResourceVersion :
     EtcdGrove.k8s_etcd3.Obj.GetResourceVersion.spec (GF := GF) (hG := hG) :=
@@ -266,6 +358,22 @@ theorem codec.wp_Encode :
     EtcdGrove.k8s_etcd3.codec.Encode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.codec.Encode.wp_proof wp_encodeObj bytes.Buffer.wp_Write
 
+theorem versioner.wp_UpdateObject :
+    EtcdGrove.k8s_etcd3.versioner.UpdateObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.versioner.UpdateObject.wp_proof
+
+theorem versioner.wp_ParseResourceVersion :
+    EtcdGrove.k8s_etcd3.versioner.ParseResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.versioner.ParseResourceVersion.wp_proof wp_parseRV
+
+theorem versioner.wp_ObjectResourceVersion :
+    EtcdGrove.k8s_etcd3.versioner.ObjectResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.versioner.ObjectResourceVersion.wp_proof
+
+theorem strconv.wp_FormatUint :
+    EtcdGrove.strconv.FormatUint.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.FormatUint.wp_proof
+
 theorem decoder.wp_Decode :
     EtcdGrove.k8s_etcd3.decoder.Decode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.decoder.Decode.wp_proof wp_decodeObj
@@ -290,21 +398,9 @@ theorem runtime.wp_Encode :
     EtcdGrove.runtime.Encode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.runtime.Encode.wp_proof bytes.Buffer.wp_Bytes
 
-theorem versioner.wp_UpdateObject :
-    EtcdGrove.k8s_etcd3.versioner.UpdateObject.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.versioner.UpdateObject.wp_proof
-
 theorem versioner.wp_PrepareObjectForStorage :
     EtcdGrove.k8s_etcd3.versioner.PrepareObjectForStorage.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.versioner.PrepareObjectForStorage.wp_proof
-
-theorem versioner.wp_ObjectResourceVersion :
-    EtcdGrove.k8s_etcd3.versioner.ObjectResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.versioner.ObjectResourceVersion.wp_proof
-
-theorem versioner.wp_ParseResourceVersion :
-    EtcdGrove.k8s_etcd3.versioner.ParseResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.versioner.ParseResourceVersion.wp_proof wp_parseRV
 
 theorem identity.wp_TransformFromStorage :
     EtcdGrove.k8s_etcd3.identity.TransformFromStorage.spec (GF := GF) (hG := hG) :=
@@ -339,6 +435,34 @@ theorem apimeta.wp_Accessor :
 theorem storage.wp_AnnotateInitialEventsEndBookmark :
     EtcdGrove.storage.AnnotateInitialEventsEndBookmark.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.AnnotateInitialEventsEndBookmark.wp_proof apimeta.wp_Accessor
+
+theorem storage.wp_HasInitialEventsEndBookmarkAnnotation :
+    EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.wp_proof apimeta.wp_Accessor
+
+theorem storage.wp_isErrCode :
+    EtcdGrove.storage.isErrCode.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.isErrCode.wp_proof
+
+theorem storage.wp_IsNotFound :
+    EtcdGrove.storage.IsNotFound.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.IsNotFound.wp_proof storage.wp_isErrCode
+
+theorem Obj.wp_DeepCopyObject :
+    EtcdGrove.k8s_etcd3.Obj.DeepCopyObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Obj.DeepCopyObject.wp_proof
+
+theorem Obj.wp_SetResourceVersion :
+    EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.wp_proof _root_.Perennial.strconv.wp_ParseUint
+
+theorem storage.StorageError.wp_Unwrap :
+    EtcdGrove.storage.StorageError.Unwrap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.StorageError.Unwrap.wp_proof
+
+theorem apierrors.wp_SuggestsClientDelay :
+    EtcdGrove.apierrors.SuggestsClientDelay.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.SuggestsClientDelay.wp_proof
 
 theorem wp_storeEqual :
     EtcdGrove.k8s_etcd3.storeEqual.spec (GF := GF) (hG := hG) :=
@@ -444,13 +568,17 @@ theorem wp_invalidObj :
     EtcdGrove.k8s_etcd3.invalidObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.invalidObj.wp_proof wp_storeKey
 
+theorem wp_preMsg :
+    EtcdGrove.k8s_etcd3.preMsg.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.preMsg.wp_proof wp_rvString
+
 theorem wp_validateFor :
     EtcdGrove.k8s_etcd3.validateFor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.validateFor.wp_proof
 
 theorem wp_mdelete :
     EtcdGrove.k8s_etcd3.mdelete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.mdelete.wp_proof wp_lookup wp_delItem wp_notFound wp_preOk wp_invalidObj wp_objOut wp_validateFor
+  EtcdGrove.k8s_etcd3.mdelete.wp_proof wp_lookup wp_delItem wp_notFound wp_preOk wp_invalidObj wp_preMsg wp_objOut wp_validateFor
 
 theorem wp_updated :
     EtcdGrove.k8s_etcd3.updated.spec (GF := GF) (hG := hG) :=
@@ -462,7 +590,7 @@ theorem wp_sameObj :
 
 theorem wp_mupdate :
     EtcdGrove.k8s_etcd3.mupdate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.mupdate.wp_proof wp_lookup wp_setItem wp_notFound wp_preOk wp_invalidObj wp_objOut wp_updated wp_sameObj
+  EtcdGrove.k8s_etcd3.mupdate.wp_proof wp_lookup wp_setItem wp_notFound wp_preOk wp_invalidObj wp_preMsg wp_objOut wp_updated wp_sameObj
 
 theorem wp_mget :
     EtcdGrove.k8s_etcd3.mget.spec (GF := GF) (hG := hG) :=
@@ -487,6 +615,222 @@ theorem wp_toWEvent :
 theorem wp_consume :
     EtcdGrove.k8s_etcd3.consume.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.consume.wp_proof wp_toWEvent _root_.Perennial.time.wp_NewTimer _root_.Perennial.time.wp_After _root_.Perennial.time.Timer.wp_Stop
+
+theorem labelSel.wp_Matches :
+    EtcdGrove.k8s_etcd3.labelSel.Matches.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.labelSel.Matches.wp_proof k8s.labels.Set.wp_Get k8s.labels.Set.wp_Has
+
+theorem labelSel.wp_Empty :
+    EtcdGrove.k8s_etcd3.labelSel.Empty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.labelSel.Empty.wp_proof
+
+theorem fieldSel.wp_Matches :
+    EtcdGrove.k8s_etcd3.fieldSel.Matches.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.fieldSel.Matches.wp_proof k8s.fields.Set.wp_Get
+
+theorem fieldSel.wp_Empty :
+    EtcdGrove.k8s_etcd3.fieldSel.Empty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.fieldSel.Empty.wp_proof
+
+theorem wp_objLabels :
+    EtcdGrove.k8s_etcd3.objLabels.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.objLabels.wp_proof
+
+theorem wp_getAttrs :
+    EtcdGrove.k8s_etcd3.getAttrs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.getAttrs.wp_proof wp_objLabels
+
+theorem k8s_correctness.Change.wp_toWatchEvent :
+    EtcdGrove.k8s_correctness.Change.toWatchEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Change.toWatchEvent.wp_proof k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs Obj.wp_DeepCopyObject versioner.wp_UpdateObject
+
+theorem k8s_correctness.wp_GetReadConsistency :
+    EtcdGrove.k8s_correctness.GetReadConsistency.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.GetReadConsistency.wp_proof
+
+theorem k8s_correctness.wp_ListReadConsistency :
+    EtcdGrove.k8s_correctness.ListReadConsistency.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.ListReadConsistency.wp_proof versioner.wp_ParseResourceVersion fmt.wp_Errorf
+
+theorem k8s_correctness.Model.wp_Clone :
+    EtcdGrove.k8s_correctness.Model.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.Clone.wp_proof Obj.wp_DeepCopyObject maps.Clone.wp_proof_strBool
+
+theorem k8s_correctness.Model.wp_Equal :
+    EtcdGrove.k8s_correctness.Model.Equal.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.Equal.wp_proof reflect.DeepEqual.wp_proof_k8s maps.Equal.wp_proof_strBool
+
+theorem k8s_correctness.wp_checkKey :
+    EtcdGrove.k8s_correctness.checkKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.checkKey.wp_proof k8s.storage.wp_PrepareKey
+
+theorem k8s_correctness.Model.wp_create :
+    EtcdGrove.k8s_correctness.Model.create.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.create.wp_proof k8s_correctness.wp_checkKey versioner.wp_ObjectResourceVersion Obj.wp_DeepCopyObject Obj.wp_SetResourceVersion k8s.storage.wp_NewKeyExistsError apimeta.wp_Accessor strconv.wp_FormatUint
+
+theorem k8s_correctness.Model.wp_delete :
+    EtcdGrove.k8s_correctness.Model.delete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.delete.wp_proof k8s_correctness.wp_checkKey Obj.wp_DeepCopyObject Obj.wp_SetResourceVersion Obj.wp_GetUID Obj.wp_GetResourceVersion k8s.storage.wp_NewKeyNotFoundError k8s.storage.Preconditions.wp_Check apimeta.wp_Accessor strconv.wp_FormatUint
+
+theorem wp_newObj :
+    EtcdGrove.k8s_etcd3.newObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.newObj.wp_proof
+
+theorem k8s_correctness.Model.wp_update :
+    EtcdGrove.k8s_correctness.Model.update.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.update.wp_proof k8s_correctness.wp_checkKey wp_newObj versioner.wp_ObjectResourceVersion Obj.wp_DeepCopyObject Obj.wp_SetResourceVersion Obj.wp_GetUID Obj.wp_GetResourceVersion k8s.storage.wp_NewKeyNotFoundError k8s.storage.Preconditions.wp_Check apimeta.wp_Accessor strconv.wp_FormatUint reflect.DeepEqual.wp_proof_k8s
+
+theorem k8s_correctness.Model.wp_get :
+    EtcdGrove.k8s_correctness.Model.get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.get.wp_proof k8s_correctness.wp_checkKey versioner.wp_ParseResourceVersion wp_newObj Obj.wp_DeepCopyObject k8s.storage.wp_NewTooLargeResourceVersionError k8s.storage.wp_NewKeyNotFoundError
+
+theorem k8s_correctness.wp_keyInScope :
+    EtcdGrove.k8s_correctness.keyInScope.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.keyInScope.wp_proof k8s.strings.wp_TrimSuffix
+
+theorem wp_newObjList :
+    EtcdGrove.k8s_etcd3.newObjList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.newObjList.wp_proof
+
+theorem versioner.wp_UpdateList :
+    EtcdGrove.k8s_etcd3.versioner.UpdateList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.versioner.UpdateList.wp_proof
+
+theorem k8s_correctness.Model.wp_list :
+    EtcdGrove.k8s_correctness.Model.list.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.list.wp_proof k8s.storage.wp_PrepareKey k8s_correctness.wp_ListReadConsistency k8s_correctness.wp_keyInScope Obj.wp_DeepCopyObject maps.Keys.wp_proof_objMap k8s.storage.wp_NewTooLargeResourceVersionError wp_newObjList meta.SetList.wp_proof_objList versioner.wp_UpdateList k8s.storage.wp_PrepareContinueToken k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem k8s_correctness.Model.wp_execute :
+    EtcdGrove.k8s_correctness.Model.execute.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.execute.wp_proof k8s_correctness.Model.wp_Clone k8s_correctness.Model.wp_create k8s_correctness.Model.wp_delete k8s_correctness.Model.wp_update k8s_correctness.Model.wp_get k8s_correctness.Model.wp_list
+
+theorem k8s_correctness.Model.wp_validateGet :
+    EtcdGrove.k8s_correctness.Model.validateGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.validateGet.wp_proof reflect.DeepEqual.wp_proof_k8s versioner.wp_ParseResourceVersion versioner.wp_ObjectResourceVersion k8s_correctness.wp_GetReadConsistency storage.wp_IsNotFound k8s.storage.wp_IsTooLargeResourceVersion apierrors.wp_SuggestsClientDelay storage.StorageError.wp_Unwrap
+
+theorem apimeta.wp_ListAccessor :
+    EtcdGrove.apimeta.ListAccessor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimeta.ListAccessor.wp_proof
+
+theorem k8s_correctness.Model.wp_listItems :
+    EtcdGrove.k8s_correctness.Model.listItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.listItems.wp_proof k8s_correctness.wp_keyInScope Obj.wp_DeepCopyObject maps.Keys.wp_proof_objMap k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem k8s_correctness.Model.wp_validCacherContinue :
+    EtcdGrove.k8s_correctness.Model.validCacherContinue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.validCacherContinue.wp_proof k8s_correctness.Model.wp_listItems k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem k8s_correctness.Model.wp_equalListResponse :
+    EtcdGrove.k8s_correctness.Model.equalListResponse.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.equalListResponse.wp_proof reflect.DeepEqual.wp_proof_k8s apimeta.wp_ListAccessor ObjList.wp_GetContinue ObjList.wp_SetContinue ObjList.wp_DeepCopyObject k8s_correctness.Model.wp_validCacherContinue
+
+theorem k8s_correctness.Model.wp_listResponseRV :
+    EtcdGrove.k8s_correctness.Model.listResponseRV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.listResponseRV.wp_proof apimeta.wp_ListAccessor ObjList.wp_GetResourceVersion versioner.wp_ParseResourceVersion
+
+theorem k8s_correctness.Model.wp_validateList :
+    EtcdGrove.k8s_correctness.Model.validateList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.validateList.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.wp_ListReadConsistency k8s_correctness.Model.wp_equalListResponse k8s_correctness.Model.wp_listResponseRV k8s.storage.wp_IsTooLargeResourceVersion apierrors.wp_SuggestsClientDelay storage.StorageError.wp_Unwrap
+
+theorem apierrors.wp_IsTooManyRequests :
+    EtcdGrove.apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.IsTooManyRequests.wp_proof
+
+theorem k8s_correctness.Model.wp_Step :
+    EtcdGrove.k8s_correctness.Model.Step.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.Step.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.Model.wp_execute k8s_correctness.Model.wp_validateGet k8s_correctness.Model.wp_validateList apierrors.wp_IsTooManyRequests storage.StorageError.wp_Unwrap
+
+theorem k8s_correctness.Model.wp_initialEvents :
+    EtcdGrove.k8s_correctness.Model.initialEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.initialEvents.wp_proof k8s_correctness.Model.wp_listItems
+
+theorem k8s_correctness.wp_NewEmptyModel :
+    EtcdGrove.k8s_correctness.NewEmptyModel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.NewEmptyModel.wp_proof
+
+theorem k8s_correctness.wp_NewReplay :
+    EtcdGrove.k8s_correctness.NewReplay.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.NewReplay.wp_proof k8s_correctness.Model.wp_Clone k8s_correctness.Model.wp_Step
+
+theorem k8s_correctness.wp_NewWatchValidator :
+    EtcdGrove.k8s_correctness.NewWatchValidator.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.NewWatchValidator.wp_proof
+
+theorem k8s_correctness.Replay.wp_EventsForRVs :
+    EtcdGrove.k8s_correctness.Replay.EventsForRVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Replay.EventsForRVs.wp_proof k8s_correctness.Change.wp_toWatchEvent k8s_correctness.wp_keyInScope
+
+theorem k8s_correctness.Replay.wp_InitialEvents :
+    EtcdGrove.k8s_correctness.Replay.InitialEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Replay.InitialEvents.wp_proof k8s_correctness.Model.wp_initialEvents
+
+theorem k8s_correctness.Replay.wp_validateGet :
+    EtcdGrove.k8s_correctness.Replay.validateGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Replay.validateGet.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.wp_GetReadConsistency k8s_correctness.Model.wp_get versioner.wp_ParseResourceVersion k8s.storage.wp_IsTooLargeResourceVersion storage.StorageError.wp_Unwrap
+
+theorem k8s_correctness.Replay.wp_validateList :
+    EtcdGrove.k8s_correctness.Replay.validateList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Replay.validateList.wp_proof k8s_correctness.wp_ListReadConsistency k8s_correctness.Model.wp_list k8s_correctness.Model.wp_equalListResponse apimeta.wp_ListAccessor ObjList.wp_GetResourceVersion versioner.wp_ParseResourceVersion
+
+theorem k8s_correctness.Replay.wp_Validate :
+    EtcdGrove.k8s_correctness.Replay.Validate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Replay.Validate.wp_proof k8s_correctness.Replay.wp_validateGet k8s_correctness.Replay.wp_validateList
+
+theorem k8s_correctness.WatchValidator.wp_checkWatch :
+    EtcdGrove.k8s_correctness.WatchValidator.checkWatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.WatchValidator.checkWatch.wp_proof k8s_correctness.wp_checkKey versioner.wp_ParseResourceVersion k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty
+
+theorem k8s_correctness.wp_validateMaybeLastEventError :
+    EtcdGrove.k8s_correctness.validateMaybeLastEventError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.validateMaybeLastEventError.wp_proof
+
+theorem k8s_correctness.wp_objectRV :
+    EtcdGrove.k8s_correctness.objectRV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.objectRV.wp_proof apimeta.wp_Accessor Obj.wp_GetResourceVersion versioner.wp_ParseResourceVersion
+
+theorem k8s_correctness.WatchValidator.wp_validateBookmarks :
+    EtcdGrove.k8s_correctness.WatchValidator.validateBookmarks.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.WatchValidator.validateBookmarks.wp_proof k8s_correctness.wp_objectRV storage.wp_HasInitialEventsEndBookmarkAnnotation Obj.wp_GetAnnotations
+
+theorem k8s_correctness.wp_filterOutBookmarksAndErrors :
+    EtcdGrove.k8s_correctness.filterOutBookmarksAndErrors.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.filterOutBookmarksAndErrors.wp_proof
+
+theorem k8s_correctness.WatchValidator.wp_splitInitialEvents :
+    EtcdGrove.k8s_correctness.WatchValidator.splitInitialEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.WatchValidator.splitInitialEvents.wp_proof k8s_correctness.wp_filterOutBookmarksAndErrors storage.wp_HasInitialEventsEndBookmarkAnnotation Obj.wp_GetAnnotations
+
+theorem wp_keyFunc :
+    EtcdGrove.k8s_etcd3.keyFunc.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.keyFunc.wp_proof wp_storeKey
+
+theorem k8s_correctness.WatchValidator.wp_toEventReference :
+    EtcdGrove.k8s_correctness.WatchValidator.toEventReference.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.WatchValidator.toEventReference.wp_proof wp_keyFunc k8s_correctness.wp_objectRV
+
+theorem k8s_correctness.WatchValidator.wp_compareEvents :
+    EtcdGrove.k8s_correctness.WatchValidator.compareEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.WatchValidator.compareEvents.wp_proof k8s_correctness.WatchValidator.wp_toEventReference cmp.Diff.wp_proof_eventRefs reflect.DeepEqual.wp_proof_k8s
+
+theorem k8s_correctness.WatchValidator.wp_validateInitialEvents :
+    EtcdGrove.k8s_correctness.WatchValidator.validateInitialEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.WatchValidator.validateInitialEvents.wp_proof versioner.wp_ParseResourceVersion k8s_correctness.Replay.wp_InitialEvents k8s_correctness.WatchValidator.wp_compareEvents
+
+theorem k8s_correctness.wp_eventResourceVersionRange :
+    EtcdGrove.k8s_correctness.eventResourceVersionRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.eventResourceVersionRange.wp_proof k8s_correctness.wp_objectRV
+
+theorem k8s_correctness.wp_watchRevisionRange :
+    EtcdGrove.k8s_correctness.watchRevisionRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.watchRevisionRange.wp_proof k8s_correctness.wp_eventResourceVersionRange versioner.wp_ParseResourceVersion
+
+theorem k8s_correctness.WatchValidator.wp_validateReliable :
+    EtcdGrove.k8s_correctness.WatchValidator.validateReliable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.WatchValidator.validateReliable.wp_proof k8s_correctness.wp_watchRevisionRange k8s_correctness.Replay.wp_EventsForRVs k8s_correctness.wp_filterOutBookmarksAndErrors k8s_correctness.WatchValidator.wp_compareEvents
+
+theorem k8s_correctness.WatchValidator.wp_ValidateWatch :
+    EtcdGrove.k8s_correctness.WatchValidator.ValidateWatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.WatchValidator.ValidateWatch.wp_proof k8s_correctness.WatchValidator.wp_checkWatch k8s_correctness.wp_validateMaybeLastEventError k8s_correctness.WatchValidator.wp_validateBookmarks k8s_correctness.WatchValidator.wp_splitInitialEvents k8s_correctness.wp_objectRV k8s_correctness.WatchValidator.wp_validateInitialEvents k8s_correctness.WatchValidator.wp_validateReliable
 
 theorem wp_decodeWEvents :
     EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
@@ -540,37 +884,9 @@ theorem wp_listOut :
     EtcdGrove.k8s_etcd3.listOut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.listOut.wp_proof wp_encodeItems
 
-theorem labelSel.wp_Matches :
-    EtcdGrove.k8s_etcd3.labelSel.Matches.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.labelSel.Matches.wp_proof k8s.labels.Set.wp_Get k8s.labels.Set.wp_Has
-
-theorem labelSel.wp_Empty :
-    EtcdGrove.k8s_etcd3.labelSel.Empty.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.labelSel.Empty.wp_proof
-
-theorem fieldSel.wp_Matches :
-    EtcdGrove.k8s_etcd3.fieldSel.Matches.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.fieldSel.Matches.wp_proof k8s.fields.Set.wp_Get
-
-theorem fieldSel.wp_Empty :
-    EtcdGrove.k8s_etcd3.fieldSel.Empty.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.fieldSel.Empty.wp_proof
-
-theorem wp_objLabels :
-    EtcdGrove.k8s_etcd3.objLabels.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.objLabels.wp_proof
-
-theorem wp_getAttrs :
-    EtcdGrove.k8s_etcd3.getAttrs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.getAttrs.wp_proof wp_objLabels
-
 theorem apimeta.wp_GetItemsPtr :
     EtcdGrove.apimeta.GetItemsPtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimeta.GetItemsPtr.wp_proof
-
-theorem versioner.wp_UpdateList :
-    EtcdGrove.k8s_etcd3.versioner.UpdateList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.versioner.UpdateList.wp_proof
 
 theorem wp_call :
     EtcdGrove.k8s_etcd3.call.spec (GF := GF) (hG := hG) :=
@@ -716,9 +1032,13 @@ theorem wp_withPre :
     EtcdGrove.k8s_etcd3.withPre.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.withPre.wp_proof wp_rvString
 
+theorem wp_floored :
+    EtcdGrove.k8s_etcd3.floored.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.floored.wp_proof
+
 theorem wp_minRV :
     EtcdGrove.k8s_etcd3.minRV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.minRV.wp_proof wp_rvBytes
+  EtcdGrove.k8s_etcd3.minRV.wp_proof wp_rvBytes wp_floored
 
 theorem wp_genList :
     EtcdGrove.k8s_etcd3.genList.spec (GF := GF) (hG := hG) :=
@@ -730,7 +1050,7 @@ theorem wp_genFrom :
 
 theorem wp_genWatchFrom :
     EtcdGrove.k8s_etcd3.genWatchFrom.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.genWatchFrom.wp_proof wp_pick wp_rvBytes wp_rvString wp_workloadKeys wp_splitKey wp_workloadNodes wp_storeKey wp_workloadApps wp_parseRV
+  EtcdGrove.k8s_etcd3.genWatchFrom.wp_proof wp_pick wp_rvBytes wp_rvString wp_workloadKeys wp_splitKey wp_workloadNodes wp_storeKey wp_workloadApps wp_parseRV wp_floored
 
 theorem wp_genWatch :
     EtcdGrove.k8s_etcd3.genWatch.spec (GF := GF) (hG := hG) :=
@@ -740,9 +1060,37 @@ theorem wp_Gen :
     EtcdGrove.k8s_etcd3.Gen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Gen.wp_proof cache.wp_get cache.wp_getW wp_genFrom wp_genWatch
 
+theorem wp_failureFree :
+    EtcdGrove.k8s_etcd3.failureFree.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.failureFree.wp_proof
+
+theorem wp_realRequest :
+    EtcdGrove.k8s_etcd3.realRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.realRequest.wp_proof wp_listOptions wp_storeKey wp_splitKey wp_preconditions wp_validateFor wp_tryUpdateFor wp_cachedObj
+
+theorem wp_realEvents :
+    EtcdGrove.k8s_etcd3.realEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.realEvents.wp_proof
+
+theorem wp_initialModel :
+    EtcdGrove.k8s_etcd3.initialModel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.initialModel.wp_proof k8s_correctness.wp_NewEmptyModel wp_storeKey
+
+theorem wp_toPorcupineModel :
+    EtcdGrove.k8s_etcd3.toPorcupineModel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.toPorcupineModel.wp_proof k8s_correctness.Model.wp_Clone k8s_correctness.Model.wp_Step k8s_correctness.Model.wp_Equal
+
+theorem wp_orderByLinearization :
+    EtcdGrove.k8s_etcd3.orderByLinearization.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.orderByLinearization.wp_proof
+
+theorem wp_realCheck :
+    EtcdGrove.k8s_etcd3.realCheck.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.realCheck.wp_proof wp_realRequest wp_realEvents wp_watchOptions wp_initialModel wp_toPorcupineModel wp_orderByLinearization porcupine.wp_CheckOperationsVerbose porcupine.LinearizationInfo.wp_PartialLinearizations k8s_correctness.wp_NewReplay k8s_correctness.Replay.wp_Validate k8s_correctness.wp_NewWatchValidator k8s_correctness.WatchValidator.wp_ValidateWatch
+
 theorem wp_Check :
     EtcdGrove.k8s_etcd3.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_RunLin2 lintest.wp_CounterClock wp_Model wp_newWCache wp_Gen wp_Apply
+  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_RunLin2 lintest.wp_CounterClock wp_Model wp_newWCache wp_Gen wp_Apply wp_failureFree wp_realCheck
 
 theorem wp_seedOne :
     EtcdGrove.k8s_etcd3.seedOne.spec (GF := GF) (hG := hG) :=
@@ -759,10 +1107,6 @@ theorem wp_noStreaming :
 theorem wp_watchList :
     EtcdGrove.k8s_etcd3.watchList.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.watchList.wp_proof
-
-theorem wp_newObj :
-    EtcdGrove.k8s_etcd3.newObj.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.newObj.wp_proof
 
 theorem wp_newStore :
     EtcdGrove.k8s_etcd3.newStore.spec (GF := GF) (hG := hG) :=

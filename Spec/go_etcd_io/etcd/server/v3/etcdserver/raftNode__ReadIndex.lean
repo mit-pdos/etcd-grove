@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 the big-endian bytes of a request id read-only and a lower bound `n` of the committed index, an
 error the gRPC layer can take, and if `nil` the registration `E.RQ id n`. -/
 abbrev raftNode.ReadIndex.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (ctx : GoInterfaceOk)
+  ∀ (E : RNEnv GF) (γ : RNNames GF) (r : Loc) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (id n : w64)
     (Qr : List EntryModel → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗

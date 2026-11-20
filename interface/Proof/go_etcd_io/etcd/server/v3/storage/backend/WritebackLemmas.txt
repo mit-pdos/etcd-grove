@@ -9,7 +9,7 @@ def backend.wbSt (P : backend.BParams) (st : backend.BSess) : backend.BSess :=
   { C := st.C, S := st.S, R := backend.writebackR st.W st.R, W := backend.writebackW st.W st.R, pend := st.pend,
     ndel := st.ndel, tx := st.tx,
     cnt := { k := 0, c := 0, p0 := sint.nat st.pend, e := st.cnt.e + P.hookMax * st.cnt.c, hw := false }, dl := st.dl,
-    win := st.win }
+    win := st.win, tk := backend.tkWb st.tk, cw := fun n => st.cw n && decide (backend.tkWb st.tk n ≠ backend.RbK.idle) }
 
 theorem backend.safeSt_writeback {P : backend.BParams} {st : backend.BSess} (hs : backend.safeSt P
     st) : backend.safeSt P (backend.wbSt P st)
@@ -30,11 +30,18 @@ theorem backend.vOf_writeback (P : backend.BParams) (C : backend.Data) (W : back
     backend.RBuf) : backend.vOf P (C, backend.writebackR W R) = backend.ovB P.BT W.bks (backend.vOf
     P (C, R))
 
+theorem backend.wbSt_cw (P : backend.BParams) (st : backend.BSess) (n : GoString) : (backend.wbSt P
+    st).cw n = (st.cw n && decide (backend.tkWb st.tk n ≠ backend.RbK.idle))
+
+theorem backend.tkWb_idle_del (tk : backend.TkMap) (n : GoString) : backend.tkWb tk n =
+    backend.RbK.idle ∨ backend.tkWb tk n = backend.RbK.del
+
 theorem backend.wbSt_C (P : backend.BParams) (st : backend.BSess) : (backend.wbSt P st).C = st.C
 
 theorem backend.bgOk_writeback {P : backend.BParams} {st : backend.BSess} {n w u : Nat} (h :
-    backend.bgOk P st false n w u) (hn : 1 ≤ n) : backend.bgOk P (backend.wbSt P st) true (n - 1) (w
-    + 1) u
+    backend.bgOk P st false n w u) (hn : 1 ≤ n) (b : Bool) (hb : b = true → ∀ (m : GoString), P.RB m
+    = true → backend.tkWb st.tk m = backend.RbK.idle) : backend.bgOk P (backend.wbSt P st) b (n - 1)
+    (w + 1) u
 
 theorem backend.rbClean_writeback {P : backend.BParams} {W : backend.WBuf} {R : backend.RBuf} (hW :
     ∀ (n : GoString) (i : w64), P.BT !! n = some i → P.HB n = false → backend.bkOf W.bks i = []) (hR
@@ -45,6 +52,13 @@ theorem backend.idsOk_writebackW {P : backend.BParams} {W : backend.WBuf} {R : b
 
 theorem backend.bgOk_unfree {P : backend.BParams} {st : backend.BSess} {n w u : Nat} (h :
     backend.bgOk P st true n w u) : backend.bgOk P st false n w u
+
+theorem backend.tkWb_idle_of_ndel0 {P : backend.BParams} {st : backend.BSess} (ht : backend.trkOk P
+    st st.tk) (hn : st.ndel = W64 0) (m : GoString) : P.RB m = true → backend.tkWb st.tk m =
+    backend.RbK.idle
+
+theorem backend.trkOk_wb {P : backend.BParams} {st : backend.BSess} {tk : backend.TkMap} (h :
+    backend.trkOk P st tk) : backend.trkOk P (backend.wbSt P st) (backend.tkWb tk)
 
 theorem backend.mem_bkOf_wbMerge {W R : GMap w64 (List backend.Ent)} {i : w64} {e : backend.Ent} (h
     : e ∈ backend.bkOf (backend.wbMerge W R) i) : e ∈ backend.bkOf R i ∨ e ∈ backend.bkOf W i
@@ -65,8 +79,8 @@ theorem backend.sessWf_writeback {P : backend.BParams} {st : backend.BSess} (hst
     st) (hpn : st.pend ≠ W64 0) : backend.sessWf P (backend.wbSt P st)
 
 theorem backend.freeOk_writeback {P : backend.BParams} {st : backend.BSess} (hst : backend.sessWf P
-    st) (hpn : st.pend ≠ W64 0) (hl : sint.Z st.pend < sint.Z P.limit) (hd : ¬0 < sint.Z st.ndel) :
-    backend.freeOk P (backend.wbSt P st)
+    st) (hpn : st.pend ≠ W64 0) (hl : sint.Z st.pend < sint.Z P.limit) (hd : ¬0 < sint.Z st.ndel)
+    (ht : backend.trkOk P st st.tk) : backend.freeOk P (backend.wbSt P st)
 
 theorem backend.wbSt_W (P : backend.BParams) (st : backend.BSess) : (backend.wbSt P st).W =
     backend.writebackW st.W st.R

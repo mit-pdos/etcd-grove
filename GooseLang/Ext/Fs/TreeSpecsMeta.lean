@@ -3,7 +3,7 @@ WP specs of the directory tree's metadata steps (`Impl.lean`): `Unlink`, `Rmdir`
 (of a file; of a directory onto an absent name in the same directory; of an absent source, the
 retry case). Untrusted.
 
-Each takes the caller's fraction `q1` of the tree's history and its call `osCall k s q`, with
+Each takes the caller's fraction `q1` of the tree's history and its call `osCall k s p q`, with
 `q1 + q = 1`: the step holds the whole history (`wp_metaStep`), so no directory fd is open and no
 other call is in flight, and the new history is the old one, or the old one with the step's
 operation logged (`Hist.push`), its start the old history's length (the log stays `Sequential`).
@@ -27,11 +27,11 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- A state a metadata step of the call `k` (begun at `s'`) runs in, with the roots `R` and the
 history `V`, the caller holding all of it: no directory fd, no other call. -/
-structure MetaPre (st : OsState) (R : Roots) (V : Hist) (k s' : Nat) : Prop where
+structure MetaPre (st : OsState) (R : Roots) (V : Hist) (k s' : Nat) (p : GoString) : Prop where
   wf : FsTreeWf st
   roots : st.fs.roots = R
   hist : V = (st.fs.treeDur, st.fs.metaLog)
-  calls : st.proc.calls = {[k := s']}
+  calls : st.proc.calls = {[k := (s', p)]}
   start : s' = st.fs.metaLog.length
   dfds : st.proc.dfds = ∅
   seq : Sequential st.fs.metaLog
@@ -48,7 +48,7 @@ structure MetaPost (st st' : OsState) : Prop where
 
 /-! ## Pure facts of the metadata steps -/
 
-theorem delete_singleton_self (k v : Nat) : GMap.delete k ({[k := v]} : GMap Nat Nat) = ∅ := by
+theorem delete_singleton_self {V : Type} (k : Nat) (v : V) : GMap.delete k ({[k := v]} : GMap Nat V) = ∅ := by
   apply GMap.ext; intro t
   by_cases h : k = t
   · subst h; simp
@@ -70,7 +70,7 @@ theorem mem_of_reach {R : Roots} {m : Tree} (hw : TreeWf R m) {j : Ino} (h : Rea
   hw.1 j h
 
 /-- After a metadata step that changed nothing: the call ended. -/
-theorem metaPost_end {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : MetaPre st R V k s') :
+theorem metaPost_end {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} {pc : GoString} (hp : MetaPre st R V k s' pc) :
     MetaPost st (st.metaEnd k) ∧ ((st.metaEnd k).fs.treeDur, (st.metaEnd k).fs.metaLog) = V := by
   refine ⟨⟨⟨rfl, rfl, rfl, rfl, rfl⟩, ⟨hp.wf.roots, hp.wf.hist, hp.wf.dfds, hp.wf.disj, hp.wf.files_lt⟩,
     rfl, ?_, hp.dfds, hp.seq⟩, hp.hist.symm⟩
@@ -79,7 +79,7 @@ theorem metaPost_end {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : Me
 
 /-- After a metadata step that logged `o`, from a state `st1` that is `st` with the call ended (and
 maybe the inode counter moved), given what `o` makes of the tree. -/
-theorem metaPost_do {st st1 : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : MetaPre st R V k s')
+theorem metaPost_do {st st1 : OsState} {R : Roots} {V : Hist} {k s' : Nat} {pc : GoString} (hp : MetaPre st R V k s' pc)
     (o : MetaOp) (hf : st1.fs.files = st.fs.files) (hfd : st1.proc.fds = st.proc.fds)
     (hin : st1.proc.inflight = st.proc.inflight) (hm : st1.proc.maps = st.proc.maps)
     (hro : st1.fs.roots = st.fs.roots) (hdu : st1.fs.treeDur = st.fs.treeDur)
@@ -194,13 +194,13 @@ theorem mem_mkdir (m : Tree) (j : Ino) (b : GoString) (J : Ino) (x : Ino)
     · exact .inr (.inr h)
 
 /-- The state's lookups, as a spec states them. -/
-theorem lookup_pre {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : MetaPre st R V k s')
+theorem lookup_pre {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} {pc : GoString} (hp : MetaPre st R V k s' pc)
     (p : GoString) : st.lookup p = lookupH R V p := by
   rw [lookupH_eq st p, hp.roots, ← hp.hist]
 
 
 /-- `metaPost_do` from the state with the call ended. -/
-theorem metaPost_doEnd {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : MetaPre st R V k s')
+theorem metaPost_doEnd {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} {pc : GoString} (hp : MetaPre st R V k s' pc)
     (o : MetaOp) (htw : TreeWf st.fs.roots (o.apply st.tree))
     (hnm : ∀ i, Named (o.apply st.tree) i → Named st.tree i)
     (hlt : ∀ j, j ∈ o.apply st.tree → j < st.fs.nextIno) :
@@ -212,7 +212,7 @@ theorem metaPost_doEnd {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : 
     (Nat.le_refl _) htw hnm hlt
 
 /-- `metaPost_do` from the state with the call ended and the next inode taken. -/
-theorem metaPost_doIno {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : MetaPre st R V k s')
+theorem metaPost_doIno {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} {pc : GoString} (hp : MetaPre st R V k s' pc)
     (o : MetaOp) (htw : TreeWf st.fs.roots (o.apply st.tree))
     (hnm : ∀ i, Named (o.apply st.tree) i → Named st.tree i)
     (hlt : ∀ j, j ∈ o.apply st.tree → j < st.fs.nextIno + 1) :
@@ -231,8 +231,9 @@ theorem tokPath_inj [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] {k k' : N
   injection h1 with h1; exact extVal_inj h1
 
 theorem start_eq {st : OsState} {R : Roots} {V : Hist} {k s' start : Nat}
-    (hp : MetaPre st R V k s') (h : st.proc.calls !! k = some start) : start = s' := by
-  rw [hp.calls] at h; simp at h; exact h.symm
+    {pc p' : GoString} (hp : MetaPre st R V k s' pc) (h : st.proc.calls !! k = some (start, p')) :
+    start = s' ∧ p' = pc := by
+  rw [hp.calls] at h; simp at h; exact ⟨h.1.symm, h.2.symm⟩
 
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
@@ -243,17 +244,17 @@ variable {s : Stuckness} {E : CoPset}
 /-- **A metadata step**, from what it finds and leaves of the state (`hprog`: it can step; `hpost`:
 each of its steps leaves an errno, a state as `MetaPost`, and the new history as `Q` says). -/
 theorem wp_metaStep (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (V : Hist)
-    (q1 q : Qp) (k s' : Nat) (hq : q1 + q = 1) (Q : w64 → Hist → Prop)
-    (hprog : ∀ st, MetaPre st R V k s' → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', MetaPre st R V k s' → IsFsStep op v st e' st' →
+    (q1 q : Qp) (k s' : Nat) (pc : GoString) (hq : q1 + q = 1) (Q : w64 → Hist → Prop)
+    (hprog : ∀ st, MetaPre st R V k s' pc → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
+    (hpost : ∀ st e' st', MetaPre st R V k s' pc → IsFsStep op v st e' st' →
       ∃ e : w64, e' = Val (#e) ∧ MetaPost st st' ∧ Q e (st'.fs.treeDur, st'.fs.metaLog))
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) (hO : op ≠ "OutClose" := by decide)
     (hl : ¬ LockOp op := by simp [LockOp]) (hM : op ≠ "Mmap" := by decide) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' pc q -∗
       (∀ (e : w64) (V' : Hist), ⌜Q e V'⌝ -∗ osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT op _ Φ hv hE _ (legacyWit_call _ _ _) hO hl hM $$ Hinv Hk
+  iapply wp_fs_stepT op _ Φ hv hE _ (legacyWit_call _ _ _ _) hO hl hM $$ Hinv Hk
   iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold osWorld treeWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -262,14 +263,14 @@ theorem wp_metaStep (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   obtain ⟨hw, hc⟩ := Hns
   icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  imod call_end _ _ Γc k s' q $$ HAd HAc Hcr Hk with ⟨%hk, HAd, HAc, Hcr, Hq⟩
+  imod call_end _ _ Γc k s' pc q $$ HAd HAc Hcr Hk with ⟨%hk, HAd, HAc, Hcr, Hq⟩
   ihave Hwhole : osTree (L := L) (DFrac.own 1) st.fs.roots V $$ [Hh Hq]
   · rw [← hq]; iapply (osTree_split q1 q _ _).2; iframe
   icases whole_alone _ _ Γdf (GMap.delete k Γc) $$ Hwhole Hrd Hcr with ⟨%Hal, Hwhole, Hrd, Hcr⟩
   obtain ⟨hdf, hcl⟩ := Hal
   subst hdf
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hcalls : st.proc.calls = {[k := s']} := by
+  have hcalls : st.proc.calls = {[k := (s', pc)]} := by
     apply GMap.ext; intro t
     rw [← hc.calls t, GMap.lookup_singleton_iff]
     by_cases ht : k = t
@@ -278,7 +279,7 @@ theorem wp_metaStep (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
       have := congrArg (· !! t) hcl
       simp only [GMap.lookup_delete_ne _ ht, GMap.lookup_empty] at this
       rw [this]; rfl
-  have hpre : MetaPre st st.fs.roots V k s' :=
+  have hpre : MetaPre st st.fs.roots V k s' pc :=
     ⟨hw, rfl, hc.hist, hcalls, hc.start k _ hk, dfds_empty hc, hc.seq⟩
   imodintro
   isplitr
@@ -324,11 +325,11 @@ def UnlinkPost (R : Roots) (V : Hist) (d b : GoString) (j : Ino) (e : w64) (V' :
 theorem wp_osUnlinkG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V : Hist) (q1 q : Qp)
     (k s' : Nat) (hq : q1 + q = 1) (hd : lookupH R V d = some (.dir j)) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' (child d b) q -∗
       (∀ (e : w64) (V' : Hist), ⌜UnlinkPost R V d b j e V'⌝ -∗
         osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  refine wp_metaStep "Unlink" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  refine wp_metaStep "Unlink" _ (by simp [val.isPanic]) R V q1 q k s' (child d b) hq _ ?_ ?_ hE Φ
   · intro st hp
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, treeName_child hd' hb,
@@ -339,7 +340,7 @@ theorem wp_osUnlinkG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V :
     obtain ⟨htw, -, hlt⟩ := wf_tree hp.wf
     obtain ⟨p, k', start, hv, -, hk', hres⟩ := hst
     obtain ⟨rfl, rfl⟩ := tokPath_inj hv
-    obtain rfl := start_eq hp hk'
+    obtain ⟨rfl, -⟩ := start_eq hp hk'
     rcases hres with ⟨i, j0, b0, hfi, hpar, hr⟩ | ⟨e, he, rfl, rfl⟩
     · rw [parent_child hd' hb] at hpar
       obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hpar)
@@ -373,11 +374,11 @@ fd may be open on the directory: it keeps it, empty). -/
 theorem wp_osRmdirG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V : Hist) (q1 q : Qp)
     (k s' : Nat) (hq : q1 + q = 1) (hd : lookupH R V d = some (.dir j)) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' (child d b) q -∗
       (∀ (e : w64) (V' : Hist), ⌜RmdirPost R V d b j e V'⌝ -∗
         osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  refine wp_metaStep "Rmdir" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  refine wp_metaStep "Rmdir" _ (by simp [val.isPanic]) R V q1 q k s' (child d b) hq _ ?_ ?_ hE Φ
   · intro st hp
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, treeName_child hd' hb,
@@ -388,7 +389,7 @@ theorem wp_osRmdirG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V : 
     obtain ⟨htw, -, hlt⟩ := wf_tree hp.wf
     obtain ⟨p, k', start, hv, -, hk', hres⟩ := hst
     obtain ⟨rfl, rfl⟩ := tokPath_inj hv
-    obtain rfl := start_eq hp hk'
+    obtain ⟨rfl, -⟩ := start_eq hp hk'
     rcases hres with ⟨J, j0, b0, ⟨hJ, hemp⟩, hpar, hr⟩ | ⟨e, he, rfl, rfl⟩
     · rw [parent_child hd' hb] at hpar
       obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hpar)
@@ -422,11 +423,11 @@ def MkdirPost (R : Roots) (V : Hist) (d b : GoString) (j : Ino) (e : w64) (V' : 
 theorem wp_osMkdirG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V : Hist) (q1 q : Qp)
     (k s' : Nat) (hq : q1 + q = 1) (hd : lookupH R V d = some (.dir j)) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' (child d b) q -∗
       (∀ (e : w64) (V' : Hist), ⌜MkdirPost R V d b j e V'⌝ -∗
         osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  refine wp_metaStep "Mkdir" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  refine wp_metaStep "Mkdir" _ (by simp [val.isPanic]) R V q1 q k s' (child d b) hq _ ?_ ?_ hE Φ
   · intro st hp
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, treeName_child hd' hb,
@@ -437,7 +438,7 @@ theorem wp_osMkdirG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V : 
     obtain ⟨htw, -, hlt⟩ := wf_tree hp.wf
     obtain ⟨p, k', start, hv, -, hk', hres⟩ := hst
     obtain ⟨rfl, rfl⟩ := tokPath_inj hv
-    obtain rfl := start_eq hp hk'
+    obtain ⟨rfl, -⟩ := start_eq hp hk'
     rcases hres with ⟨j0, b0, hnone, hpar, hr⟩ | ⟨e, he, rfl, rfl⟩
     · rw [parent_child hd' hb] at hpar
       obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hpar)
@@ -497,7 +498,7 @@ theorem child_inj {d b b' : GoString} (h : child d b = child d b') : b = b' := b
   have := List.append_cancel_left h; simpa using this
 
 /-- The rename's step from what the spec knows of the source's and target's directories. -/
-theorem renameOp_eq {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : MetaPre st R V k s')
+theorem renameOp_eq {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} {pc : GoString} (hp : MetaPre st R V k s' pc)
     {d bs d' bt : GoString} {j j' : Ino} (hbs : NameOk bs) (hbt : NameOk bt)
     (hd : st.lookup d = some (.dir j)) (hd' : st.lookup d' = some (.dir j')) {n : Node}
     (hs : st.lookup (child d bs) = some n) {o : MetaOp}
@@ -515,19 +516,20 @@ theorem wp_osRenameFileG (d bs d' bt : GoString) (j j' i : Ino) (hbs : NameOk bs
     (R : Roots) (V : Hist) (q1 q : Qp) (k s' : Nat) (hq : q1 + q = 1)
     (hd : lookupH R V d = some (.dir j)) (hd' : lookupH R V d' = some (.dir j'))
     (hs : lookupH R V (child d bs) = some (.file i))
-    (ht : ∀ J, lookupH R V (child d' bt) ≠ some (.dir J)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    (ht : ∀ J, lookupH R V (child d' bt) ≠ some (.dir J))
+    (hsr : SameRootR R (child d bs) (child d' bt)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' (child d bs) q -∗
       (∀ (e : w64) (V' : Hist), ⌜RenamePost V (renameOp R V j bs j' d' bt (.file i)) e V'⌝ -∗
         osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename"
         (Val (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
-  refine wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  refine wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' (child d bs) hq _ ?_ ?_ hE Φ
   · intro st hp
     have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     have hdd' : st.lookup d' = some (.dir j') := (lookup_pre hp d').trans hd'
     exact ⟨_, st.metaEnd k, ⟨child d bs, child d' bt, k, s', rfl, treeName_child hdd hbs,
-      treeName_child hdd' hbt, by rw [hp.calls]; simp,
-      fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
+      treeName_child hdd' hbt, sameRoot_of_R hp.roots hsr, by rw [hp.calls]; simp,
+      fun _ k'' s'' p'' h => by rw [hp.calls] at h; simp at h; exact Or.inl h.1.symm,
       .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
@@ -535,9 +537,9 @@ theorem wp_osRenameFileG (d bs d' bt : GoString) (j j' i : Ino) (hbs : NameOk bs
     have hss : st.lookup (child d bs) = some (.file i) := (lookup_pre hp _).trans hs
     have hroots := hp.wf.roots
     obtain ⟨htw, -, hlt⟩ := wf_tree hp.wf
-    obtain ⟨s0, t0, k', start, hv, -, -, hk', -, hres⟩ := hst
+    obtain ⟨s0, t0, k', start, hv, -, -, -, hk', -, hres⟩ := hst
     obtain ⟨rfl, rfl, rfl⟩ := tokPair_inj hv
-    obtain rfl := start_eq hp hk'
+    obtain ⟨rfl, -⟩ := start_eq hp hk'
     rcases hres with ⟨-, o, ho, hr⟩ | ⟨-, -, rfl, rfl⟩ | ⟨e, he, rfl, rfl⟩
     · obtain rfl := renameOp_eq hp hbs hbt hdd hdd' hss ho
       have hent : st.tree.entry j bs = some (.file i) := by
@@ -569,17 +571,17 @@ theorem wp_osRenameDirG (d bs bt : GoString) (j J : Ino) (hbs : NameOk bs) (hbt 
     (hne : bs ≠ bt) (R : Roots) (V : Hist) (q1 q : Qp) (k s' : Nat) (hq : q1 + q = 1)
     (hd : lookupH R V d = some (.dir j)) (hs : lookupH R V (child d bs) = some (.dir J))
     (ht : lookupH R V (child d bt) = none) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' (child d bs) q -∗
       (∀ (e : w64) (V' : Hist), ⌜RenameDirPost V (.rename j bs j bt (.dir J) none) e V'⌝ -∗
         osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename"
         (Val (PairV (osTokV k) (PairV (#(child d bs)) (#(child d bt)))))) @ s; E {{ Φ }} := by
-  refine wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  refine wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' (child d bs) hq _ ?_ ?_ hE Φ
   · intro st hp
     have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     exact ⟨_, st.metaEnd k, ⟨child d bs, child d bt, k, s', rfl, treeName_child hdd hbs,
-      treeName_child hdd hbt, by rw [hp.calls]; simp,
-      fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
+      treeName_child hdd hbt, sameRoot_child_child hdd, by rw [hp.calls]; simp,
+      fun _ k'' s'' p'' h => by rw [hp.calls] at h; simp at h; exact Or.inl h.1.symm,
       .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
@@ -587,9 +589,9 @@ theorem wp_osRenameDirG (d bs bt : GoString) (j J : Ino) (hbs : NameOk bs) (hbt 
     have htt : st.lookup (child d bt) = none := (lookup_pre hp _).trans ht
     have hroots := hp.wf.roots
     obtain ⟨htw, -, hlt⟩ := wf_tree hp.wf
-    obtain ⟨s0, t0, k', start, hv, -, -, hk', -, hres⟩ := hst
+    obtain ⟨s0, t0, k', start, hv, -, -, -, hk', -, hres⟩ := hst
     obtain ⟨rfl, rfl, rfl⟩ := tokPair_inj hv
-    obtain rfl := start_eq hp hk'
+    obtain ⟨rfl, -⟩ := start_eq hp hk'
     rcases hres with ⟨-, o, ho, hr⟩ | ⟨hst', -, -, -⟩ | ⟨e, he, rfl, rfl⟩
     · have ho' := renameOp_eq hp hbs hbt hdd hdd hss ho
       simp only [renameOp, ht] at ho'
@@ -620,37 +622,38 @@ the call `k`, with the rest of the history: it fails, unchanged. -/
 theorem wp_osRenameAbsentG (d bs d' bt : GoString) (j j' : Ino) (hbs : NameOk bs) (hbt : NameOk bt)
     (R : Roots) (V : Hist) (q1 q : Qp) (k s' : Nat) (hq : q1 + q = 1)
     (hd : lookupH R V d = some (.dir j)) (hd' : lookupH R V d' = some (.dir j'))
-    (hs : lookupH R V (child d bs) = none) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+    (hs : lookupH R V (child d bs) = none) (hsr : SameRootR R (child d bs) (child d' bt))
+    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' (child d bs) q -∗
       (∀ (e : w64), ⌜e ≠ 0⌝ -∗ osTree (L := L) (DFrac.own 1) R V -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename"
         (Val (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
-  have hprog : ∀ st, MetaPre st R V k s' → ∃ e' st',
+  have hprog : ∀ st, MetaPre st R V k s' (child d bs) → ∃ e' st',
       IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st' ∧
         FilesSame st st' := by
     intro st hp
     have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     have hdd' : st.lookup d' = some (.dir j') := (lookup_pre hp d').trans hd'
     exact ⟨_, st.metaEnd k, ⟨child d bs, child d' bt, k, s', rfl, treeName_child hdd hbs,
-      treeName_child hdd' hbt, by rw [hp.calls]; simp,
-      fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
+      treeName_child hdd' hbt, sameRoot_of_R hp.roots hsr, by rw [hp.calls]; simp,
+      fun _ k'' s'' p'' h => by rw [hp.calls] at h; simp at h; exact Or.inl h.1.symm,
       .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
-  have hpost : ∀ st e' st', MetaPre st R V k s' →
+  have hpost : ∀ st e' st', MetaPre st R V k s' (child d bs) →
       IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st' →
       ∃ e : w64, e' = Val (#e) ∧ MetaPost st st' ∧
         (fun (e : w64) (V' : Hist) => e ≠ 0 ∧ V' = V) e (st'.fs.treeDur, st'.fs.metaLog) := by
     intro st e' st' hp hst
     have hss : st.lookup (child d bs) = none := (lookup_pre hp _).trans hs
-    obtain ⟨s0, t0, k', start, hv, -, -, hk', -, hres⟩ := hst
+    obtain ⟨s0, t0, k', start, hv, -, -, -, hk', -, hres⟩ := hst
     obtain ⟨rfl, rfl, rfl⟩ := tokPair_inj hv
-    obtain rfl := start_eq hp hk'
+    obtain ⟨rfl, -⟩ := start_eq hp hk'
     rcases hres with ⟨hok, -⟩ | ⟨-, hn, -, -⟩ | ⟨e, he, rfl, rfl⟩
     · obtain ⟨-, -, -, hm⟩ := hok
       rw [hss] at hm; exact hm.elim
     · exact absurd hss hn
     · exact ⟨e, rfl, (metaPost_end hp).1, he, (metaPost_end hp).2⟩
   iintro #Hinv Hh Hk HΦ
-  iapply wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' hq
+  iapply wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' (child d bs) hq
     (fun e V' => e ≠ 0 ∧ V' = V) hprog hpost hE Φ $$ Hinv Hh Hk
   iintro %e %V' %hQ HV
   obtain ⟨he, rfl⟩ := hQ

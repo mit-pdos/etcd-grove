@@ -427,9 +427,12 @@ theorem Cluster.start.wp_proof
   wp_apply wp_config γ vs dir c id s ap0 Hnid0 (by have := Ho.1.2.1.2; have := Ho.2.2; word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
   obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
   ihave %Htr := kdCluster_untraced γ vs $$ Hcl
+  -- (auth-lease S4, 2026-11-16) no bootstrap log, so outside raft's no-snapshot mode
+  have Hns : ¬ clusterNoSnap γ.r.cluster := fun h => by
+    have := clusterNoSnap_boot _ h; omega
   ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries s ms bp γs F (raft_kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
-    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Htr Hmd HFok He0
+    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Htr Hmd Hns HFok He0
     (by word) Hsc
     $$ Hpkg Hrec Hsb Hl Hfresh Hmeta Hd0 Hfro Hents Hend Hcmp Hval []
   · iintro %K Hm Hi; iframe Hm Hi
@@ -456,7 +459,7 @@ theorem Cluster.start.wp_proof
           · rw [h1]; simp; word
           · omega)
       (by simp only [kdContents_some_commit]; exact Hsc)
-      (by rw [Hbl0]; omega) Hinit HcTL Htr0)
+      (by rw [Hbl0]; omega) Hinit Hns HcTL Htr0)
     $$ [$Hraft $Hcv $Hlogger $HisC $Hfits Hvac Hau Hrs]
     as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, ⟨Hwr, %HS'⟩,
       ⟨Hmeta, #HmsInv⟩⟩
@@ -507,7 +510,7 @@ theorem Cluster.start.wp_proof
     $$ [$Hpkg $Hcci $Hcl $Hstats $Hseqs $HfInv $HisNode' $Hdrv $Hncfg $Hrun $Hrec $HmsInv $Hmeta
       $Himg $Himage $Hcert $Hwr $Hcmp $Hfz $Hfzt $Hslb $HK $HA $Hcso $Hap $Hcap $Hf]
     as %r ⟨Hr, Hstop⟩
-  · ipureintro; exact ⟨Hcfgm, HKv, HAok, Hmd⟩
+  · ipureintro; exact ⟨Hcfgm, HKv, HAok, Hmd, Hns⟩
   try wp_auto
   iapply HΦ
   iframe Hr Hstop

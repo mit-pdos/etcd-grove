@@ -117,13 +117,15 @@ theorem etcd_restart3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed restart3Program restart3Names)
     (HAs : addrsUnclaimed restart3Program restart3Addrs)
     (HDs : dataDirsAbsent restart3Program
-      [(etcd_restart.name₁ ++ go!".etcd"), (etcd_restart.name₂ ++ go!".etcd"), (etcd_restart.name₃ ++ go!".etcd")])
+      [(memberDataDir etcd_restart.name₁), (memberDataDir etcd_restart.name₂), (memberDataDir etcd_restart.name₃)])
     (HEnv : verifyEnvOff restart3Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC restart3GF,
       ⊢ etcd_restart.premises (GF := restart3GF) (hG := heapAtR3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_restart.name₁), (memberDataDir etcd_restart.name₂), (memberDataDir etcd_restart.name₃)])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -132,7 +134,7 @@ theorem etcd_restart3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_restart3_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs
+  etcd_restart3_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

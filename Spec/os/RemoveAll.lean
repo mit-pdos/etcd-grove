@@ -74,10 +74,10 @@ abbrev os.RemoveAll.specAbsentS : Prop :=
   ∀ (d b : GoString) (j : Ino) (R : Roots) (qd : Qp) (dqn : DFrac) (h : NamesH) (qc : Qp),
   NameOk b → h.cur !! b = none →
   {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
-      osNames j (.only [b]) dqn h ∗ osCallPerm qc }}
+      osNames j (.only [b]) dqn h ∗ osCallPerm (callKey R d) qc }}
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osNames j (.only [b]) dqn h ∗
-      osCallPerm qc ∗ fmtErrorOkOrNil err }}
+      osCallPerm (callKey R d) qc ∗ fmtErrorOkOrNil err }}
 
 /-- See the file header. -/
 abbrev os.RemoveAll.specDirS : Prop :=
@@ -85,9 +85,9 @@ abbrev os.RemoveAll.specDirS : Prop :=
   NameOk b → h.cur !! b = some (.dir J) → FilesOnly hJ.cur →
   {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
       osNames j (.only [b]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ ∗
-      osCallPerm 1 }}
+      osCallPerm (callKey R d) 1 }}
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
-  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       rmAllOut j b J h hJ ∗ fmtErrorOkOrNil err }}
 
 end spec

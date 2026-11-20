@@ -1,8 +1,8 @@
 /-
 `apierrors.IsTooManyRequests(err)` (`k8s.io/apimachinery/pkg/api/errors`, names-only): whether the
-error is a 429. **A named hypothesis, boundary pending approval** (one of the `apierrors`
-predicates the reflector's `watch` calls; phase 4 of `notes/k8s-daemonset-plan.md`, fifth round):
-`?` in `etc/link-lean-first-k8scache.txt`.
+error is a 429. **A trust-boundary axiom** (`Proof/k8s_io/apimachinery/pkg/api/errors/IsTooManyRequests.lean`;
+k8s 7g, decided by etcd-grove-03 2026-11-19, option A; before, a named hypothesis: one of the
+`apierrors` predicates the reflector's `watch` calls, phase 4 of `notes/k8s-daemonset-plan.md`).
 
 (apierrors-fix, 2026-11-17; `notes/apierrors-typednil-hypotheses.md`) Restated in place: the former
 statement, some boolean with no precondition, was false: on a typed-nil `*StatusError`, bare or

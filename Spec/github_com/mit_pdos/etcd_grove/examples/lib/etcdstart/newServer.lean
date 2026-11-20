@@ -95,7 +95,7 @@ abbrev newServer.spec : Prop :=
           leaseTTLRowR s ps ∗
           -- (R2c-5) the data directory, the name's `.etcd`, with no dedicated WAL directory
           -- (`srvDataDir`, the slot's: `srvStop.dataDir`), which a stop request carries
-          srvDataDir s (name ++ go!".etcd")) }}
+          srvDataDir s (memberDataDir name)) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev newServer.specRestart : Prop :=
@@ -128,7 +128,7 @@ abbrev newServer.specRestart : Prop :=
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
           ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗
-          srvDataDir s (name ++ go!".etcd")) }}
+          srvDataDir s (memberDataDir name)) }}
 
 end spec
 

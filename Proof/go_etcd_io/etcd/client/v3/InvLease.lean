@@ -193,6 +193,33 @@ instance lessorRemoteAt_persistent (l : Loc) (addr : List GoString) :
     Persistent (lessorRemoteAt (GF := GF) l addr) := by
   unfold lessorRemoteAt; infer_instance
 
+/-- **What the unary calls of the `*lessor` `l` read, over the connection `conn`** (auth-lease S4, Freeze
+§2.1: `lessorRemoteAt` with its connection named, as `kvObjAtC`). -/
+def lessorRemoteAtC (l conn : Loc) (addr : List GoString) : IProp GF :=
+  iprop(∃ (rlc : Loc) (sl : GoSlice),
+    structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty) #rlc :
+        GoInterface) ∗
+    retryLeaseAt rlc conn ∗ isEtcdConn conn addr ∗
+    structFieldRef go_etcd_io.etcd.client.v3.lessor go!"callOpts" l ↦□ sl ∗ callOptsAt sl)
+
+instance lessorRemoteAtC_persistent (l conn : Loc) (addr : List GoString) :
+    Persistent (lessorRemoteAtC (GF := GF) l conn addr) := by
+  unfold lessorRemoteAtC; infer_instance
+
+open Iris.ProofMode in
+/-- The remote is the remote over some connection. -/
+theorem lessorRemoteAt_conn (l : Loc) (addr : List GoString) :
+    lessorRemoteAt (GF := GF) l addr ⊣⊢ ∃ conn, lessorRemoteAtC l conn addr := by
+  unfold lessorRemoteAt lessorRemoteAtC
+  constructor
+  · iintro ⟨%rlc, %conn, %sl, H⟩
+    iexists conn, rlc, sl
+    iexact H
+  · iintro ⟨%conn, %rlc, %sl, H⟩
+    iexists rlc, conn, sl
+    iexact H
+
 end defs
 
 /-! ## etcd's specs of the `Lease` service's unary methods -/

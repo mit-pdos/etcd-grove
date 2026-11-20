@@ -79,7 +79,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinne
   obtain ⟨hljr, hX, hcoh, habs, hid, hnd, hsn⟩ := hpin
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
+  have hrb := And.intro hrb0 hrb1
   ihave #Hosp := wal_osInit $$ Hpkg
   wp_auto
   wp_apply wp_with_defer as %defer defer

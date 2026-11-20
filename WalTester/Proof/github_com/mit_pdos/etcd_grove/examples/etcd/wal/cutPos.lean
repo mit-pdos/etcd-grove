@@ -58,7 +58,7 @@ theorem cutPos.wp_proof (wp_hsEmpty : hsEmpty.spec (GF := GF) (hG := hG)) :
     obtain ⟨hsn, hhs, -, -⟩ := Hf
     ihave %Hoel := ownSlice_len $$ Hoe
     have hb0' : sint.nat b ≠ 0 := by intro h0; apply Hif; word
-    have htc : tCutPos h (sint.nat b) = (!op.snap && !(tHsEmpty op.hs && op.ents.isEmpty)) := by
+    have htc : tCutPos h (sint.nat b) = (op.snap || !(tHsEmpty op.hs && op.ents.isEmpty)) := by
       simp only [tCutPos, hb0', decide_false, Bool.false_or, Hop]
     wp_auto
     rw [hsn]
@@ -90,7 +90,7 @@ theorem cutPos.wp_proof (wp_hsEmpty : hsEmpty.spec (GF := GF) (hG := hG)) :
     · wp_auto
       iapply HΦ
       isplitl []
-      · ipureintro; rw [htc, hos]; rfl
+      · ipureintro; rw [htc, hos]
       · itrivial
 
 end proof

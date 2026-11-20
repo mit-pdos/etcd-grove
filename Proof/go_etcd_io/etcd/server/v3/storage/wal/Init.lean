@@ -6,7 +6,8 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
-`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, `MaxSaveBatchBytes`
+`2^42` (fix 0009), every error
 variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
 `openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
@@ -43,6 +44,7 @@ public import Proof.os.Init
 public import Proof.path.filepath.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.ErrIsTerm
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 

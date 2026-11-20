@@ -12,6 +12,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Getters
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveEntry
 public import Spec.google_golang_org.protobuf.proto.MarshalPb
 public import Spec.google_golang_org.protobuf.proto.UnmarshalPb
+public import Spec.google_golang_org.protobuf.proto.SizePb
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Save
 
 @[expose] public section
 
@@ -91,6 +93,26 @@ theorem walRaftP_marshalEnt (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG :=
   have h0 := entrySize_canon_pos e
   rw [← hlen, henc, Hlen.1] at h0
   simp [slice.nil] at h0
+
+/-- **`SizeLaw`** (`Save`'s pre-lock check, fix 0009), over `proto.Size`'s trust-boundary spec at the
+registered `raftpb.Entry`. -/
+theorem walRaftP_size (wp_Size : proto.SizePb.spec (GF := GF) (hG := hG)) :
+    WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr := by
+  intro l e
+  rw [show (walRaftP (GF := GF)).entIn = walEntIn from rfl]
+  wp_start_folded as #He
+  iunfold walEntIn at He
+  icases He with ⟨#Hro, %Hs⟩
+  obtain ⟨henc, -, hlen⟩ := walEncEnt_small Hs
+  have wpS := wp_Size pbEntryC pbEntryC_reg l (walEntCanon e)
+  simp only [pbEntryC_ty, pbEntryC_roC, pbEntryC_size] at wpS
+  wp_apply wpS $$ [] as %n %Hn
+  · iframe #
+  iapply HΦ
+  ipureintro
+  simp only [walRaftMr]
+  rw [hlen]
+  exact Hn
 
 /-- **`pbutil.MustUnmarshalMessage(e, d)` into a fresh `raftpb.Entry`, of a canonical entry's bytes**:
 the entry holds it, owned. -/

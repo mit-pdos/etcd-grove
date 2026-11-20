@@ -86,7 +86,7 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed k8scompactorProgram k8scompactorNames)
     (HAs : addrsUnclaimed k8scompactorProgram [go!"127.0.0.1:23976"])
-    (HDs : dataDirsAbsent k8scompactorProgram [go!"k8scompactor.etcd"])
+    (HDs : dataDirsAbsent k8scompactorProgram [go!"/tmp/etcd-grove-data/k8scompactor.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff k8scompactorProgram)
     (n : Nat)
@@ -97,6 +97,8 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8scompactor.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -106,7 +108,7 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_compactor_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem Hafter
-    σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **The compactor example on three members under partitions is safe, in the operational
 semantics** (`k8s_compactor_partition_adequate`, see the file header and `Adequacy.lean`). -/
@@ -138,6 +140,8 @@ theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) k8scompactorPDataDirs)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -147,7 +151,7 @@ theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_compactor_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo steps
-    Hsteps HNs HAs HDs HEnv n Hprem Hafter σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hsteps HNs HAs HDs HEnv n Hprem Hafter σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 

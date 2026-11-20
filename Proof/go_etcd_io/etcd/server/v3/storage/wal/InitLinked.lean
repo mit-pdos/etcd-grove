@@ -75,6 +75,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSaveBatchTooLarge _ as HErrSaveBatchTooLarge
+  wp_apply wp_GlobalAlloc (V := w64) MaxSaveBatchBytes _ as HMaxSaveBatchBytes
   wp_apply wp_GlobalAlloc (V := Loc) crcTable _ as HcrcTable
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrDecoderNotFound _ as HErrDecoderNotFound
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrSliceOutOfRange _ as HErrSliceOutOfRange
@@ -190,6 +192,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]
   wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab
   try wp_auto
+  -- translated initializer of MaxSaveBatchBytes))
+  -- translated initializer of ErrSaveBatchTooLarge))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBL #EBL
+  try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch))
   ipersist HerrBadWALName
@@ -200,8 +207,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrSnapshotNotFound
   ipersist HErrSliceOutOfRange
   ipersist HErrDecoderNotFound
+  ipersist HErrSaveBatchTooLarge
   ipersist HcrcTable
   ipersist HSegmentSizeBytes
+  ipersist HMaxSaveBatchBytes
   ipersist HwalFsyncSec
   ipersist HwalWriteSec
   ipersist HwalWriteBytes
@@ -211,78 +220,65 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     iexists _
     iframe HerrBadWALName
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EBW
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact EBW
     · iapply EtcdGrove.errIsTerm_errorString xBW; iexact Hd2
   ihave #VErrMetadataConflict : (EtcdGrove.wal.errVar ErrMetadataConflict : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrMetadataConflict
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EMC
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact EMC
     · iapply EtcdGrove.errIsTerm_errorString xMC; iexact Hd2
   ihave #VErrFileNotFound : (EtcdGrove.wal.errVar ErrFileNotFound : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrFileNotFound
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EFN
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact EFN
     · iapply EtcdGrove.errIsTerm_errorString xFN; iexact Hd2
   ihave #VErrSnapshotMismatch : (EtcdGrove.wal.errVar ErrSnapshotMismatch : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSnapshotMismatch
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESM
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact ESM
     · iapply EtcdGrove.errIsTerm_errorString xSM; iexact Hd2
   ihave #VErrSnapshotNotFound : (EtcdGrove.wal.errVar ErrSnapshotNotFound : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSnapshotNotFound
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESN
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact ESN
     · iapply EtcdGrove.errIsTerm_errorString xSN; iexact Hd2
   ihave #VErrSliceOutOfRange : (EtcdGrove.wal.errVar ErrSliceOutOfRange : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSliceOutOfRange
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESO
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact ESO
     · iapply EtcdGrove.errIsTerm_errorString xSO; iexact Hd2
   ihave #VErrDecoderNotFound : (EtcdGrove.wal.errVar ErrDecoderNotFound : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrDecoderNotFound
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EDN
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact EDN
     · iapply EtcdGrove.errIsTerm_errorString xDN; iexact Hd2
+  ihave #VErrSaveBatchTooLarge : (EtcdGrove.wal.errVar ErrSaveBatchTooLarge : IProp GF) $$ []
+  · unfold EtcdGrove.wal.errVar
+    iexists _
+    iframe HErrSaveBatchTooLarge
+    isplitl []
+    · iapply EtcdGrove.errorString_errOk
+      iexact EBL
+    · iapply EtcdGrove.errIsTerm_errorString xBL; iexact Hd2
   ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _

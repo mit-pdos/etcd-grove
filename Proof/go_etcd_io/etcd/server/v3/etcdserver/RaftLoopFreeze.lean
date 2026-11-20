@@ -465,6 +465,226 @@ theorem srv_ownSnapS_meta (p : Loc) (dq : DFrac) (s : SnapshotM) :
   · ipureintro; exact Hnn
   iframe HC HI HT cI cT Hpb Hc
 
+/-- (wal-link L3, 2026-11-19) A conf state with its `AutoLeave` set, frozen (`csPts … true` at `discard`), is the
+canonical wire content of its model: every list, `AutoLeave` set, no unknown fields. -/
+theorem srv_csPts_csRoC_set (p : Loc) (c : ConfStateM) :
+    csPts (GF := GF) p DFrac.discard c true ⊢
+      csRoC p ⟨c.Voters', c.Learners', c.VotersOutgoing', c.LearnersNext', some c.AutoLeave', []⟩ := by
+  iunfold csPts
+  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, %Hal, #Hpb⟩
+  unfold csRoC
+  iexists sv, sl, so, sn, pa
+  iframe HV Hv HL Hl HO Ho HN Hn HA Hpb
+  isplitr
+  · ipureintro; exact Hnn
+  iunfold cellRO at cA
+  icases cA with (%H | #H)
+  · exact absurd H.1 (Hal rfl)
+  · simp only [optCell]; iexact H
+
+/-- (wal-link Hm1 route (B), 2026-11-19) **A conf state frozen at `discard`, `AutoLeave` set or not**: its
+canonical content at the presence bit `al` of its `AutoLeave` pointer (`walAlC`; a nil pointer reads `false`). -/
+theorem srv_csPts_csRoC (p : Loc) (c : ConfStateM) (b : Bool) :
+    csPts (GF := GF) p DFrac.discard c b ⊢
+      ∃ al : Bool, csRoC p ⟨c.Voters', c.Learners', c.VotersOutgoing', c.LearnersNext', walAlC al c.AutoLeave', []⟩ := by
+  iunfold csPts
+  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, %Hal, #Hpb⟩
+  iunfold cellRO at cA
+  icases cA with (%H | #H)
+  · iexists false
+    unfold csRoC
+    iexists sv, sl, so, sn, pa
+    iframe HV Hv HL Hl HO Ho HN Hn HA Hpb
+    isplitr
+    · ipureintro; exact Hnn
+    obtain ⟨hpa, hv⟩ := H
+    have hn : walAlC false c.AutoLeave' = none := by rw [hv]; rfl
+    rw [hn]
+    simp only [optCell]
+    ipureintro; exact hpa
+  · iexists true
+    unfold csRoC
+    iexists sv, sl, so, sn, pa
+    iframe HV Hv HL Hl HO Ho HN Hn HA Hpb
+    isplitr
+    · ipureintro; exact Hnn
+    simp only [walAlC, Bool.true_or, ite_true, optCell]
+    iexact H
+
+/-- (wal-link L3, 2026-11-19; the presence bit `al`, Hm1 route (B)) **The canonical wire content of a snapshot
+metadata `md`** with the unknown fields `uf`: every pointer set but the conf state's `AutoLeave`, set as the bit
+`al` says (`walAlC`), the conf state canonical (`srv_csPts_csRoC`). -/
+def srvSnapMetaC (md : SnapshotMetadataM) (al : Bool) (uf : List w8) : SnapMetaC :=
+  ⟨some ⟨md.ConfState'.Voters', md.ConfState'.Learners', md.ConfState'.VotersOutgoing',
+    md.ConfState'.LearnersNext', walAlC al md.ConfState'.AutoLeave', []⟩, some md.Index', some md.Term', uf⟩
+
+theorem srvSnapMetaC_model (md : SnapshotMetadataM) (al : Bool) (uf : List w8) :
+    (srvSnapMetaC md al uf).model = md := by
+  obtain ⟨⟨a, b, c, d, e⟩, i, t⟩ := md
+  simp only [srvSnapMetaC, SnapMetaC.model, CSC.model, Option.map_some, Option.getD_some]
+  congr 2
+  exact walAlC_getD al e
+
+/-- Its record bytes are the canonical ones (`walSnapCanon`) when the conf state is not the zero one. -/
+theorem srvSnapMetaC_canon (md : SnapshotMetadataM) (al : Bool) (uf : List w8) (hz : md.ConfState' ≠ walCsZero) :
+    storage.metaWalC (srvSnapMetaC md al uf) = walSnapCanon md al := by
+  unfold storage.metaWalC walSnapCanon srvSnapMetaC
+  simp only [Option.map_some, if_neg hz]
+  rfl
+
+/-- (wal-link Hm1 route (B), 2026-11-19) **A metadata `MemoryStorage.CreateSnapshot` made, as the WAL's `SaveSnap`
+takes it**: frozen (`metaRoC`) at its canonical content at some presence bit (`smPtsV`'s conf state is set). -/
+theorem srv_smPtsV_metaC (pm : Loc) (md : SnapshotMetadataM) :
+    smPtsV (GF := GF) pm DFrac.discard md ⊢
+      ∃ (al : Bool) (uf : List w8), metaRoC pm (srvSnapMetaC md al uf) := by
+  iintro H
+  iNamed H
+  iunfold csOptA at Hc
+  icases Hc with (%Hz | Hc | Hc)
+  · exact absurd Hz.1 Hnn.2.1
+  all_goals
+    ihave ⟨%al, #Hcs⟩ := srv_csPts_csRoC pc _ _ $$ Hc
+    iexists al, uf
+    unfold metaRoC srvSnapMetaC
+    iexists pc, pi, pt
+    iframe HC HI HT Hpb
+    isplitr
+    · ipureintro; exact Hnn.1
+    isplitl [Hcs]
+    · simp only [csOptC]; iexact Hcs
+    isplitr
+    · iunfold cellRO at cI
+      icases cI with (%H | #H)
+      · exact absurd H.1 Hnn.2.2.1
+      · simp only [optCell]; iexact H
+    · iunfold cellRO at cT
+      icases cT with (%H | #H)
+      · exact absurd H.1 Hnn.2.2.2
+      · simp only [optCell]; iexact H
+
+/-- (wal-link L3, 2026-11-19) **A `Ready`'s snapshot's metadata as the WAL's `SaveSnap` takes it** (F2): frozen
+(`metaRoC`) at its canonical content (`srvSnapMetaC`). -/
+theorem srv_ownSnapS_metaC (p : Loc) (s : SnapshotM) :
+    ownSnapS (GF := GF) p DFrac.discard s ⊢
+      ∃ (pm : Loc) (uf : List w8), p.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{DFrac.discard} pm ∗
+        metaRoC pm (srvSnapMetaC s.Metadata' true uf) := by
+  iintro H
+  iNamed H
+  iclear Hpb
+  iNamed Hm
+  iexists pm, uf
+  iframe HM
+  unfold metaRoC srvSnapMetaC
+  iexists pc, pi, pt
+  iframe HC HI HT Hpb
+  isplitr
+  · ipureintro; exact Hnn.1
+  isplitl [Hc]
+  · simp only [csOptC, walAlC, Bool.true_or, ↓reduceIte]
+    iunfold csSet at Hc
+    icases Hc with (#Hc | #Hc) <;> iapply srv_csPts_csRoC_set $$ Hc
+  isplitr
+  · iunfold cellRO at cI
+    icases cI with (%H | #H)
+    · exact absurd H.1 Hnn.2.2.1
+    · simp only [optCell]; iexact H
+  · iunfold cellRO at cT
+    icases cT with (%H | #H)
+    · exact absurd H.1 Hnn.2.2.2
+    · simp only [optCell]; iexact H
+
+/-- (wal-link L3, 2026-11-19) **`SaveSnap` of a canonical metadata** (`walSaveSnap_spec` at `srvSnapMetaC md uf`):
+the conf state not the zero one, the index below the largest, the record below layer 1's bound. -/
+theorem walSaveSnapC_spec [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
+    (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (md : SnapshotMetadataM) (al : Bool) (uf : List w8)
+    (Q : IProp GF) (sized : Bool) (hz : md.ConfState' ≠ walCsZero) (hidx : uint.nat md.Index' < 2 ^ 64 - 1)
+    (henc : (walSrvMr.encSnap md al).length < 2 ^ 40) :
+    isWalStorage st h ss ⊢
+      {{ storage.walOpen h q ∗ walStorRd st h ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp (srvSnapMetaC md al uf) ∗
+          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+                ⌜uint.nat md.Index' = σ.b → md.Term' = σ.base.term'⌝ }>
+            @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ md) sized, COMM Q }> }}
+        (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ Q ∗
+          ∃ i : Nat, walSnapRec h i md }} := by
+  have HS := walSaveSnap_spec st h ss si hst q sn mp dq (srvSnapMetaC md al uf) al Q sized
+  simp only [srvSnapMetaC_model] at HS
+  iintro #Hw
+  ihave #HS := HS $$ Hw
+  iintro !> %Φ ⟨Ho, Hr, Hsn, #Hm, HAU⟩ HΦ
+  iapply HS $$ [Ho Hr Hsn HAU] HΦ
+  iframe Ho Hr Hsn Hm HAU
+  ipureintro
+  refine ⟨⟨rfl, rfl, srvSnapMetaC_canon md al uf hz⟩, Or.inr rfl, hidx, henc⟩
+
+/-! ## F2 (wal-link L3, 2026-11-19): a snapshot's conf state at the server's static membership -/
+
+/-- **The voters' conf state, as the WAL's `SaveSnap` takes it**: a conf state of the voters' simple
+membership, of a non-empty set of fewer than `2^16` voters, is not the zero one, and a metadata at it encodes
+below layer 1's record bound (`walSnapCanon_enc_len`). -/
+theorem srv_csF2 (cs : ConfStateM) (vs : GSet w64) (h : confStateIs cs (Membership.simple vs))
+    (hne : vs ≠ ∅) (hsz : GMap.size vs < 2 ^ 16) (md : SnapshotMetadataM) (hmd : md.ConfState' = cs) :
+    md.ConfState' ≠ walCsZero ∧ ∀ al, (walSrvMr.encSnap md al).length < 2 ^ 40 := by
+  subst hmd
+  obtain ⟨hv, hvo, hl, hln, -⟩ := h
+  have e1 := hv.length_eq
+  have e2 := hvo.length_eq
+  have e3 := hl.length_eq
+  have e4 := hln.length_eq
+  simp only [GMap.length_elements, Membership.simple, GMap.size_empty] at e1 e2 e3 e4
+  have hpos : 0 < GMap.size vs := by
+    rcases Nat.eq_zero_or_pos (GMap.size vs) with h0 | h0
+    · exact absurd ((GMap.size_empty_iff vs).1 h0) hne
+    · exact h0
+  refine ⟨?_, ?_⟩
+  · intro hz
+    rw [hz] at e1
+    simp only [walCsZero, List.length_nil] at e1
+    omega
+  · intro al
+    show (WalEnc.snapEnc (walSnapCanon md al)).length < 2 ^ 40
+    exact walSnapCanon_enc_len md al (by omega)
+
+/-- **The server's cluster: a non-empty set of fewer than `2^16` voters** (`srvRaftLogInv`'s). -/
+theorem srvRaftLogInv_cfg (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cfg ≠ ∅ ∧ GMap.size γ.raft.cfg < 2 ^ 16⌝ := by
+  iintro #H
+  iunfold srvRaftLogInv at H
+  icases H with ⟨-, -, -, -, -, -, %Hv⟩
+  obtain ⟨hne, hnd, -, hlen⟩ := Hv
+  ipureintro
+  unfold SrvRaft.cfg
+  refine ⟨?_, by rw [GMap.size_list_to_set _ hnd]; exact hlen⟩
+  intro h
+  obtain ⟨p, ps', hp⟩ := List.exists_cons_of_ne_nil hne
+  have : p ∈ GMap.listToSet γ.raft.vs :=
+    (GMap.elem_of_list_to_set p _).2 (by rw [hp]; exact List.mem_cons_self ..)
+  rw [h] at this
+  exact (GMap.not_elem_of_empty p) this
+
+/-- **A valid snapshot's metadata, as the WAL's `SaveSnap` takes it** (F2): at the server's cluster its conf
+state is the voters' (`srv_confAt_simple`): not the zero one, its record below layer 1's bound. -/
+theorem srv_snapshotValid_F2 (γ : ServerRaftNames) (cl : Cluster) (hcl : γ.raft.cl = cl) (sv : SnapshotM) :
+    letI := srvStor (GF := GF) γ.raft
+    srvRaftLogInv (GF := GF) γ ∗ snapshotValid cl sv ⊢
+      |={⊤}=> ⌜sv.Metadata'.ConfState' ≠ walCsZero ∧ ∀ al, (walSrvMr.encSnap sv.Metadata' al).length < 2 ^ 40⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  subst hcl
+  iintro ⟨#Hinv, #Hv⟩
+  ihave %Hcfg := srvRaftLogInv_cfg γ $$ Hinv
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, #Hm, -, %Hf⟩
+  imod srv_confAt_simple γ l l.length (Nat.le_refl _) ⊤ (fun _ _ => CoPset.mem_full)
+    (fun _ _ => CoPset.mem_full) $$ [Hinv Hlb] with #Hs
+  · iframe Hinv Hlb
+  ihave %Heq := confAt_agree γ.raft.cl l.length m (Membership.simple γ.raft.cfg) $$ [Hm Hs]
+  · iframe Hm Hs
+  subst Heq
+  imodintro; ipureintro
+  exact srv_csF2 _ _ Hf.2.2.2.1 Hcfg.1 Hcfg.2 sv.Metadata' rfl
+
 end ghost
 
 end EtcdGrove

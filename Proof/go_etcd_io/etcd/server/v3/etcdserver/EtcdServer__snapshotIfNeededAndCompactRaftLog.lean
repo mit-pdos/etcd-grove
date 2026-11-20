@@ -39,12 +39,12 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nk γp w TM ρ sa q γn γm hok hci hrel hsz
-    hwso hγn hpre
+    hγn hpre hnsw
   wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hsdir, #Hrmlb, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
     Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh, Htt⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, ⟨%scu, #Hscu⟩, #Hinf,
+  icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, ⟨%scu, #Hscu, %Hscub⟩, #Hinf,
     ⟨%lg, #Hlgf, #Hlgn⟩, -, -⟩
   ihave #Hss' := Hss
   iunfold srvSnapStor at Hss'
@@ -92,7 +92,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     icases srvApplyKVM_core E.authOn s E γw x sa $$ HKV with ⟨%ua, HKV, HKVk⟩
     first
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nk (W64 0) γp ua q γn γm
-            hok hci hrel (by omega) hsz hwso hγn hpre
+            hok hci hrel (by omega) hsz hγn hpre
             $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
           as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
          · iframe #
@@ -100,7 +100,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
            iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
            ipureintro; exact Hdm)
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nk (W64 0) γp ua q γn γm
-            hok hci hrel (by omega) hsz hwso hγn hpre
+            hok hci hrel (by omega) hsz hγn hpre
             $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
           as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
          · iframe #
@@ -113,7 +113,11 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     have hcI : 1 ≤ compactIdx ai scu ∧ compactIdx ai scu ≤ uint.nat ai := by
       unfold compactIdx; split <;> constructor <;> word
     ihave #Hfr := srvFrozen_get γs (uint.nat ai) (compactIdx ai scu) hcI.1 hcI.2 $$ [$Hfa $Hfb]
-    wp_apply hC s ai ms γs γr.raft.raft nk scu lg Hai1 $$ [Hlr] as Hlr
+    -- (auth-lease S4) in the no-snapshot mode, `ai ≤ w < receiptBound ≤ scu`
+    imod srvWTPool_bound_n E γp w $$ HWP HWA with %Hwb
+    wp_apply hC s ai ms γs γr.raft.raft nk scu lg Hai1
+        (fun hm => by have h1 := hnsw hm; have h2 := Hscub hm; have h3 := uint_nat_eq ai; omega)
+      $$ [Hlr] as Hlr
     · iframe #; iframe Hlr
     (try wp_auto)
     ihave HKV := HKVk $$ HKV

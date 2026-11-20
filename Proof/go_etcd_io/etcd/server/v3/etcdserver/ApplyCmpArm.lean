@@ -404,6 +404,44 @@ theorem batchStep_plainMG (c₀ : w64) (lt : LeaseTable) (cmp : Bool) (lm : leas
     exact batchStep_plainM c₀ lt cmp m x x' hpl hoff h
 
 
+/-- **Every backend outcome of an entry plain in the modes leaves the model's log** (auth-lease S4 item 7b F4,
+the window's target in the auth-off arm): at the start's chain, above the consistent index, at a lease-free log
+and a table without `0`, the log after any outcome of the backend on the entry's request is `kvEntry`'s. -/
+theorem backendStep_kvEntryM (c₀ : w64) (lt : LeaseTable) (cmp : Bool) (lm : lease.Mode) (m : EntryModel)
+    (log : mvcc.Log) (rq : apply.IRRModel) (oc : apply.Outcome) (hp : plainEntryM cmp lm m)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
+    (hv : decide (uint.Z c₀ < uint.Z m.index) = true) (hz : mvcc.LogNoLease log) (h0 : W64 0 ∉ lt.ids)
+    (hb : apply.backendStep rq log oc) :
+    oc.logAfter log = kvEntry c₀ (apply.alarmChain false false false) lt log m := by
+  have hb' : apply.chainStep apply.backendStep .backend rq log oc := hb
+  rcases hp ht hd rq hdec with hpl | ⟨-, hc⟩ | hg | hr
+  · rw [backendStep_plain lt rq log oc hpl.1 hb]
+    have hng : apply.dispatchKind rq ≠ .leaseGrant := by
+      intro hk; have h := hpl.1; unfold plainCover at h; rw [hk] at h; exact h
+    unfold kvEntry
+    rw [if_pos ht, if_neg hd, hdec]
+    simp only [hv]
+    unfold dispatchLog
+    split
+    · rename_i hc
+      have hk : apply.preV3Kind (apply.dispatchKind rq) = true := hc.resolve_right (by decide)
+      refine chainLog_nonwrite rq lt log ?_ .backend
+      unfold writeKind
+      rintro (h | h | h | h | h) <;> rw [h] at hk <;> cases hk
+    · split
+      · simp [apply.alarmChain, apply.baseChain, chainLog]
+      · rename_i hs
+        refine chainLog_nonwrite rq lt log ?_ .backend
+        unfold writeKind
+        rintro (h | h | h | h | h)
+        all_goals first | exact hng h | (rw [h] at hs; exact hs rfl)
+  · rw [kvEntry_cmp c₀ _ lt log m rq hdec hc]
+    exact apply.chainStep_cmp_log rq hc.1.1 hc.2.2 log .backend oc hb'
+  · rw [kvEntry_grant c₀ _ lt log m rq hdec hg.2]
+    exact apply.chainStep_grant_logAfter rq hg.2.1 log .backend oc hb'
+  · rw [kvEntry_revoke c₀ _ lt log m rq hdec hr.2 hz h0]
+    exact chainStep_revoke_logAfter rq hr.2.1 log (mvcc.stateAfter_leaseZero _ hz) .backend oc hb'
+
 /-! ### A revocation's rest (the lease-expiry plan's X7) -/
 
 theorem leaseKey_ne (a id : w64) (h : a ≠ id) : apply.leaseKey a ≠ apply.leaseKey id := by

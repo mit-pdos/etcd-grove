@@ -35,8 +35,8 @@ theorem txn.deleteRange.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hGte : txn.mkGteRange.spec (GF := GF) (hG := hG))
     : txn.deleteRange.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd tw γ trace te σ pend dr o L
-  wp_start as ⟨#Hctx, #Hnd, Htx, Htrc, %Hreach, #Hdr, Hown⟩
+  intro ctx cd nd tw γ trace te σ pend dr o L w
+  wp_start as ⟨#Hctx, #Hnd, Htx, Htrc, %Hreach, #Hdr, Hown, %Hwin⟩
   icases txn.mvccTxn_shape hsh tw γ trace (.write σ pend) $$ Htx with ⟨%Hsh, Htx⟩
   obtain ⟨tyX, vX, rfl, -, -, hRangeC, -, hDelC, -, -⟩ := Hsh
   have h2 := txn.reach_len _ Hreach.1
@@ -81,13 +81,19 @@ theorem txn.deleteRange.wp_proof
     have := congrArg List.length (hD0 hok')
     simp only [List.length_map, txn.delChanges] at this
     exact this
+  have hsel : txn.delSelOf o = fun it => mvcc.delSel (decide (endk = slice.nil)) k
+      (txn.srvEnd o.base.rangeEnd).2 it.Key' := by
+    funext it; simp only [txn.delSelOf, hE1, hK]
+  have Hwin' := Hwin
+  rw [hsel] at Hwin'
   rw [hPK]
   cases pk
   · -- no `PrevKv`
     (try wp_auto)
     iapply wp_fupd
-    wp_apply (hDelC γ trace σ pend ksl endk k (txn.srvEnd o.base.rangeEnd).2 L)
+    wp_apply (hDelC γ trace σ pend ksl endk k (txn.srvEnd o.base.rangeEnd).2 L w)
       $$ [$Htx $Hks $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr, %Hlwf'⟩
+    · ipureintro; exact Hwin'
     have hok' := txn.logOk_of_del σ pend _ Hreach Hlwf'.1 Hlwf'.2
     have hD := hD0 hok'
     rw [hD, show (txn.delChanges (txn.pendState σ.log pend) o).length =
@@ -173,8 +179,9 @@ theorem txn.deleteRange.wp_proof
       (try wp_auto)
       ipersist Hnsl
       iapply wp_fupd
-      wp_apply (hDelC γ trace σ pend ksl endk k (txn.srvEnd o.base.rangeEnd).2 L)
+      wp_apply (hDelC γ trace σ pend ksl endk k (txn.srvEnd o.base.rangeEnd).2 L w)
         $$ [$Htx $Hks $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr, %Hlwf'⟩
+      · ipureintro; exact Hwin'
       have hok' := txn.logOk_of_del σ pend _ Hreach Hlwf'.1 Hlwf'.2
       have hD := hD0 hok'
       rw [hD, show (txn.delChanges (txn.pendState σ.log pend) o).length =

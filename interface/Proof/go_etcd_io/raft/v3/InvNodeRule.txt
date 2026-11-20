@@ -19,6 +19,19 @@ theorem Membership.Valid.snapListsOk {m : Membership} {cs : ConfStateM} {t i : w
 theorem skippedIn_persistent (γ : Cluster) (l : List LogEntry) (a b : Nat) : Persistent (skippedIn γ
     l a b)
 
+theorem cluster_alloc_ns [package_sem : Assumptions] (N : Namespace) (vs : List w64) (ctxs : List
+    (List w8)) (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (md : Option Nat) (E :
+    CoPset) (ns : Bool) (Hns : ns = true → boot ≠ []) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] →
+    vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62 → (boot ≠ [] → BootLog vs ctxs boot) → (∀ (b :
+    Nat), md = some b → b ≤ 2 ^ 31) → (∀ (b : Nat), md = some b → ∀ (e : LogEntry), e ∈ boot →
+    e.data.length ≤ b) → ⊢ (if boot = [] then emp else bootMarshal vs ctxs (LogEntry.toEntries boot
+    0)) ={E}=∗ ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md ∧
+    (clusterNoSnap γ ↔ ns = true)⌝ ∗ ⌜γ.trace = none⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗
+    isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗
+    ownSnapsMade γ [] ∗ ([∗list] id ∈ vs, iprop(raftState γ id RaftState.init ∗ nodeVacant γ id)) ∗
+    if boot = [] then joinAuth γ (listToSet vs) else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs,
+    nodeBoot γ N vs ctxs id
+
 def (sealed) confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF
 
 def (sealed) storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF
@@ -57,11 +70,11 @@ theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (vs : List w64
     → (boot ≠ [] → BootLog vs ctxs boot) → (∀ (b : Nat), md = some b → b ≤ 2 ^ 31) → (∀ (b : Nat),
     md = some b → ∀ (e : LogEntry), e ∈ boot → e.data.length ≤ b) → ⊢ (if boot = [] then emp else
     bootMarshal vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗ ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧
-    γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗ ⌜γ.trace = none⌝ ∗ ownCommittedOps γ boot ∗
-    ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple
-    (listToSet vs)) ∗ ownSnapsMade γ [] ∗ ([∗list] id ∈ vs, iprop(raftState γ id RaftState.init ∗
-    nodeVacant γ id)) ∗ if boot = [] then joinAuth γ (listToSet vs) else isCommittedLogLb γ boot ∗
-    [∗list] id ∈ vs, nodeBoot γ N vs ctxs id
+    γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗ ⌜¬clusterNoSnap γ⌝ ∗ ⌜γ.trace = none⌝ ∗
+    ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0
+    (Membership.simple (listToSet vs)) ∗ ownSnapsMade γ [] ∗ ([∗list] id ∈ vs, iprop(raftState γ id
+    RaftState.init ∗ nodeVacant γ id)) ∗ if boot = [] then joinAuth γ (listToSet vs) else
+    isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id
 
 theorem snapMade_elem [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec) (s : SnapRec) :
     ownSnapsMade γ S ∗ snapMade γ s ⊢ ⌜s ∈ S⌝
@@ -108,7 +121,8 @@ theorem confAt_decided [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m :
 def (sealed) confAt (γ : Cluster) (k : Nat) (m : Membership) : IProp GF
 
 theorem storBnd_intro_untraced [package_sem : Assumptions] (γ : Cluster) (K : GName) (k c : Nat) (h
-    : γ.trace = none) : ⊢ nodeAppliedLb γ K k -∗ ⌜c ≤ k⌝ -∗ storBnd γ K c
+    : γ.trace = none) (hns : clusterNoSnap γ → k ≤ 1) : ⊢ nodeAppliedLb γ K k -∗ ⌜c ≤ k⌝ -∗ storBnd
+    γ K c
 
 theorem nodeBoot_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     (id : w64) : Persistent (nodeBoot γ N vs ctxs id)
@@ -145,6 +159,9 @@ theorem joinAuth_join [package_sem : Assumptions] (γ : Cluster) (N : Namespace)
     raftState γ id RaftState.init ∗ nodeVacant γ id
 
 theorem snapshotValid_timeless (γ : Cluster) (sv : SnapshotM) : Timeless (snapshotValid γ sv)
+
+theorem storBnd_cap [package_sem : Assumptions] (γ : Cluster) (K : GName) (c : Nat) : storBnd γ K c
+    ⊢ ⌜clusterNoSnap γ → c ≤ 1⌝
 
 theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (sv :
     SnapshotM) : 0 < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 → isCluster γ

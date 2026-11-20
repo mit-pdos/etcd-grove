@@ -5,6 +5,9 @@
 def entsPts (s : GoSlice) (dq : DFrac) (es : List EntryM) : IProp GF :=
   iprop(∃ ls, ownSlice s ls dq ∗ [∗list] l;e ∈ ls;es, entRO l e)
 
+def hsOptC (p : Loc) (hs : HardStateM) : IProp GF :=
+  iprop(⌜p = null ∧ hs = { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 }⌝ ∨ hsROC p hs)
+
 theorem entsPts_persist [package_sem : Assumptions] (s : GoSlice) (dq : DFrac) (es : List EntryM) :
     entsPts s dq es ⊢ |==> entsRO s es
 
@@ -12,6 +15,9 @@ theorem smOpt_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (md : S
     smOpt p dq md ⊢ |==> smOpt p DFrac.discard md
 
 theorem entsRO_persistent (s : GoSlice) (es : List EntryM) : Persistent (entsRO s es)
+
+theorem hsROC_hsOptC [package_sem : Assumptions] (p : Loc) (hs : HardStateM) : hsROC p hs ⊢ hsOptC p
+    hs
 
 theorem entsBig_drop [package_sem : Assumptions] (n : Nat) (ls : List Loc) (es : List EntryM) :
     ([∗list] l;e ∈ ls;es, entRO l e) ⊢ [∗list] l;e ∈ List.drop n ls;List.drop n es, entRO l e
@@ -40,6 +46,9 @@ theorem ownSnapW_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (s :
     (structFieldRef raftpb.SnapshotMetadata go!"ConfState" pm) pc DFrac.discard ∗ csOptA pc
     DFrac.discard s.Metadata'.ConfState'
 
+theorem hsOptC_hsOpt [package_sem : Assumptions] (p : Loc) (hs : HardStateM) : hsOptC p hs ⊢ hsOpt p
+    hs
+
 def smPtsW (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
   iprop(∃ pc pi pt uf,
       "%Hnn" ∷ ⌜p ≠ null ∧ pc ≠ null⌝ ∗
@@ -66,6 +75,8 @@ theorem entsBig_subslice [package_sem : Assumptions] (lo hi : Nat) (ls : List Lo
     EntryM) : ([∗list] l;e ∈ ls;es, entRO l e) ⊢ [∗list] l;e ∈ subslice lo hi ls;subslice lo hi es,
     entRO l e
 
+theorem hsOptC_persistent (p : Loc) (hs : HardStateM) : Persistent (hsOptC p hs)
+
 theorem csOpt_persistent (p : Loc) (c : ConfStateM) : Persistent (csOpt p DFrac.discard c)
 
 theorem entsPts_nil [package_sem : Assumptions] (dq : DFrac) : ⊢ entsPts slice.nil dq []
@@ -75,6 +86,9 @@ theorem ownSnapM_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (s :
 
 theorem csPts_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfStateM) (al :
     Bool) : csPts p dq c al ⊢ |==> csPts p DFrac.discard c al
+
+theorem hsOptC_null [package_sem : Assumptions] : ⊢ hsOptC null { Term' := W64 0, Vote' := W64 0,
+    Commit' := W64 0 }
 
 theorem entsBig_lookup [package_sem : Assumptions] (ls : List Loc) (es : List EntryM) (i : Nat) (e :
     EntryM) (He : es[i]? = some e) : ([∗list] l;e ∈ ls;es, entRO l e) ⊢ ∃ l, ⌜ls[i]? = some l⌝ ∗
@@ -92,6 +106,9 @@ theorem entsBig_app [package_sem : Assumptions] (ls1 ls2 : List Loc) (es1 es2 : 
 
 theorem entsPts_len [package_sem : Assumptions] (s : GoSlice) (dq : DFrac) (es : List EntryM) :
     entsPts s dq es ⊢ ⌜es.length = sint.nat s.len ∧ 0 ≤ sint.Z s.len⌝
+
+theorem hsOptC_agree [package_sem : Assumptions] (p : Loc) (h1 h2 : HardStateM) : hsOptC p h1 ∗
+    hsOptC p h2 ⊢ ⌜h1 = h2⌝
 
 theorem hsOpt_null [package_sem : Assumptions] : ⊢ hsOpt null { Term' := W64 0, Vote' := W64 0,
     Commit' := W64 0 }

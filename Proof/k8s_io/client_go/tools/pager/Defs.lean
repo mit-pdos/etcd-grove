@@ -2,7 +2,8 @@
 **The pager's contracts** (`k8s.io/client-go/tools/pager`; phase 4 of `notes/k8s-daemonset-plan.md`,
 fifth round): what the reflector's list path through the pager is stated with. Lean-first.
 
-* `pageRes res S obj err`: a page's (and the pager's) result: an error, printable (`fmt.argOk`)
+* `pageRes res S obj err`: a page's (and the pager's) result: an error, printable (`fmtErrorOkOrNil`;
+  `fmt.argOk` until fmt soundness 2, 2026-11-18: `Errorf`'s `%w` of it needs `Error() string`)
   and one `apierrors`' checks may read (`apierrors.apiErrOk`: the pager asks
   `apierrors.IsResourceExpired` of it; the apierrors-fix stage, 2026-11-17), with no list (`nil`, or a typed list's `nil` pointer); or no error and a typed list of resource
   `res` (`typedListAt`, which has no continue token) with the caller's facts `S` about it.
@@ -12,7 +13,7 @@ fifth round): what the reflector's list path through the pager is stated with. L
 module
 
 public import Proof.k8s_io.client_go.tools.cache.RefWatchDefs
-public import Spec.fmt.Errorf
+public import Spec.fmt.ErrorOk
 public import Proof.k8s_io.apimachinery.pkg.api.errors.View
 
 @[expose] public section
@@ -38,7 +39,7 @@ def pageRes (res : Res) (S : Loc → List Obj → GoString → IProp GF) (obj er
     IProp GF :=
   iprop((⌜err ≠ interface.nil ∧ (obj = interface.nil ∨
         obj = interface.mkOk (go.GoType.PointerType (resListTy res)) #(null : Loc))⌝ ∗
-      fmt.argOk err ∗ apierrors.apiErrOk err) ∨
+      fmtErrorOkOrNil err ∗ apierrors.apiErrOk err) ∨
     (⌜err = interface.nil⌝ ∗ ∃ (q : Loc) (os : List Obj) (rv : GoString),
       ⌜obj = interface.mkOk (go.GoType.PointerType (resListTy res)) #q⌝ ∗
       typedListAt res q os rv ∗ S q os rv))

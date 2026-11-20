@@ -45,24 +45,5 @@ theorem walSearchFrom_le {idxs : List w64} {index : w64} :
     · cases h; assumption
     · exact walSearchFrom_le h
 
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
-theorem argWf_uint64 (v : w64) :
-    fmt.ArgWf (interface.mk go.uint64 #v) :=
-  ⟨fun h => by simp [go.uint64, go.string] at h, fun _ => ⟨_, .uint64 v⟩,
-    Or.inl (Or.inr (Or.inr (Or.inl (by simp [fmt.IsIntType]))))⟩
-
-theorem argWf_int (v : w64) :
-    fmt.ArgWf (interface.mk go.int #v) :=
-  ⟨fun h => by simp [go.int, go.string] at h, fun _ => ⟨_, .int v⟩,
-    Or.inl (Or.inr (Or.inr (Or.inl (by simp [fmt.IsIntType]))))⟩
-
-end proof
-
 end EtcdGrove
 end Perennial

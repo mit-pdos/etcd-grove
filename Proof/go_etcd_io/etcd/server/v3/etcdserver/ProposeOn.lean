@@ -22,6 +22,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVReadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthShape
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GrantFresh
 
 @[expose] public section
 
@@ -329,14 +330,26 @@ auth-mode merge's step 5, 2026-10-29): for some header `hm` the server stamped o
 committed prefix `L` of the server's requested log before the write's entry extends the caller's
 lower bound `L₀` (`srvReqLogLb`), the model grants the stamped request there (`grantedAt`), and
 `L`'s KV state is the one the update linearizes at; (5b) and a lower bound of the auth history
-along `L` (`authHistLb`). The margin: stated in the server's model of
-the log (`grantedAt`), not in a client's vocabulary (`grantedAt_iff`). -/
+along `L` (`authHistLb`). (Auth-lease S4, the thaw of 2026-11-18, approved by the user: option
+(A)) At a revocable-mode grant of the id `g` (`rqRevGrantId`), `g` is fresh in `σ`'s history: no key
+had the lease `g` at any revision up to `σ`'s (the log's grant ids are distinct, `kvGrantIds`, and
+every lease ever attached is a grant id of the log, `kvStateOf_grant_fresh`). It rests on what makes
+the grant ids distinct: in the revocable mode every grant request carries `ID = 0`, so the server
+draws its id (`EtcdServer.LeaseGrant.spec`'s premise; clientv3 always sends `0`, a raw gRPC client
+need not), the members' generator prefixes are distinct after the 63-bit mask (`kvPfxOk`,
+`issues/etcd-lease-id-mask-member-prefix.md`), and no two generators issue the same id (the
+`IdIssue` extension's trusted semantics; `nonissues/etcd-request-id-restart-reuse.md`). It says
+nothing of the table (`kvOpStep`'s `leaseGrantOk` checks the current one).
+The margin: stated in the server's model of the log (`grantedAt`), not in a client's vocabulary
+(`grantedAt_iff`). -/
 def writeGrantG (γk : KVNames) (st₀ : auth.AuthState) (Gb : apply.HeaderModel → IProp GF)
     (rq₀ : apply.IRRModel) (L₀ : List EntryModel) (σ : KVState) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (L : List EntryModel), Gb hm ∗
     authHistLb γk (admStates γk st₀ L) ∗
     ⌜L₀ <+: L ∧ grantedAt γk st₀ (apply.withHeader rq₀ hm) L ∧
-      kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L) = σ⌝)
+      kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L) = σ ∧
+      ∀ g, rqRevGrantId γk.lm rq₀ = some g →
+        ∀ r ≤ σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ W64 0 → kv.lease ≠ g⌝)
 
 /-- A grant at a binding `Gb'` that gives `Gb` is one at `Gb` (the contexts a server derives from
 a request's bind the same headers, `hdrBoundM_ctx`). -/
@@ -363,7 +376,7 @@ theorem writeGrantG_granted (γk : KVNames) (st₀ : auth.AuthState) (Gb : apply
   iexists hm, L
   iframe Hb Hh
   ipureintro
-  obtain ⟨h1, h2, h3⟩ := Hp
+  obtain ⟨h1, h2, h3, -⟩ := Hp
   refine ⟨h1, ?_⟩
   rw [← h3, kvStateOf_kvs]
   exact h2
@@ -640,6 +653,26 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
         imod ghostVar_update_halves (kvOpStep op σ) γk.st _ _ $$ Hσ Hc with ⟨Hσ, Hc⟩
         ihave #Hhl := monoListLbOwn_get γk.hist _ _ $$ Hh
+        -- (auth-lease S4, the thaw) a grant's id is fresh in the history: the log's grant ids distinct
+        ihave HG := kvGrantIds_snoc γk L e d (apply.withHeader rq₀ hm) het hed hdec $$ HG Hgo
+        ihave ⟨%Hnd, HG⟩ := kvGrantIds_nodup γk (L ++ [e]) $$ HG
+        have hfr : ∀ g, rqRevGrantId γk.lm rq₀ = some g →
+            ∀ r ≤ σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ W64 0 → kv.lease ≠ g := by
+          intro g hgid
+          have hrev : γk.lm = .revocable := by
+            unfold rqRevGrantId at hgid
+            split at hgid
+            · rename_i hc; exact hc.1
+            · cases hgid
+          have hent : entryRevGrantId γk.lm e = some g := by
+            unfold entryRevGrantId
+            simp only [het, ↓reduceIte, hed, hdec, Option.bind_some]
+            exact hgid
+          rw [logRevGrantIds_snoc, hent] at Hnd
+          have hg' : g ∉ logRevGrantIds γk.lm L := fun hm' =>
+            (List.nodup_append.1 Hnd).2.2 g hm' g (by simp) rfl
+          rw [← Hag]
+          exact kvStateOf_grant_fresh γk st₀ L Hok.2.2.2.2.2.1.2 Hok.2.2.2.2.2.1.1 hrev g hg'
         imod Hcommit $$ [Hc] with HQ
         · iunfold etcdKV
           iframe Hc
@@ -652,7 +685,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           isplitr
           · iunfold authHistLb; iexact Hhl
           ipureintro
-          exact ⟨HL₀p, hg, Hag⟩
+          exact ⟨HL₀p, hg, Hag, hfr⟩
         imod kvRes_alloc γc Q σ _ $$ HQ with #HQ
         have hidxe : uint.Z γk.c0 < uint.Z e.index := by
           have := Hok.2.2.2.1
@@ -661,7 +694,6 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           rw [kvModelOn_snoc_granted γk st₀ L e (apply.withHeader rq₀ hm) Hok.2.2.2.2.1 Hok.2.2.2.2.2.1.1 het hdata
             (by rw [hed]; exact hdec) hidxe hna (fun _ => hg), Hag]
           unfold kvReqStep; rw [hop]
-        ihave HG := kvGrantIds_snoc γk L e d (apply.withHeader rq₀ hm) het hed hdec $$ HG Hgo
         imod Hclose $$ [HL Hσ Hh HG] with -
         · inext
           iexists L ++ [e]

@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // The events the test counts, each by the message etcd or raft logs for it (etcd's at info level,
@@ -169,6 +170,7 @@ func TestMemberIDs(t *testing.T) {
 // leader sent which member a snapshot.
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "leasecatchup") // the members' WAL areas (wal-link P2)
 	ids := memberIDs(t)
 	rc := newRunCounts()
 	start := time.Now()

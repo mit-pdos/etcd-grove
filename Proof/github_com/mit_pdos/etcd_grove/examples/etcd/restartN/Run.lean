@@ -162,7 +162,7 @@ def stopCand (N : Nat) (m s : Loc) (γn : NetNames GF) (γ : SrvRaft) (γk : KVN
       (γS : SwNames),
     ⌜go!"http://" ++ x.Peer' ∈ dirN ms ids id ∧ x ∈ ms ∧ ρ.rd.kv.st = γk.st ∧ srvStop.scope E⌝ ∗
     memberRec m γS γn x.Name' x.Peer' x.Client' ∗ srvAppliedInv s E ρ.rd ∗
-    srvDataDir s (x.Name' ++ go!".etcd") ∗ srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E ∗
+    srvDataDir s (memberDataDir x.Name') ∗ srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E ∗
     netHttpOk γn id ∗
     etcdstart.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dirN ms ids) token x.Name'
       (urlsN ms x) id ∗

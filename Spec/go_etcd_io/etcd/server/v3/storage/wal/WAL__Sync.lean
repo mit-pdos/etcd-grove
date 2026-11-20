@@ -1,12 +1,16 @@
 /-
-`(*wal.WAL).Sync` over `fsExt` (W11 of `notes/wal-fsext-plan.md`; the main tree's axiom
-`Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Sync.lean` with plan §3's binder changes). Its error
-arm changed: the handle is lost (`sync` flushes the page writer first, and a failed flush leaves part
-of the pending bytes written). To be proved in `Proof/.../wal/WAL__Sync.lean`. Lean-first.
+`(*wal.WAL).Sync` over `fsExt` (W11 of `notes/wal-fsext-plan.md`; one spec since wal-link L1a, 2026-11-17,
+`notes/wal-link-scope.md` §8: the former `Sync.spec` and `Sync.specNoErr` merged). Over a share of the handle
+(`walOpenWS`, `HandleShared.lean`: the server's raft loop and apply thread use the WAL at once, serialized by
+`w.mu`), parameterised by the files with no I/O error (`Sio`, `FsStepSat (NoIoErr Sio)`): the error arm
+only when `Sio` does not cover every inode (`walCov`), and then only for the whole share (the handle is lost
+for every holder: `sync` flushes the page writer first, and a failed flush leaves part of the pending bytes
+written). Proved in `Proof/.../wal/WAL__Sync.lean`. Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
+public import GooseLang.Ext.Fs.FilteredSem
 
 @[expose] public section
 
@@ -25,19 +29,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
-/-- **`w.Sync()`** (S/wal.go:994-996, 967-992): flushes the encoder's page writer and fdatasyncs
-the tail: every record `w` has written is synced (`walLenLb n` gives `walSyncedLb n`). *Error*: the
-flush's write or the fdatasync failed; the handle is lost (the flush may have written part of its
-pending bytes, the page writer's buffer is then empty: a later append would not be the stream).
-The main tree's spec kept the handle on error. -/
+/-- **`w.Sync()`** (S/wal.go:1003-1006, 967-992; the fork's fix 0006 takes `w.mu`): flushes the encoder's page
+writer and fdatasyncs the tail: every record `w` has written is synced (`walLenLb n` gives `walSyncedLb n`),
+the share kept. *Error* (only when `Sio` misses an inode, and then the caller holds the whole share): the
+flush's write or the fdatasync failed; the handle is lost. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
-  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (n : Nat),
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWF P Mr w dir ∗ WalFs.walLenLb w dir n }}
+  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (n : Nat),
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
+      WalFs.walLenLb w dir n }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ walOpenWF P Mr w dir ∗ WalFs.walSyncedLb dir n) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n) ∨
+      ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }}
 
 end spec
 

@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // maxMembers is the bound of etcd_leaseN_safe's member count.
@@ -93,6 +94,7 @@ func TestMainRun(t *testing.T) {
 	}
 	t.Logf("leaseN: k=%d (rerun with LEASEN_MEMBERS=%d)", k, k)
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "leaseN") // the members' WAL areas (wal-link P2)
 	start := time.Now()
 	Main(k)
 	t.Logf("Main returned after %v", time.Since(start))

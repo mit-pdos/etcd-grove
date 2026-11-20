@@ -74,7 +74,7 @@ theorem etcd_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed (watchkvProgram nw nops) watchkvNames)
     (HAs : addrsUnclaimed (watchkvProgram nw nops) [go!"127.0.0.1:23872"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (watchkvProgram nw nops) [go!"watchkv.etcd"])
+    (HDs : dataDirsAbsent (watchkvProgram nw nops) [go!"/tmp/etcd-grove-data/watchkv.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (watchkvProgram nw nops))
     (n : Nat)
@@ -82,6 +82,8 @@ theorem etcd_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_watch.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/watchkv.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -91,7 +93,7 @@ theorem etcd_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_watch_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul
-    HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

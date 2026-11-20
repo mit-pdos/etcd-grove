@@ -66,9 +66,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- See the file header. (2026-10-27: over raft's node API, at the cluster's storage model,
 `srvStor`.) -/
 abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
-  ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (pre : List EntryModel) (ν : WalNames)
+    (pre : List EntryModel) (ν : WalNames GF)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF)
     -- (restart S3 item 5, Q35 (a)) how the node boots
     (bt : RNBoot),
@@ -80,8 +80,11 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract);
       -- (restart S3 item 5: until then also the configuration and the peers, `rnStartCfg`, now
       -- `rnBootPre`'s at `fresh`)
-      -- (2026-11-09, Q8 stage 0) and the cluster untraced (`cluster_alloc`'s): `StartNode`'s premise
-      "%Hraft" ∷ ⌜0 < sint.Z bv.heartbeat' ∧ storage.walReady wal ∧ Cluster.trace γr.cl = none⌝ ∗
+      -- (2026-11-09, Q8 stage 0) and the cluster untraced (`cluster_alloc`'s): `StartNode`'s premise;
+      -- (wal-link L3, 2026-11-19: until then `storage.walReady wal`) the WAL the open WAL `ν.h`'s
+      "%Hraft" ∷ ⌜0 < sint.Z bv.heartbeat' ∧ wal = ν.h.w ∧ Cluster.trace γr.cl = none⌝ ∗
+      -- (wal-link L3) the snapshotter (`NewStorage`'s precondition, `rnNewStorageOk`)
+      "#Hssi" ∷ snap.isSnapshotter ss sd ∗
       -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode`'s, which it logs through)
       "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
@@ -100,9 +103,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
     (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
       (Val #ss)) (Val #wal)) (Val #cl))
   {{ (r : Loc), RET #r;
-      ∃ (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
+      ∃ (n : Loc) (γw : RNNames GF) (f : GoFunc) (st : GoInterface),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
-          γw.γs = γs ∧ γw.wal = ν ∧ γw.a0 = bt.a0 ∧ γw.t0 = bt.t0 ∧ γw.commit0 = bt.commit0 ∧
+          γw.γs = γs ∧ γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = bt.a0 ∧ γw.t0 = bt.t0 ∧ γw.commit0 = bt.commit0 ∧
           γw.snap0 = bt.snap0⌝ ∗
         -- the node API's node and (2026-10-30, the repair) its whole running token
         isNode n γr.cl srvClusterN cv.ID' ∗
@@ -114,10 +117,10 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         -- restart, `RestartNode`'s
         rnBootPost γr n γw.key bv cv ps ctxs bt ∗
         -- the wrapper, over the config built here
-        isRNIDRemoved f ∗ isWalStorage st ∗
-        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s); (2026-10-31)
-        -- over the WAL `wal`
-        ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝ ∗
+        -- (wal-link L3, 2026-11-19: until then `isWalStorage st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝`)
+        -- the storage over the open WAL `ν.h` and the snapshotter `ss`, with its two reader tokens (the raft
+        -- loop's and the apply thread's: `rnNewStorageOk`'s)
+        isRNIDRemoved f ∗ isWalStorage st γw.wal.h γw.ss ∗ walStorRd st γw.wal.h ∗ walStorRd st γw.wal.h ∗
         -- (restart S3 items 5-6) its `cum` at the boot's start log `bt.P` (`[]` fresh)
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)

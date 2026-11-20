@@ -8,6 +8,7 @@ error variables' `fmtErrorOk` (`bboltErrorsVars`).
 module
 
 public import Spec.fmt.ErrorOk
+public import Spec.fmt.ErrorfErrs
 public import Perennial.Proof.errors
 
 @[expose] public section
@@ -34,6 +35,28 @@ theorem errorString_fmtErrorOk (x : Loc) (msg : GoString) :
     fmtErrorOk (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x) := by
   iintro #H
   simp only [fmtErrorOk, fmt.stringMethodSpec]
+  isplitr
+  · ipureintro
+    have h1 := (go.MethodSetIs.method_set_is
+      (t := go.GoType.PointerType errors.errorString.ty) go!"Format")
+    have h2 := (go.MethodSetIs.method_set_is
+      (t := go.GoType.PointerType errors.errorString.ty) go!"Error")
+    simp only [go.methodSetLookup] at h1 h2
+    exact ⟨by simpa using h1, by simpa [noArgStringSig] using h2⟩
+  imodintro
+  iintro %Φ HΦ
+  iapply H
+  inext
+  iapply HΦ
+
+/-- An `errors.New` error (`errors.wp_New_errorString`'s post) is `errOk` (2026-11-18). -/
+theorem errorString_errOk (x : Loc) (msg : GoString) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
+        (Val #())) {{ Φ }}) ⊢
+    errOk ⟨go.GoType.PointerType errors.errorString.ty, #x⟩ := by
+  iintro #H
+  simp only [errOk]
   isplitr
   · ipureintro
     have h1 := (go.MethodSetIs.method_set_is

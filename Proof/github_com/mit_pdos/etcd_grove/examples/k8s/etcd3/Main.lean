@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchServedLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.SeedRun
 
 @[expose] public section
 
@@ -306,7 +307,7 @@ theorem Main.wp_proof
           subst hy; exact Hnr)
       (by simp [storeCfgD]) (by omega) H0 Hw0 H31 Hops Hwops Hmul
       (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp)
-      (by simp [g0s, st3]))
+      (by simp [g0s, st3]) runOk_g0s)
     $$ [Hks Hst0 Hhs] as %r %hr
   · rw [show (storeCfgD kc cl [x] V mt lt γh).ms = [x] from rfl]
     iframe #

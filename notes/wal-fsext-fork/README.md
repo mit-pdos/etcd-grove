@@ -40,3 +40,43 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   close's `nil` and made `Create` return `(nil, nil)` with no cleanup
   (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`). No regression test (an fsync EIO on a directory
   is not injectable in the package's tests).
+- `0007` (wal-link, 2026-11-18, approved by the user via etcd-grove-03; pushed within `goose-lean-walfs3-fp` (the branch
+  `goose-lean-walfs3` of the clone `/shared/tmp/wal-fork/etcd` was not pushed), head `f01ae14c9b95338efae4e2ac2d62703bc873d178`, on
+  `8c28a4296`): `WAL.SaveSnapshot` checks the tail's offset after its record and cuts once it passes
+  `SegmentSizeBytes`, as `Save` does (`cut` syncs the old tail first); before, it only synced. Why: the server
+  saves a snapshot record from the apply thread once per applied batch past `SnapshotCount`, and raft hands a
+  commit backlog out over `Ready`s with an empty hard state and no entries (whose `Save` writes nothing, so
+  no cut), so the snapshot records between two entry-writing `Save`s grew one tail file without bound, up to
+  ext4's `s_maxbytes` (`EFBIG`, the apply thread's `lg.Panic`); the proof could not bound them (layer 1's room
+  budget, `nonissues/etcd-wal-savesnapshot-tail-efbig.md`). Test `TestSaveSnapshotCuts`
+  (`server/storage/wal/savesnapshot_cut_test.go`): 64 snapshot records with no `Save` between them under a
+  2 KiB segment size cut the tail (more than one file, the tail below the segment size) and the WAL opens at
+  the last snapshot; it fails without the change (one file). `go test ./storage/wal/...` (GOWORK=off, go1.27.3, 32 min) passes but for
+  `TestWALByteMix`, failing by design as at 0006 (the synthetic byte mixes, see above). `etc/goose.py` pins it (project `etcd`,
+  translated with `--src etcd=/shared/tmp/wal-fork/etcd` until the push; the pin is now 0008's, below).
+- `0008` (wal-link, 2026-11-18; **pushed by the user 2026-11-18** as upamanyus/etcd branch `goose-lean-walfs3-fp`,
+  head `34dea163a76cc68a02e9a6ae1e86df0cec069be7`, on `f01ae14c9`): `SaveSnapshot` does not cut while `w.fp` is
+  nil, i.e. in `Create`'s own call (before the file pipeline exists). Found while re-proving `SaveSnapshot`'s
+  `Create` case: 0007 alone made a `Create` whose first segment (metadata and the empty snapshot) passes
+  `SegmentSizeBytes` panic in `cut` (nil `w.fp`; reproduced with 65 MB of metadata, and in
+  `TestCreateLargeMetadata`: 1 MiB under a 2 KiB segment size), where `8c28a4296` succeeded. The condition is
+  `curOff < SegmentSizeBytes || w.fp == nil` (sync), else `cut`. `TestCreateLargeMetadata` fails at `f01ae14c9`
+  (nil pointer) and passes at `34dea163a`; the WAL suite but the byte-mix tests passes (GOWORK=off, go1.27.3).
+  `etc/goose.py` pins `34dea163a`; the examples' `go.mod`/`go.sum` are at its pseudo-version
+  `v3.0.0-20261118203246-34dea163a76c` (`notes/wal-fsext-fork/bump-go-mod.sh`); `etc/goose.py --check` passes.
+- `0009` (wal-link, 2026-11-19, **approved by the user 2026-11-19 via etcd-grove-03**; upamanyus/etcd branch
+  `goose-lean-walfs3-fp9` of the clone `/shared/tmp/wal-fork/etcd`, head `d3feef9bcdddb9ad15ee5fc8bf725050395debb4`,
+  on `34dea163a`; **pushed by the user 2026-11-19**): `WAL.Save` sums `proto.Size(e)+64` over the batch and returns the new
+  `ErrSaveBatchTooLarge` before `w.mu.Lock()` (nothing committed or written; the WAL stays usable) once the sum
+  passes the new `var MaxSaveBatchBytes int64 = 1 << 42` (4 TiB). Why: `Save` writes a whole batch into the tail
+  before checking whether to cut, and nothing bounds a `Ready`'s entries (etcd sets no
+  `MaxUncommittedEntriesSize`), so a batch past ext4's `s_maxbytes` (16 TiB) failed with `EFBIG` after a torn
+  record, and the raft loop's `lg.Fatal`; the proof could not bound the batch (layer 1's room premise,
+  `nonissues/etcd-wal-save-batch-efbig.md`; the options: `/shared/tmp/walsave-probe/report.md`, option (f)).
+  A refused batch still ends in the raft loop's `lg.Fatal`, as `EFBIG` did, but with nothing written. Test
+  `TestSaveBatchTooLarge` (`server/storage/wal/save_batch_limit_test.go`, `MaxSaveBatchBytes = 4096`): an 8 KiB
+  batch is refused, a later `Save` succeeds, and `Open`+`ReadAll` see only the later entry (it does not compile
+  before the change: the error is new). `go test ./storage/wal/...` (GOWORK=off, go1.27.3, 35 min) passes but for
+  `TestWALByteMix`, failing by design as at 0006; `walpb` passes. `etc/goose.py` pins `d3feef9bc`; the examples'
+  `go.mod`/`go.sum` are at its pseudo-version `v3.0.0-20261119013048-d3feef9bcddd` (`bump-go-mod.sh`);
+  `etc/goose.py --check --project etcd --project etcd-wal` passes without `--src`.

@@ -25,15 +25,15 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The reader `r` over the auth buckets `D` (its users encodings) under `H`: returns the user
-named `name` of `D.users`, owned, or nil. -/
+/-- The reader `r` over the auth buckets `D` (its users the encodings of the records `dU` names) under `H`: returns the user
+named `name` of `D.users`, owned (the record `dU name`), or nil. -/
 abbrev schema.unsafeGetUser.spec : Prop :=
-  ∀ (lg : Loc) (r : GoInterfaceOk) (name : GoString) (H : IProp GF) (D : schema.AuthData),
-  lg ≠ null → schema.usersWf D.users →
+  ∀ (lg : Loc) (r : GoInterfaceOk) (name : GoString) (H : IProp GF) (D : schema.AuthData) (dU : GoString → auth.UserRec),
+  schema.usersDec D.users dU →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.authReader r H D ∗ H }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeGetUser)) (Val #lg)) (Val #(GoInterface.ok r)))
       (Val #name))
-  {{ (u : Loc), RET #u; H ∗ schema.userOutDX u D.users name }}
+  {{ (u : Loc), RET #u; H ∗ schema.userOutDX u D.users name dU }}
 
 end spec
 

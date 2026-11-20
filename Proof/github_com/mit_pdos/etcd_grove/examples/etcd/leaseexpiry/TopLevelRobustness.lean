@@ -40,12 +40,12 @@ variable [go_gctx : GoGlobalContext]
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/TopLevelRobustness.lean`). -/
 theorem etcd_leaseexpiry_robust : etcd_leaseexpiry_robust.spec := by
   intro lctx sem package_sem cache_sem _ _ Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp HNs HAs
-    HDs HEnv Hprem σ g Hfs
+    HDs HEnv Hprem σ g Hfs HWal
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
       (etcd_leaseexpiry_safe
         Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs HEnv n (Hprem n (by omega)) σ g
-        Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
+        Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 end EtcdGrove

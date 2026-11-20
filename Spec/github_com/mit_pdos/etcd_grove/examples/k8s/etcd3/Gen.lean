@@ -33,12 +33,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev Gen.spec : Prop :=
-  ∀ (c : StoreCfg GF DObj) (tbl : Loc) (id : w64),
+  ∀ (c : StoreCfg GF DObj) (tbl : Loc) (id f : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      isCache c tbl }}
+      isCache c tbl ∗ cacheFloor tbl f }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen)) (Val #tbl))
       (Val #id))
-  {{ (x : Input), RET #x; ⌜GenInA x⌝ ∗ cachedIn c x }}
+  {{ (x : Input), RET #x; ⌜GenInA x ∧ FloorOk f x⌝ ∗ cachedIn c x }}
 
 end spec
 

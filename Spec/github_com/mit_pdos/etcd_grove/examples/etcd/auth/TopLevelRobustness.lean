@@ -16,6 +16,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.TopLevelDe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -55,16 +56,17 @@ def etcd_auth_robust.spec : Prop :=
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed authkvProgram authkvNames)
     (HAs : addrsUnclaimed authkvProgram [go!"127.0.0.1:23916"])
-    (HDs : dataDirsAbsent authkvProgram [go!"authkv.etcd"]) (HEnv : verifyEnvOff authkvProgram)
+    (HDs : dataDirsAbsent authkvProgram [go!"/tmp/etcd-grove-data/authkv.etcd"]) (HEnv : verifyEnvOff authkvProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_auth.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/authkv.etcd"]),
     Robustness.Robust [] [(authkvProgram, σ)] g (2 ^ 28 - 1)
 
 end adequacy

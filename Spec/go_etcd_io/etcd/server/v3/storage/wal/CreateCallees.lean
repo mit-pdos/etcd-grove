@@ -64,11 +64,11 @@ abbrev wal.Exist.specCreate [go_etcd_io.etcd.server.v3.storage.wal.Assumptions] 
   ∀ (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp),
   InArea r dir nm → NameOk nm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-      WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+      WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
       WalFs.walUnlockedTok }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Exist)) (Val #dir))
   {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗
-      ((⌜b = true⌝ ∗ walAreaRes jr) ∨ (⌜b = false⌝ ∗ WalFs.walAreaResFree jr nm)) ∗ osCallPerm 1 ∗
+      ((⌜b = true⌝ ∗ walAreaRes jr) ∨ (⌜b = false⌝ ∗ WalFs.walAreaResFree jr nm)) ∗ osCallPerm (callKey R r) 1 ∗
       WalFs.walUnlockedTok }}
 
 /-- See the file header. -/
@@ -76,10 +76,10 @@ abbrev fileutil.CreateDirAll.specTmp [go_etcd_io.etcd.client.pkg.v3.fileutil.Ass
   ∀ (lg : Loc) (R : Roots) (jp : Ino) (d parent name : GoString) (qp : Qp) (h : NamesH),
   d = child parent name → NameOk name → d.length < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗
-      zapLoggerOk (GF := GF) lg ∗ osInv ∗ osSharedInv R ∗ osPathS R parent (DFrac.own qp) jp ∗
-      osCallPerm 1 ∗ tmpDirH jp name h }}
+      zapLoggerOk (GF := GF) lg ∗ osInv ∗ osSharedInv R ∗ osAboveInv ∗ osPathS R parent (DFrac.own qp) jp ∗
+      osCallPerm (callKey R parent) 1 ∗ tmpDirH jp name h }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.CreateDirAll)) (Val #lg)) (Val #d))
-  {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm 1 ∗
+  {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm (callKey R parent) 1 ∗
       ((⌜err ≠ interface.nil⌝ ∗ ∃ h', tmpDirH jp name h') ∨
         (⌜err = interface.nil⌝ ∗ ∃ (h' hJ : NamesH) (J : Ino),
           ⌜h'.cur !! name = some (.dir J) ∧ hJ.cur = ∅⌝ ∗
@@ -91,10 +91,10 @@ abbrev os.RemoveAll.specAbsentN [os.Assumptions] : Prop :=
     (qc : Qp),
   NameOk b → N.Mem b → h.cur !! b = none →
   {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
-      osNames j N dqn h ∗ osCallPerm qc }}
+      osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osNames j N dqn h ∗
-      osCallPerm qc ∗ fmtErrorOkOrNil err }}
+      osCallPerm (callKey R d) qc ∗ fmtErrorOkOrNil err }}
 
 end spec
 
