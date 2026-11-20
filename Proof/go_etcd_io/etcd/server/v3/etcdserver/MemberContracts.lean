@@ -10,6 +10,7 @@ counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
 
@@ -86,6 +87,19 @@ instance configureCcOk_persistent (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfa
 `ConfChangeAddNode` (0) otherwise. -/
 def addChangeType (learner : Bool) : go_etcd_io.raft.v3.raftpb.ConfChangeType :=
   if learner then W32 3 else W32 0
+
+/-- **A strict reconfiguration check's answer, as the gRPC handlers need it**: the caller's `Qm`,
+and an error `errors.Is` and `togRPCError` can take (`applyErrIs`) unless `nil`. -/
+def memChkAns (Qm : GoInterface → IProp GF) (err : GoInterface) : IProp GF :=
+  iprop(Qm err ∗ (⌜err = GoInterface.nil⌝ ∨ applyErrIs err))
+
+/-- **`configure`'s answer, as the gRPC handlers need it**: the caller's `Qin`, and on `nil` the
+members it returns (`membership.membersAt`: `membersToProtoMembers` reads them), on an error one
+`togRPCError` can take (`applyErrIs`). -/
+def memCfgAns (Qin : GoSlice → GoInterface → IProp GF) (sl : GoSlice) (err : GoInterface) :
+    IProp GF :=
+  iprop(Qin sl err ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ ms : List Loc, membership.membersAt sl ms) ∨
+    (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))
 
 end defs
 

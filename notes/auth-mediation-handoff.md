@@ -8,17 +8,9 @@
 - The Scope (approved 2026-11-20): `notes/auth-mediation-scope.md` (D2 b-table, D3 Lock/Election
   excluded, D4 local JSON trust-boundary spec, D5 M4 now / M5 deferred, D6 "every gRPC request").
   The gateway finding is private: never describe it in a public file.
-- M0 (done): `etc/authmed/main.go` lists the client port's registrations from the Go source at the
-  pin; `etc/auth-table.txt` classifies each; `etc/auth-mediation-check.py --check` (in `etc/gates.sh`,
-  sec_goose, and CI) checks them against the specs and `etc/auth-mediation-baseline.txt`.
-  Matrix corrections in `notes/auth-matrix.md`; the v3lock issue's front matter (`upstream: known`).
-  Row 12 (LeaseKeepAlive) confirmed: `kaStreamSpec` gives every response `kaDn`, the renewal's
-  `leaseCheckFrom` verdict at its request's bounds.
-- M1 (approved by the user 2026-11-20, at the land stop): `etcdserverpbDescs` (cache/v3/Base.lean) and
-  `svcDescsOk` (BaseStart) state every descriptor exactly; `v3rpc.serverRegsOk` (InvGrpcStart) the
-  exact registrations; `v3rpc.Server.spec` posts it; `ClientPortTable.lean` the Lean table;
-  `client_port_mediated` (v3rpc/Results.lean). lean `951d520138` merged; builds
-  `20261120-182540-1298292` + `20261120-184907-1359064`; tcb unchanged; etc/gates.sh passes.
+- M0, M1 done (M1 approved by the user 2026-11-20): the gate `etc/auth-mediation-check.py` over
+  `etc/auth-table.txt`; `v3rpc.Server.spec`'s exact registrations; `client_port_mediated`
+  (v3rpc/Results.lean). Details: `git log` and `notes/auth-mediation-scope.md`.
 - M2 (in progress, 2026-11-20). Done: the JSON trust boundary in the user's smallest form
   (`Spec/encoding/json/{MarshalMember,MarshalConfigChangeContext}.lean`, axioms beside; attacked:
   survives, `notes/axiom-review/json-marshal-member.md`; Go tests `examples/authmedjson/`); the
@@ -28,12 +20,29 @@
   contracts `MemberContracts.lean` (`mayAddOk`, `mayPromoteOk`, `configureCcOk`, `memberSlices`,
   `addChangeType`); specs + proofs of `AddMember`, `UpdateMember`, `promoteMember` (not linked yet);
   `PromoteMember`'s metrics in `srvApplyLoopInit` (gen-init; `revokeExpiredLeases`' pattern adjusted).
-- M2 next: (1) `PromoteMember`: spec drafted in `/shared/tmp/authmed/m2-next/` (contract
-  `promoteHTTPOk`, no local token on the forwarded path: the leader's re-check is the contract's `Qfw`);
-  contracts' answers carry `applyErrIs` (for `errors.Is`/`Error()`); proof after `LeaseRenew`'s
-  forwarding loop and `processInternalRaftRequestOnce`'s `context.wp_WithTimeout`. (2) the handlers
-  (`ClusterServer.Member*`): `header` over `RaftCluster.ID`/`MemberID`/`Term`/`Leader`, `togRPCError`'s
-  spec, `types.NewURLs`, `membership.NewMember(AsLearner)` (names only: contracts), the contracts'
-  `Qin` giving `membership.membersAt sl ms` on `nil` for `membersToProtoMembers`. (3) Link
-  (`etc/gen-link.py --server` list), `etc/auth-table.txt` rows 13-17, gate baseline, tcb update (two
-  new axioms: STOP already covered by the user's decision).
+- M2, second session (2026-11-20). Committed, build `20261120-201939-1779142` (after the
+  etcdserverpb regeneration: exit 1, only `membersToProtoMembers` failing): etcdserverpb's Cluster
+  messages translated (`etcdserverpb.toml`; they were axiomatized types with `sorry` instances, so no
+  handler could be proved); `v3rpc/InvCluster.lean` (`clusterServerIs`, `clusterHdrOk`,
+  `memberOutC`) and `MemberContracts.lean`'s `memChkAns`, `memCfgAns` (built); specs of
+  `ClusterServer.{header,MemberRemove,MemberList,MemberUpdate}` and `membersToProtoMembers`;
+  `header`'s proof (built). **Not yet checked**: the proofs of `MemberRemove`, `MemberList`,
+  `MemberUpdate` (drafts, never compiled: not reached by the build's targets until linked; check each
+  with `etc/lean-check.py`) and `membersToProtoMembers` (line 93: `wp_auto: no progress` at the
+  `&pb.Member{...}` literal; written when `pb.Member` was axiomatized, retry now; then the
+  `wp_store_slice_index` into `protoMembs[i]` and the loop's close, drafted below it).
+- M2 next: (1) **`PromoteMember` is blocked** (reported to etcd-grove-03): its
+  `learnerPromoteFailed.WithLabelValues(err.Error())` panics unless the message is valid UTF-8, and
+  the guard's error (`checkMembershipOperationPermission`'s `adminOutC`) carries no message fact
+  (`adminWhy` is `True` with auth off). Recommended: strengthen the guard's post with `authErrVarIs
+  err` (its errors are `AuthInfoFromCtx`'s `authApplyErrIs` and `IsAdminPermitted`'s; with auth off
+  `nil`), whose messages are `auth.authErrMsgs` literals (`authErrVarIs_cell`); the contracts'
+  answers then add a UTF-8 message fact. It changes a row spec of `client_port_mediated` (stronger):
+  a hard stop. Draft contract `promoteHTTPOk`: `/shared/tmp/authmed/m2-next/`. (2) `MemberAdd`:
+  `types.NewURLs`'s axiom covers only non-empty plain `http://host:port` lists (premise on the
+  request's peer URLs, recorded as the margin) and `membership.NewMember(AsLearner)` are names only
+  (a contract `newMemberOk learner`); the premises `∀ id, configureCcOk ...` and `∀ memb ps,
+  mayAddOk ...` (the member's id is computed). (3) `NewClusterServer`'s post: `clusterServerIs` (a
+  stronger post). (4) Link (`etc/gen-link.py --server` list), `etc/auth-table.txt` rows 13-17
+  (13, 15 contract once MemberAdd/Update are linked; 14 contract; 16 e2e; 17 contract after
+  PromoteMember), `ClientPortTable.lean`, gate baseline, tcb update (the two JSON axioms).
