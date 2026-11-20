@@ -30,8 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.quotaAlarmer.check.wp_proof
     (wp_newBackendQuota : v3rpc.newBackendQuota.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) := by
-  intro qa s ci r rt hrt
-  wp_start as ⟨#Hqa, Hrd⟩
+  intro qa s ci r rt
+  wp_start as ⟨#Hqa, Hrd, Hreq⟩
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   iunfold v3rpc.quotaAlarmerAt at Hqa
@@ -46,8 +46,7 @@ theorem v3rpc.quotaAlarmer.check.wp_proof
   icases Hiq with ⟨%qi, %Hqi, #HAv, -⟩
   subst Hqi
   wp_auto
-  wp_apply HAv $$ %rt %r as %b %Hb
-  · ipureintro; exact hrt
+  wp_apply HAv $$ %rt %r Hreq as %b %Hb
   -- (audit phase B3, D19h) under `backendUnderQuota` the quota answers true: the NOSPACE
   -- alarm's branch (`s.MemberID()`, `s.Alarm`) is not reached
   subst Hb

@@ -5,7 +5,11 @@
 # `DeadlineExceeded` and `Canceled`; the watch slice's unit W-C: `clientv3.isHaltErr` compares with
 # `Unavailable` and `Internal`).
 translate = ["!*", "OK", "Unknown", "FailedPrecondition", "Unavailable", "Unimplemented",
-  "DeadlineExceeded", "Canceled", "Internal"]
+  "DeadlineExceeded", "Canceled", "Internal",
+  # (prove-smallinits, 2026-11-20) `strToCode`, a map literal of the codes (until then
+  # `opaqueInitsOk`), and the codes it names
+  "strToCode", "InvalidArgument", "NotFound", "AlreadyExists", "PermissionDenied",
+  "ResourceExhausted", "Aborted", "OutOfRange", "DataLoss", "Unauthenticated"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

@@ -34,25 +34,32 @@ attribute [irreducible] Code.ty
 @[reducible] noncomputable def Unknown [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-opaque InvalidArgument [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def InvalidArgument [GooseExts] [GoGlobalContext] : val :=
+  #(W32 3)
 
 @[reducible] noncomputable def DeadlineExceeded [GooseExts] [GoGlobalContext] : val :=
   #(W32 4)
 
-opaque NotFound [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def NotFound [GooseExts] [GoGlobalContext] : val :=
+  #(W32 5)
 
-opaque AlreadyExists [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def AlreadyExists [GooseExts] [GoGlobalContext] : val :=
+  #(W32 6)
 
-opaque PermissionDenied [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def PermissionDenied [GooseExts] [GoGlobalContext] : val :=
+  #(W32 7)
 
-opaque ResourceExhausted [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ResourceExhausted [GooseExts] [GoGlobalContext] : val :=
+  #(W32 8)
 
 @[reducible] noncomputable def FailedPrecondition [GooseExts] [GoGlobalContext] : val :=
   #(W32 9)
 
-opaque Aborted [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Aborted [GooseExts] [GoGlobalContext] : val :=
+  #(W32 10)
 
-opaque OutOfRange [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def OutOfRange [GooseExts] [GoGlobalContext] : val :=
+  #(W32 11)
 
 @[reducible] noncomputable def Unimplemented [GooseExts] [GoGlobalContext] : val :=
   #(W32 12)
@@ -63,16 +70,16 @@ opaque OutOfRange [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def Unavailable [GooseExts] [GoGlobalContext] : val :=
   #(W32 14)
 
-opaque DataLoss [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def DataLoss [GooseExts] [GoGlobalContext] : val :=
+  #(W32 15)
 
-opaque Unauthenticated [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Unauthenticated [GooseExts] [GoGlobalContext] : val :=
+  #(W32 16)
 
 opaque _maxCode [GooseExts] [GoGlobalContext] : val
 
 noncomputable def strToCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.strToCode"
-
-opaque strToCode.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.init.0"
@@ -90,10 +97,48 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.google_golang_org.grpc.codes)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"\"OK\""))
+  (Let "$v1" (Val OK)
+  (Let "$k2" (Val #(go!"\"CANCELLED\""))
+  (Let "$v3" (Val Canceled)
+  (Let "$k4" (Val #(go!"\"UNKNOWN\""))
+  (Let "$v5" (Val Unknown)
+  (Let "$k6" (Val #(go!"\"INVALID_ARGUMENT\""))
+  (Let "$v7" (Val InvalidArgument)
+  (Let "$k8" (Val #(go!"\"DEADLINE_EXCEEDED\""))
+  (Let "$v9" (Val DeadlineExceeded)
+  (Let "$k10" (Val #(go!"\"NOT_FOUND\""))
+  (Let "$v11" (Val NotFound)
+  (Let "$k12" (Val #(go!"\"ALREADY_EXISTS\""))
+  (Let "$v13" (Val AlreadyExists)
+  (Let "$k14" (Val #(go!"\"PERMISSION_DENIED\""))
+  (Let "$v15" (Val PermissionDenied)
+  (Let "$k16" (Val #(go!"\"RESOURCE_EXHAUSTED\""))
+  (Let "$v17" (Val ResourceExhausted)
+  (Let "$k18" (Val #(go!"\"FAILED_PRECONDITION\""))
+  (Let "$v19" (Val FailedPrecondition)
+  (Let "$k20" (Val #(go!"\"ABORTED\""))
+  (Let "$v21" (Val Aborted)
+  (Let "$k22" (Val #(go!"\"OUT_OF_RANGE\""))
+  (Let "$v23" (Val OutOfRange)
+  (Let "$k24" (Val #(go!"\"UNIMPLEMENTED\""))
+  (Let "$v25" (Val Unimplemented)
+  (Let "$k26" (Val #(go!"\"INTERNAL\""))
+  (Let "$v27" (Val Internal)
+  (Let "$k28" (Val #(go!"\"UNAVAILABLE\""))
+  (Let "$v29" (Val Unavailable)
+  (Let "$k30" (Val #(go!"\"DATA_LOSS\""))
+  (Let "$v31" (Val DataLoss)
+  (Let "$k32" (Val #(go!"\"UNAUTHENTICATED\""))
+  (Let "$v33" (Val Unauthenticated)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string Code.ty)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression Code.ty (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression Code.ty (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression Code.ty (Var "$v5"))), (KeyedElement (some (KeyExpression go.string (Var "$k6"))) (ElementExpression Code.ty (Var "$v7"))), (KeyedElement (some (KeyExpression go.string (Var "$k8"))) (ElementExpression Code.ty (Var "$v9"))), (KeyedElement (some (KeyExpression go.string (Var "$k10"))) (ElementExpression Code.ty (Var "$v11"))), (KeyedElement (some (KeyExpression go.string (Var "$k12"))) (ElementExpression Code.ty (Var "$v13"))), (KeyedElement (some (KeyExpression go.string (Var "$k14"))) (ElementExpression Code.ty (Var "$v15"))), (KeyedElement (some (KeyExpression go.string (Var "$k16"))) (ElementExpression Code.ty (Var "$v17"))), (KeyedElement (some (KeyExpression go.string (Var "$k18"))) (ElementExpression Code.ty (Var "$v19"))), (KeyedElement (some (KeyExpression go.string (Var "$k20"))) (ElementExpression Code.ty (Var "$v21"))), (KeyedElement (some (KeyExpression go.string (Var "$k22"))) (ElementExpression Code.ty (Var "$v23"))), (KeyedElement (some (KeyExpression go.string (Var "$k24"))) (ElementExpression Code.ty (Var "$v25"))), (KeyedElement (some (KeyExpression go.string (Var "$k26"))) (ElementExpression Code.ty (Var "$v27"))), (KeyedElement (some (KeyExpression go.string (Var "$k28"))) (ElementExpression Code.ty (Var "$v29"))), (KeyedElement (some (KeyExpression go.string (Var "$k30"))) (ElementExpression Code.ty (Var "$v31"))), (KeyedElement (some (KeyExpression go.string (Var "$k32"))) (ElementExpression Code.ty (Var "$v33")))]))))))))))))))))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val strToCode.init) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string Code.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr strToCode))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc strToCode (go.GoType.MapType go.string Code.ty))) (Val #()))))))))
 
 abbrev Code [GooseExts] : Type := w32
 

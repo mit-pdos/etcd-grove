@@ -4,7 +4,11 @@
 # `v3rpc.newHealthNotifier` reads (`StopGRPCServiceOnDefrag`; item 4, the server start), and
 # `LeaseRenew`'s (`FastLeaseKeepAlive`; the lease-renew plan, 2026-11-01).
 translate = ["!*", "PriorityRequest", "TxnModeWriteWithSharedBuffer", "LeaseCheckpointPersist",
-  "LeaseCheckpoint", "StopGRPCServiceOnDefrag", "FastLeaseKeepAlive"]
+  "LeaseCheckpoint", "StopGRPCServiceOnDefrag", "FastLeaseKeepAlive",
+  # (prove-smallinits, 2026-11-20) `DefaultEtcdServerFeatureGates`, a map literal of
+  # `featuregate.FeatureSpec`s, and the features it names (until then `opaqueInitsOk`)
+  "DefaultEtcdServerFeatureGates", "InitialCorruptCheck", "CompactHashCheck", "SetMemberLocalAddr",
+  "NonBlockingDefrag"]
 imports = ["!*", "go.etcd.io/etcd/pkg/v3/featuregate"]
 
 # translate the definitions of all type declarations goose supports

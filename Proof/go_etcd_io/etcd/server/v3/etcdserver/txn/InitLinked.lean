@@ -71,6 +71,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := Loc) rangeSec _ as HrangeSec
+  wp_apply wp_GlobalAlloc (V := Loc) applySec _ as HapplySec
   wp_apply wp_GlobalAlloc (V := GoInterface) slowApplies _ as HslowApplies
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
       EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd17⟩
@@ -105,8 +107,22 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     icases CslowApplies with ⟨#K, -, -⟩
     unfold go_etcd_io.etcd.server.v3.lease.counterSpec
     iexact K
-  wp_apply (opaqueInitsOk applySec.init (by mem_tac))
-  wp_apply (opaqueInitsOk rangeSec.init (by mem_tac))
+  -- translated initializer of applySec))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bapplySec BapplySec
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"version", go!"op", go!"success"])); isplitr; (· ipureintro; rfl); iintro %sapplySec ⟨SapplySec, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"version", go!"op", go!"success"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SapplySec $BapplySec] as %vapplySec #LapplySec
+  try wp_auto
+  -- translated initializer of rangeSec))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %brangeSec BrangeSec
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"success"])); isplitr; (· ipureintro; rfl); iintro %srangeSec ⟨SrangeSec, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"success"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SrangeSec $BrangeSec] as %vrangeSec #LrangeSec
+  try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HslowApplies
   ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []

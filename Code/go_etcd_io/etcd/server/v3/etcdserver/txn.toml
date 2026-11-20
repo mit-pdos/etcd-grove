@@ -8,6 +8,9 @@
 translate = ["!*",
   # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
   "slowApplies",
+  # (prove-smallinits, 2026-11-20) the two histogram vectors, over `NewHistogramVec`'s spec (until
+  # then `opaqueInitsOk`)
+  "applySec", "rangeSec",
   # txn.go
   "Txn", "txn", "newTxnResp", "executeTxn", "checkTxn", "compareInt64", "compareToPath",
   "applyCompares", "applyCompare", "compareKV", "IsTxnSerializable", "IsTxnReadonly",
