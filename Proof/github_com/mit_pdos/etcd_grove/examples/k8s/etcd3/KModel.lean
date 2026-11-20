@@ -8,7 +8,7 @@ on Go values: a store (`mstore`: the items sorted by key, each an object with it
 version and the canonical bit, D30g; the resource version) and the failed writes that may still
 take effect. Here are the pure functions its helpers compute, as their specs state them
 (`Spec/.../k8setcd3/<fn>.lean`): `lookupL`, `setItemL`, `delItemL`, `notFoundL`, `invalidObjL`,
-`objOutL`, `preOkL`, `sameObjL`, `mcreateL`, `mdeleteL`, `mupdateL`, `mgetL`, `mstepL` (`mstep`)
+`preMsgL`, `objOutL`, `preOkL`, `sameObjL`, `mcreateL`, `mdeleteL`, `mupdateL`, `mgetL`, `mstepL` (`mstep`)
 and `isWriteL`. Stage 7b: UIDs, the preconditions (`preOkL`, an `EInvalid` answer), updates with
 `ignoreNotFound` (from the zero object), and a `Get`'s minimum resource version (`EOther` above
 the store's).
@@ -67,13 +67,38 @@ instance Input_decEq : DecidableEq Input := fun a b =>
       a.Behavior' = b.Behavior' ∧ a.Skip' = b.Skip')
     (by cases a; cases b; simp)
 
+/-- `Raw` (stage 7g: the store's own answer, which the model ignores) holds Go values; its
+equality is decided classically. -/
+instance Raw_decEq : DecidableEq github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw :=
+  fun _ _ => Classical.propDecidable _
+
 instance Output_decEq : DecidableEq Output := fun a b =>
-  decidable_of_iff (a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧
+  decidable_of_iff (a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧ a.ErrMsg' = b.ErrMsg' ∧
       a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
       a.Node' = b.Node' ∧ a.App' = b.App' ∧ a.RV' = b.RV' ∧ a.Items' = b.Items' ∧
       a.ListRV' = b.ListRV' ∧ a.Continue' = b.Continue' ∧ a.HasRemaining' = b.HasRemaining' ∧
-      a.Remaining' = b.Remaining' ∧ a.WEvents' = b.WEvents' ∧ a.WFailed' = b.WFailed')
+      a.Remaining' = b.Remaining' ∧ a.WEvents' = b.WEvents' ∧ a.WFailed' = b.WFailed' ∧
+      a.Raw' = b.Raw')
     (by cases a; cases b; simp)
+
+/-- **An output's plain value** (stage 7g): the output with its `Raw` (the store's answer itself, which
+`outEqual` and the model ignore) zeroed; two outputs `outEqual` compares equal iff their plain values are. -/
+@[reducible] def plainOut (y : Output) : Output := { y with Raw' := zeroValDef }
+
+/-- Equal plain values are equal plain fields. -/
+theorem plainOut_eq_iff (a b : Output) : plainOut a = plainOut b ↔
+    a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧ a.ErrMsg' = b.ErrMsg' ∧
+    a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
+    a.Node' = b.Node' ∧ a.App' = b.App' ∧ a.RV' = b.RV' ∧ a.Items' = b.Items' ∧
+    a.ListRV' = b.ListRV' ∧ a.Continue' = b.Continue' ∧ a.HasRemaining' = b.HasRemaining' ∧
+    a.Remaining' = b.Remaining' ∧ a.WEvents' = b.WEvents' ∧ a.WFailed' = b.WFailed' := by
+  cases a; cases b; simp [plainOut]
+
+/-- An output with a zero `Raw` is its plain value. -/
+theorem plainOut_of_raw (y : Output) (h : y.Raw' = zeroValDef) : plainOut y = y := by
+  cases y; simp only [plainOut] at h ⊢; rw [h]
+
+theorem plainOut_idem (y : Output) : plainOut (plainOut y) = plainOut y := rfl
 
 /-! ## The store's helpers -/
 
@@ -120,18 +145,24 @@ instance GSt_decEq : DecidableEq GSt := fun a b =>
 /-- An output with no object and no list: the error `e`, its key `k` and resource version `r`
 (`Output{Err: e, ErrKey: k, ErrRV: r}`). -/
 def errOutL (e : w64) (k : GoString) (r : w64) : Output :=
-  ⟨e, k, r, [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false⟩
+  ⟨e, k, r, [], [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false, zeroValDef⟩
+
+/-- A failed precondition's output with the store key `k` and the message `msg`
+(`Output{Err: EInvalid, ErrKey: k, ErrMsg: msg}`, stage 7g). -/
+def invalidOutL (k msg : GoString) : Output :=
+  ⟨W64 5, k, 0, msg, [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false, zeroValDef⟩
 
 /-- `notFound(st, key)` of a store at the resource version `rv`. -/
 def notFoundL (rv : w64) (key : GoString) : Output := errOutL (W64 1) (mkeyL key) rv
 
-/-- `invalidObj(key)`: a failed precondition (stage 7b). -/
-def invalidObjL (key : GoString) : Output := errOutL (W64 5) (mkeyL key) 0
+/-- `invalidObj(key, msg)`: a failed precondition (stage 7b), with its message (stage 7g:
+`Output{Err: EInvalid, ErrKey: ..., ErrMsg: msg}`). -/
+def invalidObjL (key msg : GoString) : Output := invalidOutL (mkeyL key) msg
 
 /-- `objOut(o)`. -/
 def objOutL (o : Obj) : Output :=
-  ⟨W64 0, [], 0, o.Namespace', o.Name', o.UID', o.Value', o.Node', o.App', o.ResourceVersion',
-    [], 0, [], false, 0, [], false⟩
+  ⟨W64 0, [], 0, [], o.Namespace', o.Name', o.UID', o.Value', o.Node', o.App', o.ResourceVersion',
+    [], 0, [], false, 0, [], false, zeroValDef⟩
 
 /-- `objOf(out)`: an answer's object. -/
 def objOfL (y : Output) : Obj :=
@@ -162,6 +193,16 @@ def preOkL (x : Input) (o : Obj) : Bool :=
   (if x.HasPreUID' then decide (x.PreUID' = o.UID') else true) &&
     (if x.HasPreRV' then decide (x.PreRV' = rvStr o.ResourceVersion') else true)
 
+/-- `preMsg(in, o)`: `preconditions(in).Check`'s message on `o` when they fail (stage 7g): the
+UID's mismatch if there is one, else the resource version's (its string, `rvString`). -/
+def preMsgL (x : Input) (o : Obj) : GoString :=
+  if x.HasPreUID' && !decide (x.PreUID' = o.UID') then
+    go!"Precondition failed: UID in precondition: " ++ x.PreUID' ++
+      go!", UID in object meta: " ++ o.UID'
+  else
+    go!"Precondition failed: ResourceVersion in precondition: " ++ x.PreRV' ++
+      go!", ResourceVersion in object meta: " ++ rvStr o.ResourceVersion'
+
 /-- `sameObj(a, b)`: equal but for the resource versions. -/
 def sameObjL (a b : Obj) : Bool :=
   decide (a.Namespace' = b.Namespace') && decide (a.Name' = b.Name') &&
@@ -182,7 +223,7 @@ def mcreateL (x : Input) (st : GSt) : GSt × Output :=
 def mdeleteL (x : Input) (st : GSt) : GSt × Output :=
   let it := (lookupL st.items x.Key').1
   if !(lookupL st.items x.Key').2 then (st, notFoundL st.rv x.Key')
-  else if !preOkL x it.obj' then (st, invalidObjL x.Key')
+  else if !preOkL x it.obj' then (st, invalidObjL x.Key' (preMsgL x it.obj'))
   else if rejects x.HasReject' x.Reject' it.obj'.Node' then (st, rejectedL)
   else
     (⟨delItemL st.items x.Key', st.rv + W64 1⟩,
@@ -199,7 +240,7 @@ def mupdateL (x : Input) (st : GSt) : GSt × Output :=
   if !ok && !x.IgnoreNotFound' then (st, notFoundL st.rv x.Key')
   else
     let cur := if ok then it.obj' else zObj
-    if !preOkL x cur then (st, invalidObjL x.Key')
+    if !preOkL x cur then (st, invalidObjL x.Key' (preMsgL x cur))
     else if rejects x.HasReject' x.Reject' cur.Node' then (st, rejectedL)
     else
       let r := updatedL x cur
@@ -231,6 +272,38 @@ def mstepL (x : Input) (st : GSt) : GSt × Output :=
 /-- `isWrite(in)`: the write kinds, explicitly (stage 7e: a `List` is no write). -/
 def isWriteL (x : Input) : Bool :=
   (decide (x.Kind' = W64 0)).or ((decide (x.Kind' = W64 1)).or (decide (x.Kind' = W64 2)))
+
+/-- `floored(r, floor)` (k8s 7g, D7g-1): a non-zero resource version below `floor` raised to it. -/
+def flooredL (r f : w64) : w64 := if r ≠ W64 0 ∧ r < f then f else r
+
+/-- **The floor** (departure D7g-1): a requested resource version is `0` or at least the floor `s0` (the
+seeded store's revision). -/
+def FloorOk (s0 : w64) (x : Input) : Prop :=
+  ∀ q, parseRVD x.MinRV' = some q → q = 0 ∨ uint.nat s0 ≤ uint.nat q
+
+theorem flooredL_floor (r f : w64) : flooredL r f = 0 ∨ uint.nat f ≤ uint.nat (flooredL r f) ∧
+    uint.nat (flooredL r f) ≤ max (uint.nat r) (uint.nat f) := by
+  unfold flooredL
+  by_cases h : r ≠ W64 0 ∧ r < f
+  · rw [if_pos h]; right; constructor <;> word
+  · rw [if_neg h]
+    by_cases h0 : r = W64 0
+    · left; exact h0
+    · right; have : ¬ r < f := fun h' => h ⟨h0, h'⟩
+      constructor <;> word
+
+theorem flooredL_ok (r f : w64) : flooredL r f = 0 ∨ uint.nat f ≤ uint.nat (flooredL r f) := by
+  rcases flooredL_floor r f with h | ⟨h, -⟩
+  · exact Or.inl h
+  · exact Or.inr h
+
+theorem flooredL_lt (r f : w64) (B : Int) (hr : uint.Z r < B) (hf : uint.Z f < B) :
+    uint.Z (flooredL r f) < B := by
+  unfold flooredL; split <;> assumption
+
+/-- An input with no minimum resource version is floored. -/
+theorem floorOk_nil (f : w64) (x : Input) (h : x.MinRV' = []) : FloorOk f x := fun q hq => by
+  rw [h] at hq; simp [parseRVD] at hq; exact Or.inl hq.symm
 
 /-- A call's answer: an output whose error is `EOther` is a failed call (its effect unknown). -/
 def ansOf (y : Output) : linkv.Ans Output := if y.Err' = W64 4 then .err else .ok y

@@ -153,7 +153,8 @@ Reflector__syncWith: RealFIFO__Replace
 # the reflector's list-watch (reflector.go, DaemonSet plan phase 4, fifth round). Named hypotheses
 # (`?`, no axioms this round): outside client-go, names-only: klog's FromContext, logr's V/Info,
 # utilnet.IsConnectionRefused, rand.Float64, RealClock.After, wait.Group.Start; boundary pending
-# approval: the apierrors predicates, meta.ListAccessor/ExtractListWithAlloc/LenList, Trace.Step;
+# approval: the apierrors predicates, meta.ExtractListWithAlloc/LenList, Trace.Step (since k8s 7g,
+# 2026-11-19, `IsTooManyRequests` and `meta.ListAccessor` are axioms, below without `?`);
 # gaps: handleAnyWatch (D4), retryWithDeadlineImpl.After (Perennial's time lacks Time.IsZero);
 # not proved this round: isTooLargeResourceVersionError
 v2_FromContext: ?
@@ -162,13 +163,13 @@ logr_Logger__Info: ?
 logr_Logger__Info_ptr: ?
 errors_IsResourceExpired: ?
 errors_IsGone: ?
-errors_IsTooManyRequests: ?
+errors_IsTooManyRequests:
 errors_IsInternalError: ?
 net_IsConnectionRefused: ?
 rand_Float64: ?
 clock_RealClock__After: ?
 wait_Group__Start: ?
-meta_ListAccessor: ?
+meta_ListAccessor:
 meta_ExtractListWithAlloc: ?
 meta_LenList: ?
 trace_Trace__Step: ?

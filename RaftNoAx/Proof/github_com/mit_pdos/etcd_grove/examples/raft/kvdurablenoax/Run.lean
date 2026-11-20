@@ -241,7 +241,7 @@ theorem Run.wp_proof
         try wp_auto
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨⟨x, rfl⟩, [], rfl⟩
+        ipureintro; exact ⟨fun _ => rfl, ⟨x, rfl⟩, [], rfl⟩
       replace Hnp : ¬ x.Kind' = opPutB := Hif
       wp_if_destruct
       · -- Get
@@ -251,13 +251,14 @@ theorem Run.wp_proof
           (fun s => by unfold inStep; rw [ite_eq_right Hnp])
           (fun s => by unfold inOut; rw [ite_eq_right Hnp]) $$ Hinv HAU
         wp_apply wp_Get γr _ dir c x.Key'
-          (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) ∗
-            @threadTok GF GooseGlobalGS.gooseAllG _ -∗ Φ' #(boxS v)))
+          (fun v => iprop(∀ o',
+            ⌜∀ s, kvS (GF := GF).M.step s (boxIn x, o') = kvS (GF := GF).M.step s (boxIn x, boxS v)⌝ ∗
+            kvS.ioOk (GF := GF) (boxIn x) o' ∗ @threadTok GF GooseGlobalGS.gooseAllG _ -∗ Φ' #o'))
           Hk $$ [$Hcl $HAU'] as %v HΨ
         try wp_auto
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨⟨x, rfl⟩, v, rfl⟩
+        ipureintro; exact ⟨fun _ => rfl, ⟨x, rfl⟩, v, rfl⟩
       · -- Read
         replace Hng : ¬ x.Kind' = opGetB := Hif
         ihave HAU' := kdAu_of_run γr γd x (fun s => s) (fun s => s x.Key')
@@ -265,13 +266,14 @@ theorem Run.wp_proof
           (fun s => by unfold inStep; rw [ite_eq_right Hnp])
           (fun s => by unfold inOut; rw [ite_eq_right Hnp]) $$ Hinv HAU
         wp_apply wp_Read γr _ dir c x.Key'
-          (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) ∗
-            @threadTok GF GooseGlobalGS.gooseAllG _ -∗ Φ' #(boxS v)))
+          (fun v => iprop(∀ o',
+            ⌜∀ s, kvS (GF := GF).M.step s (boxIn x, o') = kvS (GF := GF).M.step s (boxIn x, boxS v)⌝ ∗
+            kvS.ioOk (GF := GF) (boxIn x) o' ∗ @threadTok GF GooseGlobalGS.gooseAllG _ -∗ Φ' #o'))
           Hk $$ [$Hcl $HAU'] as %v HΨ
         try wp_auto
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨⟨x, rfl⟩, v, rfl⟩
+        ipureintro; exact ⟨fun _ => rfl, ⟨x, rfl⟩, v, rfl⟩
     isplitr
     · -- `gen`
       unfold lintest.genSpec

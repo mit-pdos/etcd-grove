@@ -31,13 +31,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 abbrev apply.checkTxnReqsPermission.spec : Prop :=
   ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice) (ps : List Loc) (ops : List TxnOp)
-    (U : apply.LeaseView),
+    (U : apply.LeaseView) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st Pk f BT RD on RW ∗ apply.isApplyLessorAny le γ Pk f BT RW ∗ ai ↦{dq} info ∗ RD ∗
-      apply.lessorView (mvcc.api.mvccLeases γ) U ∗ ⌜U = none → ops.all txn.opIsGet = true⌝ ∗
+      apply.lessorView (mvcc.api.mvccLeases γ) U w ∗ ⌜U = none → ops.all txn.opIsGet = true⌝ ∗
       reqs ↦*□ ps ∗ txn.requestOpsIs ps ops }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ apply.lessorView (mvcc.api.mvccLeases γ) U ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ apply.lessorView (mvcc.api.mvccLeases γ) U w ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.opsClass on info ops ∗
         apply.viewClass U (fun I => apply.opsLeaseClass on info I ops)) }}

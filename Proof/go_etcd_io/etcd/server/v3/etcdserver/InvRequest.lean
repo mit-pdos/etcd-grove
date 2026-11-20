@@ -1155,7 +1155,7 @@ client's update; since D19c (2026-10-18) its shape (`txn.txnShape`: the apply's 
 its size clauses, which the gRPC layer's checks give, `v3rpc.txnShape_of_check`). Since
 2026-10-20 (linkv-txn stage A) the update is fired at most once (`kvOpAu1`, as a put's). -/
 def txnPermit (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗ kvOpAu1 γk (.txn t) Q)
+  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t ∧ txn.txnShape t ∧ txn.txnKeysNodup t⌝ ∗ kvOpAu1 γk (.txn t) Q)
 
 /-- **What a proposal of `rq` needs** (2026-10-14, unit T1; 2026-10-15, unit T2: every plain
 write), with the result `Qr` its update gives: a plain request with no KV write (no put, no

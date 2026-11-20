@@ -4,7 +4,8 @@
 driver's own `WithCancel(Background())`, whose Done proposition is the driver's, `donePD`), reads it
 with `consume`, stops it and cancels the context. Either the `Watch` call failed (only for a
 non-initial-events watch from revision 0: `sieOfL x = some false`, `n = 0`), or it returns the events
-it received as the driver records them (`wes`, each `kWEvRel` of the store event in `kes`), which are
+it received as the driver records them (`toWEvL` of the received events `rs`, k8s 7g: `consume`'s
+post; each `kWEvRel` of the store event in `kes`), which are
 `kSeen` (the cancellation branch refuted: the driver read them while it held the watch live and its
 context not done): all Error events, or a prefix of the ideal stream of the watch's scope and mode
 from a start point tied to a state the read update `Q` fired at, read at another.
@@ -53,10 +54,11 @@ abbrev watchEvents.spec : Prop :=
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEvents))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty)
         #sp))) (Val #x))
-  {{ (sl : GoSlice) (failed : Bool), RET (PairV #sl #failed);
+  {{ (sl rsl : GoSlice) (failed : Bool), RET (PairV (PairV #sl #rsl) #failed);
       if failed then iprop(⌜sieOfL x = some false ∧ uint.nat n = 0⌝)
-      else iprop(∃ (wes : List WEv) (kes : List (KWEv DObj)),
-        wevsOwnM sl wes ∗ ⌜List.Forall₂ kWEvRel kes wes⌝ ∗
+      else iprop(∃ (rs : List k8s_correctness.REv) (kes : List (KWEv DObj)),
+        wevsOwnM sl (rs.map k8s_correctness.toWEvL) ∗ k8s_correctness.evsRO rsl rs ∗
+        ⌜List.Forall₂ kWEvRel kes (rs.map k8s_correctness.toWEvL)⌝ ∗
         kSeen c (selD x) (predEmptyL x) (kScopeOf c k x.Recursive')
           (kModeOf (sieOfL x) x.Bookmarks' n) Q kes) }}
 

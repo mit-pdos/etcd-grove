@@ -33,10 +33,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **The writer's half and the compaction right agree on the compaction revision** (each holds a
 quarter of `γs.cr`). -/
-theorem wSt_crOwn_agree (γs : srvApi.KVSNames) (log : mvcc.Log) (c c' : Int) :
-    srvApi.wSt (GF := GF) γs log c ∗ srvApi.crOwn γs c' ⊢
-      ⌜c = c'⌝ ∗ srvApi.wSt γs log c ∗ srvApi.crOwn γs c' := by
-  unfold srvApi.wSt srvApi.crOwn
+theorem wSt_crOwn_agree (γs : srvApi.KVSNames) {q : Qp} (log : mvcc.Log) (c c' : Int) :
+    srvApi.wStQ (GF := GF) γs q log c ∗ srvApi.crOwn γs c' ⊢
+      ⌜c = c'⌝ ∗ srvApi.wStQ γs q log c ∗ srvApi.crOwn γs c' := by
+  unfold srvApi.wStQ srvApi.crOwn
   iintro ⟨⟨Hst, Hcr⟩, Hc⟩
   icombine Hcr Hc gives %H
   iframe Hst Hcr Hc

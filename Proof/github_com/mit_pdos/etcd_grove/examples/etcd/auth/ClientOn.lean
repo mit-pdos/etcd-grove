@@ -64,7 +64,7 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
   wp_pures
   wp_auto
   imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
-  wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
     ileft
     imodintro
@@ -114,7 +114,7 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_on api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
   iapply HΦ
   icases Hout with (⟨%Herr, Hr⟩ | ⟨%Herr, #Hke⟩)

@@ -75,7 +75,7 @@ namespace apply
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 open mvcc.api (MvccName MvccState MvccReachable mvccLeases isMvcc mvccBackend hookIs
   mvccDeleter mvccOpen compactChanOk)
-open srvApi (KVSNames wSt crOwn kvLogLb csContractA stAt auBegin auRead auEnd auCompact)
+open srvApi (KVSNames wSt wStQ crOwn kvLogLb csContractA stAt auBegin auRead auEnd auCompact)
 
 /-! ## The chain, purely -/
 
@@ -328,13 +328,15 @@ as before (`rqOk_false_leaseGrant`), so `rqOk .none` means what `rqOk` meant unt
 (`(stateAfter log).length ≤ 2 ^ 62`, the lessor's sort premise, `lease.lessor.Revoke.spec`), as the
 transaction arm's `TxnPreA` bounds the log's changes: `dispatch` cannot derive it (the writer's
 receipt `⧖ (logCh log)` bounds it only under a bound on `receiptBound GF`, which no premise of
-`dispatch` or `Apply` states); the server derives it at its small log (`srvApplyKV_small`). -/
+`dispatch` or `Apply` states); the server derives it at its small log (`srvApplyKV_small`). (Auth-lease S4 item 7b step 6) The transaction
+arm also has the transaction's keys distinct (`txn.txnKeysNodup`, the gRPC layer's checks: `txnPermit`), which the
+applier turns into the lessor window's premise (`txn.winOps_txn_of_nodup`). -/
 def rqOk (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log ∧ ∀ o, rq.put = some o → o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax
   | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
-  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t ∧ putOk log ∧ t.putsLe etcdKeyMax
+  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t ∧ putOk log ∧ txn.txnKeysNodup t ∧ t.putsLe etcdKeyMax
   | .leaseGrant => match lm with
     | .none => False
     | _ => grantKindOk rq
@@ -735,6 +737,17 @@ structure AEnv (GF : BundledGFunctors) where
   halves the apply thread's image (`srvRest`) and its KV resources (`kvOwn`'s `leasesLive`) hold in
   a cluster that grants leases (`ltHalf`); unused otherwise -/
   γlt : GName := default
+  /-- (auth-lease S4 item 7b, the applier at a window, 2026-11-17) the lessor window the apply thread's lease owner is
+  in (`leasesLive`'s `lease.lessorUserW … E.win`): `none` (the default) outside the server's per-entry apply, which
+  opens one per entry (`lease.win_push`) with the target items of the entry (`winTgt`); the other predicates do not
+  read it -/
+  win : Option lease.LWin := none
+  /-- (item 7b) the server's token of the current window (`leasesLive` holds it at `win`, the end builder of
+  `envAus` takes it to record the commit in the window: F4); `True` by default -/
+  Wt : Option lease.LWin → IProp GF := fun _ => iprop(True)
+  /-- (item 7b K1, 2026-11-17) the apply thread's share of the store's state `γs.st` (`kvOwn`'s `wStQ E.γs E.stq`):
+  `½` (the default, `wSt`), or `¼` at the server, whose lessor tie holds the other quarter of its half -/
+  stq : Qp := (1 : Qp).half
 
 omit package_sem in
 /-- **Whether the cluster grants leases** (the lease-expiry plan's X7 option (iii), 2026-11-04: until
@@ -855,10 +868,22 @@ def hdrFields (h : Loc) : IProp GF :=
     structFieldRef etcdserverpb.ResponseHeader go!"RaftTerm" h ↦ t ∗
     structFieldRef etcdserverpb.ResponseHeader go!"LeaderId" h ↦ l)
 
+/-- **The lessor window's target for `rq` at `log`** (auth-lease S4 item 7b, the applier at a window, 2026-11-17): in
+a window `(s, T)`, every outcome of the backend lease-exact at the live set `L` leaves the item map `T` (the server
+opens the window at the item map after the entry); `True` with no window. -/
+def winTgt (w : Option lease.LWin) (rq : IRRModel) (log : mvcc.Log) (L : List w64) : Prop :=
+  ∀ (s : Nat) (T : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T) →
+    ∀ oc, backendStep rq log oc → leaseExactL L rq log oc →
+      T = mvcc.leaseItemsOf (mvcc.stateAfter (oc.logAfter log))
+
+theorem winTgt_none (rq : IRRModel) (log : mvcc.Log) (L : List w64) : winTgt none rq log L := by
+  intro s T h; cases h
+
 /-- **`leasesLive` at the live set `T`** (auth-lease S3a2, Draft §1): the lease owner's resource at `T`, every
 lease of `s` in `T`, the apply thread's half of `T` (`leasesLive_iff_at`). -/
 def leasesLiveAt (E : AEnv GF) (s : List EtcdKv) (T : List w64) : IProp GF :=
-  iprop(txn.leasesKnown T s ∗ lease.lessorUser (mvccLeases E.γ) T (mvcc.leaseItemsOf s) ∗ ltHalf E T)
+  iprop(txn.leasesKnown T s ∗ lease.lessorUserW (mvccLeases E.γ) T (mvcc.leaseItemsOf s) E.win ∗ ltHalf E T ∗
+    E.Wt E.win)
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
@@ -866,8 +891,8 @@ which every lease of `s` is; (unit T3, L2b, 2026-10-25) its item map `s`'s (each
 lessor's `itemMap` and the leases' item sets); (the lease-grant stage, 2.0) the apply thread's half
 of the live set (`ltHalf`). Strict M1: at the store's lessor names `mvccLeases E.γ`. -/
 def leasesLive (E : AEnv GF) (s : List EtcdKv) : IProp GF :=
-  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf s) ∗
-    ltHalf E L)
+  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf s) E.win ∗
+    ltHalf E L ∗ E.Wt E.win)
 
 open Iris.ProofMode in
 /-- `leasesLive` is `leasesLiveAt` at some live set. -/
@@ -881,20 +906,26 @@ migration's choice: the KV methods' floor `floorOkO`, which the sole writer's pi
 the writer's floor: its log extends every floor `kvLogLb E.γs F` (`KVStoreCore.writer_floor`).
 (R8, 2026-11-07) The writer's facts include a floor of its log, `kvLogLb E.γs log`, as
 `KVStoreCore.writer_facts` gives, and the witness persistent (the server's `kvNx` is) (for
-`newHeader`'s, so the lease responses' headers, `grantHdr`, whose `srvRevLb` needs both). -/
+`newHeader`'s, so the lease responses' headers, `grantHdr`, whose `srvRevLb` needs both).
+(Auth-lease S4 item 7b, F4) The end builder takes the window token `E.Wt w`, the lessor's witness at `w` for the items
+after the commit and, for a commit that changes the log (`pend ≠ []`), that they are the window's target; an empty
+commit leaves the log, so the window has nothing to record (a context error's commit, before the backend runs). -/
 def envAus (E : AEnv GF) : IProp GF :=
-  iprop(□ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
+  iprop(□ (∀ log c (X : IProp GF), wStQ E.γs E.stq log c -∗ (wStQ E.γs E.stq log c -∗ X) -∗
         auBegin E.γ (stAt log c) X) ∗
-    □ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
+    □ (∀ log c (X : IProp GF), wStQ E.γs E.stq log c -∗ (wStQ E.γs E.stq log c -∗ X) -∗
         auRead E.γ (fun σ => iprop(⌜σ = stAt log c⌝ ∗ X))) ∗
-    □ (∀ log c pend, wSt E.γs log c -∗ E.Nx (mvcc.commitLog log pend) -∗
-        auEnd E.γ (stAt log c) pend (wSt E.γs (mvcc.commitLog log pend) c)) ∗
-    □ (∀ log c (rev : w64), ⌜sint.Z rev < log.length⌝ → wSt E.γs log c -∗ crOwn E.γs c -∗
+    □ (∀ log c pend (w : Option lease.LWin), wStQ E.γs E.stq log c -∗ E.Wt w -∗ E.Nx (mvcc.commitLog log pend) -∗
+        ⌜pend ≠ [] → ∀ (s : Nat) (T : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T) →
+          T = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log pend))⌝ -∗
+        lease.winWit (mvccLeases E.γ) w (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log pend))) -∗
+        auEnd E.γ (stAt log c) pend iprop(wStQ E.γs E.stq (mvcc.commitLog log pend) c ∗ E.Wt w)) ∗
+    □ (∀ log c (rev : w64), ⌜sint.Z rev < log.length⌝ → wStQ E.γs E.stq log c -∗ crOwn E.γs c -∗
         E.Cp (sint.Z rev) -∗ auCompact E.γ rev (fun σ => iprop(⌜σ = stAt log c⌝ ∗
-          wSt E.γs log (cmpRevAfter c rev) ∗ crOwn E.γs (cmpRevAfter c rev)))) ∗
-    □ (∀ log c, wSt E.γs log c ={⊤}=∗ wSt E.γs log c ∗ kvLogLb E.γs log ∗ □ E.Nx log ∗
+          wStQ E.γs E.stq log (cmpRevAfter c rev) ∗ crOwn E.γs (cmpRevAfter c rev)))) ∗
+    □ (∀ log c, wStQ E.γs E.stq log c ={⊤}=∗ wStQ E.γs E.stq log c ∗ kvLogLb E.γs log ∗ □ E.Nx log ∗
         ⧖ (mvcc.logCh log) ∗ ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝) ∗
-    □ (∀ log c F, wSt E.γs log c -∗ kvLogLb E.γs F ={⊤}=∗ wSt E.γs log c ∗ ⌜F <+: log⌝))
+    □ (∀ log c F, wStQ E.γs E.stq log c -∗ kvLogLb E.γs F ={⊤}=∗ wStQ E.γs E.stq log c ∗ ⌜F <+: log⌝))
 
 instance envAus_persistent (E : AEnv GF) : Persistent (envAus E) := by
   unfold envAus; infer_instance
@@ -928,14 +959,15 @@ every lease of its state live (with the apply thread's half of the lessor's live
 the auth store's reader resource (`E.RD`). The thread's tokens are not in it: the chain's triples
 take `applyTok E` beside it. -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
-  iprop((∃ c : Int, wSt E.γs log c) ∗ kvBk E ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD)
+  iprop((∃ c : Int, wStQ E.γs E.stq log c) ∗ kvBk E ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD)
 
 /-- **The apply thread's KV resources with the live set `L` exposed** (auth-lease S3a, Draft rev 5 §3a):
 `kvOwn`'s, `leasesLive`'s live set named (`kvOwn_iff_at`). -/
 def kvOwnAt (E : AEnv GF) (log : mvcc.Log) (L : List w64) : IProp GF :=
-  iprop((∃ c : Int, wSt E.γs log c) ∗ kvBk E ∗
+  iprop((∃ c : Int, wStQ E.γs E.stq log c) ∗ kvBk E ∗
     (txn.leasesKnown L (mvcc.stateAfter log) ∗
-      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗ ltHalf E L) ∗
+      lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗ ltHalf E L ∗
+      E.Wt E.win) ∗
     E.RD)
 
 open Iris.ProofMode in
@@ -991,9 +1023,9 @@ theorem kvOwnAt_ltHalf (E : AEnv GF) (log : mvcc.Log) (L T : List w64) :
     iframe H
     try itrivial
   · simp only [↓reduceIte]
-    iintro ⟨⟨Hw, Hbk, ⟨Hk, Hu, Hlt⟩, Hrd⟩, HT⟩
+    iintro ⟨⟨Hw, Hbk, ⟨Hk, Hu, Hlt, Hwt⟩, Hrd⟩, HT⟩
     icombine Hlt HT gives %H
-    iframe Hw Hbk Hk Hu Hlt Hrd HT
+    iframe Hw Hbk Hk Hu Hlt Hwt Hrd HT
     ipureintro; intro _; exact H.2
 
 /-- `kvOwn` at a rejection above the backend: lease-exact at its live set. -/
@@ -1053,8 +1085,8 @@ open Iris.ProofMode in
 out (the lease-keys plan: the auth layer's checks read the item map). -/
 theorem kvOwn_lend (E : AEnv GF) (log : mvcc.Log) :
     kvOwn E log ⊢ E.RD ∗ ∃ L : List w64,
-      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-      (E.RD -∗ lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+      lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗
+      (E.RD -∗ lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win -∗
         kvOwn E log) := by
   unfold kvOwn leasesLive
   iintro ⟨Hw, Hbk, ⟨%L, #Hk, Hu, Hlt⟩, Hrd⟩
@@ -1723,7 +1755,7 @@ chain's, and the backend's share with the critical-section contract at its lock'
 the backend `B` the tie names. -/
 def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     chainRes c a info ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       csContractA (E.Pk B) E.f Pre Q Post)
@@ -1732,7 +1764,7 @@ def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.ser
 named (`mPre_iff_at`). -/
 def mPreAt (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLiveAt E (mvcc.stateAfter log) T ∗ E.RD ∗
+  iprop((∃ cr : Int, wStQ E.γs E.stq log cr) ∗ leasesLiveAt E (mvcc.stateAfter log) T ∗ E.RD ∗
     chainRes c a info ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       csContractA (E.Pk B) E.f Pre Q Post)
@@ -1765,7 +1797,7 @@ in place of mvcc's `storeWT`/`storeRT`). -/
 def mPreW (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
     IProp GF :=
-  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     chainRes c a info ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       csContractA (E.Pk B) E.f Pre Q Post)
@@ -1780,7 +1812,7 @@ def mPostW (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
 def mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log)
     (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     chainRes c a info ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       cPre v3 (E.Pk B) E.f Pre Q Post)
@@ -1796,7 +1828,7 @@ def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 (`uberApplier.Apply`'s and `dispatch`'s, strict M1, 2026-11-05: `kvOwn` with the contract at the
 batch lock of the backend `kvBk` holds, and the backend's tokens for the components' writes). -/
 def kvOwnPre (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       cPre v3 (E.Pk B) E.f Pre Q Post)
 
@@ -1831,13 +1863,14 @@ def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.s
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log ∧
       o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax⌝ ∗ txn.putRequestIs r o ∗
-    ∃ T : List w64, certPreT E c rq log T ∗ mPreAt E c a info log T Pre Q Post)
+    ∃ T : List w64, ⌜winTgt E.win rq log T⌝ ∗ certPreT E c rq log T ∗ mPreAt E c a info log T Pre Q Post)
 
 /-- `DeleteRange(r)`'s precondition. -/
 def deletePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
-    certPre E c rq log ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post)
+    certPre E c rq log ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post ∗
+    ∃ T : List w64, ⌜winTgt E.win rq log T⌝)
 
 /-- `Range(r)`'s precondition (a read: no contract). -/
 def rangePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -1856,7 +1889,8 @@ def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.s
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log ∧
       t.putsLe etcdKeyMax⌝ ∗
-    txn.txnRequestIs r t ∗ ∃ T : List w64, certPreT E c rq log T ∗ mPreAt E c a info log T Pre Q Post)
+    txn.txnRequestIs r t ∗ ∃ T : List w64, ⌜winTgt E.win rq log T ∧ txn.txnKeysNodup t⌝ ∗ certPreT E c rq log T ∗
+      mPreAt E c a info log T Pre Q Post)
 
 /-- **What a revocation takes beside the method's resources** (the lease-revoke plan, D4): the
 range deleter held (`rdHeld`), the revocable lessor, the rest at `rs`; (the lease-expiry plan's X7,
@@ -1902,7 +1936,7 @@ def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etc
   iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ putOk log ∧
       (mvcc.stateAfter log).length ≤ 2 ^ 62⌝ ∗
     certPre E c rq log ∗
-    leaseRevokeIs r id ∗ mPre E c a info log Pre Q Post ∗ revokeRes E T rs)
+    leaseRevokeIs r id ∗ mPre E c a info log Pre Q Post ∗ revokeRes E T rs ∗ ⌜winTgt E.win rq log T⌝)
 
 /-! ### The backend's posts: no chain resources, the trivial class -/
 

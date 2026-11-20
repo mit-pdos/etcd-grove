@@ -42,8 +42,8 @@ theorem StartMemberAuth.wp_proof
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMemberAuth.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48
-    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Haf Hbuq Hdbo
+  intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn m Htb Hrb48
+    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Haf Hbuq Hdbo Hcu
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   -- the peer address's listen right and raft protocol, out of the fresh bundle (to `net.Listen` and
   -- `http.Serve`); the rest to `NewServer`
@@ -76,7 +76,8 @@ theorem StartMemberAuth.wp_proof
   -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
   icases memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd m hraft (by rw [hboot]; exact hrule)
+      (fun h => by simpa using Hcu h) hc0 hch hlog hkcmp
       ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))
@@ -87,8 +88,9 @@ theorem StartMemberAuth.wp_proof
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (fun _ => ⟨rfl, by word, by word⟩)
-      -- (2026-11-04, the lease-expiry plan's Part C) the lease slot: auth on grants no lease
-      (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf))
+      -- (2026-11-04, the lease-expiry plan's Part C) the lease slot; (auth-lease S4) at the member's
+      -- mode, with auth on no lease expiring in the revocable mode (`memberBootOn`'s row)
+      (lease.bootCfg_of_run hslg (fun _ => hlgf))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (bootCfgOk_of _ rfl rfl rfl rfl)
@@ -209,7 +211,10 @@ theorem StartMemberAuth.wp_proof
   ihave #Hrd' : isServerReadM E.authOn srv E ρ.rd $$ []
   · rw [hon]; iexact Hrd
   iclear Hreq Hrd
-  iapply memberUpOn_intro _ _ _ _ _ _ _ E _ γw
+  -- (auth-lease S4) the lessor's reader side at the member's mode
+  ihave #Hlr : srvLeaseRd srv E m $$ []
+  · iapply srvLeaseRd_of_srvInv srv E m _ $$ Hlsrv
+  iapply memberUpOn_intro _ _ _ _ _ _ _ E _ γw m
   -- (per-type stage B2) the raw run-pool stocks first, framed explicitly; the pure part last (the
   -- configuration is found by the framing)
   isplitr
@@ -230,6 +235,7 @@ theorem StartMemberAuth.wp_proof
       iapply srvTLSId_false srv $$ [Ht]
       iframe Ht
       iExactEq Hcca; rfl
+    -- (auth-lease S4) the lessor's reader side `Hlr` is framed by `iframe #` above
     iapply HBF; ipureintro; first | rfl | trivial
   ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
 

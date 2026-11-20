@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Detach
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
 
 @[expose] public section
 
@@ -52,19 +53,19 @@ theorem isLessor_of_lessorInv
   · ipureintro; rfl
   iframe Hpin
   isplitr
-  · iintro !> %item %L %I %Φ !> ⟨Hrd, Hown⟩ HΦ
-    iapply (hGL lp γl item L I) $$ [Hrd Hown] HΦ
+  · iintro !> %item %L %I %w %Φ !> ⟨Hrd, Hown⟩ HΦ
+    iapply (hGL lp γl item L I w) $$ [Hrd Hown] HΦ
     iframe Hpkg Hinv Hrd Hown
   isplitr
-  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hin, %Hl, %Hsh, Hitems⟩ HΦ
-    iapply (hAt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
+  · iintro !> %id %items %l %dq %L %I %w %Φ !> ⟨Hown, %Hws, %Hin, %Hl, %Hsh, Hitems⟩ HΦ
+    iapply (hAt lp γl id items l dq L I w) $$ [Hown Hitems] HΦ
     iframe Hpkg Hinv Hown Hitems
-    ipureintro; exact ⟨Hin, Hl, Hsh⟩
+    ipureintro; exact ⟨Hws, Hin, Hl, Hsh⟩
   isplitr
-  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hne, %Hl, Hitems⟩ HΦ
-    iapply (hDt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
+  · iintro !> %id %items %l %dq %L %I %w %Φ !> ⟨Hown, %Hws, %Hne, %Hl, Hitems⟩ HΦ
+    iapply (hDt lp γl id items l dq L I w) $$ [Hown Hitems] HΦ
     iframe Hpkg Hinv Hown Hitems
-    ipureintro; exact ⟨Hne, Hl⟩
+    ipureintro; exact ⟨Hws, Hne, Hl⟩
   · iintro !> %f0 %f %Φ !> Hro HΦ
     iapply (hSRD lp γl f0 f) $$ [Hro] HΦ
     iframe Hpkg Hinv Hro
@@ -89,29 +90,33 @@ theorem isTxnLessor_of_lessorInv
   · ipureintro; rfl
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, -, -⟩
-  iintro !> %id %L %I %Φ !> Hu HΦ
-  iunfold lessorUser at Hu
+  icases Hinv' with ⟨%Hlp, #Hpin, -, #Hrdi⟩
+  isplitl []; rotate_left
+  · iunfold winWitOk
+    iintro !> %L %I %w Hown
+    iapply (win_wit γl L I w ⊤ (by simp)) $$ [$Hrdi $Hown]
+  iintro !> %id %L %I %w %Φ !> Hu HΦ
+  iunfold lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   iunfold lessorRdOf at Hrdo
   icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
   ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
   subst Heq
-  ihave ⟨Hown, #Hlb⟩ := leaseOwn_lb γl L I $$ Hown
-  iapply (hLk lp γl id 0 (some (L, I))) $$ [Hrd Hown]
-  · iframe Hpkg Hinv Hrd Hlb; rw [lookupView_some]; iexact Hown
+  ihave ⟨Hown, #Hlb⟩ := leaseOwnW_lb γl L I w $$ Hown
+  iapply (hLk lp γl id 0 (some (L, I)) w) $$ [Hrd Hown]
+  · iframe Hpkg Hinv Hrd Hlb; rw [lookupViewW_some]; iexact Hown
   iintro !> %l ⟨Hrd, -, Ho⟩
   ihave ⟨%Hl, Ho⟩ : iprop(⌜l = null ↔ id ∉ L⌝ ∗
-      ((⌜l = null⌝ ∗ leaseOwn γl L I) ∨ leaseOwnOpen γl L I id l)) $$ [Ho]
-  · rw [← lookupViewAfter_some]; iexact Ho
+      ((⌜l = null⌝ ∗ leaseOwnW γl L I w) ∨ leaseOwnOpenW γl L I id l w)) $$ [Ho]
+  · rw [← lookupViewAfterW_some]; iexact Ho
   iapply HΦ
   isplitl [Hrd Ho Hrvk]
-  · iunfold lessorUserOpen
+  · iunfold lessorUserOpenW
     icases Ho with (⟨%Hn, Hown⟩ | Ho)
     · ileft
       isplitr
       · ipureintro; exact Hn
-      iunfold lessorUser; iframe Hown Hrvk
+      iunfold lessorUserW; iframe Hown Hrvk
       iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
     · iright; iframe Ho Hrvk
       iunfold lessorRdOf; iexists lp; iframe Hpin Hrd

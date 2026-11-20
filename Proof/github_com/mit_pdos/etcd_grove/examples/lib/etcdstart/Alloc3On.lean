@@ -57,17 +57,22 @@ theorem kvInvOn_reg (γ : SrvRaft) (r : GName) (γk : KVNames) :
     kvInvOn (GF := GF) (⟨γ, [], W64 0⟩ : ServerRaftNames) γk srvAuthSt0 ⊢
       kvInvOn ⟨{ γ with reg := r }, [], W64 0⟩ γk srvAuthSt0 := BI.entails_refl
 
-/-- **`memberBootOn` from the allocations**, for one member (`memberBoot_of`'s, with auth on;
-authkv's `ak_alloc`'s framing): at the cluster's names `γ` with the member's own storage registry
-`reg`. -/
-theorem memberBootOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (reg : GName)
+/-- **`memberBootOn` from the allocations, at the lease mode `lm`**, for one member (`memberBoot_of`'s,
+with auth on; authkv's `ak_alloc`'s framing; auth-lease S4, 2026-11-16: at any lease mode, until then
+mode `none`): at the cluster's names `γ` with the member's own storage registry `reg`; in the
+revocable mode the member's prefix one of the cluster's grant prefixes, which meet their condition
+(`kvPfxOk`), and no lease expiring (`lease.bootCfg`'s auth row). -/
+theorem memberBootOn_ofM (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (reg : GName)
     (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev : GName) (x : GName)
     (Hx : x = γs.slog)
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[], []])
-    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (Hklg : γk.lg = false)
+    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (hne : lm = .revocable → lease.leasesNoExpiry) (Hklm : γk.lm = lm)
+    (hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk)
     (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
@@ -85,13 +90,12 @@ theorem memberBootOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
         ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧
         ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩⌝ ∗
-        memberBootOn { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id := by
+        memberBootOn { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id false lm := by
   subst Hx
-  have hlm : γk.lm = .none := by simpa [KVNames.lg_eq] using Hklg
   iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev
   ihave #Hkv' := kvInvOn_reg γ reg γk $$ Hkv
   imod (srvMemberBootOn_alloc (GF := GF) { γ with reg := reg } cnt γk id cok
-      (fun h => by rw [hlm] at h; cases h) (fun h => by rw [hlm] at h; cases h)) $$ Hkv' Hp [Hwt0]
+      (fun h => hpfx (Hklm ▸ h)) hpo) $$ Hkv' Hp [Hwt0]
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hklg', hwn', hfs', hinc'⟩ := Hρ
@@ -120,11 +124,43 @@ theorem memberBootOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (
   · ipureintro
     exact ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog],
       hpfx, by rw [hpfx]; exact HΦ, trivial, by rw [hkc', Hkc], trivial,
-      ⟨.none, by rw [hklg', hlm]; exact lease.runCfg_none (GF := GF)⟩,
-      by rw [KVNames.lg_eq, hklg', hlm]; rfl⟩
+      by rw [hklg', Hklm]; exact hrun, hne⟩
   iunfold idNoZero
   rw [hiss', Hiss]
   iexact H0
+
+/-- **`memberBootOn` from the allocations**, for one member, at the lease mode `none`
+(`memberBootOn_ofM`'s). -/
+theorem memberBootOn_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (reg : GName)
+    (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev : GName) (x : GName)
+    (Hx : x = γs.slog)
+    (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
+    (Hc0 : γk.c0 = W64 0)
+    (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[], []])
+    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (Hklg : γk.lg = false)
+    (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog) :
+    ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
+      idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
+      srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
+      kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
+      ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+        idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗
+        (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
+          nodeVacant γ.cl id) ∗
+        ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit)) -∗
+      idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) -∗
+      ghostMapAuth reg 1 (∅ : GMap Loc MemStorNamesRec) -∗
+      srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
+      ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
+      ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
+        ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧
+        ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩⌝ ∗
+        memberBootOn { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id := by
+  have hlm : γk.lm = .none := by simpa [KVNames.lg_eq] using Hklg
+  exact memberBootOn_ofM γ ps ctxs reg issued cnt wn fs γk Φs id γm γs cok rev x Hx Hiss Hwn Hfs Hc0
+    Hch Hlog Hvs Hkc .none lease.runCfg_none (fun h => nomatch h) hlm (fun h => nomatch h)
+    (fun h => by rw [hlm] at h; cases h) HΦ
 
 /-- **The cluster's ghost state with auth on, from the peers' unregistered HTTP protocols**
 (`alloc3Http`'s, with the mode-`on` allocators). -/
@@ -191,7 +227,7 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
       (hperm.nodup_iff.2 (by simp [hn12, hn13, hn23]))
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
       (fun h => Hnz _ (hperm.subset h) rfl)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, -, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklm, -, -⟩ := Hγ
   have hklg : γk.lg = false := by rw [KVNames.lg_eq, hklm]; rfl

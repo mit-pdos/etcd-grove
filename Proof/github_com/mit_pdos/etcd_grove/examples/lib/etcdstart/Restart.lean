@@ -89,6 +89,8 @@ def memberRestartFacts (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.cmp = false ∧
       lease.runCfg (GF := GF) ρ.rd.kv.lm .none⌝ ∗
+    -- (auth-lease S4, 2026-11-16) the cluster outside raft's no-snapshot mode (`RestartNode`'s)
+    ⌜¬ clusterNoSnap γ.cl⌝ ∗
     srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗ kvInv ρ.rd.raft ρ.rd.kv ∗
@@ -117,17 +119,21 @@ theorem memberBoot_restartFacts (γ : SrvRaft) (ctxs : List (List w8)) (ρ : Req
       memberRestartFacts γ ρ id ∗ memberBoot γ ctxs ρ E₀ Φs id false .none := by
   iintro H
   iunfold memberBoot at H
-  icases H with ⟨%Hρ, Hnb, #Hsrl, #Hidc, #Hkf, #Hnz, #Hpm, #Hrc, Hsh, Hwt, Hfr, Hcok, Hrev, Hrdf,
+  icases H with ⟨%Hρ, %Hnsn, Hnb, #Hsrl, #Hidc, #Hkf, #Hnz, #Hpm, #Hrc, Hsh, Hwt, Hfr, Hcok, Hrev, Hrdf,
     #Hkv, Hreg, Hsd⟩
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hρ
   isplitr
   · iunfold memberRestartFacts
     isplitr
     · ipureintro; exact ⟨h1, h2, h3, h4, h5, h8, h10⟩
+    isplitr
+    · ipureintro; exact Hnsn
     iframe #
   iunfold memberBoot
   isplitr
   · ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩
+  isplitr
+  · ipureintro; exact Hnsn
   iframe
   iframe #
 
@@ -153,6 +159,8 @@ def memberRestartBoot (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
       ρ.rd.kv.log0 = [[], []] ∧ ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧
       Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = false ∧ ρ.rd.kv.cmp = false ∧
       E₀.Nx = srvApi.kvNx ρ.rd false ∧ lease.runCfg (GF := GF) ρ.rd.kv.lm .none⌝ ∗
+    -- (auth-lease S4, 2026-11-16) the cluster outside raft's no-snapshot mode (`RestartNode`'s)
+    ⌜¬ clusterNoSnap γ.cl⌝ ∗
     srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
     idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
@@ -221,7 +229,7 @@ theorem memberRestartFacts_alloc (hne : mvcc.api.names_nonempty.law) (γ : SrvRa
         ⌜restartNames ρ ρ'⌝ ∗ memberRestartBoot γ ρ' E₀ Φs id := by
   iintro #Hf
   iunfold memberRestartFacts at Hf
-  icases Hf with ⟨%Hρ, #Hsrl, #Hidc, #Hnz, #Hpm, #Hrc, #Hkv, %x, #Hkf⟩
+  icases Hf with ⟨%Hρ, %Hnsn, #Hsrl, #Hidc, #Hnz, #Hpm, #Hrc, #Hkv, %x, #Hkf⟩
   obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hρ
   imod (idKeyFact_pfxOk _ _ _ _ _ _ _ ⊤ (by simp)) $$ Hidc Hkf with %Hpok
   imod newServerNames_alloc (GF := GF) with ⟨%γs, %cok, %rev, Hidx, Hcok, Hrev⟩
@@ -250,6 +258,8 @@ theorem memberRestartFacts_alloc (hne : mvcc.api.names_nonempty.law) (γ : SrvRa
   isplitr
   · ipureintro
     refine ⟨h1, h2, h3, h4, h5, ?_, ?_, h6, ?_, h7⟩ <;> first | trivial | rfl
+  isplitr
+  · ipureintro; exact Hnsn
   iframe Hsrl Hidc Hkf' Hpm Hrc Hkv Hidx Hcok Hrev
   isplitr
   · iunfold idNoZero; iunfold idNoZero at Hnz; iexact Hnz

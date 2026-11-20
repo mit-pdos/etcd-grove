@@ -43,16 +43,16 @@ set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.LeaseGrant.wp_proof
     (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG))
-    (hAuth : EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG))
+    (hAuth : EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG))
     (hRR0 : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hTTL : LeaseGrantRequest.GetTTL.spec (GF := GF) (hG := hG))
     (hTS : traceutil.Tracer.Start.spec (GF := GF) (hG := hG))
     (hWA : trace.WithAttributes.spec (GF := GF) (hG := hG))
     (hI64 : «attribute».Int64.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd tok r ttl id0 Q
+  intro s E ρ ctx cd tok r ttl id0 Q n
   have hRR := hRR0 s E ρ
-  wp_start as ⟨%hg, #Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #HtokC, #Hspc, #Hst, Hreq, Hperm⟩
+  wp_start as ⟨%hg, #Hsrv, #Hau, #Hn, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #HtokC, #Hspc, #Hst, Hreq, Hperm⟩
   obtain ⟨hlg, hrev⟩ := hg
   iunfold leaseGrantReqOwn at Hreq
   icases Hreq with ⟨%hr, #HTTL, HID⟩
@@ -134,8 +134,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
   ihave #HtokE := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
   ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
   · iintro !> %h; iapply HtokE; ipureintro; exact h
-  wp_apply hAuth s E ctx1 _ tok $$ [Hrd] as %aerr ⟨Hrd, #Hae, -⟩
+  wp_apply hAuth s E ctx1 _ n tok $$ [Hrd] as %aerr ⟨Hrd, #HaeC, #Hfrom, -⟩
   · iframe #; iframe Hrd
+  ihave #Hae := authedOutB_of_C s E.authMode n _ aerr $$ HaeC
   (try wp_auto)
   rcases aerr with ae | _
   · -- refused
@@ -149,6 +150,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
     icases Hae with ⟨#HaE, -⟩
     iframe HaE
     ipureintro; exact ⟨rfl, by intro h; cases h⟩
+  ihave #Hfr := Hfrom $$ %rfl
   (try wp_auto)
   -- `&pb.InternalRaftRequest{LeaseGrant: r}`
   ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
@@ -299,6 +301,8 @@ theorem EtcdServer.LeaseGrant.wp_proof
         iframe Hgl Hgreq
       isplitr
       · iexact Hae
+      isplitr
+      · iexact Hfr
       iunfold leaseGrantResM; itrivial
     · obtain ⟨rfl, Hne⟩ := Hre
       (try wp_auto)
@@ -389,6 +393,8 @@ theorem EtcdServer.LeaseGrant.wp_proof
         iframe Hgl Hgreq
       isplitr
       · iexact Hae
+      isplitr
+      · iexact Hfr
       iunfold leaseGrantResM
       iexists i, hm, Lq
       iframe Hid' HpAf HQ

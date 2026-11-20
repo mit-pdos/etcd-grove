@@ -392,13 +392,14 @@ revision meets only when the cluster never compacts, `kvCpOk`.) (Auth-lease S3a,
 environment's, `γr.kv.lm = E.lm`, and the raft prefix empty, `γr.raft.pre = []`, so the model's table and
 `srvRest`'s agree, `appliedTableM_eq_model`. From the lease-grant merge, 2026-11-03, until S3a's §6 also
 `γr.kv.lg = false`, a cluster that grants no lease: dropped once the apply thread's grant and revocation arms
-were proved.) -/
+were proved.) (Auth-lease S4 item 7b F4, last conjunct) The lessor-window tie, as `srvKVInvs`'. -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
     authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
     ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
     ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝ ∗
-    ⌜γr.kv.cmp = false ∧ γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝)
+    ⌜γr.kv.cmp = false ∧ γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝ ∗
+    srvApi.winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false))
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by

@@ -47,7 +47,7 @@ abbrev store.deleteOnce.spec : Prop :=
     (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (out : GoInterface) (o0 : Obj)
     (rv0 : GoString) (st : Loc) (s : OState Obj)
-    (v : _root_.Perennial.reflect.Value) (p : Loc) (pre : Obj → Nat → Bool)
+    (v : _root_.Perennial.reflect.Value) (p : Loc) (pre : KPreF Obj)
     (validate : Obj → Nat → Option E) (W : IProp GF) (Φ : KVState → IProp GF),
   c.pfx <+: key → key.length ≤ opKeyMax →
   s.rev ≠ W64 0 →

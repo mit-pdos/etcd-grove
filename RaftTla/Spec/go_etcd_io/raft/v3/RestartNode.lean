@@ -87,6 +87,9 @@ abbrev RestartNode.spec : Prop :=
   -- the bootstrap log within the stored commit [scope]
   γ.bootLen ≤ σ.commit →
   confStateIs csm m →
+  -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`clusterNoSnap`; until then
+  -- every cluster's names, `UniNames`): a restarted node may hold a snapshot
+  ¬ clusterNoSnap γ →
   -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
   -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
   TraceLoggerOk cv.TraceLogger' →

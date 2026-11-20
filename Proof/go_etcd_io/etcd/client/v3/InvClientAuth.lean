@@ -260,6 +260,15 @@ theorem lessorAt_of (l conn : Loc) (addr : List GoString) :
   iexists rlc, conn, sl
   iframe #
 
+/-- The `*lessor`'s remote over the connection it was built on (auth-lease S4, D-i). -/
+theorem lessorRemoteAtC_of (l conn : Loc) (addr : List GoString) :
+    lessorAtS (GF := GF) l conn ∗ isEtcdConn conn addr ⊢ lessorRemoteAtC l conn addr := by
+  unfold lessorAtS lessorRemoteAtC
+  iintro ⟨⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, %rlc, %sl, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
+    #H9, #H10, #H11, #H12, #H13⟩, #He⟩
+  iexists rlc, sl
+  iframe #
+
 /-- **The client `c` is ready** (persistent; see the file header): its `Auth` a `*authClient` over
 its connection `conn`, and what the token fetch needs, at some `P`. -/
 def clientReady (c conn : Loc) (eps : List GoString) : IProp GF :=
@@ -531,14 +540,16 @@ def clientTokAt (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) : I
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api : GoInterface) ∗
     kvObjAtC api conn eps ∗ attemptTokOk conn P ∗
-    -- (5b) its `Auth`, an `*authClient` over the same connection
     (∃ ap : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" cl ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #ap :
           GoInterface) ∗
       authObjAtC ap conn eps) ∗
-    -- (G2's F-W3) its `Watcher`, a `*watcher` whose stub is over the same connection
-    ∃ w : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
-        GoInterface.ok (watcherIfaceOf w) ∗ watcherConnAt w conn)
+    (∃ w : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
+        GoInterface.ok (watcherIfaceOf w) ∗ watcherConnAt w conn) ∗
+    -- (S4, D-i) its `Lease`, a `*lessor` over the same connection
+    ∃ lp : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Lease" cl ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #lp : GoInterface) ∗
+      lessorRemoteAtC lp conn eps)
 
 instance clientTokAt_persistent (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) :
     Persistent (clientTokAt cl eps P) := by
@@ -556,7 +567,7 @@ theorem attemptTokOk_of_watcher (cl : Loc) (eps : List GoString) (P : GoString �
       attemptTokOk conn P := by
   iintro ⟨#Hw, #Hc, #Ht⟩
   iunfold clientTokAt at Ht
-  icases Ht with ⟨%api, %conn', -, -, #Hk, -, %w', #Hw', #Hc'⟩
+  icases Ht with ⟨%api, %conn', -, -, #Hk, -, ⟨%w', #Hw', #Hc'⟩, -⟩
   icombine Hw Hw' gives %Heq
   simp at Heq
   obtain rfl := go.intoVal_inj Heq

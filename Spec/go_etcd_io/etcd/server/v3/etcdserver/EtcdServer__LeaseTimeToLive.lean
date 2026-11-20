@@ -49,7 +49,10 @@ response's `GrantedTTL` is the lease's TTL at an index `≥ m`, or the lease is 
 error `errors.Is` finds to be `lease.ErrLeaseNotFound` (`errIsTrue`) means it is absent from `m` on.
 The wrapper's own errors (`requireAuthInfo`'s, `checkLeaseTimeToLive`'s, `auth.ErrAuthOldRevision`)
 are auth package error variables, leaves holding errors other than `ErrLeaseNotFound`'s, for which
-`errIsTrue` is false (`authErrVarIs_not_leaseNotFound`). (k8s 7f-4, T-h6) The context holds nothing
+`errIsTrue` is false (`authErrVarIs_not_leaseNotFound`). (Auth-lease S4, Freeze §4.4 F4 and §10 T1) Both
+arms, with or without keys, carry the passed check relative to `n` (`leaseCheckFrom … n`, its key
+verdict only with keys: `requireAuthInfo.specC`'s `authedFrom` without them), the error arm at
+`ErrLeaseNotFound` too: Go returns it only after the check passed. (k8s 7f-4, T-h6) The context holds nothing
 at net/http's keys (`http.netCtxOk`, `leaseTimeToLive`'s). (k8s 7f-4, Addendum T-k) Its causes are
 context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`, `leaseTimeToLive`'s). -/
 abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
@@ -75,14 +78,18 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
                 (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
                 lease.leaseAbsentFrom γl m v.ID')) ∗
           authedOutB s E.authMode tok GoInterface.nil ∗
-          (if v.Keys' then leaseCheckFrom s E tok n
-              (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)
-            else iprop(True))) ∨
+          leaseCheckFrom s E tok n
+            (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
+              else iprop(True))) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
           □ (∀ e : GoInterfaceOk,
               globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
-              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s γl -∗
-              lease.leaseAbsentFrom γl m v.ID'))) }}
+              errIsTrue err (GoInterface.ok e) -∗
+              (leaseTTLRow s γl -∗ lease.leaseAbsentFrom γl m v.ID') ∗
+              authedOutB s E.authMode tok GoInterface.nil ∗
+              leaseCheckFrom s E tok n
+                (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
+                  else iprop(True))))) }}
 
 end spec
 

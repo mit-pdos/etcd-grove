@@ -899,7 +899,9 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
   -- (raft-final) the stamped transfer request's witness, out of `xfW`
   isplitr
   rotate_left
-  · ipureintro; exact Hsn
+  · isplitr
+    · ipureintro; exact Hsn
+    · ipureintro; exact Hnsnap
   imodintro
   iintro %Ht
   obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
@@ -1013,7 +1015,9 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
   -- (raft-final) the stamped transfer request's witness, out of `xfW`
   isplitr
   rotate_left
-  · ipureintro; exact Hsn
+  · isplitr
+    · ipureintro; exact Hsn
+    · ipureintro; exact Hnsnap
   imodintro
   iintro %Ht
   obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
@@ -1366,7 +1370,9 @@ def rdSnapOut (γ : RaftNames) (rs : RNState) (rd : Ready) (ce es : List EntryM)
   | none => iprop(⌜rd.Snapshot' = null⌝)
   -- (D22 S-d4 item 4) the application's half set: `MemoryStorage.ApplySnapshot` takes it
   | some l => iprop(ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ l.dlv ∗
-      ⌜LoanOut rs rd ce es l⌝)
+      -- (auth-lease S4, 2026-11-16) outside the no-snapshot mode: a pending snapshot is (`LogNsOk`,
+      -- `NsLink`)
+      ⌜γ.reNoSnap = false⌝ ∗ ⌜LoanOut rs rd ce es l⌝)
 
 -- (2026-10-26, raft's signature, stage 1) `readyOut` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 

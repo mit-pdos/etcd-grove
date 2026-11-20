@@ -489,6 +489,21 @@ theorem kvRaftOfOn_append (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     kvRaftOfOn c₀ ch s₀ (A ++ B) = kvRaftOfOn c₀ ch (kvRaftOfOn c₀ ch s₀ A) B := by
   unfold kvRaftOfOn; exact List.foldl_append
 
+/-- A mode-`on` entry's step extends the model's log (moved here from `v3rpc.ClientModel`, 2026-11-17; the
+server's apply thread uses it too). -/
+theorem kvEntryOn_extends (c₀ : w64) (ch : apply.Chain) (st : OnState)
+    (m : EntryModel) : st.2.1 <+: (kvEntryOn c₀ ch st m).2.1 := by
+  unfold kvEntryOn
+  split
+  · split
+    · split
+      · exact List.prefix_refl _
+      · split
+        · exact List.prefix_refl _
+        · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
+    · exact List.prefix_refl _
+  · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
+
 -- (strict M1, 2026-11-06) moved here from `KVApplyOn`/`KVReadOn`, below `KVStoreLaws`
 -- (`restoreArgs_holds` takes the model's prefix lemmas in both modes)
 /-- **A mode-`on` entry grows the log by at most one revision** (`kvEntry_grow`'s counterpart). -/
