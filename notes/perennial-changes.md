@@ -491,16 +491,6 @@ classes of names-only and types-only packages: `mvccpb.Event_EventType`'s `Strin
 `Enum`, ...); no proof changes, since a new instance only unsticks calls. Not yet proposed upstream
 (through etcd-grove-81; no Perennial edit here).
 
-Also met (2026-11-19, k8s-authz, branch `k8s-authz-b2`): `authorizer.validateConditions` returns
-`errs.ToAggregate()` on its local `errs` (a `field.ErrorList`, addressable, so Go calls it through
-`*ErrorList`); `field` is names-only, so `ptr_ToAggregate_unfold` is missing and the call is stuck.
-Workaround here, this time a local trust-boundary axiom (the call is on the closed theorem's path):
-`field.ErrorList.ToAggregate_ptr.wp_proof` (`Proof/k8s_io/apimachinery/pkg/util/validation/field/
-ErrorList__ToAggregate_ptr.lean`, spec beside it under `Spec/`), stated over the value method's spec
-as a hypothesis: "load `*l` (any fraction, kept), then `ErrorList.ToAggregate.spec`", which is exactly
-the omitted `ptr_M_unfold`. It becomes a lemma (like `sets.Set.wp_ptr_Has_of`) when goose takes the
-change above; then delete the axiom.
-
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
@@ -1657,12 +1647,6 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Workaround here.** Persistent structs are stated field by field (the model's `cfgAt`); a
   fractional one is split by `iStructNamed` and recombined with `typedPointsto_combine` around the
   loads (`Server.remove`'s preconditions, the `ObjectMeta` accessors).
-- **Also met (2026-11-19, k8s-authz batches 1 and 3).** `wp_load`/`wp_auto` load a field through
-  `p ↦ u` but not through `p ↦{dq} u` with a variable `dq` (the methods of
-  `ConditionsAwareDecision`/`ConditionsAwareDecisionUnion`, whose receivers are read at any
-  fraction). Workaround: apply the generated access instance by hand,
-  `icases (T.T_access_load_<field> p u dq).access_strict ...` (e.g.
-  `ConditionsAwareDecisionUnion__hasConditionalAuthorizerName.lean`).
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
 
 ### `strconv.Itoa` has no spec (2026-11-11, trace-check S7 part 2)
@@ -2273,11 +2257,6 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   2026-11-09: `Role.String()` on the constant `Leader`).
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
-- **Also met (2026-11-19, k8s-authz batch 1): `go.NotInterface go.int`.** A method call on a named
-  type over `int` (`authorizer.Decision`, `type Decision int`: `d.String()`) is stuck without it.
-  Workaround: the local instance `b1_notInterface_int` (`⟨trivial⟩`,
-  `Proof/k8s_io/apiserver/pkg/authorization/authorizer/PtrMethodsB1.lean`). The proposed change
-  covers it (`int` among the basic types).
 
 ### `wp_apply` of a hypothesis triple with no binders in its post drops the continuation
 
@@ -3050,6 +3029,20 @@ parameter.
 - **Workaround here.** Private `runesFrom_length_le`/`runes_length_le` in
   `Proof/io/fs/FileMode__String.lean` (an induction on the fuel).
 - **Proposed change.** Those two lemmas beside `runesFrom_cons` in Perennial. Status: not proposed.
+
+## 2026-11-19: `copy`'s count is stated as `sint.nat` (a connection as an `io.Reader`, phase 4 of `notes/dsverify-net-port-plan.md`, branch `net-kitlib`)
+
+- **Missing.** `wp_slice_copy` (`Perennial/Golang/Theory/Slice.lean`) returns `n` with
+  `sint.nat n = min vs.length vs'.length`: nothing excludes a negative `n` when both lengths are 0,
+  though Go's `copy` returns `min(len(dst), len(src)) ≥ 0`. `net`'s `Conn.Read.spec` (whose model
+  copies the read bytes into the buffer) inherits it (`ReadOut`: `sint.nat k = ...`), and
+  `io.readerStream` (`Proof/io/ReaderStream.lean`, what `bufio.Reader`'s spec reads through) needs
+  `sint.Z n = len ys`: a connection is not provably an `io.readerStream`.
+- **Workaround here.** None yet: the law (a connection end with `recvTokL` is an `io.readerStream`)
+  is not written. A local lemma proving `copy`'s count with `sint.Z` (from its body), then
+  `ReadOut` with `sint.Z`, would do.
+- **Proposed change.** `wp_slice_copy`'s post `sint.Z n = min vs.length vs'.length` (or
+  `n = W64 (min ...)`). Status: not proposed.
 
 ## 2026-11-18: `translate_types` refuses a struct with a field of a cross-package generic alias (grpc's `health.Server`)
 

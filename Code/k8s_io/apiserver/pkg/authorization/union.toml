@@ -1,5 +1,0 @@
-# With bodies (project k8s-authz): the union authorizer, its two-phase conditional authorization.
-translate = ["*"]
-imports = ["*"]
-
-translate_types = true

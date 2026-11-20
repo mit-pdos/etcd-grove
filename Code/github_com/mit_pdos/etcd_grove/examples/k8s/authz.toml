@@ -1,6 +1,0 @@
-# With bodies (project k8s-authz-driver): the theorem's program `Main` and its arbitrary leaf
-# authorizers.
-translate = ["*"]
-imports = ["*"]
-
-translate_types = true

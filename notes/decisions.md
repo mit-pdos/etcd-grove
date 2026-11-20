@@ -40808,6 +40808,275 @@ left are `etc/tier-baseline.txt`, which only shrinks.
   declaration the tcb-report roots reach, by name, between `origin/lean`'s build and the branch's
   (a Lean script over `importModules`, hashes of `ConstantInfo.type`): identical.
 
+## The net extension's names (2026-11-18 · the user's decision · branch `worktree-agent-a32f38f0bf217c29e`)
+
+- **Decision.** The GooseLang extension of Go's `net` connections is *the net extension*, not a "TCP
+  extension": its names say `net`, not `tcp` (`notes/dsverify-net-port-plan.md`, Section 2, and its
+  phase 1). It stays in this repository.
+- **What was renamed** (no statement changed beyond names, no axiom or `sorry` added or removed):
+  `GooseLang/Ext/Tcp/` → `GooseLang/Ext/Net/`, namespace `Perennial.Tcp` → `Perennial.Net`; every
+  identifier of ours with `tcp`/`Tcp` (`tcpExt`, `tcpExts_hasTcp`, `tcp_semantics`, `TcpGlobal`,
+  `TcpStep`, `IsTcpStep`, `TcpGS`, `tcpEnd`, `tcpDir`, `tcpConnAt`, `wp_tcp_*`, ...) → the same with
+  `net`/`Net`; the part `NetTcp/` → `Net/` (lean_lib `Net`, modules `Net.*`), goose project `nettcp`
+  → `net`, `lake exe nettcp-replay` → `net-replay`, `etc/tcb-collections/nettcp.txt` → `net.txt`,
+  `NETTCP_*` environment variables → `NET_*`, `etc/gen-init.py`'s `NT_*` → `NET_*`, the conformance
+  checker's Python mirrors (`tcp_step`, `tcp_addr_ok`, `model.TcpDir`, ...) and its witness/calls
+  format tags (`nettcp-witness` → `net-witness`).
+- **Kept.** Go's own names (`TCPConn`, `TCPListener`, `TCPAddr`, `tcpsock`, `mptcpStatus*`,
+  `tcpConnWithout*`, `multipathtcp`, the `"tcp"`/`"tcp4"` network strings), Linux's in comments
+  (`tcp_reset`, `tcp_sendmsg_locked`, ...), the Go test names and the directories
+  `examples/axiomcx/tcp-*` (Go package paths, and the Lean module paths derived from them), and the
+  notes' file names (`notes/net-tcp*.md`, `notes/axiom-review/tcp-semantics.md`: history).
+- **One choice.** The conformance overlay's Go identifiers, which it injects into Go's `net` package
+  (`nettcpFD`, `nettcpT`, `zz_nettcp_trace.go.src`, ...), became `netextFD`, `netextT`,
+  `zz_netext_trace.go.src`: `netFD` is Go's own (`net/fd_posix.go`), so the `net` prefix would clash.
+- **Perennial's toy net extension** (`Perennial/GooseLang/Ext/Net`, `Perennial.netExt`,
+  `Perennial.NetStep`, `Perennial.netCtx`, ...) declares names that ours now share up to the
+  namespace (`Perennial.Net.netExt`, `Perennial.Net.NetStep`, `Perennial.Net.netCtx`). No module here
+  imports Perennial's (it is reached only from Perennial's root module and `NetPrelude`); a module
+  that imported both and opened `Perennial.Net` would have to qualify them.
+
+## The net extension v3.3: `"tcp4"`, socket options, Go's write lock (2026-11-19 · approved by the user 2026-11-19 · branch `net-gaps`)
+
+Phase 2 of `notes/dsverify-net-port-plan.md`: the gaps of the net extension the dsverify kits hit.
+Trusted semantics changed; reviewed and approved by the user 2026-11-19. Each decision has its Go example
+in `examples/net/semantics/{tcp4,sockopt,writelock}_test.go` (indexed in `doc.go`), its D-number in `Impl.lean`'s header
+and operations table, `Tests.lean` examples, and its transcription in the conformance checker.
+
+- **D23, `"tcp4"`.** `Listen`, `Dial` and `DialTimeout` accept `"tcp4"` as `"tcp"` (`model.netOk`):
+  the extension sees only the address, and the plan's addresses are IPv4 (`"[::]:p"` with `"tcp4"`
+  listens on every IPv4 address, as D21 has it). Measured (`TestTcp4`): every `*OpError` carries the
+  network string, the call's for `Dial`/`Listen`, the connection's (its `Dial`'s, or its listener's
+  for an accepted one: `netFD.accept`'s `newFD(..., fd.net)`) for the methods. So the network is
+  state of the Go heap: a field `net` of the trusted `conn` and `TCPListener` layouts
+  (`FieldAssumptions` gains its get/set facts), passed to `model.opError`. The specs: `Dial.spec`,
+  `Listen.spec`, `DialTimeout.spec` take the network `nw` and `tcpNet nw` first; `opErr`'s `Net` is
+  any `tcpNet` network (the existential keeps `connAt`, `lisAt`, `resErr` and their clients'
+  statements as they were; no client reads `Net`).
+- **D24, socket options.** `SetKeepAlive`, `SetKeepAlivePeriod`, `SetNoDelay`, `SetLinger`,
+  `SetReadBuffer`, `SetWriteBuffer` (the last two `conn`'s, promoted): one extension operation,
+  `"SetSockopt"` of an option kind and a value, with no state (`SockOptOutcome`): `closed` on a closed
+  end, success otherwise, but `TCP_KEEPIDLE` of a count of seconds outside 1..32767 (`sys`, Linux's
+  `EINVAL`), and no system call (success, even closed) for a negative keepalive period. Go's
+  arithmetic of the period (rounding up to seconds, wrapping, the `int32` of `SetsockoptInt`) is
+  transcribed in `keepIdleValid`, in the trusted `Impl.lean`, rather than computed in the model's
+  GooseLang (a proof of int64 division in GooseLang for one premise); the review checks it. Why no
+  state: what the options change is not observable beyond what the relations allow (keepalive's
+  failure is a cut; buffer sizes decide only when a step waits and how much it counts; a zero
+  linger's reset is a cut of the peer's direction, as `TestResetLingerZero` already shows).
+- **D25, the write lock.** Go's `(*poll.FD).Write` holds the fd's write lock over its whole loop, so
+  two concurrent `Write`s of one end never interleave their bytes (`TestWriteLock`: four 4 MiB
+  `Write`s, each contiguous). v3.1's loop of steps had made the interleaving possible in the model,
+  which a proof keeping its writer protocol in an invariant could not rule out (phase 0's finding).
+  The lock is observable (the order of the bytes), so it is state: `NetConn.dLock`/`aLock`. A
+  `Write` step carries whether it is its call's first (`nn = 0` in `model.writeLoop`); the first
+  takes the lock, which must be free, the last (`writeLast`: a failure, or every byte written)
+  releases it; a later step without the lock is an invalid use (panic, never made by the model).
+  While another `Write` holds the lock, a first step has no outcome: the one exception to D22's
+  "every state has an outcome besides the stutter" (`Tests.lean`'s `isNetStep_total` now excludes
+  `WriteWaits`); it is faithful, since Go's waiter waits too, and the holder's steps always have
+  outcomes. **Approved by the user (2026-11-19):** "stuttering is ok for Write because it's sound to
+  do so". `Close` does not take the lock (`increfAndClose`): the holder's next step fails `closed`
+  and releases it, and the waiter then fails `closed`, as Go's (`(0, ErrClosed)`, measured).
+  Ghost side: the network holds a token per end while its lock is free (`lockCtx`); the token,
+  `netWLock c s`, goes to the caller of a first step that does not end the loop and back at the
+  last (`wp_net_Write`). `Conn.Write.spec` is unchanged: the per-step accessor still sees only the
+  end and the direction, and the lock is the proof's business (`Net/Proof/net/Conn__Write.lean`).
+  Exposing "my bytes are contiguous" to clients needs the token in the client's hands between its
+  steps (a change of the accessor every client would have to follow): left to phase 4, where the
+  kit-facing specs are stated. (Phase 4, 2026-11-19: not needed, `Conn.Write.spec` stays as it is;
+  "The kits' network vocabulary: a library of laws".)
+- **Address helpers** (phase 2.5): `IP.To4` (and `isZeros`) translated, pure Go; `SplitHostPort`
+  calls `internal/bytealg.IndexByteString` (assembly on amd64: a trusted model would be needed),
+  `IP.Equal` calls `bytealg.Equal` (Go, but `internal/bytealg` belongs to the etcd project's
+  translation, which translates only `LastIndexByteString`; adding it rebuilds that project's
+  importers), `ParseIP` and `IP.String` go through `net/netip`, whose `Addr` holds a
+  `unique.Handle` made by `unique.Make` at netip's initialization (runtime internals): names only.
+- **The review's F1** (`notes/axiom-review/tcp-semantics.md`, v3.3): Go panics past 2^20 calls
+  waiting on one socket's lock (`fdMutex`), where the model waits. **The user's decision
+  (2026-11-19): a known limitation, not in the semantics** ("keep the semantics simple ... it would
+  require more than 2^20 goroutines waiting"): recorded in `Impl.lean`'s header, not as a D13
+  assumption and not as a per-end waiter count with a `Panic` outcome. Revisit with the bounds
+  plan's thread tokens.
+
+## The kits' network vocabulary: a library of laws, not second specs (2026-11-19 · the user's rule, one canonical spec per function · branch `net-kitlib`, on `net-gaps`, pending the user's review)
+
+*Superseded in part (2026-11-19, "The kits' statement is `Robust`", below): "The statement"
+(`SafeDist`) is deleted; the kits' statement is `Robust` with no crashing machine under
+`KitDeploy`.*
+
+**Context.** Phase 4 of `notes/dsverify-net-port-plan.md` was to prove dsverify-lab's Hoare triples of
+`net`'s functions (over its `addrProto`/`sendTok`/`recvTok` vocabulary) over the net extension, so
+that the kits' proofs port by renaming. That would give `net.Dial`, `Conn.Read`, ... a second spec
+each, in a client's vocabulary; the user's rule (2026-11-18: "I expect to see a single canonical spec
+for each function") excludes it.
+
+**Decision.** `Net/Spec/net/*` stay the only specs of `net`'s functions. The lab's vocabulary is a
+proved library, `GooseLang/Ext/Net/Proto.lean` (a neutral path and namespace, `Perennial.Net`,
+naming nothing of etcd, for phase 3's export): predicates over the extension's ghost state, and
+for each operation a **law**, the update (accessor) that operation's canonical spec takes, built
+from the vocabulary (`dial_au`, `accept_au`, `accept_shared_au`, `write_acc` with `writeP`,
+`read_au`, `close_au`, `closeWrite_au`, `deadline_au`, `sockopt_au`, `lisClose_au`), plus the
+vocabulary's own laws (`addr_set_proto`, `connFresh_excl`, `recvTok_proto`, ...). A kit proof calls
+the canonical spec with the law's update. The table of what replaces each lab lemma is in the plan,
+phase 4.
+
+**How the library is built, and why.**
+- *Syntactic protocols.* An address's protocols are the parameters of its invariant's statement
+  (`inv (addrN a) (addrInvP a γa P Q)`, allocated once by `addr_set_proto` from the address's
+  pending set), not saved predicates as in the lab. The lab's state interpretation is not an
+  invariant, so its reader paid one later (a saved predicate's agreement, with a credit); here the
+  per-connection state is in invariants, and saved predicates would cost two laters. With the
+  protocols in the statement a reader's fact costs one (`recvTokL`: `recvTok` with `▷ protoPrefix`,
+  turned back by any program step, `recvTokL_later`, or a credit). Two invariants for one address
+  cannot both hold its pending set; each is consistent on its own, so a stray second
+  `addrProto a P' Q'` is harmless.
+- *A timeless registry.* Every connection's ends and directions (`netEnd`, `netDir`, with what
+  was written and read, `DirOk`) are in one invariant keyed by connection number (`regInv`, ghost
+  map `NetProtoGS.reg`): `connElem cn γ` agrees, so `sendTok`, `recvTok`, `sentLb`, `connFresh`
+  of one `cn` are about one connection, and `connFresh` is timeless (the lab's rpc/gRPC proofs keep
+  it in their own invariants). A dial's number is fresh in the registry because an entry holds the
+  connection's directions and a dial has their fresh resources (`netDir_excl`).
+- *What was written*, a monotone list per direction, in three shares: the writer's half (in
+  `sendTok`), a quarter in the registry (for `DirOk`), a quarter at the address (for the protocol
+  fact).
+- *The write lock* (D25) is not needed: `sendTok` is exclusive and travels in `Conn.Write.spec`'s
+  writer predicate, so in the ghost state nothing appends between a `Write`'s steps. So
+  `Conn.Write.spec` is unchanged (the phase 2 agent left the question to this phase).
+- *Listeners*: owned (`accept_au`, the thread's `netLis`) or shared (`lisInv`, the lab's persistent
+  listener: `accept_shared_au`, `lisClose_au`). `addrTok` is persistent (the plan entry): our
+  `Listen` of an address in use fails with a `sys` error instead of needing a token; it needs the
+  node's host to be the address's (`addrTok_listenAt`).
+
+**Moved.** `DirOk` and its laws, `setMap`, `ndot_mask` from the examples' `wire` library to
+`GooseLang/Ext/Net/Stream.lean` (both libraries use them); the examples changed only their qualified
+names and `open` lists.
+
+**Added specs** (functions that had none): `Conn.SetReadDeadline.spec`, `Conn.SetWriteDeadline.spec`
+(the models existed; the lab's rpc/http/gRPC models call them).
+
+**The statement.** `Net/Statement/SafeDist.lean`: the lab's `SafeDist` over `netExts`,
+`PlanWellFormed` for `NetConfig.WellFormed`, a host per node, no restart (`goose_dist_adequacy`, Q4),
+bridges `safeDist_of_bootAt` and `safeDist_of_proto`; `echo_safeDist` shows it is not vacuous.
+
+**Not done.** The bufio-over-a-connection law (`Conn.Read.spec`'s count is `sint.nat`, from
+Perennial's `copy` spec; `io.readerStream` needs `sint.Z`: `notes/perennial-changes.md`,
+2026-11-19); `bufio.Writer` is not translated (cost in the plan, phase 4).
+
+## Shared Go runtime under a neutral module path (2026-11-19 · phase 5 item 1 of `notes/dsverify-net-port-plan.md` · branch `worktree-agent-acfe43339741d934f`)
+
+*Superseded in part (2026-11-19, "Trusted generated code: the generator is the trusted artifact" and
+"`models/`: the home of the trusted models", below): the module is now `models.lab` in `models/`
+(Lean `models_lab`), the generators live in it (`models/protobuf/`, `models/json/`), and pbgen's input
+names root types only.*
+
+- **Decision.** The Go code that the network library models share between etcd's proofs and the
+  dsverify kits (now the codecs' helpers `pbcodec`, `jsoncodec`; later the models' added files) is
+  one Go module, `netmodels.lab`, in `netmodels/` at the repository root, with its own `go.mod`.
+  Not a package of `github.com/mit-pdos/etcd-grove/examples` (the examples' module) and not under
+  `dsverify.lab/...`.
+- **Why a module path that names neither project.** The part `Net/` is exported to dsverify-lab
+  (Q3 of the plan), whose runs must not see this repository: a path under
+  `github.com/mit-pdos/etcd-grove` would appear in every kit's generated codec (`import
+  "…/pbcodec"`), in its translation (`Code.github_com.mit_pdos.etcd_grove…`) and in its statements,
+  and fail the export's leak check. A path under `dsverify.lab` would make this repository's models
+  name the lab. `netmodels.lab` names neither; like `dsverify.lab` it has a dot in its first element
+  (Go treats it as a non-standard-library path) and no host that resolves (it is always replaced or
+  local, never fetched). The Lean modules follow (`-lean-root netmodels.lab=Net`:
+  `Net.Code.netmodels_lab.*`, namespace `netmodels_lab`).
+- **Why a module of its own.** The examples' module requires etcd, raft and their forks' pins;
+  the lab must build the runtime with only protobuf-go (a test dependency). The examples' module
+  imports it by a `replace` (`examples/netmodels/pbetcd`, the generator's test on etcd's messages);
+  its go line is 1.27 (the examples') with `toolchain go1.27.3` (`etc/goose.py`'s), since a
+  dependency's go line above the importer's makes Go rewrite the importer's module graph.
+- **The generators** (`etc/pbgen.py`, `etc/jsongen.py`) live in `etc/` (they are tools of the
+  repository, exported with the part) and name no kit: a [protobuf] or [json] table in any toml file.
+
+## Trusted generated code: the generator is the trusted artifact (2026-11-19 · the user's decision · branch `pbgen-trust`)
+
+- **The user (2026-11-19):** "it's pbgen.py that's the trusted protobuf implementation (though it
+  only supports some types)... I don't want to think of mechanically created output as individually
+  trusted in this case; I'd rather make sure the generator is high quality and can be trusted."
+- **Why the generator, not its outputs.** Nothing in Lean fixes protobuf's wire format: a program's
+  proof proves its generated codec meets whatever `PbCodec` instance it chooses, and the program's
+  final statement does not mention it. What is trusted is that running the program with
+  `proto.Marshal`/`Unmarshal` replaced by the generated code behaves as with real protobuf-go
+  v1.36.12, for every type the generator accepts: a claim about the generator, argued once, not per
+  output.
+- **What that requires of the generator** (`models/protobuf/`): (1) no trusted hand-written input:
+  the `[protobuf]` table names only the root message types; every reachable message's and enum's
+  fields come from the descriptors protoc-gen-go registered (the ones protobuf-go runs on) and the
+  generated Go structs, dumped by `models.lab/pbdesc`; (2) a hard refusal of everything outside the
+  subset, naming message and field, before any code is emitted; (3) a small trusted core,
+  `pbgen_core.py` (the input check, the refusals, the emitter, and in its doc the encoding emitted
+  per field kind with citations to the encoding spec's sections and to protobuf-go's source),
+  separate from the untrusted command line, schema dump runner and test generation; (4) evidence
+  about the generator, not only per output: a differential test over random schemas of the subset,
+  compiled by the real protoc-gen-go (`models/internal/pbgenrand`); (5) an independent review
+  (`notes/axiom-review/pbgen.md`); (6) the gate: every codec in the tree is exactly the generator's
+  output for its derived input.
+- **Where the claim stops** (pbgen_core's doc): unknown fields are dropped, not kept for re-marshal
+  (the emitted code cannot reach the struct's unexported `unknownFields`); error values are not
+  modeled (error-or-not is), nor what comes with an error (the message after a failed Unmarshal,
+  the partial bytes of a failed Marshal); slice capacities and aliasing differ (the review,
+  `notes/axiom-review/pbgen.md`); only `Marshal`/`Unmarshal` with default options.
+- **The same for the other generated models** when they are reworked (`jsongen.py` next: the plan
+  note, phase 5.1, says what carries over), and for the patches of real packages (Q1): the
+  program that makes the model is what is reviewed and tested.
+
+## `models/`: the home of the trusted models (2026-11-19 · the user's decision · branch `pbgen-trust`)
+
+- **Decision (the user's naming).** `netmodels/` becomes `models/`, the Go module `models.lab`
+  (neutral: no project's name), goose project `models` (lean root `models.lab=Net`): the home of all
+  our trusted models in general, an executable stand-in for a real library, verified where it is
+  code, trusted only in its claim to behave like the library. Each model sits with its evidence: its
+  generator beside the helpers it generates for (`models/protobuf/pbgen.py`, `models/json/jsongen.py`),
+  its differential tests in `models/internal/`; `models/README.md` lists, per model, what is verified,
+  what is trusted and its evidence, and points to the trusted models kept where Perennial's layout
+  puts them (`TrustedCode/`, `GooseLang/Ext/*/Impl.lean`). The patches of real packages (gRPC,
+  net/http, net/rpc; Q1 of the plan) will live under `models/` too, not `etc/model-patches/`.
+
+## The kits' statement is `Robust` (2026-11-19 · the user's decision · branch `kit-robust`, on `net-kitlib`)
+
+**Context.** Phase 4 (`net-kitlib`, the entry above) restated the lab's `SafeDist` over the net
+extension (`Net/Statement/SafeDist.lean`): a second top-level statement beside this repository's
+`Robust` (`Robustness/Statement.lean`, `notes/robustness.md`), with its own start (`NodeStart`,
+`NetStart`), node structure and conclusion (`Ok`: the main thread returned `#()`).
+
+**Decision (the user's, 2026-11-19).** `SafeDist` is replaced by `Robust`; `SafeDist.lean` and
+echo's `SafeDistLinked.lean` are deleted. A kit's theorem is
+
+    KitDeploy plan hosts nodes g → Robust [] nodes g bound
+
+- **Every kit machine is in `stable`** (no boot program, so no crash and no restart: Q4 of the
+  plan).
+- **The kit deployment premise** `KitDeploy` (`Net/Statement/KitDeploy.lean`, trusted, a neutral
+  module for the export) is data about `g` and the machines' initial local states, in the style of
+  kvnet's `FreshNet`: the plan well formed (`PlanWellFormed`) and the network's plan, no
+  connection, machine `i` on `hosts[i]` (its net-extension local state), no listener. Generic over
+  the extensions (`[HasExt netExt]`), so a kit with files states the same premise. `Robust`'s own
+  premise (`Fresh`: the Go context, no package initialized, one thread) is not repeated. No
+  listener is not needed by the bridge (the start resources would hand any listeners over); it is
+  there because a fresh process has none.
+- **What is lost**: `SafeDist`'s "a finished main thread returned `#()`". Nothing a kit checks: its
+  checks are panics, as every example's (`notes/robustness.md`, "What `Robust` does not say").
+- **The bridge** (`Net/Statement/KitBridge.lean`, proved): `DistCrashNsteps []` is `DistNsteps`
+  (`distNsteps_of_crash_nil`), so `goose_dist_adequacy` gives `Robust [] …`; `robust_of_kitBoot`
+  and `robust_of_kitProto` are `safeDist_of_bootAt`/`safeDist_of_proto` over it. A machine's
+  obligation, `KitBootWp e h P`, quantifies over the ghost state `hG` with the global part `G` and
+  the Go context `lctx` (`Robust`'s), the WP's post `v = #()`: the kit's proof destructs `hG` and
+  substitutes the context so that its `[go.Semantics]` and packages' `Assumptions`, instances over
+  `lctx`, apply (echo's proof does). A first version bound a `GooseLocalGS` and rebuilt the
+  `HeapGS` with `lctx` in a `let`: the bound `L`, itself an instance, was what the WP was
+  elaborated over, so the obligation said nothing of `lctx` (caught by echo's instance not going
+  through).
+- **Only the all-stable case**: a deployment with crashing and stable machines needs an adequacy
+  theorem with boot programs for some nodes only (`notes/robustness.md`, "Next").
+- **Non-vacuity**: `echo_kit_robust` (`Net/…/examples/net/echo/RobustLinked.lean`) through
+  `robust_of_kitBoot`, `#print axioms` Lean's three. It also follows from `echo_crash_robust` by
+  `Robust.of_all_crashing` (a run with no crashing machine is a run in which every machine may
+  crash, `distCrashNsteps_more_boots`); it goes through the bridge to show the bridge applies.
+
 ## Import tiers: a proof takes a linked lemma as a law (2026-11-18 · the user's direction · branch `tiers3/2026-11-18`)
 
 Supersedes in part "Import tiers: specs never import proofs" above, whose baseline left the 86

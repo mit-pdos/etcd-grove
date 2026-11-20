@@ -1,5 +1,5 @@
 """From a traced call's result to the extension's result, by the trusted models of
-`NetTcp/TrustedCode/net.lean`, which build Go's values from the extension's: the shape rules
+`Net/TrustedCode/net.lean`, which build Go's values from the extension's: the shape rules
 (what Go values net.lean can return for each operation) and the error kinds (D14).
 
 net.lean builds every failure as `model.opError op src addr (model.kindErr code name)` (a
@@ -36,7 +36,7 @@ SOURCE_NIL = {"SetDeadline", "Accept", "ListenerClose", "Dial", "DialTimeout", "
 CONN_OPS = ("Read", "Write", "Close", "CloseWrite", "SetDeadline")
 
 
-def tcp_addr_ok(a):
+def net_addr_ok(a):
     """A non-nil *net.TCPAddr (model.anyTCPAddr), as the tracer records it."""
     return isinstance(a, dict) and a.get("type") == "*net.TCPAddr" and not a.get("nil") and "s" in a
 
@@ -77,9 +77,9 @@ def err_kind(op, err):
     if op in SOURCE_NIL:
         if src is not None:
             probs.append(f"OpError.Source {src} (net.lean's {op}: nil)")
-    elif not tcp_addr_ok(src):
+    elif not net_addr_ok(src):
         probs.append(f"OpError.Source {src} (net.lean's {op}: the conn's laddr, a non-nil *TCPAddr)")
-    if not tcp_addr_ok(err.get("addr")):
+    if not net_addr_ok(err.get("addr")):
         probs.append(f"OpError.Addr {err.get('addr')} (net.lean's {op}: a non-nil *TCPAddr)")
     if "timeout" not in err or "temporary" not in err:
         probs.append("no Timeout()/Temporary() recorded for an *OpError")
@@ -154,9 +154,9 @@ def map_call(c):
             if not isinstance(new, dict) or not str(new.get("id", "")).startswith(want):
                 probs.append(f"{op} succeeded with no new socket recorded ({new})")
                 return Mapped(None, probs, True)
-            if not tcp_addr_ok(new.get("local")):
+            if not net_addr_ok(new.get("local")):
                 probs.append(f"the new socket's LocalAddr {new.get('local')} (net.lean: a non-nil *TCPAddr)")
-            if op != "Listen" and not tcp_addr_ok(new.get("remote")):
+            if op != "Listen" and not net_addr_ok(new.get("remote")):
                 probs.append(f"the new socket's RemoteAddr {new.get('remote')} (net.lean: a non-nil *TCPAddr)")
             return Mapped(("ok", new), probs, bad)
         return Mapped(("err", kind), probs, bad)

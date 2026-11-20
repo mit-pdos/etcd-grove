@@ -2,10 +2,6 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import GeneratedProof.encoding.json
-public import Perennial.GeneratedProof.fmt
-public import GeneratedProof.k8s_io.apimachinery.pkg.util.errors
-public import GeneratedProof.k8s_io.apimachinery.pkg.util.sets
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.util.validation.field
 

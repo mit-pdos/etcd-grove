@@ -1,4 +1,4 @@
-"""The conformance checker: does some execution of the TCP extension's semantics (Impl.lean,
+"""The conformance checker: does some execution of the net extension's semantics (Impl.lean,
 transcribed in model.py) produce a traced run? README.md has the design; in short:
 
 1. Load the run (trace.py): its node processes, and its drivers' process events.
@@ -95,7 +95,7 @@ def show_conn_state(st, W):
     parts = [e(st[0], "dialer end"), e(st[1], "acceptor end"), d(st[2], "up (dialer->acceptor)"),
              d(st[3], "down (acceptor->dialer)")]
     if st[4]:
-        parts.append("Writes in progress (op, bytes so far): " + ", ".join(f"{j}:{p}" for j, p in sorted(st[4])))
+        parts.append("Writes in progress (op, bytes so far): " + ", ".join(f"{j}:{p}" for j, p, _ in sorted(st[4])))
     return "; ".join(parts)
 
 
@@ -120,7 +120,6 @@ class Comp:
         self.items = []      # what each op is, for the witness: dicts
         self.W = []          # a connection's write data
         self.tainted = []    # reasons this component is out of scope
-        self.big_split = []  # (overlap test, length) of each Write: lazy.write's split, and its cap
         self.result = None
 
 
@@ -294,7 +293,7 @@ class Checker:
                 continue
             if c.op in ADDR_QUERIES:
                 a = c.e.get("addr")
-                if not G.tcp_addr_ok(a):
+                if not G.net_addr_ok(a):
                     self.find("shape", c, f"{c.op} returned {a} (net.lean, D18: a non-nil *TCPAddr)")
                 continue
             m = G.map_call(c)
@@ -599,14 +598,12 @@ class Checker:
             w = len(cp.W)
             cp.W.append(data)
             item["w"] = w
-            split = self._overlapping_writes(cp, c)
             if pending:
-                step = lambda st, dn, s=side, j=j, w=w, L=len(data), sp=split: Z.write_pending(st, s, j, w, L, sp())
+                step = lambda st, dn, s=side, j=j, w=w, L=len(data): Z.write_pending(st, s, j, w, L, dn)
             else:
                 k, res = self.mapped[id(c)].res
-                step = (lambda st, dn, s=side, j=j, w=w, L=len(data), k=k, res=res, sp=split:
-                        Z.write(st, s, j, w, L, k, res, sp()))
-            cp.big_split.append((split, len(data)))
+                step = (lambda st, dn, s=side, j=j, w=w, L=len(data), k=k, res=res:
+                        Z.write(st, s, j, w, L, k, res, dn))
         elif c.op == "Close":
             if pending:
                 step = lambda st, dn, s=side: Z.close_pending(st, s)
@@ -642,21 +639,6 @@ class Checker:
             if "v" not in box:
                 box["v"] = [j for j, x in enumerate(cp.calls)
                             if x is not None and x is not c and x.op == op and x.sock() == c.sock()]
-            return box["v"]
-        return get
-
-    def _overlapping_writes(self, cp, c):
-        """Whether another Write of c's end overlaps c in time (computed once the component is
-        complete): only then may their steps interleave (lazy.write's `split`)."""
-        box = {}
-
-        def get():
-            if "v" not in box:
-                me = cp.ops[cp.calls.index(c)]
-                lo, hi = me.call, me.ret if me.ret is not None else float("inf")
-                box["v"] = any(x is not None and x is not c and x.op == "Write" and x.sock() == c.sock()
-                               and o.call <= hi and (o.ret if o.ret is not None else float("inf")) >= lo
-                               for x, o in zip(cp.calls, cp.ops))
             return box["v"]
         return get
 
@@ -750,10 +732,6 @@ class Checker:
         if cp.tainted:
             kind = "inconclusive"
             what += f" (the component has operations out of the model's scope: {'; '.join(cp.tainted[:3])})"
-        elif any(sp() and L > Z.SPLIT_MAX for sp, L in cp.big_split):
-            kind = "inconclusive"
-            what += (f" (overlapping Writes of one end longer than {Z.SPLIT_MAX} bytes: not every split of "
-                     "their steps was tried)")
         t = (bad.ref.ret or bad.ref.call) if bad.ref else bad.call
         self.findings.append(Finding(kind, bad.ref.where() if bad.ref else name, what, ctx, t, bad.ref))
 
