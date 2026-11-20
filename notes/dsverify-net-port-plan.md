@@ -555,7 +555,18 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
    as over grpc-go. *Known gaps in Go runs* (not in the claim): a model connection has no keepalive,
    so a silently dead peer (a partition without a reset) hangs a stream until its context ends
    where grpc-go fails it after its keepalive timeout (in the semantics a cut may come at any time,
-   which covers it). *For the Lean half*: specs for the model's transport and connection management
+   which covers it). This shows in `examples/etcd/partition` (passes over grpc-go in 165 s): over
+   the model `TestMainRun`, `TestClientCuts` pass, `TestFailover` (killed after 374 s),
+   `TestWriteOnce` ("no put failed: the cuts cut nothing": a model put waits for its connection's
+   server preface instead of failing on an established connection) and `TestWatchFailover` (a watch
+   on a blackholed member never ends: no keepalive close) fail: they assert grpc-go's keepalive
+   closes and its reuse of established connections, timings the model's Go realization does not
+   reproduce (the model's behaviors include grpc-go's: a cut may end a connection at any moment). A
+   keepalive in the model's transport (pings while streams are active, a close after the timeout)
+   would bring the Go runs closer; not done. The first runs also found two real faults of the model,
+   fixed: a stream written before the server's preface (an under-approximation, above) and the
+   address choice's Go body always the first address (now round-robin over the addresses not
+   failing, `modelChooseAddr`). *For the Lean half*: specs for the model's transport and connection management
    (`newClientTransportStream`, `reader`, `operateHeaders`, `closeStream`, `Write`,
    `ReadMessageHeader`/`Read`, `getTransportConn`, `dialAddr`, the resolver wrapper,
    `exitIdleMode`/`enterIdleMode`, `serverTransport.HandleStreams`/`operateHeaders`, the server
