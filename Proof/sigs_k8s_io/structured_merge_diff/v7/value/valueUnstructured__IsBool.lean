@@ -1,6 +1,5 @@
 /-
-`value.valueUnstructured.IsBool`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Its callees' specs (and the interface bundles' laws, `Objects.lean`) are its
+`value.valueUnstructured.IsBool`: proved (Prove step, notes/smd-plan.md). Its callees' specs (and the interface bundles' laws, `Objects.lean`) are its
 hypotheses. Lean-first (2026-11-19), Draft.
 -/
 module

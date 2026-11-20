@@ -1,6 +1,5 @@
 /-
-`value.NewValueInterface`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Lean-first (2026-11-19).
+`value.NewValueInterface`: proved (Prove step, notes/smd-plan.md). Lean-first (2026-11-19).
 -/
 module
 
