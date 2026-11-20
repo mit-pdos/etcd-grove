@@ -9,7 +9,7 @@
   call graph proved and linked (`Link.lean`; no `sorry`: over trust-boundary specs of the opaque
   callees only).
 * **`k8s_authz_safe`**: the closed theorem. Every real execution of `n` steps of the driver's
-  initialization followed by `Main()` (`authzProgram`), from a fresh state (no package initialized,
+  initialization followed by `Main()`, from a fresh state (no package initialized,
   one thread): if the main thread has finished, its result is `#()`; no thread is stuck; no thread
   has an unrecovered panic. From Perennial's `goose_adequacy` through `etcdstart`'s
   `init_adequate`, the trivial extension, the ghost-state bundle `authzGF`, the generated package
@@ -22,7 +22,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.TopLevelDefs
 public import Robustness.Statement
 
 @[expose] public section
@@ -93,7 +92,9 @@ theorem k8s_authz_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([authzProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (Hsteps : RealNsteps n ([github_com.mit_pdos.etcd_grove.examples.k8s.authz.initialize' #() ;;
+        (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.Main) #()], ((σ, g) : CfgState)) κs
+        (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
