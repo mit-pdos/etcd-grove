@@ -2518,7 +2518,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              for i, x in enumerate(_V_HIST)] +
             ['-- `traceutil.Tracer`',
              'ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd44',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.pkg.v3.traceutil}',
              'icases Hti with #HTR',
              '-- the progress interval\'s lock and what it guards (`progressReportInterval`, `10 * time.Minute`)',
              'imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS',

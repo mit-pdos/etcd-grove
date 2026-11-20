@@ -348,7 +348,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopProgressDuration CwatchSendLoopProgressDuration
   -- `traceutil.Tracer`
   ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd44
+  · iapply isPkgInit_access $$ Hd45
   icases Hti with #HTR
   -- the progress interval's lock and what it guards (`progressReportInterval`, `10 * time.Minute`)
   imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS

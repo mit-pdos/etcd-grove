@@ -19,11 +19,21 @@
   exact registrations; `v3rpc.Server.spec` posts it; `ClientPortTable.lean` the Lean table;
   `client_port_mediated` (v3rpc/Results.lean). lean `951d520138` merged; builds
   `20261120-182540-1298292` + `20261120-184907-1359064`; tcb unchanged; etc/gates.sh passes.
-- M2 next (after the land): the JSON trust-boundary specs are drafted and attacked, awaiting the
-  STOP's answer: `/shared/tmp/authmed/m2-draft/MarshalMember.lean` (two specs, `MarshalMember` and
-  `MarshalConfigChangeContext`, beside the k8s token spec; opaque outputs with a `PeerURLs` nil flag);
-  attack round 1 refuted the flagless draft (nil vs empty `PeerURLs`), round 2 sound; the Go tests to
-  commit with it (`examples/...` or beside the axiom): `/shared/tmp/authmed/m2-draft/jsontests/`.
-  Then: translate `EtcdServer.AddMember/UpdateMember/PromoteMember/promoteMember` and the five
-  `ClusterServer` handlers (re-check the Marshal call's Goose shape), specs over contracts for
-  `mayAddMember`, `configure`, `NewURLs`/`NewMember`, `promoteMemberHTTP`.
+- M2 (in progress, 2026-11-20). Done: the JSON trust boundary in the user's smallest form
+  (`Spec/encoding/json/{MarshalMember,MarshalConfigChangeContext}.lean`, axioms beside; attacked:
+  survives, `notes/axiom-review/json-marshal-member.md`; Go tests `examples/authmedjson/`); the
+  translation (`etcdserver.toml`: AddMember, UpdateMember, PromoteMember, promoteMember; `v3rpc.toml`:
+  the five `ClusterServer` handlers, `header`, `membersToProtoMembers`, import of membership; the
+  Marshal call is `Convert Member.ty go.any` then `FuncResolve encoding.json.Marshal`, the specs' shape);
+  contracts `MemberContracts.lean` (`mayAddOk`, `mayPromoteOk`, `configureCcOk`, `memberSlices`,
+  `addChangeType`); specs + proofs of `AddMember`, `UpdateMember`, `promoteMember` (not linked yet);
+  `PromoteMember`'s metrics in `srvApplyLoopInit` (gen-init; `revokeExpiredLeases`' pattern adjusted).
+- M2 next: (1) `PromoteMember`: spec drafted in `/shared/tmp/authmed/m2-next/` (contract
+  `promoteHTTPOk`, no local token on the forwarded path: the leader's re-check is the contract's `Qfw`);
+  contracts' answers carry `applyErrIs` (for `errors.Is`/`Error()`); proof after `LeaseRenew`'s
+  forwarding loop and `processInternalRaftRequestOnce`'s `context.wp_WithTimeout`. (2) the handlers
+  (`ClusterServer.Member*`): `header` over `RaftCluster.ID`/`MemberID`/`Term`/`Leader`, `togRPCError`'s
+  spec, `types.NewURLs`, `membership.NewMember(AsLearner)` (names only: contracts), the contracts'
+  `Qin` giving `membership.membersAt sl ms` on `nil` for `membersToProtoMembers`. (3) Link
+  (`etc/gen-link.py --server` list), `etc/auth-table.txt` rows 13-17, gate baseline, tcb update (two
+  new axioms: STOP already covered by the user's decision).
