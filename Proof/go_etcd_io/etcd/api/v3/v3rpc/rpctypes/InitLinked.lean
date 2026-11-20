@@ -55,6 +55,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoString) MetadataClientAPIVersionKey _ as HMetadataClientAPIVersionKey
   wp_apply wp_GlobalAlloc (V := GoString) MetadataHasLeader _ as HMetadataHasLeader
   wp_apply wp_GlobalAlloc (V := GoString) MetadataRequireLeaderKey _ as HMetadataRequireLeaderKey
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrGRPCNotSupportedForLearner _ as HErrGRPCNotSupportedForLearner
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrGRPCNotCapable _ as HErrGRPCNotCapable
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrGRPCNoLeader _ as HErrGRPCNoLeader
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrGRPCAuthOldRevision _ as HErrGRPCAuthOldRevision
@@ -276,7 +277,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrGRPCTimeoutWaitAppliedIndex.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCUnhealthy.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCCorrupt.init (by mem_tac))
-  wp_apply ErrGRPCNotSupportedForLearner_init as ⟨%eErrGRPCNotSupportedForLearner, HErrGRPCNotSupportedForLearner, %PErrGRPCNotSupportedForLearner, %DErrGRPCNotSupportedForLearner, #SErrGRPCNotSupportedForLearner⟩
+  -- translated initializer of ErrGRPCNotSupportedForLearner))
+  try wp_auto
+  wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %rErrGRPCNotSupportedForLearner ⟨%NErrGRPCNotSupportedForLearner, #OErrGRPCNotSupportedForLearner, %DErrGRPCNotSupportedForLearner, %TErrGRPCNotSupportedForLearner, %LErrGRPCNotSupportedForLearner⟩
+  · ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)
+  obtain ⟨eErrGRPCNotSupportedForLearner, rfl⟩ : ∃ e, rErrGRPCNotSupportedForLearner = GoInterface.ok e := match rErrGRPCNotSupportedForLearner, NErrGRPCNotSupportedForLearner with | .ok e, _ => ⟨e, rfl⟩ | .nil, h => absurd rfl h
+  ihave #EErrGRPCNotSupportedForLearner : (go_etcd_io.etcd.cache.v3.errorStringSpec eErrGRPCNotSupportedForLearner : IProp GF) $$ []
+  · ihave ⟨%mErrGRPCNotSupportedForLearner, #MErrGRPCNotSupportedForLearner⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ OErrGRPCNotSupportedForLearner
+    iapply go_etcd_io.etcd.cache.v3.errorMsgIs_errorStringSpec; iapply MErrGRPCNotSupportedForLearner; ipureintro; rfl
+  have PErrGRPCNotSupportedForLearner : errors.IsPointerError eErrGRPCNotSupportedForLearner := let ⟨l, hl⟩ := LErrGRPCNotSupportedForLearner _ rfl; ⟨_, l, TErrGRPCNotSupportedForLearner _ rfl, hl⟩
+  try wp_auto
   wp_apply (opaqueInitsOk ErrGRPCBadLeaderTransferee.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCWrongDowngradeVersionFormat.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCInvalidDowngradeTargetVersion.init (by mem_tac))

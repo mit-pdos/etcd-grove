@@ -17,6 +17,7 @@ public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
+public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
@@ -24,6 +25,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.golang_org.x.crypto.bcrypt.Init
 public import Proof.google_golang_org.grpc.metadata.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -64,6 +66,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrVerifyOnly _ as HErrVerifyOnly
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrKeyMismatch _ as HErrKeyMismatch
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrMissingKey _ as HErrMissingKey
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthMethod _ as HErrInvalidAuthMethod
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthMgmt _ as HErrInvalidAuthMgmt
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthOpts _ as HErrInvalidAuthOpts
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthToken _ as HErrInvalidAuthToken
@@ -83,28 +89,33 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrUserAlreadyExist _ as HErrUserAlreadyExist
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrRootRoleNotExist _ as HErrRootRoleNotExist
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrRootUserNotExist _ as HErrRootUserNotExist
+  wp_apply wp_GlobalAlloc (V := go_etcd_io.etcd.api.v3.authpb.Permission) rootPerm _ as HrootPerm
   wp_apply wp_GlobalAlloc (V := w64) simpleTokenTTLResolution _ as HsimpleTokenTTLResolution
   wp_apply wp_GlobalAlloc (V := w64) simpleTokenTTLDefault _ as HsimpleTokenTTLDefault
+  wp_apply wp_GlobalAlloc (V := w64) DefaultTTL _ as HDefaultTTL
+  wp_apply wp_GlobalAlloc (V := Loc) knownOptions _ as HknownOptions
   wp_apply wp_GlobalAlloc (V := GoFunc) reportCurrentAuthRev _ as HreportCurrentAuthRev
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCurrentAuthRevMu _ as HreportCurrentAuthRevMu
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
+  wp_apply wp_GlobalAlloc (V := GoInterface) currentAuthRevision _ as HcurrentAuthRevision
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd18⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd17⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
-      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
-      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
+      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
-      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
+      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
-      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
-      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.authpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.authpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
-      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
@@ -115,13 +126,31 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of reportCurrentAuthRev))
-  wp_apply (opaqueInitsOk currentAuthRevision.init (by mem_tac))
-  wp_apply (opaqueInitsOk knownOptions.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefaultTTL.init (by mem_tac))
+  -- translated initializer of currentAuthRevision))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %ccurrentAuthRevision -
+  try wp_auto
+  -- translated initializer of knownOptions))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Bool) go.string go.bool) as %mko Hko
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go.string) $$ Hko as Hko
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go.string) $$ Hko as Hko
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go.string) $$ Hko as Hko
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := Bool) go.string) $$ Hko as Hko
+  try wp_auto
+  -- translated initializer of DefaultTTL))
   -- translated initializer of simpleTokenTTLDefault))
   -- translated initializer of simpleTokenTTLResolution))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk rootPerm.init (by mem_tac))
+  -- translated initializer of rootPerm))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %srp0 ⟨Srp0, -⟩
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %srp1 ⟨Srp1, -⟩
+  try wp_auto
   -- translated initializer of ErrRootUserNotExist))
   -- translated initializer of ErrRootRoleNotExist))
   -- translated initializer of ErrUserAlreadyExist))
@@ -141,6 +170,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrInvalidAuthToken))
   -- translated initializer of ErrInvalidAuthOpts))
   -- translated initializer of ErrInvalidAuthMgmt))
+  -- translated initializer of ErrInvalidAuthMethod))
   wp_apply EtcdGrove.wp_New_errorString_cell as %xErrRootUserNotExist ⟨#MErrRootUserNotExist, #CErrRootUserNotExist⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xErrRootRoleNotExist ⟨#MErrRootRoleNotExist, #CErrRootRoleNotExist⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xErrUserAlreadyExist ⟨#MErrUserAlreadyExist, #CErrUserAlreadyExist⟩
@@ -160,11 +190,21 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.wp_New_errorString_cell as %xErrInvalidAuthToken ⟨#MErrInvalidAuthToken, #CErrInvalidAuthToken⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xErrInvalidAuthOpts ⟨#MErrInvalidAuthOpts, #CErrInvalidAuthOpts⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xErrInvalidAuthMgmt ⟨#MErrInvalidAuthMgmt, #CErrInvalidAuthMgmt⟩
-  wp_apply (opaqueInitsOk ErrInvalidAuthMethod.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrMissingKey.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrKeyMismatch.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrVerifyOnly.init (by mem_tac))
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
+  try wp_auto
+  -- translated initializer of ErrMissingKey))
+  -- translated initializer of ErrKeyMismatch))
+  -- translated initializer of ErrVerifyOnly))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of reportCurrentAuthRevMu))
+  -- translated initializer of reportCurrentAuthRevMu))
+  -- translated initializer of reportCurrentAuthRev))
   ipersist HErrRootUserNotExist
   ipersist HErrRootRoleNotExist
   ipersist HErrUserAlreadyExist
@@ -211,7 +251,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     repeat (first | (isplitl []; · (iexists _; iframe #)) | (iexists _; iframe #))
     try itrivial
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd17
+  · iapply isPkgInit_access $$ Hd18
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩
   imod (sync.init_RWMutex go_etcd_io.etcd.server.v3.auth.reportP (globalAddr reportCurrentAuthRevMu) (E := ⊤)) $$ [HreportCurrentAuthRev] HreportCurrentAuthRevMu with HRP
   · inext

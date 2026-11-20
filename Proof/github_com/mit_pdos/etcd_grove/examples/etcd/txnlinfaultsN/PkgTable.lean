@@ -633,7 +633,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h108 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.auth (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h9, h0, h4, h20, h8, h16, h27, h106, h3, h17, h71, h14, h5, h107, h21, h30, h38, True.intro⟩
+    exact ⟨h9, h0, h4, h20, h8, h82, h16, h27, h106, h3, h17, h71, h14, h5, h107, h21, h30, h38, True.intro⟩
   have h109 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

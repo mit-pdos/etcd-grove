@@ -8,7 +8,10 @@ Its fact (`mvccInit`, `Base.lean`): its error variables (translated `errors.New`
 metrics (`metrics.go`, translated: `prometheus.NewCounter`, `NewGauge` and `NewHistogram` of an
 options literal, the trust-boundary axioms of those constructors and of `ExponentialBuckets`; a
 counter's `Add` only of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
-fact). `opaqueInitsOk` states its other untranslated initializers run.
+fact). (prove-initmisc, 2026-11-20) Its other metrics (`totalEventsCounter`, `hashSec`,
+`hashRevSec`, and the `NewGaugeFunc` gauges, over that constructor's spec) and `_` (`var _
+WatchableKV = (*watchableStore)(nil)`) are translated too (until then the trust-boundary axiom
+`opaqueInitsOk`).
 -/
 module
 
@@ -63,22 +66,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.mvcc`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([totalEventsCounter.init,
-        dbTotalSize.init,
-        dbTotalSizeInUse.init,
-        dbOpenReadTxN.init,
-        hashSec.init,
-        hashRevSec.init,
-        currentRev.init,
-        compactRev.init,
-        «_».init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.mvcc`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
