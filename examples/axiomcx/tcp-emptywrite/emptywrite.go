@@ -1,5 +1,5 @@
-// Package tcpemptywrite is a counterexample to the TCP extension's D2
-// (GooseLang/Ext/Tcp/Impl.lean, WriteOutcome; notes/axiom-review/tcp-semantics.md):
+// Package tcpemptywrite is a counterexample to the net extension's D2
+// (GooseLang/Ext/Net/Impl.lean, WriteOutcome; notes/axiom-review/tcp-semantics.md):
 // a Write of no bytes on an end that is not closed and has not shut its write
 // side can fail on Linux, while WriteOutcome lets it only succeed (its
 // failures all write fewer bytes than asked, k < len(bs), impossible for
@@ -15,7 +15,7 @@
 // One node, at Addr: Main dials its own listener, sets a deadline that has
 // passed (time.Now()), and writes nothing. Go: the Write returns a timeout and
 // Main panics, every run. The semantics: the Write succeeds, so Main never
-// panics (NetTcp/Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/
+// panics (Net/Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/
 // tcp_emptywrite/Main.lean).
 package tcpemptywrite
 

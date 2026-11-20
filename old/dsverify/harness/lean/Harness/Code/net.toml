@@ -1,0 +1,44 @@
+# Go's `net` (Go 1.27.3, linux/amd64, CGO_ENABLED=0), for programs that use TCP through it
+# (M2a, notes/harness-m2a.md). Translated with `-lean-root net=Harness` into Harness.Code.net;
+# everything not listed below is names-only (axiomatized: a call is unprovable, never wrong).
+#
+# Translated: the interfaces the targets program against, the concrete types behind them, and
+# real Go over the trusted layouts (the promoted `*TCPConn` methods, which call `*conn`'s).
+translate = ["!*",
+  "Conn", "Listener", "Error", "Addr", "timeout", "temporary",
+  "conn", "TCPConn",
+  "TCPConn.Read", "TCPConn.Write", "TCPConn.Close", "TCPConn.LocalAddr", "TCPConn.RemoteAddr",
+  "TCPConn.SetDeadline", "TCPConn.SetReadDeadline", "TCPConn.SetWriteDeadline",
+  "TCPConn.SetReadBuffer", "TCPConn.SetWriteBuffer",
+  "OpError", "OpError.Unwrap", "TCPAddr", "TCPAddr.Network", "IP"]
+# What io.EOF, time.Time and time.Duration come from.
+imports = ["!*", "io", "time"]
+# Trusted models (Harness/TrustedCode/net.lean), over the TCP extension
+# (Harness/GooseLang/Ext/NetConn/Impl.lean): the socket types' layouts, the functions and
+# methods of the subset, and the error methods whose Go bodies need `os`/`syscall`.
+trusted = ["netFD", "TCPListener",
+  "Listen", "Dial", "DialTimeout",
+  "conn.Read", "conn.Write", "conn.Close", "conn.LocalAddr", "conn.RemoteAddr",
+  "conn.SetDeadline", "conn.SetReadDeadline", "conn.SetWriteDeadline",
+  # socket options (kits/rabia-net: Rabia sets buffer sizes and keep-alive on every connection)
+  "conn.SetReadBuffer", "conn.SetWriteBuffer", "TCPConn.SetKeepAlive", "TCPConn.SetKeepAlivePeriod",
+  "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
+  "OpError.Error", "OpError.Timeout", "OpError.Temporary", "TCPAddr.String",
+  # Every package-level variable's initializer (what importing `net` runs): trusted to do nothing,
+  # so the variable is never allocated and any use of it is stuck (TrustedCode/net.lean, "Package
+  # variables"). None is reachable from the subset's models.
+  "DefaultResolver", "ErrClosed", "ErrWriteToConnected", "IPv4allrouter", "IPv4allsys",
+  "IPv4bcast", "IPv4zero", "IPv6interfacelocalallnodes", "IPv6linklocalallnodes",
+  "IPv6linklocalallrouters", "IPv6loopback", "IPv6unspecified", "IPv6zero", "aLongTimeAgo",
+  "classAMask", "classBMask", "classCMask", "confVal", "connectFunc", "defaultNS",
+  "distantFuture", "errCanceled", "errCannotMarshalDNSMessage", "errCannotUnmarshalDNSMessage",
+  "errClosed", "errInvalidDNSResponse", "errInvalidInterface", "errInvalidInterfaceIndex",
+  "errInvalidInterfaceName", "errLameReferral", "errMalformedDNSRecordsDetail",
+  "errMissingAddress", "errNoAnswerFromDNSServer", "errNoSuchHost", "errNoSuchInterface",
+  "errNoSuchMulticastInterface", "errNoSuitableAddress", "errServerMisbehaving",
+  "errServerTemporarilyMisbehaving", "errTimeout", "errUnknownPort", "flagNames", "getHostname",
+  "getsockoptIntFunc", "hostsFilePath", "listenFunc", "lookupOrderName", "multipathtcp",
+  "netdns", "netedns0", "noCancel", "noDeadline", "pollSplice", "protocols",
+  "readProtocolsOnce", "rfc6724policyTable", "services", "socketFunc", "testHookCanceledDial",
+  "testHookLookupIP", "testHookSetKeepAlive", "testHookStepTime", "testPreHookSetKeepAlive",
+  "v4InV6Prefix", "zoneCache", "_"]

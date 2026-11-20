@@ -1,8 +1,8 @@
 # The TCP examples
 
-Minimal Go programs over `net`'s TCP connections, verified end to end over the TCP extension
-(`GooseLang/Ext/Tcp/Impl.lean`, its header states the semantics; project `nettcp` of
-`etc/goose.py`, translated into the part `NetTcp/`). They are the extension's adequacy target:
+Minimal Go programs over `net`'s TCP connections, verified end to end over the net extension
+(`GooseLang/Ext/Net/Impl.lean`, its header states the semantics; project `net` of
+`etc/goose.py`, translated into the part `Net/`). They are the extension's adequacy target:
 each uses `net.Conn` the way a real client of `net` does (net/http, grpc-go), and its
 correctness checks are `panic`s that the proof shows never fire, under every behavior the
 semantics allows: a read may return fewer bytes than asked, a connection may break at any
@@ -11,7 +11,7 @@ stay in flight; its kernel may FIN or reset its connections, which its peers see
 
 Each node is a separate program, a command of its example (`cmd/server`, `cmd/client`, `cmd/junk`,
 `cmd/node`), run as its own process; the example's top-level theorem (`<ex>_crash_safety`,
-`NetTcp/Proof/github_com/mit_pdos/etcd_grove/examples/net/<ex>/Results.lean`) is the distributed
+`Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/<ex>/Results.lean`) is the distributed
 adequacy theorem of exactly those programs, and the package's process tests run them as separate
 processes over real TCP.
 
@@ -33,7 +33,7 @@ processes over real TCP.
 - **Each node is a command**, `cmd/<node>/main.go`, whose `main` calls the example's body
   (`Serve`, `Call`, `SendJunk`, `Run`); its process may exit (a client does, once its check
   passed): the semantics covers what the peers then see (a process's exit or kill, its kernel's
-  FIN or reset, is a break of its connections; `GooseLang/Ext/Tcp/Impl.lean`, D10, D11).
+  FIN or reset, is a break of its connections; `GooseLang/Ext/Net/Impl.lean`, D10, D11).
 - **Addresses.** Each example has its own address constants, `127.0.0.1:71xx`, distinct across
   all the examples (the deployment's plan names each address and the node that listens at it;
   distinct ports also let the packages' tests run in parallel): `echo` 7101, `framed` 7102,

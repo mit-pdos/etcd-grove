@@ -2,12 +2,12 @@
 // net package (examples/net/conform/README.md, "The tracer").
 //
 // For each traced function or method of GOROOT/src/net (the toolchain `go env GOROOT` names),
-// the overlay's copy of its file renames the definition to nettcpOrig<Name>, and the added
-// file zz_nettcp_trace.go (zz_nettcp_trace.go.src) defines <Name> as a wrapper that records
-// the call and calls nettcpOrig<Name>. Only `func` lines change, and one call inside net
+// the overlay's copy of its file renames the definition to netextOrig<Name>, and the added
+// file zz_netext_trace.go (zz_netext_trace.go.src) defines <Name> as a wrapper that records
+// the call and calls netextOrig<Name>. Only `func` lines change, and one call inside net
 // (newTCPConn's SetKeepAliveConfig, which Go makes on its own: it calls the original, so the
 // trace holds only the program's calls); every body is Go's. A second added file,
-// GOROOT/src/runtime/zz_nettcp_goid.go, gives the tracer the goroutine's id.
+// GOROOT/src/runtime/zz_netext_goid.go, gives the tracer the goroutine's id.
 //
 // Make fails unless each rename and each call patch matches exactly one line, and unless the
 // bodies the wrappers re-implement (Dial, DialTimeout, Dialer.Dial, Listen: each a call of
@@ -28,13 +28,13 @@ import (
 )
 
 // GoVersion is the Go release whose net sources the renames are written for (the semantics'
-// target configuration, GooseLang/Ext/Tcp/Impl.lean, D13).
+// target configuration, GooseLang/Ext/Net/Impl.lean, D13).
 const GoVersion = "go1.27.3"
 
-//go:embed zz_nettcp_trace.go.src
+//go:embed zz_netext_trace.go.src
 var traceSrc string
 
-//go:embed zz_nettcp_goid.go.src
+//go:embed zz_netext_goid.go.src
 var goidSrc string
 
 type rename struct{ recv, name string }
@@ -71,11 +71,11 @@ var renames = map[string][]rename{
 
 // calls: file -> (old, new) call sites inside net of a traced method, made by Go itself.
 var calls = map[string][][2]string{
-	"tcpsock.go": {{"\t\tc.SetKeepAliveConfig(keepAliveCfg)\n", "\t\tc.nettcpOrigSetKeepAliveConfig(keepAliveCfg)\n"}},
+	"tcpsock.go": {{"\t\tc.SetKeepAliveConfig(keepAliveCfg)\n", "\t\tc.netextOrigSetKeepAliveConfig(keepAliveCfg)\n"}},
 }
 
 // bodies: file -> definitions the wrappers re-implement, as Go has them (checked before the
-// renames; zz_nettcp_trace.go.src's Dial, DialTimeout, Dialer.Dial and Listen).
+// renames; zz_netext_trace.go.src's Dial, DialTimeout, Dialer.Dial and Listen).
 var bodies = map[string][]string{
 	"dial.go": {
 		"func Dial(network, address string) (Conn, error) {\n\tvar d Dialer\n\treturn d.Dial(network, address)\n}\n",
@@ -131,10 +131,10 @@ func Patch(fname, src string) (string, error) {
 		}
 	}
 	for _, x := range renames[fname] {
-		recv, newHead := "", "func nettcpOrig"+x.name+"("
+		recv, newHead := "", "func netextOrig"+x.name+"("
 		if x.recv != "" {
 			recv = `\(` + regexp.QuoteMeta(x.recv) + `\) `
-			newHead = "func (" + x.recv + ") nettcpOrig" + x.name + "("
+			newHead = "func (" + x.recv + ") netextOrig" + x.name + "("
 		}
 		pat := regexp.MustCompile(`(?m)^func ` + recv + x.name + `\(`)
 		if k := len(pat.FindAllStringIndex(src, -1)); k != 1 {
@@ -188,10 +188,10 @@ func Make(dir string) (string, error) {
 			return "", err
 		}
 	}
-	if err := write("net", "zz_nettcp_trace.go", traceSrc); err != nil {
+	if err := write("net", "zz_netext_trace.go", traceSrc); err != nil {
 		return "", err
 	}
-	if err := write("runtime", "zz_nettcp_goid.go", goidSrc); err != nil {
+	if err := write("runtime", "zz_netext_goid.go", goidSrc); err != nil {
 		return "", err
 	}
 	j, err := json.MarshalIndent(map[string]any{"Replace": replace}, "", " ")

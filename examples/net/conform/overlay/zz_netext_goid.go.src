@@ -1,0 +1,15 @@
+// Added to Go's runtime package at build time by examples/net/conform/overlay (go build
+// -overlay), with the net tracer (zz_netext_trace.go); not part of Go and not part of any
+// program.
+
+package runtime
+
+import _ "unsafe"
+
+// netextGoid is the calling goroutine's id, for the net tracer's records.
+//
+//go:linkname netextGoid
+//go:nosplit
+func netextGoid() uint64 {
+	return getg().goid
+}
