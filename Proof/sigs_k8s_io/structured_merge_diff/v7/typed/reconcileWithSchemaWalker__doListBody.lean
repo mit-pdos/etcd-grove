@@ -10,6 +10,7 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBRecon
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBPers
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.LawProofs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsSet
 
 @[expose] public section
 
@@ -40,7 +41,7 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
     typed.reconcileWithSchemaWalker.visitMapItems.specI
   iintro #IH
   iintro %w %sc %S %st %F %R %A %tp %e %rel %ks %sp
-  wp_start as ⟨Hown, #Hl, %Hfind, %Hat⟩
+  wp_start as ⟨Hown, #Hl, %Hfind, %Hat, %Hcard⟩
   iunfold rwOwn at Hown
   icases Hown with ⟨%ps, %fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
   iunfold rwCore at Hcore
@@ -53,9 +54,56 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
     rw [Hlv'.1]
     by_cases hr : rel = .atomic
     · subst hr
-      -- the granular-to-atomic branch: `NewSet(v.path)` takes the walker's path as a persistent
-      -- `isPaths`, but the walker owns it (`ownPath`) and later appends overwrite it
-      sorry
+      -- the granular-to-atomic branch: `toRemove`, `toAdd` = `NewSet(v.path)`, the path lent
+      iclear IH
+      have hg : decide (ElemRel.goName .atomic = go!"atomic") = true := by decide
+      rw [hg]
+      wp_auto
+      unfold ownPath
+      icases Hp with ⟨Hpf, Hpcap⟩
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %sl1 ⟨Hsl1, -⟩
+      wp_apply (h_NewSet _ (DFrac.own 1) (DFrac.own 1) [ps] [st.path]) $$ [Hsl1 Hpf] as %r1 ⟨-, Hpf, Hr1⟩
+      · iframe; unfold isPathsF; iframe; unfold isPathsF; itrivial
+      imod fpS.ownSet_persist r1 _ $$ Hr1 with #Hr1
+      iapply wp_fupd
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %sl2 ⟨Hsl2, -⟩
+      wp_apply (h_NewSet _ (DFrac.own 1) (DFrac.own 1) [ps] [st.path]) $$ [Hsl2 Hpf] as %r2 ⟨-, Hpf, Hr2⟩
+      · iframe
+      imod fpS.ownSet_persist r2 _ $$ Hr2 with #Hr2
+      iunfold isPathsF at Hpf
+      icases Hpf with ⟨Hpf, -⟩
+      imodintro
+      iapply HΦ
+      isplitr
+      · iapply noErrs_nil
+      iexists (some (PathSet.ofList [st.path])), (some (PathSet.ofList [st.path]))
+      isplitl
+      · iexists sp
+        isplitl; rotate_left
+        · ipureintro; intro _; rfl
+        unfold rwOwn rwCore ownPath
+        iexists ps, fs, tv, r1, r2
+        iframe
+        isplitl [Hw]
+        · iexists tr
+          rw [hb]
+          iframe
+          iframe #
+          ipureintro
+          exact Hwf
+        unfold isSetO
+        iframe #
+      ipureintro
+      have hgr : isGranularT S st.t = false := by simp [isGranularT, Hfind]
+      have hT : reconTouch S st.t false (F.getD PathSet.empty) = true := by simp [reconTouch, Hfind]
+      rw [LawB.reconOut_atomic _ _ _ _ _ hgr hT]
+      exact ⟨rfl, rfl⟩
     have hg : decide (rel.goName = go!"atomic") = false := by
       cases rel <;> first | exact absurd rfl hr | decide
     rw [hg]
@@ -113,7 +161,7 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
           iunfold isSetO
           iexact Hfs
         ipureintro
-        exact ⟨Hfind, hr⟩
+        exact ⟨Hfind, hr, Hcard⟩
       wp_auto
       iapply HΦ
       iframe Herrs

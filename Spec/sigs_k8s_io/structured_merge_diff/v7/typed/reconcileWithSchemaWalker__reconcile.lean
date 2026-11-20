@@ -35,7 +35,7 @@ variable [package_sem : typed.Assumptions]
 /-- See the file header. -/
 abbrev typed.reconcileWithSchemaWalker.reconcile.spec : Prop :=
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (sp : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ ⌜(S.find st.t.name).isSome ∧ (st.isAtomic = true → F = none)⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ ⌜(S.find st.t.name).isSome ∧ (st.isAtomic = true → F = none) ∧ (F.getD PathSet.empty).CardLt (2 ^ 63)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"reconcile")) (Val #()))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧

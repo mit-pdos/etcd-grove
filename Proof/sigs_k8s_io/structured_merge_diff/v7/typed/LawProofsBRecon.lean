@@ -6,6 +6,7 @@ module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsB
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsB2
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
 
@@ -80,6 +81,57 @@ theorem cmp_node_removed (C B : Cmp) (p : Path) (x : UVal) :
 theorem cmp_node_none (C B : Cmp) (p : Path) (x y : UVal) :
     C.union (B.union (nodeC p (some x) (some y))) = C.union B := by
   simp only [Cmp.union, nodeC, Cmp.none, PathSet.union, PathSet.empty, fset_union_assoc, fset_union_empty]
+
+/-! ## An atomic node's own `reconOut` (`doList`/`doMap`'s granular-to-atomic branch) -/
+
+/-- Nothing below a non-granular node is reached by the walker: no atomic nodes below it. -/
+theorem atomicNodes_notGranular (S : Schema) (t : TypeRef) (F : PathSet)
+    (h : isGranularT S t = false) : (atomicNodes S t F).isEmpty = true := by
+  unfold atomicNodes
+  apply fset_filter_false
+  intro p
+  cases p with
+  | nil => rfl
+  | cons pe q => simp [reconAt, h]
+
+theorem fset_map_empty {α β : Type} (f : α → β) : FSet.map f FSet.empty = FSet.empty := rfl
+
+/-- An atomic node touched: itself only. -/
+theorem reconOut_atomic (S : Schema) (t : TypeRef) (p : Path) (b : Bool) (F : PathSet)
+    (h : isGranularT S t = false) (hT : reconTouch S t b F = true) :
+    reconOut S t p b F = some (ins p) := by
+  unfold reconOut
+  rw [fset_isEmpty_eq _ (atomicNodes_notGranular S t F h), hT]
+  simp only [Bool.true_or, ↓reduceIte, fset_map_empty]
+  exact congrArg some (fset_union_empty _)
+
+/-- An atomic node not touched: nothing. -/
+theorem reconOut_atomic_none (S : Schema) (t : TypeRef) (p : Path) (b : Bool) (F : PathSet)
+    (h : isGranularT S t = false) (hT : reconTouch S t b F = false) :
+    reconOut S t p b F = none := by
+  unfold reconOut
+  dsimp only
+  rw [atomicNodes_notGranular S t F h, hT]
+  rfl
+
+theorem dedupL_ne {α : Type} [DecidableEq α] : ∀ (l : List α), l ≠ [] → FSet.dedupL l ≠ []
+  | [], h => absurd rfl h
+  | x :: xs, _ => by
+    unfold FSet.dedupL
+    split
+    · rename_i hx; exact dedupL_ne xs (List.ne_nil_of_mem hx)
+    · simp
+
+/-- A set is non-empty iff it counts at least one. -/
+theorem isEmpty_false_iff {α : Type} [DecidableEq α] (s : FSet α) :
+    s.isEmpty = false ↔ 0 < s.card := by
+  induction s using Quotient.inductionOn with | h l =>
+  show (!l.any (fun _ => true)) = false ↔ 0 < (FSet.dedupL l).length
+  cases l with
+  | nil => simp [FSet.dedupL]
+  | cons x xs =>
+    simp only [List.any_cons, Bool.true_or, Bool.not_true, true_iff]
+    exact List.length_pos_iff.2 (dedupL_ne _ (by simp))
 
 end LawB
 

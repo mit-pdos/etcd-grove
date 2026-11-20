@@ -37,7 +37,7 @@ variable [package_sem : typed.Assumptions]
 def typed.reconcileWithSchemaWalker.doList.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (tp : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString) (sp : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ isListRep tp e rel ks ∗ ⌜S.find st.t.name = some (.list e rel ks) ∧ (st.isAtomic = true → F = none)⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ isListRep tp e rel ks ∗ ⌜S.find st.t.name = some (.list e rel ks) ∧ (st.isAtomic = true → F = none) ∧ (F.getD PathSet.empty).CardLt (2 ^ 63)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"doList")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
@@ -47,7 +47,7 @@ def typed.reconcileWithSchemaWalker.doList.specI : IProp GF :=
 def typed.reconcileWithSchemaWalker.doMap.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (sp : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel) ∧ (st.isAtomic = true → F = none)⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ isMapRep tp fs e rel ∗ ⌜S.find st.t.name = some (.map fs e rel) ∧ (st.isAtomic = true → F = none) ∧ (F.getD PathSet.empty).CardLt (2 ^ 63)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"doMap")) (Val #tp))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
@@ -57,7 +57,7 @@ def typed.reconcileWithSchemaWalker.doMap.specI : IProp GF :=
 def typed.reconcileWithSchemaWalker.reconcile.specI : IProp GF :=
   iprop(
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (sp : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ ⌜(S.find st.t.name).isSome ∧ (st.isAtomic = true → F = none)⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ ⌜(S.find st.t.name).isSome ∧ (st.isAtomic = true → F = none) ∧ (F.getD PathSet.empty).CardLt (2 ^ 63)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"reconcile")) (Val #()))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
@@ -69,7 +69,7 @@ def typed.reconcileWithSchemaWalker.visitListItems.specI : IProp GF :=
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (R A : Option PathSet) (tp : Loc) (e : TypeRef) (rel : ElemRel) (ks : List GoString) (ep : Loc)
     (F : PathSet) (sp : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A sp ∗ isListRep tp e rel ks ∗ isSet ep F ∗
-      ⌜S.find st.t.name = some (.list e rel ks) ∧ rel ≠ .atomic⌝ }}
+      ⌜S.find st.t.name = some (.list e rel ks) ∧ rel ≠ .atomic ∧ F.CardLt (2 ^ 63)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"visitListItems")) (Val #tp)) (Val #ep))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st (some F) R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconBelow S st.t st.path F) ∧ optU A A' = optU A (reconBelow S st.t st.path F)⌝ }})
@@ -80,7 +80,7 @@ def typed.reconcileWithSchemaWalker.visitMapItems.specI : IProp GF :=
   ∀ (w sc : Loc) (S : Schema) (st : RWSt) (R A : Option PathSet) (tp : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef) (rel : ElemRel) (ep : Loc)
     (F : PathSet) (sp : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st (some F) R A sp ∗ isMapRep tp fs e rel ∗ isSet ep F ∗
-      ⌜S.find st.t.name = some (.map fs e rel) ∧ rel ≠ .atomic⌝ }}
+      ⌜S.find st.t.name = some (.map fs e rel) ∧ rel ≠ .atomic ∧ F.CardLt (2 ^ 63)⌝ }}
     (App (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"visitMapItems")) (Val #tp)) (Val #ep))
   {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st (some F) R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconBelow S st.t st.path F) ∧ optU A A' = optU A (reconBelow S st.t st.path F)⌝ }})

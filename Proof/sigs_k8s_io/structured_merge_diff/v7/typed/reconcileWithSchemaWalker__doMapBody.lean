@@ -12,6 +12,7 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBRecon
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBPers
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.LawProofs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsSet
 
 @[expose] public section
 
@@ -44,7 +45,7 @@ theorem typed.reconcileWithSchemaWalker.doMap.wp_proofBody
     typed.reconcileWithSchemaWalker.visitMapItems.specI
   iintro #IH
   iintro %w %sc %S %st %F %R %A %tp %fs' %e %rel %sp
-  wp_start as ⟨Hown, #Hm, %Hfind, %Hat⟩
+  wp_start as ⟨Hown, #Hm, %Hfind, %Hat, %Hcard⟩
   iunfold rwOwn at Hown
   icases Hown with ⟨%ps, %fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
   iunfold rwCore at Hcore
@@ -99,10 +100,102 @@ theorem typed.reconcileWithSchemaWalker.doMap.wp_proofBody
         simp only [Option.getD]
         rw [LawB.reconOut_empty _ _ _ _ (ht), LawB.optU_self, LawB.optU_self]
         exact ⟨rfl, rfl⟩
-      -- a non-empty child set of a granular-to-atomic map: `NewSet(v.path)` takes the walker's
-      -- path as a persistent `isPaths` (the walker owns it, `ownPath`), and `Set.Size`'s result is
-      -- unconstrained without a bound on the set's count
-      · sorry
+      -- a child set of a granular-to-atomic map: `Set.Size` (determined: the count is below
+      -- 2^63), then, if non-empty, `NewSet(v.path)` twice, the path lent
+      · iclear IH
+        iunfold isSetO at Hfs
+        icases Hfs with #Hfs
+        ihave %Hfsn := isSet_not_null fs F' $$ Hfs
+        have hc : F'.card < 2 ^ 63 := by simpa [Option.getD, FSet.CardLt] using Hcard
+        rw [decide_eq_false Hfsn]
+        wp_auto
+        wp_apply h_Set_Size fs F' $$ [] as %n %Hn
+        · iframe #
+        have hn : sint.Z n = F'.card := Hn _ (FSet.hasCard_card' F') hc
+        have hgr : isGranularT S st.t = false := by simp [isGranularT, Hfind]
+        by_cases hpos : 0 < F'.card
+        · have hd : decide (sint.Z (W64 0) < sint.Z n) = true := by
+            simp only [decide_eq_true_eq, hn]; simpa using hpos
+          rw [hd]
+          wp_auto
+          unfold ownPath
+          icases Hp with ⟨Hpf, Hpcap⟩
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %sl1 ⟨Hsl1, -⟩
+          wp_apply (h_NewSet _ (DFrac.own 1) (DFrac.own 1) [ps] [st.path]) $$ [Hsl1 Hpf] as %r1 ⟨-, Hpf, Hr1⟩
+          · iframe; unfold isPathsF; iframe; unfold isPathsF; itrivial
+          imod fpS.ownSet_persist r1 _ $$ Hr1 with #Hr1
+          iapply wp_fupd
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %sl2 ⟨Hsl2, -⟩
+          wp_apply (h_NewSet _ (DFrac.own 1) (DFrac.own 1) [ps] [st.path]) $$ [Hsl2 Hpf] as %r2 ⟨-, Hpf, Hr2⟩
+          · iframe
+          imod fpS.ownSet_persist r2 _ $$ Hr2 with #Hr2
+          iunfold isPathsF at Hpf
+          icases Hpf with ⟨Hpf, -⟩
+          imodintro
+          iapply HΦ
+          isplitr
+          · iapply noErrs_nil
+          iexists (some (PathSet.ofList [st.path])), (some (PathSet.ofList [st.path]))
+          isplitl
+          · iexists sp
+            isplitl; rotate_left
+            · ipureintro; intro _; rfl
+            unfold rwOwn rwCore ownPath
+            iexists ps, fs, tv, r1, r2
+            iframe
+            isplitl [Hw]
+            · iexists tr
+              rw [hb]
+              iframe
+              iframe #
+              ipureintro
+              exact Hwf
+            unfold isSetO
+            iframe #
+          ipureintro
+          have hT : reconTouch S st.t false ((some F').getD PathSet.empty) = true := by
+            simp [reconTouch, Hfind, (LawB.isEmpty_false_iff F').2 hpos]
+          rw [LawB.reconOut_atomic _ _ _ _ _ hgr hT]
+          exact ⟨rfl, rfl⟩
+        · have hd : decide (sint.Z (W64 0) < sint.Z n) = false := by
+            simp only [decide_eq_false_iff_not, hn]; simpa using hpos
+          rw [hd]
+          wp_auto
+          iapply HΦ
+          isplitr
+          · iapply noErrs_nil
+          iexists R, A
+          isplitl
+          · iexists sp
+            isplitl; rotate_left
+            · ipureintro; intro _; rfl
+            unfold rwOwn rwCore
+            iexists ps, fs, tv, rem, add
+            iframe
+            isplitl [Hw]
+            · iexists tr
+              rw [hb]
+              iframe
+              iframe #
+              ipureintro
+              exact Hwf
+            iunfold isSetO
+            iframe #
+          ipureintro
+          have hT : reconTouch S st.t false ((some F').getD PathSet.empty) = false := by
+            have : F'.isEmpty = true := by
+              cases h : F'.isEmpty
+              · exact absurd ((LawB.isEmpty_false_iff F').1 h) hpos
+              · rfl
+            simp [reconTouch, Hfind, this]
+          rw [LawB.reconOut_atomic_none _ _ _ _ _ hgr hT, LawB.optU_self, LawB.optU_self]
+          exact ⟨rfl, rfl⟩
     have hg : decide (rel.goName = go!"atomic") = false := by
       cases rel <;> first | exact absurd rfl hr | decide
     rw [hg]
@@ -160,7 +253,7 @@ theorem typed.reconcileWithSchemaWalker.doMap.wp_proofBody
           iunfold isSetO
           iexact Hfs
         ipureintro
-        exact ⟨Hfind, hr⟩
+        exact ⟨Hfind, hr, Hcard⟩
       wp_auto
       iapply HΦ
       iframe Herrs
