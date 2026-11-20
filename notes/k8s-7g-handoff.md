@@ -12,6 +12,9 @@
   btree, api/import-all/tier/gen-k8s-deep/bounds/gen-init/gen-raft-tla, errorf gate; closed statements identical to lean.
 - NEXT: land (coordinator's go): `LAKE_PACKAGES=/shared/tmp/manifest-3af.json PERENNIAL_CHECKOUT=/shared/perennial-3afd77e35
   PERENNIAL_DIR=/shared/perennial-3afd77e35 etc/land.sh` (GOWORK unset). Then the (B') follow-up (brief, not started).
+- Land attempt 1 (03): gates failed on axiom-tok (ListAccessor's walk truncated in `kd.core.*.own`); `--depth 20`
+  still truncates, so a `trunc` line in `etc/axiom-tok-allow.txt` (with its reason); axiom-tok --check ok (760 walked),
+  selftest ok; goose --check ok (56 projects). Do NOT merge lean: 03 lands this in a batch (merge-origin7, S4).
 - Pitfall: `etc/gen-init.py --check` needs `PERENNIAL_DIR=/shared/perennial-3afd77e35` (else KeyError 'strings').
 
 ### Superseded (night 22)
