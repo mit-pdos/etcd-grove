@@ -187,13 +187,14 @@ PROJECTS = [
         # `Put` refuses an entry (key plus value) above 2^28 bytes with `ErrValueTooLarge` (3f8520bd, branch
         # `goose-lean-entrymax`; issues/bbolt-max-value-size-unusable.md: `Put` accepted values a page of four
         # entries cannot hold within `MaxAllocSize`; the verified bbolt's `bboltEntryMax`; approved by the
-        # user 2026-11-19, auth-schema-srv port, route (d')). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # user 2026-11-19, auth-schema-srv port, route (d')). Branch goose-lean-init-image (42c80a7) restricts init recovery to the
+        # first write's four-page image. With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="3f8520bd72989b6cf959eef13e151b90031ed6bc",
+        rev="42c80a7ed7d7f32877b08551879e51a2d7ca1816",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -1805,14 +1806,14 @@ PROJECTS = [
         # (Named `bbolt` until 2026-11-05, when the main tree's bbolt (project `bbolt`, the fork's
         # goose-lean-v2) got bodies; the bank test moves onto it in the clean-up after the merge.)
         # bbolt with its bodies, for the top-level test bbolttest: the fork upamanyus/bbolt, branch
-        # goose-lean (v1.5.0 with the `unsafe` forms of Perennial's byte memory, crash-safe init,
+        # goose-lean-bank-init-image (first-write recovery on goose-lean, v1.5.0 with the `unsafe` forms of Perennial's byte memory, crash-safe init,
         # the fix of etcd-io/bbolt#1311). Translated into the parallel tree Bbolt (modules
         # Bbolt.Code.go_etcd_io.bbolt*, ...), since project etcd translates go.etcd.io/bbolt (names
         # only) into the main tree; nothing outside Bbolt imports it. Its `os`, `syscall`,
         # `golang.org/x/sys/unix` and `io/fs` are project bboltfs's (the Linux file extension), its
         # `hash/fnv` and `encoding/hex` project etcd's; the rest of the standard library Perennial's.
         repo="https://github.com/upamanyus/bbolt",
-        rev="3207bacf270d8eb83155f226ebfc864c2cbef6b2",
+        rev="2e1663644f604d5a2c4f040bc744e047cde8fd8e",
         root="Bbolt",
         lean_roots=["go.etcd.io/bbolt=Bbolt", "os=", "syscall=", "golang.org/x/sys=", "io/fs=",
                     "hash=", "encoding/hex="],
