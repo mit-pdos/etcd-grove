@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized. (2026-10-23, rafthttp stage 4)
 # The method and status constants translated: the pipeline's protocol reads their values.
-translate = ["!*", "Method*", "Status*", "!StatusText"]
+# `StatusText` with its body (2026-11-20, prove-http: `http.StatusText_ok` proved).
+translate = ["!*", "Method*", "Status*"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
