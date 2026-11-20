@@ -29,8 +29,11 @@ variable [package_sem : merge.Assumptions]
 
 theorem merge.Conflicts.Equals_ptr.wp_proof
     (h_Conflicts_Equals : merge.Conflicts.Equals.spec (GF := GF)) :
-    merge.Conflicts.Equals_ptr.spec (GF := GF) := by
-  sorry
+    merge.Conflicts.Equals_ptr.spec (GF := GF) := fun p dq s1 s2 a b => by
+  wp_start as ⟨Hp, Ha, Hb⟩
+  wp_auto
+  wp_apply (h_Conflicts_Equals s1 s2 a b) $$ [$Ha $Hb] as %r %hr
+  wp_end
 
 end proof
 

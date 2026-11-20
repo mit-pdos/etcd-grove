@@ -36,8 +36,8 @@ theorem state.typedObj.wp_proof_of (hPersist : isValF_persist.law (GF := GF))
     (hTR : isTypeRef_intro.law (GF := GF))
     (wp_NewValueInterface : smd.value.NewValueInterface.spec (GF := GF))
     (wp_AsTyped : smd.typed.AsTyped.spec (GF := GF)) :
-    state.typedObj.spec (GF := GF) := fun s sc u lv mfm m kvs hconf => by
-  wp_start as ⟨Hs, Hsc, Hm⟩
+    state.typedObj.spec (GF := GF) := fun s sc u lv mfm m kvs => by
+  wp_start as ⟨Hs, Hsc, Hm, %hconf⟩
   wp_auto
   wp_apply (wp_NewValueInterface _ (.map kvs)) $$ [Hm] as %v Hv
   · unfold isUMap; iexact Hm
@@ -47,6 +47,7 @@ theorem state.typedObj.wp_proof_of (hPersist : isValF_persist.law (GF := GF))
   · iframe Hsc Hv
     isplitr
     · iapply (hTR _ rootRef rfl rfl rfl rfl rfl)
+      rw [show rootRef.name = go!"root" from rfl]
       iexact rootName
     · ipureintro; exact ⟨sc0_wf, hconf⟩
   subst herr

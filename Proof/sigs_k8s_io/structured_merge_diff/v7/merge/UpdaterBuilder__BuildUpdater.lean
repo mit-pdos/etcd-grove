@@ -30,19 +30,19 @@ variable [package_sem : merge.Assumptions]
 theorem merge.UpdaterBuilder.BuildUpdater.wp_proof :
     merge.UpdaterBuilder.BuildUpdater.spec (GF := GF) := fun b dq ub => by
   wp_start as Hb
+  iapply wp_fupd
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %hbnn⟩
   iStructNamed Hb
   wp_auto
-  wp_apply (IntoValTyped.wp_alloc (t := merge.Updater.ty)) as %u Hu
-  imod typedPointsto_persist $$ Hu with #Hu
-  wp_auto
+  ipersist «$r0»
+  imodintro
   iapply HΦ
-  isplitr [Hu]
+  isplitl [Converter IgnoredFields IgnoreFilter ReturnInputOnNoop]
   · iapply typedPointsto_combine _ _ _ hbnn
     simp only [typedPointstoDef]
     iframe
-  iapply isUpdater_intro_law_holds
-  iexact Hu
+  iapply (isUpdater_intro_law_holds _ _ _ _ _)
+  iexact «$r0»
 
 end proof
 

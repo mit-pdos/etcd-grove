@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main()` (`examples/k8s/smd/smd.go`): not proved yet (`sorry`): the glue over the specs of the
+`Main()` (`examples/k8s/smd/smd.go`): the glue over the specs of the
 driver's functions and of structured-merge-diff's API it calls, taken as callee hypotheses; the
 derivation of each step's result from those specs is `notes/smd-plan.md`, "Sanity checks".
 Proved after the specs are frozen (the earlier proof was over the old model's specs).
@@ -27,6 +27,8 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Update
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts__Equals_ptr
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.Literals
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 
 @[expose] public section
 
@@ -1108,7 +1110,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_auto
   ihave Hst : ownState «$r0_ptr» sc ⟨obj8, mf8⟩ $$ [Hs8]
   · unfold ownState
-    iexists u8, cp8, mfm8', cv8
+    iexists u8, _, mfm8', cv8
     iframe Hs8 Hsc8 Hu8 Hcv8
     iframe Hcp8 Hmf8'
   wp_apply wp_field as %p179 Hp179
@@ -1288,8 +1290,8 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
     rw [show UVal.map (kvsU obj9) = obj9 from rfl]
     iframe Hmp221
     ipureintro; exact ⟨rfl, rfl⟩
-  trace_state
-  sorry
+  iapply HΦ
+  itrivial
 
 theorem Main.wp_proof
     (wp_newSchema : newSchema.spec (GF := GF))
@@ -1310,7 +1312,14 @@ theorem Main.wp_proof
     (wp_Update : smd.merge.Updater.Update.spec (GF := GF))
     (wp_ConflictsEquals : smd.merge.Conflicts.Equals_ptr.spec (GF := GF)) :
     Main.spec (GF := GF) :=
-  Main.wp_proof_of sorry wp_newSchema wp_Convert wp_IsMissing wp_BuildUpdater wp_typedObj wp_apply
+  Main.wp_proof_of ⟨isIface_scalar_law_holds, isIface_list_law_holds, isIface_ofMap_law_holds,
+      isMF_intro_law_holds, isPath_intro_law_holds, isPaths_nil_law_holds, isPaths_cons_law_holds,
+      isPaths_app_law_holds, isPaths_length_law_holds, isPaths_persistent_law_holds,
+      isPath_persistent_law_holds, isVSet_persistent_law_holds, isIface_persistent_law_holds,
+      isSchema_persistent_law_holds, isTV_persistent_law_holds, isMF_persistent_law_holds,
+      isUpdater_persistent_law_holds, isIdentityConverter_persistent_law_holds,
+      isIdentityConverter_intro_law_holds, isConflicts_intro_law_holds, keysWithItemsB_iff_law_holds,
+      isTV_isTVv_law_holds⟩ wp_newSchema wp_Convert wp_IsMissing wp_BuildUpdater wp_typedObj wp_apply
     wp_check wp_field wp_mapKey wp_containerPaths wp_concat wp_applied wp_updated wp_container
     wp_Apply wp_Update wp_ConflictsEquals
 

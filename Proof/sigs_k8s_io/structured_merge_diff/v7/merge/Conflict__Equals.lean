@@ -48,9 +48,11 @@ theorem merge.Conflict.Equals.wp_proof
   · simp only [hmm, decide_true, Bool.not_true]
     iStructNamed c
     wp_auto
+    wp_method_call
+    wp_call
+    wp_auto
     wp_apply (h_Path_Equals c.Path' c2.Path' _ _ a.2 b.2) $$ [Hp Hp2] as %r ⟨-, -, %hr⟩
     · iframe Hp Hp2
-    wp_auto
     iapply HΦ
     ipureintro
     rw [hr]

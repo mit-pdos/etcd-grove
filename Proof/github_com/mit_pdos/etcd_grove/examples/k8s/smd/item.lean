@@ -41,13 +41,13 @@ private theorem keyFieldList_intro (hScalar : isIface_scalar.law (GF := GF))
       isValF (GF := GF) v (DFrac.own 1) (.str k) -∗
       |==> isFieldList s [(go!"name", .str k)] := by
   iintro #Hs Hv
-  imod hPersist $$ Hv with #Hv
+  imod (hPersist _ _ _) $$ Hv with #Hv
   imodintro
   iapply (hFL s _ [(go!"name", .str k)] rfl) $$ Hs
   simp only [List.zip_cons_cons, List.zip_nil_right, sepL, List.foldr_cons, List.foldr_nil]
   isplitr
   · isplitr
-    · ipureintro; rfl
+    · ipureintro; trivial
     · iexact Hv
   · itrivial
 
@@ -64,6 +64,7 @@ theorem item.wp_proof_of (hPath : isPath_intro.law (GF := GF))
   wp_apply wp_FieldNameElement as %e1 He1
   wp_apply (wp_NewValueInterface _ (.str k)) as %v Hv
   · iapply hScalar.2.2.2
+    itrivial
   wp_apply (wp_slice_literal (l := [({ Name' := go!"name", Value' := v } :
     sigs_k8s_io.structured_merge_diff.v7.value.Field)]))
   isplitr

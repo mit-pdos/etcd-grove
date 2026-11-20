@@ -55,7 +55,7 @@ theorem containerPaths.wp_proof_of (hNil : isPaths_nil.law (GF := GF))
   iframe H2
   iapply (hCons _ _ _ _).2
   iframe H3
-  iapply hNil
+  iapply (show iprop(True) ⊢ isPaths (GF := GF) [] [] from hNil)
   itrivial
 
 theorem containerPaths.wp_proof
