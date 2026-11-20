@@ -243,7 +243,7 @@ theorem fieldpath.PathElementSet.Union.wp_proof
         have hdy : ys.drop (sint.Z j).toNat = [] := List.drop_of_length_le (by
           rw [← hly, hsy.1]; simp only [sint.nat, sint.Z] at hjm' ⊢; omega)
         have hsl : subslice (sint.nat i) (sint.nat v.members'.len) es = es.drop (sint.Z i).toNat := by
-          unfold subslice; rw [List.take_of_length_le (by rw [hsx.1])]; rfl
+          unfold subslice; rw [List.take_of_length_le (Nat.le_of_eq hsx.1)]
         rw [hsl]
         ihave %hoel := fpL.isPEL_length _ _ $$ Hoe
         iapply HΦ
@@ -276,7 +276,7 @@ theorem fieldpath.PathElementSet.Union.wp_proof
           apply FSet.ext'; intro x
           rw [FSet.mem_union', FSet.mem_ofList', FSet.mem_ofList', FSet.mem_ofList',
             fpA.mem_take_drop xs (sint.Z i).toNat x, fpA.mem_take_drop ys (sint.Z j).toNat x, hdy]
-          simp only [List.mem_append, hmem, List.not_mem_nil, or_false]
+          simp only [List.mem_append, hmem, List.not_mem_nil, _root_.or_false]
           constructor
           · rintro ((h | h) | h)
             · exact Or.inl (Or.inl h)

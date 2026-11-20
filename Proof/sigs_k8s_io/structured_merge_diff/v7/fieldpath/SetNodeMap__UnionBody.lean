@@ -95,6 +95,9 @@ theorem fieldpath.SetNodeMap.Union.wp_proofBody
       wp_pures; wp_method_call; wp_call; wp_auto
       wp_apply (h_PathElement_Less n1.pathElement' n2.pathElement' pe1 pe2) $$ [$Hpe1 $Hpe2] as %r %hr
       ihave %hlo := fpC.nodesL_length $$ Hlo
+      have he1 : nl1[sint.nat i] = (pe1, S1) := by
+        have := h1; simp only [sint.nat] at hi ⊢; rw [List.getElem?_eq_getElem hi] at this
+        exact Option.some.inj this
       have he2 : nl2[sint.nat j] = (pe2, S2) := by
         have := h2; simp only [sint.nat] at hj ⊢; rw [List.getElem?_eq_getElem hj] at this
         exact Option.some.inj this
@@ -157,9 +160,6 @@ theorem fieldpath.SetNodeMap.Union.wp_proofBody
         wp_apply wp_slice_append $$ [$Hos $Hoc $Hnsl] as %osl' ⟨Hos, Hoc, -⟩
         iapply wp_for_post_do
         wp_pures
-        have he1 : nl1[sint.nat i] = (pe1, S1) := by
-          have := h1; simp only [sint.nat] at hi ⊢; rw [List.getElem?_eq_getElem hi] at this
-          exact Option.some.inj this
         have hlt : PE.lt nl1[sint.nat i].1 nl2[sint.nat j].1 := by
           rw [he1, he2]; exact hr.1 rfl
         obtain ⟨hf', ho'⟩ := fpC.union_step1 hok1.1 hok2.1 hfr hoi hi hj hlt
