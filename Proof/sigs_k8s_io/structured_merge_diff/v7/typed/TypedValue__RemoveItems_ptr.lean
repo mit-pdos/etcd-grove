@@ -1,11 +1,12 @@
 /-
-`typed.TypedValue.RemoveItems_ptr`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.TypedValue.RemoveItems_ptr`: proved (Prove phase, 2026-11-20): the receiver's persistent
+points-to (`isTV`) loaded, then `RemoveItems`.
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__RemoveItems_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__RemoveItems
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 
 @[expose] public section
 
@@ -29,8 +30,16 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.RemoveItems_ptr.wp_proof
     (h_TypedValue_RemoveItems : typed.TypedValue.RemoveItems.spec (GF := GF)) :
-    typed.TypedValue.RemoveItems_ptr.spec (GF := GF) := by
-  sorry
+    typed.TypedValue.RemoveItems_ptr.spec (GF := GF) :=
+    fun tp ip sc S t x R => by
+  wp_start as ⟨Htv, #HR, %Hc⟩
+  ihave H2 := (isTV_isTVv_law_holds tp sc S t x).mp $$ Htv
+  icases H2 with ⟨%tv, #Hp, #Htv⟩
+  wp_auto
+  wp_apply h_TypedValue_RemoveItems tv ip sc S t x R $$ [] as %p Hp'
+  · iframe #; ipureintro; exact Hc
+  iapply HΦ
+  iexact Hp'
 
 end proof
 

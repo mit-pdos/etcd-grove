@@ -170,6 +170,12 @@ theorem fieldsAt_scalar (S : Schema) (t : TypeRef) (s : Scalar) (p : Path) (x : 
   unfold conforms at hc
   cases x <;> simp_all [conformsB, fieldsAt]
 
+/-- A conforming value's type resolves. -/
+theorem conforms_find (S : Schema) (t : TypeRef) (x : UVal) (hc : conforms S t x) :
+    (S.find t.name).isSome := by
+  unfold conforms at hc
+  cases h : S.find t.name <;> cases x <;> simp_all [conformsB]
+
 end LawA
 
 export LawA (cmpO_below_law_holds fieldSet_fieldsAt_law_holds removeAt_scalar_law_holds conforms_item_law_holds

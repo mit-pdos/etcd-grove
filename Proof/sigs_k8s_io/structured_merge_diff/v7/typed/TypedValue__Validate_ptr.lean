@@ -1,6 +1,6 @@
 /-
-`typed.TypedValue.Validate_ptr`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.TypedValue.Validate_ptr`: proved (Prove phase, 2026-11-20): loads the receiver, then
+`Validate`.
 -/
 module
 
@@ -29,8 +29,15 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.TypedValue.Validate_ptr.wp_proof
     (h_TypedValue_Validate : typed.TypedValue.Validate.spec (GF := GF)) :
-    typed.TypedValue.Validate_ptr.spec (GF := GF) := by
-  sorry
+    typed.TypedValue.Validate_ptr.spec (GF := GF) :=
+    fun p dqp tv sc S t x dq opts dqo => by
+  wp_start as ⟨Hp, Htv, Hopts, %Hc⟩
+  try wp_auto
+  wp_apply h_TypedValue_Validate tv sc S t x dq opts dqo $$ [Htv Hopts] as %err ⟨Hv, Hopts, %He⟩
+  · iframe; ipureintro; exact Hc
+  iapply HΦ
+  iframe
+  ipureintro; exact He
 
 end proof
 
