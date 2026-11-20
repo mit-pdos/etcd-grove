@@ -49,6 +49,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
+/-- A comparison of values of different kinds (or a contradiction among the kind tests). -/
+local macro "cmp_kind" : tactic => `(tactic| first
+  | (exfalso; simp [UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB] at *; done)
+  | (rw [ValueCompare.compare_tag (by simp [ValueCompare.tag])]; simp [ValueCompare.tag]; try decide))
+
 theorem value.CompareUsing.wp_proofBody
     (h_heapAllocator_Free : value.heapAllocator.Free.spec (GF := GF))
     (h_freelistAllocator_Free : value.freelistAllocator.Free.spec (GF := GF))
@@ -102,13 +107,13 @@ theorem value.CompareUsing.wp_proofBody
     · iexact Hy
     cases r <;> wp_auto
     · iapply HΦ; iframe; ipureintro
-      cases y <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+      cases y <;> cmp_kind
     obtain ⟨vy, rfl⟩ := ValuePure.isIntB_true HyIsInt
     wp_apply h_valueUnstructured_AsInt_ptr p dq1 vx $$ [Hx] as %r ⟨Hx, %rfl⟩
     · iexact Hx
     wp_apply h_valueUnstructured_AsInt_ptr q dq2 vy $$ [Hy] as %r ⟨Hy, %rfl⟩
     · iexact Hy
-    wp_apply h_IntCompare vx vy as %c %Hc
+    wp_apply h_IntCompare _ _ as %c %Hc
     iapply HΦ; iframe; ipureintro
     rw [ValueCompare.compare_int]; exact Hc
   wp_apply h_valueUnstructured_IsInt_ptr q dq2 y $$ [Hy] as %r ⟨Hy, %HyIsInt⟩
@@ -116,8 +121,8 @@ theorem value.CompareUsing.wp_proofBody
   cases r <;> wp_auto
   rotate_left
   · iapply HΦ; iframe; ipureintro
-    obtain := ValuePure.isIntB_true HyIsInt
-    cases x <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+    obtain ⟨_, rfl⟩ := ValuePure.isIntB_true HyIsInt
+    cases x <;> cmp_kind
   wp_apply h_valueUnstructured_IsString_ptr p dq1 x $$ [Hx] as %r ⟨Hx, %HxIsString⟩
   · iexact Hx
   cases r <;> wp_auto
@@ -127,22 +132,22 @@ theorem value.CompareUsing.wp_proofBody
     · iexact Hy
     cases r <;> wp_auto
     · iapply HΦ; iframe; ipureintro
-      cases y <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+      cases y <;> cmp_kind
     obtain ⟨vy, rfl⟩ := ValuePure.isStrB_true HyIsString
     wp_apply h_valueUnstructured_AsString_ptr p dq1 vx $$ [Hx] as %r ⟨Hx, %rfl⟩
     · iexact Hx
     wp_apply h_valueUnstructured_AsString_ptr q dq2 vy $$ [Hy] as %r ⟨Hy, %rfl⟩
     · iexact Hy
-    wp_apply h_strings_Compare vx vy as -
+    wp_apply h_strings_Compare
     iapply HΦ; iframe; ipureintro
-    rw [ValueCompare.compare_str]; exact ValuePure.compareResult_gs vx vy
+    rw [ValueCompare.compare_str]; exact ValuePure.compareResult_gs _ _
   wp_apply h_valueUnstructured_IsString_ptr q dq2 y $$ [Hy] as %r ⟨Hy, %HyIsString⟩
   · iexact Hy
   cases r <;> wp_auto
   rotate_left
   · iapply HΦ; iframe; ipureintro
-    obtain := ValuePure.isStrB_true HyIsString
-    cases x <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+    obtain ⟨_, rfl⟩ := ValuePure.isStrB_true HyIsString
+    cases x <;> cmp_kind
   wp_apply h_valueUnstructured_IsBool_ptr p dq1 x $$ [Hx] as %r ⟨Hx, %HxIsBool⟩
   · iexact Hx
   cases r <;> wp_auto
@@ -152,13 +157,13 @@ theorem value.CompareUsing.wp_proofBody
     · iexact Hy
     cases r <;> wp_auto
     · iapply HΦ; iframe; ipureintro
-      cases y <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+      cases y <;> cmp_kind
     obtain ⟨vy, rfl⟩ := ValuePure.isBoolB_true HyIsBool
     wp_apply h_valueUnstructured_AsBool_ptr p dq1 vx $$ [Hx] as %r ⟨Hx, %rfl⟩
     · iexact Hx
     wp_apply h_valueUnstructured_AsBool_ptr q dq2 vy $$ [Hy] as %r ⟨Hy, %rfl⟩
     · iexact Hy
-    wp_apply h_BoolCompare vx vy as %c %Hc
+    wp_apply h_BoolCompare _ _ as %c %Hc
     iapply HΦ; iframe; ipureintro
     rw [ValueCompare.compare_bool]; exact Hc
   wp_apply h_valueUnstructured_IsBool_ptr q dq2 y $$ [Hy] as %r ⟨Hy, %HyIsBool⟩
@@ -166,8 +171,8 @@ theorem value.CompareUsing.wp_proofBody
   cases r <;> wp_auto
   rotate_left
   · iapply HΦ; iframe; ipureintro
-    obtain := ValuePure.isBoolB_true HyIsBool
-    cases x <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+    obtain ⟨_, rfl⟩ := ValuePure.isBoolB_true HyIsBool
+    cases x <;> cmp_kind
   wp_apply h_valueUnstructured_IsList_ptr p dq1 x $$ [Hx] as %r ⟨Hx, %HxIsList⟩
   · iexact Hx
   cases r <;> wp_auto
@@ -177,7 +182,7 @@ theorem value.CompareUsing.wp_proofBody
     · iexact Hy
     cases r <;> wp_auto
     · iapply HΦ; iframe; ipureintro
-      cases y <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+      cases y <;> cmp_kind
     obtain ⟨vy, rfl⟩ := ValuePure.isListB_true HyIsList
     wp_apply h_valueUnstructured_AsListUsing_ptr p dq1 vx (GoInterface.ok ia) $$ [Hx] as %lv ⟨Hx, #Hlv⟩
     · iexact Hx
@@ -196,8 +201,8 @@ theorem value.CompareUsing.wp_proofBody
   cases r <;> wp_auto
   rotate_left
   · iapply HΦ; iframe; ipureintro
-    obtain := ValuePure.isListB_true HyIsList
-    cases x <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+    obtain ⟨_, rfl⟩ := ValuePure.isListB_true HyIsList
+    cases x <;> cmp_kind
   wp_apply h_valueUnstructured_IsMap_ptr p dq1 x $$ [Hx] as %r ⟨Hx, %HxIsMap⟩
   · iexact Hx
   cases r <;> wp_auto
@@ -207,7 +212,7 @@ theorem value.CompareUsing.wp_proofBody
     · iexact Hy
     cases r <;> wp_auto
     · iapply HΦ; iframe; ipureintro
-      cases y <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+      cases y <;> cmp_kind
     obtain ⟨vy, rfl⟩ := ValuePure.isMapB_true HyIsMap
     wp_apply h_valueUnstructured_AsMapUsing_ptr p dq1 vx (GoInterface.ok ia) $$ [Hx] as %lv ⟨Hx, #Hlv⟩
     · iexact Hx
@@ -226,8 +231,8 @@ theorem value.CompareUsing.wp_proofBody
   cases r <;> wp_auto
   rotate_left
   · iapply HΦ; iframe; ipureintro
-    obtain := ValuePure.isMapB_true HyIsMap
-    cases x <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+    obtain ⟨_, rfl⟩ := ValuePure.isMapB_true HyIsMap
+    cases x <;> cmp_kind
   wp_apply h_valueUnstructured_IsNull_ptr p dq1 x $$ [Hx] as %r ⟨Hx, %HxIsNull⟩
   · iexact Hx
   cases r <;> wp_auto
@@ -237,7 +242,7 @@ theorem value.CompareUsing.wp_proofBody
     · iexact Hy
     cases r <;> wp_auto
     · iapply HΦ; iframe; ipureintro
-      cases y <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+      cases y <;> cmp_kind
     obtain rfl := ValuePure.isNullB_true HyIsNull
     iapply HΦ; iframe; ipureintro
     rfl
@@ -246,8 +251,8 @@ theorem value.CompareUsing.wp_proofBody
   cases r <;> wp_auto
   rotate_left
   · iapply HΦ; iframe; ipureintro
-    obtain := ValuePure.isNullB_true HyIsNull
-    cases x <;> simp_all [ValueCompare.compare_tag, ValueCompare.tag, UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isNullB]
+    obtain rfl := ValuePure.isNullB_true HyIsNull
+    cases x <;> cmp_kind
   exfalso
   cases x <;> simp [UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB,
     UVal.isNullB] at HxIsInt HxIsString HxIsBool HxIsList HxIsMap HxIsNull
