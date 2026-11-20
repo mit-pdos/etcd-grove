@@ -46,7 +46,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   ihave Hl := batchLocked_W γ P b st $$ Hl
   ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True) ⊤
   ihave #Hlb0 := backend.cntLb_zero (GF := GF) γ
-  wp_apply (hC γ P W Pk b t rt st false true 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True) ⊤ 0
+  wp_apply (hC γ P W Pk b t rt st false true 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True) ⊤ 0 iprop(True)
       CoPset.subseteq_top) $$ [$Hl $HWR Ho Hq HX]
     as ⟨HY, -, HWR, -, Hpost, -⟩
   · iframe #

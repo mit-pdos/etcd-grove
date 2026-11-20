@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadSide
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RegLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RegWindow
 public import Spec.go_etcd_io.bbolt.Tx__Rollback
 
 @[expose] public section
@@ -66,7 +67,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
   replace hRollback := bbolt.kvGlue_Tx__Rollback_kv hRollback
-  intro γ P W Pk b t rt st win stop m u X Y L' c Sc Rr E nc hE
+  intro γ P W Pk b t rt st win stop m u X Y L' c Sc Rr E nc Qw hE
   wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, %Hdlw, %Hhw0, Hpay, HX, #Hrq, %Hsc, HRr, #Hacc, #Hlb, HWc⟩
   obtain ⟨Hroom, Hp0, HWe, Htk⟩ := Hc
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
@@ -236,29 +237,35 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   cases stop
   · -- (backend-snapshot B2) not stopping: the commit point's inputs, a frame kept whole through it
     simp only [Bool.false_eq_true, ↓reduceIte]
-    have hA : armStep (GF := GF) γ P W Pk γ.db.ns (iprop((if win then emp else W) ∗ Pk ∗
-        viewQ γ (1 : Qp).half.half (vData P (st'.C, st'.R)) Lb ∗
-        (if win then thinV γ (sData P st.S) L' else thinV γ (sData P st.S) (vData P (st.C, st.R))) ∗
-        trkSide γ P st' ∗ fkHalf γ P st')) st'.S nc := by
+    icases isBackend_cmtInv γ P W Pk b $$ Hb with ⟨-, %path, %hns⟩
+    have e1 : sData P st.S = sData P st'.S := by rw [hSs, setHw_S]
+    have hA : armStep (GF := GF) γ P W Pk γ.db.ns
+        (iprop((if win then iprop(bView γ 1 L' -∗ W ∗ Qw) else W) ∗ rtCm γ P st'.C st'.R win ∗
+          cacheInv γ ∗ Pk ∗ viewQ γ (1 : Qp).half.half (vData P (st'.C, st'.R)) Lb ∗
+          (if win then thinV γ (sData P st.S) L' else thinV γ (sData P st.S) (vData P (st.C, st.R))) ∗
+          trkSide γ P st' ∗ fkHalf γ P st')) st'.S nc := by
       cases win
       · simp only [Bool.false_eq_true, ↓reduceIte]
-        have e1 : sData P st.S = sData P st'.S := by rw [hSs, setHw_S]
         have e2 : st.C = st'.C := by rw [hC, setHw_C]
         have e3 : st.R = st'.R := by rw [hR, setHw_R]
         rw [e1, e2, e3]
-        exact armStep_of_obsIn γ P W Pk γ.db.ns _ st'.S nc
-          ((obsIn_of_lock γ P W Pk st' Lb (by simpa using Hdlc.2)).trans bupd_intro)
-      · -- (backend-snapshot B2, temporary) a window's commit point: plan step (c)
-        sorry
+        refine armStep_of_obsIn γ P W Pk γ.db.ns _ st'.S nc ?_
+        refine Entails.trans ?_ ((obsIn_of_lock γ P W Pk st' Lb (by simpa using Hdlc.2)).trans bupd_intro)
+        iintro ⟨HW, -, -, HPk, Hv, Hpre, Hhkd, Hfkh⟩
+        iframe
+      · -- (backend-snapshot B2 step (c)) a window's commit point: `armStep_win`
+        simp only [↓reduceIte]
+        rw [e1, hns]
+        exact armStep_win γ P W Pk Qw path st' Lb L' nc (by simpa using Hdlc.2)
     wp_apply (hBC γ P W Pk b t db st' false nc _ hA) $$
-        [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu $Hopn HWc HWR Hv Hpre Hhkd Hfkh] as ⟨Hmu, Hres⟩
+        [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu $Hopn HWc HrtCm HWR Hv Hpre Hhkd Hfkh] as ⟨Hmu, Hres⟩
     · iframe #
       unfold btW
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe
-      iframe Hlb
+      iframe Hlb Hci
       ipureintro; exact hSC
-    icases Hres with (⟨%HA0, Hw, Hdb, #Htxdb, Hopn, ⟨HWc, HWR, Hv, Hpre, Hhkd, Hfkh⟩, #Hlb'⟩ |
+    icases Hres with (⟨%HA0, Hw, Hdb, #Htxdb, Hopn, ⟨HWc, HrtCm, -, HWR, Hv, Hpre, Hhkd, Hfkh⟩, #Hlb'⟩ |
       ⟨%HB, Hdb, Hpend, %tx', Htxf, Hrest⟩)
     · have HA : st'.pend = W64 0 ∧ false = false := by first | exact ⟨HA0, rfl⟩ | exact HA0
       unfold btW
@@ -311,7 +318,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         exact ⟨hfo, hv, by simp [commitSt], Hs.2.2.2.1⟩
       iexact Hbv
     · try simp only [Bool.false_eq_true, ↓reduceIte]
-      icases Hrest with ⟨Hwtx, #Htxdb', Hopn, ⟨HWc, HWR, Hv, Hpre, Hhkd, Hfkh⟩, #Hlb'⟩
+      icases Hrest with ⟨Hwtx, #Htxdb', Hopn, ⟨HWc, HrtCm, -, HWR, Hv, Hpre, Hhkd, Hfkh⟩, #Hlb'⟩
       try wp_auto
       wp_apply (hBegin γ.db b db st'.S false) $$ [$Hmu $Hdb Htok] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #

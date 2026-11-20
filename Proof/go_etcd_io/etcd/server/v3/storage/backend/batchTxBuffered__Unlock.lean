@@ -119,7 +119,7 @@ local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| 
     ihave #Hlb0 := backend.cntLb_zero (GF := GF) γ
     ihave #HaccC := rbAcc_mono (hG := hG) γ Sc (unlockOk P st) (fun n _ v => v = bktOf ($S).S n) Rr E
       (fun n o v _ h => Or.inl h) $$ Hacc
-    wp_apply (hC γ P W Pk b t rt $S $vw false 2 0 iprop(True) iprop(True) $L true Sc Rr E 0 hE) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc HRr HWc] as ⟨-, HRr, HPk, -, Hpost, Hcnt⟩
+    wp_apply (hC γ P W Pk b t rt $S $vw false 2 0 iprop(True) iprop(True) $L true Sc Rr E 0 Q hE) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc HRr HWc] as ⟨-, HRr, HPk, -, Hpost, Hcnt⟩
     · iframe #
       unfold batchLockedW batchGhostW batchPhys
       isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
@@ -394,16 +394,16 @@ private theorem unlock_coreC
             (fun _ _ h => h) rfl rfl
           iexact Hfkh
         wp_if_destruct
-        · ihave HWc : iprop(emp) $$ []
-          · iempintro
+        · ihave HWc : iprop(bView γ 1 (relog P vd st) -∗ W ∗ Q) $$ [HQw]
+          · iexact HQw
           bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
-          icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
+          icases HWc $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         wp_if_destruct
-        · ihave HWc : iprop(emp) $$ []
-          · iempintro
+        · ihave HWc : iprop(bView γ 1 (relog P vd st) -∗ W ∗ Q) $$ [HQw]
+          · iexact HQw
           bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
-          icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
+          icases HWc $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         exfalso
         rcases hcond with h | h

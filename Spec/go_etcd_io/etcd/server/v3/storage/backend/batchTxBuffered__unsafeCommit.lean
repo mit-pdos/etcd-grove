@@ -31,7 +31,7 @@ mode passes `[]` and the trivial accessor (`rbAcc_nil`). -/
 abbrev backend.batchTxBuffered.unsafeCommit.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t rt : Loc) (st : BSess) (win stop : Bool) (m u : Nat)
     (X Y : IProp GF) (L' : VData) (c : Bool) (Sc : List GoString) (Rr : IProp GF) (E : CoPset)
-    (n : Nat),
+    (n : Nat) (Qw : IProp GF),
   ↑rbClaimN ⊆ E →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ batchLockedW γ P b st win c ∗ Pk ∗ rtRes γ P rt 1 ∗
       ⌜sint.Z st.pend + P.hookMax < 2 ^ 58 ∧ st.cnt.p0 = sint.nat st.pend ∧ (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false → bkOf st.W.bks i = []) ∧
@@ -42,9 +42,10 @@ abbrev backend.batchTxBuffered.unsafeCommit.spec : Prop :=
       ⌜Sc.Nodup ∧ (c = false ∨ ∀ n, st.cw n = true → n ∈ Sc)⌝ ∗ Rr ∗
       rbAcc γ Sc (fun n _ v => v = bktOf st.S n) Rr E ∗
       -- (backend-snapshot B2) the commit point arms the snapshots' registrations: a lower bound of the
-      -- commit counter, and, out of a stop and a window, the client's batch-lock resource `W` (lent;
-      -- in a window: plan step (c))
-      cntLb γ n ∗ (if stop then emp else if win then emp else W) }}
+      -- commit counter, and, out of a stop, the client's batch-lock resource `W` (lent), in a window
+      -- as the `Unlock` caller's wand from the clients' half at `L'` (lent: the commit point uses it
+      -- in a hypothetical update, `RegWindow.lean`)
+      cntLb γ n ∗ (if stop then emp else if win then iprop(bView γ 1 L' -∗ W ∗ Qw) else W) }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"unsafeCommit")) (Val #stop))
   {{ RET #(); Y ∗ Rr ∗ rtRes γ P rt 1 ∗ Pk ∗ payOut γ stop m ∗
       (if stop then iprop(sync.ownMutex (muOf t) ∗ pendOf t ↦ W64 0 ∗ bStopped γ ∗ bDBOutG γ P ∗
@@ -56,7 +57,8 @@ abbrev backend.batchTxBuffered.unsafeCommit.spec : Prop :=
          ⌜freeOk P st' ∧ vData P (st'.C, st'.R) = sData P st.S ∧ st'.pend = W64 0 ∧
            rbData P st'.S = rbData P st.S⌝ ∗
          (if win then bView γ 1 L' else iprop(True)))) ∗
-      (if stop then emp else iprop(cntLb γ (n + 1) ∗ (if win then emp else W))) }}
+      (if stop then emp else iprop(cntLb γ (n + 1) ∗
+        (if win then iprop(bView γ 1 L' -∗ W ∗ Qw) else W))) }}
 
 end spec
 

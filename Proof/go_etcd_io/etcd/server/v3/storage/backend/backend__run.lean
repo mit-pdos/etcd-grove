@@ -94,7 +94,7 @@ theorem backend.backend.run.wp_proof
       ihave Hl := batchLocked_W γ P b st $$ Hl
       ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True) ⊤
       ihave #Hlb0 := backend.cntLb_zero (GF := GF) γ
-      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True) (vData P (st.C, st.R)) false [] iprop(True) ⊤ 0
+      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True) (vData P (st.C, st.R)) false [] iprop(True) ⊤ 0 iprop(True)
           CoPset.subseteq_top) $$ [$Hl $HWR Hus HWv]
         as ⟨-, -, HWR, Hpo, Hpost, Hcnt⟩
       · iframe #
