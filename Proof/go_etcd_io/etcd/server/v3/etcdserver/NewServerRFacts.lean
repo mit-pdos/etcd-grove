@@ -316,6 +316,7 @@ theorem restartStore_holds (Hp : mvcc.api.persistent.law (GF := GF)) (kv : GoInt
   imodintro
   iunfold kvStoreInvG
   iunfold wSt
+  iunfold wStQ
   iunfold crOwn
   iframe Hm Hinv Hw1 Hw2 Hc
 
@@ -610,7 +611,8 @@ records' certificate and the server's log, from which the exact answer did not f
 theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames GF) (r ms0 : Loc) (γs : MemStorNames) (σ : StorContents)
     (cs : ConfStateM) (γr : ServerRaftNames) (A : List EntryModel) (Hms0 : γ.ms = ms0)
-    (hb : σ.b ≤ A.length) (hcs : confStateIs cs (Membership.simple γr.raft.cfg)) :
+    (hb : σ.b ≤ A.length) (hcs : confStateIs cs (Membership.simple γr.raft.cfg))
+    (hsz : GMap.size γr.raft.cfg ≤ 2 ^ 20) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs (walSnapCS σ cs) -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗
@@ -655,7 +657,8 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
   iapply HΦ $$ %snap %pm %pc %(walSnapCS σ cs) [] Hsn Hpm Hpc [] [] [] []
   · ipureintro
     exact ⟨hidx, rfl, Hnn.1, Hnn.2⟩
-  · iapply epCsOk_of_csOptA $$ Hcs
+  · iapply (epCsOk_of_csOptA _ (walSnapCS σ cs).Metadata'.ConfState'
+      (by simpa [walSnapCS] using csIdCount_simple_le cs _ hcs hsz)) $$ Hcs
   · iapply epCsAt_voters
     iunfold epCsVoters
     iexists (walSnapCS σ cs).Metadata'.ConfState'

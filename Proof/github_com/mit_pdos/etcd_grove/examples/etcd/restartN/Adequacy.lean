@@ -27,6 +27,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Dir
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.InitLinked
 
 @[expose] public section
 
@@ -42,23 +44,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors (restart3's `restart3GF`). -/
-def restartNGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def restartNGF_allG : AllG restartNGF := ⟨⟨0, rfl⟩⟩
@@ -71,22 +59,10 @@ instance restartNGF_gooseGpreS : GooseGpreS restartNGF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := restartNGF_allG
 
-/-- **A ghost-state instance at the local context `lctx`**. -/
-abbrev heapAtRN (hG : HeapGS .hasLC restartNGF) (lctx : GoLocalContext) : HeapGS .hasLC restartNGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `restartN`'s initialization, then `Main(k)`. -/
-def restartNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.restartN.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Main) #(W64 (k : Int))
-
-/-- The read package's two metric names (restart3's). -/
-def restartNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The `k`-member restart example is safe** (`Results.lean`'s `etcd_restartN_safe`, with its
 docstring): for every member count `3 ≤ k ≤ 1000`, every real execution of `restartNProgram k` from a
@@ -110,6 +86,8 @@ theorem etcd_restartN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_restartN.premises (GF := restartNGF) (hG := heapAtRN hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_restartN.restartNDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -119,7 +97,7 @@ theorem etcd_restartN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   have _hk3 := hk3
-  refine etcd_adequate_members (GF := restartNGF) (hAsLit := etcd_restartN.restartNAddrs_lit k hk)
+  refine etcd_adequate_members (GF := restartNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_restartN.restartNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.restartN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_restartN.restartNAddrs k)

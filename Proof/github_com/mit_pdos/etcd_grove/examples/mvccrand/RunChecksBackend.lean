@@ -242,7 +242,7 @@ theorem rc_open (hfresh : mvccImage_fresh.law (GF := GF)) (hopen : etcdStorage_o
   iintro ⟨Hreg, Hnew⟩
   ihave #Hks := mvcc.keySized_all (GF := GF)
   iunfold backend.newPostK at Hnew
-  icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
+  icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr, -⟩
   iunfold backend.bFresh at Hk
   icases Hk with ⟨Hwb, Ho⟩
   icases (backend.bOpen_one_pool γB).1 $$ Ho with ⟨Hoh, Hpl, Hos⟩
@@ -375,13 +375,14 @@ theorem wp_DefaultBackendConfig (lg : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }}
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.DefaultBackendConfig)) (Val #lg))
     {{ (c : BackendConfig), RET #c;
-        ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil ∧ c.Logger' = lg⌝ }} := by
+        ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil ∧ c.Logger' = lg ∧
+          c.Mlock' = false ∧ c.Timeout' = W64 0 ∧ c.MmapSize' = W64 10737418240⌝ }} := by
   wp_start as #Hpkg
   ihave ⟨#Hbi, #Hbl, #Hms⟩ := backend_defaults $$ Hpkg
   wp_auto
   iapply HΦ
   ipureintro
-  exact ⟨rfl, rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 end config
 

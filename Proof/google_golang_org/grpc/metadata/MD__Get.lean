@@ -1,9 +1,12 @@
 /-
-The trust boundary: `metadata.MD.Get` (grpc's `metadata` is names-only).
+Proof of `Spec/google_golang_org/grpc/metadata/MD__Get.lean` over the real body (2026-11-18; it was
+a trust-boundary axiom while grpc's `metadata` was names-only): `md[strings.ToLower(k)]`, over
+`strings.ToLower`'s spec. Lean-first.
 -/
 module
 
 public import Spec.google_golang_org.grpc.metadata.MD__Get
+public import Spec.strings.ToLower
 
 @[expose] public section
 
@@ -12,15 +15,35 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI google_golang_org.grpc
+open Iris Iris.BI Iris.ProofMode google_golang_org.grpc
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : google_golang_org.grpc.metadata.Assumptions]
 
-axiom metadata.MD.Get.wp_proof : metadata.MD.Get.spec (GF := GF) (hG := hG)
+theorem metadata.MD.Get.wp_proof
+    (wp_ToLower : strings.ToLower.spec (GF := GF) (hG := hG)) :
+    metadata.MD.Get.spec (GF := GF) (hG := hG) := by
+  intro l md m k
+  wp_start as ⟨#Hl, Hm⟩
+  haveI : go.NotInterface (go.GoType.MapType go.string (go.GoType.SliceType go.string)) :=
+    ⟨trivial⟩
+  wp_auto
+  wp_method_call; wp_call
+  wp_auto
+  wp_apply (wp_ToLower k) as %k' -
+  (try wp_auto)
+  wp_apply wp_map_lookup1 go.string (go.GoType.SliceType go.string) md m k' DfracDiscarded
+    $$ [$Hm] as -
+  (try wp_auto)
+  iapply HΦ
+  ipureintro
+  cases h : m !! k' with
+  | none => left; rfl
+  | some sl => right; exact ⟨k', by simp [h]⟩
 
 end proof
 

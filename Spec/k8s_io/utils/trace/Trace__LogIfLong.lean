@@ -4,7 +4,7 @@ slow-queue trace calls it).
 -/
 module
 
-public import GeneratedProof.k8s_io.utils.trace
+public import Proof.k8s_io.utils.trace.Defs
 
 @[expose] public section
 
@@ -24,10 +24,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.utils.trace.Assumptions]
 
-/-- `t.LogIfLong(threshold)`: returns (it may log). -/
+/-- `t.LogIfLong(threshold)`, on a trace `New` returned (`trace.fromNew`: a nil `t` panics),
+returns (it may log). -/
 abbrev trace.Trace.LogIfLong.spec : Prop :=
   ∀ (t : Loc) (d : w64),
-  {{ (True : IProp GF) }}
+  {{ (⌜trace.fromNew t⌝ : IProp GF) }}
     (App (Val (t @!! go.GoType.PointerType k8s_io.utils.trace.Trace.ty @!! go!"LogIfLong")) (Val #d))
   {{ RET #(); True }}
 

@@ -100,7 +100,8 @@ theorem apply.uberApplier.Apply.wp_admin
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   iunfold apply.uberOwn at Hown
-  icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
+  icases Hown with ⟨%a, Ha, #HsW, %HcE, #Hsh⟩
+  ihave #Hs := apply.applierSpecW_at _ _ _ $$ HsW
   ihave #Had := apply.applierAdmin_curG E W Own p x.chain a $$ [Hst Hsh]
   · iframe #
   ihave #Hs' := Hs
@@ -146,7 +147,7 @@ theorem apply.uberApplier.Apply.wp_admin
     simp only [apply.applyResultIs, apply.applyAuthRes, apply.adminOut]
     iframe Hkv HPP Htr Hres HW Hdone Hadm
     isplitl [Ha']
-    · iunfold apply.uberOwn; iexists _; iframe Ha' Hs Hsh; ipureintro; exact HcE
+    · iunfold apply.uberOwn; iexists _; iframe Ha' HsW Hsh; ipureintro; exact HcE
     isplitr
     · ipureintro
       exact ⟨⟨Hskip, Hst', rfl, Or.inl rfl, (apply.dispatchCrev_nonCmp _ _ _ _
@@ -164,7 +165,7 @@ theorem apply.uberApplier.Apply.wp_admin
     simp only [apply.applyResultIs, apply.applyAuthRes, apply.adminOut]
     iframe Hkv Ho Hrc HW
     isplitl [Ha]
-    · iunfold apply.uberOwn; iexists _; iframe Ha Hs Hsh; ipureintro; exact HcE
+    · iunfold apply.uberOwn; iexists _; iframe Ha HsW Hsh; ipureintro; exact HcE
     isplitl [HPre]
     · iapply apply.cPost_of_pre
       iexact HPre

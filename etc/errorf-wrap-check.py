@@ -9,6 +9,11 @@ the statement says nothing the model and Go disagree on (a post of `True`, or on
 its premise excludes what the model leaves out. The declarations below are the proofs that step
 into it, each reviewed; a new one fails this check until it is reviewed and added.
 
+Reviewing a step: its post must never give `deepRep (.errString _)` (or any other fact of the
+model's `*errorString` representation, which `reflect.DeepEqual`'s specs read) of the model's error
+outside the disjunction with Go's error: Go returns a `*fmt.wrapError` for `%w`, which no such fact
+describes (k8s 7g joint attack, m4; decided by etcd-grove-03, 2026-11-19).
+
 The check reads proof TERMS, not the text (2026-11-18, replacing a search of the sources for
 `@! fmt.Errorf` next to `wp_start`): `etc/tcb-report.lean` marks every constant whose term uses the
 model's unfolding (the instance field `fmt.Assumptions.Errorf_unfold`, the model's body

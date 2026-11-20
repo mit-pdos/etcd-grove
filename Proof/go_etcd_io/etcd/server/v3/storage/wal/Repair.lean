@@ -43,7 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairPut
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllRegCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecStreams
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndexLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairLocked
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairBrokenOpen
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairReg

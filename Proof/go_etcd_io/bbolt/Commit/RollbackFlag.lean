@@ -151,43 +151,207 @@ theorem wdbOK_rolledBack_f (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
   rw [hext, hfl']
   exact flCurOKr_rollback w.fl w.C _ _ (by rw [hT]; omega) hpa hr
 
-omit sem in
-/-- **`wdb_rollback'`, flagged.** -/
-theorem wdb_rollback_f (p : BFile) (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
-    (bs : Nat → List w8) (F : GMap Nat (List w8))
-    (hok : wdbOK' fr w) (hF : fbRel w F) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
-    (hpa : ∀ pd, w.fl.pending !! W64 ((w.C.txid + 1 : Nat) : Int) = some pd → ∀ a ∈ pd.alloctx,
-      a.toNat ≤ w.C.txid)
-    (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
-    (h2s : ∀ s ∈ pendSlots w.fl, 2 ≤ s) (hbs : ∀ s ∈ S, (bs s).length = 4096)
-    (hrec : fbCond w.C w.fl (some (w.C.txid + 1)) false →
-      ∀ s ∈ S, ∀ v, F !! s = some v → bs s = v) :
-    wCells (GF := GF) w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗ slotsOwn w.ms p S bs ⊢
-      ∃ w' : WDb, ⌜w'.C = w.C ∧ w'.fl = fl' ∧ w'.ms = w.ms ∧ w'.m = w.m ∧ w'.fli = w.fli ∧
-          w'.junk = w.junk ∧ w'.f = w.f ∧ w'.fd = w.fd ∧ wdbOK w'⌝ ∗
-        wCells w'.ms w'.W ∗ wBytes p w'.W w'.wb w'.m.size := by
-  have hok' := wdbOK_rolledBack_f fr w fl' S bs F hok hF hfl' hpa hS h2s hbs hrec
-  obtain ⟨-, -, c3, c4, -, -, -, -, c9, -, c11, -⟩ := hok
-  have hpS : ∀ s ∈ S, s ∈ pendSlots w.fl := by
+omit [GooseSemantics] [GooseInterp] go_gctx hos sem in
+/-- **The synced freelist page's half across the flagged rollback** (session S4): the store hands
+back the page's slots `X` (half bytes) when the writer had freed it (`fbCond`: then the writer had
+no half, `flxS … = []`), nothing otherwise (then the writer keeps its half, which no slot of `S`
+meets); after it, the writer's half is the one it had and `X`. -/
+theorem rb_flx_facts (fr : Bool) (w : WDb) (fl' : FLPg) (S X : List Nat) (bs : Nat → List w8)
+    (F : GMap Nat (List w8)) (hok : wdbOK' fr w) (hF : fbRel w F)
+    (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
+    (hS : ∀ s, s ∈ S ∨ s ∈ X ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
+    (hXc : (fbCond w.C w.fl (some (w.C.txid + 1)) false → X = flxS w.C fl' bs) ∧
+      (¬ fbCond w.C w.fl (some (w.C.txid + 1)) false → X = [])) :
+    (∀ s ∈ S, s ∉ flxS w.C w.fl w.wb) ∧ (∀ s ∈ X, s ∉ flxS w.C w.fl w.wb) ∧
+      flxS w.C fl' (mergeWb (S ++ X) bs w.wb) = flxS w.C w.fl w.wb ++ X := by
+  have hpS : ∀ s, s ∈ S ∨ s ∈ X → s ∈ pendSlots w.fl := by
     intro s hs
     obtain ⟨h1, h2⟩ := (hS s).1 hs
     rcases (mem_slotsOf _ _ _).1 h1 with h | h
     · exact absurd ((mem_slotsOf _ _ _).2 (.inl h)) h2
     · exact h
-  have hj := wjoin (GF := GF) p w.ms w.W S w.wb bs w.m.size
-    (fun s hs hw => ((c4 s).1 hw).2.2.2 (hpS s hs))
-    (fun s hs => by
-      have := c11 s (.inr (hpS s hs))
-      refine ⟨by omega, fun b l hbl => ?_, hbs s hs⟩
-      have := c9 b l hbl; omega)
-  iintro H
-  ihave ⟨Hc, Hb⟩ := hj $$ H
-  iexists { w with fl := fl', W := w.W ++ S, wb := mergeWb S bs w.wb }
+  have hcl := wdbOK'_flClause fr w hok
+  rcases hf : w.C.flpg with _ | f
+  · have e1 : flxS w.C w.fl w.wb = [] := by unfold flxS; rw [hf]
+    have e2 : ∀ fl b, flxS w.C fl b = [] := by intro fl b; unfold flxS; rw [hf]
+    have hX : X = [] := by
+      apply hXc.2
+      rintro ⟨-, _, f', _, -, hf', -⟩; rw [hf] at hf'; cases hf'
+    rw [e1, e2, hX]
+    exact ⟨fun _ _ h => (List.not_mem_nil h).elim, fun _ _ h => (List.not_mem_nil h).elim, rfl⟩
+  · -- the page's `¬ covered`
+    have hncov : ¬ coversSlot w.C.pages f := by
+      cases fr
+      · obtain ⟨-, -, -, -, -, -, -, -, hsl, -⟩ := hcl f hf f hf
+        exact (hsl f (Nat.le_refl _) (by omega)).1
+      · obtain ⟨-, hr⟩ := hcl f hf
+        obtain ⟨-, -, -, -, -, -, -, -, hsl, -⟩ := hr f hf
+        exact (hsl f (Nat.le_refl _) (by omega)).1
+    by_cases hc : fbCond w.C w.fl (some (w.C.txid + 1)) false
+    · have hX := hXc.1 hc
+      obtain ⟨-, w0, f0, pd, hw0, hf0, -, hpd, x, hx, hxf⟩ := hc
+      rw [hf] at hf0; cases hf0; cases hw0
+      have hfp : f ∈ pendSlots w.fl := by
+        rw [← hxf]; exact List.mem_map_of_mem (by
+          simp only [FLPg.pendingIds, List.mem_flatMap]
+          exact ⟨(_, pd), (GMap.mem_toList _ _ _).2 hpd, hx⟩)
+      have e1 : flxS w.C w.fl w.wb = [] := by
+        unfold flxS; rw [hf]; simp only [hfp, ↓reduceIte]
+      rw [e1, List.nil_append]
+      refine ⟨fun _ _ h => (List.not_mem_nil h).elim, fun _ _ h => (List.not_mem_nil h).elim, ?_⟩
+      rw [hX]
+      unfold flxS; rw [hf]
+      by_cases hp' : f ∈ pendSlots fl'
+      · simp only [hp', ↓reduceIte]
+      · simp only [hp', ↓reduceIte]
+        have hfX : f ∈ X := by
+          rw [hX]; unfold flxS; rw [hf]; simp only [hp', ↓reduceIte]; exact f_mem_flExt _ _
+        unfold flExt
+        simp only [mergeWb, List.mem_append]
+        rw [if_pos (Or.inr (by rw [List.mem_range'_1]; omega))]
+    · have hX := hXc.2 hc
+      subst hX
+      -- the page is not pending: else the writer's entry frees it (`fbRel`), so `fbCond`
+      have hfnp : f ∉ pendSlots w.fl := by
+        intro hp
+        obtain ⟨⟨pd, hpd, x, hx, hxf⟩, -⟩ :=
+          hF f hf f (Nat.le_refl _) (by omega) hp
+        exact hc ⟨rfl, w.C.txid + 1, f, pd, rfl, hf, hncov, hpd, x, hx, hxf⟩
+      have e1 : flxS w.C w.fl w.wb = flExt w.wb f := by
+        unfold flxS; rw [hf]; simp only [hfnp, ↓reduceIte]
+      have hfnp' : f ∉ pendSlots fl' := fun h => hfnp (by
+        rw [hfl'] at h; exact pendSlots_rollback_sub _ _ _ h)
+      -- the page's slots are no pending slots
+      have hext : ∀ s ∈ flExt w.wb f, s ∉ pendSlots w.fl := by
+        cases fr
+        · have h16 := wb_header w hok f hf
+          obtain ⟨-, -, -, -, -, -, -, -, hsl, -⟩ := hcl f hf f hf
+          intro s hs hp
+          rw [mem_flExt] at hs
+          rw [pageOverflow_extentBytes _ _ h16] at hsl
+          exact (hsl s hs.1 hs.2).2 (mem_allIds_of_pend _ _ hp).1
+        · obtain ⟨-, hr⟩ := hcl f hf
+          obtain ⟨-, -, -, -, -, -, -, -, hsl, -⟩ := hr f hf
+          exact absurd (hsl f (Nat.le_refl _) (by omega)).2.1 hfnp
+      rw [e1, List.append_nil]
+      refine ⟨fun s hs hx => hext s hx (hpS s (.inl hs)), fun _ h => (List.not_mem_nil h).elim, ?_⟩
+      unfold flxS; rw [hf]
+      simp only [hfnp', ↓reduceIte]
+      have hfS : f ∉ S := fun h => hfnp (hpS f (.inl h))
+      unfold flExt
+      simp only [mergeWb, List.append_nil, hfS, ↓reduceIte]
+
+omit sem in
+/-- **`wdb_rollback'`, flagged** (session S4: the writer's bytes as `wBytesX`, the store handing
+back the freed synced freelist page's slots `X` with half their bytes). -/
+theorem wdb_rollback_f (p : BFile) (fr : Bool) (w : WDb) (fl' : FLPg) (S X : List Nat)
+    (bs : Nat → List w8) (F : GMap Nat (List w8))
+    (hok : wdbOK' fr w) (hF : fbRel w F) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
+    (hpa : ∀ pd, w.fl.pending !! W64 ((w.C.txid + 1 : Nat) : Int) = some pd → ∀ a ∈ pd.alloctx,
+      a.toNat ≤ w.C.txid)
+    (hS : ∀ s, s ∈ S ∨ s ∈ X ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
+    (hXc : (∀ s ∈ X, s ∉ S) ∧
+      (fbCond w.C w.fl (some (w.C.txid + 1)) false → X = flxS w.C fl' bs) ∧
+      (¬ fbCond w.C w.fl (some (w.C.txid + 1)) false → X = []))
+    (h2s : ∀ s ∈ pendSlots w.fl, 2 ≤ s) (hbs : ∀ s, s ∈ S ∨ s ∈ X → (bs s).length = 4096)
+    (hrec : fbCond w.C w.fl (some (w.C.txid + 1)) false →
+      ∀ s, s ∈ S ∨ s ∈ X → ∀ v, F !! s = some v → bs s = v) :
+    wCells (GF := GF) w.ms w.W ∗ wBytesX p w.W (flxS w.C w.fl w.wb) w.wb w.m.size ∗
+        slotsOwn w.ms p S bs ∗ slotsOwnH w.ms p X bs ⊢
+      ∃ w' : WDb, ⌜w'.C = w.C ∧ w'.fl = fl' ∧ w'.ms = w.ms ∧ w'.m = w.m ∧ w'.fli = w.fli ∧
+          w'.junk = w.junk ∧ w'.f = w.f ∧ w'.fd = w.fd ∧ wdbOK w'⌝ ∗
+        wCells w'.ms w'.W ∗ wBytesX p w'.W (flxS w'.C w'.fl w'.wb) w'.wb w'.m.size := by
+  have hSX : ∀ s, s ∈ S ++ X ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl' := by
+    intro s; rw [List.mem_append]; exact hS s
+  have hok' := wdbOK_rolledBack_f fr w fl' (S ++ X) bs F hok hF hfl' hpa hSX h2s
+    (fun s hs => hbs s (List.mem_append.1 hs))
+    (fun hc s hs => hrec hc s (List.mem_append.1 hs))
+  obtain ⟨hX0S, hX0X, hX1⟩ := rb_flx_facts fr w fl' S X bs F hok hF hfl' hS ⟨hXc.2.1, hXc.2.2⟩
+  obtain ⟨-, -, c3, c4, -, -, -, -, c9, -, c11, -⟩ := hok
+  have hpS : ∀ s, s ∈ S ∨ s ∈ X → s ∈ pendSlots w.fl := by
+    intro s hs
+    obtain ⟨h1, h2⟩ := (hS s).1 hs
+    rcases (mem_slotsOf _ _ _).1 h1 with h | h
+    · exact absurd ((mem_slotsOf _ _ _).2 (.inl h)) h2
+    · exact h
+  have hnW : ∀ s, s ∈ S ∨ s ∈ X → s ∉ w.W := fun s hs hw => ((c4 s).1 hw).2.2.2 (hpS s hs)
+  have hin : ∀ s, s ∈ S ∨ s ∈ X → 4096 * (s + 1) ≤ w.m.size ∧
+      (∀ b l, w.ms = some (b, l) → 4096 * (s + 1) ≤ l) ∧ (bs s).length = 4096 := by
+    intro s hs
+    have := c11 s (.inr (hpS s hs))
+    refine ⟨by omega, fun b l hbl => ?_, hbs s hs⟩
+    have := c9 b l hbl; omega
+  let X0 := flxS w.C w.fl w.wb
+  have hj := wjoin2 (GF := GF) p w.ms w.W (w.W.filter (fun s => decide (s ∉ X0))) S w.wb bs
+    w.m.size (fun s hs hw => hnW s (.inl hs) (List.mem_filter.1 hw).1)
+    (fun s hs => hin s (.inl hs))
+  have hjH := wjoinH (GF := GF) p w.ms (w.W ++ S) X bs
+    (fun s hs => ⟨(hin s (.inr hs)).2.1, (hin s (.inr hs)).2.2⟩)
+  -- the lists and the bytes after the join
+  have hfilt : (w.W ++ (S ++ X)).filter (fun s => decide (s ∉ X0 ++ X)) =
+      w.W.filter (fun s => decide (s ∉ X0)) ++ S := by
+    rw [List.filter_append, List.filter_append]
+    have e1 : w.W.filter (fun s => decide (s ∉ X0 ++ X)) = w.W.filter (fun s => decide (s ∉ X0)) := by
+      apply List.filter_congr; intro s hs
+      have : s ∉ X := fun h => hnW s (.inr h) hs
+      simp [X0, this]
+    have e2 : S.filter (fun s => decide (s ∉ X0 ++ X)) = S := by
+      rw [List.filter_eq_self]; intro s hs
+      have h1 := hX0S s hs
+      have h2 : s ∉ X := fun h => hXc.1 s h hs
+      simp [X0, h1, h2]
+    have e3 : X.filter (fun s => decide (s ∉ X0 ++ X)) = [] := by
+      rw [List.filter_eq_nil_iff]; intro s hs; simp [hs]
+    rw [e1, e2, e3, List.append_nil]
+  have hmS : ∀ s ∈ w.W.filter (fun s => decide (s ∉ X0)) ++ S,
+      mergeWb S bs w.wb s = mergeWb (S ++ X) bs w.wb s := by
+    intro s hs
+    rcases List.mem_append.1 hs with h | h
+    · have h1 : s ∉ S := fun h' => hnW s (.inl h') (List.mem_filter.1 h).1
+      have h2 : s ∉ X := fun h' => hnW s (.inr h') (List.mem_filter.1 h).1
+      simp [mergeWb, h1, h2]
+    · simp [mergeWb, h]
+  have hm0 : ∀ s ∈ X0, w.wb s = mergeWb (S ++ X) bs w.wb s := by
+    intro s hs
+    have h1 : s ∉ S := fun h => hX0S s h hs
+    have h2 : s ∉ X := fun h => hX0X s h hs
+    simp [mergeWb, h1, h2]
+  have hmX : ∀ s ∈ X, bs s = mergeWb (S ++ X) bs w.wb s := by
+    intro s hs; simp [mergeWb, hs]
+  iintro ⟨Hc, Hbx, HS, HX⟩
+  iunfold wBytesX at Hbx
+  icases Hbx with ⟨Hb, H0⟩
+  ihave ⟨Hc, Hb⟩ := hj $$ [Hc Hb HS]
+  · iframe
+  ihave ⟨Hc, HXh⟩ := hjH $$ [Hc HX]
+  · iframe
+  iexists { w with fl := fl', W := w.W ++ (S ++ X), wb := mergeWb (S ++ X) bs w.wb }
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, hok'⟩
-  isplitl [Hc]
-  · iexact Hc
-  · iexact Hb
+  simp only
+  rw [hX1, List.append_assoc]
+  iframe Hc
+  unfold wBytesX
+  rw [hfilt]
+  isplitl [Hb]
+  · unfold wBytes
+    iapply BigSepL.bigSepL_mono (Φ := fun _ s => (if 4096 * (s + 1) ≤ w.m.size then
+        iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+          ⌜xs.map Prod.fst = mergeWb S bs w.wb s⌝)
+        else if 4096 * s < w.m.size then
+          iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+            ⌜xs.map Prod.fst = (mergeWb S bs w.wb s).take (w.m.size - 4096 * s)⌝)
+        else iprop(emp) : IProp GF)) ?_ $$ Hb
+    intro k x hk
+    rw [hmS x (List.mem_of_getElem? hk)]
+  iapply BigSepL.bigSepL_append.2
+  isplitl [H0]
+  · iapply BigSepL.bigSepL_mono (Φ := fun _ s => osSlotH (GF := GF) p s (w.wb s)) ?_ $$ H0
+    intro k x hk
+    rw [hm0 x (List.mem_of_getElem? hk)]
+  · iapply BigSepL.bigSepL_mono (Φ := fun _ s => osSlotH (GF := GF) p s (bs s)) ?_ $$ HXh
+    intro k x hk
+    rw [hmX x (List.mem_of_getElem? hk)]
 
 end rb
 

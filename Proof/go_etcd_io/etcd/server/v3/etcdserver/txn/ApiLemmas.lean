@@ -24,7 +24,7 @@ open mvcc.api (MvccState MTxn MvccName)
 theorem txn.reach_len (σ : MvccState) (h : mvcc.api.MvccReachable σ) : 2 ≤ σ.log.length := by
   induction h with
   | start => decide
-  | notify σ pend _ _ _ ih => exact ih
+  | notify σ pend _ _ _ _ ih => exact ih
   | commit σ _ ih =>
     unfold mvcc.api.MvccState.commitPending mvcc.commitLog
     split
@@ -37,7 +37,7 @@ theorem txn.reach_crev (σ : MvccState) (h : mvcc.api.MvccReachable σ) :
     -1 ≤ σ.crev ∧ σ.crev ≤ (σ.rev : Int) := by
   induction h with
   | start => simp [mvcc.api.mvccStart, mvcc.api.MvccState.rev]
-  | notify σ pend _ _ _ ih => exact ih
+  | notify σ pend _ _ _ _ ih => exact ih
   | commit σ _ ih =>
     refine ⟨ih.1, ?_⟩
     have : σ.rev ≤ σ.commitPending.rev := by
@@ -185,6 +185,106 @@ theorem txn.kindState_append (k : MTxn) (X : List mvcc.Change) (h : txn.Reach k.
 /-- A transaction's begin state after changes. -/
 theorem txn.MTxn.append_state (k : MTxn) (chs : List mvcc.Change) :
     (txn.MTxn.append k chs).state = k.state := by cases k <;> rfl
+
+/-! ### The lessor window of a run (auth-lease S4 item 7b) -/
+
+namespace txn
+section win
+variable [GooseExts]
+
+theorem winOps_append (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (a b : List TxnOp),
+      WinOps w s0 r s (a ++ b) ↔
+        WinOps w s0 r s a ∧ WinOps w s0 r (mvcc.applyChanges r s (srvOps s0 r s a).1) b
+  | s, [], b => by simp [WinOps, srvOps_nil, applyChanges_nil']
+  | s, x :: a, b => by
+    rw [List.cons_append]
+    simp only [WinOps]
+    rw [winOps_append w s0 r _ a b, srvOps_cons]
+    simp only [applyChanges_append]
+    exact ⟨fun ⟨h1, h2, h3⟩ => ⟨⟨h1, h2⟩, h3⟩, fun ⟨⟨h1, h2⟩, h3⟩ => ⟨h1, h2, h3⟩⟩
+
+/-- The window premises of the operations from the `i`-th on, at the state the first `i` left. -/
+theorem winOps_drop' (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) (s : List EtcdKv)
+    (ops : List TxnOp) (i : Nat) (h : WinOps w s0 r s ops) :
+    WinOps w s0 r (mvcc.applyChanges r s (srvOps s0 r s (ops.take i)).1) (ops.drop i) := by
+  rw [← List.take_append_drop i ops, winOps_append] at h
+  exact h.2
+
+theorem winOps_drop (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) (s : List EtcdKv)
+    (ops : List TxnOp) (i : Nat) (op : TxnOp) (h : ops[i]? = some op) :
+    WinOps w s0 r s (ops.drop i) ↔
+      WinOp w s0 r s op ∧ WinOps w s0 r (mvcc.applyChanges r s (srvOp s0 r s op).1) (ops.drop (i + 1)) := by
+  rw [List.drop_eq_getElem_cons (List.getElem?_eq_some_iff.1 h).1, (List.getElem?_eq_some_iff.1 h).2]
+  simp [WinOps]
+
+/-- A nested transaction's window premise: its chosen branch's. -/
+theorem winOp_txn (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) (s : List EtcdKv)
+    (cs : List CmpModel) (ts es : List TxnOp) (h : WinOp w s0 r s (.txn cs ts es)) :
+    WinOps w s0 r s (if cs.all (cmpHolds s0) then ts else es) := by
+  simp only [WinOp] at h
+  cases hb : cs.all (cmpHolds s0) <;> rw [hb] at h <;> simpa using h
+
+/-- Gets only: within any window. -/
+theorem winOps_gets (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (ops : List TxnOp), (∀ op ∈ ops, opIsGet op = true) → WinOps w s0 r s ops
+  | _, [], _ => trivial
+  | s, op :: ops, h => by
+    refine ⟨?_, winOps_gets w s0 r _ ops (fun o ho => h o (List.mem_cons_of_mem _ ho))⟩
+    have := h op List.mem_cons_self
+    cases op <;> simp_all [opIsGet, WinOp]
+
+/-- A put's window premise (any of the three kinds): its change moves the items toward the target. -/
+theorem winOp_put_et (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) (o : OpFull)
+    (h : WinOp w s0 r s (putTxnOp o)) :
+    lease.winMove w (mvcc.leaseItemsOf s)
+      (mvcc.leaseItemsOf (mvcc.applyChanges r s [putChangeOf o (mvcc.findKey o.key s)])) := by
+  have h2 : WinOp w s0 r s (putTxnOp o) = lease.winMove w (mvcc.leaseItemsOf s)
+      (mvcc.leaseItemsOf (mvcc.applyChanges r s (srvOp s0 r s (putTxnOp o)).1)) := by
+    unfold putTxnOp; split <;> (try split) <;> simp only [WinOp]
+  rw [h2, srvOp_putTxnOp] at h; exact h
+
+/-- **The pending item map is the committed one's after the commit** (item 7b F2: the owner's items at `End` are the
+items of the log it commits). -/
+theorem pendItems_commitLog (ilog : mvcc.Log) (pend : List mvcc.Change) :
+    mvcc.pendItems ilog pend = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog ilog pend)) := by
+  unfold mvcc.commitLog
+  split
+  · subst_vars; rfl
+  · rw [mvcc.stateAfter_append]
+
+/-- **A put request's item map**: the pending one after its change, from the begin state's. -/
+theorem pendItems_putChangeOf (ilog : mvcc.Log) (o : OpFull) :
+    mvcc.pendItems ilog [putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] =
+      putItemsOf (mvcc.pendItems ilog []) o := by
+  have h := mvcc.pendItems_put ilog [] o.key (putValOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))
+    (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))) (putItemsOf (mvcc.pendItems ilog []) o)
+  rw [List.nil_append] at h
+  apply h
+  · intro it hk
+    have hne : go_etcd_io.etcd.server.v3.lease.LeaseItem.mk o.key ≠ it := by
+      intro he; subst he; exact hk rfl
+    unfold putItemsOf
+    split
+    · rfl
+    · split
+      · simp [GMap.lookup_delete_iff, hne]
+      · simp [GMap.lookup_insert_eq_iff, hne]
+  · unfold putItemsOf putLeaseOf
+    cases hil : o.ignoreLease
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      split
+      · simp
+      · simp
+    · simp only [↓reduceIte]
+      show (mvcc.leaseItemsOf (mvcc.stateAfter ilog)).lookup _ = _
+      rw [mvcc.leaseItemsOf_lookup]
+      cases hf : mvcc.findKey o.key (mvcc.stateAfter ilog) with
+      | none => simp
+      | some kv => simp [mvcc.kvLease]
+
+end win
+end txn
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]

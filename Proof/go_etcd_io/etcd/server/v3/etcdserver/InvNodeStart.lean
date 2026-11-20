@@ -321,7 +321,9 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
   | .restart σ cs S a m _ =>
     letI := srvStor (GF := GF) γr
     iprop(⌜rnRestartCfg bv cv lok pv ∧ σ.b ≤ a ∧ a ≤ σ.commit ∧ γr.cl.bootLen ≤ σ.commit ∧
-        confStateIs cs m ∧ StorageHolds S σ⌝ ∗
+        confStateIs cs m ∧ StorageHolds S σ ∧
+        -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
+        ¬ clusterNoSnap γr.cl⌝ ∗
       restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q ∗
       isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ nodeVacant γr.cl cv.ID' ∗
       raftState γr.cl cv.ID' S ∗ confAt γr.cl a m)

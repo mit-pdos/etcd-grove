@@ -9,7 +9,7 @@ module
 public import Proof.go_etcd_io.bbolt.Write.WrCur
 public import Spec.go_etcd_io.bbolt.Bucket__Put
 public import Spec.go_etcd_io.bbolt.cloneBytes
-public import Spec.go_etcd_io.bbolt.Bucket__Cursor_i
+public import Proof.go_etcd_io.bbolt.Bucket__Cursor_i
 public import Spec.go_etcd_io.bbolt.Cursor__seek_w
 public import Spec.go_etcd_io.bbolt.Cursor__node
 public import Spec.go_etcd_io.bbolt.node__put
@@ -107,14 +107,14 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (hD1 : ∀ X : WX, gensOK T X →
       ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b) :
   {{ boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx γ b n (T.gen n) ∗ key ↦*{dk} kb ∗ value ↦*□ vb ∗
-      ⌜T.rw = true ∧ T.cur.lookup n = some m ∧ kb.length + vb.length ≤ bboltEntryMax⌝ }}
+      ⌜T.rw = true ∧ T.cur.lookup n = some m⌝ }}
     (App (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Put")) (Val #key)) (Val #value))
   {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗
-      (if kb.length = 0 ∨ maxKeySize < kb.length
+      (if kb.length = 0 ∨ maxKeySize < kb.length ∨ bboltEntryMax < kb.length + vb.length
        then iprop(⌜err ≠ GoInterface.nil⌝ ∗ boltTx tx γ 1 T)
        else iprop(⌜err = GoInterface.nil⌝ ∗ boltTx tx γ 1 (T.setBkt n (m.insert kb vb)))) }} := by
   wp_start as ⟨Ht, #Hb, Hkey, #Hval, %Hpre⟩
-  obtain ⟨hrw, Hm, hbnd⟩ := Hpre
+  obtain ⟨hrw, Hm⟩ := Hpre
   unfold boltTx boltBkt at *
   ihave Ht := (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht
   icases Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
@@ -272,7 +272,7 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   ihave #Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hep
   unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
-  icases Hei with ⟨%_, #-, %_, #-, -, -, -, -, -, -, -, -, -, -, -, #EKR, #EKL, -, -, #EIV, -, -⟩
+  icases Hei with ⟨%_, #-, %_, #-, -, -, -, -, -, -, -, -, -, -, -, #EKR, #EKL, #EVL, -, #EIV, -, -⟩
   ihave %Hkl := ownSlice_len _ _ _ $$ Hkey
   by_cases hk0 : kb.length = 0
   · icases bboltErrVar_get _ $$ EKR with ⟨%e, #He, %Hne, #Hfe⟩
@@ -324,7 +324,7 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     wp_auto
     iapply HΦ
     iframe Hkey
-    rw [if_pos (Or.inr hkL)]
+    rw [if_pos (Or.inr (Or.inl hkL))]
     isplitr
     · ipureintro; exact Hne
     iapply (boltTxDef_wtxW _ _ tx T hrw).2
@@ -334,14 +334,69 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   rw [decide_eq_false (show ¬ (32768 : Int) < kb.length by unfold maxKeySize at hkL; omega)]
   wp_auto
   ihave %Hvl := ownSlice_len _ _ _ $$ Hval
-  have hvZ : ¬ sint.Z (W64 2147483646) < sint.Z value.len := by
+  have hvZeq : sint.Z value.len = (vb.length : Int) := by
     obtain ⟨h1, h2⟩ := Hvl
-    have hmv : sint.Z (W64 2147483646) = 2147483646 := by decide
-    rw [hmv]
     simp only [sint.nat, sint.Z] at h1 h2 ⊢
-    unfold bboltEntryMax at hbnd
     omega
-  rw [decide_eq_false hvZ]
+  have hmv : sint.Z (W64 2147483646) = 2147483646 := by decide
+  by_cases hv1 : (2147483646 : Int) < vb.length
+  · have hbig : bboltEntryMax < kb.length + vb.length := by unfold bboltEntryMax; omega
+    rw [decide_eq_true (show sint.Z (W64 2147483646) < sint.Z value.len by rw [hmv, hvZeq]; exact hv1)]
+    icases bboltErrVar_get _ $$ EVL with ⟨%e, #He, %Hne, #Hfe⟩
+    wp_auto
+    wp_bind (App (Val #f) (Val #()))
+    iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ e ∗ key ↦*{dk} kb))) $$
+      [err Hkp Hlgp Hkey]
+    · iapply Hdf $$ [] err Hkp Hlgp Hkey
+      iright; iexact Hfe
+    iintro %vret ⟨%hvret, err, Hkey⟩
+    subst hvret
+    wp_auto
+    iapply HΦ
+    iframe Hkey
+    rw [if_pos (Or.inr (Or.inr hbig))]
+    isplitr
+    · ipureintro; exact Hne
+    iapply (boltTxDef_wtxW _ _ tx T hrw).2
+    iexists K, r, c, X
+    iframe; iframe #
+    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
+  rw [decide_eq_false (show ¬ sint.Z (W64 2147483646) < sint.Z value.len by rw [hmv, hvZeq]; exact hv1)]
+  wp_auto
+  have hsub : sint.Z (W64 268435456 - key.len) = 268435456 - (kb.length : Int) := by
+    obtain ⟨h1, h2⟩ := Hkl
+    have hkle : kb.length ≤ 32768 := by unfold maxKeySize at hkL; omega
+    simp only [sint.nat, sint.Z] at h1 h2 ⊢
+    word
+  have hc2 : sint.Z (W64 268435456 - key.len) < sint.Z value.len ↔
+      bboltEntryMax < kb.length + vb.length := by
+    rw [hsub, hvZeq]; clear hsub hvZeq hmv hv1; unfold bboltEntryMax; omega
+  clear hsub hvZeq hmv hv1
+  by_cases hbig : bboltEntryMax < kb.length + vb.length
+  · rw [decide_eq_true (hc2.2 hbig)]
+    icases bboltErrVar_get _ $$ EVL with ⟨%e, #He, %Hne, #Hfe⟩
+    wp_auto
+    wp_bind (App (Val #f) (Val #()))
+    iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ e ∗ key ↦*{dk} kb))) $$
+      [err Hkp Hlgp Hkey]
+    · iapply Hdf $$ [] err Hkp Hlgp Hkey
+      iright; iexact Hfe
+    iintro %vret ⟨%hvret, err, Hkey⟩
+    subst hvret
+    wp_auto
+    iapply HΦ
+    iframe Hkey
+    rw [if_pos (Or.inr (Or.inr hbig))]
+    isplitr
+    · ipureintro; exact Hne
+    iapply (boltTxDef_wtxW _ _ tx T hrw).2
+    iexists K, r, c, X
+    iframe; iframe #
+    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
+  rw [decide_eq_false (fun h => hbig (hc2.1 h))]
+  clear hc2
+  have hbnd : kb.length + vb.length ≤ bboltEntryMax := Nat.le_of_not_lt hbig
+  clear hbig
   wp_auto
   wp_apply hclone key kb dk $$ [Hkey] as %nk ⟨Hnk, Hnkc, Hkey⟩
   · iframe #; iexact Hkey
@@ -490,7 +545,12 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   wp_auto
   iapply HΦ
   iframe Hkey
-  rw [if_neg (by intro h; rcases h with h | h <;> contradiction)]
+  rw [if_neg (by
+    intro h
+    rcases h with h | h | h
+    · exact hk0 h
+    · exact hkL h
+    · exact Nat.not_lt_of_le hbnd h)]
   isplitr
   · ipureintro; rfl
   rw [hKB, hKN]

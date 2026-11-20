@@ -337,7 +337,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     have hlh : tCandHist (tSnapO o a ta) c = tCandHist o c ++ [tSnapOp a ta] := tSnapO_hist o c a ta
     have hmark1 : tCandMark (tSnapO o a ta) c = (tCandHist o c).length + 1 := by
       unfold tSnapO; rw [tSynced_mark _ c hl1, tSnapO1_hist']; simp
-    have hH1 : d1.H[(tCandHist o c).length]? = some (WalOpG.snap (absSnapMd a ta)) := by
+    have hH1 : d1.H[(tCandHist o c).length]? = some (WalOpG.snap (absSnapMd a ta) true) := by
       have h4 : d1.H.map WalOpG.toM = (tCandHist (tSnapO o a ta) c).map absOp := hok1.2.2.2.1
       rw [hlh, List.map_append] at h4
       have h5 := congrArg (fun L => L[(tCandHist o c).length]?) h4
@@ -349,7 +349,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
       | some x =>
         rw [hx] at h5
         cases x with
-        | snap m => simp only [Option.map_some, Option.some.injEq] at h5; cases h5; rfl
+        | snap m al => simp only [Option.map_some, Option.some.injEq] at h5; cases h5; rfl
         | save h es => simp [WalOpG.toM, absOp, tSnapOp] at h5
     ihave Hau := tInv_releaseAu W e γ (tRaiseNames (tSnapO o a ta) a) (tRaiseCand (tSnapO o a ta) a c) d1 a ta
       (tCandHist o c).length (tCandMark (tSnapO o a ta) c) ⟨[W64 1], [], [], [], false⟩ hok1.1

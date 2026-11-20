@@ -58,7 +58,7 @@ def outOf {E : Type} : KResp DObj E → Output
   | .zero => zeroOutL
   | .err (.notFound k rv) => errOutL (W64 1) k (W64 (rv : Int))
   | .err (.keyExists k) => errOutL (W64 2) k (W64 0)
-  | .err (.invalidObj k) => errOutL (W64 5) k 0
+  | .err (.invalidObj k m) => invalidOutL k m
   | .err (.tooLarge _ _) => tooLargeL
   | .err (.user _) => rejectedL
   | .err _ => otherL
@@ -195,10 +195,21 @@ theorem refine_create {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : 
 
 /-- **The store's preconditions are the driver's** (`preOk`) on related objects. -/
 theorem preOk_rel (x : Input) (ki : KItem DObj) (it : item) (h : ItemRelH ki it) :
-    driverCodec.preOk (kpreOf x) ki.obj ki.rv = preOkL x it.obj' := by
+    (driverCodec.preF (kpreOf x)) ki.obj ki.rv = preOkL x it.obj' := by
+  show driverCodec.preOk (kpreOf x) ki.obj ki.rv = _
   rw [h.1]
   simp only [ObjCodec.preOk, driverCodec, KPre.ok, kpreOf, preOkL]
   cases x.HasPreUID' <;> cases x.HasPreRV' <;> simp <;> congr
+
+/-- **The store's precondition message is the driver's** (`preMsg`, stage 7g) on related
+objects, when the preconditions fail. -/
+theorem preMsg_rel (x : Input) (ki : KItem DObj) (it : item) (h : ItemRelH ki it)
+    (hp : preOkL x it.obj' = false) :
+    (driverCodec.preF (kpreOf x)).msg ki.obj ki.rv = preMsgL x it.obj' := by
+  rw [h.1] at hp ⊢
+  simp only [ObjCodec.preF, driverCodec, KPre.failMsg, kpreOf, preMsgL, preOkL, DObj.toObj] at hp ⊢
+  by_cases h1 : x.HasPreUID' = true <;> by_cases h3 : x.HasPreRV' = true <;>
+    by_cases h2 : x.PreUID' = ki.obj.uid <;> simp_all
 
 /-- Two objects at any resource versions are the same (`sameObj`) iff they are equal. -/
 theorem sameObjL_toObj (a b : DObj) (m n : w64) :
@@ -215,9 +226,9 @@ theorem updObj_with (x : Input) (hi : inFits x) (o : DObj) (m n : w64) :
 `validateFor(in.HasReject, in.Reject)` rejecting with `eD`. -/
 theorem refine_delete (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eD : GoInterface)
     (hrv : ks.rv + 1 < 2 ^ 64) :
-    KRel (ks.delete (mkeyL x.Key') (driverCodec.preOk (kpreOf x))
+    KRel (ks.delete (mkeyL x.Key') (driverCodec.preF (kpreOf x))
         (rejD eD x.HasReject' x.Reject')).1 (mdeleteL x g).1 ∧
-      outOf (ks.delete (mkeyL x.Key') (driverCodec.preOk (kpreOf x))
+      outOf (ks.delete (mkeyL x.Key') (driverCodec.preF (kpreOf x))
         (rejD eD x.HasReject' x.Reject')).2 = (mdeleteL x g).2 := by
   unfold KSt.delete mdeleteL
   cases hk : ks.items (mkeyL x.Key') with
@@ -232,7 +243,7 @@ theorem refine_delete (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eD 
     rw [preOk_rel x ki _ hr]
     cases hp : preOkL x (lookupL g.items x.Key').1.obj'
     · simp only [Bool.not_false, ↓reduceIte]
-      exact ⟨h, rfl⟩
+      exact ⟨h, by simp only [outOf, invalidObjL]; rw [preMsg_rel x ki _ hr hp]⟩
     simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]
     have hnode : ki.obj.node = (lookupL g.items x.Key').1.obj'.Node' := by rw [hr.1]
     rw [hnode]
@@ -262,9 +273,9 @@ the input's preconditions (`kpreOf`) and `ignoreNotFound` (from the zero object 
 `updated` names after the key). -/
 theorem refine_update (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eU : GoInterface)
     (hi : inFits x) (hrv : ks.rv + 1 < 2 ^ 64) :
-    KRel (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (driverCodec.preOk (kpreOf x))
+    KRel (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (driverCodec.preF (kpreOf x))
         (updD eU x)).1 (mupdateL x g).1 ∧
-      outOf (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (driverCodec.preOk (kpreOf x))
+      outOf (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (driverCodec.preF (kpreOf x))
         (updD eU x)).2 = (mupdateL x g).2 := by
   unfold KSt.update KSt.current mupdateL
   cases hk : ks.items (mkeyL x.Key') with
@@ -276,12 +287,14 @@ theorem refine_update (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eU 
       simp only [outOf, notFoundL, h.2.1]
     · simp only [hn, hig, Bool.not_false, Bool.not_true, Bool.and_false, Bool.false_eq_true,
         ↓reduceIte]
-      have hpz : driverCodec.preOk (kpreOf x) dzero 0 = preOkL x zObj :=
+      have hpz : (driverCodec.preF (kpreOf x)) dzero 0 = preOkL x zObj :=
         preOk_rel x ⟨dzero, 0, true⟩ ⟨x.Key', zObj, true⟩ ⟨rfl, rfl⟩
       rw [hpz]
       cases hp : preOkL x zObj
       · simp only [Bool.not_false, ↓reduceIte]
-        exact ⟨h, rfl⟩
+        exact ⟨h, by
+          simp only [outOf, invalidObjL]
+          rw [preMsg_rel x ⟨dzero, 0, true⟩ ⟨x.Key', zObj, true⟩ ⟨rfl, rfl⟩ hp]⟩
       simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte, updD]
       rw [show dzero.node = zObj.Node' from rfl]
       cases hrj : rejects x.HasReject' x.Reject' zObj.Node'
@@ -295,7 +308,7 @@ theorem refine_update (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eU 
     rw [preOk_rel x ki _ hr]
     cases hp : preOkL x (lookupL g.items x.Key').1.obj'
     · simp only [Bool.not_false, ↓reduceIte]
-      exact ⟨h, rfl⟩
+      exact ⟨h, by simp only [outOf, invalidObjL]; rw [preMsg_rel x ki _ hr hp]⟩
     simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]
     have hnode : ki.obj.node = (lookupL g.items x.Key').1.obj'.Node' := by rw [hr.1]
     rw [hnode]

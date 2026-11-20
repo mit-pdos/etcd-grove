@@ -31,7 +31,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (hBT : backend.batchTx.UnsafeSeqPut.spec (GF := GF) (hG := hG))
     (hBuf : backend.txWriteBuffer.putSeq.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hlt Hp Hhk Hrb Hfk Hsb
+  intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hlt Hp Hhk Hrb Hfk Hsb c
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
@@ -43,13 +43,13 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   subst Heq
   wp_auto
   wp_apply (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1)
-    $$ [Htxf Hpend Hwtx] as ⟨Hw, -⟩
+    $$ [Htxf Hpend Hwtx] as ⟨%Hkv, Hw, -⟩
   · iframe #
     unfold btW
     iframe
   unfold btW
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
-  ihave %Hbb := batchGhostAt_bound γ P st false HP Hwf $$ Hg
+  ihave %Hbb := batchGhostAt_bound γ P st false HP Hwf c $$ Hg
   have Hlen : (bkOf st.W.bks bi.id).length < bufBound := by have := Hbb bi.id; omega
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen Hlt) $$ [$HW] as HW
   · iframe #
@@ -60,8 +60,9 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb true i)
     (hkData_put_other st bi kb vb true Hhk)
     (rbData_put_other st bi kb vb true Hrb) (fkOkG_put true HP Hhas Hfk) (fkVals_put true Hfk) rfl
-    (fun L _ hd => dlsW_step (dlsS_put true (fun h1 _ => (Hsb h1).2))
-      (dlsOk_put true (fun h1 _ => (Hsb h1).2)) rfl rfl hd) $$ Hg
+    (trkOk_putS HP Hwf Hhas kb vb true) (fun L _ hd => dlsW_step (dlsS_put true (fun h1 _ => (Hsb h1).2))
+      (dlsOk_put true (fun h1 _ => (Hsb h1).2)) rfl rfl hd)
+    (fun m hm => tkSet_ne _ _ (by rintro rfl; rw [Hrb] at hm; cases hm)) rfl c $$ Hg
   iframe Hg
   isplitl
   · iexists hk

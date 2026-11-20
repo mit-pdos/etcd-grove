@@ -9,9 +9,10 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__un
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__commit
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__begin
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
-public import Spec.go_etcd_io.bbolt.Tx__Rollback_kv
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadSide
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvCommit
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Spec.go_etcd_io.bbolt.Tx__Rollback
 
 @[expose] public section
 
@@ -32,15 +33,41 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Perennial.time.Assumptions]
 
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Tx.Rollback_kv`). -/
+private theorem bbolt.kvGlue_Tx__Rollback_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.Rollback.spec (GF := GF) (hG := hG)) :
+  ∀ (tx : Loc) (γ : DBNames) (D : backend.Data),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx γ 1 (bbolt.TxView.ro D) }}
+    (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Rollback")) (Val #()))
+  {{ RET #GoInterface.nil; backend.txDone tx ∗ threadTok }} := by
+  intro tx γ D
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, H⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, Hl⟩ HΦ
+    have h' := h tx γ (TxView.ro D)
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
+    wp_apply h' $$ [$Hl] as ⟨#Hd, Ht⟩
+    iapply HΦ; iframe Ht; iexact Hd
+
 theorem backend.batchTxBuffered.unsafeCommit.wp_proof
-    (hRollback : bbolt.Tx.Rollback_kv.spec (GF := GF) (hG := hG))
+    (hRollback : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.Rollback.spec (GF := GF) (hG := hG))
     (hReset : backend.readTx.reset.spec (GF := GF) (hG := hG))
     (hBC : backend.batchTx.commit.spec (GF := GF) (hG := hG))
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t rt st win stop m u X Y L'
-  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, %Hdlw, %Hhw0, Hpay, HX, #Hrq⟩
-  obtain ⟨Hroom, Hp0, HWe⟩ := Hc
+  replace hRollback := bbolt.kvGlue_Tx__Rollback_kv hRollback
+  intro γ P W Pk b t rt st win stop m u X Y L' c Sc Rr E hE
+  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, %Hdlw, %Hhw0, Hpay, HX, #Hrq, %Hsc, HRr, #Hacc⟩
+  obtain ⟨Hroom, Hp0, HWe, Htk⟩ := Hc
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
@@ -66,9 +93,15 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   -- out of a window, the state is out of an `Unlock`'s (the batch lock's quarter's agreement)
   icases batchViewQW_win γ P st win $$ Hv with ⟨Hv, %Hwin00⟩
   have Hwin0 : win = false → st.win = false := fun h => Hwin00 h Hhw0
+  icases trkSide_cw γ P st c $$ Hhkd with ⟨Hhkd, %Hcw0⟩
+  -- (A1.5) the claimed writes are among `Sc` (none in the client-facing mode)
+  have HcwS : ∀ n, st.cw n = true → n ∈ Sc := fun n h => by
+    rcases Hsc.2 with hc | hS
+    · rw [Hcw0 hc Hhw0 n] at h; cases h
+    · exact hS n h
   ihave Hl : batchLocked γ P b (st.setHw true) $$ [Hown Hph Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
   · ihave Hv := batchViewQ_setHw γ P st win (fun h => (Hdlw h).1) $$ Hv
-    iapply batchLocked_setHw_mk γ P b t db0' st
+    iapply batchLocked_setHw_mk γ P b t db0' st c
     iframe Ht Hown Hph Hv
     isplitl [Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
     · iexists n0, w0, u00
@@ -140,10 +173,18 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     | false =>
       simp only [Bool.false_eq_true, ↓reduceIte]
       apply Hdlb.2.1
-      rw [Hs.2.2.2.2.2.2.2.2.2.2.2]
+      rw [Hs.2.2.2.2.2.2.2.2.2.2.2.1]
       exact Hwin0 rfl
   icombine Ht Ht1 gives %Heq1
   subst Heq1
+  have HcwS' : ∀ n, st'.cw n = true → n ∈ Sc := fun n h => by
+    rw [Hs.2.2.2.2.2.2.2.2.2.2.2.2.2.2] at h; exact HcwS n h
+  -- (A1.5) the commit moves every tracked bucket's readers' contents to the writer's
+  have HokC : ∀ C' : Data, (C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C)) → ∀ n, n ∈ Sc →
+      P.RB n = true → rvBkt P (C', st'.R.reset) n = bktOf st.S n := fun C' hC' n _ hn => by
+    rw [(trkOk_commitG (tx' := Loc.null) (cnt' := ⟨0, 0, 0, 0, false⟩) Hs Htk
+      Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' hC').2 n hn]
+    exact bktOf_rb Hs.2.2.2.1 hn
   have Hs0 := Hs
   obtain ⟨hC, hR, hSs, hWs, hp1, hp2, hn, htx, hcnt⟩ := Hs0
   imod ghostVar_update_halves (((st'.C, st'.R) : RView), win) γ.rvs _ _ $$ Hrvs Hrvs2 with
@@ -163,7 +204,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     exact absurd Hcb.2 (by decide)
   ihave %Hrnn : ⌜rtx ≠ Loc.null⌝ $$ [Hrb]
   · unfold rollbackRes
-    icases Hrb with ⟨%γwg, %γw, %γo, %γd, %D, -, -, -, -, Hl1, -⟩
+    icases Hrb with ⟨%γwg, %γw, %γo, %γd, %D, %db1, -, -, -, -, Hl1, -⟩
     iapply txLive_nonnull $$ Hl1
   try wp_auto
   rw [decide_eq_false Hrnn]
@@ -172,8 +213,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   -- transaction (or the post, at the stop); the rollback goroutine exits with the old one's
   wp_apply wp_fork_tok_self $$ [Hrb] as Htok
   · wp_auto
-    wp_apply (wp_rollback_Wait γ rtx wg) $$ [$Hrb] as ⟨%D, Hl1, #Hsn⟩
-    wp_apply (hRollback rtx D) $$ [$Hl1 $Hsn] as ⟨-, Htok⟩
+    wp_apply (wp_rollback_Wait γ rtx wg) $$ [$Hrb] as ⟨%D, Hl1⟩
+    wp_apply (hRollback rtx γ.db D) $$ [$Hl1] as ⟨-, Htok⟩
     iframe Htok
     itrivial
   wp_apply (hReset rt st'.R cm rtx wg) $$ [$HRB $Hcm $Hrtx $Hwg] as %cm' %wg' ⟨HRB, Hcm, Hcmm, Hrtx, Hwg, Hwgz⟩
@@ -200,17 +241,25 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       icases fkHalf_rd γ P st' (st'.C, st'.R.reset)
         (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.C) (tx' := st'.tx) (cnt' := st'.cnt) (Or.inr rfl) f w h))
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
-      imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' Lb L') $$
-        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
+      ihave Hupd := trkSide_updR γ P st' (commitSt st' st'.C st'.tx ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
+        (st'.C, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr E hE Hsc.1 rfl rfl rfl
+        (fun n hn hi _ => ⟨rfl, rvBkt_commit_idle Hs Htk Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inr ⟨HA.1, rfl⟩) hn hi⟩)
+        (fun _ _ => Or.inl rfl) (fun _ _ _ => rfl) HcwS' (fun _ _ _ => rfl) (fun n hn hRB => HokC _ (Or.inr ⟨HA.1, rfl⟩) n hn hRB)
+        $$ [$Hhkd $HRr $Hacc]
+      imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' Lb L'
+        iprop(trkSide γ P (commitSt st' st'.C st'.tx ⟨0, 0, 0, 0, false⟩) ∗ Rr)) $$
+        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd Hrd]
+        with ⟨Hrr, Hrvs, ⟨Hhkd, HRr⟩, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
+        iframe Hrd; isplitr; · iexists db0; iexact Hdb0
         iframe #
-        iexact Hrd
-      imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 _ HWe Hp0 Hs Hwf Hbg
-        (Or.inr rfl) Hdlc) $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
+      imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 _ ⟨0, 0, 0, 0, false⟩ HWe Hp0 Hs
+        Hwf Hbg
+        (Or.inr ⟨HA.1, rfl⟩) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := st'.tx) (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)
       imodintro
       iapply HΦ
-      iframe Hrr HWR Hpo HY
+      iframe Hrr HWR Hpo HY HRr
       try simp only [Bool.false_eq_true, ↓reduceIte]
       iexists (commitSt st' st'.C st'.tx cnt'), db
       iframe Hown Hg
@@ -222,7 +271,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         iframe #
       isplitr
       · ipureintro
-        exact ⟨hfo, hv, by simp [commitSt]⟩
+        exact ⟨hfo, hv, by simp [commitSt], Hs.2.2.2.1⟩
       iexact Hbv
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hrest with ⟨Hwtx, #Htxdb'⟩
@@ -239,17 +288,25 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
         (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
-      imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' Lb L') $$
-        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
+      ihave Hupd := trkSide_updR γ P st' (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
+        (st'.S, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr E hE Hsc.1 rfl rfl rfl
+        (fun n hn hi _ => ⟨rfl, rvBkt_commit_idle Hs Htk Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩)
+        (fun _ _ => Or.inl rfl) (fun _ _ _ => rfl) HcwS' (fun _ _ _ => rfl) (fun n hn hRB => HokC _ (Or.inl rfl) n hn hRB)
+        $$ [$Hhkd $HRr $Hacc]
+      imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' Lb L'
+        iprop(trkSide γ P (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) ∗ Rr)) $$
+        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd Hrd]
+        with ⟨Hrr, Hrvs, ⟨Hhkd, HRr⟩, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
+        iframe Hrd; isplitr; · iexists db0; iexact Hdb0
         iframe #
-        iexact Hrd
-      imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 _ HWe Hp0 Hs Hwf Hbg
-        (Or.inl rfl) Hdlc) $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
+      imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 _ ⟨0, 0, 0, 0, false⟩ HWe Hp0 Hs
+        Hwf Hbg
+        (Or.inl rfl) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := tx') (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inl rfl)
       imodintro
       iapply HΦ
-      iframe Hrr HWR Hpo HY
+      iframe Hrr HWR Hpo HY HRr
       try simp only [Bool.false_eq_true, ↓reduceIte]
       iexists (commitSt st' st'.S tx' cnt'), db
       iframe Hown Hg
@@ -261,7 +318,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         iframe #
       isplitr
       · ipureintro
-        exact ⟨hfo, hv, by simp [commitSt]⟩
+        exact ⟨hfo, hv, by simp [commitSt], Hs.2.2.2.1⟩
       iexact Hbv
   · icases Hres with (⟨%HA, -⟩ | ⟨%HB, Hdb, Hpend, %tx', Htxf, -⟩)
     · exact absurd HA.2 (by decide)
@@ -278,13 +335,19 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
       (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
       $$ Hfkh with ⟨Hfkh, #Hfkr⟩
-    imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' Lb L') $$
-      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre] with ⟨Hrr, -, Hvq, -⟩
+    ihave Hupd := trkSide_updR γ P st' (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
+      (st'.S, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr E hE Hsc.1 rfl rfl rfl
+      (fun n hn hi _ => ⟨rfl, rvBkt_commit_idle Hs Htk Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩)
+      (fun _ _ => Or.inl rfl) (fun _ _ _ => rfl) HcwS' (fun _ _ _ => rfl) (fun n hn hRB => HokC _ (Or.inl rfl) n hn hRB)
+      $$ [$Hhkd $HRr $Hacc]
+    imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' Lb L'
+      iprop(trkSide γ P (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) ∗ Rr)) $$
+      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd] with ⟨Hrr, -, ⟨Hhkd, HRr⟩, Hvq, -⟩
     · simp only [↓reduceIte]
       iframe Hbs Hfkr
     imodintro
     iapply HΦ
-    iframe Hrr HWR HY
+    iframe Hrr HWR HY HRr
     unfold payOut
     simp only [Bool.true_eq_false, _root_.false_and, ↓reduceIte]
     iframe Hown Hbs Hpend Htok
@@ -294,6 +357,11 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     iframe Hbdb Hdb
     unfold bStopG fkHalf
     icases Hfkh with ⟨-, Hfkd, Hdls⟩
+    iunfold trkSide at Hhkd
+    icases Hhkd with ⟨Hhkd, -⟩
+    ihave Hhkd := trkHalf_mono γ P _ _ (fun _ => True) (fun _ _ => trivial) $$ Hhkd
+    ihave Hhkd := (show trkHalf (GF := GF) γ P (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩).S ⊢
+      trkHalf γ P st'.S from .rfl) $$ Hhkd
     iframe Hhkd Hfkd
     isplitl [Hvq Hdls]
     · iexists _, _

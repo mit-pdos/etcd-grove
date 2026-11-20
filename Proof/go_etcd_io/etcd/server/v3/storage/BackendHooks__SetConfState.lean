@@ -25,6 +25,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
+/-- (S1b) A conf state's points-to, read-only for good (`csPts_persist`'s, at the storage package's
+assumptions). -/
+private theorem csPts_persist_st (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
+    csPts (GF := GF) p dq c al ⊢ |==> csPts p DFrac.discard c al := by
+  iintro H
+  iNamed H
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HV with #HV
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hv with #Hv
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HL with #HL
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hl with #Hl
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HO with #HO
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ho with #Ho
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HN with #HN
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hn with #Hn
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HA with #HA
+  imodintro
+  iunfold csPts
+  iexists sv, sl, so, sn, pa
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  ipureintro; exact Hal
+
 theorem storage.BackendHooks.SetConfState.wp_proof
     (hClone : proto.CloneConfState.spec (GF := GF) (hG := hG)) :
     storage.BackendHooks.SetConfState.spec (GF := GF) (hG := hG) := by
@@ -40,9 +63,10 @@ theorem storage.BackendHooks.SetConfState.wp_proof
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold storage.csInv at Hinv
-  icases Hinv with ⟨%cs0, %d, Hcsf, Hd⟩
+  icases Hinv with ⟨%cs0, %d, Hcsf, Hd, -⟩
   (try wp_auto)
-  icases Hcs with (%Hnil | ⟨%c, #Hc⟩)
+  iunfold storage.csOkN at Hcs
+  icases Hcs with (%Hnil | ⟨%c, #Hc, %Hcn⟩)
   · subst Hnil
     wp_apply hClone.2
     (try wp_auto)
@@ -51,17 +75,20 @@ theorem storage.BackendHooks.SetConfState.wp_proof
       iunfold storage.csInv
       iexists _, _
       iframe
+      iunfold storage.csOkN; ileft; ipureintro; rfl
     (try wp_auto)
     iapply HΦ
     itrivial
-  · wp_apply hClone.1 cs DFrac.discard c $$ [] as %p' ⟨-, -⟩
+  · wp_apply hClone.1 cs DFrac.discard c $$ [] as %p' ⟨-, Hp'⟩
     · iframe #
+    imod csPts_persist_st _ _ _ _ $$ Hp' with #Hp'
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hcsf Hd]
     · inext
       iunfold storage.csInv
       iexists _, _
       iframe
+      iunfold storage.csOkN; iright; iexists c; iframe Hp'; ipureintro; exact Hcn
     (try wp_auto)
     iapply HΦ
     itrivial

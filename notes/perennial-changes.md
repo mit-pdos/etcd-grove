@@ -17,15 +17,163 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `wp_auto` on a large struct literal: 147s for a 34-field struct (2026-11-18, proof-perf)
+### `go.NotInterface` of the predeclared named types; the standard-library axioms that only bodies would discharge (2026-11-19, branch `prove-stdlib/2026-11-19`)
 
-`k8s.etcd3.genFrom` (326s): after `wp_apply wp_uidOf`, one `wp_auto` builds the 34-field `Op` struct
-literal and takes 147s, in many sub-second steps (no unification of a second or more). The struct
-automation's cost seems superlinear in the number of fields; every proof building a large Go struct
-pays it (`NewServer`/`NewServerR` build the server's). To investigate in Perennial with a reproduction
-(a struct of n fields, n = 4, 8, 16, 32), not worked around here.
+- **Limitation.** `go_method_resolve_step` needs `[go.NotInterface tunder]`, and Perennial's
+  instances (`Golang/Theory/PostLifting.lean`) are per type constructor (`notInterface_Named`, ...):
+  none matches `go.int64` (`def int64 := go.Named go!"int64" []`, not reducible) or the other
+  predeclared types. So a value method of a named type over a predeclared one, called through
+  goose's pointer wrapper (`(*time.Duration).Nanoseconds`), has no step.
+- **Workaround here.** `Proof/time/Duration__Nanoseconds_ptr.lean`: a local
+  `haveI : go.NotInterface go.int64 := ⟨by simp [go.int64]⟩` (a proof, no axiom).
+- **Proposed change.** `NotInterface` instances for the predeclared types (or make them
+  reducible), next to `notInterface_Named`.
+- **Also (the stdlib group of trust-boundary axioms).** Of `strings.{Contains,HasSuffix,SplitN,
+  ToLower,TrimSuffix}`, `strconv.{FormatBool,FormatInt,FormatUint,Itoa,ParseBool,ParseInt}`,
+  `binary.{ReadInt64LE,ReadUint64,WriteUint64,WriteUint8}` (`binary.Read`/`Write`, through
+  `reflect`), `errors.Join`, `io.{ReadFull,CopyN}` and `time.Duration.{Seconds,String}` (floats,
+  formatting), the pinned Perennial (`3afd77e35`) translates none of the bodies (names only), so
+  each stays an axiom here until Perennial's `*.toml` translates it (`Seconds`: never, a float).
+  The cheap ones to translate: `strings.HasSuffix`/`TrimSuffix`/`Contains` (over
+  `internal/stringslite`), `strconv.FormatBool`/`ParseBool`, `io.ReadFull`/`ReadAtLeast`.
+- **Status.** Open.
 
-### `solve_pkg_init` searched the package DAG without memoization: landed, awaiting a pin bump (2026-11-18)
+### `SprintfOut` of a literal prefix and of `pre%vmid%v` (2026-11-18, k8s 7g)
+
+- **Missing.** `fmt`'s inversions (`Perennial/Proof/fmt/Base.lean`) go one byte at a time
+  (`byte_inv`) or name whole formats (`v_str`, `str_x`, ...); nothing copies a `%`-free literal in one
+  step, nor computes a format of the shape `lit%vlit%v`.
+- **Who needs it.** `storage.Preconditions.Check`'s message (`KPre.failMsg`, k8s 7g: the checker's
+  model compares two `NewInvalidObjError`s by their messages).
+- **Workaround.** `k8s.sprintfOut_lit` and `k8s.sprintfOut_v2` in
+  `Proof/k8s_io/apiserver/pkg/storage/InvalidMsg.lean`, from `byte_inv`, `strArg_inv`, `v_str`.
+- **Proposed.** `SprintfOut.lit_inv` (a `%`-free literal) beside `byte_inv`. Status: recorded, not
+  proposed yet.
+
+### `≤u` to an interface does not chain through a named interface alias (2026-11-18, k8s 7g)
+
+- **Missing.** `method_interface_ok` needs `[t ≤u go.InterfaceType elems]`. For `meta.List`
+  (goose: `List'.ty`, underlying the reducible `List'.underlying := metav1.ListInterface.ty`, itself
+  a named interface) instance search does not find `List'.ty ≤u InterfaceType _`, though both
+  `List'.ty <u metav1.ListInterface.ty` and `metav1.ListInterface.ty ≤u InterfaceType _` are found
+  (the outParam of the first is the reducible `List'.underlying`, not syntactically the type the
+  second instance is keyed on). `wp_auto` then makes no progress on `accessor.GetResourceVersion()`.
+- **Who needs it.** The maintainers' checker's `listResponseRV`/`equalListResponse` (k8s 7g step 3).
+- **Workaround.** In the proof: `haveI : List'.ty ≤u InterfaceType _ :=
+  ⟨hle2.underlying_unfold.trans hle1.underlying_eq⟩` from the two found instances
+  (`Model__listResponseRV.lean`, `Model__equalListResponse.lean`).
+- **Proposed.** Goose emits the alias's `underlying` instance at the aliased type itself (or the
+  transitive instance unfolds reducible outParams). Status: recorded, not proposed yet.
+
+### Generic maps and slices iterators: `maps.Keys`/`Clone`/`Equal`, `slices.Sorted`/`Collect`/`AppendSeq` (2026-11-17, k8s 7g)
+
+- **Missing.** Perennial translates the standard library's `maps` names only (no bodies), and
+  `slices.Sorted`, `slices.Collect`, `slices.AppendSeq`, `slices.Values` names only, so no generic
+  spec of them exists. They are small, generic and need no reflection: `maps.Keys(m)` is a closure
+  ranging over `m`; `slices.Sorted(seq)` is `Collect` then `Sort`; `Collect` is
+  `AppendSeq(nil, seq)`, a range over a function iterator (which goose already translates:
+  `testdata/examples/semantics/range_func.go`); `maps.Equal` is a length test and a loop with
+  `==` on a `comparable` value type; `maps.Clone` calls the runtime's `maps.clone` (linkname).
+- **Who needs it.** The maintainers' checker in the k8s etcd3 driver (k8s 7g,
+  `notes/k8s-7g-scope.md` Q8): `slices.Sorted(maps.Keys(s.Items))` in `Model.list`/`listItems`, and
+  the D30g patch's `maps.Clone`/`maps.Equal` of `NeedsRewrite`. Any later Go code ranging over
+  sorted map keys (a common idiom since Go 1.23) needs the same.
+- **Workaround here.** Four trust-boundary specs at the checker's types only
+  (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
+  iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
+  test (`examples/k8s/etcd3/trustspecs_test.go`). They go when the pin reaches the change.
+- **Proposed change (translation and proofs only, no new assumption).**
+  1. Translate `maps` with bodies: `Keys`, `Values`, `All`, `Equal`, `EqualFunc`, `Copy`, `Collect`,
+     `Insert`, `DeleteFunc`; `Clone` with a model of `runtime.maps.clone` as a loop of inserts over a
+     fresh map (`make(M, len(m))` then `for k, v := range m { r[k] = v }`), which is the observable
+     behavior (a fresh map, same entries; `nil` for `nil`), stated in the model's docstring.
+  2. Translate `slices.Collect`, `AppendSeq`, `Sorted`, `SortedFunc`, `Values`, `All` with bodies.
+  3. Specs over `ownMap` (with `SafeMapKey` for the key type) and an iterator protocol: a predicate
+     `seqYields f P xs` ("running `f` with a yield that accepts yields `xs` in order, under the
+     resource `P`"), produced by `maps.Keys` (`xs` some order of the domain, `P` the map points-to),
+     consumed by `Collect`/`AppendSeq`/`Sorted` (`Sorted` at an ordered element type: the sorted
+     permutation, at `string` by `go.GoStringLt`, reusing `slices.Sort`'s spec); `Equal` at a
+     strictly comparable value type (`b = true ↔ m1 = m2` for non-nil maps; nil maps as empty);
+     `Clone` (`m ↦$ M` fresh, or `nil` for `nil`).
+- **Status (2026-11-17).** Proposed only (no Perennial branch). To be designed and reviewed on a
+  branch off Perennial's `lean` when the user wants it.
+
+
+### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
+
+- **Limitation.** `modelcheck.Assign` (`docs/design/unsafe-memory.md`, R4) reports every copy of a
+  pointer-free struct between two memory places whose bases differ. deepcopy-gen writes two such
+  copies that cannot partially overlap: `*out = new(T); **out = **in` (the destination is the
+  allocation of the line before: `LifecycleHandler.Sleep`, a `*SleepAction`), and
+  `out.F = in.F` with `in`, `out` two `*S` of a struct `S` that holds pointers (`NodeStatus`'s
+  `out.DaemonEndpoints = in.DaemonEndpoints`): R3 makes every `unsafe` view of a non-plain type
+  stuck, so two `S` objects are the same or disjoint, and so are their fields at the same path.
+- **Needed by.** The deep copies of `Pod` and `DaemonSet` (`LifecycleHandler.DeepCopyInto`) and of
+  `Node` (`NodeStatus.DeepCopyInto`), `etc/gen-k8s-deep.py`; their `DeepCopyObject.wp_proof` stay
+  trust-boundary axioms (`Proof/k8s_io/api/{core,apps}/v1/*__DeepCopyObject.lean`).
+- **Workaround here.** None: the two functions are not translated (Goose's `trusted` does not apply
+  to methods), so their callers' copies are not proved.
+- **Proposed change.** Two exemptions in `modelcheck.Assign`, each a syntactic argument like the
+  existing ones: (1) a dereference whose base was assigned a fresh allocation by the statement just
+  before in the same block (`*out = new(T)` then `**out = ...`); (2) the same field path on both
+  sides from two bases of the same pointer type `*S`, `S` not pointer-free.
+- **Status.** Not started.
+
+### A range-loop spec for slices (2026-11-18, k8s deep copies)
+
+- **Missing.** Perennial has `wp_string_for_range` and `wp_map_for_range`, but no spec of
+  `slice.forRange` (only its unfolding, `pure_wp_slice_for_range`, to a counter loop).
+- **Workaround here.** `wp_slice_for_range` in `Proof/k8s_io/api/DeepCopyBase.lean` (a loop that
+  only reads the slice, an invariant `P i`, a body that ends normally); the generated modules
+  remove the instance `pure_wp_slice_for_range` locally so that `wp_auto` stops at the
+  `slice.forRange` the spec is about.
+- **Proposed change.** A general `wp_slice_for_range` in `Theory/Slice.lean` (with
+  `forRangePostcondition`, as the string one), and a way to apply it after `wp_auto`.
+- **Status.** Not started.
+
+### `io.NewSectionReader`, `io.CopyN` without bodies (2026-11-18, S4, branch `s4-io`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only for `NewSectionReader`, `CopyN`,
+  `Copy`, `copyBuffer`, `LimitReader`, `(*LimitedReader).Read` and `(*SectionReader).Read`
+  (`Perennial/Code/io.lean`), so none can be stepped. bbolt's `Tx.WriteTo` (tx.go) copies its data
+  pages with `io.CopyN(w, io.NewSectionReader(tx.db.file, dataOffset, dataSize), dataSize)`.
+- **Workaround here.** Two trust-boundary axioms: `io.NewSectionReader.wp_proof`
+  (`Spec/io/NewSectionReader.lean`) and `io.CopyN.wp_proof` (`Spec/io/CopyN.lean`), over the
+  vocabulary of `Proof/io/SectionReader.lean` (`io.secReader`, opaque; the `io.ReaderAt` contract
+  `io.readerAtOk`; `io.writerPlain`: no `ReadFrom`, which `copyBuffer` would call instead) and the
+  backend's writer contract `backend.writerOk`. An `*os.File` meets `readerAtOk` from its racing
+  read (`os.File.readerAtOk`, `Proof/os/ReaderAt.lean`). Not a part-local translation, for the reason
+  of `io.ReadFull`'s entry below (`io` is imported by Perennial's other packages).
+- **Proposed.** `io.toml`: translate the seven with bodies (`SectionReader`'s struct and its other
+  methods may stay names-only; `EOF`, `ErrShortWrite` and `errInvalidWrite` are package variables
+  already), and prove in `Perennial/Proof/io/` the two specs over a `ReaderAt` contract and a `Writer`
+  contract (the latter moved from etcd-grove's backend to Perennial with `writerPlain`):
+  `NewSectionReader` an allocation, `CopyN` a Löb induction over `copyBuffer`'s loop with the
+  invariant "`written` bytes appended, the section and limited readers at `off + written`, `n -
+  written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
+  `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
+  become theorems with the same statements. Not yet proposed.
+
+### `wp_auto`'s free-variable checks were exponential on struct values: landed, in the pin since `3afd77e35` (2026-11-18, perf2; pin bump 2026-11-19)
+
+`k8s.etcd3.genFrom` (326s on CI): after `wp_apply wp_uidOf`, one `wp_auto` took 147s (202s profiled
+under load), in no step of a second or more. Cause (gdb stack samples: 22 of 26 in
+`Expr.containsFVar`): `unusedPointsto`, which `wp_auto` runs at its end for every local points-to and
+every hypothesis, used `Expr.containsFVar`/`hasAnyFVar`, which walk an expression as a tree. A struct
+value updated field by field (`in.Kind = ...; in.Val = ...; ...`) is `mk (p₁ v) … x … (pₙ v)` around
+`v` once per update: a DAG of linear size but a tree of `n ^ k` nodes; for 34 fields and 5 updates one
+`containsFVar` takes 580ms (reproduction: `n` = 4, 8, 16, 34 fields, `k` = 1..5 updates; 16 fields and
+5 updates 18ms, 34 and 4 18ms, 34 and 5 580ms; `Expr.findExt?`, which visits each shared subterm once,
+0ms for all). `wp_if_subst_closed` and the `PureWp` cache's scope check had the same pattern. Not
+superlinear in the struct automation itself: the cost is in the number of field updates.
+
+Perennial `cbc377b20` (landed on `lean` as `721050938`): `exprHasAnyFVar`/`exprContainsFVar`
+(`Golang/Theory/ProofMode.lean`) through `Expr.findExt?`, used in those three places. Measured here
+against the pin `6d365ee1a` with the two changed modules' `.olean`s overlaid (`lake env lean`, run beside
+the base): `genFrom` 211s to 124s CPU (227s to 134s wall); `NewServer` (389s) and `NewServerR` (458s)
+unchanged: their slow `wp_auto` steps are not this. Take it with the next pin bump.
+
+### `solve_pkg_init` searched the package DAG without memoization: landed, in the pin since `3afd77e35` (2026-11-18; pin bump 2026-11-19)
 
 Perennial `cb8e7bc67` (on `lean`): `pkgInitChain` remembers the packages whose dependencies were searched
 without reaching the target (the same proof found). `EtcdServer.LeaseRenew` 220s to 175s (14 calls, 3.5s
@@ -970,9 +1118,16 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   the same name as a field (`intstr.IntOrString`'s field `Type` of type `Type`) resolves to the
   field's projection (`(y : Type')` is `IntOrString.Type'`).
 - **Needed by.** `k8s.io/apimachinery/pkg/util/intstr.IntOrString` (the DaemonSet's rolling-update
-  fields).
+  fields). Since 2026-11-18 also the deep copies of `Pod` and `DaemonSet` (`etc/gen-k8s-deep.py`):
+  `ProbeHandler`/`LifecycleHandler` copy an `*HTTPGetAction`/`*TCPSocketAction` (an `IntOrString`
+  inline) and `RollingUpdateDaemonSet` its `*IntOrString`s, which are never owned while the type is
+  axiomatized; their `DeepCopyObject.wp_proof` stay axioms. Still there at the pin `f551a1b46`
+  (2026-11-18: dropping `translate_types_except_structs` gives `set_Type : ∀ (x : IntOrString)
+  (y : Type')`, which fails to elaborate: "type expected, got (Type' : IntOrString → intstr.Type')").
 - **Workaround here.** `intstr`'s structs axiomatized (`translate_types_except_structs`).
-- **Proposed.** Qualify package-level types in the generated lemmas (`_root_.Perennial.<pkg>.T'`).
+- **Proposed.** Qualify package-level types in the generated lemmas (`_root_.Perennial.<pkg>.T'`);
+  the binder is written in `structFieldAssumptions` (`goose/lean_types.go`, `set_<field>`), from
+  `toLeanTypeP`, which names a type of the package unqualified.
 - **Status.** Not started.
 
 ### Goose: range over a string (2026-10-26, client-go survey C1)
@@ -2795,3 +2950,79 @@ parameter.
   (2) later, model `%w` (a `*fmt.wrapError` with `Unwrap`, its message the formatted string) and the
   arguments' formatting-method calls, with a spec taking the methods' specs (`fmt.argOk`-like).
 - **Status.** Recorded only.
+
+## 2026-11-17: `Sprintf`'s `%p` (bbolt's `(*Options).String`, S2 of `notes/bbolt-integration-plan.md`)
+
+- **Missing.** No spec of `fmt.Sprintf` (Perennial's `wp_Sprintf` over `ArgsWf`, this repository's
+  `Spec/fmt/Sprintf*.lean` over `fmt.argOkAt`) admits `%p` of a func or of a pointer: `ArgWf` takes predeclared basic
+  types and named integers only, and `argOkAt` asks the same under a verb that is not a method verb. Go's `%p` prints
+  the pointer's address (`fmt/print.go`, `fmtPointer`), calling no method and reading no memory. bbolt's
+  `(*Options).String` formats its `OpenFile` and `Logger` with `%p`.
+- **Workaround here.** `bbolt.Options.String.wp_proof` stays a trust-boundary axiom (now over the translated
+  `Options`' points-to); no new axiom.
+- **Proposed.** `ArgWf` (or a verb-indexed variant) admitting a func, pointer, map, channel or unsafe-pointer value
+  under `%p`, with the model's output arbitrary (`other`); a `%s` of a `Stringer` (`time.Duration`) then needs
+  `fmt.argOkAt`'s method-verb disjunct only.
+
+## 2026-11-18: no bound on the iterations of a range loop over a string (`fs.FileMode.String`, S3g)
+
+- **Missing.** `go.runes s` (`goose/model/strings/Base.lean`) has no length lemma: a proof whose loop
+  body indexes a buffer by the iteration count (`FileMode.String`'s `buf[w]`, `w` at most the runes
+  seen) needs `(go.runes s).length ≤ s.length`.
+- **Workaround here.** Private `runesFrom_length_le`/`runes_length_le` in
+  `Proof/io/fs/FileMode__String.lean` (an induction on the fuel).
+- **Proposed change.** Those two lemmas beside `runesFrom_cons` in Perennial. Status: not proposed.
+
+## 2026-11-18: `translate_types` refuses a struct with a field of a cross-package generic alias (grpc's `health.Server`)
+
+- **Missing.** grpc's `health.Server` stays axiomatized (`sorry -- axiomatized type`) because the type of
+  one of its fields, `grpc_health_v1.Health_WatchServer`, is a generic type alias of another package
+  (`= grpc.ServerStreamingServer[HealthCheckResponse]`), which Goose's `translate_types` does not
+  translate. So `health.Server.SetServingStatus` and the `testEmbeddedByValue` check of
+  `grpc_health_v1.RegisterHealthServer` cannot be stepped through.
+- **Workaround here.** The health server's methods stay trust-boundary axioms over `grpcHealthSrv`.
+- **Proposed change.** Goose: translate a field whose type is a (cross-package) alias of an
+  instantiated generic type, as the instantiated type. Status: not proposed.
+
+## 2026-11-18: `errors.As`'s spec does not constrain its result (apimachinery's `IsTimeout`/`HasStatusCause`)
+
+- **Missing.** Perennial's `errors.As.spec` (`Perennial/Spec/errors/As.lean`) returns any boolean and
+  says nothing of the target it writes, so a caller's result that depends on it cannot be proved from
+  the real code: k8s apimachinery's `apierrors.IsTimeout`/`HasStatusCause` (`errors.As(err, &status)`
+  then a field of the status) stay axioms. (See also "`errors.Is`/`errors.As` at non-pointer targets
+  and for leaves" above.)
+- **Workaround here.** Their specs stay trust-boundary axioms.
+- **Proposed change.** An `errors.As` spec that, for a leaf error (no `Unwrap`, no `As`), returns `true`
+  exactly when the error's dynamic type is the target's element type (or implements it, for an
+  interface target), and then stores the error's value into the target. Status: not proposed (found by
+  the refimpl session, 2026-11-18).
+
+## 2026-11-19: `wp_slice_make3` does not say the slice is not `nil` (k8s 7g, `toEventReference`)
+
+- **The gap.** Perennial's `wp_slice_make3` gives the new slice's points-to and capacity but not
+  `sl ≠ slice.nil`, which Go guarantees for `make([]T, n, c)` (and which a caller comparing the result
+  with `nil`, here `reflect.DeepEqual` in the k8s checker, needs).
+- **Worked around locally.** `wp_slice_make3_nn` (`Proof/.../k8s/etcd3/correctness/WatchLemmas.lean`): a
+  copy of `wp_slice_make3`'s proof with the extra conjunct.
+- **Proposed (general).** Strengthen `wp_slice_make3`'s post with `⌜sl ≠ slice.nil⌝` (a stronger post,
+  no premise). **Status.** Recorded only.
+
+## 2026-11-19: closure values and their captured cells (k8s 7g, `realCheck`)
+
+- **The gap.** Nothing relates a closure value (`GoFunc`) to the cells it captured: two WP specs of one
+  closure give no pure agreement of what they are about. `realCheck`'s porcupine model needs it (two
+  operations with the same `Request` value, i.e. the same `validateFor`/`tryUpdateFor` closure, step alike).
+- **Worked around locally.** `Proof/.../k8s/etcd3/ClosPin.lean`: `exprVals` (the leaf values of an `Expr`) and
+  pins at the indices of the translated bodies (`validatePin`, `tryUpdatePin`), proved by the closures' specs.
+- **Proposed (general).** A Perennial notion of a closure's captured cells (e.g. `func.captures f ls`, produced
+  by `wp_auto` when it evaluates a `Lam` under allocated variables), with agreement for equal values.
+  **Status.** Recorded only.
+
+## 2026-11-19: `GMap.ofList`'s docstring says the opposite of its definition (k8s 7g, `initialModel`)
+
+- **The gap.** `Perennial/Std/GMap.lean`: `ofList` and `listToMap` are documented as "later bindings win",
+  but `ofList ((k, v) :: l) = insert k v (ofList l)` inserts the head last, so the FIRST binding of a key wins.
+- **Worked around locally.** None needed: `initialModel`'s spec takes distinct store keys
+  (`(st.items.map (storeKeyL ∘ key)).Nodup`), so the order does not matter there.
+- **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
+  **Status.** Recorded only.

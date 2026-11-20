@@ -33,7 +33,7 @@ abbrev backend.baseReadTx.UnsafeRange.spec : Prop :=
       endKey ↦*{de} eb }}
     (App (App (App (App (Val (base @!! go.GoType.PointerType baseReadTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
   {{ (keys vals : GoSlice), RET (PairV #keys #vals); baseRd γ P base dq rtx rv q ∗
-      key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }}
+      key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd γ.db rtx keys vals (rtRange rv bi kb eb limit) }}
 
 end spec
 

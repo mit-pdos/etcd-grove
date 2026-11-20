@@ -11,6 +11,8 @@ states the one the fact reads (`metrics.go:42` at the apiserver pin `9c4ec15b803
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.k8s_io.apimachinery.pkg.runtime.schema.Init
+public import Proof.k8s_io.component_base.metrics.Init
 public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
@@ -93,6 +95,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply (_root_.Perennial.k8s_io.component_base.metrics.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (errorsNewVarsInit ErrTransactionConflict.init ErrTransactionConflict go!"transaction conflict" (by mem_tac))
     as ⟨%xErrTransactionConflict, HErrTransactionConflict, #MErrTransactionConflict, #CErrTransactionConflict⟩
   wp_apply (opaqueInitsOk etcdRequestLatency.init (by mem_tac))

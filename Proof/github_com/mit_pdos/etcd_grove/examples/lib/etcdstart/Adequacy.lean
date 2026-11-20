@@ -30,6 +30,7 @@ public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Metrics
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeLevels
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
 
 @[expose] public section
 
@@ -57,11 +58,6 @@ section adequacy
 variable [GooseExts] [GooseInterp]
 variable [GooseSemantics] [GoGlobalContext]
 variable {GF : BundledGFunctors}
-
-/-- **A ghost-state instance at the local context `lctx`** (the examples state their hypotheses
-over every instance whose Go local context is the semantics' own). -/
-abbrev heapWith (hG : HeapGS .hasLC GF) (lctx : GoLocalContext) : HeapGS .hasLC GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-- **The right to initialize, from the empty package state.** -/
 theorem ownInitializing_of_empty [hG : HeapGS .hasLC GF] (getInit : GoString → IProp GF) :
@@ -163,7 +159,8 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         (⊢ (|==> ∃ x, T x : IProp GF)) ∧
         ∀ x, progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
           iprop((([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
-            ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x) init body φ) :
+            ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x ∗
+            extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
@@ -179,11 +176,11 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   letI : HeapGS .hasLC GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
   unfold IsInit at Hinit
   rw [Hinit]
-  iintro - - Hgs Htok Hrights
+  iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
   icases Hrights with ⟨Hns, Has, Hps, Hds, #Hvoff⟩
   imod Halloc with ⟨%x, HTx⟩
-  iapply (wp_of_progOk _ _ init body φ (Hp x)) $$ Hgs Htok [Hns] [Has Hps Hds HTx]
+  iapply (wp_of_progOk _ _ init body φ (Hp x)) $$ Hgs Htok [Hns] [Has Hps Hds HTx Hl]
   · iunfold read.readRegPerm
     icases BigSepL.bigSepL_cons.1 $$ Hns with ⟨Hn1, Hr⟩
     icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hn2, -⟩
@@ -194,7 +191,9 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
 `init_adequate`, for a program whose initializer takes the read package's two metric names and
 whose body the addresses `As`, each with its HTTP protocol unregistered (`httpProtoFree`, 2026-10-24,
 rafthttp stage 6a, D39a), and (2026-11-03, the WAL's API) the members' data directories `Ds` fresh
-(`dataDirFresh`). (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvLevelK` (until then
+(`dataDirFresh`), and (wal-link P2, 2026-11-19) the extensions' local start resources
+(`extsLocalStart`: the etcd examples' file extension's, from which `AdequacyMembers.lean` allocates the
+members' WAL areas). (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvLevelK` (until then
 `n + 2`): the revocation's goroutines use `srvRevokeK` levels of a thread token
 (`srvRevokeLevels`), and (per-type stage B2, r5 §3.3) a serving member's gRPC runs `srvLevelK`
 (`srvLevels`; one more, `srvLevelK := srvRevokeK + 1`: a stream run's level 4, k8s 7f-4). -/
@@ -215,7 +214,8 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
       threadBound GF = max (n + 2) srvLevelK →
       progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
         iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
-          ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) init body φ) :
+          ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff ∗
+          extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
@@ -231,10 +231,10 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   letI : HeapGS .hasLC GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
   unfold IsInit at Hinit
   rw [Hinit]
-  iintro - - Hgs Htok Hrights
+  iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
   icases Hrights with ⟨Hns, Has, Hps, Hds, #Hvoff⟩
-  iapply (wp_of_progOk _ _ init body φ Hp) $$ Hgs Htok [Hns] [Has Hps Hds]
+  iapply (wp_of_progOk _ _ init body φ Hp) $$ Hgs Htok [Hns] [Has Hps Hds Hl]
   · iunfold read.readRegPerm
     icases BigSepL.bigSepL_cons.1 $$ Hns with ⟨Hn1, Hr⟩
     icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hn2, -⟩

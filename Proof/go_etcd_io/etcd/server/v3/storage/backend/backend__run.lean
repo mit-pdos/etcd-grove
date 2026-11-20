@@ -92,12 +92,13 @@ theorem backend.backend.run.wp_proof
       wp_apply (hlock γ P W Pk b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Hq⟩
       · iframe #
       ihave Hl := batchLocked_W γ P b st $$ Hl
-      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True) (vData P (st.C, st.R))) $$ [$Hl $HWR Hus]
-        as ⟨-, HWR, Hpo, Hpost⟩
+      ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True) ⊤
+      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True) (vData P (st.C, st.R)) false [] iprop(True) ⊤ CoPset.subseteq_top) $$ [$Hl $HWR Hus]
+        as ⟨-, -, HWR, Hpo, Hpost⟩
       · iframe #
         isplitr
         · ipureintro
-          exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1⟩
+          exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1, fun n hn => Or.inl (Hfo.1.2.2.2.2.2 n hn)⟩
         isplitr
         · simp only [Bool.false_eq_true, ↓reduceIte]
           rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
@@ -105,13 +106,13 @@ theorem backend.backend.run.wp_proof
         isplitr
         · ipureintro; intro h; cases h
         isplitr
-        · ipureintro; exact Hfo.1.2.2.2.2
+        · ipureintro; exact Hfo.1.2.2.2.2.1
         unfold payIn
         rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
         iframe Hus Hlb
         isplitr
-        · itrivial
-        iapply commitReq_true
+        · iapply commitReq_true
+        ipureintro; exact ⟨List.nodup_nil, by simp⟩
       unfold payOut
       rw [if_pos ⟨rfl, rfl⟩]
       icases Hpo with ⟨%u', Hus⟩
@@ -121,7 +122,7 @@ theorem backend.backend.run.wp_proof
       wp_call
       unfold batchPhys
       icases Hph2 with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
-      rw [Hfin.2.2]
+      rw [Hfin.2.2.1]
       wp_auto
       wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg2 HWv HWR]
       · iframe #
@@ -131,7 +132,7 @@ theorem backend.backend.run.wp_proof
         isplitl
         · unfold batchPhys
           iexists hk
-          rw [Hfin.2.2]
+          rw [Hfin.2.2.1]
           iframe
           iframe #
         · ipureintro

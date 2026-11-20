@@ -241,6 +241,23 @@ internal transaction without its trace, at the state it began at, with the reade
 @[no_expose] def mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF :=
   api.mvccTxnI t (γ : StoreNames) trace k
 
+/-- **A write transaction's puts are short** (a law of the vocabulary, proved here; S1b of
+`notes/bbolt-integration-plan.md`, 2026-11-17): the state it began at is reachable (its puts at most
+`etcdKeyMax` bytes, `reach_putsLe`), and so is every pending put's key and value. -/
+theorem mvccTxn_write_putsLe (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState)
+    (pend : List Change) :
+    mvccTxn (GF := GF) t γ trace (.write σ pend) ⊢
+      mvccTxn t γ trace (.write σ pend) ∗ ⌜MvccReachable σ ∧ ChPutsLe etcdKeyMax pend⌝ := by
+  unfold mvccTxn
+  simp only [mvccTxnI]
+  iintro H
+  icases H with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk, Htx, Hback, #Hfree, Hwrap⟩
+  isplitl
+  · iexists mw, s, p, puts, deletes, putSize
+    iframe Htx Hback Hfree Hwrap
+    ipureintro; exact Hk
+  ipureintro; exact Hk.2
+
 /-- The rest of a stream's handle: its channel (buffered) and the channel's invariant, at a
 watchable store `s` of `γ` (stage 2, the watch chain, 2026-11-05: what `wsChan_recv.law` needs);
 the stream `ws` itself (`isWatchStreamAt`, over the store at that channel), and the store's
@@ -516,14 +533,16 @@ abbrev KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
         ⌜LogWf' σ.log ∧ ∀ cs ∈ σ.log, cs.length < 2 ^ 63⌝ }}
 
 /-- **`Put(key, value, lease)`** (a write transaction of one put): the hook, then the commit's two
-steps at the state the update gives (the lessor's item map that state's). -/
+steps at the state the update gives (the lessor's item map that state's). The key and the value of
+at most `etcdKeyMax` bytes (S1b of `notes/bbolt-integration-plan.md`, 2026-11-17: the store's states
+put no longer, `MvccReachable`, so that every entry it writes fits bbolt's). -/
 abbrev KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (q : Qp) (B : MvccStorage)
     (P Pre Q' Post : IProp GF) (f : GoFunc) (Q : MvccState → IProp GF),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ mvccReaders γ 1 ∗ key ↦*□ k ∗
       value ↦*□ vv ∗
-      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ ⌜k.length ≤ etcdKeyMax ∧ vv.length ≤ etcdKeyMax⌝ ∗
       lease.leaseOwn (mvccLeases γ) L I ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜pendItems σ.log [] = I⌝ }> @ ⊤ \ ↑mvccN, ∅
@@ -691,31 +710,38 @@ abbrev Txn.Range.contract (ty : go.GoType) (v : val) : Prop :=
         stateOk (stateAt k.readLog r')⌝ ∗
       ⌜LogWf' k.readLog ∧ ∀ cs ∈ k.readLog, cs.length < 2 ^ 63⌝ }}
 
+/-- A write transaction's put: appended to the pending revision. (Item 7b, 2026-11-17) In the lease owner's lessor
+window `w`, the put moves the key's item toward the window's target (`lease.winMove`; `True` at `w = none`). -/
 abbrev Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (pend : List Change)
-    (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64),
+    (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64) (w : Option lease.LWin),
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace (.write σ pend) ∗ traceutil.ownTrace trace te ∗
       key ↦*□ k ∗ value ↦*□ vv ∗ ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
-      lease.leaseOwn (mvccLeases γ) L (pendItems σ.log pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
+      ⌜k.length ≤ etcdKeyMax ∧ vv.length ≤ etcdKeyMax⌝ ∗
+      lease.leaseOwnW (mvccLeases γ) L (pendItems σ.log pend) w ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+      ⌜lease.winMove w (pendItems σ.log pend) (pendItems σ.log (pend ++ [.put k vv leaseID]))⌝ }}
     (App (App (App (Val #(methods ty go!"Put" v)) (Val #key)) (Val #value)) (Val #leaseID))
   {{ RET #(W64 (σ.log.length : Int) : w64);
       mvccTxn (interface.mkOk ty v) γ trace (.write σ (pend ++ [.put k vv leaseID])) ∗
       traceutil.ownTrace trace te ∗
-      lease.leaseOwn (mvccLeases γ) L (pendItems σ.log (pend ++ [.put k vv leaseID])) }}
+      lease.leaseOwnW (mvccLeases γ) L (pendItems σ.log (pend ++ [.put k vv leaseID])) w }}
 
 /-- A write transaction's delete of a range: the deletes of the range's present keys appended to
 the pending revision; the state after them well formed, each revision of fewer than `2 ^ 63` changes
-(txn's migration, 2026-11-05: decided by the coordinator, F). -/
+(txn's migration, 2026-11-05: decided by the coordinator, F). (Item 7b, 2026-11-17) In the owner's lessor window
+`w`, the window drops the items of the range (`lease.winDrops`, over the keys the range selects, `delSel`: stated
+without the keys found, which the caller learns only after the call). -/
 abbrev Txn.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Change) (key endk : GoSlice)
-    (k e : GoString) (L : List w64),
+    (k e : GoString) (L : List w64) (w : Option lease.LWin),
   let ds := (delKeys σ.log pend (decide (endk = slice.nil)) k e).map Change.del
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace (.write σ pend) ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      lease.leaseOwn (mvccLeases γ) L (pendItems σ.log pend) }}
+      lease.leaseOwnW (mvccLeases γ) L (pendItems σ.log pend) w ∗
+      ⌜lease.winDrops w (pendItems σ.log pend) (fun it => delSel (decide (endk = slice.nil)) k e it.Key')⌝ }}
     (App (App (Val #(methods ty go!"DeleteRange" v)) (Val #key)) (Val #endk))
   {{ (n rev : w64), RET (PairV #n #rev);
       mvccTxn (interface.mkOk ty v) γ trace (.write σ (pend ++ ds)) ∗
-      lease.leaseOwn (mvccLeases γ) L (pendItems σ.log (pend ++ ds)) ∗
+      lease.leaseOwnW (mvccLeases γ) L (pendItems σ.log (pend ++ ds)) w ∗
       ⌜n = W64 (ds.length : Int) ∧ rev = W64 ((writeRev σ.log (pend ++ ds) : Nat) : Int)⌝ ∗
       ⌜LogWf' (σ.log ++ [pend ++ ds]) ∧ ∀ cs ∈ σ.log ++ [pend ++ ds], cs.length < 2 ^ 63⌝ }}
 

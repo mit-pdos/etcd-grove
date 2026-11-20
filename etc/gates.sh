@@ -197,6 +197,13 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# the k8s API objects' deep values and deep copies, and the Goose configuration they translate
+# (Proof/k8s_io/api/Deep.lean, Proof/k8s_io/api/DeepCopy/, the generated blocks of the tomls)
+if python3 etc/gen-k8s-deep.py --check > "$tmp/k8sdeep.log" 2>&1; then
+  echo "gen-k8s-deep: ok"
+else
+  echo "gen-k8s-deep: FAILED"; tail -5 "$tmp/k8sdeep.log"; fail=1
+fi
 # every axiom returning holding an RWMutex reader slot charges a token (begin-tok; reads the sources,
 # and the Go sources in .lake/goose that goose.py above clones: so after it, in this section)
 python3 etc/reader-slot-check.py || fail=1
@@ -235,11 +242,18 @@ if python3 etc/issues-status.py --check > "$tmp/issues.log" 2>&1; then
 else
   echo "issues: FAILED"; tail -10 "$tmp/issues.log"; fail=1
 fi
+# the notes' merge drivers (etc/merge-status.py; .gitattributes): replays this week's real merges of
+# notes/STATUS.md and notes/status-history.md, and synthetic cases (reads git only; ~15s)
+python3 etc/merge-status.py --selftest || fail=1
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs
 # (k8s 7f-4, Addendum T-i; reads the sources only)
 python3 etc/bgcancel-check.py || fail=1
+# the k8s etcd3 driver's copy of Kubernetes' checker (examples/k8s/etcd3/correctness) is upstream's
+# at the driver's k8s.io/apiserver pin plus etc/k8s-correctness/d30g.patch, byte for byte (k8s 7g,
+# notes/k8s-7g-scope.md §1.1; needs go and the module cache; seconds)
+python3 etc/k8s-correctness-check.py || fail=1
 # the default feature gate's environment assumption (B5, k8s 7f-5 T5-c, Gate.lean): every
 # feature-gate mutator in the programs' compiled closures has its verdict in
 # etc/featuregate-allow.txt (needs go and the module cache; seconds)

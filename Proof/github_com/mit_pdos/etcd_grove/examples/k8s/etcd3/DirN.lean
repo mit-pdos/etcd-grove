@@ -123,7 +123,7 @@ def k8setcd3NAddrs (k : Nat) : List GoString :=
   (members k).map (·.Peer') ++ (members k).map (·.Client') ++ bridges k
 
 /-- **The program's data directories**: the members' `k8setcd3N-i.etcd`. -/
-def k8setcd3NDirs (k : Nat) : List GoString := (members k).map (fun m => m.Name' ++ go!".etcd")
+def k8setcd3NDirs (k : Nat) : List GoString := (members k).map (fun m => memberDataDir m.Name')
 
 /-- The program's start bundles, as `etcd_adequate_members` takes them. -/
 def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
@@ -152,9 +152,9 @@ theorem k8setcd3NDirs_perm (k : Nat) :
 
 theorem k8setcd3NDirs_nodup (k : Nat) (hk : k ≤ 1000) : (k8setcd3NDirs k).Nodup := by
   unfold k8setcd3NDirs
-  rw [show (fun m : GMember => m.Name' ++ go!".etcd") = (fun n => n ++ go!".etcd") ∘ (·.Name') from rfl,
+  rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
-  exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
+  exact List.Pairwise.map _ (fun a b h e => h (memberDataDir_inj e)) (members_names_nodup k hk)
 
 /-- Every address of the program is `127.0.0.1:<p>` with `p` in one of the three ranges. -/
 theorem addr_port (k : Nat) (a : GoString) (ha : a ∈ k8setcd3NAddrs k) :

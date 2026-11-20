@@ -140,7 +140,10 @@ abbrev RawNode.Step.spec : Prop :=
          ∃ (sv : SnapshotM) (scfg : CSLists),
            -- (D22 S-b′4, 2026-10-20) the index bound only (the rest from the certificate)
            ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-             uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
+             uint.Z sv.Metadata'.Index' < 2^61 ∧
+             -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode
+             -- (`RaftNames.reNoSnap`), which a sender's `isRaftMsg` says
+             γ.reNoSnap = false⌝ ∗
            -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`, `raft.Step`'s)
            isMessageC γ (absSnap st.msg sv scfg) ∗
            -- (D22 S-r, 2026-10-21) and its data certificate (`raft.Step`'s)

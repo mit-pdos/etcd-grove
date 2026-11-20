@@ -34,20 +34,20 @@ variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 `snap.Metadata` frozen at content `m` (raft's `metaRoC`), its `Index` and `Term` set; the record
 `walpb.Snapshot{Index, Term, ConfState: GetConfState()}` shares them, so its bytes are protobuf-go's of
 `metaWalC m`, which the premise asks to be the marshaller's of the model (`Mr.encSnap m.model`: the conf
-state's content as the marshaller encodes it; `notes/wal-link-scope.md` F2, discharged where `Mr` is fixed,
+state's content as the marshaller encodes it, `al` the history's presence bit; `notes/wal-link-scope.md` F2, discharged where `Mr` is fixed,
 L3). Otherwise `WAL.SaveSnapshot.spec` (its `shared` state) at `m.model`, the conf state present iff `m`'s
 is. -/
 abbrev storage.storage.SaveSnap.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (p ss : Loc) (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp)
-    (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (sized : Bool) (Q : WalDur → IProp GF),
+    (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al sized : Bool) (Q : WalDur → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storageOver p w ss ∗ storageRd p w ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-      ⌜m.index.isSome ∧ m.term.isSome⌝ ∗ ⌜snapEnc (metaWalC m) = Mr.encSnap m.model⌝ ∗
+      ⌜m.index.isSome ∧ m.term.isSome⌝ ∗ ⌜snapEnc (metaWalC m) = Mr.encSnap m.model al⌝ ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
       ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗ ⌜uint.nat m.model.Index' < 2 ^ 64 - 1⌝ ∗
-      ⌜(Mr.encSnap m.model).length < 2 ^ 40⌝ ∗
+      ⌜(Mr.encSnap m.model al).length < 2 ^ 40⌝ ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap m.model] }, COMM Q d }> }}
+        <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap m.model al] }, COMM Q d }> }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!! go!"SaveSnap")) (Val #sn))
   {{ (err : GoInterface), RET #err; storageRd p w ∗ sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
       ((⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗

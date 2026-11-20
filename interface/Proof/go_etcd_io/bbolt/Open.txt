@@ -8,9 +8,8 @@ theorem bbolt.isBolt.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.
 
 syntax bbolt.tacticOpen_exit_j__
 
-theorem bbolt.Open.wp_proof [sync.Assumptions] (hOpenFile : ∀ [inst : ExtSemantics Fs.fsExt]
-    [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], os.OpenFile.spec) (hCreate : ∀ [inst : ExtSemantics
-    Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], os.OpenFile.specCreate) (hName :
+theorem bbolt.Open.wp_proof [go.BasicIntoValInj] [sync.Assumptions] (hCS : ∀ [inst : ExtSemantics
+    Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], os.OpenFile.specCreateS) (hName :
     os.File.Name.spec) (hFlock : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt
     Fs.fsExt], bbolt.flock.spec) (hStat : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 :
     HasExt Fs.fsExt], os.File.Stat.spec) (hSize : os.fileStat.Size.spec) (hMZ : ∀ [inst :
@@ -22,37 +21,46 @@ theorem bbolt.Open.wp_proof [sync.Assumptions] (hOpenFile : ∀ [inst : ExtSeman
     Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.DB.loadFreelist.spec_open) (hSync : ∀
     [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt], bbolt.DB.hasSyncedFreelist.spec)
     (hFds : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt],
-    bbolt.fdatasync.spec) (hBegin : ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 :
-    HasExt Fs.fsExt], bbolt.DB.Begin_err.spec) (hCommit : ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 :
-    Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Tx.Commit_err.spec) (hClose : bbolt.DB.Close.spec)
-    (hclose : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt],
-    bbolt.DB.close.spec_owned) (hLogger : bbolt.DB.Logger.spec) (hOptStr :
-    bbolt.Options.String.spec) (hModeStr : bbolt.fs.FileMode.String.spec) : bbolt.Open.spec
+    bbolt.fdatasync.specW) (hBegin : bbolt.DB.Begin.spec) (hCommit : ∀ [inst : ExtSemantics
+    Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Tx.Commit_err.spec) (hClose :
+    bbolt.DB.Close.specTok) (hclose : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt
+    Fs.fsExt], bbolt.DB.close.spec_owned) (hLogger : bbolt.DB.Logger.spec) (hOptStr :
+    bbolt.Options.String.spec) (hModeStr : fs.FileMode.String.spec) : bbolt.Open.spec
   -- `Perennial.EtcdGrove.bbolt.Open.spec`, unfolded:
   ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] [ThreadBoundLe GF (2 ^ 29)]
-    [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac)
-    (o : bbolt.OptsM) (D : bbolt.Data) (R : Fs.Roots) (V : Fs.Hist),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗
-            Fs.osInv ∗
-              ⌜N ## Fs.osN⌝ ∗
-                Fs.osTree (DFrac.own 1) R V ∗
-                  bbolt.pathHolds R V path D ∗
-                    bbolt.optsAt opts dq o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ bbolt.boltLogger o.logger) -∗
-          (▷
-              ∀ db err,
-                (bbolt.optsAt opts dq o ∗
-                    ∃ V',
-                      Fs.osTree (DFrac.own 1) R V' ∗
-                        ⌜V' = V ∨ ∃ e, V' = V.push e⌝ ∗
-                          ((⌜err = GoInterface.nil⌝ ∗
-                              ∃ γ i,
-                                ⌜γ.ns = N ∧ Fs.lookupH R V' path = some (Fs.Node.file i)⌝ ∗
-                                  bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D) ∨
-                            ⌜err ≠ GoInterface.nil⌝)) -∗
-                  Φ (intoVal db, intoVal err)) -∗
-            WP ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal path)) (intoVal mode)) (intoVal opts)) {{ Φ }}
+    [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (R : Fs.Roots) (d b : GoString) (dq : DFrac) (j : Fs.Ino) (qc : Qp)
+    (h : Fs.NamesH) (mode : w32) (opts : Loc) (dqo : DFrac) (o : bbolt.OptsM) (D : bbolt.Data),
+    NameOk b →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.bbolt ∗
+              Fs.osInv ∗
+                ⌜N ## Fs.osN⌝ ∗
+                  Fs.osSharedInv R ∗
+                    Fs.osPathS R d dq j ∗
+                      Fs.osCallPerm (Fs.callKey R d) qc ∗
+                        Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗
+                          bbolt.nameHolds h b D ∗
+                            bbolt.optsAtNoErr opts dqo o ∗
+                              ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ bbolt.boltLogger o.logger) -∗
+            (▷
+                ∀ db err,
+                  (bbolt.optsAtNoErr opts dqo o ∗
+                      Fs.osPathS R d dq j ∗
+                        Fs.osCallPerm (Fs.callKey R d) qc ∗
+                          ∃ oc,
+                            crOut j b h (DFrac.own 1) oc ∗
+                              ((⌜err = GoInterface.nil⌝ ∗
+                                  ∃ γ i,
+                                    ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗
+                                      bbolt.isBolt db γ ∗
+                                        bbolt.boltIno γ i ∗ bbolt.boltState γ 1 D ∗ bbolt.boltCloser γ) ∨
+                                ⌜err ≠ GoInterface.nil ∧ ¬Fs.FsNoErr⌝)) -∗
+                    Φ (intoVal db, intoVal err)) -∗
+              WP
+                ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal (Fs.child d b))) (intoVal mode))
+                  (intoVal opts))
+                {{ Φ }}
 
 syntax bbolt.tacticOpen_args
 
@@ -66,20 +74,7 @@ theorem bbolt.open_lock [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (
 
 syntax bbolt.tacticOpen_tx_exit
 
-theorem bbolt.boltTx.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
-    Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (T T✝ :
-    bbolt.TxView) (e_T : T = T✝) : bbolt.boltTx tx γ q T = bbolt.boltTx tx✝ γ✝ q✝ T✝
-
-theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (D D✝ : bbolt.Data) (e_D : D = D✝) :
-    bbolt.boltState γ q D = bbolt.boltState γ✝ q✝ D✝
-
 syntax bbolt.tacticOpt_rdt_
-
-theorem bbolt.pathHolds.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (R R✝ :
-    Fs.Roots) (e_R : R = R✝) (V V✝ : Fs.Hist) (e_V : V = V✝) (path path✝ : GoString) (e_path : path
-    = path✝) (D D✝ : bbolt.Data) (e_D : D = D✝) : bbolt.pathHolds R V path D = bbolt.pathHolds R✝ V✝
-    path✝ D✝
 
 theorem bbolt.wp_logger_ne_discard_open (lg : GoInterface) (hty : bbolt.logPtrTyped lg) : ⊢ ∀ Φ,
     isPkgInit pkg_id.go_etcd_io.bbolt ∗ bbolt.boltLogger lg -∗ (▷ ∀ b, True -∗ Φ (intoVal b)) -∗ WP
@@ -88,10 +83,6 @@ theorem bbolt.wp_logger_ne_discard_open (lg : GoInterface) (hty : bbolt.logPtrTy
     go_etcd_io.bbolt.discardLogger))))) {{ Φ }}
 
 syntax bbolt.tacticOpen_ret
-
-theorem bbolt.txDB.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ : Loc)
-    (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (db db✝ : Loc) (e_db : db = db✝) :
-    bbolt.txDB tx γ db = bbolt.txDB tx✝ γ✝ db✝
 
 syntax bbolt.tacticOpt_rd_
 
@@ -103,3 +94,6 @@ theorem bbolt.open_unlock [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
     : Namespace) (γs : GName) (D : bbolt.Data) (dp db : Loc) : bbolt.dpProt N γs B.bq dp db ∗
     ghostVar γs (Qp.half 1) 1 ∗ typedPointsto dp db (DFrac.own 1) ∗ ghostVar B.st (Qp.half 1) D ⊢
     |={⊤}=> typedPointsto dp db DFrac.discard ∗ bbolt.boltState { gs := bbolt.mkGs B, ns := N } 1 D
+
+theorem bbolt.boltCloser.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) : bbolt.boltCloser γ = bbolt.boltCloser γ✝

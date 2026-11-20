@@ -1,6 +1,231 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 u, item 3 done; F1's approved form STOPPED: bbolt unprovable)
+## START HERE (2026-11-20 z7, AT THE LAND STOP; lean 3ce5a9e526 merged)
+
+- **Branch** `wal-link` (this commit), pin 3afd77e35 (`/shared/tmp/manifest-3af.json`). Do not commit while it lands.
+- **Done:** merges of lean up to 3ce5a9e526 (z6); gen-init's wal entry kept our `MaxSaveBatchBytes`/
+  `ErrSaveBatchTooLarge`; tcb baseline (733 axioms, 2 sorries: `storage.storage.Release.wp_proof`, `walFiles` gone),
+  70 collections (24 gain `recEncC_ok`), interfaces, axiom-tok allow (purgeFile proved), reader-slot floor 179,
+  STATUS entry. Full timed build 20261120-060813-3969904 green; `etc/gates.sh` passes but for the reader-slot floor,
+  since fixed (`/shared/tmp/wallink/gates-z12.log`); Go suite (`gosuite-z12.log`, `restartN-z12.log` back to back,
+  `k8scomp-z12.log`) passes; txnlin not run (needs a go.work).
+- **Next:** the coordinator's land (LAKE_PACKAGES=/shared/tmp/manifest-3af.json PERENNIAL_CHECKOUT=PERENNIAL_DIR=
+  /shared/perennial-3afd77e35, GOWORK unset); if lean moves first, merge it and rerun the build and gates.
+- **Follow-ups:** Go harness (ResetFamily leaves areas absent; global data dirs shared across runs); stale docstrings
+  (`InvRestart` `Hssp`, `etcdstart/Defs` `name.etcd`); optional `snapDirOf d` under `d` as a stated fact.
+
+### START HERE (2026-11-20 z6, lean 3ce5a9e526 MERGED; land list in progress)
+
+- **Branch** `wal-link` b6a2d8d787 (+ this note), pin 3afd77e35 (`/shared/tmp/manifest-3af.json`). Merged lean
+  34986d22ae, cee6468281 (S4, 7g, merge-origin7), 621788348a (auth-schema port: hD22 gone), 3ce5a9e526
+  (merge-driver, merge-origin8: wal metric initializers translated; `etc/gen-init.py` wal entry = lean's + our
+  `MaxSaveBatchBytes`/`ErrSaveBatchTooLarge`; `Code/` regenerated with `goose.py --project etcd`).
+- **Done since z5:** merge repairs (`RNNames GF` in S4's InvRaftNode/AuthCompRows; applySnapshot's `γw q` + S4's
+  `hns`); authlease (new on lean) got data dirs over `memberDataDir`, `HWal`, Go test reset; gates repairs
+  (SaveSnapshot imports `sync.specPre`'s Spec, not the proof; `RaftModel.Laws` out of tier-linking; tier baseline
+  shrunk; etcdstart API lists WalAreasInit/WalAreas; featuregate allow at the fork pin d3feef9bc).
+- **Builds:** full timed 20261120-034357-3465343 (rc 0, pre-621788348a), 20261120-051450-3837525 (rc 0); after
+  3ce5a9e526: log `/shared/tmp/wallink/full-z11.log` (`run-full-z5.sh`).
+- **Gates** (`/shared/tmp/wallink/gates-z9.log`, before the last merge) still to fix: tcb + 30 collections
+  (`--check --update`: gone `storage.storage.Release.wp_proof`, `walFiles`), axiom-tok stale entry, reader-slot
+  `MIN_SCANNED` 181→180 (Release proved), interfaces (regenerate). Then rerun gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock` (env in the z9 command), Go suite (gates ran it), STATUS, land stop.
+- **Re-attack** (z5) done: no refutation; Go-harness suspects (ResetFamily absent dirs; global data dirs) for later.
+
+### START HERE (2026-11-20 z5, PAUSED by 03 for merge-origin7; lean 34986d22ae MERGED)
+
+- **Branch** `wal-link` 2e27f70edc (merge of lean 34986d22ae: merge-origin6, fmt-soundness-2; pin still 3afd77e35,
+  `--packages=/shared/tmp/manifest-3af.json`). Conflicts: `Snapshotter.DBFilePath.spec` (ours over `sd` + lean's
+  `fmtErrorOk`), `notes/audit.md`, PkgTables (gen-init).
+- **Done:** z4 step 1: sd-b3's breaks fixed (1443916e61 and the next commit: `unfold cfgOk; simp [memberDataDir]` in newServerMode,
+  auth/startServer, auth3/startMember, StartMemberAuth; N-member `Dir` nodup via `memberDataDir_inj`). Pre-merge full
+  timed builds GREEN: 20261119-220651-2221489 (9141 modules, 1h40m, one failure) + 20261119-234923-2568835 (rc 0).
+  Step 2: the independent re-attack DONE (brief `/shared/tmp/wallink/attack-dd-brief.md`): no refutation; tasks
+  1/2/3/5 ok (satisfying assignment for k members + restart), task 6 suspect in the Go harness only
+  (`walarea.ResetFamily` leaves areas/data dirs absent while `etcdWalAreasInit` says empty roots; global data dirs:
+  reset-twice in auth3/compactor/linkv3p/leaseexpiryN/ctxsweep, one run per machine). Stale docstrings (InvRestart
+  `Hssp`, etcdstart/Defs `name.etcd`) left: a docstring edit rebuilds the cone.
+- **Post-merge full timed build** (`/shared/tmp/wallink/run-full-z5.sh`, log `full-z6.log`) STOPPED at 11390/14922 on
+  03's pause (no failure up to there); rerun it on "resume" (incremental).
+- **Next:** the rerun; then the land list: tcb `--check --update` + collections, interfaces, every gen-link mode
+  (LAKE_OPTS, PERENNIAL_DIR), tier baseline, Go suite (restartN back to back), txnlin go.sum note, STATUS; merge lean
+  once more before the land stop.
+
+### START HERE (2026-11-19 z4, data-directory fix WRITTEN; building)
+
+- **Branch** `wal-link` 72750d037d, pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`. 03 (user approval,
+  2026-11-19): the snapdir fix c8c710970a and its forms ACCEPTED; the data-directory fix APPROVED (done here).
+- **Done:** `memberDataDir n = /tmp/etcd-grove-data/<n>.etcd` (`storage/WalLayout.lean`, StartRes' relative abbrev
+  gone), `walAreaOf dd := walBase ++ dd.drop dataBase.length` (+ `walAreaOf_memberDataDir`, `srvWalDirOf_lit` over
+  `memberDataDir`, injectivity/`walAreaOf_ne_memberDataDir`); `dataAreaFresh d`/`memberAreasFresh d`
+  (`WalAreaFresh.lean`), in `wal.bootRes`, `memberStartRes`/`memberFreshRes`; `etcdWalAreasInit` (HWal) adds
+  `d = memberDataDir n` and `d` an empty root; `walAreasFresh_boot`/`wp_walAreas` allocate both; every example's
+  `.etcd` literal/`name ++ ".etcd"` → absolute/`memberDataDir` (script in the commit, 82 files); Go `DataBase` in
+  `etcdstart/common.go`, `auth.go`, `auth3.go`, `authkv.go`, `walarea.Reset/ResetFamily` reset data dirs; goose
+  regenerated (`common`, `authkv`, `auth3`).
+- **Checked:** lean-check 0 errors: WalLayout, WalAreaFresh, WalAreas, StartRes, WalApi, the snapdir files (z3);
+  Go tests pass: putget, putget3, auth, auth3; restartN twice back to back (`/shared/tmp/wallink/restartN-b2b.log`:
+  the P2 flake is gone with the data directories reset by `walarea.Reset`). Targeted build `/shared/tmp/wallink/run-b3.sh` (log `sd-b3.log`,
+  targets `sd-b3.targets`: server cone + etcdstart + putget3/putget/restartN/auth Results) queued at commit.
+- **Stopped here for context budget (the agent's), not for a decision.** sd-b3 was still waiting for a slot.
+- **Next:** fix what sd-b3 breaks (expect `Dir.lean` `rw [show ... memberDataDir ∘ ...]`, `hD` Perm proofs, cfgOk
+  `rfl`s); then re-attack (brief `/shared/tmp/wallink/attack-sd-brief.md`, extend to the data dirs); merge lean;
+  the land list below (full timed build, tcb, collections, interfaces, gen-link modes, tier, Go suite, STATUS).
+
+### START HERE (2026-11-19 z3, snapshotter-directory fix WRITTEN; STOPPED: new soundness finding, relative data dirs)
+
+- **Branch** `wal-link` (this commit), pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`.
+- **Done (this commit):** the user-approved fix of the cross-world finding (`notes/snapdir-crossworld.md`):
+  `snap.isSnapshotter ss sd` holds the `dir` field's cell (`snapDirAddr ss ↦□ sd`) and `⌜∃ dd, sd = snapDirOf dd⌝`;
+  `snapDBPath sd i := sd ++ "/" ++ snapDBName i` (definition; the opaque `snapDBPath : Loc → …` and `snapDBPathOf`
+  gone); `snapDirInv sd …` (`snapDirInv_ss_congr` gone, `snapDir_init sd`); `DBFilePath`/`SaveDBFrom`/
+  `ReleaseSnapDBs`/`storage.Release`/`isWalStorage`'s Release law (takes `isSnapshotter ss sd`)/`rnNewStorageOk`
+  (`∀ sd`)/`OpenSnapshotBackend` (no `Hssp` premise)/`applySnapshot` (`hssp` gone)/rafthttp specs/`newRaftNode` over
+  `sd`; `bootOk`/`bootOkR`: `Hss` at `config.snapDirOf cfg.DataDir`, `Hssp` gone; `srvSnapRO` (last pure conjunct
+  gone), `srvSnapDir` (`∃ sd`), `srvDiskImageAt` (no `ssₒ`). Ledger entry, audit rows, `notes/axiom-review/snapdir.md`.
+- **Checked:** lean-check 0 errors: snap `Defs`, `Net`, `OpenSnapshotBackendLemmas`, `OpenSnapshotBackend`,
+  `storage__Release`, `WalApi`, `RnNewStorage`, `newSnapshotHandler`, `snapshotHandler__ServeHTTP`. NOT built:
+  the server cone (`NewServer`, `NewServerR`, `ApplyAllSnap`, `SnapApplyWalk`, `EtcdServer__snapshot`,
+  `StopShutdown`, `NodeStartLinked`, `TransportFull`, ...): targeted build `/shared/tmp/wallink/sd-b2.log`
+  (targets `sd-b2.targets`) was queued for a slot at the stop.
+- **Re-attack** (`notes/axiom-review/snapdir.md`): cross-world ok, axioms over `sd` ok, the k-member collision
+  fixed (assignment over absolute data dirs). **NEW finding (pre-existing since S5):** the examples' `DataDir =
+  name ++ ".etcd"` is relative, the file claims (`bPath`/`fileFree`/`fileHolds`) need absolute paths (`RootForm`),
+  so `bootOk`'s `Hpath`/`Hsfree` are unsatisfiable for EVERY member; absolute dirs break `HWal` (`walAreaOf`).
+  `notes/datadir-relative-unsat.md`. Awaiting 03's decision (proposed: absolute data dirs under an fsExt root,
+  `walAreaOf` of the member's name).
+- **Next after the decision:** the fix if approved; finish the server-cone build; then the land list (z below).
+
+### START HERE (2026-11-19 z2, B1 written, UNBUILT; STOPPED: cross-world finding on `snap.snapDBPath`)
+
+- **Branch** `wal-link` (this commit), pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`; 03's decisions
+  (merge, forms, proved-statement changes ACCEPTED; os.Rename option B1) recorded in questions.md.
+- **Done (this commit, NOT built: the targeted build was cancelled in its slot queue):** `config.snapDirOf` (new
+  opaque), `config.backendPathOf dd := snapDirOf dd ++ "/db"`, `snap.snapDBName i := hex16 i ++ ".snap.db"`,
+  `snap.snapDBPathOf dd i := snapDirOf dd ++ "/" ++ snapDBName i` (definitions; until now opaque); `wal/Hex16.lean`
+  (hex16 and its two lemmas moved, names kept); `os.Rename.spec` takes `parentOf src = parentOf dst` (proof:
+  `child_eq` via `parentOf_child'`, then `osPathS_sameRoot`); `OpenSnapshotBackend.spec`, `applySnapshot.specSnapM`,
+  `applySnapshot_walk` take `snapDBPath ss = snapDBPathOf cfg.DataDir'` (from `srvSnapRO`, ApplyAllSnap);
+  `storage/OpenSnapshotBackendLemmas.lean` (`snapDBName_nameOk`, `snapDBPathOf_parent`); BackendPath axiom docstring;
+  Go test `examples/etcd/snappaths/snappaths_test.go` (PASSES: real etcd SnapDir/BackendPath/DBFilePath).
+- **Attack** (fresh read-only agent, axiom skill): `/shared/tmp/wallink/attack-b1.md`. Path equations true for every
+  DataDir (200k random strings); no new overlap/false contract. **SUSPECT, pre-existing (S5), widened by B1:**
+  `snap.snapDBPath : Loc → …` is opaque in the snapshotter's run-allocated location; `bootOk`'s `Hssp` pins it per
+  run, so across runs with the same location for different members, `snapDirOf d1 = snapDirOf d2`, and the
+  exclusive `Hsfree` (S5) and now `Hpath` (B1) claims of 3 members collide: the multi-member bootstrap premises
+  unsatisfiable, the N-member theorems vacuous. Proposed fix: the snapshotter's directory as a per-execution
+  persistent cell/fact (`isSnapshotter`), specs over that string. Awaiting 03's decision.
+- **Next after the decision:** build the B1 cone (start with `Proof.os.Rename`, `OpenSnapshotBackend`, `ApplyAllSnap`),
+  then the list in z below (full timed build, tcb, collections, interfaces, gen-link modes, tier baseline, STATUS).
+
+### (2026-11-19 z, lean 5f94c44bee MERGED; fs-library checkpoint; os.Rename STOPPED)
+
+- **Branch** `wal-link`, merge commit of lean 5f94c44bee (pin 3afd77e35): `--packages=/shared/tmp/manifest-3af.json`
+  everywhere, `.lake/package-overrides.json` its copy, `PERENNIAL_DIR=/shared/perennial-3afd77e35` for gen-init/gen-link.
+- **Done (route decided by 03, questions.md "session z"):** all 106 conflicts resolved (list
+  `/shared/tmp/wallink/merge-5f9-conflicts.txt`): `wp_osShareE` = our per-root `wp_osShare_e` under lean's name (one
+  theorem); lean's `wp_logStepSWGQ`/`SWQ`/`SQ`, `wp_osOpenCreateSQ`/`OpenFileSQ`, `NoErrSpecsRename`/`OpenFile` ported to
+  L4 (`pc`, `osCallPerm (callKey R ·)`, the `ReachFrom` root clause, `SameRootR` on the NE rename); `backend.fileHoldsF`/
+  `nameAtF`/`fileFreeF`, bbolt `Open` spec/proof, `StartFiles` (`osCallPerms_root`) per root; lean's moved lemmas
+  (`openWALFilesLemmas`, `openAtIndexLemmas`, `TouchDirAllLemmas`, `OpenFileTruncLemmas`, `ApplyAllSnapLemmas`,
+  WalTester `member__*Lemmas`) got our L4/L3 hunks (`patch` of our diff, rejects into the Lemmas file); PkgTables/Init by
+  `etc/gen-init.py` (`--check` 0); FsExts = lean's `etcdSQ`/`etcdFsSemOk`/`etcdFsNoErr` + `etcdFsExts_sat` derived;
+  `HWal` added to the 28 `_robust` theorems (Spec + Proof `TopLevelRobustness`), `etcdWalAreasInit` moved to
+  `etcdstart/WalAreasInit.lean`; `snapHeld` over lean's `fileAt`; OpenSnapshotBackend/applySnapshot specs = snapHeld +
+  `bPath γo` (+ `R'`).
+- **Checked:** targeted build of every `GooseLang/Ext/Fs`, `Proof/os`, `Spec/os`, fileutil module, `StartFiles`, bbolt
+  `Open`: GREEN but `Proof/os/Rename.lean:145` (log `/shared/tmp/wallink/m5-os1.log`). Nothing above the fs layer built.
+- **STOP (os.Rename):** under L4 a rename needs `SameRoot`; `os.Rename.spec` renames `snapDBPath ss i` (from `snapHeld`,
+  i.e. `bootOk`'s `snapFreeAll (snapDBPathOf dd)`) onto `backendPathOf dd` (`bPath`, from `bootOk`/`srvFiles`), both
+  opaque paths: nothing relates their roots. Options in the checkpoint report (all trusted text). `rename_fileNE` is
+  already restated with `hsr : SameRootR R (child d bs) (child d' bt)`.
+- **Next after the decision:** finish `os.Rename.wp_proof` + its callers; then the full timed build, tcb, collections,
+  interfaces, gen-link modes, restartN/txnlin notes, STATUS, land stop. `etc/tier-baseline.txt` is the union of both
+  sides: rerun `etc/tier-check.py --check --update` after the build.
+
+### (2026-11-19 y, merge of lean e95ce79ce9 STOPPED: not mechanical)
+
+- **Branch** `wal-link`, head 8bd8ae9b55 (+ this note), pin still f551a1b46 (`manifest-f55`). P2 accepted by 03 (questions.md).
+- **The merge** (`git merge lean`, lean = e95ce79ce9, pin 3afd77e35) gives 106 conflicted files (list
+  `/shared/tmp/wallink/merge-lean-e95-conflicts.txt`); ABORTED. Most are routine (PkgTable: regenerate; Results:
+  `_robust` moved by lean to `TopLevelRobustness.lean`, so `HWal` goes there; `local instance` lists; FsExts: take lean's
+  `etcdSQ` = NoIoErr allIo ∧ NoMapLockErr allIo, derive our `etcdFsExts_sat` by `fsStepSat_and_left`).
+- **The non-mechanical part:** lean's bbolt integration is over the pre-L4 call model; L4 (on wal-link only) made the
+  call permission per root and rename same-root. To port onto L4: `TreeSharedSwitchE` (two twins: lean `wp_osShareE`,
+  ours `wp_osShare_e`; keep one), `TreeSharedLog`/`Create` (11 hunks), `NoErrSpecsRename` (351 l.), `NoErrSpecsOpenFile`,
+  `Proof/os/Rename.lean` + `Spec/os/Rename.lean` (lean proved it, cross-directory, one perm: needs `SameRoot` and
+  `osCallPerm r`), `Proof/os/OpenFileS.lean`, `Proof/runtime/StartFiles.lean` (`osCallPerm_split` per root),
+  `backend.fileHoldsF` (InvBbolt), bbolt `Open`/`Spec/go_etcd_io/bbolt/Open.lean`, the snapshot backend
+  (`OpenSnapshotBackend`), and our L4 edits re-applied to lemmas lean moved (`openWALFilesLemmas`, `openAtIndexLemmas`,
+  `TouchDirAllLemmas`, `OpenFileTruncLemmas`). Spec changes on lean-landed statements (os.Rename, fileHoldsF, bbolt Open).
+- **Next:** 03's decision on the route; then the merge, full timed build, tcb, collections, interfaces, gen-link, STATUS.
+
+## START HERE (2026-11-19 x, P2 written: D1-D8; see "P2 progress")
+
+### P2 progress (2026-11-19 x)
+
+- **Branch** `wal-link`, pin f551a1b46, `--packages=/shared/tmp/manifest-f55.json`. Brief `/shared/tmp/wallink/p2-brief.md`.
+- **Done (e48d9b9fdc + the next commit):** D1 `FsExts.lean` (`etcdIoAll`, `etcdFsSem := fsSemWithS (NoIoErr etcdIoAll)
+  (fun _ _ => True)`, `etcdFsExts_semOk/_sat`, `etcdFs_start`); D2 `GooseLang/Ext/Fs/TreeSharedSwitchE.lean`
+  (`wp_osShare_e`); D3 `storage/WalLayout.lean` (`walBase`, `walAreaOf`, `srvWalDirOf`, `srvWalDirOf_lit`); D4/D5
+  `storage/WalAreaFresh.lean` (`walAreaFresh`), `wal.bootRes` = dataDirFresh ∗ ⌜DedicatedWALDir = srvWalDirOf dd⌝ ∗
+  walAreaFresh, bootOk/restartOk/srvFiles/srvDataDir/bootstrapRestartContract/StopApi over the dedicated directory,
+  `config.walDirOf` deleted; D6 `lib/etcdstart/WalAreas.lean` (`etcdWalAreasInit`, `walAreasFresh_boot`,
+  `wp_walAreas`), `AdequacyMembers.progOk_walAreas`, `memberStartRes`/`memberFreshRes` carry `walAreaFresh`; D7 Go
+  (`etcdstart.WALBase`, `DedicatedWALDir` in common.go/auth.go/auth3.go/authkv.go; tests reset areas with
+  `examples/lib/walarea`); D8 every closed theorem gains `HWal` (script `/shared/tmp/wallink/p2/d8.py`).
+- **Checked:** targeted builds GREEN: every `examples/{etcd,k8s}/*/Results` + `partition/AdequacyWatch` (log
+  `/shared/tmp/wallink/p2/b-sweep2.log`); `etc/goose.py --check` rc 0; Go tests of the examples (gotest1-3 logs in
+  `/shared/tmp/wallink/p2/`): all closed examples pass but txnlin (not run: needs go.work) and restartN (flaky back to
+  back, passes alone); grpcruns T6, sweeprepairs W5, k8s etcd3 TestMainWatch fail for reasons unrelated to the WAL.
+- **Next:** the caller's full timed build; tcb `--check --update` (opaque `config.walDirOf` gone); interfaces; STATUS.
+- **Pitfalls:** `WalA` literals inside `iexists` do not parse (commas): use the `abbrev etcdWalArea`; `memberStartRes`
+  now depends on the heap instance: pass `(hG := heapWith hG lctx)` where a fun-bound `hG` is in scope.
+
+### START HERE (2026-11-19 w, Hm1 DONE (route B); next: P2)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`, head 3aff0a96c5 (+ this handoff); pin f551a1b46,
+  `--packages=/shared/tmp/manifest-f55.json` (`.lake/package-overrides.json` its copy). No full build since
+  `20261119-080329-2994864` (b5ba70baa2); targeted build GREEN at 3aff0a96c5: the WAL Link (`--walfs`), the WalTester
+  Link, `EtcdServer__snapshot`, `raftNode__start`, `RnNewStorage` (log `/shared/tmp/wallink/hm1-b14.log`).
+- **Done:** 15478a7cb5 `WalOpG` (+ the history's `Countable` instances) moved out of the trusted
+  `GooseLang/Ext/AbsDisk/Impl.lean` into `Proof/go_etcd_io/etcd/server/v3/storage/WalOps.lean` (pure move, names
+  kept; tier line `AbsDisk.Impl -> PbModel` retargeted to `-> storage.WalOps`). 3aff0a96c5 the presence bit:
+  `WalOpG.snap m al`; `walAlC al b` (`AutoLeave` set when `al || b`); `walSnapCanon m al`, `encSnap m al`,
+  `walSnapAt Mr sp md al cs`, `snapFrame … al`; the SaveSnapshot/SaveSnap/MustMarshalWalSnap/ValidateSnapshotForWrite
+  specs take `al`; ReleaseLockTo/`storage.Release` AU and `walSnapRec` (sealed) say `∃ al`; `isWalStorage`'s SaveSnap
+  law `∀ al`; `srvSnapMetaC md al uf`, `srv_csPts_csRoC`, `srv_smPtsV_metaC` (RaftLoopFreeze): **the sorry `Hm1` is
+  gone**. Create's and the tester's snapshots use `al = true`.
+- **Forms to report:** `walRead`/`walReadFrom`/`walKeep`/`walNewest` ([trusted meaning], WalHist.lean): match arms
+  `.snap m` → `.snap m _` only (mechanical, meaning unchanged). `isWalStorage` is restated (∀ al) — it reaches
+  `rnNewStorageOk`'s meaning (premise kept): report at the stop.
+- **Next, in order:** P2 (Scope §3.4: `DedicatedWALDir` under per-member `fsExt` roots, area allocated at adequacy by
+  `walInv_alloc`; contracts `cfg.DedicatedWALDir' = go!""` in `WalApi.lean:520-553`, `InvRestart.lean:207-215,666`,
+  `StopApi.lean:75-99,222`, `StartRes.lean:207`); merge lean (pin 3afd77e35 when it lands); full timed build
+  (`/shared/tmp/build-slot.sh etc/timed-build.py --packages=<manifest>`, report the id; the rest of the 2024-module
+  cone of `WalOps.lean` is unbuilt: expect mechanical `.snap m` → `.snap m al` breaks in closed examples / server
+  files); tcb `--check --update` (+ collections); interfaces (`etc/api/absdisk.txt`: `Impl.txt` loses WalOpG);
+  every gen-link mode (LAKE_OPTS); examples' Go; STOP with closed statements.
+- **Pitfalls:** fix tools used (`/shared/tmp/wallink/snapfix*.py`: regexes for `.snap` arms, `∀ m, WalOpG.snap m ∈`,
+  lambdas `fun m hm => h m`); `cases o with | snap m al`; walCutPos's third disjunct is `∃ m al` (rcases
+  `| ⟨m, al, hb⟩`). Others as in v below.
+
+### (2026-11-19 v, the WAL work SPLIT: L3 lands without new file-model text)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin f551a1b46, `--packages=/shared/tmp/manifest-f55.json`
+  (`.lake/package-overrides.json` its copy). Last green full build `20261119-080329-2994864` (b5ba70baa2).
+- **Split (user, 2026-11-19, via 03; questions.md):** F1 (a), A1, A2, `PathErrno`, NoIoErr (a), cut/Create specNoErr,
+  rnNewStorageOk_holds → branch `wal-fsfix` (9017eb196d; brief `notes/wal-fsfix-brief.md`). On `wal-link`, the code
+  and Go texts of 3778c95957 and a50580df93 are reverted (notes kept); `rnNewStorageOk` stays a premise.
+- **Next, in order:** Hm1 route (B): move `WalOpG` out of `GooseLang/Ext/AbsDisk/Impl.lean` into a WAL-history
+  module (pure move, tcb unchanged; mind `etc/tier-baseline.txt`'s `AbsDisk.Impl -> PbModel`), then the presence bit
+  (`srvSnapMetaC md al uf`, `walSnapCanon` over `al`), remove the sorry `Hm1`; P2; merge lean (pin 3afd77e35); full
+  timed build (report id); tcb --check --update; collections; interfaces; Links; examples' Go to absolute dirs +
+  `--wal-dir`; STOP with the exact old → new closed statements.
+- **Pitfalls:** as in u and s below; the attack on `wal-fsfix` reads `/shared/tmp/wallink-fsfix-ro` (a detached
+  worktree of `wal-fsfix`: remove it with `git worktree remove` when the follow-up starts).
+
+### (2026-11-19 u, item 3 done; F1's approved form STOPPED: bbolt unprovable)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`, head a50580df93 (+ handoff commit); pin f551a1b46,
   `--packages=/shared/tmp/manifest-f55.json` (`.lake/package-overrides.json` its copy). Last green full build

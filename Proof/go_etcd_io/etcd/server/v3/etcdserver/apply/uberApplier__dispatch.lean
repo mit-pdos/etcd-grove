@@ -216,7 +216,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev T U
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, %Hok, #Hcpr, #Hgp, HLt, HEv, #HGf, Hrv, %HcE, #HF,
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, %Hok, %Hwin, #Hcpr, #Hgp, HLt, HEv, #HGf, Hrv, %HcE, #HF,
     Htt, HFS, HSp, %Hrr, HRO, Hco⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
@@ -420,6 +420,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, _root_.or_self, ↓reduceIte]
     ipureintro; trivial
   (try wp_auto)
+  -- (auth-lease S4 item 7b) the window's target, asked with `v3`
+  replace Hwin : (E.lg = true → apply.winTgt E.win rq log T) ∧ (E.lg = false → E.win = none) :=
+    ⟨fun h => Hwin.1 h rfl, Hwin.2⟩
   ihave #HSp : apply.ciSplit E Pre $$ [HSp]
   · simp only [↓reduceIte]; iexact HSp
   ihave #Hcp := apply.certPreV_true E c rq log $$ Hcp
@@ -485,10 +488,10 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hok := Hok.1
     simp only [rqOk, hk] at hok
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    ihave ⟨Hmp, HLt⟩ := apply.putPre_of_mPre E c _ info lPu rq x log Pre Q Post T Hwin.1 Hwin.2 ⟨hs, hk, hok.1, hok.2 _ hs⟩
+      $$ [$HR $Hcp $Hmp $HLt]
     wp_apply HPut $$ %lPu %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
-    · iframe Htt HF
-      iapply (apply.putPre_of_mPre (h := ⟨hs, hk, hok⟩))
-      iframe HR Hcp Hmp
+    · iframe Htt HF Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv
@@ -512,6 +515,11 @@ theorem apply.uberApplier.dispatch.wp_proof
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
       iframe HR Hcp Hmp
+      iexists T
+      ipureintro
+      cases hlg : E.lg
+      · rw [Hwin.2 hlg]; exact apply.winTgt_none _ _ _
+      · exact Hwin.1 hlg
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv
@@ -529,10 +537,10 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hok := Hok.1
     simp only [rqOk, hk] at hok
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    ihave ⟨Hmp, HLt⟩ := apply.txnPre_of_mPre E c _ info lTx rq x log Pre Q Post T Hwin.1 Hwin.2
+      (hok x hs).2.2.1 ⟨hs, hk, (hok x hs).1, (hok x hs).2.1, (hok x hs).2.2.2⟩ $$ [$HR $Hcp $Hmp $HLt]
     wp_apply HTxn $$ %lTx %skip %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
-    · iframe Htt HF
-      iapply (apply.txnPre_of_mPre (h := ⟨hs, hk, hok x hs⟩))
-      iframe HR Hcp Hmp
+    · iframe Htt HF Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv
@@ -711,7 +719,11 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.revokeRes
       iframe
       iframe #
-      ipureintro; exact hok.1
+      ipureintro
+      refine ⟨hok.1, ?_⟩
+      cases hlg : E.lg
+      · rw [Hwin.2 hlg]; exact apply.winTgt_none _ _ _
+      · exact Hwin.1 hlg
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, ⟨Hans, HRa⟩, Hkv, Hres, HPP, #Hcls, -⟩
     iunfold apply.revokeResAfter at HRa

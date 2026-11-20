@@ -14,7 +14,7 @@ NOT YET IN USE: R2b-1's next stage puts `isWalStorage` in place of today's `isRN
 (`InvWal.lean`), as the user approved (2026-11-03): (1) `NewStorage`'s contract gives this one;
 (2) `bootstrap`'s first start takes `dataDirFresh` (`wal.bootRes`) and gives `walOpened … walFresh` and
 `walPurgeRight`, the restart takes `walFiles` and gives `walOpened … σ` and `walPurgeRight` (scope:
-`ForceNewCluster` off); (3) `srvFiles` is `∃ cid, walFiles (config.walDirOf dd "") id cid σ ∗` the
+`ForceNewCluster` off); (3) `srvFiles` is `∃ cid, walFiles` of the WAL directory (since wal-link P2 the dedicated `srvWalDirOf dd`) `∗` the
 backend file; (4) `storage.Release` takes `walBaseLb`; (5) `purgeFile` takes and returns
 `walPurgeRight`; (6) the examples' members start with their WAL directories fresh.
 
@@ -29,6 +29,7 @@ check), `wal.Repair` (a torn write, never left by `Close`), `UnsafeNoFsync` (one
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalAreaFresh
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftMsg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
@@ -100,12 +101,12 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
             storage.walOpen h q ∗ walStorRd st h ∗
             AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }}) ∗
-    □ (∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (Q : IProp GF),
+    □ (∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF),
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model⌝ ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
-          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model).length < 2 ^ 40⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
                 ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m.model) sized, COMM Q }> }}
@@ -116,13 +117,14 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
     □ (∀ q : Qp, {{ storage.walOpen h q ∗ walStorRd st h }}
         (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h }}) ∗
-    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
+    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
         (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat) (m : SnapshotMetadataM)
         (Q : IProp GF),
       ⌜m.Index' = md.Index'⌝ -∗
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          inv snapDirN (snapDirInv ss γd img Rm) ∗ □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
             <{ walRecs h σ s, COMM Q }> }}
@@ -158,12 +160,12 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
             storage.walOpen h q ∗ walStorRd st h ∗
             AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }})
-    (hSnap : ∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (Q : IProp GF), R ⊢
+    (hSnap : ∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF), R ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model⌝ ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
-          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model).length < 2 ^ 40⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
                 ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m.model) sized, COMM Q }> }}
@@ -175,13 +177,14 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
       {{ storage.walOpen h q ∗ walStorRd st h }}
         (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h }})
-    (hRel : ∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
+    (hRel : ∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
         (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat) (m : SnapshotMetadataM)
         (Q : IProp GF), R ⊢
       ⌜m.Index' = md.Index'⌝ -∗
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          inv snapDirN (snapDirInv ss γd img Rm) ∗ □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
             <{ walRecs h σ s, COMM Q }> }}
@@ -211,8 +214,8 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
     iexact HR
   isplitr
   · iintro !>
-    iintro %sized %q %sn %mp %dq %m %Q
-    iapply (hSnap sized q sn mp dq m Q)
+    iintro %sized %q %sn %mp %dq %m %al %Q
+    iapply (hSnap sized q sn mp dq m al Q)
     iexact HR
   isplitr
   · iintro !>
@@ -221,8 +224,8 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
     iexact HR
   isplitr
   · iintro !>
-    iintro %q %sn %mp %dq %dq' %md %γd %img %Rm %i %m %Q
-    iapply (hRel q sn mp dq dq' md γd img Rm i m Q)
+    iintro %q %sn %mp %dq %dq' %md %sd %γd %img %Rm %i %m %Q
+    iapply (hRel q sn mp dq dq' md sd γd img Rm i m Q)
     iexact HR
   iintro !>
   iintro %sized %σ %id %cid
@@ -397,14 +400,14 @@ theorem walSaveRn_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInter
 
 /-- **`SaveSnap`** (the contract's law): the snapshot record saved, synced, its witness (`walSnapRec`). -/
 theorem walSaveSnap_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
-    (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (Q : IProp GF)
+    (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF)
     (sized : Bool := false) :
     isWalStorage st h ss ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model⌝ ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
-          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model).length < 2 ^ 40⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
                 ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m.model) sized, COMM Q }> }}
@@ -415,7 +418,7 @@ theorem walSaveSnap_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInt
   unfold isWalStorage
   iintro ⟨-, %si', %Heq, -, #HS, -, -, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %sized %q %sn %mp %dq %m %Q
+  ispecialize HS $$ %sized %q %sn %mp %dq %m %al %Q
   iexact HS
 
 /-- **`Sync`** (the contract's law). -/
@@ -438,12 +441,13 @@ them) and the snapshotter's older `.snap.db` files removed; `nil`, or the snapsh
 failed. -/
 theorem walRelease_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
     (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM)
-    (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat)
+    (sd : GoString) (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat)
     (m : SnapshotMetadataM) (Q : IProp GF) (hm : m.Index' = md.Index') :
     isWalStorage st h ss ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          inv snapDirN (snapDirInv ss γd img Rm) ∗ □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
             <{ walRecs h σ s, COMM Q }> }}
@@ -454,7 +458,7 @@ theorem walRelease_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInte
   unfold isWalStorage
   iintro ⟨-, %si', %Heq, -, -, -, #HR, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HR $$ %q %sn %mp %dq %dq' %md %γd %img %Rm %i %m %Q
+  ispecialize HR $$ %q %sn %mp %dq %dq' %md %sd %γd %img %Rm %i %m %Q
   iapply HR
   ipureintro; exact hm
 
@@ -478,7 +482,7 @@ loop's and the apply thread's). (wal-link L3, 2026-11-19: proved, `rnNewStorageO
 and the storage methods' specs over the real WAL; until then a premise of every closed theorem, over a WAL
 location with the opaque `walReady w` and `walOf st = w`, and the snapshotter's opaque `storageSnap`.) -/
 def rnNewStorageOk : IProp GF :=
-  iprop(□ ∀ (lg ss : Loc) (h : WalH GF), {{ snap.isSnapshotter ss }}
+  iprop(□ ∀ (lg ss : Loc) (sd : GoString) (h : WalH GF), {{ snap.isSnapshotter ss sd }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #h.w))
       (Val #ss))
     {{ (st : GoInterface), RET #st; isWalStorage st h ss ∗ walStorRd st h ∗ walStorRd st h }})
@@ -512,19 +516,26 @@ the hub's text. No `wal.bootCfg` (the WAL places no condition on the configurati
 and `wal.srvInv` come with the raft loop's durability invariant (R2b-1 stages 3c/4). -/
 
 /-- **What a caller of `bootstrap` (through `NewServer`) hands the WAL and the backend**: the
-configuration's data directory fresh, a first start's (no WAL, no backend file; from program
-start, `startRights`), with no dedicated WAL directory: the scope in which the data directory holds
-the WAL, every starter's configuration. (Sweep repairs 1, W3/W4, 2026-11-07: until then the WAL
-directory's `walDirFresh`, which said nothing of the backend file a first start opens.) -/
+configuration's data directory fresh, a first start's (no backend file; from program start,
+`startRights`), its dedicated WAL directory the member's (`srvWalDirOf`, under the member's `fsExt`
+root `walAreaOf`), and that WAL area fresh (`walAreaFresh`: what `wal.Create` takes of it, no WAL in
+the directory; allocated at adequacy, `lib/etcdstart/WalAreas.lean`). (Sweep repairs 1, W3/W4,
+2026-11-07: until then the WAL directory's `walDirFresh`, which said nothing of the backend file a
+first start opens; wal-link P2, 2026-11-19: until then no dedicated WAL directory, the WAL in the data
+directory, `dataDirFresh` alone for it.) (2026-11-19, approved by the user via etcd-grove-03,
+`notes/datadir-relative-unsat.md`) And the data directory a root of its own, empty, wholly the caller's
+(`dataAreaFresh`, in `memberAreasFresh` with the WAL area): what the backend's and the snapshots' file claims
+`bootOk` gives are made of. -/
 @[no_expose] def wal.bootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop(dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = go!""⌝)
+  iprop(dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗
+    memberAreasFresh cfg.DataDir')
 
-/-- `wal.bootRes`'s intro: a configuration whose data directory is `d`, with no dedicated WAL
-directory, takes `d`'s token. -/
+/-- `wal.bootRes`'s intro: a configuration whose data directory is `d` and whose dedicated WAL
+directory is `d`'s takes `d`'s token and the fresh WAL area. -/
 theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d : GoString)
-    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = go!"") :
-    dataDirFresh (GF := GF) d ⊢ wal.bootRes cfg := by
-  unfold wal.bootRes; subst hd; iintro H; iframe H; ipureintro; exact hw
+    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = srvWalDirOf d) :
+    dataDirFresh (GF := GF) d ∗ memberAreasFresh d ⊢ wal.bootRes cfg := by
+  unfold wal.bootRes; subst hd; iintro ⟨H, Ha⟩; iframe H Ha; ipureintro; exact hw
 
 /-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
 configuration's WAL directory with the member's metadata and no records (`walOpened … walFresh`),
@@ -534,7 +545,7 @@ entry record, so every entry record (none) is of a content of bounded size. -/
 @[no_expose] def wal.bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
     (w : Loc) : IProp GF :=
   iprop(∃ h : WalH GF, ⌜h.w = w⌝ ∗
-    walOpened h (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh true ∗ walPurgeRight h)
+    walOpened h cfg.DedicatedWALDir' id cid walFresh true ∗ walPurgeRight h)
 
 /-- **What the server takes from `wal.bootOk`** (narrow: the slot convention's elimination laws
 give what their consumers take, never the slot's body; R2b-1 stage 3c, 2026-11-03, replacing
@@ -550,7 +561,7 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] ∗
         storage.walOpen h 1 ∗ walMetaIs h id cid ∗ walPurgeRight h ∗
         -- (2026-11-04, R2b-3d) the WAL's directory, the configuration's (the stop image's `srvFiles`)
-        ⌜h.dir = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝ := by
+        ⌜h.dir = cfg.DedicatedWALDir'⌝ := by
   unfold wal.bootOk
   iintro ⟨%h, %Hw, Hwo, Hp⟩
   icases walOpened_elim _ _ _ _ _ _ $$ Hwo with ⟨Ho, Hr, Hm, %Hd⟩
@@ -655,7 +666,7 @@ the server's history invariant) and re-proves the two laws. -/
 @[no_expose] def wal.restartOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
     (w : Loc) (σ : StorContents) : IProp GF :=
   iprop((∃ h : WalH GF, ⌜h.w = w⌝ ∗
-      walOpened h (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid σ true ∗ walPurgeRight h) ∗
+      walOpened h cfg.DedicatedWALDir' id cid σ true ∗ walPurgeRight h) ∗
     ⌜walReadFacts σ⌝)
 
 /-- **The read's pure facts** (I1-I4; the slot kept). -/
@@ -682,7 +693,7 @@ theorem wal.restartOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν l₀ ∗
         wal.stopImage cl S σ i ∗
         storage.walOpen h 1 ∗ walMetaIs h id cid ∗ walPurgeRight h ∗
-        ⌜h.dir = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝ := by
+        ⌜h.dir = cfg.DedicatedWALDir'⌝ := by
   unfold wal.restartOk
   iintro ⟨⟨⟨%h, %Hw, Hwo, Hp⟩, %Hf⟩, Hsi, #Hl0⟩
   icases wal.stopImage_elim cl S σ i $$ Hsi with ⟨%Hs, #Hcert, ⟨%l', #Hl', %Hl'b, %Hag⟩⟩

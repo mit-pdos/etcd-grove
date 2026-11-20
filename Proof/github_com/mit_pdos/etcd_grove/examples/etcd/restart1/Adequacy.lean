@@ -16,7 +16,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -26,6 +29,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.PkgTab
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.InitLinked
 
 @[expose] public section
 
@@ -41,24 +46,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def restart1GF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def restart1GF_allG : AllG restart1GF := ⟨⟨0, rfl⟩⟩
@@ -71,24 +61,10 @@ instance restart1GF_gooseGpreS : GooseGpreS restart1GF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := restart1GF_allG
 
-/-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
-every instance of the ghost state whose Go local context is the semantics' own). -/
-abbrev heapAtR1 (hG : HeapGS .hasLC restart1GF) (lctx : GoLocalContext) : HeapGS .hasLC restart1GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `restart1`'s initialization, then `Main()`. -/
-def restart1Program [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.restart1.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Main) #()
-
-/-- The read package's two metric names, which `restart1`'s initialization registers (`readRegPerm`,
-D16). -/
-def restart1Names : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The one-member restart example is safe** (`Results.lean`'s `etcd_restart1_safe`, with its
 docstring): every real execution of `restart1Program` from a fresh state with one thread, of `n`
@@ -103,13 +79,15 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbf : etcd_restart1.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed restart1Program restart1Names)
-    (HDs : dataDirsAbsent restart1Program [go!"restart1.etcd"])
+    (HDs : dataDirsAbsent restart1Program [go!"/tmp/etcd-grove-data/restart1.etcd"])
     (HEnv : verifyEnvOff restart1Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC restart1GF,
       ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/restart1.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -118,11 +96,11 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := restart1GF) (hAsLit := by decide) (HEnv := HEnv)
+  refine etcd_adequate_members (GF := restart1GF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.etcd.restart1.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [] (by decide)
-    [go!"restart1.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    [go!"/tmp/etcd-grove-data/restart1.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- the one member's start bundle: no address, its data directory
     [(go!"restart1", {})] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩
     ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs (fun _ h => absurd h List.not_mem_nil) HDs

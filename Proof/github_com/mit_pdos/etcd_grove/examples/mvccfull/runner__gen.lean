@@ -34,9 +34,10 @@ section lemmas
 variable [GooseExts]
 
 theorem opValid_put {ks : List GoString} {s : MSt} {o : OpM} (hk : o.kind = kPut)
-    (hkey : o.key ∈ ks) (hl : o.lease = W64 0 ∨ o.lease ∈ s.leases) : opValid ks s o := by
+    (hkey : o.key ∈ ks) (hl : o.lease = W64 0 ∨ o.lease ∈ s.leases)
+    (hkl : o.key.length ≤ etcdKeyMax) (hvl : o.val.length ≤ etcdKeyMax) : opValid ks s o := by
   unfold opValid; rw [hk]
-  exact ⟨by decide, by decide, fun _ => ⟨hkey, hl⟩, fun h => absurd h (by decide),
+  exact ⟨by decide, by decide, fun _ => ⟨hkey, hl, hkl, hvl⟩, fun h => absurd h (by decide),
     fun h => absurd h (by decide), fun h => absurd h (by decide), fun h => absurd h (by decide)⟩
 
 theorem opValid_plain {ks : List GoString} {s : MSt} {o : OpM} (K : w64) (hk : o.kind = K)
@@ -152,6 +153,7 @@ theorem runner.gen.wp_proof
   intro x ks cfg wr h γh mp s sl nl nv hnl0 hnl1 hnlg hnv0 hnv1 hrev hc0 hc1 hrpos
   wp_start as ⟨#Hctx, Hrv, Hc, Hls, Hsl, Hnl, Hnv⟩
   iapply wp_fupd
+  ihave %Hwb := writerCtx_bounds _ _ _ _ _ _ $$ Hctx
   iunfold writerCtx at Hctx
   icases Hctx with ⟨#Hrn, #Hrc, -, -, -, -, -, -, -, -, ⟨%wo, #Hwo⟩, ⟨%wc, #Hwc⟩, -, -⟩
   iunfold rnCtx at Hrn
@@ -179,7 +181,7 @@ theorem runner.gen.wp_proof
     · iunfold runnerKeys; iexists keys; iframe #; ipureintro; exact ⟨Hsorted, Hne⟩
     imod ownSlice_persist $$ Hk with #Hk
     (try wp_auto)
-    wp_apply wp_newVal x cfg nv hnv0 (by omega) $$ [Hnv] as %vl Hnv
+    wp_apply wp_newVal x cfg nv hnv0 (by omega) Hwb.2.1 Hwb.2.2 $$ [Hnv] as %vl ⟨Hnv, %Hvl⟩
     · iframe; iexact Hcfg
     (try wp_auto)
     wp_apply wp_genLease x mp sl s.leases $$ [Hls Hsl] as %l ⟨Hls, Hsl, %Hl⟩
@@ -207,7 +209,7 @@ theorem runner.gen.wp_proof
       ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
     ipureintro
     have hnvs := sint_succ nv hnv0 (by omega)
-    exact ⟨opValid_put rfl Hkk Hl, (by simp [kGrant, plainOp]), by omega, by omega⟩
+    exact ⟨opValid_put rfl Hkk Hl (Hwb.1 _ Hkk) Hvl, (by simp [kGrant, plainOp]), by omega, by omega⟩
   · (try wp_auto)
     wp_if_destruct
     · -- a delete
@@ -258,7 +260,7 @@ theorem runner.gen.wp_proof
           wp_apply wp_choose (W64 2) as %cs -
           (try wp_auto)
           wp_apply wp_genSubs x ks cfg mp (W64 (s.rev : Int)) (W64 s.crev) sl s.leases nv hnv0 hnv1
-              (sint_nat_lt s.rev hrev) $$ [Hrv Hc Hls Hsl Hnv]
+              (sint_nat_lt s.rev hrev) Hwb.1 Hwb.2.1 Hwb.2.2 $$ [Hrv Hc Hls Hsl Hnv]
             as %ss ⟨Hrv, Hc, Hls, Hsl, %svs, %sms, %nv', #Hss, #Hsubs, Hnv, %Hsms⟩
           · iframe
             isplitl

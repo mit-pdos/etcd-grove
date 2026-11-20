@@ -95,8 +95,9 @@ data directory written by an etcd with a larger
 `--max-request-bytes`, or by any other program, is outside what these files describe. -/
 def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
   -- (wal-link L3, 2026-11-19: until then the trusted `walFiles (config.walDirOf dd "") id cid σ true`) the WAL's
-  -- files over the real file system (`walFiles`, a definition over layer 1's disk state, `WalA`)
-  iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = config.walDirOf dd ""⌝ ∗ walFiles a id cid σ true) ∗
+  -- files over the real file system (`walFiles`, a definition over layer 1's disk state, `WalA`), (wal-link P2)
+  -- in the member's dedicated WAL directory (`srvWalDirOf dd`; until then `config.walDirOf dd ""`)
+  iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗ walFiles a id cid σ true) ∗
     backend.fileHolds (config.backendPathOf dd) D)
 
 /-- **`cs` is a conf state `buildConfStateFromV3store` builds from the `members` bucket of `D`**
@@ -137,9 +138,10 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
   etcd copes with and these statements do not; `restart3`'s stop must provide it);
 - the storage registry's authority (R2c review F3: the restart registers its new `MemoryStorage`
   in the same registry, `restartNames` keeping raft's names), handed back by the stop;
-- the files holding `σ` and `D` (`srvFiles`) and the backend file's directory entry (`pathOwn`,
-  which a first start's `bootOk` gives and the stop returns), in the directory `dd` the right to
-  stop records (`srvStopRight`; R2c review F2). (R2c review F5: the KV names' `c0` is `0`, as
+- the files holding `σ` and `D` (`srvFiles`; S5, 2026-11-18: the backend file's with the claim
+  on its name, until then also the opaque `pathOwn` of the entry, which a first start's `bootOk`
+  gave and the stop returned), in the directory `dd` the right to stop records (`srvStopRight`;
+  R2c review F2). (R2c review F5: the KV names' `c0` is `0`, as
   `restModel (W64 0)` reads the image's buckets.)
 
 (#7-cmp's Freeze, 2026-11-02, the user's approval: `imageAt` restated in place, by the KV names'
@@ -157,8 +159,9 @@ the stopped incarnation at `γ.snapLoc id` (`srvSnapRO`'s), and the removal coun
 (`snapRmM γm`, written out: this module does not import `SnapRO`), at most `i + 1`, from the apply
 thread's `srvSnapOwn` at the graceful stop's ghost applied index (route (C), 2026-11-13: `i` itself,
 so a restart's `srvBuiltRestartR` row at `ai₀ + |A| = i` follows); (S6a-2) `ssₒ`'s paths are `dd`'s
-(`snap.snapDBPathOf dd`, from `srvSnapRO`, `bootOk`'s `Hssp`), so that the restart reuses the
-invariant at its own snapshotter, `snapDirInv_ss_congr` with `bootOkR`'s equation.) -/
+(from `srvSnapRO`, `bootOk`'s `Hssp`), so that the restart reuses the invariant at its own
+snapshotter.) (wal-link, 2026-11-19, approved by the user via etcd-grove-03: the invariant over the
+directory `config.snapDirOf dd`, no snapshotter in it: `notes/snapdir-crossworld.md`.) -/
 def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
     (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
     (M : GMap Loc MemStorNamesRec) : IProp GF :=
@@ -174,14 +177,15 @@ def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S 
     -- and the records' snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
     wal.stopImage γ.cl S σ i ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
-    srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    srvFiles dd id σ D ∗
     -- (restart S6a, (b′)) the member's snapshot directory: the invariant its first start allocated
     -- (at raft's names for the member, its images' certificate the cluster's auth mode's), and the
     -- member's removal counter, at most one past the image's index; (S6a-2) the invariant's
     -- snapshotter's paths the data directory `dd`'s, which a restarted snapshotter's are (`bootOkR`)
-    (∃ (ssₒ : Loc) (γd γm : GName) (c : Nat),
-      ⌜γ.snapLoc id = some γd ∧ snap.snapDBPath ssₒ = snap.snapDBPathOf dd ∧ c ≤ uint.nat i + 1⌝ ∗
-      inv snapDirN (snapDirInv ssₒ γd (srvImageM γ.authOn γ)
+    -- (wal-link, 2026-11-19: the invariant of the directory `config.snapDirOf dd` itself)
+    (∃ (γd γm : GName) (c : Nat),
+      ⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝ ∗
+      inv snapDirN (snapDirInv (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
         (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
       monoNatAuthOwn γm 1 c))
 
@@ -203,16 +207,17 @@ theorem srvDiskImage_raft (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoStri
   iintro ⟨%S, %σ, %i, %A, %D, %m, %M, -, -, %Hρ, -⟩
   ipureintro; exact Hρ.1
 
-/-- **The server `s`'s data directory is `dd`, its WAL in it** (persistent; R2b-2): the
-configuration's `DataDir` field is `dd` and its `DedicatedWALDir` field empty, so that the WAL is
-`<dd>/member/wal` (`ServerConfig.WALDir`), as `srvFiles` says. Per field (as the snapshot path's
+/-- **The server `s`'s data directory is `dd`, its WAL in `dd`'s dedicated WAL directory**
+(persistent; R2b-2): the configuration's `DataDir` field is `dd` and its `DedicatedWALDir` field
+`srvWalDirOf dd`, so that the WAL is there (`ServerConfig.WALDir`), as `srvFiles` says (wal-link P2,
+2026-11-19: until then the field empty and the WAL `<dd>/member/wal`). Per field (as the snapshot path's
 `srvSnapRes`): `start` writes other fields of `Cfg` (`SnapshotCount`, ...), whose whole struct is
 read-only only after it (R2b-2 review F1: a read-only points-to of the whole `Cfg` contradicted
 `memberBuilt`'s ownership of those fields). `NewServer` gives it, and `Start`'s stop right names
 `dd` (R2c review F2). -/
 def srvDataDir (s : Loc) (dd : GoString) : IProp GF :=
   iprop(srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗
-    srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ (go!"" : GoString))
+    srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ srvWalDirOf dd)
 
 instance srvDataDir_persistent (s : Loc) (dd : GoString) :
     Persistent (srvDataDir (GF := GF) s dd) := by
@@ -431,11 +436,14 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "Hwal" ∷ wal.restartOk cfg id cid bw.w' σ ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
-    "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- (restart S6a, approved by the user 2026-11-13 via etcd-grove-81) in the data directory's
-    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `snap.snapDBPathOf`), so that a
-    -- restart's snapshotter writes the files of the first start's
-    "%Hssp" ∷ ⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `config.snapDirOf`), so that a
+    -- restart's snapshotter writes the files of the first start's (wal-link, 2026-11-19, approved
+    -- by the user via etcd-grove-03: the directory is the snapshotter's `dir` field, inside
+    -- `isSnapshotter`; until then the opaque `snap.snapDBPath bs.ss'` and an equation `Hssp`, a pure
+    -- function of the run's location, which made the premise of a cluster of several members
+    -- unsatisfiable: `notes/snapdir-crossworld.md`)
+    "#Hss" ∷ snap.isSnapshotter bs.ss' (config.snapDirOf cfg.DataDir') ∗
     -- `b.raft`: the raft configuration (as `bootOk`'s, but `RestartNode`'s path: no peers)
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`) the heartbeat as Go computes it
     -- (`bootstrap.go:574`, wrapping)
@@ -598,7 +606,9 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
     -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
-    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+    -- (S5, 2026-11-18) the claim on that name, naming the backend's file (`backend.bPath`, made of
+    -- the stopped image's `srvFiles` file, which the restart's `bootstrap` opens)
+    "Hpath" ∷ backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
     -- (restart S6 B2, 2026-11-14) the backend's file at the backend path (`bootOk`'s; Go: both paths
     -- open the backend in the shared `bootstrapBackend(cfg, haveWAL)` at `cfg.BackendPath()`), for
     -- the snapshot path's `srvSnapRes`
@@ -611,14 +621,14 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
 
 /-- **`bootstrap`'s contract on a stopped member's data directory** (DRAFT, R2c; L3; a premise, as
 `bootstrapContract`): with the configuration's URLs, the storage registry's authority, and the
-directory's files holding the WAL's records `σ` and the backend's data `D` (`srvFiles`, its path's
-entry `pathOwn`) of an image (`imageAt` at `L`, the index `i` between the WAL's snapshot and
+directory's files holding the WAL's records `σ` and the backend's data `D` (`srvFiles`, with the
+claim on the backend path's name; S5: until then also its entry's opaque `pathOwn`) of an image (`imageAt` at `L`, the index `i` between the WAL's snapshot and
 commit, the bootstrap log applied), `bootstrap` returns an error, or the record of a restart
 (`bootOkR`). (2026-11-03, the whole-`bootOk` review) For the configurations it covers (`bootCfgOk`,
 not forcing a new cluster, `bootstrapWALFromSnapshot`'s `ForceNewCluster` rewriting the WAL's log,
-`bootstrap.go:628-650`; the WAL in the data directory, `DedicatedWALDir` empty: `cfg.WALDir()`,
-`config.go:302-307`, is the dedicated directory when set, while `srvFiles` places the WAL at
-`<dd>/member/wal`), a write budget `bootstrap`'s own sessions leave (`N + 7 + bootWB ≤ wbInit`),
+`bootstrap.go:628-650`; (wal-link P2) the WAL in the data directory's dedicated WAL directory,
+`DedicatedWALDir = srvWalDirOf dd`: `cfg.WALDir()`, `config.go:302-307`, is the dedicated directory
+when set, where `srvFiles` places the WAL), a write budget `bootstrap`'s own sessions leave (`N + 7 + bootWB ≤ wbInit`),
 and (G, a scope restriction: the restart plan's static cluster) the image's members the boot log's,
 at the same peer URLs (what `Members()`, `Hmembers`, reports through `memberDirIs dir`; their names
 and client URLs may differ, `publishV3`, `server.go:1828`, updating them once a member has
@@ -663,7 +673,7 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
       (M : GMap Loc MemStorNamesRec),
     ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
-      bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = (go!"" : GoString) ∧
+      bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir' ∧
       -- (2026-11-03, the final whole-`bootOk` review's M1) bbolt opens the backend file (else
       -- `newBackend`'s `lg.Panic`)
       storage.dbOpensOk ∧
@@ -686,7 +696,9 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`bootstrapContract`'s)
         envVerifyOff ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
-        srvFiles cfg.DataDir' id σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
+        -- (S5, 2026-11-18: no longer also the opaque `pathOwn` of the backend path, the claim on
+        -- its name being `srvFiles`' file's)
+        srvFiles cfg.DataDir' id σ D }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }})

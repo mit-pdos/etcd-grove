@@ -5,10 +5,6 @@
 theorem backend.qsum_delete (m : GMap Nat Qp) (k : Nat) (v : Qp) (h : m !! k = some v) :
     backend.qsum m = backend.qsum (GMap.delete k m) + v.val
 
-theorem backend.stats_take (γ : backend.BNames) (P : backend.BParams) (rtx : Loc) (cm : GoMap) (D :
-    backend.Data) (E : CoPset) (hE : ↑(backend.bN.@"stats") ⊆ E) : backend.intvInv γ P rtx cm D ∗
-    ghostVar γ.txb 1 () ⊢ |={E}=> backend.rtxStats rtx
-
 theorem backend.bbRange_single (es : List backend.Ent) (kb : GoString) (lim : w64) (h :
     backend.entsSorted es) : backend.bbRange es kb [] lim = match backend.lastVal es kb with | some
     v => [(kb, v)] | none => []
@@ -28,20 +24,21 @@ theorem backend.cache_mark (γ : backend.BNames) (r q : Qp) (ver : w64) (idx : N
 
 theorem backend.intv_borrow (γ : backend.BNames) (P : backend.BParams) (rtx : Loc) (cm : GoMap) (D :
     backend.Data) (r : Qp) (E : CoPset) (hE : ↑(backend.bN.@"intv") ⊆ E) : backend.intvInv γ P rtx
-    cm D ∗ ghostVar γ.txa r () ⊢ |={E}=> ∃ M, ownMap cm (DFrac.own r) M ∗ □ backend.cmFacts P rtx D
-    M
+    cm D ∗ ghostVar γ.txa r () ⊢ |={E}=> ∃ M, ownMap cm (DFrac.own r) M ∗ □ backend.cmFacts γ P rtx
+    D M
 
 theorem backend.bksAt_persist (m : GoMap) (P : backend.BksPhys) (B : GMap w64 (List backend.Ent)) :
     backend.bksAt m (DFrac.own 1) P B ⊢ |==> backend.bksAt m DFrac.discard P B
 
-theorem backend.cmFacts_lookup (P : backend.BParams) (rtx : Loc) (D : backend.Data) (M : GMap w64
-    Loc) (bi : backend.BucketInfo) (bk : Loc) (hP : P.Wf) (hb : P.has bi) (hl : M !! bi.id = some
-    bk) : backend.cmFacts P rtx D M ⊢ backend.bktFact rtx D bi.name bk
+theorem backend.cmFacts_lookup (γ : backend.BNames) (P : backend.BParams) (rtx : Loc) (D :
+    backend.Data) (M : GMap w64 Loc) (bi : backend.BucketInfo) (bk : Loc) (hP : P.Wf) (hb : P.has
+    bi) (hl : M !! bi.id = some bk) : backend.cmFacts γ P rtx D M ⊢ backend.bktFact γ rtx D bi.name
+    bk
 
 theorem backend.bbAt_agree (bb : Loc) (dq1 dq2 : DFrac) (p1 p2 : backend.BBPhys) (es : List
     backend.Ent) : backend.bbAt bb dq1 p1 es ∗ backend.bbAt bb dq2 p2 es ⊢ ⌜p1 = p2⌝
 
-theorem backend.rdSlices_nil (rtx : Loc) : ⊢ backend.rdSlices rtx [] []
+theorem backend.rdSlices_nil (γd : backend.DBNames) (rtx : Loc) : ⊢ backend.rdSlices γd rtx [] []
 
 theorem backend.qp_add_mk (a : Rat) (ha : 0 < a) (r : Qp) (h : 0 < a + r.val) : ⟨a, ha⟩ + r = ⟨a +
     r.val, h⟩
@@ -51,29 +48,28 @@ theorem backend.bktEnts_sorted (m : backend.BktData) : backend.entsSorted (backe
 theorem backend.le_sum_of_mem_nat {l : List Nat} {x : Nat} (h : x ∈ l) : x ≤ l.sum
 
 theorem backend.rtHeldF_return (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
-    backend.RView) (p1 p2 : Qp) : backend.rtHeldF γ P b rtx rv p1 ∗ backend.txLive rtx p2 ⊢
-    backend.rtHeldF γ P b rtx rv (p1 + p2)
+    backend.RView) (p1 p2 : Qp) : backend.rtHeldF γ P b rtx rv p1 ∗ backend.txLive rtx γ.db p2
+    (bbolt.TxView.ro rv.fst) ⊢ backend.rtHeldF γ P b rtx rv (p1 + p2)
 
 theorem backend.rtIntv_live (γ : backend.BNames) (P : backend.BParams) (q : Qp) (rd : backend.RdSt)
     (cm : GoMap) (D : backend.Data) (p qo : Qp) : backend.rtIntv γ P q rd cm D p ∗ backend.bOpen γ
     qo ⊢ backend.rtIntv γ P q rd cm D p ∗ backend.bOpen γ qo ∗ ⌜rd.rtx ≠ null⌝
 
-theorem backend.rtIntv_snap (γ : backend.BNames) (P : backend.BParams) (q : Qp) (rd : backend.RdSt)
-    (cm : GoMap) (D : backend.Data) (p : Qp) (hn : rd.rtx ≠ null) : backend.rtIntv γ P q rd cm D p ⊢
-    backend.rtIntv γ P q rd cm D p ∗ backend.rtxSnap rd.rtx D
-
-theorem backend.rdSlices_append (rtx : Loc) (ss ss' : List GoSlice) (bs bs' : List GoString) :
-    backend.rdSlices rtx ss bs ∗ backend.rdSlices rtx ss' bs' ⊢ backend.rdSlices rtx (ss ++ ss') (bs
-    ++ bs')
+theorem backend.rdSlices_append (γd : backend.DBNames) (rtx : Loc) (ss ss' : List GoSlice) (bs bs' :
+    List GoString) : backend.rdSlices γd rtx ss bs ∗ backend.rdSlices γd rtx ss' bs' ⊢
+    backend.rdSlices γd rtx (ss ++ ss') (bs ++ bs')
 
 theorem backend.fkRd_wf (γ : backend.BNames) (P : backend.BParams) (rv : backend.RView) :
     backend.fkV γ true ∗ backend.fkRd γ P rv ⊢ ⌜backend.fkWfRv P rv⌝
 
-theorem backend.wp_rdAdd (γ : backend.BNames) (rtx wg : Loc) (γw γo γt : GName) (q : Qp) : ⊢ ∀ Φ,
-    isPkgInit pkg_id.sync ∗ □ backend.wgInv γ rtx wg γw γo γt ∗ backend.wgOpen γw q ∗ ownToks γ.rdt
-    1 -∗ ▷ ((∃ k q', backend.wgOpen γw q ∗ backend.rdShare rtx γo k q') -∗ Φ (intoVal ())) -∗ WP
-    ((intoVal (methods sync.WaitGroup.ty.PointerType go!"Add" (intoVal wg))) (intoVal (W64 1))) {{ Φ
-    }}
+theorem backend.wp_rdAdd (γ : backend.BNames) (rtx : Loc) (D : backend.Data) (wg : Loc) (γw γo γt :
+    GName) (q : Qp) : ⊢ ∀ Φ, isPkgInit pkg_id.sync ∗ □ backend.wgInv γ rtx D wg γw γo γt ∗
+    backend.wgOpen γw q ∗ ownToks γ.rdt 1 -∗ ▷ ((∃ k q', backend.wgOpen γw q ∗ backend.rdShare γ rtx
+    D γo k q') -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods sync.WaitGroup.ty.PointerType go!"Add"
+    (intoVal wg))) (intoVal (W64 1))) {{ Φ }}
+
+theorem backend.rbRd_frac (γ : backend.BNames) (n : GoString) (q1 q2 : Qp) (v : backend.BktData) :
+    backend.rbRd γ n (q1 + q2) v ⊣⊢ backend.rbRd γ n q1 v ∗ backend.rbRd γ n q2 v
 
 theorem backend.perm_sum_rat {l l' : List Rat} (h : l.Perm l') : l.sum = l'.sum
 
@@ -108,19 +104,24 @@ theorem backend.rbAt_bkOf_lt (txr : Loc) (dq : DFrac) (m : GoMap) (Pb : backend.
     backend.rbAt txr dq m Pb R ∗ ⌜(backend.bkOf R.bks id).length < 2 ^ 61⌝
 
 theorem backend.crtSnap_read (γ : backend.BNames) (P : backend.BParams) (b crt rtx : Loc) (rv :
-    backend.RView) (s : GoSlice) (v : GoString) : backend.crtSnap γ P b crt rtx rv ∗ backend.rdB rtx
-    s v ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.crtSnap γ P b crt rtx rv)
+    backend.RView) (s : GoSlice) (v : GoString) : backend.crtSnap γ P b crt rtx rv ∗ backend.rdB
+    γ.db rtx s v ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.crtSnap γ P b crt rtx rv)
 
 theorem backend.rtHeld_read (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) (qo : Qp) (s : GoSlice) (v : GoString) : backend.rtHeld γ P b rtx rv ∗
-    backend.bOpen γ qo ∗ backend.rdB rtx s v ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗
+    backend.bOpen γ qo ∗ backend.rdB γ.db rtx s v ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗
     backend.rtHeld γ P b rtx rv ∗ backend.bOpen γ qo)
 
 theorem backend.lastVal_bktEnts (m : backend.BktData) (k : GoString) : backend.lastVal
     (backend.bktEnts m) k = m !! k
 
-theorem backend.rdSlices_persistent (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
-    Persistent (backend.rdSlices rtx ss bs)
+theorem backend.rtHeldF_rbRd (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
+    backend.RView) (p : Qp) (n : GoString) (q : Qp) (v : backend.BktData) : backend.rtHeldF γ P b
+    rtx rv p ∗ backend.rbRd γ n q v ⊢ backend.rtHeldF γ P b rtx rv p ∗ backend.rbRd γ n q v ∗
+    ⌜backend.rvBkt P rv n = v⌝
+
+theorem backend.rdSlices_persistent (γd : backend.DBNames) (rtx : Loc) (ss : List GoSlice) (bs :
+    List GoString) : Persistent (backend.rdSlices γd rtx ss bs)
 
 theorem backend.rbAt_ownRB (txr : Loc) (m : GoMap) (Pb : backend.BksPhys) (R : backend.RBuf) (h :
     backend.bksOk Pb R.bks) : backend.rbAt txr (DFrac.own 1) m Pb R ⊢ backend.ownRB txr R
@@ -141,21 +142,21 @@ theorem backend.rtHeldF_fk (γ : backend.BNames) (P : backend.BParams) (b rtx : 
     backend.RView) (p : Qp) : backend.fkOwn γ 0 ∗ backend.rtHeldF γ P b rtx rv p ⊢ backend.fkOwn γ 0
     ∗ backend.rtHeldF γ P b rtx rv p ∗ ⌜backend.fkAbsRv P rv⌝
 
-theorem backend.rdSlices_snoc (rtx : Loc) (ss : List GoSlice) (bs : List GoString) (s : GoSlice) (b
-    : GoString) : backend.rdSlices rtx ss bs ∗ backend.rdB rtx s b ⊢ backend.rdSlices rtx (ss ++
-    [s]) (bs ++ [b])
+theorem backend.rdSlices_snoc (γd : backend.DBNames) (rtx : Loc) (ss : List GoSlice) (bs : List
+    GoString) (s : GoSlice) (b : GoString) : backend.rdSlices γd rtx ss bs ∗ backend.rdB γd rtx s b
+    ⊢ backend.rdSlices γd rtx (ss ++ [s]) (bs ++ [b])
 
 theorem backend.idsOk_reset {P : backend.BParams} {R : backend.RBuf} (hR : backend.idsOk P R.bks) :
     backend.idsOk P R.reset.bks
 
-theorem backend.kvsOutRd_of_kvsOut (rtx : Loc) (keys vals : GoSlice) (res : List backend.Ent) :
-    backend.kvsOut keys vals res ⊢ backend.kvsOutRd rtx keys vals res
+theorem backend.kvsOutRd_of_kvsOut (γd : backend.DBNames) (rtx : Loc) (keys vals : GoSlice) (res :
+    List backend.Ent) : backend.kvsOut keys vals res ⊢ backend.kvsOutRd γd rtx keys vals res
 
 theorem backend.fresh_next_idx {V : Type} (M : GMap (w64 × Nat) V) (v : w64) (i : Nat) (hall : ∀ (k
     : w64 × Nat) (x : V), M !! k = some x → backend.keyLe k (v, i)) : M !! (v, i + 1) = none
 
-theorem backend.rdSlices_of_slicesAre (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
-    backend.slicesAre ss bs ⊢ backend.rdSlices rtx ss bs
+theorem backend.rdSlices_of_slicesAre (γd : backend.DBNames) (rtx : Loc) (ss : List GoSlice) (bs :
+    List GoString) : backend.slicesAre ss bs ⊢ backend.rdSlices γd rtx ss bs
 
 theorem backend.bbs_persist (n : Nat) (P : backend.BksPhys) (B : GMap w64 (List backend.Ent)) (hn :
     GMap.size P = n) : ([∗map] x;es ∈ P;B, backend.bbAt x.fst (DFrac.own 1) x.snd es) ⊢ |==> [∗map]
@@ -173,19 +174,30 @@ theorem backend.ownMap_valid {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V
 
 theorem backend.rtHeldF_lend (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) (qo p1 p2 : Qp) : backend.rtHeldF γ P b rtx rv (p1 + p2) ∗ backend.bOpen γ qo ⊢
-    backend.rtHeldF γ P b rtx rv p1 ∗ backend.bOpen γ qo ∗ backend.txLive rtx p2
+    backend.rtHeldF γ P b rtx rv p1 ∗ backend.bOpen γ qo ∗ backend.txLive rtx γ.db p2
+    (bbolt.TxView.ro rv.fst)
 
 theorem backend.tokPart_le (γ : backend.BNames) (a : Rat) : backend.tokPart γ a ⊢ ⌜a ≤ 1⌝ ∗
     backend.tokPart γ a
 
 theorem backend.rtHeldF_read' (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) (p : Qp) (s : GoSlice) (v : GoString) : backend.rtHeldF γ P b rtx rv p ∗
-    backend.rdB rtx s v ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.rtHeldF γ P b rtx rv
-    p)
+    backend.rdB γ.db rtx s v ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.rtHeldF γ P b rtx
+    rv p)
 
 theorem backend.rtHeldF_lend' (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) (p1 p2 : Qp) : backend.rtHeldF γ P b rtx rv (p1 + p2) ⊢ backend.rtHeldF γ P b rtx
-    rv p1 ∗ backend.txLive rtx p2
+    rv p1 ∗ backend.txLive rtx γ.db p2 (bbolt.TxView.ro rv.fst)
+
+theorem backend.rtIntv_size (γ : backend.BNames) (P : backend.BParams) (q : Qp) (rd : backend.RdSt)
+    (cm : GoMap) (D : backend.Data) (p : Qp) (hn : rd.rtx ≠ null) : backend.rtIntv γ P q rd cm D p ⊢
+    backend.rtIntv γ P q rd cm D p ∗ ⌜∀ (n : GoString) (m : backend.BktData), D !! n = some m →
+    GMap.size m < 2 ^ 61⌝
+
+theorem backend.rbrHalves_agree (γ : backend.BNames) (P : backend.BParams) (q : Qp) (rv :
+    backend.RView) (n : GoString) (q' : Qp) (v : backend.BktData) (hn : γ.rbD !! n ≠ none) :
+    backend.rbrHalves γ P q rv ∗ n ↪[γ.rbr]{#q'} v ⊢ backend.rbrHalves γ P q rv ∗ n ↪[γ.rbr]{#q'} v
+    ∗ ⌜backend.rvBkt P rv n = v⌝
 
 theorem backend.tokPart_join (γ : backend.BNames) (a : Rat) (r : Qp) (h : 0 ≤ a) : backend.tokPart γ
     a ∗ ghostVar γ.txa r () ⊢ backend.tokPart γ (a + r.val)
@@ -208,17 +220,16 @@ theorem backend.rtHeldF_fkRd (γ : backend.BNames) (P : backend.BParams) (b rtx 
 theorem backend.tokPart_split (γ : backend.BNames) (a : Rat) (r : Qp) (h : r.val ≤ a) :
     backend.tokPart γ a ⊢ backend.tokPart γ (a - r.val) ∗ ghostVar γ.txa r ()
 
+theorem backend.rbRd_agree (γ : backend.BNames) (n : GoString) (q1 q2 : Qp) (v1 v2 :
+    backend.BktData) : backend.rbRd γ n q1 v1 ∗ backend.rbRd γ n q2 v2 ⊢ ⌜v1 = v2⌝
+
 theorem backend.wg_wgi_mask : ↑(backend.bN.@"wg") ⊆ ⊤ \ ↑(backend.bN.@"wgi")
 
 theorem backend.qsum_insert (m : GMap Nat Qp) (k : Nat) (v : Qp) (h : m !! k = none) : backend.qsum
     <[k := v]>m = backend.qsum m + v.val
 
-theorem backend.cmFacts_empty (P : backend.BParams) (rtx : Loc) (D : backend.Data) : ⊢
-    backend.cmFacts P rtx D ∅
-
-theorem backend.stats_give (γ : backend.BNames) (P : backend.BParams) (rtx : Loc) (cm : GoMap) (D :
-    backend.Data) (E : CoPset) (hE : ↑(backend.bN.@"stats") ⊆ E) : backend.intvInv γ P rtx cm D ∗
-    backend.rtxStats rtx ⊢ |={E}=> ghostVar γ.txb 1 ()
+theorem backend.cmFacts_empty (γ : backend.BNames) (P : backend.BParams) (rtx : Loc) (D :
+    backend.Data) : ⊢ backend.cmFacts γ P rtx D ∅
 
 theorem backend.ownMap_split {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
     (l : Loc) (q1 q2 : Qp) (m : GMap K V) : ownMap l (DFrac.own (q1 + q2)) m ⊢ ownMap l (DFrac.own
@@ -226,9 +237,9 @@ theorem backend.ownMap_split {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V
 
 theorem backend.qsum_empty : backend.qsum ∅ = 0
 
-theorem backend.curAt_some (tx : Loc) (es : List backend.Ent) (n : Nat) (k v : GoSlice) (e :
-    backend.Ent) (h : es[n]? = some e) : backend.curAt tx es n k v ⊢ ⌜k ≠ slice.nil⌝ ∗
-    backend.txBytes tx k e.fst ∗ backend.txBytes tx v e.snd
+theorem backend.curAt_some (tx : Loc) (γd : backend.DBNames) (es : List backend.Ent) (n : Nat) (k v
+    : GoSlice) (e : backend.Ent) (h : es[n]? = some e) : backend.curAt tx γd es n k v ⊢ ⌜k ≠
+    slice.nil⌝ ∗ backend.txBytes tx γd k e.fst ∗ backend.txBytes tx γd v e.snd
 
 theorem backend.ghostVar_le_one {A : Type} [Pos.Countable A] (γ : GName) (q : Qp) (a : A) : ghostVar
     γ q a ⊢ ⌜q.val ≤ 1⌝
@@ -237,22 +248,24 @@ theorem backend.fresh_next_ver {V : Type} (M : GMap (w64 × Nat) V) (v : w64) (i
     : w64 × Nat) (x : V), M !! k = some x → backend.keyLe k (v, i)) (hv : uint.Z v + 1 < 2 ^ 64) : M
     !! (v + W64 1, 0) = none
 
-theorem backend.bktFact_persistent (rtx : Loc) (D : backend.Data) (n : GoString) (bk : Loc) :
-    Persistent (backend.bktFact rtx D n bk)
+theorem backend.bktFact_persistent (γ : backend.BNames) (rtx : Loc) (D : backend.Data) (n :
+    GoString) (bk : Loc) : Persistent (backend.bktFact γ rtx D n bk)
 
-theorem backend.cmFacts_insert (P : backend.BParams) (rtx : Loc) (D : backend.Data) (M : GMap w64
-    Loc) (bi : backend.BucketInfo) (bk : Loc) (hb : P.has bi) : backend.cmFacts P rtx D M ∗
-    backend.bktFact rtx D bi.name bk ⊢ backend.cmFacts P rtx D <[bi.id := bk]>M
+theorem backend.cmFacts_insert (γ : backend.BNames) (P : backend.BParams) (rtx : Loc) (D :
+    backend.Data) (M : GMap w64 Loc) (bi : backend.BucketInfo) (bk : Loc) (hb : P.has bi) :
+    backend.cmFacts γ P rtx D M ∗ backend.bktFact γ rtx D bi.name bk ⊢ backend.cmFacts γ P rtx D
+    <[bi.id := bk]>M
 
 theorem backend.cache_lookup (γ : backend.BNames) (r : Qp) (ver : w64) (idx i : Nat) (win : Bool) :
     backend.cacheInv γ ∗ ghostVar γ.cur r ((ver, idx), win) ∗ backend.cachedAt γ ver i ⊢ |={⊤}=>
     ghostVar γ.cur r ((ver, idx), win) ∗ ⌜i ≤ idx⌝
 
-theorem backend.curAt_none (tx : Loc) (es : List backend.Ent) (n : Nat) (k v : GoSlice) (h : es[n]?
-    = none) : backend.curAt tx es n k v ⊢ ⌜k = slice.nil ∧ v = slice.nil⌝
+theorem backend.curAt_none (tx : Loc) (γd : backend.DBNames) (es : List backend.Ent) (n : Nat) (k v
+    : GoSlice) (h : es[n]? = none) : backend.curAt tx γd es n k v ⊢ ⌜k = slice.nil ∧ v = slice.nil⌝
 
-def backend.bktFact (rtx : Loc) (D : backend.Data) (n : GoString) (bk : Loc) : IProp GF :=
-  iprop(⌜D !! n = none ∧ bk = null⌝ ∨ ∃ m, ⌜D !! n = some m ∧ bk ≠ null⌝ ∗ backend.rBkt rtx bk (backend.bktEnts m))
+def backend.bktFact (γ : backend.BNames) (rtx : Loc) (D : backend.Data) (n : GoString) (bk : Loc) :
+    IProp GF :=
+  iprop(⌜D !! n = none ∧ bk = null⌝ ∨ ∃ m, ⌜D !! n = some m ∧ bk ≠ null⌝ ∗ backend.wBkt rtx γ.db bk n 0)
 
 theorem backend.vData_rebase_or' (P : backend.BParams) (C C' : backend.Data) (X R : backend.RBuf)
     (nk : GoString × GoString) : backend.vData P (C', X) !! nk = backend.vData P (C, X) !! nk ∨
@@ -296,7 +309,7 @@ theorem backend.keyLe_next_idx {k : w64 × Nat} {v : w64} {i : Nat} (h : backend
 
 theorem backend.rtHeldF_read (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) (p qo : Qp) (s : GoSlice) (v : GoString) : backend.rtHeldF γ P b rtx rv p ∗
-    backend.bOpen γ qo ∗ backend.rdB rtx s v ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗
+    backend.bOpen γ qo ∗ backend.rdB γ.db rtx s v ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗
     backend.rtHeldF γ P b rtx rv p ∗ backend.bOpen γ qo)
 
 theorem backend.rtRange_single (P : backend.BParams) (rv : backend.RView) (bi : backend.BucketInfo)
@@ -310,13 +323,13 @@ theorem backend.fkRd_open (γ : backend.BNames) (P : backend.BParams) (rv : back
     (v : backend.FkVals) : backend.fkOwn γ n ∗ backend.fkOpen γ n v ∗ backend.fkRd γ P rv ⊢
     backend.fkOwn γ n ∗ ⌜backend.fkValRv P v rv⌝
 
-theorem backend.rdSlices_length (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
-    backend.rdSlices rtx ss bs ⊢ ⌜ss.length = bs.length⌝
+theorem backend.rdSlices_length (γd : backend.DBNames) (rtx : Loc) (ss : List GoSlice) (bs : List
+    GoString) : backend.rdSlices γd rtx ss bs ⊢ ⌜ss.length = bs.length⌝
 
 theorem backend.bksAt_agree (m : GoMap) (dq1 dq2 : DFrac) (P1 P2 : backend.BksPhys) (B : GMap w64
     (List backend.Ent)) : backend.bksAt m dq1 P1 B ∗ backend.bksAt m dq2 P2 B ⊢ ⌜P1 = P2⌝
 
 theorem backend.intv_return (γ : backend.BNames) (P : backend.BParams) (rtx : Loc) (cm : GoMap) (D :
     backend.Data) (r : Qp) (M : GMap w64 Loc) (E : CoPset) (hE : ↑(backend.bN.@"intv") ⊆ E) :
-    backend.intvInv γ P rtx cm D ∗ ownMap cm (DFrac.own r) M ∗ □ backend.cmFacts P rtx D M ⊢ |={E}=>
-    ghostVar γ.txa r ()
+    backend.intvInv γ P rtx cm D ∗ ownMap cm (DFrac.own r) M ∗ □ backend.cmFacts γ P rtx D M ⊢
+    |={E}=> ghostVar γ.txa r ()

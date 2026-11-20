@@ -349,7 +349,7 @@ theorem EtcdServer.snapshot.wp_proof
       icases Hdisk with ⟨%stp, #Hstf⟩
       -- (restart S6a) `Release`'s directory, at the same storage
       iunfold srvSnapDir at Hsdir
-      icases Hsdir with ⟨%stp', %ss, %γd, %img, %Rm, ⟨%hd, #Hsws⟩, #Hstf', #Hdinv, #Hrm⟩
+      icases Hsdir with ⟨%stp', %ss, %sd, %γd, %img, %Rm, ⟨%hd, #Hsws⟩, #Hstf', #Hssd, #Hdinv, #Hrm⟩
       icombine Hstf Hstf' gives %Hstpeq
       have Hstpeq' : stp = stp' := by
         simp only [interface.mkOk, GoInterface.ok.injEq] at Hstpeq
@@ -375,10 +375,9 @@ theorem EtcdServer.snapshot.wp_proof
       subst Hss
       ihave %Hsok := isWalStorage_ok _ _ _ $$ Hsave
       obtain ⟨si, Hsieq⟩ := Hsok
-      -- (wal-link L3, F2) the snapshot's metadata canonical: OPEN (raft's `ConfState()` facts for the
-      -- apply thread's `ep.confState`: its `AutoLeave` set)
-      ihave #Hm1 : metaRoC pm (srvSnapMetaC (memSnapMade ai at' c []).Metadata' uf) $$ []
-      · sorry
+      -- (wal-link L3, F2; Hm1 route (B)) the snapshot's metadata canonical at the presence bit `al` of its
+      -- conf state's `AutoLeave` pointer (`srv_smPtsV_metaC`: `CreateSnapshot`'s clone sets every other pointer)
+      ihave ⟨%al, %ufm, #Hm1⟩ := srv_smPtsV_metaC pm _ $$ HmV
       -- (F2) the conf state the voters' (`Hcsc`): not the zero one, the record below layer 1's bound
       -- (`srv_csF2`, the cluster's voters `srvRaftLogInv_cfg`); the index below `2^61` (the snapshot valid)
       ihave %Hcfg := srvRaftLogInv_cfg γr.raft $$ Hrli
@@ -392,9 +391,9 @@ theorem EtcdServer.snapshot.wp_proof
         have h2 := Hfv.2.2.2.2.1
         omega
       ihave #HSaveSnap := walSaveSnapC_spec _ γn.wal.h γn.ss si Hsieq q snap' pm DFrac.discard
-        (memSnapMade ai at' c []).Metadata' uf
+        (memSnapMade ai at' c []).Metadata' al ufm
         iprop(token γn.wal.app ∗ walBaseLb γn.wal.h (uint.nat (memSnapMade ai at' c []).Metadata'.Index'))
-        true HF2z HF2i HF2e $$ Hsave
+        true HF2z HF2i (HF2e al) $$ Hsave
       have Hsieq0 := Hsieq
       simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
       subst Hsieq
@@ -442,10 +441,10 @@ theorem EtcdServer.snapshot.wp_proof
       -- (wal-link L3) `Release`, the WAL contract's law: the records read (`rnDur_read_au`)
       ihave HRAU := rnDur_read_au γn.node.cl γn.wal γn.wal.h $$ Hdur Hwap
       ihave #HRel := walRelease_spec _ γn.wal.h γn.ss _ Hsieq0 q snap' pm DFrac.discard DFrac.discard
-          (memSnapMade ai at' c []).Metadata' γd img Rm iw (memSnapMade ai at' c []).Metadata'
+          (memSnapMade ai at' c []).Metadata' sd γd img Rm iw (memSnapMade ai at' c []).Metadata'
           (token γn.wal.app) rfl $$ Hsave
       wp_apply HRel $$ [Hwo Hrdw HRAU] as %rerr ⟨Hwo, Hrdw, -, -, Hwap, %Hrerr⟩
-      · iframe Hwo Hrdw HRAU Hm' Hdinv Hwrec; iframe #
+      · iframe Hwo Hrdw HRAU Hm' Hssd Hdinv Hwrec; iframe #
         iintro !> %j %hj
         iapply Hrm
         iapply monoNatLbOwn_le (uint.nat j + 1) (by

@@ -66,7 +66,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- See the file header. (2026-10-27: over raft's node API, at the cluster's storage model,
 `srvStor`.) -/
 abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
-  ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (pre : List EntryModel) (ν : WalNames GF)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF)
@@ -84,7 +84,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- (wal-link L3, 2026-11-19: until then `storage.walReady wal`) the WAL the open WAL `ν.h`'s
       "%Hraft" ∷ ⌜0 < sint.Z bv.heartbeat' ∧ wal = ν.h.w ∧ Cluster.trace γr.cl = none⌝ ∗
       -- (wal-link L3) the snapshotter (`NewStorage`'s precondition, `rnNewStorageOk`)
-      "#Hssi" ∷ snap.isSnapshotter ss ∗
+      "#Hssi" ∷ snap.isSnapshotter ss sd ∗
       -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode`'s, which it logs through)
       "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗

@@ -51,13 +51,13 @@ abbrev store.conditionalDelete.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗
       ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ preAt pp pr ∗ cachedOk c key cx ca ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key (c.S.preOk pr) validate) W Φ) ∗
+      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key (c.S.preF pr) validate) W Φ) ∗
       validateOk c validate vf }}
     (App (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"conditionalDelete"))
       (Val #(GoInterface.ok ci))) (Val #key)) (Val #out)) (Val #v)) (Val #pp)) (Val #vf))
       (Val #cx)) (Val #false))
-  {{ (err : GoInterface), RET #err; delOut c key (c.S.preOk pr) validate Φ err out }}
+  {{ (err : GoInterface), RET #err; delOut c key (c.S.preF pr) validate Φ err out }}
 
 end spec
 

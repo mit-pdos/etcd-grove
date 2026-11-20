@@ -200,11 +200,12 @@ theorem rafthttp.Transport.Send.wp_proof
         haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
         repeat' (first_callee
           | "GetType" => (wp_apply hGetType.1 ml _ _ _ st $$ [] as -; iframe #)
-          | "String" => (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
-                         iunfold fmt.stringMethodSpec at HT
-                         wp_apply HT as %_)
-          | "String" => (wp_apply hIDString as %_ -)
-          | "String" => (wp_apply hIDStringPtr _ _ _ $$ [to] as %_ ⟨to, -⟩; iexact to)
+          | "MessageType.String" =>
+            (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
+             iunfold fmt.stringMethodSpec at HT
+             wp_apply HT as %_)
+          | "ID.String" => (wp_apply hIDString as %_ -)
+          | "*ID.String" => (wp_apply hIDStringPtr _ _ _ $$ [to] as %_ ⟨to, -⟩; iexact to)
           | "zap.String" => (wp_apply hZString as %_ -)
           | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr;
               (ipureintro; rfl); iintro %_ ⟨-, -⟩)

@@ -61,7 +61,7 @@ theorem runner.shut.wp_proof
   wp_apply wp_check
   · ipureintro; simp
   (try wp_auto)
-  imod inc_census hCR γk bk path k $$ [Hcl Hrdrs Hmb Hbk] with ⟨Hmb, Hone, #Hisb, #Hsc, Hbf⟩
+  imod inc_census hCR γk bk path k $$ [Hcl Hrdrs Hmb Hbk] with ⟨Hmb, Hone, #Hisb, #Hsc, Hbf, Hbp⟩
   · iframe
   wp_apply (wp_Stop lp) $$ [Hstop]
   · iframe #; iframe
@@ -71,13 +71,13 @@ theorem runner.shut.wp_proof
   wp_apply (wp_bClose bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be iprop(True) iprop(True))
     $$ [Hone] as %err ⟨-, %D, Hsv, Hocl⟩
   · iframe #; iframe
-  icases Hocl with (⟨%Herr, %path', Hbf', Hfile⟩ | %Hbad)
+  icases Hocl with (⟨%Herr, Hcd⟩ | %Hbad)
   rotate_left
   · exact absurd hdbc Hbad
   subst Herr
-  ihave %Hp := backend.bFile_agree bk.γB path path' $$ [Hbf Hbf']
+  -- (S5) the closed file's inode, at the name the writer kept: the file at `path`
+  ihave Hfile := backend.bPath_join bk.γB.db path D $$ [Hbp Hcd]
   · iframe
-  subst Hp
   imod inc_stop_image hstop (interface.mkOk kty kvv) γk bk D σ r L hσ hr
     $$ [Hmb Hsv Hσ Hrb] with ⟨%u, Himg, %HrD⟩
   · iframe #; iframe

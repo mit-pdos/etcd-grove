@@ -51,7 +51,14 @@ theorem apply.NewUberApplier.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %E #Hopts
-  ihave #Hb := Hbase $$ %E Hopts
+  ihave #Hb : apply.applierSpecW E (apply.baseChain E.authOn) base $$ []
+  · iunfold apply.applierSpecW
+    iintro !> %w
+    ihave #Ho := apply.backendOptsOk_win E w opts $$ Hopts
+    ihave #Hx := Hbase $$ %{ E with win := w } Ho
+    ihave #Hy := apply.applierSpec_congr (E := { E with win := w })
+      (c := apply.baseChain ({ E with win := w } : apply.AEnv GF).authOn) (c' := apply.baseChain E.authOn) base rfl $$ Hx
+    iexact Hy
   ihave #HbA := HbAuth $$ %E Hopts
   isplitr
   · iunfold apply.uberIs
@@ -64,7 +71,18 @@ theorem apply.NewUberApplier.wp_proof
   iexists a'
   iframe Ha'
   isplitr
-  · iapply Hchain $$ %E Hb
+  · iunfold apply.applierSpecW
+    iintro !> %w
+    iunfold apply.applierSpecW at Hb
+    ihave #Hbw0 := Hb $$ %w
+    ihave #Hbw := apply.applierSpec_congr (E := { E with win := w })
+      (c := apply.baseChain E.authOn)
+      (c' := apply.baseChain ({ E with win := w } : apply.AEnv GF).authOn) base rfl $$ Hbw0
+    ihave #Hx := Hchain $$ %{ E with win := w } Hbw
+    ihave #Hy := apply.applierSpec_congr (E := { E with win := w })
+      (c := apply.alarmChain ({ E with win := w } : apply.AEnv GF).authOn ns cr)
+      (c' := apply.alarmChain E.authOn ns cr) a' rfl $$ Hx
+    iexact Hy
   isplitr
   · ipureintro
     cases ns <;> cases cr <;> simp [apply.alarmChain, apply.baseChain, apply.Chain.authOn]

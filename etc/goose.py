@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -182,13 +182,17 @@ PROJECTS = [
         # under `metalock` (743299d8, verification only); then a writable `Open` fdatasyncs the file
         # before its first commit (c5a6065d, issues/bbolt-open-unsynced-meta-kill-then-power-loss.md;
         # 004c930 its robustness test), closing under the locks if that sync fails (ea4cab52, as the
-        # failed transaction's exit: the proof needs the locks' halves of the fields `close` clears). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # failed transaction's exit: the proof needs the locks' halves of the fields `close` clears); then
+        # `Put` refuses an entry (key plus value) above 2^28 bytes with `ErrValueTooLarge` (3f8520bd, branch
+        # `goose-lean-entrymax`; issues/bbolt-max-value-size-unusable.md: `Put` accepted values a page of four
+        # entries cannot hold within `MaxAllocSize`; the verified bbolt's `bboltEntryMax`; approved by the
+        # user 2026-11-19, auth-schema-srv port, route (d')). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="ea4cab5267973cc858b7393c5c010eee4014e75c",
+        rev="3f8520bd72989b6cf959eef13e151b90031ed6bc",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -549,6 +553,9 @@ PROJECTS = [
             "google.golang.org/grpc/health",
             "google.golang.org/grpc/health/grpc_health_v1",
             "google.golang.org/grpc/reflection",
+            # types and names only: grpc's stats handler interface, the type of otelgrpc's
+            # `NewServerHandler`'s result (so that an implementation can return one: etcd-refimpl)
+            "google.golang.org/grpc/stats",
             # (and go.uber.org/zap, above)
             # names only: the types of rafthttp.Transport's fields, so that its struct is
             # translated (NewServer builds one; unit N4, 2026-10-17)
@@ -1128,6 +1135,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "authN")],
     ),
     Project(
+        name="authlease",
+        # the lease rows of etcd's auth on authN's start (notes/auth-lease-s4-draft.md): Main(k)
+        # starts k members in-process with auth on (etcdstart.StartMembersAuth), authkv's set-up,
+        # barriers, the leases granted and attached by root and u, then the refusal checks and u's
+        # revocation (run). A package of the examples' Go module (examples/go.mod); its imports are
+        # the etcd project's translations (names reached through the empty root) and
+        # examples/etcd/auth.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "authlease"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "authlease")],
+    ),
+    Project(
         name="leaseN",
         # the lease example with any number of members (notes/leaseN-plan.md): Main(k) starts k
         # members in-process (etcdstart.Members, etcdstart.StartMembers), each serving its raft
@@ -1360,9 +1383,17 @@ PROJECTS = [
                     "github.com/spf13=",
                     # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
                     # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
-                    "runtime/trace="],
+                    "runtime/trace=",
+                    # (k8s 7g) go-cmp and the standard library's `maps`, names only, which the
+                    # driver's copy of Kubernetes' checker calls (their .toml)
+                    "github.com/google=", "maps="],
         packages=[
             ".",
+            # (k8s 7g, notes/k8s-7g-scope.md §1.1) the driver's copy of Kubernetes' checker
+            # (upstream plus etc/k8s-correctness/d30g.patch), with bodies (correctness.toml)
+            "./correctness",
+            "github.com/google/go-cmp/cmp",
+            "maps",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
             # the watch cache's store, with bodies (notes/kep-6404-plan.md)
@@ -1554,6 +1585,7 @@ PROJECTS = [
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"),
                os.path.join("runtime", "trace"),
+               os.path.join("github_com", "google"), "maps",
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

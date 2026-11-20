@@ -306,7 +306,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicInt
 /-- A metadata step by the call `k`, whose spec's postcondition is `P`, the invariant opened
 around it, `P` keeping the invariant's facts. -/
 theorem wp_dsStep (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option Ino) (k s : Nat) (pc : GoString)
-    (op : String) (v : val) (P : w64 → Hist → Prop)
+    (op : String) [FsRetOp op] (v : val) (P : w64 → Hist → Prop)
     (hspec : ∀ Φ' : val → IProp GF, ⊢ osInv (GF := GF) -∗
       osTree (GF := GF) (DFrac.own ((1 : Qp).half.half + (1 : Qp).half)) R V -∗
       osCall (GF := GF) k s pc (1 : Qp).half.half -∗
@@ -1024,10 +1024,10 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
       (by decide) (by decide) (by decide) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
     as %n %err ⟨Hf, Hsl, Hfd, %j', %ys, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
-  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne, -⟩⟩ := Hres
   rotate_left
   · cases err with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl (by first | exact hne | exact hne.1)
     | ok ie =>
     (try wp_auto)
     wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e -

@@ -3,9 +3,12 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem backend.batchTx.unsafePut.wp_proof [go_etcd_io.bbolt.Assumptions]
-    [go_uber_org.zap.Assumptions] (hBucket : bbolt.Tx.Bucket_kvw.spec) (hStringer :
-    zap.Stringer.spec) (hStack : zap.Stack.spec) (hFatal : zap.Logger.Fatal.spec) (hPut :
-    bbolt.Bucket.Put_kv.spec) (hError : zap.Error.spec) : backend.batchTx.unsafePut.spec
+    [go_uber_org.zap.Assumptions] (hBucket : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec)
+    (hStringer : zap.Stringer.spec) (hStack : zap.Stack.spec) (hFatal : zap.Logger.Fatal.spec) (hPut
+    : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions], bbolt.Bucket.Put.spec) (_hError : zap.Error.spec) :
+    backend.batchTx.unsafePut.spec
   -- `Perennial.EtcdGrove.backend.batchTx.unsafePut.spec`, unfolded:
   ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b t : Loc) (st : backend.BSess) (bk : GoInterface)
     (bi : backend.BucketInfo) (key value : GoSlice) (kb vb : GoString) (dk : DFrac) (seq : Bool),
@@ -17,7 +20,10 @@ theorem backend.batchTx.unsafePut.wp_proof [go_etcd_io.bbolt.Assumptions]
                 backend.isBackend γ P W Pk b ∗
                   typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
                     backend.btW γ t st ∗ backend.isBucket bk bi ∗ ownSlice key kb dk ∗ ownSlice value vb DFrac.discard -∗
-              ▷ (backend.btW γ t (st.put bi kb vb seq) ∗ ownSlice key kb dk -∗ Φ (intoVal ())) -∗
+              ▷
+                  (⌜List.length kb + List.length vb ≤ bbolt.bboltEntryMax⌝ ∗
+                      backend.btW γ t (st.put bi kb vb seq) ∗ ownSlice key kb dk -∗
+                    Φ (intoVal ())) -∗
                 WP
                   (((((intoVal
                             (methods go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty.PointerType

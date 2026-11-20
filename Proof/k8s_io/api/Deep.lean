@@ -72,18 +72,18 @@ structure kd.meta.ManagedFieldsEntry where
   APIVersion' : GoString
   Time' : Option (_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time)
   FieldsType' : GoString
-  FieldsV1' : Option Unit
+  FieldsV1' : Unit
   Subresource' : GoString
 
 instance kd.meta.ManagedFieldsEntry.countable : Pos.Countable kd.meta.ManagedFieldsEntry :=
   .ofInjective (fun x => Pos.Countable.encode ([Pos.Countable.encode x.Manager', Pos.Countable.encode x.Operation', Pos.Countable.encode x.APIVersion', Pos.Countable.encode x.Time', Pos.Countable.encode x.FieldsType', Pos.Countable.encode x.FieldsV1', Pos.Countable.encode x.Subresource'] : List Pos)) (by
-    rintro ⟨a0, a1, a2, a3, a4, a5, a6⟩ ⟨b0, b1, b2, b3, b4, b5, b6⟩ h
+    rintro ⟨a0, a1, a2, a3, a4, ⟨⟩, a6⟩ ⟨b0, b1, b2, b3, b4, ⟨⟩, b6⟩ h
     simp only [Pos.encode_eq_iff, List.cons.injEq, and_true, true_and] at h
-    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
     rfl)
 
 /-- The deep value of the zero `ManagedFieldsEntry`. -/
-def kd.meta.ManagedFieldsEntry.zero : kd.meta.ManagedFieldsEntry := ⟨(zero_val GoString), (zero_val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsOperationType), (zero_val GoString), none, (zero_val GoString), none, (zero_val GoString)⟩
+def kd.meta.ManagedFieldsEntry.zero : kd.meta.ManagedFieldsEntry := ⟨(zero_val GoString), (zero_val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsOperationType), (zero_val GoString), none, (zero_val GoString), (), (zero_val GoString)⟩
 
 /-- The deep value of `ObjectMeta` (`k8s_io.apimachinery.pkg.apis.«meta».v1`). -/
 structure kd.meta.ObjectMeta where
@@ -134,18 +134,18 @@ def kd.core.HostPathVolumeSource.zero : kd.core.HostPathVolumeSource := ⟨(zero
 structure kd.core.EmptyDirVolumeSource where
   mk ::
   Medium' : _root_.Perennial.k8s_io.api.core.v1.StorageMedium
-  SizeLimit' : Option Unit
+  SizeLimit' : Unit
   Mode' : Option (w32)
 
 instance kd.core.EmptyDirVolumeSource.countable : Pos.Countable kd.core.EmptyDirVolumeSource :=
   .ofInjective (fun x => Pos.Countable.encode ([Pos.Countable.encode x.Medium', Pos.Countable.encode x.SizeLimit', Pos.Countable.encode x.Mode'] : List Pos)) (by
-    rintro ⟨a0, a1, a2⟩ ⟨b0, b1, b2⟩ h
+    rintro ⟨a0, ⟨⟩, a2⟩ ⟨b0, ⟨⟩, b2⟩ h
     simp only [Pos.encode_eq_iff, List.cons.injEq, and_true, true_and] at h
-    obtain ⟨rfl, rfl, rfl⟩ := h
+    obtain ⟨rfl, rfl⟩ := h
     rfl)
 
 /-- The deep value of the zero `EmptyDirVolumeSource`. -/
-def kd.core.EmptyDirVolumeSource.zero : kd.core.EmptyDirVolumeSource := ⟨(zero_val _root_.Perennial.k8s_io.api.core.v1.StorageMedium), none, none⟩
+def kd.core.EmptyDirVolumeSource.zero : kd.core.EmptyDirVolumeSource := ⟨(zero_val _root_.Perennial.k8s_io.api.core.v1.StorageMedium), (), none⟩
 
 /-- The deep value of `GCEPersistentDiskVolumeSource` (`k8s_io.api.core.v1`). -/
 structure kd.core.GCEPersistentDiskVolumeSource where
@@ -442,19 +442,19 @@ structure kd.core.DownwardAPIVolumeFile where
   mk ::
   Path' : GoString
   FieldRef' : Option (kd.core.ObjectFieldSelector)
-  ResourceFieldRef' : Option Unit
+  ResourceFieldRef' : Unit
   Mode' : Option (w32)
   User' : Option (w64)
 
 instance kd.core.DownwardAPIVolumeFile.countable : Pos.Countable kd.core.DownwardAPIVolumeFile :=
   .ofInjective (fun x => Pos.Countable.encode ([Pos.Countable.encode x.Path', Pos.Countable.encode x.FieldRef', Pos.Countable.encode x.ResourceFieldRef', Pos.Countable.encode x.Mode', Pos.Countable.encode x.User'] : List Pos)) (by
-    rintro ⟨a0, a1, a2, a3, a4⟩ ⟨b0, b1, b2, b3, b4⟩ h
+    rintro ⟨a0, a1, ⟨⟩, a3, a4⟩ ⟨b0, b1, ⟨⟩, b3, b4⟩ h
     simp only [Pos.encode_eq_iff, List.cons.injEq, and_true, true_and] at h
-    obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := h
     rfl)
 
 /-- The deep value of the zero `DownwardAPIVolumeFile`. -/
-def kd.core.DownwardAPIVolumeFile.zero : kd.core.DownwardAPIVolumeFile := ⟨(zero_val GoString), none, none, none, none⟩
+def kd.core.DownwardAPIVolumeFile.zero : kd.core.DownwardAPIVolumeFile := ⟨(zero_val GoString), none, (), none, none⟩
 
 /-- The deep value of `DownwardAPIVolumeSource` (`k8s_io.api.core.v1`). -/
 structure kd.core.DownwardAPIVolumeSource where
@@ -1162,20 +1162,20 @@ def kd.core.FileKeySelector.zero : kd.core.FileKeySelector := ⟨(zero_val GoStr
 structure kd.core.EnvVarSource where
   mk ::
   FieldRef' : Option (kd.core.ObjectFieldSelector)
-  ResourceFieldRef' : Option Unit
+  ResourceFieldRef' : Unit
   ConfigMapKeyRef' : Option (kd.core.ConfigMapKeySelector)
   SecretKeyRef' : Option (kd.core.SecretKeySelector)
   FileKeyRef' : Option (kd.core.FileKeySelector)
 
 instance kd.core.EnvVarSource.countable : Pos.Countable kd.core.EnvVarSource :=
   .ofInjective (fun x => Pos.Countable.encode ([Pos.Countable.encode x.FieldRef', Pos.Countable.encode x.ResourceFieldRef', Pos.Countable.encode x.ConfigMapKeyRef', Pos.Countable.encode x.SecretKeyRef', Pos.Countable.encode x.FileKeyRef'] : List Pos)) (by
-    rintro ⟨a0, a1, a2, a3, a4⟩ ⟨b0, b1, b2, b3, b4⟩ h
+    rintro ⟨a0, ⟨⟩, a2, a3, a4⟩ ⟨b0, ⟨⟩, b2, b3, b4⟩ h
     simp only [Pos.encode_eq_iff, List.cons.injEq, and_true, true_and] at h
-    obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := h
     rfl)
 
 /-- The deep value of the zero `EnvVarSource`. -/
-def kd.core.EnvVarSource.zero : kd.core.EnvVarSource := ⟨none, none, none, none, none⟩
+def kd.core.EnvVarSource.zero : kd.core.EnvVarSource := ⟨none, (), none, none, none⟩
 
 /-- The deep value of `EnvVar` (`k8s_io.api.core.v1`). -/
 structure kd.core.EnvVar where
@@ -2388,34 +2388,32 @@ def kd.core.PodExtendedResourceClaimStatus.zero : kd.core.PodExtendedResourceCla
 structure kd.core.NodeAllocatableMappedResources where
   mk ::
   Name' : _root_.Perennial.k8s_io.api.core.v1.ResourceName
-  Quantity' : Option Unit
+  Quantity' : Unit
 
 instance kd.core.NodeAllocatableMappedResources.countable : Pos.Countable kd.core.NodeAllocatableMappedResources :=
   .ofInjective (fun x => Pos.Countable.encode ([Pos.Countable.encode x.Name', Pos.Countable.encode x.Quantity'] : List Pos)) (by
-    rintro ⟨a0, a1⟩ ⟨b0, b1⟩ h
+    rintro ⟨a0, ⟨⟩⟩ ⟨b0, ⟨⟩⟩ h
     simp only [Pos.encode_eq_iff, List.cons.injEq, and_true, true_and] at h
-    obtain ⟨rfl, rfl⟩ := h
-    rfl)
+    subst h; rfl)
 
 /-- The deep value of the zero `NodeAllocatableMappedResources`. -/
-def kd.core.NodeAllocatableMappedResources.zero : kd.core.NodeAllocatableMappedResources := ⟨(zero_val _root_.Perennial.k8s_io.api.core.v1.ResourceName), none⟩
+def kd.core.NodeAllocatableMappedResources.zero : kd.core.NodeAllocatableMappedResources := ⟨(zero_val _root_.Perennial.k8s_io.api.core.v1.ResourceName), ()⟩
 
 /-- The deep value of `NodeAllocatableOverheadResources` (`k8s_io.api.core.v1`). -/
 structure kd.core.NodeAllocatableOverheadResources where
   mk ::
   Name' : _root_.Perennial.k8s_io.api.core.v1.ResourceName
-  PerPod' : Option Unit
-  PerContainer' : Option Unit
+  PerPod' : Unit
+  PerContainer' : Unit
 
 instance kd.core.NodeAllocatableOverheadResources.countable : Pos.Countable kd.core.NodeAllocatableOverheadResources :=
   .ofInjective (fun x => Pos.Countable.encode ([Pos.Countable.encode x.Name', Pos.Countable.encode x.PerPod', Pos.Countable.encode x.PerContainer'] : List Pos)) (by
-    rintro ⟨a0, a1, a2⟩ ⟨b0, b1, b2⟩ h
+    rintro ⟨a0, ⟨⟩, ⟨⟩⟩ ⟨b0, ⟨⟩, ⟨⟩⟩ h
     simp only [Pos.encode_eq_iff, List.cons.injEq, and_true, true_and] at h
-    obtain ⟨rfl, rfl, rfl⟩ := h
-    rfl)
+    subst h; rfl)
 
 /-- The deep value of the zero `NodeAllocatableOverheadResources`. -/
-def kd.core.NodeAllocatableOverheadResources.zero : kd.core.NodeAllocatableOverheadResources := ⟨(zero_val _root_.Perennial.k8s_io.api.core.v1.ResourceName), none, none⟩
+def kd.core.NodeAllocatableOverheadResources.zero : kd.core.NodeAllocatableOverheadResources := ⟨(zero_val _root_.Perennial.k8s_io.api.core.v1.ResourceName), (), ()⟩
 
 /-- The deep value of `NodeAllocatableResourceClaimStatus` (`k8s_io.api.core.v1`). -/
 structure kd.core.NodeAllocatableResourceClaimStatus where
@@ -3175,7 +3173,7 @@ def kd.meta.ManagedFieldsEntry.own (v : _root_.Perennial.k8s_io.apimachinery.pkg
     "APIVersion" ∷ ⌜v.APIVersion' = d.APIVersion'⌝ ∗
     "Time" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) ownBaseD) v.Time' dq d.Time' ∗
     "FieldsType" ∷ ⌜v.FieldsType' = d.FieldsType'⌝ ∗
-    "FieldsV1" ∷ ownOpaquePtrD v.FieldsV1' d.FieldsV1' ∗
+    "FieldsV1" ∷ ownNilPtrD v.FieldsV1' ∗
     "Subresource" ∷ ⌜v.Subresource' = d.Subresource'⌝)
 
 /-- The zero `ManagedFieldsEntry` owns the zero deep value. -/
@@ -3195,7 +3193,7 @@ theorem kd.meta.ManagedFieldsEntry.own_zero_of (v : _root_.Perennial.k8s_io.apim
   isplitr
   · ipureintro; rfl
   isplitr
-  · iapply (ownOpaquePtrD_none_of _ (by rfl))
+  · iapply (ownNilPtrD_of _ (by rfl))
   ipureintro; rfl
 
 instance kd.meta.ManagedFieldsEntry.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) (d : kd.meta.ManagedFieldsEntry) :
@@ -3297,7 +3295,7 @@ instance kd.meta.ObjectMeta.own_deepPersist : DeepPersist (GF := GF) kd.meta.Obj
 /-- The deep ownership of a `HostPathVolumeSource` value with deep value `d`. -/
 def kd.core.HostPathVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.HostPathVolumeSource) (dq : DFrac) (d : kd.core.HostPathVolumeSource) : IProp GF :=
   iprop("Path" ∷ ⌜v.Path' = d.Path'⌝ ∗
-    "Type" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.HostPathType) ownBaseD) v.Type' dq d.Type')
+    "Type_" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.HostPathType) ownBaseD) v.Type' dq d.Type')
 
 /-- The zero `HostPathVolumeSource` owns the zero deep value. -/
 theorem kd.core.HostPathVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.HostPathVolumeSource) (h : v = zero_val _root_.Perennial.k8s_io.api.core.v1.HostPathVolumeSource)
@@ -3330,7 +3328,7 @@ instance kd.core.HostPathVolumeSource.own_deepPersist : DeepPersist (GF := GF) k
 /-- The deep ownership of a `EmptyDirVolumeSource` value with deep value `d`. -/
 def kd.core.EmptyDirVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.EmptyDirVolumeSource) (dq : DFrac) (d : kd.core.EmptyDirVolumeSource) : IProp GF :=
   iprop("Medium" ∷ ⌜v.Medium' = d.Medium'⌝ ∗
-    "SizeLimit" ∷ ownOpaquePtrD v.SizeLimit' d.SizeLimit' ∗
+    "SizeLimit" ∷ ownNilPtrD v.SizeLimit' ∗
     "Mode" ∷ (ownPtrD (V := w32) ownBaseD) v.Mode' dq d.Mode')
 
 /-- The zero `EmptyDirVolumeSource` owns the zero deep value. -/
@@ -3342,7 +3340,7 @@ theorem kd.core.EmptyDirVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.ap
   isplitr
   · ipureintro; rfl
   isplitr
-  · iapply (ownOpaquePtrD_none_of _ (by rfl))
+  · iapply (ownNilPtrD_of _ (by rfl))
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
 instance kd.core.EmptyDirVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EmptyDirVolumeSource) (dq : DFrac) (d : kd.core.EmptyDirVolumeSource) :
@@ -4000,7 +3998,7 @@ instance kd.core.ObjectFieldSelector.own_deepPersist : DeepPersist (GF := GF) kd
 def kd.core.DownwardAPIVolumeFile.own (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeFile) (dq : DFrac) (d : kd.core.DownwardAPIVolumeFile) : IProp GF :=
   iprop("Path" ∷ ⌜v.Path' = d.Path'⌝ ∗
     "FieldRef" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ObjectFieldSelector) kd.core.ObjectFieldSelector.own) v.FieldRef' dq d.FieldRef' ∗
-    "ResourceFieldRef" ∷ ownOpaquePtrD v.ResourceFieldRef' d.ResourceFieldRef' ∗
+    "ResourceFieldRef" ∷ ownNilPtrD v.ResourceFieldRef' ∗
     "Mode" ∷ (ownPtrD (V := w32) ownBaseD) v.Mode' dq d.Mode' ∗
     "User" ∷ (ownPtrD (V := w64) ownBaseD) v.User' dq d.User')
 
@@ -4015,7 +4013,7 @@ theorem kd.core.DownwardAPIVolumeFile.own_zero_of (v : _root_.Perennial.k8s_io.a
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   isplitr
-  · iapply (ownOpaquePtrD_none_of _ (by rfl))
+  · iapply (ownNilPtrD_of _ (by rfl))
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
@@ -5656,7 +5654,7 @@ instance kd.core.FileKeySelector.own_deepPersist : DeepPersist (GF := GF) kd.cor
 /-- The deep ownership of a `EnvVarSource` value with deep value `d`. -/
 def kd.core.EnvVarSource.own (v : _root_.Perennial.k8s_io.api.core.v1.EnvVarSource) (dq : DFrac) (d : kd.core.EnvVarSource) : IProp GF :=
   iprop("FieldRef" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ObjectFieldSelector) kd.core.ObjectFieldSelector.own) v.FieldRef' dq d.FieldRef' ∗
-    "ResourceFieldRef" ∷ ownOpaquePtrD v.ResourceFieldRef' d.ResourceFieldRef' ∗
+    "ResourceFieldRef" ∷ ownNilPtrD v.ResourceFieldRef' ∗
     "ConfigMapKeyRef" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ConfigMapKeySelector) kd.core.ConfigMapKeySelector.own) v.ConfigMapKeyRef' dq d.ConfigMapKeyRef' ∗
     "SecretKeyRef" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SecretKeySelector) kd.core.SecretKeySelector.own) v.SecretKeyRef' dq d.SecretKeyRef' ∗
     "FileKeyRef" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.FileKeySelector) kd.core.FileKeySelector.own) v.FileKeyRef' dq d.FileKeyRef')
@@ -5670,7 +5668,7 @@ theorem kd.core.EnvVarSource.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   isplitr
-  · iapply (ownOpaquePtrD_none_of _ (by rfl))
+  · iapply (ownNilPtrD_of _ (by rfl))
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   isplitr
@@ -6286,7 +6284,7 @@ instance kd.core.Capabilities.own_deepPersist : DeepPersist (GF := GF) kd.core.C
 def kd.core.SELinuxOptions.own (v : _root_.Perennial.k8s_io.api.core.v1.SELinuxOptions) (dq : DFrac) (d : kd.core.SELinuxOptions) : IProp GF :=
   iprop("User" ∷ ⌜v.User' = d.User'⌝ ∗
     "Role" ∷ ⌜v.Role' = d.Role'⌝ ∗
-    "Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
+    "Type_" ∷ ⌜v.Type' = d.Type'⌝ ∗
     "Level" ∷ ⌜v.Level' = d.Level'⌝)
 
 /-- The zero `SELinuxOptions` owns the zero deep value. -/
@@ -6364,7 +6362,7 @@ instance kd.core.WindowsSecurityContextOptions.own_deepPersist : DeepPersist (GF
 
 /-- The deep ownership of a `SeccompProfile` value with deep value `d`. -/
 def kd.core.SeccompProfile.own (v : _root_.Perennial.k8s_io.api.core.v1.SeccompProfile) (dq : DFrac) (d : kd.core.SeccompProfile) : IProp GF :=
-  iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
+  iprop("Type_" ∷ ⌜v.Type' = d.Type'⌝ ∗
     "LocalhostProfile" ∷ (ownPtrD (V := GoString) ownBaseD) v.LocalhostProfile' dq d.LocalhostProfile')
 
 /-- The zero `SeccompProfile` owns the zero deep value. -/
@@ -6397,7 +6395,7 @@ instance kd.core.SeccompProfile.own_deepPersist : DeepPersist (GF := GF) kd.core
 
 /-- The deep ownership of a `AppArmorProfile` value with deep value `d`. -/
 def kd.core.AppArmorProfile.own (v : _root_.Perennial.k8s_io.api.core.v1.AppArmorProfile) (dq : DFrac) (d : kd.core.AppArmorProfile) : IProp GF :=
-  iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
+  iprop("Type_" ∷ ⌜v.Type' = d.Type'⌝ ∗
     "LocalhostProfile" ∷ (ownPtrD (V := GoString) ownBaseD) v.LocalhostProfile' dq d.LocalhostProfile')
 
 /-- The zero `AppArmorProfile` owns the zero deep value. -/
@@ -7809,7 +7807,7 @@ instance kd.core.PodSpec.own_deepPersist : DeepPersist (GF := GF) kd.core.PodSpe
 
 /-- The deep ownership of a `PodCondition` value with deep value `d`. -/
 def kd.core.PodCondition.own (v : _root_.Perennial.k8s_io.api.core.v1.PodCondition) (dq : DFrac) (d : kd.core.PodCondition) : IProp GF :=
-  iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
+  iprop("Type_" ∷ ⌜v.Type' = d.Type'⌝ ∗
     "ObservedGeneration" ∷ ⌜v.ObservedGeneration' = d.ObservedGeneration'⌝ ∗
     "Status" ∷ ⌜v.Status' = d.Status'⌝ ∗
     "LastProbeTime" ∷ ⌜v.LastProbeTime' = d.LastProbeTime'⌝ ∗
@@ -8478,7 +8476,7 @@ instance kd.core.PodExtendedResourceClaimStatus.own_deepPersist : DeepPersist (G
 /-- The deep ownership of a `NodeAllocatableMappedResources` value with deep value `d`. -/
 def kd.core.NodeAllocatableMappedResources.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableMappedResources) (dq : DFrac) (d : kd.core.NodeAllocatableMappedResources) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
-    "Quantity" ∷ ownOpaquePtrD v.Quantity' d.Quantity')
+    "Quantity" ∷ ownNilPtrD v.Quantity')
 
 /-- The zero `NodeAllocatableMappedResources` owns the zero deep value. -/
 theorem kd.core.NodeAllocatableMappedResources.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableMappedResources) (h : v = zero_val _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableMappedResources)
@@ -8488,7 +8486,7 @@ theorem kd.core.NodeAllocatableMappedResources.own_zero_of (v : _root_.Perennial
   try unfold kd.core.NodeAllocatableMappedResources.zero
   isplitr
   · ipureintro; rfl
-  iapply (ownOpaquePtrD_none_of _ (by rfl))
+  iapply (ownNilPtrD_of _ (by rfl))
 
 instance kd.core.NodeAllocatableMappedResources.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableMappedResources) (dq : DFrac) (d : kd.core.NodeAllocatableMappedResources) :
     Timeless (kd.core.NodeAllocatableMappedResources.own (GF := GF) v dq d) := by
@@ -8510,8 +8508,8 @@ instance kd.core.NodeAllocatableMappedResources.own_deepPersist : DeepPersist (G
 /-- The deep ownership of a `NodeAllocatableOverheadResources` value with deep value `d`. -/
 def kd.core.NodeAllocatableOverheadResources.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableOverheadResources) (dq : DFrac) (d : kd.core.NodeAllocatableOverheadResources) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
-    "PerPod" ∷ ownOpaquePtrD v.PerPod' d.PerPod' ∗
-    "PerContainer" ∷ ownOpaquePtrD v.PerContainer' d.PerContainer')
+    "PerPod" ∷ ownNilPtrD v.PerPod' ∗
+    "PerContainer" ∷ ownNilPtrD v.PerContainer')
 
 /-- The zero `NodeAllocatableOverheadResources` owns the zero deep value. -/
 theorem kd.core.NodeAllocatableOverheadResources.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableOverheadResources) (h : v = zero_val _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableOverheadResources)
@@ -8522,8 +8520,8 @@ theorem kd.core.NodeAllocatableOverheadResources.own_zero_of (v : _root_.Perenni
   isplitr
   · ipureintro; rfl
   isplitr
-  · iapply (ownOpaquePtrD_none_of _ (by rfl))
-  iapply (ownOpaquePtrD_none_of _ (by rfl))
+  · iapply (ownNilPtrD_of _ (by rfl))
+  iapply (ownNilPtrD_of _ (by rfl))
 
 instance kd.core.NodeAllocatableOverheadResources.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableOverheadResources) (dq : DFrac) (d : kd.core.NodeAllocatableOverheadResources) :
     Timeless (kd.core.NodeAllocatableOverheadResources.own (GF := GF) v dq d) := by
@@ -8996,7 +8994,7 @@ instance kd.core.NodeSpec.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeS
 
 /-- The deep ownership of a `NodeCondition` value with deep value `d`. -/
 def kd.core.NodeCondition.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeCondition) (dq : DFrac) (d : kd.core.NodeCondition) : IProp GF :=
-  iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
+  iprop("Type_" ∷ ⌜v.Type' = d.Type'⌝ ∗
     "Status" ∷ ⌜v.Status' = d.Status'⌝ ∗
     "LastHeartbeatTime" ∷ ⌜v.LastHeartbeatTime' = d.LastHeartbeatTime'⌝ ∗
     "LastTransitionTime" ∷ ⌜v.LastTransitionTime' = d.LastTransitionTime'⌝ ∗
@@ -9040,7 +9038,7 @@ instance kd.core.NodeCondition.own_deepPersist : DeepPersist (GF := GF) kd.core.
 
 /-- The deep ownership of a `NodeAddress` value with deep value `d`. -/
 def kd.core.NodeAddress.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeAddress) (dq : DFrac) (d : kd.core.NodeAddress) : IProp GF :=
-  iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
+  iprop("Type_" ∷ ⌜v.Type' = d.Type'⌝ ∗
     "Address" ∷ ⌜v.Address' = d.Address'⌝)
 
 /-- The zero `NodeAddress` owns the zero deep value. -/
@@ -9615,7 +9613,7 @@ instance kd.apps.RollingUpdateDaemonSet.own_deepPersist : DeepPersist (GF := GF)
 
 /-- The deep ownership of a `DaemonSetUpdateStrategy` value with deep value `d`. -/
 def kd.apps.DaemonSetUpdateStrategy.own (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy) (dq : DFrac) (d : kd.apps.DaemonSetUpdateStrategy) : IProp GF :=
-  iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
+  iprop("Type_" ∷ ⌜v.Type' = d.Type'⌝ ∗
     "RollingUpdate" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSet) kd.apps.RollingUpdateDaemonSet.own) v.RollingUpdate' dq d.RollingUpdate')
 
 /-- The zero `DaemonSetUpdateStrategy` owns the zero deep value. -/
@@ -9693,7 +9691,7 @@ instance kd.apps.DaemonSetSpec.own_deepPersist : DeepPersist (GF := GF) kd.apps.
 
 /-- The deep ownership of a `DaemonSetCondition` value with deep value `d`. -/
 def kd.apps.DaemonSetCondition.own (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetCondition) (dq : DFrac) (d : kd.apps.DaemonSetCondition) : IProp GF :=
-  iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
+  iprop("Type_" ∷ ⌜v.Type' = d.Type'⌝ ∗
     "Status" ∷ ⌜v.Status' = d.Status'⌝ ∗
     "LastTransitionTime" ∷ ⌜v.LastTransitionTime' = d.LastTransitionTime'⌝ ∗
     "Reason" ∷ ⌜v.Reason' = d.Reason'⌝ ∗

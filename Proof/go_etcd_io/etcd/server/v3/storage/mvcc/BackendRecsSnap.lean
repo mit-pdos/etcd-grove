@@ -83,7 +83,7 @@ theorem rt_lockedRS [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Ass
       isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ keySized γ P b ∗ fkRd γ P rv ⊢
       keyReadLockedR (bkRTx γ P b) (bkRecs γ r) r true
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
-        m (rdB rtx) (rtTok γ P b rtx rv rdOpen) := by
+        m (rdB γ.db rtx) (rtTok γ P b rtx rv rdOpen) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe, #Hfk⟩
   ihave #Hl := rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv m hv
     $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe $Hfk]
@@ -156,7 +156,7 @@ theorem bridge_rtCR [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Ass
     iexists vd
     iframe Hv'
     ipureintro; exact Hvd
-  iexists m', (rdB rtx), (rtTok γ P b rtx rv rdOpen)
+  iexists m', (rdB γ.db rtx), (rtTok γ P b rtx rv rdOpen)
   isplitl [Hh Ho]
   · iunfold rtTok; iframe
   isplitr

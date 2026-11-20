@@ -8,6 +8,14 @@ sealed Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.NewAlloc
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
+# (auth-schema-srv A1, 2026-11-17) the claimed buckets: `ClaimedLemmas`' private idle steps (`rbPartR_idle`,
+# `trkSide_idle`, `batchGhostAt_idle`) and the mode step `true → false` (`trkSide_mode`) reach only `Unlock`'s proof; `ReadLemmas` proves `rbRd`'s laws over the
+# sealed `rbRd`/`rbrHalves`
+sealed Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
+allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
+allow Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
+allow Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
+allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 
 # The WAL's API (2026-11-03, `notes/decisions.md`, "The WAL's API"): the records, a WAL directory's
 # state and the purge's right are ghost variables whose meaning is trusted (what the WAL's files

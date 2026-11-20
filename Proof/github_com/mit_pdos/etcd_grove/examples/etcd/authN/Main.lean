@@ -58,59 +58,6 @@ theorem freshRes_split (ms : List GMember) (γn : NetNames GF) :
     memberFreshRes_client (GF := GF) m.Name' ⟨some m.Peer', some m.Client'⟩ γn m.Client' rfl).trans ?_
   exact BigSepL.bigSepL_sep_eqv.1
 
-/-- **Each member with its ghost names and its premises, with auth on** (`StartMembersAuth`'s
-precondition; putgetN's `memberPres_of` at `bootPremiseOn` and `memberBootOn`). -/
-theorem memberPresOn_of (N : Nat) (tok : GoString) (ms0 : List GMember) (ps : List w64)
-    (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
-    (ms : List GMember) (gs : List (MemberG GF)) (ids : List w64)
-    (hids : gs.map (·.id) = ids) (hlen : ms.length = gs.length) :
-    ⊢ ([∗list] m; id ∈ ms; ids,
-        bootPremiseOn N ps bootLog ctxs dir tok m.Name' (urlsN ms0 m) id) -∗
-      (□ ∀ lid : w64, netHttpOk γn lid) -∗
-      ([∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id) -∗
-      ([∗list] m ∈ ms, memberFreshRes m.Name' ⟨some m.Peer', none⟩ γn) -∗
-      [∗list] x ∈ ms.zip gs, memberPreOn N tok ms0 ps bootLog ctxs dir Φs γn x := by
-  induction ms generalizing gs ids with
-  | nil =>
-    iintro _ _ _ _
-    simp only [List.zip_nil_left]
-    iempintro
-  | cons m ms ih =>
-    cases gs with
-    | nil => simp at hlen
-    | cons g gs =>
-      subst hids
-      simp only [List.map_cons]
-      iintro Hbp #Hnet Hb Hf
-      ihave Hbp := BigSepL2.bigSepL2_cons.1 $$ Hbp
-      ihave Hb := BigSepL.bigSepL_cons.1 $$ Hb
-      ihave Hf := BigSepL.bigSepL_cons.1 $$ Hf
-      icases Hbp with ⟨Hbp1, Hbp⟩
-      icases Hb with ⟨Hb1, Hb⟩
-      icases Hf with ⟨Hf1, Hf⟩
-      rw [List.zip_cons_cons]
-      iapply BigSepL.bigSepL_cons.2
-      isplitl [Hbp1 Hb1 Hf1]
-      · iunfold memberPreOn
-        iframe
-        iapply Hnet
-      iapply (ih gs (gs.map (·.id)) rfl (by simpa using hlen)) $$ Hbp Hnet Hb Hf
-
-/-- The client's half of the KV state at the cluster's KV names is the one at a member's. -/
-theorem etcdKV_member (γ : SrvRaft) (γk : KVNames) (g : MemberG GF) (h : memberGOkOn γ γk g)
-    (σ : KVState) : etcdKV (GF := GF) γk σ ⊢ etcdKV g.ρ.rd.kv σ := by
-  obtain ⟨-, -, -, h1, -⟩ := h
-  unfold etcdKV
-  rw [h1]
-
-/-- The client's view of the auth history at the cluster's KV names is the one at a member's. -/
-theorem authHistView_member (γ : SrvRaft) (γk : KVNames) (g : MemberG GF) (h : memberGOkOn γ γk g)
-    (hs : List auth.AuthState) : authHistView (GF := GF) γk hs ⊢ authHistView g.ρ.rd.kv hs := by
-  obtain ⟨-, -, -, -, -, -, -, h5⟩ := h
-  unfold authHistView
-  rw [h5]
-
 end lemmas
 
 section proof
@@ -243,11 +190,13 @@ theorem Main.wp_proof
   · iExactEq Hmsl; rw [hkn]
   iclear Hmsl
   (try wp_auto)
+  have Hcu48 : (2 : Int) ^ 48 ≤ uint.Z (W64 281474976710656) := by word
   wp_apply (wp_StartMembersAuth N token (W64 10000) (W64 281474976710656) msl lg ((members k).zip gs) ps
       (LogEntry.toEntries boot 0) ctxs
-      (etcd_putgetN.dirN (members k) ids) Φs γn Htb Hrb48 HrbN HwbN
+      (etcd_putgetN.dirN (members k) ids) Φs γn .none Htb Hrb48 HrbN HwbN
       (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn2 Hdok Hbc hnd hutf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
+      hγn2 Hdok Hbc hnd hutf hxok Haf Hbuq Hdbo
+      (fun _ _ _ => Hcu48)) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]
     iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %ss, Hss, Hups⟩)⟩

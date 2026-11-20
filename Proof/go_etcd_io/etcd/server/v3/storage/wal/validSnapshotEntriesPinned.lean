@@ -20,7 +20,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record__GetCrc
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record__Validate
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot__GetIndex
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCallees
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndexLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.VsePure
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.VseAttemptPure
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.VseErr

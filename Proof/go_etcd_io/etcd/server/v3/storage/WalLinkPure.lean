@@ -40,7 +40,7 @@ theorem walFoldChkFrom_b_ge {τ σ : StorContents} {H : WalHist} (h : walFoldChk
   | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; exact Nat.le_refl _
   | cons o H ih =>
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h
       exact Nat.le_trans (walSaveSnap_base_ge τ m).1 (ih h)
     | save hs es =>
@@ -69,7 +69,7 @@ theorem walFoldChkFrom_filter_keep {c : Nat} {τ σ : StorContents} {H : WalHist
   | nil => exact h
   | cons o H ih =>
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h
       by_cases hm : uint.nat m.Index' ≤ c
       · simp only [List.filter_cons, walKeep, hm, decide_true, ite_true, walFoldChkFrom]
@@ -194,9 +194,9 @@ theorem walFoldChkFrom_snoc_save {τ σ : StorContents} {H : WalHist} {h : HardS
       some { σ with hs := phsNext σ.hs h, ents := appendEnts σ.base σ.ents es } := by
   rw [walFoldChkFrom_append, hH, Option.bind_some, walFoldChkFrom_save_cons hok]; rfl
 
-theorem walFoldChkFrom_snoc_snap {τ σ : StorContents} {H : WalHist} {m : SnapshotMetadataM}
+theorem walFoldChkFrom_snoc_snap {τ σ : StorContents} {H : WalHist} {m : SnapshotMetadataM} {al : Bool}
     (hH : walFoldChkFrom τ H = some σ) :
-    walFoldChkFrom τ (H ++ [.snap m]) = some (walSaveSnap σ m) := by
+    walFoldChkFrom τ (H ++ [.snap m al]) = some (walSaveSnap σ m) := by
   rw [walFoldChkFrom_append, hH, Option.bind_some]; rfl
 
 /-! ## The read's side conditions -/
@@ -255,30 +255,30 @@ theorem walCommitLe_of_fold {σ : StorContents} {H : WalHist}
   exact hc m _ hτm
 
 theorem walIdxLe_nil (B : Nat) : walIdxLe B [] :=
-  ⟨fun _ _ _ h _ => (by cases h), fun _ h => (by cases h)⟩
+  ⟨fun _ _ _ h _ => (by cases h), fun _ _ h => (by cases h)⟩
 
 theorem walIdxLe_append {B : Nat} {A C : WalHist} (hA : walIdxLe B A) (hC : walIdxLe B C) :
     walIdxLe B (A ++ C) := by
-  refine ⟨fun hs es e ho he => ?_, fun m ho => ?_⟩
+  refine ⟨fun hs es e ho he => ?_, fun m al ho => ?_⟩
   · rcases List.mem_append.mp ho with ho | ho
     · exact hA.1 hs es e ho he
     · exact hC.1 hs es e ho he
   · rcases List.mem_append.mp ho with ho | ho
-    · exact hA.2 m ho
-    · exact hC.2 m ho
+    · exact hA.2 m al ho
+    · exact hC.2 m al ho
 
 theorem walIdxLe_save {B : Nat} {h : HardStateM} {es : List EntryM}
     (hes : ∀ e ∈ es, uint.nat e.Index' ≤ B) : walIdxLe B [.save h es] := by
-  refine ⟨fun hs es' e ho he => ?_, fun m ho => ?_⟩
+  refine ⟨fun hs es' e ho he => ?_, fun m al ho => ?_⟩
   · simp only [List.mem_singleton, WalOpG.save.injEq] at ho
     obtain ⟨-, rfl⟩ := ho; exact hes e he
   · simp at ho
 
-theorem walIdxLe_snap {B : Nat} {m : SnapshotMetadataM} (hm : uint.nat m.Index' ≤ B) :
-    walIdxLe B [.snap m] := by
-  refine ⟨fun hs es' e ho he => ?_, fun m' ho => ?_⟩
+theorem walIdxLe_snap {B : Nat} {m : SnapshotMetadataM} {al : Bool} (hm : uint.nat m.Index' ≤ B) :
+    walIdxLe B [.snap m al] := by
+  refine ⟨fun hs es' e ho he => ?_, fun m' al' ho => ?_⟩
   · simp at ho
-  · simp only [List.mem_singleton, WalOpG.snap.injEq] at ho; subst ho; exact hm
+  · simp only [List.mem_singleton, WalOpG.snap.injEq] at ho; obtain ⟨rfl, -⟩ := ho; exact hm
 
 /-! ## The fold commutes with a map of the entries keeping their indices (wal-link L1b)
 
@@ -289,7 +289,7 @@ are the mapped ones. -/
 /-- An operation with its entries mapped. -/
 def walOpMapE (f : EntryM → EntryM) : WalOp → WalOp
   | .save h es => .save h (es.map f)
-  | .snap m => .snap m
+  | .snap m al => .snap m al
 
 /-- A record state with its entries mapped. -/
 def storMapE (f : EntryM → EntryM) (σ : StorContents) : StorContents := { σ with ents := σ.ents.map f }
@@ -331,7 +331,7 @@ theorem walFoldChkFrom_map (f : EntryM → EntryM) (hf : ∀ e, (f e).Index' = e
     ∀ (σ : StorContents) (H : WalHist),
       walFoldChkFrom (storMapE f σ) (H.map (walOpMapE f)) = (walFoldChkFrom σ H).map (storMapE f)
   | σ, [] => rfl
-  | σ, .snap m :: H => by
+  | σ, .snap m _ :: H => by
     simp only [List.map_cons, walOpMapE, walFoldChkFrom]
     rw [walSaveSnap_map, walFoldChkFrom_map f hf _ H]
   | σ, .save h es :: H => by

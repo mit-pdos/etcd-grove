@@ -211,7 +211,7 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
       wp_apply hFd f fd name (DFrac.own 1) $$ [Hfo] as Hfo
       · rw [← fileOwn_eq]; iexact Hfo
       try wp_auto
-      wp_apply hFlock fd (W64 8) d none false rfl (fun h => absurd rfl h) $$ [Hfd Hfl] as %e Hout
+      wp_apply hFlock fd (W64 8) d none false rfl (fun h => absurd rfl h) $$ [Hfd Hfl] as %e ⟨-, Hout⟩
       · iframe; iframe #
       unfold lockOut
       icases Hout with ⟨%d', Hfd, Hfl, %hd'⟩
@@ -239,7 +239,10 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
       · iframe
         fmt_args_intro
         isplitl
-        · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
+        · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+          isplitr
+          · ipureintro; decide
+          · iapply fmtErrorOkOrNil_of $$ HeS
         · itrivial
       try wp_auto
       wp_apply wp_slice_literal
@@ -254,7 +257,7 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
         · iexists _, _; iframe
         icases Herrs with ⟨%slE, %esE, errs, Hsl, Hcap⟩
         try wp_auto
-        wp_apply hClose f fd name d' $$ [Hfo Hfd Hlo Hfl] as %err2 ⟨Hfo, #HeC⟩
+        wp_apply hClose f fd name d' $$ [Hfo Hfd Hlo Hfl] as %err2 ⟨Hfo, -, #HeC⟩
         · unfold lockToks; iframe; iframe #; try (rw [← fileOwn_eq]; iexact Hfo)
         try wp_auto
         rcases err2 with _ | ii2
@@ -267,8 +270,10 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
         · iframe
           fmt_args_intro
           isplitl
-          · fmt_arg_method; iapply fmtErrorOk_argOk
-            iapply fmtErrorOkOrNil_ne (GoInterface.ok _) (fun h => nomatch h) $$ HeC
+          · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+            isplitr
+            · ipureintro; decide
+            · iexact HeC
           · itrivial
         try wp_auto
         wp_apply wp_slice_literal

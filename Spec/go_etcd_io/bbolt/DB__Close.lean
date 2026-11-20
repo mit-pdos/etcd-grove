@@ -6,6 +6,7 @@
 module
 
 public import Spec.go_etcd_io.bbolt.Api
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -31,17 +32,25 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `db.Close()`: the database closed, from any goroutine, any number of times. It takes the
-three locks, so it waits for every live transaction (a goroutine that holds one and calls
-`Close` waits forever, which a WP allows), and every later `Begin` fails. An error is the
-environment's (unmapping, unlocking, closing the file): the post says nothing of it; the backend's
-`DB.Close_kv` adds `err = nil ∨ ¬ dbCloseOk` as a trust-boundary layer. The committed data stays
-`boltState`'s. (Margin: the file is not given back, `notes/bbolt-spec-decisions.md`, D9.) -/
+/-- `db.Close()` by the owner of the committed data `D` (all of `boltState`, so no transaction is
+live: a read holds a fraction, a writer's commit takes it whole) and of the closer token
+(`boltCloser`, from `Open`: so no other thread closes the database under its owner; Go lets any
+goroutine close it any number of times). It takes the three locks and closes the database (every
+later `Begin` fails). Outcomes:
+- `nil`, and the file of inode `i` (`Open`'s, `boltIno`) given back holding `D`, mappable
+  (`fileHoldsM`: what `Open.spec` takes, so the database can be reopened; session S3g: the file never
+  grows past `maxAddr + AllocSize < maxMapSize`, since every mapping fits the model's address space);
+- `¬ FsNoErr`: some step of the file model failed in a way `NoIoErr`/`NoMapLockErr` exclude (here: an
+  `munmap`, `flock` or `close`; or earlier: a remap's `munmap` or `madvise` that leaked a mapping, or a
+  commit's write that failed part way, leaving a partial last page), which `Fs.fsNoErr_of` refutes
+  under those premises. (Session S3g: under the premises a write fails only at `maxBytes`, page-aligned,
+  so the file stays whole pages.) -/
 abbrev DB.Close.spec : Prop :=
-  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName),
-  {{ isBolt (GF := GF) db γ }}
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) (i : Ino) (D : Data),
+  {{ isBolt (GF := GF) db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∗ fileHoldsM i D) ∨ ⌜¬ FsNoErr⌝ }}
 
 end spec
 

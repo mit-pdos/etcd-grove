@@ -67,14 +67,14 @@ merge, 2026-11-06: reader tokens of mvcc's API, `mvccReaders`, in place of mvcc'
 
 /-- The image's part (sealed): the storage registry's authority, the configuration's data and WAL
 directories, read-only, and the raft wrapper's storage, its WAL (`γrn.wal.h`, wal-link L3: until then
-`walDirOf (storage.walOf st)`) in the latter. -/
+`walDirOf (storage.walOf st)`) the configuration's WAL directory (wal-link P2: the dedicated one). -/
 @[no_expose] def srvStop.imagePart (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (γrn : RNNames GF) : IProp GF :=
   iprop((letI : MemStorReg GF := ⟨γrn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
     srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' ∗
     (∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗
-      ⌜γrn.wal.h.dir = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝))
+      ⌜γrn.wal.h.dir = cfg.DedicatedWALDir'⌝))
 
 /-- **What `NewServer` keeps for the server's stop** (sealed; see the file header). -/
 @[no_expose] def srvStop.keep (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
@@ -96,7 +96,7 @@ theorem srvStop.keep_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.Ser
       srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
       srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' ∗
       (∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗
-        ⌜γrn.wal.h.dir = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝) ⊢
+        ⌜γrn.wal.h.dir = cfg.DedicatedWALDir'⌝) ⊢
     srvStop.keep (GF := GF) s cfg E γrn γk := by
   iintro ⟨Hc, Hk, Hl, Ha, Hr, Hcp, Hreg, Hdd, Hwd, Hst⟩
   unfold srvStop.keep srvStop.raftPart srvStop.cleanupPart srvStop.censusPart srvStop.imagePart
@@ -158,15 +158,15 @@ theorem srvStop.census_readers (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
     iframe Hrs Hr
   · exact absurd Hne.2 (by rw [hcmp]; decide)
 
-/-- **The image's inputs** at the data directory `dd` with no dedicated WAL directory
+/-- **The image's inputs** at the data directory `dd` with its dedicated WAL directory
 (`srvDataDir`): the storage registry's authority, and the raft wrapper's storage writing the WAL in
-`<dd>/member/wal`. -/
+`srvWalDirOf dd` (wal-link P2; until then `<dd>/member/wal`, no dedicated directory). -/
 theorem srvStop.image_inputs (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (γrn : RNNames GF) (dd : GoString) :
     srvStop.imagePart (GF := GF) s cfg γrn ∗ srvDataDir s dd ⊢
       (letI : MemStorReg GF := ⟨γrn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
       ∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗
-        ⌜γrn.wal.h.dir = config.walDirOf dd ""⌝ := by
+        ⌜γrn.wal.h.dir = srvWalDirOf dd⌝ := by
   unfold srvStop.imagePart
   iintro ⟨⟨Hreg, #Hdd, #Hwd, %st, #Hst, %Hw⟩, #Hdir⟩
   iunfold srvDataDir at Hdir
@@ -177,8 +177,7 @@ theorem srvStop.image_inputs (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.S
   iexists st
   iframe Hst
   ipureintro
-  have he : stringToGoString "" = [] := by simp [stringToGoString]
-  rw [Hw, Heq1, Heq2, he]
+  rw [Hw, Heq2]
 
 /-- **The stop's slot where `start` and `run` take it** (2026-11-05, the restart plan's R2c-3; the
 user's Q5 (a), adapted: `questions.md` D-d): what `NewServer` kept for the stop (`srvStop.keep`) at
@@ -214,16 +213,17 @@ theorem srvStop.dataDirField (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.S
   iframe
   iexact Hwd
 
-/-- **The server's data directory** (persistent; R2c-5, `questions.md` D2): with no dedicated WAL
-directory, the slot's configuration fields are the data directory's record (`srvDataDir`), which
-the stop request carries and the image names. -/
+/-- **The server's data directory** (persistent; R2c-5, `questions.md` D2): with the data
+directory's dedicated WAL directory (`srvWalDirOf dd`, wal-link P2; until then none), the slot's
+configuration fields are the data directory's record (`srvDataDir`), which the stop request carries and
+the image names. -/
 theorem srvStop.dataDir (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (E : apply.AEnv GF) (γrn : RNNames GF) (γk : GName) (dd : GoString) (hdd : cfg.DataDir' = dd)
-    (hw : cfg.DedicatedWALDir' = (go!"" : GoString)) :
+    (hw : cfg.DedicatedWALDir' = srvWalDirOf dd) :
     srvStop.keep (GF := GF) s cfg E γrn γk ⊢ srvDataDir s dd ∗ srvStop.keep s cfg E γrn γk := by
   subst hdd
   have heq : (srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' : IProp GF) =
-      (srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ (go!"" : GoString) : IProp GF) := by rw [hw]
+      (srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ srvWalDirOf cfg.DataDir' : IProp GF) := by rw [hw]
   unfold srvStop.keep srvStop.imagePart
   iintro ⟨Hr, Hc, Hcs, Hreg, #Hdd, #Hwd, Hst⟩
   isplitr

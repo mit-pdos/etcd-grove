@@ -27,10 +27,12 @@ variable [package_sem : _root_.Perennial.context.Assumptions]
 /-- A non-nil `err`'s `Error()` returns some string (`fmt.stringMethodSpec`), and its type has no
 `Format` method (premise-fixes-4: `context.Canceled`'s `*errors.errorString` and
 `DeadlineExceeded`'s `deadlineExceededError` have none): what `fmt.argsOk` asks of an error
-argument. -/
+argument; and its `Error` is `Error() string` (fmt soundness 2, 2026-11-18: what `fmt.argOk` asks
+since). -/
 def context.errStringOk (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
-    fmt.stringMethodSpec e go!"Error" ∗ ⌜methodSet e.ty !! go!"Format" = none⌝)
+    fmt.stringMethodSpec e go!"Error" ∗
+      ⌜methodSet e.ty !! go!"Format" = none ∧ methodSet e.ty !! go!"Error" = some noArgStringSig⌝)
 
 instance context.errStringOk_persistent (err : GoInterface) :
     Persistent (context.errStringOk (GF := GF) err) := by

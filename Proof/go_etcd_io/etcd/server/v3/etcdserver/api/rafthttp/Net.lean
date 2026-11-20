@@ -19,10 +19,10 @@ to the message handler, which saves no database file): a merged message (`snap.m
 message carries its bundle and whose reader streams a bbolt image of some `D` with the payload's
 image certificate `N.img i D` at the snapshot's index `i` (`netSnapBundle`). The receiving
 transport saves the stream before it calls `Process` (`SaveDBFrom`: a temporary file, synced,
-renamed to `snapDBPath ss i` unless a file of that index is there, which it keeps). A member's
+renamed to `snapDBPath sd i`, `sd` its directory, unless a file of that index is there, which it keeps). A member's
 **snapshot directory** is an invariant the receiver allocates and gives `Transport.Start`
-(`snapDirInv ss γd img Rm`, `snapDir_init`): the `.snap.db` files present (`M`, each with its
-`fileHolds` and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements
+(`snapDirInv sd γd img Rm`, `snapDir_init`): the `.snap.db` files present (`M`, each with its
+`fileAt`, the claim on its name in the tree's shared mode with the file, S5; until then the abstract `srvFileHolds`, and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements
 `snapSaved γd i`), each saved index absent from `M` with the receiver's removal fact `Rm i`. The
 transport only adds to it (a file it created, at an index absent from `M`); the receiver removes
 from it (a file taken to be opened, `OpenSnapshotBackend`, or `ReleaseSnapDBs`'s files below a
@@ -174,22 +174,39 @@ instance snapSaved_persistent (γd : GName) (i : w64) :
     Persistent (snapSaved (GF := GF) γd i) := by
   unfold snapSaved; infer_instance
 
-/-- **The snapshot directory of the snapshotter `ss`** (see the file header): the files present
+/-- **The names of the snapshot files of the indices not in `E`, free** (S5, 2026-11-18): the
+claim on the name of each index's database snapshot (`p i`) that `E` does not record, naming no file
+(`backend.fileFree`), for some finite map `F` of indices that has every such index (`w64` is finite:
+at the start, `F` has them all, `snapFreeAll`). -/
+def snapFree (p : w64 → GoString) (E : GMap w64 Unit) : IProp GF :=
+  iprop(∃ F : GMap w64 Unit, ⌜∀ i, E.lookup i = none → F.lookup i ≠ none⌝ ∗
+    [∗map] i ↦ _x ∈ F, backend.fileFree (p i))
+
+/-- **The names of the snapshot files of every index, free** (S5, 2026-11-18): `snapFree p ∅`,
+what a fresh data directory's snapshot directory has (`bootOk`'s, a premise). -/
+def snapFreeAll (p : w64 → GoString) : IProp GF := snapFree p ∅
+
+/-- **The snapshot directory `sd`** (see the file header): the files present
 `M`, each holding its data with its certificate (`img`), and the indices ever saved `E`
 (`snapSaved`), which include `M`'s; a saved index not in `M` has the receiver's removal fact
 `Rm i`; (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81) `γd` is the ghost map
 the directory's right named (`snap.snapDirIs`, from `bootOk`'s `snap.snapDirOwn`, `snapDir_init`),
 so that every invariant the snapshot axioms take over these paths is this one. (wal-link L2, T1,
-decided by etcd-grove-03, 2026-11-17: sealed. Its laws are `snapDir_init`, `snapDirInv_ss_congr` and
+decided by etcd-grove-03, 2026-11-17: sealed. Its laws are `snapDir_init` and
 the take `snapDir_take`, which hands out no `fileHolds`, only the sealed `storage.snapHeld`; the
 snapshot axioms (`SaveDBFrom`, `ReleaseSnapDBs`, `storage.Release`) take it whole. Until then a client
 could take a file out with its `fileHolds` and keep it across a `Release` that Go, listing the
-directory, removes it in: `notes/axiom-review/releasesnapdbs.md`.) -/
-@[no_expose] def snapDirInv (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF)
+directory, removes it in: `notes/axiom-review/releasesnapdbs.md`.) (wal-link, 2026-11-19, approved
+by the user via etcd-grove-03: over the directory string `sd`, until then over a snapshotter's
+location through the opaque `snap.snapDBPath sd`: `notes/snapdir-crossworld.md`.) -/
+@[no_expose] def snapDirInv (sd : GoString) (γd : GName) (img : w64 → backend.Data → IProp GF)
     (Rm : w64 → IProp GF) : IProp GF :=
-  iprop(snap.snapDirIs (snap.snapDBPath ss) γd ∗ ∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
+  iprop(snap.snapDirIs (snap.snapDBPath sd) γd ∗ ∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
     ghostMapAuth γd 1 E ∗ ⌜∀ i, M.lookup i ≠ none → E.lookup i ≠ none⌝ ∗
-    ([∗map] i ↦ D ∈ M, backend.fileHolds (snap.snapDBPath ss i) D ∗ □ img i D) ∗
+    ([∗map] i ↦ D ∈ M, backend.fileAt (snap.snapDBPath sd i) D ∗ □ img i D) ∗
+    -- (S5, 2026-11-18) the names of the indices never saved, free (`snapFree`): what `SaveDBFrom`
+    -- saves a file under
+    snapFree (snap.snapDBPath sd) E ∗
     □ (∀ i, ⌜E.lookup i ≠ none⌝ → snapSaved γd i) ∗
     □ (∀ i, ⌜E.lookup i ≠ none ∧ M.lookup i = none⌝ → Rm i))
 
@@ -484,6 +501,7 @@ section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
 
 /-- **A network's names, allocated** for the members `S` (the closed theorem's, once per
 cluster): its payload and directory chosen, a slot per member, the streams' registry (empty;
@@ -508,18 +526,19 @@ theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GM
 
 /-- **A member's snapshot directory, at names allocated before** (2026-10-26, D22 J2, R-loc: the
 names are raft's `RaftNames.reSnapLoc`, fixed before the member starts): from the directory's right
-(`snap.snapDirOwn` at the data directory `dd`'s paths, which `ss`'s are: `bootOk`; restart S6a, M1)
-and the directory map's authority, empty, the directory's invariant (a fresh data directory: no
-`.snap.db` file), its map named by the right. -/
-theorem snapDir_init (ss : Loc) (dd : GoString) (hss : snap.snapDBPath ss = snap.snapDBPathOf dd)
+(`snap.snapDirOwn` at the data directory `dd`'s paths, `bootOk`'s; restart S6a, M1),
+(S5) the claims on every index's snapshot name, free (`snapFreeAll`, `bootOk`'s), and the directory
+map's authority, empty, the directory's invariant (a fresh data directory: no `.snap.db` file), its
+map named by the right. -/
+theorem snapDir_init (sd : GoString)
     (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (E : CoPset) :
-    ⊢ snap.snapDirOwn (snap.snapDBPathOf dd) -∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ={E}=∗
-      inv snapDirN (snapDirInv ss γd img Rm) := by
-  iintro Ho Ha
-  imod (snap.snapDirOwn_claim (snap.snapDBPathOf dd) γd) $$ Ho with #Hdi
-  imod (inv_alloc snapDirN E (snapDirInv ss γd img Rm)) $$ [Ha] with #Hi
+    ⊢ snap.snapDirOwn (snap.snapDBPath sd) -∗ snapFreeAll (snap.snapDBPath sd) -∗
+      ghostMapAuth γd 1 (∅ : GMap w64 Unit) ={E}=∗
+      inv snapDirN (snapDirInv sd γd img Rm) := by
+  iintro Ho Hfree Ha
+  imod (snap.snapDirOwn_claim (snap.snapDBPath sd) γd) $$ Ho with #Hdi
+  imod (inv_alloc snapDirN E (snapDirInv sd γd img Rm)) $$ [Ha Hfree] with #Hi
   · iunfold snapDirInv
-    rw [hss]
     iframe Hdi
     iexists (∅ : GMap w64 backend.Data), (∅ : GMap w64 Unit)
     iframe Ha
@@ -527,24 +546,18 @@ theorem snapDir_init (ss : Loc) (dd : GoString) (hss : snap.snapDBPath ss = snap
     · ipureintro; intro i h; exact absurd (GMap.lookup_empty i) h
     isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
+    isplitl [Hfree]
+    · iunfold snapFreeAll at Hfree; iexact Hfree
     isplitr
     · imodintro; iintro %i %h; exact absurd (GMap.lookup_empty i) h
     · imodintro; iintro %i %h; exact absurd (GMap.lookup_empty i) h.1
   imodintro
   iexact Hi
 
-/-- (restart S6a) **The directory's invariant reads its snapshotter only through its paths**: two
-snapshotters with the same database-snapshot paths (`snapDBPath`; a restart's and the first start's,
-both `snapDBPathOf` of the data directory by the bootstrap contracts) have the same invariant. (Moved
-from `SnapRO.lean` with the sealing, wal-link L2.) -/
-theorem snapDirInv_ss_congr {ss ss' : Loc} (h : snap.snapDBPath ss = snap.snapDBPath ss')
-    (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) :
-    snapDirInv (GF := GF) ss γd img Rm = snapDirInv ss' γd img Rm := by
-  unfold snapDirInv; rw [h]
-
 /-- **The snapshot's file taken from the directory, sealed** (wal-link L2, T1, decided by
 etcd-grove-03, 2026-11-17; until then `SnapRO.snapDir_take`, which handed out `fileHolds` and the
-raised counter: `notes/axiom-review/releasesnapdbs.md`). A saved index `i` whose removal fact the
+raised counter: `notes/axiom-review/releasesnapdbs.md`; since the merge of lean's S5, 2026-11-19, the
+file is the directory's `fileAt`, the claim on its name with the file). A saved index `i` whose removal fact the
 taker's `R` refutes is present in the directory; the taker's basic update makes `□ Rm i` (stored in
 the invariant, which lets the file leave `M`) and `R'`; the file and `R'` are sealed together
 (`storage.snapHeld`), which only `OpenSnapshotBackend` opens, at its rename; the image's certificate
@@ -556,18 +569,18 @@ argument is for a removal fact that only ghost updates make (as the server's `sn
 lower bound): a `Rm` that a physical step or a pure fact could make true would escape "no other
 thread's resources change". The refutation `R -∗ Rm i -∗ False` is a plain wand: it is used only where
 the file is absent (it consumes `R` against the invariant's `Rm i`), and the other branch drops it and
-spends `R` on the update. A later credit strips the invariant's later (`fileHolds` is not
+spends `R` on the update. A later credit strips the invariant's later (`fileAt` is not
 timeless). -/
-theorem snapDir_take (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF)
+theorem snapDir_take (sd : GoString) (γd : GName) (img : w64 → backend.Data → IProp GF)
     (Rm : w64 → IProp GF) (i : w64) (R R' : IProp GF) :
-    ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img Rm) -∗ snapSaved γd i -∗ R -∗
+    ⊢ £ 1 -∗ inv snapDirN (snapDirInv sd γd img Rm) -∗ snapSaved γd i -∗ R -∗
       (R -∗ Rm i -∗ False) -∗ (R ==∗ R' ∗ □ Rm i) ={⊤}=∗
-      ∃ D : backend.Data, storage.snapHeld (snap.snapDBPath ss i) D R' ∗ □ img i D := by
+      ∃ D : backend.Data, storage.snapHeld (snap.snapDBPath sd i) D R' ∗ □ img i D := by
   iintro Hlc #Hinv #Hsv HR Hno Hup
   iinv Hinv with Hi Hclose
-  imod (lc_fupd_elim_later (P := snapDirInv ss γd img Rm)) $$ Hlc Hi with Hi
+  imod (lc_fupd_elim_later (P := snapDirInv sd γd img Rm)) $$ Hlc Hi with Hi
   iunfold snapDirInv at Hi
-  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
+  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, HF, #HEs, #HRm⟩
   iunfold snapSaved at Hsv
   ihave %HEi := ghost_map_lookup $$ Ha Hsv
   cases hMi : M.lookup i with
@@ -578,14 +591,14 @@ theorem snapDir_take (ss : Loc) (γd : GName) (img : w64 → backend.Data → IP
     iapply Hno $$ HR Hr
   | some D =>
     imod Hup $$ HR with ⟨HR', #Hrm⟩
-    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileHolds
-      (snap.snapDBPath ss j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
-    imod Hclose $$ [Ha HM] with -
+    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileAt
+      (snap.snapDBPath sd j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
+    imod Hclose $$ [Ha HM HF] with -
     · inext
       iunfold snapDirInv
       iframe Hdi
       iexists GMap.delete i M, Es
-      iframe Ha HM HEs
+      iframe Ha HM HF HEs
       isplitr
       · ipureintro
         intro j hj

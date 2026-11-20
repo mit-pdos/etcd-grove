@@ -7,6 +7,10 @@ theorem mvcc.pendItems_del (ilog : mvcc.Log) (pend : List mvcc.Change) (k : GoSt
     go_etcd_io.etcd.server.v3.lease.LeaseItem), it.Key' ≠ k → J !! it = mvcc.pendItems ilog pend !!
     it) (hJk : J !! { Key' := k } = none) : mvcc.pendItems ilog (pend ++ [mvcc.Change.del k]) = J
 
+theorem mvcc.pendItems_dels_lookup (ilog : mvcc.Log) (pend : List mvcc.Change) (ks : List GoString)
+    (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) : mvcc.pendItems ilog (pend ++ List.map
+    mvcc.Change.del ks) !! it = if it.Key' ∈ ks then none else mvcc.pendItems ilog pend !! it
+
 theorem mvcc.pendItems_put (ilog : mvcc.Log) (pend : List mvcc.Change) (k v : GoString) (l : w64) (J
     : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (hJ : ∀ (it :
     go_etcd_io.etcd.server.v3.lease.LeaseItem), it.Key' ≠ k → J !! it = mvcc.pendItems ilog pend !!
@@ -43,6 +47,11 @@ theorem mvcc.leaseDels_mem {s : List EtcdKv} (hs : List.Pairwise etcdKvLess s) (
 
 theorem mvcc.leaseDels_isDel (s : List EtcdKv) (id : w64) (c : mvcc.Change) : c ∈ mvcc.leaseDels s
     id → c.isDel = true
+
+theorem mvcc.pendItems_put_lookup (ilog : mvcc.Log) (pend : List mvcc.Change) (k v : GoString) (l :
+    w64) (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) : mvcc.pendItems ilog (pend ++
+    [mvcc.Change.put k v l]) !! it = if it.Key' = k then if l = W64 0 then none else some l else
+    mvcc.pendItems ilog pend !! it
 
 theorem mvcc.leaseItemsOf_ne_zero (s : List EtcdKv) (it : go_etcd_io.etcd.server.v3.lease.LeaseItem)
     : mvcc.leaseItemsOf s !! it ≠ some (W64 0)
@@ -91,6 +100,10 @@ theorem mvcc.leaseDelKeys_eq {s : List EtcdKv} (hs : List.Pairwise etcdKvLess s)
     List GoString) (hnd : ks.Nodup) (hmem : ∀ (k : GoString), k ∈ ks ↔ mvcc.leaseItemsOf s !! { Key'
     := k } = some id) (hsort : ∀ (i j : Nat) (ki kj : GoString), ks[i]? = some ki → ks[j]? = some kj
     → i < j → go.GoStringLe ki kj) : ks = mvcc.leaseDelKeys s id
+
+theorem mvcc.pendItems_del_lookup (ilog : mvcc.Log) (pend : List mvcc.Change) (k : GoString) (it :
+    go_etcd_io.etcd.server.v3.lease.LeaseItem) : mvcc.pendItems ilog (pend ++ [mvcc.Change.del k])
+    !! it = if it.Key' = k then none else mvcc.pendItems ilog pend !! it
 
 theorem mvcc.leaseItem_eq_iff (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (k : GoString) : it =
     { Key' := k } ↔ it.Key' = k

@@ -42,6 +42,10 @@ theorem bbolt.Tx.close_w.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : Ha
                   (intoVal ()))
                 {{ Φ }}
 
+theorem bbolt.Pm.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (B B✝ : bbolt.BNs) (e_B
+    : B = B✝) (db db✝ : Loc) (e_db : db = db✝) (q q✝ : Qp) (e_q : q = q✝) : bbolt.Pm B db q =
+    bbolt.Pm B✝ db✝ q✝
+
 theorem bbolt.wtxHeap_root_out [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx :
     Loc) (X : bbolt.WX) (B : bbolt.BRec) (hb : X.t.bs !! X.rl = some B) : bbolt.wtxHeap tx
     (DFrac.own 1) X ⊢ bbolt.txFields tx (DFrac.own 1) X ∗ bbolt.rootFill tx (DFrac.own 1) ∗ ⌜X.rl =

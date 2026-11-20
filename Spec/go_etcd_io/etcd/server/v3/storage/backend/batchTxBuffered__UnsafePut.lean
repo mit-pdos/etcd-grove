@@ -39,7 +39,9 @@ stay missing from the writer's contents). A value above `MaxValueSize` makes bbo
 exit: the call does not return (`nonissues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
 again in one session: the write-back keeps the last value (the fork's fix, etcd-io/etcd#21987;
 until 2026-10-18 the premise `kb ∉ … ∨ wbDupOk st bi.id` excluded it,
-`issues/etcd-backend-duplicate-put-stale-read.md`). -/
+`issues/etcd-backend-duplicate-put-stale-read.md`). (A1.4 of `auth-schema-srv`, 2026-11-17) In either mode `c` of the batch lock (`true`: a claimed
+session's), with the part of either kind (`k`: the claimed part `rbPutR`, only in a claimed session, the
+write recorded as the bucket's claimed write `st.cw`); `c = k = false` is the statement until A1.4. -/
 abbrev backend.batchTxBuffered.UnsafePut.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString),
   P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
@@ -47,10 +49,11 @@ abbrev backend.batchTxBuffered.UnsafePut.spec : Prop :=
   (P.SB bi.name = true → (∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) ∧
     st.dl.lookup (bi.name, kb) = none) →
   (fkKey bi.name kb → P.FV vb) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb ∗ hkPut γ P bi.name kb st.S ∗ rbPut γ P bi.name st.S ∗ fkPut γ bi.name kb }}
+  ∀ (c k : Bool) {_hkc : k ≤ c},
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st c ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb ∗ hkPut γ P bi.name kb st.S ∗ rbPut γ P bi.name st.S k ∗ fkPut γ bi.name kb }}
     (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafePut")) (Val #bk)) (Val #key)) (Val #value))
-  {{ RET #(); batchLocked γ P b (st.put bi kb vb false) ∗ hkPut γ P bi.name kb (st.put bi kb vb false).S ∗
-      rbPut γ P bi.name (st.put bi kb vb false).S ∗ fkPut γ bi.name kb }}
+  {{ RET #(); batchLocked γ P b (st.put bi kb vb false k) c ∗ hkPut γ P bi.name kb (st.put bi kb vb false k).S ∗
+      rbPut γ P bi.name (st.put bi kb vb false k).S k ∗ fkPut γ bi.name kb }}
 
 end spec
 

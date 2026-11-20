@@ -279,7 +279,7 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, -, %Hlg⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, -, %Hlg, -⟩
   iunfold kvApplied at Ha
   icases Ha with ⟨Ha, %Hch'⟩
   obtain ⟨Hch, Hcr⟩ := Hch'

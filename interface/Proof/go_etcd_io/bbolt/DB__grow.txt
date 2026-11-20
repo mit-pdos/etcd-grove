@@ -9,7 +9,7 @@ theorem bbolt.DB.grow.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasEx
   -- `Perennial.EtcdGrove.bbolt.DB.grow.spec`, unfolded:
   ∀ (fr : Bool) (K : bbolt.BC) (tx : Loc) (v : bbolt.View) (w : bbolt.WDb) (sz : w64),
     0 ≤ sint.Z sz →
-      sint.Z sz + 16777216 < 2 ^ 63 →
+      sint.Z sz + 16777216 ≤ 281474976710655 →
         sint.Z sz % 4096 = 0 →
           ⊢
             ∀ Φ,

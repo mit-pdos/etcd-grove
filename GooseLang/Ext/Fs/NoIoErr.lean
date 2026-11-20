@@ -198,11 +198,12 @@ end keeps
 theorem noIoErr_keeps (S : IoSet) : StepKeeps (NoIoErr S) := by
   intro _ _ o v h st e' h' st' huniq hs
   by_cases hc : IoCovers S o v st
-  · obtain ⟨e'', st'', hs'', hz, hp⟩ := noIoErr_good (S := S) hs.1
+  · have hs := fsStepV_of_ne (by rintro rfl; simp [IoCovers] at hc) hs
+    obtain ⟨e'', st'', hs'', hz, hp⟩ := noIoErr_good (S := S) hs.1
     have h1 := isFsStep_maps hc hs.1
     have h2 := isFsStep_maps hc hs''
     obtain ⟨h'', hr⟩ := heapRendered_restamp huniq h1 h2 hs.2.2
-    exact ⟨e'', h'', st'', ⟨hs'', mapsFresh_same h2, hr⟩, fun _ => ⟨hz, hp⟩⟩
+    exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same h2, hr⟩, fun _ => ⟨hz, hp⟩⟩
   · exact ⟨e', h', st', hs, fun hc' => absurd hc' hc⟩
 
 end Fs

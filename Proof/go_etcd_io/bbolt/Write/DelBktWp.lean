@@ -12,7 +12,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Write.DelBktXcl
 public import Proof.go_etcd_io.bbolt.Write.CreateBktWp
-public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_w
+public import Proof.go_etcd_io.bbolt.Read.WFeb
 public import Spec.go_etcd_io.bbolt.node__del
 public import Spec.go_etcd_io.bbolt.Bucket__free_dead
 public import Proof.go_etcd_io.bbolt.Write.DelBktPure

@@ -144,9 +144,9 @@ marshaller's of its model (the premise on the conf state's content, `notes/wal-l
 `walSnapAt Mr l m.model`, the conf state present iff `m`'s is. -/
 theorem walSnapAt_storageLit (Mr : WalMarshal) (m : SnapMetaC) (l pi pt pc : Loc) (i t : w64)
     (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32)
-    (hi : m.index = some i) (ht : m.term = some t) (henc : snapEnc (metaWalC m) = Mr.encSnap m.model) :
+    (hi : m.index = some i) (ht : m.term = some t) (al : Bool) (henc : snapEnc (metaWalC m) = Mr.encSnap m.model al) :
     ⊢ l ↦ (walpb.Snapshot.mk st pi pt pc slice.nil sc) -∗ pi ↦□ i -∗ pt ↦□ t -∗
-      csOptC (GF := GF) pc m.confState ={⊤}=∗ walSnapAt (GF := GF) Mr l m.model m.confState.isSome := by
+      csOptC (GF := GF) pc m.confState ={⊤}=∗ walSnapAt (GF := GF) Mr l m.model al m.confState.isSome := by
   iintro Hl #Hi #Ht #Hc
   ihave #Hc' := csOptC_walCsOptRoC pc m.confState $$ Hc
   ihave ⟨Hl, %Hln⟩ := typedPointsto_not_null_dup _ _ _ $$ Hl

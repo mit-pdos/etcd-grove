@@ -1,6 +1,6 @@
 /-
 `authStore.RoleList` (`server/auth/store.go`): the latest state's roles (the auth plan's E2j,
-2026-10-26). Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/Reads.lean`
+2026-10-26; all of them only below `2 ^ 63 - 1` listed, A6 (R-c), 2026-11-19). Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/Reads.lean`
 (the replies) and `InvAuth.lean` (the backend's reads, `authBackendReads`).
 -/
 module
@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`as.RoleList(r)`**, with the admin side's authority at `hs`: the backend's `GetAllRoles` (its
 batch transaction: the lock runs the hook, `Post`; two write-back tokens `Wb`, spent by its
 `Unlock`, auth-schema-fix F1) and the latest state's roles' names
-(`roleListOut`); the authority and the write resource kept. -/
+(`roleListOut`: every listed role only when fewer than `2 ^ 63 - 1` are listed, A6 (R-c)); the authority and the write resource kept. -/
 abbrev auth.authStore.RoleList.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc),

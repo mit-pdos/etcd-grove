@@ -78,6 +78,15 @@
 //	                              until its munmap (2026-11-19)      Mmap, Munmap, LockConflict
 //	locks_posix_not_modelled.go   F_SETLK/F_SETLKW: not modelled     syscall.lean, unix.lean: FcntlFlock.impl
 //
+// Mappings:
+//
+//	map_mmap_no_room.go           no room in (0, maxAddr]: mmap      MmapRoom, MmapStall, FsStep, FsStepV
+//	                              does not return, as an allocation  (Specs.lean: wp_osMmapG)
+//	                              (pending review, 2026-11-17)
+//	map_madvise.go                madvise (a paging hint): a step,   Madvise (IsFsStep), unix.lean: Madvise.impl
+//	                              no change, any errno               (Madvise.lean: wp_osMadvise)
+//	                              (pending review, 2026-11-17)
+//
 // Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
 // models_test.go holds their measurements, run on C by run-models-on-c.sh):
 //
@@ -126,4 +135,10 @@
 //	                              + C's fd limits: no EMFILE/ENFILE  NoIoErr's docstring, Impl.lean's
 //	                              (assumed; contrast:                "Environment" (env_config.go)
 //	                              TestNoIoErrEmfile; user, 2026-11-19)
+//	premise_no_map_lock_err.go    no flock/mmap/munmap/madvise error NoMapLockErr, MapLockCovers, MapLockOk
+//	                              on chosen files (mmap: a mapping,  (NoMapLockErr.lean: noMapLockErr_keeps,
+//	                              or no return with no room left);   isFsStep_open_eintr)
+//	                              open with no free fd does not
+//	                              return (EINTR, retried)
+//	                              (assumed; pending review)
 package semantics

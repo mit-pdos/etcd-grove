@@ -3,9 +3,10 @@
 `notes/wal-fsext-w4c-plan.md`, "W4c U4 log"): the canonical wire content of each model the WAL's
 marshaller parameter `Mr` writes, its encoding, and the decoders `U` reads them back with.
 
-- **Snapshots** (`walpb.Snapshot`): `walSnapCanon m`, `Index` and `Term` set, the conf state nil when
-  it is the zero one (`walCsZero`, what `Create`'s `snapC0` has) and else set with `AutoLeave` set, no
-  unknown fields; its bytes are `snapEnc` (the registered `walpb.Snapshot`'s transparent encoder,
+- **Snapshots** (`walpb.Snapshot`): `walSnapCanon m al`, `Index` and `Term` set, the conf state nil when
+  it is the zero one (`walCsZero`, what `Create`'s `snapC0` has) and else set with `AutoLeave` set when
+  `al` or `AutoLeave` is true (`walAlC`: the presence bit of the history's `.snap m al`, wal-link Hm1
+  route (B), 2026-11-19), no unknown fields; its bytes are `snapEnc` (the registered `walpb.Snapshot`'s transparent encoder,
   `walpb/PbSnapshot.lean`). `walDecSnap` returns the index and term of the canonical snapshot a byte
   list encodes (`walSnapCanon_enc_idTerm`: they are determined, the encoding starting with two
   varint fields).
@@ -38,26 +39,33 @@ variable [GooseExts]
 
 /-! ## Snapshots -/
 
-/-- A conf state's canonical content: its lists, `AutoLeave` set, no unknown fields. -/
-def walCsCanon (cs : ConfStateM) : WalCsC :=
-  ⟨cs.Voters', cs.Learners', cs.VotersOutgoing', cs.LearnersNext', some cs.AutoLeave', []⟩
+/-- **An `AutoLeave` pointer's content** (wal-link Hm1 route (B), 2026-11-19): set to `b` when the
+presence bit `al` is set or `b` is true (a nil pointer reads `false`), else nil. -/
+def walAlC (al b : Bool) : Option Bool := if al || b then some b else none
+
+theorem walAlC_getD (al b : Bool) : (walAlC al b).getD false = b := by
+  unfold walAlC; cases al <;> cases b <;> rfl
+
+/-- A conf state's canonical content: its lists, `AutoLeave` as `walAlC al`, no unknown fields. -/
+def walCsCanon (cs : ConfStateM) (al : Bool) : WalCsC :=
+  ⟨cs.Voters', cs.Learners', cs.VotersOutgoing', cs.LearnersNext', walAlC al cs.AutoLeave', []⟩
 
 /-- **A snapshot metadata's canonical `walpb.Snapshot` content** (see the file header). -/
-def walSnapCanon (m : SnapshotMetadataM) : WalSnapC :=
+def walSnapCanon (m : SnapshotMetadataM) (al : Bool) : WalSnapC :=
   open Classical in
   ⟨some m.Index', some m.Term',
-    if m.ConfState' = walCsZero then none else some (walCsCanon m.ConfState'), []⟩
+    if m.ConfState' = walCsZero then none else some (walCsCanon m.ConfState' al), []⟩
 
-theorem walSnapCanon_model (m : SnapshotMetadataM) : (walSnapCanon m).model = m := by
-  rcases m with ⟨⟨v, l, vo, ln, al⟩, i, t⟩
+theorem walSnapCanon_model (m : SnapshotMetadataM) (al : Bool) : (walSnapCanon m al).model = m := by
+  rcases m with ⟨⟨v, l, vo, ln, a⟩, i, t⟩
   unfold walSnapCanon WalSnapC.model
-  by_cases h : (⟨v, l, vo, ln, al⟩ : ConfStateM) = walCsZero
+  by_cases h : (⟨v, l, vo, ln, a⟩ : ConfStateM) = walCsZero
   · simp only [h, if_pos, Option.map_none, Option.getD_none, Option.getD_some]
   · simp only [h, if_neg, not_false_eq_true, Option.map_some, Option.getD_some, walCsCanon,
-      WalCsC.model]
+      WalCsC.model, walAlC_getD]
 
-theorem walSnapCanon_levels (m : SnapshotMetadataM) :
-    ∀ p ∈ (walSnapCanon m).levels, ufWire p.1 p.2 := by
+theorem walSnapCanon_levels (m : SnapshotMetadataM) (al : Bool) :
+    ∀ p ∈ (walSnapCanon m al).levels, ufWire p.1 p.2 := by
   intro p hp
   unfold walSnapCanon WalSnapC.levels at hp
   split at hp
@@ -67,8 +75,8 @@ theorem walSnapCanon_levels (m : SnapshotMetadataM) :
     rcases hp with rfl | rfl <;> exact ufWire_nil _
 
 /-- **The canonical snapshot's bytes determine its index and term.** -/
-theorem walSnapCanon_enc_idTerm (m m' : SnapshotMetadataM)
-    (h : snapEnc (walSnapCanon m) = snapEnc (walSnapCanon m')) :
+theorem walSnapCanon_enc_idTerm (m m' : SnapshotMetadataM) (al al' : Bool)
+    (h : snapEnc (walSnapCanon m al) = snapEnc (walSnapCanon m' al')) :
     m.Index' = m'.Index' ∧ m.Term' = m'.Term' := by
   unfold snapEnc walSnapCanon at h
   simp only [Option.map_some, optVarintField, List.append_assoc] at h
@@ -81,20 +89,20 @@ theorem walSnapCanon_enc_idTerm (m m' : SnapshotMetadataM)
 /-- **The snapshot decoder**: the index and term of the canonical snapshot `bs` encodes. -/
 def walDecSnap (bs : List w8) : Option (w64 × w64) :=
   open Classical in
-  if h : ∃ m, bs = snapEnc (walSnapCanon m) then
+  if h : ∃ m al, bs = snapEnc (walSnapCanon m al) then
     some ((Classical.choose h).Index', (Classical.choose h).Term')
   else none
 
-theorem walDecSnap_enc (m : SnapshotMetadataM) :
-    walDecSnap (snapEnc (walSnapCanon m)) = some (m.Index', m.Term') := by
-  have he : ∃ m', snapEnc (walSnapCanon m) = snapEnc (walSnapCanon m') := ⟨m, rfl⟩
+theorem walDecSnap_enc (m : SnapshotMetadataM) (al : Bool) :
+    walDecSnap (snapEnc (walSnapCanon m al)) = some (m.Index', m.Term') := by
+  have he : ∃ m' al', snapEnc (walSnapCanon m al) = snapEnc (walSnapCanon m' al') := ⟨m, al, rfl⟩
   unfold walDecSnap
   rw [dif_pos he]
-  obtain ⟨h1, h2⟩ := walSnapCanon_enc_idTerm _ _ (Classical.choose_spec he)
+  obtain ⟨h1, h2⟩ := walSnapCanon_enc_idTerm _ _ _ _ (Classical.choose_spec (Classical.choose_spec he))
   rw [← h1, ← h2]
 
 /-- `Create`'s snapshot is canonical. -/
-theorem walSnapCanon_snapC0 : walSnapCanon snapC0.model = snapC0 := by
+theorem walSnapCanon_snapC0 (al : Bool) : walSnapCanon snapC0.model al = snapC0 := by
   simp [walSnapCanon, snapC0, WalSnapC.model]
 
 /-! ## Hard states -/
@@ -216,10 +224,10 @@ private theorem repVarintField_len (num : Nat) (hn : num < 16) (vs : List w64) :
 
 /-- (wal-link L3, F2, 2026-11-19) **The canonical snapshot's encoding's bound**: with fewer than `2^32` ids in
 its conf state, below `2^40` bytes (layer 1's record bound). -/
-theorem walSnapCanon_enc_len (m : SnapshotMetadataM)
+theorem walSnapCanon_enc_len (m : SnapshotMetadataM) (al : Bool)
     (h : m.ConfState'.Voters'.length + m.ConfState'.Learners'.length +
       m.ConfState'.VotersOutgoing'.length + m.ConfState'.LearnersNext'.length < 2 ^ 32) :
-    (snapEnc (walSnapCanon m)).length < 2 ^ 40 := by
+    (snapEnc (walSnapCanon m al)).length < 2 ^ 40 := by
   have hi := optVarintField_len 1 (some m.Index') (by omega)
   have ht := optVarintField_len 2 (some m.Term') (by omega)
   have hc : ∀ o : Option WalCsC, (∀ c, o = some c → (csEnc c).length ≤ 11 * 2 ^ 32 + 2) →
@@ -232,14 +240,13 @@ theorem walSnapCanon_enc_len (m : SnapshotMetadataM)
       have h1 := varintEnc_length_le 1 (3 * 8 + 2) (by omega) (by omega)
       have h2 := varintEnc_length_w64 (csEnc c).length (by omega)
       omega
-  have hcs : ∀ c, (walSnapCanon m).confState = some c → (csEnc c).length ≤ 11 * 2 ^ 32 + 2 := by
+  have hcs : ∀ c, (walSnapCanon m al).confState = some c → (csEnc c).length ≤ 11 * 2 ^ 32 + 2 := by
     intro c hc
     unfold walSnapCanon at hc
     split at hc
     · cases hc
     · cases hc
-      unfold csEnc walCsCanon
-      simp only [Option.map_some, optVarintField, List.length_append, List.length_nil]
+      unfold csEnc walCsCanon walAlC
       have r1 := repVarintField_len 1 (by omega) m.ConfState'.Voters'
       have r2 := repVarintField_len 2 (by omega) m.ConfState'.Learners'
       have r3 := repVarintField_len 3 (by omega) m.ConfState'.VotersOutgoing'
@@ -247,12 +254,13 @@ theorem walSnapCanon_enc_len (m : SnapshotMetadataM)
       have a1 := varintEnc_length_le 1 (5 * 8) (by omega) (by omega)
       have a2 := varintEnc_length_le 1 (if m.ConfState'.AutoLeave' = true then 1 else 0) (by omega)
         (by split <;> omega)
-      omega
+      split <;> simp only [Option.map_some, Option.map_none, optVarintField, List.length_append,
+        List.length_nil] <;> omega
   have hb := hc _ hcs
   unfold snapEnc
-  have hu : (walSnapCanon m).uf = [] := by unfold walSnapCanon; rfl
-  have hix : (walSnapCanon m).index = some m.Index' := rfl
-  have htx : (walSnapCanon m).term = some m.Term' := rfl
+  have hu : (walSnapCanon m al).uf = [] := by unfold walSnapCanon; rfl
+  have hix : (walSnapCanon m al).index = some m.Index' := rfl
+  have htx : (walSnapCanon m al).term = some m.Term' := rfl
   rw [hu, hix, htx]
   simp only [List.length_append, List.length_nil]
   omega

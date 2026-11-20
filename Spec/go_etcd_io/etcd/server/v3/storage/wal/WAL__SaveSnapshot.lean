@@ -54,16 +54,16 @@ in some broken or accepted state (`Create` only closes the file then). The tail'
 is the writer's accepted length (`walPreSeekOk`); `w.fp` is nil (no pipeline yet), so it never cuts. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (st : WalSnapSt GF) (sp : Loc)
-    (md : SnapshotMetadataM) (cs : Bool) (sized : Bool) (Q : WalDur → IProp GF),
+    (md : SnapshotMetadataM) (al cs : Bool) (sized : Bool) (Q : WalDur → IProp GF),
   {{ match st with
       | .shared γ q => iprop(WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗
-          ⌜walCov Sio ∨ q = 1⌝ ∗ walSnapAt Mr sp md cs ∗
+          ⌜walCov Sio ∨ q = 1⌝ ∗ walSnapAt Mr sp md al cs ∗
           ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
-          ⌜(Mr.encSnap md).length < 2 ^ 40⌝ ∗
+          ⌜(Mr.encSnap md al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-            <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md] }, COMM Q d }>)
+            <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md al] }, COMM Q d }>)
       | .pre lg mds mdb e lt f snapi enti Wr Br Sr lim out pend c => iprop(
-          ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜(out ++ pend ++ snapFrame Mr c md).length ≤ lim⌝ ∗
+          ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜(out ++ pend ++ snapFrame Mr c md al).length ≤ lim⌝ ∗
           ⌜lim < 2 ^ 47⌝ ∗ ⌜walPreSyncOk f Wr Sr⌝ ∗ ⌜walPreSeekOk f Wr lim⌝ ∗
           io.writerStream (wal.fileWi f) lim Wr Br ∗
           globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) ∗
@@ -71,7 +71,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn 
           encEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗
           walPreIn w lg dir mds mdb e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗
-          Wr out ∗ walSnapAt Mr sp md cs) }}
+          Wr out ∗ walSnapAt Mr sp md al cs) }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"SaveSnapshot")) (Val #sp))
   {{ (err : GoInterface), RET #err;
       match st with
@@ -84,8 +84,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn 
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
           ⌜(snapi' = snapi ∨ snapi' = md.Index') ∧ (enti' = enti ∨ enti' = md.Index')⌝ ∗
           ((⌜err = GoInterface.nil⌝ ∗
-              ownEncoder e (wal.fileWi f) (hash.crc32.crc32c c (Mr.encSnap md)) [] ∗
-              Sr (out ++ pend ++ snapFrame Mr c md)) ∨
+              ownEncoder e (wal.fileWi f) (hash.crc32.crc32c c (Mr.encSnap md al)) [] ∗
+              Sr (out ++ pend ++ snapFrame Mr c md al)) ∨
            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ (c' : w32) (pend' : List w8),
               ownEncoder e (wal.fileWi f) c' pend' ∗
               ((∃ a b : List w8, Br a b) ∨ (∃ o : List w8, Wr o))))) }}

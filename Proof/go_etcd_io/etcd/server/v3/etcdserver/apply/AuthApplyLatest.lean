@@ -68,6 +68,90 @@ theorem authOutL_iff (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.A
   unfold authOutL authOutLL
   simp
 
+/-! ### An outcome past the auth layer (auth-lease S4 item 7b, 2026-11-17)
+
+Where the auth layer passes a request, some outcome of the inner chain is not the auth layer's rejection: what
+discharges the latest-state methods' window premise (`putPreW`, ...), asked only then. -/
+
+/-- The backend never answers with the auth layer's rejection. -/
+theorem backendStep_ne_auth (rq : IRRModel) (log : mvcc.Log) (oc : Outcome) (h : backendStep rq log oc) :
+    oc ≠ .rejected .auth := by
+  rintro rfl
+  unfold backendStep at h
+  split at h <;> simp_all
+
+/-- Some outcome of the chain `c` other than the auth layer's rejection, given one of `B`'s. -/
+theorem chainStep_exists_ne_auth (B : IRRModel → mvcc.Log → Outcome → Prop) (rq : IRRModel) (log : mvcc.Log)
+    (hB : ∃ oc, B rq log oc ∧ oc ≠ .rejected .auth) :
+    ∀ c : Chain, ∃ oc, chainStep B c rq log oc ∧ oc ≠ .rejected .auth
+  | .backend => hB
+  | .auth on c => by
+    obtain ⟨oc, h, hne⟩ := chainStep_exists_ne_auth B rq log hB c
+    refine ⟨oc, ?_, hne⟩
+    simp only [chainStep]; split
+    · exact Or.inr h
+    · exact h
+  | .quota c => chainStep_exists_ne_auth B rq log hB c
+  | .capped c => by
+    obtain ⟨oc, h, hne⟩ := chainStep_exists_ne_auth B rq log hB c
+    simp only [chainStep]
+    split
+    · exact ⟨.rejected .noSpace, rfl, by simp⟩
+    · split
+      · exact ⟨oc, Or.inr h, hne⟩
+      · exact ⟨oc, h, hne⟩
+  | .corrupt c => by
+    obtain ⟨oc, h, hne⟩ := chainStep_exists_ne_auth B rq log hB c
+    simp only [chainStep]
+    split
+    · exact ⟨.rejected .corrupt, rfl, by simp⟩
+    · exact ⟨oc, h, hne⟩
+
+/-- A put has a backend outcome. -/
+theorem backendStep_exists_put (rq : IRRModel) (log : mvcc.Log) (o : OpFull) (ho : rq.put = some o)
+    (hk : dispatchKind rq = .put) : ∃ oc, backendStep rq log oc := by
+  unfold backendStep; rw [hk]
+  by_cases h1 : o.leaseID ≠ W64 0
+  · exact ⟨_, o, ho, Or.inl ⟨h1, rfl⟩⟩
+  by_cases h2 : txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none
+  · exact ⟨_, o, ho, Or.inr (Or.inl ⟨h2.1, h2.2, rfl⟩)⟩
+  refine ⟨_, o, ho, Or.inr (Or.inr ⟨fun hn => ?_, rfl⟩)⟩
+  cases hf : mvcc.findKey o.key (mvcc.stateAfter log) with
+  | none => exact absurd ⟨hn, hf⟩ h2
+  | some _ => rfl
+
+/-- A delete has a backend outcome. -/
+theorem backendStep_exists_delete (rq : IRRModel) (log : mvcc.Log) (o : OpFull) (ho : rq.deleteRange = some o)
+    (hk : dispatchKind rq = .deleteRange) : ∃ oc, backendStep rq log oc := by
+  unfold backendStep; rw [hk]; exact ⟨_, o, ho, rfl⟩
+
+/-- A revocation has a backend outcome. -/
+theorem backendStep_exists_revoke (rq : IRRModel) (log : mvcc.Log) (id : w64) (ho : rq.leaseRevoke = some id)
+    (hk : dispatchKind rq = .leaseRevoke) : ∃ oc, backendStep rq log oc := by
+  unfold backendStep; rw [hk]; exact ⟨_, id, ho, rfl⟩
+
+/-- A transaction has a backend outcome: `checkTxn`'s error, or (a plain transaction whose puts all find what they
+need) its run, which for a read-only transaction changes nothing (`txn.srvOps_gets_nil`). -/
+theorem backendStep_exists_txn (rq : IRRModel) (log : mvcc.Log) (t : TxnModel) (ho : rq.txn = some t)
+    (hk : dispatchKind rq = .txn) : ∃ oc, backendStep rq log oc := by
+  unfold backendStep; rw [hk]
+  by_cases hc : txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
+      (t.branch (txn.txnOk (mvcc.stateAfter log) t))
+  · exact ⟨_, t, ho, Or.inl ⟨rfl, hc⟩⟩
+  have hp : txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) :=
+    Classical.byContradiction fun h => hc fun _ => h
+  refine ⟨_, t, ho, Or.inr ⟨rfl, fun hro => ?_, hp⟩⟩
+  exact txn.srvOps_gets_nil _ _ _ _ (txn.readonly_branch t hro _)
+
+/-- **An outcome the verdict `X` admits past the auth layer**: where every outcome of the inner chain `c` is one
+`X` admits (the auth layer passed), and the backend has an outcome. -/
+theorem pass_exists (c : Chain) (rq : IRRModel) (log : mvcc.Log) (X : Outcome → Prop)
+    (hB : ∃ oc, backendStep rq log oc) (hX : ∀ oc, chainStep backendStep c rq log oc → X oc) :
+    ∃ oc, X oc ∧ oc ≠ .rejected .auth := by
+  obtain ⟨oc0, h0⟩ := hB
+  obtain ⟨oc, h, hne⟩ := chainStep_exists_ne_auth backendStep rq log ⟨oc0, h0, backendStep_ne_auth _ _ _ h0⟩ c
+  exact ⟨oc, hX oc h, hne⟩
+
 /-- The range end a check saw keeps the cache's shape. -/
 theorem reqShape_authEndOf (k m e : GoString) (he : authEndOf m e) (h : auth.reqShape k m) :
     auth.reqShape k e := by
@@ -168,24 +252,28 @@ live set `T` of the method's resources, the outcomes also lease-exact at `T`. -/
 def putPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
-    ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
-      mPreAt E c a info log T Pre Q Post)
+  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log ∧
+      o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax⌝ ∗ txn.putRequestIs r o ∗
+    ∃ T : List w64, ⌜(∃ oc, X oc ∧ oc ≠ .rejected .auth) → winTgt E.win rq log T⌝ ∗
+      certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗ mPreAt E c a info log T Pre Q Post)
 
 /-- `deletePre` with the certificates of the outcomes `X` admits (`certPreW`). -/
 def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
-    certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post)
+    certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post ∗
+    ∃ T : List w64, ⌜(∃ oc, X oc ∧ oc ≠ .rejected .auth) → winTgt E.win rq log T⌝)
 
 /-- `txnPre` with the certificates of the outcomes `X` admits (`certPreW`), at the live set (as `putPreW`). -/
 def txnPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗
-    txn.txnRequestIs r t ∗ ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
-      mPreAt E c a info log T Pre Q Post)
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log ∧
+      t.putsLe etcdKeyMax⌝ ∗
+    txn.txnRequestIs r t ∗ ∃ T : List w64, ⌜((∃ oc, X oc ∧ oc ≠ .rejected .auth) → winTgt E.win rq log T) ∧
+      txn.txnKeysNodup t⌝ ∗
+      certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗ mPreAt E c a info log T Pre Q Post)
 
 end defs
 
@@ -504,7 +592,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.deletePreW at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, %Tw, %Hwt⟩
   icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
@@ -575,12 +663,15 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
       iframe Hpw
       iintro %h; rw [hpk] at h; cases h
     ihave #Hrc := apply.reqClass_deleteRange E.authMode info rq o Hk.1 Hk.2.1 $$ Hdc
-    ihave #Hcp := apply.certPreW_inner E E.authOn c rq log _ (fun oc hoc => by
+    have hXp : ∀ oc, apply.chainStep apply.backendStep c rq log oc → ∃ e, apply.authEndOf o.base.rangeEnd e ∧
+        apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
+          ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc := fun oc hoc => by
       refine ⟨e, hend, Or.inr ⟨hoc, ?_⟩⟩
       rw [hpk]
       simp only [Bool.false_eq_true, ↓reduceIte]
       rw [← hkey] at Honew
-      exact Honew.1 rfl) $$ Hcp
+      exact Honew.1 rfl
+    ihave #Hcp := apply.certPreW_inner E E.authOn c rq log _ hXp $$ Hcp
     iunfold apply.chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
     wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
@@ -589,8 +680,11 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
       iframe #
       isplitr
       · ipureintro; exact Hk
-      iapply apply.mPre_of_rest
-      iframe
+      isplitl
+      · iapply apply.mPre_of_rest
+        iframe
+      iexists Tw; ipureintro
+      exact Hwt (apply.pass_exists c rq log _ (apply.backendStep_exists_delete rq log o Hk.1 Hk.2.1) hXp)
     iapply HΦ
     iframe HL Htt
     isplitr [Htrc]
@@ -649,13 +743,16 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     iframe Hpw
     iintro %_; iexact Hpr
   ihave #Hrc := apply.reqClass_deleteRange E.authMode info rq o Hk.1 Hk.2.1 $$ Hdc
-  ihave #Hcp := apply.certPreW_inner E E.authOn c rq log _ (fun oc hoc => by
+  have hXp : ∀ oc, apply.chainStep apply.backendStep c rq log oc → ∃ e, apply.authEndOf o.base.rangeEnd e ∧
+      apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
+        ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc := fun oc hoc => by
     refine ⟨e, hend, Or.inr ⟨hoc, ?_⟩⟩
     rw [hpk]
     simp only [↓reduceIte]
     rw [← hkey] at Honew Honer
     exact apply.passedL_append _ _ _ [(o.key, e, .write)] [(o.key, e, .read)] (Honew.1 rfl)
-      (Honer.1 rfl)) $$ Hcp
+      (Honer.1 rfl)
+  ihave #Hcp := apply.certPreW_inner E E.authOn c rq log _ hXp $$ Hcp
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
   wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
@@ -664,8 +761,11 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     iframe #
     isplitr
     · ipureintro; exact Hk
-    iapply apply.mPre_of_rest
-    iframe
+    isplitl
+    · iapply apply.mPre_of_rest
+      iframe
+    iexists Tw; ipureintro
+    exact Hwt (apply.pass_exists c rq log _ (apply.backendStep_exists_delete rq log o Hk.1 Hk.2.1) hXp)
   iapply HΦ
   iframe HL Htt
   isplitr [Htrc]

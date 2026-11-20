@@ -36,7 +36,7 @@ theorem Tx.page_r.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG)) :
   unfold rdTxK rtxFrac BC.core
   iintro %Φ ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
     ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells,
-      ⟨%l, Hmap, Hmf, %Hl⟩, #Hvo, %Hf⟩, Hpool⟩ HΦ
+      ⟨%l, Hmap, Hmf, %Hl⟩, #Hvo, Hrdx, %Hf⟩, Hpool⟩ HΦ
   obtain ⟨hT, hvwf, hmv, hpn, htx⟩ := Hf
   obtain ⟨h2, hid, hlen, hfl⟩ := Read.viewWF_page v hvwf id.toNat pg hpg
   have hbound := Hl id.toNat pg hpg

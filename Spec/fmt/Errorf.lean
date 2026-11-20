@@ -142,6 +142,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
+/-- The signature `() string` of `Error` and `String`, as goose writes it in method sets (in
+`Spec/fmt/ErrorOk.lean` until fmt soundness 2, 2026-11-18). -/
+def noArgStringSig : go.signature := go.signature.Signature [] false [go.string]
+
 /-- Method `m` of the interface value `ii`, called with no arguments, returns some string,
 needing nothing (persistently: `fmt` may call it any number of times). For `Error()` this is
 what Perennial's `errors.wp_New` and `fmt.wp_Errorf` give of the errors they return. -/
@@ -166,26 +170,38 @@ when the type has one, and `Error()` in place of `String()` for an `error`: prem
 2026-11-10, the round-2 premise attack's `fmt-argOk-error-over-string-and-formatter`,
 `examples/premisefix/fmtarg`; until then the disjuncts did not exclude `Format` and `Error`; a
 panic in the method would be recovered by `fmt`, but the method's effects are what the spec rules
-out). What `fmt` needs of an argument under a method verb (`v s x X q`, and `w` in `Errorf`) other
-than `%#v`/`%#w`; `fmt.argOkAt` asks it only there (premise fixes 6, D). -/
+out). The method is Go's `Error() string`/`String() string` (`noArgStringSig`: fmt soundness 2,
+2026-11-18, the third attack's R3: Go's `handleMethods` switches on `case error`/`case Stringer`, by
+signature; a method `Error() int` is no `error`, `fmt` calls nothing and reflects into the value,
+while `fmt.stringMethodSpec` of it held vacuously; `/shared/tmp/fmtfix-attack3/badsig`). What `fmt`
+needs of an argument under a method verb (`v s x X q`, and `w` in `Errorf`) other than
+`%#v`/`%#w`; `fmt.argOkAt` asks it only there (premise fixes 6, D), and under `w` only its `Error()`
+disjunct. -/
 def fmt.argOk : GoInterface → IProp GF
   | .nil => iprop(True)
   | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨
-      (fmt.stringMethodSpec ii go!"Error" ∗ ⌜methodSet ii.ty !! go!"Format" = none⌝) ∨
+      (fmt.stringMethodSpec ii go!"Error" ∗
+        ⌜methodSet ii.ty !! go!"Format" = none ∧ methodSet ii.ty !! go!"Error" = some noArgStringSig⌝) ∨
       (fmt.stringMethodSpec ii go!"String" ∗
-        ⌜methodSet ii.ty !! go!"Format" = none ∧ methodSet ii.ty !! go!"Error" = none⌝))
+        ⌜methodSet ii.ty !! go!"Format" = none ∧ methodSet ii.ty !! go!"Error" = none ∧
+          methodSet ii.ty !! go!"String" = some noArgStringSig⌝))
 
 /-- **One argument under the directive `d`**, the method verbs being `mv`: `nil` or `fmt.ArgWf`
 under any directive; under a verb that is not a method verb, also a value of a type whose
 underlying type is an integer type and that has no `Format` method (Go prints it as an integer by
 reflection, calling no method: `%d` of raft's `ConfChangeType`, which has `String()`); and
-`fmt.argOk` (its `Error()`/`String()` disjuncts) only under a method verb that is not `%#v`/`%#w` (`d.sharpV`). -/
+`fmt.argOk` (its `Error()`/`String()` disjuncts) only under a method verb that is not `%#v`/`%#w` (`d.sharpV`),
+and under `w` only for a type with `Error() string` (fmt soundness 2, 2026-11-18, the third attack's
+R2: `Errorf`'s `%w` of a value that is no `error` is a bad verb, and `fmt` reflects into it; a
+`String()` alone does not help; `/shared/tmp/fmtfix-attack3/wstringer`). -/
 def fmt.argOkAt (mv : List w8) (d : fmt.Directive) : GoInterface → IProp GF
   | .nil => iprop(True)
   | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨
       ⌜d.verb ∉ mv ∧ _root_.Perennial.fmt.IsIntType (underlying ii.ty) ∧
         methodSet ii.ty !! go!"Format" = none⌝ ∨
-      (⌜d.verb ∈ mv ∧ d.sharpV = false⌝ ∗ fmt.argOk (.ok ii)))
+      (⌜d.verb ∈ mv ∧ d.sharpV = false ∧
+        (d.verb = W8 119 → methodSet ii.ty !! go!"Error" = some noArgStringSig)⌝ ∗
+        fmt.argOk (.ok ii)))
 
 /-- The arguments under the directives: one each, in order; those left over are printed under
 `%v` (`EXTRA`). -/
@@ -212,9 +228,10 @@ theorem fmt.argsOk_intro {mv : List w8} {format : GoString} {ds : List fmt.Direc
   · iexact H
 
 /-- An argument that is `fmt.argOk` is `fmt.argOkAt` a method-verb directive other than `%#v`/`%#w`
-(premise fixes 6, D). -/
+and `%w` (premise fixes 6, D; `%w` excluded since fmt soundness 2: under it, `fmt.argOkAt_of_error`). -/
 theorem fmt.argOkAt_of_argOk {mv : List w8} {d : fmt.Directive} {a : GoInterface} :
-    ⌜d.verb ∈ mv ∧ d.sharpV = false⌝ ∗ fmt.argOk (GF := GF) a ⊢ fmt.argOkAt mv d a := by
+    ⌜d.verb ∈ mv ∧ d.sharpV = false ∧ d.verb ≠ W8 119⌝ ∗ fmt.argOk (GF := GF) a ⊢
+      fmt.argOkAt mv d a := by
   cases a with
   | nil => unfold fmt.argOkAt; iintro _; itrivial
   | ok ii =>
@@ -222,8 +239,25 @@ theorem fmt.argOkAt_of_argOk {mv : List w8} {d : fmt.Directive} {a : GoInterface
     iintro ⟨%h, H⟩
     iright; iright
     isplitr
-    · ipureintro; exact h
+    · ipureintro; exact ⟨h.1, h.2.1, fun hw => absurd hw h.2.2⟩
     · iexact H
+
+/-- An argument whose `Error()` has `fmt.stringMethodSpec`, of a type with `Error() string` and no
+`Format`, is `fmt.argOkAt` any method-verb directive other than `%#v`/`%#w`, `%w` included (fmt
+soundness 2, 2026-11-18). -/
+theorem fmt.argOkAt_of_error {mv : List w8} {d : fmt.Directive} {ii : GoInterfaceOk} :
+    ⌜d.verb ∈ mv ∧ d.sharpV = false⌝ ∗ fmt.stringMethodSpec (GF := GF) ii go!"Error" ∗
+      ⌜methodSet ii.ty !! go!"Format" = none ∧ methodSet ii.ty !! go!"Error" = some noArgStringSig⌝ ⊢
+      fmt.argOkAt mv d (.ok ii) := by
+  unfold fmt.argOkAt fmt.argOk
+  iintro ⟨%h, #H, %hm⟩
+  iright; iright
+  isplitr
+  · ipureintro; exact ⟨h.1, h.2, fun _ => hm.2⟩
+  · iright; ileft
+    isplitr
+    · iexact H
+    · ipureintro; exact hm
 
 /-- An integer argument of a named type without `Format` is `fmt.argOkAt` a directive whose verb
 is not a method verb (premise fixes 6, D). -/
@@ -276,6 +310,15 @@ theorem fmt.methodSet_none (t : go.GoType) {ms : List (GoString × Option go.sig
   rw [h] at this
   exact this
 
+/-- A method's signature in a type's method set, from the type's `go.MethodSetIs` (fmt soundness 2:
+for `fmt.argOk`'s `noArgStringSig` facts). -/
+theorem fmt.methodSet_some (t : go.GoType) {ms : List (GoString × Option go.signature)}
+    [go.MethodSetIs t ms] (m : GoString) (sig : go.signature)
+    (h : go.methodSetLookup ms m = some sig) : methodSet t !! m = some sig := by
+  have := go.MethodSetIs.method_set_is (t := t) m
+  rw [h] at this
+  exact this
+
 end methods
 
 /-- Proves `methodSet t !! m = none` (or a conjunction of such) for a type `t` with a
@@ -284,6 +327,26 @@ macro "fmt_method_none" : tactic => `(tactic| (
   repeat' apply And.intro
   all_goals (apply Perennial.EtcdGrove.fmt.methodSet_none; first | rfl | decide |
     simp [go.methodSetLookup])))
+
+/-- Proves a conjunction of `methodSet t !! m = none` and `methodSet t !! m = some noArgStringSig`
+facts for a type `t` with a `go.MethodSetIs` instance (fmt soundness 2). -/
+macro "fmt_method_facts" : tactic => `(tactic| (
+  repeat' apply And.intro
+  all_goals (first
+    | (apply Perennial.EtcdGrove.fmt.methodSet_none; first | rfl | decide |
+        simp [go.methodSetLookup])
+    | (apply Perennial.EtcdGrove.fmt.methodSet_some; first | rfl | decide |
+        simp [go.methodSetLookup, Perennial.EtcdGrove.noArgStringSig]))))
+
+/-- Proves the pure part of `fmt.argOkAt`'s method-verb disjunct, `d.verb ∈ mv ∧ d.sharpV = false ∧
+(d.verb = W8 119 → methodSet t !! "Error" = some noArgStringSig)`, for a literal directive: under a
+verb other than `w` by evaluation, under `w` from a hypothesis or the type's method set (fmt
+soundness 2). -/
+macro "fmt_verb_ok" : tactic => `(tactic| (
+  refine ⟨by decide, by decide, ?_⟩
+  first
+    | (intro hw; exact absurd hw (by decide))
+    | (intro _; first | assumption | (apply And.right; assumption) | fmt_method_facts)))
 
 /-- Turns a goal `fmt.argsOk mv format xs` of a literal format into `fmt.argsOkAt` its directives,
 unfolded over the argument list: one `fmt.argOkAt mv d a` per argument (premise fixes 6, D). -/
@@ -299,7 +362,7 @@ macro "fmt_args_intro" : tactic => `(tactic| (
 macro "fmt_arg_method" : tactic => `(tactic| (
   first
     | (iapply Perennial.EtcdGrove.fmt.argOkAt_of_argOk; isplitr; (ipureintro; decide))
-    | (iright; iright; isplitr; (ipureintro; decide))))
+    | (iright; iright; isplitr; (ipureintro; fmt_verb_ok))))
 
 /-- Proves `fmt.argsOk mv format xs` of a literal format and a literal argument list (as
 `wp_slice_literal` builds it): the format's directives by evaluation (premise fixes 6, D), then
@@ -307,8 +370,9 @@ each argument: `nil`, a `string` or an `int`/`int64`/`uint64` by `fmt.ArgWf`; un
 not a method verb, an integer of a named type without `Format` (its underlying type from a
 `go.IsUnderlying` instance); under a method verb other than `%#v`/`%#w`, any other argument by a
 hypothesis in the context giving its `Error()` or `String()` method's `fmt.stringMethodSpec`, and
-a pure one its method facts (no `Format`; for `String()`, no `Error` either; premise-fixes-4), or
-by a hypothesis `fmt.argOk a`. -/
+a pure one (or the type's method set) its method facts (no `Format`, the method `() string`; for
+`String()`, no `Error` either; premise-fixes-4, fmt soundness 2), or by a hypothesis `fmt.argOk a`
+(not under `%w`). -/
 macro "fmt_args_ok" : tactic => `(tactic| (
   fmt_args_intro
   try simp only [Perennial.EtcdGrove.fmt.argOkAt, Perennial.EtcdGrove.fmt.argOk]
@@ -324,13 +388,13 @@ macro "fmt_args_ok" : tactic => `(tactic| (
     | (iright; ileft; ipureintro
        refine ⟨by decide, ?_, by fmt_method_none⟩
        rw [go.is_underlying]; simp [_root_.Perennial.fmt.IsIntType])
-    | (iright; iright; isplitr; (ipureintro; decide))
+    | (iright; iright; isplitr; (ipureintro; fmt_verb_ok))
     | (iapply Perennial.EtcdGrove.fmt.argOkAt_of_argOk; isplitr; (ipureintro; decide); iassumption)
     | (iright; ileft; isplitr; iassumption; ipureintro; assumption)
-    | (iright; ileft; isplitr; iassumption; ipureintro; exact (‹_ ∧ _›).1)
-    | (iright; ileft; isplitr; iassumption; ipureintro; fmt_method_none)
+    | (iright; ileft; isplitr; iassumption; ipureintro; exact ‹_ ∧ _›)
+    | (iright; ileft; isplitr; iassumption; ipureintro; fmt_method_facts)
     | (iright; iright; isplitr; iassumption; ipureintro; assumption)
-    | (iright; iright; isplitr; iassumption; ipureintro; fmt_method_none))))
+    | (iright; iright; isplitr; iassumption; ipureintro; fmt_method_facts))))
 
 end EtcdGrove
 end Perennial

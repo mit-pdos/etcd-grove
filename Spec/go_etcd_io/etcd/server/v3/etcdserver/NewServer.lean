@@ -166,6 +166,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
   -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
   γ.rule = srvRule (W64 0) γ.boot →
+  -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode,
+  -- `SnapshotCatchUpEntries` at least `2^48`, the receipts' bound below (the log compacted at index
+  -- `1` only)
+  (clusterNoSnap γ.cl → 2 ^ 48 ≤ uint.Z cfg.SnapshotCatchUpEntries') →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
   ρ.rd.kv.log0 = [[], []] →
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's

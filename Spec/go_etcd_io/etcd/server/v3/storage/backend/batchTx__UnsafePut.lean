@@ -28,7 +28,7 @@ abbrev backend.batchTx.UnsafePut.spec : Prop :=
   0 < kb.length → kb.length ≤ maxKeySize →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ value ↦*□ vb }}
     (App (App (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"UnsafePut")) (Val #bk)) (Val #key)) (Val #value))
-  {{ RET #(); btW γ t (st.put bi kb vb false) ∗ key ↦*{dk} kb }}
+  {{ RET #(); ⌜kb.length + vb.length ≤ bbolt.bboltEntryMax⌝ ∗ btW γ t (st.put bi kb vb false) ∗ key ↦*{dk} kb }}
 
 end spec
 

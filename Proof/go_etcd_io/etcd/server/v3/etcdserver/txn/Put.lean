@@ -41,9 +41,9 @@ theorem txn.Put.wp_proof
     (hCheck : txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG))
     (hput : txn.put.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg le kv γ p o q B P Pre Q Post f L I ot te R
+  intro ctx cd lg le kv γ p o q B P Pre Q Post f L I ot te R wn
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau, %Hob⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -80,7 +80,7 @@ theorem txn.Put.wp_proof
       (traceutil.fieldsWf_cons_int _ _ _ (.int _) _ traceutil.fieldsWf_nil)
   (try wp_auto)
   -- `checkLease(lessor, p)`
-  wp_apply (hLease le (mvcc.api.mvccLeases γ) p o L I) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
+  wp_apply (hLease le (mvcc.api.mvccLeases γ) p o L I wn) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
   (try wp_auto)
   icases Herr with (⟨%Herr, #Hlok⟩ | ⟨%Hne, #He⟩)
   rotate_left
@@ -110,7 +110,7 @@ theorem txn.Put.wp_proof
   icases Hlok with %Hlok
   rw [decide_eq_true Hlok] at *
   simp only [↓reduceIte]
-  iunfold txn.putAU at Hau
+  iunfold txn.putAUW at Hau
   ihave Hau := txn.beginAU_reach hpers hreach kv γ _ $$ Hkv Hau
   icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
   obtain ⟨kty, kvv, rfl, -, hWriteC, -⟩ := Hsh
@@ -119,6 +119,7 @@ theorem txn.Put.wp_proof
   wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Hrd $Htrc $Hbk $Hhook $Hpre $Htr $Hau]
     as %t ⟨Htrc, Hbk, ⟨%σ₀, Htx, ⟨%Hreach0, %Hitems, Hilok, Hcommit⟩⟩, HQ⟩
   · ipureintro; exact Ht
+  obtain ⟨Hitems, Hwin⟩ := Hitems
   icases txn.mvccTxn_shape hsh t γ trace (.write σ₀ []) $$ Htx with ⟨%Hsht, Htx⟩
   obtain ⟨tty, tv, rfl, -, -, -, -, -, -, hEndC⟩ := Hsht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
@@ -141,6 +142,19 @@ theorem txn.Put.wp_proof
     have hpp : txn.putPend o σ₀ = [] := by
       unfold txn.putPend; simp only [Hn.1, Hn.2.1, and_self, ↓reduceIte]
     rw [hpp] at *
+    -- the window witness at the begin state's items (nothing written)
+    ihave #Hle' := Hle
+    iunfold txn.isTxnLessor at Hle'
+    icases Hle' with ⟨-, %li, -, -, #Hwit⟩
+    iunfold EtcdGrove.lease.winWitOk at Hwit
+    iunfold EtcdGrove.lease.lessorUserW at Hu
+    icases Hu with ⟨Hown, Hrdo, Hrvk⟩
+    imod Hwit $$ Hown with ⟨Hown, #Hw⟩
+    rw [← Hitems]
+    ihave Hcommit := Hcommit $$ Hw
+    rw [Hitems]
+    ihave Hu : EtcdGrove.lease.lessorUserW (mvcc.api.mvccLeases γ) L I wn $$ [Hown Hrdo Hrvk]
+    · iunfold EtcdGrove.lease.lessorUserW; iframe Hown Hrdo Hrvk
     wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀)) $$ [$Htx $Hbk $HP $Hcommit]
       as ⟨Hrd, Hbk, HR⟩
     (try wp_auto)
@@ -175,16 +189,21 @@ theorem txn.Put.wp_proof
           txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))) := by
         simp only [↓reduceIte]; (try (iintro H; iexact H))
       iapply h $$ Hilok
-  have hp := hput ctx' { cd with Values := vs } (interface.mkOk tty tv) γ trace false σ₀ [] p o prev L
+  have hp := hput ctx' { cd with Values := vs } (interface.mkOk tty tv) γ trace false σ₀ [] p o prev L wn
   simp only [txn.pendState_nil, List.nil_append] at hp
-  iunfold EtcdGrove.lease.lessorUser at Hu
+  iunfold EtcdGrove.lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   -- the owner's item map: the begin state's
-  ihave Hown : EtcdGrove.lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) $$ [Hown]
+  ihave Hown : EtcdGrove.lease.leaseOwnW (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) wn $$ [Hown]
   · rw [Hitems]; iexact Hown
+  have hwp : EtcdGrove.lease.winMove wn (mvcc.pendItems σ₀.log [])
+      (mvcc.pendItems σ₀.log [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))]) := by
+    rw [txn.pendItems_putChangeOf, Hitems]; exact Hwin Hn
   wp_apply hp $$ [$Hctx' $Hct' $Htx $Htrc $Hp $Hprev $Hlok2 $Hown]
     as %resp ⟨Htx, Htrc, #Hresp, Hhdr, Hown⟩
-  · ipureintro; exact Hn
+  · isplitl []
+    · ipureintro; exact Hn
+    ipureintro; exact ⟨hwp, Hob.1, fun _ => Hob.2⟩
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
   have hpp : txn.putPend o σ₀ = [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))] := by
@@ -196,6 +215,13 @@ theorem txn.Put.wp_proof
       cases this
     simp only [hneg, ↓reduceIte]
   rw [hpp]
+  -- the lessor's window witness for the items after the put (item 7b F2), given to the commit
+  ihave #Hle' := Hle
+  iunfold txn.isTxnLessor at Hle'
+  icases Hle' with ⟨-, %li, -, -, #Hwit⟩
+  iunfold EtcdGrove.lease.winWitOk at Hwit
+  imod Hwit $$ Hown with ⟨Hown, #Hw⟩
+  ihave Hcommit := Hcommit $$ Hw
   wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Hrd, Hbk, HR⟩
   (try wp_auto)
   iapply HΦ
@@ -217,7 +243,7 @@ theorem txn.Put.wp_proof
   iframe Hresp Hhdr Hlok2
   isplitl []
   · ipureintro; exact ⟨rfl, Hn⟩
-  iunfold EtcdGrove.lease.lessorUser; iframe Hrdo Hrvk
+  iunfold EtcdGrove.lease.lessorUserW; iframe Hrdo Hrvk
   rw [hpp]
   iexact Hown
 

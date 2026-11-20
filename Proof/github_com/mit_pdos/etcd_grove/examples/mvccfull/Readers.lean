@@ -77,7 +77,7 @@ theorem reach_bounds (σ : MvccState) (h : MvccReachable σ) :
     2 ≤ σ.log.length ∧ -1 ≤ σ.crev ∧ σ.crev ≤ (σ.rev : Int) := by
   induction h with
   | start => simp [mvccStart, MvccState.rev]
-  | notify σ pend _ _ _ ih => exact ih
+  | notify σ pend _ _ _ _ ih => exact ih
   | commit σ _ ih =>
     have hl : σ.log.length ≤ σ.commitPending.log.length := by
       unfold MvccState.commitPending mvcc.commitLog

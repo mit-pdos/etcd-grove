@@ -22,6 +22,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- The slots' bytes after the file grew from `size` (zeros past it): a slot inside the old file
 keeps its bytes, the partial one its first `size - 4096·s` bytes, the rest zeros. -/
@@ -82,7 +84,8 @@ theorem wdbOK'_grown (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Na
     (h16 : ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length)
     (hag : ∀ s, 4096 * (s + 1) ≤ w.m.size → wb' s = w.wb s)
     (hlen : ∀ s, 4096 * (s + 1) ≤ m'.size → w.m.size < 4096 * (s + 1) → (wb' s).length = 4096)
-    (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63)
+    (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size ≤ 0xFFFFFFFFFFFF)
+    (h13a : FsNoErr → m'.size % 4096 = 0)
     (h14 : m'.size ≤ L ∨ m'.size % 4096 = 0)
     (hpart' : ∀ s, 4096 * s < m'.size → m'.size < 4096 * (s + 1) →
       m'.size - 4096 * s ≤ (wb' s).length) :
@@ -92,8 +95,9 @@ theorem wdbOK'_grown (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Na
   have hc := flClause_congr fr { w with wb := wb' } (w.grown m' wb') rfl rfl rfl
     (flClause_wb fr w wb' (wdbOK'_flClause fr w hok) h16 hag')
   have hmW := wdbOK'_mem_W fr w hok
-  obtain ⟨hk1, _, _, _, hk5, -, hk7, hk8, hk9, _, hk11, hk12, _, _, hk15, _, hk17⟩ := hok
-  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, hk9, ?_, hk11, hk12, h13, ?_, ?_, hpart', hk17⟩
+  obtain ⟨hk1, _, _, _, hk5, -, hk7, hk8, hk9, _, hk11, hk12, hk13, _, hk15, _, hk17⟩ := hok
+  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, hk9, ?_, hk11, hk12, ⟨h13, hk13.2.1, h13a⟩, ?_, ?_,
+    hpart', hk17⟩
   · intro b' l' h
     simp only [WDb.grown, hmaps] at h ⊢
     exact hk1 b' l' h
@@ -128,8 +132,8 @@ theorem wdbOK'_setM (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : OsMeta)
   have hc := flClause_congr fr w { w with m := m' } rfl rfl rfl (wdbOK'_flClause fr w hok)
   obtain ⟨hk1, hk2, hk3, hk4, hk5, -, hk7, hk8, hk9, hk10, hk11, hk12, hk13, hk14, hk15, hk16,
     hk17⟩ := hok
-  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, hk9, ?_, hk11, hk12, ?_, ?_, ?_, ?_, hk17⟩ <;>
-    simp only [hsz, hmaps] <;> assumption
+  refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, hk9, ?_, hk11, hk12, hk13.congr hsz rfl, ?_, ?_, ?_,
+    hk17⟩ <;> simp only [hsz, hmaps] <;> assumption
 
 omit [GooseExts] in
 /-- `growWb`'s length at a slot reaching past the old end. -/

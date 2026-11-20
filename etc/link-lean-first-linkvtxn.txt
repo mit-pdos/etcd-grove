@@ -74,11 +74,17 @@ txnRes: vrOf ResponseOp__GetResponseRange ResponseOp__GetResponseDeleteRange
 # `context`'s `Link.lean`)
 context_WithTimeoutBackground:
 context_ErrAny: @
-callGet: context_WithTimeoutBackground context_ErrAny vrOf
-callList: context_WithTimeoutBackground context_ErrAny kvsFrom withKVs WithRange
-callPut: context_WithTimeoutBackground context_ErrAny
-callDel: context_WithTimeoutBackground context_ErrAny
-callTxn: context_WithTimeoutBackground context_ErrAny cmpsFor opsOf thenOf elseOf txnRes withRes
+# (the import tiers, 2026-11-18) the client's calls the call proofs take as hypotheses: the builder's
+# methods (`@`, the client's `Link.lean`) and the laws of the client's linked calls (`=`,
+# `ClientPutGet.lean`'s and `CallsLinked.lean`'s `*_law_holds`)
+txn__If: @
+txn__Then: @
+txn__Else: @
+callGet: context_WithTimeoutBackground context_ErrAny vrOf =client.client_Get_st_law_holds
+callList: context_WithTimeoutBackground context_ErrAny kvsFrom withKVs WithRange =client_List_st_law_holds
+callPut: context_WithTimeoutBackground context_ErrAny =client.client_Put_st_law_holds
+callDel: context_WithTimeoutBackground context_ErrAny =client.client_Delete_st_law_holds
+callTxn: context_WithTimeoutBackground context_ErrAny cmpsFor opsOf thenOf elseOf txnRes withRes =client.client_Txn_st_law_holds txn__If txn__Then txn__Else =txn_Commit_st_law_holds
 call: callGet callList callPut callDel callTxn
 txnlin_Apply: call isWrite
 #

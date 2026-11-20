@@ -11,7 +11,7 @@ a waiter and without side effects the request is skipped and nothing is spent (`
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyAdmin
 
 @[expose] public section

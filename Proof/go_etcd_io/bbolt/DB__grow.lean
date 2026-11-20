@@ -70,8 +70,9 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   wp_apply hLogger K.db lg Hdbnn $$ []
   · iframe #
   try wp_auto
-  wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    (dbFd K.p.ino) w.m rfl (hok.2.2.2.2.2.2.2.2.2.2.2.2.1) $$ [Hfile Hfo Hfd Hosm]
+  wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
+    (DFrac.own (1 : Qp).half) (DFrac.own 1)
+    (dbFd K.p.ino) w.m rfl (by have := (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).lt; omega) $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   have hrefl : wdbGrown w { w with m := w.m, W := w.W, wb := w.wb } :=
@@ -108,7 +109,8 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     iframe HeS
     ipureintro; exact hne.1
   obtain ⟨rfl, rfl, hfs8⟩ := Hfs
-  have hszlt := hok.2.2.2.2.2.2.2.2.2.2.2.2.1
+  have hszlt := (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).lt
+  have hszw := hok.2.2.2.2.2.2.2.2.2.2.2.2.1
   have hfz : sint.Z (W64 (w.m.size : Int)) = w.m.size := by word
   wp_auto
   rw [hfz]
@@ -154,7 +156,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       w.m.size ≤ (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ∧
       (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat % 4096 = 0 ∧
       (mapLen w.ms ≤ 0x1000000 → (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ≤ mapLen w.ms) ∧
-      (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat < 2 ^ 63 := by
+      (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ≤ 0xFFFFFFFFFFFF := by
     have hLz : sint.Z (W64 (mapLen w.ms : Int)) = (mapLen w.ms : Int) := by word
     unfold growSizeOf
     rw [hLz]
@@ -194,12 +196,12 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   ihave Hnil : osBytes (GF := GF) K.p.ino
       (min w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat) (DFrac.own 1) [] $$ []
   · iapply growBytes_nil
-  wp_apply hTruncate w.f w.fd K.p.path (DFrac.own 1) (growSizeOf (W64 (mapLen w.ms : Int)) sz)
-    (DFrac.own 1) (dbFd K.p.ino) w.m [] (wdbOK'_fd fr w hok) rfl hS0
+  wp_apply hTruncate w.f w.fd K.p.path (DFrac.own (1 : Qp).half) (growSizeOf (W64 (mapLen w.ms : Int)) sz)
+    (DFrac.own (1 : Qp).half) (dbFd K.p.ino) w.m [] (wdbOK'_fd fr w hok) rfl hS0
     (by simp only [List.length_nil]; omega)
     $$ [Hfo Hfd Hosm Hnil Htail] as %e ⟨Hfo, Hfd, Htr, #HeOk⟩
   · rw [← fileOwn_eq]; iframe; iframe #
-  ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own 1) $$ [Hfo]
+  ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) $$ [Hfo]
   · rw [fileOwn_eq]; iexact Hfo
   generalize hSdef : growSizeOf (W64 (mapLen w.ms : Int)) sz = S at *
   have hrm : (rsPost true w.m S.toNat S.toNat).maps = w.m.maps :=
@@ -227,15 +229,15 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     icases hGrown $$ [Htr Hrest] with ⟨Hosm, Hz, Htail⟩
     · iframe
     wp_auto
-    wp_apply hSync w.f w.fd K.p.path (DFrac.own 1) (DFrac.own 1) (dbFd K.p.ino)
+    wp_apply hSync w.f w.fd K.p.path (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) (dbFd K.p.ino)
       (rsPost true w.m S.toNat S.toNat) $$ [Hfo Hfd Hosm] as %e2 ⟨Hfo, Hfd, Hsy, #He2⟩
     · rw [← fileOwn_eq]; iframe; iframe #
-    ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own 1) $$ [Hfo]
+    ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     have hfin : ∀ m' : OsMeta, m'.size = S.toNat → m'.maps = w.m.maps →
         growCloser (GF := GF) fr K tx v w -∗
-        K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-        osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
+        K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+        osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
         K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
         ([∗list] s ∈ wSlots (min w.m.size (mapLen w.ms) / 4096) w.C w.fl,
           ∃ vf, cellsR (GF := GF) v.base (4096 * s) 4096 vf) -∗
@@ -243,7 +245,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           (min w.m.size (mapLen w.ms) - 4096 * (min w.m.size (mapLen w.ms) / 4096)) vf) -∗
         (∃ vf, cellsR (GF := GF) v.base (min w.m.size (mapLen w.ms))
           (mapLen w.ms - min w.m.size (mapLen w.ms)) vf) -∗
-        wBytes K.p w.W w.wb w.m.size -∗
+        wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
         zBytes K.p w.m.size (S.toNat - w.m.size) -∗
         ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
       intro m' h1 h2
@@ -261,7 +263,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · ipureintro; exact hg
       ileft; ipureintro; rfl
     cases e2 with
-    | nil => exact absurd rfl he2
+    | nil => exact absurd rfl he2.1
     | ok ii =>
     ihave #HeS : fmtErrorOk (GF := GF) (GoInterface.ok ii) $$ []
     · iapply fmtErrorOkOrNil_ne (GoInterface.ok ii) (by intro h; cases h) $$ He2
@@ -289,7 +291,10 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · iframe
       fmt_args_intro
       isplitl
-      · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
+      · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+        isplitr
+        · ipureintro; decide
+        · iapply fmtErrorOkOrNil_of $$ HeS
       · itrivial
     try wp_auto
     iapply HΦ
@@ -335,7 +340,10 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · iframe
       fmt_args_intro
       isplitl
-      · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
+      · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+        isplitr
+        · ipureintro; decide
+        · iapply fmtErrorOkOrNil_of $$ HeS
       · itrivial
     try wp_auto
     iapply HΦ

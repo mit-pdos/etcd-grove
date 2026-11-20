@@ -4,7 +4,7 @@
 tests call (`validateLinearizableOperationsAndVisualize`): it answers `Ok` only on a
 linearizable history, `Illegal` only on one that is not (a failing test is a real bug), and
 `Unknown` only with a timeout (`timeout > 0`): with no timeout it decides linearizability.
-An `Ok` answer's `LinearizationInfo` holds linearizations of the history, at least one if it is
+An `Ok` answer's `LinearizationInfo` holds linearizations of the history, exactly one if it is
 not empty (`linInfoOk` of the one partition, whose ids index `history`): what Kubernetes'
 `TestCorrectness` reads with `info.PartialLinearizations()[0][0]`.
 

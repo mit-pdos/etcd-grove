@@ -283,7 +283,7 @@ def absSnapMd (idx term : w64) : SnapshotMetadataM := ⟨⟨[W64 1], [], [], [],
 
 /-- The operation as the history's. -/
 def absOp (o : TOp) : WalOp :=
-  if o.snap then .snap (absSnapMd o.idx o.term) else .save (absHs o.hs) (o.ents.map absEnt)
+  if o.snap then .snap (absSnapMd o.idx o.term) true else .save (absHs o.hs) (o.ents.map absEnt)
 
 /-- The read as the model's components (the tester compares the hard state, the base and the
 entries; the snapshot's conf state is not read back). -/

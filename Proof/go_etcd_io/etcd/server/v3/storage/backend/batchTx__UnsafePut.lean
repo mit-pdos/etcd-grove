@@ -32,10 +32,11 @@ theorem backend.batchTx.UnsafePut.wp_proof
   intro γ P W Pk b t st bk bi key value kb vb dk Hk0 Hk1
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey, #Hval⟩
   wp_auto
-  wp_apply (hup γ P W Pk b t st bk bi key value kb vb dk false Hk0 Hk1) $$ [$Hw $Hkey] as ⟨Hw, Hkey⟩
+  wp_apply (hup γ P W Pk b t st bk bi key value kb vb dk false Hk0 Hk1) $$ [$Hw $Hkey] as ⟨%Hkv, Hw, Hkey⟩
   · iframe #
   iapply HΦ
   iframe
+  try (ipureintro; exact Hkv)
 
 end proof
 

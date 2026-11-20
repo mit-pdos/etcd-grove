@@ -138,7 +138,7 @@ theorem DB.readPageSize.wp_proof
           · exact Hjv i hi
           · rw [← hfm]; exact Hif
     · cases err with
-      | nil => exact absurd rfl hne
+      | nil => exact absurd rfl (by first | exact hne | exact hne.1)
       | ok ie =>
       (try wp_auto)
       wp_for_post

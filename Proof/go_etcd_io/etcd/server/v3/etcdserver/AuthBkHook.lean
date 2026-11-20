@@ -74,10 +74,14 @@ state's encoding. What the merged snapshot's window observes the auth buckets wi
 can write nothing. (Until F2 the lend handed the part itself, `backend.rbPart d.γB authBkts r`,
 which is write authority: S0's F2, a client wrote garbage to `Auth`/`AuthUsers` through the
 backend's batch transaction and the read contract's reads then promised a recorded state while Go
-panicked; `notes/auth-schema-srv-refuted.md`.) -/
+panicked; `notes/auth-schema-srv-refuted.md`.) **Only at a revision of at least 1** (auth-schema-srv A6's L-rev,
+approved by etcd-grove-03, 2026-11-18): until then the lend held at boot too, before the buckets exist and the
+revision is written, where `authBucketsAt` (which needs the revision key) is false of the empty buckets; a client
+lent at `[bootState]` and ran `backend.Snapshot` with `RL` (the fourth refutation). The apply thread lends at a
+state of revision at least 1 (`bump bootState`, then steps that bump or keep it). -/
 def authBkLend (γa : auth.AuthNames) (γc : auth.AuthBkNames) (d : mvcc.KBReal) : IProp GF :=
   iprop(□ ∀ (hs : List auth.AuthState) (st : auth.AuthState), ⌜hs.getLast? = some st⌝ -∗
-    auth.authWTok γc -∗ auth.authHistHalf γa hs ={⊤}=∗
+    ⌜1 ≤ st.revision⌝ -∗ auth.authWTok γc -∗ auth.authHistHalf γa hs ={⊤}=∗
       ∃ RL : IProp GF, RL ∗
         □ (∀ r : GMap GoString backend.BktData, RL -∗ backend.rbOwn d.γB r -∗
             ⌜authBucketsAt st r⌝ ∗ RL ∗ backend.rbOwn d.γB r) ∗

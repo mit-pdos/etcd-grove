@@ -29,13 +29,13 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTxBuffered.UnsafeRange.wp_proof
     (hBT : backend.batchTx.UnsafeRange.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key endKey kb eb dk de limit Hend
+  intro γ P W Pk b t st bk bi key endKey kb eb dk de limit Hend c
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey, HendKey⟩
-  ihave #Hacc : (□ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB st.tx s v -∗
-      batchLocked γ P b st' -∗ ⌜st'.tx = st.tx⌝ -∗
-      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked γ P b st')) : IProp GF) $$ []
+  ihave #Hacc : (□ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB γ.db st.tx s v -∗
+      batchLocked γ P b st' c -∗ ⌜st'.tx = st.tx⌝ -∗
+      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked γ P b st' c)) : IProp GF) $$ []
   · iintro !> %s %v %st' Hr Hl %Htx
-    iapply batchLocked_rdB γ P b st st' s v $$ [$Hr $Hl]
+    iapply batchLocked_rdB γ P b st st' s v c $$ [$Hr $Hl]
     ipureintro
     exact Htx
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with

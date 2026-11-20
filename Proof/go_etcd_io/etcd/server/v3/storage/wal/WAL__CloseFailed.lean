@@ -270,7 +270,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
           wp_method_call
           wp_call
           (try wp_auto)
-          wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, #Herr⟩
+          wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, -, #Herr⟩
           · iframe; iexact Hosinv
           (try wp_auto)
           cases err1 with
@@ -478,7 +478,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
             wp_method_call
             wp_call
             (try wp_auto)
-            wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, #Herr⟩
+            wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, -, #Herr⟩
             · iframe; iexact Hosinv
             (try wp_auto)
             cases err1 with
@@ -681,7 +681,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
             wp_method_call
             wp_call
             (try wp_auto)
-            wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, #Herr⟩
+            wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, -, #Herr⟩
             · iframe; iexact Hosinv
             (try wp_auto)
             cases err1 with

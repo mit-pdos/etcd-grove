@@ -43,7 +43,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -56,6 +59,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.InitLinked
 
 @[expose] public section
 
@@ -71,27 +76,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors: putget's (`putgetGF`: the universal camera `AllG` at slot 0, then invariants,
-later credits, GooseLang's heap, prophecies and package state), and
-iris-lean's non-atomic invariants at slot 11 (as the counter's `counterGF`). Every other slot is
-the unit functor. -/
-def k8setcd3GF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 11 => ⟨NaInvF, inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def k8setcd3GF_allG : AllG k8setcd3GF := ⟨⟨0, rfl⟩⟩
@@ -108,23 +95,10 @@ instance k8setcd3GF_gooseGpreS : GooseGpreS k8setcd3GF where
 take. -/
 instance k8setcd3GF_naInvG : NaInvG k8setcd3GF := ⟨⟨11, rfl⟩⟩
 
-/-- **A ghost-state instance at the local context `lctx`** (as putget's `heapAt`). -/
-abbrev k8setcd3HeapAt (hG : HeapGS .hasLC k8setcd3GF) (lctx : GoLocalContext) : HeapGS .hasLC k8setcd3GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `k8setcd3`'s initialization, then `Main(clients, ops, watchers, wops)`. -/
-def k8setcd3Program [GoSemanticsFunctions] (clients ops watchers wops : w64) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main) #clients #ops #watchers #wops
-
-/-- The read package's two metric names, which `k8setcd3`'s initialization registers (`readRegPerm`,
-D16). -/
-def k8setcd3Names : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The Kubernetes etcd3 store's linearizability instance is safe** (see the file header): every real execution of
 `k8setcd3Program clients ops watchers wops` from a fresh state with one thread, of `n` steps: if the main thread has
@@ -151,7 +125,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops watchers wops) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3Program clients ops watchers wops) [go!"127.0.0.1:23896"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"k8setcd3.etcd"])
+    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (k8setcd3Program clients ops watchers wops))
     (n : Nat)
@@ -159,6 +133,8 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -171,7 +147,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown"))
     (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => intoVal_ne_PanicV _ p h.symm)) ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩
-    k8setcd3Names [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (by decide) (by decide)
+    k8setcd3Names [go!"127.0.0.1:23896"] [go!"/tmp/etcd-grove-data/k8setcd3.etcd"] (by decide) (by decide)
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HNs HAs HDs ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
     (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
@@ -190,7 +166,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI := Hcec0
   unfold IsInit at Hinit
   rw [Hinit]
-  iintro _ _ Hgs Htok Hrights
+  iintro _ Hl Hgs Htok Hrights
   ihave Hown : ownInitializing
       (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getIsPkgInit (GF := k8setcd3GF)) $$ [Hgs]
   · rw [ownInitializing_unseal]
@@ -202,15 +178,22 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   icases Hrights with ⟨Hns, Hrs⟩
+  -- (wal-link P2) the member's WAL area, allocated before the program's first step (`wp_walAreas`)
+  imod etcdFs_start σ Hfs $$ Hl with ⟨#Hosi, -, Htree⟩
+  imodintro
+  iapply wp_walAreas ⟨k8setcd3GF_allG⟩ etcdFsExts_sat _ Hfs [go!"/tmp/etcd-grove-data/k8setcd3.etcd"]
+    (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HWal ⟨by rw [HN]; omega⟩ _ rfl _
+    $$ Hosi Htree
+  iintro Hw
   -- (hub step 7) the one member's start bundle: its client address, its data directory
   ihave Hms := etcdstart.memberStartRes_intro [(go!"k8setcd3", ⟨none, some go!"127.0.0.1:23896"⟩)] []
-    [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (List.Perm.refl _)
-    (List.Perm.refl _) $$ Hrs
+    [go!"127.0.0.1:23896"] [go!"/tmp/etcd-grove-data/k8setcd3.etcd"] (List.Perm.refl _)
+    (List.Perm.refl _) $$ [Hrs Hw]
+  · iframe
   simp only [k8setcd3Names, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Hns with ⟨Hn1, Hn2, -⟩
   icases Hms with ⟨⟨Hstart, -⟩, -⟩
   ihave #Hprem' := Hprem0
-  imodintro
   unfold k8setcd3Program
   wp_apply (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getIsPkgInit_wf) $$ [Hown Hn1 Hn2]
@@ -229,13 +212,6 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · exact Or.inl rfl
   · exact Or.inr rfl
 
-
-/-- The program with `k` members: `k8setcd3`'s initialization, then
-`MainCluster(k, clients, ops, watchers, wops)`. -/
-def k8setcd3CProgram [GoSemanticsFunctions] (k : Nat) (clients ops watchers wops : w64) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize' #() ;;
-  App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster))
-    (Val #(W64 (k : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops)
 
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members is safe** (see the
 file header): for every member count `1 ≤ k ≤ 1000`, every real execution of
@@ -272,6 +248,8 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -280,7 +258,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := k8setcd3GF)
+  refine etcd_adequate_members (GF := k8setcd3GF) (hbody := rfl) (HWal := HWal) (hn := by omega)
     (hAsLit := k8s_etcd3N.k8setcd3NAddrs_lit k hk) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize'
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster))
@@ -321,15 +299,6 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · exact Or.inl rfl
   · exact Or.inr rfl
 
-/-- The program with `k` members under a partition schedule: `k8setcd3`'s initialization, then
-`MainPartition(k, clients, ops, watchers, wops, sched)` with the schedule `steps` built as a slice
-literal (`schedLit`, as the k8s compactor's `k8scompactorPProgram`). -/
-def k8setcd3PProgram [GoSemanticsFunctions] (k : Nat) (clients ops watchers wops : w64)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize' #() ;;
-  App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
-    (Val #(W64 (k : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops)) (schedLit steps)
-
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members under any partition
 schedule is safe** (see the file header): `k8s_etcd3_cluster_adequate`'s conclusion for every real
 execution of `k8setcd3PProgram k clients ops watchers wops steps`, for every `1 ≤ k ≤ 1000` and every schedule
@@ -366,6 +335,8 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -374,7 +345,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := k8setcd3GF)
+  refine etcd_adequate_members (GF := k8setcd3GF) (hbody := rfl) (HWal := HWal) (hn := by omega)
     (hAsLit := k8s_etcd3N.k8setcd3NAddrs_lit k hk) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize'
     (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))

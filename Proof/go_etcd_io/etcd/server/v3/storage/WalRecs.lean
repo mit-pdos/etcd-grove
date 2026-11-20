@@ -67,10 +67,9 @@ def WalSaveOk (σ : StorContents) (es : List EntryM) : Prop :=
 
 end model
 
-/-- **The WAL directory of the configuration with data directory `dataDir` and dedicated WAL
-directory `dedicated`** (opaque, as `config.backendPathOf`): `ServerConfig.WALDir()`, the dedicated
-directory if set, else `datadir.ToWALDir(dataDir)` (`filepath.Join(dataDir, "member", "wal")`). -/
-opaque config.walDirOf [GooseExts] (dataDir dedicated : GoString) : GoString
+-- (wal-link P2, 2026-11-19) the opaque `config.walDirOf dataDir dedicated` (`ServerConfig.WALDir()`) is
+-- gone: every configuration the contracts cover has the dedicated WAL directory `srvWalDirOf dataDir`
+-- (`WalLayout.lean`), which `WALDir()` returns.
 
 instance storContents_countable_api [GooseExts] : Pos.Countable StorContents :=
   .ofInjective (fun σ => Pos.Countable.encode (σ.hs, σ.snap, σ.base, σ.ents))
@@ -195,7 +194,7 @@ of base at least `i`. -/
 @[no_expose] def walSnapRec (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) : IProp GF :=
   letI := h.W
   iprop(∃ H0 : List (WalOpG WalEnt), monoListLbOwn h.γh H0 ∗ WalFs.walSyncedLb h.dir (i + 1) ∗
-    ⌜H0[i]? = some (WalOpG.snap m)⌝)
+    ⌜∃ al, H0[i]? = some (WalOpG.snap m al)⌝)
 
 /-- **The files of the closed WAL in the area and directory `a` hold the records `σ`, its metadata the
 member `id` of the cluster `cid`** (exclusive, timeless): the durable state `d` all synced, its name
@@ -341,8 +340,8 @@ theorem walSrvHist_snoc_save (H : List (WalOpG WalEnt)) (hs : HardStateM) (cs : 
   exact List.map_congr_left (fun c hcm => walEntUnwrap_W (hc c hcm).1 (hc c hcm).2)
 
 /-- The server's view of a history after a snapshot record. -/
-theorem walSrvHist_snoc_snap (H : List (WalOpG WalEnt)) (m : SnapshotMetadataM) :
-    walSrvHist (H ++ [WalOpG.snap m]) = walSrvHist H ++ [WalOpG.snap m] := by
+theorem walSrvHist_snoc_snap (H : List (WalOpG WalEnt)) (m : SnapshotMetadataM) (al : Bool) :
+    walSrvHist (H ++ [WalOpG.snap m al]) = walSrvHist H ++ [WalOpG.snap m al] := by
   unfold walSrvHist
   rw [List.map_append, List.map_append]
   rfl
@@ -408,13 +407,13 @@ theorem walRecs_saveAU (h : WalH GF) (sized : Bool) (hs : HardStateM) (cs : List
 
 /-- **`SaveSnap`'s update of the records as layer 1's** (the snapshot record appended), committing with a
 lower bound of the history ending in the record (`walSnapRec_intro` makes the witness once it is synced). -/
-theorem walRecs_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) (Q : IProp GF) :
+theorem walRecs_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) (al : Bool) (Q : IProp GF) :
     (AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
           ⌜uint.nat m.Index' = σ.b → m.Term' = σ.base.term'⌝ }>
         @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m) sized, COMM Q }>) ⊢
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := h.W) h.dir { d with H := d.H ++ [WalOpG.snap m] },
-          COMM Q ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m]) }> := by
+        <{ WalFs.walDiskAt (W := h.W) h.dir { d with H := d.H ++ [WalOpG.snap m al] },
+          COMM Q ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m al]) }> := by
   iintro Hau
   iauintro
   unfold atomic_acc
@@ -443,9 +442,9 @@ theorem walRecs_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) 
   · iintro Hd
     icases Hcl with ⟨-, Hcommit⟩
     isimp only [tforall_nil, Std.Tele.app] at Hcommit
-    imod monoListAuthOwn_update_app [WalOpG.snap m] $$ Ha with ⟨Ha, #Hlb⟩
+    imod monoListAuthOwn_update_app [WalOpG.snap m al] $$ Ha with ⟨Ha, #Hlb⟩
     imod Hcommit $$ [Hd Ha] with HQ
-    · iexists { d with H := d.H ++ [WalOpG.snap m] }
+    · iexists { d with H := d.H ++ [WalOpG.snap m al] }
       iframe Hd Ha Hn
       ipureintro
       refine ⟨?_, hf.2.1, hf.2.2.1, ?_⟩
@@ -454,7 +453,7 @@ theorem walRecs_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) 
         exact walFoldChkFrom_snoc_snap hf.1
       · intro hsz hs' es' hmem e he
         have hmem' : WalOpG.save hs' es' ∈ d.H.map WalOpG.toM ∨
-            WalOpG.save hs' es' = (WalOpG.snap m : WalOpG WalEnt).toM := by
+            WalOpG.save hs' es' = (WalOpG.snap m al : WalOpG WalEnt).toM := by
           rw [List.map_append, List.mem_append, List.map_singleton, List.mem_singleton] at hmem
           exact hmem
         rcases hmem' with hmem' | heq
@@ -465,14 +464,14 @@ theorem walRecs_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) 
 
 /-- **The witness of a synced snapshot record**: a lower bound of the history ending in the record, the
 record synced. -/
-theorem walSnapRec_intro (h : WalH GF) (H : List (WalOpG WalEnt)) (m : SnapshotMetadataM) :
-    monoListLbOwn h.γh (H ++ [WalOpG.snap m]) ∗ WalFs.walSyncedLb (W := h.W) h.dir (H.length + 1) ⊢
+theorem walSnapRec_intro (h : WalH GF) (H : List (WalOpG WalEnt)) (m : SnapshotMetadataM) (al : Bool) :
+    monoListLbOwn h.γh (H ++ [WalOpG.snap m al]) ∗ WalFs.walSyncedLb (W := h.W) h.dir (H.length + 1) ⊢
       walSnapRec h H.length m := by
   iintro ⟨#Hl, #Hs⟩
   unfold walSnapRec
-  iexists H ++ [WalOpG.snap m]
+  iexists H ++ [WalOpG.snap m al]
   iframe Hl Hs
-  ipureintro; simp
+  ipureintro; exact ⟨al, by simp⟩
 
 /-- The witness's record is synced. -/
 theorem walSnapRec_synced (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) :
@@ -488,7 +487,7 @@ theorem walRecs_releaseAU (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) (Q : I
       (AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
         <{ walRecs h σ s, COMM Q }>) ⊢
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗
-          ⌜d.H[i]? = some (WalOpG.snap ⟨m.ConfState', m.Index', m.Term'⟩) ∧ i < i + 1⌝ }>
+          ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨m.ConfState', m.Index', m.Term'⟩ al)) ∧ i < i + 1⌝ }>
         @ WalFs.walAuMask, ∅
         <{ WalFs.walDiskAt (W := h.W) h.dir
             { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) m.Index') }, COMM Q }> := by
@@ -511,7 +510,8 @@ theorem walRecs_releaseAU (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) (Q : I
   iframe Hd
   isplitr
   · ipureintro
-    exact ⟨prefix_getElem? hv.2 hi, Nat.lt_succ_self i⟩
+    obtain ⟨al, hi⟩ := hi
+    exact ⟨⟨al, prefix_getElem? hv.2 hi⟩, Nat.lt_succ_self i⟩
   isplit
   · iintro ⟨Hd, -⟩
     icases Hcl with ⟨Habort, -⟩

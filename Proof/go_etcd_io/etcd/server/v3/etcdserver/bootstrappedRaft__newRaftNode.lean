@@ -38,7 +38,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       RestartNode.spec (GF := GF) (hG := hG))
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E γr b ss wal cl dq bv cv lok γs pre ν pv ps ctxs Q bt
+  intro E γr b ss wal cl sd dq bv cv lok γs pre ν pv ps ctxs Q bt
   letI := srvStor (GF := GF) γr
   wp_start as Hpre
   iNamed Hpre
@@ -125,7 +125,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     | restart σ cs S a m A₀ =>
       iunfold rnBootPre at Hboot
       icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, Hvac, Hrst, #Hconf⟩
-      obtain ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold⟩ := Hpure
+      obtain ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩ := Hpure
       have Hlen0 : decide (bv.peers'.len = W64 0) = true := by
         apply decide_eq_true
         have h1 := Hlen.1
@@ -168,7 +168,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) Q
           Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
-          (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs
+          (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs Hnsm
           Hcfg.traceLogger HtrC)
         $$ [Hc Hbs Hvac Hau]
         as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, Hrst, HQ⟩
@@ -208,7 +208,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `serverstorage.NewStorage(b.lg, wal, ss)`
   iunfold rnNewStorageOk at Hns
   subst Hwal
-  wp_apply Hns $$ %bv.lg' %ss %ν.h [] as %st ⟨#Hst, Hrd1, Hrd2⟩
+  wp_apply Hns $$ %bv.lg' %ss %sd %ν.h [] as %st ⟨#Hst, Hrd1, Hrd2⟩
   · iexact Hssi
   (try wp_auto)
   -- `newRaftNode(cfg)`

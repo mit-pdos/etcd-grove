@@ -6,6 +6,8 @@
 # predicate holds for most requests, so their specs cannot have the premise `proto.Size` needs:
 # notes/STATUS.md, "Units P1/P1b/P4"), and metrics.go (prometheus; a float division).
 translate = ["!*",
+  # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
+  "slowApplies",
   # txn.go
   "Txn", "txn", "newTxnResp", "executeTxn", "checkTxn", "compareInt64", "compareToPath",
   "applyCompares", "applyCompare", "compareKV", "IsTxnSerializable", "IsTxnReadonly",

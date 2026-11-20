@@ -129,7 +129,7 @@ theorem walReadAt_of_from {I : WalHist} {k : Nat} {s : w64 × w64} {σ : StorCon
     exact ⟨σ', hf, e1, e2⟩
 
 theorem cut_le_length {I : WalHist} {b : Nat} (h : walCutPos I b) : b ≤ I.length := by
-  rcases h with rfl | ⟨h, es, he, -⟩ | ⟨m, he⟩
+  rcases h with rfl | ⟨h, es, he, -⟩ | ⟨m, al, he⟩
   · exact Nat.zero_le _
   · have := (List.getElem?_eq_some_iff.1 he).1; omega
   · have := (List.getElem?_eq_some_iff.1 he).1; omega
@@ -144,7 +144,7 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
     (hp : p ≤ cuts.length)
     (hcut : cut ≤ ((segsOf I cuts).take p).flatten.length)
     (hk0 : 0 < p → ((segsOf I cuts).take p).flatten ≠ [])
-    (hpos : (0 < p → ∃ m, WalOpG.snap m ∈ I.drop ((segsOf I cuts).take p).flatten.length ∧
+    (hpos : (0 < p → ∃ m al, WalOpG.snap m al ∈ I.drop ((segsOf I cuts).take p).flatten.length ∧
         m.Index' = s.1) →
       ((segsOf I cuts).take p).flatten.length ≤ walOpenPos I s.1)
     (hs : some s = walNewestPair (walValidSnaps I cut))
@@ -188,11 +188,11 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
     obtain ⟨hc, hle⟩ := validSnaps_bounds hs
     obtain ⟨st, hfold, hm, -⟩ := readAllFold_ok hok'
     rw [recsOfSegs_drop_map C M md hSne] at hfold
-    have hle' : ∀ m, WalOpG.snap m ∈ (Ss.drop p).flatten →
+    have hle' : ∀ m al, WalOpG.snap m al ∈ (Ss.drop p).flatten →
         uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit' → uint.nat m.Index' ≤ uint.nat s.1 := by
-      intro m hm hmc
+      intro m al hm hmc
       rw [hdrop] at hm
-      apply hle m _ hmc
+      apply hle m al _ hmc
       have e : I.drop cut = (I.drop cut).take (k - cut) ++ I.drop k := by
         conv => lhs; rw [← List.take_append_drop (k - cut) (I.drop cut)]
         rw [List.drop_drop]; congr 2; omega
@@ -205,7 +205,7 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
     obtain ⟨o, ho, hos⟩ := List.any_eq_true.1 hmatch.symm
     cases o with
     | save _ _ => simp [snapAt] at hos
-    | snap m =>
+    | snap m al =>
       simp only [snapAt, decide_eq_true_eq] at hos
       rw [hdrop] at ho
       -- `s` is the newest valid pair from `k` too.
@@ -216,7 +216,7 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
         apply walNewestPair_suffix hs.symm (x := (m.Index', m.Term')) _ hos
         unfold walValidSnaps
         rw [if_neg hkne, List.nil_append]
-        apply List.mem_filterMap.2 ⟨WalOpG.snap m, ho, ?_⟩
+        apply List.mem_filterMap.2 ⟨WalOpG.snap m al, ho, ?_⟩
         simp only
         rw [if_pos (by rw [hos]; exact hc)]
       have hsk' : some s = walNewestPair (walValidSnaps (Ss.take p ++ Ss.drop p).flatten
@@ -226,7 +226,7 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
         hsk' hok'
       rw [← hsplit, hflat, hk] at hσ
       obtain ⟨σ', hσ', e1, e2⟩ := walReadAt_of_from hkne hsk hσ
-      refine ⟨σ', ⟨k, hcut, hpos (fun _ => ⟨m, ho, hos⟩), hsk, hσ'⟩, ?_⟩
+      refine ⟨σ', ⟨k, hcut, hpos (fun _ => ⟨m, al, ho, hos⟩), hsk, hσ'⟩, ?_⟩
       rw [hr, e1, e2]
 
 end ok

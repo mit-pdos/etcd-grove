@@ -475,7 +475,7 @@ theorem srvMem_bootStorage
   · iintro !> %k %hk
     have : k = 0 := by omega
     subst this
-    unfold memStorJ
+    iapply memStorJ_B_le_one γr.cl K 0 (by decide)
     iapply nodeAppliedLb_zero γr.cl K
   · ileft; ipureintro; rfl
   ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
@@ -580,7 +580,9 @@ theorem srvMem_restartStorage
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) (A : Nat)
     (F : GName → IProp GF) (Hbc : σ.b ≤ σ.commit)
-    (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true) :
+    (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true)
+    -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
+    (Hns : ¬ clusterNoSnap γr.cl) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorRestarted ms γs σ cs ∗
@@ -635,7 +637,7 @@ theorem srvMem_restartStorage
   iintro %K #HA #HD
   ihave #HB : □ (∀ k, ⌜k ≤ σ.b⌝ -∗ (memStorJ γr.cl K).B k) $$ []
   · iintro !> %k %hk
-    simp only [memStorJ]
+    iapply memStorJ_B_off γr.cl K k Hns
     iapply nodeAppliedLb_mono γr.cl K _ k (by omega) $$ HA
   ihave Hsv : (⌜(walSnapCS σ cs).Metadata'.Index' = W64 0⌝ ∨
       (memStorJ γr.cl K).SV (walSnapCS σ cs) ∗
@@ -687,7 +689,7 @@ and the trust boundary provide, yields the wrapper's struct value, the tokens, t
 peers' slice back, and the installer of `isRaftNode` at the address the server copies the struct
 to (which takes the server's names and raft invariant in `rnEnvOk`). -/
 abbrev NodeStartSpec : Prop :=
-  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (ν : WalNames GF)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
@@ -736,7 +738,7 @@ abbrev NodeStartSpec : Prop :=
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
-        "#Hssi" ∷ snap.isSnapshotter ss ∗
+        "#Hssi" ∷ snap.isSnapshotter ss sd ∗
         -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (`wal.bootOk_start`): its invariant, the
         -- loop's view at the start and its token
         "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
@@ -801,7 +803,7 @@ snapshot valid by `walSnapCS_valid`), the WAL's durability at the view `⟨S, σ
 `snap0` the restored commit and base), and the installer. (restart3 A1, 2026-11-15: until then the
 installer took the restart-only premise `rnSnapTermAbove`, row 4, for `isRaftNode`'s `rnRestartOk`.) -/
 abbrev NodeStartSpecR : Prop :=
-  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (ν : WalNames GF) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
     (σ : StorContents) (cs : ConfStateM) (S : RaftState) (m : Membership) (A₀ : List EntryModel),
@@ -819,7 +821,9 @@ abbrev NodeStartSpecR : Prop :=
           (∀ m' : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m') → m'.Term' = σ.base.term') ∧
           confStateIs cs (Membership.simple γr.cfg) ∧
           (cs.Voters'.length + cs.Learners'.length + cs.VotersOutgoing'.length +
-            cs.LearnersNext'.length : Int) ≤ 2 ^ 62⌝ ∗
+            cs.LearnersNext'.length : Int) ≤ 2 ^ 62 ∧
+          -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
+          ¬ clusterNoSnap γr.cl⌝ ∗
         "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
         -- the registered `MemoryStorage` as `bootstrappedWAL.MemoryStorage` rebuilds it
@@ -842,7 +846,7 @@ abbrev NodeStartSpecR : Prop :=
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
-        "#Hssi" ∷ snap.isSnapshotter ss ∗
+        "#Hssi" ∷ snap.isSnapshotter ss sd ∗
         -- the WAL's durability at the restart's view (`rnDur_alloc_view`)
         "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗
         "Hwview" ∷ ghostVar ν.view (1 : Qp).half

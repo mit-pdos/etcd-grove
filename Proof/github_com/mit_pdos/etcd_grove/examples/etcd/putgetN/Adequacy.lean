@@ -37,6 +37,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.PkgTabl
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.InitLinked
 
 @[expose] public section
 
@@ -52,23 +54,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors (putget3's `putget3GF`). -/
-def putgetNGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def putgetNGF_allG : AllG putgetNGF := ⟨⟨0, rfl⟩⟩
@@ -81,22 +69,10 @@ instance putgetNGF_gooseGpreS : GooseGpreS putgetNGF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putgetNGF_allG
 
-/-- **A ghost-state instance at the local context `lctx`**. -/
-abbrev heapAtN (hG : HeapGS .hasLC putgetNGF) (lctx : GoLocalContext) : HeapGS .hasLC putgetNGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `putgetN`'s initialization, then `Main(k)`. -/
-def putgetNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Main) #(W64 (k : Int))
-
-/-- The read package's two metric names (putget3's). -/
-def putgetNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **putgetN is safe** (see the file header): for every member count `1 ≤ k ≤ 1000`, every real
 execution of `putgetNProgram k` from a fresh state with one thread, of `n` steps: if the main thread
@@ -122,6 +98,8 @@ theorem etcd_putgetN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_putgetN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_putgetN.putgetNDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -130,7 +108,7 @@ theorem etcd_putgetN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetNGF) (hAsLit := etcd_putgetN.putgetNAddrs_lit k hk)
+  refine etcd_adequate_members (GF := putgetNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_putgetN.putgetNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_putgetN.putgetNAddrs k)

@@ -49,11 +49,14 @@ else True`, as txn's `Put` for a lease. The code returns `ErrLeaseNotFound` befo
 server's caller builds the update from its writer's half, which no law recovers from an unused
 update (`notes/mvcc-migration/server.md`, "Found", third session, (2)).
 **The lessor revocable** (`lease.lessorRevocable γl`: its history is not kept monotone; the
-lease-grant plan's D2, 2026-11-02, from `lean`, merged 2026-11-06). -/
+lease-grant plan's D2, 2026-11-02, from `lean`, merged 2026-11-06).
+**In a lessor window** (auth-lease S4 item 7b, 2026-11-17): the owner's resource in its window `w` (`leaseOwnW`;
+`leaseOwn` is `w = none`), the window dropping the lease's items (`winDrops`: every item on `id` has no target),
+so that the deletes push snapshots stable in it. -/
 abbrev lease.lessor.Revoke.spec : Prop :=
   ∀ (lp : Loc) (γ : MvccName) (id : w64) (rd : GoFunc) (q : Qp) (B : mvcc.KBReal) (P : IProp GF)
     (f : GoFunc) (σ₀ : MvccState) (L : List w64) (r : GMap GoString backend.BktData)
-    (Pre Q Post Y : IProp GF),
+    (Pre Q Post Y : IProp GF) (w : Option lease.LWin),
   let γl := mvccLeases γ
   let dels := mvcc.leaseDels (mvcc.stateAfter σ₀.log) id
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
@@ -63,9 +66,14 @@ abbrev lease.lessor.Revoke.spec : Prop :=
       mvccBackend γ q B P ∗ hookIs B f ∗ csContractA P f Pre Q Post ∗
       ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧
         MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗
-      (if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ σ₀ dels Y) else iprop(True)) ∗
-      lease.leaseOwn γl L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗ lease.leaseRevokers γl L ∗
-      backend.rbPart B.γB (· = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams B.P⌝ ∗ lease.lessorBeOn lp B.be }}
+      (if decide (id ∈ L) then
+        auBegin γ σ₀ iprop(lease.winWit γl w (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog σ₀.log dels))) -∗
+          auEnd γ σ₀ dels Y)
+       else iprop(True)) ∗
+      lease.leaseOwnW γl L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) w ∗ lease.leaseRevokers γl L ∗
+      backend.rbPart B.γB (· = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams B.P⌝ ∗ lease.lessorBeOn lp B.be ∗
+      ⌜lease.winDrops w (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log))
+        (fun it => (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)).lookup it = some id)⌝ }}
     (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
       @!! go!"Revoke")) (Val #id))
   {{ (err : GoInterface), RET #err; mvccReaders γ 1 ∗ lease.rdOwn γl rd ∗
@@ -75,11 +83,11 @@ abbrev lease.lessor.Revoke.spec : Prop :=
           (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□
             GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) ∗
           Pre ∗
-          lease.leaseOwn γl L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗ lease.leaseRevokers γl L ∗
+          lease.leaseOwnW γl L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) w ∗ lease.leaseRevokers γl L ∗
           backend.rbPart B.γB (· = mvcc.leaseName) r) ∨
        (⌜id ∈ L ∧ err = GoInterface.nil⌝ ∗ Y ∗ Post ∗
-          lease.leaseOwn γl (L.filter (· != id))
-            (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog σ₀.log dels))) ∗
+          lease.leaseOwnW γl (L.filter (· != id))
+            (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog σ₀.log dels))) w ∗
           lease.leaseRevokers γl (L.filter (· != id)) ∗
           backend.rbPart B.γB (· = mvcc.leaseName)
             (mvcc.rbDel r mvcc.leaseName (u64Le id).reverse))) }}

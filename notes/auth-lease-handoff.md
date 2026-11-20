@@ -1,5 +1,1087 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
+## START HERE (S4, 2026-11-19 night: lean e95ce79ce9 merged, serve_member restructured; LAND STOP)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **3afd77e35** (`--packages=/shared/tmp/manifest-3af.json`,
+  `.lake/package-overrides.json` its copy; scripts also `PERENNIAL_DIR=/shared/perennial-3afd77e35`).
+- **Done:** the user accepted `etcd_authlease_safe` as linked (2026-11-19). lean `e95ce79ce9` merged (`eed2b9e91f`: both
+  sides' conjuncts; repairs `006bf9bb5e`, `08882b3bc3`). `serve_member` restructured (`e100f3cd23`, `7d61516c2e`): authN's
+  back to its statement, post + `leaseReady`; authlease `serve_member_lease` = `serve_member` then `lease_served_on`;
+  `srvdWL`. Collections/interfaces/RaftNoAx/bounds (`1219f3e196`). authN.txt = lean e95's; authlease 624 axioms.
+  Full timed build green; tcb --check, collections, links, interfaces, tier, bounds, copy-part, gen-init, gen-raft-tla, errorf ok.
+- **Next:** land (the coordinator runs land.sh). lean `5f94c44bee` merged (`8f49a1a9a4`, PkgTable `bb16c127c7`); build `20261119-234541-2538618` green after lean `34986d22ae` too; authlease 616 axioms. Do not merge lean again: the coordinator lands it in a batch.
+  PERENNIAL_DIR=/shared/perennial-3afd77e35 etc/land.sh`, GOWORK unset). lean has moved again (`5f94c44bee`, merge-origin5):
+  merge it first (init axioms proved: expect collection lines to drop in authlease.txt as in authN.txt).
+- **Pitfalls:** gen-init/copy-part need `PERENNIAL_DIR`. `Scratch/` moved to `/shared/tmp/auth-lease-s4/Scratch-rs56`.
+  `questions.md` is untracked. RaftNoAx's own files (no copy-part marker) follow main by hand: port raft changes there.
+
+## Previous START HERE (S4, 2026-11-19 evening: linked, full build green on f551a1b46; LAND STOP — second lean merge pending)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin still **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`).
+- **Done:** lean `1e4cb38613` (perheap) merged (`5cc9b6da79`): frozen texts re-keyed ctx → tok, recorded in
+  `notes/auth-lease-s4-freeze.md` "Thaw 2" (decided by etcd-grove-03; questions.md). Linking (`1742ecad19`):
+  `authlease/{MainLinked,Adequacy,Results,PkgTable}.lean`, `etc/gen-init.py` PROGRAMS += authlease. Collections
+  (`6cdea9ebe1`): `authlease.txt` new (684 axioms), `authN.txt` +10. Full timed build green `20261119-155136-554679`
+  (bulk `20261119-131417-3897180`); `tcb-report --check` matches (882/4); gen-link modes match; etcdstart interface regenerated.
+- **Next, in order:** (1) merge lean again: it moved to `e95ce79ce9` (merge-origin4: pin **3afd77e35**, perf 11-19) while
+  this branch was being linked. A trial merge (aborted) gave **55 conflicts, ~813 lines**: the bbolt entry bound (S1b:
+  `⌜k.length ≤ etcdKeyMax ∧ v.length ≤ etcdKeyMax⌝`, `leaseOwn`, `putAU`) against this branch's lease window
+  (`leaseOwnW … w`, `winMove`, `putAUW`) across mvcc `storeTxnWrite__*`/`metricsTxnWrite__*`/`writeView__*`/`Api*`,
+  txn `Put`/`put`/`Txn`/`txn`/`executeTxn`, apply `Chain`/`WriteLemmas`/`AuthApplyLatest`/`dispatch`, `ApplyAllSnap`
+  (347 lines), `NewServerR`, `ReqOn`, `WorkloadDefs`, mvccfull/mvccrand writers, interfaces, `tier-baseline`,
+  `authN.txt`. Resolution = both conjuncts (union); then switch to manifest-3af (+ `.lake/package-overrides.json`), full
+  timed build (~3.5 h, everything recompiles), tcb --check, collections, interfaces, gen-init --check, links. (2) Land stop.
+- **Pitfalls:** `questions.md` is gitignored (untracked; edit in place). build-slot sets LEAN_NUM_THREADS itself now.
+  `Scratch/` untracked (tier-check). status-history append-only: check `wc -l` against lean before committing.
+
+## Previous START HERE (S4, 2026-11-19, item 9 done to Main.wp_proof; STOP before linking)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`,
+  `.lake/package-overrides.json` its copy).
+- **Done:** `run.wp_proof` complete, no `sorry` (`4fb60bd872`, `8a02fada61`; lean-check full, 0 errors);
+  `Main.spec` + `Main.wp_proof` (`a29e120143`; lean-check full 0 errors). Forms: questions.md, last entry.
+- **lean has moved: perheap landed** (`1e4cb38613`, the auth chain re-keyed from the context to its token `tok`).
+  NOT merged: `git merge lean` conflicts in 26 files, all the lease/auth specs this branch froze (Thaw 1 and the
+  Freeze's T1/H1: `authedFrom … ctx`, `requireAuthInfo.specC`, `EtcdServer.Lease*`, v3rpc `LeaseServer.*`,
+  `LeaseOn`, `InvLeaseRead`, client `LeaseGrantServed`/`Results`). The merge restates the frozen texts by perheap's
+  transformation (ctx → tok): for the coordinator's decision. Aborted cleanly; `git merge-tree --write-tree HEAD lean`
+  lists the files.
+- **Next, in order:** (after the decision) merge lean, restate the frozen texts by token, repair; linking of
+  `etcd_authlease_safe` (authN's `MainLinked`/`Adequacy` pattern; `hrev` by `srvRevokeOpen_intro
+  EtcdServer.wp_revokeExpiredLeases`, `hlaw` by `lessor_keys_of_read`); gates; land stop.
+- **Cleanup items (debt):** authN run's `served` section → a defs module (removes the authlease.run → authN.run
+  edge); auth3's own `serve_member` copy (no-twins). `Scratch/` (untracked) makes `etc/tier-check.py --check` fail
+  locally: not tracked, ignore or move.
+- **Pitfalls:** `#!b` Bool conditions: `cases b`, not `wp_if_destruct`. `--goal` prints `⋯` for deep goals: insert
+  `set_option pp.deepTerms true in set_option pp.deepTerms.threshold 2000 in trace_state` temporarily. In run.lean,
+  `optsAt_nil`/`optsAt_res` are at `EtcdGrove` level (not `client.`).
+
+## Previous START HERE (S4, 2026-11-19 late night, item 9: run.wp_proof half done)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`,
+  `.lake/package-overrides.json` its copy); 3afd77e35 arrives with the next lean merge (switch then). lean not moved.
+- **Done:** `88592aac04` authN's `serve_member`/`srvdAt`/`srvdW` generalized in place over the lease mode `m`
+  (`leaseSrvd`, `leaseSrvd_intro`; moved to authN run's `served` section, over the etcdserver/v3rpc/client
+  Assumptions); authN's run instantiates `.none` (its statements unchanged; lean-check 0 errors); authlease
+  `Served.lean` deleted. Txn refusal: `opChecksLease` (+ `_put`, `_txn`), `leaseGranted_txn`; `refused_update`
+  takes `hop : opChecksLease s E ρ op L`. `run.lean` (wip commits up to `65c50fcdca`): `leaseTxn_ok`,
+  `txnOpOf_leasePut`, `bArg`, `barrierPre_all`; run.wp_proof through: cell alloc, serve loop, SetUp
+  (`cell_setupAu`), barriers 1 (`bArg … (fun _ => True)`), the four clients (u, v with `P := akTokP`), grantPut
+  root (`cell_fix`+`cell_putZAu`; R' carries `lz ≠ 0`), grantPut u (`cell_putAAu`, `Lu ≠ Lz` by
+  `grantG_refuted`), u's txn (`client_txn_on`, `cell_txnTAu`; `ps3`, `3 ≤ ps3.length`), barriers 2
+  (`cellSeen γc ps3 0`), `cell_holds` → `Hhz` (u's member, Lz/zK, `mz`) and `Hhu` (v's member, Lu/aK, `mu`).
+  All `lean-check --fast -a`: 0 errors, one `sorry` (the tail). Not in a `lake build` yet.
+- **Next, in order** (each after the `sorry` at the end of run.wp_proof): noAuth(cli,"anon",lu) at member 0
+  and noAuth(bcli,"bad",lu) at member 1%k (`noAuth_refutes`; `akTokP γa "anon"/"bad"` = NewClient's `fun _ => False`
+  by `if_neg`; `etcdLeaseServedOn` re-folded from `HLG₁…HLL₁`; needs a `lease.lessorLb … ml` at member 0/1%k:
+  find a lemma, e.g. from the lessor names or `cell_holds`; Qg via `cell_grantAu`, Qr via `revokeLu_update`);
+  u's put(xK, Lz) and txn: `refused_update … (opChecksLease_put …)/(opChecksLease_txn xK lz)`, hcell from
+  `CellOk` (z/lease holds Lz once `ps` ≥ 1), then `wp_refused`; absent(root, xK); foreign(u, lz) (R :=
+  `monoNatAuthOwn γc.a ½ 0` = `Ha`, `foreign_reads_refuted` with `Hhz`), foreign(v, lu) (Qr := revoked,
+  `cell_not_revoked`, `Hhu`); root's Get z/lease (`client_Get_on`, read update `cell_readAu` → z/lease on Lz);
+  `cell_permit`, u's Revoke(lu) (`client_lease_revoke_on`, `cell_revokeUAu`); absent ×2 (`revoked` +
+  `cellSeen` d ≥ 1). Then Main (`allocNOnM … .revocable … (ns := true)`; boot state has no a/x: a lemma),
+  STOP at Main.wp_proof/linking. Then a timed full build and `tcb-report --check`.
+- **Tier edges added** (etc/tier-baseline.txt, decided as debt by etcd-grove-03 except the first, for decision):
+  authlease.run → authN.run (proof->proof: serve_member/srvdW/akV live in authN's proof module; alternative: move
+  authN run's `served` section to a defs module), authlease.run → client ResultsOn, TxnPlain; authN.run →
+  etcdstart.ServedLeaseOnLinked.
+- **Pitfalls:** `rw [BigSepL.bigSepL_map]` rewrites the first match anywhere in the IPM context: `iclear` older
+  big-seps or pass the function explicitly. Names: `client.clientOpAuOn/clientGrant/txnReplied/txnUpdAtOn/
+  client_txn_on/v3.txn.wp_Then_plain`, but `clientTokAt`, `WithLease.spec`, `OpPut.spec` at `EtcdGrove` level;
+  `etcd_authN.leaseSrvd`. run's failure post is `right; rfl` (two results). After an imod whose R' is a lambda,
+  `isplitl` sees the beta-reduced conjunction.
+
+## Previous START HERE (S4, 2026-11-19 night, item 9: run's prerequisites done; run itself next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46**: `--packages=/shared/tmp/manifest-f55.json`
+  everywhere, `.lake/package-overrides.json` its copy. lean has not moved since df37bd5157 (no merge needed yet).
+- **Done this session** (all `lean-check --fast -a` 0 errors, not yet in a `lake build`): `e724f11156` Refusals.lean
+  (`noAuth_refutes`, `foreign_check_refuted`, `foreign_reads_refuted`, `grantG_refuted`, `refused_update` (generic:
+  any op whose grant is `rq`'s checking a lease held on a key), `revokeLu_update`), Cell `cell_setupAu`/`cellInv_same`/
+  `authHistN_cellM`, CellModel `cellOk_put0`; noAuth's refutation and `holds_refutes_keys`' perm refutation now fancy
+  updates (not provable as plain wands: the auth state needs `akAuthFixed`'s fupd). Then (next commit) `Spec/…/authlease/
+  run.lean` (draft + `etcdKV x0 σ0`/`findKey "a/x" σ0 = none` in place of `akHistInv`, + `clusterNoSnap`), and
+  `authlease/Served.lean` (`serve_member_lease`, `srvdAt` with `etcdLeaseServedOn`). Forms: questions.md, last entry.
+- **Next, in order:** (1) txn refusal: `refused_update` for u's `Txn().Then(OpPut(a/x, WithLease(Lz)))` needs an `hrq`
+  lemma for `irrTxn tw` with `tw.toModel = txnWireOf (leaseTxn xK Lz)` (invert `toModel` to get a put in
+  `apply.txnPutsW tw` with lease `Lz`; `leaseGrantedM`'s `.txn` arm), and its `hop` is not `rfl` (opGrantT's txn arm
+  has `∃ tw`): write a txn variant of `refused_update`. (2) `run.lean` proof: authN's run skeleton (serve loop with
+  `serve_member_lease`, `srvdW`; cell_alloc on `etcdKV σ0` BEFORE SetUp, SetUp's `Hsau` from `cell_setupAu`; barriers
+  via `barriers.spec` with `bs` built from `(ss.zip xs).zip ws`, `Q := True` first, `Q := cellSeen γc ps 0` second
+  (`cell_readAu`); clients as authN; grantPut root (Fix: `cell_fix` + `cell_putZAu`), grantPut u (Fix: `cell_fix` +
+  `cell_putAAu`, its `Lu ≠ Lz` from the put's grant via `grantG_refuted`-style reasoning), the txn (`cell_txnTAu`),
+  barriers 2, `cell_holds` at members 1%k (Lz, zK) and 2%k (Lu, aK) from barrier 2's floor, noAuth ×2
+  (`noAuth_refutes`, `cell_grantAu`, `revokeLu_update`), u's put/txn refused (`refused_update`), absent(a/x),
+  foreign u (Qr := False; `foreign_reads_refuted`) and v (Qr := revoked, `cell_not_revoked`), root's Get z/lease,
+  `cell_permit` then u's Revoke(Lu) (`cell_revokeUAu`), absent ×2 (from `revoked` + `cellSeen` d ≥ 1 → `gone`).
+  Each member's cell via `cellInv_same` (sameCluster's `kv.st`); `lessor_keys_of_read` as a hypothesis of run.wp_proof.
+  (3) Main (`allocNOnM … .revocable … (ns := true)`; `findKey "a/x"` of the boot state: a lemma). STOP at Main.wp_proof.
+- **Known debt (decided by etcd-grove-03):** the five authlease proof→linking tier edges (absent/barrier/grantPut →
+  auth ClientOn, grantPut → ResultsOn, barrier → AuthnServedOn) match authN's; remove when authN's are. Served.lean adds
+  one more of the same kind (→ etcdstart ServedLeaseOnLinked; run will add authN-like ones): for decision at the stop.
+- **Pitfalls:** `%⟨…⟩` is not an IPM pattern/argument: name a `have` and pass `%h`. `iapply` of a `□ P` lemma onto goal
+  `P` fails: `ihave #H := lem $$ […]` then `iexact H`. `akTokSeen_md` drags in authlease's `Assumptions`: use
+  `etcd_auth.akTokSeen_attempt` directly. lean-check of Served.lean takes ~6 min fresh (authN.run import).
+
+## Previous START HERE (S4, 2026-11-19 late, item 9: merged lean f551; noAuth, foreign, barriers proved)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46**: `--packages=/shared/tmp/manifest-f55.json`
+  everywhere, `.lake/package-overrides.json` its copy, `PERENNIAL_DIR=/shared/perennial-f551a1b46` for gen-init/goose.
+- **Done this session:** `6a861f7f0a` merge of lean df37bd5157 (conflicts = lean's tier split moving blocks this branch
+  edited into `*Linked`; ported). Tier fixes: client/v3 `LeaseSpecs.lean` (defs: the lease Md/On specs and the permit
+  unfoldings, moved, names unchanged), etcdstart `ServedLeaseOn` split (+`ServedLeaseOnLinked`), five authlease
+  proof->linking edges ADDED to `etc/tier-baseline.txt` (for decision). `667d5247e3` `WithAttachedKeys` translated
+  (goose config) + spec/proof. `011d04399d` `LeaseAttempts.lean`, `noAuth`, `foreign` (spec + `E.authOn = true`),
+  `barriers` (BArgs + `V`) proved. Full timed build **20261119-050626-2435300** (only authlease.barrier failed: import,
+  fixed), then the 21 leaves: rc=0. `tcb-report --check`: matches the baseline (884 axioms, 4 sorries; Thaw 1 adds
+  none). etcdstart API: `ServedLeaseOn`/`…Linked` importable, interfaces regenerated. questions.md: the forms.
+- **Next, in order:** `run` (spec draft `/shared/tmp/auth-lease-s4/draft/run.spec.lean`: authN's + `lm = .revocable`
+  for every member, `leasePeersOk`, `memberUpOn … .revocable`, result 0/1): an authlease `serve_member` (authN's +
+  `etcdstart.lease_served_on`: needs `grpcServerAt` from `ak_served_kv`'s post, `srvLeaseRd` from
+  `memberUpOn_served`'s post, `srvRevokeBuilt`, `srvRunPool`), the serve loop, SetUp, cell alloc (`cell_alloc`),
+  barriers (BArgs per member, `V := akV …`), clients, grantPut ×2, the txn, barriers 2, the checks (noAuth ×2,
+  u's refused put/txn, absent, foreign ×2, root's Get z/lease, u's Revoke(Lu), absent ×2). Then `Main`
+  (`allocNOnM … .revocable … (ns := true)`). STOP at Main.wp_proof / linking, as the brief says.
+- **Pitfalls:** an Iris lemma whose statement contains `fun _ => iprop(False)` (or any iprop lambda) fails to unify
+  with the same text at the use site (hidden elaboration difference): make the lemma generic in `Φ` and give the
+  lambda at the `wp_apply` (see `LeaseAttempts`). An `isimp … at H` for Iris hyps (not `simp at`). `wp_slice_literal`
+  gives a `Loc`: pass `_` for the `GoSlice`. The slot queue can hold a full build 1-2 h before it starts.
+
+## Previous START HERE (S4, 2026-11-19, item 9: Cell compiles; helpers' specs checked; absent, grantPut proved)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a** (`--packages=/shared/tmp/manifest-6d3.json`,
+  `.lake/package-overrides.json` its copy). lean's f551a1b46 merge ("Merge origin/lean (d52bb9be66)") NOT on lean yet: when it
+  is, merge it, switch to manifest-f55 + overrides, expect a full timed rebuild.
+- **Done this session:** `3c6350254d` Cell compiles; `0d44cd6d22` CellModel's `CellHist` (z/lease kept on Lz from its first
+  attachment, a/lease on Lu until the revocation; `CellOk := CellOk0 ∧ CellHist`, old lemmas renamed `cellOk0_*`, wrappers
+  `cellOk_*` with the old signatures); `ad5dc2fdaa` `Holds.lean` (`cell_holds`: the lessor law through the cell →
+  `holdsFrom γc γl m id k`, for (Lz, z/lease) and (Lu, a/lease), needs the main thread's `monoNatAuthOwn γc.a ½ 0`;
+  `holds_refutes_keys` (TTL verdict), `holds_listed` (a listing at i ≥ m lists the lease)); `cellSeen γc ps1 d1 σ` records
+  `ps1 <+: ps ∧ d1 ≤ d` (`cell_readAu` takes the reader's lbs). All checked with `lean-check --fast -a` (0 errors).
+- `22383e4f6f`/`ba5d5b4f55`: `authlease/Env.lean` (`grantTTLv`, `BArgs`, `barrierPre`, `barrierPost`), Specs `barriers`,
+  `grantPut`, `noAuth`, `foreign`, `absent` (designs in their headers: updates as `□ ∀ conn ctx, … clientOpAuOn`, refutations
+  as caller premises, `R` threaded through `foreign`; `grantPut`'s `Fix` ghost step = where `run` does `cell_fix`), all
+  `lean-check -a` 0 errors; `absent` proved. `5ebad1c6c6`: `grantPut` proved (kernel-checked by lean-check). Nothing of this
+  session is in a `lake build` yet (all slots were held by full builds): build the authlease modules first.
+- **Next, in order:** `noAuth`, `foreign` (TTL/Leases via
+  `lessor.TimeToLive/Leases.spec` with `etcdLeaseTTLSpecMd`/`…LeasesSpecMd`: choose `n`, `m` in attemptPre; refutation premises
+  discharged in `run` by `holds_refutes_keys`/`holds_listed` + `akAuthFixed`), `barriers` (authN run's barrier loop), then
+  `run` (authN's skeleton + the lease steps; cell alloc after SetUp via `cell_alloc`), `Main` (`allocNOnM … .revocable …
+  (ns := true)`). STOP at Main.wp_proof as the brief says.
+- **Pitfalls:** lean-check on a file whose imports are not built sits at "line 1" with an idle worker: `lake build` the imports
+  in a slot first. Commands > 180 s get backgrounded: wait with `until grep -q '^rc=' LOG`. `id` as a term in `refine` may
+  resolve to a local `id : w64`: write `_root_.id`. Iris `False` pattern is `⟨⟩` (not `[]`).
+
+## Previous START HERE (S4, 2026-11-18 late, item 9: thaw 1 done; Cell in progress)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a** (`--packages=/shared/tmp/manifest-6d3.json`,
+  `.lake/package-overrides.json` its copy). A merge bringing pin f551a1b46 / manifest-f55 is coming: switch when merged.
+- **Thaw 1 (user-approved option (A)) done** `fe14388f43`: `writeGrantG` gains grant freshness (revocable-mode grant id `g`:
+  no key had lease `g` at any revision ≤ σ.rev); server proof `GrantFresh.lean` (+ `kv_prop_au_on`), client law
+  `writeGrantG_grant_fresh` (`LeaseReqOn.lean`). Recorded: `notes/auth-lease-s4-freeze.md` "Thaw 1" (old/new text,
+  independent attack: no refutation, X1-X3 named in the docstring), ledger 2026-11-18. No compaction premise needed.
+- **Thaw build GREEN** (2026-11-19): the 38 `Proof.*` leaves of `ProposeOn`/`LeaseReqOn`
+  (`/shared/tmp/auth-lease-s4/thaw-leaves3.txt`, log `thaw-build3.log`: 9946 jobs, rc=0). (`etc/importers.py --leaves`
+  also lists non-lake targets, `Scratch.*` and `notes.*`: pass only `Proof.*`.) `tcb-report --check` NOT run: it wants every
+  root built (it stopped at `txn.Results`, untouched by the thaw); run it after the next full build (no axiom change
+  expected: the thaw adds none). Cell/CellModel are not in that build: compile them next with `etc/lean-check.py --fast`.
+- **Cell**: `authlease/CellModel.lean` (pure, CHECKED 0 errors: `CellOk` and its preservation by grant/putZ/putA/txnT/
+  revokeU, `cellOk_fix`, `cellOk_fresh`, `not_leaseOk_setupSt`). `authlease/Cell.lean` (Iris, WRITTEN, NOT COMPILED: needs
+  the build): `cellInv` (ids ½ main, ps, gs, d with `⌜d=0⌝ ∨ lb a 1`, v = rev lb, a ½ main = revocation permit),
+  `cell_writeAu`/`cell_readAu`/`cellSeen`, per-update AUs, `cell_fix`, `cell_permit`, `cell_not_revoked`.
+  Design change vs the earlier sketch: the leases live in `ids` (fixed by the main thread), `ps` holds only revisions;
+  the permit `a` lets the main thread refute `revoked` (foreign Revoke(Lu) successes) before u's revocation.
+- **Decided (etcd-grove-03, 2026-11-18):** thaw 1 as written, the X1-X3 docstring and the Cell forms ACCEPTED.
+- **Next, in order:** compile Cell (`etc/lean-check.py --fast`), fix; refutation lemma from `clientGrant` (lease-aware
+  `akOpGranted_of_grant`: `writeGrantG_granted` + `akAuthFixed_write` + `akUser_hdr` → `kvGrantedL (setupSt r)
+  (leaseItemsOf σ.kvs) …`, then `not_leaseOk_setupSt` with zK↦Lz (u) / aK↦Lu (v, anon, bad)); then barriers/grantPut/
+  noAuth/foreign/absent, run, Main (plan below, unchanged). STOP at Main.wp_proof.
+- **Pitfalls:** no literal modes in the package; `ihave %h := lem $$ H1 H2` keeps H1/H2 for pure results (wand-form
+  helpers); `set`/`by_contra` are Mathlib (not available); deprecated `if_pos` warns: use `simp only [h, ↓reduceIte]`.
+
+## Previous START HERE (S4, 2026-11-18, item 9: lean fb68edfec8 merged; Served done; Cell BLOCKED on check 6)
+
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
+- **Done:** 7b, D-k, the six driver helpers (all accepted by etcd-grove-03; questions.md). Merge of lean fb68edfec8
+  `b33b59741c` (one conflict: `etc/goose.py`'s usage line, both sides' project names). **Served** (see the commit after it):
+  new `etcdstart/ServedLeaseOn.lean` (`etcdLeaseServedOn`, `lease_served_on`: the four Lease registrations with auth on
+  from `grpcLeaseUp`, `srvLeaseRd s E .revocable`, `grpcServerAt`, the pools); `ak_served_kv`'s post + `grpcServerAt`,
+  `memberUpOn_served`'s post + `srvLeaseRd` (forms; callers auth/Run, auth3/run, authN/run take `-`).
+  Build: `/shared/tmp/auth-lease-s4/served-build.log`.
+- **BLOCKER (stopped here; questions.md, last entry):** check 6 is not provable: at auth on the KV writes' and the grants'
+  updates are persistent (no `writeOnce`: it is `noRefusalAt`, auth off only), so a re-delivered grant may re-grant `Lu`
+  after the revocation (`kvOpStep` only checks the current table) and a re-delivered `Put(a/lease, Lu)` re-attach `a/lease`.
+  Options (A) thaw: grant freshness in the grant's write grant (`opGrantTN`); (B) drop check 6's reads. Awaiting decision.
+- **Cell design (worked out, not written):** one invariant `∃ σ ps gs d, etcdKV γk σ ∗ monoListAuthOwn γ.ps 1 ps ∗
+  monoListAuthOwn γ.gs 1 gs ∗ monoNatAuthOwn γ.d 1 d ∗ monoNatAuthOwn γ.v 1 σ.rev ∗ ⌜cellOk σ ps gs d⌝` (all updates are
+  persistent at auth on, so no exclusive half can ride in one; every append is guarded by `ps`'s length, a re-fire keeps
+  `leaseKeptIn`): `ps : List (w64 × Nat)` = `[(Lz, rz), (Lu, ru), (Lu, rt)]` appended by root's put / u's put / u's txn
+  updates at their first effective firing; `gs` = ids our grant updates fired with (`id ≠ 0` ⇒ `id` in the table after the
+  firing, whatever `leaseGrantOk`), keeps `Lz`/`Lu` live for the puts; `d` = revocation flag (u's `Revoke(Lu)`, `d = 1 →
+  a/lease, a/txn absent`: this is what the blocker breaks); `γ.v` = σ.rev lower bounds (the lessor law's
+  `leaseKeptIn σ (F.length-1)` needs `F.length - 1 ≤ σ.rev`). Refusals at G: `writeGrantG_granted` + `akAuthFixed_write`
+  (`setupSt r` denies u `z/lease`, v `a/lease`); `Lu ≠ Lz` from u's put's G. Pure lemmas: `findKey_applyChanges_other`
+  (txn/WinLemmas), `KVState.commit_at`.
+- **Next after the decision:** Cell, barriers/grantPut/noAuth/foreign/absent, run, Main (plan below, unchanged).
+- **Pitfalls:** no literal modes in the package (mode gate); `etc/gen-link.py --bbolt`/`--walfs` and
+  `gen-specs-pkginit --check` differ in a worktree without `.lake/packages/perennial`: do not commit those. Monitor
+  filters: anchor `^Terminated`. `questions.md` is untracked (gitignored).
+
+## Previous START HERE (S4, 2026-11-18, item 9: driver plan)
+
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
+- **Done:** 7b (accepted, 2026-11-18; record in STATUS at the land stop). D-k `e7d56912d6` (accepted by etcd-grove-03,
+  texts 1–3 and `server_cluster_alloc_on` mirrored; build of its 29 leaves green, tcb 892/4). Merge of lean 49bd7924e6
+  `e180852712` (Hctx Part B, incomingof; no textual conflict); its full build: see the next commit/section.
+- **Driver files so far** (`Proof|Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/`): `Defs`, `Dir`
+  (authN's at the token and ports 16000/17000), `reqCtx`, `refused` (authkv's), `newUserClient` (authN's),
+  `barrier` (authN's + the caller's read update `Q` and the floor `srvApi.kvLogLb E.γs log` with `□ Q (kvStateOf log
+  lt)` from `rangeReplyOk`; `isServerReadM E.authOn`, no literal mode). State: see the commit that adds them.
+- **Driver plan (what is left, in order):**
+  1. `Served.lean`: authN's `serve_member`/`srvdAt`/`Wit` (authN `run.lean`) plus the lease registrations at the member
+     (`etcd_lease_auth_served_on`, AuthnServedOn:499: LeaseGrant/LeaseRevoke at `etcdLeaseGrantSpecOn`/`…RevokeSpecOn`;
+     `etcd_lease_read_served`, LeaseReadServed:800: TimeToLive/Leases at `etcdLeaseTTLSpecMd`/`…LeasesSpecMd`). Neither
+     has a user yet. Their inputs: `grpcUpOn`'s `grpcLeaseUp` (`quotaLeaseServerAt`, `leaseServerAt`, `leaseRegs ⊆ regs`),
+     `grpcServerAt`, the interceptors, `srvRevokeBuilt`, `srvRunPool` (as `kv_lease_served` builds them from the stocks,
+     etcdstart `ServedLease.lean:386`, the auth-off model), `raftLeaseRead` from `memberUpOn … .revocable`'s `srvLeaseRd`,
+     `isServerReqM/ReadM true`, `□ |==> idCred ρ.ids 1`. Likely an etcdstart lemma `ak_served_lease` beside authN's
+     `ak_served_kv`/`ak_served_watch` (find them: `grep -rn "theorem ak_served" Proof`), passed to `Serve.spec`'s callback.
+  2. `Cell.lean`: the driver's invariant over the client half `etcdKV γk σ` (Freeze §8.3): phases after the set-up
+     (`a/x`, `z/lease`, `a/lease`, `a/txn` absent), after root's put (`leaseKeptIn σ rz Lz z/lease`), after u's puts (`…
+     Lu a/lease`, `… Lu a/txn`), after u's revocation (`a/lease`, `a/txn` absent); `a/x` absent throughout. Every update
+     handed out keeps it: the refused ones (u's `Put(a/x, Lz)`, its txn, `Revoke(Lz)`; v's `Revoke(Lu)`) are refuted at
+     their grant (`grantedAt` → `leaseOk` at `setupSt` needs u/v to write `z/lease`/`a/lease`: false; `akAuthFixed_write`);
+     re-delivered puts/grants keep the pairs; u's `Revoke(Lu)` moves to the last phase (its step deletes the attached keys).
+     Open design point: the phase's ghost state (the updates fire at commit, so they must be able to advance it: a
+     monotone phase in the invariant with persistent witnesses for the main thread, not a split ghost var).
+  3. `barriers` (loop over the served members: `barrier` at each, `akAuthFixed` and the floor with `Q`), `grantPut`
+     (`client_lease_grant_on` + `client_put_on` with `WithLease`, `hl` by `ρ.kv.lm = .revocable`), `noAuth` (checks 1:
+     the token-less/invalid-token refusals: `leaseCheckT`/`authedFrom` at no token or `badToken`, D-h), `foreign`
+     (checks 3–5: Revoke refuted by its update; TimeToLive/Leases by `lessor_keys_of_read` at barrier 2's floor + the
+     per-index `leaseKeysVerdict_refused` of `Scratch/S4Probe.lean`), `absent` (root's `client_range_on` with a read update
+     from the cell).
+  4. `run`, then `Main` (authN's `Main.lean` with `allocNOnM … .revocable hrun hnx hap (ns := true)`, `memberBootOn … lm`,
+     `StartMembersAuth … .revocable`). STOP at `Main.wp_proof` (present Draft §2's closed text vs what linking needs).
+- **Pitfalls:** no literal modes in the package (mode gate: a new package line is a raise): `isServerReadM E.authOn` with
+  `hon` from `E.authMode = .on γa`. `etc/gen-link.py --bbolt`/`--walfs` and `gen-specs-pkginit --check` differ in a
+  worktree without `.lake/packages/perennial` (environmental): do not commit those regenerations. Monitor filters:
+  anchor `^Terminated`. `questions.md` is untracked (gitignored): decisions live only in the worktree file.
+
+## Previous START HERE (S4, 2026-11-18, item 9 D-k stop)
+
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
+- **Done:** 7b (accepted by etcd-grove-03, 2026-11-18; record in STATUS at the land stop). Item 9 step 1, **D-k**
+  (`e7d56912d6`): `(ns : Bool := false)` appended after `hgps` in `srvClusterBoot_alloc`
+  (NewServerAlloc), `srvClusterBootOn_alloc` (NewServerAllocOn) and its export `server_cluster_alloc_on` (server
+  Results), after `hap` in `allocNOnM` (etcdstart AllocNOn); posts `⌜clusterNoSnap γ.cl ↔ ns = true⌝` (the off
+  allocation's `⌜¬ clusterNoSnap γ.cl⌝` replaced: its `ns = false` instance); both allocations call
+  `cluster_alloc_ns … ns (fun _ => hbne)`. Callers: Alloc/Alloc3/AllocN derive `¬ clusterNoSnap` from the iff,
+  Alloc3On/auth MainAlloc skip the conjunct, `allocNOn` (statement unchanged) by a short Iris proof. Built: the
+  29 importer leaves of the change (`/shared/tmp/auth-lease-s4/dk-build.log`, 9509 jobs); `tcb-report --check` 892/4 matches; etcdstart interface regenerated.
+  Boot path at `ns = true`: `memberBootOn` has no `¬ clusterNoSnap` (only `memberBoot`, the auth-off bundle, does);
+  `StartMember(s)Auth.spec` is generic in the cluster with `clusterNoSnap → 2^48 ≤ catchUp` (NoSnapCatchUp); the
+  remaining `¬ clusterNoSnap` premises in the server are restart/snapshot-only (`srvMem_restartStorage`,
+  `rnRestartOk`, `run_job_snapC`, `SnapApplyWalk`).
+- **Next, in order:** (after etcd-grove-03's go on D-k) the driver: `Spec/…/authlease/{Main,run,barrier,barriers,
+  grantPut,noAuth,foreign,absent,reqCtx,refused,newUserClient}.lean` and proofs, on authN's skeleton (`authN/run.lean`,
+  `Main.lean`); `Main` allocates with `allocNOnM … .revocable … (ns := true)` so the lessor law's `clusterNoSnap`
+  holds; lessor-side refusals via `lessor_keys_of_read` (LessorFollows) + the per-index form of
+  `Scratch/S4Probe.lean`'s `leaseKeysVerdict_refused`; client calls via `client_put_on`/`client_txn_on`/
+  `client_range_on`/`client_lease_grant_on`/`client_lease_revoke_on` (client/v3 `ResultsOn`) and
+  `etcd_lease_read_auth_served_on`. STOP at `Main.wp_proof` (present the closed statement, Draft §2). Then item 10.
+  Merge lean first: it moved to 49bd7924e6 after D-k was built (not merged yet).
+- **Pitfalls:** `etc/gen-link.py --bbolt`/`--walfs` and `gen-specs-pkginit --check` differ in a worktree without
+  `.lake/packages/perennial` (environmental): do not commit those regenerations. Monitor filters: "Terminated" matches
+  k8s type names; anchor `^Terminated`. A Perennial pin bump rebuilds everything (~20k jobs, ~3.5 h in a slot).
+  `questions.md` is untracked (gitignored): decisions live only in the worktree file.
+
+## Previous START HERE (S4, 2026-11-18, item 7b COMPLETE: lean merged (pin 6d3), full build green; item 9 next)
+
+(7b's section: see commit ad75410f86.)
+
+## Previous START HERE (S4, 2026-11-17, item 7b: steps 7 and 8 DONE; the lean merge is NEXT and is a real integration)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Pin still e9e
+  (`--packages=/shared/tmp/manifest-e9e.json`); lean (5fb716b5eb, pin c6b) NOT merged.
+- **Done:** step 7 `5f8c413b13`: `etcdserver/LessorFollows.lean`, `lessor_keys_of_read : lessor_keys_of_read_stmt`
+  (frozen text verbatim; module builds; no `sorryAx`). Forms: questions.md, last entry. Step 8 (Draft §7 row 8), this
+  commit: goose project `authlease` (`etc/goose.py`, translated with the e9e translator), `authlease/Base.lean`
+  (package fact `True`, as authN's), `authlease/Init.lean` (`etc/gen-init.py`; `--check` clean). PkgTable map entry in
+  gen-init: at linking (step 10), as authN's.
+- **Next: merge lean (a trial merge was aborted; material in `/shared/tmp/auth-lease-s4/merge/`).** 37 files conflict,
+  ~46 hunks, all from lean's trace-check stage (raft's `Cluster.trace`/`reTrace` gates) meeting S4's no-snapshot
+  mode (D-k, L-r2/L-r5) in raft: list `conflicts.txt`, diff3 copies under `diff3/` (the 3 Spec files there are
+  already resolved: `resolved/`), helper `hunks.py show|set|take FILE IDX`. Rule: keep both sides' premises and
+  conjuncts, minus base's `γ.reNoSnap = false →` (S4 removed it; lean's side only carries it as context). Key
+  integrations: (1) `InvNodeRule.storBnd`: lean sealed it and gated it on the trace (`match Cluster.trace γ`); S4 added
+  `⌜clusterNoSnap γ → k ≤ 1⌝`: put S4's conjunct in the `none` arm; `storBnd_intro_untraced` then needs `clusterNoSnap
+  γ → k ≤ 1` (or restate S4's `storBnd_off`/`storBnd_le_one` over it, no twins); `storBnd_cap` by `split`.
+  (2) `cluster_alloc_ns`/`cluster_alloc`/`cluster_alloc_traced`: both posts (`(clusterNoSnap γ ↔ ns = true)` and
+  `⌜Cluster.trace γ = none⌝`), callers' patterns `%Hns, %HtrC` (NewServerAlloc(On), kv/kvdurable/kvreconf Alloc,
+  StartCluster). (3) setupNode/Bootstrap/RestartNode/StartNode proofs and `InvApiBoot`, `InvApiDecAlloc`,
+  `InvNodeRun`, `InvRawnode`, `RawNode__Step`, `raft__maybeSend{Append,Snapshot}`, `node__run`: lean's proofs may use
+  the removed `reNoSnap = false` (check `grep reNoSnap`). Then `etc/gen-raft-tla.py` (RaftTla copies of raft proofs),
+  regenerate `Link`s/interfaces as lean's CLAUDE.md says, `etc/goose.py --perennial /shared/perennial-c6b39d4f8`
+  (c6b is a goose change: regenerates translations incl. authlease), `.lake/package-overrides.json` = c6b manifest,
+  everything at `--packages=/shared/tmp/manifest-c6b.json` (or 6d3 if that bump landed first). Then the full build
+  (`/shared/tmp/build-slot.sh`, `LEAN_NUM_THREADS=4`, retry on cap kills), `etc/tcb-report.py --check`,
+  `etc/gen-interface.py` (incl. Spec `uberApplier__Apply`/`uberApplier__dispatch`; the new `LessorFollows` is not in an
+  API list), and report 7b's completion.
+- **Pitfalls:** in a proof-mode goal `cases h : E.lg` rewrites the Iris context (use `by_cases`). A lemma of a section
+  with a package's `[Assumptions]` carries that instance even unused (the law needs mvcc's). `etc/gen-init.py` needs
+  the package's `IsPkgInit` instance file first (`Base.lean`). `questions.md` is git-ignored (local). Earlier pitfalls
+  below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: wiring COMPLETE, leaves build green; step 7 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Everything compiles: the ONE leaves
+  build from `00b09c1360` (165 targets, `/shared/tmp/auth-lease-s4/7b-f4-leaves2.txt`, log `7b-f4-leaves.log`) exit 0,
+  no `sorry`. Pin still e9e (`--packages=/shared/tmp/manifest-e9e.json`); lean not merged yet.
+- **Decided:** option (A) forms ACCEPTED by etcd-grove-03; NewServer allocation forms (questions.md, last entry: form
+  decided by the agent, for the checkpoint review).
+- **Done:** `af275c78fa` `kvEntryOn_extends` is ONE lemma in `KVAuthModel` (server TEMP copy and `v3rpc.ClientModel`'s
+  removed). `b769c66663` NewServer and NewServerR: after `writer_facts` (`□ Nx log`), `wSt` split into `wStQ ¼` +
+  the tie's quarter, `tie_alloc` (`Lt = log`, `Fr := clusterNoSnap … → decide (lm ≠ none) = false`, NewLessor's
+  `lessorWinTie γl []` = `HlWt`), `tie_free` at `lg = false` (`∃ wb, ⌜lg = false → wb = none⌝ ∗ leaseOwnW … wb ∗
+  winTok γwt wb`); literals `Wt := srvApi.winTok γwt, stq := ¼`; `hγs` moved below; `Haus` by `envAus_tie`;
+  `winTieRes` in `srvKVInvs(On)`; the start row `srvApplyKVW` at `wb`. NewServerR gets `#Hlrdinv` from `lessorInv`
+  as NewServer. Client/example callers needed no change (their patterns end in `-`).
+- **Next, in order:** (1) step 7, the law (`lessor_keys_of_read_stmt`, frozen text
+  `notes/auth-lease-s4-frozen.lean.txt` §5, not yet in the tree; new file, e.g. `etcdserver/LessorFollows.lean`):
+  case `E.lg = true` (`¬ Fr`): `tie_obs` (`m := j0`, `F <+: L0`), per `i ≥ j0` `tie_law` (`La`, `Lt` with `□ Nx`),
+  then S5 (from `kvInv`/`kvInvOn`'s `ghostVar γk.st ½ (kvStateOf (model L) …)` agreeing with `etcdKV`, and `srvRLogLb A`
+  ⊑ the invariant's `L`: `La.length - 1 ≤ σ.rev`, items of `σ.at (La.length - 1)` = `itemsOfLog La`; lemmas to reuse:
+  `KVModelDefs.kvStateOf_at(_kvs)`, `v3rpc.ClientModel.etcdState_of_nx`/`srvLog_of_nx`); case `E.lg = false` (lm =
+  none): the lm-none model lemma (no committed model log attaches a lease to a key at `lm = none`), then
+  `leaseKeptIn` is false (STOP if false or needs trusted text). The off mode (`kvInv`, `kvStQ`) needs the same
+  argument or a contradiction (frozen text, "Mode-generic"). `lessorLawMask` gains `lessorRdN` and `winTieN` (a form
+  the frozen text allows). (2) step 8; (3) the c6b merge (merge lean, regenerate generated files,
+  `.lake/package-overrides.json` → `/shared/tmp/manifest-c6b.json`, `--packages=/shared/tmp/manifest-c6b.json`); full
+  build (retry on cap kills); `tcb-report --check`; gen-interface (incl. Spec `uberApplier__Apply`,
+  `uberApplier__dispatch`).
+- **Pitfalls (this session):** NewServer's proof hung 40 min in lean-check on `iExactEq H; rfl` where `iexact H`
+  works (the goal matched up to abbrevs): prefer `iexact`; to find a hang, insert a temporary `done -- TEMPSTOP` and
+  bisect. `uberOwn` at `{E with win := wb}` vs `E`: `iExactEq Huo; simp only […]; rfl`. `γt` is already a name in
+  NewServer(R) (`mono_nat` at l.1231): the tie's names are `γwt`/`HwTie`. `Htie` is `authHistTie`'s. `pkill -f` on a
+  lean-check command line kills your own shell. `etc/importers.py --leaves` lists `Scratch.*`/`notes.*` modules:
+  filter them before `lake build`.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4 (A): apply layer + applyEntryNormal DONE; NewServer(R) next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `NewServer`, `NewServerR` and
+  importers of the changed server rows still do not compile). Base of the coming leaves build: `00b09c1360`.
+- **Decided (questions.md, last three entries):** option (A) (etcd-grove-03); the agent's forms "Item 7b F4 (A), forms".
+- **Done:** `89951bb50c` apply layer: plain path `E.lg = true → v3 = true → winTgt …` (Spec `uberApplier__Apply`,
+  `uberApplier__dispatch`: interfaces to regenerate; `Apply.specRec`); latest path `winTgtL` (DispatchKVL) /
+  `(∃ oc, X oc ∧ oc ≠ .rejected .auth) → winTgt` in the methods' `*PreW`; existence lemmas `pass_exists`,
+  `backendStep_exists_*` (AuthApplyLatest; the txn read-only fact from `txn.srvOps_gets_nil`, so client
+  `srvRunTxn_ro_nil` was NOT moved: no copy exists). All apply files lean-checked `--fast -a`.
+  `52fa94a5b5` `EtcdServer__applyEntryNormal` compiles (`--fast -a`, 0 errors): defeq corollaries `Apply_specRec_win`,
+  `Apply_kvSpecL_win`, `adminEntryOn_win`, `srvUberOn_kv_win`, `srvUberOn_adm_win` (call at `{E with win := wn}`,
+  other resources at `E`); `srvApplyKVW_push` (window of the entry, `Lt` the model log after it), `winTgt_of_log`,
+  `backendStep_keep`, `kvOutL_of_pass`; `applyKV_writer`/`applyKV_kvOwnPre` at the window.
+- **Next, in order:** (1) MOVE `kvEntryOn_extends'` (TEMP copy at the top of applyEntryNormal) and
+  `v3rpc/ClientModel.kvEntryOn_extends` to ONE lemma in `KVAuthModel.lean` (next to `kvEntryOn`), both callers use it
+  (no twin). (2) NewServer/NewServerR allocation: NewLessor's output pattern drops `lessorWinTie γl []` (the `-` after
+  `Hlown`, NewServer l.737): keep it; after `bootStore_holds` (`Hw0 : wSt γs log c`, l.919) split `wStQ`'s st part
+  (`ghostVar_split_half E₀.γs.st (1:Qp).half`) into `wStQ ¼` (kvOwn, `stq := ¼`) and a bare quarter for
+  `srvApi.tie_alloc` (with `Hlrdinv`, `HlWt`, `Hlown` after `hNew` l.891, `□ kvNx ρ.rd on log` from `Hrlb0`, `Lt = log`,
+  `Fr := clusterNoSnap ρ.rd.raft.raft.cl → E.lg = false`); at `ρ.rd.kv.lg = false` `tie_free` right after (Fr holds).
+  AEnv literals (20 in NewServer, 18 in NewServerR): append `Wt := srvApi.winTok γt, stq := (1 : Qp).half.half` (sed on
+  `γlt := γlt }`); `Haus` (l.2478) by `srvApi.envAus_tie`; `srvKVInvs` (l.2204) gains `winTieRes`; the final
+  `bootKVOf` row (l.2620-2670) is `srvApplyKVW` at the window (leasesLive with `Hlown` at `wn`, `E.Wt wn` = the token).
+  Current NewServer errors (lean-check `--fast -a`, 4, all expected): l.2100 `srvEnvOk`'s `(E.win = none ∧ E.stq = ¼)`;
+  l.2208/2216 `srvKVInvs`' new `winTieRes` conjunct; l.2622 the `bootKVOf` row (now `srvApplyKVW`).
+  (3) Remaining callers (examples, client: `etc/importers.py --uses srvKVInvs --uses srvKVInvsOn --uses srvApplyKVW
+  --files Proof/go_etcd_io/etcd/server/v3/etcdserver/InvApplier.lean`). (4) ONE leaves build from `00b09c1360`
+  (`/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(etc/importers.py --leaves --git
+  00b09c1360)`); step 7 (law, incl. the lm = none lemma), step 8; the c6b merge; full build; tcb-report --check;
+  gen-interface (the two Spec files above change).
+- **Pitfalls:** `{E with win := wn}`-resources: use the `*_win` corollaries (defeq ascription) instead of converting
+  hypotheses. `simp only [↓reduceIte]` turns a premise `v3 = true →` into `True →`: write `fun h _ => …`. In python
+  edits, an 8-space anchor also matches 10-space lines: anchor at line start (`(?m)^`). Earlier pitfalls below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: STOPPED at a refutation in applyEntryNormal; waiting for etcd-grove-03)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `EtcdServer__applyEntryNormal`,
+  `NewServer`, `NewServerR` and importers still do not compile). Base of the coming leaves build: `00b09c1360`.
+- **Decided (questions.md):** the F4 wiring forms ACCEPTED; `Fr := (clusterNoSnap … → E.lg = false)` kept, NewServer
+  frees the window after `tie_alloc` at `E.lg = false`, step 7 proves the lm-none model lemma (STOP if false/trusted).
+- **Done this session:** `ApplyCmpArm.backendStep_kvEntryM` (lean-checked `--fast`): in the auth-off arm every backend
+  outcome's log is `kvEntry …` (the off `v3 = true` arm's `winTgt` with `Lt := kvEntry …`, `□ Nx` by `kvAppliedL_nx'`).
+- **OPEN (questions.md, last entry):** the window premise `winTgt` is unprovable in the auth-on KV/revocation arms when
+  the auth layer refuses, and in the replay (`v3 = false`) arms. Recommended fix (A): gate the premise by `v3` (plain
+  path) and by the verdict (latest path). Do nothing on applyEntryNormal's arms until decided.
+- **Next once decided:** per (A): apply specs + existence lemma; then the arms (off `v3`: `applyKV_push` with
+  `Lt := kvEntry c0 x.chain (kvLeases A) x.log m` before `hA`, winTgt from `backendStep_kvEntryM` with `HkA.2.symm`,
+  `Hnl`, `kvTableOf_ne0`; repack `srvApplyKVW`); then the previous START HERE's (2), (3), (6)-(8).
+- **Pitfalls:** as in the previous START HERE.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: server wiring IN PROGRESS, WIP commits; applyEntryNormal and NewServer(R) left)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `EtcdServer__applyEntryNormal`,
+  `NewServer`, `NewServerR` and what imports them do not compile). Base of the coming leaves build: `00b09c1360`.
+  Decisions: `questions.md`, last entry (forms, and OPEN: the free-marker fact `Fr` at `E.lg = false`).
+- **Done (lean-check `--fast -a` clean on every server file below):** `srvKVInvs`/`srvKVInvsOn`/`srvKVInvsC` last
+  conjunct `srvApi.winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false)`; `srvEnvOk` 3rd conjunct `(E.win =
+  none ∧ E.stq = ¼)`; `srvApplyKVW E ua x := ∃ w, ⌜E.lg = false → w = none⌝ ∗ applyKV {E with win := w} ua x` in every
+  applier row, lemmas `srvApplyKVW_open` (pieces at `E`, window part in the closing wand: use it, never unfold
+  inside long proofs), `_of_none`, `_crOwn`, `_writer`, `_authOn`, `_hookRO`; `srvKVInvsM_winTie`. Snapshot path done:
+  `applyAll.specSnapM`/`applySnapshot.specSnapM`/`applySnapshot_walk` take `¬ clusterNoSnap γr.raft.raft.cl` (from
+  `run_job_snapC`'s `hns`); the walk frees the window (`applyKV_free`), restores at ¼ (`restorePreA_of_au` +
+  `au_restore_tie`), `snapWalkPost`/`snap_applyKV` carry `wStQ E.γs E.stq` and `E.Wt none`. Checked: InvApplier,
+  KVStore{Api,Laws}, Inv{Read,Start,Build,ApRes,RunRes}, KVApply(On), ServerOn(Defs), UberOn, SnapRO, StartOn,
+  ApplyEntryOn, AppliedOn, ApplyKVCore, ApplyNormalOn, ApplyCmpArm, SnapSendBranch, SnapRecv{Facts,On},
+  MergedImageOn, RunOn, KVRead, ReadOn, AuthComp(Rows), CompactEnv, ModeSpecs, StopImage, StopShutdown, SnapApply*
+  (Defs, AuthM, Walk, Names, IsServer, Opts, OptsLemmas, KV, Post), EtcdServer__{Compact, applySnapshot, apply,
+  applyAll, run, start, snapshot}, ApplyAllSnap.
+- **Next, in order:** (1) `EtcdServer__applyEntryNormal` (arms: `grep -n winTgt_none`; `HKV` is now `srvApplyKVW`,
+  open it with `srvApplyKVW_open` where only the backend pieces are used). Admin arms (`hAd`): call `adminEntryOn` at
+  `{E with win := w}` (any `E`), no push. Each `hA` arm: unfold `srvApplyKVW` (`⟨%w0, %Hw0, HKV⟩`); at `E.lg = false`
+  (`w0 = none` by `Hw0`) convert to `applyKV E` (`{E with win := none} = E`: `rw [← HEo.2.2.1.1]`) and keep the
+  call as is; at `E.lg = true`: `srvApi.applyKV_push hPers hReach E _ HEo.2.2.1.2 w0 ua x Lt hlt` with the tie from
+  `Hkvi` (last conjunct), `□ E.Nx Lt` (`Lt` the committed model log after the entry, from the raft lb of `A ++ [m]`;
+  `kvNxOff`/`kvNxOn` unfold), then call `hA` at `E' := {E with win := some (s, itemsOfLog Lt)}` (convert each
+  `E`-resource in and out by `iExactEq H; rfl`), the premise `winTgt` via `KVOutcomeOn.backendLog_of_step` (KV kinds)
+  / `revokeLog_eq_backendLog` (revoke) / `Lt = x.log` (kinds that leave the log); repack `srvApplyKVW` with the new
+  window (`⌜E.lg = false → …⌝` vacuous). The `v3 = false` replay arms also call `hA`: same push. Lead for `Lt` in the off
+  arm: `kv_applied_step` (l.554) already runs before `Apply` and gives `kvAppliedL … (A ++ [m]) (kvEntry c0 x.chain
+  (kvLeases A) x.log m)`, so `Lt := kvEntry …` with `□ E.Nx Lt` by `kvAppliedL_nx'`; `winTgt` then needs, for every
+  backend outcome at the live set, `oc.logAfter x.log = kvEntry …` (the per-outcome form of the post-`Apply` equality
+  the arm proves from `Hstep`); the on arms the same with `kv_applied_step_on`/`kvAppliedLOn_nx`. (2) NewServer /
+  NewServerR: previous START HERE's step (3) (split `bootStore.law`'s `wSt` into `wStQ ¼` ×2, `tie_alloc` after
+  `NewLessor` with `Lt = log`, `Wt := winTok γt`, `stq := ¼` in the `AEnv` literals (sed on `γlt := γlt }`), `Haus`
+  by `envAus_tie`, the tie into `srvKVInvs`; at `E.lg = false`, `tie_free` right after (Fr from `E.lg = false`), the
+  start rows' `srvApplyKVW` at the window). (3) remaining callers (examples, client: `importers.py --uses srvKVInvs
+  --uses srvKVInvsOn --uses srvApplyKVW … InvApplier.lean`; their patterns mostly end in `-`). Then (6)-(8) of the
+  previous START HERE (leaves build, step 7 with the lm-none lemma if `Fr` stays, step 8, c6b merge).
+- **Pitfalls:** `rw [hX]` on the goal rewrites literal `{E with win := w}` pieces in the Iris context (fixed with
+  `srvApplyKVW_open`). An `icases` of `srvKVInvsOn` whose last `%X` used to take two pure conjuncts now needs
+  `%X0, %X1, -` (SnapRecvOn, ApplyAllSnap, MergedImageOn). `pkill -f rs56-chk.sh` kills your own shell.
+  `/shared/tmp/rs56-chk.sh FILE [N]` checks one file and shows a failing import's errors.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: step-7 Iris lemmas + apply-thread tie lemmas done; server wiring next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
+  (lean-check `--fast` only). Decisions: `questions.md`, last two entries (the tie ACCEPTED by etcd-grove-03; the agent's
+  forms "F4 step-7 lemmas and WinTieApply", for review).
+- **Done:** `49aab6ebc5`/`add5127999` the tie (`WinTie.lean`); `0d7362641a` `tie_obs` (open `kvsN`+`winTieN`: lbs of the
+  records/anchors, `lessorLb j0`, last anchor at the store's log `L0 ⊒ F`; `¬Fr` excludes a free window) and `tie_law`
+  (open `winTieN`+`lessorRdN`: for `i ≥ j0`, committed `La ⊒ L0`, `Lt`, `σl` holds every item both put on `id`, `id`
+  live); `a5a5ca5595` `WinTieApply.lean` (`winTieRes E Fr` = `∃ γt, ⌜E.Wt = winTok γt⌝ ∗ winTieInv … ∗ lessorRdInv`;
+  `envAus_tie` (envAus from the store invariant + tie at `E.stq = ¼`); `kvOwn_push`/`applyKV_push` (entry window, target
+  `itemsOfLog Lt`); `kvOwn_free`/`applyKV_free`; `uberOwn_win`/`cmpOwn_win` by `.rfl`) and `KVStoreLaws.restorePreA_of_au`
+  (`restoreArgs_holds` now a call of it: use it with `au_restore_tie` on the snapshot path).
+- **Next, in order (one change; nothing compiles in between, so lean-check file by file and commit at the end):**
+  (1) `InvApplier`: import `WinTieApply`; `srvKVInvs` and `KVApplyOn.srvKVInvsOn` gain a LAST conjunct
+  `srvApi.winTieRes E (¬ clusterNoSnap γr.raft.raft.cl)`; `srvEnvOk`'s third conjunct `(E.win = none ∧ E.stq = ¼)`.
+  Patterns that break (end in `%X` at the old last position): StopImage:156, InvApplier:729/742, SnapSendBranch:847,
+  KVApply:282, applyEntryNormal:375/548, MergedImageOn:80, SnapRecvOn:598, ApplyAllSnap:245 (check which predicate),
+  and the `srvKVInvsOn` ones (`grep -A3 "iunfold srvKVInvsOn at"`); `srvEnvOk` users: SnapApplyWalk:641
+  (`.2.2.1.2.2` → `.2.2.1.2`), SnapApplyKV:52/102/116 (`hEw`; `snapE_Wt`), `HEo.2.2.1.1` (win) stays.
+  (2) `srvApplyKV`/`srvApplyKVOn`: `apply.applyKV E ua x` → `∃ w, apply.applyKV {E with win := w} ua x`.
+  (3) NewServer (~l.760 `#Hlrdinv`, ~l.2476 `Haus`) / NewServerR (~l.2165): split `bootStore.law`'s `wSt` into `wStQ ¼`
+  ×2; `tie_alloc` after `NewLessor` (`Lt = log` = boot log, `T = itemsOfLog log`); `Wt := winTok γt`, `stq := ¼` in
+  the `AEnv` literals (sed on `γlt := γlt }`); `Haus` by `envAus_tie`; build `winTieRes` for srvKVInvs.
+  (4) `applyEntryNormal` (6 arms, `grep -n winTgt_none`): `applyKV_push` before `Apply` with `Lt` = the model log after
+  the entry (`backendLog lt rq log`; `KVOutcomeOn.backendLog_of_step`, `revokeLog_eq_backendLog` give `winTgt` for
+  KV/revoke arms; other kinds leave the log), `□ E.Nx Lt` from the raft witness of `A ++ [m]`.
+  (5) Snapshot path (SnapApplyWalk ~l.654): `applyKV_free` (Fr from the toApply payload's `¬ clusterNoSnap`,
+  `InvRaftNode.lean:1951`), then `restorePreA_of_au` with `au_restore_tie` in place of `restoreArgs_holds`.
+  (6) ONE leaves build from `00b09c1360` (kernel-checks `tie_pick`, `tie_obs`, `tie_law`, the `--fast` files).
+  (7) The law (`LessorFollows.lean`, frozen text in `notes/auth-lease-s4-frozen.lean.txt` §5; `lessorLawMask` gains
+  `lessorRdN` and `winTieN`): `m := j0` from `tie_obs`; per `i`, `tie_law`; S5 (not yet found as a lemma): from `kvInv`
+  (holds `etcdKV`'s other half) and `□ E.Nx L` (`srvRLogLb A`, `L = kvModelM … A`): `L.length - 1 ≤ σ.rev` and the
+  items of `σ.at (L.length - 1)` are `itemsOfLog L`; then `leaseKeptIn` at `La`'s and `Lt`'s revisions.
+  (8) Step 8, the c6b merge, full build, tcb-report, gen-interface (see the task brief).
+- **Pitfalls:** `{E with win := w}`'s pieces do not `iframe` into `{E with win := w'}` goals: `iExactEq H; rfl` (see
+  `WinTieApply`). Don't `rw` an Iris hypothesis (`rw … at H` sees only Lean hyps). `cases h : f x` in a proof-mode goal
+  rewrites the Iris context: use `rcases Option.eq_none_or_eq_some (f x)`. In `iinv` patterns, `mvccState γ σ` is not
+  timeless without `Hp`: bind it without `>`. Earlier pitfalls below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: the tie proved standalone; server wiring next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
+  (lean-check only). Decisions: `questions.md`, last entry (K1 forms ACCEPTED; namespace option (b): the tie in its own
+  namespace `winTieN`, outside `kvsN`/`mvccN`/`wsN`; `kvStoreInv`, `bootStore.law`, `kvPeek.law`, `srvApi.kvsN` untouched).
+- **Done:** `49aab6ebc5` + this commit: `etcdserver/WinTie.lean` (imported by nothing yet; lean-checked, kernel-checked
+  except `tie_pick`, `--fast`). Contents: names `WTNames` (`w` token, `t` window records, `a` anchors), `winTieInv Nx Fr
+  γl γs γt` (body: `lessorWinTie ws`, `ghostVar γt.w ½ (lastWin ws)`, `ghostVar γs.st ¼ (log,p)`, mono-lists `tw`
+  (start, target, model log `Lt`) and `anc` (window idx, lessor idx, store log), persistent facts, pure `tieOk`);
+  `winTok γt w` (the apply thread's half, = the server's `E.Wt`); laws: `au_end_tie` (end builder at `wStQ ¼`, records
+  the commit's anchor from `winWit`), `au_restore_tie` (restore at `¼`, token at `none`), `tie_push` (per-entry window,
+  needs `□Nx log`, `□Nx Lt`, `log <+: Lt`, `T = itemsOfLog Lt`, owner items `= itemsOfLog log`), `tie_free` (free marker,
+  needs `Fr`), `tie_alloc` (after `NewLessor`: first window); pure `tie_pick` (step 7's core: an index `i ≥ j0` of the
+  law's observation anchor lies in a free window or a window with an anchor `La ⊒ L0 ⊒ F` before `i`, stable to `i`).
+- **Next, in order:** (1) step-7 Iris lemmas in WinTie: `tie_obs` (open `kvsN`+`winTieN`: `F <+: log`; the last anchor
+  `(tw0.length-1, j0, L0)` with `L0 = log`, `m := j0`, `lessorLb` by `lessorAt_lb`; or `Fr` if the window is free) and
+  `tie_law` (open `winTieN`+`lessorRdN`: agree `lessorWinTie` ¼ with `lessorWinBody` ½, `lessorAt` lookups via
+  `lessorPinR_agree`+`mono_list_auth_idx_lookup`, then `tie_pick`). (2) Server wiring: `srvKVInvs`/`srvKVInvsOn` gain
+  `∃ γt, ⌜E.Wt = winTok γt⌝ ∗ winTieInv E.Nx (¬ clusterNoSnap γr.raft.raft.cl) (mvccLeases E.γ) E.γs γt` (last conjunct;
+  fix the patterns that enumerate all conjuncts); `srvEnvOk`'s third conjunct `E.stq = ¼` (and drop `E.Wt = True`);
+  NewServer/NewServerR: split `bootStore`'s `wSt` (½) into ¼+¼, `tie_alloc` after `NewLessor` (Lt = boot log),
+  `Wt := winTok γt`, `stq := ¼` in the `AEnv` literals (sed on `γlt := γlt }`), `envAus` from the generalized
+  `au_begin/au_wread/au_compact/writer_facts/writer_floor` at `{q}` + `au_end_tie`; snapshot path: `tie_free` (Fr from
+  the toApply payload's `¬ clusterNoSnap γ.node.cl`, `InvRaftNode.lean:1951`) then `au_restore_tie` (generalize
+  `restoreArgs_holds`' proof over the AU, no twin); `srvApplyKV(On)` at `∃ w`; `applyEntryNormal`: `tie_push` with `Lt` =
+  the model after the entry. (3) ONE leaves build from `00b09c1360`; step 7 (law: `tie_obs`/`tie_law` + S5 from
+  `kvNx`/`etcdKV`), step 8, the c6b merge (see the task brief).
+- **Pitfalls:** in WinTie, `lease.win_push`'s `x.map …` does not unify with `some (s,T)` in `iexact`/`iframe`: use the
+  wrappers `win_push_some`/`win_push_none`. Projections of literal tuples (`(n,j,L).2.2`) need `simp only` before
+  `iframe`/`omega` (also `at h`). `iinv` on `winTieInv` needs `iunfold winTieInv` and `iunfold winTieBody` first. A
+  lean-check that reopens WinTie rebuilds its imports (~3 min).
+
+## Previous START HERE (S4, 2026-11-17, item 7b: applierSpecW and K1's apply layer done; F4 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
+  (lean-check `--fast -a` only). Decisions: `questions.md`, last three entries (K1 + applierSpecW APPROVED by
+  etcd-grove-03; the agent's forms "applierSpecW and K1", for review).
+- **Done:** `96aaf93c0c` applierSpecW (`uberIs`/`baseAuth`/`uberOwn` hold `□ ∀ w, applierSpec {E with win := w}`).
+  This commit, K1's apply layer: `srvApi.wStQ γs q` (`wSt` = `wStQ ½`, abbrev), share-generic read-only builders
+  (implicit `{q}`), `AEnv.stq : Qp := ½`, `envAus`/`kvOwn(At)`/`mPre*` at `wStQ E.γs E.stq`; server transitional:
+  `srvEnvOk`'s third conjunct `(E.win = none ∧ E.Wt = True ∧ E.stq = ½)`. lean-check clean on every file that
+  mentions the changed names (list `/shared/tmp/rs56-l3.txt`, plus their imports through Lake).
+- **Next, in order:** F4 proper (design: questions.md "Item 7b F4 decision" + "the tie cannot see the store's log"):
+  (1) namespace split: store invariant at `kvsN .@ "st"` (`kvStoreInvG`, `kvsN_mvccN` uses: KVStoreCore 22,
+  KVStoreApi 6, etcdstart WatchSrv/Served 4, NewServerRFacts 1), tie at `kvsN .@ "win"`; (2) the tie
+  (new file, e.g. `etcdserver/WinTie.lean`): names `γw` (ghost var of the current window), `γe` (mono-list of events
+  push/commit/obs), invariant `lessorWinTie γl ws ∗ ghostVar γw ½ (lastWin ws) ∗ ghostVar γs.st ¼ (log, p) ∗
+  monoListAuthOwn γe 1 evs ∗ facts`; `E.Wt w := ghostVar γw ½ w`; (3) server end builder at `wStQ E.γs ¼` (both
+  steps of `au_end` open the tie: the notify step moves the tie's ¼ with the pending, the commit step records the
+  commit event) and restore builder (records a free marker), replacing the `kvAusG` ones in NewServer(R)/
+  SnapApplyOpts; (4) `srvEnvOk`: `E.stq = ¼`, `E.Wt = ghostVar γw ½` (replace the transitional conjunct), split
+  `bootStore.law`'s `wSt` (½) into `wStQ ¼` ×2 in NewServer/NewServerR; (5) `srvApplyKV(On)` at `∃ w`, per-entry
+  `win_push` in `applyEntryNormal`, first window in NewServer after `NewLessor`, snapshot `win_push none`;
+  (6) ONE leaves build from `00b09c1360`; step 7 (law), step 8, c6b merge (see the task brief).
+- **Open point before F4 (1):** `kvStoreInv` (KVStoreApi, the conclusion of `bootStore.law`) is defined with `inv kvsN`
+  separately from `kvStoreInvG`; moving the store invariant to `kvsN .@ "st"` changes what `bootStore.law` asserts
+  (namespace only; text unchanged), and `etcdstart/Served.lean:112` exports `srvApi.kvsN` as the store's namespace,
+  `kvPeek.law` opens `kvsN`. Approved earlier as "text unchanged"; the K1 decision says "texts and meaning". If that
+  counts, the alternative is the tie at its own namespace outside `kvsN` (disjoint from `mvccN`, `kvsN`, `wsN`), with
+  the law's mask extended by it. Ask etcd-grove-03 which, before coding (1).
+- **Pitfalls:** `wStQ` is reducible: `icases` destructs it directly; `iframe` into a `wStQ` goal needs `iunfold wStQ`
+  first. To turn `wStQ E.γs E.stq` into `wSt` use `rw [hstq]` inside a subgoal that closes (a goal-level `rw [← hstq]`
+  would rewrite every `½`). `{E with win := w}.authOn` does not unify with `E.authOn` in the proof mode:
+  `apply.applierSpec_congr` with explicit `c`/`c'`. The loop script `/shared/tmp/rs56-loop.sh LIST stop` stops at the
+  first file with an error (fixed: it matched "0 errors").
+
+## Previous START HERE (S4, 2026-11-17, item 7b: F4 (A) decided; STOPPED before coding on the tie/store coupling)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (no Lean change since `ac1084fa33`,
+  which compiles at the defaults; not built since `00b09c1360`, lean-check `--fast` only).
+- **Decided (questions.md, "Item 7b F4 decision"):** SnapApplyKV fix accepted; F4 option (A): window kept open between
+  entries, loop state `∃ w, applyKV {E with win := w} …`, first window in NewServer after NewLessor, frees only in the
+  snapshot branch; tie design (ghost var γw of the current window, `E.Wt w := ghostVar γw ½ w`; mono-list of
+  push/commit/obs events at `kvsN .@ "win"`, store invariant moved to `kvsN .@ "st"`).
+- **Stop (questions.md, "Item 7b F4: the tie cannot see the store's log"):** step 7's case "window current at the law's
+  obs, `F` beyond the push's log" needs the tie to know the store's exact log; no ghost ties the two invariants.
+  Recommended K1: the tie owns ¼ of `γs.st` (split from the `wSt` bootStore gives), `AEnv.stq : Qp := ½`, `kvOwn`/
+  `envAus` at `wStQ E.γs E.stq`, KVStoreCore builders generalized over the share, server end/restore builders that open
+  the tie inside the commit AU. K2 (private `st` name) and K3 (drop the law) in the entry.
+- **Next after the decision, in order:** (1) form, any option: `applierSpecW E c a := □ ∀ w, applierSpec {E with win :=
+  w} c a` held by `uberIs`/`baseAuth`/`uberOwn` (sites: `grep -rn "unfold apply.uberOwn\|unfold apply.uberIs\|unfold
+  apply.baseAuth"`, 28; producers: `NewUberApplier` from `Hbase` at every window, the restoreAlarms chain); lemma
+  `applierSpecW_at`; holders then move between windows by `rfl` (`backendOptsOk`, `cmpOwn` do not read `win`).
+  (2) the coupling per the decision; (3) F4 proper (namespace split: `kvsN` sites in KVStoreCore 22, KVStoreApi 6,
+  etcdstart WatchSrv/Served 4, NewServerRFacts 1; tie definition and laws; `srvApplyKV(On)` at `∃ w`; per-entry
+  `win_push` in `applyEntryNormal`; NewServer/NewServerR: tie allocation, first window, `Wt :=` in the 20 `AEnv`
+  literals (sed `γlt := γlt }`); snapshot `win_push none`); (4) ONE leaves build from `00b09c1360`; steps 7, 8; c6b merge.
+- **Pitfalls:** fresh lean-check of a server file rebuilds its imports through Lake (minutes; examples > 25 min).
+  `win_push` returns `s` = the history's last index (no new snapshot). Earlier pitfalls below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: compiling again at the defaults; STOPPED before F4 on the free-range gap)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last three
+  entries: etcd-grove-03's review of forms 1-6 + the SnapApplyKV fix; the F4 STOP "the free range between entries").
+  Not built since `00b09c1360` (lean-check `--fast` only).
+- **Done (this commit):** `srvEnvOk`'s third conjunct is `(E.win = none ∧ E.Wt = fun _ => True)` (etcd-grove-03's fix,
+  one conjunct so destructurings keep their arity; F4 replaces the `Wt` half by the tie token); `snap_applyKV` takes it
+  as a premise (`SnapApplyPost` reads it off `isServerM`'s fields); NewServer/NewServerR's `leasesLive` builders fixed.
+  lean-check `--fast -a` clean: InvApplier, SnapApplyKV/Walk/Post/IsServer/OptsLemmas, EtcdServer__apply,
+  EtcdServer__applyEntryNormal, StopShutdown, SnapSendBranch, AppliedOn, InvStart, InvBuild, KVStoreLaws, RestOn, UberOn,
+  InvRead, NewServer, NewServerR (see the report), apply/Link, apply/Results, mvccrand writer__revoke, mvccfull
+  runner__apply. Not checked (imports rebuild past lean-check's timeout): examples/etcd/auth/WorkCalls, the server
+  `Link`/`Results`, restart*: left to the leaves build.
+- **Stop (questions.md, "Item 7b F4: the free range"):** at the base `E` (`win = none`) the loop's applier state must
+  free the window after each entry (`win_push none`), and `winsOk` says nothing of free ranges, so step 7 cannot place
+  an index pushed between entries. Recommended (A): the loop's applier state at `∃ w, applyKV {E with win := w}`; NewServer
+  opens the first window after `NewLessor`. The tie's design for the next agent is in the same entry.
+- **Next after the decision:** F4 (tie at `kvsN .@ "win"`, store at `kvsN .@ "st"`, `E.Wt := ghostVar γw ½`, per-entry
+  push in `applyEntryNormal`, `kvAusG`'s end builder records commits; the `Wt := …` field goes into NewServer's 20 `AEnv`
+  literals: sed `γlt := γlt }`), then the ONE leaves build from `00b09c1360`, step 7, step 8, the c6b merge.
+- **Pitfalls:** fresh lean-check of a server file rebuilds its imports through Lake (minutes; examples > 25 min). After
+  `rw [hwin]` a goal has `lessorUserW … none`, not `lessorUser`: drop `iunfold lease.lessorUser`. `leasesLive`'s last
+  conjunct `E.Wt E.win` reduces to `True` at the defaults: `iframe` the `ltHalf`, not `iexact`. Earlier pitfalls below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: the applier at a window done at the apply layer; server at defaults; F4 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last three
+  entries: etcd-grove-03's decision on the applier forms and F4's token; the agent's forms "applier at a window,
+  continued"). Not built since `00b09c1360` (lean-check only, `--fast`); the ONE leaves build comes after F4.
+- **Done (this commit, lean-checked):** backend `DeleteRange/Txn/LeaseRevoke/LeaseGrant` at `E.win` (lemmas
+  `apply.delWinTgt/delWinDrops/txnWinTgt/txnWinOps` in `WriteLemmas`, `revokeWinTgt/revokeWinDrops` in the Revoke file);
+  `envAus`' end builder's target premise only for `pend ≠ []`; auth layer (`putPreW/deletePreW/txnPreW/revokePreW`
+  carry `winTgt`); the auth checks at any window (`checkLeasePuts*/checkPutAuth/checkTxn*/CheckTxnAuth.spec` + `specL`s:
+  last binder `w`, `lessorView γl U w`); wrappers (Corrupt/Capped/quota/newQuota); `dispatch.spec`, `uberApplier.Apply.spec`,
+  `Apply.specRec`, `dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `uberKVC`, `Apply.kvSpecL`: pure premise
+  `(E.lg = true → winTgt E.win rq log T) ∧ (E.lg = false → E.win = none)`; server at the defaults: `srvEnvOk` gains
+  `E.win = none` (3rd conjunct; destructurings fixed), `applyEntryNormal` passes the premise from `HEo.2.2.1`,
+  NewServer/NewServerR's `envAus` end builder from `kvAusG`'s (`Wt = True`), `snapE_win/Wt`.
+- **Status of the check (lean-check `--fast`):** all of `apply/` that mentions the changed names checks, incl. the
+  auth layer, wrappers, `DispatchKVL`, `uberApplier__dispatch/Apply`, `ApplyRec/KVL/FnKVL`; server: `EtcdServer__Txn`,
+  `EtcdServer__applyEntryNormal`, `SnapApplyOpts`, `SnapApplyWalk`, `SnapApplyIsServer` check. **Known broken:**
+  `SnapApplyKV.lean:115` rebuilds `leasesLive` at `snapE` and now needs `E.Wt E.win` (the walk binds it as `HlWt` in
+  `SnapApplyWalk` after `rw [hwin]`, but does not pass it into `snapWalkPost`): thread `HlWt` through the post, or
+  (simpler until F4) add `E.Wt = fun _ => True` to `srvEnvOk` beside `E.win = none` (F4 then replaces it by the tie
+  token). `NewServer.lean:2100` fixed (one more `rfl`) but not re-checked. Not yet checked: `NewServerR`, the server
+  `Link`/`Results`, `apply/Link`/`Results`, `EtcdServer__apply`, `SnapApplyPost`, the examples (`restart*`,
+  `mvccfull`, `auth/WorkCalls`), `StopShutdown`, `SnapSendBranch` (destructurings of `srvEnvOk` fixed by hand).
+- **Next, in order:** (1) finish the server check list (`python3 etc/importers.py --files <changed>` filtered by
+  the changed names; `/shared/tmp/rs56-loop.sh LIST` runs lean-check over a list). (2) F4 (approved, conditions in
+  questions.md): tie invariant at `kvsN .@ "win"`, store invariant at `kvsN .@ "st"`, allocated in NewServer after
+  `NewLessor`; the server's base `E` has `win = none` (now in `srvEnvOk`) and `Wt :=` the tie token; per entry
+  `applyEntryNormal` pushes the window and calls the applier at `{E with win := some (s, T)}` (applier facts held for
+  every window); `kvAusG`'s end update must record the commit in the tie (replace the default-`True` builder in
+  NewServer/NewServerR). (3) ONE leaves build from `00b09c1360`; steps 7, 8; c6b merge; full build; tcb; interfaces.
+- **Pitfalls:** fresh lean-check of a file rebuilds its imports through Lake (minutes for server files). In proofs with
+  a local `%w` (txn op patterns) name the window `wn`/`win`. `ipureintro` merges trailing pure conjuncts: a new pure
+  conjunct after a big one needs `⟨⟨…big…⟩, W⟩`. `pkill -f rs56-loop.sh` kills your own shell: use the task id.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: F1-F3 done; the applier at a window IN PROGRESS (WIP commit, downstream broken))
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last: "F1-F3 forms: reviewed",
+  then the agent's forms of this session, "Item 7b applier: forms", for review). Not built since `00b09c1360` (lean-check
+  only); the batch's ONE leaves build comes after the server part.
+- **Done, lean-checked:** F1, F3 (`3bfb255105`); F2 (`3c0b2b7fe0`: `txn.putAUW/delAUW/txnBeginAUW`, `lease.winWitOk`,
+  now `isTxnLessor`'s last conjunct and a premise of `txn.DeleteRange.spec`). This WIP commit: the window premises moved
+  into the begin payloads (`putAUW`: `(needsPrev → found) → winMove w I (putItemsOf I o)`; `txnBeginAUW`: `WinOps`), so
+  `txn.Put.spec`/`Txn.specSole` lost their upfront `⌜winMove⌝`/`⌜WinOps⌝` (a rejected put/txn has `T = I`, which the
+  upfront premise could not meet). **Applier at a window, as AEnv fields** (form, see questions.md): `AEnv.win : Option
+  LWin := none` and `AEnv.Wt : Option LWin → IProp := True` (the server's window token, F4); `leasesLive(At)`/`kvOwnAt`
+  hold `lessorUserW … E.win ∗ … ∗ E.Wt E.win`; `winTgt w rq log L` (`Chain.lean`: every backend outcome lease-exact at
+  `L` leaves the window's target items); `putPre`/`deletePre`/`revokePre` carry `⌜winTgt E.win rq log T⌝`, `txnPre`
+  `⌜winTgt … ∧ txnKeysNodup t⌝`; `envAus`' end builder `∀ w`, takes `E.Wt w`, `⌜T = items after⌝`, `winWit`, gives back
+  `wSt ∗ E.Wt w`; `revokeClause` and `isApplyLessor`'s Grant clause at `∀ w` (`LessorDerive` passes it);
+  `WriteLemmas`: `putPend_cases` (moved), `putWinTgt`, `putWinMove`, `kvOwnAt_of_split` over `(wSt ∗ E.Wt E.win)`,
+  `putPre_of_mPre`/`txnPre_of_mPre` take `T0`, `hw : E.lg → winTgt E.win rq log T0`, `hn : ¬E.lg → E.win = none`
+  (txn: `hnd`) and `ltHalf E T0` (given back). Checked: `Chain`, `Contracts` (via LessorDerive), `LessorDerive`,
+  `WriteLemmas`, `applierV3backend__Put`, txn `Put`/`Txn`/`DeleteRange`, `LessorContract`.
+- **Next, in order:** (1) fix the rest of `apply/` (convention: track `wSt ∗ E.Wt E.win` together, as `Put`):
+  `applierV3backend__{DeleteRange,Txn,LeaseRevoke,LeaseGrant}` (Txn: `WinOps` in the begin payload from
+  `txn.winOps_txn_of_nodup` + `winTgt`; DeleteRange: `winDrops` from `winTgt`; Revoke: `revokeClause` at `E.win`),
+  `uberApplier__dispatch` (pass `T`, `hw`, `hn`, nodup from `rqOk`), `Apply.spec`/`dispatch.spec`: new pure premise
+  `(E.lg → winTgt E.win rq x.log T) ∧ (¬E.lg → E.win = none)` (Apply's `T`), then `DispatchKVL`, `AuthApplyLatest*`,
+  `checkLeasePuts*`, `AuthLemmas` etc. (`python3 etc/importers.py --uses lessorUser …`; patterns binding leasesLive's
+  last conjunct). (2) F4 (server): instantiate `E.Wt` with a ghost-var half of a new tie invariant (the store's
+  invariant cannot be changed without touching `bootStore.law`/`newServerStoreFreshA` (NewServer.spec premise, the
+  etcdstart allocations): proposal: a separate invariant at `kvsN .@ "win"` with the store invariant moved to
+  `kvsN .@ "st"` (both inside the law's `kvsN` mask), allocated in NewServer after `NewLessor` with `lessorWinTie`, the
+  window var's other half and the event list; the end builder needs the current window because a persistent
+  `winWit` could be replayed at a later commit (why `E.Wt`)). Server per-entry push at `{E with win := some (s,T)}`
+  (persistent `applierSpec`/`uberIs` facts must then be held `∀ w`). (3) leaves build; steps 7, 8; c6b merge.
+- **Pitfalls:** an `IProp` argument inside a term needs `iprop(…)`. In `apply`, `lease.winWit (mvccLeases …)` does not
+  resolve: write `Perennial.EtcdGrove.lease.winWit (mvcc.api.mvccLeases E.γ)`. Patterns `⟨Hk, Hu, Hlt⟩` on
+  `leasesLive(At)` now bind `ltHalf ∗ E.Wt` to `Hlt` (fine for re-framing, not for `icombine`).
+
+## Previous START HERE (S4, 2026-11-17, item 7b: F1, F3 done; batch continues)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: the step-7 gap,
+  "F1-F4 decision" by etcd-grove-03, with its conditions). Not yet built (lean-check only); the batch's one leaves build
+  comes after the applier/server part.
+- **Done (this commit, lean-checked):** F1: `winsOk` pairwise (`InvLessor`; `LessorHist.winsOk_snoc/_open`), `lease.winWit`
+  (`InvLessor`, `True` at `none`), `lease.win_wit` (`LessorLemmas`). Form: `txn.isTxnLessor` gains the clause
+  `□ ∀ L I w, leaseOwnW … w ={⊤}=∗ leaseOwnW … w ∗ winWit γl w I` (the txn layer has no `lessorRdInv`; premise of
+  closed `txn_runTxn`/`server_kv_backend` strengthened, discharged by `isTxnLessor_of_lessorInv` via `win_wit`; consumers'
+  patterns get a trailing `-`). F3: `lessor.Revoke.spec`'s begin payload `winWit γl w (items after) -∗ auEnd …`; the proof
+  takes the witness after the delete loop; `txn.pendItems_commitLog` (`ApiLemmas`); `srvApi.auBegin_wand`/`auBegin_pre`
+  (`MvccShapes`); callers at `none`: `LessorDerive.revokeClause_of_lessorInv`, mvccrand `writer__revoke`, mvccfull
+  `runner__apply` (check pending at commit time: see below).
+- **Done (F2, lean-checked):** `ApiVocab`: `txn.putAUW/delAUW/txnBeginAUW γ w …` (commit under `lease.winWit … w
+  (pendItems σ₀.log pend) -∗`), old names abbrevs at `none`; `lease.winWitOk γl` (`InvLessor`, after `leaseOwnW`), now
+  `isTxnLessor`'s last conjunct; `txn.Put/Txn.spec` take the `W` forms at `w`; `txn.DeleteRange.spec` takes
+  `lease.winWitOk (mvccLeases γ)` (it has no lessor) and `delAUW`; proofs give the witness before `End`. Appliers
+  (`applierV3backend.{Put,DeleteRange,Txn}`) still at `none` (`iintro -` before `commitAU_of_auEnd`).
+- **Next, in order (one batch, then ONE leaves build from base `00b09c1360`):**
+  1. (done) F2: `ApiVocab`: `txn.putAUW/delAUW/txnBeginAUW γ w …` whose commit is `lease.winWit (mvccLeases γ) w (pendItems σ₀.log
+     pend) -∗ txn.commitAU …`; keep `putAU/delAU/txnBeginAU := …W none` (abbrevs: closed `txn_runTxn` names `txnBeginAU`,
+     text unchanged). `txn.Put/DeleteRange/Txn.spec` take the `W` forms at their `w`; proofs (`Put.lean:113`,
+     `DeleteRange.lean:74`, `Txn.lean:257`) get the witness from `isTxnLessor`'s new clause just before `End`.
+  2. Applier at a window (design: "Next" of the previous START HERE): `kvOwnW`/`leasesLiveW`/`mPreAtW` (plain = `none`),
+     `revokeClause`/`isApplyLessor` at `w`, `applierV3backend.{Put,DeleteRange,Txn,LeaseRevoke}` with the pure premise; the
+     AU builders feed the witness to F4's end builder.
+  3. F4: `kvStoreInvG`'s body: `lessorWinTie` + a monotone event list (push `(s,T,log_s,entry)` / commit `(j,log)` with
+     `lessorAt` facts); `envAus`'s end builder takes `winWit` + "T = items after" and records the commit; `au_restore`
+     records a free marker. Server: `applyEntryNormal` pushes per entry (`win_push (some T)`), snapshot `win_push none`.
+  4. lean-check the changed files, then the leaves build; step 7 (the law; `lessorLawMask` gains `lessorRdN`), step 8,
+     the c6b merge (`.lake/package-overrides.json` ← `/shared/tmp/manifest-c6b.json`), full build, tcb, interfaces.
+- **Pitfalls:** an `IProp` argument written inside a term needs `iprop(…)` (`auBegin γ σ₀ iprop(W -∗ X)`). `wp_apply hR`
+  whose window was inferred from a now-wrapped resource needs `(hR none)`. lean-check `-a` on mvccfull's `runner__apply`
+  takes minutes (run it in the background).
+
+## Previous START HERE (S4, 2026-11-17, item 7b: STOPPED before step 6's applier work: a gap in step 7's design)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last
+  two entries: the window design APPROVED by etcd-grove-03; "the approved design leaves step 7 unprovable after a
+  commit", the stop, with the proposed fix F1-F4).
+- **Done:** steps 1-5, 6a, 6b (commits in the previous START HERE below). No Lean change since `00b09c1360`.
+- **Stop:** between the entry's `End` (the store's committed log, hence `kvLogLb` floors, advance) and the next window
+  push, `F` may include the entry, so the window's start revision is below `F.length - 1`; nothing records that the
+  lessor reached `T` before the commit. Fix proposed (questions.md): pairwise window stability + `win_wit` (lessor),
+  the commit update takes a lessor witness (txn `putAU`/`delAU`/`txnBeginAU`, `revokeClause`/`Revoke.spec`), kvsN's
+  tie a monotone event list (push / commit) recorded by `envAus`'s end builder.
+- **Next after the decision:** one batch: F1 (InvLessor/LessorHist/LessorLemmas), F2-F3 (txn, lease Revoke), the
+  applier at `w` (step 6 as designed below) + F4 (envAus, KVStoreCore tie, Chain W-forms), the server's push per entry;
+  check with lean-check, then ONE leaves build (InvLessor ⇒ ~5100 modules). Then step 7, 8, the c6b merge.
+- **Pitfalls / build:** as in the previous START HERE.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: step 6's rqShape/rqOk part done; the window's delivery to the applier next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: "Item 7b step 6
+  decision", "rqShape's conjunct: forms"); ledger 2026-11-16 7b entry ("Step 3" .. "Step 6, the permits").
+- **Done:** steps 1-5 (`e1a57743a0`, `0fea6c849f`, `904deb4368`, `77d6bd24c7`); 6a permits (`94933020d5`); 6b (this
+  commit): `txn.txnKeysNodup` moved to `txn/TxnRun.lean`; `apply.rqOk`'s txn arm `TxnPreA ∧ putOk ∧ txnKeysNodup`
+  (so `rqShape`, `entryShape` and every apply spec taking `rqOk` carry it: `dispatch` has it); `rqShape_txnL`/
+  `rqShape_of_txn` take `hn` (from `txnPermitOn`/`txnPermit`). Built: the 51 leaves importing the changed files.
+- **Next: deliver the window to the backend applier.** Design (agent, not yet reviewed; refine before coding):
+  1. *Who opens.* The server's per-entry apply (`EtcdServer__applyEntryNormal` / `ApplyNormalOn`), which holds kvsN's
+     tie quarter (`lessorWinTie`, from `NewLessor` via boot into `kvStoreInvG`'s body, with a pure relation ws ↔ σ.log
+     and the raft entry: start index `s` with `items hs[s] = items (stateAfter log)`, `T` = the model's items after the
+     entry, the entry's `srvRLogLb`). `win_push (x := some T)` before `Apply`, the window kept after (next entry's push
+     replaces it), `win_push (x := none)` in `applySnapshot` (L1: never reached under `clusterNoSnap`, but needed).
+  2. *T before the outcome.* T = `leaseItemsOf` of the KV model's state after the entry (a pure function of the
+     committed log the server knows). If the model rejects, T = the current items, and `winStep` then freezes every item
+     (what the law needs for a rejected entry).
+  3. *What each applier layer takes:* `kvOwn`/`mPre`/`leasesLive` at a window (`lessorUserW … w`, `leasesLive`'s `W`
+     form; the plain names = `none`), and the pure premise "if the backend runs, `T` is its items after":
+     `∀ s T, w = some (s, T) → ∀ oc, backendStep rq log oc → leaseExactL Lv rq log oc → T = leaseItemsOf (stateAfter
+     (oc.logAfter log))`. The server discharges it by `KVOutcomeOn.backendLog_of_step` (the model's log is `backendLog`).
+     At `w = none` all trivial, so the closed `apply/Results` (`chain_*`, over `kvOwn`/`applierSpec`) keep their text;
+     `applierSpec`'s triples at `∀ w` strengthen their premise only (the step-3 pattern; STOP-check with the coordinator
+     if `applierSpec` turns out to be a client-supplied premise of a closed result that a client cannot discharge).
+  4. *Backend:* `applierV3backend.Txn` gets `WinOps` from `winOps_txn_of_nodup` (nodup from `rqOk` via `dispatch`; or add
+     nodup to `txnPre`'s pure part at `w ≠ none`), `Put` from `winMove_to_target`, `DeleteRange` from `winOp_of_nodup`
+     (`.delete`), `LeaseRevoke` from `Revoke.spec`'s `winDrops`.
+  Then step 7 (the law: `m` = the history's last index when `F` is applied; per index its window via kvsN's tie), step 8,
+  the lean merge (c6b), full build, tcb, interfaces.
+- **Pitfalls:** a change to `apply/Chain.lean` or `txn/TxnRun.lean` rebuilds ~2100 modules (51 leaves, ~1 h in a slot).
+  Proofs with a local `lease` need `Perennial.EtcdGrove.lease.winMove`; locals named `w` in `executeTxn`/`checkTxn`: the
+  window is `wn` there. An explicit `none` makes posts `leaseOwnW … none` (convert with `lease.leaseOwnW_eq`). Don't
+  `git stash` while a lean-check runs.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(python3 etc/importers.py
+  --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`; logs
+  `/shared/tmp/auth-lease-s4/7b-*.log`. After the lean merge: `manifest-c6b.json`, and `.lake/package-overrides.json`.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: steps 1-5 and step 6's permit part done; step 6 (applier) next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: step 4 forms,
+  "Item 7b step 6 decision" by etcd-grove-03); ledger 2026-11-16 7b entry ("Step 3" .. "Step 6, the permits").
+- **Done:** steps 1-2 (lease, `e1a57743a0`); 3 (mvcc, `0fea6c849f`); 4 (server txn, `904deb4368`: `txn.WinOp`/`WinOps`,
+  `delSelOf`, `putItemsOf`; the txn specs and `check*` at `∀ w`; the applier and `txn_runTxn` call at `none`);
+  5 (`77d6bd24c7`, `txn/WinLemmas.lean`: `winOps_txn_of_nodup`, `winMove_to_target`); 6a (this commit):
+  `txn.txnKeysNodup` (`WorkloadDefs`, with `delsPresent_srvOps`) in `txnPermit`/`txnPermitOn`/`txnPermitM`, discharged
+  at the v3rpc handler by `v3rpc.txnKeysNodup_of_check` (`CheckShape`, no new client premise); the issue file
+  `issues/etcd-txn-check-intervals-sibling.md` has the new consequence. Leaves since `77d6bd24c7` build.
+- **Next (step 6 proper):** carry `txnKeysNodup` from the permit into what the applier sees: `reqPropOk` →
+  `rqShape` (`InvProposer.txnPermit_reqPropOk` and `ReqOn.txnPermitOn_reqPropOk` call `rqShape_of_txn`/`rqShape_txnL`
+  with `Ht.2.2.1`; give `rqShape` the conjunct, `ReqOn.lean:962`), so the apply loop has distinct keys per txn entry.
+  Then the applier contracts (`apply/Contracts.lean`: `revokeClause`, `isApplyLessor(Any)`, put/txn contracts),
+  `applierV3backend.{Put,DeleteRange,Txn,LeaseRevoke}` at `w` (Txn: `winOps_txn_of_nodup`; Put: `winMove_to_target`;
+  DeleteRange: `winOp_of_nodup` on `.delete o` with `B = []`, keys of a sorted state's range distinct,
+  `keys_nodup_of_sorted`), then `Chain.lean` (window open per entry with `T` = items after it, keep between entries,
+  free in the snapshot branch; kvsN's tie share `lessorWinTie`), step 7 (the law), step 8, the merge (c6b).
+- **Pitfalls:** proofs with a local `lease` need `Perennial.EtcdGrove.lease.winMove`; locals named `w` in
+  `executeTxn`/`checkTxn`: the window is `wn` there. An explicit `none` makes posts `leaseOwnW … none` (convert with
+  `lease.leaseOwnW_eq`). Don't `git stash` while a lean-check runs. A pure fact a permit carries reaches the applier
+  only through `rqShape`.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(python3 etc/importers.py
+  --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`; logs
+  `/shared/tmp/auth-lease-s4/7b-*.log`. After the lean merge: `manifest-c6b.json`, and `.lake/package-overrides.json`.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: steps 1-3 done; step 4 (server txn) next)
+
+- Step 3 (mvcc, `0fea6c849f`): `isLessor`/`isTxnLessor` clauses `∀ w`; `winStep` monotone, `winMove`, `winDrops`;
+  mvcc writes and `Txn.*.contract`, `lessor.Revoke.spec` at `w` (details: ledger "Step 3").
+
+## Previous START HERE (S4, 2026-11-17, item 7b: steps 1-2 (lease) done; STOPPED before step 3 (mvcc `isLessor`))
+
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` ("Item 7b step 1 decision",
+  the soundness note, "Item 7b step 3"); ledger 2026-11-16 7b entry ("Landed (step 1-2, lease)").
+- **Done (this commit):** the window ghost (option (A): `NewLessor`'s allocation extended, post gains
+  `lessorWinTie γl []`): `InvLessor` vocabulary (`LWin`, `LWinRec`, `lastWin`, `winStep`, `winStable`, `winEnd`, `winsOk`,
+  `itemsLive`, `lessorWinBody` in `lessorRdBody`, `winOwn` in `leaseClosers … w`, `leaseOwnW`; `leaseOwn`, `lessorUser`,
+  `leaseOwnOpen`, `lessorUserOpen`, `lookupView(After)` are now `abbrev`s of their `W` forms at `none`); `LessorHist`
+  (`winsOk_snoc`, `winsOk_open`, `lastWin_snoc`); `LessorLemmas` (`winBody_push`, `itemsLive_of`, `win_full`, `win_push` =
+  win_open (`x = some T`) / win_free (`x = none`); push lemmas take `w`, `winStep`, `itemsLive`, `winOwn`); specs at `∀ w`:
+  `Attach`, `Detach` (+ `winStep`), `GetLease`, `Grant`, `Lookup` (pass-through). `Revoke` still at `none`.
+  Checked: every library leaf importing a file changed since `232df2b904` builds (log `7b-leaves3.log`);
+  `tcb-report --check` matches the baseline (877 axioms, 4 sorries). Interfaces not yet regenerated.
+- **Stop:** step 3 needs mvcc's `isLessor` (premise of closed `server_kv_backend` ×3 and, via `isTxnLessor`,
+  `txn_runTxn`) at `∀ w`: a stronger premise of closed results. Options in `questions.md` ("Item 7b step 3").
+- **Next after the decision:** step 3 (mvcc: `isLessor` clauses `∀ w`, `storeTxnWrite.*`, `Txn.*.contract`,
+  `mvccDeleter`, `writeView_*`), then `Revoke.spec` at `w`, then steps 4-8 of the plan below. The free-marker / tie
+  design (questions.md "Item 7b step 1", design point; approved) is in the ghost now: `win_push` with the tie's quarter.
+- **Pitfalls:** `iunfold` takes one name (`iunfold leaseOwn; iunfold leaseOwnW`). Outside sites that `iunfold
+  lease.lessorUser` etc. now also unfold the `W` form (done by a regex). Positional calls of `Lookup.spec`/`Grant.spec`
+  need the extra `w` (`none`) after `U`. A change in `InvLessor` rebuilds ~5100 modules (a full build's worth).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(python3 etc/importers.py
+  --git 232df2b904 --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`; logs
+  `/shared/tmp/auth-lease-s4/7b-*.log`.
+
+## Previous START HERE (S4, 2026-11-17, item 7b stopped at step 1: resolved by option (A))
+
+## Previous START HERE (S4, 2026-11-16, item 7b: option 2 APPROVED; plan below, no Lean edit yet)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` ("Item 7b", "Item 7b decision"),
+  ledger `notes/specs-only/ledger.md` (2026-11-16, 7b entry: add each thawed statement old → new as it lands).
+- **Done:** raft, server, drivers (`f1540674ea` .. `782fc63bd3`); Freeze FROZEN (`209e3c68e6`, tag `auth-lease-s4-frozen`);
+  items 5 (`ef5f154062`), 6 (`dcaa5c5d18`), 7a (`0455d1a2f7`, accepted); 7b design and decision (this commit).
+- **Decision (user via etcd-grove-02):** thread a lessor *window token* IN PLACE through the frozen write chain; NO
+  `…specW` siblings. STOP if it reaches a closed theorem's statement, needs an axiom, `sorry` or trusted text, or makes
+  a thawed statement weaker for an existing client.
+- **Next:** 7b per the plan below (report at its completion); 8. goose `authlease`, gen-init; 9. driver (STOP: D-k's texts;
+  STOP: `Main.wp_proof`); 10. linking, gates, land stop (merge lean first).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; leaves: `etc/importers.py
+  --git <base> --leaves`. lean-check: one server, `--max-open 2`, `--stop` before builds and at the end of a turn.
+- **Pitfalls:** `errIsTrue` is not persistent (rebuild it in a `□`). An `iprop` hypothesis is not a Lean one (state an
+  entailment lemma). In `wp_apply (… (by …))`, a `by` naming a local can time out (`have` first). Build logs: grep `^error`.
+
+## 7b plan (why: `questions.md`, "Item 7b")
+
+**Core idea.** A snapshot pushed in the middle of an entry must carry its fact when it is pushed. The apply loop opens a
+*window* per entry, `w = (start, T)`, with `T` the item map of the model after the entry. The lessor's invariant keeps
+every snapshot `j ≥ start` *stable*: `∀ k, hs[start](k) = T(k) → hs[j](k) = T(k)`. Only `Attach`/`Detach` change
+items, so only they need the window, with the premise `winStep w I I'`: every item an op changes goes to its target,
+`∀ k, I k ≠ I' k → I' k = T k`. At `w = none` the premise is `True`.
+
+Steps (bottom up; build each layer's leaves before the next):
+1. **Lessor ghost** (`Proof/.../lease/InvLessor.lean`, `LessorHist.lean`, `LessorLemmas.lean`, `NewLessor`):
+   - `LessorRdNames` gains a name (sed `γr.2.2.2.2` → `γr.2.2.2.2.1` in `lease/`; ~10 sites).
+   - `lessorRdBody` gains the windows mono-list (auth ½ invariant, ½ owner), stability per window, and `itemsLive`
+     (every item's lease in the snapshot's lease map).
+   - `leaseOwnW γl L I w` (`w : Option LWin`) holds the owner's half. Define `leaseOwn γl L I := leaseOwnW γl L I none`
+     (so `leaseOwn`'s clients do not change).
+   - Push lemmas `hist_append(_set)`/`grant_hist`/recover take the window obligation.
+   - New lemmas: `win_open` (owner: `none` → `some (hs.length-1, T)`, opening `lessorRdN`) and `win_close` (→ `none`,
+     returning the persistent `□ ∀ j σ, start ≤ j ≤ end → lessorAt j σ → stable`).
+2. **Lessor specs**: `lessor.Attach/Detach.spec` take `leaseOwnW … w` + `winStep`. `Revoke.spec` takes `w` for its
+   deletes, which go through `mvccDeleter` + `Txn.DeleteRange.contract`. Grant, Recover and Lookup stay at `none` (no
+   item change), unless the apply loop needs `w` across them, in which case `w` passes through unchanged.
+3. **mvcc** (`Spec/.../storage/mvcc/`): `storeTxnWrite__{put,delete,deleteRange,Put,DeleteRange}`,
+   `metricsTxnWrite__{Put,DeleteRange}`, the `watchableStoreTxnWrite` wrappers (find them), `Api.lean`'s
+   `Txn.Put/DeleteRange.contract` and `mvccDeleter`, `writeView__{Put,DeleteRange}` + `Api/WriteViewApi.lean`'s
+   `writeView_*_api`, `ApiLaws.lean` if it mentions them. Premise in the op's terms: `winStep w (pendItems log pend)
+   (pendItems log (pend ++ ops))`. restore/New/NewStore stay at `leaseOwn` (`none`).
+4. **server txn** (`Spec/.../etcdserver/txn/`): `put, Put, deleteRange, DeleteRange, txn, Txn, executeTxn` (+ the `check*`
+   specs only if they carry `lessorUser`). `lessorUser` gets a `W` form (`lessorUserW`, `lessorUser := … none`). Premise
+   at the request level: the request's whole change list moves each item at most once, toward `T`.
+5. **Pure lemma** (new, server txn or apply): within one entry each key's lease item changes at most once along the
+   prefixes of its change list (`txnShape`, `siblingSafeL`, `checkIntervals`, `put`'s same-lease early return), so
+   `winStep` holds at each op for `T` = the items after the entry.
+6. **applier** (`Proof/.../etcdserver/apply/`): `Contracts.lean` (`revokeClause`, `isApplyLessor(Any)`, the put/txn
+   contracts), `applierV3backend__{Put,DeleteRange,Txn,LeaseRevoke}`, `AuthApplyLatest{Put,Txn}`, `WriteLemmas`,
+   `checkLeasePuts(Keys)`. Then `Chain.lean`: per entry, `win_open` with the model's `T`, the op, `win_close`; record
+   the window ↔ model tie (start/end revisions, `srvRLogLb` of the entry) persistently, in a mono-list owned by the
+   lessor's window or by `kvsN`.
+7. **The law** `lessor_keys_of_read` (new `LessorFollows.lean`, re-exported from server `Results`), at the frozen text.
+   `lessorLawMask` gains `↑lease.lessorRdN` (approved form). Proof: `m` = the history's last index once `F` is applied.
+   For `i ≥ m`, find `i`'s window; stability, `itemsLive` and `leaseKeptIn` at the window's two revisions (both
+   `≥ F.length-1`, both `≤ σ.rev` by S5) give `lsHolds`. The S6 off-mode check is in the law's docstring.
+8. Links (`etc/gen-link.py --server`, mvcc, lease), the examples (mvccfull/mvccrand: they stay at `none`), the
+   interfaces (`etc/gen-interface.py etc/api/mvcc.txt`), the ledger rows, `cmpfrozen.py`, then report.
+
+**Thawed statements (approved; record each old → new in the ledger as it lands):** `lease.lessor.Attach.spec`,
+`Detach.spec`, `Revoke.spec`; mvcc `storeTxnWrite.{put,delete,deleteRange,Put,DeleteRange}.spec`,
+`metricsTxnWrite.{Put,DeleteRange}.spec`, `watchableStoreTxnWrite.{Put,DeleteRange}.spec`, `Txn.Put.contract`,
+`Txn.DeleteRange.contract`, `mvccDeleter`, `writeView.{Put,DeleteRange}.spec`/`writeView_*_api`; txn
+`put/Put/deleteRange/DeleteRange/txn/Txn/executeTxn.spec`; apply `revokeClause`, `isApplyLessor`, `isApplyLessorAny`,
+the applier put/delete/txn contracts, `applierV3backend.{Put,DeleteRange,Txn,LeaseRevoke}.spec`. Check first:
+`etc/tcb-report.py` exported results and the `Results` statements must not mention these (closed theorems: STOP).
+
+# History
+
+## Previous START HERE (S4, 2026-11-16, item 7a done; 7b next)
+
+- 7b's design lead then: only a writer holding `lessorMu` and the owner's `leaseClosers` appends to the lessor history
+  (`InvLessor.lean:922-1036`); the last snapshot's item map is the owner's `I`, which mvcc ties to `pendItems σ.log
+  changes` (`WriteViewApi.lean:207-275`); the tie as a mono-list in `kvsN`. Superseded by the 7b finding above.
+
+## Previous START HERE (S4, 2026-11-16, items 5-6 done; item 7 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries,
+  "Item 5", "Item 6": the forms decided, for the checkpoint report).
+- **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); merge of lean 523c2a5495 (`2835564e9d`);
+  **Freeze FROZEN** (`209e3c68e6`, tag `auth-lease-s4-frozen`; texts `notes/auth-lease-s4-frozen.lean.txt`; a change
+  beyond them is a thaw: STOP); **item 5** (`ef5f154062`): Freeze §1 + K1; **item 6** (this commit): §2 (Md lessor/retry/
+  stub specs, `lessorRemoteAtC`, `LessorPlain.lean` for plain callers), §3 C1 (`opGrantT` lease rows), C3/D-i
+  (`clientTokAt` + Lease; `newClient` proves it), D-h (registrations, `client_lease_grant_on`/`_revoke_on` in
+  `ResultsOn.lean`), H1 chain (`authedFrom` + `authedFrom_ctx` in `AuthWhy`, `leaseCheckFrom_of_authedFrom` in
+  `LeaseCheck`, `requireAuthInfo.specC`, server `LeaseGrant`/`LeaseRevoke.spec`, v3rpc contracts + handler specs).
+  Frozen texts compared equal to the tree's (script in the item-6 entry of `questions.md`: all but `opGrantT`/
+  `clientGrant`, equal in meaning). Built: every library leaf importing files changed since `ef5f154062`.
+- **Next, in order (Draft §7):**
+  7. read handlers (§4: `EtcdServer.LeaseTimeToLive/LeaseLeases.specN` (T1, F4), v3rpc `leaseTTLOut`/`leaseLeasesOut`,
+     `etcdLeaseTTLSpecMd`/`etcdLeaseLeasesSpecMd`, `etcd_lease_read_served`; `requireAuthInfo.specC` already carries
+     `authedFrom`) and the per-member law (§5, §10 S1/S4, `leaseKeptIn`, `lsHolds`, `lessorLawMask`,
+     `lessor_keys_of_read`; the tie per §5.4 / R4-5: the big one, est. 4-6 days).
+  8. goose `authlease`, gen-init. 9. driver (STOP: D-k's exact texts; STOP: `Main.wp_proof` proved). 10. linking, gates,
+     then the land stop (merge lean first: it is 61053b1f3c or later).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; affected leaves:
+  `$(python3 etc/importers.py --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`
+  (Scratch/notes targets are unknown to lake). Logs `/shared/tmp/auth-lease-s4/i{5,6}-*.log`.
+- **Pitfalls:** an `iprop` hypothesis is not a Lean one (`unfold … at H` fails: state an entailment lemma, as
+  `kvOpAuOn_leaseGrant`). `opGrantT`'s match does not reduce under `iexact`. `attemptPre_md` did not `iapply` in
+  `LessorPlain` (unfold `attemptPre` by hand). In a `wp_apply (wp_X … (by …))` argument, a `by` naming a local can fail
+  or time out: `have` first. Don't Monitor the build log for `error` (axiom lists name `errors` packages): wait on exit.
+  Build logs are huge (~1M lines of `#print axioms`): grep `^error`.
+
+## Previous START HERE (S4, 2026-11-16, item 5 done; item 6 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries).
+- **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); merge of lean 523c2a5495 (`2835564e9d`);
+  **Freeze FROZEN** (`209e3c68e6`, tag `auth-lease-s4-frozen`; texts `notes/auth-lease-s4-frozen.lean.txt`, hashes in
+  the Freeze header; a change beyond them is a thaw: STOP); **item 5** (this commit): Freeze §1 + K1 under the old names
+  (texts checked equal to the frozen ones), `client_put_on` over `gs` (at today's `clientOpAuOn`; item 6 widens it);
+  forms in `questions.md` ("Item 5"). Built: every library leaf importing the changed files (`etc/importers.py --git
+  c8e05b5db9 --leaves`, minus `Scratch`/`notes`): passes. Not yet run: tcb/interfaces/bounds (at the land stop).
+- **Next, in order (Draft §7):**
+  6. F3 lease contract (client): §2 (`lessorRemoteAtC` in `InvLease.lean`, the four `lessor.*`/`retryLeaseClient.*`
+     specs at `GrpcSpecMd` + `□ ▷ attemptPre`; the `leaseClient.*` stub specs need the same Md form (a form: kVClient.Put's;
+     `etcdConn_InvokeMd`, `reqPre_box`)), §3 (C1 `opGrantT` lease rows, C3/D-i `clientTokAt` + `New`'s post, D-h
+     registrations), the v3rpc H1 chain (§7 Round 3/4 tables; `requireAuthInfo.specC` + `authedFrom` (`AuthWhy.lean`,
+     instance) + `leaseCheckFrom_of_authedFrom` (`LeaseCheck.lean`); `EtcdServer.LeaseGrant` uses `requireAuthInfo.spec`
+     on the span ctx `ctx1`: needs an `authedFrom_ctx` (as `authedOutB_ctx`, `LeaseReqOn.lean:279`)).
+  7. read handlers (§4, §10 T1) and the per-member law (§5, §10 S1, `lessorLawMask`; the tie per §5.4 / R4-5).
+  8. goose `authlease`, gen-init. 9. driver (STOP: D-k's exact texts; STOP: `Main.wp_proof` proved). 10. linking, gates,
+     then the land stop (merge lean first: it is 61053b1f3c or later).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; affected leaves:
+  `$(python3 etc/importers.py --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`
+  (Scratch/notes targets are unknown to lake). Logs `/shared/tmp/auth-lease-s4/i5-*.log`.
+- **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` naming a local can fail or time out: `have` first.
+  `receiptBound` is a `Nat`. Don't Monitor the build log for `error` (axiom lists name `errors` packages): wait on exit.
+  `v3rpc.LeaseServer.ty` must be written `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty` outside its namespace.
+  Build logs are huge (~1M lines of `#print axioms`): grep `^error`.
+
+
+## Previous START HERE (S4, 2026-11-16, Freeze FROZEN; items 5-10 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (gitignored; last entries).
+- **Done:** raft L-r0..L-r6, server, drivers (`f1540674ea` .. `782fc63bd3`); merge of lean 523c2a5495 (`2835564e9d`,
+  all checks at baseline: tcb 877/4, 65 collections, interfaces, bounds 390, mode 448); Freeze rev 3 + rounds 2-4
+  (`fcc8b0985e`, `c30c95e91e`); **Freeze FROZEN** (`209e3c68e6`, tag `auth-lease-s4-frozen`): the frozen texts are
+  `notes/auth-lease-s4-frozen.lean.txt` with per-text hashes in the Freeze header. A change beyond them is a thaw: STOP.
+- **Next, in order (Draft §7):**
+  5. leased KV at auth on (client): Freeze §1 + §9 K1 (`etcdPutSpecOn`/`M`, `etcdTxnSpecOn`/`M` filters, `txnUpdAtOn`'s write
+     branch, `client_put_on` over options `gs`; server side `putPermitM_of_dep`, `ServerKVOn.lean:369-397`). Files naming them:
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Run.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkEnv.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/ClientOn.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkCalls.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/run.lean
+    - Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/run.lean
+    - Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean
+    - Proof/go_etcd_io/etcd/client/v3/Results.lean
+    - Proof/go_etcd_io/etcd/client/v3/AuthnServedOn.lean
+    - Proof/go_etcd_io/etcd/client/v3/LeaseGrantServed.lean
+    - Proof/go_etcd_io/etcd/client/v3/KVServiceOn.lean
+    - Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth/SetUp.lean
+  6. F3 lease contract (client): §2, §3 (C1/C3/D-h/D-i), the v3rpc H1 chain (§7 Round 3/4 tables: `LeaseServer.{LeaseGrant,
+     LeaseRevoke}.spec`, `lessorGrantOkGM`/`lessorRevokeOkM`, `EtcdServer.{LeaseGrant,LeaseRevoke}.spec`, `requireAuthInfo.specC`,
+     `authedFrom` + instance + bridge in `LeaseCheck.lean`).
+  7. read handlers (§4, §10 T1) and the per-member law (§5, §10 S1, `lessorLawMask`; the tie per §5.4 / R4-5).
+  8. goose `authlease`, gen-init. 9. driver (STOP: D-k's exact texts; STOP: `Main.wp_proof` proved). 10. linking, gates,
+     then the land stop (merge lean first: it is 61053b1f3c or later).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`; checks with
+  `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`; `etc/lean-check.py --max-open 2`, `--stop` before builds and at
+  the end. `etc/importers.py --uses NAME FILE` to find what a changed statement breaks.
+- **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` naming a local can fail or time out: `have` first.
+  `receiptBound` is a `Nat`. Don't Monitor the build log for `error` (axiom lists name `errors` packages): wait on exit.
+  `v3rpc.LeaseServer.ty` must be written `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty` outside its namespace.
+
+
+## Previous START HERE (S4, 2026-11-16, L1 option 1 drivers done: checkpoint)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries).
+- **Done:** raft L-r0..L-r6 (`f1540674ea`, `0d81d23b6f`), server (`d54c9155f6`), drivers (`a86afd08dc` + this commit):
+  `kvJ`/`kvrJ`/`kdJ` with the cap; `cluster_alloc`'s `¬ clusterNoSnap` → `srvClusterBoot_alloc` → `memberBoot`/
+  `memberRestartFacts`/`memberRestartBoot`; `kvCluster` gains it (kv's `KV__run`); kvreconf/kvdurable `isReplica`
+  `%Hnsn`; `NewServer.spec` premise now `clusterNoSnap γ.cl → 2^48 ≤ SnapshotCatchUpEntries` (so no new
+  `receiptBound` in specs: bounds at baseline), auth drivers `→ 2^48 ≤ catchUp`. Freeze §5: `Scratch/S4Freeze.lean`
+  (copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`) over `clusterNoSnap γr.raft.raft.cl`, checks with 0 errors.
+- **Checked** (`full5.log`): full build passes; `tcb-report --check` matches the baseline (870 axioms, 4 sorries);
+  all 63 collections pass; bounds 377 = baseline; mode 448 = baseline; interfaces regenerated (9 files: raft
+  `InvNodeRule`, etcdstart `Alloc3`, `AllocN`, `Defs`, `Restart`, `StartMemberAuth`, `StartMembersAuth` (Proof and Spec)).
+- **Next:** Freeze review rounds r2–r3, then items 5–10 (Draft §7); authlease's allocation sets the flag `true`
+  (`cluster_alloc_ns`; `memberBootOn` carries no mode fact, by design).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build …`.
+- **Pitfalls:** in a `wp_apply (wp_X … (by …))` argument, a `by` block naming a local can fail ("unknown free
+  variable") or time out: prove it in a `have` first. `receiptBound` is a `Nat` (cast in `Int` goals: `omega`).
+
+## Previous START HERE (S4, 2026-11-16, L1 option 1: raft + L-r5 + server committed; STOPPED at the checkpoint)
+
+- **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`). Plan: Freeze `notes/auth-lease-s4-freeze.md` §8.4;
+  GO and form decisions: `questions.md` (last entries, etcd-grove-02).
+- **Done:** raft part 1 (`f1540674ea`: NsCap/storCapF, maybeSendAppend, L-r0..L-r4, L-r6, snapshotCert without the
+  flag, `readySnap`'s mode conjunct); L-r5 (`0d81d23b6f`: `Bootstrap` sets `ns` via `ownRaftPhys_set_ns` from
+  `⌜reNoSnap = false⌝ ∨ storCapF`, `setupNode` carries it in `InitialState`'s post, `StartNode` derives it,
+  premise gone; `memStorInv_alloc`'s `sorry` takes `clusterNoSnap γ → c ≤ 1`); server (this commit):
+  `compactRaftLog.spec` premise `clusterNoSnap → snapi ≤ scu`; `isServerApplyAll`'s scu row
+  `clusterNoSnap → receiptBound ≤ scu` (start keeps it through the default-catch-up join; the five built hubs carry
+  it on `Hscu`; `NewServer.spec` premise `clusterNoSnap γ.cl → receiptBound ≤ cfg.SnapshotCatchUpEntries'`);
+  `clusterNoSnap → ai ≤ w` in `snapshotIfNeededAndCompactRaftLog.specBatch`, `applyAll.specBatch`, `applyResR`
+  (run's loop; start: first start via `rnRestartOk_mode`/`isRaftNode_mode`, `srvRunRestartR`'s
+  `clusterNoSnap → A₀ = []`); the snapshot job takes `¬ clusterNoSnap` from `rnApSnap` (from `readySnap`);
+  restart path: `rnBootPre .restart`, `NodeStartSpecR`, `NewServer.specR`, `rnRestartOk`'s restart disjunct take
+  `¬ clusterNoSnap`. Server `Link`, `Results`, `NodeApiLink`, `read.Link` build.
+- **Not yet:** drivers/examples (callers of `NewServer.spec`/`specR`, `cluster_alloc*`, `StartNode`/`RestartNode`
+  users outside raft, the kv examples' storage `B`), `tcb-report --check` (needs the full build), interfaces of
+  other packages (`etc/api/etcdstart.txt` etc.), Freeze §5 `memberNoSnapInstall` → `⌜clusterNoSnap …⌝`.
+- **Next, in order:** drivers (`etcdstart` `newServerMode`/`Restart`, cluster3, auth/auth3, k8s apimodel: flag
+  `false` except authlease; discharge the scu premise from `Hrb48` and `NoSnapCatchUp = 2^48`); the kv examples
+  (`KvStorage`, `KvrStorage`, `KdStorage`: their `memStorJ` copies, `storBnd` patterns gain one `-`); full build,
+  `etc/tcb-report.py --check` + collections, `gen-interface --check` on every list; then §5 and items 5-10.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build <targets>` (logs
+  `/shared/tmp/auth-lease-s4/build-*.log`); `LAKE_OPTS=--packages=... etc/lean-check.py --max-open 2` only when
+  imports are built, `--stop` before builds and at the end.
+- **Pitfalls:** `applyResR`'s positional patterns (`stop_split`: `Hwt` is `rnWalTokA`, the `∃ w` is the next one);
+  Go's default-catch-up `wp_join` leaves the else branch to close by hand; in `local macro`s with `hygiene false`,
+  Iris hyps are not Lean hyps; `ApiImpl.readySnap`/`readySnap` stay defeq (`¬ … = true`).
+
+## Previous START HERE (feasibility, superseded)
+
+
+- **Branch** `auth-lease-s4` (worktree `/shared/etcd-grove-rs56`). S0–S3c on lean. Draft `notes/auth-lease-s4-draft.md`
+  (statement approved). Decisions: `questions.md` (untracked), "auth-lease S4", "S4 Freeze r1 decisions", "S4 Freeze rev 2: L1 stop".
+- **Done:** items 0, 2, 3 (`5baacbd07a`, `647aadf78b`, `7b126d3e4e`, `2bddb5967a`); item 4 Freeze rev 1 + r1 (`c4f188d250`),
+  L1 stop (`ef4c34650e`), rev 2's texts (`5d142952af`; `Scratch/S4Freeze.lean`, copy `/shared/tmp/auth-lease-s4/S4Freeze.lean`);
+  **L1 option 1 approved by the user**; its feasibility check: Freeze **§8.4** (this commit, no tree edits).
+- **§8.4 in one line:** feasible, snapshot path untouched (flag `false` = today's invariant; proof bodies of the
+  snapshot examples gain only a trivial `flag = false` conjunct at `Compact`/`ApplySnapshot`); estimate **11–14 days**
+  (centre ~12.5, over the ~12 stop line); raft API laws L-r0..L-r6 listed there.
+- **Next, in order (on the go):**
+  1. raft (§8.4 table order): `NsCap`/`storCapF`; `maybeSendAppend`'s two branches; `ownRaftPhysC_sn` split; boot
+     `set_ns` (revive from `ce370ad2a8^`); L-r0..L-r6; `etc/gen-interface.py etc/api/raft.txt`;
+  2. server: `compactRaftLog` premise, the `ai ≤ w` clause (apply-loop specs), the `scu` row, `NewServer`, names;
+  3. drivers/examples: flag `false` everywhere, authlease `true`; `etc/tcb-report.py --check` + collections;
+  4. Freeze §5: `memberNoSnapInstall` → `⌜clusterNoSnap γr.raft.raft.cl⌝`; review rounds r2–r3
+     (`/shared/tmp/auth-lease-s4/freeze-review-r{2,3}.md`); then items 5–10 (Draft §7).
+- **Token:** `authlease-3354335` (ports 16000/17000).
+- **Pitfalls:**
+  - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
+    --packages=/shared/tmp/manifest-e9e.json build …`. Run `etc/gates.sh` only under
+    `flock /shared/tmp/etcd-grove-full-build.lock`.
+  - Check: `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json etc/lean-check.py -a Scratch/S4Freeze.lean`.
+  - `leaseTTLRow` needs `[go_etcd_io.etcd.server.v3.etcdserver.Assumptions]` in the section.
+  - Auth-off lease users: `rw [hoff]` before `iintro`. Mode gate: no literal `true` in the new package (L3).
+  - Ports 20000–21999 belong to another session.
+
 Plan: `notes/auth-lease-scope.md` (approved; §0, §2, §5, §7). Decisions Q1–Q9: `questions.md`,
 section "auth-lease". Worktree `/shared/etcd-grove-rs56`, branch `auth-lease` (off lean `89ef103d5b`,
 with `auth-lease-scope` merged).

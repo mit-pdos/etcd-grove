@@ -231,7 +231,7 @@ theorem runner.apply.wp_proof
       iunfold rangeIs; iframe #; ipureintro; simp
     (try wp_auto)
     -- `p.put(…)`, `tw.Put(…)`
-    obtain ⟨hkks, hlL⟩ := hvput hk0
+    obtain ⟨hkks, hlL, hkl0, hvl0⟩ := hvput hk0
     wp_apply wp_bytes_to_string ov.key' o.key DFrac.discard $$ [$Hok] as -
     (try wp_auto)
     rw [hval, hlease]
@@ -245,9 +245,9 @@ theorem runner.apply.wp_proof
     icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
       #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop, #Hpool⟩
     wp_apply (hTPut v.ι.kv trc true (σOf ks ops v.ops) [] ov.key' vs o.key o.val o.lease
-        (leasesAfter ks ops v.ops)) $$ [Htw Htrc Hok Hvs Hlo] as ⟨Htw, Htrc, Hlo⟩
+        (leasesAfter ks ops v.ops) none) $$ [Htw Htrc Hok Hvs Hlo] as ⟨Htw, Htrc, Hlo⟩
     · iframe; iframe #
-      ipureintro; exact ⟨Hkslen _ hkks, hlL⟩
+      ipureintro; exact ⟨Hkslen _ hkks, ⟨hkl0, hvl0⟩, hlL, lease.winMove_none _ _⟩
     (try wp_auto)
     iunfold ownPending at Hpp
     icases Hpp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩
@@ -327,6 +327,8 @@ theorem runner.apply.wp_proof
       iexists rd, r
       rw [hσ1, pendItems_commit]
       iframe; iframe #
+      isplitl [Hlo]
+      · iapply (lease.leaseOwnW_eq (by rfl)) $$ Hlo
       ipureintro; exact Hrecs
     ipureintro; exact HU
   simp only [hk0, _root_.decide_false]
@@ -526,7 +528,7 @@ theorem runner.apply.wp_proof
     iunfold hookOk at HhookOk
     icases HhookOk with ⟨%Hfnil, #Hhrun⟩
     iunfold bkKeep at Hbk
-    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hoh, HRT, Htoks, Hcen⟩
+    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hbp, Hoh, HRT, Htoks, Hcen⟩
     ihave ⟨Hles, Hlbk⟩ := lessorW_backend v.ι.kv v.bk f v.lp _ v.U _ Hfnil $$ [$Hles $Hisb $Hhk]
     iunfold lessorW at Hles
     icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
@@ -548,7 +550,7 @@ theorem runner.apply.wp_proof
       (lease.lessorBeOn v.lp v.bk.be) (apply.bkRT v.bk) (backend.rbPart v.bk.γB (· = leaseName)) r
       (hookPre mp (W64 ((v.ops + 1 : Nat) : Int)) s0)
       iprop(True ∗ hookPost mp (W64 ((v.ops + 1 : Nat) : Int)))
-      (hookPost mp (W64 ((v.ops + 1 : Nat) : Int))) v.U)
+      (hookPost mp (W64 ((v.ops + 1 : Nat) : Int))) v.U none)
       $$ [Hlbk Hlo Hrvk Hwb Hlbe HRT Hrb Happ Hsav Hever]
       as %l %err ⟨HRT, Hlbe, Hres⟩
     · iframe Hlinv Hlcfg Hlbk Hlo Hrvk Hwb Hlbe HRT Hrb Hgr Hever
@@ -658,11 +660,12 @@ theorem runner.apply.wp_proof
     · ipureintro; exact hvl
     isplitl [Hret Hσw Hbw]
     · iunfold incW; iframe; iframe #
-    isplitl [Hbf Hoh HRT Htoks Hcen]
+    isplitl [Hbf Hbp Hoh HRT Htoks Hcen]
     · iunfold bkKeep; iframe; iframe #; ipureintro; exact HbkP
     isplitl
     · iunfold lessorW
       iexists rd, _
+      iunfold lease.leaseOwn
       iframe
       iframe #
       isplitr
@@ -880,7 +883,7 @@ theorem runner.apply.wp_proof
     iunfold mvccDeleter at Hdel
     icases Hdel with ⟨%Hrdnn, #Hdel⟩
     iunfold bkKeep at Hbk
-    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hoh, HRT, Htoks, Hcen⟩
+    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hbp, Hoh, HRT, Htoks, Hcen⟩
     have hR1 : mvccReaders (GF := GF) v.ι.kv nw ⊣⊢ mvccReaders v.ι.kv (nw - 1) ∗ mvccReaders v.ι.kv 1 := by
       have := hRdSplit v.ι.kv (nw - 1) 1; rwa [Nat.sub_add_cancel hnw] at this
     icases hR1.1 $$ Hrdrs with ⟨Hrdrs, Hr1⟩
@@ -927,7 +930,10 @@ theorem runner.apply.wp_proof
         · iframe; iframe #
         (try wp_auto)
         rw [hid]
-        wp_apply hR $$ [Hr1 Hrdo Hback Hpre Hlo Hrvk Hrb Hlbe Hau]
+        ihave Hau := srvApi.auBegin_pre (lease.winWit (mvccLeases v.ι.kv) none
+          (leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+            (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id))))) _ _ _ $$ Hau
+        wp_apply (hR none) $$ [Hr1 Hrdo Hback Hpre Hlo Hrvk Hrb Hlbe Hau]
           as %err ⟨Hr1, Hrdo, Hback, Hlbe, Hres⟩
         · iframe Hlinv Hrevoc Hr1 Hrdo Hback Hhk Hrvk Hrb Hlbe
           isplitr
@@ -947,7 +953,7 @@ theorem runner.apply.wp_proof
             iexact Hau
           isplitl [Hlo]
           · rw [← pendItems_nil]; iexact Hlo
-          ipureintro; rw [HbkP.1]; exact mvccrand.rcP_lease _
+          ipureintro; rw [HbkP.1]; exact ⟨mvccrand.rcP_lease _, lease.winDrops_none _ _⟩
         icases Hres with (⟨%Hnin, -⟩ | ⟨%Hok2, HY, Hpost, Hlo, Hrvk, Hrb⟩)
         · exact absurd hidL Hnin
         obtain ⟨-, rfl⟩ := Hok2
@@ -957,6 +963,8 @@ theorem runner.apply.wp_proof
         (try wp_auto)
         iapply HΦ'
         icases HY with ⟨Hret, Hσw, Hbw⟩
+        ihave Hlo := lease.leaseOwnW_eq (γl := mvccLeases v.ι.kv) (L := List.filter (fun x => x != o.id) (leasesAfter ks ops v.ops)) (w := none) (I := leaseItemsOf (stateAfter (commitLog (logOfHist (histAt ks ops v.ops)) (leaseDels (stateAfter (logOfHist (histAt ks ops v.ops))) o.id)))) (J := leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+          (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)))) rfl $$ Hlo
         iframe
         iunfold incW; iframe; iframe #
       iframe
@@ -1042,9 +1050,9 @@ theorem runner.apply.wp_proof
     wp_apply (wp_Lookup v.lp (mvccLeases v.ι.kv) o.id 0
         (some ((leasesAfter ks ops v.ops).filter (· != o.id),
           leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
-            (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id))))))
+            (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id))))) none)
       $$ [Hlrd Hlo] as %l ⟨Hlrd, -, Ho⟩
-    · iframe Hlinv Hlrd Hlb0; rw [lease.lookupView_some]; iexact Hlo
+    · iframe Hlinv Hlrd Hlb0; rw [lease.lookupViewW_some]; iexact Hlo
     try rw [← hlog]
     ihave ⟨%Hl0, Ho⟩ : iprop(⌜l = null ↔ o.id ∉ (leasesAfter ks ops v.ops).filter (· != o.id)⌝ ∗
         ((⌜l = null⌝ ∗ lease.leaseOwn (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id))
@@ -1054,7 +1062,7 @@ theorem runner.apply.wp_proof
             (leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
               (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)))) o.id l))
       $$ [Ho]
-    · rw [← lease.lookupViewAfter_some]; iexact Ho
+    · rw [← lease.lookupViewAfterW_some]; iexact Ho
     have hnin : o.id ∉ (leasesAfter ks ops v.ops).filter (· != o.id) := by simp
     have hlnull : l = null := Hl0.2 hnin
     ihave Hlo : lease.leaseOwn (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id))
@@ -1095,7 +1103,7 @@ theorem runner.apply.wp_proof
     · iexists rsl; iframe
     isplitr
     · ipureintro; exact hvl
-    isplitl [Hbf Hoh HRT Htoks Hcen]
+    isplitl [Hbf Hbp Hoh HRT Htoks Hcen]
     · iunfold bkKeep; iframe; iframe #; ipureintro; exact HbkP
     isplitl
     · iunfold lessorW

@@ -415,11 +415,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
       (d.P.has mvcc.alarmBI ∧
         d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
-      receiptBound GF ≤ backend.wbInit - 6 ∧
-      -- (restart S6a-2) the snapshotter's paths, the data directory's (`bootOk`'s `Hssp`): what the
-      -- stop hands to the image (`srvDiskImage`), so that a restarted incarnation's snapshotter,
-      -- at the same data directory, finds this directory's invariant
-      snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+      receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     -- (premise-fixes-6: until then `cfg.Logger' ≠ null` in the pure part) a zap logger
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ zapLoggerOk cfg.Logger' ∗
@@ -431,7 +427,12 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ cfg.QuotaBackendBytes' ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ cfg.WarningApplyDuration' ∗
     -- the snapshotter, the backend hooks over the consistent index, the storage over the snapshotter
-    structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗ snap.isSnapshotter ss ∗
+    structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
+    -- (restart S6a-2) of the data directory's snapshot directory (`bootOk`'s; wal-link, 2026-11-19:
+    -- the snapshotter's `dir` field, until then the equation `snapDBPath ss = snapDBPathOf
+    -- cfg.DataDir`): what the stop hands to the image (`srvDiskImage`), so that a restarted
+    -- incarnation's snapshotter, at the same data directory, finds this directory's invariant
+    snap.isSnapshotter ss (config.snapDirOf cfg.DataDir') ∗
     structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
     storage.isBackendHooks hk
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
@@ -440,7 +441,8 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     -- the member's snapshot directory, at raft's names for the member (D22 J2), its images'
     -- certificate the cluster's auth mode's (the auth-on pair's F8, `srvNet`'s)
     srvMemberIDAddr s ↦□ idm ∗
-    inv snapDirN (snapDirInv ss γd (srvImageM γr.raft.raft.authOn γr.raft.raft) (snapRmM γm)) ∗
+    inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd (srvImageM γr.raft.raft.authOn γr.raft.raft)
+      (snapRmM γm)) ∗
     -- the stores and their contracts on whichever backend
     srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
     srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ∗
@@ -515,7 +517,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
   obtain ⟨hkb0, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
-    -, hrb, hsp⟩ := Hp
+    -, hrb⟩ := Hp
   rw [hkb] at hkb0
   obtain rfl := srvBkTie_inj d d0 hkb0
   have e2' : ast = ast0 := by
@@ -529,7 +531,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   isplitr
   · ipureintro
     refine ⟨hkb', hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      hRO, hrb, hsp⟩ <;> rw [hP] <;> assumption
+      hRO, hrb⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl
   have e7 : (E.onBe b P f c RO RW).γ = E.γ := rfl
@@ -567,7 +569,8 @@ its open token (`srvOpenQ`: the constructors' half, a quarter in the mode `on`, 
 backend's `Close` goroutine takes them), the alarm store's field (until 2026-11-01, J8a-5, also its
 `Get` under a resource `Tal`, `zal`: `specSnapM` now gets `Get` with no alarm from `Recover`'s
 `alarmEmpty`); and the backend file's directory entry at the configuration's data directory
-(`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every install), and
+(`backend.bPath d.γB.db (backendPathOf dd)`, the claim on its name, naming the backend's file:
+`OpenSnapshotBackend`'s rename target, one for every install; S5, until then the opaque `pathOwn`), and
 (2026-11-04, the restart plan's R2b-3d) the backend's file there. (Until strict M1, 2026-11-06,
 also the KV's closer, `srvKVCloserW`, for `store.Restore`: over the API, `Restore` takes mvcc's
 open token, the apply thread's `apply.cmpOwn`.) -/
@@ -578,7 +581,7 @@ def srvSnapRes (s : Loc) (E : apply.AEnv GF) (γA : ApplyNames) : IProp GF :=
     srvStopChans γA d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     -- MERGE-TODO(close): `lean`'s `srvKVCloserW s E` was here (see above)
-    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.bPath d.γB.db (config.backendPathOf dd) ∗
     -- (2026-11-04, the restart plan's R2b-3d) the backend's file is there (the stop image's)
     backend.bFile d.γB (config.backendPathOf dd))
 
@@ -693,7 +696,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     -- apply thread's `mvccOpen E'.γ` in `srvApplyKV`)
     srvStopChans γ' d' ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γm 1 (uint.nat sv.Metadata'.Index' + 1) ∗
-    backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗
+    backend.bPath d'.γB.db bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝))
 

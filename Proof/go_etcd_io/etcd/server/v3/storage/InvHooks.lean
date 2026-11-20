@@ -13,9 +13,9 @@ it runs the consistent index's `UnsafeSave(tx)`, then, under `confStateLock`, sa
   (`Proof/.../etcdserver/CindexBackend.lean`, `ci_saveSpec`).
 - **The hooks' state** (`isBackendHooks bh ix lg`, persistent): the indexer and the logger
   read-only, `confStateLock` guarding `confState` and `confStateDirty`. The struct `confState`
-  points to is not owned here: `SetConfState` stores a fresh clone (`proto.Clone`) that no one
-  writes afterwards, and `ConfState` is an axiomatized type (protobuf-go v2), whose typed
-  points-to is not available without a `sorry`.
+  points to is nil or a read-only conf state of at most `csIdMax` ids (`csOkN`, stage S1b of
+  `notes/bbolt-integration-plan.md`, 2026-11-17: what bounds the bytes the save puts):
+  `SetConfState` stores a fresh clone (`proto.Clone`) that no one writes afterwards.
 - **The parameters** (`hooksParams P`): `Meta` in the table, a hook's bucket, its `confState`
   key not one of the hook's own keys (the consistent index's), and room for a third put.
 -/
@@ -24,6 +24,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -58,12 +59,12 @@ def hookSaveStep (P : BParams) (st st' : BSess) : Prop :=
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend + 1 ≤ sint.Z st.pend + P.hookMax ∧
   sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧
-  (st'.cnt = st.cnt ∧ st'.dl = st.dl ∧ st'.win = st.win)
+  (st'.cnt = st.cnt ∧ st'.dl = st.dl ∧ st'.win = st.win ∧ trkKept P st st')
 
 theorem hookStep_of_save {P : BParams} {st st' : BSess} (h : hookSaveStep P st st') :
     hookStep P st st' := by
   obtain ⟨hC, hR, hS, hB, hW, hp1, hp2, hn, htx, hc⟩ := h
-  exact ⟨hC, hR, hS, hB, hW, hp1, by omega, hn, htx, hc.1, by rw [hc.2.1], hc.2.2⟩
+  exact ⟨hC, hR, hS, hB, hW, hp1, by omega, hn, htx, hc.1, by rw [hc.2.1], hc.2.2.1, hc.2.2.2⟩
 
 /-- A put in a hook's bucket leaves the writer's contents off the hook's buckets. -/
 theorem sData_put_HB {P : BParams} {S : Data} {n k v : GoString} (h : P.HB n = true) :
@@ -84,7 +85,8 @@ theorem hookStep_save_put {P : BParams} (hPw : P.Wf) (hP : hooksParams P) {st st
   have h58 := hpre.2.1
   have hpz' : sint.Z (st'.pend + W64 1) = sint.Z st'.pend + 1 := by word
   refine ⟨hC, hR, ?_, ?_, ?_, ?_, ?_, hn, htx, hc.1, by
-    show dlR P st'.dl = dlR P st.dl; rw [hc.2.1], hc.2.2⟩
+    show dlR P st'.dl = dlR P st.dl; rw [hc.2.1], hc.2.2.1,
+    trkKept_put_other hPw hP.1 hP.2.2.2.2 hc.2.2.2⟩
   · show sData P (st'.S.insert mvcc.metaBI.name
       ((bktOf st'.S mvcc.metaBI.name).insert schema.confStateKeyBytes vb)) = _
     rw [sData_put_HB hP.2.1]; exact hS
@@ -166,9 +168,29 @@ theorem saveReq_of_saveSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : L
   iframe Hl HPk Hpay
   ipureintro; exact Hst
 
-/-- What `confStateLock` guards: the `confState` pointer and its dirty flag. -/
+/-- **The number of ids a conf state lists** (its four lists; stage S1b, 2026-11-17): what bounds
+its JSON encoding (`schema.MustUnsafeSaveConfStateToBackend`'s length bound). -/
+def csIdCount (c : ConfStateM) : Nat :=
+  c.Voters'.length + c.Learners'.length + c.VotersOutgoing'.length + c.LearnersNext'.length
+
+/-- **The hooks' bound on a conf state's ids** (`2 ^ 20`, the server's bound on its voters,
+`srvMemOk`; S1b): its JSON, at most `25` bytes an id and `128` more, fits a bbolt entry. -/
+def csIdMax : Nat := 2 ^ 20
+
+/-- **A conf state pointer of at most `n` ids**: nil, or read-only for good with at most `n` ids
+(persistent). -/
+def csOkN (n : Nat) (cs : Loc) : IProp GF :=
+  iprop(⌜cs = null⌝ ∨ ∃ c : ConfStateM,
+    ownCSM cs DFrac.discard c ∗ ⌜csIdCount c ≤ n⌝)
+
+instance csOkN_persistent (n : Nat) (cs : Loc) : Persistent (csOkN (GF := GF) n cs) := by
+  unfold csOkN; infer_instance
+
+/-- What `confStateLock` guards: the `confState` pointer (nil or a conf state of at most
+`csIdMax` ids) and its dirty flag. -/
 def csInv (bh : Loc) : IProp GF :=
-  iprop(∃ (cs : Loc) (d : Bool), hF go!"confState" bh ↦ cs ∗ hF go!"confStateDirty" bh ↦ d)
+  iprop(∃ (cs : Loc) (d : Bool), hF go!"confState" bh ↦ cs ∗ hF go!"confStateDirty" bh ↦ d ∗
+    csOkN csIdMax cs)
 
 /-- **The server's backend hooks** at `bh`: the indexer `ix` and the logger `lg` read-only,
 `confStateLock` guarding `csInv` (persistent). -/

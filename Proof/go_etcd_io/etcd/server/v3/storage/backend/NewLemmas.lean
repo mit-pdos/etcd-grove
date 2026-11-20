@@ -212,14 +212,14 @@ theorem rtIntv_frac (γ : BNames) (P : BParams) (rd : RdSt) (cm : GoMap) (D : Da
   unfold rtIntv wgOpen
   split
   · constructor
-    · iintro ⟨Hl, #Hs, #Hi, #Hw, Ho, Ht⟩
-      icases ((txLive_fractional rd.rtx).fractional p1 p2).1 $$ Hl with ⟨Hl1, Hl2⟩
+    · iintro ⟨Hl, #Hi, #Hw, Ho, Ht⟩
+      icases ((txLive_fractional rd.rtx γ.db (bbolt.TxView.ro D)).fractional p1 p2).1 $$ Hl with ⟨Hl1, Hl2⟩
       icases ghostVar_split rd.γw () q1 q2 $$ Ho with ⟨Ho1, Ho2⟩
       icases ghostVar_split rd.γt () q1 q2 $$ Ht with ⟨Ht1, Ht2⟩
       iframe
       iframe #
-    · iintro ⟨⟨Hl1, #Hs, #Hi, #Hw, Ho1, Ht1⟩, ⟨Hl2, -, -, -, Ho2, Ht2⟩⟩
-      ihave Hl := ((txLive_fractional rd.rtx).fractional p1 p2).2 $$ [Hl1 Hl2]
+    · iintro ⟨⟨Hl1, #Hi, #Hw, Ho1, Ht1⟩, ⟨Hl2, -, -, Ho2, Ht2⟩⟩
+      ihave Hl := ((txLive_fractional rd.rtx γ.db (bbolt.TxView.ro D)).fractional p1 p2).2 $$ [Hl1 Hl2]
       · iframe
       icombine Ho1 Ho2 as Ho
       icombine Ht1 Ht2 as Ht
@@ -238,12 +238,16 @@ theorem clnPart_frac (γ : BNames) (P : BParams) (rd : RdSt) (rv : RView) (q1 q2
   unfold clnPart
   rw [Qp_half_add]
   constructor
-  · iintro ⟨Hc, %Hp⟩
+  · iintro ⟨Hc, %Hp, Hr⟩
     icases ghostVar_split γ.cln _ q1.half q2.half $$ Hc with ⟨Hc1, Hc2⟩
-    iframe
-    isplitr <;> ipureintro <;> exact Hp
-  · iintro ⟨⟨Hc1, %Hp⟩, ⟨Hc2, -⟩⟩
+    icases (rbrHalves_frac γ P rv q1 q2).1 $$ Hr with ⟨Hr1, Hr2⟩
+    isplitl [Hc1 Hr1]
+    · iframe; ipureintro; exact Hp
+    · iframe; ipureintro; exact Hp
+  · iintro ⟨⟨Hc1, %Hp, Hr1⟩, ⟨Hc2, -, Hr2⟩⟩
     icombine Hc1 Hc2 as Hc
+    ihave Hr := (rbrHalves_frac γ P rv q1 q2).2 $$ [Hr1 Hr2]
+    · iframe
     iframe
     ipureintro; exact Hp
 

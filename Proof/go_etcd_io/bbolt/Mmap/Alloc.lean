@@ -332,7 +332,10 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · iframe
             fmt_args_intro
             isplitl
-            · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
+            · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+              isplitr
+              · ipureintro; decide
+              · iapply fmtErrorOkOrNil_of $$ HeS
             · itrivial
           try wp_auto
           iframe
@@ -576,7 +579,10 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             · iframe
               fmt_args_intro
               isplitl
-              · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeOk
+              · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+                isplitr
+                · ipureintro; decide
+                · iapply fmtErrorOkOrNil_of $$ HeOk
               · itrivial
             try wp_auto
             iapply HΦ
@@ -608,7 +614,10 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · iframe
             fmt_args_intro
             isplitl
-            · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeOk
+            · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+              isplitr
+              · ipureintro; decide
+              · iapply fmtErrorOkOrNil_of $$ HeOk
             · itrivial
           try wp_auto
           iapply HΦ
@@ -703,6 +712,8 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   iframe Hw
   simp only [WDb.withFl]
   unfold WDb.wtxid
+  rw [show flxS w.C (w.fl.alloc (W64 ((w.C.txid + 1 : Nat) : Int)) rid (sint.nat count)) w.wb =
+    flxS w.C w.fl w.wb from rfl]
   isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt Htok]
   · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
     · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]

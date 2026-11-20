@@ -19,22 +19,24 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof [go_etcd_io.bbolt.Assumpti
                     (P.SB bi.name = true →
                         (∀ (kc vc : GoString), backend.bktOf st.C bi.name !! kc = some vc → backend.strLt kc kb) ∧
                           st.dl !! (bi.name, kb) = none) →
-                      ⊢
-                        ∀ Φ,
-                          isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-                              backend.isBackend γ P W Pk b ∗
-                                typedPointsto (backend.bF go!"batchTx" b) t
-                                    DFrac.discard ∗
-                                  backend.batchLocked γ P b st ∗
-                                    backend.isBucket bk bi ∗
-                                      ownSlice key kb DFrac.discard ∗ ownSlice value vb DFrac.discard -∗
-                            ▷ (backend.batchLocked γ P b (st.put bi kb vb true) -∗ Φ (intoVal ())) -∗
-                              WP
-                                ((((intoVal
-                                        (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
-                                          go!"UnsafeSeqPut"
-                                          (intoVal t)))
-                                      (intoVal bk))
-                                    (intoVal key))
-                                  (intoVal value))
-                                {{ Φ }}
+                      ∀ (c : Bool),
+                        ⊢
+                          ∀ Φ,
+                            isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+                                backend.isBackend γ P W Pk b ∗
+                                  typedPointsto (backend.bF go!"batchTx" b) t
+                                      DFrac.discard ∗
+                                    backend.batchLocked γ P b st c ∗
+                                      backend.isBucket bk bi ∗
+                                        ownSlice key kb DFrac.discard ∗ ownSlice value vb DFrac.discard -∗
+                              ▷ (backend.batchLocked γ P b (st.put bi kb vb true) c -∗ Φ (intoVal ())) -∗
+                                WP
+                                  ((((intoVal
+                                          (methods
+                                            go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
+                                            go!"UnsafeSeqPut"
+                                            (intoVal t)))
+                                        (intoVal bk))
+                                      (intoVal key))
+                                    (intoVal value))
+                                  {{ Φ }}

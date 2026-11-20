@@ -60,10 +60,28 @@ local macro "tw_attach" J:term:max : tactic => `(tactic| (
     · ipureintro; rfl
     iintro %items ⟨Hitems, -⟩
     (try wp_auto)
-    wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) %L %$J [$(frameH `Hown)
+    have hfin := mvcc.pendItems_put ilog pend k v leaseID
+        (lease.insertAll $J [{ Key' := k }] leaseID)
+        (fun it hit => by
+          rw [lease.insertAll_lookup, if_neg (by
+            intro hm; rw [List.mem_singleton] at hm; exact hit (by rw [hm]))]
+          try exact hJoff it hit)
+        (by rw [lease.insertAll_lookup, if_pos (List.mem_singleton_self _), if_neg hl0])
+    wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) %L %$J %w [$(frameH `Hown)
         $(frameH `Hitems)] as ⟨Hown, -⟩
     · ipureintro
-      refine ⟨Hin, ?_, ?_⟩
+      refine ⟨?_, Hin, ?_, ?_⟩
+      · rw [← hfin]
+        refine lease.winStep_post Hwm (fun it hit => ?_)
+        by_cases hk : it.Key' = k
+        · have hit' : it = ({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) := by
+            cases it; simp at hk; subst hk; rfl
+          subst hit'
+          rw [mvcc.pendItems_put_lookup, if_pos rfl, if_neg hl0]
+          exact hIk'
+        · exfalso; apply hit
+          rw [mvcc.pendItems_put_lookup, if_neg hk]
+          try exact hJoff it hk
       · intro it hit
         rw [List.mem_singleton] at hit; subst hit
         left; exact hJnone
@@ -72,14 +90,7 @@ local macro "tw_attach" J:term:max : tactic => `(tactic| (
         exact Hklen
     (try wp_auto)
     -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
-    ihave Hown := lease.leaseOwn_eq (mvcc.pendItems_put ilog pend k v leaseID
-        (lease.insertAll $J [{ Key' := k }] leaseID)
-        (fun it hit => by
-          rw [lease.insertAll_lookup, if_neg (by
-            intro hm; rw [List.mem_singleton] at hm; exact hit (by rw [hm]))]
-          try exact hJoff it hit)
-        (by rw [lease.insertAll_lookup, if_pos (List.mem_singleton_self _), if_neg hl0])).symm
-      $$ Hown
+    ihave Hown := lease.leaseOwnW_eq hfin.symm $$ Hown
     tw_step_return
   ))
 
@@ -87,7 +98,7 @@ set_option hygiene false in
 /-- `if leaseID != lease.NoLease { Attach }`, not taken: the owner's item map `J` (as for
 `tw_attach`) is the put's, then `tw_step_return`. -/
 local macro "tw_noattach" J:term:max : tactic => `(tactic| (
-    ihave Hown := lease.leaseOwn_eq (mvcc.pendItems_put ilog pend k v (W64 0) $J hJoff
+    ihave Hown := lease.leaseOwnW_eq (mvcc.pendItems_put ilog pend k v (W64 0) $J hJoff
       (by rw [hJnone]; simp)).symm $$ Hown
     tw_step_return
   ))
@@ -119,7 +130,7 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
         { key := k, createRev := $cr, modRev := W64 ilog.length,
           version := $vr, value := v, lease := leaseID }
         DFrac.discard DFrac.discard) $$ [$(frameH `«$r0») $(frameH `Hkey) $(frameH `Hval)]
-      as %d ⟨⟨%sc, Hkv⟩, -, -, Hd, Hdcap⟩
+      as %d ⟨⟨%sc, Hkv⟩, -, -, Hd, Hdcap, %Hdlen⟩
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     (try wp_auto)
     -- `if err != nil { Fatal }`: not taken (resolved by `wp_auto`)
@@ -139,7 +150,8 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
           $(frameH `Hd)] as ⟨Hlocked, Hbv⟩
     · ipureintro
       exact mvcc.storePutOk_mono γ _ m _ _ _ Hmsub
-        (mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb)
+        (mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
+          (by simp only at Hdlen; unfold etcdKeyMax at Hkvb; unfold bbolt.bboltEntryMax; omega))
     ihave Hbv : mvcc.bucketViewL γ mvcc.txQ ilog $$ [Hbv]
     · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
     icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
@@ -198,7 +210,7 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
     -- `if oldLease == leaseID { trace.Step; return }`: the item map unchanged (`hsame`)
     wp_if_destruct
     · (try wp_auto)
-      ihave Hown := lease.leaseOwn_eq
+      ihave Hown := lease.leaseOwnW_eq
         (hsame (by first | rfl | exact Hif | (simp at Hif; exact Hif) | simpa using Hif)).symm $$ Hown
       tw_step_return
     (try wp_auto)
@@ -215,8 +227,8 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (hZapErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend key value k v leaseID L te crev Z
-  wp_start as ⟨Htw, #Hkey, #Hval, %Hklen, Hown, %Hlease, Htrc⟩
+  intro trace tw s γ ilog pend key value k v leaseID L te crev Z w
+  wp_start as ⟨Htw, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, Htrc, %Hwm⟩
   try simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -303,7 +315,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     ihave %Hlpeq := lease.lessorPin_agree γ.leases lp lpr $$ [$Hpin $Hpinr]
     subst Hlpeq
     wp_apply HGetL $$ %({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) %L
-      %(mvcc.pendItems ilog pend) [$Hrd $Hown] as ⟨Hrd, Hown⟩
+      %(mvcc.pendItems ilog pend) %w [$Hrd $Hown] as ⟨Hrd, Hown⟩
     generalize hold : ((mvcc.findKey k (mvcc.applyChanges (W64 ilog.length) (mvcc.stateAfter ilog)
       pend)).bind mvcc.kvLease).getD (W64 0) = oldL
     have hIk := mvcc.leaseItemsOf_getD (mvcc.applyChanges (W64 ilog.length) (mvcc.stateAfter ilog)
@@ -318,9 +330,13 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     (try wp_auto)
     tw_write c (ver + W64 1)
+    have hneq : oldL ≠ leaseID := fun h => by subst h; first | exact Hif rfl | simp at Hif
     -- `if oldLease != lease.NoLease { Detach }`: the first goal is `oldLease == NoLease`
     wp_if_destruct
     · (try wp_auto)
+      have hIk' : (mvcc.pendItems ilog pend).lookup
+          ({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) ≠ some leaseID := by
+        rw [hIk]; simp
       have hJnone : (mvcc.pendItems ilog pend).lookup
           ({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) = none := by
         rw [hIk]; simp
@@ -344,10 +360,25 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       · ipureintro; rfl
       iintro %items ⟨Hitems, -⟩
       (try wp_auto)
-      wp_apply HDetach $$ %oldL %_ %_ %(DFrac.own 1) %L %(mvcc.pendItems ilog pend)
+      have hIk' : (mvcc.pendItems ilog pend).lookup
+          ({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) ≠ some leaseID := by
+        rw [hIk, if_neg ho0]; intro h; exact hneq (Option.some.inj h)
+      wp_apply HDetach $$ %oldL %_ %_ %(DFrac.own 1) %L %(mvcc.pendItems ilog pend) %w
         [$Hown $Hitems] as ⟨Hown, -⟩
       · ipureintro
-        refine ⟨List.cons_ne_nil _ _, ?_⟩
+        refine ⟨?_, List.cons_ne_nil _ _, ?_⟩
+        · refine lease.winStep_pre Hwm (fun it hit => ?_)
+          by_cases hk : it.Key' = k
+          · have hit' : it = ({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) := by
+              cases it; simp at hk; subst hk; rfl
+            subst hit'
+            rw [mvcc.pendItems_put_lookup, if_pos rfl, hIk, if_neg ho0]
+            split
+            · simp
+            · intro h; exact hneq (Option.some.inj h)
+          · exfalso; apply hit
+            rw [lease.deleteAll_lookup, if_neg (by
+              intro hm; rw [List.mem_singleton] at hm; exact hk (by rw [hm]))]
         intro it hit
         rw [List.mem_singleton] at hit; subst hit
         rw [hIk, if_neg ho0]
@@ -386,6 +417,9 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       fun h => mvcc.pendItems_put ilog pend k v leaseID _ (fun _ _ => rfl)
         (by rw [hJnone, ← h, if_pos rfl])
     tw_write (W64 ilog.length) (W64 0 + W64 1)
+    have hIk' : (mvcc.pendItems ilog pend).lookup
+        ({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) ≠ some leaseID := by
+      rw [hJnone]; simp
     -- `if oldLease != lease.NoLease { Detach }`: `oldLease` is `NoLease` (resolved by `wp_auto`)
     -- `if leaseID != lease.NoLease { Attach }`: the first goal is `leaseID == NoLease`
     wp_if_destruct

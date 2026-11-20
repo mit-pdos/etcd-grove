@@ -12,7 +12,9 @@ element type with values `V`, deep values `E` and ownership `inner : V → DFrac
 * `ownMapD m dq d`: a map of basic keys and values, `nil` for `none`, else `m ↦${dq} M`;
 * `ownOpaquePtrD p d`: a pointer to a value that is never owned (an axiomatized Goose type,
   whose typed points-to is a `sorry` of the translation): only whether it is `nil`;
-* `ownNilSliceD`, `ownNilMapD`, `ownNilIfaceD`: a slice, map or interface that must be `nil`.
+* `ownNilPtrD`, `ownNilSliceD`, `ownNilMapD`, `ownNilIfaceD`: a pointer, slice, map or interface
+  that must be `nil` (a pointer to a value that cannot be translated, `Quantity` or `FieldsV1`:
+  its deep copy copies the pointee, which is never owned).
 
 The `*_of` lemmas prove the generated `own_zero` lemmas (the zero value owns its zero deep value).
 -/
@@ -73,6 +75,9 @@ def ownOpaquePtrD (p : Loc) : Option Unit → IProp GF
   | none => iprop(⌜p = null⌝)
   | some () => iprop(⌜p ≠ null⌝)
 
+/-- A pointer that must be `nil`. -/
+def ownNilPtrD (p : Loc) : IProp GF := iprop(⌜p = null⌝)
+
 /-- A slice that must be `nil`. -/
 def ownNilSliceD (s : GoSlice) : IProp GF := iprop(⌜s = slice.nil⌝)
 
@@ -111,6 +116,9 @@ theorem ownMapD_none_of {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go
 theorem ownOpaquePtrD_none_of (p : Loc) (h : p = null) :
     ⊢ ownOpaquePtrD (GF := GF) p none := by
   unfold ownOpaquePtrD; ipureintro; exact h
+
+theorem ownNilPtrD_of (p : Loc) (h : p = null) : ⊢ ownNilPtrD (GF := GF) p := by
+  unfold ownNilPtrD; ipureintro; exact h
 
 theorem ownNilSliceD_of (s : GoSlice) (h : s = slice.nil) : ⊢ ownNilSliceD (GF := GF) s := by
   unfold ownNilSliceD; ipureintro; exact h
@@ -228,6 +236,10 @@ instance ownOpaquePtrD_timeless (p : Loc) (e : Option Unit) : Timeless (ownOpaqu
   cases e <;> unfold ownOpaquePtrD <;> infer_instance
 instance ownOpaquePtrD_persistent (p : Loc) (e : Option Unit) : Persistent (ownOpaquePtrD (GF := GF) p e) := by
   cases e <;> unfold ownOpaquePtrD <;> infer_instance
+instance ownNilPtrD_timeless (p : Loc) : Timeless (ownNilPtrD (GF := GF) p) := by
+  unfold ownNilPtrD; infer_instance
+instance ownNilPtrD_persistent (p : Loc) : Persistent (ownNilPtrD (GF := GF) p) := by
+  unfold ownNilPtrD; infer_instance
 instance ownNilSliceD_timeless (s : GoSlice) : Timeless (ownNilSliceD (GF := GF) s) := by
   unfold ownNilSliceD; infer_instance
 instance ownNilSliceD_persistent (s : GoSlice) : Persistent (ownNilSliceD (GF := GF) s) := by

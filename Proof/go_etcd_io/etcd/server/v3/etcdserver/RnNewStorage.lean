@@ -229,14 +229,14 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
 `walRecs_saveSnapAU`; the record's bytes the canonical ones, F2; the synced record's witness from the
 history's lower bound and the synced mark). -/
 theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bool) (q : Qp)
-    (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (Q : IProp GF) :
+    (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ⊢
       {{ storage.walOpen h q ∗
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
-          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model⌝ ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
-          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model).length < 2 ^ 40⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
           AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
                 ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m.model) sized, COMM Q }> }}
@@ -258,16 +258,16 @@ theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized 
     have := ((interface_mkOk_inj _ _ _ _).1 Hp').2
     exact (go.intoVal_inj this).symm
   subst hp'
-  ihave HAU := walRecs_saveSnapAU h sized m.model Q $$ HAU
-  wp_apply (hSnap p' ss h.R h.jr h.r h.w h.dir h.γ q sn mp dq m true
-      (fun d => iprop(Q ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m.model]))))
+  ihave HAU := walRecs_saveSnapAU h sized m.model al Q $$ HAU
+  wp_apply (hSnap p' ss h.R h.jr h.r h.w h.dir h.γ q sn mp dq m al true
+      (fun d => iprop(Q ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m.model al]))))
     $$ [Hrd Hws HAU Hsn] as %err ⟨Hrd, Hsn, Hpost⟩
   · iframe Hover Hrd Harea Hws Hsn Hm HAU
     isplitr
     · ipureintro; exact ⟨hm1.1, hm1.2.1⟩
     isplitr
     · ipureintro
-      show WalEnc.snapEnc (storage.metaWalC m) = WalEnc.snapEnc (walSnapCanon m.model)
+      show WalEnc.snapEnc (storage.metaWalC m) = WalEnc.snapEnc (walSnapCanon m.model al)
       rw [hm1.2.2]
     isplitr
     · ipureintro; exact Or.inl h.cov
@@ -277,7 +277,7 @@ theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized 
     · ipureintro; exact hm3.1
     · ipureintro; exact hm3.2
   icases Hpost with (⟨%he, Hws, %d, ⟨HQ, #Hlb⟩, -, #Hsy⟩ | ⟨%Hbad, -⟩)
-  · ihave #Hrec := walSnapRec_intro h d.H m.model $$ [Hlb Hsy]
+  · ihave #Hrec := walSnapRec_intro h d.H m.model al $$ [Hlb Hsy]
     · iframe Hlb Hsy
     iapply HΦ
     iframe HQ Hsn
@@ -298,14 +298,15 @@ theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized 
 /-- **`Release`'s law** from the storage's `Release` (the records read, layer 1's lock update at the
 snapshot record the witness names, `walRecs_releaseAU`). -/
 theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp) (sn mp : Loc)
-    (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName) (img : w64 → backend.Data → IProp GF)
+    (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
+    (img : w64 → backend.Data → IProp GF)
     (Rm : w64 → IProp GF) (i : Nat) (m : SnapshotMetadataM) (Q : IProp GF) (hm : m.Index' = md.Index') :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ∗
-        snap.isSnapshotter ss ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ⊢
       {{ storage.walOpen h q ∗
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          inv snapDirN (snapDirInv ss γd img Rm) ∗ □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
             <{ walRecs h σ s, COMM Q }> }}
@@ -319,8 +320,8 @@ theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp)
   obtain ⟨-, -, -, -, hRel⟩ := hS
   have hau := walRecs_releaseAU h i m Q
   rw [hm] at hau
-  iintro ⟨#Hpkg, #Hover, #Hss⟩
-  iintro !> %Φ ⟨Ho, Hrd, Hsn, Hsm, #Hinv, #HRm, #Hw, HAU⟩ HΦ
+  iintro ⟨#Hpkg, #Hover⟩
+  iintro !> %Φ ⟨Ho, Hrd, Hsn, Hsm, #Hss, #Hinv, #HRm, #Hw, HAU⟩ HΦ
   iunfold storage.walOpen at Ho
   icases Ho with ⟨Hws, #Harea, #Hlen⟩
   iunfold walStorRd at Hrd
@@ -332,7 +333,7 @@ theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp)
   ihave #Hsy := walSnapRec_synced h i m $$ Hw
   ihave HAU := hau $$ [HAU]
   · iframe Hw HAU
-  wp_apply (hRel p' ss h.R h.jr h.r h.w h.dir h.γ q sn mp dq dq' md γd img Rm m.Term' i (i + 1)
+  wp_apply (hRel p' ss h.R h.jr h.r h.w h.dir h.γ q sn mp dq dq' md sd γd img Rm m.Term' i (i + 1)
       m.ConfState' (fun _ => Q)) $$ [Hrd Hws HAU Hsn Hsm] as %err ⟨Hrd, Hsn, Hsm, Hws, ⟨%d, HQ⟩, %he⟩
   · iframe Hover Hrd Hss Hsn Hsm Hinv HRm Harea Hws Hsy HAU
   iapply HΦ
@@ -383,32 +384,32 @@ theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ⊢ rnNewStorageOk := by
   iintro #Hpkg
   unfold rnNewStorageOk
-  iintro !> %lg %ss %h
+  iintro !> %lg %ss %sd %h
   iintro !> %Φ #Hss HΦ
   wp_apply (wpNew lg h.w ss) as %p ⟨#Hover, Hr1, Hr2⟩
   iapply HΦ
   isplitr
   · iapply (isWalStorage_intro
       iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
-        storage.storageOver p h.w ss ∗ snap.isSnapshotter ss)
+        storage.storageOver p h.w ss ∗ snap.isSnapshotter ss sd)
       _ h ss (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) rfl p rfl
       (by iintro ⟨-, #H2, -⟩; iunfold storage.storageOver at H2; icases H2 with ⟨#Hs, -⟩; iexact Hs)
       (fun sized q hp hs sl esL cs Q => by
         iintro ⟨#H1, #H2, -⟩
         iapply (walSave_law h (hS h) p ss sized q hp hs sl esL cs Q)
         iframe H1 H2)
-      (fun sized q sn mp dq m Q => by
+      (fun sized q sn mp dq m al Q => by
         iintro ⟨#H1, #H2, -⟩
-        iapply (walSaveSnap_law h (hS h) p ss sized q sn mp dq m Q)
+        iapply (walSaveSnap_law h (hS h) p ss sized q sn mp dq m al Q)
         iframe H1 H2)
       (fun q => by
         iintro ⟨#H1, #H2, -⟩
         iapply (walSync_law h (hS h) p ss q)
         iframe H1 H2)
-      (fun q sn mp dq dq' md γd img Rm i m Q => by
-        iintro ⟨#H1, #H2, #H3⟩ %hm
-        iapply (walRelease_law h (hS h) p ss q sn mp dq dq' md γd img Rm i m Q hm)
-        iframe H1 H2 H3)
+      (fun q sn mp dq dq' md sd' γd img Rm i m Q => by
+        iintro ⟨#H1, #H2, -⟩ %hm
+        iapply (walRelease_law h (hS h) p ss q sn mp dq dq' md sd' γd img Rm i m Q hm)
+        iframe H1 H2)
       (fun sized σ id cid => by
         iintro ⟨#H1, #H2, -⟩
         iapply (walClose_law h (hS h) p ss sized σ id cid)

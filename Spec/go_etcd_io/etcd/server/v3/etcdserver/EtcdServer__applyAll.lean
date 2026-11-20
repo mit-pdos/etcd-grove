@@ -64,12 +64,15 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `srvApplyKV_small`)
       ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧
         (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) ∧ uint.Z ai + 1 < 2 ^ 64 ∧
-        loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧
+        loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧ logPutsOk (unapplied ai ms) ∧
         dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) (unapplied ai ms) ∧
         uint.Z ai = A.length ∧ lastTermIs A at0 ∧
         storage.diskOk ∧ uint.Z g ≤ uint.Z (ciEff γ st.k) ∧
         uint.Z (ciEff γ st.k) ≤ uint.Z g ∧ uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
-        (A ++ unapplied ai ms).length ≤ n⌝ ∗
+        (A ++ unapplied ai ms).length ≤ n ∧
+        -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode, the applied
+        -- index within the write tokens taken (`snapshotIfNeededAndCompactRaftLog`'s)
+        (clusterNoSnap γr.raft.raft.cl → uint.nat ai ≤ w)⌝ ∗
       isServerC C s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
@@ -215,6 +218,9 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   -- grants no lease, the lease-grant plan's D2 interim restriction)
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
+  -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (the payload's, `rnApSnap`): the
+  -- snapshot path frees the lessor window
+  ¬ clusterNoSnap γr.raft.raft.cl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ srvMemberIDAddr s ↦□ nid ∗
       -- the payload (`rnApSnap`'s)

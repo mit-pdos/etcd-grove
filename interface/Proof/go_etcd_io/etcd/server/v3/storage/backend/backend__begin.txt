@@ -2,10 +2,19 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem bbolt.statSlot.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ : Option (Loc × bbolt.TxView)) : a✝ = a✝¹ →
+    bbolt.statSlot γ a✝ = bbolt.statSlot γ✝ a✝¹
+
 theorem backend.backend.begin.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
-    (hUB : backend.backend.unsafeBegin.spec) (hSize : bbolt.Tx.Size_kv.spec) (hDB :
-    bbolt.Tx.DB_kv.spec) (hStats : bbolt.DB.Stats_kv.spec) (hInfo : bbolt.DB.Info_kv.spec) :
-    backend.backend.begin.spec
+    (hUB : backend.backend.unsafeBegin.spec) (hSize : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+    [HasExt Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec)
+    (hDB : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.DB.spec) (hStats : ∀ [inst :
+    ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions], bbolt.DB.Stats.spec) (hInfo : ∀ [inst : ExtSemantics Fs.fsExt]
+    [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    bbolt.DB.Info.spec) : backend.backend.begin.spec
   -- `Perennial.EtcdGrove.backend.backend.begin.spec`, unfolded:
   ∀ (γd : backend.DBNames) (b db : Loc) (D : backend.Data) (w : Bool),
     ⊢
@@ -20,9 +29,8 @@ theorem backend.backend.begin.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_o
                 ((sync.ownRWMutex (backend.bF go!"mu" b) fun q =>
                       typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
                     backend.ownDB db γd D ∗
-                      backend.txDB tx db ∗
-                        if w = true then backend.ownWTx tx γd D D
-                        else backend.txLive tx 1 ∗ backend.rtxSnap tx D ∗ backend.rtxStats tx) -∗
+                      backend.txDB tx γd db ∗
+                        if w = true then backend.ownWTx tx γd D D else backend.txLive tx γd 1 (bbolt.TxView.ro D)) -∗
                   Φ (intoVal tx)) -∗
             WP
               ((intoVal

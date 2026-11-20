@@ -42,8 +42,11 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WinTieApply
 
 @[expose] public section
 
@@ -128,14 +131,18 @@ theorem entryOk_of_false (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) 
 
 /-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
 invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is
-small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`). -/
+small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`; S1b, 2026-11-17:
+with the request's puts short, `entryPutsOk`, the KV invariant's). -/
 theorem entryOk_of_shape [GooseExts] (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel)
     (hs : entryShape lm m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
-    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk lm x m := by
+    (hc : mvcc.logCh x.log < 2 ^ 48) (hk : entryPutsOk m) : entryOk lm x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
   · exact Or.inl hd
-  · exact Or.inr ⟨rq, hdec, hid, hsh.2 x.log (rqSmall_of_small x.log rq hl hc), hsh.1 _⟩
+  · by_cases hdn : m.data = []
+    · exact Or.inl hdn
+    exact Or.inr ⟨rq, hdec, hid,
+      hsh.2 x.log (rqSmall_of_small x.log rq hl hc (hk ht hdn rq hdec)), hsh.1 _⟩
 
 /-- **What `applyEntryNormal` does to the KV** with the normal entry `m` (`v3`: above `ci`): no
 data, nothing (`skipped`); else its decoded request through `apply.Apply` (`applyStep`). -/
@@ -366,13 +373,18 @@ permit `E.Cp`, boxed: its persistence is the API's `persistent.law`); the store'
 gone, the API's backend always compacting.) (2026-11-06, the coordinator's decision: the draft's
 tie of the witness, `E.Nx = kvNx γr false`, as `kvNxOff`, which `InvRequest` now has: a reader's
 `readWit_fire` turns the store's `E.Nx l` into a committed raft log.) (The lease-grant stage, B1,
-2026-11-02; last conjunct since the merge of `lean`, 2026-11-06) The KV names' lease mode the
-environment's (`γr.kv.lm = E.lm`, X7 option (iii)). -/
+2026-11-02) The KV names' lease mode the
+environment's (`γr.kv.lm = E.lm`, X7 option (iii)). (Auth-lease S4 item 7b F4, last conjunct) The lessor-window
+tie (`srvApi.winTieRes`: the tie, its token the apply thread's `E.Wt`, and the lessor's reader invariant), its free
+markers' fact "not both raft's no-snapshot mode and lease grants" (`clusterNoSnap → E.lg = false`: a free marker is
+pushed by the snapshot path, and, in a cluster that grants no lease, at the start, the apply thread then never opening
+a window, `E.lg = false → E.win = none` being the applier's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
     □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
     ⌜γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret ∧ envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
-    ⌜E.Nx = kvNxOff γr.raft γr.kv⌝ ∗ ⌜γr.kv.lm = E.lm⌝)
+    ⌜E.Nx = kvNxOff γr.raft γr.kv⌝ ∗ ⌜γr.kv.lm = E.lm⌝ ∗
+    srvApi.winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false))
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -425,23 +437,43 @@ theorem lastTermIs_append {A es : List EntryModel} {t t' : w64} (h1 : lastTermIs
 -- (`apply/InvUber.lean`), the same definition, which `apply.Apply`'s spec returns.
 
 /-- (D19i part 1) `ep.confState`: `nil`, or a `*pb.ConfState` read-only for good (raft's
-`ApplyConfChange` answer, or the start snapshot's), as `CreateSnapshot` reads it (persistent). -/
+`ApplyConfChange` answer, or the start snapshot's), as `CreateSnapshot` reads it (persistent); (S1b
+of `notes/bbolt-integration-plan.md`, 2026-11-17) of at most `storage.csIdMax` ids, as the backend
+hooks keep it (`SetConfState`'s premise: what bounds the bytes their save puts). -/
 def epCsOk (cs : Loc) : IProp GF :=
-  iprop(⌜cs = null⌝ ∨ ∃ c : ConfStateM, csPts cs DFrac.discard c false)
+  iprop(⌜cs = null⌝ ∨ ∃ c : ConfStateM, csPts cs DFrac.discard c false ∗
+    ⌜storage.csIdCount c ≤ storage.csIdMax⌝)
+
+/-- (S1b) **The voters' conf state lists the voters only**: as many ids as voters. -/
+theorem csIdCount_simple (c : ConfStateM) (cfg : GSet w64)
+    (h : confStateIs c (Membership.simple cfg)) : storage.csIdCount c = GMap.size cfg := by
+  obtain ⟨h1, h2, h3, h4, -⟩ := h
+  unfold storage.csIdCount
+  rw [h1.length_eq, h2.length_eq, h3.length_eq, h4.length_eq]
+  simp only [Membership.simple, GMap.length_elements, GMap.size_empty, Nat.add_zero]
+
+/-- (S1b) The voters' conf state, at most `2 ^ 20` voters, fits the hooks' bound. -/
+theorem csIdCount_simple_le (c : ConfStateM) (cfg : GSet w64)
+    (h : confStateIs c (Membership.simple cfg)) (hs : GMap.size cfg ≤ 2 ^ 20) :
+    storage.csIdCount c ≤ storage.csIdMax := by
+  rw [csIdCount_simple c cfg h]; unfold storage.csIdMax; exact hs
 
 instance epCsOk_persistent (cs : Loc) : Persistent (epCsOk (GF := GF) cs) := by
   unfold epCsOk; infer_instance
 
 /-- A snapshot's conf state, read-only (`csOptA` at `□`), is a valid `ep.confState`. -/
-theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) :
+theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) (hc : storage.csIdCount c ≤ storage.csIdMax) :
     ⊢ csOptA (GF := GF) p DFrac.discard c -∗ epCsOk p := by
   iintro H
   iunfold csOptA at H
   iunfold epCsOk
   icases H with (⟨%Hn, -⟩ | #H | #H)
   · ileft; ipureintro; exact Hn
-  · iright; iexists c; iexact H
+  · iright; iexists c; iframe H; ipureintro; exact hc
   · iright; iexists c
+    isplitl [H]
+    rotate_left
+    · ipureintro; exact hc
     iunfold csPts at H
     icases H with ⟨%sv, %sl, %so, %sn, %pa, H⟩
     iNamed H
@@ -616,9 +648,11 @@ interim restriction: `applySnapshot.specSnapM`'s `d.cm = false`, until restore i
 (`isWatchableStore_frozen`) for `Restore`. (Strict M1, 2026-11-05: over mvcc's API the backend is
 a `mvcc.KBReal`, the epoch's `B`, which the chain's tie `E.BkTie` names (`srvBkTie B`, in place of the
 store's names' `E.γ.kb = some d`); the two mode clauses gone, the API's backend always compacting
-and the store having no mode.) -/
+and the store having no mode.) (Auth-lease S4 item 7b) No lessor window open (`E.win = none`): the server opens one per
+entry, on a copy of `E`; and (K1, F4) the apply thread's share of the store's state a quarter (`E.stq = ¼`), the
+lessor-window tie (`srvApi.winTieRes`, in `srvKVInvs`) holding the other quarter. -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
-  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
+  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧ (E.win = none ∧ E.stq = (1 : Qp).half.half) ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH E.authMode γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (B : mvcc.KBReal) (al st lp : Loc), E.BkTie = srvBkTie B ∧ B.γB = γB ∧
         H = srvObjsOn al st lp cl B.be
@@ -724,7 +758,7 @@ theorem isServer_lg (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hk⟩
   iunfold srvKVInvs at Hk
-  icases Hk with ⟨-, -, -, -, -, -, %hl⟩
+  icases Hk with ⟨-, -, -, -, -, -, %hl, -⟩
   ipureintro; exact ⟨hr, by rw [KVNames.lg_eq, apply.AEnv.lg_eq, hl]⟩
 
 /-- **The request path's lease mode is the environment's** (X7 option (iii), 2026-11-04). -/
@@ -737,7 +771,7 @@ theorem isServer_lm (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hk⟩
   iunfold srvKVInvs at Hk
-  icases Hk with ⟨-, -, -, -, -, -, %hl⟩
+  icases Hk with ⟨-, -, -, -, -, -, %hl, -⟩
   ipureintro; exact ⟨hr, hl⟩
 
 /-- The real backend `be` as the server's `s.be` holds it. -/
@@ -784,6 +818,12 @@ def srvBeOwn (s : Loc) (E : apply.AEnv GF) : IProp GF :=
     dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d) ∗
     srvBeRO d ∗ backend.bkRPool d.γB d.P d.be ∗ apply.bkRT d)
 
+/-- **The apply thread's applier state at its current lessor window** (auth-lease S4 item 7b F4, option (A)): the apply
+package's `applyKV` at a copy of `E` with the window `w` the apply thread holds open between entries (the server's base
+`E` has none, `srvEnvOk`), none in a cluster that grants no lease (the applier's `E.lg = false → E.win = none`). -/
+def srvApplyKVW (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) : IProp GF :=
+  iprop(∃ w : Option lease.LWin, ⌜E.lg = false → w = none⌝ ∗ apply.applyKV { E with win := w } ua x)
+
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`, owned
 (D22 receiver epochs, S7a, 2026-10-23: the apply thread is its only reader and writer,
 `applySnapshot` rebuilds it; until then `↦□` in `srvFieldsAt`), the apply package's uber-applier
@@ -798,7 +838,7 @@ plan's step 2) the lessor's range deleter as its owner holds it (`lease.rdAt`: `
 from `mvcc.New`; the snapshot's `Recover` replaces it; Part X's revocations borrow it). -/
 def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
-    apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyRes s E ∗
+    srvApplyKVW E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyRes s E ∗
     (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ))
@@ -974,6 +1014,139 @@ theorem applyKV_authOn (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV
   iframe H
   ipureintro; exact Hc
 
+/-- **The writer facts at the apply thread's window** (`srvApplyKVW`; the window does not change the store's
+resources). -/
+theorem srvApplyKVW_writer [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (E : apply.AEnv GF) (hw : envWitOk E) (ua : GoInterface) (x : apply.ApplyKV) :
+    □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ⊢ srvApplyKVW E ua x ={⊤}=∗
+      srvApplyKVW E ua x ∗ srvApi.kvLogLb E.γs x.log ∗ E.Nx x.log ∗ ⧖ (mvcc.logCh x.log) ∗
+      ⌜∃ c, MvccReachable (srvApi.stAt x.log c) ∧ x.log.length + 3 ≤ 2 ^ 63⌝ := by
+  obtain ⟨h1, h2, h3, h4⟩ := hw
+  iintro #Hs Hkv
+  iunfold srvApplyKVW at Hkv
+  icases Hkv with ⟨%wn, %Hwn, Hkv⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hp', Ho, Hk, Hc⟩
+  iunfold apply.kvOwn at Hk
+  icases Hk with ⟨⟨%c, Hw⟩, Hk⟩
+  imod srvApi.writer_facts E.Nx E.Cp Hp Hr E.kv E.γ E.γs x.log c $$ Hs Hw with ⟨Hw, #Hlb, #Hnx, #Hrc, %Hre⟩
+  imodintro
+  iframe Hlb Hnx Hrc
+  isplitl
+  · iunfold srvApplyKVW
+    iexists wn
+    isplitr
+    · ipureintro; exact Hwn
+    iunfold apply.applyKV
+    iexists p
+    iframe Ho Hc
+    isplitr
+    · ipureintro; exact Hp'
+    iunfold apply.kvOwn
+    iframe Hk
+    iexists c
+    iframe Hw
+  · ipureintro; exact ⟨c, Hre⟩
+
+/-- **The apply thread's chain is in the environment's auth mode** (`applyKV_authOn` at its window). -/
+theorem srvApplyKVW_authOn (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) :
+    srvApplyKVW E ua x ⊢ srvApplyKVW E ua x ∗ ⌜x.chain.authOn = E.authOn⌝ := by
+  iintro H
+  ihave %Hc : iprop(⌜x.chain.authOn = E.authOn⌝) $$ [H]
+  · iunfold srvApplyKVW at H
+    icases H with ⟨%wn, -, H⟩
+    iunfold apply.applyKV at H
+    icases H with ⟨%p, -, Ho, -⟩
+    iunfold apply.uberOwn at Ho
+    icases Ho with ⟨%a, -, -, %h, -⟩
+    ipureintro; exact h
+  iframe H
+  ipureintro; exact Hc
+
+/-- **The applier state at no window** is the apply thread's (`srvApplyKVW` at `w = none`, for an environment with
+none, as the server's). -/
+theorem srvApplyKVW_of_none (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) (hw : E.win = none) :
+    apply.applyKV E ua x ⊢ srvApplyKVW E ua x := by
+  iintro H
+  iunfold srvApplyKVW
+  iexists none
+  isplitr
+  · ipureintro; intro _; rfl
+  iExactEq H
+  rw [← hw]
+
+/-- **The apply thread's applier state opened at the base environment** (its window's pieces that do not read the
+window, at `E`: the chain's resource, the writer's state, the backend, the compaction right; the rest, at the window,
+kept in the closing wand). -/
+theorem srvApplyKVW_open (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) :
+    srvApplyKVW E ua x ⊢ ∃ (p : Loc) (c : Int),
+      ⌜ua = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty) #p⌝ ∗
+      apply.uberOwn E p x.chain ∗ srvApi.wStQ E.γs E.stq x.log c ∗ apply.kvBk E ∗ apply.cmpOwn E x.crev ∗
+      (∀ c' : Int, apply.uberOwn E p x.chain -∗ srvApi.wStQ E.γs E.stq x.log c' -∗ apply.kvBk E -∗
+        apply.cmpOwn E x.crev -∗ srvApplyKVW E ua x) := by
+  iintro H
+  iunfold srvApplyKVW at H
+  icases H with ⟨%wn, %Hwn, H⟩
+  iunfold apply.applyKV at H
+  icases H with ⟨%p, %Hp', Ho, Hk, Hc⟩
+  iunfold apply.kvOwn at Hk
+  icases Hk with ⟨⟨%c, Hw⟩, Hbk, Hll, Hrd⟩
+  iexists p, c
+  isplitr
+  · ipureintro; exact Hp'
+  isplitl [Ho]
+  · iExactEq Ho; rfl
+  isplitl [Hw]
+  · iExactEq Hw; rfl
+  isplitl [Hbk]
+  · iExactEq Hbk; rfl
+  isplitl [Hc]
+  · iExactEq Hc; rfl
+  iintro %c' Ho Hw Hbk Hc
+  iunfold srvApplyKVW
+  iexists wn
+  isplitr
+  · ipureintro; exact Hwn
+  iunfold apply.applyKV
+  iexists p
+  isplitr
+  · ipureintro; exact Hp'
+  isplitl [Ho]
+  · iExactEq Ho; rfl
+  isplitr [Hc]
+  · iunfold apply.kvOwn
+    isplitl [Hw]
+    · iexists c'; iExactEq Hw; rfl
+    isplitl [Hbk]
+    · iExactEq Hbk; rfl
+    iframe Hll Hrd
+  iExactEq Hc; rfl
+
+/-- **The apply thread's compaction right's quarter, lent** (`cmpOwn`'s `crOwn`, at its window). -/
+theorem srvApplyKVW_crOwn (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) :
+    srvApplyKVW E ua x ⊢ srvApi.crOwn E.γs x.crev ∗ (srvApi.crOwn E.γs x.crev -∗ srvApplyKVW E ua x) := by
+  iintro H
+  iunfold srvApplyKVW at H
+  icases H with ⟨%wn, %Hwn, H⟩
+  iunfold apply.applyKV at H
+  icases H with ⟨%p, %Hp', Ho, Hk, Hc⟩
+  iunfold apply.cmpOwn at Hc
+  icases Hc with ⟨Hop, Hcr⟩
+  iframe Hcr
+  iintro Hcr
+  iunfold srvApplyKVW
+  iexists wn
+  isplitr
+  · ipureintro; exact Hwn
+  iunfold apply.applyKV
+  iexists p
+  iframe Ho Hk
+  isplitr
+  · ipureintro; exact Hp'
+  iunfold apply.cmpOwn
+  iframe Hop Hcr
+
 /-- **The apply thread's writer facts** (strict M1, 2026-11-05; until then `srvApplyKV_idxCert`,
 the sole writer's certificate of its log): at its log, a floor, the raft witness, the receipt,
 reachability and room for three revisions (`srvApi.writer_facts`, over mvcc's laws). -/
@@ -986,14 +1159,10 @@ theorem srvApplyKV_writer [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.
   iintro #Hk H
   iunfold srvKVInvs at Hk
   icases Hk with ⟨-, -, -, #Hs, %Hwit, -⟩
-  obtain ⟨-, -, ⟨h1, h2, h3, h4⟩, -⟩ := Hwit
   iunfold srvApplyKV at H
+  obtain ⟨-, -, ⟨h1, h2, h3, h4⟩, -⟩ := Hwit
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp', Ho, Hk, Hc⟩
-  iunfold apply.kvOwn at Hk
-  icases Hk with ⟨⟨%c, Hw⟩, Hk⟩
-  imod srvApi.writer_facts E.Nx E.Cp Hp Hr E.kv E.γ E.γs x.log c $$ Hs Hw with ⟨Hw, #Hlb, #Hnx, #Hrc, %Hre⟩
+  imod srvApplyKVW_writer Hp Hr E ⟨h1, h2, h3, h4⟩ ua x $$ Hs Hkv with ⟨Hkv, #Hlb, #Hnx, #Hrc, %Hre⟩
   imodintro
   iframe Hlb Hnx Hrc
   isplitl
@@ -1003,18 +1172,10 @@ theorem srvApplyKV_writer [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.
     · iexact Hua
     isplitr
     · iexact Hap
-    isplitl [Ho Hc Hk Hw]
-    · iunfold apply.applyKV
-      iexists p
-      iframe Ho Hc
-      isplitr
-      · ipureintro; exact Hp'
-      iunfold apply.kvOwn
-      iframe Hk
-      iexists c
-      iframe Hw
-    · iexact Hrest
-  · ipureintro; exact ⟨c, Hre⟩
+    isplitl [Hkv]
+    · iexact Hkv
+    iexact Hrest
+  · ipureintro; exact Hre
 
 /-- The apply thread's `s.uberApply` and its applier, lent (D22 receiver epochs, S7a). -/
 theorem srvApplyKV_ua (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
@@ -1078,7 +1239,7 @@ theorem idClaim_agree_entry (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ
 def srvWTN : Namespace := nroot .@ "srvWT"
 
 -- (S7b) for a later over an existential backend in the budget's invariant
-deriving instance Inhabited for backend.DBNames
+-- (S1) `backend.DBNames` is bbolt's `BoltName`, which derives `Inhabited`
 deriving instance Inhabited for backend.BNames
 deriving instance Inhabited for backend.BParams
 deriving instance Inhabited for mvcc.KBReal

@@ -31,6 +31,7 @@ module
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.encoding.json
+public import GeneratedProof.google_golang_org.grpc.stats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
@@ -71,11 +72,14 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 `Is` method (`*errorString` has only `Error`; the model's method sets are uninterpreted, so this
 is stated, not derived; as the recipes' `errNewLeaf`), nor a `GRPCStatus` method (k8s etcd3 7c,
 HS-6: grpc's `status.FromError` accepts it, `statusErrOk`), nor a `Format` method (premise-fixes-4,
-2026-11-10: `fmt` prints it with its `Error`, `statusErrOk`). -/
+2026-11-10: `fmt` prints it with its `Error`, `statusErrOk`), and its `Error` is `Error() string`
+(fmt soundness 2, 2026-11-18: `statusErrOk`). -/
 def errLeaf (e : GoInterfaceOk) : Prop :=
   _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
-    methodSet e.ty !! go!"GRPCStatus" = none ∧ methodSet e.ty !! go!"Format" = none
+    methodSet e.ty !! go!"GRPCStatus" = none ∧
+    (methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
 
 /-- `errLeaf` without the `Format` conjunct (premise-fixes-4): what the premise
 `EtcdGrove.ContextReadErrs` states of `context.Canceled` (`errVarLeafW`), unchanged; the `Format`
@@ -247,7 +251,9 @@ theorem applyErrIs_srvErrOk (err : GoInterface) :
 accepts** (k8s etcd3 7c, HS-6). -/
 theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
-    (hG : methodSet e.ty !! go!"GRPCStatus" = none) (hF : methodSet e.ty !! go!"Format" = none) :
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none)
+    (hF : methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
     errMsgOk (GF := GF) e ⊢ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
@@ -341,7 +347,9 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
     (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
-    (hG : methodSet e.ty !! go!"GRPCStatus" = none) (hF : methodSet e.ty !! go!"Format" = none) :
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none)
+    (hF : methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
     errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
   iintro #Hm
   iunfold applyErrIs
@@ -776,6 +784,17 @@ end go_etcd_io.etcd.server.v3.etcdserver.api
 -- (D22 S-f, 2026-10-19: moved here from the server's `BaseApply.lean`, unchanged) `config` and
 -- `snap`, which `storage` imports since `OpenSnapshotBackend` is translated, and the packages
 -- `config` imports (`otelgrpc`, `transport` and its `crypto/tls`, `featuregate`, `v3discovery`)
+
+-- grpc's `stats` (types and names only: `stats.Handler`, the type of otelgrpc's
+-- `NewServerHandler`'s result; otelgrpc imports it, 2026-11-19)
+namespace google_golang_org.grpc.stats
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.stats :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.stats
 
 namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 

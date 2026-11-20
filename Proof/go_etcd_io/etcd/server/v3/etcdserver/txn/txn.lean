@@ -39,9 +39,9 @@ theorem txn.txn.wp_proof
     (hZErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLgErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     txn.txn.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg γ trace te tw ro σ rt t pl skip L k chs
+  intro ctx cd nd lg γ trace te tw ro σ rt t pl skip L wn k chs
   wp_start as ⟨Htw, Htrc, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre, #Hlgo⟩
-  obtain ⟨hreach, hpend, hops, hro, hndro⟩ := Hpre
+  obtain ⟨hreach, hpend, hops, hwin, hro, hndro, hfit⟩ := Hpre
   have hkst : k.state = σ := by cases ro <;> rfl
   have hkr : txn.MTxn.isRead k = ro := by cases ro <;> rfl
   have hkm : txn.mstate k = mvcc.stateAfter σ.log := by cases ro <;> rfl
@@ -55,7 +55,7 @@ theorem txn.txn.wp_proof
     $$ []
   · rw [hkr]; iexact Hknown
   ihave Hown0 : (⌜txn.MTxn.isRead k = true⌝ ∨
-      lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log k.pend)) $$ [Hown]
+      lease.leaseOwnW (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log k.pend) wn) $$ [Hown]
   · rw [hkr, hkp, mvcc.api.pendItems_nil]; iexact Hown
   wp_auto
   wp_apply (hNew rt t (mvcc.stateAfter σ.log) pl []) $$ [$Hrt $Hpl'] as %resp %n ⟨Hskel, Hhdr, %Hn⟩
@@ -66,12 +66,12 @@ theorem txn.txn.wp_proof
   · iunfold respsSkel at Hresps
     icases Hresps with ⟨%sl, %ps, #Hsl, -⟩
     iexists sl; iexact Hsl
-  have hE := hExec ctx cd nd lg γ trace te (interface.mkOk tyX vX) k rt t pl [] resp skip L
+  have hE := hExec ctx cd nd lg γ trace te (interface.mkOk tyX vX) k rt t pl [] resp skip L wn
   simp only [hkst, hkm] at hE
   wp_apply hE $$ [$Htw $Htrc $Hctx $Hct $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown0]
     as %n2 %err Hres
   · ipureintro
-    refine ⟨hreach, hops, ?_, fun h => by rw [hkr]; exact hndro h⟩
+    refine ⟨hreach, hops, by rw [hkr]; exact hwin, ?_, fun h => by rw [hkr]; exact hndro h, hfit⟩
     intro hr op hop
     rw [hkr] at hr
     exact readonly_branch t (hro hr) _ op hop

@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridgeLinked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLaws
 
 @[expose] public section
 
@@ -61,7 +62,7 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  intro γr E b ss wal cl dq bv cv lok γs ν pv ps ctxs issued
+  intro γr E b ss wal cl sd dq bv cv lok γs ν pv ps ctxs issued
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
@@ -76,7 +77,7 @@ theorem raftNode_of_StartNode
     iintro %K Hi Hm
     iframe Hi Hm
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
-  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv ps ctxs
+  wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv ps ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
       memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh)
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
@@ -206,6 +207,9 @@ theorem raftNode_of_StartNode
   rw [hn]
   iexact Hnodef
 
+theorem raftNode_of_StartNode_law_holds : raftNode_of_StartNode.law (GF := GF) (hG := hG) :=
+  raftNode_of_StartNode
+
 
 set_option maxHeartbeats 0 in
 /-- (restart S3 item 8, 2026-11-11) **The composition at a restart** (see `NodeStartSpecR`): from
@@ -240,12 +244,12 @@ theorem raftNode_of_RestartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpecR (GF := GF) := by
-  intro γr E b ss wal cl dq bv cv lok γs ν pv ctxs issued σ cs S m A₀
+  intro γr E b ss wal cl sd dq bv cv lok γs ν pv ctxs issued σ cs S m A₀
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
   iNamed Hpre
-  obtain ⟨Hcfg, Hhb, Hwal, Hfit, H0, Hsz, Hba, Hac, Hboot, Hhold, Hterm, Hcs, Hcsb⟩ := Hraft
+  obtain ⟨Hcfg, Hhb, Hwal, Hfit, H0, Hsz, Hba, Hac, Hboot, Hhold, Hterm, Hcs, Hcsb, Hnsm⟩ := Hraft
   have Hbc : σ.b ≤ σ.commit := Nat.le_trans Hba Hac
   -- the cluster untraced (`srvClusterOk`'s, in the server's raft-log invariant)
   ihave %HtrC : ⌜Cluster.trace γr.cl = none⌝ $$ []
@@ -271,7 +275,7 @@ theorem raftNode_of_RestartNode
   ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs σ cs 0
       (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
-        memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz
+        memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz Hnsm
       $$ [Hfresh Hmeta Hents Hend Hval Hsn]
   · iframe Hreg Hlock Hval
     isplitl [Hfresh Hmeta Hents Hend Hsn]
@@ -279,7 +283,7 @@ theorem raftNode_of_RestartNode
       iframe Hfresh Hmeta Hcp He0 Hsn Hents Hend
     iintro %K Hi Hm Hn
     iframe Hi Hm Hn
-  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv [] ctxs
+  wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv [] ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
       memSnapNone γs (walSnapCS σ cs)))
     (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀))
@@ -290,7 +294,7 @@ theorem raftNode_of_RestartNode
     · ipureintro; exact ⟨Hhb, Hwal, HtrC⟩
     simp only [rnBootPre]
     isplitr
-    · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold⟩
+    · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩
     isplitl [Hbs]
     · iExactEq Hbs; rfl
     isplitr
@@ -413,7 +417,7 @@ theorem raftNode_of_RestartNode
     · -- the restart data: the restart disjunct
       iunfold rnRestartOk; iright
       isplitr
-      · ipureintro; rw [Hwpre, Hws0, Hwa0, Hwc0]; exact ⟨rfl, Hba, Hac⟩
+      · ipureintro; rw [Hwpre, Hws0, Hwa0, Hwc0]; exact ⟨rfl, Hba, Hac, by rw [Hwnode]; exact Hnsm⟩
       rw [Hsrv, Hwa0]; iexact HA0
     simp only [Hrvcfg]
     iframe Hidri Hsti Htri Hmsi

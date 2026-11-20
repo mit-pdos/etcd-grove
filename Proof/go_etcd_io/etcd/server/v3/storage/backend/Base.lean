@@ -58,6 +58,17 @@ variable [sem : go.Semantics]
 
 
 
+-- (S4b, 2026-11-18: moved here from mvcc's `Base.lean`, the snapshot's goroutine calls
+-- `humanize.Bytes`)
+namespace github_com.dustin.go_humanize
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.dustin.go_humanize :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.dustin.go_humanize :=
+  build_get_is_pkg_init_wf
+
+end github_com.dustin.go_humanize
+
 namespace go_etcd_io.etcd.server.v3.storage.backend
 
 /-- A prometheus `Histogram` as the backend uses it: `Observe(x)` returns (metrics have no effect

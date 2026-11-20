@@ -35,7 +35,7 @@ at or below the history's last commit, in record order. -/
 def walValidSnaps (I : WalHist) (k : Nat) : List (w64 × w64) :=
   (if k = 0 then [(W64 0, W64 0)] else []) ++
   (I.drop k).filterMap (fun o => match o with
-    | .snap m => if uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit' then some (m.Index', m.Term')
+    | .snap m _ => if uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit' then some (m.Index', m.Term')
       else none
     | .save _ _ => none)
 
@@ -50,7 +50,7 @@ def walNewestPair (l : List (w64 × w64)) : Option (w64 × w64) :=
 are in files `ReleaseLockTo(a)` (and a restart's `Open` at `a`) unlocks. -/
 def walLastSnapPos {E : Type} (H : List (WalOpG E)) (a : w64) : Nat :=
   ((List.range H.length).filter (fun i => match H[i]? with
-    | some (WalOpG.snap m) => decide (m.Index' = a)
+    | some (WalOpG.snap m _) => decide (m.Index' = a)
     | _ => false)).getLast?.getD 0
 
 /-- **The highest index a cut at the end of `P` names its file above** (WAL W4a.2): the larger of
@@ -62,10 +62,10 @@ def walLastIdx (P : WalHist) : Nat :=
   max
     (P.foldl (fun x o => match o with
       | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
-      | .snap _ => x) 0)
+      | .snap _ _ => x) 0)
     (P.foldl (fun x o => match o with
       | .save _ _ => x
-      | .snap m => max x (uint.nat m.Index')) 0)
+      | .snap m _ => max x (uint.nat m.Index')) 0)
 
 /-- **Some record of `H` has index `2^64-1`** (WAL W4a.2, F-W4a2-1): then `max(w.enti, w.snapi)` may
 be `2^64-1` at a cut, whose file name, that plus one, wraps to 0. Unreachable since WAL W4a.2
@@ -74,7 +74,7 @@ and grow only by them); the bounds keep their fallbacks under it as a defense. -
 def walHasMaxIdx (H : WalHist) : Prop :=
   ∃ o ∈ H, match o with
     | .save _ es => ∃ e ∈ es, uint.nat e.Index' = 2 ^ 64 - 1
-    | .snap m => uint.nat m.Index' = 2 ^ 64 - 1
+    | .snap m _ => uint.nat m.Index' = 2 ^ 64 - 1
 
 /-- **A WAL file can start at position `b` of `H`** (WAL W4a.2): 0 (`Create`'s), or right after a
 `Save` that writes a record (a cut ends such a `Save`, S/wal.go:1111; an empty `Save` returns first,
@@ -82,7 +82,7 @@ S/wal.go:1079), or right after a snapshot record (`SaveSnapshot` cuts as `Save` 
 fix 0007, `notes/wal-fsext-fork/README.md`). -/
 def walCutPos (H : WalHist) (b : Nat) : Prop :=
   b = 0 ∨ (∃ h es, H[b-1]? = some (WalOpG.save h es) ∧ ¬ (hsEmptyP h ∧ es = [])) ∨
-    ∃ m, H[b-1]? = some (WalOpG.snap m)
+    ∃ m al, H[b-1]? = some (WalOpG.snap m al)
 
 /-- **Every file a cut names after `H`'s last snapshot record of index `a` (position `p`) is named
 above `a`** (a sufficient condition, by the Go code; M1 of the Freeze review; clause 4 in WAL W4a.2):
@@ -96,10 +96,10 @@ write-mode `ReadAll` succeeds only when its start record matched, the fork's `1a
 F-W4a2-2), and the file names (`max(w.enti, w.snapi) + 1`) exceed `a`. -/
 def walRelGuard (H : WalHist) (a : w64) (p : Nat) : Prop :=
   (∀ j, p < j → j ≤ H.length → uint.nat a ≤ uint.nat (walLastHS (H.take j)).Commit') ∧
-  (∀ (q j : Nat) (m : SnapshotMetadataM) (h : HardStateM) (es : List EntryM) (e : EntryM),
-     H[q]? = some (WalOpG.snap m) → uint.nat a ≤ uint.nat m.Index' → q < j →
+  (∀ (q j : Nat) (m : SnapshotMetadataM) (al : Bool) (h : HardStateM) (es : List EntryM) (e : EntryM),
+     H[q]? = some (WalOpG.snap m al) → uint.nat a ≤ uint.nat m.Index' → q < j →
      H[j]? = some (WalOpG.save h es) → e ∈ es → uint.nat a < uint.nat e.Index') ∧
-  (∀ (j : Nat) (m : SnapshotMetadataM), p < j → H[j]? = some (WalOpG.snap m) → uint.nat a ≤ uint.nat m.Index') ∧
+  (∀ (j : Nat) (m : SnapshotMetadataM) (al : Bool), p < j → H[j]? = some (WalOpG.snap m al) → uint.nat a ≤ uint.nat m.Index') ∧
   ¬ walHasMaxIdx H
 
 open Classical in
@@ -111,7 +111,7 @@ higher); the last snapshot record of index `a` under `walRelGuard`; otherwise th
 def walGuardPos (H : WalHist) (a : w64) : Nat :=
   if walHasMaxIdx H then H.length
   else if a = W64 0 then 0
-  else if (∃ (i : Nat) (m : SnapshotMetadataM), H[i]? = some (WalOpG.snap m) ∧ m.Index' = a) ∧ walRelGuard H a (walLastSnapPos H a)
+  else if (∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), H[i]? = some (WalOpG.snap m al) ∧ m.Index' = a) ∧ walRelGuard H a (walLastSnapPos H a)
     then walLastSnapPos H a else H.length
 
 open Classical in
@@ -159,7 +159,7 @@ theorem walFoldChkFrom_phantom (σ : StorContents) (H₁ H₂ : WalHist) :
     rfl
   | cons o H ih =>
     cases o with
-    | snap m => simp only [List.cons_append, walFoldChkFrom]; exact ih _
+    | snap m al => simp only [List.cons_append, walFoldChkFrom]; exact ih _
     | save h es => simp only [List.cons_append, walFoldChkFrom, ih]
 
 theorem walLastHS_phantom (H₁ H₂ : WalHist) :

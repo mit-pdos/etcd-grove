@@ -37,7 +37,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   have hWrite := mvcc.store.Write.spec_R hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_R hEnd
   intro wv s γ P Pre Q Post f key endk k e L I G R
-  wp_start as ⟨#Hwv, Hrd, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hend, Hown, #HI, %Hwq, HG, #HFG, Hcb⟩
+  wp_start as ⟨#Hwv, Hrd, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hend, Hown, #HI, #HL, %Hwq, HG, #HFG, Hcb⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -60,10 +60,12 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   -- `tw.DeleteRange(key, end)`
   icases mvcc.isTxnWrite_cert _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx with ⟨Htx, #Hc0⟩
   ihave %HIeq := HI $$ %ilog Hc0
+  ihave %HLp := HL $$ %ilog Hc0
   ihave Hown := lease.leaseOwn_eq HIeq.symm $$ Hown
   ihave Htx := mvcc.isTxnWrite_toT _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx
   wp_apply (hDel t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e L)
     $$ [$Htx $Hkey $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr⟩
+  · ipureintro; exact ⟨lease.winMove_none _ _, HLp, mvcc.ChPutsLe.nil _⟩
   ihave Htx := mvcc.isTxnWrite_ofT _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx
   (try wp_auto)
   -- the deferred `tw.End()`

@@ -138,7 +138,7 @@ theorem growSlice.wp_proof
           · ipureintro
             refine ⟨hrt, ?_, ?_⟩ <;> word
           inext
-          iintro %w %s' %hw Hit'
+          iintro %w %s' %hw %_ Hit'
           (try wp_auto)
           wp_apply (wp_Set v_ptr _ v w (go.GoType.SliceType S.objTy) p GoSlice s s') $$ [$v $Hp]
             as ⟨v, Hp⟩

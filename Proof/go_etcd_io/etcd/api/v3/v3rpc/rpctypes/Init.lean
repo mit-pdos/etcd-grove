@@ -201,16 +201,6 @@ axiom ErrAuthNotEnabled_init :
     {{ (True : IProp GF) }} (App (Val ErrAuthNotEnabled.init) (Val #()))
     {{ RET #(); ∃ x : EtcdError, globalAddr ErrAuthNotEnabled ↦ interface.mkOk EtcdError.ty #x }}
 
-/-- `TokenFieldNameGRPC = "token"` (`metadatafields.go`): that string. -/
-axiom TokenFieldNameGRPC_init :
-    {{ (True : IProp GF) }} (App (Val TokenFieldNameGRPC.init) (Val #()))
-    {{ RET #(); globalAddr TokenFieldNameGRPC ↦ go!"token" }}
-
-/-- `TokenFieldNameSwagger = "authorization"` (`metadatafields.go`): that string. -/
-axiom TokenFieldNameSwagger_init :
-    {{ (True : IProp GF) }} (App (Val TokenFieldNameSwagger.init) (Val #()))
-    {{ RET #(); globalAddr TokenFieldNameSwagger ↦ go!"authorization" }}
-
 /-- `ErrGRPCEmptyKey = status.Error(codes.InvalidArgument, "etcdserver: key is not provided")` (`error.go`): a `*status.Error`, which grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/
 axiom ErrGRPCEmptyKey_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCEmptyKey.init) (Val #()))
@@ -266,21 +256,6 @@ axiom ErrGRPCNoLeader_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCNoLeader.init) (Val #()))
     {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNoLeader ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: no leader"⌝ }}
 
-/-- `MetadataClientAPIVersionKey = "client-api-version"` (`metadatafields.go`): a string. -/
-axiom MetadataClientAPIVersionKey_init :
-    {{ (True : IProp GF) }} (App (Val MetadataClientAPIVersionKey.init) (Val #()))
-    {{ RET #(); ∃ k : GoString, globalAddr MetadataClientAPIVersionKey ↦ k }}
-
-/-- `MetadataRequireLeaderKey = "hasleader"` (`metadatafields.go`): a string. -/
-axiom MetadataRequireLeaderKey_init :
-    {{ (True : IProp GF) }} (App (Val MetadataRequireLeaderKey.init) (Val #()))
-    {{ RET #(); ∃ k : GoString, globalAddr MetadataRequireLeaderKey ↦ k }}
-
-/-- `MetadataHasLeader = "true"` (`metadatafields.go`): a string. -/
-axiom MetadataHasLeader_init :
-    {{ (True : IProp GF) }} (App (Val MetadataHasLeader.init) (Val #()))
-    {{ RET #(); ∃ k : GoString, globalAddr MetadataHasLeader ↦ k }}
-
 /-- `ErrGRPCInvalidAuthToken = status.Error(codes.Unauthenticated, "etcdserver: invalid auth token")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/
 axiom ErrGRPCInvalidAuthToken_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCInvalidAuthToken.init) (Val #()))
@@ -318,15 +293,18 @@ class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemant
   noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none
   /-- (premise-fixes-4) nor a `Format` method (`fmt` prints it with its `Error`). -/
   noFormat : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none
+  /-- (fmt soundness 2) and its `Error` is `Error() string` (what `fmt.argOk` asks). -/
+  errorSig : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Error" =
+    some (go.signature.Signature [] false [go.string])
 
 instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :
     EtcdGrove.RpctypesEtcdErrorMethods := by
   have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m
   have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"
-  have hF := h go!"Format"
-  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF
-  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF⟩
+  have hF := h go!"Format"; have hE := h go!"Error"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF hE
+  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF, hE⟩
 
 /-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target
 `errors.As` accepts. -/
@@ -357,6 +335,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoString) TokenFieldNameSwagger _ as HTokenFieldNameSwagger
+  wp_apply wp_GlobalAlloc (V := GoString) TokenFieldNameGRPC _ as HTokenFieldNameGRPC
+  wp_apply wp_GlobalAlloc (V := GoString) MetadataClientAPIVersionKey _ as HMetadataClientAPIVersionKey
+  wp_apply wp_GlobalAlloc (V := GoString) MetadataHasLeader _ as HMetadataHasLeader
+  wp_apply wp_GlobalAlloc (V := GoString) MetadataRequireLeaderKey _ as HMetadataRequireLeaderKey
   wp_apply (_root_.Perennial.google_golang_org.grpc.status.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.codes.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply ErrGRPCEmptyKey_init as ⟨%eErrGRPCEmptyKey, HErrGRPCEmptyKey, #SErrGRPCEmptyKey, %DErrGRPCEmptyKey⟩
@@ -482,11 +465,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrInvalidDowngradeTargetVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrDowngradeInProcess.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrNoInflightDowngrade.init (by mem_tac))
-  wp_apply MetadataRequireLeaderKey_init as ⟨%kMetadataRequireLeaderKey, HMetadataRequireLeaderKey⟩
-  wp_apply MetadataHasLeader_init as ⟨%kMetadataHasLeader, HMetadataHasLeader⟩
-  wp_apply MetadataClientAPIVersionKey_init as ⟨%kMetadataClientAPIVersionKey, HMetadataClientAPIVersionKey⟩
-  wp_apply TokenFieldNameGRPC_init as HTokenFieldNameGRPC
-  wp_apply TokenFieldNameSwagger_init as HTokenFieldNameSwagger
+  -- translated initializer of MetadataRequireLeaderKey))
+  -- translated initializer of MetadataHasLeader))
+  -- translated initializer of MetadataClientAPIVersionKey))
+  -- translated initializer of TokenFieldNameGRPC))
+  -- translated initializer of TokenFieldNameSwagger))
   ipersist HErrGRPCEmptyKey
   ipersist HErrGRPCInvalidSortOption
   ipersist HErrGRPCValueProvided
@@ -537,7 +520,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipureintro
   repeat' (first
     | assumption
-    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat⟩
+    | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat, EtcdGrove.RpctypesEtcdErrorMethods.errorSig⟩
     | constructor)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

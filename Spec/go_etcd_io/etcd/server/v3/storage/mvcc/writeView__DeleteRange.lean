@@ -41,6 +41,7 @@ abbrev mvcc.writeView.DeleteRange.spec : Prop :=
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
       endk ↦*□ e ∗ lease.leaseOwn γ.leases L I ∗
       □ (∀ ilog : mvcc.Log, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
+      □ (∀ ilog : mvcc.Log, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.LogPutsLe etcdKeyMax ilog⌝) ∗
       ⌜γ.watchQ = false⌝ ∗
       G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗
       (∀ (ilog : mvcc.Log) (crev : Int),

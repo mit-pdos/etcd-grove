@@ -68,7 +68,7 @@ abbrev mmapF.spec : Prop :=
           osMeta p.ino (DFrac.own 1) { m with maps := <[base := sz.toNat]> m.maps } ∗
           mapCells base sz m) ∨
        (db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z ∗
-         ⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
+         ⌜err ≠ interface.nil ∧ errPtrTyped err ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err ∗
          (osMeta p.ino (DFrac.own 1) m ∨
           (∃ base : Loc, ⌜0 < base.addr⌝ ∗
             osMeta p.ino (DFrac.own 1) { m with maps := <[base := sz.toNat]> m.maps } ∗
@@ -97,10 +97,16 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
   · obtain ⟨rfl, rfl⟩ := Hbe
     simp only [errnoErr, ↓reduceIte]
     wp_auto
-    wp_apply hMadvise _ (W64 1) (by decide) as %e2 -
-    try wp_auto
     have hszn : 0 < sz.toNat := by have := hsz; simp [BitVec.toInt] at this; omega
     icases cellsR_pos _ _ _ hszn $$ Hc with ⟨Hc, %Hpos⟩
+    wp_apply hMadvise ⟨base, sz, sz⟩ (W64 1)
+      (some (p.ino, DFrac.own 1, { m with maps := <[base := sz.toNat]> m.maps })) (by decide)
+      (Int.le_of_lt hsz) (fun _ _ _ h => by
+        cases h; exact ⟨Hpos, hsz, sz.toNat, GMap.lookup_insert _ _ _⟩)
+      $$ [Hm] as %e2 ⟨Hm, %he2'⟩
+    · iframe; iframe #
+    have he2 : e2 = 0 ∨ ¬ FsNoErr := he2'.resolve_left (fun h => nomatch h)
+    try wp_auto
     ihave Hfo : fileOwn f fd p.path dqo $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     by_cases h0 : e2 = 0
@@ -156,7 +162,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
           isplitl
           · fmt_arg_method; iright; ileft; isplitr
             · iapply HeS; iempintro
-            · ipureintro; fmt_method_none
+            · ipureintro; fmt_method_facts
           · itrivial
         try wp_auto
         iapply HΦ
@@ -165,7 +171,11 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         iframe Hdr Hd Hsz
         icases HiS with ⟨#HiS, %Hty, %Hptr⟩
         isplitr
-        · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr⟩
+        · ipureintro
+          refine ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr, ?_⟩
+          rcases he2 with h | h
+          · exact absurd h h0
+          · exact h
         isplitr
         · simp only [fmtErrorOk, noArgStringSig]
           iframe HiS; ipureintro; exact Hty
@@ -175,7 +185,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
           isplitr
           · ipureintro; exact Hpos
           · unfold mapCells; iexists bs; iframe; ipureintro; exact Hbs
-  · obtain ⟨he, rfl⟩ := Hbe
+  · obtain ⟨he, rfl, hfs⟩ := Hbe
     simp only [errnoErr, he, ↓reduceIte]
     wp_auto
     ihave Hfo : fileOwn f fd p.path dqo $$ [Hfo]
@@ -189,7 +199,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     ihave #HeS := hS
     isplitr
     · ipureintro
-      refine ⟨by simp [interface.mkOk], ?_⟩
+      refine ⟨by simp [interface.mkOk], ?_, hfs⟩
       have := errPtrTyped_errno e
       unfold errnoErr at this; rw [if_neg he] at this; exact this
     · iframe HeS

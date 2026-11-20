@@ -135,9 +135,9 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
   ihave %Heq := lease.lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
   subst Heq
   (try wp_auto)
-  wp_apply (hLk lp γl id m none) $$ [$Hrd] as %l ⟨Hrd, Hl, -⟩
+  wp_apply (hLk lp γl id m none none) $$ [$Hrd] as %l ⟨Hrd, Hl, -⟩
   · iframe Hinv Hmlb
-    rw [lease.lookupView_none]; itrivial
+    rw [show lease.lookupViewW (GF := GF) γl none none = iprop(True) from rfl]; itrivial
   -- the slot back, for the token
   iapply fupd_wp
   imod Hback $$ [Hrd] with Htok

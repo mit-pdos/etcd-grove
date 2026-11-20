@@ -393,7 +393,9 @@ theorem Replica.run.wp_proof
         $$ [$HstRec $HrP $HmsInv $Hlog $Hend $HsnLb $Heood Hs2] as ⟨Hs2, #HcpS, #Hdum, HendS, -⟩
       · simp only [kvrJ]
         isplitl []
-        · iexact Hgiven
+        · isplitr
+          · iexact Hgiven
+          ipureintro; intro h; exact absurd h Hnsn
         isplitl []
         · iexact Hsv
         isplitl []

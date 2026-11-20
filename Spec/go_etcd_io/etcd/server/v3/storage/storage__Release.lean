@@ -45,17 +45,17 @@ before (`server.go:2158/2162`; `raft.go:257` before `applySnapshot`'s `server.go
 `SaveSnap` synced meets layer 1's premise. -/
 abbrev storage.storage.Release.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
     ∀ (p ss : Loc) (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp)
-      (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
+      (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
       (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (t : w64) (i n : Nat) (cs : ConfStateM)
       (Q : WalDur → IProp GF),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
-        storageOver p w ss ∗ storageRd p w ∗ isSnapshotter ss ∗
+        storageOver p w ss ∗ storageRd p w ∗ isSnapshotter ss sd ∗
         sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-        inv snapDirN (snapDirInv ss γd img Rm) ∗
+        inv snapDirN (snapDirInv sd γd img Rm) ∗
         □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
         WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
         AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗
-            ⌜d.H[i]? = some (WalOpG.snap ⟨cs, md.Index', t⟩) ∧ i < n⌝ }> @ walAuMask, ∅
+            ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, md.Index', t⟩ al)) ∧ i < n⌝ }> @ walAuMask, ∅
           <{ WalFs.walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) md.Index') },
             COMM Q d }> }}
       (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!!

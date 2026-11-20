@@ -25,12 +25,11 @@ It is a copy of watchkv's (`watch/Adequacy.lean`), at authkv's program, client a
 
 **Its hypotheses** are watchkv's (`etcd_watch_adequate`, putget's and the watch client's) at
 authkv's configuration (`etcd_auth.premises`, putget's with `AuthToken = "simple"`), without
-watchkv's bounds on `nw`/`nops` (`Main` takes no argument), and one more: **`hD22`**, D22's
-`authSchemaSrv` (`etcdserver/AuthSrv.lean`), the trusted text of the auth store's backend
-(`storage/schema`'s auth buckets over the backend) with auth on, a named hypothesis and not an axiom,
-so `#print axioms` does not show it (reviewed whole by the axiom skill, refuted four ways and fixed
-by stage auth-schema-fix, re-reviewed 2026-11-13: `notes/auth-schema-srv-refuted.md`,
-`notes/auth-unknown-fields-nested.md`; discharging it is D22's own track).
+watchkv's bounds on `nw`/`nops` (`Main` takes no argument). Until auth-schema-srv A7 (approved by the
+user, 2026-11-19) it took one more, `hD22`, D22's `authSchemaSrv` (`etcdserver/AuthSnapKit.lean`), the
+trusted text of the auth store's backend with auth on; it is now proved by its realization over the
+backend's and schema's proofs (`etcdserver/AuthRealSrv.lean`'s `authReal.real_srv`, used by
+`authStoreKit_on`).
 
 **Over Linux files** (2026-11-15, the user's decision (A) on `wal-lean`): the program's extensions are
 `[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own semantics, no premise on
@@ -38,7 +37,10 @@ the environment), since `fileutil`'s package initializer, which the server's ini
 probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
 premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
 well formed), so it says that the program runs on a real file system. Until then the extensions were
-`TrivialExt.lean`'s `[idIssueExt]`.
+`TrivialExt.lean`'s `[idIssueExt]`. (wal-link P2, 2026-11-19) The file extension's semantics excludes I/O errors (`etcdFsSem`, `FsExts.lean`: no
+file system call that can succeed fails), and the premise `HWal` (`etcdWalAreasInit`) says that each member's
+WAL area (`/tmp/etcd-grove-wal/<name>.etcd`, where its dedicated WAL directory is) is a root of the file
+extension, present at start with no WAL in it.
 -/
 module
 
@@ -51,6 +53,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.InitLinked
 
 @[expose] public section
 
@@ -66,18 +70,10 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `authkv`'s initialization, then `Main()`. -/
-def authkvProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.auth.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.Main) #()
-
-/-- The read package's two metric names, which `authkv`'s initialization registers. -/
-def authkvNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The authentication example is safe** (see the file header): every real execution of
 `authkvProgram` from a fresh state with one thread, of `n` steps: if the main thread has finished,
@@ -91,8 +87,6 @@ theorem etcd_auth_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    -- (D22) the auth store's backend with auth on: trusted text, a named hypothesis
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
     (Haf : authRecordsFit)
@@ -100,7 +94,7 @@ theorem etcd_auth_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed authkvProgram authkvNames)
     (HAs : addrsUnclaimed authkvProgram [go!"127.0.0.1:23916"])
     -- the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent authkvProgram [go!"authkv.etcd"])
+    (HDs : dataDirsAbsent authkvProgram [go!"/tmp/etcd-grove-data/authkv.etcd"])
     -- `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff authkvProgram)
     (n : Nat)
@@ -108,6 +102,8 @@ theorem etcd_auth_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_auth.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/authkv.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -116,11 +112,11 @@ theorem etcd_auth_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.auth.initialize'
+  refine etcd_adequate_members (GF := putgetGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.auth.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.Main) #())
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) [go!"127.0.0.1:23916"] (by decide) [go!"authkv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+        (fun h => intoVal_ne_PanicV _ p h.symm))) [go!"127.0.0.1:23916"] (by decide) [go!"/tmp/etcd-grove-data/authkv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- the one member's start bundle: its client address, its data directory
     [(go!"authkv", ⟨none, some go!"127.0.0.1:23916"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
@@ -134,7 +130,7 @@ theorem etcd_auth_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_auth.wp_Main (GF := putgetGF)
     (etcd_auth.startServer.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-      (server_new_auth_on (hD22 hG)) server_Start) n id ctxs boot Hbf
+      server_new_auth_on server_Start) n id ctxs boot Hbf
     (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

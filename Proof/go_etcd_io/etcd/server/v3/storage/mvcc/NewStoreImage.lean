@@ -9,7 +9,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreMoves
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreCmp
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreVocab
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__RestoreLemmas
 
 @[expose] public section
 

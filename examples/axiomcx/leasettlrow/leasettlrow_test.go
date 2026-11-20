@@ -24,6 +24,7 @@ import (
 	"go.etcd.io/raft/v3/raftpb"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // The client URL (not served) and the peer ports: one per member, since NewMember never closes
@@ -36,6 +37,7 @@ const (
 // newMember builds (not starts) the one member of a new cluster, in a fresh directory.
 func newMember(t *testing.T, name string, port int) *etcdserver.EtcdServer {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, name) // the members' WAL areas (wal-link P2)
 	peerAddr := fmt.Sprintf("127.0.0.1:%d", port)
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	s, err := etcdstart.NewMember(name, peer, peerAddr, clientAddr, types.URLsMap{name: peer}, name,

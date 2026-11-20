@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.reflection
 public import Perennial.Golang.Theory
@@ -27,12 +28,135 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
 noncomputable instance ClientMetrics_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics where
+  typedPointstoDef l v dq := iprop(
+    "clientStartedCounter" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) v.clientStartedCounter' dq ∗
+    "clientHandledCounter" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) v.clientHandledCounter' dq ∗
+    "clientStreamMsgReceived" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) v.clientStreamMsgReceived' dq ∗
+    "clientStreamMsgSent" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) v.clientStreamMsgSent' dq ∗
+    "clientHandledHistogram" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) v.clientHandledHistogram' dq ∗
+    "clientStreamRecvHistogram" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq ∗
+    "clientStreamSendHistogram" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance ClientMetrics_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance ClientMetrics_access_load_clientStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) v.clientStartedCounter' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) v.clientStartedCounter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_store_clientStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (clientStartedCounter' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) v.clientStartedCounter' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStartedCounter" l) clientStartedCounter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientStartedCounter' := clientStartedCounter' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_load_clientHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) v.clientHandledCounter' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) v.clientHandledCounter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_store_clientHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (clientHandledCounter' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) v.clientHandledCounter' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledCounter" l) clientHandledCounter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientHandledCounter' := clientHandledCounter' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_load_clientStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) v.clientStreamMsgReceived' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) v.clientStreamMsgReceived' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_store_clientStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (clientStreamMsgReceived' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) v.clientStreamMsgReceived' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgReceived" l) clientStreamMsgReceived' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientStreamMsgReceived' := clientStreamMsgReceived' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_load_clientStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) v.clientStreamMsgSent' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) v.clientStreamMsgSent' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_store_clientStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (clientStreamMsgSent' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) v.clientStreamMsgSent' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamMsgSent" l) clientStreamMsgSent' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientStreamMsgSent' := clientStreamMsgSent' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_load_clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) v.clientHandledHistogram' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) v.clientHandledHistogram' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_store_clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (clientHandledHistogram' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) v.clientHandledHistogram' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientHandledHistogram" l) clientHandledHistogram' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientHandledHistogram' := clientHandledHistogram' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_load_clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_store_clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (clientStreamRecvHistogram' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamRecvHistogram" l) clientStreamRecvHistogram' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientStreamRecvHistogram' := clientStreamRecvHistogram' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_load_clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ClientMetrics_access_store_clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (clientStreamSendHistogram' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics go!"clientStreamSendHistogram" l) clientStreamSendHistogram' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientStreamSendHistogram' := clientStreamSendHistogram' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ClientMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end ClientMetrics
@@ -46,53 +170,87 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
 noncomputable instance clientMetricsConfig_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig where
+  typedPointstoDef l v dq := iprop(
+    "counterOpts" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) v.counterOpts' dq ∗
+    "clientHandledHistogram" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) v.clientHandledHistogram' dq ∗
+    "clientStreamRecvHistogram" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq ∗
+    "clientStreamSendHistogram" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance clientMetricsConfig_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance clientMetricsConfig_access_load_counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) v.counterOpts' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) v.counterOpts' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance clientMetricsConfig_access_store_counterOpts (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (counterOpts' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.counterOptions) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) v.counterOpts' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"counterOpts" l) counterOpts' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with counterOpts' := counterOpts' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance clientMetricsConfig_access_load_clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) v.clientHandledHistogram' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) v.clientHandledHistogram' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance clientMetricsConfig_access_store_clientHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (clientHandledHistogram' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) v.clientHandledHistogram' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientHandledHistogram" l) clientHandledHistogram' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientHandledHistogram' := clientHandledHistogram' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance clientMetricsConfig_access_load_clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance clientMetricsConfig_access_store_clientStreamRecvHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (clientStreamRecvHistogram' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) v.clientStreamRecvHistogram' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamRecvHistogram" l) clientStreamRecvHistogram' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientStreamRecvHistogram' := clientStreamRecvHistogram' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance clientMetricsConfig_access_load_clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance clientMetricsConfig_access_store_clientStreamSendHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (clientStreamSendHistogram' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) v.clientStreamSendHistogram' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig go!"clientStreamSendHistogram" l) clientStreamSendHistogram' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientStreamSendHistogram' := clientStreamSendHistogram' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.clientMetricsConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end clientMetricsConfig
-
-namespace CounterOption
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
-
-noncomputable instance CounterOption_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.CounterOption :=
-  sorry -- axiomatized type
-
-noncomputable instance CounterOption_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.CounterOption github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.CounterOption.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end CounterOption
-
-namespace HistogramOption
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
-
-noncomputable instance HistogramOption_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.HistogramOption :=
-  sorry -- axiomatized type
-
-noncomputable instance HistogramOption_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.HistogramOption github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.HistogramOption.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end HistogramOption
 
 namespace exemplarFromCtxFn
 section def_
@@ -291,12 +449,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Assumptions]
 
 noncomputable instance ServerMetrics_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics where
+  typedPointstoDef l v dq := iprop(
+    "serverStartedCounter" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) v.serverStartedCounter' dq ∗
+    "serverHandledCounter" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) v.serverHandledCounter' dq ∗
+    "serverStreamMsgReceived" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) v.serverStreamMsgReceived' dq ∗
+    "serverStreamMsgSent" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) v.serverStreamMsgSent' dq ∗
+    "serverHandledHistogram" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) v.serverHandledHistogram' dq ∗
+    "contextLabelNames" ∷ typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) v.contextLabelNames' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance ServerMetrics_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance ServerMetrics_access_load_serverStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) v.serverStartedCounter' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) v.serverStartedCounter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_store_serverStartedCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (serverStartedCounter' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) v.serverStartedCounter' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStartedCounter" l) serverStartedCounter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverStartedCounter' := serverStartedCounter' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_load_serverHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) v.serverHandledCounter' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) v.serverHandledCounter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_store_serverHandledCounter (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (serverHandledCounter' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) v.serverHandledCounter' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledCounter" l) serverHandledCounter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverHandledCounter' := serverHandledCounter' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_load_serverStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) v.serverStreamMsgReceived' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) v.serverStreamMsgReceived' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_store_serverStreamMsgReceived (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (serverStreamMsgReceived' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) v.serverStreamMsgReceived' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgReceived" l) serverStreamMsgReceived' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverStreamMsgReceived' := serverStreamMsgReceived' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_load_serverStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) v.serverStreamMsgSent' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) v.serverStreamMsgSent' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_store_serverStreamMsgSent (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (serverStreamMsgSent' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) v.serverStreamMsgSent' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverStreamMsgSent" l) serverStreamMsgSent' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverStreamMsgSent' := serverStreamMsgSent' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_load_serverHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) v.serverHandledHistogram' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) v.serverHandledHistogram' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_store_serverHandledHistogram (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (serverHandledHistogram' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) v.serverHandledHistogram' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"serverHandledHistogram" l) serverHandledHistogram' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverHandledHistogram' := serverHandledHistogram' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_load_contextLabelNames (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) v.contextLabelNames' dq)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) v.contextLabelNames' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ServerMetrics_access_store_contextLabelNames (l : Loc) (v : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (contextLabelNames' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) v.contextLabelNames' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics go!"contextLabelNames" l) contextLabelNames' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextLabelNames' := contextLabelNames' } : github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end ServerMetrics

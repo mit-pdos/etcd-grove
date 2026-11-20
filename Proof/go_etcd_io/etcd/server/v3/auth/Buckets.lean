@@ -113,17 +113,32 @@ variable [sem : go.Semantics]
 
 /-! ## The messages -/
 
+/-- The namespace of the invariants holding the size caches of the auth messages' nested messages
+(`userOptsIs`, `ownPermW`, `ownPermS`; auth-schema-srv A3). One namespace for every such cache: a
+cell must never carry two such invariants that could be opened together, and none does, since every
+invariant here is allocated over the cache of a fresh message (a freshly allocated or decoded one),
+once. -/
+def pbSizeCacheN : Namespace := nroot .@ "authpb.sizeCache"
+
 /-- The `*authpb.UserAddOptions` `o` holds `NoPassword = b` and the rest `ou` of a user record's
-`Options` (`UserRec.optsUF`): nil (`GetNoPassword()` is false; `ou = none`), or a read-only message
-whose unknown fields hold the bytes `u` (`ou = some u`; a read-only slice). -/
+`Options` (`UserRec.optsUF`): nil (`GetNoPassword()` is false; `ou = none`), or a message whose wire
+fields are read-only (`NoPassword`, and its unknown fields, a read-only slice holding the bytes `u`,
+`ou = some u`) and whose size cache is in an invariant (`pbSizeCacheN`, any value): protobuf-go's
+`Marshal` of a message holding it (a `User`, `proto.MarshalUser`; a request, `proto.MarshalIRR`, the
+gRPC send) stores it, atomically, and every protobuf-go size pass over it (`Marshal`, `proto.Size`)
+stores the same value, the size of its read-only content, so concurrent passes over messages
+sharing it agree (auth-schema-srv A3, 2026-11-17: until then the whole struct was `↦□`, the cache
+with it, which was false of Go; Go tests `TestMarshalWritesNestedSizeCache`,
+`TestConcurrentSharedNested`). Its `state` (protobuf-go's message info, which `ProtoReflect` stores
+once, atomically, on any reflective use, `String()` included: `TestStateWrites`) is not held: no
+spec reads it, and Marshal and Unmarshal of the parent never touch a nested message's. -/
 def userOptsIs (o : Loc) (b : Bool) (ou : Option GoString) : IProp GF :=
   iprop(⌜o = null ∧ b = false ∧ ou = none⌝ ∨
-    (⌜o ≠ null⌝ ∗ ∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (uf : GoSlice)
-      (sc : w32) (u : GoString),
+    (⌜o ≠ null⌝ ∗ ∃ (uf : GoSlice) (u : GoString),
       ⌜ou = some u⌝ ∗
-      o ↦□ ({
-        state' := st, NoPassword' := b, unknownFields' := uf, sizeCache' := sc } :
-        authpb.UserAddOptions) ∗ uf ↦*□ u))
+      structFieldRef authpb.UserAddOptions go!"NoPassword" o ↦□ b ∗
+      structFieldRef authpb.UserAddOptions go!"unknownFields" o ↦□ uf ∗ uf ↦*□ u ∗
+      inv pbSizeCacheN (∃ sc : w32, structFieldRef authpb.UserAddOptions go!"sizeCache" o ↦ sc)))
 
 instance userOptsIs_persistent (o : Loc) (b : Bool) (ou : Option GoString) :
     Persistent (userOptsIs (GF := GF) o b ou) := by
@@ -153,35 +168,39 @@ def ownUser (p : Loc) (u : UserRec) : IProp GF :=
       unknownFields' := slice.nil, sizeCache' := sc } : authpb.User) ∗
     name ↦*□ u.name ∗ pw ↦*□ u.password ∗ roles ↦*□ u.roles ∗ userOptsIs o u.noPassword u.optsUF)
 
-/-- The `*authpb.Permission` at `p` (not nil, read-only) holds the wire permission `w`, whose key
-fits a Go slice with room for one more byte (`NewBytesAffinePoint` appends `"\x00"` to it: a key
-of `2^63 - 1` bytes cannot be unmarshalled; the auth plan's S2). The permission of a request
-(`roleGrantPermissionReqIs`): its unknown fields are free (a client's newer fields; etcd never
-stores this message, `ownPermS`). -/
+/-- The `*authpb.Permission` at `p` (not nil) holds the wire permission `w`, whose key fits a Go slice
+with room for one more byte (`NewBytesAffinePoint` appends `"\x00"` to it: a key of `2^63 - 1` bytes
+cannot be unmarshalled; the auth plan's S2): its wire fields read-only, its size cache in an
+invariant and its `state` not held, as `userOptsIs` (auth-schema-srv A3). The permission of a
+request (`roleGrantPermissionReqIs`): its unknown fields are any bytes `ub`, read-only (a client's
+newer fields, which `proto.MarshalIRR` copies into the request's encoding; etcd never stores this
+message, `ownPermS`). -/
 def ownPermW (p : Loc) (w : PermW) : IProp GF :=
-  iprop(⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗ ∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
-    (k re : GoSlice) (uf : GoSlice) (sc : w32),
-    p ↦□ ({
-      state' := st, PermType' := w.ty, Key' := k, RangeEnd' := re, unknownFields' := uf,
-      sizeCache' := sc } : authpb.Permission) ∗
+  iprop(⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗ ∃ (k re uf : GoSlice) (ub : GoString),
+    structFieldRef authpb.Permission go!"PermType" p ↦□ w.ty ∗
+    structFieldRef authpb.Permission go!"Key" p ↦□ k ∗
+    structFieldRef authpb.Permission go!"RangeEnd" p ↦□ re ∗
+    structFieldRef authpb.Permission go!"unknownFields" p ↦□ uf ∗ uf ↦*□ ub ∗
+    inv pbSizeCacheN (∃ sc : w32, structFieldRef authpb.Permission go!"sizeCache" p ↦ sc) ∗
     k ↦*□ w.key ∗ re ↦*□ w.rangeEnd)
 
 instance ownPermW_persistent (p : Loc) (w : PermW) : Persistent (ownPermW (GF := GF) p w) := by
   unfold ownPermW; infer_instance
 
-/-- **A stored role's permission** `*authpb.Permission` at `p` (not nil, read-only): as `ownPermW`,
-and no unknown fields (`unknownFields` nil, as `ownRole`'s own: protobuf-go's `Marshal` copies them
-into the role's encoding unchecked, so garbage there makes the next `GetRole` panic; the review of
-auth-schema-fix, MAJ-1, Go test `zz_review_garbage_test.go`). etcd builds every permission it stores
-fresh (`RoleGrantPermission`'s `newPerm`, store.go) or decodes it from a stored role (`proto.Unmarshal`
-of a `roleEncode` leaves it nil). Not the request's permission (`ownPermW`), which a client's newer
-fields may fill. -/
+/-- **A stored role's permission** `*authpb.Permission` at `p` (not nil): as `ownPermW`, and no unknown
+fields (`unknownFields` nil, as `ownRole`'s own: protobuf-go's `Marshal` copies them into the role's
+encoding unchecked, so garbage there makes the next `GetRole` panic; the review of auth-schema-fix,
+MAJ-1, Go test `zz_review_garbage_test.go`). etcd builds every permission it stores fresh
+(`RoleGrantPermission`'s `newPerm`, store.go) or decodes it from a stored role (`proto.Unmarshal` of a
+`roleEncode` leaves it nil). Its size cache in an invariant (`proto.MarshalRole` stores it; a
+permission may be shared by two roles, or twice by one), its `state` not held (auth-schema-srv A3). -/
 def ownPermS (p : Loc) (w : PermW) : IProp GF :=
-  iprop(⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗ ∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
-    (k re : GoSlice) (sc : w32),
-    p ↦□ ({
-      state' := st, PermType' := w.ty, Key' := k, RangeEnd' := re, unknownFields' := slice.nil,
-      sizeCache' := sc } : authpb.Permission) ∗
+  iprop(⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗ ∃ (k re : GoSlice),
+    structFieldRef authpb.Permission go!"PermType" p ↦□ w.ty ∗
+    structFieldRef authpb.Permission go!"Key" p ↦□ k ∗
+    structFieldRef authpb.Permission go!"RangeEnd" p ↦□ re ∗
+    structFieldRef authpb.Permission go!"unknownFields" p ↦□ slice.nil ∗
+    inv pbSizeCacheN (∃ sc : w32, structFieldRef authpb.Permission go!"sizeCache" p ↦ sc) ∗
     k ↦*□ w.key ∗ re ↦*□ w.rangeEnd)
 
 instance ownPermS_persistent (p : Loc) (w : PermW) : Persistent (ownPermS (GF := GF) p w) := by
@@ -189,11 +208,12 @@ instance ownPermS_persistent (p : Loc) (w : PermW) : Persistent (ownPermS (GF :=
 
 theorem ownPermS_W (p : Loc) (w : PermW) : ownPermS (GF := GF) p w ⊢ ownPermW p w := by
   unfold ownPermS ownPermW
-  iintro ⟨%Hp, %st, %k, %re, %sc, #Hm, #Hk, #Hre⟩
+  iintro ⟨%Hp, %k, %re, #Ht, #Hk, #Hre, #Huf, #Hi, #Hkb, #Hrb⟩
   isplitr
   · ipureintro; exact Hp
-  iexists st, k, re, slice.nil, sc
-  iframe Hm Hk Hre
+  iexists k, re, slice.nil, []
+  iframe Ht Hk Hre Huf Hi Hkb Hrb
+  iapply (ownSlice_nil (V := w8) DFrac.discard)
 
 /-- The `*authpb.Role` at `p` (owned) holds the record `r`: its name a read-only slice, its
 `KeyPermission` a read-only slice of read-only permission messages (`ownPermS`: no unknown fields either), and no unknown fields
@@ -251,15 +271,94 @@ def ownRoleX (p : Loc) (r : RoleRec) : IProp GF :=
     ⌜ps.length = r.perms.length ∧ r.perms.length < 2 ^ 62⌝ ∗
     [∗list] x ∈ ps.zip r.perms, ownPermX x.1 x.2)
 
-theorem ownPermX_persist (p : Loc) (w : PermW) : ownPermX (GF := GF) p w ⊢ |==> ownPermS p w := by
-  unfold ownPermX ownPermS
-  iintro ⟨%Hp, %st, %k, %re, %sc, Hm, #Hk, #Hre⟩
-  ipersist Hm
+/-- A permission message's size cache into its invariant (`pbSizeCacheN`): the message is fresh. -/
+theorem permSizeCache_alloc (E : CoPset) (p : Loc) (sc : w32) :
+    structFieldRef authpb.Permission go!"sizeCache" p ↦ sc ⊢ |={E}=>
+      inv (GF := GF) pbSizeCacheN (∃ sc : w32, structFieldRef authpb.Permission go!"sizeCache" p ↦ sc) := by
+  iintro Hsc
+  iapply inv_alloc pbSizeCacheN E
+  inext; iexists sc; iexact Hsc
+
+/-- A fresh permission message with no unknown fields, frozen (`newPerm`; a decoded stored one,
+`ownPermX_persist`): its wire fields read-only, its size cache into its invariant. -/
+theorem ownPermS_freeze (E : CoPset) (p : Loc) (w : PermW)
+    (st : google_golang_org.protobuf.internal.impl.MessageState) (k re : GoSlice) (sc : w32) :
+    ⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗
+    p ↦ ({
+      state' := st, PermType' := w.ty, Key' := k, RangeEnd' := re, unknownFields' := slice.nil,
+      sizeCache' := sc } : authpb.Permission) ∗
+    k ↦*□ w.key ∗ re ↦*□ w.rangeEnd ⊢ |={E}=> ownPermS (GF := GF) p w := by
+  unfold ownPermS
+  iintro ⟨%Hp, Hm, #Hk, #Hre⟩
+  iStructNamed Hm
+  ipersist PermType
+  ipersist Key
+  ipersist RangeEnd
+  ipersist unknownFields
+  imod permSizeCache_alloc E p sc $$ sizeCache with #Hi
   imodintro
   isplitr
   · ipureintro; exact Hp
-  iexists st, k, re, sc
+  iexists k, re
+  iframe PermType Key RangeEnd unknownFields Hi Hk Hre
+
+/-- A fresh request permission, frozen (`ownPermW`; gRPC's decoder, a client's literal): its wire
+fields read-only, its size cache into its invariant. -/
+theorem ownPermW_freeze (E : CoPset) (p : Loc) (w : PermW)
+    (st : google_golang_org.protobuf.internal.impl.MessageState) (k re uf : GoSlice) (ub : GoString)
+    (sc : w32) :
+    ⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗
+    p ↦ ({
+      state' := st, PermType' := w.ty, Key' := k, RangeEnd' := re, unknownFields' := uf,
+      sizeCache' := sc } : authpb.Permission) ∗
+    uf ↦*□ ub ∗ k ↦*□ w.key ∗ re ↦*□ w.rangeEnd ⊢ |={E}=> ownPermW (GF := GF) p w := by
+  unfold ownPermW
+  iintro ⟨%Hp, Hm, #Hub, #Hk, #Hre⟩
+  iStructNamed Hm
+  ipersist PermType
+  ipersist Key
+  ipersist RangeEnd
+  ipersist unknownFields
+  imod permSizeCache_alloc E p sc $$ sizeCache with #Hi
+  imodintro
+  isplitr
+  · ipureintro; exact Hp
+  iexists k, re, uf, ub
+  iframe PermType Key RangeEnd unknownFields Hub Hi Hk Hre
+
+/-- A fresh `Options` message, frozen (`userOptsIs`; gRPC's decoder, a client's literal): its wire
+fields read-only, its size cache into its invariant. -/
+theorem userOptsIs_freeze (E : CoPset) (o : Loc)
+    (st : google_golang_org.protobuf.internal.impl.MessageState) (b : Bool) (uf : GoSlice)
+    (u : GoString) (sc : w32) :
+    o ↦ ({ state' := st, NoPassword' := b, unknownFields' := uf, sizeCache' := sc } :
+      authpb.UserAddOptions) ∗ uf ↦*□ u ⊢ |={E}=> userOptsIs (GF := GF) o b (some u) := by
+  unfold userOptsIs
+  iintro ⟨Hm, #Hu⟩
+  ihave ⟨Hm, %Hn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hm
+  iStructNamed Hm
+  ipersist NoPassword
+  ipersist unknownFields
+  imod inv_alloc pbSizeCacheN E
+    (iprop(∃ sc : w32, structFieldRef authpb.UserAddOptions go!"sizeCache" o ↦ sc)) $$ [sizeCache]
+    with #Hi
+  · inext; iexists sc; iexact sizeCache
+  imodintro
+  iright
+  isplitr
+  · ipureintro; exact Hn
+  iexists uf, u
+  isplitr
+  · ipureintro; rfl
+  iframe NoPassword unknownFields Hu Hi
+
+theorem ownPermX_persist (E : CoPset) (p : Loc) (w : PermW) :
+    ownPermX (GF := GF) p w ⊢ |={E}=> ownPermS p w := by
+  unfold ownPermX
+  iintro ⟨%Hp, %st, %k, %re, %sc, Hm, #Hk, #Hre⟩
+  iapply ownPermS_freeze E p w st k re sc
   iframe Hm Hk Hre
+  ipureintro; exact Hp
 
 theorem ownUserX_persist (p : Loc) (u : UserRec) : ownUserX (GF := GF) p u ⊢ |==> ownUser p u := by
   unfold ownUserX ownUser
@@ -269,13 +368,14 @@ theorem ownUserX_persist (p : Loc) (u : UserRec) : ownUserX (GF := GF) p u ⊢ |
   iexists st, name, pw, roles, o, sc
   iframe Hm Hn Hpw Hr Ho
 
-theorem ownRoleX_persist (p : Loc) (r : RoleRec) : ownRoleX (GF := GF) p r ⊢ |==> ownRole p r := by
+theorem ownRoleX_persist (E : CoPset) (p : Loc) (r : RoleRec) :
+    ownRoleX (GF := GF) p r ⊢ |={E}=> ownRole p r := by
   unfold ownRoleX ownRole
   iintro ⟨%st, %name, %kp, %ps, %sc, Hm, #Hn, Hkp, -, %Hlen, Hps⟩
   ipersist Hkp
-  ihave Hps' : |==> [∗list] x ∈ ps.zip r.perms, ownPermS x.1 x.2 $$ [Hps]
-  · iapply BigSepL.bigSepL_bupd
-    iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist x.1 x.2)) $$ Hps
+  ihave Hps' : |={E}=> [∗list] x ∈ ps.zip r.perms, ownPermS x.1 x.2 $$ [Hps]
+  · iapply BigSepL2.bigSepL_fupd E
+    iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist E x.1 x.2)) $$ Hps
   imod Hps'
   imodintro
   iexists st, name, kp, ps, sc
@@ -324,14 +424,14 @@ theorem userOutX_persist (u : Loc) (st : AuthState) (name : GoString) :
     imod ownUserX_persist u ur $$ Hu with Hu
     imodintro; iexists ur; iframe Hu; ipureintro; exact H
 
-theorem roleOutX_persist (r : Loc) (st : AuthState) (name : GoString) :
-    roleOutX (GF := GF) r st name ⊢ |==> roleOut r st name := by
+theorem roleOutX_persist (E : CoPset) (r : Loc) (st : AuthState) (name : GoString) :
+    roleOutX (GF := GF) r st name ⊢ |={E}=> roleOut r st name := by
   unfold roleOutX roleOut
   cases st.roles.lookup name with
   | none => iintro H; imodintro; iexact H
   | some ps =>
     iintro ⟨%rr, %H, Hr⟩
-    imod ownRoleX_persist r rr $$ Hr with Hr
+    imod ownRoleX_persist E r rr $$ Hr with Hr
     imodintro; iexists rr; iframe Hr; ipureintro; exact H
 
 /-- A read transaction's state `st` in the mode `M`: auth `off`, never enabled; `any`, nothing;

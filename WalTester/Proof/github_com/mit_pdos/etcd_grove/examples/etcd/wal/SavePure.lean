@@ -11,7 +11,7 @@ still accounts for the WAL before the call (`tCandOk_save1`) and for the WAL aft
 module
 
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Member
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.toRaft
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.toRaftLemmas
 
 @[expose] public section
 

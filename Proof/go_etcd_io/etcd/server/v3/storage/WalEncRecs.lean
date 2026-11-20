@@ -33,12 +33,12 @@ variable [GooseExts]
 
 /-- **The marshalled payloads** (parameters: protobuf's models live elsewhere). `encEntry e`:
 `pbutil.MustMarshalMessage(e)` of the entry (`saveEntry`, wal.go:1074); `encState h`: of the hard
-state (`saveState`, :1088); `encSnap m`: of the `walpb.Snapshot` `SaveSnapshot` is given for the
-history's `.snap m` (:1145); `snap0`: of `walpb.Snapshot{Index: 0, Term: 0}` (`Create`, :181). -/
+state (`saveState`, :1088); `encSnap m al`: of the `walpb.Snapshot` `SaveSnapshot` is given for the
+history's `.snap m al` (:1145); `snap0`: of `walpb.Snapshot{Index: 0, Term: 0}` (`Create`, :181). -/
 structure WalMarshal where
   encEntry : EntryM → List w8
   encState : HardStateM → List w8
-  encSnap : SnapshotMetadataM → List w8
+  encSnap : SnapshotMetadataM → Bool → List w8
   snap0 : List w8
 
 instance : DecidablePred hsEmptyP := fun h => by unfold hsEmptyP; infer_instance
@@ -49,7 +49,7 @@ nothing when both are empty, which this gives too); `SaveSnapshot(m)` one snapsh
 def opDs (M : WalMarshal) : WalOp → List (w64 × List w8)
   | .save h es => es.map (fun e => (entryType, M.encEntry e)) ++
       (if hsEmptyP h then [] else [(stateType, M.encState h)])
-  | .snap m => [(snapshotType, M.encSnap m)]
+  | .snap m al => [(snapshotType, M.encSnap m al)]
 
 /-- **The first file's header records** (`Create`, wal.go:174-183): the CRC record (data nil), the
 metadata `md`, the initial snapshot record. -/
@@ -81,7 +81,7 @@ def histCut (M : WalMarshal) : WalHist → Nat → WalHist
     if (opDs M o).length ≤ n then o :: histCut M H (n - (opDs M o).length)
     else match o with
       | .save _ es => if n = 0 then [] else [.save (HardStateM.mk 0 0 0) (es.take n)]
-      | .snap _ => []
+      | .snap _ _ => []
 
 /-! ## The lemmas -/
 
@@ -125,7 +125,7 @@ theorem chainOk_recsOf {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : List w8
         · simp at ho
         · simp only [List.mem_cons, List.not_mem_nil, or_false] at ho
           subst ho; exact absurd ht (by simp only; decide)
-    | snap m =>
+    | snap m al =>
       simp only [opDs, List.mem_cons, List.not_mem_nil, or_false] at ho
       subst ho; exact absurd ht (by simp only; decide)
 
@@ -192,7 +192,7 @@ theorem flatMap_histCut (M : WalMarshal) (H : WalHist) (n : Nat) :
           have hst : (if hsEmptyP h then ([] : List (w64 × List w8))
               else [(stateType, M.encState h)]).length ≤ 1 := by split <;> simp
           rw [List.take_append_of_le_length (by simp; omega), List.map_take]
-      | snap m =>
+      | snap m al =>
         simp only [opDs, List.length_cons, List.length_nil] at hk
         have : n = 0 := by omega
         subst this; simp
@@ -252,7 +252,7 @@ theorem walImg_histCut (M : WalMarshal) (H : WalHist) (m n : Nat) (hm : m ≤ H.
           have hst : (if hsEmptyP h then ([] : List (w64 × List w8))
               else [(stateType, M.encState h)]).length ≤ 1 := by split <;> simp
           exact ⟨h, es, n, rfl, by omega, rfl⟩
-      | snap m => left; rfl
+      | snap m al => left; rfl
 
 /-- **(b) + (c) What a crash image decodes to**: an image that starts with the bytes of the first
 `m` operations (synced) and has no collision with the intended stream decodes to the records of an

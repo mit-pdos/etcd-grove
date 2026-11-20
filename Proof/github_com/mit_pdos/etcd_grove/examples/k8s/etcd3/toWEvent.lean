@@ -39,9 +39,20 @@ theorem toWEvent.wp_proof : toWEvent.spec (GF := GF) (hG := hG) := by
     wp_auto
     wp_if_destruct
     · iapply HΦ
-      ipureintro
-      refine ⟨?_, fun h => absurd h4 h, fun _ => rfl⟩
-      simp [wevOf, h4]
+      iexists ⟨k8s_correctness.evError, .status go!"Failure"⟩
+      isplitr
+      · ipureintro
+        refine ⟨⟨?_, fun h => absurd h4 h, fun _ => rfl⟩, ?_⟩
+        · simp [wevOf, h4]
+        · simp [wevOf, k8s_correctness.toWEvL, k8s_correctness.evError, k8s_correctness.evAdded,
+            k8s_correctness.evModified, k8s_correctness.evDeleted, k8s_correctness.evBookmark, zObj]
+          rfl
+      unfold k8s_correctness.evRep k8s_correctness.evObjRep
+      isplitr
+      · ipureintro; rfl
+      iexists p, st
+      iframe Hp
+      ipureintro; exact ⟨rfl, Hst⟩
     · exact absurd Hst Hif
   · simp only [h4, ↓reduceIte]
     icases Hw with ⟨%Ht, Ho⟩
@@ -66,13 +77,23 @@ theorem toWEvent.wp_proof : toWEvent.spec (GF := GF) (hG := hG) := by
     have Hn' := rvStr_inj Hn
     subst Ht Hx Hn'
     have hts : e.t = 0 ∨ e.t = 1 ∨ e.t = 2 ∨ e.t = 3 := by omega
+    ipersist Hp
     rcases hts with ht | ht | ht | ht <;>
     · simp only [kEvTypeStr, ht]
       wp_auto
       iapply HΦ
-      ipureintro
-      refine ⟨by simp [wevOf, ht], fun _ => ?_, fun h => by omega⟩
-      simp [wevOf, kToWEv, ht]
+      iexists ⟨kEvTypeStr e.t, .obj { e.o.toObj (W64 (e.rv : Int)) with Annotated' := e.ann }⟩
+      isplitr
+      · ipureintro
+        refine ⟨⟨by simp [wevOf, ht], fun _ => ?_, fun h => by omega⟩, ?_⟩
+        · simp [wevOf, kToWEv, ht]
+        · simp [wevOf, k8s_correctness.toWEvL, kEvTypeStr, ht, k8s_correctness.evError,
+            k8s_correctness.evAdded, k8s_correctness.evModified, k8s_correctness.evDeleted,
+            k8s_correctness.evBookmark]
+      unfold k8s_correctness.evRep k8s_correctness.evObjRep
+      isplitr
+      · ipureintro; simp [kEvTypeStr, ht]
+      iapply k8s_correctness.deepRO_obj $$ Hp
 
 end proof
 

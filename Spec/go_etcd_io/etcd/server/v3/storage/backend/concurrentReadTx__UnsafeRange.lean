@@ -30,7 +30,7 @@ abbrev backend.concurrentReadTx.UnsafeRange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ crtSnap γ P b crt rtx rv ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
     (App (App (App (App (Val (crt @!! go.GoType.PointerType concurrentReadTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
   {{ (keys vals : GoSlice), RET (PairV #keys #vals); crtSnap γ P b crt rtx rv ∗
-      key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }}
+      key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd γ.db rtx keys vals (rtRange rv bi kb eb limit) }}
 
 end spec
 

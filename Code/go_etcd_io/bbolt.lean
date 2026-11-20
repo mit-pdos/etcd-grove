@@ -170,13 +170,14 @@ noncomputable def hexKvStringer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] hexKvStringer.ty
 
-opaque Options.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 @[reducible] noncomputable def MaxKeySize [GooseExts] [GoGlobalContext] : val :=
   #(32768 : Int)
 
 @[reducible] noncomputable def MaxValueSize [GooseExts] [GoGlobalContext] : val :=
   #(2147483646 : Int)
+
+@[reducible] noncomputable def maxEntrySize [GooseExts] [GoGlobalContext] : val :=
+  #(268435456 : Int)
 
 @[reducible] noncomputable def minFillPercent [GooseExts] [GoGlobalContext] : val :=
   #(W64 4591870180066957722)
@@ -204,8 +205,6 @@ noncomputable def trySolo [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def DefaultOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt.DefaultOptions"
-
-opaque DefaultOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrDatabaseNotOpen [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt.ErrDatabaseNotOpen"
@@ -580,7 +579,7 @@ noncomputable def munmap.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newBucket returns a new bucket associated with a transaction.
 
-    go: bucket.go:47:6 -/
+    go: bucket.go:54:6 -/
 noncomputable def newBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (App (Val (GoInstruction (GoZeroVal Bucket.ty))) (Val #())))
@@ -614,7 +613,7 @@ noncomputable def newBucket.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Tx returns the tx of the bucket.
 
-    go: bucket.go:57:18 -/
+    go: bucket.go:64:18 -/
 noncomputable def Bucket.Tx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -631,7 +630,7 @@ noncomputable def Bucket.Tx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Root returns the root of the bucket.
 
-    go: bucket.go:62:18 -/
+    go: bucket.go:69:18 -/
 noncomputable def Bucket.Root.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -648,7 +647,7 @@ noncomputable def Bucket.Root.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Writable returns whether the bucket is writable.
 
-    go: bucket.go:67:18 -/
+    go: bucket.go:74:18 -/
 noncomputable def Bucket.Writable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -667,7 +666,7 @@ noncomputable def Bucket.Writable.impl [GooseExts] [GoGlobalContext] : val :=
     The cursor is only valid as long as the transaction is open.
     Do not use a cursor after the transaction is closed.
 
-    go: bucket.go:74:18 -/
+    go: bucket.go:81:18 -/
 noncomputable def Bucket.Cursor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -692,7 +691,7 @@ noncomputable def Bucket.Cursor.impl [GooseExts] [GoGlobalContext] : val :=
     Returns nil if the bucket does not exist.
     The bucket instance is only valid for the lifetime of the transaction.
 
-    go: bucket.go:88:18 -/
+    go: bucket.go:95:18 -/
 noncomputable def Bucket.Bucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "name"
@@ -779,7 +778,7 @@ noncomputable def Bucket.Bucket.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Helper method that re-interprets a sub-bucket value
     from a parent into a Bucket
 
-    go: bucket.go:115:18 -/
+    go: bucket.go:122:18 -/
 noncomputable def Bucket.openBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "value"
@@ -843,7 +842,7 @@ noncomputable def Bucket.openBucket.impl [GooseExts] [GoGlobalContext] : val :=
     Returns an error if the key already exists, if the bucket name is blank, or if the bucket name is too long.
     The bucket instance is only valid for the lifetime of the transaction.
 
-    go: bucket.go:149:18 -/
+    go: bucket.go:156:18 -/
 noncomputable def Bucket.CreateBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1030,7 +1029,7 @@ noncomputable def Bucket.CreateBucket.impl [GooseExts] [GoGlobalContext] : val :
     Returns an error if the bucket name is blank, or if the bucket name is too long.
     The bucket instance is only valid for the lifetime of the transaction.
 
-    go: bucket.go:206:18 -/
+    go: bucket.go:213:18 -/
 noncomputable def Bucket.CreateBucketIfNotExists.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1252,7 +1251,7 @@ noncomputable def Bucket.CreateBucketIfNotExists.impl [GooseExts] [GoGlobalConte
 /-- DeleteBucket deletes a bucket at the given key.
     Returns an error if the bucket does not exist, or if the key represents a non-bucket value.
 
-    go: bucket.go:274:18 -/
+    go: bucket.go:281:18 -/
 noncomputable def Bucket.DeleteBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1448,7 +1447,7 @@ noncomputable def Bucket.DeleteBucket.impl [GooseExts] [GoGlobalContext] : val :
      3. or the key represents a non-bucket value;
      4. the source and destination buckets are the same.
 
-    go: bucket.go:337:18 -/
+    go: bucket.go:344:18 -/
 noncomputable def Bucket.MoveBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1685,7 +1684,7 @@ noncomputable def Bucket.MoveBucket.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Inspect returns the structure of the bucket.
 
-    go: bucket.go:407:18 -/
+    go: bucket.go:414:18 -/
 noncomputable def Bucket.Inspect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1701,7 +1700,7 @@ noncomputable def Bucket.Inspect.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BucketStructure.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BucketStructure.ty))) (Var "$res0"))))))
 
-/-- go: bucket.go:411:18 -/
+/-- go: bucket.go:418:18 -/
 noncomputable def Bucket.recursivelyInspect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "name"
@@ -1800,7 +1799,7 @@ noncomputable def Bucket.recursivelyInspect.impl [GooseExts] [GoGlobalContext] :
     The returned value is only valid for the life of the transaction.
     The returned memory is owned by bbolt and must never be modified; writing to this memory might corrupt the database.
 
-    go: bucket.go:434:18 -/
+    go: bucket.go:441:18 -/
 noncomputable def Bucket.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1863,7 +1862,7 @@ noncomputable def Bucket.Get.impl [GooseExts] [GoGlobalContext] : val :=
     Supplied value must remain valid for the life of the transaction.
     Returns an error if the bucket was created from a read-only transaction, if the key is blank, if the key is too large, or if the value is too large.
 
-    go: bucket.go:453:18 -/
+    go: bucket.go:460:18 -/
 noncomputable def Bucket.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -1971,8 +1970,17 @@ noncomputable def Bucket.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "value"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val maxEntrySize)) (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.bbolt.errors.ErrValueTooLarge))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef Tx.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (App (Val (GoInstruction (StructFieldRef Bucket.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Bucket.ty)))) (Var "b"))))))) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2013,7 +2021,7 @@ noncomputable def Bucket.Put.impl [GooseExts] [GoGlobalContext] : val :=
     If the key does not exist then nothing is done and a nil error is returned.
     Returns an error if the bucket was created from a read-only transaction.
 
-    go: bucket.go:500:18 -/
+    go: bucket.go:509:18 -/
 noncomputable def Bucket.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "key"
@@ -2135,7 +2143,7 @@ noncomputable def Bucket.Delete.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Sequence returns the current integer for the bucket without incrementing it.
 
-    go: bucket.go:539:18 -/
+    go: bucket.go:548:18 -/
 noncomputable def Bucket.Sequence.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2152,7 +2160,7 @@ noncomputable def Bucket.Sequence.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- SetSequence updates the sequence number for the bucket.
 
-    go: bucket.go:544:18 -/
+    go: bucket.go:553:18 -/
 noncomputable def Bucket.SetSequence.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -2200,7 +2208,7 @@ noncomputable def Bucket.SetSequence.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- NextSequence returns an autoincrementing integer for the bucket.
 
-    go: bucket.go:563:18 -/
+    go: bucket.go:572:18 -/
 noncomputable def Bucket.NextSequence.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2263,7 +2271,7 @@ noncomputable def Bucket.NextSequence.impl [GooseExts] [GoGlobalContext] : val :
     the error is returned to the caller. The provided function must not modify
     the bucket; this will result in undefined behavior.
 
-    go: bucket.go:586:18 -/
+    go: bucket.go:595:18 -/
 noncomputable def Bucket.ForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "fn"
@@ -2337,7 +2345,7 @@ noncomputable def Bucket.ForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: bucket.go:599:18 -/
+/-- go: bucket.go:608:18 -/
 noncomputable def Bucket.ForEachBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "fn"
@@ -2425,7 +2433,7 @@ noncomputable def Bucket.ForEachBucket.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- Stats returns stats on a bucket.
 
-    go: bucket.go:615:18 -/
+    go: bucket.go:624:18 -/
 noncomputable def Bucket.Stats.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2581,7 +2589,7 @@ noncomputable def Bucket.Stats.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- forEachPage iterates over every page in a bucket, including inline pages.
 
-    go: bucket.go:701:18 -/
+    go: bucket.go:710:18 -/
 noncomputable def Bucket.forEachPage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "fn"
@@ -2610,7 +2618,7 @@ noncomputable def Bucket.forEachPage.impl [GooseExts] [GoGlobalContext] : val :=
 /-- forEachPageNode iterates over every page (or node) in a bucket.
     This also includes inline pages.
 
-    go: bucket.go:714:18 -/
+    go: bucket.go:723:18 -/
 noncomputable def Bucket.forEachPageNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "fn"
@@ -2636,7 +2644,7 @@ noncomputable def Bucket.forEachPageNode.impl [GooseExts] [GoGlobalContext] : va
   (Val #())))))))
   (Val #()))))
 
-/-- go: bucket.go:723:18 -/
+/-- go: bucket.go:732:18 -/
 noncomputable def Bucket._forEachPageNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "pgId"
@@ -2712,7 +2720,7 @@ noncomputable def Bucket._forEachPageNode.impl [GooseExts] [GoGlobalContext] : v
 
 /-- spill writes all the nodes for this bucket to dirty pages.
 
-    go: bucket.go:747:18 -/
+    go: bucket.go:756:18 -/
 noncomputable def Bucket.spill.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2887,7 +2895,7 @@ noncomputable def Bucket.spill.impl [GooseExts] [GoGlobalContext] : val :=
 /-- inlineable returns true if a bucket is small enough to be written inline
     and if it contains no subbuckets. Otherwise, returns false.
 
-    go: bucket.go:808:18 -/
+    go: bucket.go:817:18 -/
 noncomputable def Bucket.inlineable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2954,7 +2962,7 @@ noncomputable def Bucket.inlineable.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Returns the maximum total size of a bucket to make it a candidate for inlining.
 
-    go: bucket.go:833:18 -/
+    go: bucket.go:842:18 -/
 noncomputable def Bucket.maxInlineBucketSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -2971,7 +2979,7 @@ noncomputable def Bucket.maxInlineBucketSize.impl [GooseExts] [GoGlobalContext] 
 
 /-- write allocates and writes a bucket to a byte slice.
 
-    go: bucket.go:838:18 -/
+    go: bucket.go:847:18 -/
 noncomputable def Bucket.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -3021,7 +3029,7 @@ noncomputable def Bucket.write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- rebalance attempts to balance all nodes.
 
-    go: bucket.go:856:18 -/
+    go: bucket.go:865:18 -/
 noncomputable def Bucket.rebalance.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -3058,7 +3066,7 @@ noncomputable def Bucket.rebalance.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- node creates a node from a page and associates it with a given parent.
 
-    go: bucket.go:866:18 -/
+    go: bucket.go:875:18 -/
 noncomputable def Bucket.node.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "pgId"
@@ -3154,7 +3162,7 @@ noncomputable def Bucket.node.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- free recursively frees all pages in the bucket.
 
-    go: bucket.go:907:18 -/
+    go: bucket.go:916:18 -/
 noncomputable def Bucket.free.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -3195,7 +3203,7 @@ noncomputable def Bucket.free.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dereference removes all references to the old mmap.
 
-    go: bucket.go:924:18 -/
+    go: bucket.go:933:18 -/
 noncomputable def Bucket.dereference.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -3225,7 +3233,7 @@ noncomputable def Bucket.dereference.impl [GooseExts] [GoGlobalContext] : val :=
 /-- pageNode returns the in-memory node, if it exists.
     Otherwise, returns the underlying page.
 
-    go: bucket.go:936:18 -/
+    go: bucket.go:945:18 -/
 noncomputable def Bucket.pageNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "id"
@@ -3307,7 +3315,7 @@ noncomputable def Bucket.pageNode.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "$res1"))))))))
 
-/-- go: bucket.go:984:23 -/
+/-- go: bucket.go:993:23 -/
 noncomputable def BucketStats.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "other"
@@ -3360,7 +3368,7 @@ noncomputable def BucketStats.Add.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- cloneBytes returns a copy of a given slice.
 
-    go: bucket.go:1004:6 -/
+    go: bucket.go:1013:6 -/
 noncomputable def cloneBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -14975,9 +14983,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"batch function returned an error and should be re-run solo"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Options.ty))) (Let "$v0" (Val #(W64 0))
+  (Let "$v1" (Val #false)
+  (Let "$v2" (Val FreelistArrayType)
+  (App (Val (GoInstruction (CompositeLiteral Options.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Timeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NoGrowSync")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"FreelistType")) (ElementExpression FreelistType.ty (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.bbolt.errors.ErrDatabaseNotOpen))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -15051,7 +15064,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrDatabaseNotOpen))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val DefaultOptions.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Options.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultOptions))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr trySolo))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -15094,6 +15107,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.encoding.hex.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc trySolo go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultOptions (go.GoType.PointerType Options.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrDatabaseNotOpen go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -16136,23 +16151,123 @@ attribute [instance] panicked.TypeAssumptions.type_repr
   panicked.TypeAssumptions.Error_unfold
   panicked.TypeAssumptions.ptr_Error_unfold
 
-opaque Options.nonempty_type : NonemptyType.{0}
-def Options : Type := Options.nonempty_type.type
-instance Options.nonempty : Nonempty Options := Options.nonempty_type.property
-opaque Options.zero_val : ZeroVal Options := ⟨Classical.ofNonempty⟩
-attribute [instance] Options.zero_val
+structure Options [GooseExts] where
+  mk ::
+  Timeout' : _root_.Perennial.time.Duration
+  NoGrowSync' : Bool
+  NoFreelistSync' : Bool
+  PreLoadFreelist' : Bool
+  FreelistType' : FreelistType
+  ReadOnly' : Bool
+  MmapFlags' : w64
+  InitialMmapSize' : w64
+  PageSize' : w64
+  MaxSize' : w64
+  NoSync' : Bool
+  OpenFile' : GoFunc
+  Mlock' : Bool
+  Logger' : Logger
+  NoStatistics' : Bool
+
+noncomputable instance Options.zero_val [GooseExts] : ZeroVal Options :=
+  ⟨Options.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Options.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Timeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"NoGrowSync" go.bool),
+(go.field_decl.FieldDecl go!"NoFreelistSync" go.bool),
+(go.field_decl.FieldDecl go!"PreLoadFreelist" go.bool),
+(go.field_decl.FieldDecl go!"FreelistType" FreelistType.ty),
+(go.field_decl.FieldDecl go!"ReadOnly" go.bool),
+(go.field_decl.FieldDecl go!"MmapFlags" go.int),
+(go.field_decl.FieldDecl go!"InitialMmapSize" go.int),
+(go.field_decl.FieldDecl go!"PageSize" go.int),
+(go.field_decl.FieldDecl go!"MaxSize" go.int),
+(go.field_decl.FieldDecl go!"NoSync" go.bool),
+(go.field_decl.FieldDecl go!"OpenFile" (go.GoType.FunctionType (go.signature.Signature [go.string, go.int, _root_.Perennial.os.FileMode.ty] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))),
+(go.field_decl.FieldDecl go!"Mlock" go.bool),
+(go.field_decl.FieldDecl go!"Logger" Logger.ty),
+(go.field_decl.FieldDecl go!"NoStatistics" go.bool)]
+
+@[irreducible] noncomputable def Options.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Options.fieldsUnsealed
+
+noncomputable instance equals_unfold_Options [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Options.fields Options.fieldsUnsealed :=
+  ⟨by unfold Options.fields; rfl⟩
+
+@[reducible] noncomputable def Options.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Options.fields)
 
 class Options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Options.underlying Options
   underlying : go.UnderlyingDirectedEq Options.ty Options.underlying
-  isUnderlying : go.IsUnderlying Options.underlying Options.underlying
+  get_Timeout : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"Timeout") #x (Val #(x.Timeout'))
+  set_Timeout : ∀ (x : Options) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : Options)))
+  get_NoGrowSync : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"NoGrowSync") #x (Val #(x.NoGrowSync'))
+  set_NoGrowSync : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"NoGrowSync") (PairV #x #y) (Val #(({ x with NoGrowSync' := y } : Options)))
+  get_NoFreelistSync : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"NoFreelistSync") #x (Val #(x.NoFreelistSync'))
+  set_NoFreelistSync : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"NoFreelistSync") (PairV #x #y) (Val #(({ x with NoFreelistSync' := y } : Options)))
+  get_PreLoadFreelist : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"PreLoadFreelist") #x (Val #(x.PreLoadFreelist'))
+  set_PreLoadFreelist : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"PreLoadFreelist") (PairV #x #y) (Val #(({ x with PreLoadFreelist' := y } : Options)))
+  get_FreelistType : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"FreelistType") #x (Val #(x.FreelistType'))
+  set_FreelistType : ∀ (x : Options) (y : FreelistType), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"FreelistType") (PairV #x #y) (Val #(({ x with FreelistType' := y } : Options)))
+  get_ReadOnly : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"ReadOnly") #x (Val #(x.ReadOnly'))
+  set_ReadOnly : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"ReadOnly") (PairV #x #y) (Val #(({ x with ReadOnly' := y } : Options)))
+  get_MmapFlags : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"MmapFlags") #x (Val #(x.MmapFlags'))
+  set_MmapFlags : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"MmapFlags") (PairV #x #y) (Val #(({ x with MmapFlags' := y } : Options)))
+  get_InitialMmapSize : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"InitialMmapSize") #x (Val #(x.InitialMmapSize'))
+  set_InitialMmapSize : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"InitialMmapSize") (PairV #x #y) (Val #(({ x with InitialMmapSize' := y } : Options)))
+  get_PageSize : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"PageSize") #x (Val #(x.PageSize'))
+  set_PageSize : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"PageSize") (PairV #x #y) (Val #(({ x with PageSize' := y } : Options)))
+  get_MaxSize : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"MaxSize") #x (Val #(x.MaxSize'))
+  set_MaxSize : ∀ (x : Options) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"MaxSize") (PairV #x #y) (Val #(({ x with MaxSize' := y } : Options)))
+  get_NoSync : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"NoSync") #x (Val #(x.NoSync'))
+  set_NoSync : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"NoSync") (PairV #x #y) (Val #(({ x with NoSync' := y } : Options)))
+  get_OpenFile : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"OpenFile") #x (Val #(x.OpenFile'))
+  set_OpenFile : ∀ (x : Options) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"OpenFile") (PairV #x #y) (Val #(({ x with OpenFile' := y } : Options)))
+  get_Mlock : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"Mlock") #x (Val #(x.Mlock'))
+  set_Mlock : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"Mlock") (PairV #x #y) (Val #(({ x with Mlock' := y } : Options)))
+  get_Logger : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"Logger") #x (Val #(x.Logger'))
+  set_Logger : ∀ (x : Options) (y : Logger), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : Options)))
+  get_NoStatistics : ∀ (x : Options), go.IsGoStepPureDetTagged under (StructFieldGet Options.underlying go!"NoStatistics") #x (Val #(x.NoStatistics'))
+  set_NoStatistics : ∀ (x : Options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Options.underlying go!"NoStatistics") (PairV #x #y) (Val #(({ x with NoStatistics' := y } : Options)))
   method_set : go.MethodSetIs Options.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Options.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType Options.ty) go!"String" Options.String.impl
 
 attribute [instance] Options.TypeAssumptions.type_repr
   Options.TypeAssumptions.underlying
-  Options.TypeAssumptions.isUnderlying
+  Options.TypeAssumptions.get_Timeout
+  Options.TypeAssumptions.set_Timeout
+  Options.TypeAssumptions.get_NoGrowSync
+  Options.TypeAssumptions.set_NoGrowSync
+  Options.TypeAssumptions.get_NoFreelistSync
+  Options.TypeAssumptions.set_NoFreelistSync
+  Options.TypeAssumptions.get_PreLoadFreelist
+  Options.TypeAssumptions.set_PreLoadFreelist
+  Options.TypeAssumptions.get_FreelistType
+  Options.TypeAssumptions.set_FreelistType
+  Options.TypeAssumptions.get_ReadOnly
+  Options.TypeAssumptions.set_ReadOnly
+  Options.TypeAssumptions.get_MmapFlags
+  Options.TypeAssumptions.set_MmapFlags
+  Options.TypeAssumptions.get_InitialMmapSize
+  Options.TypeAssumptions.set_InitialMmapSize
+  Options.TypeAssumptions.get_PageSize
+  Options.TypeAssumptions.set_PageSize
+  Options.TypeAssumptions.get_MaxSize
+  Options.TypeAssumptions.set_MaxSize
+  Options.TypeAssumptions.get_NoSync
+  Options.TypeAssumptions.set_NoSync
+  Options.TypeAssumptions.get_OpenFile
+  Options.TypeAssumptions.set_OpenFile
+  Options.TypeAssumptions.get_Mlock
+  Options.TypeAssumptions.set_Mlock
+  Options.TypeAssumptions.get_Logger
+  Options.TypeAssumptions.set_Logger
+  Options.TypeAssumptions.get_NoStatistics
+  Options.TypeAssumptions.set_NoStatistics
   Options.TypeAssumptions.method_set
   Options.TypeAssumptions.ptr_method_set
   Options.TypeAssumptions.ptr_String_unfold
