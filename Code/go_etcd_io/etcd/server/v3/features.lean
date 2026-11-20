@@ -27,9 +27,11 @@ namespace go_etcd_io.etcd.server.v3.features
 @[reducible] noncomputable def TxnModeWriteWithSharedBuffer [GooseExts] [GoGlobalContext] : val :=
   #(go!"TxnModeWriteWithSharedBuffer")
 
-opaque InitialCorruptCheck [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def InitialCorruptCheck [GooseExts] [GoGlobalContext] : val :=
+  #(go!"InitialCorruptCheck")
 
-opaque CompactHashCheck [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def CompactHashCheck [GooseExts] [GoGlobalContext] : val :=
+  #(go!"CompactHashCheck")
 
 @[reducible] noncomputable def LeaseCheckpoint [GooseExts] [GoGlobalContext] : val :=
   #(go!"LeaseCheckpoint")
@@ -37,7 +39,8 @@ opaque CompactHashCheck [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def LeaseCheckpointPersist [GooseExts] [GoGlobalContext] : val :=
   #(go!"LeaseCheckpointPersist")
 
-opaque SetMemberLocalAddr [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def SetMemberLocalAddr [GooseExts] [GoGlobalContext] : val :=
+  #(go!"SetMemberLocalAddr")
 
 @[reducible] noncomputable def FastLeaseKeepAlive [GooseExts] [GoGlobalContext] : val :=
   #(go!"FastLeaseKeepAlive")
@@ -45,12 +48,11 @@ opaque SetMemberLocalAddr [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def PriorityRequest [GooseExts] [GoGlobalContext] : val :=
   #(go!"PriorityRequest")
 
-opaque NonBlockingDefrag [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def NonBlockingDefrag [GooseExts] [GoGlobalContext] : val :=
+  #(go!"NonBlockingDefrag")
 
 noncomputable def DefaultEtcdServerFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/features.DefaultEtcdServerFeatureGates"
-
-opaque DefaultEtcdServerFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewDefaultServerFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/features.NewDefaultServerFeatureGate"
@@ -65,10 +67,44 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.features)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val StopGRPCServiceOnDefrag)
+  (Let "$v1" (Val #false)
+  (Let "$v2" (Val #(go!"ALPHA"))
+  (Let "$k3" (Val InitialCorruptCheck)
+  (Let "$v4" (Val #false)
+  (Let "$v5" (Val #(go!"ALPHA"))
+  (Let "$k6" (Val CompactHashCheck)
+  (Let "$v7" (Val #false)
+  (Let "$v8" (Val #(go!"ALPHA"))
+  (Let "$k9" (Val TxnModeWriteWithSharedBuffer)
+  (Let "$v10" (Val #true)
+  (Let "$v11" (Val #(go!"BETA"))
+  (Let "$k12" (Val LeaseCheckpoint)
+  (Let "$v13" (Val #false)
+  (Let "$v14" (Val #(go!"ALPHA"))
+  (Let "$k15" (Val LeaseCheckpointPersist)
+  (Let "$v16" (Val #false)
+  (Let "$v17" (Val #(go!"ALPHA"))
+  (Let "$k18" (Val SetMemberLocalAddr)
+  (Let "$v19" (Val #false)
+  (Let "$v20" (Val #(go!"ALPHA"))
+  (Let "$k21" (Val FastLeaseKeepAlive)
+  (Let "$v22" (Val #true)
+  (Let "$v23" (Val #(go!"BETA"))
+  (Let "$k24" (Val PriorityRequest)
+  (Let "$v25" (Val #false)
+  (Let "$v26" (Val #(go!"ALPHA"))
+  (Let "$k27" (Val NonBlockingDefrag)
+  (Let "$v28" (Val #true)
+  (Let "$v29" (Val #(go!"BETA"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty)))) (LiteralValue [(KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k0"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v2")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k3"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v4"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v5")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k6"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v7"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v8")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k9"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v10"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v11")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k12"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v13"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v14")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k15"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v16"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v17")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k18"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v19"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v20")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k21"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v22"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v23")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k24"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v25"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v26")))])), (KeyedElement (some (KeyExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty (Var "$k27"))) (ElementLiteralValue [(KeyedElement (some (KeyField go!"Default")) (ElementExpression go.bool (Var "$v28"))), (KeyedElement (some (KeyField go!"PreRelease")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty (Var "$v29")))]))]))))))))))))))))))))))))))))))))
   (App (Val doExecute)
-  (App (Val DefaultEtcdServerFeatureGates.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultEtcdServerFeatureGates))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultEtcdServerFeatureGates (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty))) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   import_featuregate_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions

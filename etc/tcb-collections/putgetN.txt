@@ -39,7 +39,6 @@ axiom Perennial.github_com.dustin.go_humanize.opaqueInitsOk
 axiom Perennial.github_com.jonboulle.clockwork.opaqueInitsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.opaqueInitsOk
-axiom Perennial.github_com.xiang90.probing.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initFuncsOk
@@ -61,18 +60,12 @@ axiom Perennial.go_etcd_io.etcd.api.v3.version.V3_6_init
 axiom Perennial.go_etcd_io.etcd.api.v3.version.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.version.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.client.pkg.v3.types.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.client.v3.defaultBackoffJitterFraction_init
-axiom Perennial.go_etcd_io.etcd.client.v3.defaultCallOpts_init
 axiom Perennial.go_etcd_io.etcd.client.v3.defaultOptions_init
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.client.v3.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.featuregate.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.initFuncsOk
@@ -82,8 +75,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.features.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
@@ -98,7 +89,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
-axiom Perennial.go_opentelemetry_io.otel.codes.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
@@ -106,7 +96,6 @@ axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
 axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
-axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.health.grpc_health_v1.initFuncsOk
 axiom Perennial.google_golang_org.grpc.health.grpc_health_v1.opaqueInitsOk
@@ -126,7 +115,6 @@ axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
 axiom Perennial.path.filepath.opaqueInitsOk
-axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
@@ -242,7 +230,6 @@ axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
-axiom heap.Init_.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok

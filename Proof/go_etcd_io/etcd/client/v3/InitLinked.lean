@@ -78,11 +78,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) maxBackoff _ as HmaxBackoff
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Time) zeroTime _ as HzeroTime
   wp_apply wp_GlobalAlloc (V := GoChan) valCtxCh _ as HvalCtxCh
+  wp_apply wp_GlobalAlloc (V := GoSlice) defaultCallOpts _ as HdefaultCallOpts
+  wp_apply wp_GlobalAlloc (V := w64) defaultBackoffJitterFraction _ as HdefaultBackoffJitterFraction
   wp_apply wp_GlobalAlloc (V := w64) defaultBackoffWaitBetween _ as HdefaultBackoffWaitBetween
   wp_apply wp_GlobalAlloc (V := w64) defaultStreamMaxRetries _ as HdefaultStreamMaxRetries
   wp_apply wp_GlobalAlloc (V := w64) defaultUnaryMaxRetries _ as HdefaultUnaryMaxRetries
+  wp_apply wp_GlobalAlloc (V := GoInterface) defaultMaxCallRecvMsgSize _ as HdefaultMaxCallRecvMsgSize
+  wp_apply wp_GlobalAlloc (V := GoInterface) defaultMaxCallSendMsgSize _ as HdefaultMaxCallSendMsgSize
+  wp_apply wp_GlobalAlloc (V := GoInterface) defaultWaitForReady _ as HdefaultWaitForReady
   wp_apply wp_GlobalAlloc (V := GoSlice) noPrefixEnd _ as HnoPrefixEnd
   wp_apply wp_GlobalAlloc (V := w64) LeaseResponseChSize _ as HLeaseResponseChSize
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrMutuallyExclusiveCfg _ as HErrMutuallyExclusiveCfg
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrOldCluster _ as HErrOldCluster
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoAvailableEndpoints _ as HErrNoAvailableEndpoints
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd27⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd26⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
@@ -119,24 +127,43 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk ErrNoAvailableEndpoints.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrOldCluster.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrMutuallyExclusiveCfg.init (by mem_tac))
+  -- translated initializer of ErrNoAvailableEndpoints))
+  -- translated initializer of ErrOldCluster))
+  -- translated initializer of ErrMutuallyExclusiveCfg))
   -- translated initializer of LeaseResponseChSize))
   -- translated initializer of noPrefixEnd))
+  -- translated initializer of defaultWaitForReady))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoAvailableEndpoints #MErrNoAvailableEndpoints
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrOldCluster #MErrOldCluster
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMutuallyExclusiveCfg #MErrMutuallyExclusiveCfg
+  try wp_auto
   wp_apply wp_slice_literal (l := [W8 0])
   isplitr
   · ipureintro; rfl
   iintro %snp ⟨Hsnp, -⟩
   try wp_auto
-  wp_apply (opaqueInitsOk defaultWaitForReady.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultMaxCallSendMsgSize.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultMaxCallRecvMsgSize.init (by mem_tac))
+  try wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sco ⟨Sco, -⟩
+  try wp_auto
+  -- translated initializer of defaultMaxCallSendMsgSize))
+  -- translated initializer of defaultMaxCallRecvMsgSize))
   -- translated initializer of defaultUnaryMaxRetries))
   -- translated initializer of defaultStreamMaxRetries))
   -- translated initializer of defaultBackoffWaitBetween))
-  wp_apply defaultBackoffJitterFraction_init as ⟨%fdefaultBackoffJitterFraction, HdefaultBackoffJitterFraction⟩
-  wp_apply defaultCallOpts_init as ⟨%sldefaultCallOpts, %vsdefaultCallOpts, HdefaultCallOpts, #SdefaultCallOpts, %PdefaultCallOpts⟩
+  -- translated initializer of defaultBackoffJitterFraction))
+  -- translated initializer of defaultCallOpts))
   wp_apply defaultOptions_init as ⟨%dpdefaultOptions, %ovdefaultOptions, HdefaultOptions, #PdefaultOptions, #SdefaultOptions, %RdefaultOptions⟩
   -- translated initializer of valCtxCh))
   -- translated initializer of zeroTime))
@@ -144,6 +171,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩
   wp_apply EtcdGrove.time.Unix.wp_proof as %zt -
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of defaultMaxCallRecvMsgSize))
+  -- translated initializer of defaultMaxCallSendMsgSize))
+  -- translated initializer of defaultWaitForReady))
   ipersist Hsnp
   ipersist HnoPrefixEnd
   ipersist HdefaultOptions
@@ -155,6 +185,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HzeroTime
   ipersist HmaxBackoff
   ipersist HLeaseResponseChSize
+  ipersist Sco
   iframe Hown
   imodintro
   isplitr
@@ -165,7 +196,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   unfold go_etcd_io.etcd.cache.v3.clientv3Init
   iframe #
   ipureintro
-  exact ⟨RdefaultOptions, PdefaultCallOpts⟩
+  refine ⟨RdefaultOptions, rfl, fun v hv => ?_⟩
+  have h1 : sint.nat (W64 (0 + 1)) = 1 := rfl
+  have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := rfl
+  rw [h1, h2] at hv
+  simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil, or_false] at hv
+  rcases hv with rfl | rfl | rfl <;> exact ⟨_, _, rfl, by simp⟩
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

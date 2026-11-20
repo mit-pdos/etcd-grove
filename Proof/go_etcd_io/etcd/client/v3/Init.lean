@@ -11,7 +11,11 @@ backoff function returns; the trust-boundary axiom `defaultOptions_init`), and i
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
 trust-boundary axiom `LeaseResponseChSize_init`), and the translated constants
 `defaultUnaryMaxRetries`, `defaultStreamMaxRetries` and `defaultBackoffWaitBetween`
-(`options.go`). Its initializer also runs its other untranslated initializers (`opaqueInitsOk`).
+(`options.go`). (prove-smallinits, 2026-11-20) Its other variables' initializers are translated
+too: the three `errors.New` errors, the call options (grpc's `WaitForReady`, `MaxCallSendMsgSize`,
+`MaxCallRecvMsgSize`), `defaultCallOpts` (their slice) and `defaultBackoffJitterFraction` (until then
+`opaqueInitsOk` and the trust-boundary axioms `defaultCallOpts_init`,
+`defaultBackoffJitterFraction_init`).
 -/
 module
 
@@ -43,6 +47,7 @@ public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init
 public import Proof.google_golang_org.grpc.status.Init
+public import Perennial.Proof.errors.NewVar
 
 @[expose] public section
 
@@ -67,19 +72,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.client.v3`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrNoAvailableEndpoints.init,
-        ErrOldCluster.init,
-        ErrMutuallyExclusiveCfg.init,
-        defaultWaitForReady.init,
-        defaultMaxCallSendMsgSize.init,
-        defaultMaxCallRecvMsgSize.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- **The trust boundary: `go_etcd_io.etcd.client.v3`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
 here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
@@ -94,16 +86,6 @@ axiom initFuncsOk :
 axiom defaultOptions_init :
     {{ (True : IProp GF) }} (App (Val defaultOptions.init) (Val #()))
     {{ RET #(); ∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ go_etcd_io.etcd.cache.v3.backoffOk ov.backoffFunc' ∗ ⌜ov.retryPolicy' = W8 1⌝ }}
-
-/-- `defaultCallOpts = []grpc.CallOption{defaultWaitForReady, defaultMaxCallSendMsgSize, defaultMaxCallRecvMsgSize}` (`options.go`): grpc's `WaitForReady(true)`, `MaxCallSendMsgSize(...)`, `MaxCallRecvMsgSize(...)`, options holding only scalars (`FailFastCallOption`, `MaxSendMsgSizeCallOption`, `MaxRecvMsgSizeCallOption`). -/
-axiom defaultCallOpts_init :
-    {{ (True : IProp GF) }} (App (Val defaultCallOpts.init) (Val #()))
-    {{ RET #(); ∃ (sl : GoSlice) (vs : List GoInterface), globalAddr defaultCallOpts ↦ sl ∗ sl ↦*□ vs ∗ ⌜sl.len = sl.cap ∧ ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty, google_golang_org.grpc.MaxSendMsgSizeCallOption.ty, google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝ }}
-
-/-- `defaultBackoffJitterFraction = 0.10` (`options.go`): a float. -/
-axiom defaultBackoffJitterFraction_init :
-    {{ (True : IProp GF) }} (App (Val defaultBackoffJitterFraction.init) (Val #()))
-    {{ RET #(); ∃ f : w64, globalAddr defaultBackoffJitterFraction ↦ f }}
 
 end go_etcd_io.etcd.client.v3
 end opaqueInits

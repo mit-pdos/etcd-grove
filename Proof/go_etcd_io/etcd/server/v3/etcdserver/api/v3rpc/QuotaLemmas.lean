@@ -37,7 +37,8 @@ reader slots (`quotaRd`, from its spec); the inner method is handed the check's 
 theorem v3rpc.quotaKV_putHandlerOkMd_of
     (wp_Put : v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep) (q s : Loc) (kv : GoInterfaceOk)
-    (S : IProp GF) :
+    (S : IProp GF)
+    (hreq : ∀ r m, Req.recv r m ⊢ apply.quotaReqOk (go.GoType.PointerType etcdserverpb.PutRequest.ty) r) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaKVServerAt q kv s ∗
@@ -47,6 +48,7 @@ theorem v3rpc.quotaKV_putHandlerOkMd_of
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   unfold grpcHandlerOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  ihave #Hquota := hreq r m $$ Hr
   iapply (wp_Put Req Rep Spec q s kv S m Φ Ψe ci cd r) $$ [HS Hqr HSpec]
   · iframe; iframe #
     unfold grpcHandlerOkMd
@@ -62,7 +64,8 @@ reader slots (`quotaRd`, from its spec); the inner method is handed the check's 
 theorem v3rpc.quotaKV_putHandlerOk_of
     (wp_Put : v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
-    (S : IProp GF) :
+    (S : IProp GF)
+    (hreq : ∀ r m, Req.recv r m ⊢ apply.quotaReqOk (go.GoType.PointerType etcdserverpb.PutRequest.ty) r) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaKVServerAt q kv s ∗
@@ -71,7 +74,7 @@ theorem v3rpc.quotaKV_putHandlerOk_of
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   iapply (grpcHandlerOk_md _ _ Spec).2
-  iapply (v3rpc.quotaKV_putHandlerOkMd_of wp_Put (GrpcSpec.md Spec) q s kv S)
+  iapply (v3rpc.quotaKV_putHandlerOkMd_of wp_Put (GrpcSpec.md Spec) q s kv S hreq)
   iframe #
   iapply (grpcHandlerOk_md _ _ Spec).1
   iexact Hh
@@ -82,7 +85,8 @@ spec** (metadata-indexed, E3zb), with the quota check's reader slots (`quotaRd`,
 theorem v3rpc.quotaKV_txnHandlerOkMd_of
     (wp_Txn : v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep) (q s : Loc) (kv : GoInterfaceOk)
-    (S : IProp GF) :
+    (S : IProp GF)
+    (hreq : ∀ r m, Req.recv r m ⊢ apply.quotaReqOk (go.GoType.PointerType etcdserverpb.TxnRequest.ty) r) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaKVServerAt q kv s ∗
@@ -92,6 +96,7 @@ theorem v3rpc.quotaKV_txnHandlerOkMd_of
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   unfold grpcHandlerOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  ihave #Hquota := hreq r m $$ Hr
   iapply (wp_Txn Req Rep Spec q s kv S m Φ Ψe ci cd r) $$ [HS Hqr HSpec]
   · iframe; iframe #
     unfold grpcHandlerOkMd
@@ -107,7 +112,8 @@ spec**, with the quota check's reader slots (`quotaRd`, from its spec); the inne
 theorem v3rpc.quotaKV_txnHandlerOk_of
     (wp_Txn : v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
-    (S : IProp GF) :
+    (S : IProp GF)
+    (hreq : ∀ r m, Req.recv r m ⊢ apply.quotaReqOk (go.GoType.PointerType etcdserverpb.TxnRequest.ty) r) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaKVServerAt q kv s ∗
@@ -116,7 +122,7 @@ theorem v3rpc.quotaKV_txnHandlerOk_of
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   iapply (grpcHandlerOk_md _ _ Spec).2
-  iapply (v3rpc.quotaKV_txnHandlerOkMd_of wp_Txn (GrpcSpec.md Spec) q s kv S)
+  iapply (v3rpc.quotaKV_txnHandlerOkMd_of wp_Txn (GrpcSpec.md Spec) q s kv S hreq)
   iframe #
   iapply (grpcHandlerOk_md _ _ Spec).1
   iexact Hh

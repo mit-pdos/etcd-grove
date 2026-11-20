@@ -1,6 +1,8 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+# (prove-smallinits, 2026-11-20) `var _ error = &Error{}` and `omitValue` (an empty struct literal; until
+# then `opaqueInitsOk`).
+translate = ["!*", "_", "omitValue"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

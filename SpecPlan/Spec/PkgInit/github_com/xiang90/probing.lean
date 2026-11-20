@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.github_com.xiang90.probing
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
 public import Perennial.Proof.time.Base
 
 @[expose] public section

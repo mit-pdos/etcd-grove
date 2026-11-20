@@ -187,18 +187,15 @@ noncomputable def realTicker.Stop.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.clock where
   pkgImportedPkgs := [pkg_id.time]
 
-opaque «_».init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.utils.clock)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert RealClock.ty WithTicker.ty))) (App (Val (GoInstruction (CompositeLiteral RealClock.ty))) (LiteralValue [])))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType realTimer.ty) Timer.ty))) (App (Val (GoInstruction (GoAlloc realTimer.ty))) (App (Val (GoInstruction (CompositeLiteral realTimer.ty))) (LiteralValue []))))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))))
 

@@ -1779,7 +1779,11 @@ backoff function returns; the trust-boundary axiom `defaultOptions_init`), and i
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
 trust-boundary axiom `LeaseResponseChSize_init`), and the translated constants
 `defaultUnaryMaxRetries`, `defaultStreamMaxRetries` and `defaultBackoffWaitBetween`
-(`options.go`). Its initializer also runs its other untranslated initializers (`opaqueInitsOk`).''',
+(`options.go`). (prove-smallinits, 2026-11-20) Its other variables' initializers are translated
+too: the three `errors.New` errors, the call options (grpc's `WaitForReady`, `MaxCallSendMsgSize`,
+`MaxCallRecvMsgSize`), `defaultCallOpts` (their slice) and `defaultBackoffJitterFraction` (until then
+`opaqueInitsOk` and the trust-boundary axioms `defaultCallOpts_init`,
+`defaultBackoffJitterFraction_init`).''',
     imports=['Proof.time.Unix'],
     alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
                  'noPrefixEnd': 'GoSlice', 'LeaseResponseChSize': 'w64', 'defaultUnaryMaxRetries': 'w64', 'defaultStreamMaxRetries': 'w64',
@@ -2095,20 +2099,36 @@ _P['finish'] = ([f'ipersist S{t}' for t in _PB_SL] +
                  'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))'])
 
 _C = SPECIAL['go_etcd_io.etcd.client.v3']
-_C['custom'].update({
-    'defaultCallOpts': dict(
-        doc='/-- `defaultCallOpts = []grpc.CallOption{defaultWaitForReady, defaultMaxCallSendMsgSize, defaultMaxCallRecvMsgSize}` (`options.go`): grpc\'s `WaitForReady(true)`, `MaxCallSendMsgSize(...)`, `MaxCallRecvMsgSize(...)`, options holding only scalars (`FailFastCallOption`, `MaxSendMsgSizeCallOption`, `MaxRecvMsgSizeCallOption`). -/',
-        post='∃ (sl : GoSlice) (vs : List GoInterface), globalAddr defaultCallOpts ↦ sl ∗ sl ↦*□ vs ∗ ⌜sl.len = sl.cap ∧ ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty, google_golang_org.grpc.MaxSendMsgSizeCallOption.ty, google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝',
-        pat='⟨%sl@, %vs@, H@, #S@, %P@⟩'),
-    'defaultBackoffJitterFraction': dict(doc='/-- `defaultBackoffJitterFraction = 0.10` (`options.go`): a float. -/',
-        post='∃ f : w64, globalAddr defaultBackoffJitterFraction ↦ f', pat='⟨%f@, H@⟩'),
-})
+# (prove-smallinits, 2026-11-20) the package's other variables translated (until then `opaqueInitsOk`
+# and the trust-boundary axioms `defaultCallOpts_init` and `defaultBackoffJitterFraction_init`): the
+# three `errors.New` errors, the call options (grpc's `WaitForReady`, `MaxCallSendMsgSize`,
+# `MaxCallRecvMsgSize`, translated: struct literals converted to `CallOption`), their slice
+# `defaultCallOpts` and the float `defaultBackoffJitterFraction`.
+newvars_cfg(_C, ['ErrNoAvailableEndpoints', 'ErrOldCluster', 'ErrMutuallyExclusiveCfg'])
+_C['before']['defaultWaitForReady'] = (
+    [l for x in ['ErrNoAvailableEndpoints', 'ErrOldCluster', 'ErrMutuallyExclusiveCfg'] for l in newvar_steps(x)] +
+    ['try wp_auto'] + _C['before']['defaultWaitForReady'] + ['try wp_auto'] +
+    # the three grpc option constructors (translated: a struct literal converted to `CallOption`)
+    ['wp_func_call', 'wp_call', 'try wp_auto'] * 3 +
+    # `defaultCallOpts`: the slice literal of the three options
+    ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sco ⟨Sco, -⟩',
+     'try wp_auto'])
+del _C['before']['ErrNoAvailableEndpoints'], _C['before']['ErrOldCluster'], _C['before']['ErrMutuallyExclusiveCfg']
+_C['alloc_types'].update({'defaultWaitForReady': 'GoInterface', 'defaultMaxCallSendMsgSize': 'GoInterface',
+                          'defaultMaxCallRecvMsgSize': 'GoInterface', 'defaultCallOpts': 'GoSlice',
+                          'defaultBackoffJitterFraction': 'w64'})
 _C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist HdefaultCallOpts',
                  'ipersist HdefaultUnaryMaxRetries', 'ipersist HdefaultBackoffWaitBetween',
                  'ipersist HdefaultBackoffJitterFraction', 'ipersist HvalCtxCh', 'ipersist HzeroTime',
-                 'ipersist HmaxBackoff', 'ipersist HLeaseResponseChSize'] + FIN_PRE[:6] +
+                 'ipersist HmaxBackoff', 'ipersist HLeaseResponseChSize', 'ipersist Sco'] + FIN_PRE[:6] +
                 ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #',
-                 'ipureintro', 'exact ⟨RdefaultOptions, PdefaultCallOpts⟩'])
+                 'ipureintro',
+                 'refine ⟨RdefaultOptions, rfl, fun v hv => ?_⟩',
+                 'have h1 : sint.nat (W64 (0 + 1)) = 1 := rfl',
+                 'have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := rfl',
+                 'rw [h1, h2] at hv',
+                 'simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil, or_false] at hv',
+                 'rcases hv with rfl | rfl | rfl <;> exact ⟨_, _, rfl, by simp⟩'])
 
 _S = SPECIAL['go_etcd_io.etcd.server.v3.storage.schema']
 # (2026-11-19) `AllBuckets` and the compaction's two key names are translated (they were the
@@ -2725,6 +2745,96 @@ function, which the trust-boundary axiom `initFuncsOk` says returns.''',
     [('quotaBackendBytes', 'gauge')])
 
 
+# (prove-smallinits, 2026-11-20) small `opaqueInitsOk`/`initFuncsOk` lists translated: their
+# initializers are `errors.New` calls, map and slice literals, scalar literals and (txn) metric vectors.
+SPECIAL['path'] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates `ErrBadPattern` and runs
+its translated initializer, an `errors.New` call (prove-smallinits, 2026-11-20; until then the
+trust-boundary axiom `opaqueInitsOk`).'''), ['ErrBadPattern'])
+SPECIAL['github_com.xiang90.probing'] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: `ErrNotFound`, `ErrExist` (`errors.New` calls) and `α` (a float
+constant) (prove-smallinits, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''',
+    alloc_types={'«α»': 'w64'}), ['ErrNotFound', 'ErrExist'])
+_T = SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.txn']
+_T['doc'] = _T['doc'].replace("`opaqueInitsOk` states its other untranslated\ninitializers run.",
+    "Its histogram vectors `applySec` and\n`rangeSec` are translated too (`NewHistogramVec`'s spec; prove-smallinits, 2026-11-20, until then\n`opaqueInitsOk`).")
+promvec(_T, 'applySec', 'Histogram', ['version', 'op', 'success'])
+promvec(_T, 'rangeSec', 'Histogram', ['success'])
+
+def map_lit_steps(h, K, V, kt, vt, n):
+    """A map literal of `n` entries (`map[kt]vt{...}`, Lean types `K`, `V`): made (`%m<h> <h>`), then its
+    entries inserted."""
+    return ['try wp_auto',
+            f'wp_apply (wp_map_make1 (K := {K}) (V := {V}) {kt} {vt}) as %m{h} {h}',
+            'try wp_auto'] + [f'wp_apply (wp_mapInsert (K := {K}) (V := {V}) {kt}) $$ {h} as {h}', 'try wp_auto'] * n
+
+_OC = 'go_opentelemetry_io.otel.codes'
+SPECIAL[_OC] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables and runs their translated
+initializers, the map literals `codeToStr` and `strToCode` (prove-smallinits, 2026-11-20; until then
+the trust-boundary axiom `opaqueInitsOk`).''',
+    alloc_types={'codeToStr': 'Loc', 'strToCode': 'Loc'},
+    before={'codeToStr': map_lit_steps('Hcs', 'w32', 'GoString', f'{_OC}.Code.ty', 'go.string', 3),
+            'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_OC}.Code.ty', 3)},
+)
+_GC = 'google_golang_org.grpc.codes'
+SPECIAL[_GC] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `strToCode` and runs its translated initializer, a
+map literal (prove-smallinits, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and
+its untranslated `init` function (it sets `internal.CanonicalString`, another package's variable),
+which the trust-boundary axiom `initFuncsOk` says returns.''',
+    alloc_types={'strToCode': 'Loc'},
+    before={'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_GC}.Code.ty', 17)},
+)
+_FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
+SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates
+`DefaultEtcdServerFeatureGates` and runs its translated initializer, a map literal of
+`featuregate.FeatureSpec` literals (prove-smallinits, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`).''',
+    alloc_types={'DefaultEtcdServerFeatureGates': 'Loc'},
+    before={'DefaultEtcdServerFeatureGates': map_lit_steps('Hfg', 'GoString', f'{_FG}.FeatureSpec',
+        f'{_FG}.Feature.ty', f'{_FG}.FeatureSpec.ty', 10)},
+)
+_API = 'go_etcd_io.etcd.server.v3.etcdserver.api'
+SPECIAL[_API] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs the
+translated initializer of `capabilityMaps` (a map literal of map literals) and its translated `init`
+function, which sets `enabledMap` to a map literal (prove-smallinits, 2026-11-20; until then the
+trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).''',
+    alloc_types={'capabilityMaps': 'Loc', 'enabledMap': 'Loc'},
+    before={'capabilityMaps': ['try wp_auto',
+        f'wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string (go.GoType.MapType {_API}.Capability.ty go.bool)) as %mcm Hcm',
+        'try wp_auto'] + [l for k in range(9) for l in
+        [f'wp_apply (wp_map_make1 (K := GoString) (V := Bool) {_API}.Capability.ty go.bool) as %mc{k} Hc{k}', 'try wp_auto'] +
+        [f'wp_apply (wp_mapInsert (K := GoString) (V := Bool) {_API}.Capability.ty) $$ Hc{k} as Hc{k}', 'try wp_auto'] * 2 +
+        ['wp_apply (wp_mapInsert (K := GoString) (V := Loc) go.string) $$ Hcm as Hcm', 'try wp_auto']]},
+    # `enabledMap = map[Capability]bool{AuthCapability: true, V3rpcCapability: true}`
+    after={'init.«0»': [f'wp_apply (wp_map_make1 (K := GoString) (V := Bool) {_API}.Capability.ty go.bool) as %me He',
+        'try wp_auto'] + [f'wp_apply (wp_mapInsert (K := GoString) (V := Bool) {_API}.Capability.ty) $$ He as He', 'try wp_auto'] * 2},
+)
+
+# (prove-smallinits, 2026-11-20) k8s's single-item lists: a func literal, an `errors.New` call, empty
+# struct literals, an integer constant and `var _ I = &T{}` checks, translated (until then each
+# package's `opaqueInitsOk`); their facts are `True`.
+_K8S_ALLOCS = {'k8s_io.utils.clock', 'k8s_io.apimachinery.pkg.util.validation.field'}
+for _p, _what in [('k8s_io.apimachinery.pkg.conversion', '`DefaultNameFunc`, a func literal'),
+                  ('k8s_io.apimachinery.pkg.runtime.schema', '`EmptyObjectKind`, an empty struct literal'),
+                  ('k8s_io.utils.clock', 'its `var _` conversions'),
+                  ('k8s_io.apimachinery.pkg.util.validation.field', '`var _ error = &Error{}` and `omitValue`, an empty struct literal')]:
+    assert _p not in SPECIAL, _p
+    SPECIAL[_p] = dict(doc=f'''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers: {_what} (prove-smallinits, 2026-11-20; until then the trust-boundary
+axiom `opaqueInitsOk`).''', alloc_types=_ALLOC_ANY,
+        # the `&T{}` allocations
+        before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']} if _p in _K8S_ALLOCS else {})
+SPECIAL['k8s_io.apimachinery.pkg.util.errors'] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates `ErrPreconditionViolated` and
+runs its translated initializer, an `errors.New` call (prove-smallinits, 2026-11-20; until then the
+trust-boundary axiom `opaqueInitsOk`).'''), ['ErrPreconditionViolated'])
+
+
 def plain(ns):
     return ns.replace('«', '').replace('»', '')
 
@@ -3160,7 +3270,8 @@ def gen(p, cfg=None):
             for l in cfg.get('after', {}).get(x, []):
                 A('  ' + hdsub(l))
         elif kind == 'alloc':
-            A(f'  wp_apply wp_GlobalAlloc (V := {cfg.get("alloc_types", {}).get(x, "TODO")}) {x} _ as H{x}')
+            # (a quoted name, `«α»`, is no Iris hypothesis name: `Hα`)
+            A(f'  wp_apply wp_GlobalAlloc (V := {cfg.get("alloc_types", {}).get(x, "TODO")}) {x} _ as H{x.strip("«»")}')
         else:
             A(f'  -- translated initializer of {x}')
             # (2026-10-23) steps before a translated initializer too (a constant to unfold)

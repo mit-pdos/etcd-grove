@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.path
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
 public import SpecPlan.Spec.PkgInit.internal.bytealg
 
 @[expose] public section

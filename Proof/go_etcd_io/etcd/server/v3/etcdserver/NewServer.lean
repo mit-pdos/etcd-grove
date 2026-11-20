@@ -1064,6 +1064,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
   · iPkgInit
   ihave #Hget := alarmGetIs_empty hAG alst d.be $$ [$Hv3apkg $HalS]
+  ihave #HquotaBe := apply.quotaBackend_of_isBackend _ _ _ _ _ $$ HB
   wp_apply (h33 s cfg.Logger' alst bc.cl' _ _ _ _ _ _ cfg.QuotaBackendBytes'
       cfg.WarningApplyDuration' (DFrac.own 1) (alarmEmpty alst d.be) true Hbuq) $$ [be HalOn]
     as %ua ⟨be, HalOn, %up, %uopts, %Hua, %Huopts, Hulate⟩

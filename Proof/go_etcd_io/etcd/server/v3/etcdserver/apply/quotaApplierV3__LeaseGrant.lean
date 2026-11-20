@@ -48,7 +48,8 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hpre with ⟨Hm, Hres⟩
   wp_auto
   wp_apply HAvail $$ %_ %r [] as %ok %Hok
-  · ipureintro; exact Or.inr (Or.inr rfl)
+  · iunfold apply.quotaReqOk
+    iright; iright; ipureintro; rfl
   subst Hok
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ Hf Hres
   wp_apply HGrant $$ %r %rq %g %log %T %rs %U %Pre %Q %Post %info [Htt HltT HRO Hm Hres HU HUf]

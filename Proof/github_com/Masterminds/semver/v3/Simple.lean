@@ -4,7 +4,8 @@ the user 2026-10-23). Lean-first.
 
 `semverSimple s`: `MAJOR.MINOR.PATCH`, each a decimal of at most 9 digits without a leading zero,
 optionally followed by `-` and a prerelease of non-empty dot-separated identifiers of ASCII
-letters, digits and `-`, a numeric identifier without a leading zero. A subset of what
+letters, digits and `-`, a numeric identifier without a leading zero. The whole string is at most
+256 bytes (semver v3.5.0, `MaxVersionLen`). A subset of what
 Masterminds' `NewVersion` accepts (its regular expression, `v?([0-9]+)(\.[0-9]+)?(\.[0-9]+)?` then
 an optional `-` prerelease and `+` metadata, with the numbers parsed as `uint64` and a numeric
 prerelease identifier refused with a leading zero): `semverValid_simple` says so. What the stream
@@ -56,7 +57,8 @@ instance : DecidablePred identOk := fun g => by unfold identOk; infer_instance
 
 /-- **A version of the simple form.** -/
 def semverSimple (s : GoString) : Prop :=
-  (splitBy (W8 46) (s.takeWhile (· ≠ W8 45))).length = 3 ∧
+  s.length ≤ 256 ∧
+    (splitBy (W8 46) (s.takeWhile (· ≠ W8 45))).length = 3 ∧
     (∀ g ∈ splitBy (W8 46) (s.takeWhile (· ≠ W8 45)), numOk g) ∧
     (s.dropWhile (· ≠ W8 45) = [] ∨
       ∀ g ∈ splitBy (W8 46) (s.dropWhile (· ≠ W8 45)).tail, identOk g)
@@ -68,6 +70,15 @@ example : semverSimple go!"2.0.0" := by decide
 example : ¬ semverSimple go!"3.8.0-alpha..0" := by decide
 example : ¬ semverSimple go!"3.8" := by decide
 example : ¬ semverSimple go!"3.08.0" := by decide
+
+-- The longest allowed prerelease on this prefix, and its first rejected extension.
+set_option maxRecDepth 10000 in
+example : semverSimple (go!"1.2.3-" ++ List.replicate 250 (W8 97)) := by decide
+
+set_option maxRecDepth 10000 in
+example : ¬ semverSimple (go!"1.2.3-" ++ List.replicate 251 (W8 97)) := by
+  intro h
+  exact (by decide : ¬ (go!"1.2.3-" ++ List.replicate 251 (W8 97)).length ≤ 256) h.1
 
 /-- **The trust boundary**: a version of the simple form parses (`semver.NewVersion` accepts it,
 so `semver.MustParse` returns a version). -/

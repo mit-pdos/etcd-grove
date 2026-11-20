@@ -1081,6 +1081,10 @@ theorem lease.LeaseQueue.wp_Push :
     lease.LeaseQueue.Push.spec (GF := GF) (hG := hG) :=
   lease.LeaseQueue.Push.wp_proof
 
+theorem heap.wp_down :
+    heap.down.spec (GF := GF) (hG := hG) :=
+  heap.down.wp_proof
+
 theorem consistentIndex.wp_ConsistentApplyingIndex :
     consistentIndex.ConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.ConsistentApplyingIndex.wp_proof
@@ -1168,10 +1172,6 @@ theorem lease.Lease.wp_forever :
 theorem schema.wp_MustUnsafePutLease :
     schema.MustUnsafePutLease.spec (GF := GF) (hG := hG) :=
   schema.MustUnsafePutLease.wp_proof
-
-theorem heap.wp_down :
-    heap.down.spec (GF := GF) (hG := hG) :=
-  heap.down.wp_proof
 
 theorem heap.wp_up :
     heap.up.spec (GF := GF) (hG := hG) :=
@@ -2322,7 +2322,7 @@ theorem storage.wp_OpenSnapshotBackend :
 
 theorem heap.wp_Init_ :
     heap.Init_.spec (GF := GF) (hG := hG) :=
-  heap.Init_.wp_proof
+  heap.Init_.wp_proof heap.wp_down
 
 theorem lease.LeaseExpiredNotifier.wp_Init :
     lease.LeaseExpiredNotifier.Init.spec (GF := GF) (hG := hG) :=

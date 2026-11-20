@@ -6,6 +6,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__Ge
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__SetContinue
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__DeepCopyObject
 public import Spec.k8s_io.apimachinery.pkg.api.meta.ListAccessor
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListAccessorObjList
 public import Spec.reflect.DeepEqualK8s
 
 @[expose] public section
@@ -182,7 +183,7 @@ theorem Model.equalListResponse.wp_proof
     k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty := inferInstance
   haveI : k8s_io.apimachinery.pkg.api.«meta».List'.ty ≤u go.GoType.InterfaceType _ :=
     ⟨hle2.underlying_unfold.trans hle1.underlying_eq⟩
-  wp_apply (wp_LA.2 p1) as %acc %aerr %hacc
+  wp_apply (ListAccessor_objList wp_LA p1) as %acc %aerr %hacc
   obtain ⟨rfl, rfl⟩ := hacc
   wp_auto
   wp_apply (wp_GC p1 DFrac.discard _) $$ [Hl1]
@@ -197,7 +198,7 @@ theorem Model.equalListResponse.wp_proof
   wp_auto
   rw [decide_eq_false hec]
   wp_auto
-  wp_apply (wp_LA.2 p2) as %acc %aerr %hacc
+  wp_apply (ListAccessor_objList wp_LA p2) as %acc %aerr %hacc
   obtain ⟨rfl, rfl⟩ := hacc
   wp_auto
   wp_apply (wp_GC p2 DFrac.discard _) $$ [Hl2]
@@ -219,7 +220,7 @@ theorem Model.equalListResponse.wp_proof
   wp_auto
   wp_apply (wp_DC p1 DFrac.discard sl1 erv ec rp1 ei erem) $$ [] as %c ⟨-, -, -, %sl', %rp', Hc, Hci, Hcr⟩
   · iframe Hl1 Hi1 Hr1
-  wp_apply (wp_LA.2 c) as %acc %aerr %hacc
+  wp_apply (ListAccessor_objList wp_LA c) as %acc %aerr %hacc
   obtain ⟨rfl, rfl⟩ := hacc
   wp_auto
   wp_apply (wp_SC c _ oc) $$ [Hc]

@@ -377,3 +377,25 @@ unchanged; `Main*` run Kubernetes' checker; the +10 axioms; the changed trusted 
 etcd-grove-03 the same day: m4 applied (the guidance line in `etc/errorf-wrap-check.py`'s docstring, "Reviewing a
 step"); (B') for `ListAccessor` is a follow-up after landing, brief `notes/k8s-7g-listaccessor-bprime.md` (not
 started).
+
+## 13. Follow-up (B'): `meta.ListAccessor` proved (2026-11-20, branch `k8s-bprime`)
+
+Brief `notes/k8s-7g-listaccessor-bprime.md`. **APPROVED by the user, 2026-11-20, via etcd-grove-03**: Q1 (the
+restated spec, one row, proved from the body; the axiom goes) and Q2 (the pending hypothesis `typedListMeta` in
+client-go cache's Link).
+
+- Goose: the configuration of `/shared/tmp/k8s7g/goose-la.patch` (meta's `ListAccessor` with its body, metav1's
+  `ListMeta.GetResourceVersion`/`GetContinue`, the four typed lists' promoted getters).
+- `Spec/k8s_io/apimachinery/pkg/api/meta/ListAccessor.lean`, old: an axiom with two rows (a typed list `*v1.PodList`,
+  ...: itself, nil, and `listAccOk`, its two getters' triples; the driver's `*ObjList`: itself, nil). New, in
+  `Accessor.spec`'s shape: for any `ii` with `go.typeSetContains ii.ty meta.List'.ty`, `ListAccessor(ii)` returns
+  `(ii, nil)`. Proved (`Proof/.../meta/ListAccessor.lean`, the type switch's first case).
+- The three 7g callers use `k8s_correctness.ListAccessor_objList` (`correctness/ListAccessorObjList.lean`, defs:
+  `*ObjList ∈ List` by `go_type_set`), which restates the old second row from the spec.
+- `Spec/k8s_io/client_go/tools/cache/typedListMeta.lean` (not a Go function's spec; a `?` entry of
+  `etc/link-lean-first-k8scache.txt`): for each `r : Res`, `*resListTy r ∈ meta.List`, and its `GetResourceVersion`/
+  `GetContinue` read the list's metadata. Provable under core/v1's and apps/v1's `Assumptions`, which the cache's
+  Link does not take; a hypothesis `h_typedListMeta` of the cache's pending results (`ListPager.list`,
+  `Reflector.list`, ...: pending for other reasons already). Go: `examples/k8s/daemonset/apimodel/typedlistmeta_test.go`
+  `TestTypedListMeta`; `TestListAccessorObjList` kept.
+- `k8s_safe`/`k8s_robust` textually unchanged.

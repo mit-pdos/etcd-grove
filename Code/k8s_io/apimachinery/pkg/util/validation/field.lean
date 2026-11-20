@@ -110,8 +110,6 @@ opaque ErrorTypeTooShort [GooseExts] [GoGlobalContext] : val
 noncomputable def omitValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation/field.omitValue"
 
-opaque omitValue.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def isChildPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation/field.isChildPath"
 
@@ -175,17 +173,17 @@ noncomputable def NewPath [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.validation.field where
   pkgImportedPkgs := []
 
-opaque «_».init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.validation.field)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Error.ty) go.error))) (App (Val (GoInstruction (GoAlloc Error.ty))) (App (Val (GoInstruction (CompositeLiteral Error.ty))) (LiteralValue []))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral OmitValueType.ty))) (LiteralValue []))
   (App (Val doExecute)
-  (App (Val omitValue.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore OmitValueType.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr omitValue))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))))
+  (App (Val (go.GlobalAlloc omitValue OmitValueType.ty)) (Val #()))))))))
 
 opaque NormalizationRule.nonempty_type : NonemptyType.{0}
 def NormalizationRule : Type := NormalizationRule.nonempty_type.type
