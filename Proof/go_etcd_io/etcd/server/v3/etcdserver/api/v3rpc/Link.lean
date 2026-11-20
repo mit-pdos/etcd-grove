@@ -158,7 +158,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchSt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__sendLoop
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
+public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
+public import Proof.strings.HasSuffix
 public import Proof.strings.ToLower
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
@@ -231,6 +233,10 @@ theorem header.wp_fillWithoutRevision :
 theorem header.wp_fill :
     EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
+
+theorem status.wp_FromError :
+    EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.FromError.wp_proof
 
 theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
@@ -495,9 +501,13 @@ theorem LeaseServer.wp_LeaseGrant :
     EtcdGrove.v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.LeaseServer.LeaseGrant.wp_proof wp_togRPCError header.wp_fill
 
+theorem strings.wp_HasSuffix :
+    EtcdGrove.strings.HasSuffix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strings.HasSuffix.wp_proof
+
 theorem wp_isClientCtxErr :
     EtcdGrove.v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.isClientCtxErr.wp_proof
+  EtcdGrove.v3rpc.isClientCtxErr.wp_proof status.wp_FromError strings.wp_HasSuffix
 
 theorem LeaseServer.wp_leaseKeepAlive :
     EtcdGrove.v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) :=
