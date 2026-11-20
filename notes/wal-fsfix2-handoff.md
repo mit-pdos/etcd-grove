@@ -1,6 +1,31 @@
 # wal-fsfix2 handoff
 
-## START HERE (2026-11-20 a6) — STOP: the lock calls in `cut` cannot be witnessed; a5 below otherwise current
+## START HERE (2026-11-20 a7) — item 2, step (1) mostly done; next: Preallocate, pipeline, cut
+
+- Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`). lean NOT merged (now 951d520138; merge before the full build, seed
+  nothing). `WAL__cut.lean` and the WAL `Link` still do not build (expected until step 3); all else targeted-built.
+- **Option (A) approved by the user and done** (b744596bd8, trusted text, ledger third 2026-11-20 entry): `LockStep`
+  takes the call (`self`) and a wait outcome (blocking request in conflict steps to itself); `ErrnoZero "OfdLock"`,
+  `MapLockOk "Flock"` count the wait; `locks_blocking.go`/`doc.go`; lock calls no longer `FsRetOp`. Attack: no
+  refutation (questions.md a6); its text gaps fixed. Go test for the user on C:
+  `examples/osfs/semantics/run-models-on-c.sh -run 'TestLocksBlocking'` (not run by us).
+- **Witnesses done** (questions.md "a6 forms"): OFD/flock lock calls (`wp_osOfdLockW`, `wp_osFlockW`,
+  `NoMapLockErrSpecs.lean`), `FcntlFlock.wp_lock`, `Flock.spec`, `fileutil.lockPostW` (LockFile.spec,
+  createNewWALFile.specLocked), shared opens (`wp_osOpenFileSW`, `NoErrSpecsTrunc.lean`: `wp_osOpenCreateSW`,
+  `wp_osOpenTruncSW`), `os.OpenFile.wp_fileS`, `wp_truncS`, `specCreateTruncS(nc)`, `walOpen_tripleW`,
+  `PipeLemmas.wp_createTmp` (error arm `tmpClaim ∗ ⌜¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝`).
+  Witness form throughout: `W p := ¬ (FsNoErrOn (· = p) ∧ PathFits p)` (implies `¬ FsNoErrIno`'s refutation too).
+- **Next, in order:** (1) `fileutil.Preallocate.spec` witness (over `FallocateAu`'s finish fact); `filePipeline.alloc`
+  error arm with the witness (now dropped with `-` at `filePipeline__alloc.lean:83`). (2) pipeline: `pipeErrP`,
+  `run.spec`/`Open.spec` error arms `¬ (DirFits dir ∧ FsNoErrOn (fun p => ∃ b, p = child dir b))`. (3) restate
+  `cut.spec` (decided ONE-spec form, questions.md), delete `cut.specNoErr`/`walCov_cut`/`WAL__cutNoErr.lean`; rework
+  `WAL__cut.lean`: step 8 via `walOpen_tripleW` + `LockFile.spec`'s `lockPostW`; errors refuted by
+  `Fs.fsNoErrOn_of Sio` (`[FsStepSat (NoMapLockErr Sio)]` + premises). (4) Save/SaveSnapshot/storage/gen-link; item 3.
+- Lean tips: `by tac` inside `⟨…⟩` swallows the comma: `(by …)`; no Mathlib (`swap`/`pick_goal`: use `rotate_left`);
+  bare `isplitr` sends every hypothesis RIGHT, bare `isplitl` LEFT.
+
+## START HERE (2026-11-20 a6, superseded) — STOP: the lock calls in `cut` cannot be witnessed; a5 below otherwise current
 
 - Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`). No Lean changed since a5 (0469050f3a); `WAL__cut.lean` and the WAL

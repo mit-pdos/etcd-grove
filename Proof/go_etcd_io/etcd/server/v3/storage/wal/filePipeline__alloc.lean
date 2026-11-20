@@ -80,7 +80,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   (try wp_auto)
   wp_apply wp_createTmp wp_create wp_open R dir dq j (pipeTmp n) (pipeTmp_nameOk n)
     $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hc] as %lf %e ⟨Hp, Hperm, Hr⟩
-  icases Hr with (⟨%he, %f, %fd, %i, %h, %lo, %lk, #Hlf, Hf, Hoff, Hfd, Hlks, Htr, Hn, %hfi⟩ | ⟨%he, Hc⟩)
+  icases Hr with (⟨%he, %f, %fd, %i, %h, %lo, %lk, #Hlf, Hf, Hoff, Hfd, Hlks, Htr, Hn, %hfi⟩ | ⟨%he, Hc, -⟩)
   · subst he
     (try wp_auto)
     iunfold fileutil.lockedFile at Hlf
