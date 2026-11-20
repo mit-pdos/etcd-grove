@@ -495,7 +495,10 @@ in its place, so `bootOk`'s members are the contexts' decodings only for valid n
 over 255; the examples' `memberDataDir name` with a name of at most 200 bytes,
 `dirFits_memberDataDir`), so every path `bootstrap` and the server make below it fits (`PathFits`),
 which the no-error premise needs (`NoIoErr` covers only paths that fit, the user's A1 decision): a
-longer one fails on Linux with `ENAMETOOLONG`. -/
+longer one fails on Linux with `ENAMETOOLONG`. (wal-fsfix2, 2026-11-20) In particular the `PathFits`
+conjuncts of `bootOk`'s claims on the backend's file (`Hpath`) and the snapshot files (`Hsfree`)
+follow from it (`config.pathFits_backendPathOf`, `config.pathFits_snapDir_child`: `config.snapDirOf`
+is Go's `filepath.Join(d, "member", "snap")`), not asserted beyond this precondition. -/
 def bootCfgFresh (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) : Prop :=
   cfg.NewCluster' = true ∧ cfg.DiscoveryCfg'.ConfigSpec'.Endpoints'.len = W64 0 ∧
     (∀ k, (U.initMap.lookup k).isSome → utf8Valid k) ∧ Fs.DirFits cfg.DataDir'
