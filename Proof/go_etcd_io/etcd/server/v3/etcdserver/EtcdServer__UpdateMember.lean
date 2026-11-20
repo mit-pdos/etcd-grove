@@ -44,7 +44,7 @@ theorem EtcdServer.UpdateMember.wp_proof
   icases Hsl with ⟨Hps, Hcs⟩
   wp_apply (hMarshal memb dp dc ps cs) $$ [$Hps $Hcs] as %bsl %b ⟨Hps, Hcs, Hb⟩
   (try wp_auto)
-  wp_apply (hChk s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
+  wp_apply (hChk s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC, #Hvar⟩
   · iframe #
   ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout

@@ -39,7 +39,7 @@ theorem EtcdServer.promoteMember.wp_proof
   iunfold mayPromoteOk at Hmay
   iunfold configureCcOk at Hconf
   (try wp_auto)
-  wp_apply (hChk s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
+  wp_apply (hChk s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC, #Hvar⟩
   · iframe #
   ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout
@@ -54,7 +54,7 @@ theorem EtcdServer.promoteMember.wp_proof
     isplitr
     · ipureintro; intro h; cases h
     ileft
-    iframe HPm Herr
+    iframe HPm Herr Hvar
     iunfold adminOutC at HoutC
     icases HoutC with ⟨-, #Hw⟩
     iapply Hw; intro h; cases h

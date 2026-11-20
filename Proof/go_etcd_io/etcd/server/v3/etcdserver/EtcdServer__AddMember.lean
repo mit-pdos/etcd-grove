@@ -39,7 +39,7 @@ theorem EtcdServer.AddMember.wp_proof
   iunfold mayAddOk at Hmay
   iunfold configureCcOk at Hconf
   (try wp_auto)
-  wp_apply (hChk s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
+  wp_apply (hChk s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC, #Hvar⟩
   · iframe #
   ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout

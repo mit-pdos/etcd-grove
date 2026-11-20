@@ -36,7 +36,8 @@ and `configure(ctx, &cc)` with the add-node change (`ConfChangeAddNode`, 0) of `
 bytes; the two callees are names only, taken as contracts (`MemberContracts.lean`): `mayPromoteOk`
 over the caller's `Pm`, answering `Qm`; `configureCcOk` with the token `adminRes` of the request's
 auth info and the check's passing `Qm nil`, over the caller's `Pin`, answering `Qin`. The result is
-`configure`'s, or an error with `Pin` kept (the guard's error, `applyErrIs`, refused for the admin
+`configure`'s, or an error with `Pin` kept (the guard's error, `applyErrIs` and one of the auth
+package's error variables, `authErrVarIs` (auth-mediation M2, 2026-11-20), refused for the admin
 class's reason `adminWhy` relative to the caller's lower bound `n` of the auth store's published
 index, with `Pm` kept; or the check's `Qm err`, after a passing guard: the token for some auth
 info). -/
@@ -52,7 +53,7 @@ abbrev EtcdServer.promoteMember.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); E.RD ∗
       (Qin sl err ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Pin ∗
-        ((applyErrIs err ∗ adminWhy s E.authMode n tok err ∗ Pm) ∨
+        ((applyErrIs err ∗ authErrVarIs err ∗ adminWhy s E.authMode n tok err ∗ Pm) ∨
          ((∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo, adminRes E.authMode ai) ∗
           Qm err)))) }}
 

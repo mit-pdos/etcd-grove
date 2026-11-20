@@ -36,7 +36,7 @@ theorem EtcdServer.RemoveMember.wp_proof
   iunfold mayRemoveOk at Hmay
   iunfold configureRemoveOk at Hconf
   (try wp_auto)
-  wp_apply (hChk s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
+  wp_apply (hChk s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC, #Hvar⟩
   · iframe #
   ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout

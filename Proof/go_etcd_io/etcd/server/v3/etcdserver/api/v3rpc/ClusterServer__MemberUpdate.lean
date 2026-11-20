@@ -59,7 +59,7 @@ theorem v3rpc.ClusterServer.MemberUpdate.wp_proof
   icases Hsls with ⟨Hps, -⟩
   icases Hout with (HQ | ⟨%Hne, HPin, #Hae, #Hw⟩)
   · iunfold memCfgAns at HQ
-    icases HQ with ⟨HQ, (⟨%Hen, %ms, Hms⟩ | ⟨%Hen, #Hae⟩)⟩
+    icases HQ with ⟨HQ, (⟨%Hen, %ms, Hms⟩ | ⟨%Hen, #Hae, -⟩)⟩
     · subst Hen
       (try wp_auto)
       wp_apply (hHdr p s cl) $$ [] as %h -

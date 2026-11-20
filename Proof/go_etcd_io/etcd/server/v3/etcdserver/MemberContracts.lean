@@ -11,6 +11,9 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ErrMsg
+public import Proof.unicode.utf8.Valid
 
 @[expose] public section
 
@@ -89,17 +92,63 @@ def addChangeType (learner : Bool) : go_etcd_io.raft.v3.raftpb.ConfChangeType :=
   if learner then W32 3 else W32 0
 
 /-- **A strict reconfiguration check's answer, as the gRPC handlers need it**: the caller's `Qm`,
-and an error `errors.Is` and `togRPCError` can take (`applyErrIs`) unless `nil`. -/
+and unless `nil` an error `errors.Is` and `togRPCError` can take (`applyErrIs`) whose `Error()`
+returns valid UTF-8 (`PromoteMember` labels a metric with it, which panics otherwise). -/
 def memChkAns (Qm : GoInterface → IProp GF) (err : GoInterface) : IProp GF :=
-  iprop(Qm err ∗ (⌜err = GoInterface.nil⌝ ∨ applyErrIs err))
+  iprop(Qm err ∗ (⌜err = GoInterface.nil⌝ ∨
+    (applyErrIs err ∗ v3rpc.errMsgP err utf8Valid)))
 
 /-- **`configure`'s answer, as the gRPC handlers need it**: the caller's `Qin`, and on `nil` the
 members it returns (`membership.membersAt`: `membersToProtoMembers` reads them), on an error one
-`togRPCError` can take (`applyErrIs`). -/
+`togRPCError` can take (`applyErrIs`) whose `Error()` returns valid UTF-8 (as `memChkAns`). -/
 def memCfgAns (Qin : GoSlice → GoInterface → IProp GF) (sl : GoSlice) (err : GoInterface) :
     IProp GF :=
   iprop(Qin sl err ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ ms : List Loc, membership.membersAt sl ms) ∨
-    (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))
+    (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ v3rpc.errMsgP err utf8Valid)))
+
+/-- **`promoteMemberHTTP(ctx, url, id, rt)`** (names only: the forwarding of a promotion to the
+leader's peer URL `url`, over the server's peer round tripper `rt`), any context, any URL, any
+number of times: answering the caller's `Qfw` and an error `errors.Is` and `togRPCError` can take
+(`applyErrIs`). The leader re-checks the forwarded request's admin permission with its token (the
+peer handler, `etcdhttp/peer.go`, is not translated): that check is the caller's `Qfw`. -/
+def promoteHTTPOk (id : w64) (Qfw : GoSlice → GoInterface → IProp GF) : IProp GF :=
+  iprop(□ ∀ (cctx : GoInterfaceOk) (url : GoString) (rt : GoInterface),
+    {{ True }}
+      (App (App (App (App (Val (@! promoteMemberHTTP)) (Val #(GoInterface.ok cctx))) (Val #url))
+        (Val #id)) (Val #rt))
+    {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); Qfw sl err ∗ applyErrIs err }})
+
+instance promoteHTTPOk_persistent (id : w64) (Qfw : GoSlice → GoInterface → IProp GF) :
+    Persistent (promoteHTTPOk id Qfw) := by
+  unfold promoteHTTPOk; infer_instance
+
+/-- The auth package's messages are valid UTF-8. -/
+theorem authErrTexts_utf8 : ∀ m ∈ go_etcd_io.etcd.server.v3.auth.authErrTexts,
+    utf8Valid m := by
+  decide
+
+open Iris.ProofMode in
+/-- **An auth error variable's message is valid UTF-8**: its `Error()` (an `*errorString`'s,
+`authErrVarIs_cell`) returns one of the auth package's messages. -/
+theorem errMsgP_of_authErrVarIs [_root_.Perennial.errors.Assumptions] (err : GoInterface)
+    (hne : err ≠ GoInterface.nil) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ⊢ authErrVarIs err -∗
+      v3rpc.errMsgP err utf8Valid := by
+  iintro #Hpa #Ha
+  ihave ⟨%x, %m, ⟨%Hx, %Hm⟩, #Hcell⟩ := authErrVarIs_cell err hne $$ Hpa Ha
+  subst Hx
+  iunfold v3rpc.errMsgP
+  iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+  isplitr
+  · ipureintro; rfl
+  iunfold EtcdGrove.errStrCell at Hcell
+  iintro %Φ !> - HΦ
+  rw [method_unfold]
+  wp_auto
+  iapply HΦ
+  ipureintro
+  apply authErrTexts_utf8
+  rw [← go_etcd_io.etcd.server.v3.auth.authErrMsgs_snd]; exact Hm
 
 end defs
 

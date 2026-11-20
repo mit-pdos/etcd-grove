@@ -53,7 +53,7 @@ theorem v3rpc.ClusterServer.MemberRemove.wp_proof
   (try wp_auto)
   icases Hout with (HQ | ⟨%Hne, HPin, (⟨#Hae, #Hw, HPm⟩ | HQm)⟩)
   · iunfold memCfgAns at HQ
-    icases HQ with ⟨HQ, (⟨%Hen, %ms, Hms⟩ | ⟨%Hen, #Hae⟩)⟩
+    icases HQ with ⟨HQ, (⟨%Hen, %ms, Hms⟩ | ⟨%Hen, #Hae, -⟩)⟩
     · subst Hen
       (try wp_auto)
       wp_apply (hHdr p s cl) $$ [] as %h -
@@ -116,7 +116,7 @@ theorem v3rpc.ClusterServer.MemberRemove.wp_proof
       iframe Hw HPm
     · exact absurd rfl Hne
   · iunfold memChkAns at HQm
-    icases HQm with ⟨HQm, (%Hen | #Hae)⟩
+    icases HQm with ⟨HQm, (%Hen | ⟨#Hae, -⟩)⟩
     · exact absurd Hen Hne
     rcases err with ei | _
     · (try wp_auto)
