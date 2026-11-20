@@ -101,7 +101,7 @@ theorem value.ListEqualsUsing.wp_proofBody
       refine ⟨by omega, by omega, by simp⟩
     wp_for HI
     wp_apply HN1 $$ %xs %n [Hr1] as %b1 ⟨Hr1, %Hb1⟩
-    · iexact Hr1
+    · iframe; ipureintro; exact Hn.2.1
     cases b1
     · wp_auto
       cleanup_bool_decide
@@ -121,7 +121,7 @@ theorem value.ListEqualsUsing.wp_proofBody
       exact hx
     · wp_auto
       wp_apply HN2 $$ %ys %n [Hr2] as %b2 ⟨Hr2, %Hb2⟩
-      · iexact Hr2
+      · iframe; ipureintro; have := Hn.2.1; omega
       have hb2 : b2 = true := by subst Hb2; simp at Hb1 ⊢; omega
       subst hb2
       cleanup_bool_decide

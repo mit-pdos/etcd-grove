@@ -352,7 +352,7 @@ def listIfaceM (i : GoInterfaceOk) : IProp GF :=
 gives the range back. Persistent. -/
 def rangeIfaceM (i : GoInterfaceOk) : IProp GF :=
   iprop(
-    (∀ vs (n : Int), {{ ownRange (.ok i) vs n }} (App (Val #(methods i.ty go!"Next" i.v)) (Val #()))
+    (∀ vs (n : Int), {{ ownRange (.ok i) vs n ∗ ⌜n < vs.length⌝ }} (App (Val #(methods i.ty go!"Next" i.v)) (Val #()))
       {{ (b : Bool), RET #b; ownRange (.ok i) vs (n + 1) ∗ ⌜b = decide (n + 1 < vs.length)⌝ }}) ∗
     (∀ vs (n : Int) x, {{ ownRange (.ok i) vs n ∗ ⌜0 ≤ n ∧ vs[n.toNat]? = some x⌝ }}
       (App (Val #(methods i.ty go!"Item" i.v)) (Val #()))

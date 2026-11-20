@@ -52,7 +52,7 @@ theorem value.ListCompareUsing.wp_proofBody
   iintro #IH
   iunfold value.ListCompareUsing.specI
   iintro %al %l %r %xs %ys
-  wp_start as ⟨Ha, #Hl, #Hr⟩
+  wp_start as ⟨Ha, #Hl, #Hr, %Hok⟩
   iunfold value.CompareUsingRec.specI at IH
   icases IH with ⟨#HC, -, -⟩
   iunfold value.CompareUsing.specI at HC
@@ -96,9 +96,9 @@ theorem value.ListCompareUsing.wp_proofBody
     refine ⟨by omega, by omega, by omega, by simp⟩
   wp_for HI
   wp_apply HN1 $$ %xs %n [Hr1] as %b1 ⟨Hr1, %Hb1⟩
-  · iexact Hr1
+  · iframe; ipureintro; exact Hn.2.1
   wp_apply HN2 $$ %ys %n [Hr2] as %b2 ⟨Hr2, %Hb2⟩
-  · iexact Hr2
+  · iframe; ipureintro; exact Hn.2.2.1
   have hd1 : ∀ m : Int, -1 ≤ m → ¬ (m < xs.length) → List.drop m.toNat xs = [] := by
     intro m hm h; apply List.drop_eq_nil_of_le; omega
   have hd2 : ∀ m : Int, -1 ≤ m → ¬ (m < ys.length) → List.drop m.toNat ys = [] := by
@@ -153,7 +153,9 @@ theorem value.ListCompareUsing.wp_proofBody
     · iframe; ipureintro; exact ⟨by omega, Hy_lookup⟩
     wp_apply HC $$ %(GoInterface.ok ia) %lv %rv %(DFrac.own 1) %(DFrac.own 1) %x %y [Ha Hlv Hrv]
       as %c ⟨Ha, Hlv, Hrv, %Hc⟩
-    · iframe
+    · iframe; ipureintro
+      exact ⟨ValueCmp.mapLensOkL_mem (List.mem_of_getElem? Hx_lookup) (by simpa [UVal.mapLensOk] using Hok.1),
+        ValueCmp.mapLensOkL_mem (List.mem_of_getElem? Hy_lookup) (by simpa [UVal.mapLensOk] using Hok.2)⟩
     ispecialize Hback1 $$ Hlv
     ispecialize Hback2 $$ Hrv
     have ex : xs.drop (n + 1).toNat = x :: xs.drop ((n + 1).toNat + 1) := by

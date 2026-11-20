@@ -202,7 +202,7 @@ theorem ownRange_dispatch
     iunfold rangeIfaceM
     imodintro
     isplitr
-    · iintro %vs' %n' %Φ !> Hr HΦ
+    · iintro %vs' %n' %Φ !> ⟨Hr, %_⟩ HΦ
       iapply hNE q vs' n' $$ [Hr] [HΦ]
       · iframe; iexact Hpkg
       · iexact HΦ
@@ -217,9 +217,11 @@ theorem ownRange_dispatch
     iunfold rangeIfaceM
     imodintro
     isplitr
-    · iintro %vs' %n' %Φ !> Hr HΦ
+    · iintro %vs' %n' %Φ !> ⟨Hr, %Hlt⟩ HΦ
       iapply hNL q vs' n' $$ [Hr] [HΦ]
-      · iframe; iexact Hpkg
+      · iframe; isplitr
+        · iexact Hpkg
+        · ipureintro; exact Hlt
       · iexact HΦ
     · iintro %vs' %n' %x %Φ !> Hr HΦ
       iapply hIL q vs' n' x $$ [Hr] [HΦ]

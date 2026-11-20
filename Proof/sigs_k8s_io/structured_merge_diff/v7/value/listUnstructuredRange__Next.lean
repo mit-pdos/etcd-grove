@@ -1,7 +1,6 @@
 /-
-`value.listUnstructuredRange.Next`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Its callees' specs (and the interface bundles' laws, `Objects.lean`) are its
-hypotheses. Lean-first (2026-11-19), Draft.
+`value.listUnstructuredRange.Next`: proved (Prove step, notes/smd-plan.md), over the premise
+`n < vs.length` (post-freeze change B2c): the cursor's increment then stays below `2^63`.
 -/
 module
 
@@ -32,7 +31,7 @@ variable [package_sem : value.Assumptions]
 
 theorem value.listUnstructuredRange.Next.wp_proof :
     value.listUnstructuredRange.Next.spec (GF := GF) := fun q vs n => by
-  wp_start as Hr
+  wp_start as ⟨Hr, %Hnlt⟩
   iunfold ownRange at Hr
   icases Hr with (⟨%q', %h⟩ | ⟨%q', %sl, %w, %iw, %h, Hq, #Hli, Hw⟩)
   · exfalso; simp at h; exact emptyRange_ne_listUnstructuredRange h.1.1.symm
@@ -44,7 +43,6 @@ theorem value.listUnstructuredRange.Next.wp_proof :
   ihave %Hlen := isIfaceL_length $$ HL
   ihave %Hsl := ownSlice_len $$ Hs
   wp_auto
-  -- the cursor's increment overflows only after 2^63 calls (`notes`: the spec's missing premise)
   by_cases hov : iw.toInt + 1 < 2 ^ 63
   · iapply HΦ
     isplitl
@@ -54,7 +52,10 @@ theorem value.listUnstructuredRange.Next.wp_proof :
     · ipureintro
       simp only [decide_eq_decide]
       constructor <;> intro h <;> word
-  · sorry
+  · exfalso
+    have := BitVec.toInt_lt (x := sl.len)
+    simp only [sint.nat, sint.Z] at Hsl
+    omega
 
 end proof
 

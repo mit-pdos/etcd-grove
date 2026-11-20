@@ -29,10 +29,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. The premise `n < vs.length` (post-freeze change B2c, 2026-11-20): `Next` is
+called only while the cursor is before the end, so the cursor's increment does not overflow. -/
 abbrev value.listUnstructuredRange.Next.spec : Prop :=
   ∀ (q : Loc) (vs : List UVal) (n : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ ownRange (interface.mkOk (go.GoType.PointerType value.listUnstructuredRange.ty) #q) vs n }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ ownRange (interface.mkOk (go.GoType.PointerType value.listUnstructuredRange.ty) #q) vs n ∗ ⌜n < vs.length⌝ }}
     (App (Val (q @!! (go.GoType.PointerType value.listUnstructuredRange.ty) @!! go!"Next")) (Val #()))
   {{ (b : Bool), RET #b; ownRange (interface.mkOk (go.GoType.PointerType value.listUnstructuredRange.ty) #q) vs (n + 1) ∗ ⌜b = decide (n + 1 < vs.length)⌝ }}
 
