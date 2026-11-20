@@ -434,7 +434,10 @@ def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
     □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
       isLeader γ st.msg.To' st.msg.Term') ∗
     -- (restart S7.3, 2026-11-14) a `MsgSnap` not to its sender (`send`'s panic)
-    ⌜SnapNotSelf id st⌝)
+    ⌜SnapNotSelf id st⌝ ∗
+    -- (auth-lease S4, 2026-11-16) none in the cluster's no-snapshot mode (`RaftNames.reNoSnap`;
+    -- the sender's outbox holds none there, `LogNsOk`, `NsLink`)
+    ⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝)
 
 instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ id st) := by
@@ -468,7 +471,7 @@ abstraction of a `MsgSnap` is `absSnap`, whose destination is the message's `To`
 theorem isRaftMsg_snapTo (γ : RaftNames) (id : w64) (st : MsgSt) :
     isRaftMsg (GF := GF) γ id st ⊢ snapToOk γ id st := by
   unfold isRaftMsg snapToOk
-  iintro ⟨-, ⟨%a, %Ha, #Hx⟩, -, -, -, %Hns⟩
+  iintro ⟨-, ⟨%a, %Ha, #Hx⟩, -, -, -, %Hns, -⟩
   iintro !> %Hty
   isplitr
   · ipureintro; exact Hns Hty

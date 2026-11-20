@@ -45,7 +45,8 @@ theorem backend.reader_RUnlock (hRU : backend.readTx.RUnlock.spec) (γ : backend
 
 theorem backend.newPostK_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoPset) (γ :
     backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames → IProp GF) (b : Loc) (D :
-    backend.Data) : backend.newPostK γ P W Pk K b D ⊢ |={E}=> backend.newPostKP γ P W Pk K b D
+    backend.Data) : backend.newPostK γ P W Pk K b D ⊢ |={E}=> backend.newPostKP γ P W Pk K b D ∗
+    backend.rbClaimToks γ P fun x => True
 
 theorem backend.rdStockN_val : backend.rdStockN = 536870783
 

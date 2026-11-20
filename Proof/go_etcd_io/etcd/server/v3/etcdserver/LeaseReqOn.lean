@@ -43,6 +43,20 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 theorem irrLeaseGrant_kind (id ttl : w64) : apply.dispatchKind (irrLeaseGrant id ttl) = .leaseGrant := by
   simp [apply.dispatchKind, irrLeaseGrant, apply.irrEmpty]
 
+/-- **A revocable-mode grant's write grant tells its update the id is fresh** (auth-lease S4, the
+thaw of 2026-11-18): no key had the lease `id` at any revision up to the state `σ` it fires at. -/
+theorem writeGrantG_grant_fresh (γk : KVNames) (st₀ : auth.AuthState) (Gb : apply.HeaderModel → IProp GF)
+    (id ttl : w64) (L₀ : List EntryModel) (σ : KVState) (hrev : γk.lm = .revocable) :
+    writeGrantG (GF := GF) γk st₀ Gb (irrLeaseGrant id ttl) L₀ σ ⊢
+      ⌜∀ r ≤ σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ W64 0 → kv.lease ≠ id⌝ := by
+  unfold writeGrantG
+  iintro ⟨%hm, %L, -, -, %Hp⟩
+  ipureintro
+  refine Hp.2.2.2 id ?_
+  unfold rqRevGrantId
+  simp only [hrev, irrLeaseGrant_kind, and_self, ↓reduceIte]
+  rfl
+
 theorem irrLeaseRevoke_kind (id : w64) : apply.dispatchKind (irrLeaseRevoke id) = .leaseRevoke := by
   simp [apply.dispatchKind, irrLeaseRevoke, apply.irrEmpty]
 

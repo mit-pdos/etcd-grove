@@ -168,6 +168,8 @@ axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.MarshalPb.wp_proof
+axiom proto.MarshalRole.wp_proof
+axiom proto.MarshalUser.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.SizeMessage.wp_proof
 axiom proto.SizePb.wp_proof
@@ -202,10 +204,7 @@ axiom semver.Version.Major.wp_proof
 axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
-axiom snap.Message.CloseNotify.wp_proof
-axiom snap.Message.CloseWithError.wp_proof
 axiom snap.Message.GetTo.wp_proof
-axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof

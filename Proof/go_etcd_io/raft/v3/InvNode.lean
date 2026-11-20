@@ -217,6 +217,20 @@ theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64
 /-- The length of the bootstrap log the cluster was started from (sealed). -/
 @[no_expose] def Cluster.bootLen (γ : Cluster) : Nat := γ.raft.reBoot.length
 
+/-- (auth-lease S4, 2026-11-16; D21 M3 revived as a per-cluster choice, L-r0) **The cluster is in
+raft's no-snapshot mode** (pure, sealed): chosen at allocation (`cluster_alloc_ns`), only for a
+cluster with a bootstrap log (`clusterNoSnap_boot`). In it no node sends a `MsgSnap`
+(`sentMsg_mode`) nor hands one out to install (`readySnap_mode`), and its storages are never
+compacted past index `1` (`storBnd`'s clause, the client's promise). -/
+@[no_expose] def clusterNoSnap (γ : Cluster) : Prop := γ.raft.reNoSnap = true
+
+/-- (L-r1) The mode only with a bootstrap log. -/
+theorem clusterNoSnap_boot (γ : Cluster) (h : clusterNoSnap γ) : 0 < γ.bootLen := by
+  unfold clusterNoSnap at h
+  unfold Cluster.bootLen
+  have := RaftNames.noSnap_boot h
+  exact List.length_pos_iff.mpr this
+
 /-- **The indices raft hands out fit `MemoryStorage.Append`'s bound** (persistent; 2026-10-27, the
 server port's addition): the receipts' bound past the bootstrap log is at most `2 ^ 61`. Every
 index raft hands out is within its log, whose last index has a record keeping a time receipt
@@ -685,7 +699,10 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       nodeSnapLocal γ id l.snap.Metadata'.Index' ∗
       -- (2026-11-01, J8b) past the bootstrap log (`Cluster.bootLen`): `restore` takes only an index
       -- above the commit index, which starts at the bootstrap log's length
-      ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝)
+      ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗
+      -- (auth-lease S4, 2026-11-16, L-r3) outside the cluster's no-snapshot mode (the `MsgSnap` it
+      -- was stepped was sent outside it, `isRaftMsg`)
+      ⌜¬ clusterNoSnap γ⌝)
 
 /-! ## The objects a `Ready` hands out (raft-entsize §2, 2026-11-09) -/
 
@@ -917,9 +934,32 @@ theorem readySnap_bootLen (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
       ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗ readySnap γ N id rd st ce es (some l) := by
   refine (persistent_entails_left ?_).trans sep_comm.1
   unfold readySnap
-  iintro ⟨-, -, -, -, -, -, -, -, %H⟩
+  iintro ⟨-, -, -, -, -, -, -, -, %H, -⟩
   ipureintro
   exact H
+
+/-- (auth-lease S4, 2026-11-16, L-r3) **A snapshot `Ready` only outside the no-snapshot mode**
+(`readySnap`'s mode fact). -/
+theorem readySnap_mode (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) :
+    readySnap (GF := GF) γ N id rd st ce es (some l) ⊢
+      ⌜¬ clusterNoSnap γ⌝ ∗ readySnap γ N id rd st ce es (some l) := by
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readySnap
+  iintro ⟨-, -, -, -, -, -, -, -, -, %H⟩
+  ipureintro; exact H
+
+/-- (auth-lease S4, 2026-11-16, L-r4) **No `MsgSnap` is sent in the no-snapshot mode** (`isRaftMsg`'s
+clause: the sender's outbox holds none there). -/
+theorem sentMsg_mode (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢ ⌜clusterNoSnap γ → st.msg.Type' ≠ MsgSnap⌝ := by
+  unfold sentMsg clusterNoSnap
+  iintro Hs
+  iunfold ApiImpl.sentMsg at Hs
+  icases Hs with ⟨-, Hr, -⟩
+  iunfold isRaftMsg at Hr
+  icases Hr with ⟨-, -, -, -, -, -, %H⟩
+  ipureintro; exact H
 
 /-- (raft-final phase 2, for kvreconf) **A `Ready`'s entries have consecutive indices** (pure):
 from its first index on (`LogIndicesOk` after a snapshot; `readySnap`'s clause otherwise). -/

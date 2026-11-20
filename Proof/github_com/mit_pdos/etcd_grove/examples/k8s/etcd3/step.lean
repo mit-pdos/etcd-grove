@@ -35,15 +35,36 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 set_option hygiene false in
-/-- `step` returns `nil` (`stepL g x y = []`, proved by `h`). -/
+/-- `step` returns `nil` (`stepL g x (plainOut y) = []`, proved by `h`). -/
 local macro "step_nil" h:term : tactic => `(tactic| (
-  rw [show stepL g x y = [] from $h]
+  rw [show stepL g x (plainOut y) = [] from $h]
   ihave Hn := ownSlice_nil (V := mcfg) (GF := GF) (DFrac.own 1)
   iapply HΦ
   isplitl [Hn]
   · iexact Hn
   · iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2
     iempintro))
+
+/-- The model's outputs are plain (their `Raw` zero). -/
+theorem mlistL_plain (x : Input) (h : HSt) : plainOut (mlistL x h) = mlistL x h := by
+  apply plainOut_of_raw
+  unfold mlistL listOutL
+  repeat' split
+  all_goals (try simp only [apply_ite (f := Output.Raw')])
+  all_goals (repeat' split)
+  all_goals rfl
+
+theorem mstepL_plain (x : Input) (st : GSt) : plainOut (mstepL x st).2 = (mstepL x st).2 := by
+  apply plainOut_of_raw
+  unfold mstepL mcreateL mdeleteL mupdateL mgetL
+  repeat' split
+  all_goals (try simp only [apply_ite (f := Output.Raw'), ite_self])
+  all_goals (repeat' split)
+  all_goals rfl
+
+/-- A watch's check ignores `Raw`. -/
+theorem watchOkL_plainOut (x : Input) (y : Output) (h : HSt) :
+    watchOkL x (plainOut y) h = watchOkL x y h := rfl
 
 theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
     (wp_mstep : mstep.spec (GF := GF) (hG := hG))
@@ -68,7 +89,7 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
     wp_apply wp_watchOk x y c g hrv hmin $$ [$Hc]
     cases hq : watchOkL x y g.st
     · try wp_auto
-      step_nil (by rw [stepL, if_pos hW, hq]; rfl)
+      step_nil (by rw [stepL, if_pos hW, watchOkL_plainOut, hq]; rfl)
     · try wp_auto
       wp_apply wp_slice_literal (l := [c])
       isplitr
@@ -76,7 +97,7 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
       iintro %lsl ⟨Hl1, _⟩
       wp_auto
       iapply HΦ
-      rw [show stepL g x y = [g] by rw [stepL, if_pos hW, hq]; rfl]
+      rw [show stepL g x (plainOut y) = [g] by rw [stepL, if_pos hW, watchOkL_plainOut, hq]; rfl]
       iframe
       iapply (BigSepL2.bigSepL2_singleton (PROP := IProp GF)).2
       iexact Hc
@@ -92,7 +113,8 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
       try wp_auto
       wp_apply wp_mlist x c g $$ [$Hc]
       wp_apply wp_outEqual y (mlistL x g.st)
-      cases hq : decide (y = mlistL x g.st)
+      rw [mlistL_plain]
+      cases hq : decide (plainOut y = mlistL x g.st)
       · try wp_auto
         step_nil (by
           rw [stepL, if_neg hW, ite_cond_eq_false _ _ (eq_false hE), hks,
@@ -104,7 +126,7 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
         iintro %lsl ⟨Hl1, _⟩
         wp_auto
         iapply HΦ
-        rw [show stepL g x y = [g] by
+        rw [show stepL g x (plainOut y) = [g] by
           rw [stepL, if_neg hW, ite_cond_eq_false _ _ (eq_false hE), hks,
             ite_cond_eq_true _ _ (eq_true (of_decide_eq_true hq))]]
         iframe
@@ -119,7 +141,8 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
       · ipureintro; exact Hb.1
       subst Ho
       wp_apply wp_outEqual y (mstepL x g.st.st).2
-      cases hq : decide (y = (mstepL x g.st.st).2)
+      rw [mstepL_plain]
+      cases hq : decide (plainOut y = (mstepL x g.st.st).2)
       · try wp_auto
         step_nil (by
           rw [stepL, if_neg hW, ite_cond_eq_false _ _ (eq_false hE), hks,
@@ -133,7 +156,7 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
         iintro %lsl ⟨Hl1, _⟩
         wp_auto
         iapply HΦ
-        rw [show stepL g x y = [⟨advanceL g.st (mstepL x g.st.st).1, g.pend⟩] by
+        rw [show stepL g x (plainOut y) = [⟨advanceL g.st (mstepL x g.st.st).1, g.pend⟩] by
           rw [stepL, if_neg hW, ite_cond_eq_false _ _ (eq_false hE), hks,
             ite_cond_eq_true _ _ (eq_true (of_decide_eq_true hq))]]
         iframe
@@ -151,7 +174,7 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
       iintro %lsl ⟨Hl1, _⟩
       wp_auto
       iapply HΦ
-      rw [show stepL g x y = [g] by rw [stepL, if_neg hW, if_pos (Decidable.of_not_not hE)]; simp [hw]]
+      rw [show stepL g x (plainOut y) = [g] by rw [stepL, if_neg hW, if_pos (Decidable.of_not_not hE)]; simp [hw]]
       iframe
       iapply (BigSepL2.bigSepL2_singleton (PROP := IProp GF)).2
       iexact Hc
@@ -175,7 +198,7 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
       iintro %lsl2 ⟨Hl2, _⟩
       wp_auto
       iapply HΦ
-      rw [show stepL g x y = [⟨g.st, x :: g.pend⟩] by rw [stepL, if_neg hW, if_pos (Decidable.of_not_not hE)]; simp [hw]]
+      rw [show stepL g x (plainOut y) = [⟨g.st, x :: g.pend⟩] by rw [stepL, if_neg hW, if_pos (Decidable.of_not_not hE)]; simp [hw]]
       iframe
       iapply (BigSepL2.bigSepL2_singleton (PROP := IProp GF)).2
       unfold cfgOwn

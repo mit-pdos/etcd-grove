@@ -29,11 +29,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev genFrom.spec : Prop :=
-  ∀ (n id : w64) (c : Obj) (hasC : Bool),
+  ∀ (n id : w64) (c : Obj) (hasC : Bool) (f : w64), uint.Z f < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom))
-      (Val #n)) (Val #id)) (Val #c)) (Val #hasC))
-  {{ (x : Input), RET #x; ⌜GenIn x ∧ (x.UseCached' = true → hasC = true ∧ x.Cached' = c)⌝ }}
+    (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom))
+      (Val #n)) (Val #id)) (Val #c)) (Val #hasC)) (Val #f))
+  {{ (x : Input), RET #x; ⌜GenIn x ∧ (x.UseCached' = true → hasC = true ∧ x.Cached' = c) ∧ FloorOk f x⌝ }}
 
 end spec
 

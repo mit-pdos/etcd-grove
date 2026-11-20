@@ -10,6 +10,7 @@ public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRevoke
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeCtx
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Proof.context.LibKeys
 
 @[expose] public section
@@ -58,13 +59,16 @@ does not panic: the apply of a `LeaseRevoke` request answers that type (`apply.r
 
 The margin (auth-lease S3b D5, review r1 S6): the success does not say the lease was live at the
 state the update fired at (Go's success implies the lessor found it; the model's revocation of an id
-not live commits nothing); no error branch carries a client result (D4). -/
+not live commits nothing); no error branch carries a client result (D4). (Auth-lease S4, Freeze §10 H1, D-h) For a caller's lower bound `n` of the published auth index
+(`auth.authPubLbM`), a success also carries `requireAuthInfo`'s `authedFrom … n` (auth disabled at a
+state no older than `n`, or a principal bound to the context). -/
 abbrev EtcdServer.LeaseRevoke.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF))
-    (tok : Option GoString) (r : Loc) (id : w64) (Q : KVState → IProp GF),
+    (tok : Option GoString) (r : Loc) (id : w64) (Q : KVState → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜srvRevokesLeases E ρ⌝ ∗
-      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ auth.authPubLbM E.authMode n ∗
+      srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
       context.isContext ctx cd ∗ context.libCtxOk ctx ∗
       □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
       leaseRevokeReqRO r id ∗
@@ -74,6 +78,7 @@ abbrev EtcdServer.LeaseRevoke.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseRevokedResp E resp ∗
           authedOutB s E.authMode tok GoInterface.nil ∗
+          authedFrom s E.authMode n tok ∗
           leaseRevokeResM E.authOn s E ρ tok id Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 

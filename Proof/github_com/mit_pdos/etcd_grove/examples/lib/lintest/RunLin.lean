@@ -47,7 +47,7 @@ theorem RunLin.wp_proof
   iexists lops
   iframe Hl Hio
   ipureintro
-  refine ⟨?_, Hp.2⟩
+  refine ⟨?_, Hp.2.1⟩
   rw [Hp.1, H0]; omega
 
 end proof

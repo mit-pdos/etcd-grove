@@ -54,6 +54,11 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   -- (2026-11-03, R2b-1 stage 5) the raft wrapper's names the server's raft's, at a fresh start
   -- (`snapshot`'s)
   γn.node = γr.raft.raft → γr.raft.pre = [] →
+  -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode the applied index
+  -- within the write tokens taken (each applied entry takes one, and no snapshot is installed), so
+  -- below the receipts' bound, which `SnapshotCatchUpEntries` bounds (`isServerApplyAll`): the
+  -- compaction is at index `1` (`compactRaftLog`'s)
+  (clusterNoSnap γr.raft.raft.cl → uint.nat ai ≤ w) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       -- (restart S6a) `snapshot`'s `Release`'s directory, its removal counter at least `ai`

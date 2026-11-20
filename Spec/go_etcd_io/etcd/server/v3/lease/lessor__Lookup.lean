@@ -28,15 +28,17 @@ no earlier than `m` (the one the read lock found): `nil` and no lease of `id` th
 of `id` there. For the owner (`U = some (L, I)`, `leaseOwn γl L I`; until item 3 any share of the
 live set), moreover `nil` exactly when `id` is not live, and its resource as it was or opened at
 `l` (`leaseOwnOpen`: its item set, which `Keys()` reads); the owner holds a lower bound itself
-(`leaseOwn_lb`). -/
+(`leaseOwn_lb`).
+(auth-lease S4 item 7b, 2026-11-17) The owner's view in any window `w` (`lookupViewW`), passed through. -/
 abbrev lease.lessor.Lookup.spec : Prop :=
-  ∀ (lp : Loc) (γl : GName) (id : w64) (m : Nat) (U : Option (List w64 × GMap LeaseItem w64)),
+  ∀ (lp : Loc) (γl : GName) (id : w64) (m : Nat) (U : Option (List w64 × GMap LeaseItem w64))
+    (w : Option LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      lessorRd lp γl ∗ lessorLb γl m ∗ lookupView γl U }}
+      lessorRd lp γl ∗ lessorLb γl m ∗ lookupViewW γl w U }}
     (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Lookup")) (Val #id))
   {{ (l : Loc), RET #l; lessorRd lp γl ∗
       ((⌜l = null⌝ ∗ leaseAbsentFrom γl m id) ∨ (isLeaseObj γl l ∗ leaseLiveFrom γl m id l)) ∗
-      lookupViewAfter γl id l U }}
+      lookupViewAfterW γl id l w U }}
 
 end spec
 

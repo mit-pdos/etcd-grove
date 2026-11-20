@@ -316,6 +316,7 @@ theorem restartStore_holds (Hp : mvcc.api.persistent.law (GF := GF)) (kv : GoInt
   imodintro
   iunfold kvStoreInvG
   iunfold wSt
+  iunfold wStQ
   iunfold crOwn
   iframe Hm Hinv Hw1 Hw2 Hc
 

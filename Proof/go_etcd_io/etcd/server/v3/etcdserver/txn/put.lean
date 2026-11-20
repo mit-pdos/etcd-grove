@@ -69,11 +69,15 @@ set_option hygiene false in
 /-- The put of value `v` (slice `vsl`, `#HVS`) with lease `l`, the trace field, and the answer
 up to its `PrevKv`, which the caller gives (all ten cases). -/
 local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic| (
-    wp_apply (hPutM γ trace te σ pend ksl $vsl k $v $l L)
+    wp_apply (hPutM γ trace te σ pend ksl $vsl k $v $l L w)
       $$ [$(frameH `Htx) $(frameH `Htrc) $(frameH `Hks) $(frameH `HVS) $(frameH `Hlok)
         $(frameH `Hown)]
       as ⟨Htx, Htrc, Hown⟩
-    · ipureintro; exact ⟨Hklen, Hob.1, by first | exact Hob.2 rfl | exact Hsv⟩
+    · ipureintro
+      refine ⟨Hklen, ⟨Hob.1, by first | exact Hob.2 rfl | exact Hsv⟩, ?_⟩
+      (try simp only [hf, Option.map_some, Option.getD_some, Option.map_none, Option.getD_none,
+        Bool.or_false, Bool.false_or, Bool.or_true, Bool.true_or, Bool.false_eq_true, ↓reduceIte] at Hwin)
+      exact Hwin
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -105,8 +109,8 @@ theorem txn.put.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
     (hAdd : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     txn.put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd tw γ trace te σ pend p o prev L
-  wp_start as ⟨#Hctx, #Hct, Htx, Htrc, #Hp, Hprev, %Hneed, #Hlok, Hown, %Hob⟩
+  intro ctx cd tw γ trace te σ pend p o prev L w
+  wp_start as ⟨#Hctx, #Hct, Htx, Htrc, #Hp, Hprev, %Hneed, #Hlok, Hown, %Hwin, %Hob⟩
   icases txn.mvccTxn_shape hsh tw γ trace (.write σ pend) $$ Htx with ⟨%Hsh, Htx⟩
   -- (S1b) the values of the state the transaction writes at: at most `etcdKeyMax` bytes
   icases mvcc.api.mvccTxn_write_putsLe tw γ trace σ pend $$ Htx with ⟨Htx, %Hrp⟩
@@ -135,7 +139,7 @@ theorem txn.put.wp_proof
   generalize hst : txn.pendState σ.log pend = st at *
   subst Ho
   simp only [txn.readsPrev, txn.needsPrev, txn.putChangeOf, txn.putValOf, txn.putLeaseOf,
-    txn.putOpOf] at Hneed Hob ⊢
+    txn.putOpOf] at Hneed Hwin Hob ⊢
   have hb0 : sint.Z (W64 0 : w64) = 0 := by decide
   iunfold txn.leaseOk at Hlok
   cases hf : mvcc.findKey k st with

@@ -1186,6 +1186,7 @@ theorem Replica.run.wp_proof
         · iapply memStorAt_none_intro $$ HmsInv
           simp only [kdJ]
           iframe Hgiven Hsv HclS
+          ipureintro; intro h; exact absurd h Hnsn
         unfold snapArg
         iright; iexact Hs2
       simp only [img_snap_fresh M S lo.snap HSM (by rw [Hcmeq]; exact G7.1), ↓reduceIte]

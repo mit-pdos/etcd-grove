@@ -39,12 +39,12 @@ variable [go_gctx : GoGlobalContext]
 /-- `etcd_auth3_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/TopLevelRobustness.lean`). -/
 theorem etcd_auth3_robust : etcd_auth3_robust.spec := by
-  intro lctx sem package_sem cache_sem _ _ _ _ _ Hctx Hcec hD22 id₁ id₂ id₃ ps ctxs boot Hbf Haf
+  intro lctx sem package_sem cache_sem _ _ _ _ _ Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf
     Hbuq Hrf Hdbo HNs HAs HDs HEnv Hprem σ g Hfs
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
       (etcd_auth3_safe
-        Hctx Hcec hD22 id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n
+        Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n
         (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy

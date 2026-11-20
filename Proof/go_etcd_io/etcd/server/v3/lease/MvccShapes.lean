@@ -91,6 +91,56 @@ def csContractA (P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) : IProp GF :
 
 end defs
 
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+open Iris.ProofMode
+
+/-- **A begin update's payload, weakened** (at its commit; item 7b F3: `X` to `winWit … -∗ X` at no window). -/
+theorem auBegin_wand (γ : MvccName) (σ₀ : MvccState) (X X' : IProp GF) :
+    auBegin γ σ₀ X ⊢ (X -∗ X') -∗ auBegin γ σ₀ X' := by
+  iintro Hau Hw
+  iunfold auBegin at Hau
+  iunfold auBegin
+  iauintro
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%x, Hx, Hcl⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists x
+  iframe Hx
+  isplit
+  · iintro Hx
+    icases Hcl with ⟨Hab, -⟩
+    imod Hab $$ Hx with Hau
+    imodintro
+    iframe Hau Hw
+  · iintro Hx
+    icases Hcl with ⟨-, Hco⟩
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hco
+    imod Hco $$ Hx with ⟨%Hσ, HX⟩
+    imodintro
+    iframe
+    isplitr
+    · ipureintro; exact Hσ
+    iapply Hw $$ HX
+
+/-- **A begin update's payload under a premise it does not need** (item 7b F3: `lease.winWit … none …`, which is
+`True`). -/
+theorem auBegin_pre (W : IProp GF) (γ : MvccName) (σ₀ : MvccState) (X : IProp GF) :
+    auBegin γ σ₀ X ⊢ auBegin γ σ₀ iprop(W -∗ X) := by
+  iintro Hau
+  iapply (auBegin_wand γ σ₀ X) $$ Hau
+  iintro HX -; iexact HX
+
+end lemmas
+
 end srvApi
 end EtcdGrove
 end Perennial

@@ -42,12 +42,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions]
 
-/-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_authN.wp_Main`), at D22's named
-hypothesis. -/
-theorem authN_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+/-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_authN.wp_Main`). -/
+theorem authN_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_authN.Main.spec (GF := GF) (hG := hG) :=
-  etcd_authN.wp_Main hD22
+  etcd_authN.wp_Main
 
 end results
 
@@ -88,8 +86,6 @@ theorem etcd_authN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    -- (D22) the auth store's backend with auth on: trusted text, a named hypothesis
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
@@ -112,7 +108,7 @@ theorem etcd_authN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_authN_adequate Hctx Hcec hD22 k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
+  etcd_authN_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
     HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

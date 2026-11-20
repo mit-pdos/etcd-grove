@@ -14,9 +14,12 @@ schema_UnsafeUpdateConsistentIndexForce: schema_unsafeUpdateConsistentIndex
 # schema's auth backend, the read side (server/storage/schema/auth.go, auth_users.go, auth_roles.go;
 # the auth plan's S1, 2026-10-23), see etcdserver/InvAuthBackend.lean. The trust boundary:
 # proto.Unmarshal on authpb.User and authpb.Role (the encodings opaque, auth/Buckets.lean).
-# bytes.Equal is Perennial's. Not linked: unsafeGetAllUsers (backend.UnsafeForEach has no spec),
-# unsafeGetAllRoles (a range of a non-safe bucket: only a batch transaction may do it,
-# nonissues/etcd-auth-readtx-getallroles-panics.md), the batch-transaction methods (the admin side, S4).
+# bytes.Equal is Perennial's. Not linked: authReadTx.UnsafeGetAllRoles (a range of a non-safe bucket:
+# only a batch transaction may do it, nonissues/etcd-auth-readtx-getallroles-panics.md). The walk and
+# the write side (auth-schema-srv A5, 2026-11-17): unsafeGetAllUsers, unsafeGetAllRoles, the
+# batch-transaction methods and the backend's BatchTx/ForceCommit/CreateAuthBuckets/GetAllUsers/
+# GetAllRoles, over the contracts' callee triples; the trust boundary adds proto.Marshal on
+# authpb.User and authpb.Role.
 proto_UnmarshalUser:
 proto_UnmarshalRole:
 schema_unsafeReadAuthEnabled:
@@ -32,6 +35,30 @@ schema_authReadTx__RUnlock:
 schema_authBackend__ReadTx:
 schema_authBackend__GetUser: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetUser schema_authReadTx__RUnlock
 schema_authBackend__GetRole: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetRole schema_authReadTx__RUnlock
+proto_MarshalUser:
+proto_MarshalRole:
+schema_unsafeGetAllUsers: proto_UnmarshalUser
+schema_unsafeGetAllRoles: proto_UnmarshalRole
+schema_authReadTx__UnsafeGetAllUsers: schema_unsafeGetAllUsers
+schema_authBatchTx__UnsafeGetUser: schema_unsafeGetUser
+schema_authBatchTx__UnsafeGetRole: schema_unsafeGetRole
+schema_authBatchTx__UnsafeReadAuthEnabled: schema_unsafeReadAuthEnabled
+schema_authBatchTx__UnsafeReadAuthRevision: schema_unsafeReadAuthRevision
+schema_authBatchTx__UnsafeGetAllUsers: schema_unsafeGetAllUsers
+schema_authBatchTx__UnsafeGetAllRoles: schema_unsafeGetAllRoles
+schema_authBatchTx__UnsafePutUser: proto_MarshalUser
+schema_authBatchTx__UnsafePutRole: proto_MarshalRole
+schema_authBatchTx__UnsafeDeleteUser:
+schema_authBatchTx__UnsafeDeleteRole:
+schema_authBatchTx__UnsafeSaveAuthEnabled:
+schema_authBatchTx__UnsafeSaveAuthRevision: binary_bigEndian__PutUint64
+schema_authBatchTx__Lock:
+schema_authBatchTx__Unlock:
+schema_authBackend__BatchTx:
+schema_authBackend__ForceCommit:
+schema_authBackend__CreateAuthBuckets:
+schema_authBackend__GetAllUsers: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetAllUsers schema_authReadTx__RUnlock
+schema_authBackend__GetAllRoles: schema_authBackend__BatchTx schema_authBatchTx__Lock schema_authBatchTx__UnsafeGetAllRoles schema_authBatchTx__Unlock
 # The consistent index (server/etcdserver/cindex/cindex.go), see InvCindex.lean.
 NewConsistentIndex:
 consistentIndex__SetConsistentIndex:
@@ -331,7 +358,7 @@ EtcdServer__checkLeaseTimeToLive: EtcdServer__AuthInfoFromCtx EtcdServer__AuthSt
 # The lease read entry points (the lease-read plan, 2026-10-31). The trust boundary:
 # `leaseTimeToLive` (names-only, a contract: the leader's re-lookup and the follower's forwarding).
 EtcdServer__leaseTimeToLive:
-EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
+EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
 # The lease keep-alive entry point (the lease-renew plan, 2026-11-01; its contracts approved by
 # the user): the trust boundary is the lessor's `Renew`, `ensureLeadership`, `waitAppliedIndex`,
 # `waitLeader` (names-only) and the forwarding, `leasehttp.RenewHTTP`.
@@ -674,10 +701,10 @@ CompactionRequest__GetRevision:
 # the lease-grant stage (2026-11-03, notes/lease-grant-plan.md): EtcdServer.LeaseGrant (2.5) and the
 # trace attribute it reads
 LeaseGrantRequest__GetTTL:
-EtcdServer__LeaseGrant: idutil_Generator__Next EtcdServer__requireAuthInfo EtcdServer__raftRequest LeaseGrantRequest__GetTTL traceutil_Tracer__Start trace_WithAttributes attribute_Int64
+EtcdServer__LeaseGrant: idutil_Generator__Next EtcdServer__requireAuthInfo+C EtcdServer__raftRequest LeaseGrantRequest__GetTTL traceutil_Tracer__Start trace_WithAttributes attribute_Int64
 # the lease-expiry plan's X6 (2026-11-04): EtcdServer.LeaseRevoke and the trace attribute it reads
 LeaseRevokeRequest__GetID:
-EtcdServer__LeaseRevoke: EtcdServer__requireAuthInfo EtcdServer__raftRequest LeaseRevokeRequest__GetID traceutil_Tracer__Start trace_WithAttributes attribute_Int64
+EtcdServer__LeaseRevoke: EtcdServer__requireAuthInfo+C EtcdServer__raftRequest LeaseRevokeRequest__GetID traceutil_Tracer__Start trace_WithAttributes attribute_Int64
 EtcdServer__Compact: traceutil_Tracer__Start trace_WithAttributes attribute_Bool attribute_Int64 CompactionRequest__GetPhysical CompactionRequest__GetRevision EtcdServer__Logger traceutil_EnsureTrace EtcdServer__processInternalRaftRequestOnce traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_shapes_law traceutil_Trace__AddField
 v3compactor_New: zap_NewNop clockwork_NewRealClock v3compactor_newPeriodic v3compactor_newRevision fmt_Errorf v3compactor_Periodic__Run v3compactor_Periodic__Stop v3compactor_Periodic__Pause v3compactor_Periodic__Resume v3compactor_Revision__Run v3compactor_Revision__Stop v3compactor_Revision__Pause v3compactor_Revision__Resume
 v3compactor_newPeriodic: v3compactor_Periodic__getRetentions

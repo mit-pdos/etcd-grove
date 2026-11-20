@@ -6695,6 +6695,27 @@ noncomputable def LeaseOp.applyOpts.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore LeaseOption.ty))) (Pair (Var "opt") (Var "$value")))))))))))))
   (Val #()))))
 
+/-- WithAttachedKeys makes TimeToLive list the keys attached to the given lease ID.
+
+    go: op.go:600:6 -/
+noncomputable def WithAttachedKeys.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc LeaseOption.ty))) (App (Val (GoInstruction (GoZeroVal LeaseOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Lam "op"
+  (Seq (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseOp.ty)))) (Var "op"))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef LeaseOp.ty go!"attachedKeys"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseOp.ty)))) (Var "op"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore LeaseOption.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad LeaseOption.ty))) (Var "$res0")))))
+
 /-- go: op.go:604:6 -/
 noncomputable def toLeaseTimeToLiveRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"

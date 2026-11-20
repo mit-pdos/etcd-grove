@@ -1,0 +1,13 @@
+# The driver's copy of Kubernetes' checker (k8s 7g, notes/k8s-7g-scope.md §1.1): upstream's
+# k8s.io/apiserver/pkg/storage/testing/correctness at the driver's pin plus
+# etc/k8s-correctness/d30g.patch (etc/k8s-correctness-check.py), with bodies, but for what is not on
+# the checker's path as the driver runs it: the descriptions (`Request.Describe`, `Model.Describe`,
+# for porcupine's visualization), `NewModelFromStorage` (the driver builds its initial Model with
+# `NewEmptyModel`), `Model.compact` (no compactions), and `Replay.Watch`, `Replay.ResourceVersion`
+# (not called by the validator). Names only.
+translate = ["*", "!Request.Describe", "!Model.Describe", "!NewModelFromStorage", "!Model.compact",
+  "!Replay.Watch", "!Replay.ResourceVersion"]
+imports = ["*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

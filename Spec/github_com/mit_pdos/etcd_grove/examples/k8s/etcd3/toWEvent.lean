@@ -2,11 +2,15 @@
 
 `toWEvent(ev)` (watch.go): an event the store's watch delivered (`wevAt driverSpec driverW v e`) as
 the driver records it: its type, and for any event but an Error event the object `kToWEv e`
-(`kWEvRel`, what the bridge `streamOkL_of_kStreamOk` takes).
+(`kWEvRel`, what the bridge `streamOkL_of_kStreamOk` takes); and the event as Kubernetes' checker
+reads it (k8s 7g): a view `r` (`evRep`, the object frozen: the driver never writes a received
+object) of which the record is `toWEvL r`.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WRun
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.EvRep
 
 @[expose] public section
 
@@ -33,7 +37,8 @@ abbrev toWEvent.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       wevAt driverSpec driverW v e }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toWEvent)) (Val #v))
-  {{ (w : WEvent), RET #w; ⌜kWEvRel e (wevOf w)⌝ }}
+  {{ (w : WEvent), RET #w; ∃ r : k8s_correctness.REv,
+      ⌜kWEvRel e (wevOf w) ∧ wevOf w = k8s_correctness.toWEvL r⌝ ∗ k8s_correctness.evRep v r }}
 
 end spec
 

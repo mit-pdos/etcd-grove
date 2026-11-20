@@ -2,7 +2,7 @@
 Proof of the spec of the same name (the auth plan's E2j, 2026-10-26). Lean-first (no Rocq
 counterpart). The backend's `GetAllRoles` (its batch transaction: the hook runs) answers from the latest
 state; the loop copies each message's name into the response, whose `Roles` are then the state's
-roles' names.
+roles' names (`auth.rolesListed`, passed through).
 -/
 module
 
@@ -46,9 +46,9 @@ theorem auth.authStore.RoleList.wp_proof :
   iintro %s ⟨HPost, HT, Hown, %sta, %Hl, Hus⟩
   iunfold rolesOut at Hus
   icases Hus with ⟨%us, %names, Hs, %Hn, Hmsgs⟩
-  obtain ⟨Hlen, Hnd, Hmem⟩ := Hn
+  obtain ⟨Hlen, Hrl⟩ := Hn
   ihave Hmsgs := rolesOut_names sta (us.zip names)
-    (fun x hx => ((Hmem x.2).1 (List.of_mem_zip hx).2).1) $$ Hmsgs
+    (fun x hx => (Hrl.2.1 x.2 (List.of_mem_zip hx).2).1) $$ Hmsgs
   imod Hmsgs with #Hmsgs
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   (try wp_auto)
@@ -133,7 +133,7 @@ theorem auth.authStore.RoleList.wp_proof :
   rw [Hdone, Hlen, List.take_length, Nat.sub_self, List.replicate_zero, List.append_nil]
   iframe
   ipureintro
-  exact ⟨Hnd, fun n => Hmem n⟩
+  exact Hrl
 
 end proof
 

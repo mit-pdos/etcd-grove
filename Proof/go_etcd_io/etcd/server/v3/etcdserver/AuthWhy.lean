@@ -151,6 +151,18 @@ instance authedOutC_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Op
     Persistent (authedOutC (GF := GF) s M n tok err) := by
   unfold authedOutC; infer_instance
 
+/-- **The caller authenticated, relative to `n`** (persistent; auth-lease S4, Freeze §4.4/§10 T1/H1): auth
+disabled at a state no older than `n`, or a principal bound to the request's token `tok` (`requireAuthInfo`'s
+success: it returns `nil` only when the flag reads `false`, read after the caller's `n` was published, or when
+the token names a principal). By the token (perheap's re-keying, Thaw 2, 2026-11-19; until then by the context). -/
+def authedFrom (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) : IProp GF :=
+  iprop(auth.enabledVerdictFrom M n false ∨
+    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, □ (⌜M.isOn = true⌝ → principalBound s M tok (some info)))
+
+instance authedFrom_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) :
+    Persistent (authedFrom (GF := GF) s M n tok) := by
+  unfold authedFrom; infer_instance
+
 /-- **The admin check's outcome with its reason** (persistent): `adminOutB`, and on an error the
 reason (`adminWhy`). -/
 def adminOutC (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) (err : GoInterface) : IProp GF :=

@@ -347,7 +347,7 @@ theorem acRes_publish (C : AuthC) (s : Loc) (E : apply.AEnv GF) (ua : GoInterfac
 /-! ### The merged snapshot's lend -/
 
 theorem acRes_lend (C : AuthC) (s : Loc) (E : apply.AEnv GF) (ua : GoInterface)
-    (st : auth.AuthState) (hC : E.authMode = C.mode) :
+    (st : auth.AuthState) (hC : E.authMode = C.mode) (hrev : C.isOn = true → 1 ≤ st.revision) :
     acRes C s E ua st ⊢ bkLendW E (acBkts C) (acImg C st) (acRes C s E ua st) := by
   cases C with
   | off =>
@@ -370,7 +370,7 @@ theorem acRes_lend (C : AuthC) (s : Loc) (E : apply.AEnv GF) (ua : GoInterface)
     simp only [acBkts, acImg]
     dsimp only [acRes, AuthC.mode, AuthC.isOn]
     iintro ⟨#Hb, HR⟩
-    ihave HL := srvAuthApplyResB_lend s E st γa hC $$ HR
+    ihave HL := srvAuthApplyResB_lend s E st γa hC (hrev rfl) $$ HR
     unfold bkLendW
     iintro %d %hd
     imod HL $$ %d %hd with ⟨%RL, HRL, #Hlaw, Hback⟩

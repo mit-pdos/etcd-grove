@@ -25,19 +25,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 theorem schema.authReadTx.RLock.wp_proof :
     schema.authReadTx.RLock.spec (GF := GF) (hG := hG) := by
-  intro atx rt R Held
-  wp_start as ⟨#Htx, #Hrtx, HR⟩
+  intro atx rt R Held ι L i
+  wp_start as ⟨#Htx, #Hrtx, HR, HL⟩
   iunfold schema.authRTx at Hrtx
   icases Hrtx with ⟨#HRL, -⟩
-  wp_auto
+  wp_auto_lc 3
+  icombine Hlc1 Hlc2 as Hlc
   wp_bind (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
-  iapply HRL $$ HR
+  iapply HRL $$ %i [$HR $HL $Hlc]
   inext
-  iintro ⟨%D, %Hwf, HD, #Hrd⟩
+  iintro ⟨%x, %D, %Hwf, HD, HL, #Hrd⟩
   (try wp_auto)
   iapply HΦ
-  iexists D
-  iframe HD Hrd
+  iframe Hlc3
+  iexists x, D
+  iframe HD HL Hrd
   ipureintro; exact Hwf
 
 end proof

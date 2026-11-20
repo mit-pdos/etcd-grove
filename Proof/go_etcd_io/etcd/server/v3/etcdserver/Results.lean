@@ -2104,13 +2104,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 with the simple provider gives the auth names allocated over the boot state and `NewAuthStore`'s
 construction in the mode `on γa` (`authStoreKit`): the store from its proofs, not
 `NewAuthStore`'s axiom, its request side and apply contract of its invariant (its admin clauses
-vacuous: `apply.adminAdmitted`). Its named premise: D22's part (`authSchemaSrv`) (auth-schema-fix
-S1 option A, 2026-11-12: no longer `isValidSimpleToken`'s spec for any context, `auth.ValidSpec`,
-which was false; the provider's index waiter's contract is the caller's, once the server has
-started: `auth.tpShot`). What `NewServer`'s proof takes with auth on (`notes/decisions.md`, "E2i
+vacuous: `apply.adminAdmitted`), its backend's contracts `authSchemaSrv`'s, proved by its realization
+(`authReal.real_srv` over the backend's and schema's proofs; auth-schema-srv A7, approved by the user
+2026-11-19: until then D22's named premise `hD22`). The provider's index waiter's contract is the
+caller's, once the server has started (`auth.tpShot`; auth-schema-fix S1 option A, 2026-11-12: no
+longer `isValidSimpleToken`'s spec for any context, `auth.ValidSpec`, which was false). What `NewServer`'s proof takes with auth on (`notes/decisions.md`, "E2i
 of the auth plan"). -/
-theorem srv_auth_tp_on
-    (hD22 : ⊢ authSchemaSrv (GF := GF)) : authSrvTP (GF := GF) (hG := hG) true :=
+theorem srv_auth_tp_on : authSrvTP (GF := GF) (hG := hG) true :=
   authSrvTP_on auth.wp_NewTokenProvider zap.Logger.wp_Debug zap.String.wp_proof
     auth.tokenSimple.wp_genTokenPrefix
     zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
@@ -2136,7 +2136,26 @@ theorem srv_auth_tp_on
       zap.wp_ByteString zap.Logger.wp_Info)
     (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
       auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write)
-    auth.authStore.wp_CheckPassword auth.authStore.wp_GenTokenPrefix hD22
+    auth.authStore.wp_CheckPassword auth.authStore.wp_GenTokenPrefix
+    schema.authBatchTx.wp_Lock schema.authBatchTx.wp_Unlock schema.authBatchTx.wp_UnsafePutUser
+    schema.authBatchTx.wp_UnsafeDeleteUser schema.authBatchTx.wp_UnsafePutRole
+    schema.authBatchTx.wp_UnsafeDeleteRole schema.authBatchTx.wp_UnsafeSaveAuthEnabled
+    schema.authBatchTx.wp_UnsafeSaveAuthRevision schema.authBatchTx.wp_UnsafeGetUser
+    schema.authBatchTx.wp_UnsafeGetRole schema.authBatchTx.wp_UnsafeReadAuthEnabled
+    schema.authBatchTx.wp_UnsafeReadAuthRevision schema.authBatchTx.wp_UnsafeGetAllUsers
+    schema.authBackend.wp_BatchTx schema.authBackend.wp_ForceCommit schema.authBackend.wp_GetUser
+    schema.authBackend.wp_GetRole schema.authBackend.wp_GetAllUsers schema.authBackend.wp_GetAllRoles
+    backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_ReadTx
+    backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange
+    backend.readTx.wp_UnsafeForEach backend.batchTxBuffered.wp_LockInsideApply
+    backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_Commit backend.batchTxBuffered.wp_UnsafePut
+    backend.batchTxBuffered.wp_UnsafeDelete backend.batchTxBuffered.wp_UnsafeRange
+    backend.batchTxBuffered.wp_UnsafeForEach schema.bucket.wp_ID schema.bucket.wp_Name
+    schema.bucket.wp_IsSafeRangeBucket schema.authBackend.wp_ReadTx schema.authReadTx.wp_RLock
+    schema.authReadTx.wp_RUnlock schema.authReadTx.wp_UnsafeGetUser schema.authReadTx.wp_UnsafeGetRole
+    schema.authReadTx.wp_UnsafeReadAuthEnabled schema.authReadTx.wp_UnsafeReadAuthRevision
+    schema.authReadTx.wp_UnsafeGetAllUsers schema.authBackend.wp_CreateAuthBuckets
+    backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeCreateBucket
 
 /-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
 `NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/
@@ -2147,14 +2166,14 @@ theorem srv_auth_tp_off : authSrvTP (GF := GF) (hG := hG) false :=
 the simple token provider and the auth store of `srv_auth_tp_on` (its proofs, not `NewAuthStore`'s
 axiom), the apply environment's auth on, the start's chain with the auth layer enabled; every callee
 linked as in `wp_NewServer` (`NewServer.wp_proofM`, whose mode off gives `wp_NewServer`'s
-statement). Its named premise is `srv_auth_tp_on`'s: D22's part (`authSchemaSrv`) (auth-schema-fix
-S1 option A: no longer the false `auth.ValidSpec`). Since E2w (2026-10-26) its KV
+statement). No named premise (auth-schema-srv A7, 2026-11-19: until then D22's `authSchemaSrv`, now
+proved; before auth-schema-fix S1, the false `auth.ValidSpec`). Since E2w (2026-10-26) its KV
 invariant is the mode's (`kvInvM true`, `kvInvOn`), allocatable at the bootstrap log
 (`kvInvOn_alloc_boot`), and its post the mode-indexed built part (`srvBuiltG true`): until then it
 took `kvInv`, whose start chain is mode-`off`, so its precondition was unsatisfiable
 (`kvInv_ch0_on_false`, E2p). -/
-theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
-    (hD22 : ⊢ authSchemaSrv (GF := GF)) : NewServer.specM (GF := GF) (hG := hG) true :=
+theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] :
+    NewServer.specM (GF := GF) (hG := hG) true :=
   NewServer.wp_proofM true zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn
     v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats
     types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance
@@ -2162,7 +2181,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics
     prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier
     EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled
-    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hD22)
+    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor srv_auth_tp_on
     ⟨apply_uber_apply_kv_latest, apply_uber_apply_admin_latest, apply_range_latest,
     apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_lease_revoke_latest,
     apply_UserAdd_fuelX,
@@ -2232,13 +2251,17 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
     -- `srvClusterBoot_alloc`'s (lease-mono3 step 2)
     (lm : lease.Mode := .none) (gp : w64 := 0) (gps : List w64 := [gp])
     (hgps : lm = .revocable → gp ∈ gps ∧ (gps.map (· &&& leaseIdMask)).Nodup :=
-      by first | exact fun h => nomatch h | exact fun _ => ⟨List.mem_singleton_self _, (by simp)⟩) :
+      by first | exact fun h => nomatch h | exact fun _ => ⟨List.mem_singleton_self _, (by simp)⟩)
+    -- (auth-lease S4, D-k) raft's no-snapshot mode, the caller's choice (`cluster_alloc_ns`'s)
+    (ns : Bool := false) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
           γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
+        -- (auth-lease S4, D-k) in raft's no-snapshot mode exactly when `ns` (`cluster_alloc_ns`'s)
+        ⌜clusterNoSnap γ.cl ↔ ns = true⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
@@ -2256,7 +2279,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
         [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
-  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz lm gp gps hgps
+  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz lm gp gps hgps ns
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/

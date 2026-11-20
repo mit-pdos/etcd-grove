@@ -24,6 +24,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
+public import Proof.go_etcd_io.etcd.client.v3.LeaseSpecs
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
 
@@ -194,72 +195,41 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
     iStructNamedSuffix Hw "_f"
     ipersist Header_f
     ipersist Leases_f
-    icases Hres with (⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩ | ⟨-, Hh, Hl⟩)
-    · ihave %Hnd := lease.leaseIdsAt_nodup γl i ids $$ Hids
-      iunfold v3rpc.leasesHdrDone at Hh
-      icases Hh with ⟨Hfd, %dq, %rv, %log, Hrv, -, -⟩
-      iunfold v3rpc.hdrFilled at Hfd
-      icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hld⟩
-      ipersist Hcid
-      ipersist Hmid
-      ipersist Ht
-      ipersist Hld
-      ipersist Hrv
-      iunfold leasesListIs at Hl
-      icases Hl with ⟨%ps, Hsl, %Hlen, Hps⟩
-      ipersist Hsl
-      ihave Hps' : |==> [∗list] k ↦ x ∈ ps, iprop(∃ id : w64, ⌜ids[k]? = some id⌝ ∗
-          structFieldRef etcdserverpb.LeaseStatus go!"ID" x ↦□ id) $$ [Hps]
-      · iapply BigSepL.bigSepL_bupd
-        iapply (BigSepL.bigSepL_mono (fun {k x} _ => leaseStatus_persist x ids k)) $$ Hps
-      imod Hps' with #Hps'
-      imodintro
-      iapply HΨ
-      iframe HS Hrev HSe
-      iintro -
-      iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) ids)
+    icases Hres with ⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩
+    ihave %Hnd := lease.leaseIdsAt_nodup γl i ids $$ Hids
+    iunfold v3rpc.leasesHdrDone at Hh
+    icases Hh with ⟨Hfd, %dq, %rv, %log, Hrv, -, -⟩
+    iunfold v3rpc.hdrFilled at Hfd
+    icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hld⟩
+    ipersist Hcid
+    ipersist Hmid
+    ipersist Ht
+    ipersist Hld
+    ipersist Hrv
+    iunfold leasesListIs at Hl
+    icases Hl with ⟨%ps, Hsl, %Hlen, Hps⟩
+    ipersist Hsl
+    ihave Hps' : |==> [∗list] k ↦ x ∈ ps, iprop(∃ id : w64, ⌜ids[k]? = some id⌝ ∗
+        structFieldRef etcdserverpb.LeaseStatus go!"ID" x ↦□ id) $$ [Hps]
+    · iapply BigSepL.bigSepL_bupd
+      iapply (BigSepL.bigSepL_mono (fun {k x} _ => leaseStatus_persist x ids k)) $$ Hps
+    imod Hps' with #Hps'
+    imodintro
+    iapply HΨ
+    iframe HS Hrev HSe
+    iintro -
+    iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) ids)
+    isplitl []
+    · simp only [pbLeaseLeasesResponse]
+      unfold leaseLeasesRespMsg hdrFull
       isplitl []
-      · simp only [pbLeaseLeasesResponse]
-        unfold leaseLeasesRespMsg hdrFull
-        isplitl []
-        · ipureintro; exact Hnn
-        iexists w.Header', w.Leases', ps
-        iframe #
-        ipureintro; exact ⟨Hhn, Hlen⟩
-      · iunfold etcdLeaseLeasesSpecAny at Hspec
-        iapply Hspec
-        ipureintro; exact Hnd
-    · iunfold v3rpc.leaseHdrDone at Hh
-      icases Hh with ⟨Hfd, %dq, %rv, Hrv⟩
-      iunfold v3rpc.hdrFilled at Hfd
-      icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hld⟩
-      ipersist Hcid
-      ipersist Hmid
-      ipersist Ht
-      ipersist Hld
-      ipersist Hrv
-      ipersist Hl
-      imodintro
-      iapply HΨ
-      iframe HS Hrev HSe
-      iintro -
-      iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) [])
-      isplitl []
-      · simp only [pbLeaseLeasesResponse]
-        unfold leaseLeasesRespMsg hdrFull
-        isplitl []
-        · ipureintro; exact Hnn
-        iexists w.Header', w.Leases', []
-        iframe #
-        isplitl []
-        · ipureintro; exact Hhn
-        isplitl []
-        · ipureintro; rfl
-        iapply BigSepL.bigSepL_nil.2
-        itrivial
-      · iunfold etcdLeaseLeasesSpecAny at Hspec
-        iapply Hspec
-        ipureintro; exact List.nodup_nil
+      · ipureintro; exact Hnn
+      iexists w.Header', w.Leases', ps
+      iframe #
+      ipureintro; exact ⟨Hhn, Hlen⟩
+    · iunfold etcdLeaseLeasesSpecAny at Hspec
+      iapply Hspec
+      ipureintro; exact Hnd
   · imodintro
     iapply HΨ
     iframe HS Hrev HSe
@@ -279,6 +249,76 @@ theorem leaseLeasesReq_learnerOk (l : Loc) :
   v3rpc.learnerReqOk_ptr _ l (by
     simp [etcdserverpb.LeaseLeasesRequest.ty, etcdserverpb.RangeRequest.ty])
 
+/-- **etcd's `LeaseTimeToLive`, as grpc runs it, at a metadata-indexed spec** (auth-lease S4; as
+`etcd_leaseRevokeMethodOkMd`). -/
+theorem etcd_leaseTTLMethodOkMd (q : Loc)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse) (S : IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOkMd (q @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty @!! go!"LeaseTimeToLive")
+        iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOkMd (@! etcdserverpb._Lease_LeaseTimeToLive_Handler)
+        (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseTimeToLiveRequest) -∗
+      (pbLeaseTimeToLiveRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbLeaseTimeToLiveRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseTimeToLiveRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseTimeToLiveRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply leaseTTLReq_learnerOk
+  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseTimeToLive_Handler pbLeaseTimeToLiveRequest
+    pbLeaseTimeToLiveResponse Spec ⟨go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
+/-- **etcd's `LeaseLeases`, as grpc runs it, at a metadata-indexed spec** (as
+`etcd_leaseTTLMethodOkMd`). -/
+theorem etcd_leaseLeasesMethodOkMd (q : Loc)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse) (S : IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOkMd (q @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty @!! go!"LeaseLeases")
+        iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOkMd (@! etcdserverpb._Lease_LeaseLeases_Handler)
+        (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseLeasesRequest) -∗
+      (pbLeaseLeasesRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbLeaseLeasesRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseLeasesRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseLeasesRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply leaseLeasesReq_learnerOk
+  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseLeases_Handler pbLeaseLeasesRequest
+    pbLeaseLeasesResponse Spec ⟨go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
 /-- **etcd's `LeaseTimeToLive`, as grpc runs it** (as `etcd_leaseGrantMethodOk`). -/
 theorem etcd_leaseTTLMethodOk (q : Loc)
     (Spec : GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse) (S : IProp GF)
@@ -292,26 +332,11 @@ theorem etcd_leaseTTLMethodOk (q : Loc)
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
-  unfold grpcMethodOk
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
-  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseTimeToLiveRequest) -∗
-      (pbLeaseTimeToLiveRequest (GF := GF)).blank l) $$ []
-  · iintro !> %l Hl; simp only [pbLeaseTimeToLiveRequest]; iexact Hl
-  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseTimeToLiveRequest (GF := GF)).recv l m -∗
-      v3rpc.learnerReqOk
-        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseTimeToLiveRequest.ty) #l)) $$ []
-  · iintro !> %l -
-    iapply leaseTTLReq_learnerOk
-  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseTimeToLive_Handler pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse
-    Spec ⟨go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
-    $$ [HS HRs HSpec]
-  · iframe; iframe #
-  inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
-  iapply HΨ
-  iframe
+  iapply (grpcMethodOk_md _ _ _ _ _).2
+  iapply etcd_leaseTTLMethodOkMd
+  iframe #
+  iapply (grpcHandlerOk_md _ _ _).1
+  iexact Hh
 
 /-- **etcd's `LeaseLeases`, as grpc runs it** (as `etcd_leaseGrantMethodOk`). -/
 theorem etcd_leaseLeasesMethodOk (q : Loc)
@@ -326,26 +351,11 @@ theorem etcd_leaseLeasesMethodOk (q : Loc)
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
-  unfold grpcMethodOk
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
-  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseLeasesRequest) -∗
-      (pbLeaseLeasesRequest (GF := GF)).blank l) $$ []
-  · iintro !> %l Hl; simp only [pbLeaseLeasesRequest]; iexact Hl
-  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseLeasesRequest (GF := GF)).recv l m -∗
-      v3rpc.learnerReqOk
-        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseLeasesRequest.ty) #l)) $$ []
-  · iintro !> %l -
-    iapply leaseLeasesReq_learnerOk
-  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseLeases_Handler pbLeaseLeasesRequest pbLeaseLeasesResponse
-    Spec ⟨go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
-    $$ [HS HRs HSpec]
-  · iframe; iframe #
-  inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
-  iapply HΨ
-  iframe
+  iapply (grpcMethodOk_md _ _ _ _ _).2
+  iapply etcd_leaseLeasesMethodOkMd
+  iframe #
+  iapply (grpcHandlerOk_md _ _ _).1
+  iexact Hh
 
 /-- **etcd's lease reads** as registered: `LeaseTimeToLive` and `LeaseLeases`, the generated
 handlers of `Lease_ServiceDesc` with the `*quotaLeaseServer` `q`, with etcd's specs. -/
@@ -462,6 +472,332 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iapply BigSepL.bigSepL_nil.2
   itrivial
 
+
+/-- **etcd's `LeaseTimeToLive` handler meets `etcdLeaseTTLSpecMd`** (`grpcHandlerOkMd`; auth-lease S4,
+Freeze §4.1, any auth mode), over the lease-read contract at the run resource `S` and the revision
+reader `A.revR`: the call is made at the caller's lower bounds `n`, `m`; `LeaseServer.LeaseTimeToLive`'s
+answer (`leaseTTLOut`) carries the check relative to `n` on both arms (Freeze §10 T1), at the request
+context's token, which is the attempt's metadata's (`auth.ctxToken_of_ctxInMD`). -/
+theorem etcdLeaseTTLHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
+    (E : apply.AEnv GF) (γl : GName) (S : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLeaseRead s E γl S A.revR ⊢
+      grpcHandlerOkMd (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive")
+        iprop(S ∗ A.revR) (etcdLeaseTTLSpecMd s E γl) := by
+  iintro ⟨#Pv, #Hat, #HL⟩
+  unfold grpcHandlerOkMd grpcSpecAt etcdLeaseTTLSpecMd
+  iintro %req %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, #Hr, %md, #Hmd, ⟨#HΨe, %n, %m, #Hn, #Hm, Hk⟩⟩ HΨ
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
+  rw [show (pbLeaseTimeToLiveRequest (GF := GF)).recv r req =
+      iprop(∃ v : etcdserverpb.LeaseTimeToLiveRequest, r ↦□ v ∗ ⌜(v.ID', v.Keys') = req⌝) from rfl]
+  icases Hr with ⟨%v, #Hv, %Hvm⟩
+  subst Hvm
+  iapply wp_fupd
+  ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hnetc := netCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hcausec := ctxCauseOk_of_runCtx ci $$ Hrc
+  iapply (v3rpc.LeaseServer.wp_LeaseTimeToLive lp s A cid mid E γl S ci cd (auth.mdTokenOf md) r DFrac.discard v n m)
+    $$ [HS Hrev]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hrev, -, Hout, #HSe⟩
+  iunfold v3rpc.leaseTTLOut at Hout
+  icases Hout with (⟨%Hok, %w, Hw, %Hid, Hh, #Hauth, #Hchk, Harm⟩ | %Herr)
+  · ihave #Hf : □ (leaseTTLRow s γl -∗
+        (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+        lease.leaseAbsentFrom γl m v.ID') $$ [Harm]
+    · icases Harm with (#Hf | ⟨-, #Hnf⟩)
+      · iexact Hf
+      · iintro !> #Hrow
+        iright
+        iapply Hnf $$ Hrow
+    ihave %Hnn := typedPointsto_not_null $$ Hw
+    iunfold v3rpc.leaseHdrDone at Hh
+    icases Hh with ⟨Hfd, %dq, %rv, Hrv⟩
+    iunfold v3rpc.hdrFilled at Hfd
+    icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hl⟩
+    ipersist Hcid
+    ipersist Hmid
+    ipersist Ht
+    ipersist Hl
+    ipersist Hrv
+    iStructNamedSuffix Hw "_f"
+    ipersist Header_f
+    ipersist ID_f
+    ipersist TTL_f
+    ipersist GrantedTTL_f
+    ipersist Keys_f
+    imodintro
+    iapply HΨ
+    iframe HS Hrev HSe
+    isplitl
+    · iintro -
+      iexists (LeaseTTLRespM.mk (HdrM.mk cid mid rv t ld) w.ID' w.TTL' w.GrantedTTL')
+      isplitl []
+      · simp only [pbLeaseTimeToLiveResponse]
+        unfold leaseTTLRespMsg hdrFull
+        isplitl []
+        · ipureintro; exact Hnn
+        iexists w.Header', w.Keys'
+        iframe #
+        ipureintro; exact Hhn
+      · have hid' : (LeaseTTLRespM.mk (HdrM.mk cid mid rv t ld) w.ID' w.TTL' w.GrantedTTL').id =
+            (v.ID', v.Keys').1 := by
+          simp only; exact Hid
+        iapply Hk $$ %(LeaseTTLRespM.mk (HdrM.mk cid mid rv t ld) w.ID' w.TTL' w.GrantedTTL') %hid'
+          [] []
+        · simp only
+          rw [Hid]
+          iexact Hf
+        · iexact Hchk
+    · iintro -
+      iapply HΨe
+  · imodintro
+    iapply HΨ
+    iframe HS Hrev HSe
+    isplitl
+    · iintro %Hnil
+      exact absurd Hnil Herr.2
+    · iintro -
+      iapply HΨe
+
+/-- **etcd's `LeaseLeases` handler meets `etcdLeaseLeasesSpecMd`** (`grpcHandlerOkMd`; auth-lease S4,
+Freeze §4.2, any auth mode; as `etcdLeaseTTLHandlerOkMd`): the listing is the lessor's ids at an index
+`≥ m` (`leaseLeasesOut`'s; its empty-listing arm gone, Freeze §4.4 F4), with each lease's verdict at
+the attempt's token. -/
+theorem etcdLeaseLeasesHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
+    (E : apply.AEnv GF) (γl : GName) (S : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLeaseRead s E γl S A.revR ⊢
+      grpcHandlerOkMd (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseLeases")
+        iprop(S ∗ A.revR) (etcdLeaseLeasesSpecMd s E γl) := by
+  iintro ⟨#Pv, #Hat, #HL⟩
+  unfold grpcHandlerOkMd grpcSpecAt etcdLeaseLeasesSpecMd
+  iintro %req %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, %md, #Hmd, ⟨#HΨe, %n, %m, #Hn, #Hm, Hk⟩⟩ HΨ
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
+  iapply wp_fupd
+  ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
+  iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd (auth.mdTokenOf md) r n m) $$ [HS Hrev]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hrev, Hout, #HSe⟩
+  iunfold v3rpc.leaseLeasesOut at Hout
+  icases Hout with (⟨%Hok, %w, Hw, %i, %ids, %Hmi, #Hids, Hh, Hl, #Hchk⟩ | %Herr)
+  · ihave %Hnn := typedPointsto_not_null $$ Hw
+    iStructNamedSuffix Hw "_f"
+    ipersist Header_f
+    ipersist Leases_f
+    ihave %Hnd := lease.leaseIdsAt_nodup γl i ids $$ Hids
+    iunfold v3rpc.leasesHdrDone at Hh
+    icases Hh with ⟨Hfd, %dq, %rv, %log, Hrv, -, -⟩
+    iunfold v3rpc.hdrFilled at Hfd
+    icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hld⟩
+    ipersist Hcid
+    ipersist Hmid
+    ipersist Ht
+    ipersist Hld
+    ipersist Hrv
+    iunfold leasesListIs at Hl
+    icases Hl with ⟨%ps, Hsl, %Hlen, Hps⟩
+    ipersist Hsl
+    ihave Hps' : |==> [∗list] k ↦ x ∈ ps, iprop(∃ id : w64, ⌜ids[k]? = some id⌝ ∗
+        structFieldRef etcdserverpb.LeaseStatus go!"ID" x ↦□ id) $$ [Hps]
+    · iapply BigSepL.bigSepL_bupd
+      iapply (BigSepL.bigSepL_mono (fun {k x} _ => leaseStatus_persist x ids k)) $$ Hps
+    imod Hps' with #Hps'
+    imodintro
+    iapply HΨ
+    iframe HS Hrev HSe
+    isplitl
+    · iintro -
+      iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) ids)
+      isplitl []
+      · simp only [pbLeaseLeasesResponse]
+        unfold leaseLeasesRespMsg hdrFull
+        isplitl []
+        · ipureintro; exact Hnn
+        iexists w.Header', w.Leases', ps
+        iframe #
+        ipureintro; exact ⟨Hhn, Hlen⟩
+      · iapply Hk $$ %(LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) ids) %Hnd
+        iexists i
+        iframe Hids
+        isplitr
+        · ipureintro; exact Hmi
+        iexact Hchk
+    · iintro -
+      iapply HΨe
+  · imodintro
+    iapply HΨ
+    iframe HS Hrev HSe
+    isplitl
+    · iintro %Hnil
+      exact absurd Hnil Herr.2.1
+    · iintro -
+      iapply HΨe
+
+/-- **etcd's lease reads at the metadata-indexed specs** as registered (auth-lease S4, Freeze §4):
+`LeaseTimeToLive` and `LeaseLeases`, the generated handlers of `Lease_ServiceDesc` with the
+`*quotaLeaseServer` `q`, at `etcdLeaseTTLSpecMd`/`etcdLeaseLeasesSpecMd` over the server `s` and the
+lessor `γl`. -/
+def etcdLeaseReadMethodsMd (q s : Loc) (E : apply.AEnv GF) (γl : GName) : List (GrpcMethod GF) :=
+  [⟨go!"/etcdserverpb.Lease/LeaseTimeToLive", pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT,
+     etcdLeaseTTLSpecMd s E γl, (functions etcdserverpb._Lease_LeaseTimeToLive_Handler []),
+     interface.mkOk (go.GoType.PointerType
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q, pbLeaseTimeToLiveRequestT_reg, pbLeaseTimeToLiveResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Lease/LeaseLeases", pbLeaseLeasesRequestT, pbLeaseLeasesResponseT,
+     etcdLeaseLeasesSpecMd s E γl, (functions etcdserverpb._Lease_LeaseLeases_Handler []),
+     interface.mkOk (go.GoType.PointerType
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q, pbLeaseLeasesRequestT_reg, pbLeaseLeasesResponseT_reg⟩]
+
+/-- **The lease reads at the metadata-indexed specs as grpc runs them, at the KV's run slot with the
+level-0 token** (auth-lease S4; as `etcd_leaseReadMethodsOk`, without the lower bounds, which the
+specs' callers supply). -/
+theorem etcd_leaseReadMethodsOkMd (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
+    (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (il im iu : GoFunc)
+    (hA : A.revR = mvcc.api.mvccReaders E.γ 1) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗
+        v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ levelTok 0) (mvcc.api.mvccReaders E.γ 1) ∗
+        v3rpc.quotaLeaseServerAt q
+          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
+        srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
+        srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ⊢
+      [∗list] m ∈ etcdLeaseReadMethodsMd q s E γl,
+        grpcMethodOkMd #m.handler m.srv [il, im, iu] iprop(etcdGrpcSlot s E γr ∗ levelTok 0) m.spec := by
+  iintro ⟨#Pv, #Hat, #HL0, #Hq, #Hil, #Him, #Hiu⟩
+  ihave #HL : v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ levelTok 0) A.revR $$ []
+  · rw [hA]; iexact HL0
+  have h1 : iprop(((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ levelTok 0) ∗
+        [∗list] R ∈ etcdIcRs s, R) ⊢
+      iprop(((E.RD ∗ levelTok 0) ∗ A.revR) ∗
+        (srvLeadTimeReader s ∗ srvReadReader s γr ∗ srvBemuReader s ∗
+          [∗list] R ∈ etcdIcRs s, R)) := by
+    rw [hA]; unfold etcdKVSlot
+    iintro ⟨⟨⟨⟨Hlt, Hst, Hrr, Hrd⟩, Hbe⟩, Ht⟩, HRs⟩
+    iframe
+  have h2 : iprop(((E.RD ∗ levelTok 0) ∗ A.revR) ∗
+        (srvLeadTimeReader s ∗ srvReadReader s γr ∗ srvBemuReader s ∗
+          [∗list] R ∈ etcdIcRs s, R)) ⊢
+      iprop(((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ levelTok 0) ∗
+        [∗list] R ∈ etcdIcRs s, R) := by
+    rw [hA]; unfold etcdKVSlot
+    iintro ⟨⟨⟨Hrd, Ht⟩, Hst⟩, Hlt, Hrr, Hbe, HRs⟩
+    iframe
+  have h3 : iprop(etcdGrpcSlot s E γr ∗ levelTok 0) ⊢
+      iprop((((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ levelTok 0) ∗
+        [∗list] R ∈ etcdIcRs s, R) ∗ True) := by
+    unfold etcdGrpcSlot
+    iintro ⟨⟨Hrs, HRs⟩, Ht⟩
+    iframe
+  have h4 : iprop((((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ levelTok 0) ∗
+        [∗list] R ∈ etcdIcRs s, R) ∗ True) ⊢ iprop(etcdGrpcSlot s E γr ∗ levelTok 0) := by
+    unfold etcdGrpcSlot
+    iintro ⟨⟨⟨Hrs, Ht⟩, HRs⟩, -⟩
+    iframe
+  ihave #Ht := etcdLeaseTTLHandlerOkMd lp s A cid mid E γl iprop(E.RD ∗ levelTok 0) $$ []
+  · iframe #
+  ihave #Hl := etcdLeaseLeasesHandlerOkMd lp s A cid mid E γl iprop(E.RD ∗ levelTok 0) $$ []
+  · iframe #
+  ihave #Ht' := grpcHandlerOkMd_slot _ _ _ _ (etcdLeaseTTLSpecMd s E γl) h1 h2 $$ Ht
+  ihave #Hl' := grpcHandlerOkMd_slot _ _ _ _ (etcdLeaseLeasesSpecMd s E γl) h1 h2 $$ Hl
+  ihave #Hqt := v3rpc.quotaLease_ttlHandlerOkMd (etcdLeaseTTLSpecMd s E γl) q s
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩
+    iprop(((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ levelTok 0) ∗ [∗list] R ∈ etcdIcRs s, R)
+    $$ [Hq Ht']
+  · iframe #
+  ihave #Hql := v3rpc.quotaLease_leasesHandlerOkMd (etcdLeaseLeasesSpecMd s E γl) q s
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩
+    iprop(((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ levelTok 0) ∗ [∗list] R ∈ etcdIcRs s, R)
+    $$ [Hq Hl']
+  · iframe #
+  ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
+  · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
+    iframe #
+  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+  · iPkgInit
+  ihave #Hmt := etcd_leaseTTLMethodOkMd q _ iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ levelTok 0)
+    _ (etcdIcRs s) $$ [Hqt Ppb Hics]
+  · iframe #
+  ihave #Hml := etcd_leaseLeasesMethodOkMd q _ iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ levelTok 0)
+    _ (etcdIcRs s) $$ [Hql Ppb Hics]
+  · iframe #
+  ihave #Hmt'' := grpcMethodOkMd_slot _ _ _ _ iprop(etcdGrpcSlot s E γr ∗ levelTok 0) _ _ h3 h4 $$ Hmt
+  ihave #Hml'' := grpcMethodOkMd_slot _ _ _ _ iprop(etcdGrpcSlot s E γr ∗ levelTok 0) _ _ h3 h4 $$ Hml
+  unfold etcdLeaseReadMethodsMd
+  iapply bigSepL_cons_intro'
+  isplitl []
+  · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbLeaseTimeToLiveRequest)
+          (Rep := pbLeaseTimeToLiveResponse) (@! etcdserverpb._Lease_LeaseTimeToLive_Handler)
+          (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q) [il, im, iu]
+          iprop(etcdGrpcSlot s E γr ∗ levelTok 0) (etcdLeaseTTLSpecMd s E γl))
+    iexact Hmt''
+  iapply bigSepL_cons_intro'
+  isplitl []
+  · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbLeaseLeasesRequest)
+          (Rep := pbLeaseLeasesResponse) (@! etcdserverpb._Lease_LeaseLeases_Handler)
+          (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q) [il, im, iu]
+          iprop(etcdGrpcSlot s E γr ∗ levelTok 0) (etcdLeaseLeasesSpecMd s E γl))
+    iexact Hml''
+  iapply BigSepL.bigSepL_nil.2
+  itrivial
+
+/-- **etcd's lease reads served at the metadata-indexed specs** (`etcd_lease_read_served`; auth-lease
+S4, Freeze §4.3, rev 2's R2): the read handlers registered at `etcdLeaseTTLSpecMd`/`etcdLeaseLeasesSpecMd`,
+at any auth mode (nothing in the handler path uses the mode) and at the lease-read contract's lessor `γl`.
+The auth-off `etcd_leaseReadMethodsOk`'s specs (`etcdLeaseTTLSpec`, `etcdLeaseLeasesSpecAny`) stay
+proved on their own. -/
+theorem etcd_lease_read_served (addr : GoString) (ql pl s : Loc) (A : v3rpc.KVAns GF)
+    (lcid lmid : w64) (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (il im iu : GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface)) (γ : GName)
+    (hA : A.revR = mvcc.api.mvccReaders E.γ 1)
+    (hregs : ∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) (HL : srvLevels (GF := GF)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      v3rpc.quotaLeaseServerAt ql
+        ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩ s ∗
+      v3rpc.leaseServerAt pl s A lcid lmid ∗
+      v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ levelTok 0) (mvcc.api.mvccReaders E.γ 1) ∗
+      srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗ srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+      grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+    |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecMd s E γl) ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecMd s E γl) := by
+  iintro ⟨#Pv, -, #Hq, #Hat, #HL0, #Hil, #Him, #Hiu, #Hsa, #Hb, #Hrpl⟩
+  ihave #Hms := etcd_leaseReadMethodsOkMd pl ql s A lcid lmid E γr γl il im iu hA $$ []
+  · iframe #
+  have h1 : srvRunBundle s E γr ⊢ iprop(etcdGrpcSlot s E γr ∗ levelTok 0) ∗ iprop(True) := by
+    iintro H
+    ihave H := (etcdGrpcSlot_bundle s E γr).1 $$ H
+    iframe
+  have h2 : iprop(etcdGrpcSlot s E γr ∗ levelTok 0) ∗ iprop(True) ⊢ srvRunBundle s E γr := by
+    iintro ⟨H, -⟩
+    iapply (etcdGrpcSlot_bundle s E γr).2
+    iexact H
+  ihave #Hks := srvRunOks_of_slot s E γr [il, im, iu] iprop(etcdGrpcSlot s E γr ∗ levelTok 0)
+      iprop(True) h1 h2 HL (etcdLeaseReadMethodsMd ql s E γl) $$ []
+  · iframe #
+  imod (grpc.serve addr [il, im, iu] regs (etcdLeaseReadMethodsMd ql s E γl) γ
+    (by
+      intro x hx
+      apply hregs
+      simp only [etcdLeaseReadMethodsMd, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
+      rcases hx with rfl | rfl <;> simp [v3rpc.leaseRegs])) $$ [] with Hrpcs
+  · iframe #
+  simp only [etcdLeaseReadMethodsMd, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT,
+    pbLeaseLeasesRequestT, pbLeaseLeasesResponseT]
+  icases Hrpcs with ⟨#H1, #H2, -⟩
+  imodintro
+  iframe #
 
 end served
 

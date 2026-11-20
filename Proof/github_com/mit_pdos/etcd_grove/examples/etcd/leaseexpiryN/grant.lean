@@ -9,6 +9,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.grant
 public import Perennial.Spec.context.Background
+public import Proof.go_etcd_io.etcd.client.v3.LessorPlain
 
 @[expose] public section
 
@@ -37,6 +38,7 @@ theorem grant.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Grant : lessor.Grant.spec (GF := GF) (hG := hG)) :
     grant.spec (GF := GF) (hG := hG) := by
+  have wp_Grant := lessor.Grant.specP_of wp_Grant
   intro CRE CEC cl eps V Spec Q
   wp_start as ⟨#Hnc, #Hrpc, #HS, %hAs⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []

@@ -102,13 +102,12 @@ theorem raft.maybeSendSnapshot.wp_proof
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
   have wp_raft_send := raft.send.untraced wp_raft_send
-  intro c r id s to pr Hto Hprto Htz Htr
+  intro c r id s to pr Hto Hprto Hns Htz Htr
   wp_start as H
   iNamed H
   -- (U8 v2) the no-snapshot mode is off at raft's level, and the log's storage names are the ghost
   -- state's (`ownRaftPhysC_sn`)
   icases ownRaftPhysC_sn c r id s $$ Hphys with ⟨%Hnsn, Hphys⟩
-  have Hns := Hnsn.1
   -- `isInitialized_access` hands the globals out; the `raftLog.snapshot` call below
   -- consumes `ErrSnapUnavail`'s points-to, and the
   -- `err == ErrSnapshotTemporarilyUnavailable` test afterwards needs it again: it is

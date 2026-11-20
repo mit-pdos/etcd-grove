@@ -357,6 +357,8 @@ public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec_
 public import Proof.google_golang_org.protobuf.proto.MarshalAppendPb
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
+public import Proof.google_golang_org.protobuf.proto.MarshalRole
+public import Proof.google_golang_org.protobuf.proto.MarshalUser
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.google_golang_org.protobuf.proto.SizeMessage
 public import Proof.google_golang_org.protobuf.proto.UnmarshalPb
@@ -481,11 +483,31 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeDeleteLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__BatchTx
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__CreateAuthBuckets
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ForceCommit
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetAllRoles
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetAllUsers
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetRole
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ReadTx
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__Lock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__Unlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeDeleteRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeDeleteUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetAllRoles
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetAllUsers
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafePutRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafePutUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeReadAuthEnabled
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeReadAuthRevision
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeSaveAuthEnabled
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeSaveAuthRevision
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__RLock
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__RUnlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetAllUsers
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetRole
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthEnabled
@@ -493,6 +515,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeR
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustDeleteMemberFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustReadMembersFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustSaveMemberToBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetAllRoles
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetAllUsers
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetRole
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthEnabled
@@ -1257,10 +1281,6 @@ theorem io.PipeWriter.wp_CloseWithError :
     io.PipeWriter.CloseWithError.spec (GF := GF) (hG := hG) :=
   io.PipeWriter.CloseWithError.wp_proof
 
-theorem snap.Message.wp_GetTo :
-    snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
-  snap.Message.GetTo.wp_proof
-
 theorem snap.Message.wp_CloseNotify :
     snap.Message.CloseNotify.spec (GF := GF) (hG := hG) :=
   snap.Message.CloseNotify.wp_proof
@@ -1461,6 +1481,14 @@ theorem lease.lessor.wp_Demote :
     lease.lessor.Demote.spec (GF := GF) (hG := hG) :=
   lease.lessor.Demote.wp_proof
 
+theorem proto.wp_MarshalRole :
+    proto.MarshalRole.spec (GF := GF) (hG := hG) :=
+  proto.MarshalRole.wp_proof
+
+theorem proto.wp_MarshalUser :
+    proto.MarshalUser.spec (GF := GF) (hG := hG) :=
+  proto.MarshalUser.wp_proof
+
 theorem proto.wp_UnmarshalRole :
     proto.UnmarshalRole.spec (GF := GF) (hG := hG) :=
   proto.UnmarshalRole.wp_proof
@@ -1473,6 +1501,38 @@ theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
   schema.UnsafeUpdateConsistentIndexForce.wp_proof schema.wp_unsafeUpdateConsistentIndex
 
+theorem schema.authBackend.wp_BatchTx :
+    schema.authBackend.BatchTx.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.BatchTx.wp_proof
+
+theorem schema.authBackend.wp_CreateAuthBuckets :
+    schema.authBackend.CreateAuthBuckets.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.CreateAuthBuckets.wp_proof
+
+theorem schema.authBackend.wp_ForceCommit :
+    schema.authBackend.ForceCommit.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.ForceCommit.wp_proof
+
+theorem schema.authBatchTx.wp_Lock :
+    schema.authBatchTx.Lock.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.Lock.wp_proof
+
+theorem schema.wp_unsafeGetAllRoles :
+    schema.unsafeGetAllRoles.spec (GF := GF) (hG := hG) :=
+  schema.unsafeGetAllRoles.wp_proof proto.wp_UnmarshalRole
+
+theorem schema.authBatchTx.wp_UnsafeGetAllRoles :
+    schema.authBatchTx.UnsafeGetAllRoles.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeGetAllRoles.wp_proof schema.wp_unsafeGetAllRoles
+
+theorem schema.authBatchTx.wp_Unlock :
+    schema.authBatchTx.Unlock.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.Unlock.wp_proof
+
+theorem schema.authBackend.wp_GetAllRoles :
+    schema.authBackend.GetAllRoles.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.GetAllRoles.wp_proof schema.authBackend.wp_BatchTx schema.authBatchTx.wp_Lock schema.authBatchTx.wp_UnsafeGetAllRoles schema.authBatchTx.wp_Unlock
+
 theorem schema.authBackend.wp_ReadTx :
     schema.authBackend.ReadTx.spec (GF := GF) (hG := hG) :=
   schema.authBackend.ReadTx.wp_proof
@@ -1481,6 +1541,22 @@ theorem schema.authReadTx.wp_RLock :
     schema.authReadTx.RLock.spec (GF := GF) (hG := hG) :=
   schema.authReadTx.RLock.wp_proof
 
+theorem schema.wp_unsafeGetAllUsers :
+    schema.unsafeGetAllUsers.spec (GF := GF) (hG := hG) :=
+  schema.unsafeGetAllUsers.wp_proof proto.wp_UnmarshalUser
+
+theorem schema.authReadTx.wp_UnsafeGetAllUsers :
+    schema.authReadTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeGetAllUsers.wp_proof schema.wp_unsafeGetAllUsers
+
+theorem schema.authReadTx.wp_RUnlock :
+    schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.RUnlock.wp_proof
+
+theorem schema.authBackend.wp_GetAllUsers :
+    schema.authBackend.GetAllUsers.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.GetAllUsers.wp_proof schema.authBackend.wp_ReadTx schema.authReadTx.wp_RLock schema.authReadTx.wp_UnsafeGetAllUsers schema.authReadTx.wp_RUnlock
+
 theorem schema.wp_unsafeGetRole :
     schema.unsafeGetRole.spec (GF := GF) (hG := hG) :=
   schema.unsafeGetRole.wp_proof proto.wp_UnmarshalRole
@@ -1488,10 +1564,6 @@ theorem schema.wp_unsafeGetRole :
 theorem schema.authReadTx.wp_UnsafeGetRole :
     schema.authReadTx.UnsafeGetRole.spec (GF := GF) (hG := hG) :=
   schema.authReadTx.UnsafeGetRole.wp_proof schema.wp_unsafeGetRole
-
-theorem schema.authReadTx.wp_RUnlock :
-    schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG) :=
-  schema.authReadTx.RUnlock.wp_proof
 
 theorem schema.authBackend.wp_GetRole :
     schema.authBackend.GetRole.spec (GF := GF) (hG := hG) :=
@@ -1509,17 +1581,61 @@ theorem schema.authBackend.wp_GetUser :
     schema.authBackend.GetUser.spec (GF := GF) (hG := hG) :=
   schema.authBackend.GetUser.wp_proof schema.authBackend.wp_ReadTx schema.authReadTx.wp_RLock schema.authReadTx.wp_UnsafeGetUser schema.authReadTx.wp_RUnlock
 
+theorem schema.authBatchTx.wp_UnsafeDeleteRole :
+    schema.authBatchTx.UnsafeDeleteRole.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeDeleteRole.wp_proof
+
+theorem schema.authBatchTx.wp_UnsafeDeleteUser :
+    schema.authBatchTx.UnsafeDeleteUser.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeDeleteUser.wp_proof
+
+theorem schema.authBatchTx.wp_UnsafeGetAllUsers :
+    schema.authBatchTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeGetAllUsers.wp_proof schema.wp_unsafeGetAllUsers
+
+theorem schema.authBatchTx.wp_UnsafeGetRole :
+    schema.authBatchTx.UnsafeGetRole.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeGetRole.wp_proof schema.wp_unsafeGetRole
+
+theorem schema.authBatchTx.wp_UnsafeGetUser :
+    schema.authBatchTx.UnsafeGetUser.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeGetUser.wp_proof schema.wp_unsafeGetUser
+
+theorem schema.authBatchTx.wp_UnsafePutRole :
+    schema.authBatchTx.UnsafePutRole.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafePutRole.wp_proof proto.wp_MarshalRole
+
+theorem schema.authBatchTx.wp_UnsafePutUser :
+    schema.authBatchTx.UnsafePutUser.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafePutUser.wp_proof proto.wp_MarshalUser
+
 theorem schema.wp_unsafeReadAuthEnabled :
     schema.unsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
   schema.unsafeReadAuthEnabled.wp_proof
 
-theorem schema.authReadTx.wp_UnsafeReadAuthEnabled :
-    schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
-  schema.authReadTx.UnsafeReadAuthEnabled.wp_proof schema.wp_unsafeReadAuthEnabled
+theorem schema.authBatchTx.wp_UnsafeReadAuthEnabled :
+    schema.authBatchTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeReadAuthEnabled.wp_proof schema.wp_unsafeReadAuthEnabled
 
 theorem schema.wp_unsafeReadAuthRevision :
     schema.unsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
   schema.unsafeReadAuthRevision.wp_proof binary.bigEndian.wp_Uint64
+
+theorem schema.authBatchTx.wp_UnsafeReadAuthRevision :
+    schema.authBatchTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeReadAuthRevision.wp_proof schema.wp_unsafeReadAuthRevision
+
+theorem schema.authBatchTx.wp_UnsafeSaveAuthEnabled :
+    schema.authBatchTx.UnsafeSaveAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeSaveAuthEnabled.wp_proof
+
+theorem schema.authBatchTx.wp_UnsafeSaveAuthRevision :
+    schema.authBatchTx.UnsafeSaveAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeSaveAuthRevision.wp_proof binary.bigEndian.wp_PutUint64
+
+theorem schema.authReadTx.wp_UnsafeReadAuthEnabled :
+    schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeReadAuthEnabled.wp_proof schema.wp_unsafeReadAuthEnabled
 
 theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
     schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
@@ -1744,13 +1860,13 @@ theorem EtcdServer.wp_LeaderChanged :
     EtcdServer.LeaderChanged.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaderChanged.wp_proof notify.Notifier.wp_Receive
 
-theorem EtcdServer.wp_requireAuthInfo :
-    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
+theorem EtcdServer.wp_requireAuthInfoC :
+    EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtx
 
 theorem EtcdServer.wp_LeaseGrant :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseGrant.wp_proof idutil.Generator.wp_Next EtcdServer.wp_requireAuthInfo EtcdServer.wp_raftRequest LeaseGrantRequest.wp_GetTTL traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
+  EtcdServer.LeaseGrant.wp_proof idutil.Generator.wp_Next EtcdServer.wp_requireAuthInfoC EtcdServer.wp_raftRequest LeaseGrantRequest.wp_GetTTL traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
 
 theorem EtcdServer.wp_checkLeaseLeases :
     EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) :=
@@ -1806,7 +1922,7 @@ theorem EtcdServer.wp_LeaseRenew :
 
 theorem EtcdServer.wp_LeaseRevoke :
     EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseRevoke.wp_proof EtcdServer.wp_requireAuthInfo EtcdServer.wp_raftRequest LeaseRevokeRequest.wp_GetID traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
+  EtcdServer.LeaseRevoke.wp_proof EtcdServer.wp_requireAuthInfoC EtcdServer.wp_raftRequest LeaseRevokeRequest.wp_GetID traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64
 
 theorem EtcdServer.wp_checkLeaseTimeToLive :
     EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG) :=
@@ -1818,15 +1934,11 @@ theorem EtcdServer.wp_leaseTimeToLive :
 
 theorem EtcdServer.wp_LeaseTimeToLive :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseTimeToLive.wp_proof EtcdServer.wp_requireAuthInfo EtcdServer.wp_checkLeaseTimeToLive EtcdServer.wp_leaseTimeToLive EtcdServer.wp_AuthStore
+  EtcdServer.LeaseTimeToLive.wp_proof EtcdServer.wp_requireAuthInfoC EtcdServer.wp_checkLeaseTimeToLive EtcdServer.wp_leaseTimeToLive EtcdServer.wp_AuthStore
 
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
-
-theorem EtcdServer.wp_requireAuthInfoC :
-    EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtx
 
 theorem EtcdServer.wp_MemberList :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) :=
@@ -2480,6 +2592,10 @@ theorem EtcdServer.wp_createMergedSnapshotMessage :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
   EtcdServer.createMergedSnapshotMessage.wp_proof EtcdServer.wp_Logger EtcdServer.wp_KV wp_newSnapshotReaderCloser proto.wp_CloneConfState backend.snapshot.wp_Size snap.wp_NewMessage
 
+theorem snap.Message.wp_GetTo :
+    snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
+  snap.Message.GetTo.wp_proof
+
 theorem EtcdServer.wp_sendMergedSnap :
     EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=
   EtcdServer.sendMergedSnap.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID types.ID.wp_String zap.wp_String snap.Message.wp_GetTo zap.wp_Int64 go_humanize.wp_Bytes zap.Logger.wp_Info EtcdServer.wp_GoAttach snap.Message.wp_CloseNotify zap.wp_Duration zap.Logger.wp_Warn
@@ -2635,6 +2751,10 @@ theorem EtcdServer.wp_UserRevokeRole :
 theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
+
+theorem EtcdServer.wp_requireAuthInfo :
+    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
 
 theorem v3alarm.wp_NewAlarmStore :
     v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG) :=

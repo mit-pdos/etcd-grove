@@ -165,6 +165,13 @@ def mvcc.revLockW (s : Loc) (q : Qp) (RevP RevK : IProp GF) : IProp GF :=
               (intoVal ()))
             {{ Ψ }})
 
+theorem mvcc.winMove_dels_take {w : Option lease.LWin} {ilog : mvcc.Log} {pend : List mvcc.Change}
+    {ks : List GoString} {j : Nat} {kj : GoString} (h : lease.winMove w (mvcc.pendItems ilog pend)
+    (mvcc.pendItems ilog (pend ++ List.map mvcc.Change.del ks))) (hkj : ks[j]? = some kj) :
+    lease.winMove w (mvcc.pendItems ilog (pend ++ List.map mvcc.Change.del (List.take j ks)))
+    (mvcc.pendItems ilog (pend ++ List.map mvcc.Change.del (List.take j ks) ++ [mvcc.Change.del
+    kj]))
+
 theorem mvcc.revMuInv_open (s : Loc) (γ : mvcc.StoreNames) (q : Qp) (dq : DFrac) : mvcc.revMuInv s γ
     q ∗ dghostVar γ.rst dq false ⊢ (∃ γp, mvcc.revMuBodyL s γ γp q ∗ mvcc.revMuTok γ γp q) ∗
     dghostVar γ.rst dq false
@@ -2178,11 +2185,11 @@ def mvcc.isLessor (le : GoInterface) (γl : GName) : IProp GF :=
       ⌜le = lease.lessorIface lp⌝ ∗
         lease.lessorPin γl lp ∗
           (□
-              ∀ item L I,
+              ∀ item L I w,
                 □
                   ∀ Φ,
-                    lease.lessorRd lp γl ∗ lease.leaseOwn γl L I -∗
-                      ▷ (lease.lessorRd lp γl ∗ lease.leaseOwn γl L I -∗ Φ (intoVal ((I !! item).getD (W64 0)))) -∗
+                    lease.lessorRd lp γl ∗ lease.leaseOwnW γl L I w -∗
+                      ▷ (lease.lessorRd lp γl ∗ lease.leaseOwnW γl L I w -∗ Φ (intoVal ((I !! item).getD (W64 0)))) -∗
                         WP
                           ((intoVal
                               (methods go_etcd_io.etcd.server.v3.lease.lessor.ty.PointerType
@@ -2190,18 +2197,19 @@ def mvcc.isLessor (le : GoInterface) (γl : GName) : IProp GF :=
                             (intoVal item))
                           {{ Φ }}) ∗
             (□
-                ∀ id items l dq L I,
+                ∀ id items l dq L I w,
                   □
                     ∀ Φ,
-                      lease.leaseOwn γl L I ∗
-                          ⌜id ∈ L⌝ ∗
-                            ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem),
-                                  it ∈ l → I !! it = none ∨ I !! it = some id⌝ ∗
+                      lease.leaseOwnW γl L I w ∗
+                          ⌜lease.winStep w I (lease.insertAll I l id)⌝ ∗
+                            ⌜id ∈ L⌝ ∗
                               ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem),
-                                    it ∈ l → ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
-                                ownSlice items l dq -∗
+                                    it ∈ l → I !! it = none ∨ I !! it = some id⌝ ∗
+                                ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem),
+                                      it ∈ l → ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
+                                  ownSlice items l dq -∗
                         ▷
-                            (lease.leaseOwn γl L (lease.insertAll I l id) ∗ ownSlice items l dq -∗
+                            (lease.leaseOwnW γl L (lease.insertAll I l id) w ∗ ownSlice items l dq -∗
                               Φ (intoVal GoInterface.nil)) -∗
                           WP
                             (((intoVal
@@ -2211,15 +2219,16 @@ def mvcc.isLessor (le : GoInterface) (γl : GName) : IProp GF :=
                               (intoVal items))
                             {{ Φ }}) ∗
               (□
-                  ∀ id items l dq L I,
+                  ∀ id items l dq L I w,
                     □
                       ∀ Φ,
-                        lease.leaseOwn γl L I ∗
-                            ⌜l ≠ []⌝ ∗
-                              ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem), it ∈ l → I !! it = some id⌝ ∗
-                                ownSlice items l dq -∗
+                        lease.leaseOwnW γl L I w ∗
+                            ⌜lease.winStep w I (lease.deleteAll I l)⌝ ∗
+                              ⌜l ≠ []⌝ ∗
+                                ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem), it ∈ l → I !! it = some id⌝ ∗
+                                  ownSlice items l dq -∗
                           ▷
-                              (lease.leaseOwn γl L (lease.deleteAll I l) ∗ ownSlice items l dq -∗
+                              (lease.leaseOwnW γl L (lease.deleteAll I l) w ∗ ownSlice items l dq -∗
                                 Φ (intoVal GoInterface.nil)) -∗
                             WP
                               (((intoVal
@@ -2869,8 +2878,9 @@ def mvcc.kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
 def mvcc.bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
     (fun x =>
-      ((x.dls, x.fkd, x.dbf, x.rq), x.rbD, x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist,
-        x.cached, x.cur, x.hook, x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
+      ((x.dls, x.fkd, x.dbf, x.rq, x.rbr, x.rbc), x.rbD, x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view,
+        x.rd, x.hist, x.cached, x.cur, x.hook, x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls,
+        x.sdn, x.stk))
     (fun pr0 =>
       have pr := pr0.snd;
       have r0' := pr.snd;
@@ -2894,7 +2904,8 @@ def mvcc.bNames_countable : Pos.Countable backend.BNames :=
         sdn := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         stk := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd, hkd := p.fst, rbk := q.fst,
         cln := q0.fst, dlg := r0.fst, dlb := r'.fst, fk := r.fst, fkv := r0'.fst, dbf := pr0.fst.snd.snd.fst,
-        rq := pr0.fst.snd.snd.snd, rbD := pr.fst, fkd := pr0.fst.snd.fst, dls := pr0.fst.fst })
+        rq := pr0.fst.snd.snd.snd.fst, rbD := pr.fst, fkd := pr0.fst.snd.fst, dls := pr0.fst.fst,
+        rbr := pr0.fst.snd.snd.snd.snd.fst, rbc := pr0.fst.snd.snd.snd.snd.snd })
     mvcc.bNames_countable._proof_1
 
 theorem mvcc.readerPool_checkin (γ : mvcc.StoreNames) (dq : DFrac) (o : mvcc.StoreObjs) : ⊢ £ 1 -∗
@@ -3488,6 +3499,11 @@ theorem mvcc.isTxn_trace_acc (mw s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (
 
 theorem mvcc.readerPool_withPhys (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : mvcc.readerPool
     (γ.withPhys p) = mvcc.readerPool γ
+
+theorem mvcc.winMove_dels_of_drops {w : Option lease.LWin} {ilog : mvcc.Log} {pend : List
+    mvcc.Change} {endNil : Bool} {k e : GoString} (h : lease.winDrops w (mvcc.pendItems ilog pend)
+    fun it => mvcc.delSel endNil k e it.Key') : lease.winMove w (mvcc.pendItems ilog pend)
+    (mvcc.pendItems ilog (pend ++ List.map mvcc.Change.del (mvcc.delKeys ilog pend endNil k e)))
 
 theorem mvcc.errorfIs_persistent (err : GoInterface) : Persistent (mvcc.errorfIs err)
 

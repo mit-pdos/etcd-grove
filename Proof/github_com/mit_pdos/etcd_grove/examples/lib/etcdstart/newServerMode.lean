@@ -60,7 +60,7 @@ theorem newServerMode.wp_proof
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
   iunfold memberBoot at Hmb
-  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
+  icases Hmb with ⟨%Hρ, %Hnsn, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg⟩ := Hρ
   -- the imports' package facts
@@ -89,7 +89,7 @@ theorem newServerMode.wp_proof
   have wpNS : NewServer.specG (GF := GF) (hG := hG) false cmp := wp_NewServer cmp
   simp only [NewServer.specG, kvInvM_false, srvErM_false, srvBuiltG_false, bootKVOf_false] at wpNS
   wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd lm hraft (by rw [hboot]; exact hrule) hc0 hch hlog hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd lm hraft (by rw [hboot]; exact hrule) (fun h => absurd h Hnsn) hc0 hch hlog hkcmp
       ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default Hmode (fun _ => trivial) hcmp0 hNx Htb Hrb48 HrbN
@@ -192,7 +192,7 @@ theorem newServerMode.wp_proofRestart
   -- the restarted incarnation's names, from the cluster's facts at the stopped ones
   imod (memberRestartFacts_alloc hne γ ρ id) $$ Hrfs with ⟨%ρ', %E₀, %Φs, %Hρ', Hmb⟩
   iunfold memberRestartBoot at Hmb
-  icases Hmb with ⟨%Hρ, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx, Hids, Hwtok, Hidx, Hcok, Hrev,
+  icases Hmb with ⟨%Hρ, %Hnsn, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx, Hids, Hwtok, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv⟩
   obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg⟩ := Hρ
   -- the stopped member's image, at its witnesses
@@ -219,7 +219,7 @@ theorem newServerMode.wp_proofRestart
   have wpNS : NewServer.specR (GF := GF) (hG := hG) := wp_NewServerR
   simp only [NewServer.specR, kvInvM_false, srvErM_false] at wpNS
   wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ρ' ρ E₀ N Φs γn dir .none S σ i A D mb Mr hraft Hρ' (by rw [hboot]; exact hrule) hc0 hch
+      γ id ρ' ρ E₀ N Φs γn dir .none S σ i A D mb Mr hraft Hρ' (by rw [hboot]; exact hrule) Hnsn hc0 hch
       hlog hkcmp ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ Hret) hcmp0 hNx Htb Hrb48 HrbN

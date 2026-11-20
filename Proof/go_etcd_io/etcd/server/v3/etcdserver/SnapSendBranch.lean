@@ -563,7 +563,7 @@ theorem mergedCreate_window
   iunfold srvBeHooked at Hbh
   icases Hbh with ⟨%B, %bh, %lgh, %gx, %Hd, -, #Hbhk, #HhkAt, #HB⟩
   obtain ⟨hBT, hcK, hhP, hPk⟩ := Hd
-  obtain ⟨-, -, γB, H, hRO, -, B', al, stl, lp, hBT', hγB, -⟩ := Henv
+  obtain ⟨-, -, -, γB, H, hRO, -, B', al, stl, lp, hBT', hγB, -⟩ := Henv
   have hBB' : B' = B := srvBkTie_inj B' B (hBT'.symm.trans hBT)
   subst B γB
   iunfold isServerCI at HCI
@@ -590,10 +590,7 @@ theorem mergedCreate_window
   -- the apply thread's KV resources
   iunfold srvApplyKVCore at HKV
   icases HKV with ⟨Hua, #Hap, Hakv, Hbo, Hra, Hw⟩
-  iunfold apply.applyKV at Hakv
-  icases Hakv with ⟨%p, %Hp, Hub, Hko, Hcmo⟩
-  iunfold apply.kvOwn at Hko
-  icases Hko with ⟨⟨%c, Hws⟩, Hkb, Hll, Hrd⟩
+  icases srvApplyKVW_open E ua x $$ Hakv with ⟨%p, %c, %Hp, Hub, Hws, Hkb, Hcmo, Hakv⟩
   iunfold apply.kvBk at Hkb
   icases Hkb with ⟨%B2, HmB, #Hhi, HtB⟩
   ihave %HB2 : ⌜B2 = B'⌝ $$ [HtB]
@@ -602,14 +599,14 @@ theorem mergedCreate_window
   iunfold apply.cmpOwn at Hcmo
   icases Hcmo with ⟨Hop, Hcr⟩
   -- the writer's half at the apply thread's compaction revision
-  iunfold srvApi.wSt at Hws
+  iunfold srvApi.wStQ at Hws
   icases Hws with ⟨Hws1, Hws2⟩
   iunfold srvApi.crOwn at Hcr
   icombine Hws2 Hcr gives %Hcc
   have hc : c = x.crev := Hcc.2
   subst hc
-  ihave Hws : srvApi.wSt (GF := GF) E.γs x.log x.crev $$ [Hws1 Hws2]
-  · iunfold srvApi.wSt; iframe Hws1 Hws2
+  ihave Hws : srvApi.wStQ (GF := GF) E.γs E.stq x.log x.crev $$ [Hws1 Hws2]
+  · iunfold srvApi.wStQ; iframe Hws1 Hws2
   iunfold srvBeOwn at Hbo
   icases Hbo with ⟨%d, %hd, Hbe, Hg, #HbRO, HbPl, Hrt⟩
   have hdB : d = B' := srvBkTie_inj d B' (hd.symm.trans hBT)
@@ -656,7 +653,7 @@ theorem mergedCreate_window
           (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         RL)) ∗
-      srvApi.wSt E.γs x.log x.crev))
+      srvApi.wStQ E.γs E.stq x.log x.crev))
   iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗ (backend.bOpen d.γB backend.rdOpen ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
           (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
@@ -667,7 +664,7 @@ theorem mergedCreate_window
         RL)) ∗
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)))
   iexists (fun D : backend.Data =>
-    iprop(srvApi.wSt (GF := GF) E.γs x.log x.crev ∗
+    iprop(srvApi.wStQ (GF := GF) E.γs E.stq x.log x.crev ∗
       mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
       ⌜∃ ra, QA ra ∧ ∀ n, SA n → D.lookup n = ra.lookup n⌝))
   isplitr
@@ -745,25 +742,15 @@ theorem mergedCreate_window
     iframe Hst Hab Hca Hmi
     isplitl [Hmr]
     · iunfold apply.applyTok; iframe Hmr
-    isplitl [Hua Hub Hop Hcr Hws Hll Hrd HmB Hrdt Hopn Hra Hw Hbe Hg HbPl]
+    isplitl [Hua Hub Hop Hcr Hws Hakv HmB Hrdt Hopn Hra Hw Hbe Hg HbPl]
     · iunfold srvApplyKVCore
       isplitl [Hua]
       · iexact Hua
       isplitr
       · iexact Hap
-      isplitl [Hub Hop Hcr Hws Hll Hrd HmB]
-      · iunfold apply.applyKV
-        iexists p
-        iframe Hub
-        isplitr
-        · ipureintro; exact Hp
-        isplitl [Hws Hll Hrd HmB]
-        · iunfold apply.kvOwn
-          iframe Hll Hrd
-          isplitl [Hws]
-          · iexists x.crev
-            iexact Hws
-          iunfold apply.kvBk
+      isplitl [Hub Hop Hcr Hws HmB Hakv]
+      · iapply Hakv $$ %x.crev Hub Hws [HmB] [Hop Hcr]
+        · iunfold apply.kvBk
           iexists d
           iframe HmB Hhi
           rw [hBT]
@@ -844,7 +831,7 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hki⟩
   iunfold srvKVInvs at Hki
-  icases Hki with ⟨#Hki, -, #Hrl, -, -, -, %Hlmk⟩
+  icases Hki with ⟨#Hki, -, #Hrl, -, -, -, %Hlmk, -⟩
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
   imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %hch
   imod (kvInv_authOn γr.raft γr.kv) $$ Hki with %hao

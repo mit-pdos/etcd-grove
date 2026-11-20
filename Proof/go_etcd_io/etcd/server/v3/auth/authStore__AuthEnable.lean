@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -231,9 +232,9 @@ theorem auth.authStore.AuthEnable.wp_tieB
     simp [authEnableF, hroot, hr]
   have Hfit := (Hstep.2.1 _ _ rfl hstep).1
   simp only [Bool.not_true]
-  (try wp_auto)
+  wp_take_receipt as Hrc
   wp_bind (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #true))
-  iapply HSaveEn $$ %st0 %Post %true HL
+  iapply HSaveEn $$ %st0 %Post %true [$HL $Hrc]
   inext
   iintro HL
   (try wp_auto)

@@ -37,7 +37,9 @@ no older than `m` (`leaseIdsAt`: all of them, each once), the response listing t
 header (`leasesRespIs`), and auth disabled at a state no older than `n`, or the request's principal
 an admin at one or allowed to read every key of each lease at an index no older than `i`, the
 listing's (`leaseKeysVerdictFrom`); on an error, no response and an error the gRPC layer can take,
-only with auth on (`checkLeaseLeases`' error; the lease-grant plan's amendment (F3)).
+only with auth on (`checkLeaseLeases`' error; the lease-grant plan's amendment (F3)), and never
+`lease.ErrLeaseNotFound` (an auth package error variable; auth-lease S4, Freeze §4.4 F4: so the gRPC
+handler's empty-listing arm is not reached).
 The ids are listed in the order of `Leases()`' sort (by remaining time: none stated). The revision
 re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
 abbrev EtcdServer.LeaseLeases.spec : Prop :=
@@ -57,7 +59,10 @@ abbrev EtcdServer.LeaseLeases.spec : Prop :=
           lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cid mid ids ∗
           leaseCheckFrom s E tok n (fun info => iprop([∗list] id ∈ ids,
             leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
-       (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err)) }}
+       (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ False))) }}
 
 end spec
 

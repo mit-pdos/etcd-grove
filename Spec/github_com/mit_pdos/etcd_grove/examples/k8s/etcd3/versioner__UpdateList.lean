@@ -1,8 +1,11 @@
 /- Lean-first (no Rocq counterpart).
 
 `versioner{}.UpdateList(obj, resourceVersion, continueValue, remainingItemCount)` (k8setcd3.go) on
-an `*ObjList`: the list's metadata becomes the arguments, its items unchanged. Proved (stage 7e-2,
-`notes/k8s-7e-2-draft.md` §6).
+an `*ObjList`: the list's metadata becomes the arguments (it touches no other field). Proved (stage
+7e-2, `notes/k8s-7e-2-draft.md` §6). The precondition holds the metadata fields only (`metaAtD`),
+weakened in place from the whole list (`listAtItems`, items included) in k8s 7g step 3, for the
+maintainers' checker's `Model.list`, whose items slice (`meta.SetList`'s) has no capacity
+ownership; the store's caller (`driver_listContractOk`) frames the items.
 -/
 module
 
@@ -28,16 +31,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev versioner.UpdateList.spec : Prop :=
-  ∀ (pl : Loc) (os : List (DObj × GoString)) (rv rv' : w64) (cont cont' : GoString) (rem : Loc)
-    (remV rem0 : Option w64),
+  ∀ (pl : Loc) (rv rv' : w64) (cont cont' : GoString) (rem : Loc) (remV rem0 : Option w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      (driverListSpec (GF := GF)).listAtItems pl os rv cont rem0 ∗ remIs rem remV }}
+      metaAtD (GF := GF) pl rv cont rem0 ∗ remIs rem remV }}
     (App (App (App (App (Val #(methods github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner.ty
       go!"UpdateList" #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner.mk)))
       (Val #(interface.mkOk (go.GoType.PointerType
         github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList.ty) #pl : GoInterface)))
       (Val #rv')) (Val #cont')) (Val #rem))
-  {{ RET #GoInterface.nil; (driverListSpec (GF := GF)).listAtItems pl os rv' cont' remV }}
+  {{ RET #GoInterface.nil; metaAtD (GF := GF) pl rv' cont' remV }}
 
 end spec
 

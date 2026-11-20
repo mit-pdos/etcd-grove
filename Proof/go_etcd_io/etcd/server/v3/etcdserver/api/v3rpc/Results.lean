@@ -388,15 +388,16 @@ theorem txn_end_to_end
 
 /-- **`put_end_to_end` in the server's auth mode** (the auth component's stage 4; `srvKVAnsM` at the
 caller's token): `put_end_to_end`'s, and with auth on the grant (`writeGrantOn`). Off it gives
-`put_end_to_end`. -/
-theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+`put_end_to_end`. Leases admitted with auth on at the
+revocable lease mode (`kvDepPreML`; auth-lease S4 item 5). -/
+theorem put_end_to_endML (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (cid mid n : w64) (ctx : GoInterface) (tok : Option GoString) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
         kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ∗
         srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txn.putRequestIs r o ∗ kvDepOwnM E.authOn s E ρ γr tok d ∗
-        ⌜kvDepPreM E.authOn d (.put o)⌝ ∗
+        ⌜kvDepPreML E.authOn ρ.kv.lm d (.put o)⌝ ∗
         □ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
         (Val #r))
@@ -438,6 +439,36 @@ theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
     iexists e
     iexact HA
 
+/-- `put_end_to_endML`'s at a request of `kvDepPreM` (no lease, plain transactions). -/
+theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (cid mid n : w64) (ctx : GoInterface) (tok : Option GoString) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txn.putRequestIs r o ∗ kvDepOwnM E.authOn s E ρ γr tok d ∗
+        ⌜kvDepPreM E.authOn d (.put o)⌝ ∗
+        □ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok) }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (match putCheck o with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr tok d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
+              hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗ srvRdCall s E γr c ∗
+              putAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
+              (⌜E.authOn = true⌝ → writeGrantOn s E ρ tok (irrPut o))) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ putErrOk s E ρ F o e)) ∗
+        go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
+  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre, #HtokC⟩ HΦ
+  iapply (put_end_to_endML p s E ρ γr c cid mid n ctx tok r o F d na) $$ [Hc Hc0 Hdep] HΦ
+  iframe #
+  iframe Hc Hc0 Hdep
+  ipureintro; first | exact kvDepPreML_of_M _ _ _ _ Hpre | exact ⟨Hany, kvDepPreML_of_M _ _ _ _ Hpre⟩ | exact ⟨Hin, kvDepPreML_of_M _ _ _ _ Hpre⟩ | exact ⟨Hany, Hin, kvDepPreML_of_M _ _ _ _ Hpre⟩
+
 /-- **`deleteRange_end_to_end` in the server's auth mode** (`put_end_to_endM`'s, for
 `DeleteRange`). -/
 theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
@@ -469,7 +500,7 @@ theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
   iapply (kvServer.wp_DeleteRange p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
   · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna HtokC; ipureintro
-    first | exact ⟨trivial, Hpre⟩ | exact ⟨fun _ => rfl, trivial, Hpre⟩ | exact ⟨trivial, trivial, Hpre⟩ | exact ⟨fun _ => trivial, trivial, Hpre⟩
+    first | exact ⟨trivial, (kvDepPreML_of_M _ _ _ _ Hpre)⟩ | exact ⟨fun _ => rfl, trivial, (kvDepPreML_of_M _ _ _ _ Hpre)⟩ | exact ⟨trivial, trivial, (kvDepPreML_of_M _ _ _ _ Hpre)⟩ | exact ⟨fun _ => trivial, trivial, (kvDepPreML_of_M _ _ _ _ Hpre)⟩
   inext
   iintro %resp %err ⟨Hpost, #HSe⟩
   iapply HΦ
@@ -522,7 +553,7 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
   iapply (kvServer.wp_Range p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
   · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna HtokC; ipureintro
-    first | exact ⟨trivial, Hpre⟩ | exact ⟨fun _ => rfl, trivial, Hpre⟩ | exact ⟨trivial, trivial, Hpre⟩ | exact ⟨fun _ => trivial, trivial, Hpre⟩
+    first | exact ⟨trivial, (kvDepPreML_of_M _ _ _ _ Hpre)⟩ | exact ⟨fun _ => rfl, trivial, (kvDepPreML_of_M _ _ _ _ Hpre)⟩ | exact ⟨trivial, trivial, (kvDepPreML_of_M _ _ _ _ Hpre)⟩ | exact ⟨fun _ => trivial, trivial, (kvDepPreML_of_M _ _ _ _ Hpre)⟩
   inext
   iintro %resp %err ⟨Hpost, #HSe⟩
   iapply HΦ
@@ -551,8 +582,9 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
 
 /-- **`txn_end_to_end` in the server's auth mode** (the auth component's stage 4): at the mode's
 model (`txnReadAnsM`), with auth on a read-only transaction's checks (`txnAuthed`) and a writing
-one's grant. -/
-theorem txn_end_to_endM
+one's grant. Leases admitted with auth on at the
+revocable lease mode (`kvDepPreML`; auth-lease S4 item 5). -/
+theorem txn_end_to_endML
     (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (c : w64) (cid mid n : w64) (ctx : GoInterface) (tok : Option GoString) (r : Loc) (cs : List CmpModel)
     (ts es : List ReqOp) (F : mvcc.Log) (d : KVDep GF) (na : Nat) :
@@ -561,7 +593,7 @@ theorem txn_end_to_endM
         ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
         kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ∗
         srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txnReqIs r cs ts es ∗ txnReqWire r ts es ∗
-        ⌜txnInModel cs ts es⌝ ∗ kvDepOwnM E.authOn s E ρ γr tok d ∗ ⌜kvDepPreM E.authOn d (.txn cs ts es)⌝ ∗
+        ⌜txnInModel cs ts es⌝ ∗ kvDepOwnM E.authOn s E ρ γr tok d ∗ ⌜kvDepPreML E.authOn ρ.kv.lm d (.txn cs ts es)⌝ ∗
         □ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
         (Val #r))
@@ -612,6 +644,45 @@ theorem txn_end_to_endM
     iexists e
     iexact HA
 
+/-- `txn_end_to_endML`'s at a request of `kvDepPreM` (no lease, plain transactions). -/
+theorem txn_end_to_endM
+    (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (tok : Option GoString) (r : Loc) (cs : List CmpModel)
+    (ts es : List ReqOp) (F : mvcc.Log) (d : KVDep GF) (na : Nat) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
+        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txnReqIs r cs ts es ∗ txnReqWire r ts es ∗
+        ⌜txnInModel cs ts es⌝ ∗ kvDepOwnM E.authOn s E ρ γr tok d ∗ ⌜kvDepPreM E.authOn d (.txn cs ts es)⌝ ∗
+        □ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok) }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (match txnAllCheck (sint.Z n) cs ts es with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr tok d
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
+              srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
+              ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
+                if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
+                  txnReadAnsM E.authOn E γr c F t (rangeDepQM E.authOn γr.kv d) resp rv ∗
+                  (⌜E.authOn = true⌝ → txnAuthed s E γr c na tok t))
+                else iprop(txnAppliedAns E ρ.rd F t (opDepQ d) resp rv ∗
+                  (⌜E.authOn = true⌝ → ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
+                    writeGrantOn s E ρ tok (irrTxn tw)))) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
+            ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
+              if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e)) ∗
+        go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
+  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, #Hw, %Hin, Hdep, %Hpre, #HtokC⟩ HΦ
+  iapply (txn_end_to_endML p s E ρ γr c cid mid n ctx tok r cs ts es F d na) $$ [Hc Hc0 Hdep] HΦ
+  iframe #
+  iframe Hc Hc0 Hdep
+  ipureintro; first | exact kvDepPreML_of_M _ _ _ _ Hpre | exact ⟨Hany, kvDepPreML_of_M _ _ _ _ Hpre⟩ | exact ⟨Hin, kvDepPreML_of_M _ _ _ _ Hpre⟩ | exact ⟨Hany, Hin, kvDepPreML_of_M _ _ _ _ Hpre⟩
 
 /-- **What a successful gRPC `Put` applied** (pure; with `put_end_to_end`'s `putAppliedOk`):
 through the uber-applier's chain `alarmChain on ns cr`, the put was applied by the client model:
@@ -2120,42 +2191,19 @@ theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   raftLeaseRead_of_server EtcdServer.wp_LeaseTimeToLive EtcdServer.wp_LeaseLeases
     s E ρ γr γl cs ms hT hR hP
 
-/-- **The grant contract at the lessor's history, discharged** (`lessorGrantOkL_of_server` at the
+/-- **The grant contract at the lessor's history, discharged** (`lessorGrantOkLM_of_server` at the
 linked `EtcdServer.LeaseGrant`; the lease-grant plan's 2.4), in a cluster that grants leases, in the
-monotone lease mode (the lease-expiry plan's X2, 2026-11-04: `lease.srvInv … .mono`). -/
-theorem lessorGrantOkL_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
+monotone lease mode (the lease-expiry plan's X2, 2026-11-04: `lease.srvInv … .mono`). (Auth-lease S4,
+the C5′ merge, 2026-11-16: at the environment's auth mode; until then `lessorGrantOkL_server`, with
+auth off.) -/
+theorem lessorGrantOkLM_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
     (h : srvGrantsLeases E ρ) (hlm : ρ.rd.kv.lm ≠ .revocable) (on : Bool) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       lease.srvInv on s E .mono ∗
-      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
       □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorGrantOkL s E S :=
-  lessorGrantOkL_of_server EtcdServer.wp_LeaseGrant s E ρ S h hlm on
-
-/-- **The grant contract at the mode-free fact, discharged** (`lessorGrantOkLive_of_server` at the
-linked `EtcdServer.LeaseGrant`; the lease-expiry plan's X2, 2026-11-04), in a cluster that grants
-leases, in any lease mode, for a request filter `R` that, in the revocable mode, has only `ID = 0`
-(E3, 2026-11-04). -/
-theorem lessorGrantOkLive_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
-    (h : srvGrantsLeases E ρ) (R : w64 × w64 → Prop)
-    (hR : ∀ m, R m → ρ.rd.kv.lm = .revocable → m.2 = W64 0) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
-      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorGrantOkG s E S (grantLiveG E) R :=
-  lessorGrantOkLive_of_server_off EtcdServer.wp_LeaseGrant s E ρ S h R hR
-
-/-- **The revoke contract, discharged mode-gated** (`lessorRevokeOk_of_server` at the linked
-`EtcdServer.LeaseRevoke`; the lease-expiry plan's X6, 2026-11-04), in a cluster that revokes leases
-(the revocable lease mode, auth off). The ungated `lessorRevokeOk` stays an undischarged premise of
-the client results. -/
-theorem lessorRevokeOk_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF)
-    (h : srvRevokesLeases E ρ) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvAuthAt s E ∗ □ (|==> idCred ρ.ids 1) ∗
-      □ (S -∗ srvLeadTimeReader s ∗ E.RD ∗ (srvLeadTimeReader s ∗ E.RD -∗ S)) ⊢
-      lessorRevokeOk s E S :=
-  lessorRevokeOk_of_server_off EtcdServer.wp_LeaseRevoke s E ρ S h
+      lessorGrantOkLM E.authOn s E ρ S :=
+  lessorGrantOkLM_of_server EtcdServer.wp_LeaseGrant s E ρ S h hlm on
 
 /-- **The grant contract at the mode-free fact, in the environment's auth mode, discharged**
 (auth-lease S3c, Draft §7.3; `lessorGrantOkLive_of_server` at the linked `EtcdServer.LeaseGrant`):
@@ -2245,9 +2293,11 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.raftKV_server
 #print axioms Perennial.EtcdGrove.v3rpc.raftKV_serverM
 #print axioms Perennial.EtcdGrove.v3rpc.put_end_to_endM
+#print axioms Perennial.EtcdGrove.v3rpc.put_end_to_endML
 #print axioms Perennial.EtcdGrove.v3rpc.deleteRange_end_to_endM
 #print axioms Perennial.EtcdGrove.v3rpc.range_end_to_endM
 #print axioms Perennial.EtcdGrove.v3rpc.txn_end_to_endM
+#print axioms Perennial.EtcdGrove.v3rpc.txn_end_to_endML
 #print axioms Perennial.EtcdGrove.v3rpc.put_end_to_end_model
 #print axioms Perennial.EtcdGrove.v3rpc.deleteRange_end_to_end_model
 #print axioms Perennial.EtcdGrove.v3rpc.etcdModelOfServer

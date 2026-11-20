@@ -399,8 +399,8 @@ theorem watchChan.startWatching.wp_proof
       (try wp_auto)
       wp_apply wp_ArbitraryInt as %ai -
       (try wp_auto)
-      wp_apply wp_TooLarge as %e ⟨-, %l, %st, %Hst, #Hl⟩
-      obtain ⟨rfl, hst⟩ := Hst
+      wp_apply wp_TooLarge as %e ⟨-, %l, %st, %dv, %Hst, #Hl, -⟩
+      obtain ⟨rfl, hst, -⟩ := Hst
       ihave #Hok := kErrOk_statusError wp_AsLeafTy l st hst $$ Perr Hl
       (try wp_auto)
       wp_apply (wp_prod_sendError wp_sendError wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur q

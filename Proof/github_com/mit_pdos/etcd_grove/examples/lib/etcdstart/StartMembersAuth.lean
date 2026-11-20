@@ -36,8 +36,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem StartMembersAuth.wp_proof (wp_StartMemberAuth : StartMemberAuth.spec (GF := GF) (hG := hG)) :
     StartMembersAuth.spec (GF := GF) (hG := hG) := by
-  intro CS N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
-    Hnd Hutf Hx Haf Hbuq Hdbo
+  intro CS N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn m Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
+    Hnd Hutf Hx Haf Hbuq Hdbo Hcu
   wp_start as ⟨#Hlg, Htok, #Hms, #Hcom, #Hcc, Hpre⟩
   ihave %Hmsl := ownSlice_len $$ Hms
   (try wp_auto)
@@ -130,9 +130,9 @@ theorem StartMembersAuth.wp_proof (wp_StartMemberAuth : StartMemberAuth.spec (GF
         "i" ∷ i_ptr ↦ j ∗ "m" ∷ m_ptr ↦ mv ∗ "j" ∷ j_ptr ↦ jv ∗
         "Hssl" ∷ ssl ↦* (ss ++ List.replicate (sint.nat msl.len - ss.length) (zero_val Loc)) ∗
         "Hups" ∷ ([∗list] s; x ∈ ss; xs.take (sint.nat j),
-          (threadTok -∗ ∃ γa : auth.AuthNames, memberUpOn s x.2.ρ x.2.E lg γn x.2.id γa)) ∗
+          (threadTok -∗ ∃ γa : auth.AuthNames, memberUpOn s x.2.ρ x.2.E lg γn x.2.id γa m)) ∗
         "Hpre" ∷ ([∗list] x ∈ xs.drop (sint.nat j),
-          memberPreOn N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn x) ∗
+          memberPreOn N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn x m) ∗
         "Htok" ∷ threadTok ∗
         "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z msl.len ∧ ss.length = sint.nat j⌝ : IProp GF)
         $$ [i m j Hssl Hpre Htok]
@@ -175,8 +175,8 @@ theorem StartMembersAuth.wp_proof (wp_StartMemberAuth : StartMemberAuth.spec (GF
       -- catchUp, lg)`
       wp_apply (wp_StartMemberAuth N xj.1.Name' xj.1.Peer' xj.1.Client' token snapCount catchUp sl pm
           lg M (iuOf (xs.map (·.1))) (urlsN (xs.map (·.1)) xj.1) ps bootLog ctxs dir xj.2.id xj.2.γ
-          xj.2.ρ xj.2.E Φs γn Htb Hrb48 HrbN HwbN h1 h2 h3 Hbl h4 Hγnd Hdok h5 Hbc
-          ⟨rfl, rfl, Hdom, rfl⟩ hutf Haf Hbuq Hdbo) $$ [Htok Hmb Hfr] as %s %err Hr
+          xj.2.ρ xj.2.E Φs γn m Htb Hrb48 HrbN HwbN h1 h2 h3 Hbl h4 Hγnd Hdok h5 Hbc
+          ⟨rfl, rfl, Hdom, rfl⟩ hutf Haf Hbuq Hdbo (Hcu xj hxj)) $$ [Htok Hmb Hfr] as %s %err Hr
       · iframe; iframe #
       icases Hr with (⟨%Herr, Htok⟩ | ⟨%Herr, %γa, Hup⟩)
       · cases err with
@@ -189,8 +189,8 @@ theorem StartMembersAuth.wp_proof (wp_StartMemberAuth : StartMemberAuth.spec (GF
         ileft; ipureintro; exact Herr
       subst Herr
       (try wp_auto)
-      icases memberUpOn_tok _ _ _ _ _ _ _ $$ Hup with ⟨Htok, Hup⟩
-      ihave Hup : threadTok -∗ ∃ γa : auth.AuthNames, memberUpOn s xj.2.ρ xj.2.E lg γn xj.2.id γa $$ [Hup]
+      icases memberUpOn_tok _ _ _ _ _ _ _ m $$ Hup with ⟨Htok, Hup⟩
+      ihave Hup : threadTok -∗ ∃ γa : auth.AuthNames, memberUpOn s xj.2.ρ xj.2.E lg γn xj.2.id γa m $$ [Hup]
       · iintro Ht; iexists γa; iapply Hup $$ Ht
       ihave %Hsll := ownSlice_len $$ Hssl
       have hssn : ss.length < sint.nat msl.len := by rw [Hj.2.2]; word
@@ -203,7 +203,7 @@ theorem StartMembersAuth.wp_proof (wp_StartMemberAuth : StartMemberAuth.spec (GF
       wp_apply (wp_store_slice_index ssl (sint.Z j) _ s) $$ [Hssl] as Hssl
       · iframe Hssl; ipureintro; rw [hlen']; constructor <;> word
       ihave Hups := (BigSepL2.bigSepL2_snoc (Φ := fun _ (s : Loc) (x : GMember × MemberG GF) =>
-        iprop(threadTok -∗ ∃ γa : auth.AuthNames, memberUpOn s x.2.ρ x.2.E lg γn x.2.id γa))).2 $$ [Hups Hup]
+        iprop(threadTok -∗ ∃ γa : auth.AuthNames, memberUpOn s x.2.ρ x.2.E lg γn x.2.id γa m))).2 $$ [Hups Hup]
       · iframe
       wp_for_post
       iframe

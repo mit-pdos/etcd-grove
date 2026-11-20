@@ -63,6 +63,22 @@ theorem kvAppliedOn_sa (γr : ReadNames) (A : List EntryModel) (x : apply.ApplyK
   unfold srvAuthAtLog
   rw [← He]
 
+/-- **The applied auth state's revision is at least 1, with auth on** (auth-schema-srv A6's L-rev: the
+lend's premise). -/
+theorem kvAppliedM_rev (on : Bool) (γr : ReadNames) (A : List EntryModel) (x : apply.ApplyKV)
+    (sa : auth.AuthState) :
+    kvAppliedM (GF := GF) on γr.raft γr.kv srvAuthSt0 A x sa ⊢
+      kvAppliedM on γr.raft γr.kv srvAuthSt0 A x sa ∗ ⌜on = true → 1 ≤ sa.revision⌝ := by
+  cases on with
+  | false =>
+    iintro H; iframe H; ipureintro; intro h; cases h
+  | true =>
+    simp only [kvAppliedM]
+    iintro H
+    icases kvAppliedOn_sa γr A x sa $$ H with ⟨H, %hsa⟩
+    iframe H
+    ipureintro; intro _; rw [hsa]; exact srvAuthAtLog_rev_pos γr.kv A
+
 end kvsa
 
 section recvR
@@ -234,7 +250,8 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
   iintro #Hinvs #Himg Hka Hrest #Hrc
   ihave ⟨%f0, %Hf0, Hrest, HrL, HrG, HrQ, HrE⟩ := srvRestRpM_open true E γr A r0 $$ Hrest
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, %Hrows⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, %Hrows0, %Hrows1, -⟩
+  have Hrows := And.intro Hrows0 Hrows1
   -- the certificate's KV names agree with the member's on the start values
   iunfold srvImageOn at Himg
   icases Himg with ⟨%γk', %hk', #Hdb⟩

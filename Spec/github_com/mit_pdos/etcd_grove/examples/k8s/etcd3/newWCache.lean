@@ -28,11 +28,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev newWCache.spec : Prop :=
-  ∀ (c : StoreCfg GF DObj) (unary total : w64),
+  ∀ (c : StoreCfg GF DObj) (unary total f : w64), uint.Z f < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newWCache)) (Val #unary))
-      (Val #total))
-  {{ (tbl : Loc), RET #tbl; isCache c tbl }}
+    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newWCache)) (Val #unary))
+      (Val #total)) (Val #f))
+  {{ (tbl : Loc), RET #tbl; isCache c tbl ∗ cacheFloor tbl f }}
 
 end spec
 
