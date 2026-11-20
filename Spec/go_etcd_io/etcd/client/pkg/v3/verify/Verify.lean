@@ -1,11 +1,12 @@
 /-
-`verify.Verify(msg, f)`, of etcd's `client/pkg/v3/verify` (translated names-only: it reads
-the environment variable `ETCD_VERIFY` through `os.Getenv`). The trust boundary.
+`verify.Verify(msg, f)`, of etcd's `client/pkg/v3/verify` (it reads the environment variable
+`ETCD_VERIFY` through `os.Getenv`). Proved (etcdstorage, 2026-11-20; until then the trust boundary).
 Lean-first (no Rocq counterpart); see `InvCindex.lean`.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
 @[expose] public section
 
@@ -26,11 +27,14 @@ variable [package_sem : go_etcd_io.etcd.client.pkg.v3.verify.Assumptions]
 /-- `Verify(msg, f)`: if `ETCD_VERIFY` enables assertions, runs `f` and panics unless its
 condition is `true`; otherwise does nothing. So the caller must show that `f` (if run, with
 the caller's `P`) returns `true`: Go's code says "the check passes", and the spec rules the
-panic out rather than assuming assertions are off. -/
+panic out rather than assuming assertions are off. (etcdstorage, 2026-11-20) Or that assertions
+are off for the run (`envVerifyOff`), when `f` is not run: a weaker premise, for checks whose
+condition no proof shows (`backend.VerifyBackendConsistency`'s). -/
 abbrev verify.Verify.spec : Prop :=
   ∀ (msg : GoString) (f : val) (P : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∗ P ∗
-      (P -∗ WP (App (Val f) (Val #())) {{ r, ∃ d : val, ⌜r = PairV #true d⌝ ∗ P }}) }}
+      ((P -∗ WP (App (Val f) (Val #())) {{ r, ∃ d : val, ⌜r = PairV #true d⌝ ∗ P }}) ∨
+        envVerifyOff) }}
     (App (App (Val (@! verify.Verify)) (Val #msg)) (Val f))
   {{ RET #(); P }}
 

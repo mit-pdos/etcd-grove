@@ -42,6 +42,7 @@ theorem verifyConsistentIndexIsLatest.wp_proof
   wp_apply hV _ _ iprop(snapshot_ptr ↦ sn ∗ cindex_ptr ↦ cindex) $$ [snapshot cindex]
   · isplitl [snapshot cindex]
     · iframe
+    ileft
     iintro ⟨snapshot, cindex⟩
     wp_auto
     wp_apply hGI pm DFrac.discard sv.Metadata' $$ [] as -

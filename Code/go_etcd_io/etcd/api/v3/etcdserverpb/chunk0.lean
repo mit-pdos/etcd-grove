@@ -1976,6 +1976,88 @@ noncomputable def RequestOp.GetRequestRange.impl [GooseExts] [GoGlobalContext] :
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeRequest.ty)))) (Var "$res0"))))))
 
+/-- go: rpc.pb.go:1104:21 -/
+noncomputable def RequestOp.GetRequestPut.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PutRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType PutRequest.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RequestOp.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType PutRequest.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType PutRequest.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType RequestOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RequestOp.ty)))) (Val UntypedNil))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType RequestOp_RequestPut.ty)))) (App (Val (GoInstruction (GoLoad isRequestOp_Request.ty))) (App (Val (GoInstruction (StructFieldRef RequestOp.ty go!"Request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp.ty)))) (Var "x")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RequestOp_RequestPut.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType RequestOp_RequestPut.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PutRequest.ty)))) (App (Val (GoInstruction (StructFieldRef RequestOp_RequestPut.ty go!"RequestPut"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp_RequestPut.ty)))) (Var "x"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType PutRequest.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RequestOp_RequestPut.ty)))) (Pair (Var "x") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PutRequest.ty)))) (Var "$res0"))))))
+
+/-- go: rpc.pb.go:1122:21 -/
+noncomputable def RequestOp.GetRequestTxn.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType TxnRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType TxnRequest.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RequestOp.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType TxnRequest.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType TxnRequest.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType RequestOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RequestOp.ty)))) (Val UntypedNil))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType RequestOp_RequestTxn.ty)))) (App (Val (GoInstruction (GoLoad isRequestOp_Request.ty))) (App (Val (GoInstruction (StructFieldRef RequestOp.ty go!"Request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp.ty)))) (Var "x")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RequestOp_RequestTxn.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType RequestOp_RequestTxn.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnRequest.ty)))) (App (Val (GoInstruction (StructFieldRef RequestOp_RequestTxn.ty go!"RequestTxn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RequestOp_RequestTxn.ty)))) (Var "x"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType TxnRequest.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RequestOp_RequestTxn.ty)))) (Pair (Var "x") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnRequest.ty)))) (Var "$res0"))))))
+
 /-- go: rpc.pb.go:1204:22 -/
 noncomputable def ResponseOp.GetResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"

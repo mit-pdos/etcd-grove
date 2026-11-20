@@ -28,6 +28,8 @@ translate = ["!*", "RangeRequest_SortOrder_name", "RangeRequest_SortTarget_name"
   "ResponseOp.GetResponseDeleteRange", "ResponseOp.GetResponse", "AlarmType_NOSPACE", "AlarmType_NONE",
   "TxnRequest", "RequestOp", "RequestOp_RequestRange", "RequestOp_RequestPut",
   "RequestOp_RequestDeleteRange", "RequestOp_RequestTxn", "RequestOp.GetRequestRange",
+  # (etcdstorage, 2026-11-20) for the quota's `BackendQuota.Cost`
+  "RequestOp.GetRequestPut", "RequestOp.GetRequestTxn",
   "RangeRequest", "PutRequest", "DeleteRangeRequest",
   "RangeRequest_NONE", "RangeRequest_ASCEND", "RangeRequest_DESCEND", "RangeRequest_KEY",
   "RangeRequest_VERSION", "RangeRequest_CREATE", "RangeRequest_MOD", "RangeRequest_VALUE",

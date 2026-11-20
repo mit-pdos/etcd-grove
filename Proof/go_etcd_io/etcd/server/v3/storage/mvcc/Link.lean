@@ -147,6 +147,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.IsVerificationEnabled
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
@@ -353,9 +354,13 @@ theorem strings.wp_ToLower :
     strings.ToLower.spec (GF := GF) (hG := hG) :=
   strings.ToLower.wp_proof
 
+theorem verify.wp_IsVerificationEnabled :
+    verify.IsVerificationEnabled.spec (GF := GF) (hG := hG) :=
+  verify.IsVerificationEnabled.wp_proof os.wp_Getenv strings.wp_ToLower
+
 theorem verify.wp_Verify :
     verify.Verify.spec (GF := GF) (hG := hG) :=
-  verify.Verify.wp_proof os.wp_Getenv strings.wp_ToLower
+  verify.Verify.wp_proof verify.wp_IsVerificationEnabled
 
 theorem zap.wp_Error :
     zap.Error.spec (GF := GF) (hG := hG) :=

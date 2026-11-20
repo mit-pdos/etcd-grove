@@ -7,7 +7,8 @@ binary_bigEndian__Uint64:
 binary_bigEndian__PutUint64:
 os_Getenv:
 strings_ToLower:
-verify_Verify: os_Getenv strings_ToLower
+verify_IsVerificationEnabled: os_Getenv strings_ToLower
+verify_Verify: verify_IsVerificationEnabled
 # schema's consistent-index reads and writes (server/storage/schema/cindex.go), see InvCindex.lean.
 schema_UnsafeReadConsistentIndex: binary_bigEndian__Uint64
 schema_ReadConsistentIndex: schema_UnsafeReadConsistentIndex
@@ -477,12 +478,12 @@ EtcdServer__AppliedIndex: EtcdServer__getAppliedIndex
 EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
 # The apply loop's step `applyAll` (server.go; the request path's unit 4b): `applySnapshot` under
 # raft's no-snapshot contract, the backend getter, the snapshot trigger, with bodies; the
-# trust boundary (`axiom … .wp_proof`): backend's VerifyBackendConsistency (verification code),
-# and the names-only snapshot method. See InvApplyAll.lean. (The merged-snapshot
+# trust boundary (`axiom … .wp_proof`): the names-only snapshot method; (etcdstorage, 2026-11-20)
+# backend's VerifyBackendConsistency proved over `verify.Verify` with assertions off. See InvApplyAll.lean. (The merged-snapshot
 # methods `createMergedSnapshotMessage`/`sendMergedSnap` were its callees until D19p, 2026-10-18,
 # and are again since S1, 2026-10-31: the merge branch proved, behind the fork's index guard,
 # with the getters it reads and the specs of `mergedCreate_window`'s commit-and-snapshot window.)
-backend_VerifyBackendConsistency:
+backend_VerifyBackendConsistency: verify_Verify
 # (2026-10-30, the repair) `snapshot` proved (lean's `specFull`; its proof a SNAPSHOT-SORRY until
 # rewired), no longer the trust boundary
 MemoryStorage__CreateSnapshot: @

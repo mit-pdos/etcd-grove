@@ -12,6 +12,7 @@ public import Perennial.Proof.sync.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.dustin.go_humanize.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.InitLinked
@@ -79,14 +80,16 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoString) maxQuotaSize _ as HmaxQuotaSize
   wp_apply wp_GlobalAlloc (V := GoString) DefaultQuotaSize _ as HDefaultQuotaSize
   wp_apply wp_GlobalAlloc (V := GoInterface) quotaBackendBytes _ as HquotaBackendBytes
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd17⟩
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regQs)
       (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.slnil))))))
-      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.dustin.go_humanize.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd13⟩

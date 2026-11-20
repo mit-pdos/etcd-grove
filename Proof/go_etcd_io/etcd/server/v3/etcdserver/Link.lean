@@ -336,7 +336,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newCorruptionChecker
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince
-public import Proof.os.Getenv
 public import Proof.os.Rename
 public import Proof.path.Base
 public import Proof.path.Clean
@@ -542,7 +541,6 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
 public import Proof.strconv.FormatBool
 public import Proof.strconv.FormatUint
-public import Proof.strings.ToLower
 public import Proof.strings.TrimSuffix
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
@@ -597,6 +595,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revisio
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newPeriodic
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newRevision
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.verifyConsistentIndexIsLatest
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.IsVerificationEnabled
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
 public import Proof.go_etcd_io.etcd.api.v3.version.LessThan
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.New
@@ -1023,13 +1022,9 @@ theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
     storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) :=
   storage.BackendHooks.OnPreCommitUnsafe.wp_proof schema.wp_MustUnsafeSaveConfStateToBackend backend.batchTxBuffered.wp_UnsafePut schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
-theorem os.wp_Getenv :
-    os.Getenv.spec (GF := GF) (hG := hG) :=
-  os.Getenv.wp_proof
-
-theorem strings.wp_ToLower :
-    strings.ToLower.spec (GF := GF) (hG := hG) :=
-  strings.ToLower.wp_proof
+theorem verify.wp_IsVerificationEnabled :
+    verify.IsVerificationEnabled.spec (GF := GF) (hG := hG) :=
+  verify.IsVerificationEnabled.wp_proof os.wp_Getenv strings.wp_ToLower
 
 theorem schema.wp_UnsafeReadConsistentIndex :
     schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG) :=
@@ -1289,7 +1284,7 @@ theorem storage.BackendHooks.wp_SetConfState :
 
 theorem backend.wp_VerifyBackendConsistency :
     backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) :=
-  backend.VerifyBackendConsistency.wp_proof
+  backend.VerifyBackendConsistency.wp_proof verify.wp_Verify
 
 theorem io.wp_Pipe :
     io.Pipe.spec (GF := GF) (hG := hG) :=

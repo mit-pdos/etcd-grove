@@ -18,6 +18,7 @@ public import Perennial.Proof.sync.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.dustin.go_humanize.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.Init

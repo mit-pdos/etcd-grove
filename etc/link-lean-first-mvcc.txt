@@ -185,7 +185,8 @@ txnReadWrite__DeleteRange:
 # WatchClose.lean; `verify.Verify` is proved over `os.Getenv`'s and `strings.ToLower`'s trust-boundary specs.
 os_Getenv:
 strings_ToLower:
-verify_Verify: os_Getenv strings_ToLower
+verify_IsVerificationEnabled: os_Getenv strings_ToLower
+verify_Verify: verify_IsVerificationEnabled
 watchableStore__Write: store__Write
 watchableStoreTxnWrite__End: metricsTxnWrite__Changes metricsTxnWrite__End storeTxnWrite__Rev watchableStore__notify
 watchableStore__notify: newWatcherBatch watcher__send watcherGroup__delete watchableStore__addVictim

@@ -675,7 +675,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h120 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h10, h41, h12, h85, h95, h108, h113, h89, h4, h35, h114, h86, h34, h31, h119, h118, True.intro⟩
+    exact ⟨h10, h41, h12, h85, h95, h108, h113, h89, h4, h35, h114, h86, h34, h25, h31, h119, h118, True.intro⟩
   have h121 : GetIsPkgInitProp pkg_id.k8s_io.utils.third_party.forked.golang.btree (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
