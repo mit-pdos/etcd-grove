@@ -994,3 +994,7 @@ the Prove phase's. To do before the walkers' proofs.
   `alloc` field (the allocator kept across a method); the merging/compare/reconcile `prepareDescent`
   posts give `sp ≠ null → sp' = sp`; `visitMapItem` (merging, compare) pre `(fs.map (·.1)).Nodup`
   (from `S.WF`).
+- (round 2, coordinator) `schema` `Atom.wf`'s associative case requires `ks.length ≤ 2^62` (the
+  key list's bound for `FieldList.Sort`; schema well-formedness, decided for the driver's schema).
+- (round 2, D1e, ownership rule) `keyedAssociativeListItemToPathElement` pre `rel = .associative`
+  (`FieldList.Sort` needs distinct key names, which `list_wf` gives only for associative lists).
