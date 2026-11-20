@@ -557,6 +557,86 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `Handle`, `ServeMux.ServeHTTP` on an exact path, `ReadResponse` on a CONNECT answer, and the
    server's connection loop to the point of a hijack (dsverify's `Proof/net/http`); the
    translation's missing imports (`go/token` for `token.IsExported`; `bufio` is the main tree's).
+   **The Lean half, first part (2026-11-20, branch `models-rpc-http-lean`, on `models-rpc-http`
+   merged with `lean` `57d66952d9`; NOT landed: the disk had under 10 GB free, so no full build and
+   no gates; see "Landing" below).**
+   *Compiles* (`lake build Net`, 2295 jobs): `Net/Code/net/{rpc,http}.lean` and their
+   `GeneratedProof`. `Net/Code/net/http.toml` widened to what net/rpc's HTTP path runs, with
+   bodies: `ReadResponse`, `Handle`, `ServeMux.{Handle,register,registerErr,ServeHTTP,Handler,
+   findHandler,matchOrRedirect}`, `Serve`, `ListenAndServe`, `Server.{Serve,ListenAndServe,
+   newConn}`, `conn.{serve,readRequest,hijacked,hijackLocked}`, `response.{Hijack,Header,
+   WriteHeader,Write,write}`, `serverHandler.ServeHTTP`, `DefaultServeMux` (the rest names only:
+   an untranslated function is an `opaque` constant, so a body calling one is stuck, which a proof
+   must rule out or specify). Its imports are the packages those bodies call: Perennial's, the main
+   tree's names-only `bufio`, `net/url`, `path`, `crypto/tls` (lean roots `bufio=`, `net/url=`,
+   `path=`, `crypto/tls=` of project models-net), and two new names-only translations in the part:
+   `net/textproto` and the vendored `golang.org/x/net/http/httpguts` (`vendor=Net`). goose imports a
+   vendored package by its import path but names it by its package path, so
+   `Net/{Code,GeneratedProof}/golang_org/x/net/http/httpguts.lean` are hand-written one-line
+   forwarding modules (`notes/perennial-changes.md`, 2026-11-20). **`go/token.IsExported` is
+   modelled, not translated** (its body reads `unicode`'s case tables, which nothing translates):
+   `Net/Code/go/token.toml` (`trusted = ["IsExported"]`), `Net/TrustedCode/go/token.lean`: exact on
+   a name whose first byte is ASCII (`'A'..'Z'`, Go's `IsUpper` fast path), `false` on `""`, and a
+   **choice point** (`ArbitraryInt`'s low bit) on a non-ASCII first byte; tested against Go by
+   `models/internal/rpcdifftest/isexported_test.go` (documented in `models/README.md`).
+   *Proved* (`Net/Spec/net/rpc/`, `Net/Proof/net/rpc/`, one canonical spec each; `Results.lean`
+   links them, `#print axioms` Lean's three; TCB collection `etc/tcb-collections/models-net.txt`,
+   baseline not yet run): the wire (`Base.lean`: `frameOf`, `strEnc`, `reqHdr`, `respHdr`, their
+   injectivity), `putU64`, `getU64`, `putString`, `putFrame`, `getString`; `readFull` over
+   `net.Conn.Read.spec` (accessor style, as the examples' `wire.ReadFull`; errors `readErr`: `io.EOF`
+   only between frames, `io.ErrUnexpectedEOF` within one, the `Read`'s `*OpError`), `readFrame`;
+   the codec registry (`Codec.lean`: `CodecSpec` with `enc`/`dec`, `codecIs`, `codecInv` half of
+   `codec`'s points-to under `codecMu`, `codecUnset` the other half, `codecSet` persistent) with
+   `SetCodec` and `getCodec`; the client codec's `ReadResponseHeader`.
+   *Statement changes vs dsverify* (`old/dsverify/.../Proof/net/rpc/`): the wire is two frames per
+   message (header, body: Go's two gob messages), so dsverify's `msgOf` becomes `reqHdr`/`respHdr`
+   with the body in its own frame; `RpcCodec` loses `call` and `methods` (the dispatch is net/rpc's
+   own code through the `Receiver`'s `Method`s, whose obligations are still to state), keeping
+   `enc`/`dec` as `CodecSpec` (a record the program's proof chooses, not a type class); the
+   registry is `codecSet` from `SetCodec` (dsverify: a package fact); the readers take a reader
+   predicate and accessor (as `wire.ReadFull`) rather than `recvTok` directly, so a reader of the
+   library (`GooseLang/Ext/Net/Proto.lean`, `read_au`) and an invariant-held reader both apply.
+   *What remains* (in order; nothing below is stated yet, and nothing has an axiom or `sorry`):
+   1. the codecs' other methods: `clientCodec.{WriteRequest,ReadResponseBody,Close}`,
+      `serverCodec.{ReadRequestHeader,ReadRequestBody,WriteResponse,Close}` (over
+      `net.Conn.Write.spec` with the library's `writeP`/`write_acc`, `putFrame`, `getCodec`,
+      `encOk`/`decOk`; the sticky `werr`);
+   2. the protocol vocabulary, from dsverify's `Proto.lean`/`Defs.lean` over the library: `RpcWorld`
+      (address → service → `MethodSpec`), per-connection ghost state (requests, the reader's count,
+      answers) and `reqProto`/`respProto` over the two-frame wire; the `Receiver` obligations
+      (`NewArg`, `NewReply`, `Call` meet the `MethodSpec`: `rcvrOk`);
+   3. the Client (`send`, `input`, `Go`, `Call`, `Close`, `NewClient`, `NewClientWithCodec`, `Dial`;
+      `Call.done`'s `select` on a buffered channel, the `pending` map, `reqMutex`/`mutex`) with
+      dsverify's `Client.Call.spec` (at most one run of the handler, `ServerError(msg)` exactly one,
+      `errAny` otherwise). `input` calls `err.Error()` on a body read's error, which can be the net
+      extension's `*OpError`: its `Error` is the trusted model's arbitrary string
+      (`Net/TrustedCode/net.lean`, `OpError.Error.impl`), so a law `resErr (some k) … err ⊢ errAny
+      err` (dsverify's `opErr_errAny`) is the first step;
+   4. the Server (`register`, `Register(Name)`, `readRequestHeader`, `readRequest`, the free lists,
+      `sendResponse`, `service.call`, `ServeCodec`, `ServeConn`, `ServeRequest`, `Accept`).
+      `readRequestHeader` calls `err.Error()` on a header read's error (the same law);
+   5. the package initialization of `net/rpc` (`isPkgInit`: `DefaultServer`, `codecMu`/`codecUnset`,
+      `errFrame`, `ErrShutdown`): `etc/gen-init.py` over its import closure, which reaches
+      `net/http`'s many untranslated initializers, each a trust-boundary axiom there
+      (`opaqueInitsOk`); to keep the TCB axiom-free, `net/http`'s initializers the closure needs must
+      be translated first (or the facts stated from the model's own variables only);
+   6. `DialHTTPPath`: `http.ReadResponse` over a `bufio.Reader` of the connection (the reader's
+      read-ahead: the CONNECT answer is all the server writes before the client's first request,
+      a protocol fact `respProto` must carry), then `NewClient`;
+   7. net/http: `ReadResponse` (the model's head parser, `readTransfer` for a CONNECT answer),
+      `Handle` and `ServeMux` exact-path dispatch (Go 1.22 patterns and the routing tree),
+      `Serve`/`ListenAndServe` and `conn.serve` up to a hijack (`context.WithCancel`/`WithValue`,
+      the `connReader`'s background read and its abort on `Hijack`, `sync.Pool` bufio readers and
+      writers, `recover` in the deferred handler, the TLS type assertion, `readRequest`'s URL
+      parsing through `net/url`, names only today), `response.Hijack`; then `ServeHTTP` and
+      `HandleHTTP`. This is Go's real server, not dsverify's 324-line one: its proof is the largest
+      item (dsverify's `Proof/net/http` is 1.4k lines for a server without background reads,
+      contexts or pools).
+   *Landing.* `etc/land.sh` needs the full build and `etc/gates.sh`; `df -h /` showed 9.1 GB, then
+   7.9 GB free during this session (the task's floor is 10 GB), so neither ran: the branch is
+   committed, not landed, `lean` not pushed. Checks run: `lake build Net` (before the proofs) and
+   `lake build Net.Proof.net.rpc.Results` (every proof), `etc/goose.py --check --project models-net`,
+   `go test` of the new `TestIsExportedASCII`.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

@@ -3117,3 +3117,20 @@ parameter.
   (`(st.items.map (storeKeyL ∘ key)).Nodup`), so the order does not matter there.
 - **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
   **Status.** Recorded only.
+
+## 2026-11-20: goose imports a vendored package by its import path (the net/http model, phase 5.2 of `notes/dsverify-net-port-plan.md`, branch `models-rpc-http-lean`)
+
+- **The gap.** net/http imports `golang.org/x/net/http/httpguts`, which the toolchain vendors as
+  `vendor/golang.org/x/net/http/httpguts`. goose translates that package, and names its declarations,
+  by its package path (`Net.Code.vendor.golang_org.x.net.http.httpguts`, namespace
+  `Perennial.vendor.golang_org.x.net.http.httpguts`), but the importing file's `import` line uses the
+  import path (`Net.Code.golang_org.x.net.http.httpguts`), a module that does not exist; and its `imports`
+  filter (`Code/**.toml`) matches the import path too.
+- **Worked around locally.** Project models-net's lean root `golang.org/x/net/http/httpguts=Net` and two
+  hand-written forwarding modules, `Net/{Code,GeneratedProof}/golang_org/x/net/http/httpguts.lean`
+  (one `public import` each of the vendored translation); `Net/Code/net/http.toml` lists both paths in
+  `imports`.
+- **Proposed (general).** goose emits the import of a vendored package by its package path (the
+  `types.Package.Path()` of the resolved package, as it already does for the names). Small, general
+  (any translation of a standard-library package that imports a vendored one: net/http, crypto/tls, ...).
+  **Status.** Recorded only.
