@@ -86,9 +86,9 @@ def restart3Program [GoSemanticsFunctions] : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.restart.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.Main) #()
 
-/-- The read package's two metric names, which `restart3`'s initialization registers (`readRegPerm`,
-D16). -/
-def restart3Names : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def restart3Names : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restart.initNames
 
 /-- The program's addresses: the three members' peer addresses (no client address is served). -/
 def restart3Addrs : List GoString := [etcd_restart.peerAddr₁, etcd_restart.peerAddr₂, etcd_restart.peerAddr₃]

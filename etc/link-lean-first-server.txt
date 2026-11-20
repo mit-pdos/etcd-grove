@@ -213,8 +213,11 @@ RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less
 errors_Is:
 errors_IsStatusErr:
 go_humanize_Bytes:
-zap_Logger__Debug:
-zap_Logger__Warn:
+# (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
+zap_Logger__check:
+zapcore_CheckedEntry__Write:
+zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
+zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Uint64:
 zap_Int:
 zap_Int64:
@@ -519,7 +522,7 @@ EtcdServer__run: schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup sto
 # `GaugeVec.With`; `ClusterVersion()` is a contract of the construction premise
 # (`clusterVersionOk`; since D17 `NewServer` builds it from `EtcdServer.ClusterVersion`, translated
 # and proved). The read package's `NewRead` and `LinearizableReadLoop` are its Link's.
-zap_Logger__Info:
+zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 strconv_FormatUint:
 types_ID__String: strconv_FormatUint
 types_ID__String_ptr: types_ID__String
@@ -561,7 +564,7 @@ traceutil_Trace__LogWithStepThreshold:
 # boundary: metadata.FromIncomingContext, AuthInfoFromTLS, redactToken, zap.ByteString (hasRootRole
 # proved since S4b, 2026-10-24, over Perennial's sort.SearchStrings).
 zap_ByteString:
-zap_Logger__Error:
+zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
 metadata_FromIncomingContext:
 auth_hasRootRole:
 auth_redactToken:
@@ -630,9 +633,8 @@ auth_authStore__AuthInfoFromCtx: metadata_FromIncomingContext auth_authStore__au
 # The token binding (the auth plan's S5, 2026-10-24): `Authenticate`, over the token provider's
 # contract (`InvAuth.lean`, `tokenProviderOk`: an issued token's binding, `Tokens.lean`) and the
 # write side's `GetUser`. The trust boundary: zap's `Logger.Check` and zapcore's
-# `CheckedEntry.Write` (logging).
-zap_Logger__Check:
-zapcore_CheckedEntry__Write:
+# `CheckedEntry.Write` (logging; since 2026-11-20 `Check` is proved over the unexported `check`).
+zap_Logger__Check: zap_Logger__check
 auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revision auth_redactToken zap_String zap_Logger__Check zapcore_CheckedEntry__Write
 # The token prefix (C1's A4, 2026-10-29): the store's, over the provider's contract
 # (`tokenProviderOk`'s `genTokenPrefix` clause); the trust boundary: the simple provider's
@@ -822,7 +824,7 @@ io_Pipe:
 io_PipeWriter__CloseWithError:
 snap_NewMessage:
 snap_Message__CloseNotify:
-snap_Message__GetTo:
+snap_Message__GetTo: raftpb_Message__GetTo
 # (2026-10-24, rafthttp stage 7d) the snapshot sender's: the merged message's fields and close (D22's
 # interface, pending the D22 owner), `io.MultiReader` (names-only in Perennial)
 snap_Message__fields:

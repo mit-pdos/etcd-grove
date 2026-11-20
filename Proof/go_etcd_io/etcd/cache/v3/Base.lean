@@ -182,6 +182,27 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
 
 end google_golang_org.grpc.metadata
 
+-- `net` (names only; unit P3a: the type of grpc's `peer.Peer`'s fields; item 5: grpc's
+-- `credentials` imports it, for `TransportCredentials`'s handshakes).
+instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
+  define_is_pkg_init iprop(True)
+instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
+  build_get_is_pkg_init_wf
+
+instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
+  define_is_pkg_init iprop(True)
+instance grpc_credentials_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
+  build_get_is_pkg_init_wf
+
+-- grpc's `peer` (names only; unit P3a: the retry interceptor's `peer.Peer`), before `grpc`, which
+-- imports it since 2026-11-20 (prove-grpcsmall: `grpc.Peer`'s option holds a `*peer.Peer`).
+instance grpc_peer_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.peer :=
+  define_is_pkg_init iprop(True)
+instance grpc_peer_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.peer :=
+  build_get_is_pkg_init_wf
+
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
 /-- grpc's package fact (k8s 7e-1, 2026-11-10): `EnableTracing` (`var EnableTracing bool`, `trace.go:33`
@@ -614,26 +635,6 @@ instance rpctypes_get_is_pkg_init_wf_inst :
   build_get_is_pkg_init_wf
 
 -- The names-only packages of `clientv3.Client`'s field types.
-
--- `net` (names only; unit P3a: the type of grpc's `peer.Peer`'s fields; item 5: grpc's
--- `credentials` imports it, for `TransportCredentials`'s handshakes).
-instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
-  define_is_pkg_init iprop(True)
-instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
-  build_get_is_pkg_init_wf
-
-instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
-  define_is_pkg_init iprop(True)
-instance grpc_credentials_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
-  build_get_is_pkg_init_wf
-
--- grpc's `peer` (names only; unit P3a: the retry interceptor's `peer.Peer`).
-instance grpc_peer_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.peer :=
-  define_is_pkg_init iprop(True)
-instance grpc_peer_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.peer :=
-  build_get_is_pkg_init_wf
 
 instance clientv3_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.credentials :=
   define_is_pkg_init iprop(True)

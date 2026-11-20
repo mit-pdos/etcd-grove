@@ -12,5 +12,5 @@ axiom proto.Clone.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
-axiom zap.Int64.wp_proof
-axiom zap.Logger.Warn.wp_proof
+axiom zap.Logger.check.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof

@@ -23,8 +23,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `prometheus.MustRegister(c)` of one collector `c` describing one label-free descriptor named
-`n` returns, given the right to register `n` (`nameFree n`, consumed: the name is registered). -/
+/-- `prometheus.MustRegister(c)` of one collector `c` describing one descriptor named `n` without
+const labels (a metric, or a metric vector: `collectorName`) returns, given the right to register `n` (`nameFree n`, consumed: the name is registered). -/
 abbrev prometheus.MustRegister.spec : Prop :=
   ∀ (s : GoSlice) (dq : DFrac) (c : GoInterfaceOk) (n : GoString),
   prometheus.collectorName c n →
