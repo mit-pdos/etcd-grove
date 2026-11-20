@@ -957,3 +957,21 @@ the Prove phase's. To do before the walkers' proofs.
 - Tooling hazard (agent A): `etc/lean-check.py -a` reported 0 errors on a `first | … | skip` proof
   that `lake build` rejects; every proof is confirmed by `lake build` and `#print axioms` before it
   counts as proved.
+- (round 2, coordinator) `value`: `FieldList.Sort` pre names Nodup and length ≤ 2^62 (+ the
+  `sort.SliceStable` hypothesis; with distinct names the sorted permutation is the stated mergeSort);
+  `listUnstructuredRange.Next` pre `n < vs.length` (also `rangeIfaceM`); `MapZipUsing`/`ZipUsing`/
+  `defaultMapZip`: the key-count bound (sum ≤ 2^62, for `sort.Strings`) only when the order is
+  `LexicalKeyOrder` (`MapEqualsUsing` and the typed walkers zip `Unordered`);
+  `lexicalKeyOrderedMapZip` takes it unconditionally.
+- (round 2, coordinator) `value.Compare`/`CompareUsing`/`MapCompareUsing` pre `UVal.mapLensOk` of both
+  values (every map inside has ≤ 2^61 keys; decidable); `PE.wf` includes it for key/value elements'
+  values, so `PE.Compare`/`FieldList.Compare` get it; key fields are scalars in scope, driver literals
+  by `decide`.
+- (round 2, coordinator) all five walkers' cluster specs state the spare-walker pointer `sp`
+  explicitly, post `⌜sp ≠ null → sp' = sp⌝` (Go sets it only when nil; hiding it made
+  `finishDescent`'s premises unreachable after the recursive call).
+- (round 2, coordinator) `typed` `listItemToPathElement`/`keyedAssociativeListItemToPathElement` pre
+  `(keyOf ks x).isSome`, the `none` branch dropped (its error is built by out-of-scope
+  `errors.New`/`fmt.Errorf`; callers have it from conformance).
+- (round 2, D1c) `validatingObjectWalker.validate` dropped its `prefixOk f` premise (no errors on
+  conforming values, so `f` is never called; all callers D1c's).
