@@ -351,6 +351,13 @@ EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
 EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
+# auth-mediation M2 (2026-11-20): the other member operations, over the names-only callees taken as
+# contracts (`MemberContracts.lean`), and `json.Marshal`'s trust-boundary specs
+json_MarshalMember:
+json_MarshalConfigChangeContext:
+EtcdServer__AddMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
+EtcdServer__UpdateMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
+EtcdServer__promoteMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalConfigChangeContext
 # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go), a reader
 # of the auth store and of the lessor at lower bounds (`LeaseCheck.lean`); the entry points that
 # call them stay names-only
@@ -369,6 +376,9 @@ EtcdServer__waitAppliedIndex:
 EtcdServer__waitLeader:
 leasehttp_RenewHTTP:
 EtcdServer__LeaseRenew: EtcdServer__ensureLeadership EtcdServer__waitAppliedIndex EtcdServer__waitLeader EtcdServer__checkLeaseRenew lease_lessor__Renew lease_lessor__Lookup leasehttp_RenewHTTP EtcdServer__isLeader EtcdServer__FeatureEnabled config_ServerConfig__ReqTimeout traceutil_Tracer__Start trace_WithAttributes attribute_Int64 errors_Is errors_IsCtxErr errors_IsStatusErr EtcdServer__Logger zap_Error zap_Logger__Warn
+# auth-mediation M2 (2026-11-20): the promotion's entry point (local, or forwarded to the leader as
+# `LeaseRenew` forwards; `promoteMemberHTTP`, names only, is the spec's contract `promoteHTTPOk`)
+EtcdServer__PromoteMember: EtcdServer__promoteMember EtcdServer__waitLeader config_ServerConfig__ReqTimeout prometheus_CounterVec__WithLabelValues errors_Is errors_IsCtxErr errors_IsStatusErr
 EtcdServer__LeaseLeases: lease_lessor__Leases EtcdServer__checkLeaseLeases EtcdServer__newHeader
 EtcdServer__checkLeaseLeases: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_Lease__Keys
 EtcdServer__MemberList: EtcdServer__requireAuthInfo+C RaftCluster__Members

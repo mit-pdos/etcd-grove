@@ -249,6 +249,23 @@ _Lease_LeaseRevoke_Handler:
 _Lease_LeaseTimeToLive_Handler:
 _Lease_LeaseLeases_Handler:
 NewClusterServer: EtcdServer__Cluster
+# auth-mediation M2 (2026-11-20): the Cluster service's handlers (`InvCluster.lean`) over the
+# server's member operations (linked in the server's Link; their names-only callees are contracts)
+membership_RaftCluster__ID: @
+EtcdServer__Term: @
+EtcdServer__MemberList: @
+EtcdServer__RemoveMember: @
+EtcdServer__UpdateMember: @
+EtcdServer__AddMember: @
+EtcdServer__PromoteMember: @
+types_NewURLs: @
+ClusterServer__header: membership_RaftCluster__ID EtcdServer__MemberID EtcdServer__Term EtcdServer__Leader
+membersToProtoMembers:
+ClusterServer__MemberList: EtcdServer__MemberList ClusterServer__header membersToProtoMembers togRPCError
+ClusterServer__MemberRemove: EtcdServer__RemoveMember ClusterServer__header membersToProtoMembers togRPCError
+ClusterServer__MemberUpdate: EtcdServer__UpdateMember ClusterServer__header membersToProtoMembers togRPCError
+ClusterServer__MemberPromote: EtcdServer__PromoteMember ClusterServer__header membersToProtoMembers togRPCError
+ClusterServer__MemberAdd: EtcdServer__AddMember types_NewURLs ClusterServer__header membersToProtoMembers togRPCError
 NewAuthServer:
 # the auth plan's A3, the API layer (2026-10-24): auth.go's AuthServer wrappers over the server's
 # methods as contracts (`InvAuthServer.lean`)

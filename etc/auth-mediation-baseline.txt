@@ -16,11 +16,11 @@
 /etcdserverpb.Auth/UserGrantRole e2e-apply
 /etcdserverpb.Auth/UserList e2e-apply
 /etcdserverpb.Auth/UserRevokeRole e2e-apply
-/etcdserverpb.Cluster/MemberAdd guard
+/etcdserverpb.Cluster/MemberAdd contract
 /etcdserverpb.Cluster/MemberList server
-/etcdserverpb.Cluster/MemberPromote guard
-/etcdserverpb.Cluster/MemberRemove server
-/etcdserverpb.Cluster/MemberUpdate guard
+/etcdserverpb.Cluster/MemberPromote contract
+/etcdserverpb.Cluster/MemberRemove contract
+/etcdserverpb.Cluster/MemberUpdate contract
 /etcdserverpb.KV/Compact contract
 /etcdserverpb.KV/DeleteRange e2e-apply
 /etcdserverpb.KV/Put e2e-apply
