@@ -1,5 +1,5 @@
 /-
-`zap.Logger.Check`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first (no Rocq
+`zap.Logger.Check`: proved over zap's code and `Logger.check`'s spec since 2026-11-20 (until then the trust boundary). Lean-first (no Rocq
 counterpart); the auth plan's S5 (2026-10-24: `auth.authStore.Authenticate` logs through it).
 -/
 module
