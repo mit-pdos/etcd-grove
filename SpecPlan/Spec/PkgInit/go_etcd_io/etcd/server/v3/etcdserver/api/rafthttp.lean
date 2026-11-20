@@ -27,6 +27,7 @@ public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.golang_org.x.time.rate
 public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3
 public import Perennial.Proof.bytes.Base
+public import Perennial.Proof.runtime.Base
 public import SpecPlan.Spec.PkgInit.github_com.xiang90.probing
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.httputil
 public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3

@@ -3,11 +3,13 @@
 `listOut(l)` (k8setcd3.go; stage 7e-4): the output of the list `l` (`driverListSpec`'s list at
 `l`, with its items `os`, resource version, continue token and remaining count): `listObjOutL` of the
 Go items the list holds (`itemRelD`: each the item's object at a resource version whose string is
-the item's).
+the item's). It gives back the list as its read-only deep value (`deepRep DFrac.discard`, the `Raw` of
+`call`'s answer, stage 7g step 5): the items slice is never nil (`store.GetList.spec`'s `listIs`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ListSpecD
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Deep
 
 @[expose] public section
 
@@ -30,12 +32,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev listOut.spec : Prop :=
-  ∀ (pl : Loc) (os : List (DObj × GoString)) (rv : w64) (cont : GoString) (rem : Option w64),
+  ∀ (pl : Loc) (s : GoSlice) (os : List (DObj × GoString)) (rv : w64) (cont : GoString)
+    (rem : Option w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      (driverListSpec (GF := GF)).listAtItems pl os rv cont rem }}
+      ⌜pl ≠ null ∧ s ≠ slice.nil⌝ ∗ (driverListSpec (GF := GF)).itemsRef pl ↦ s ∗ itemsAtD s os ∗
+      metaAtD pl rv cont rem }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.listOut)) (Val #pl))
-  {{ (y : Output), RET #y;
-      ⌜∃ vs : List Obj, List.Forall₂ itemRelD os vs ∧ y = listObjOutL vs rv cont rem⌝ }}
+  {{ (y : Output), RET #y; ∃ vs : List Obj,
+      ⌜List.Forall₂ itemRelD os vs ∧ y = listObjOutL vs rv cont rem⌝ ∗
+      k8sDeep.deepRep DFrac.discard (interface.mkOk (go.GoType.PointerType
+        github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList.ty) #pl) (.list (some vs) rv cont rem) }}
 
 end spec
 

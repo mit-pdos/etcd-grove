@@ -6,11 +6,14 @@ events it received as the driver records them (`wes`, each `kWEvRel` of the stor
 models). The driver holds the watch live (`kLive`) and its Done token (`doneTok`, its context's
 `PDone` being `donePD`), so every element's cancellation branch is refuted: the store events are
 `kSeen` (a prefix of the ideal stream at a firing of the read update `Q`, or all Error events).
-It returns `Stop()` (`kStopOk`), `kLive` and the token, for `watchEvents`.
+The events as received (`raw`, k8s 7g) are returned too, one for one, read-only, with views `rs` of
+which the records are `toWEvL` (`toWEvent`'s post). It returns `Stop()` (`kStopOk`), `kLive` and the token, for `watchEvents`.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WRun
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.EvRep
 
 @[expose] public section
 
@@ -41,8 +44,10 @@ abbrev consume.spec : Prop :=
       k8sWatch c driverW wi γ cd sel emp inS m Q ∗ doneTok γd }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.consume)) (Val #wi))
       (Val #x))
-  {{ (sl : GoSlice), RET #sl; ∃ (wes : List WEv) (kes : List (KWEv DObj)),
-      wevsOwnM sl wes ∗ ⌜List.Forall₂ kWEvRel kes wes⌝ ∗ kSeen c sel emp inS m Q kes ∗
+  {{ (sl rsl : GoSlice), RET (PairV #sl #rsl);
+      ∃ (rs : List k8s_correctness.REv) (kes : List (KWEv DObj)),
+      wevsOwnM sl (rs.map k8s_correctness.toWEvL) ∗ k8s_correctness.evsRO rsl rs ∗
+      ⌜List.Forall₂ kWEvRel kes (rs.map k8s_correctness.toWEvL)⌝ ∗ kSeen c sel emp inS m Q kes ∗
       kStopOk wi γ ∗ kLive γ ∗ doneTok γd }}
 
 end spec

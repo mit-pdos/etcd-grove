@@ -312,13 +312,14 @@ theorem txnPermit_reqPropOk (γk : KVNames) (tw : txn.TxnModelW) (Q : KVState �
       by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
     intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.1
   refine ⟨⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
-    rqShape_of_txn _ hpl hk ?_, rfl⟩
+    rqShape_of_txn _ hpl hk ?_ ?_, rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
-  · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2
+  · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2.1
+  · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2.2
 
 end defs
 

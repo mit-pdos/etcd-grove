@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The `MemoryStorage` meets `isRNMemStor`** (raft's linked `MemoryStorage.wp_Append`, under the
 storage's lock invariant `memStorLock`; 2026-10-30, the repair: until then raft's `memStorage_Append`): the `Ready`'s right to append, with the index bound `rnAppendRight`
 carries (`rnLogFits`'s), is the receipt `Advance` takes. -/
-theorem isRNMemStor_of_memstorage (γ : RNNames) :
+theorem isRNMemStor_of_memstorage (γ : RNNames GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnMemStorReg γ ∗
       memStorLock γ.ms γ.γs ⊢
       isRNMemStor γ γ.ms := by

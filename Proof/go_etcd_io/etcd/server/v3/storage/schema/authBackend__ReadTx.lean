@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 theorem schema.authBackend.ReadTx.wp_proof :
     schema.authBackend.ReadTx.spec (GF := GF) (hG := hG) := by
-  intro abe bi lg R Held
+  intro abe bi lg R Held ι L
   wp_start as ⟨#Hbe, #Hlg, #HBE⟩
   iunfold schema.authBE at HBE
   wp_auto

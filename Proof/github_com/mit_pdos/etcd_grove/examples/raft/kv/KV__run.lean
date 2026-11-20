@@ -197,7 +197,7 @@ theorem KV.run.wp_proof
   iNamed Hrep'
   ihave #Hcl' := Hcl
   iunfold kvCluster at Hcl'
-  icases Hcl' with ⟨#Hiscl, -, #Hca0, -⟩
+  icases Hcl' with ⟨#Hiscl, -, #Hca0, -, %Hnsn, -⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -494,8 +494,10 @@ theorem KV.run.wp_proof
               iapply memCompacted_mono γs c (uint.nat (a' - W64 10)) (by omega) $$ Hcp
           ihave #HBx : (kvJ γr.cluster Kst).B (uint.nat (a' - W64 10)) $$ []
           · unfold kvJ
-            iapply nodeAppliedLb_mono γr.cluster Kst (D ++ ce).length (uint.nat (a' - W64 10)) (by omega)
-              $$ Hal'
+            isplitr
+            · iapply nodeAppliedLb_mono γr.cluster Kst (D ++ ce).length (uint.nat (a' - W64 10)) (by omega)
+                $$ Hal'
+            ipureintro; intro h; exact absurd h Hnsn
           ihave #HsLbx := memSnapLb_mono γs (uint.nat a') (uint.nat (a' - W64 10)) (by omega) $$ HsLb
           wp_apply kvStorage.wp_Compact wp_MemoryStorage_Compact st ms γs (kvJ γr.cluster Kst)
               (a' - W64 10) errCompacted
@@ -562,7 +564,10 @@ theorem KV.run.wp_proof
       iapply snapshotCert_valid γr.cluster kvRaftN l.snap Hpos H61
       iframe Hiscl Hcert
     ihave #HBJ : (kvJ γr.cluster Kst).B (uint.nat l.snap.Metadata'.Index') $$ []
-    · unfold kvJ; iexact Hgiven
+    · unfold kvJ
+      isplitr
+      · iexact Hgiven
+      ipureintro; intro h; exact absurd h Hnsn
     ihave #HDLJ : (kvJ γr.cluster Kst).DL (uint.nat l.snap.Metadata'.Index') $$ []
     · unfold kvJ; iexact HclS
     wp_apply kvStorage.wp_ApplySnapshot wp_MemoryStorage_ApplySnapshot st ms γs (kvJ γr.cluster Kst) k old

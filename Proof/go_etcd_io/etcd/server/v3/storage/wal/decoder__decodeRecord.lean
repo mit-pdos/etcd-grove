@@ -468,13 +468,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           interface.mkOk go.int64 #(W64 F.bs.length), interface.mkOk go.int64 #(W64 off),
           interface.mkOk go.int64 #(W64 pad),
           interface.mkOk go.int64 #(W64 F.bs.length - W64 off - W64 pad)]
-          [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] _root_.Perennial.io.EOF eof (by
-          intro ii hii
-          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-          rcases hii with h | h | h | h | h | h | h <;> rw [interface.mkOk] at h <;> cases h
-          · exact Or.inr (by simp)
-          · exact Or.inl (argWf_string _)
-          all_goals exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e1 ⟨-, #Hn1, #Ht1⟩
+          [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] _root_.Perennial.io.EOF eof ?wf $$ [Hasl] as %e1 ⟨-, #Hn1, #Ht1⟩
+      case wf => errargs_wf
       · iframe
         iframe Heof
         iapply (BigSepL.bigSepL_singleton
@@ -832,13 +827,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iintro %asl ⟨Hasl, -⟩
     all_goals first
       | (wp_apply HErrorf _ _ [GoInterface.ok ei4, interface.mkOk go.string #nm,
-            interface.mkOk go.int64 #(W64 off)] [ei4] _root_.Perennial.io.EOF eof (by
-            intro ii hii
-            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-            rcases hii with h | h | h
-            · cases h; exact Or.inr (by simp)
-            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_string _)
-            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e5 ⟨-, #Hn5, #Ht5⟩
+            interface.mkOk go.int64 #(W64 off)] [ei4] _root_.Perennial.io.EOF eof ?wf $$ [Hasl] as %e5 ⟨-, #Hn5, #Ht5⟩
+         case wf => errargs_wf
          · iframe
            iframe Heof
            iapply (BigSepL.bigSepL_singleton
@@ -847,13 +837,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
            iframe Hei4 Hn4 Ht4)
       | (wp_apply HErrorf _ _ [interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x2,
             interface.mkOk go.string #nm, interface.mkOk go.int64 #(W64 off)]
-            [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] _root_.Perennial.io.EOF eof (by
-            intro ii hii
-            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-            rcases hii with h | h | h
-            · rw [interface.mkOk] at h; cases h; exact Or.inr (by simp)
-            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_string _)
-            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e5 ⟨-, #Hn5, #Ht5⟩
+            [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] _root_.Perennial.io.EOF eof ?wf $$ [Hasl] as %e5 ⟨-, #Hn5, #Ht5⟩
+         case wf => errargs_wf
          · iframe
            iframe Heof
            iapply (BigSepL.bigSepL_singleton

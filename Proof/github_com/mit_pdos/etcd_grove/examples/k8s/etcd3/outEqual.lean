@@ -23,22 +23,14 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-theorem Output_eq_iff (a b : Output) : a = b ↔
-    a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧
-    a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
-    a.Node' = b.Node' ∧ a.App' = b.App' ∧ a.RV' = b.RV' ∧ a.Items' = b.Items' ∧
-    a.ListRV' = b.ListRV' ∧ a.Continue' = b.Continue' ∧ a.HasRemaining' = b.HasRemaining' ∧
-    a.Remaining' = b.Remaining' ∧ a.WEvents' = b.WEvents' ∧ a.WFailed' = b.WFailed' := by
-  cases a; cases b; simp
-
 theorem outEqual.wp_proof : outEqual.spec (GF := GF) (hG := hG) := by
   intro a b
   wp_start
   wp_auto
   repeat' wp_if_destruct
   all_goals first
-    | (rw [decide_eq_false (fun h => by subst h; simp_all)]; iapply HΦ; itrivial)
-    | (rw [decide_eq_true (by rw [Output_eq_iff]; and_intros <;> assumption)]
+    | (rw [decide_eq_false (fun h => by rw [plainOut_eq_iff] at h; simp_all)]; iapply HΦ; itrivial)
+    | (rw [decide_eq_true (by rw [plainOut_eq_iff]; and_intros <;> assumption)]
        iapply HΦ; itrivial)
 
 end proof

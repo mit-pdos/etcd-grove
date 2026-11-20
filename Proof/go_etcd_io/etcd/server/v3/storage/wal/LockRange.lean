@@ -115,8 +115,10 @@ theorem absD_segStart_cut {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
     exact List.getElem_mem _
   have hc := h.cuts.1 _ hmem
   refine ⟨hc, ?_⟩
-  rcases hc with h0 | ⟨hh, es, hb, -⟩
+  rcases hc with h0 | ⟨hh, es, hb, -⟩ | ⟨m, al, hb⟩
   · omega
+  · have := (List.getElem?_eq_some_iff.1 hb).1
+    simp only [histM, List.length_map] at this; omega
   · have := (List.getElem?_eq_some_iff.1 hb).1
     simp only [histM, List.length_map] at this; omega
 

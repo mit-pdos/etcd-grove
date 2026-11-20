@@ -4,7 +4,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 
 @[expose] public section
@@ -24,9 +24,11 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- A prometheus `Observer` (a histogram's): `Observe(f)` returns (persistent). -/
+/-- A prometheus `Observer` (a histogram's): `Observe(f)` of a `float64` `f` (Perennial's 64-bit
+word, as `gaugeSpec`'s; 2026-11-18: it was any `val`, a panic value included, to which the
+application unwinds: the triple could not hold) returns (persistent). -/
 def prometheus.observerSpec (o : GoInterfaceOk) : IProp GF :=
-  iprop(□ (∀ f : val, {{ True }} (App (Val #(methods o.ty go!"Observe" o.v)) (Val f))
+  iprop(□ (∀ f : w64, {{ True }} (App (Val #(methods o.ty go!"Observe" o.v)) (Val #f))
     {{ RET #(); True }}))
 
 instance prometheus.observerSpec_persistent (o : GoInterfaceOk) :

@@ -36,17 +36,17 @@ theorem wp_osRmdirS_nonempty (R : Roots) (d b : GoString) (j J : Ino) (N : NameS
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osPathS (L := L) R (child d b) dqJ J -∗
-      osNames (L := L) J N dqn hJ -∗ osCallS (L := L) k s0 q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) J N dqn hJ -∗ osCallS (L := L) k s0 (child d b) q -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osPathS (L := L) R (child d b) dqJ J -∗ osNames (L := L) J N dqn hJ -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   let P : OsState → Prop := fun st => st.lookup d = some (.dir j) ∧
     st.lookup (child d b) = some (.dir J) ∧ ∀ x, N.Mem x → st.tree.entry J x = hJ.cur !! x
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) → P st →
       ∃ e', IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' (st.metaEnd k) :=
     fun st _ _ hcall hp => ⟨_, child d b, k, s0, rfl, treeName_child hp.1 hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) → P st →
       IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' st' →
       st' = st.metaEnd k ∧ ∃ w, e' = Val w ∧ ∃ e : w64, e ≠ 0 ∧ w = #e := by
     intro st e' st' _ _ _ hp Hst
@@ -71,7 +71,7 @@ theorem wp_osRmdirS_nonempty (R : Roots) (d b : GoString) (j J : Ino) (N : NameS
     icases osNames_entry hcoh J N dqn hJ $$ HA Hn with %h3
     ipureintro; exact ⟨h1, h2, h3⟩
   iintro #Hinv #Hsi Hp Hp' Hn Hk HΦ
-  iapply wp_callEndS "Rmdir" _ (by simp [val.isPanic]) R k s0 q
+  iapply wp_callEndS "Rmdir" _ (by simp [val.isPanic]) R k s0 (child d b) q
     iprop(osPathS (L := L) R d dq j ∗ osPathS (L := L) R (child d b) dqJ J ∗
       osNames (L := L) J N dqn hJ)
     P (fun w => ∃ e : w64, e ≠ 0 ∧ w = #e) hF hprog hpost hE hE' Φ
@@ -79,6 +79,7 @@ theorem wp_osRmdirS_nonempty (R : Roots) (d b : GoString) (j J : Ino) (N : NameS
   · iframe
   iintro %w %hW Hq ⟨Hp, Hp', Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hp' Hn
 
 end specs

@@ -287,6 +287,8 @@ def main():
     for o in proof_roots.load(args.json, "tcb", args.reuse):
         if o["t"] == "root":
             roots[(o["module"], o["name"])] = o
+        elif o["t"] == "errorf":
+            continue  # etc/errorf-wrap-check.py's
         else:
             # one record per declaring module (a module Lean ran in several groups
             # reports its declarations once per group)

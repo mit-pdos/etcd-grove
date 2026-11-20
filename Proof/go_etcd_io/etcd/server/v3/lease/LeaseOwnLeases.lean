@@ -35,14 +35,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 /-- **The owner's live set is the lease map `Leases()` returns**: at a lower bound `m` of the
 history the owner gives, a lease map at an index no earlier than `m` has the ids of `L`, each once
 (the owner's resource given back). -/
-theorem leaseOwn_leases (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
-    leaseOwn (GF := GF) γl L I ⊢ ∃ m : Nat, lessorLb γl m ∗
+theorem leaseOwnW_leases (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) :
+    leaseOwnW (GF := GF) γl L I w ⊢ ∃ m : Nat, lessorLb γl m ∗
       (∀ (i : Nat) (ls : List (Loc × w64)), ⌜m ≤ i⌝ -∗ leaseMapAt γl i ls -∗
-        leaseOwn γl L I ∗
+        leaseOwnW γl L I w ∗
           ⌜(ls.map Prod.snd).Nodup ∧ ∀ id : w64, id ∈ ls.map Prod.snd ↔ id ∈ L⌝) := by
-  unfold leaseOwn leaseClosers
+  unfold leaseOwnW leaseClosers
   iintro ⟨Hf, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcs, %γr, %hs, %Sm, #Hpr,
-    Ha, %Hlast, HSm⟩
+    Ha, %Hlast, HSm, HW⟩
   obtain ⟨T, hT⟩ := Hlast
   have hne : hs ≠ [] := by rintro rfl; simp at hT
   have hlen : 0 < hs.length := List.length_pos_iff.2 hne
@@ -73,7 +73,7 @@ theorem leaseOwn_leases (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
     isplitr; · ipureintro; exact HC
     isplitr; · ipureintro; exact HIL
     isplitr; · ipureintro; exact HIS
-    iexists γr, hs, Sm; iframe Hpr Ha HSm; ipureintro; exact ⟨T, hT⟩
+    iexists γr, hs, Sm; iframe Hpr Ha HSm HW; ipureintro; exact ⟨T, hT⟩
   ipureintro
   refine ⟨Hσ.1, fun id => ?_⟩
   rw [HC id, List.mem_map]
@@ -85,6 +85,13 @@ theorem leaseOwn_leases (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
   · intro h
     obtain ⟨l, hl⟩ := Option.isSome_iff_exists.1 h
     exact ⟨(l, id), (Hσ.2 id l).2 hl, rfl⟩
+
+theorem leaseOwn_leases (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
+    leaseOwn (GF := GF) γl L I ⊢ ∃ m : Nat, lessorLb γl m ∗
+      (∀ (i : Nat) (ls : List (Loc × w64)), ⌜m ≤ i⌝ -∗ leaseMapAt γl i ls -∗
+        leaseOwn γl L I ∗
+          ⌜(ls.map Prod.snd).Nodup ∧ ∀ id : w64, id ∈ ls.map Prod.snd ↔ id ∈ L⌝) :=
+  leaseOwnW_leases γl L I none
 
 end proof
 

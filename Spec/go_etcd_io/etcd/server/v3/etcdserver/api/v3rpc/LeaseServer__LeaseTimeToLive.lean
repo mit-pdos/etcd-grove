@@ -38,24 +38,27 @@ contract's per-call resources `S` and the header's revision reader `A.revR`, at 
 lower bounds `n`, `m`, on the request `r`: `s.LeaseTimeToLive(ctx, r)`, `ErrLeaseNotFound`
 (`errors.Is`) turned into a fresh response with `TTL` `-1`, another error through `togRPCError`,
 then the header filled. Everything back, and `leaseTTLOut`: on success the response, about the
-asked lease (its `ID` the request's), with its header filled and the server's verdict (the request authenticated, with `r.Keys` the key check's),
-or the not-found response; on an error `nil`. The request is owned (`r ↦{dq} v`), not the gRPC
+asked lease (its `ID` the request's), with its header filled and the server's verdict (the request
+authenticated and the check passed relative to `n`, with `r.Keys` the key check's), on the server's
+response or the not-found response alike (auth-lease S4, Freeze §4.4 F4, §10 T1); on an error `nil`. The request is owned (`r ↦{dq} v`), not the gRPC
 wire model's persistent fields (`pbLeaseGrantRequest.recv`'s form): the stage that links the
 handler to the gRPC server reconciles them. (k8s 7f-4, T-h6) The context holds nothing at net/http's
 keys (`http.netCtxOk`, which grpc's run context gives: `netCtxOk_of_runCtx`). (k8s 7f-4, Addendum T-k)
 Its causes are context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`: `ctxCauseOk_of_runCtx`). -/
 abbrev v3rpc.LeaseServer.LeaseTimeToLive.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (γl : GName)
-    (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc)
+    (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc)
     (dq : DFrac) (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRead s E γl S A.revR ∗ S ∗ A.revR ∗
-      context.isContext ci cd ∗ context.libCtxOk ci ∗ http.netCtxOk ci ∗ v3rpc.ctxCauseOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+      context.isContext ci cd ∗ context.libCtxOk ci ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ http.netCtxOk ci ∗ v3rpc.ctxCauseOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       r ↦{dq} v }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ A.revR ∗ r ↦{dq} v ∗
-      v3rpc.leaseTTLOut s E γl ci n m v cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
+      v3rpc.leaseTTLOut s E γl tok n m v cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

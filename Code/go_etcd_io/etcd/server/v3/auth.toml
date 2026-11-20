@@ -56,6 +56,13 @@ translate = ["!*", "AuthInfo",
   "tokenSimple.disable", "simpleTokenTTLKeeper.addSimpleToken",
   "simpleTokenTTLKeeper.resetSimpleToken", "simpleTokenTTLKeeper.deleteSimpleToken",
   "simpleTokenTTLDefault", "AuthenticateParamIndex", "AuthenticateParamSimpleTokenPrefix",
+  # (prove-initmisc, 2026-11-20) the rest of the package's variables: `currentAuthRevision`
+  # (`prometheus.NewGaugeFunc`, over its spec), `knownOptions` (a map literal of the option-name
+  # constants), `DefaultTTL`, `_` (`var _ AuthStore = (*authStore)(nil)`), `rootPerm` (an
+  # `authpb.Permission` literal) and the JWT errors (`errors.New`); until then `opaqueInitsOk`
+  "currentAuthRevision", "knownOptions", "optSignMethod", "optPublicKey", "optPrivateKey", "optTTL",
+  "DefaultTTL", "_", "rootPerm", "ErrInvalidAuthMethod", "ErrMissingKey", "ErrKeyMismatch",
+  "ErrVerifyOnly",
   # (the auth plan's S5c, 2026-10-25, Perennial 24bef275e: `strconv.ParseUint`, `time.Ticker`,
   # `Time.After`) the token check and the TTL keeper's goroutine and its stop
   "tokenSimple.isValidSimpleToken", "simpleTokenTTLKeeper.run", "simpleTokenTTLKeeper.stop",
@@ -87,7 +94,8 @@ translate = ["!*", "AuthInfo",
 imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
-  "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]
+  "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt",
+  "github.com/prometheus/client_golang/prometheus"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -128,8 +128,8 @@ def trState (γn : NetNames GF) (t : Loc) (c : TrN GF) : IProp GF :=
   iprop(trFixed (netRh γn) t c.lid c.γd c.R ∗ trProbers t ∗ trStopInv (netRh γn) c.R c.γs c.L ∗
     sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"])
       (trLockP (netRh γn) t c.lid c.γd c.R c.γs c.γr) ∗
-    ∃ (ss : Loc) (Rm : w64 → IProp GF), t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗
-      snap.isSnapshotter ss ∗ inv snapDirN (snapDirInv ss c.γd γn.N.img Rm))
+    ∃ (ss : Loc) (sd : GoString) (Rm : w64 → IProp GF), t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗
+      snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd c.γd γn.N.img Rm))
 
 instance trState_persistent (γn : NetNames GF) (t : Loc) (c : TrN GF) :
     Persistent (trState γn t c) := by
@@ -208,7 +208,7 @@ theorem rafthttp.Transport.Start_full
     (hNewProber : probing.NewProber.spec (GF := GF) (hG := hG))
     (hEvery : rate.Every.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (tv : rafthttp.Transport) (R : IProp GF) (γd : GName)
-    (Rm : w64 → IProp GF) (uvs : List net.url.URL) (L : List w64) :
+    (Rm : w64 → IProp GF) (sd : GoString) (uvs : List net.url.URL) (L : List w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         t ↦ tv ∗
         zapLoggerOk tv.Logger' ∗
@@ -216,8 +216,8 @@ theorem rafthttp.Transport.Start_full
           tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ [] ∧ L.Nodup ∧
         trURLsOk (netRh γn) tv.ID' uvs⌝ ∗
         tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
-        snap.isSnapshotter tv.Snapshotter' ∗
-        inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
+        snap.isSnapshotter tv.Snapshotter' sd ∗
+        inv snapDirN (snapDirInv sd γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
         v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 ∗
         raftPool R }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Start")) (Val #()))

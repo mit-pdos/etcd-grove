@@ -30,9 +30,9 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specOk : Prop :=
   ∀ (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp),
   {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
-      osCallPerm (GF := GF) qc }}
+      osCallPerm (GF := GF) (callKey R p) qc }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir)) (Val #p))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
       ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
           osDirFdS fd j .idle) ∨
        ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}

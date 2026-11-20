@@ -24,15 +24,17 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `rlc.LeaseLeases(ctx, in, opts...)` on a `*retryLeaseClient` over a stub on a connection to
 `addr`: `rlc.lc.LeaseLeases(ctx, in, append(opts, withRepeatablePolicy())...)` (the options' slice
-full, `len = cap`: the `append` reallocates): the call's answer (`leaseLeasesCallOut`). -/
+full, `len = cap`: the `append` reallocates): the call's answer (`leaseLeasesCallOut`). (Auth-lease S4, Freeze §2.3) Metadata-indexed: the spec `Spec` at every metadata an attempt may deliver
+(`attemptPre`, as `kVClient.Put`'s; a plain spec is `GrpcSpec.md`); persistent, since the call may be
+retried. -/
 abbrev retryLeaseClient.LeaseLeases.spec : Prop :=
   ∀ (rlc conn : Loc) (addr : List GoString)
-    (Spec : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
     (Q : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseLeasesRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
-      □ ▷ Spec () Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec () Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
       opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
       ⌜req.unknownFields' = slice.nil⌝ }}
     (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!

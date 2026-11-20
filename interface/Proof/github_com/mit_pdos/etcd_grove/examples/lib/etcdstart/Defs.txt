@@ -48,7 +48,7 @@ def etcdstart.memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
 def etcdstart.cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
     Prop :=
   cfg.Name' = name ∧
-    cfg.DataDir' = name ++ go!".etcd" ∧
+    cfg.DataDir' = memberDataDir name ∧
       cfg.InitialClusterToken' = token ∧ cfg.NewCluster' = true ∧ cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 
 theorem etcdstart.grpcUpM_true [v3rpc_sem :
@@ -78,21 +78,22 @@ def etcdstart.memberBoot (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) 
                 ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧
                   Φs ρ.ids.pfx = srvFloorFact E₀ ∧
                     E₀.cmp = cmp ∧ ρ.rd.kv.cmp = cmp ∧ E₀.Nx = srvApi.kvNx ρ.rd false ∧ lease.runCfg ρ.rd.kv.lm m⌝ ∗
-      (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗
-        srvRaftLogInv ρ.rd.raft ∗
-          idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-            idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗
-              idNoZero ρ.ids ∗
-                srvPropMint ρ.rd.raft ρ.ids ∗
-                  srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-                    idShare ρ.ids ∗
-                      idWaitTok ρ.ids ∗
-                        srvApi.newServerStoreFreshA E₀.γs ∗
-                          ghostMapAuth ρ.rd.kv.cok 1 ∅ ∗
-                            ghostMapAuth E₀.γrev 1 ∅ ∗
-                              srvReadNamesFreshNK ρ.rd ∗
-                                kvInv ρ.rd.raft ρ.rd.kv ∗
-                                  ghostMapAuth γ.reg 1 ∅ ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)
+      ⌜¬clusterNoSnap γ.cl⌝ ∗
+        (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗
+          srvRaftLogInv ρ.rd.raft ∗
+            idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+              idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗
+                idNoZero ρ.ids ∗
+                  srvPropMint ρ.rd.raft ρ.ids ∗
+                    srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+                      idShare ρ.ids ∗
+                        idWaitTok ρ.ids ∗
+                          srvApi.newServerStoreFreshA E₀.γs ∗
+                            ghostMapAuth ρ.rd.kv.cok 1 ∅ ∗
+                              ghostMapAuth E₀.γrev 1 ∅ ∗
+                                srvReadNamesFreshNK ρ.rd ∗
+                                  kvInv ρ.rd.raft ρ.rd.kv ∗
+                                    ghostMapAuth γ.reg 1 ∅ ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)
 
 def etcdstart.grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
@@ -186,8 +187,8 @@ def etcdstart.memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Lo
 theorem etcdstart.memberBootOn_cmp [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ctxs : List (List
     w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id :
-    w64) (cmp : Bool) : etcdstart.memberBootOn γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗
-    etcdstart.memberBootOn γ ctxs ρ E₀ Φs id cmp
+    w64) (cmp : Bool) (m : lease.Mode := lease.Mode.none) : etcdstart.memberBootOn γ ctxs ρ E₀ Φs id
+    cmp m ⊢ ⌜E₀.cmp = cmp⌝ ∗ etcdstart.memberBootOn γ ctxs ρ E₀ Φs id cmp m
 
 def etcdstart.commonPremises : IProp GF :=
   iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
@@ -247,7 +248,7 @@ def etcdstart.env₀ (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (rev : GN
     RW := iprop(True), γbe := 0, Cp := fun x => iprop(True), BkTie := fun x => iprop(True), cmp := cmp }
 
 def etcdstart.memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) (γa : auth.AuthNames) : IProp GF :=
+    (id : w64) (γa : auth.AuthNames) (m : lease.Mode := lease.Mode.none) : IProp GF :=
   iprop(∃ E cfg γw,
       ⌜envAgree E E₀ ∧
             E.authMode = auth.AuthMode.on γa ∧
@@ -263,7 +264,8 @@ def etcdstart.memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
                         srvWatchBuilt s E ∗
                           srvServeFacts s E cfg ∗
                             srvBemuReader s ∗
-                              etcdstart.srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
+                              etcdstart.srvPeerCtl γn s id ∗
+                                □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗ etcdstart.srvLeaseRd s E m)
 
 def etcdstart.grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc) (lis :
     GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
@@ -288,7 +290,8 @@ def etcdstart.grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
                               srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
 def etcdstart.memberBootOn (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool := false) : IProp GF :=
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool := false) (m : lease.Mode
+    := lease.Mode.none) : IProp GF :=
   iprop(⌜ρ.rd.raft = { raft := γ, pre := [], ai0 := W64 0 } ∧
           ρ.rd.kv.c0 = W64 0 ∧
             ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
@@ -297,7 +300,8 @@ def etcdstart.memberBootOn (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames
                   Φs ρ.ids.pfx = srvFloorFact E₀ ∧
                     E₀.cmp = cmp ∧
                       ρ.rd.kv.cmp = cmp ∧
-                        E₀.Nx = srvApi.kvNx ρ.rd true ∧ (∃ m, lease.runCfg ρ.rd.kv.lm m) ∧ ρ.rd.kv.lg = false⌝ ∗
+                        E₀.Nx = srvApi.kvNx ρ.rd true ∧
+                          lease.runCfg ρ.rd.kv.lm m ∧ (m = lease.Mode.revocable → lease.leasesNoExpiry)⌝ ∗
       (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗
         srvRaftLogInv ρ.rd.raft ∗
           idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗

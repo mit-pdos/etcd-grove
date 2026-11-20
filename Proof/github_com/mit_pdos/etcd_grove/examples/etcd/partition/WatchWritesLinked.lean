@@ -7,6 +7,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWrites
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLaws
 
 @[expose] public section
 
@@ -85,6 +86,9 @@ theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : Li
     · rw [kvStateOf_rev]; omega
   · iright
     ipureintro; exact Herr
+
+theorem client_Put_km_law_holds : client_Put_km.law (GF := GF) (hG := hG) :=
+  client_Put_km
 
 end put
 

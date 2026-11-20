@@ -455,6 +455,30 @@ noncomputable def parseMember [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ParseTraceState [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.ParseTraceState"
 
+/-- WithAttributes adds the attributes related to a span life-cycle event.
+    These attributes are used to describe the work a Span represents when this
+    option is provided to a Span's start event. Otherwise, these
+    attributes provide additional information about the event being recorded
+    (e.g. error, state change, processing progress, system event).
+
+    If multiple of these options are passed the attributes of each successive
+    option will extend the attributes instead of overwriting. There is no
+    guarantee of uniqueness in the resulting attributes.
+
+    go: config.go:240:6 -/
+noncomputable def WithAttributes.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "attributes"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc SpanStartEventOption.ty))) (App (Val (GoInstruction (GoZeroVal SpanStartEventOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "attributes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)))) (Var "attributes"))
+  (Let "$r0" (App (Val (GoInstruction (Convert attributeOption.ty SpanStartEventOption.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)))) (Var "attributes")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore SpanStartEventOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad SpanStartEventOption.ty))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.codes, pkg_id.go_opentelemetry_io.otel.trace.embedded]
 
@@ -1529,6 +1553,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Tracer_instance : Tracer.TypeAssumptions
   member_instance : member.TypeAssumptions
   TraceState_instance : TraceState.TypeAssumptions
+  WithAttributes_unfold : FuncUnfold WithAttributes [] WithAttributes.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
   import_codes_Assumption : _root_.Perennial.go_opentelemetry_io.otel.codes.Assumptions
@@ -1573,6 +1598,7 @@ attribute [instance] Assumptions.autoTracerProvider_instance
   Assumptions.Tracer_instance
   Assumptions.member_instance
   Assumptions.TraceState_instance
+  Assumptions.WithAttributes_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_attribute_Assumption
   Assumptions.import_codes_Assumption

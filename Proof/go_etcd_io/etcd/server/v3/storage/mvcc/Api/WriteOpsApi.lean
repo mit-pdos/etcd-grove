@@ -43,26 +43,27 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 theorem metricsTxnWrite_PutT (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG)) :
     ∀ (trace : Loc) (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
       (puts deletes putSize : w64) (key value : GoSlice) (k v : GoString) (leaseID : w64)
-      (L : List w64) (crev : Int) (te : Bool),
+      (L : List w64) (crev : Int) (te : Bool) (w : Option lease.LWin),
     {{ pkgInit ∗ isTxnWriteT mw s γ trace ilog pend puts deletes putSize crev iprop(True) false
           iprop(True) ∗ traceutil.ownTrace trace te ∗ key ↦*□ k ∗ value ↦*□ v ∗
         ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ ⌜k.length ≤ etcdKeyMax ∧ v.length ≤ etcdKeyMax⌝ ∗
-        lease.leaseOwn γ.leases L (pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
+        lease.leaseOwnW γ.leases L (pendItems ilog pend) w ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+        ⌜lease.winMove w (pendItems ilog pend) (pendItems ilog (pend ++ [.put k v leaseID]))⌝ }}
       (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))
         (Val #value)) (Val #leaseID))
     {{ RET #(W64 (ilog.length : Int) : w64);
         isTxnWriteT mw s γ trace ilog (pend ++ [.put k v leaseID]) (puts + W64 1) deletes
           (putSize + (key.len + value.len)) crev iprop(True) false iprop(True) ∗
         traceutil.ownTrace trace te ∗
-        lease.leaseOwn γ.leases L (pendItems ilog (pend ++ [.put k v leaseID])) }} := by
-  intro trace mw s γ ilog pend puts deletes putSize key value k v leaseID L crev te
-  wp_start as ⟨Htx, Hte, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease⟩
+        lease.leaseOwnW γ.leases L (pendItems ilog (pend ++ [.put k v leaseID])) w }} := by
+  intro trace mw s γ ilog pend puts deletes putSize key value k v leaseID L crev te w
+  wp_start as ⟨Htx, Hte, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, %Hwm⟩
   iunfold isTxnWriteT at Htx
   iNamed Htx
   (try wp_auto)
-  wp_apply (hPut trace tw s γ ilog pend key value k v leaseID L te crev iprop(True))
+  wp_apply (hPut trace tw s γ ilog pend key value k v leaseID L te crev iprop(True) w)
     $$ [$Htw $Hkey $Hval $Hown $Hte] as ⟨Htw, Hown, Hte⟩
-  · ipureintro; exact ⟨Hklen, Hkvb, Hlease⟩
+  · ipureintro; exact ⟨Hklen, Hkvb, Hlease, Hwm⟩
   (try wp_auto)
   iapply HΦ
   iframe Hown Hte
@@ -73,8 +74,8 @@ theorem metricsTxnWrite_PutT (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG 
 /-- **`Txn.Put.contract` at `*metricsTxnWrite`.** -/
 theorem metricsTxnWrite.Put.wp_api (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG)) :
     metricsTxnWrite.Put.spec (GF := GF) := by
-  intro t0 (γ : mvcc.StoreNames) trace te σ pend key value k vv leaseID L
-  iintro %Φ ⟨#Hpkg, Htx, Hte, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease⟩ HΦ
+  intro t0 (γ : mvcc.StoreNames) trace te σ pend key value k vv leaseID L w
+  iintro %Φ ⟨#Hpkg, Htx, Hte, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, %Hwm⟩ HΦ
   iunfold mvccTxn at Htx
   simp only [mvccTxnI]
   icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
@@ -84,9 +85,9 @@ theorem metricsTxnWrite.Put.wp_api (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF
   have hl : mvccLeases γ = (γ.withPhys p).leases := rfl
   rw [hl]
   iapply (metricsTxnWrite_PutT hPut trace t0 s (γ.withPhys p) σ.log pend puts deletes putSize key value
-      k vv leaseID L σ.crev te) $$ [Htx Hte Hown] [HΦ Hback]
+      k vv leaseID L σ.crev te w) $$ [Htx Hte Hown] [HΦ Hback]
   · iframe Hpkg Htx Hte Hkey Hval Hown
-    ipureintro; exact ⟨Hklen, Hkvb, Hlease⟩
+    ipureintro; exact ⟨Hklen, Hkvb, Hlease, Hwm⟩
   inext
   iintro ⟨Htx, Hte, Hown⟩
   iapply HΦ
@@ -103,8 +104,8 @@ theorem metricsTxnWrite.Put.wp_api (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF
 theorem metricsTxnWrite.DeleteRange.wp_api
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     ∀ t : Loc, Txn.DeleteRange.contract (GF := GF) (go.GoType.PointerType metricsTxnWrite.ty) #t := by
-  intro t0 (γ : mvcc.StoreNames) trace σ pend key endk k e L
-  iintro %Φ ⟨#Hpkg, Htx, #Hkey, #Hend, Hown⟩ HΦ
+  intro t0 (γ : mvcc.StoreNames) trace σ pend key endk k e L w
+  iintro %Φ ⟨#Hpkg, Htx, #Hkey, #Hend, Hown, %Hwm⟩ HΦ
   iunfold mvccTxn at Htx
   simp only [mvccTxnI]
   icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
@@ -114,9 +115,9 @@ theorem metricsTxnWrite.DeleteRange.wp_api
   have hl : mvccLeases γ = (γ.withPhys p).leases := rfl
   rw [hl]
   iapply (hDel trace t0 s (γ.withPhys p) σ.log pend puts deletes putSize key endk k e L σ.crev
-      iprop(True) iprop(True)) $$ [Htx Hown] [HΦ Hback]
+      iprop(True) iprop(True) w) $$ [Htx Hown] [HΦ Hback]
   · iframe Hpkg Htx Hkey Hend Hown
-    ipureintro; exact ⟨(reach_putsLe σ Hk0.2.1).1, Hk0.2.2⟩
+    ipureintro; exact ⟨winMove_dels_of_drops Hwm, (reach_putsLe σ Hk0.2.1).1, Hk0.2.2⟩
   inext
   iintro %n %rev ⟨Htx, Hown, %Hnr⟩
   ihave %Hsm := isTxnWriteT_small _ _ _ _ _ _ _ _ _ _ _ _ _ $$ [$Htx]

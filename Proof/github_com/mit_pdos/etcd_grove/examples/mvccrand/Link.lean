@@ -10,6 +10,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Run
+public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.checkKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.checkRange
@@ -60,6 +61,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.rng__next
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.runChecks
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeDeleteLease
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.leaseIDToBytes
 public import Proof.sort.StringSlice__Sort
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.watchCheck__complete
@@ -272,9 +274,17 @@ theorem sort.StringSlice.wp_Sort :
     EtcdGrove.sort.StringSlice.Sort.spec (GF := GF) (hG := hG) :=
   EtcdGrove.sort.StringSlice.Sort.wp_proof
 
+theorem binary.bigEndian.wp_PutUint64 :
+    EtcdGrove.binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.binary.bigEndian.PutUint64.wp_proof
+
+theorem schema.wp_leaseIDToBytes :
+    EtcdGrove.schema.leaseIDToBytes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.schema.leaseIDToBytes.wp_proof binary.bigEndian.wp_PutUint64
+
 theorem schema.wp_UnsafeDeleteLease :
     EtcdGrove.schema.UnsafeDeleteLease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.schema.UnsafeDeleteLease.wp_proof
+  EtcdGrove.schema.UnsafeDeleteLease.wp_proof schema.wp_leaseIDToBytes
 
 theorem lease.lessor.wp_Lookup :
     EtcdGrove.lease.lessor.Lookup.spec (GF := GF) (hG := hG) :=

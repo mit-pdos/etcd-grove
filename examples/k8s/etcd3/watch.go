@@ -63,13 +63,14 @@ type WEvent struct {
 // driver's Gets'); a key (existing 80, in a namespace with no object 10, a missing object 10); a
 // scope (cluster 40, namespace 30, object 30) and Recursive drawn again (70); the selectors as a
 // List's; AllowWatchBookmarks (50%); a behaviour (fast 40, slow 20, hiccup 25, stalled 15).
-func genWatch(id int, c Obj, hasC bool) Input {
-	return genWatchFrom(primitive.RandomUint64(), id, c, hasC)
+func genWatch(id int, c Obj, hasC bool, floor uint64) Input {
+	return genWatchFrom(primitive.RandomUint64(), id, c, hasC, floor)
 }
 
 // genWatchFrom is genWatch for the random number n. With no cached object the RV is drawn among
-// the three that need none (empty, 0, 1), where the test skips the request and draws again.
-func genWatchFrom(n uint64, id int, c Obj, hasC bool) Input {
+// the three that need none (empty, 0, 1), where the test skips the request and draws again. A
+// non-zero resource version below floor is raised to it (floored, k8s 7g).
+func genWatchFrom(n uint64, id int, c Obj, hasC bool, floor uint64) Input {
 	wl, n := pick(n, 10)
 	m, n := pick(n, 7)
 	m2, n := pick(n, 6)
@@ -104,7 +105,7 @@ func genWatchFrom(n uint64, id int, c Obj, hasC bool) Input {
 	case m == 1:
 		rv = rvBytes(0)
 	case m == 2:
-		rv = rvBytes(1)
+		rv = rvBytes(floored(1, floor))
 	case m >= 3:
 		r := c.ResourceVersion
 		if m == 5 {
@@ -116,7 +117,7 @@ func genWatchFrom(n uint64, id int, c Obj, hasC bool) Input {
 		} else if m == 6 {
 			r = r + d + 1
 		}
-		rv = rvString(r)
+		rv = rvString(floored(r, floor))
 	}
 	key := workloadKeys()[ki]
 	ns, name := splitKey(key)
@@ -278,7 +279,7 @@ func runWatch(s storage.Interface, in Input) (Output, Obj, bool) {
 		return Output{WFailed: true}, Obj{}, false
 	}
 	start := time.Now()
-	evs, failed := watchEvents(s, in)
+	evs, raw, failed := watchEvents(s, in)
 	if d := time.Since(start); d < hiccupDuration {
 		time.Sleep(hiccupDuration - d)
 	}
@@ -286,44 +287,46 @@ func runWatch(s storage.Interface, in Input) (Output, Obj, bool) {
 		return Output{WFailed: true}, Obj{}, false
 	}
 	o, ok := lastObj(evs)
-	return Output{WEvents: encodeWEvents(evs)}, o, ok
+	return Output{WEvents: encodeWEvents(evs), Raw: Raw{Events: raw}}, o, ok
 }
 
 // watchEvents runs the watch in through the store s, consumed as in.Behavior says (consume): its
-// events, or true if the Watch call failed. The watch's context is the driver's own
+// events (as recorded, and as received), or true if the Watch call failed. The watch's context is the driver's own
 // WithCancel(Background()), not the test's WithTimeout(2s + HiccupDuration): the driver cancels it
 // once it has stopped reading (where the test's deadline would fire, at the latest), so every event
 // it records was received while the watch was live (not stopped, its context not done), when the
 // store promises a gap-free prefix of the history (notes/k8s-7f5a-draft.md §2; after a deadline the
 // watcher may skip events, nonissues/k8s-etcd3-watcher-gap-after-cancel.md). The consumer's timer
 // (watchDuration) bounds the watch as the deadline did.
-func watchEvents(s storage.Interface, in Input) ([]WEvent, bool) {
+func watchEvents(s storage.Interface, in Input) ([]WEvent, []watch.Event, bool) {
 	ctx, cancel := context.WithCancel(context.Background())
 	w, err := s.Watch(ctx, in.WKey, watchOptions(in))
 	if err != nil {
 		cancel()
-		return nil, true
+		return nil, nil, true
 	}
-	evs := consume(w, in)
+	evs, raw := consume(w, in)
 	w.Stop()
 	cancel()
-	return evs, false
+	return evs, raw, false
 }
 
 // consume reads the watch w as in.Behavior says (the test's runWatch): for watchDuration or until
 // maxEvents events, or until the channel closes; slow (slowDelay before each read), with a hiccup
 // (one HiccupDuration pause after the first event, once a watch-list's initial events are done),
-// or stalled (nothing read for HiccupDuration, then no events).
-func consume(w watch.Interface, in Input) []WEvent {
+// or stalled (nothing read for HiccupDuration, then no events). Returns the events as recorded
+// (toWEvent) and as received, one for one.
+func consume(w watch.Interface, in Input) ([]WEvent, []watch.Event) {
 	timer := time.NewTimer(watchDuration)
 	defer timer.Stop()
 	if in.Behavior == BStalled {
 		<-time.After(hiccupDuration)
-		return nil
+		return nil, nil
 	}
 	initialDone := in.SendInit != 2
 	hiccupDone := in.Behavior != BHiccup
 	var evs []WEvent
+	var raw []watch.Event
 	for {
 		if initialDone {
 			var delay time.Duration
@@ -336,25 +339,26 @@ func consume(w watch.Interface, in Input) []WEvent {
 			if delay > 0 {
 				select {
 				case <-timer.C:
-					return evs
+					return evs, raw
 				case <-time.After(delay):
 				}
 			}
 		}
 		select {
 		case <-timer.C:
-			return evs
+			return evs, raw
 		case ev, open := <-w.ResultChan():
 			if !open {
-				return evs
+				return evs, raw
 			}
 			we := toWEvent(ev)
 			evs = append(evs, we)
+			raw = append(raw, ev)
 			if we.Type == WBookmark {
 				initialDone = true
 			}
 			if len(evs) >= maxEvents {
-				return evs
+				return evs, raw
 			}
 		}
 	}

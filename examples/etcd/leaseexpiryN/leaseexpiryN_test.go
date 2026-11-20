@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // maxMembers is the bound of etcd_leaseexpiryN_safe's member count.
@@ -115,6 +116,7 @@ func memberCount(t *testing.T) uint64 {
 func TestMainRun(t *testing.T) {
 	k := memberCount(t)
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "leaseexpiryN") // the members' WAL areas (wal-link P2)
 	start := time.Now()
 	Main(k)
 	t.Logf("Main returned after %v", time.Since(start))
@@ -180,6 +182,7 @@ func startCluster(t *testing.T, pfx string, k uint64, peerBase uint64,
 func TestRunChecked(t *testing.T) {
 	k := memberCount(t)
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "leaseexpiryN") // the members' WAL areas (wal-link P2)
 	srvs, ms := startCluster(t, "leaseexpiryN-run", k, runPeerBase, runClientBase)
 	start := time.Now()
 	if r := run(srvs, ms, zap.NewNop()); r != Checked {
@@ -197,6 +200,7 @@ func TestRunChecked(t *testing.T) {
 // then find it listed, and panic.
 func TestTTLThroughFollowerPanics(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "leaseexpiryN") // the members' WAL areas (wal-link P2)
 	srvs, ms := startCluster(t, "leaseexpiryN-naive", 3, naivePeerBase, naiveClientBase)
 	for j, m := range ms {
 		if err := etcdstart.Serve(srvs[j], m.Client); err != nil {

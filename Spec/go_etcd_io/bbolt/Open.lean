@@ -48,7 +48,8 @@ environment.
 - On success, the handle `isBolt db γ`, the file's inode (`boltIno`), all of the committed data
   `boltState γ 1 D` (the client decides where it lives) and the closer token `boltCloser γ`, which
   `DB.Close` consumes. The namespace `N` is the caller's (`γ.ns = N`), disjoint from OsFs's `osN`.
-- On an error, `¬ FsNoErr`: some step of the file model failed in a way `NoIoErr`/`NoMapLockErr`
+- On an error, `¬ FsNoErr ∨ ¬ PathFits (child d b)` (the second: the path does not fit, which
+  `NoIoErr` does not cover, wal-fsfix 2026-11-20); `¬ FsNoErr`: some step of the file model failed in a way `NoIoErr`/`NoMapLockErr`
   exclude (`Fs.fsNoErr_of`); the file is lost to the caller (`init` may have written part of it).
 - The bounds the owner needs (`notes/bounds-plan.md`, B1): fewer than `2 ^ 29` live threads (the
   read transactions plus `Commit`'s spare reader slot fit `mmaplock`'s readers); fewer than `2 ^ 62`
@@ -59,17 +60,17 @@ abbrev Open.spec : Prop :=
     (qc : Qp) (h : NamesH) (mode : w32) (opts : Loc) (dqo : DFrac) (o : OptsM) (D : Data),
   NameOk b →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⌜↑N ## ↑osN⌝ ∗
-      osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
+      osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
       nameHolds h b D ∗
       optsAtNoErr opts dqo o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #(child d b))) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAtNoErr opts dqo o ∗
-      osPathS R d dq j ∗ osCallPerm qc ∗
+      osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       (∃ oc : Option (Nat × Nat × Ino), crOut j b h (DFrac.own 1) oc ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
             ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗
             boltCloser γ) ∨
-         ⌜err ≠ GoInterface.nil ∧ ¬ FsNoErr⌝)) }}
+         ⌜err ≠ GoInterface.nil ∧ (¬ FsNoErr ∨ ¬ PathFits (child d b))⌝)) }}
 
 end spec
 

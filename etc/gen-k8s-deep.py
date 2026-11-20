@@ -2,8 +2,18 @@
 """Generate `Proof/k8s_io/api/Deep.lean`: the deep values of the Kubernetes API objects the model
 API server stores (pods, nodes, daemon sets, controller revisions) and their deep ownership.
 
-usage: etc/gen-k8s-deep.py            write the file
-       etc/gen-k8s-deep.py --check    exit 1 if the file differs from what would be generated
+and the proofs of their deep copies (deepcopy-gen's `DeepCopyInto`, `DeepCopy`, `DeepCopyObject`).
+
+usage: etc/gen-k8s-deep.py            write the files
+       etc/gen-k8s-deep.py --check    exit 1 if a file differs from what would be generated
+                                      (in etc/gates.sh)
+       etc/gen-k8s-deep.py --only=T,U only the deep copies of the types T, U (to try a change)
+
+It writes `Proof/k8s_io/api/Deep.lean`, the modules `Proof/k8s_io/api/DeepCopy/*.lean`, the proof
+`Proof/k8s_io/api/<pkg>/<R>__DeepCopyObject.lean` of each proved root, and, between the markers
+`# BEGIN/END etc/gen-k8s-deep.py`, the `translate` entries of the Goose configurations
+(`Code/k8s_io/{api/core/v1,api/apps/v1,apimachinery/pkg/apis/meta/v1,apimachinery/pkg/runtime}.toml`)
+that the proofs need: after a change to those, run `etc/goose.py --project k8s-apiserver`.
 
 An API object is a tree of Go values: structs inline, and pointers, slices and maps to more of
 them. Its *deep value* forgets the locations: for every struct type `S` reachable from the roots
@@ -29,6 +39,29 @@ whose type is the field's deep value:
 value `d`; `kd.<pkg>.S.zero` is the zero value's deep value and `kd.<pkg>.S.own_zero` proves it.
 The restrictions (opaque values nil) are what the specs require of the objects they store; the
 generated `DeepCopy` keeps them. The combinators are in `Proof/k8s_io/api/DeepBase.lean`.
+A pointer to an untranslatable value (`Quantity`, `FieldsV1`, a struct holding one inline) must be
+nil (`Unit`, `ownNilPtrD`): its deep copy copies the pointee, which is never owned. A pointer to a
+value opaque only through gap C5 (`IntOrString`, `HTTPGetAction`, `TCPSocketAction`: `GAP_TYPES`)
+keeps its nil-ness (`Option Unit`), as the model sets `MaxUnavailable`.
+
+**Deep copies.** deepcopy-gen's `DeepCopyInto` for a struct is `*out = *in` followed by one block
+per field that the struct copy does not copy deeply, chosen by the field's type (`copy_kind`): a
+nested struct's `DeepCopyInto` (`into`), or an assignment for a struct with no pointer (`assign`);
+`metav1.Time`'s own `DeepCopyInto`/`DeepCopy` (`time`, `ptr_time`); for a pointer, `if in.F != nil`
+then a new cell and `**out = **in` (`ptr_basic`, `ptr_shallow`) or the pointee's `DeepCopyInto`
+(`ptr_into`); for a slice, `make` then `copy` (`slice_copy`) or a loop of the elements'
+`DeepCopyInto` (`slice_into`); for a map, `make` then a loop (`map_basic`); nothing reachable for a
+field that must be nil (`nil`). For each struct `S` the roots' copies reach (`copy_used`), the
+script emits `kd.*.S.DeepCopyInto.spec` (from `in ↦{dq} v` with deep value `d`, `out` gets a value
+owned whole with `d`) and its proof, one tactic block per field (`gen_copy_proof`), over the
+callees' specs and the lemmas of `Proof/k8s_io/api/DeepCopyBase.lean`; the modules group the
+structs by their depth in the callee graph (`CHUNK` per module), so that one level's modules
+compile in parallel. A struct whose code, or a callee's, goose does not translate is not proved
+(`blocked`), and neither is a root that reaches it, whose `DeepCopyObject` stays a trust-boundary
+axiom: goose's guard (Perennial `docs/design/unsafe-memory.md`, R4) refuses a copy of a pointer-free
+struct between two memory places (`out.DaemonEndpoints = in.DaemonEndpoints` in `NodeStatus`,
+`**out = **in` of a `*SleepAction` in `LifecycleHandler`), and a pointer to an `IntOrString` (gap
+C5) is never owned.
 """
 import os, re, sys
 
@@ -105,7 +138,7 @@ def split_list(s):
 
 for ns, path in lean_files():
     text = open(path, encoding="utf-8").read()
-    for m in re.finditer(r"^@\[reducible\] noncomputable def (\w+)\.fieldsUnsealed \[FfiSyntax\] "
+    for m in re.finditer(r"^@\[reducible\] noncomputable def ([\w']+)\.fieldsUnsealed \[(?:FfiSyntax|GooseExts)\] "
                          r"\[GoGlobalContext\] : List go\.field_decl :=\n  \[(.*?)\]\n\n", text,
                          re.M | re.S):
         name, body = m.group(1), m.group(2)
@@ -116,7 +149,7 @@ for ns, path in lean_files():
                 die(f"{path}: cannot parse field {item!r} of {name}")
             fs.append((fm.group(1), fm.group(2).strip()))
         structs[ns + "." + name] = fs
-    for m in re.finditer(r"^@\[reducible\] noncomputable def (\w+)\.underlying \[FfiSyntax\] "
+    for m in re.finditer(r"^@\[reducible\] noncomputable def ([\w']+)\.underlying \[(?:FfiSyntax|GooseExts)\] "
                          r"\[GoGlobalContext\] : go\.GoType :=\n  (.*)$", text, re.M):
         if not m.group(2).startswith("(go.GoType.StructType"):
             abbrevs[ns + "." + m.group(1)] = m.group(2).strip()
@@ -148,7 +181,7 @@ def parse_type(s, ns):
         return ("Basic", BASIC[s])
     if s in PERENNIAL_BASE:
         return ("Base", PERENNIAL_BASE[s])
-    m = re.match(r"(?:_root_\.Perennial\.)?([\w.«»]+)\.ty$", s)
+    m = re.match(r"(?:_root_\.Perennial\.)?([\w.«»']+)\.ty$", s)
     if m:
         q = m.group(1)
         if not q.startswith("k8s_io"):
@@ -230,6 +263,44 @@ def inline_opaque(t):
     return t[0] == "Named" and opaque(t[1])
 
 
+# The axiomatized types that are translatable but for a Goose gap: gap C5, `IntOrString`'s field
+# `Type` of type `Type` (notes/k8s-apimodel-goose.md). A pointer to a value opaque only through them
+# keeps its nil-ness (`Option Unit`: the model sets `MaxUnavailable`); a pointer to any other
+# opaque value (`Quantity`, `FieldsV1`: not translatable) must be nil, which is what lets a deep
+# copy be proved (`DeepCopyInto` copies the pointee, which is never owned).
+GAP_TYPES = {"k8s_io.apimachinery.pkg.util.intstr.IntOrString"}
+untr_memo = {}
+
+
+def untranslatable(q):
+    """An opaque named type that stays opaque when the `GAP_TYPES` are translated."""
+    if q in untr_memo:
+        return untr_memo[q]
+    untr_memo[q] = False
+    r = False
+    if q in GAP_TYPES:
+        r = False
+    elif q in axioms:
+        r = True
+    elif q in structs and q not in BASE_STRUCTS:
+        r = any(t[0] == "Named" and untranslatable(t[1])
+                for t in (parse_type(ft, ns_of(q)) for _, ft in structs[q]))
+    elif q in abbrevs:
+        t = parse_type(abbrevs[q], ns_of(q))
+        r = t[0] == "Named" and untranslatable(t[1])
+    untr_memo[q] = r
+    return r
+
+
+def nil_ptr(t):
+    """A pointer to an untranslatable value: it must be nil."""
+    t = resolve(t)
+    if t[0] != "PointerType":
+        return False
+    p = resolve(t[1])
+    return p[0] == "Named" and opaque(p[1]) and untranslatable(p[1])
+
+
 def resolve(t):
     """A named non-struct type's underlying type (named basic types stay named, as basic)."""
     while t[0] == "Named" and t[1] in abbrevs and t[1] not in structs:
@@ -292,6 +363,8 @@ def dty(t):
             return "Unit"
         return kd_name(t[1])
     if k == "PointerType":
+        if nil_ptr(t):
+            return "Unit"
         if inline_opaque(resolve(t[1])):
             return "Option Unit"
         return f"Option ({dty(t[1])})"
@@ -319,6 +392,8 @@ def inner(t):
     if k == "Named":
         return f"{kd_name(t[1])}.own"
     if k == "PointerType":
+        if nil_ptr(t):
+            return "(fun x _ _ => ownNilPtrD x)"
         if inline_opaque(resolve(t[1])):
             return "(fun x _ e => ownOpaquePtrD x e)"
         return f"(ownPtrD (V := {lean_ty(resolve(t[1]))}) {inner(t[1])})"
@@ -346,6 +421,8 @@ def own_field(t, v, d):
         if opaque(r[1]):
             return "True", "itrivial"
         return f"{kd_name(r[1])}.own {v} dq {d}", f"iapply ({kd_name(r[1])}.own_zero_of _ (by rfl) dq)"
+    if k == "PointerType" and nil_ptr(r):
+        return f"ownNilPtrD {v}", "iapply (ownNilPtrD_of _ (by rfl))"
     if k == "PointerType" and inline_opaque(resolve(r[1])):
         return f"ownOpaquePtrD {v} {d}", "iapply (ownOpaquePtrD_none_of _ (by rfl))"
     if k == "PointerType":
@@ -393,7 +470,7 @@ def zero_of(t):
     if k == "Named":
         return "()" if opaque(t[1]) else f"{kd_name(t[1])}.zero"
     if k == "PointerType":
-        return "none"
+        return "()" if nil_ptr(t) else "none"
     if k == "SliceType":
         return "()" if inline_opaque(resolve(t[1])) else "[]"
     if k == "MapType":
@@ -407,6 +484,171 @@ for r in ROOTS:
     if opaque(r):
         die(f"root {r} is opaque")
     visit(r)
+
+# ---------------------------------------------------------------------------------------------
+# Deep copies: the code deepcopy-gen generates for each type, as a function of the type
+
+# The objects whose `DeepCopyObject` is proved (the others' stays a trust-boundary axiom, for the
+# reason `blocked` gives).
+COPY_ROOTS = ["k8s_io.api.core.v1.Pod", "k8s_io.api.core.v1.Node", "k8s_io.api.apps.v1.DaemonSet",
+              "k8s_io.api.apps.v1.ControllerRevision"]
+TIME = "k8s_io.apimachinery.pkg.apis.«meta».v1.Time"
+# Opaque types whose Go values hold no pointer (deepcopy-gen copies them by assignment).
+GO_SHALLOW_OPAQUE = {"k8s_io.apimachinery.pkg.util.intstr.IntOrString"}
+shallow_memo = {}
+
+
+def go_basic(t):
+    """A field deepcopy-gen copies with the struct (no pointer, slice, map or interface): a basic
+    value or a named basic type; and whether it holds a string (a pointer, for gc's copies)."""
+    t = resolve(t)
+    return t[0] in ("Basic", "Base") or (t[0] == "Named" and t[1] in abbrevs and t[1] not in structs)
+
+
+def shallow(q):
+    """A struct deepcopy-gen copies by assignment (`out.F = in.F`, `**out = **in`, `copy`): every
+    field basic or a shallow struct. `metav1.Time` is not (a `*Location`: its own `DeepCopyInto`)."""
+    if q in shallow_memo:
+        return shallow_memo[q]
+    if q in GO_SHALLOW_OPAQUE:
+        return True
+    if q == TIME or q not in structs or opaque(q):
+        return False
+    r = True
+    for _, ft in structs[q]:
+        t = resolve(parse_type(ft, ns_of(q)))
+        if go_basic(t):
+            continue
+        if t[0] == "Named" and shallow(t[1]):
+            continue
+        r = False
+    shallow_memo[q] = r
+    return r
+
+
+def pointer_free(q):
+    """A shallow struct with no string either: gc copies it with a `Move`, and goose's guard
+    refuses its copy between two memory places (Perennial `docs/design/unsafe-memory.md`, R4)."""
+    if not shallow(q) or q in GO_SHALLOW_OPAQUE:
+        return False
+    for _, ft in structs[q]:
+        t = parse_type(ft, ns_of(q))
+        while t[0] == "Named" and t[1] in abbrevs and t[1] not in structs:
+            t = parse_type(abbrevs[t[1]], ns_of(t[1]))
+        if t[0] == "Basic" and t[1] == "GoString":
+            return False
+        if t[0] == "Base":
+            return False
+        if t[0] == "Named" and not pointer_free(t[1]):
+            return False
+    return True
+
+
+def copy_kind(t):
+    """How `DeepCopyInto` copies a field of type t (deepcopy-gen's cases), as (kind, callee)."""
+    if go_basic(t) and not (resolve(t)[0] == "Named" and resolve(t)[1] == TIME):
+        return ("none", None)
+    r = resolve(t)
+    k = r[0]
+    if k == "Named":
+        q = r[1]
+        if q == TIME:
+            return ("time", None)
+        if shallow(q):
+            return ("assign", q)
+        if opaque(q):
+            die(f"inline opaque non-shallow {q}")
+        return ("into", q)
+    if k == "PointerType":
+        e = resolve(r[1])
+        if go_basic(e) and not (e[0] == "Named" and e[1] == TIME):
+            return ("ptr_basic", None)
+        q = e[1]
+        if q == TIME:
+            return ("ptr_time", None)
+        if nil_ptr(r):
+            return ("nil", None)
+        if shallow(q):
+            return ("ptr_shallow", q)
+        if opaque(q):
+            return ("ptr_opaque", q)
+        return ("ptr_into", q)
+    if k == "SliceType":
+        e = resolve(r[1])
+        if inline_opaque(e):
+            return ("nil", None)
+        if go_basic(e) or (e[0] == "Named" and shallow(e[1])):
+            return ("slice_copy", e[1] if e[0] == "Named" and e[1] in structs else None)
+        return ("slice_into", e[1])
+    if k == "MapType":
+        if inline_opaque(resolve(r[2])):
+            return ("nil", None)
+        return ("map_basic", None)
+    if k == "Iface":
+        return ("nil", None)
+    die(f"copy_kind {t}")
+
+
+def copy_fields(q):
+    return [(p, parse_type(ft, ns_of(q)), copy_kind(parse_type(ft, ns_of(q)))) for p, ft in structs[q]]
+
+
+copy_used = []    # the structs whose DeepCopyInto the roots' copies call, callees first
+copy_state = {}
+
+
+def visit_copy(q):
+    if copy_state.get(q):
+        return
+    copy_state[q] = True
+    for _, _, (k, c) in copy_fields(q):
+        if k in ("into", "ptr_into", "slice_into"):
+            visit_copy(c)
+    copy_used.append(q)
+
+
+for r in COPY_ROOTS:
+    visit_copy(r)
+
+blocked_memo = {}
+
+
+def blocked(q):
+    """Why the deep copy of q is not proved (None if it is): a Goose limit in its code or a
+    callee's."""
+    if q in blocked_memo:
+        return blocked_memo[q]
+    blocked_memo[q] = None
+    why = None
+    for p, t, (k, c) in copy_fields(q):
+        if k == "assign" and pointer_free(c):
+            why = f"`out.{p} = in.{p}` copies a `{c.split('.')[-1]}`, a pointer-free struct, between two memory places: goose's guard refuses it (R4)"
+        elif k == "ptr_shallow" and pointer_free(c):
+            why = f"`**out = **in` for `{p}` copies a `{c.split('.')[-1]}`, a pointer-free struct, between two memory places: goose's guard refuses it (R4)"
+        elif k in ("ptr_opaque", "ptr_shallow") and opaque(c):
+            why = f"`{p}` points to a `{c.split('.')[-1]}`, untranslated (gap C5): its copy reads a value never owned"
+        elif k in ("into", "ptr_into", "slice_into") and blocked(c):
+            why = f"`{p}`: `{c.split('.')[-1]}` ({blocked(c)})" if not blocked(c).startswith("via") else f"`{p}`: {blocked(c)}"
+            why = f"via `{c.split('.')[-1]}`"
+        if why:
+            break
+    blocked_memo[q] = why
+    return why
+
+
+def block_root_cause(q, seen=()):
+    """The chain of types from q to the type whose own code is blocked, and that reason."""
+    w = blocked(q)
+    if w is None or not w.startswith("via `"):
+        return [q.split(".")[-1]], w
+    for p, t, (k, c) in copy_fields(q):
+        if k in ("into", "ptr_into", "slice_into") and blocked(c):
+            chain, why = block_root_cause(c)
+            return [q.split(".")[-1]] + chain, why
+    return [q.split(".")[-1]], w
+
+
+proved = [q for q in copy_used if blocked(q) is None]
 
 # ---------------------------------------------------------------------------------------------
 # Output
@@ -441,7 +683,7 @@ open Iris Iris.BI Iris.ProofMode
 def gen():
     out = [HEADER.format(roots=", ".join("`" + r.split(".")[-1] + "`" for r in ROOTS), n=len(used))]
     out.append("/-! ## The deep values -/\n")
-    out.append("section values\nvariable [FfiSyntax]\n")
+    out.append("section values\nvariable [GooseExts]\n")
     for q in used:
         n = kd_name(q)
         fs = [(p, parse_type(ft, ns_of(q))) for p, ft in structs[q]]
@@ -475,7 +717,7 @@ def gen():
     out.append("end values\n")
     out.append("/-! ## Deep ownership -/\n")
     out.append("section own")
-    out.append("variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]")
+    out.append("variable [GooseExts] [GooseSemantics] [GooseInterp]")
     out.append("variable [go_gctx : GoGlobalContext]")
     out.append("variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]")
     out.append("variable [sem : go.Semantics]\n")
@@ -484,7 +726,7 @@ def gen():
         fs = [(p, parse_type(ft, ns_of(q))) for p, ft in structs[q]]
         out.append(f"/-- The deep ownership of a `{q.split('.')[-1]}` value with deep value `d`. -/")
         out.append(f"def {n}.own (v : {lean_name(q)}) (dq : DFrac) (d : {n}) : IProp GF :=")
-        parts = [f'"{p}" ∷ {own_field(t, "v." + p + chr(39), "d." + p + chr(39))[0]}'
+        parts = [f'"{hname(p)}" ∷ {own_field(t, "v." + p + chr(39), "d." + p + chr(39))[0]}'
                  for p, t in fs]
         out.append("  iprop(" + " ∗\n    ".join(parts) + ")")
         out.append("")
@@ -531,20 +773,574 @@ def gen():
     return "\n".join(out)
 
 
+# ---------------------------------------------------------------------------------------------
+# The deep copies' specs and proofs
+
+DC_DIR = os.path.join(ROOT, "Proof", "k8s_io", "api", "DeepCopy")
+DC_MOD = "Proof.k8s_io.api.DeepCopy"
+PKG_ASSUMPTIONS = ["k8s_io.api.core.v1", "k8s_io.api.apps.v1", "k8s_io.apimachinery.pkg.apis.«meta».v1",
+                   "k8s_io.apimachinery.pkg.runtime"]
+# The number of types in one generated module (each module holds the types of one dependency
+# level, so that the levels' modules compile in parallel).
+CHUNK = 12
+
+
+LEAN_KEYWORDS = {"Type", "Prop", "Sort", "fun", "at", "from", "have", "show", "by", "do", "then",
+                 "else", "if", "let", "in", "match", "with", "where", "end", "open"}
+
+
+def hname(p):
+    """The Iris hypothesis name of field p's ownership (a Lean keyword cannot be one)."""
+    return p + "_" if p in LEAN_KEYWORDS else p
+
+
+def fix_names(line, p):
+    """Rename field p's ownership hypotheses (`p`, `p'`) to `hname(p)` in a generated line."""
+    h = hname(p)
+    line = re.sub(r'(?<![!\w])"' + p + r"('?)\" ∷", lambda m: '"' + h + m.group(1) + '" ∷', line)
+    return re.sub(r"(?<![\w.!\"'])" + p + r"(?=['\s,⟩\]]|$)", h, line)
+
+
+def sname(p):
+    """The name `iStructNamed` gives field p (goose quotes a Lean keyword with a prime)."""
+    return p + "'" if p in LEAN_KEYWORDS else p
+
+
+def struct_of(q):
+    return lean_name(q)
+
+
+def field_addr(base, q, p):
+    return f'{base}.[{struct_of(q)}, go!"{p}"]'
+
+
+def own_inner(t):
+    """The ownership function of a field (as in `kd.*.own`), for a pointer, slice or map."""
+    return inner(t)
+
+
+def nil_lemma(t):
+    """For a field that must be nil: the lemma giving `⌜v.F' = nil⌝` from its ownership."""
+    r = resolve(t)
+    return {"PointerType": "ownNilPtrD_null", "SliceType": "ownNilSliceD_null",
+            "MapType": "ownNilMapD_null", "Iface": "ownNilIfaceD_null"}[r[0]]
+
+
+def structs_text(q, p):
+    return dict(structs[q])[p]
+
+
+def gen_copy_proof(q):
+    """The spec and proof of `(*q).DeepCopyInto`."""
+    n, T = kd_name(q), struct_of(q)
+    fs = copy_fields(q)
+    out = []
+    out.append(f"/-- `in.DeepCopyInto(out)` on a `*{go_name(q)}`: `out` gets a value owned whole (fraction 1)")
+    out.append(f"with the deep value of `in`'s. -/")
+    out.append(f"abbrev {n}.DeepCopyInto.spec : Prop :=")
+    out.append(f"  ∀ (i o : Loc) (v w : {T}) (dq : DFrac) (d : {n}),")
+    out.append(f"  {{{{ (i ↦{{dq}} v : IProp GF) ∗ {n}.own v dq d ∗ o ↦ w }}}}")
+    out.append(f"    (App (Val (i @!! go.GoType.PointerType {T}.ty @!! go!\"DeepCopyInto\")) (Val #o))")
+    out.append(f"  {{{{ (v' : {T}), RET #(); i ↦{{dq}} v ∗ {n}.own v dq d ∗ o ↦ v' ∗ {n}.own v' (DFrac.own 1) d }}}}")
+    out.append("")
+    out.append(f"theorem {n}.wp_DeepCopyInto : {n}.DeepCopyInto.spec (GF := GF) (hG := hG) := by")
+    out.append("  intro i o v w dq d")
+    out.append("  wp_start as ⟨Hi, Hown, Ho⟩")
+    out.append("  icases typedPointsto_not_null_dup _ _ _ $$ Ho with ⟨Ho, %Honn⟩")
+    out.append("  icases typedPointsto_not_null_dup _ _ _ $$ Hi with ⟨Hi, %Hinn⟩")
+    out.append("  wp_auto")
+    out.append('  iStructNamedPrefix Hi "i"')
+    out.append('  iStructNamedPrefix Ho "o"')
+    out.append("  iNamed Hown")
+    for p, t, (k, c) in fs:
+        if k == "nil":
+            out.append(f"  ihave %h{p} := {nil_lemma(t)} _ $$ {hname(p)}")
+            out.append(f"  rw [h{p}]")
+    news = []   # (field, the copy's value)
+    for p, t, (k, c) in fs:
+        iF, oF = field_addr("i", q, p), field_addr("o", q, p)
+        if k == "none":
+            continue
+        start = len(out)
+        out.append(f"  -- {p} ({k})")
+        if k == "nil":
+            out.append("  try wp_auto")
+        elif k == "assign":
+            out.append("  try wp_auto")
+            out.append(f"  icases deepFree_dup _ _ dq (DFrac.own 1) _ $$ {p} with ⟨{p}, {p}'⟩")
+        elif k == "time":
+            out.append("  try wp_auto")
+            out.append(f"  wp_apply metav1Time.wp_DeepCopyInto $$ [i{sname(p)} o{sname(p)}] as ⟨i{sname(p)}, o{sname(p)}⟩")
+            out.append("  · iframe")
+        elif k == "into":
+            out.append("  try wp_auto")
+            out.append(f"  wp_apply {kd_name(c)}.wp_DeepCopyInto $$ [i{sname(p)} {p} o{sname(p)}] as %x{p} ⟨i{sname(p)}, {p}, o{sname(p)}, {p}'⟩")
+            out.append("  · iframe")
+            news.append((p, f"x{p}"))
+        elif k in ("ptr_basic", "ptr_shallow", "ptr_into", "ptr_time"):
+            inn = own_inner(t)
+            out.append(f'  wp_join iprop("in" ∷ in_ptr ↦ i ∗ "out" ∷ out_ptr ↦ o ∗')
+            out.append(f'      "i{sname(p)}" ∷ {iF} ↦{{dq}} v.{p}\' ∗ "{p}" ∷ {inn} v.{p}\' dq d.{p}\' ∗')
+            out.append(f'      ∃ p\' : Loc, "o{sname(p)}" ∷ {oF} ↦ p\' ∗ "{p}\'" ∷ {inn} p\' (DFrac.own 1) d.{p}\')')
+            out.append(f"    at next with [«in» out i{sname(p)} o{sname(p)} {p}] as ⟨«in», out, i{sname(p)}, {p}, %p{p}, o{sname(p)}, {p}'⟩")
+            out.append("  · try wp_auto")
+            out.append("    wp_if_destruct")
+            out.append(f"    · icases ownPtrD_null_dup _ _ _ (DFrac.own 1) _ Hif $$ {p} with ⟨{p}, {p}'⟩")
+            out.append("      iframe")
+            out.append(f"    · icases ownPtrD_nonnull _ _ _ _ Hif $$ {p} with ⟨%x, %e, %He, Hp, Hx⟩")
+            cell = "«$r0»"
+            if k in ("ptr_basic", "ptr_shallow"):
+                out.append("      try wp_auto")
+                out.append("      icases deepFree_dup _ x dq (DFrac.own 1) e $$ Hx with ⟨Hx, Hx'⟩")
+            elif k == "ptr_into":
+                out.append("      try wp_auto")
+                out.append(f"      wp_apply {kd_name(c)}.wp_DeepCopyInto $$ [Hp Hx «$r0»] as %x' ⟨Hp, Hx, «$r0», Hx'⟩")
+                out.append("      · iframe")
+                out.append("      try wp_auto")
+            elif k == "ptr_time":
+                out.append("      try wp_auto")
+                out.append("      wp_apply metav1Time.wp_DeepCopy $$ [Hp] as %t' ⟨Hp, Ht'⟩")
+                out.append("      · iframe")
+                out.append("      try wp_auto")
+                out.append("      icases deepFree_dup _ x dq (DFrac.own 1) e $$ Hx with ⟨Hx, Hx'⟩")
+                cell = "Ht'"
+            out.append("      rw [He]")
+            out.append(f"      ihave {p} := ownPtrD_some _ _ _ _ _ $$ [Hp Hx]")
+            out.append("      · iframe")
+            out.append(f"      ihave {p}' := ownPtrD_some _ _ _ _ _ $$ [{cell} Hx']")
+            out.append("      · iframe")
+            out.append("      wp_join_done")
+            news.append((p, f"p{p}"))
+        elif k == "slice_copy":
+            inn = own_inner(t)
+            ev = lean_ty(resolve(resolve(t)[1]))
+            out.append(f'  wp_join iprop("in" ∷ in_ptr ↦ i ∗ "out" ∷ out_ptr ↦ o ∗')
+            out.append(f'      "i{sname(p)}" ∷ {iF} ↦{{dq}} v.{p}\' ∗ "{p}" ∷ {inn} v.{p}\' dq d.{p}\' ∗')
+            out.append(f'      ∃ s\' : GoSlice, "o{sname(p)}" ∷ {oF} ↦ s\' ∗ "{p}\'" ∷ {inn} s\' (DFrac.own 1) d.{p}\')')
+            out.append(f"    at next with [«in» out i{sname(p)} o{sname(p)} {p}] as ⟨«in», out, i{sname(p)}, {p}, %p{p}, o{sname(p)}, {p}'⟩")
+            out.append("  · try wp_auto")
+            out.append("    wp_if_destruct")
+            out.append(f"    · icases ownSliceD_nil_dup _ _ _ (DFrac.own 1) _ Hif $$ {p} with ⟨{p}, {p}'⟩")
+            out.append("      iframe")
+            out.append(f"    · icases ownSliceD_elim _ _ _ _ $$ {p} with ⟨%vs, Hs, Hl⟩")
+            out.append("      ihave %Hlen := ownSlice_len _ _ _ $$ Hs")
+            out.append("      try wp_auto")
+            out.append(f"      wp_apply wp_slice_make2 (V := {ev}) $$ [] as %s' ⟨Hs', -⟩")
+            out.append("      · ipureintro; exact Hlen.2")
+            out.append("      try wp_auto")
+            out.append("      wp_apply wp_slice_copy $$ [Hs' Hs] as %n ⟨-, Hs', Hs⟩")
+            out.append("      · iframe")
+            out.append("      try wp_auto")
+            out.append("      rw [list_copy_replicate vs _ _ Hlen.1]")
+            out.append("      icases bigSepL2_deepFree_dup _ dq (DFrac.own 1) _ _ $$ Hl with ⟨Hl, Hl'⟩")
+            out.append(f"      ihave {p} := ownSliceD_intro _ _ _ _ _ $$ [Hs Hl]")
+            out.append("      · iframe")
+            out.append(f"      ihave {p}' := ownSliceD_intro _ _ _ _ _ $$ [Hs' Hl']")
+            out.append("      · iframe")
+            out.append("      wp_join_done")
+            news.append((p, f"p{p}"))
+        elif k == "map_basic":
+            inn = own_inner(t)
+            out.append(f'  wp_join iprop("in" ∷ in_ptr ↦ i ∗ "out" ∷ out_ptr ↦ o ∗')
+            out.append(f'      "i{sname(p)}" ∷ {iF} ↦{{dq}} v.{p}\' ∗ "{p}" ∷ {inn} v.{p}\' dq d.{p}\' ∗')
+            out.append(f'      ∃ m\' : GoMap, "o{sname(p)}" ∷ {oF} ↦ m\' ∗ "{p}\'" ∷ {inn} m\' (DFrac.own 1) d.{p}\')')
+            out.append(f"    at next with [«in» out i{sname(p)} o{sname(p)} {p}] as ⟨«in», out, i{sname(p)}, {p}, %p{p}, o{sname(p)}, {p}'⟩")
+            out.append("  · try wp_auto")
+            out.append("    wp_if_destruct")
+            out.append(f"    · icases ownMapD_null_dup _ _ (DFrac.own 1) _ Hif $$ {p} with ⟨{p}, {p}'⟩")
+            out.append("      iframe")
+            out.append(f"    · icases ownMapD_nonnull _ _ _ Hif $$ {p} with ⟨%M, %He, Hm⟩")
+            kt, vt = split_args(resolve(t) and structs_text(q, p)[len("(go.GoType.MapType "):-1])
+            K, V = dty(resolve(t)[1]), dty(resolve(t)[2])
+            out.append("      try wp_auto")
+            out.append(f"      wp_apply (wp_map_len (K := {K}) (V := {V})) $$ [Hm] as Hm")
+            out.append("      · iframe")
+            out.append(f"      wp_apply (wp_map_make2 (K := {K}) (V := {V})) as %m' Hm'")
+            out.append("      try wp_auto")
+            out.append(f"      wp_apply (wp_map_copy_loop (K := {K}) (V := {V}) {kt} {vt}")
+            out.append(f"          iprop(out_ptr ↦ {oF} ∗ {oF} ↦ m' ∗")
+            out.append(f"            (∃ k : {K}, key_ptr ↦ k) ∗ (∃ x : {V}, val_ptr ↦ x))")
+            out.append(f"          _ _ m' M dq) $$ Hm Hm' [out o{sname(p)} key val]")
+            out.append("      · iframe")
+            out.append("      · imodintro")
+            out.append("        iintro %k %x %M' %Hx Hm' ⟨out, oF, ⟨%k0, key⟩, ⟨%x0, val⟩⟩")
+            out.append("        wp_auto")
+            out.append(f"        wp_apply (wp_mapInsert {kt}) $$ [Hm'] as Hm'")
+            out.append("        · iframe")
+            out.append("        try wp_auto")
+            out.append("        iframe")
+            out.append("        ipureintro; rfl")
+            out.append("      · iintro Hm Hm' ⟨out, oF, key, val⟩")
+            out.append("        rw [He]")
+            out.append(f"        ihave {p} := ownMapD_some _ _ _ $$ [Hm]")
+            out.append("        · iframe")
+            out.append(f"        ihave {p}' := ownMapD_some _ _ _ $$ [Hm']")
+            out.append("        · iframe")
+            out.append("        wp_join_done")
+            news.append((p, f"p{p}"))
+        elif k == "slice_into":
+            inn = own_inner(t)
+            ev = lean_ty(resolve(resolve(t)[1]))
+            out.append(f'  wp_join iprop("in" ∷ in_ptr ↦ i ∗ "out" ∷ out_ptr ↦ o ∗')
+            out.append(f'      "i{sname(p)}" ∷ {iF} ↦{{dq}} v.{p}\' ∗ "{p}" ∷ {inn} v.{p}\' dq d.{p}\' ∗')
+            out.append(f'      ∃ s\' : GoSlice, "o{sname(p)}" ∷ {oF} ↦ s\' ∗ "{p}\'" ∷ {inn} s\' (DFrac.own 1) d.{p}\')')
+            out.append(f"    at next with [«in» out i{sname(p)} o{sname(p)} {p}] as ⟨«in», out, i{sname(p)}, {p}, %p{p}, o{sname(p)}, {p}'⟩")
+            out.append("  · try wp_auto")
+            out.append("    wp_if_destruct")
+            out.append(f"    · icases ownSliceD_nil_dup _ _ _ (DFrac.own 1) _ Hif $$ {p} with ⟨{p}, {p}'⟩")
+            out.append("      iframe")
+            out.append(f"    · icases ownSliceD_elim _ _ _ _ $$ {p} with ⟨%vs, Hs, Hl⟩")
+            out.append("      ihave %Hlen := ownSlice_len _ _ _ $$ Hs")
+            out.append("      try wp_auto")
+            out.append(f"      wp_apply wp_slice_make2 (V := {ev}) $$ [] as %s' ⟨Hs', -⟩")
+            out.append("      · ipureintro; exact Hlen.2")
+            out.append("      ihave %Hlen' := ownSlice_len _ _ _ $$ Hs'")
+            out.append("      simp only [List.length_replicate] at Hlen'")
+            out.append("      try wp_auto")
+            et = resolve(resolve(t)[1])
+            ety, ein = lean_name(et[1]) + ".ty", inner(resolve(t)[1])
+            out.append(f"      wp_apply (wp_slice_for_range (V := {ev}) {ety} v.{p}' vs dq _")
+            out.append(f"          (fun j => iprop(copyPrefix {ein} s' (sint.nat v.{p}'.len) d.{p}' j ∗")
+            out.append(f"            ([∗list] x;e ∈ vs;d.{p}', {ein} x dq e) ∗ in_ptr ↦ {iF} ∗ {iF} ↦{{dq}} v.{p}' ∗")
+            out.append(f"            out_ptr ↦ {oF} ∗ {oF} ↦ s' ∗ ∃ k : w64, i_ptr ↦ k))) $$ Hs [Hl Hs' «in» i{sname(p)} out o{sname(p)} i]")
+            out.append(f"      · ihave Hc := copyPrefix_init {ein} _ _ d.{p}' $$ Hs'")
+            out.append("        iframe")
+            out.append("      · imodintro")
+            out.append(f"        iintro %j %x %hx ⟨Hc, Hl, «in», i{sname(p)}, out, o{sname(p)}, %k, i⟩ Hs")
+            out.append("        have hjv := (List.getElem?_eq_some_iff.1 hx).1")
+            out.append("        wp_auto")
+            out.append("        have hb : 0 ≤ sint.Z (W64 (j : Int)) ∧ sint.Z (W64 (j : Int)) < sint.Z s'.len := by")
+            out.append("          constructor <;> word")
+            out.append("        simp only [hb.1, hb.2, and_self, ↓reduceIte]")
+            out.append("        wp_auto")
+            out.append(f"        have hb' : 0 ≤ sint.Z (W64 (j : Int)) ∧ sint.Z (W64 (j : Int)) < sint.Z v.{p}'.len := by")
+            out.append("          constructor <;> word")
+            out.append("        simp only [hb'.1, hb'.2, and_self, ↓reduceIte]")
+            out.append("        wp_auto")
+            out.append(f"        wp_apply (wp_slice_elem_deepcopy {ety} {ein} {kd_name(c)}.wp_DeepCopyInto v.{p}' s' vs d.{p}' dq")
+            out.append(f"            (sint.nat v.{p}'.len) j x hx (by omega) (by word)) $$ [Hs Hl Hc] as ⟨Hs, Hl, Hc⟩")
+            out.append("        · iframe")
+            out.append("        try wp_auto")
+            out.append("        iframe")
+            out.append("        ipureintro; rfl")
+            out.append(f"      · iintro ⟨Hc, Hl, «in», i{sname(p)}, out, o{sname(p)}, %k, i⟩ Hs")
+            out.append("        ihave %hdl := BigSepL2.bigSepL2_length $$ Hl")
+            out.append("        rw [Hlen.1]")
+            out.append(f"        ihave {p} := ownSliceD_intro _ _ _ _ _ $$ [Hs Hl]")
+            out.append("        · iframe")
+            out.append(f"        ihave {p}' := copyPrefix_done _ _ _ _ (by omega) $$ Hc")
+            out.append("        wp_join_done")
+            news.append((p, f"p{p}"))
+        else:
+            out.append(f"  sorry -- {k}")
+            news.append((p, f"p{p}"))
+        if hname(p) != p:
+            out[start:] = [fix_names(l, p) for l in out[start:]]
+    for p, t, (k, c) in fs:
+        if k == "none":
+            out.append(f"  icases {hname(p)} with %h{p}")
+    allf = " ".join(f"i{sname(p)}" for p, _, _ in fs) + " i_"
+    allo = " ".join(f"o{sname(p)}" for p, _, _ in fs) + " o_"
+    vnew = "v" if not news else "{ v with " + ", ".join(f"{p}' := {x}" for p, x in news) + " }"
+    hn = "".join(f", h{p}" for p, _, (k, _) in fs if k == "nil")
+    out.append(f"  ihave Hi := typedPointsto_combine i v dq Hinn $$ [{allf}]")
+    out.append(f"  · simp only [TypedPointsto.typedPointstoDef{hn}]; iframe")
+    out.append(f"  ihave Ho := typedPointsto_combine o ({vnew} : {T}) (DFrac.own 1) Honn $$ [{allo}]")
+    out.append(f"  · simp only [TypedPointsto.typedPointstoDef{hn}]; iframe")
+    out.append("  iapply HΦ")
+    out.append("  iframe")
+    nils = sorted({nil_lemma(t)[:-len("_null")] for _, t, (k, _) in fs if k == "nil"})
+    out.append(f"  simp only [{', '.join([n + '.own', 'named'] + nils)}]")
+    out.append("  iframe")
+    out.append("  all_goals (ipureintro; simp_all)")
+    out.append("")
+    return "\n".join(out)
+
+
+DC_HEADER = """/-
+GENERATED by `etc/gen-k8s-deep.py` from the Goose translation of `k8s.io/api` and apimachinery;
+do not edit. **The deep copies (deepcopy-gen's `DeepCopyInto`)** of {names}: each one's spec
+(`kd.*.DeepCopyInto.spec`: the copy owns, whole, the deep value of the original) and proof, over its
+callees' (see the script's documentation and `Proof/k8s_io/api/DeepCopyBase.lean`). Lean-first (no
+Rocq counterpart).
+-/
+module
+
+{imports}
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
+set_option linter.unreachableTactic false
+set_option maxHeartbeats 4000000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode
+
+-- the slice copy loops are proved by `wp_slice_for_range`, at the `slice.forRange` it is about
+attribute [-instance] pure_wp_slice_for_range
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+{assumptions}
+"""
+
+
+def dc_modules(only=None):
+    """The generated modules: name -> (types, text)."""
+    types = [q for q in proved if only is None or go_name(q) in only]
+    lvl = {}
+    def level(q):
+        if q not in lvl:
+            lvl[q] = max([level(c) + 1 for _, _, (k, c) in copy_fields(q)
+                          if k in ("into", "ptr_into", "slice_into")] + [0])
+        return lvl[q]
+    # the structs the proved roots' copies reach first, so that their modules' chain is short
+    rooted = set()
+    def reach(q):
+        if q not in rooted:
+            rooted.add(q)
+            for _, _, (k, c) in copy_fields(q):
+                if k in ("into", "ptr_into", "slice_into"):
+                    reach(c)
+    for r in COPY_ROOTS:
+        if r in types:
+            reach(r)
+    mods, where = {}, {}
+    for L in sorted({level(q) for q in types}):
+        qs = [q for q in types if level(q) == L and q in rooted] + \
+            [q for q in types if level(q) == L and q not in rooted]
+        for j in range(0, len(qs), CHUNK):
+            name = f"L{L}_{j // CHUNK}"
+            mods[name] = qs[j:j + CHUNK]
+            for q in qs[j:j + CHUNK]:
+                where[q] = name
+    out = {}
+    for name, qs in mods.items():
+        deps = sorted({where[c] for q in qs for _, _, (k, c) in copy_fields(q)
+                       if k in ("into", "ptr_into", "slice_into") and c in where} - {name})
+        imports = [f"public import {DC_MOD}.Free"] + \
+            [f"public import {DC_MOD}.{d}" for d in deps]
+        assumptions = "\n".join(f"variable [{ns}.Assumptions]" for ns in PKG_ASSUMPTIONS)
+        body = [DC_HEADER.format(names=", ".join(f"`{go_name(q)}`" for q in qs),
+                                 imports="\n".join(imports), assumptions=assumptions)]
+        for q in qs:
+            body.append(gen_copy_proof(q))
+        body.append("end proof\n\nend EtcdGrove\nend Perennial\n")
+        out[os.path.join(DC_DIR, name + ".lean")] = "\n".join(body)
+    assumptions = "\n".join(f"variable [{ns}.Assumptions]" for ns in PKG_ASSUMPTIONS)
+    free = [DC_HEADER.format(names="no type: the shallow structs' ownership",
+                             imports="public import Proof.k8s_io.api.Deep\npublic import Proof.k8s_io.api.DeepCopyBase",
+                             assumptions=assumptions).replace(
+        "**The deep copies (deepcopy-gen's `DeepCopyInto`)** of no type: the shallow structs' ownership",
+        "**The shallow structs' deep ownership is fraction-free** (`DeepFree`: deepcopy-gen copies them\nwith their struct)")]
+    free.append(gen_deep_free())
+    free.append("end proof\n\nend EtcdGrove\nend Perennial\n")
+    out[os.path.join(DC_DIR, "Free.lean")] = "\n".join(free)
+    return out, where
+
+
+def gen_deep_free():
+    """`DeepFree` for the shallow structs (their copies are the struct's)."""
+    out = ["/-! ### The shallow structs' ownership is fraction-free -/", ""]
+    for q in used:
+        if not shallow(q) or opaque(q):
+            continue
+        n = kd_name(q)
+        nested = [p for p, ft in structs[q]
+                  if resolve(parse_type(ft, ns_of(q)))[0] == "Named"
+                  and not is_basic(parse_type(ft, ns_of(q)))]
+        out.append(f"instance {n}.own_persistent' (x : {lean_name(q)}) (dq : DFrac) (e : {n}) :")
+        out.append(f"    Persistent ({n}.own (GF := GF) x dq e) := by")
+        out.append(f"  unfold {n}.own; infer_instance")
+        out.append("")
+        out.append(f"instance {n}.own_deepFree : DeepFree (GF := GF) {n}.own where")
+        out.append(f"  persistent := by intro x dq e; infer_instance")
+        if not nested:
+            out.append(f"  frac := by intro x dq dq' e; unfold {n}.own; iintro H; iexact H")
+        else:
+            out.append(f"  frac := by")
+            out.append(f"    intro x dq dq' e; unfold {n}.own; iintro H; iNamed H")
+            for p in nested:
+                out.append(f"    ihave {hname(p)} := DeepFree.frac _ _ dq' _ $$ {hname(p)}")
+            out.append(f"    iframe")
+        out.append("")
+    return "\n".join(out)
+
+
+TOML_BEGIN = "  # BEGIN etc/gen-k8s-deep.py: the deep copies the proofs need (generated; do not edit)\n"
+TOML_END = "  # END etc/gen-k8s-deep.py\n"
+
+
+def go_name(q):
+    return q.split(".")[-1]
+
+
+def translate_names():
+    """The functions each package's Goose configuration translates, for the proved copies."""
+    names = {}
+    def add(q, fn):
+        names.setdefault(ns_of(q), []).append(f"{go_name(q)}.{fn}")
+    kinds = {k for q in proved for _, _, (k, _) in copy_fields(q)}
+    if "time" in kinds or "ptr_time" in kinds:
+        add(TIME, "DeepCopyInto")
+    if "ptr_time" in kinds:
+        add(TIME, "DeepCopy")
+    for q in proved:
+        add(q, "DeepCopyInto")
+    for r in COPY_ROOTS:
+        if r in proved:
+            add(r, "DeepCopy")
+            add(r, "DeepCopyObject")
+    return names
+
+
+def toml_path(ns):
+    return os.path.join(CODE, ns.replace("«", "").replace("»", "").replace(".", "/") + ".toml")
+
+
+def toml_outputs():
+    out = {}
+    names = translate_names()
+    for ns in PKGS:
+        path = toml_path(ns)
+        if not os.path.exists(path):
+            continue
+        text = open(path, encoding="utf-8").read()
+        if TOML_BEGIN not in text:
+            if ns in names:
+                die(f"{path}: no generated block for {names[ns]}")
+            continue
+        i, j = text.index(TOML_BEGIN), text.index(TOML_END)
+        lines = "".join(f'  "{n}",\n' for n in sorted(names.get(ns, [])))
+        out[path] = text[:i + len(TOML_BEGIN)] + lines + text[j:]
+    return out
+
+
+ROOT_SHORT = {"k8s_io.api.core.v1": ("core", "corev1"), "k8s_io.api.apps.v1": ("apps", "appsv1")}
+
+
+def root_proof(r, where):
+    """The proof of a root's `DeepCopyObject` (`Proof/k8s_io/api/<pkg>/<R>__DeepCopyObject.lean`)."""
+    ns, R = r.rsplit(".", 1)
+    path_pkg = ns.replace(".", "/")
+    n, T = kd_name(r), r
+    nsp = ROOT_SHORT[ns][1]
+    return os.path.join(ROOT, "Proof", path_pkg, f"{R}__DeepCopyObject.lean"), f"""/-
+GENERATED by `etc/gen-k8s-deep.py`; do not edit. Proof of
+`Spec/{path_pkg}/{R}__DeepCopyObject.lean`: `(*{R}).DeepCopyObject()` and `DeepCopy()`
+(`zz_generated.deepcopy.go`), over the generated proof of `DeepCopyInto`
+(`Proof/k8s_io/api/DeepCopy/`). Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.{ns.replace("«", "").replace("»", "")}.{R}__DeepCopyObject
+public import {DC_MOD}.{where[r]}
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace {nsp}
+
+open Iris Iris.BI Iris.ProofMode
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : {ns}.Assumptions]
+
+/-- `x.DeepCopy()` of a non-nil `*{R}`: a new `*{R}`, owned whole with the same deep value. -/
+theorem {n}.wp_DeepCopy (l : Loc) (v : {T}) (dq : DFrac) (d : {n}) :
+    {{{{ (l ↦{{dq}} v : IProp GF) ∗ {n}.own v dq d }}}}
+      (App (Val (l @!! go.GoType.PointerType {T}.ty @!! go!"DeepCopy")) (Val #()))
+    {{{{ (l' : Loc) (v' : {T}), RET #l'; l ↦{{dq}} v ∗ {n}.own v dq d ∗ l' ↦ v' ∗
+        {n}.own v' (DFrac.own 1) d ∗ ⌜l' ≠ null⌝ }}}} := by
+  wp_start as ⟨Hl, Hown⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hlnn⟩
+  wp_auto
+  wp_if_destruct
+  · exact absurd rfl Hlnn
+  icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hnn⟩
+  wp_apply {n}.wp_DeepCopyInto $$ [Hl Hown «$r0»] as %v' ⟨Hl, Hown, «$r0», Hown'⟩
+  · iframe
+  try wp_auto
+  iapply HΦ
+  iframe
+  ipureintro; exact Hnn
+
+theorem {R}.DeepCopyObject.wp_proof : {R}.DeepCopyObject.spec (GF := GF) (hG := hG) := by
+  intro l v dq d
+  wp_start as ⟨Hl, Hown⟩
+  wp_auto
+  wp_apply {n}.wp_DeepCopy $$ [Hl Hown] as %l' %v' ⟨Hl, Hown, Hl', Hown', %Hl'nn⟩
+  · iframe
+  try wp_auto
+  wp_if_destruct
+  · exact absurd rfl Hl'nn
+  iapply HΦ
+  iframe
+
+end proof
+
+end {nsp}
+end EtcdGrove
+end Perennial
+"""
+
+
+def outputs():
+    out = {OUT: gen()}
+    out.update(toml_outputs())
+    only = None
+    for a in sys.argv[1:]:
+        if a.startswith("--only="):
+            only = set(a[len("--only="):].split(","))
+    mods, where = dc_modules(only)
+    out.update(mods)
+    for r in COPY_ROOTS:
+        if r in where:
+            path, text = root_proof(r, where)
+            out[path] = text
+    return out
+
+
 def main():
-    text = gen()
+    outs = outputs()
     if "--check" in sys.argv[1:]:
-        old = open(OUT, encoding="utf-8").read() if os.path.exists(OUT) else ""
-        if old != text:
-            print(f"gen-k8s-deep: {os.path.relpath(OUT, ROOT)} differs from the generated; run "
+        bad = []
+        for path, text in outs.items():
+            old = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+            if old != text:
+                bad.append(os.path.relpath(path, ROOT))
+        if bad:
+            print(f"gen-k8s-deep: {', '.join(bad)} differ(s) from the generated; run "
                   "etc/gen-k8s-deep.py", file=sys.stderr)
             sys.exit(1)
         print("gen-k8s-deep: up to date")
         return
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    with open(OUT, "w", encoding="utf-8") as f:
-        f.write(text)
-    print(f"wrote {os.path.relpath(OUT, ROOT)} ({len(used)} struct types)")
+    for path, text in outs.items():
+        old = open(path, encoding="utf-8").read() if os.path.exists(path) else None
+        if old != text:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(text)
+            print(f"wrote {os.path.relpath(path, ROOT)}")
+    print(f"gen-k8s-deep: {len(used)} struct types; deep copies of {len(proved)} of {len(copy_used)} proved")
 
 
 if __name__ == "__main__":

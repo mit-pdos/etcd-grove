@@ -305,18 +305,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicInt
 
 /-- A metadata step by the call `k`, whose spec's postcondition is `P`, the invariant opened
 around it, `P` keeping the invariant's facts. -/
-theorem wp_dsStep (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option Ino) (k s : Nat)
+theorem wp_dsStep (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option Ino) (k s : Nat) (pc : GoString)
     (op : String) [FsRetOp op] (v : val) (P : w64 → Hist → Prop)
     (hspec : ∀ Φ' : val → IProp GF, ⊢ osInv (GF := GF) -∗
       osTree (GF := GF) (DFrac.own ((1 : Qp).half.half + (1 : Qp).half)) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗
+      osCall (GF := GF) k s pc (1 : Qp).half.half -∗
       (∀ (e : w64) (V' : Hist), ⌜P e V'⌝ -∗ osTree (GF := GF) (DFrac.own 1) R V' -∗ Φ' (#e)) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ ((⊤ : CoPset) \ ↑dsN) {{ Φ' }})
     (hpres : ∀ e V', SafeH j ko V ∧ MonoH j V → P e V' → SafeH j ko V' ∧ MonoH j V')
     (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ dsInv (GF := GF) R j γ -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
+      osCall (GF := GF) k s pc (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
       (∀ (e : w64) (V' : Hist), ⌜P e V'⌝ -∗ osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗
         ghostVar (GF := GF) γ (1 : Qp).half ko -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name op (Val v)) {{ Φ }} := by
@@ -336,7 +336,7 @@ theorem wp_dsUnlink (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option I
     (hn : ∃ rj ∈ R, CanonBelow rj.1 (child d b)) (k s : Nat) (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ dsInv (GF := GF) R j γ -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
+      osCall (GF := GF) k s (child d b) (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
       (∀ (e : w64) (V' : Hist), ⌜V'.now.entry j walB = none⌝ -∗
         osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗
         ghostVar (GF := GF) γ (1 : Qp).half ko -∗ Φ (#e)) -∗
@@ -351,13 +351,13 @@ theorem wp_dsUnlink (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option I
       · exact .inl rfl
       · exact .inr ⟨_, rfl, walKeep_remove j J b _ hbw⟩
       · exact .inl rfl
-    iapply wp_dsStep R j γ V ko k s "Unlink" _ (UnlinkPost R V d b J)
+    iapply wp_dsStep R j γ V ko k s _ "Unlink" _ (UnlinkPost R V d b J)
       (fun Φ' => wp_osUnlinkG d b J hb R V _ _ k s q_meta hd dsN_disj Φ')
       (fun e V' h hp => inv_keep h hw (hkeep e V' hp)) $$ Hos Hinv Ht Hk Hγ
     iintro %e %V' %hp Ht Hγ
     iapply HΦ $$ %e %V' %(keep_wal hw (hkeep e V' hp)) Ht Hγ
   · have hd : ∀ J, lookupH R V d ≠ some (.dir J) := fun J h => hdd ⟨J, h⟩
-    iapply wp_dsStep R j γ V ko k s "Unlink" _ (fun e V' => e ≠ 0 ∧ V' = V)
+    iapply wp_dsStep R j γ V ko k s _ "Unlink" _ (fun e V' => e ≠ 0 ∧ V' = V)
       (fun Φ' => wp_osUnlinkNoDir d b hb R V _ _ k s q_meta hn hd dsN_disj Φ')
       (fun e V' h hp => by rw [hp.2]; exact h) $$ Hos Hinv Ht Hk Hγ
     iintro %e %V' %hp Ht Hγ
@@ -369,7 +369,7 @@ theorem wp_dsRmdir (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option In
     (hn : ∃ rj ∈ R, CanonBelow rj.1 (child d b)) (k s : Nat) (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ dsInv (GF := GF) R j γ -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
+      osCall (GF := GF) k s (child d b) (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
       (∀ (e : w64) (V' : Hist), ⌜V'.now.entry j walB = none⌝ -∗
         osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗
         ghostVar (GF := GF) γ (1 : Qp).half ko -∗ Φ (#e)) -∗
@@ -384,13 +384,13 @@ theorem wp_dsRmdir (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option In
       · exact .inl rfl
       · exact .inr ⟨_, rfl, walKeep_remove j J b _ hbw⟩
       · exact .inl rfl
-    iapply wp_dsStep R j γ V ko k s "Rmdir" _ (RmdirPost R V d b J)
+    iapply wp_dsStep R j γ V ko k s _ "Rmdir" _ (RmdirPost R V d b J)
       (fun Φ' => wp_osRmdirG d b J hb R V _ _ k s q_meta hd dsN_disj Φ')
       (fun e V' h hp => inv_keep h hw (hkeep e V' hp)) $$ Hos Hinv Ht Hk Hγ
     iintro %e %V' %hp Ht Hγ
     iapply HΦ $$ %e %V' %(keep_wal hw (hkeep e V' hp)) Ht Hγ
   · have hd : ∀ J, lookupH R V d ≠ some (.dir J) := fun J h => hdd ⟨J, h⟩
-    iapply wp_dsStep R j γ V ko k s "Rmdir" _ (fun e V' => e ≠ 0 ∧ V' = V)
+    iapply wp_dsStep R j γ V ko k s _ "Rmdir" _ (fun e V' => e ≠ 0 ∧ V' = V)
       (fun Φ' => wp_osRmdirNoDir d b hb R V _ _ k s q_meta hn hd dsN_disj Φ')
       (fun e V' h hp => by rw [hp.2]; exact h) $$ Hos Hinv Ht Hk Hγ
     iintro %e %V' %hp Ht Hγ
@@ -402,7 +402,7 @@ theorem wp_dsMkdir (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj 
     (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ dsInv (GF := GF) R j γ -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
+      osCall (GF := GF) k s (child dir wtB) (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
       (∀ (e : w64) (V' : Hist), ⌜MkdirPost R V dir wtB j e V'⌝ -∗
         osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗
         ghostVar (GF := GF) γ (1 : Qp).half ko -∗ Φ (#e)) -∗
@@ -415,7 +415,7 @@ theorem wp_dsMkdir (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj 
     · exact .inr ⟨_, rfl, walKeep_mkdir j j wtB J wt_ne_wal⟩
     · exact .inl rfl
   iintro #Hos #Hinv Ht Hk Hγ HΦ
-  iapply wp_dsStep R j γ V ko k s "Mkdir" _ (MkdirPost R V dir wtB j)
+  iapply wp_dsStep R j γ V ko k s _ "Mkdir" _ (MkdirPost R V dir wtB j)
     (fun Φ' => wp_osMkdirG dir wtB j wtB_ok R V _ _ k s q_meta (lookupH_root hR hrj V) dsN_disj Φ')
     (fun e V' h hp => inv_keep h hw (hkeep e V' hp)) $$ Hos Hinv Ht Hk Hγ HΦ
 
@@ -426,7 +426,7 @@ theorem wp_dsCreate (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option I
     (hn : lookupH R V (child d segB) = none) (k s : Nat) (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ dsInv (GF := GF) R j γ -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) k s (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
+      osCall (GF := GF) k s (child d segB) (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
       (∀ fd : w64, ∀ e : w64, ghostVar (GF := GF) γ (1 : Qp).half ko -∗
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i,
             osTree (GF := GF) (DFrac.own (1 : Qp).half) R (V.push ⟨.create J segB i, V.2.length⟩) ∗
@@ -500,7 +500,7 @@ theorem wp_dsRename (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj
     (kc s : Nat) (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ dsInv (GF := GF) R j γ -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) kc s (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half (some k) -∗
+      osCall (GF := GF) kc s (child dir wtB) (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half (some k) -∗
       (∀ (e : w64) (V' : Hist),
         ⌜RenameDirPost V (.rename j wtB j walB (.dir J) none) e V'⌝ -∗
         osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗
@@ -512,7 +512,7 @@ theorem wp_dsRename (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj
   have hwn : lookupH R V (child dir walB) = none := by
     rw [lookupH_child_root hR hrj V walB_ok]; exact hw
   iintro #Hos #Hinv Ht Hk Hγ HΦ
-  iapply wp_dsStep R j γ V (some k) kc s "Rename" _
+  iapply wp_dsStep R j γ V (some k) kc s _ "Rename" _
     (RenameDirPost V (.rename j wtB j walB (.dir J) none))
     (fun Φ' => wp_osRenameDirG dir wtB walB j J wtB_ok walB_ok wt_ne_wal R V _ _ kc s q_meta
       (lookupH_root hR hrj V) hts hwn dsN_disj Φ')
@@ -529,7 +529,7 @@ theorem wp_dsRenameAbsent (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino
     (hn : V.now.entry j wtB = none) (kc s : Nat) (Φ : val → IProp GF) :
     ⊢ osInv (GF := GF) -∗ dsInv (GF := GF) R j γ -∗
       osTree (GF := GF) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (GF := GF) kc s (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
+      osCall (GF := GF) kc s (child dir wtB) (1 : Qp).half.half -∗ ghostVar (GF := GF) γ (1 : Qp).half ko -∗
       (∀ (e : w64) (V' : Hist), ⌜e ≠ 0 ∧ V' = V⌝ -∗
         osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗
         ghostVar (GF := GF) γ (1 : Qp).half ko -∗ Φ (#e)) -∗
@@ -538,11 +538,11 @@ theorem wp_dsRenameAbsent (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino
   have hts : lookupH R V (child dir wtB) = none := by
     rw [lookupH_child_root hR hrj V wtB_ok]; exact hn
   iintro #Hos #Hinv Ht Hk Hγ HΦ
-  iapply wp_dsStep R j γ V ko kc s "Rename" _ (fun e V' => e ≠ 0 ∧ V' = V)
+  iapply wp_dsStep R j γ V ko kc s _ "Rename" _ (fun e V' => e ≠ 0 ∧ V' = V)
     (fun Φ' => by
       iintro Hos' Ht' Hk' HΦ'
       iapply wp_osRenameAbsentG dir wtB dir walB j j wtB_ok walB_ok R V _ _ kc s q_meta
-        (lookupH_root hR hrj V) (lookupH_root hR hrj V) hts dsN_disj $$ Hos' Ht' Hk'
+        (lookupH_root hR hrj V) (lookupH_root hR hrj V) hts (sameRoot_child_child (lookupH_root hR hrj V)) dsN_disj $$ Hos' Ht' Hk'
       iintro %e %he Ht'
       iapply HΦ' $$ %e %V %(And.intro he rfl) Ht')
     (fun e V' h hp => by rw [hp.2]; exact h) $$ Hos Hinv Ht Hk Hγ HΦ
@@ -569,7 +569,7 @@ theorem wp_dsRemove (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option I
   wp_start as ⟨#Hos, #Hinv, Ht, Hγ⟩
   iloeb as IH generalizing %V %hw Ht Hγ
   ihave Ht := tree_half (L := hG.goose_localGS) _ R V $$ Ht
-  wp_apply wp_osCallBegin R V _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
+  wp_apply wp_osCallBegin R V _ _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
   (try wp_auto)
   wp_apply wp_dsUnlink R j γ V ko hw d b hb hbw hn t _ $$ Hos Hinv Ht Hk Hγ as %e %V1 %hw1 Ht Hγ
   by_cases he4 : e = W64 4
@@ -590,7 +590,7 @@ theorem wp_dsRemove (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option I
   wp_auto
   iloeb as IH2 generalizing %V1 %hw1 Ht Hγ
   ihave Ht := tree_half (L := hG.goose_localGS) _ R V1 $$ Ht
-  wp_apply wp_osCallBegin R V1 _ _ CoPset.subseteq_top $$ Hos Ht as %t1 Ht Hk
+  wp_apply wp_osCallBegin R V1 _ _ _ CoPset.subseteq_top $$ Hos Ht as %t1 Ht Hk
   (try wp_auto)
   wp_apply wp_dsRmdir R j γ V1 ko hw1 d b hb hbw hn t1 _ $$ Hos Hinv Ht Hk Hγ
     as %e1 %V2 %hw2 Ht Hγ
@@ -643,7 +643,7 @@ theorem wp_dsMkdir' (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj
   wp_start as ⟨#Hos, #Hinv, Ht, Hγ⟩
   iloeb as IH generalizing %V %hw Ht Hγ
   ihave Ht := tree_half (L := hG.goose_localGS) _ R V $$ Ht
-  wp_apply wp_osCallBegin R V _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
+  wp_apply wp_osCallBegin R V _ _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
   (try wp_auto)
   wp_apply wp_dsMkdir R hR dir j hrj γ V ko hw t _ $$ Hos Hinv Ht Hk Hγ as %e %V' %hp Ht Hγ
   have hkeep : KeepW j V V' := by
@@ -729,7 +729,7 @@ theorem wp_dsOpenCreate (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino)
   | none =>
     unfold crStateD
     ihave Ht := tree_half (L := hG.goose_localGS) _ R V $$ Hs
-    wp_apply wp_osCallBegin R V _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
+    wp_apply wp_osCallBegin R V _ _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
     rw [show (W64 66 ||| W64 524288) = flCreat from by decide]
     (try wp_auto)
     wp_apply wp_dsCreate R j γ V ko hw (child dir wtB) J hd hn' t _ $$ Hos Hinv Ht Hk Hγ as %fd %e Hγ Hr
@@ -782,7 +782,7 @@ theorem wp_dsOpenCreate (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino)
     unfold crStateD
     icases Hs with ⟨Ht, Hm⟩
     ihave Ht := tree_half (L := hG.goose_localGS) _ R _ $$ Ht
-    wp_apply wp_osCallBegin R _ _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
+    wp_apply wp_osCallBegin R _ _ _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
     rw [show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
     (try wp_auto)
     have hl : lookupH R (V.push ⟨.create J segB i, V.2.length⟩) (child (child dir wtB) segB) = some (.file i) := by
@@ -861,7 +861,7 @@ theorem wp_dsRenameWal (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (
   have htp : (Hist.st R V).TreePath (child dir walB) :=
     .inr (treeName_child (st := Hist.st R V) (lookupH_root hR hrj V) walB_ok)
   ihave Ht := tree_half (L := hG.goose_localGS) _ R V $$ Ht
-  wp_apply wp_osCallBegin R V _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
+  wp_apply wp_osCallBegin R V _ _ _ CoPset.subseteq_top $$ Hos Ht as %t Ht Hk
   (try wp_auto)
   wp_apply wp_osLstatDir (child dir walB) R V _ _ t _ htp hnd CoPset.subseteq_top $$ Hos Ht Hk
     as %e0 Ht
@@ -880,7 +880,7 @@ theorem wp_dsRenameWal (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (
   iloeb as IH generalizing %V1 Hp Ht Hγ
   icases Hp with %Hp
   ihave Ht := tree_half (L := hG.goose_localGS) _ R V1 $$ Ht
-  wp_apply wp_osCallBegin R V1 _ _ CoPset.subseteq_top $$ Hos Ht as %t1 Ht Hk
+  wp_apply wp_osCallBegin R V1 _ _ _ CoPset.subseteq_top $$ Hos Ht as %t1 Ht Hk
   (try wp_auto)
   rcases Hp with rfl | rfl
   · wp_apply wp_dsRename R hR dir j hrj γ V1 k hw J ht hs t1 _ $$ Hos Hinv Ht Hk Hγ

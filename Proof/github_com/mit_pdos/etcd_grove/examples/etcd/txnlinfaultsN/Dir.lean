@@ -44,6 +44,12 @@ theorem members_names_utf8 (k : Nat) : ∀ m ∈ members k, utf8Valid m.Name' :=
   obtain ⟨i, -, rfl⟩ := members_mem k m hm
   exact memberAt_name_utf8 _ (fun b hb => by revert b; decide) _ _ _
 
+/-- The members' names are at most 200 bytes (wal-fsfix: their data directories fit). -/
+theorem members_names_len (k : Nat) : ∀ m ∈ members k, m.Name'.length ≤ 200 := by
+  intro m hm
+  obtain ⟨i, -, rfl⟩ := members_mem k m hm
+  exact memberAt_name_len _ (by decide) _ _ _
+
 theorem members_peers_nodup (k : Nat) (hk : k ≤ 1000) : ((members k).map (·.Peer')).Nodup := by
   unfold members membersOf
   rw [List.map_map]
@@ -123,7 +129,7 @@ def txnlinfaultsNAddrs (k : Nat) : List GoString :=
   (members k).map (·.Peer') ++ (members k).map (·.Client') ++ bridges k
 
 /-- **The program's data directories**: the members' `txnlinfaultsN-i.etcd`. -/
-def txnlinfaultsNDirs (k : Nat) : List GoString := (members k).map (fun m => m.Name' ++ go!".etcd")
+def txnlinfaultsNDirs (k : Nat) : List GoString := (members k).map (fun m => memberDataDir m.Name')
 
 /-- The program's start bundles, as `etcd_adequate_members` takes them. -/
 def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
@@ -152,9 +158,9 @@ theorem txnlinfaultsNDirs_perm (k : Nat) :
 
 theorem txnlinfaultsNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (txnlinfaultsNDirs k).Nodup := by
   unfold txnlinfaultsNDirs
-  rw [show (fun m : GMember => m.Name' ++ go!".etcd") = (fun n => n ++ go!".etcd") ∘ (·.Name') from rfl,
+  rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
-  exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
+  exact List.Pairwise.map _ (fun a b h e => h (memberDataDir_inj e)) (members_names_nodup k hk)
 
 /-- Every address of the program is `127.0.0.1:<p>` with `p` in one of the three ranges. -/
 theorem addr_port (k : Nat) (a : GoString) (ha : a ∈ txnlinfaultsNAddrs k) :

@@ -71,9 +71,10 @@ theorem alloc1 (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (List
       (by simp) (by simpa using Hid0.symm) cmp cret lm (idPfxOf (W16 (uint.Z id)))
       [idPfxOf (W16 (uint.Z id))] (fun _ => ⟨List.mem_singleton_self _, (by simp)⟩))
       $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+  have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
   -- (lease-mono3 step 2) one member: the grant prefixes its own
@@ -115,6 +116,8 @@ theorem alloc1 (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (List
   · ipureintro
     exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog],
       hpfx, rfl, trivial, by rw [hkc', hkc], trivial, by rw [hklg', hklg]; exact hlg⟩
+  isplitr
+  · ipureintro; exact HnoSnap
   iunfold idNoZero
   rw [hiss', hiss]
   iexact H0

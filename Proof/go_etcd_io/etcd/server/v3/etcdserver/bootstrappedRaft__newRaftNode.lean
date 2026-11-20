@@ -38,7 +38,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       RestartNode.spec (GF := GF) (hG := hG))
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E γr b ss wal cl dq bv cv lok γs pre ν pv ps ctxs Q bt
+  intro E γr b ss wal cl sd dq bv cv lok γs pre ν pv ps ctxs Q bt
   letI := srvStor (GF := GF) γr
   wp_start as Hpre
   iNamed Hpre
@@ -125,7 +125,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     | restart σ cs S a m A₀ =>
       iunfold rnBootPre at Hboot
       icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, Hvac, Hrst, #Hconf⟩
-      obtain ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold⟩ := Hpure
+      obtain ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩ := Hpure
       have Hlen0 : decide (bv.peers'.len = W64 0) = true := by
         apply decide_eq_true
         have h1 := Hlen.1
@@ -168,7 +168,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) Q
           Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
-          (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs
+          (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs Hnsm
           Hcfg.traceLogger HtrC)
         $$ [Hc Hbs Hvac Hau]
         as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, Hrst, HQ⟩
@@ -207,11 +207,12 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   ipersist cl
   -- `serverstorage.NewStorage(b.lg, wal, ss)`
   iunfold rnNewStorageOk at Hns
-  wp_apply Hns $$ %bv.lg' %wal %ss [] as %st ⟨#Hst, %Hstss⟩
-  · ipureintro; exact Hwal
+  subst Hwal
+  wp_apply Hns $$ %bv.lg' %ss %sd %ν.h [] as %st ⟨#Hst, Hrd1, Hrd2⟩
+  · iexact Hssi
   (try wp_auto)
   -- `newRaftNode(cfg)`
-  wp_apply (wp_newRaftNode E γr cv.ID' nn pre bv.storage' γs K ν
+  wp_apply (wp_newRaftNode E γr cv.ID' nn pre bv.storage' γs K ν ss
     (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn) bv.storage' st
       bv.heartbeat' GoInterface.nil) bt.a0 bt.t0 bt.P bt.commit0 bt.snap0) $$ []
     as %r ⟨%γw, %Hγw, Hbuilt⟩
@@ -226,21 +227,25 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   iexists nn, γw, _, st
   isplitr
   · ipureintro
-    obtain ⟨h1, h2, h3, h4, h5, h6, -, h8, h9, h10⟩ := Hγw
-    exact ⟨h1, h2, h3, h4, h5, h6, h8, h9, h10⟩
-  obtain ⟨-, -, -, -, -, -, hkey, -⟩ := Hγw
+    obtain ⟨h1, h2, h3, h4, h5, h6, -, h8, h8', h9, h10⟩ := Hγw
+    exact ⟨h1, h2, h3, h4, h5, h6, h8, h8', h9, h10⟩
+  obtain ⟨-, -, -, -, -, -, hkey, hwal, hss, -⟩ := Hγw
   subst hkey
-  iframe Hnode Hst Hbuilt Hb Hpeers HQ Hrun Hbpost
-  isplitr
-  · -- the closure meets `isRNIDRemoved`
-    iunfold isRNIDRemoved
-    iintro !> %id' %Φ' !> - HΦ'
-    (try wp_auto)
-    iunfold rnClusterOk at Hcl
-    wp_apply Hcl $$ %id' [] as %bb -
-    iapply HΦ'
-    first | itrivial | (ipureintro; trivial)
-  ipureintro; exact Hstss
+  ihave #Hst' : isWalStorage st γw.wal.h γw.ss $$ []
+  · rw [hwal, hss]; iexact Hst
+  ihave Hrd1' : walStorRd st γw.wal.h $$ [Hrd1]
+  · rw [hwal]; iexact Hrd1
+  ihave Hrd2' : walStorRd st γw.wal.h $$ [Hrd2]
+  · rw [hwal]; iexact Hrd2
+  iframe Hnode Hst' Hrd1' Hrd2' Hbuilt Hb Hpeers HQ Hrun Hbpost
+  -- the closure meets `isRNIDRemoved`
+  iunfold isRNIDRemoved
+  iintro !> %id' %Φ' !> - HΦ'
+  (try wp_auto)
+  iunfold rnClusterOk at Hcl
+  wp_apply Hcl $$ %id' [] as %bb -
+  iapply HΦ'
+  first | itrivial | (ipureintro; trivial)
 
 end proof
 

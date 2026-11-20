@@ -37,6 +37,7 @@ public import Perennial.Proof.math
 public import Perennial.Proof.strings
 public import Perennial.Proof.io
 public import Proof.hash.PkgInit
+public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 
 @[expose] public section
 
@@ -120,43 +121,11 @@ end go_opentelemetry_io.otel.trace
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 
-/-- A prometheus `Counter` as the KV core uses it: `Inc()` returns, and so does `Add(v)` for a
-non-negative `v` (prometheus' `counter.Add` panics on a negative value, "counter cannot decrease in
-value"; item 8, 2026-10-17: until then `Add(x)` for every `x`, false of the Go code), stated for
-the arguments the code passes: `float64(n)` of an unsigned `n` (`metricsTxnWrite.End`) and of a
-non-negative signed `n` (`scheduleCompaction`'s compacted-keys count). -/
-def counterSpec (c : GoInterfaceOk) : IProp GF :=
-  iprop(□ ({{ True }} (App (Val #(methods c.ty go!"Inc" c.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ (∀ n : w64, {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #(uint64ToFloat64 n)))
-      {{ RET #(); True }}) ∗
-    □ (∀ n : w64, ⌜0 ≤ sint.Z n⌝ →
-      {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #(int64ToFloat64 n))) {{ RET #(); True }}))
-
-instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (GF := GF) c) := by
-  unfold counterSpec; infer_instance
-
-/-- A prometheus `Gauge` as the KV core uses it: `Inc()`, `Dec()` and `Add(x)` return. -/
-def gaugeSpec (g : GoInterfaceOk) : IProp GF :=
-  iprop(□ ({{ True }} (App (Val #(methods g.ty go!"Inc" g.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods g.ty go!"Dec" g.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ (∀ x : w64, {{ True }} (App (Val #(methods g.ty go!"Add" g.v)) (Val #x)) {{ RET #(); True }}))
-
-instance gaugeSpec_persistent (g : GoInterfaceOk) : Persistent (gaugeSpec (GF := GF) g) := by
-  unfold gaugeSpec; infer_instance
-
-/-- A prometheus `Histogram`'s `Observe(x)` returns (the compaction's timings). -/
-def histSpec (h : GoInterfaceOk) : IProp GF :=
-  iprop(□ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}))
-
-instance histSpec_persistent (h : GoInterfaceOk) : Persistent (histSpec (GF := GF) h) := by
-  unfold histSpec; infer_instance
-
-/-- A prometheus `Gauge`'s `Set(x)` returns (the watchable store's `slowWatcherGauge`). -/
-def gaugeSetSpec (g : GoInterfaceOk) : IProp GF :=
-  iprop(□ (∀ x : w64, {{ True }} (App (Val #(methods g.ty go!"Set" g.v)) (Val #x)) {{ RET #(); True }}))
-
-instance gaugeSetSpec_persistent (g : GoInterfaceOk) : Persistent (gaugeSetSpec (GF := GF) g) := by
-  unfold gaugeSetSpec; infer_instance
+/- The prometheus metrics' method specs (`counterSpec`, `gaugeSpec`, `histSpec`, `gaugeSetSpec`),
+defined here until 2026-11-19, are prometheus's (`EtcdGrove.prometheus.metric`, the package's
+`Metric.lean`), re-exported under their old names. -/
+export EtcdGrove.prometheus.metric (counterSpec counterSpec_persistent gaugeSpec gaugeSpec_persistent
+  histSpec histSpec_persistent gaugeSetSpec gaugeSetSpec_persistent)
 
 /-- **What a metrics reporter's lock guards** at the fraction `q` (`metrics.go`: each of the five
 `report*` closures, which `setupMetricsReporter` sets under its `report*Mu`; the restore plan's

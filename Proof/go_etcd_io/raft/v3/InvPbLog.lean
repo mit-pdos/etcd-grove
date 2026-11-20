@@ -84,6 +84,10 @@ returns it, "may be nil", `storage.go:52-55`). Persistent. -/
 def hsOpt (p : Loc) (hs : HardStateM) : IProp GF :=
   iprop(⌜p = null ∧ hs = HardStateM.mk (W64 0) (W64 0) (W64 0)⌝ ∨ hsRO p hs)
 
+/-- `hsOpt`, canonical when not `nil` (`hsROC`; 2026-11-17, wal-link L1b): a `Ready`'s hard state. -/
+def hsOptC (p : Loc) (hs : HardStateM) : IProp GF :=
+  iprop(⌜p = null ∧ hs = HardStateM.mk (W64 0) (W64 0) (W64 0)⌝ ∨ hsROC p hs)
+
 end defs
 
 section lemmas
@@ -202,6 +206,24 @@ instance hsOpt_persistent (p : Loc) (hs : HardStateM) : Persistent (hsOpt (GF :=
 theorem hsOpt_null : ⊢ hsOpt (GF := GF) null (HardStateM.mk (W64 0) (W64 0) (W64 0)) := by
   iunfold hsOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
 
+instance hsOptC_persistent (p : Loc) (hs : HardStateM) : Persistent (hsOptC (GF := GF) p hs) := by
+  unfold hsOptC; infer_instance
+
+theorem hsOptC_null : ⊢ hsOptC (GF := GF) null (HardStateM.mk (W64 0) (W64 0) (W64 0)) := by
+  iunfold hsOptC; ileft; ipureintro; exact ⟨rfl, rfl⟩
+
+/-- A canonical `nil`-or-read-only hard state is a `nil`-or-read-only one. -/
+theorem hsOptC_hsOpt (p : Loc) (hs : HardStateM) : hsOptC (GF := GF) p hs ⊢ hsOpt p hs := by
+  iintro H
+  iunfold hsOptC at H
+  iunfold hsOpt
+  icases H with (%H | H)
+  · ileft; ipureintro; exact H
+  · iright; iapply hsROC_hsRO; iexact H
+
+theorem hsROC_hsOptC (p : Loc) (hs : HardStateM) : hsROC (GF := GF) p hs ⊢ hsOptC p hs := by
+  iintro H; iunfold hsOptC; iright; iexact H
+
 /-- (D22l) Two read-only hard states at one location agree. -/
 theorem hsRO_agree (p : Loc) (h1 h2 : HardStateM) :
     hsRO (GF := GF) p h1 ∗ hsRO p h2 ⊢ ⌜h1 = h2⌝ := by
@@ -232,6 +254,14 @@ theorem hsOpt_agree (p : Loc) (h1 h2 : HardStateM) :
   · iunfold hsRO at H2; icases H2 with ⟨%pt, %pv, %pc, %uf, %Hnn, -⟩; exact absurd Hp1 Hnn
   · iunfold hsRO at H1; icases H1 with ⟨%pt, %pv, %pc, %uf, %Hnn, -⟩; exact absurd Hp2 Hnn
   · iapply hsRO_agree p h1 h2; iframe H1 H2
+
+/-- Two canonical facts about the hard state at one pointer agree. -/
+theorem hsOptC_agree (p : Loc) (h1 h2 : HardStateM) :
+    hsOptC (GF := GF) p h1 ∗ hsOptC p h2 ⊢ ⌜h1 = h2⌝ := by
+  iintro ⟨#H1, #H2⟩
+  ihave #H1 := hsOptC_hsOpt _ _ $$ H1
+  ihave #H2 := hsOptC_hsOpt _ _ $$ H2
+  iapply hsOpt_agree p h1 h2; iframe H1 H2
 
 /-! ### Read-only snapshots -/
 

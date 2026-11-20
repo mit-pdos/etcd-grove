@@ -134,13 +134,16 @@ opaque _Type_name [GooseExts] [GoGlobalContext] : val
 
 opaque EMPTY [GooseExts] [GoGlobalContext] : val
 
-opaque BOOL [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def BOOL [GooseExts] [GoGlobalContext] : val :=
+  #(W64 1)
 
-opaque INT64 [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def INT64 [GooseExts] [GoGlobalContext] : val :=
+  #(W64 2)
 
 opaque FLOAT64 [GooseExts] [GoGlobalContext] : val
 
-opaque STRING [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def STRING [GooseExts] [GoGlobalContext] : val :=
+  #(W64 4)
 
 opaque BOOLSLICE [GooseExts] [GoGlobalContext] : val
 
@@ -516,6 +519,295 @@ noncomputable def appendJSONString [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def appendBase64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.appendBase64"
 
+/-- Bool returns a [KeyValue] for a bool value.
+
+    If creating both a key and value at the same time, use the package-level
+    [Bool] function.
+
+    go: key.go:14:14 -/
+noncomputable def Key.Bool.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc Key.ty))) (Var "k"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "v"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad Key.ty))) (Var "k"))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve BoolValue []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral KeyValue.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression Key.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression Value.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValue.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad KeyValue.ty))) (Var "$res0"))))))
+
+/-- Int returns a [KeyValue] for an int value.
+
+    It is provided as a convenience for [Key.Int64].
+
+    If creating both a key and value at the same time, use the package-level [Int]
+    function.
+
+    go: key.go:43:14 -/
+noncomputable def Key.Int.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc Key.ty))) (Var "k"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.int))) (Var "v"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad Key.ty))) (Var "k"))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve IntValue []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral KeyValue.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression Key.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression Value.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValue.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad KeyValue.ty))) (Var "$res0"))))))
+
+/-- Int64 returns a [KeyValue] for an int64 value.
+
+    If creating both a key and value at the same time, use the package-level
+    [Int64] function.
+
+    go: key.go:72:14 -/
+noncomputable def Key.Int64.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc Key.ty))) (Var "k"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "v"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad Key.ty))) (Var "k"))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve Int64Value []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral KeyValue.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression Key.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression Value.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValue.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad KeyValue.ty))) (Var "$res0"))))))
+
+/-- String returns a [KeyValue] for a string value.
+
+    If creating both a key and value at the same time, use the package-level
+    [String] function.
+
+    go: key.go:126:14 -/
+noncomputable def Key.String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc Key.ty))) (Var "k"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (Var "v"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad Key.ty))) (Var "k"))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve StringValue []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral KeyValue.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression Key.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression Value.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValue.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad KeyValue.ty))) (Var "$res0"))))))
+
+/-- Bool returns a [KeyValue] for a bool value.
+
+    go: kv.go:32:6 -/
+noncomputable def Bool.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "v"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "v"))
+  (App (App (Val (GoInstruction (MethodResolve Key.ty go!"Bool"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValue.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad KeyValue.ty))) (Var "$res0"))))))
+
+/-- Int returns a [KeyValue] for an int value.
+
+    It is provided as a convenience for [Int64].
+
+    go: kv.go:49:6 -/
+noncomputable def Int.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.int))) (Var "v"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "v"))
+  (App (App (Val (GoInstruction (MethodResolve Key.ty go!"Int"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValue.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad KeyValue.ty))) (Var "$res0"))))))
+
+/-- Int64 returns a [KeyValue] for an int64 value.
+
+    go: kv.go:66:6 -/
+noncomputable def Int64.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "v"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "v"))
+  (App (App (Val (GoInstruction (MethodResolve Key.ty go!"Int64"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValue.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad KeyValue.ty))) (Var "$res0"))))))
+
+/-- String returns a [KeyValue] for a string value.
+
+    go: kv.go:96:6 -/
+noncomputable def String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (Var "v"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (App (Val (GoInstruction (MethodResolve Key.ty go!"String"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValue.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad KeyValue.ty))) (Var "$res0"))))))
+
+/-- go: rawhelpers.go:10:6 -/
+noncomputable def boolToRaw.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "b"))
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
+
+/-- go: rawhelpers.go:21:6 -/
+noncomputable def int64ToRaw.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "i"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "i"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "i")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
+
+/-- BoolValue returns a [Value] for a bool value.
+
+    go: value.go:71:6 -/
+noncomputable def BoolValue.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Value.ty))) (App (Val (GoInstruction (GoZeroVal Value.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "v"))
+  (Let "$r0" (Let "$v0" (Val BOOL)
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve boolToRaw []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression Type'.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"numeric")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Value.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Value.ty))) (Var "$res0")))))
+
+/-- IntValue returns a [Value] for an int value.
+
+    It is provided as a convenience for [Int64Value].
+
+    go: value.go:91:6 -/
+noncomputable def IntValue.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Value.ty))) (App (Val (GoInstruction (GoZeroVal Value.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.int))) (Var "v"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "v")))
+  (App (App (Val (GoInstruction (FuncResolve Int64Value []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Value.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Value.ty))) (Var "$res0")))))
+
+/-- Int64Value returns a [Value] for an int64 value.
+
+    go: value.go:129:6 -/
+noncomputable def Int64Value.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Value.ty))) (App (Val (GoInstruction (GoZeroVal Value.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "v"))
+  (Let "$r0" (Let "$v0" (Val INT64)
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve int64ToRaw []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression Type'.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"numeric")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Value.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Value.ty))) (Var "$res0")))))
+
+/-- StringValue returns a [Value] for a string value.
+
+    go: value.go:165:6 -/
+noncomputable def StringValue.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Value.ty))) (App (Val (GoInstruction (GoZeroVal Value.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (Var "v"))
+  (Let "$r0" (Let "$v0" (Val STRING)
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression Type'.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"stringly")) (ElementExpression go.string (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Value.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Value.ty))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.«attribute» where
   pkgImportedPkgs := []
 
@@ -703,10 +995,30 @@ class Key.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   underlying : go.UnderlyingDirectedEq Key.ty Key.underlying
   method_set : go.MethodSetIs Key.ty [(go!"Bool", (some (go.signature.Signature [go.bool] false [KeyValue.ty]))), (go!"BoolSlice", (some (go.signature.Signature [(go.GoType.SliceType go.bool)] false [KeyValue.ty]))), (go!"ByteSlice", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [KeyValue.ty]))), (go!"Defined", (some (go.signature.Signature [] false [go.bool]))), (go!"Float64", (some (go.signature.Signature [go.float64] false [KeyValue.ty]))), (go!"Float64Slice", (some (go.signature.Signature [(go.GoType.SliceType go.float64)] false [KeyValue.ty]))), (go!"Int", (some (go.signature.Signature [go.int] false [KeyValue.ty]))), (go!"Int64", (some (go.signature.Signature [go.int64] false [KeyValue.ty]))), (go!"Int64Slice", (some (go.signature.Signature [(go.GoType.SliceType go.int64)] false [KeyValue.ty]))), (go!"IntSlice", (some (go.signature.Signature [(go.GoType.SliceType go.int)] false [KeyValue.ty]))), (go!"Map", (some (go.signature.Signature [(go.GoType.SliceType KeyValue.ty)] true [KeyValue.ty]))), (go!"Slice", (some (go.signature.Signature [(go.GoType.SliceType Value.ty)] true [KeyValue.ty]))), (go!"String", (some (go.signature.Signature [go.string] false [KeyValue.ty]))), (go!"StringSlice", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [KeyValue.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Key.ty) [(go!"Bool", (some (go.signature.Signature [go.bool] false [KeyValue.ty]))), (go!"BoolSlice", (some (go.signature.Signature [(go.GoType.SliceType go.bool)] false [KeyValue.ty]))), (go!"ByteSlice", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [KeyValue.ty]))), (go!"Defined", (some (go.signature.Signature [] false [go.bool]))), (go!"Float64", (some (go.signature.Signature [go.float64] false [KeyValue.ty]))), (go!"Float64Slice", (some (go.signature.Signature [(go.GoType.SliceType go.float64)] false [KeyValue.ty]))), (go!"Int", (some (go.signature.Signature [go.int] false [KeyValue.ty]))), (go!"Int64", (some (go.signature.Signature [go.int64] false [KeyValue.ty]))), (go!"Int64Slice", (some (go.signature.Signature [(go.GoType.SliceType go.int64)] false [KeyValue.ty]))), (go!"IntSlice", (some (go.signature.Signature [(go.GoType.SliceType go.int)] false [KeyValue.ty]))), (go!"Map", (some (go.signature.Signature [(go.GoType.SliceType KeyValue.ty)] true [KeyValue.ty]))), (go!"Slice", (some (go.signature.Signature [(go.GoType.SliceType Value.ty)] true [KeyValue.ty]))), (go!"String", (some (go.signature.Signature [go.string] false [KeyValue.ty]))), (go!"StringSlice", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [KeyValue.ty])))]
+  Bool_unfold : MethodUnfold Key.ty go!"Bool" Key.Bool.impl
+  Int_unfold : MethodUnfold Key.ty go!"Int" Key.Int.impl
+  Int64_unfold : MethodUnfold Key.ty go!"Int64" Key.Int64.impl
+  String_unfold : MethodUnfold Key.ty go!"String" Key.String.impl
+  ptr_Bool_unfold : MethodUnfold (go.GoType.PointerType Key.ty) go!"Bool" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Key.ty go!"Bool"))) (App (Val (GoInstruction (GoLoad Key.ty))) (Var "$r"))))
+  ptr_Int_unfold : MethodUnfold (go.GoType.PointerType Key.ty) go!"Int" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Key.ty go!"Int"))) (App (Val (GoInstruction (GoLoad Key.ty))) (Var "$r"))))
+  ptr_Int64_unfold : MethodUnfold (go.GoType.PointerType Key.ty) go!"Int64" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Key.ty go!"Int64"))) (App (Val (GoInstruction (GoLoad Key.ty))) (Var "$r"))))
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Key.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Key.ty go!"String"))) (App (Val (GoInstruction (GoLoad Key.ty))) (Var "$r"))))
 
 attribute [instance] Key.TypeAssumptions.underlying
   Key.TypeAssumptions.method_set
   Key.TypeAssumptions.ptr_method_set
+  Key.TypeAssumptions.Bool_unfold
+  Key.TypeAssumptions.Int_unfold
+  Key.TypeAssumptions.Int64_unfold
+  Key.TypeAssumptions.String_unfold
+  Key.TypeAssumptions.ptr_Bool_unfold
+  Key.TypeAssumptions.ptr_Int_unfold
+  Key.TypeAssumptions.ptr_Int64_unfold
+  Key.TypeAssumptions.ptr_String_unfold
 
 abbrev Type' [GooseExts] : Type := w64
 
@@ -1047,6 +1359,16 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Type_instance : «Type».TypeAssumptions
   Value_instance : Value.TypeAssumptions
   unknownValueType_instance : unknownValueType.TypeAssumptions
+  Bool_unfold : FuncUnfold Bool' [] Bool.impl
+  Int_unfold : FuncUnfold Int' [] Int.impl
+  Int64_unfold : FuncUnfold Int64 [] Int64.impl
+  String_unfold : FuncUnfold String [] String.impl
+  boolToRaw_unfold : FuncUnfold boolToRaw [] boolToRaw.impl
+  int64ToRaw_unfold : FuncUnfold int64ToRaw [] int64ToRaw.impl
+  BoolValue_unfold : FuncUnfold BoolValue [] BoolValue.impl
+  IntValue_unfold : FuncUnfold IntValue [] IntValue.impl
+  Int64Value_unfold : FuncUnfold Int64Value [] Int64Value.impl
+  StringValue_unfold : FuncUnfold StringValue [] StringValue.impl
 
 attribute [instance] Assumptions.Encoder_instance
   Assumptions.EncoderID_instance
@@ -1064,6 +1386,16 @@ attribute [instance] Assumptions.Encoder_instance
   Assumptions.Type_instance
   Assumptions.Value_instance
   Assumptions.unknownValueType_instance
+  Assumptions.Bool_unfold
+  Assumptions.Int_unfold
+  Assumptions.Int64_unfold
+  Assumptions.String_unfold
+  Assumptions.boolToRaw_unfold
+  Assumptions.int64ToRaw_unfold
+  Assumptions.BoolValue_unfold
+  Assumptions.IntValue_unfold
+  Assumptions.Int64Value_unfold
+  Assumptions.StringValue_unfold
 
 end go_opentelemetry_io.otel.«attribute»
 

@@ -53,9 +53,11 @@ would also wrap (not reproduced: the read panics first).
 
 ## Proof
 
-no: the top-level adequacy proof needs no fix on the goosed fork for it; the bbolt proof's spill (branch `bbolt`, in progress: `SpillFit.lean`) assumes each entry's
-key plus value is at most `2^28` bytes and the page size below 1 MiB, so that a written page's
-elements stay inside `MaxAllocSize`; `Put`'s documented bounds do not give it; etcd meets it.
+no: the top-level adequacy proof needs no fix of its own for it. The bbolt proof's spill assumes each
+entry's key plus value is at most `2^28` bytes and the page size below 1 MiB, so that a written
+page's elements stay inside `MaxAllocSize`; since 2026-11-19 the goosed fork's `Put` refuses a larger
+entry (3f8520bd, `bbolt-max-value-size-unusable`'s fork fix), which also excludes this file's case
+(four entries of at most `2^28` bytes stay below 2 GiB).
 
 ## Fix
 

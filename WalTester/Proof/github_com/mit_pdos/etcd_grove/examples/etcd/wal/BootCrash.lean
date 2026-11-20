@@ -44,7 +44,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 tree itself: see the file header. -/
 def TCrashed (e : TEnv) (V : Hist) : IProp GF :=
   iprop(∃ (W : WalGS GF) (s : AbsDiskState) (o : TOracle) (od : Option WalDur) (v : Option GoString),
-    ⌜V.2 = [] ∧ WalsBounded s ∧ DirsRoots e.R s ∧ TreeWf e.R V.now ∧ BootFo V.now e.jr ∧
+    ⌜W.roots = e.R ∧ V.2 = [] ∧ WalsBounded s ∧ DirsRoots e.R s ∧ TreeWf e.R V.now ∧ BootFo V.now e.jr ∧
       tOracleFile ⟨v, none⟩ o none⌝ ∗
     walStart L W walCodec walRaftMr e.R e.jr (e.area) s V.now ∗
     ([∗list] i ∈ bootFiles V.now e.jr, trFile (hG := ⟨G, L⟩) i False) ∗
@@ -65,18 +65,19 @@ the roots well formed, the area and the oracle directory two distinct roots, the
 theorem tBootCrash (L : GooseLocalGS GF) (e : TEnv) (V : Hist) (hR : RootsOk e.R)
     (hr : (e.area, e.jr) ∈ e.R) (ho : (e.orDir, e.jo) ∈ e.R) (hne : e.jo ≠ e.jr)
     (hrb : ReceiptBoundLe GF (2 ^ 62)) (E : CoPset) (hE : ↑osShN ⊆ E) :
-    ⊢ TCrashed (L := L) e V -∗ osInv (L := L) -∗ osSharedInv (L := L) e.R -∗
-      osCallPerm (L := L) 1 -∗
+    ⊢ TCrashed (L := L) e V -∗ osInv (L := L) -∗ osSharedInv (L := L) e.R -∗ osAboveInv (L := L) -∗
+      osCallPerms (L := L) e.R -∗
       ([∗list] j ∈ (GMap.toList V.now).map (·.1),
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
       TBoot (L := L) e := by
-  iintro Hc #Hos #Hsh Hcp Hall
+  iintro Hc #Hos #Hsh #Hab Hcps Hall
+  ihave Hcp := tPerm_of_osCallPerms e hR hr ho hne $$ Hcps
   unfold TCrashed
   icases Hc with ⟨%W, %s, %o, %od, %v, %hp, Hst, Hbf, Hu, Hct, Hw, #Hrel, #Hdd, Hdf, Hdt⟩
-  obtain ⟨hV, hbd, hdr, hwf, hfo, hof⟩ := hp
+  obtain ⟨hWR, hV, hbd, hdr, hwf, hfo, hof⟩ := hp
   -- the WAL's area
   imod walBootCrash walCodec walCodec_ok walRaftMr L W e.R e.jr (e.area) s V hV hR hr hwf
-    hbd hdr hfo hrb walRaftMr_encState_lt E hE $$ Hos Hsh Hst Hbf Hall with ⟨#Hok, Hres, -, Hrest⟩
+    hbd hdr hfo hrb walRaftMr_encState_lt hWR E hE $$ Hos Hsh Hab Hst Hbf Hall with ⟨#Hok, Hres, -, Hrest⟩
   -- the oracle directory's claim, and durable's boot
   ihave Hjo := claims_take L V _ e.jo (mem_bootRest_root hwf hr ho hne) $$ Hrest
   have hd := DurFs.durBoot L e.orFile e.R V v E hV ho hE

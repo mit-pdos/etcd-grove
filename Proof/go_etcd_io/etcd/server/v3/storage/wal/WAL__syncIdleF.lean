@@ -73,7 +73,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIdleF [os.file.Fi
       as %err ⟨Henc, Hres⟩
   · iexact Hws
   · iframe; iframe #
-  icases Hres with (⟨%Herr, -⟩ | ⟨-, Hfalse⟩)
+  icases Hres with (⟨%Herr, -⟩ | ⟨-, -, Hfalse⟩)
   all_goals first | (iexfalso; iexact Hfalse) | skip
   subst Herr
   wp_auto

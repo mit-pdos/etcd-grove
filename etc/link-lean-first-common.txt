@@ -51,7 +51,8 @@ model_acceptRunConns:
 model_respond:
 model_finishStream:
 grpc_KeepaliveEnforcementPolicy:
-etcdstart_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve
+# (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
+etcdstart_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve =client.grpcCfgOk_of_startedM_law_holds =client.raftKV_serverM_law_holds
 # `NewClients`: a client of the endpoints, with the examples' timeouts (the client's `New`, linked
 # in its `Link.lean`); `NewClient`: of one address (notes/client-timeouts-plan.md, D-T1)
 client_v3_New: @
@@ -69,7 +70,8 @@ etcdstart_Attempted:
 etcdstart_Check: etcdstart_Attempted
 context_WithTimeoutBackground:
 context_ErrAny: @
-etcdstart_Writer: context_WithTimeoutBackground context_ErrAny
+# (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
+etcdstart_Writer: context_WithTimeoutBackground context_ErrAny =client.client_Put_kv_law_holds
 WatchResponse__Err: @
 etcdstart_Collect: WatchResponse__Err
 # (C3's watch side, 2026-11-02) `CompactRev`: a watch channel's first response's compaction revision

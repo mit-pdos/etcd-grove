@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # k8setcd3: what `call` and `errOut` are stated with (stage 6f)
 
 - `errIs err y`: `errOut(err)` is `y`: a `*StorageError` "not found" or "key exists" (its key and
-  resource version), a callback's sentinel (`errDeleteRejected`, `errUpdateRejected`:
+  resource version), or "invalid object" (its key and, stage 7g, its inner error's message), a callback's sentinel (`errDeleteRejected`, `errUpdateRejected`:
   `ERejected`), or any other error (`EOther`: not a `*StorageError` and neither sentinel).
 - `unkErr_errIs`: an error of the store whose outcome is unknown (`unkErr`) is the last kind: an
   `InternalError`, the driver codec's (none), or the client's (`clientErr_other`): the client's
@@ -90,7 +90,7 @@ instance notTooLarge_persistent (err : GoInterface) : Persistent (notTooLarge (G
 def errIs (err : GoInterface) (y : Output) : IProp GF :=
   iprop((∃ k rv, storageErrIs err (W64 1) k rv ∗ ⌜y = errOutL (W64 1) k rv⌝) ∨
     (∃ k rv, storageErrIs err (W64 2) k rv ∗ ⌜y = errOutL (W64 2) k rv⌝) ∨
-    (∃ k, invalidErrIs err k ∗ ⌜y = errOutL (W64 5) k 0⌝) ∨
+    (∃ k m, invalidErrMsg err k m ∗ ⌜y = invalidOutL k m⌝) ∨
     (apierrors.tooLargeErrIs err ∗ ⌜y = tooLargeL⌝) ∨
     ((globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ err ∨
         globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ err) ∗
@@ -99,6 +99,9 @@ def errIs (err : GoInterface) (y : Output) : IProp GF :=
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
       ⌜ErrOther eD eU err⌝))
+
+instance errIs_persistent (err : GoInterface) (y : Output) : Persistent (errIs (GF := GF) err y) := by
+  unfold errIs storageErrIs; infer_instance
 
 /-- **A client's error is not the driver's** (see the file header): not the sentinels `errors.New`
 made at `lD` and `lU` (their cells hold the driver's messages, none among the client's), not a
@@ -141,10 +144,15 @@ theorem drvInit_sents :
   iintro ⟨-, -, -, HD, HU⟩
   iunfold github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errVarOk at HD
   iunfold github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errVarOk at HU
-  icases HD with ⟨%lD, HD, -, CD⟩
-  icases HU with ⟨%lU, HU, -, CU⟩
+  icases HD with ⟨%lD, HD, -, #CD⟩
+  icases HU with ⟨%lU, HU, -, #CU⟩
+  ihave #CD' := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errStrCell_of_struct lD _ $$ CD
+  ihave #CU' := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errStrCell_of_struct lU _ $$ CU
   iexists lD, lU
-  iframe
+  iframe HD HU
+  isplitr
+  · iexact CD'
+  · iexact CU'
 
 /-- A client error is no too-large one (`clientErrPlain`, and `clientErr`'s leaf). -/
 theorem clientErr_notTooLarge (err : GoInterface)
@@ -156,8 +164,10 @@ theorem clientErr_notTooLarge (err : GoInterface)
   iunfold notTooLarge
   iexists .plain
   unfold apierrors.apiErrAt
-  ipureintro
-  exact ⟨⟨ii, rfl, clientErrPlain_holds ii hc, hl.2.1, hl.2.2, hl.1⟩, rfl⟩
+  isplitl
+  · ileft; ipureintro
+    exact Or.inr ⟨ii, rfl, clientErrPlain_holds ii hc, hl.2.1, hl.2.2, hl.1⟩
+  · ipureintro; rfl
 
 /-- **An error of the store whose outcome is unknown is `EOther`** (see the file header): the
 client's (`clientErrPlain_holds`), not an `InternalError` (the driver's transformer never
@@ -245,16 +255,11 @@ theorem sentV_plain [_root_.Perennial.errors.Assumptions]
     (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"As"
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hU hA
   unfold apierrors.apiErrAt
-  ipureintro
-  refine ⟨_, rfl, ?_, ?_, ?_, ?_⟩
+  ileft; ipureintro
+  refine Or.inr ⟨_, rfl, ?_, ?_, ?_, ?_⟩
   · simp only
     go_type_set
   all_goals simp only [hU, hA, ne_eq, reduceCtorEq, not_false_eq_true]
-
-theorem rvStr_inj {a b : w64} (h : rvStr a = rvStr b) : a = b := by
-  have ha := parseRVD_rvStr a
-  rw [h, parseRVD_rvStr b] at ha
-  exact (Option.some.inj ha).symm
 
 /-- **Answers `call` places**: not the error of a resource version set on a create (the driver
 sets none). A `Get`'s too-large minimum resource version (stage 7b) is placed as `EOther`. -/
@@ -263,17 +268,21 @@ def NoOddErr {E : Type} : KResp DObj E → Prop
   | _ => True
 
 /-- **`call`'s output of the store's answer** (see the file header): an error `errOut` places as
-the answer's `outOf`, or the object `out` points to, whose `objOut` is it. -/
+the answer's `outOf`, or the object `out` points to, whose `objOut` is it (k8s 7g step 5: a
+rejection's error is the callback's, `eR`; the object is never `Annotated`). -/
 theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     (r : KResp DObj E) (err out eD eU : GoInterface) (hodd : NoOddErr r)
-    (hu : ∀ e err', r = .err (.user e) → KUserErr.is e err' → err' = eD ∨ err' = eU) :
+    (hu : ∀ e err', r = .err (.user e) → KUserErr.is e err' → err' = eD ∨ err' = eU)
+    (eR : GoInterface) (hR : ∀ e err', r = .err (.user e) → KUserErr.is e err' → err' = eR) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
       respIs c r err out ⊢
-      (⌜err ≠ GoInterface.nil⌝ ∗ errIs err (outOf r)) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ errIs err (outOf r) ∗
+        ⌜(outOf r).Err' = W64 3 → err = eR⌝) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
-        ⌜out = interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = outOf r⌝ ∗ p ↦ o) := by
+        ⌜out = interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = outOf r ∧
+          o.Annotated' = false⌝ ∗ p ↦ o) := by
   iintro ⟨#Hpkg, #HD, #HU, Hr⟩
   cases r with
   | obj o rv =>
@@ -291,7 +300,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
     iexists p, _
     iframe Hp
     ipureintro
-    exact ⟨hout, rfl⟩
+    exact ⟨hout, rfl, rfl⟩
   | zero =>
     unfold respIs
     rw [hc]
@@ -307,7 +316,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
     iexists p, _
     iframe Hp
     ipureintro
-    exact ⟨hout, rfl⟩
+    exact ⟨hout, rfl, rfl⟩
   | err e =>
     cases e with
     | notFound k rv =>
@@ -318,6 +327,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       ileft
       isplitr
       · ipureintro; rw [He]; nofun
+      isplitl
       iunfold errIs
       ileft
       iexists k, _
@@ -327,6 +337,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
         iframe Hp
         ipureintro; exact He
       ipureintro; rfl
+      ipureintro; intro h; simp [outOf, errOutL, invalidOutL, tooLargeL] at h
     | keyExists k =>
       unfold respIs
       icases Hr with ⟨Hse, -⟩
@@ -335,6 +346,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       ileft
       isplitr
       · ipureintro; rw [He]; nofun
+      isplitl
       iunfold errIs
       iright; ileft
       iexists k, _
@@ -344,12 +356,14 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
         iframe Hp
         ipureintro; exact He
       ipureintro; rfl
+      ipureintro; intro h; simp [outOf, errOutL, invalidOutL, tooLargeL] at h
     | user e =>
       unfold respIs
       icases Hr with ⟨%He, -⟩
       ileft
       isplitr
       · ipureintro; exact He.1
+      isplitl
       iunfold errIs
       iright; iright; iright; iright; ileft
       isplitl
@@ -357,22 +371,25 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
         · rw [h]; ileft; iexact HD
         · rw [h]; iright; iexact HU
       ipureintro; rfl
+      ipureintro; intro _; exact hR e err rfl He.2
     | rvSetOnCreate => exact hodd.elim
-    | invalidObj k =>
+    | invalidObj k m =>
       unfold respIs
       icases Hr with ⟨#Hse, -⟩
       ihave %Hne : ⌜err ≠ GoInterface.nil⌝ $$ [Hse]
-      · iunfold invalidErrIs at Hse
+      · iunfold invalidErrMsg at Hse
         icases Hse with ⟨%l, %e, %He, -⟩
         ipureintro; rw [He]; nofun
       ileft
       isplitr
       · ipureintro; exact Hne
+      isplitl
       iunfold errIs
       iright; iright; ileft
-      iexists k
+      iexists k, m
       iframe Hse
       ipureintro; rfl
+      ipureintro; intro h; simp [outOf, errOutL, invalidOutL, tooLargeL] at h
     | tooLarge _ _ =>
       unfold respIs
       icases Hr with ⟨#Ht, -⟩
@@ -380,10 +397,12 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       ileft
       isplitr
       · ipureintro; obtain ⟨l, rfl⟩ := Hp; nofun
+      isplitl
       iunfold errIs
       iright; iright; iright; ileft
       iframe Ht
       ipureintro; rfl
+      ipureintro; intro h; simp [outOf, errOutL, invalidOutL, tooLargeL] at h
 
 theorem create_noOdd {E : Type} (s : KSt DObj) (k : GoString) (o : DObj) :
     NoOddErr (s.create (E := E) k o 0).2 := by
@@ -397,20 +416,20 @@ theorem get_noOdd {E : Type} (s : KSt DObj) (k : GoString) (n : Nat) (ign : Bool
   repeat' split
   all_goals trivial
 
-theorem delete_noOdd (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) (eD : GoInterface)
+theorem delete_noOdd (s : KSt DObj) (k : GoString) (pre : KPreF DObj) (eD : GoInterface)
     (b : Bool) (r : GoString) : NoOddErr (s.delete k pre (rejD eD b r)).2 := by
   unfold KSt.delete
   repeat' split
   all_goals trivial
 
-theorem update_noOdd (s : KSt DObj) (k : GoString) (ign : Bool) (pre : DObj → Nat → Bool)
+theorem update_noOdd (s : KSt DObj) (k : GoString) (ign : Bool) (pre : KPreF DObj)
     (eU : GoInterface) (x : Input) : NoOddErr (s.update k ign dzero pre (updD eU x)).2 := by
   unfold KSt.update
   repeat' split
   all_goals trivial
 
 /-- A `Delete`'s callback error is `errDeleteRejected`'s value. -/
-theorem delete_user (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) (eD : GoInterface)
+theorem delete_user (s : KSt DObj) (k : GoString) (pre : KPreF DObj) (eD : GoInterface)
     (b : Bool) (r : GoString) (e : GoInterface)
     (h : (s.delete k pre (rejD eD b r)).2 = .err (.user e)) :
     e = eD := by
@@ -424,7 +443,7 @@ theorem delete_user (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) 
   split at he <;> simp_all
 
 /-- An update's callback error is `errUpdateRejected`'s value. -/
-theorem update_user (s : KSt DObj) (k : GoString) (ign : Bool) (pre : DObj → Nat → Bool)
+theorem update_user (s : KSt DObj) (k : GoString) (ign : Bool) (pre : KPreF DObj)
     (eU : GoInterface) (x : Input) (e : GoInterface)
     (h : (s.update k ign dzero pre (updD eU x)).2 = .err (.user e)) :
     e = eU := by
@@ -499,18 +518,20 @@ def withPreL (x : Input) (uid rv : Bool) (c : Obj) (hasC : Bool) : Input :=
              HasPreRV' := rv, PreRV' := if rv then rvStr c.ResourceVersion' else x.PreRV' }
   else x
 
-/-- `minRV(m, d, c, hasC)`: a `Get`'s minimum resource version for the draw `m` and the offset
-`d` (the comparisons unsigned, as Go's on `uint64`). Empty when the cached object's resource
-version is at least `2 ^ 62` (the driver's bound, so that every string parses below `2 ^ 63`). -/
-def minRVL (m d : w64) (c : Obj) (hasC : Bool) : GoString :=
+/-- `minRV(m, d, c, hasC, floor)`: a `Get`'s minimum resource version for the draw `m` and the
+offset `d` (the comparisons unsigned, as Go's on `uint64`), a non-zero one raised to `floor`
+(`flooredL`). Empty when the cached object's resource version is at least `2 ^ 62` (the driver's
+bound, so that every string parses below `2 ^ 63`). -/
+def minRVL (m d : w64) (c : Obj) (hasC : Bool) (f : w64) : GoString :=
   if m < 30 then []
   else if m < 45 then rvBytes 0
-  else if m < 55 then rvBytes 1
+  else if m < 55 then rvBytes (flooredL 1 f)
   else if !hasC then []
   else if W64 (2 ^ 62) ≤ c.ResourceVersion' then []
-  else if m < 84 then rvBytes c.ResourceVersion'
-  else if m < 98 then (if c.ResourceVersion' ≤ d then rvBytes 1 else rvBytes (c.ResourceVersion' - d))
-  else rvBytes (c.ResourceVersion' + d)
+  else if m < 84 then rvBytes (flooredL c.ResourceVersion' f)
+  else if m < 98 then (if c.ResourceVersion' ≤ d then rvBytes (flooredL 1 f)
+    else rvBytes (flooredL (c.ResourceVersion' - d) f))
+  else rvBytes (flooredL (c.ResourceVersion' + d) f)
 
 theorem parseRVD_rvBytes (n : w64) : parseRVD (rvBytes n) = some n := by
   have hb := bytesBE_rvBytes n
@@ -518,57 +539,49 @@ theorem parseRVD_rvBytes (n : w64) : parseRVD (rvBytes n) = some n := by
   simp [parseRVD, hb]
 
 /-- **Every string `minRV` returns parses below `2 ^ 63`** (`InOk`'s bound, from the driver's
-`2 ^ 62` cut), for an offset `d` below `2 ^ 61` (the generator's are at most 200). -/
-theorem minRVL_ok (m d : w64) (c : Obj) (hasC : Bool) (hd : uint.Z d ≤ 2 ^ 61) :
-    ∃ k, parseRVD (minRVL m d c hasC) = some k ∧ uint.Z k < 2 ^ 63 := by
+`2 ^ 62` cut), for an offset `d` below `2 ^ 61` (the generator's are at most 200) and a floor below
+`2 ^ 62`. -/
+theorem minRVL_ok (m d : w64) (c : Obj) (hasC : Bool) (f : w64) (hd : uint.Z d ≤ 2 ^ 61)
+    (hf : uint.Z f < 2 ^ 62) :
+    ∃ k, parseRVD (minRVL m d c hasC f) = some k ∧ uint.Z k < 2 ^ 63 := by
+  have hfl : ∀ r : w64, uint.Z r < 2 ^ 63 → uint.Z (flooredL r f) < 2 ^ 63 := fun r hr => by
+    rcases flooredL_floor r f with h | ⟨-, h⟩
+    · rw [h]; decide
+    · have : uint.nat (flooredL r f) < 2 ^ 63 := by
+        have : uint.nat r < 2 ^ 63 := by word
+        have : uint.nat f < 2 ^ 62 := by word
+        omega
+      word
   unfold minRVL
   repeat' split
   all_goals first
     | exact ⟨0, rfl, by decide⟩
-    | (refine ⟨_, parseRVD_rvBytes _, ?_⟩; word)
+    | (refine ⟨_, parseRVD_rvBytes _, hfl _ ?_⟩; word)
 
-/-- **The cached object's scope premise** (D1 of stage 7b, `notes/k8s-etcd3-plan.md`;
-`issues/k8s-etcd3-cached-noop-skips-preconditions.md`): an update with a cached object carries no
-resource version precondition. -/
-def CachedNoRV (x : Input) : Prop :=
-  x.UseCached' = true → x.Kind' = W64 2 → x.HasPreRV' = false
+/-- **Every string `minRV` returns is floored** (`FloorOk`: `0`, or at least the floor). -/
+theorem minRVL_floor (m d : w64) (c : Obj) (hasC : Bool) (f : w64) (q : w64)
+    (h : parseRVD (minRVL m d c hasC f) = some q) : q = 0 ∨ uint.nat f ≤ uint.nat q := by
+  have hfl : ∀ r : w64, parseRVD (rvBytes (flooredL r f)) = some q → q = 0 ∨ uint.nat f ≤ uint.nat q :=
+    fun r hr => by
+      rw [parseRVD_rvBytes] at hr; cases hr
+      rcases flooredL_floor r f with h | ⟨h, -⟩
+      · left; exact h
+      · right; exact h
+  unfold minRVL at h
+  repeat' split at h
+  all_goals first
+    | (left; cases h; rfl)
+    | exact hfl _ h
+    | (rw [parseRVD_rvBytes] at h; cases h; left; rfl)
 
-/-- **An input `Gen` may return**, as far as `Apply` needs: its name one of the workload's keys
-(`workloadKeys`), its kind one of the four, its value at most `2 ^ 20` bytes (an object it creates
-or updates fits a request; 2026-10-31, `notes/invoke-size.md`, pass 4), its UID shorter than 256
-bytes (`uidOf`'s two), its minimum resource version one `parseRV` takes (`minRV`'s), and no
-resource version precondition on an update with a cached object (`CachedNoRV`). -/
-def GenIn (x : Input) : Prop :=
-  InOk x ∧ (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3 ∨ x.Kind' = W64 4) ∧
-    x.Val'.length ≤ 2 ^ 20 ∧ CachedNoRV x
+/-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return, its resource version
+floored at `f` (k8s 7g, D7g-1: `Gen`'s post), with its cached object one of the store `c`
+(`cachedIn`). -/
+def kInOk (c : StoreCfg GF DObj) (f : w64) (i : GoInterface) : IProp GF :=
+  iprop(∃ x, ⌜i = boxIn x ∧ GenInA x ∧ FloorOk f x⌝ ∗ cachedIn c x)
 
-/-- **A watch `Gen` may return** (stage E of 7f-6: a watcher's `genWatchFrom`, or a skipped watch):
-kind 5, no cached object; unless skipped, its key under the driver's resource prefix and one
-`PrepareKey` takes, short, its resource version parsed below `2^62 + 201` (G1: a cached object at
-`2^62` or above counts as none), its match and initial-events options as the watch check reads
-them (`WatchInOk`), a watch-list asking for bookmarks, and any other watch from revision 0 asking
-for initial events (`kModeOk_of`'s premises); a skipped watch has no resource version. -/
-def GenInW (x : Input) : Prop :=
-  x.Kind' = W64 5 ∧ x.UseCached' = false ∧ (x.Skip' = true → x.MinRV' = []) ∧
-  (x.Skip' = false →
-    go!"/objs/" <+: x.WKey' ∧ (k8s.prepareKeyM go!"/objs" x.WKey' x.Recursive').isSome ∧
-    x.WKey'.length ≤ 2 ^ 20 ∧
-    ∃ n, parseRVD x.MinRV' = some n ∧ uint.nat n < 2 ^ 62 + 201 ∧ WatchInOk x (uint.nat n) ∧
-      (x.SendInit' = W64 2 → x.Bookmarks' = true) ∧
-      (x.SendInit' ≠ W64 2 → x.SendInit' = W64 1 ∨ 0 < uint.nat n))
-
-/-- **An input `Gen` may return** (stage E of 7f-6): a unary client's (`GenIn`) or a watcher's
-(`GenInW`). -/
-def GenInA (x : Input) : Prop := GenIn x ∨ GenInW x
-
-
-/-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return, with its cached object
-one of the store `c` (`cachedIn`). -/
-def kInOk (c : StoreCfg GF DObj) (i : GoInterface) : IProp GF :=
-  iprop(∃ x, ⌜i = boxIn x ∧ GenInA x⌝ ∗ cachedIn c x)
-
-instance kInOk_persistent (c : StoreCfg GF DObj) (i : GoInterface) :
-    Persistent (kInOk (GF := GF) c i) := by
+instance kInOk_persistent (c : StoreCfg GF DObj) (f : w64) (i : GoInterface) :
+    Persistent (kInOk (GF := GF) c f i) := by
   unfold kInOk; infer_instance
 
 /-- A workload key is one the store takes, under the driver's prefixes, and fits an object. -/
@@ -590,7 +603,7 @@ theorem outOf_err {E : Type} (r : KResp DObj E) (h : NoOddErr r)
     cases e with
     | notFound k rv => simp [outOf, errOutL]
     | keyExists k => simp [outOf, errOutL]
-    | invalidObj k => simp [outOf, errOutL]
+    | invalidObj k m => simp [outOf, invalidOutL]
     | user e => simp [outOf, rejectedL, errOutL]
     | rvSetOnCreate => exact h.elim
     | tooLarge a b => exact absurd rfl (ht a b)

@@ -46,6 +46,7 @@ public import Perennial.Proof.sync.Link
 public import GooseLang.Ext.Net.Adequacy
 public import GooseLang.Ext.Net.Deploy
 public import Robustness.Statement
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.TopLevelDefs
 
 @[expose] public section
 
@@ -65,22 +66,6 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 /- The global setup of `goose_dist_crash_adequacy` is under the global ghost state alone, whose
 invariants are those of the fancy updates. -/
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- The server node's program: initialize the `server` command's package, then call its `main`
-(as goose calls a function: resolve it, then apply it). -/
-def boot_server [GoGlobalContext] : Expr :=
-  Seq (App (Val cmd.server.initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve cmd.server.main []))) (Val #())) (Val #()))
-
-/-- The client node's program: the same for the `client` command. -/
-def boot_client [GoGlobalContext] : Expr :=
-  Seq (App (Val cmd.client.initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve cmd.client.main []))) (Val #())) (Val #()))
-
-/-- The system: the server and the client commands, each a process, from the local states `σs`
-and `σc`. -/
-def system [GoGlobalContext] (σs σc : state) : List (Expr × state) :=
-  [(boot_server, σs), (boot_client, σc)]
 
 /-- A node's initial local state: its Go context is `lctx`, no package is initialized and it has
 its main thread only. -/
@@ -325,27 +310,6 @@ theorem acceptloop_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       match i, hi with
       | 0, hi => cases hi; exact Hs.threads
       | 1, hi => cases hi; exact Hc.threads))
-
-/-- **`acceptloop_crash_safety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the system's machines, each of which may crash at any step and
-restart, each a fresh Go process (`Robust`'s premise), under `acceptloop_crash_safety`'s other
-hypotheses: in every execution, of any length, no thread of any machine is stuck and none has an
-unrecovered panic. -/
-theorem acceptloop_crash_robust
-    [lctx : GoLocalContext] [sem : go.Semantics] [server_sem : cmd.server.Assumptions]
-    [client_sem : cmd.client.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σs σc : state) (g : GlobalState) (h : GoString) (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
-    (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat) :
-    Robustness.Robust (system σs σc) [] g bound := by
-  refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
-  have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σs σc) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
-    ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩
-  exact (acceptloop_crash_safety
-      σs σc g h (hfresh σs ⟨boot_server, by simp [system]⟩)
-      (hfresh σc ⟨boot_client, by simp [system]⟩) Hhost Hplan pl Hwf Hpl Hconns n κs c Hsteps i tp σ hi).2
 
 end adequacy
 

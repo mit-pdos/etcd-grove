@@ -48,10 +48,10 @@ theorem etcdstart.memberBoots_of [v3rpc_sem :
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs) (Hc0 : γk.c0 = W64
     0) (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []]) (Hvs : γ.vs =
     ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (lm : lease.Mode) (hrun : lease.runCfg lm lm) (Hklg :
-    γk.lm = lm) (hpo : kvPfxOk γk) (L : List w64) (hpfx : ∀ (id : w64), id ∈ L → lm =
-    lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (HΦ : ∀ (id : w64), id ∈ L → Φs
-    (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (idx id).slog) (Hx : ∀ (id : w64), id ∈ L → xs
-    (idPfxOf (W16 (uint.Z id))) = (idx id).slog) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0 :=
+    γk.lm = lm) (hpo : kvPfxOk γk) (Hnsn : ¬clusterNoSnap γ.cl) (L : List w64) (hpfx : ∀ (id : w64),
+    id ∈ L → lm = lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (HΦ : ∀ (id : w64), id
+    ∈ L → Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (idx id).slog) (Hx : ∀ (id : w64), id ∈ L →
+    xs (idPfxOf (W16 (uint.Z id))) = (idx id).slog) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0 :=
     W64 0 } -∗ idClusterInv issued cnt wn fs srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint {
     raft := γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0
     } issued -∗ kvInv { raft := γ, pre := [], ai0 := W64 0 } γk -∗ ([∗list] id ∈ L, iprop((idPfxOf

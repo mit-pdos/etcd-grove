@@ -33,8 +33,8 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
     (htr : fl.toNat / O_TRUNC % 2 = 0 ∨ h.cur !! b = none) (hb : NameOk b) (hN : N.Mem b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
     (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j (N) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
-      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (N) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
+      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         ((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ osNames (L := L) j (N) (DFrac.own 1) h ∗
             (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
          (⌜h.cur !! b = none⌝ ∗ ∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
@@ -57,8 +57,8 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
     intro st hat J; rw [hentE st hat]; exact hnd J
   have htrE : ∀ st, ClaimsAt st cl → fl.toNat / O_TRUNC % 2 = 0 ∨ st.tree.entry j b = none :=
     fun st hat => htr.imp id (fun hn => (hentE st hat).trans hn)
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d b) → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       ∃ e' st', IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' ∧
         FilesSame st st' := by
@@ -72,8 +72,8 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
         lookup_child hw.roots hp hb
       have hl' : (st.metaEnd k).lookup (child d b) = some (.file i) := hl
       rw [hl0, hentE st hat, hnone] at hl'; cases hl'
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d b) → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
       ∃ w, e' = Val w ∧ FsTreeWf st' ∧
@@ -91,8 +91,8 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
           (createdSt_dfds_none hfree.2.2.1),
         .inr ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun _ => (hentE st hat).symm.trans hen⟩⟩
   have hworld : ∀ st e' st' (hh hh' : GMap Loc (NonAtomic val)) Γb Γm Γf Γt w lg, FsTreeWf st →
-      st.fs.roots = R → st.proc.calls !! k = some s0 →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+      st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d b) → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
       e' = Val w → W w lg → (lg = false → EndedT st st' k) →
@@ -194,7 +194,7 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
         isplitr
         · ipureintro; exact ⟨rfl, hfree.1⟩
         · iexact Hfd
-  have htree : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have htree : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
       LoggedT st st' k s0 (oF st.fs.nextIno) →
@@ -203,8 +203,9 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) := by
-    intro st e' st' hw _ hcall hp hat Hst hlf
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d b) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
+    intro st e' st' hw hR hcall hp hat Hst hlf
     have hen : st.tree.entry j b = none := by
       rcases openCreateStep_cases hcr (htrE st hat) hw hcall hp hb (hndE st hat) Hst with
         ⟨_e, _he, _he', hst'⟩ | ⟨_i, _fd, _h1, _h2, _h3, hst'⟩ | ⟨hen, -⟩ | ⟨hen, -⟩
@@ -216,7 +217,8 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
     have hjm : j ∈ st.tree := mem_of_reach htw (reach_of_lookup hp)
     have hnf := files_next_none hw
     refine ⟨fun x hx => ?_, fun J hJ => by simp [oF, MetaOp.newDirs] at hJ,
-      fun _ => ⟨⟨hjm, hen⟩, ?_⟩, fun c hc => ?_⟩
+      fun _ => ⟨⟨hjm, hen⟩, ?_⟩, fun c hc => ?_,
+      rootClause_one hR hp b (by simp [cl])⟩
     · simp only [oF, MetaOp.apply] at hx
       rw [mem_upd] at hx
       rcases hx with rfl | hx
@@ -241,7 +243,7 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
         rw [GMap.lookup_insert_ne _ _ hne]
         exact (hat.out _ (List.mem_singleton_self _) b' hb').symm
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_logStepSW "Open" _ (by simp [val.isPanic]) R k s0 q oF cl curF
+  iapply wp_logStepSW "Open" _ (by simp [val.isPanic]) R k s0 (child d b) q oF cl curF
     (osPathS (L := L) R d dq j) (fun st => st.lookup d = some (.dir j)) W (ocGift (L := L) fl h.cur b)
     (fun c hc => by
       rw [List.mem_singleton] at hc; subst hc
@@ -266,6 +268,7 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
     obtain rfl := go.intoVal_inj h2
     icases HG with (⟨%hlg, -⟩ | ⟨-, HG⟩)
     · cases hlg
+    icases osCallPerm_unchild R d b _ j _ $$ Hp Hq with ⟨Hp, Hq⟩
     iapply HΦ $$ %fd %e Hq Hp
     icases HG with (⟨%i, %hi, HG⟩ | %hf)
     · ileft
@@ -286,7 +289,8 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
     obtain rfl := go.intoVal_inj h1
     obtain rfl := go.intoVal_inj h2
     icases HG with (⟨-, Hm, HG⟩ | ⟨%hlg, -⟩)
-    · iapply HΦ $$ %fd %e Hq Hp
+    · icases osCallPerm_unchild R d b _ j _ $$ Hp Hq with ⟨Hp, Hq⟩
+      iapply HΦ $$ %fd %e Hq Hp
       iright; ileft
       isplitr
       · ipureintro; exact hnone rfl

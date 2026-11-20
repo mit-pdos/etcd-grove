@@ -137,24 +137,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The server's update from the client's** at the call's context: the bound the server
-stamps a header under (`hdrBoundM true`) is one bound to the context's token (`hdrBoundM_tok`). -/
-theorem adminHistAu_of_tok (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+/-- **The server's update from the client's** at the call's token: the bound the server
+stamps a header under (`hdrBoundM true`) is `hdrBoundT`'s (`hdrBoundM_tok`). -/
+theorem adminHistAu_of_tok (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
-    authHistAuT (GF := GF) s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) rq Q ⊢
-      adminHistAu s E ρ ctx rq Q := by
+    authHistAuT (GF := GF) s E ρ tok rq Q ⊢
+      adminHistAu s E ρ tok rq Q := by
   unfold authHistAuT adminHistAu
   exact histAu_mono _ _ _ _ _ _ _ (fun hm => hdrBoundM_tok s E _ hm)
 
 /-- **An admin answer gives the run's slot back and, on success, the reply** (`adminOutOn`'s
 success: `appliedOkM true`'s `adminDoneM`, the log's bound, the publication, the step's
 determinacy and the history update's result, the header's bound). -/
-theorem adminOutOn_reply (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem adminOutOn_reply (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF)
     (F : mvcc.Log) (T : go.GoType) (l : Loc) (err : GoInterface) :
-    adminOutOn s E ρ ctx rq F (adminQh ρ.kv rq Q) T l err ⊢
+    adminOutOn s E ρ tok rq F (adminQh ρ.kv rq Q) T l err ⊢
       authSlot s E ∗
-        (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) rq Q) := by
+        (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ tok rq Q) := by
   iintro H
   iunfold adminOutOn at H
   icases H with ⟨Hlt, Hrd, H⟩
@@ -175,29 +175,29 @@ theorem adminOutOn_reply (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : Go
 
 /-- **The `AuthServer`'s answer to an admin request** (`authWrapOut` over `adminOutOn`): the slot
 back and, on `nil`, the reply. -/
-theorem authWrapOut_admin (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem authWrapOut_admin (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF)
     (F : mvcc.Log) (T : go.GoType) (resp : Loc) (err : GoInterface) :
-    authWrapOut (adminOutOn s E ρ ctx rq F (adminQh ρ.kv rq Q) T) resp err ⊢
+    authWrapOut (adminOutOn s E ρ tok rq F (adminQh ρ.kv rq Q) T) resp err ⊢
       authSlot s E ∗
-        (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) rq Q) := by
+        (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ tok rq Q) := by
   iintro H
   iunfold authWrapOut at H
   icases H with (⟨%He, H⟩ | ⟨%Hr, -, %e0, %He0, H⟩)
   · subst He
-    iapply (adminOutOn_reply s E ρ ctx rq Q F T resp GoInterface.nil) $$ H
-  · ihave ⟨Hs, -⟩ := adminOutOn_reply s E ρ ctx rq Q F T null e0 $$ H
+    iapply (adminOutOn_reply s E ρ tok rq Q F T resp GoInterface.nil) $$ H
+  · ihave ⟨Hs, -⟩ := adminOutOn_reply s E ρ tok rq Q F T null e0 $$ H
     iframe Hs
     iintro %He
     exact absurd He Hr.2
 
 /-- **An admin request's answer without an error is a response, not `nil`** (`adminOutOn`'s
 `appliedOkM`, `dispatchAnswer_admin_nn`). -/
-theorem adminOutOn_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem adminOutOn_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (F : mvcc.Log)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (T : go.GoType) (l : Loc)
     (hT : adminRespTy (apply.dispatchKind rq) = some T) :
-    adminOutOn s E ρ ctx rq F Qh T l GoInterface.nil ⊢ ⌜l ≠ null⌝ := by
+    adminOutOn s E ρ tok rq F Qh T l GoInterface.nil ⊢ ⌜l ≠ null⌝ := by
   iintro H
   iunfold adminOutOn at H
   icases H with ⟨-, -, H⟩
@@ -209,17 +209,17 @@ theorem adminOutOn_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInt
   · exact absurd rfl He
 
 /-- **The `AuthServer`'s answer to an admin request is not `nil` without an error.** -/
-theorem authWrapOut_admin_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem authWrapOut_admin_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (Qh : apply.HeaderModel → List EntryModel → IProp GF)
     (F : mvcc.Log) (T : go.GoType) (resp : Loc) (err : GoInterface)
     (hT : adminRespTy (apply.dispatchKind rq) = some T) :
-    authWrapOut (adminOutOn s E ρ ctx rq F Qh T) resp err ⊢
+    authWrapOut (adminOutOn s E ρ tok rq F Qh T) resp err ⊢
       ⌜err = GoInterface.nil → resp ≠ null⌝ := by
   iintro H
   iunfold authWrapOut at H
   icases H with (⟨%He, H⟩ | ⟨%Hr, -⟩)
   · subst He
-    ihave %Hn := adminOutOn_nn s E ρ ctx rq F Qh T resp hT $$ H
+    ihave %Hn := adminOutOn_nn s E ρ tok rq F Qh T resp hT $$ H
     ipureintro; intro _; exact Hn
   · ipureintro; intro He; exact absurd He Hr.2
 

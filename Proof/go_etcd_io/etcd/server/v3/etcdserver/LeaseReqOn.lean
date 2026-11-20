@@ -43,6 +43,20 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 theorem irrLeaseGrant_kind (id ttl : w64) : apply.dispatchKind (irrLeaseGrant id ttl) = .leaseGrant := by
   simp [apply.dispatchKind, irrLeaseGrant, apply.irrEmpty]
 
+/-- **A revocable-mode grant's write grant tells its update the id is fresh** (auth-lease S4, the
+thaw of 2026-11-18): no key had the lease `id` at any revision up to the state `σ` it fires at. -/
+theorem writeGrantG_grant_fresh (γk : KVNames) (st₀ : auth.AuthState) (Gb : apply.HeaderModel → IProp GF)
+    (id ttl : w64) (L₀ : List EntryModel) (σ : KVState) (hrev : γk.lm = .revocable) :
+    writeGrantG (GF := GF) γk st₀ Gb (irrLeaseGrant id ttl) L₀ σ ⊢
+      ⌜∀ r ≤ σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ W64 0 → kv.lease ≠ id⌝ := by
+  unfold writeGrantG
+  iintro ⟨%hm, %L, -, -, %Hp⟩
+  ipureintro
+  refine Hp.2.2.2 id ?_
+  unfold rqRevGrantId
+  simp only [hrev, irrLeaseGrant_kind, and_self, ↓reduceIte]
+  rfl
+
 theorem irrLeaseRevoke_kind (id : w64) : apply.dispatchKind (irrLeaseRevoke id) = .leaseRevoke := by
   simp [apply.dispatchKind, irrLeaseRevoke, apply.irrEmpty]
 
@@ -179,50 +193,50 @@ theorem leaseRevokePermit_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
 names (`ID`), the header `hm` the server stamped bound to the context, the grant of `id` stamped with
 `hm` committed right after the prefix `L` with the auth state after it published (`pubAfterM`), and
 the client's result `Q id` at the state of `L`. -/
-def leaseGrantResM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+def leaseGrantResM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (ttl : w64) (resp : Loc) (Q : w64 → KVState → IProp GF) : IProp GF :=
   match on with
   | false => iprop(True)
   | true => iprop(∃ (id : w64) (hm : apply.HeaderModel) (L : List EntryModel),
       structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗
-      hdrBoundM true s E (GoInterface.ok ctx) hm ∗
+      hdrBoundM true s E tok hm ∗
       pubAfterM true E ρ (apply.withHeader (irrLeaseGrant id ttl) hm) L ∗
       Q id (kvStateOf (kvModelOn ρ.kv srvAuthSt0 L) (kvLeasesOn ρ.kv srvAuthSt0 L)))
 
 /-- **A revocation's success, in the auth mode `on`** (`leaseGrantResM`'s, and the revocation granted
 at `L`, `grantedAt`: the auth layer let it through). -/
-def leaseRevokeResM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+def leaseRevokeResM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (id : w64) (Q : KVState → IProp GF) : IProp GF :=
   match on with
   | false => iprop(True)
   | true => iprop(∃ (hm : apply.HeaderModel) (L : List EntryModel),
-      hdrBoundM true s E (GoInterface.ok ctx) hm ∗
+      hdrBoundM true s E tok hm ∗
       ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrLeaseRevoke id) hm) L⌝ ∗
       pubAfterM true E ρ (apply.withHeader (irrLeaseRevoke id) hm) L ∗
       Q (kvStateOf (kvModelOn ρ.kv srvAuthSt0 L) (kvLeasesOn ρ.kv srvAuthSt0 L)))
 
-theorem leaseGrantResM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseGrantResM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (ttl : w64) (resp : Loc) (Q : w64 → KVState → IProp GF) :
-    leaseGrantResM (GF := GF) false s E ρ ctx ttl resp Q ⊣⊢ iprop(True) := .rfl
+    leaseGrantResM (GF := GF) false s E ρ tok ttl resp Q ⊣⊢ iprop(True) := .rfl
 
-theorem leaseRevokeResM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseRevokeResM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (id : w64) (Q : KVState → IProp GF) :
-    leaseRevokeResM (GF := GF) false s E ρ ctx id Q ⊣⊢ iprop(True) := .rfl
+    leaseRevokeResM (GF := GF) false s E ρ tok id Q ⊣⊢ iprop(True) := .rfl
 
-theorem leaseGrantResM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseGrantResM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (ttl : w64) (resp : Loc) (Q : w64 → KVState → IProp GF) :
-    leaseGrantResM (GF := GF) true s E ρ ctx ttl resp Q ⊣⊢
+    leaseGrantResM (GF := GF) true s E ρ tok ttl resp Q ⊣⊢
       ∃ (id : w64) (hm : apply.HeaderModel) (L : List EntryModel),
         structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗
-        hdrBoundM true s E (GoInterface.ok ctx) hm ∗
+        hdrBoundM true s E tok hm ∗
         pubAfterM true E ρ (apply.withHeader (irrLeaseGrant id ttl) hm) L ∗
         Q id (kvStateOf (kvModelOn ρ.kv srvAuthSt0 L) (kvLeasesOn ρ.kv srvAuthSt0 L)) := .rfl
 
-theorem leaseRevokeResM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseRevokeResM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (id : w64) (Q : KVState → IProp GF) :
-    leaseRevokeResM (GF := GF) true s E ρ ctx id Q ⊣⊢
+    leaseRevokeResM (GF := GF) true s E ρ tok id Q ⊣⊢
       ∃ (hm : apply.HeaderModel) (L : List EntryModel),
-        hdrBoundM true s E (GoInterface.ok ctx) hm ∗
+        hdrBoundM true s E tok hm ∗
         ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrLeaseRevoke id) hm) L⌝ ∗
         pubAfterM true E ρ (apply.withHeader (irrLeaseRevoke id) hm) L ∗
         Q (kvStateOf (kvModelOn ρ.kv srvAuthSt0 L) (kvLeasesOn ρ.kv srvAuthSt0 L)) := .rfl
@@ -250,11 +264,11 @@ theorem leaseGrantedResp_iff_at (E : apply.AEnv GF) (resp : Loc) (reqTTL : w64) 
 
 /-- **The response's lease is the update's** (review r2 S1'): a grant's success at auth on names one
 id, the response's `ID`, for which the lessor's history has the lease and the client's update fired. -/
-theorem leaseGrantResM_true_id (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseGrantResM_true_id (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (ttl : w64) (resp : Loc) (Q : w64 → KVState → IProp GF) :
-    leaseGrantedResp E resp ttl ∗ leaseGrantResM (GF := GF) true s E ρ ctx ttl resp Q ⊢
+    leaseGrantedResp E resp ttl ∗ leaseGrantResM (GF := GF) true s E ρ tok ttl resp Q ⊢
       ∃ (id : w64) (hm : apply.HeaderModel) (L : List EntryModel), leaseGrantedRespAt E resp ttl id ∗
-        hdrBoundM true s E (GoInterface.ok ctx) hm ∗
+        hdrBoundM true s E tok hm ∗
         pubAfterM true E ρ (apply.withHeader (irrLeaseGrant id ttl) hm) L ∗
         Q id (kvStateOf (kvModelOn ρ.kv srvAuthSt0 L) (kvLeasesOn ρ.kv srvAuthSt0 L)) := by
   unfold leaseGrantResM
@@ -274,13 +288,6 @@ theorem leaseGrantResM_true_id (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ct
   isplitr
   · ipureintro; exact Hid0
   iexists l; iframe Hl Hq
-
-/-- `authedOutB` carries between contexts with the same incoming metadata (the token it binds). -/
-theorem authedOutB_ctx (s : Loc) (M : auth.AuthMode) (c c' err : GoInterface)
-    (h : metadata.incomingOf c = metadata.incomingOf c') :
-    authedOutB (GF := GF) s M c err ⊢ authedOutB s M c' err := by
-  have ht : auth.ctxTokenOf c = auth.ctxTokenOf c' := by unfold auth.ctxTokenOf; rw [h]
-  unfold authedOutB principalBound; rw [ht]
 
 end defs
 

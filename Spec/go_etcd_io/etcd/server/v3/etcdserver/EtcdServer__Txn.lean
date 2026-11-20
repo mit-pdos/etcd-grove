@@ -79,19 +79,21 @@ is wider than the code's.
 changes. -/
 abbrev EtcdServer.Txn.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (t : TxnModel)
     (Q : KVState → IProp GF) (Qr : List EntryModel → IProp GF) (ot : Option Loc) (te : Bool)
     (F : mvcc.Log) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
-      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
+      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
       ⌜txn.txnReadonly t = true → txn.txnGetsOk t ∧ E.authMode ≠ .any⌝ ∗
       ⌜txn.txnReadonly t = false → apply.txnDepthOk t⌝ ∗ srvApi.kvLogLb E.γs F ∗
       (if txn.txnReadonly t then
          iprop(srvAuthLb s E ∗ auth.authPubLbM E.authMode n ∗ kvDep γr.kv Qr (kvStM E.authOn γr.kv))
-       else txnPermitM E.authOn ρ.raft ρ.kv (hdrBoundM E.authOn s E (GoInterface.ok ctx)) t Q) }}
+       else txnPermitM E.authOn ρ.raft ρ.kv (hdrBoundM E.authOn s E tok) t Q) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -100,19 +102,19 @@ abbrev EtcdServer.Txn.spec : Prop :=
         iprop(idCred ρ.ids 1 ∗
           ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
               (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
-                txnClassFrom E.authMode m info t ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
+                txnClassFrom E.authMode m info t ∗ infoBoundM E.authOn s E tok info ∗
                 (if txn.txnSerializable t then iprop(True) else authFloorAt E.authMode γr c m)) ∗
               txnReadOkM E.authOn E γr c F t Qr resp) ∨
            (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
-              txnWhyOut s E.authMode n (GoInterface.ok ctx) t err)))
+              txnWhyOut s E.authMode n tok t err)))
       else
         iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp ∗
             □ (⌜E.authOn = true⌝ → ∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (L : List EntryModel),
               ⌜tw.toModel = t ∧ grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrTxn tw) hm) L⌝ ∗
-              hdrBoundM E.authOn s E (GoInterface.ok ctx) hm ∗
+              hdrBoundM E.authOn s E tok hm ∗
               pubAfterM E.authOn E ρ (apply.withHeader (irrTxn tw) hm) L)) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
-            txnErrOkM E.authOn s E ρ (GoInterface.ok ctx) F t err)) }}
+            txnErrOkM E.authOn s E ρ tok F t err)) }}
 
 end spec
 

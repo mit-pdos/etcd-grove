@@ -4,11 +4,11 @@
 
 theorem etcdstart.memberFreshRes_boot [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (n :
     GoString) (γn : NetNames GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (hd :
-    cfg.DataDir' = n ++ go!".etcd") (hw : cfg.DedicatedWALDir' = []) : etcdstart.memberFreshRes n {
-    } γn ⊢ wal.bootRes cfg
+    cfg.DataDir' = memberDataDir n) (hw : cfg.DedicatedWALDir' = srvWalDirOf (memberDataDir n)) :
+    etcdstart.memberFreshRes n { } γn ⊢ wal.bootRes cfg
 
 theorem etcdstart.memberRestartRes_intro (n p : GoString) (γn : NetNames GF) (γ : SrvRaft) (ρ :
-    ReqNames) (id : w64) : srvDiskImage γ ρ id (n ++ go!".etcd") ∗ netAddrFree p ∗ http.httpProtoOwn
+    ReqNames) (id : w64) : srvDiskImage γ ρ id (memberDataDir n) ∗ netAddrFree p ∗ http.httpProtoOwn
     p (raftProto (netRh γn)) ⊢ etcdstart.memberRestartRes n { peer := some p } γn γ ρ id
 
 def (sealed) etcdstart.memberRestartRes (name : GoString) (a : etcdstart.MemberAddrs) (γn : NetNames
@@ -18,11 +18,11 @@ theorem etcdstart.memberFreshRes_client (n : GoString) (a : etcdstart.MemberAddr
     GF) (c : GoString) (h : a.client = some c) : etcdstart.memberFreshRes n a γn ⊢ netAddrFree c ∗
     etcdstart.memberFreshRes n { peer := a.peer } γn
 
-def (sealed) etcdstart.memberStartRes.{u_1} (name : GoString) (a : etcdstart.MemberAddrs) : IProp GF
+def (sealed) etcdstart.memberStartRes (name : GoString) (a : etcdstart.MemberAddrs) : IProp GF
 
 theorem etcdstart.memberRestartRes_boot (n : GoString) (γn : NetNames GF) (γ : SrvRaft) (ρ :
-    ReqNames) (id : w64) : etcdstart.memberRestartRes n { } γn γ ρ id ⊢ srvDiskImage γ ρ id (n ++
-    go!".etcd")
+    ReqNames) (id : w64) : etcdstart.memberRestartRes n { } γn γ ρ id ⊢ srvDiskImage γ ρ id
+    (memberDataDir n)
 
 structure etcdstart.MemberAddrs : Type where
   peer : Option GoString
@@ -41,11 +41,12 @@ theorem etcdstart.memberRestartRes_peer (n : GoString) (a : etcdstart.MemberAddr
     etcdstart.memberRestartRes n a γn γ ρ id ⊢ (netAddrFree p ∗ http.httpProtoOwn p (raftProto
     (netRh γn))) ∗ etcdstart.memberRestartRes n { client := a.client } γn γ ρ id
 
-theorem etcdstart.memberStartRes_intro.{u_1} (ms : List (GoString × etcdstart.MemberAddrs)) (Bs As
-    Ds : List GoString) (hA : (List.flatMap (fun m => m.snd.addrs) ms ++ Bs).Perm As) (hD :
-    (List.map (fun m => etcdstart.memberDataDir m.fst) ms).Perm Ds) : ([∗list] a ∈ As, netAddrFree
-    a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff ⊢
-    ([∗list] m ∈ ms, etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs, netAddrFree b
+theorem etcdstart.memberStartRes_intro (ms : List (GoString × etcdstart.MemberAddrs)) (Bs As Ds :
+    List GoString) (hA : (List.flatMap (fun m => m.snd.addrs) ms ++ Bs).Perm As) (hD : (List.map
+    (fun m => memberDataDir m.fst) ms).Perm Ds) : ((([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈
+    As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ [∗list] d ∈ Ds,
+    memberAreasFresh d) ⊢ ([∗list] m ∈ ms, etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs,
+    netAddrFree b
 
 def etcdstart.MemberAddrs.addrs (a : etcdstart.MemberAddrs) : List GoString :=
   a.peer.toList ++ a.client.toList
@@ -54,11 +55,8 @@ theorem etcdstart.memberRestartRes_raft (n : GoString) (a : etcdstart.MemberAddr
     GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64) : etcdstart.memberRestartRes n a γn γ ρ id ⊢
     ⌜ρ.rd.raft.raft = γ⌝ ∗ etcdstart.memberRestartRes n a γn γ ρ id
 
-def etcdstart.memberDataDir (name : GoString) : GoString :=
-  name ++ go!".etcd"
-
 theorem etcdstart.memberRestartRes_intro0 (n : GoString) (γn : NetNames GF) (γ : SrvRaft) (ρ :
-    ReqNames) (id : w64) : srvDiskImage γ ρ id (n ++ go!".etcd") ⊢ etcdstart.memberRestartRes n { }
+    ReqNames) (id : w64) : srvDiskImage γ ρ id (memberDataDir n) ⊢ etcdstart.memberRestartRes n { }
     γn γ ρ id
 
 theorem etcdstart.memberStartRes_fresh (n : GoString) (a : etcdstart.MemberAddrs) (γn : NetNames GF)
@@ -67,6 +65,6 @@ theorem etcdstart.memberStartRes_fresh (n : GoString) (a : etcdstart.MemberAddrs
 def (sealed) etcdstart.memberFreshRes (name : GoString) (a : etcdstart.MemberAddrs) (γn : NetNames
     GF) : IProp GF
 
-theorem etcdstart.memberStartRes_client.{u_1} (n : GoString) (a : etcdstart.MemberAddrs) (c :
-    GoString) (h : a.client = some c) : etcdstart.memberStartRes n a ⊢ netAddrFree c ∗
-    etcdstart.memberStartRes n { peer := a.peer }
+theorem etcdstart.memberStartRes_client (n : GoString) (a : etcdstart.MemberAddrs) (c : GoString) (h
+    : a.client = some c) : etcdstart.memberStartRes n a ⊢ netAddrFree c ∗ etcdstart.memberStartRes n
+    { peer := a.peer }

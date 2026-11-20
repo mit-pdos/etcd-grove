@@ -20,12 +20,12 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The shared coherence with a directory fd set (added, or its read moved on). -/
 theorem treeCohS_setDfd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {df' : OsDirFd}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {df' : OsDirFd}
     {x : Ino × DirPhS} (hino : x.1 = df'.ino) (hph : PhOkS (setDfd st fd df') x.1 x.2 df'.rd) :
     TreeCohS (setDfd st fd df') s0 (<[fd := x]> Γdf) Γc Γg := by
-  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, fun fd' => ?_, fun fd' x' df hx hdf => ?_,
-    hc.calls, hc.callsLe, hc.whole, hc.after, hc.gcalls, hc.gdisj,
-    hc.cover, hc.pair⟩
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl, h.2.congr rfl rfl⟩), hc.valid, hc.s0le, fun fd' => ?_, fun fd' x' df hx hdf => ?_,
+    hc.calls, hc.callsLe, hc.gcalls, hc.gdisj,
+    hc.cover⟩
   · show ((<[fd := x]> Γdf) !! fd').map (·.1) = ((<[fd := df']> st.proc.dfds) !! fd').map (·.ino)
     rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]; split
     · simp [hino]
@@ -49,9 +49,9 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ P -∗ ⌜st.lookup p = some (.dir j)⌝)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ P -∗
-      osCallS (L := L) k s0 q -∗
+      osCallS (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗ P -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
+        osCallPerm (L := L) (callKey R p) q -∗ P -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} := by
@@ -61,7 +61,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
   icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
+  · iexfalso; iapply legacy_callS_excl st k s0 p q $$ Hk Hm
   unfold treeShared
   icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -77,7 +77,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
   · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := by
+  have hcall : st.proc.calls !! k = some (s0, p) := by
     exact hc.calls k _ hk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -111,8 +111,8 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
   -- the call's fraction back
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
-    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
-      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+    (Φ := fun (_t : Nat) (x : CallV) =>
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
   obtain ⟨-, hres⟩ := hres
@@ -157,7 +157,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
       ipureintro; exact ⟨hw', hc'⟩
     iapply wp_value'
     iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp
-    · unfold osCallPerm; iexact Hq
+    · unfold osCallPerm; rw [← hR]; iexact Hq
     iintro -
     unfold osDirFdS; iexact Hfd
   · have hst' : st' = st.metaEnd k' := by
@@ -188,16 +188,16 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
     have hne : e ≠ ENOENT := fun h0 => by
       have := hnoent h0; rw [hl0] at this; cases this
     iapply HΦ $$ %(-1) %e %(.inr ⟨he, hne, rfl⟩) [Hq] Hp
-    · unfold osCallPerm; iexact Hq
+    · unfold osCallPerm; rw [← hR]; iexact Hq
     iintro %he0
     exact absurd he0 he
 
 theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : Nat) (q : Qp)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R p dq j -∗
-      osCallS (L := L) k s0 q -∗
+      osCallS (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗
+        osCallPerm (L := L) (callKey R p) q -∗
         osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E

@@ -250,7 +250,7 @@ theorem os.File.writerStream (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (
   have hmm' : m.maps = ∅ := hmm.trans hmaps
   by_cases hx : xs = []
   · subst hx
-    wp_apply os.File.Write.wp_empty f fd name dqf p dqp _ hfd $$ [Hf Ho Hp] as %n %err ⟨%hn, Hf, Ho, Hp⟩
+    wp_apply os.File.Write.wp_empty f fd name dqf p dqp _ hfd $$ [Hf Ho Hp] as %n %err ⟨%hn, Hf, Ho, Hp, #Hek⟩
     · iframe
     iapply HΦ
     iframe Hp
@@ -258,6 +258,8 @@ theorem os.File.writerStream (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (
     · iright
       isplitr
       · ipureintro; intro h; cases h
+      isplitr
+      · iapply errOkOrNil_of_fmtErrorOkOrNil; iexact Hek
       iunfold os.fileB
       iexists _, m, ys
       iframe Hf Hfd Ho
@@ -287,7 +289,7 @@ theorem os.File.writerStream (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (
   wp_apply (os.File.Write.wp_long wp_WriteAt f fd name dqf p xs dqp (W64 ((o0 + out.length : Nat) : Int))
       dq d m ((ys.drop out.length).take xs.length) hfd hwr (by rw [hoI]; omega) (by rw [hoN]; omega)
       hlo hn (by rw [hoN]; exact hxw) (by rw [hoI]; omega))
-    $$ [Hinv Hf Ho Hp Hfd Hm Hb2 Hmc] as %n %err ⟨Hf, Hp, Hfd, -, Hres⟩
+    $$ [Hinv Hf Ho Hp Hfd Hm Hb2 Hmc] as %n %err ⟨Hf, Hp, Hfd, -, Hres, #Hek⟩
   · rw [hoN]; iframe Hinv Hmc; iframe
   rw [hoN]
   iapply HΦ
@@ -328,6 +330,8 @@ theorem os.File.writerStream (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (
   · iright
     isplitr
     · ipureintro; exact herr
+    isplitr
+    · iapply errOkOrNil_of_fmtErrorOkOrNil; iexact Hek
     iunfold os.fileB
     iexists _, m, ys
     iframe Hf Hfd Ho

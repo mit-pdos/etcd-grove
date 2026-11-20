@@ -9,9 +9,9 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, k8s-all, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -54,6 +54,7 @@ import argparse
 import difflib
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -182,13 +183,17 @@ PROJECTS = [
         # under `metalock` (743299d8, verification only); then a writable `Open` fdatasyncs the file
         # before its first commit (c5a6065d, issues/bbolt-open-unsynced-meta-kill-then-power-loss.md;
         # 004c930 its robustness test), closing under the locks if that sync fails (ea4cab52, as the
-        # failed transaction's exit: the proof needs the locks' halves of the fields `close` clears). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # failed transaction's exit: the proof needs the locks' halves of the fields `close` clears); then
+        # `Put` refuses an entry (key plus value) above 2^28 bytes with `ErrValueTooLarge` (3f8520bd, branch
+        # `goose-lean-entrymax`; issues/bbolt-max-value-size-unusable.md: `Put` accepted values a page of four
+        # entries cannot hold within `MaxAllocSize`; the verified bbolt's `bboltEntryMax`; approved by the
+        # user 2026-11-19, auth-schema-srv port, route (d')). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
         # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
         # translations. Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
-        rev="ea4cab5267973cc858b7393c5c010eee4014e75c",
+        rev="3f8520bd72989b6cf959eef13e151b90031ed6bc",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -312,12 +317,21 @@ PROJECTS = [
         # `WAL.Sync` takes `w.mu`, issues/etcd-wal-sync-releaselockto-race.md, the reproduced data
         # race with `ReleaseLockTo`), first on 2eaeb872b (3df9b265f, e115818f5), rebased (2026-11-16,
         # wal-lean session 6) onto 6e8f0c004 with each commit's author, committer and dates kept:
-        # 8c28a4296.
+        # 8c28a4296. Then (wal-link, 2026-11-18, approved by the user via etcd-grove-03) fix 0007
+        # on it, branch `goose-lean-walfs3`: `SaveSnapshot` cuts once the tail passes
+        # `SegmentSizeBytes`, as `Save` does (nonissues/etcd-wal-savesnapshot-tail-efbig.md):
+        # f01ae14c9; then 0008 (34dea163a, branch `goose-lean-walfs3-fp`): `SaveSnapshot` does not cut
+        # while `w.fp` is nil (`Create`'s call, before the pipeline exists; 0007 alone made a `Create`
+        # whose first segment passes `SegmentSizeBytes` panic in `cut`).
+        # Then 0009 (wal-link, 2026-11-19, approved by the user via etcd-grove-03; d3feef9bc, branch
+        # `goose-lean-walfs3-fp9`, pushed 2026-11-19): `WAL.Save` refuses a batch whose sum of `proto.Size(e)+64` passes
+        # `MaxSaveBatchBytes` (4 TiB) with `ErrSaveBatchTooLarge`, before `w.mu.Lock()`
+        # (nonissues/etcd-wal-save-batch-efbig.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="8c28a4296f1699c699bc4d59459c691bcff995f0",
+        rev="d3feef9bcdddb9ad15ee5fc8bf725050395debb4",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -540,6 +554,9 @@ PROJECTS = [
             "google.golang.org/grpc/health",
             "google.golang.org/grpc/health/grpc_health_v1",
             "google.golang.org/grpc/reflection",
+            # types and names only: grpc's stats handler interface, the type of otelgrpc's
+            # `NewServerHandler`'s result (so that an implementation can return one: etcd-refimpl)
+            "google.golang.org/grpc/stats",
             # (and go.uber.org/zap, above)
             # names only: the types of rafthttp.Transport's fields, so that its struct is
             # translated (NewServer builds one; unit N4, 2026-10-17)
@@ -1136,6 +1153,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "authN")],
     ),
     Project(
+        name="authlease",
+        # the lease rows of etcd's auth on authN's start (notes/auth-lease-s4-draft.md): Main(k)
+        # starts k members in-process with auth on (etcdstart.StartMembersAuth), authkv's set-up,
+        # barriers, the leases granted and attached by root and u, then the refusal checks and u's
+        # revocation (run). A package of the examples' Go module (examples/go.mod); its imports are
+        # the etcd project's translations (names reached through the empty root) and
+        # examples/etcd/auth.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "authlease"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "authlease")],
+    ),
+    Project(
         name="leaseN",
         # the lease example with any number of members (notes/leaseN-plan.md): Main(k) starts k
         # members in-process (etcdstart.Members, etcdstart.StartMembers), each serving its raft
@@ -1368,9 +1401,17 @@ PROJECTS = [
                     "github.com/spf13=",
                     # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
                     # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
-                    "runtime/trace="],
+                    "runtime/trace=",
+                    # (k8s 7g) go-cmp and the standard library's `maps`, names only, which the
+                    # driver's copy of Kubernetes' checker calls (their .toml)
+                    "github.com/google=", "maps="],
         packages=[
             ".",
+            # (k8s 7g, notes/k8s-7g-scope.md §1.1) the driver's copy of Kubernetes' checker
+            # (upstream plus etc/k8s-correctness/d30g.patch), with bodies (correctness.toml)
+            "./correctness",
+            "github.com/google/go-cmp/cmp",
+            "maps",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
             # the watch cache's store, with bodies (notes/kep-6404-plan.md)
@@ -1562,6 +1603,7 @@ PROJECTS = [
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"),
                os.path.join("runtime", "trace"),
+               os.path.join("github_com", "google"), "maps",
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),
@@ -1627,6 +1669,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net=", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "compactor")],
+    ),
+    Project(
+        name="k8s-all",
+        # The program of the one closed Kubernetes theorem, k8s_safe (notes/k8s-unified-scope.md):
+        # package `.` of examples/k8s/all, a Go module of its own requiring the two drivers' modules
+        # (examples/k8s/etcd3, examples/k8s/compactor) by path and everything else at
+        # examples/k8s/etcd3/go.mod's pins (CLIENT_GO_PINS, GO_MOD_PINS), with bodies. Everything it
+        # names outside the package is the k8s-apiserver, k8s-compactor and etcd projects'
+        # translations (the empty root): the drivers are not translated again.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8s", "all"),
+        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "github.com/mit-pdos/etcd-grove=",
+                    "go.uber.org=", "google.golang.org=", "net=", "os=", "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "all")],
     ),
     Project(
         name="kvwitness",
@@ -1802,6 +1860,8 @@ GO_MOD_PINS = {
     os.path.join("examples", "k8s", "etcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
     # Kubernetes' compactor's example, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "compactor", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+    # the one closed Kubernetes theorem's program, a module of its own (it requires both drivers')
+    os.path.join("examples", "k8s", "all", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
 }
 
 
@@ -1816,6 +1876,10 @@ CLIENT_GO_PINS = {
         ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
          "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),
     os.path.join("examples", "k8s", "compactor", "go.mod"): (
+        os.path.join("examples", "k8s", "etcd3", "go.mod"),
+        ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
+         "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),
+    os.path.join("examples", "k8s", "all", "go.mod"): (
         os.path.join("examples", "k8s", "etcd3", "go.mod"),
         ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
          "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),
@@ -1874,8 +1938,9 @@ def host_env():
     """The environment without the target settings (`GOOS`, `GOARCH`, `CGO_ENABLED`, `CC`), for
     building the translator to run on this machine: those settings, when given, are for the
     translation only (the standard library's cgo-processed packages, e.g. `net`, translate
-    differently per target; the checked-in translations are linux/amd64's, so an arm64 host
-    checks them with `GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-linux-gnu-gcc`)."""
+    differently per target; the checked-in translations are linux/amd64's, which `main` makes the
+    default target: `GOOS=linux GOARCH=amd64 CGO_ENABLED=1`, and on a host that is not amd64
+    `CC=x86_64-linux-gnu-gcc`)."""
     target = {"GOOS", "GOARCH", "CGO_ENABLED", "CC"}
     return {k: v for k, v in os.environ.items() if k not in target}
 
@@ -2040,6 +2105,14 @@ def main():
     ap.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
     args = ap.parse_args()
     os.environ["GOTOOLCHAIN"] = GO_TOOLCHAIN
+    # The checked-in translations are linux/amd64's with cgo (the standard library's
+    # cgo-processed packages, e.g. `net`, translate differently per target): translate for that
+    # target on any host unless told otherwise (an arm64 host needs amd64's C cross-compiler for
+    # cgo). host_env() keeps these out of the translator's own build.
+    for k, v in (("GOOS", "linux"), ("GOARCH", "amd64"), ("CGO_ENABLED", "1")):
+        os.environ.setdefault(k, v)
+    if platform.machine() not in ("x86_64", "amd64"):
+        os.environ.setdefault("CC", "x86_64-linux-gnu-gcc")
 
     projects = [p for p in PROJECTS if not args.project or p.name in args.project]
     local = {p.name: os.environ[p.env] for p in PROJECTS if os.environ.get(p.env)}

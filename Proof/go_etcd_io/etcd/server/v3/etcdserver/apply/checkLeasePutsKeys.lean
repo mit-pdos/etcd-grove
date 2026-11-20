@@ -28,17 +28,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- `l.Keys()` by the lease owner, over its resource opened at `l` (`Lease.Keys.spec`): exactly
 the keys `I` attaches to `id`, bounded since `I`'s are (`itemKeysShort`). -/
 private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γl : GName)
-    (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) (l : Loc) :
+    (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) (l : Loc)
+    (w : Option lease.LWin) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-        lease.leaseOwnOpen γl L I id l }}
+        lease.leaseOwnOpenW γl L I id l w }}
       (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.Lease.ty @!! go!"Keys"))
         (Val #()))
-    {{ (sl : GoSlice), RET #sl; ∃ ks : List GoString, sl ↦* ks ∗ lease.leaseOwnOpen γl L I id l ∗
+    {{ (sl : GoSlice), RET #sl; ∃ ks : List GoString, sl ↦* ks ∗ lease.leaseOwnOpenW γl L I id l w ∗
         ⌜∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1⌝ ∗
         ⌜∀ k : GoString, I.lookup (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk k) = some id →
           k ∈ ks⌝ }} := by
   iintro %Φ ⟨#Hpkg, Ho⟩ HΦ
-  iunfold lease.leaseOwnOpen at Ho
+  iunfold lease.leaseOwnOpenW at Ho
   icases Ho with ⟨%HIS, #Hl, Hio, Hslot, Hback⟩
   iapply (hK γl l id (.owner I)) $$ [Hio Hslot]
   · iframe Hpkg Hl; rw [lease.keysPre_owner]; iframe Hio Hslot
@@ -54,7 +55,7 @@ private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γ
   iexists ks
   iframe Hs
   isplitl [Hio Hslot Hback]
-  · iunfold lease.leaseOwnOpen; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
+  · iunfold lease.leaseOwnOpenW; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
   ipureintro
   exact ⟨fun k hk => HIS _ id ((Hks k).1 hk), fun k hk => (Hks k).2 hk⟩
 
@@ -63,7 +64,7 @@ private def keysPerms (ks : List GoString) : List apply.Perm3 := ks.map (fun k =
 
 theorem apply.checkLeasePutsKeys.wp_proof (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG) := by
-  intro st γ Pk f BT RD on RW ai info dq l id γl L I
+  intro st γ Pk f BT RD on RW ai info dq l id γl L I w
   wp_start as ⟨#Hst, Hai, Hv, Hrd⟩
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
@@ -100,7 +101,7 @@ theorem apply.checkLeasePutsKeys.wp_proof (hK : lease.Lease.Keys.spec (GF := GF)
       iintro; itrivial
   | ok e =>
   wp_auto
-  wp_apply (keys_open hK γl L I id l) $$ [$Hlp $Hv] as %sl ⟨%ks, Hks, Hv, %Hksb, %Hkall⟩
+  wp_apply (keys_open hK γl L I id l w) $$ [$Hlp $Hv] as %sl ⟨%ks, Hks, Hv, %Hksb, %Hkall⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hks
   irename «as» => Has
   iunfold apply.permCheck2 at HPut

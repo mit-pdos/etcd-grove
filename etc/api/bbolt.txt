@@ -5,7 +5,7 @@
 
 inside Proof/go_etcd_io/bbolt/
 inside Spec/go_etcd_io/bbolt/
-exempt (^|/)(Link|Results|Init|PkgInit)\.lean$
+exempt (^|/)(Link|Results|Init|InitLinked|PkgInit)\.lean$
 # The root below which a spec's name is the file's path (`__` as `.`), for the layout check: the
 # specs are named `bbolt.<T>.<M>.spec` (namespace `EtcdGrove.bbolt`, beside the old
 # `bbolt.<T>.<M>_kv.spec`), so the root is the package's parent.
@@ -49,6 +49,7 @@ importable Spec.go_etcd_io.bbolt.Bucket__Get
 importable Spec.go_etcd_io.bbolt.Bucket__Put
 importable Spec.go_etcd_io.bbolt.Bucket__Delete
 importable Spec.go_etcd_io.bbolt.Bucket__Cursor
+importable Spec.go_etcd_io.bbolt.Bucket__ForEach
 importable Spec.go_etcd_io.bbolt.Cursor__Seek
 importable Spec.go_etcd_io.bbolt.Cursor__First
 importable Spec.go_etcd_io.bbolt.Cursor__Last

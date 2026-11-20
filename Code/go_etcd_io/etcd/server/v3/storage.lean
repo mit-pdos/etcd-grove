@@ -12,7 +12,11 @@ public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.sync
 public import Code.google_golang_org.protobuf.proto
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.cindex
+public import Code.github_com.prometheus.client_golang.prometheus
+public import Code.github_com.dustin.go_humanize
 public import Code.github_com.Masterminds.semver.v3
+public import Code.go_etcd_io.etcd.server.v3.storage.wal
+public import Code.go_etcd_io.etcd.server.v3.storage.wal.walpb
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -62,11 +66,13 @@ noncomputable def storage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] storage.ty
 
-opaque storage.underlying [GooseExts] [GoGlobalContext] : go.GoType
+/-- 2GB -/
+@[reducible] noncomputable def DefaultQuotaBytes [GooseExts] [GoGlobalContext] : val :=
+  #(W64 2147483648)
 
-opaque DefaultQuotaBytes [GooseExts] [GoGlobalContext] : val
-
-opaque MaxQuotaBytes [GooseExts] [GoGlobalContext] : val
+/-- 8GB -/
+@[reducible] noncomputable def MaxQuotaBytes [GooseExts] [GoGlobalContext] : val :=
+  #(W64 8589934592)
 
 opaque leaseOverhead [GooseExts] [GoGlobalContext] : val
 
@@ -75,20 +81,14 @@ opaque kvOverhead [GooseExts] [GoGlobalContext] : val
 noncomputable def quotaBackendBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.quotaBackendBytes"
 
-opaque quotaBackendBytes.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def quotaLogOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.quotaLogOnce"
 
 noncomputable def DefaultQuotaSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.DefaultQuotaSize"
 
-opaque DefaultQuotaSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def maxQuotaSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.maxQuotaSize"
-
-opaque maxQuotaSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.newBackend"
@@ -295,8 +295,198 @@ noncomputable def BackendHooks.SetConfState.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef BackendHooks.ty go!"confStateLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendHooks.ty)))) (Var "bh")))) (Val #()))))))))
   (Val #()))))
 
+/-- go: storage.go:54:6 -/
+noncomputable def NewStorage.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "w"
+  (Lam "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Storage.ty))) (App (Val (GoInstruction (GoZeroVal Storage.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (Var "s"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (Var "w"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType storage.ty) Storage.ty))) (App (Val (GoInstruction (GoAlloc storage.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (Var "w"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (Var "s"))
+  (App (Val (GoInstruction (CompositeLiteral storage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"w")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"s")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty) (Var "$v2")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Storage.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad Storage.ty))) (Var "$res0")))))))
+
+/-- SaveSnap saves the snapshot file to disk and writes the WAL snapshot entry.
+
+    go: storage.go:59:20 -/
+noncomputable def storage.SaveSnap.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam "snap"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType storage.ty)))) (Var "st"))
+  (Let "snap" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "snap"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty go!"Index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "snap"))))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "snap"))))))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetConfState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "snap"))))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Index")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"ConfState")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) (Var "$v2")))])))))
+  (Let "walsnap" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Var "walsnap")
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty) go!"SaveSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty))) (Pair (Var "walsnap") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- Release releases resources older than the given snap and are no longer needed:
+    - releases the locks to the wal files that are older than the provided wal for the given snap.
+    - deletes any .snap.db files that are older than the given snap.
+
+    go: storage.go:75:20 -/
+noncomputable def storage.Release.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam "snap"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType storage.ty)))) (Var "st"))
+  (Let "snap" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "snap"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "snap"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty) go!"ReleaseSnapDBs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "snap"))))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty) go!"ReleaseLockTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st")))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- go: storage.go:84:20 -/
+noncomputable def storage.Save.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam "s"
+  (Lam "ents"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType storage.ty)))) (Var "st"))
+  (Let "ents" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty) go!"Save"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st")))) (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- go: storage.go:90:20 -/
+noncomputable def storage.Close.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType storage.ty)))) (Var "st"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st")))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- go: storage.go:96:20 -/
+noncomputable def storage.Sync.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType storage.ty)))) (Var "st"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty) go!"Sync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef storage.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storage.ty)))) (Var "st")))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage where
-  pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.github_com.Masterminds.semver.v3]
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.github_com.dustin.go_humanize, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.etcd.server.v3.storage.wal.walpb]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -319,14 +509,31 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"quota_backend_bytes"))
+  (Let "$v3" (Val #(go!"Current backend storage quota size in bytes."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (Val DefaultQuotaBytes))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.dustin.go_humanize.Bytes []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (Val MaxQuotaBytes))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.dustin.go_humanize.Bytes []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val maxQuotaSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr maxQuotaSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val DefaultQuotaSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultQuotaSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val quotaBackendBytes.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr quotaBackendBytes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -350,7 +557,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.dustin.go_humanize.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc quotaBackendBytes _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultQuotaSize go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc maxQuotaSize go.string)) (Val #()))))))))
 
 structure BackendHooks [GooseExts] where
   mk ::
@@ -514,24 +735,68 @@ attribute [instance] Storage.TypeAssumptions.underlying
   Storage.TypeAssumptions.method_set
   Storage.TypeAssumptions.ptr_method_set
 
-opaque storage.nonempty_type : NonemptyType.{0}
-def storage : Type := storage.nonempty_type.type
-instance storage.nonempty : Nonempty storage := storage.nonempty_type.property
-opaque storage.zero_val : ZeroVal storage := ⟨Classical.ofNonempty⟩
-attribute [instance] storage.zero_val
+structure storage [GooseExts] where
+  mk ::
+  lg' : Loc
+  s' : Loc
+  mux' : _root_.Perennial.sync.RWMutex
+  w' : Loc
+
+noncomputable instance storage.zero_val [GooseExts] : ZeroVal storage :=
+  ⟨storage.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def storage.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"s" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)),
+(go.field_decl.FieldDecl go!"mux" _root_.Perennial.sync.RWMutex.ty),
+(go.field_decl.FieldDecl go!"w" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty))]
+
+@[irreducible] noncomputable def storage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  storage.fieldsUnsealed
+
+noncomputable instance equals_unfold_storage [GooseExts] [GoGlobalContext] :
+    EqualsUnfold storage.fields storage.fieldsUnsealed :=
+  ⟨by unfold storage.fields; rfl⟩
+
+@[reducible] noncomputable def storage.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType storage.fields)
 
 class storage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying storage.underlying storage
   underlying : go.UnderlyingDirectedEq storage.ty storage.underlying
-  isUnderlying : go.IsUnderlying storage.underlying storage.underlying
+  get_lg : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : storage)))
+  get_s : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"s") #x (Val #(x.s'))
+  set_s : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : storage)))
+  get_mux : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"mux") #x (Val #(x.mux'))
+  set_mux : ∀ (x : storage) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"mux") (PairV #x #y) (Val #(({ x with mux' := y } : storage)))
+  get_w : ∀ (x : storage), go.IsGoStepPureDetTagged under (StructFieldGet storage.underlying go!"w") #x (Val #(x.w'))
+  set_w : ∀ (x : storage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet storage.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : storage)))
   method_set : go.MethodSetIs storage.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType storage.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Release", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))), (go!"SaveSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error])))]
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"Close" storage.Close.impl
+  ptr_Release_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"Release" storage.Release.impl
+  ptr_Save_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"Save" storage.Save.impl
+  ptr_SaveSnap_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"SaveSnap" storage.SaveSnap.impl
+  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType storage.ty) go!"Sync" storage.Sync.impl
 
 attribute [instance] storage.TypeAssumptions.type_repr
   storage.TypeAssumptions.underlying
-  storage.TypeAssumptions.isUnderlying
+  storage.TypeAssumptions.get_lg
+  storage.TypeAssumptions.set_lg
+  storage.TypeAssumptions.get_s
+  storage.TypeAssumptions.set_s
+  storage.TypeAssumptions.get_mux
+  storage.TypeAssumptions.set_mux
+  storage.TypeAssumptions.get_w
+  storage.TypeAssumptions.set_w
   storage.TypeAssumptions.method_set
   storage.TypeAssumptions.ptr_method_set
+  storage.TypeAssumptions.ptr_Close_unfold
+  storage.TypeAssumptions.ptr_Release_unfold
+  storage.TypeAssumptions.ptr_Save_unfold
+  storage.TypeAssumptions.ptr_SaveSnap_unfold
+  storage.TypeAssumptions.ptr_Sync_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BackendHooks_instance : BackendHooks.TypeAssumptions
@@ -542,6 +807,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   storage_instance : storage.TypeAssumptions
   OpenSnapshotBackend_unfold : FuncUnfold OpenSnapshotBackend [] OpenSnapshotBackend.impl
   NewBackendHooks_unfold : FuncUnfold NewBackendHooks [] NewBackendHooks.impl
+  NewStorage_unfold : FuncUnfold NewStorage [] NewStorage.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_os_Assumption : _root_.Perennial.os.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
@@ -553,7 +819,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
   import_cindex_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions
+  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import_humanize_Assumption : _root_.Perennial.github_com.dustin.go_humanize.Assumptions
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import_wal_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions
+  import_walpb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions
 
 attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.Quota_instance
@@ -563,6 +833,7 @@ attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.storage_instance
   Assumptions.OpenSnapshotBackend_unfold
   Assumptions.NewBackendHooks_unfold
+  Assumptions.NewStorage_unfold
   Assumptions.import_fmt_Assumption
   Assumptions.import_os_Assumption
   Assumptions.import_zap_Assumption
@@ -574,7 +845,11 @@ attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.import_sync_Assumption
   Assumptions.import_proto_Assumption
   Assumptions.import_cindex_Assumption
+  Assumptions.import_prometheus_Assumption
+  Assumptions.import_humanize_Assumption
   Assumptions.import_semver_Assumption
+  Assumptions.import_wal_Assumption
+  Assumptions.import_walpb_Assumption
 
 end go_etcd_io.etcd.server.v3.storage
 

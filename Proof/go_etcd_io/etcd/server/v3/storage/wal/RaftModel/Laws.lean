@@ -3,7 +3,7 @@
 model premises the WAL's Link results take (`h_WalPbIn_*`, `h_U_*`, ...), discharged for the instance
 `walRaftP`/`walRaftMr`/`walRaftU`/`walRaftHsO` over the part's `proto.Marshal`/`proto.Unmarshal`
 trust-boundary specs (copies of the main tree's axioms, `proto.MarshalPb.wp_proof`,
-`proto.UnmarshalPb.wp_proof`):
+`proto.UnmarshalPb.wp_proof`, and since fix 0009 `proto.SizePb.wp_proof`):
 
 - `walPb_laws : WalPbLaws walRaftP walRaftMr walRaftU`, every law but four;
 - `walRaftHsO_own`: `WalHsOwn` from its two fields that need `raftpb.HardState`'s trusted model
@@ -19,6 +19,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsHs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsEnt
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalPb
+public import Proof.google_golang_org.protobuf.proto.SizePb
 
 @[expose] public section
 
@@ -48,6 +49,7 @@ structure WalPbLaws (P : WalPbIn GF) (Mr : WalMarshal) (U : WalUnmarshal) : Prop
   getIndex : WalPbIn.GetIndexLaw P
   getTerm : WalPbIn.GetTermLaw P
   marshalEnt : WalPbIn.MarshalEntLaw P Mr
+  size : WalPbIn.SizeLaw P Mr
   unmarshalEnt : WalPbIn.UnmarshalEntLaw P U
   uOk : U.Ok Mr
   snapCoh : U.SnapCoh
@@ -63,6 +65,7 @@ theorem walPb_laws : WalPbLaws (walRaftP (GF := GF)) walRaftMr walRaftU where
   getIndex := walRaftP_getIndex
   getTerm := walRaftP_getTerm
   marshalEnt := walRaftP_marshalEnt proto.MarshalPb.wp_proof
+  size := walRaftP_size proto.SizePb.wp_proof
   unmarshalEnt := walRaftP_unmarshalEnt proto.UnmarshalPb.wp_proof
   uOk := walRaftU_ok
   snapCoh := walRaftU_snapCoh

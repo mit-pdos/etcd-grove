@@ -78,7 +78,7 @@ abbrev RawNode.Ready.tracedTriple : Prop :=
       "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
       "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateRaw γ st) ∗
-      "#Hhard" ∷ hsOpt rd.HardState' h ∗
+      "#Hhard" ∷ hsOptC rd.HardState' h ∗
       "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length ∗
       "Happ" ∷ readyOut rs.storage rs.sn es L ∗
       "#Hfrz" ∷ (⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) ∗
@@ -100,11 +100,12 @@ theorem RawNode.Ready.traced
   wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
     as %rd %ce %es %ms %sts %h %L H
   iNamed H
+  ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
-    $$ Hhard Hlive Hfree Hrn
+    $$ HhardO Hlive Hfree Hrn
     with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, -⟩
   wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L
-    (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $Hhard]
+    (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $HhardO]
     as %steps %ss H
   iNamed H
   ihave %Hsseq := softStateIs_agree rd.SoftState' ss0 ss Hssn0 Hssn $$ [Hss0 Hss]

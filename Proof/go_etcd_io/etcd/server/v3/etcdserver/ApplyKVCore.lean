@@ -34,7 +34,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 without the auth store's apply-side resource). -/
 def srvApplyKVCore (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (ua : GoInterface) : IProp GF :=
-  iprop(srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.applyKV E ua x ∗ srvBeOwn s E ∗
+  iprop(srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ srvApplyKVW E ua x ∗ srvBeOwn s E ∗
     revAuth E x.log ∗
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
@@ -97,6 +97,8 @@ theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
   iunfold srvApplyKVCore at Hc
   icases Hc with ⟨Hua, #Hap, Hkv, Hbo, Hra, Hw⟩
   imod srvWTPool_take_extra s E γp $$ Hp Hr Hlc Hbo with ⟨Hwt, Hbo⟩
+  iunfold srvApplyKVW at Hkv
+  icases Hkv with ⟨%wn, %Hwn, Hkv⟩
   iunfold apply.applyKV at Hkv
   icases Hkv with ⟨%p, %Hpe, Huo, Hko, Hcmp⟩
   iunfold apply.kvOwn at Hko
@@ -107,8 +109,12 @@ theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
   iexists B
   iframe Hmb Hwt Htie
   iintro Hmb Htie
-  ihave Hkv : apply.applyKV E ua x $$ [Huo Hsw Hmb Htie Hll Hrd Hcmp]
-  · iunfold apply.applyKV
+  ihave Hkv : srvApplyKVW E ua x $$ [Huo Hsw Hmb Htie Hll Hrd Hcmp]
+  · iunfold srvApplyKVW
+    iexists wn
+    isplitr
+    · ipureintro; exact Hwn
+    iunfold apply.applyKV
     iexists p
     isplitr
     · ipureintro; exact Hpe

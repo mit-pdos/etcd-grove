@@ -27,16 +27,16 @@ variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
 
 theorem os.OpenFile.wp_dirSOk (p : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac)
     (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp HΦ
-  wp_apply wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   rw [os.file_ty_eq, os.File_ty_eq]
@@ -87,9 +87,9 @@ theorem os.OpenFile.wp_dirSOk (p : GoString) (perm : w32) (R : Roots) (j : Ino) 
 
 /-- `os.Open(p)` of the directory `j`: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_dirSOk (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Open)) (Val #p))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by

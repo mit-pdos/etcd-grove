@@ -138,12 +138,12 @@ are all those above the first segment it reads, the names being increasing). -/
 def walMaxSnapIdx (P : WalHist) : Nat :=
   P.foldl (fun x o => match o with
     | .save _ _ => x
-    | .snap m => max x (uint.nat m.Index')) 0
+    | .snap m _ => max x (uint.nat m.Index')) 0
 
 theorem walLastIdx_snap (P : WalHist) :
     walLastIdx P = max (P.foldl (fun x o => match o with
       | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
-      | .snap _ => x) 0) (walMaxSnapIdx P) := rfl
+      | .snap _ _ => x) 0) (walMaxSnapIdx P) := rfl
 
 /-- **The bytes a batch of entries takes in the WAL**, over-approximated: each entry's encoding plus 64
 bytes (its record's type, CRC and length fields, the frame's length word and padding; `frame_walRecEnc_tight`,
@@ -416,12 +416,14 @@ the pipeline (over the directory's inode `j`, the handle's `walDirH`'s; roots `R
 file size `sz`), the
 caller's token after `n ≤ k` files received, and the claim on the name the next `Open` hands back
 (`pipeTmp (n + 1)`: the name of the file received last, renamed away by its cut); `fp` non-nil
-(`Close` tests it, S/wal.go:1057). -/
+(`Close` tests it, S/wal.go:1057); the pipeline's roots are the ghost names' (`W.roots`, the invariant's
+by `walInv_roots`: `Close` merges the pipeline's quarter of the call permission with the client's under
+one key). -/
 def walPipeH (fp : Loc) (dir : GoString) (j : Ino) (k : Nat)
     (pp : Roots → DFrac → Prop := fun _ _ => True) : IProp GF :=
   iprop(∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (sz : w64) (n : Nat),
     isFilePipe fp γ R dir dq j sz ∗ pipeMain γ n ∗ tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n ≤ k ∧ pp R dq⌝ ∗
-      ⌜fp ≠ null⌝)
+      ⌜fp ≠ null⌝ ∗ ⌜R = W.roots⌝)
 
 /-- A WAL segment's file name: a `.wal` name (`walFileName sq ix`) under some directory `pd` (Go's
 `f.Name()` keeps the path the file was opened at), so `parseWALName(filepath.Base(nm))` succeeds
@@ -500,7 +502,8 @@ def walDirLks (dir : GoString) (hj : NamesH) (nm0 : GoString) (lfs : List Loc) (
 `notes/wal-fsext-plan.md`, W1 log, seventh session): the directory's key `walDirKey dir j X` (the
 invariant holds the claim `(j, .except X, hj)` once, `DirKeysOk`), the program's half of that claim
 (the claim changes only with both halves, so `hj` is the directory as it is), a fraction of the
-directory's path and the shared invariant of its roots, a quarter of the call permission (the file
+directory's path and the shared invariant of its roots (the ghost names' roots `W.roots`, so that
+`Close` merges the quarters under one key), a quarter of the call permission (the file
 pipeline holds another, the client the half left: ledger 2026-11-14), the directory's open fd `dfd` (`w.dirFile`, which `cut`
 fsyncs: `os.File.Sync.specDirS`), and the tail's name: the `.wal` name `nm0` holding the tail's
 inode `ino`, the tail file's name `child pd nm0` for some parent path `pd` (`dir`, or `dir.tmp` for
@@ -526,7 +529,8 @@ def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString)
     IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-    osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗ osDirFdS dfd j ph ∗
+    osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ ⌜R = W.roots⌝ ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+    osDirFdS dfd j ph ∗
     nmd R q ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     walDirLks (W := W) dir hj nm0 lfs cuts ∗
     walNamesFrag (W := W) nf ∗
@@ -604,9 +608,9 @@ buffer. -/
 registered** (`walDirH`'s `nf := some dir`: `Create`'s pending registration, `walNamesRes`'s `o`; design P
 of `notes/wal-units/create.md`): the program's half of the name's claim is `Create`'s, but for the two
 paths to `dir` it made with its spine law, the handle's (`walDirH`'s, roots `Rp`, fraction `qp`) and the
-pipeline's (the same), **pinned** here so that `Close.specU` gives them back and `Create`'s cleanup has
+pipeline's (the same), **pinned** here so that `Close.spec` (state `unnamed`) gives them back and `Create`'s cleanup has
 the whole half again for its rename; and the tail's `*os.File` pinned to `tf` (`Create`'s segment file,
-whose deferred `f.Close()` runs after the cleanup: `Close.specU` returns it, closed or open). The parent directory's fsync, its close, then the naming
+whose deferred `f.Close()` runs after the cleanup: `Close.spec` (state `unnamed`) returns it, closed or open). The parent directory's fsync, its close, then the naming
 (`walInv_named`) and the registration (`walInv_register`) are left (`walOpenWFU_seal`). Sealed; its laws
 in `HandleUnnamed.lean`. -/
 @[no_expose] def walOpenWFU (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)

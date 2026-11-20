@@ -180,12 +180,12 @@ def listOutL (x : Input) (st : GSt) (s : ListModel.LState w8 Obj) (prepared : Go
   let pfx := go!"/registry" ++ prepared
   if s.more then
     if encOkL key pfx then
-      ⟨W64 0, [], 0, [], [], [], [], [], [], 0, encItemsL s.items.reverse, st.rv,
+      ⟨W64 0, [], 0, [], [], [], [], [], [], [], 0, encItemsL s.items.reverse, st.rv,
         encL key pfx st.rv, predEmptyL x,
-        if predEmptyL x then W64 (s.total : Int) - x.Limit' else 0, [], false⟩
+        if predEmptyL x then W64 (s.total : Int) - x.Limit' else 0, [], false, zeroValDef⟩
     else otherL
-  else ⟨W64 0, [], 0, [], [], [], [], [], [], 0, encItemsL s.items.reverse, st.rv, [], false, 0, [],
-    false⟩
+  else ⟨W64 0, [], 0, [], [], [], [], [], [], [], 0, encItemsL s.items.reverse, st.rv, [], false, 0, [],
+    false, zeroValDef⟩
 
 section vals
 variable [GoSemanticsFunctions] [GoGlobalContext]

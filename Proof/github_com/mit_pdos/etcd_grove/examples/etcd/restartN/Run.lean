@@ -162,7 +162,7 @@ def stopCand (N : Nat) (m s : Loc) (γn : NetNames GF) (γ : SrvRaft) (γk : KVN
       (γS : SwNames),
     ⌜go!"http://" ++ x.Peer' ∈ dirN ms ids id ∧ x ∈ ms ∧ ρ.rd.kv.st = γk.st ∧ srvStop.scope E⌝ ∗
     memberRec m γS γn x.Name' x.Peer' x.Client' ∗ srvAppliedInv s E ρ.rd ∗
-    srvDataDir s (x.Name' ++ go!".etcd") ∗ srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E ∗
+    srvDataDir s (memberDataDir x.Name') ∗ srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E ∗
     netHttpOk γn id ∗
     etcdstart.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dirN ms ids) token x.Name'
       (urlsN ms x) id ∗
@@ -354,6 +354,8 @@ theorem Run.wp_proof
   have hxs1 : ((members k).zip gs).map (·.1) = members k := List.map_fst_zip (by omega)
   have hutf : ∀ x ∈ (members k).zip gs, utf8Valid x.1.Name' :=
     fun x hx => members_names_utf8 k _ (List.of_mem_zip hx).1
+  have hnlen : ∀ x ∈ (members k).zip gs, x.1.Name'.length ≤ 200 :=
+    fun x hx => members_names_len k _ (List.of_mem_zip hx).1
   have hnd : (((members k).zip gs).map (·.1.Name')).Nodup := by
     rw [show ((members k).zip gs).map (·.1.Name') = (((members k).zip gs).map (·.1)).map (·.Name')
       by rw [List.map_map]; rfl, hxs1]
@@ -392,7 +394,7 @@ theorem Run.wp_proof
   -- `srvs, mems, cluster, err := startMembers(ms, lg)`
   wp_apply (wp_startMembers N msl lg ((members k).zip gs) ps (LogEntry.toEntries boot 0) ctxs
       (dirN (members k) ids) Φs γn HwbN (by simp [LogEntry.toEntries, hblen]; omega) hγn2 Hdok Hbc
-      hnd hutf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %msl2 %cl %serr Hsr
+      hnd hutf hnlen hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %msl2 %cl %serr Hsr
   · rw [hxs1]; iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %zs, %M, Hssl, Hmsl2, #Hcl, #Hsls, %Hdom, Hups⟩)⟩
   · cases serr with

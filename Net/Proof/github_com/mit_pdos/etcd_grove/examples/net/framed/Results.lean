@@ -51,6 +51,7 @@ public import Net.Proof.net.Listener__Accept
 public import GooseLang.Ext.Net.Adequacy
 public import GooseLang.Ext.Net.Deploy
 public import Robustness.Statement
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.framed.TopLevelDefs
 
 @[expose] public section
 
@@ -70,24 +71,6 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 /- The global setup of `goose_dist_crash_adequacy` is under the global ghost state alone, whose
 invariants are those of the fancy updates. -/
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- A command's program: run its package's initializer `init`, then call its `main` (as goose
-calls a function: resolve it, then apply it). -/
-def boot [GoGlobalContext] (init : val) (main : GoString) : Expr :=
-  Seq (App (Val init) (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve main []))) (Val #())) (Val #()))
-
-/-- The server node's program, `cmd/server`'s. -/
-abbrev boot_server [GoGlobalContext] : Expr := boot cmd.server.initialize' cmd.server.main
-/-- The client node's program, `cmd/client`'s. -/
-abbrev boot_client [GoGlobalContext] : Expr := boot cmd.client.initialize' cmd.client.main
-/-- The junk node's program, `cmd/junk`'s. -/
-abbrev boot_junk [GoGlobalContext] : Expr := boot cmd.junk.initialize' cmd.junk.main
-
-/-- The system: the server, the client and the junk sender, each its own process, from the local
-states `σs`, `σc` and `σj`. -/
-def system [GoGlobalContext] (σs σc σj : state) : List (Expr × state) :=
-  [(boot_server, σs), (boot_client, σc), (boot_junk, σj)]
 
 /-- A node's initial local state: its Go context is `lctx`, no package is initialized and it has
 its main thread only. -/
@@ -333,29 +316,6 @@ theorem framed_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       | 0, hi => cases hi; exact Hs.threads
       | 1, hi => cases hi; exact Hc.threads
       | 2, hi => cases hi; exact Hj.threads))
-
-/-- **`framed_crash_safety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the system's machines, each of which may crash at any step and
-restart, each a fresh Go process (`Robust`'s premise), under `framed_crash_safety`'s other
-hypotheses: in every execution, of any length, no thread of any machine is stuck and none has an
-unrecovered panic. -/
-theorem framed_crash_robust
-    [lctx : GoLocalContext] [sem : go.Semantics] [server_sem : cmd.server.Assumptions]
-    [client_sem : cmd.client.Assumptions] [junk_sem : cmd.junk.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σs σc σj : state) (g : GlobalState)
-    (h : GoString) (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
-    (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat) :
-    Robustness.Robust (system σs σc σj) [] g bound := by
-  refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
-  have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σs σc σj) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
-    ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩
-  exact (framed_crash_safety
-      σs σc σj g h (hfresh σs ⟨boot_server, by simp [system]⟩)
-      (hfresh σc ⟨boot_client, by simp [system]⟩) (hfresh σj ⟨boot_junk, by simp [system]⟩) Hhost
-      Hplan pl Hwf Hpl Hconns n κs c Hsteps i tp σ hi).2
 
 end adequacy
 

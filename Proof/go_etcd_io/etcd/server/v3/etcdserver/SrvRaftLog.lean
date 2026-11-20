@@ -835,7 +835,9 @@ some peers `ps`), which the stop's image needs (`stop_imageConf`); `srvClusterBo
 def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
   iprop(srvLogInv γ ∗ srvClusterOk γ ∗ srvRLogLb γ [] ∗ ⌜uint.Z γ.ai0 = γ.pre.length⌝ ∗
     ⌜γ.pre = []⌝ ∗ srvRLogLb γ (γ.raft.boot.map EntryModel.ofM) ∗
-    ⌜γ.raft.vs ≠ [] ∧ γ.raft.vs.Nodup ∧ srvBootLogOk γ.raft.vs γ.raft.boot⌝)
+    -- (wal-link L3, F2, 2026-11-19) fewer than `2^16` voters (`BootCore`'s distinct 16-bit prefixes,
+    -- `idPfxsOf_ok`): what bounds a snapshot's conf state, hence its WAL record
+    ⌜γ.raft.vs ≠ [] ∧ γ.raft.vs.Nodup ∧ srvBootLogOk γ.raft.vs γ.raft.boot ∧ γ.raft.vs.length < 2 ^ 16⌝)
 
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
@@ -919,7 +921,7 @@ theorem srv_first_boot (γ : ServerRaftNames) (L : List EntryModel) (m : EntryMo
   ihave %Hp := srvRLogLb_prefix γ (γ.raft.boot.map EntryModel.ofM) L $$ [Hb HL]
   · iframe Hb HL
   ipureintro
-  obtain ⟨hps, -, hlen, -, hk⟩ := Hok
+  obtain ⟨hps, -, ⟨hlen, -, hk⟩, -⟩ := Hok
   have hpos : 0 < γ.raft.boot.length := by
     rw [hlen]; cases h : γ.raft.vs with
     | nil => exact absurd h hps

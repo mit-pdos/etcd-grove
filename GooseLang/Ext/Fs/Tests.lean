@@ -717,7 +717,7 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- PathKind
     obtain ⟨-, -, rfl, -⟩ := hs; exact h
   next => -- CallBegin
-    obtain ⟨-, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
+    obtain ⟨-, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- DirSync
     obtain ⟨-, -, -, -, ⟨rfl, -⟩ | ⟨e, -, -, rfl⟩⟩ := hs
     · exact cacheOk_of_eq h rfl rfl (Nat.le_refl _)
@@ -730,7 +730,7 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- LstatDir
     obtain ⟨-, -, -, t, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_metaEnd h t
   next => -- Rename
-    obtain ⟨s0, t0, k, start, -, -, -, -, -, hr⟩ := hs
+    obtain ⟨s0, t0, k, start, -, -, -, -, -, -, hr⟩ := hs
     dsimp only at hr
     rcases hr with ⟨-, o, -, ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩⟩ | ⟨-, -, rfl, -⟩ | ⟨e, -, -, rfl⟩
     · exact cacheOk_metaDo (cacheOk_metaEnd h k) _ _
@@ -951,7 +951,7 @@ theorem dirsync_new_dir [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] (st' 
 def stRm : OsState :=
   { fs := { roots := [(rootP, 1)], treeDur := <[1 := {[go!"m" := .dir 2]}]> {[2 := ∅]},
             metaLog := [], committed := fun _ => False, files := ∅, nextIno := 3, stamp := 0 },
-    proc := { ProcState.empty with dfds := {[W64 3 := ⟨2, .idle⟩]}, calls := {[0 := 0]} } }
+    proc := { ProcState.empty with dfds := {[W64 3 := ⟨2, .idle⟩]}, calls := {[0 := (0, go!"/r/m")]} } }
 
 /-- **`rmdir` succeeds although an fd is open on the directory** (the fd keeps it, empty). -/
 theorem rmdir_open_fd [GooseExts] [GoGlobalContext] :

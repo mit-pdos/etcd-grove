@@ -72,7 +72,7 @@ theorem Counter.Apply.wp_proof :
     iframe Htt
     simp only [counterS]
     ipureintro
-    exact ⟨⟨_, rfl⟩, _, rfl⟩
+    exact ⟨fun _ => trivial, ⟨_, rfl⟩, _, rfl⟩
 
 end proof
 

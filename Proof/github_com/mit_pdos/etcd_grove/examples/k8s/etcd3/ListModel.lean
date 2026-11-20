@@ -119,6 +119,31 @@ theorem loop_items_le (sel : O → Bool) (limit : Nat) (hl : 0 < limit)
     (sc : List (List α × O)) : (loop sel limit sc).items.length ≤ limit :=
   foldl_items_le sel limit hl sc _ (by simp)
 
+/-- The loop's items are items of its input (k8s 7g step 5: what a list's items inherit from the store). -/
+theorem foldl_items_mem (sel : O → Bool) (limit : Nat) :
+    ∀ (sc : List (List α × O)) (s : LState α O) (o : O),
+      o ∈ (sc.foldl (lstep sel limit) s).items → o ∈ s.items ∨ o ∈ sc.map Prod.snd
+  | [], s, o, h => Or.inl (by simpa using h)
+  | ko :: sc, s, o, h => by
+    rw [List.foldl_cons] at h
+    rcases foldl_items_mem sel limit sc _ o h with h1 | h1
+    · simp only [lstep] at h1
+      split at h1
+      · exact Or.inl (by simpa using h1)
+      · split at h1
+        · simp only [List.mem_cons] at h1
+          rcases h1 with rfl | h1
+          · right; simp
+          · exact Or.inl h1
+        · exact Or.inl (by simpa using h1)
+    · right; simp only [List.map_cons, List.mem_cons]; exact Or.inr h1
+
+theorem loop_items_mem (sel : O → Bool) (limit : Nat) (sc : List (List α × O)) (o : O)
+    (h : o ∈ (loop sel limit sc).items) : o ∈ sc.map Prod.snd := by
+  rcases foldl_items_mem sel limit sc _ o h with h | h
+  · simp at h
+  · exact h
+
 /-- Once the limit is reached, the items stay and `hasMore` is set by any further item. -/
 theorem foldl_full (sel : O → Bool) (limit : Nat) (hl : 0 < limit) :
     ∀ (sc : List (List α × O)) (s : LState α O), limit ≤ s.items.length →

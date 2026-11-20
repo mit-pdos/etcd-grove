@@ -64,7 +64,8 @@ store's `AuthInfoFromCtx` reads the context's token, `srvAuthBound` in `isServer
 derived from it, a constant `Qh`). -/
 abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (p : Loc) (rq : apply.IRRModel)
     (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
   -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
@@ -73,7 +74,8 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
+      context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ trace.spanCtxOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E tok) rq Qh ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
       srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
@@ -82,7 +84,7 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
           ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ resPostM E.authOn E ρ rq' F res L ∗
-            pubAfterM E.authOn E ρ rq' L ∗ □ Qh hm L ∗ hdrBoundM E.authOn s E (GoInterface.ok ctx) hm) ∨
+            pubAfterM E.authOn E ρ rq' L ∗ □ Qh hm L ∗ hdrBoundM E.authOn s E tok hm) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 

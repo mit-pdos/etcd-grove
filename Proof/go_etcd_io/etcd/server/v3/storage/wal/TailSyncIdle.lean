@@ -2,7 +2,7 @@
 
 # The fdatasync of an idle tail (the W7-W12 log of `notes/wal-fsext-plan.md`, sixth session)
 
-`Close` of a handle that never registered its WAL's tail (`WAL.Close.specOpening`: `Open`'s handle
+`Close` of a handle that never registered its WAL's tail (`WAL.Close.spec` (state `opening`): `Open`'s handle
 before `ReadAll`) runs `sync()`, whose `fileutil.Fdatasync(w.tail().File)` needs the whole of the
 tail's `OsMeta` and bytes: the program's halves joined with the invariant's at a step. The WAL is idle
 (`TailIdle`, `walTailsRes`'s `WalTailIdle`), so its tail is synced already (`TailSynced`: every byte

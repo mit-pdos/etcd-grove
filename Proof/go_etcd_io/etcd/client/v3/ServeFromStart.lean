@@ -26,6 +26,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
+public import Proof.go_etcd_io.etcd.client.v3.ServeLaws
 
 @[expose] public section
 
@@ -186,6 +187,12 @@ theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     iapply membership.localKept_of_isRaftCluster
     iexact Hrc
   ipureintro; exact ⟨rfl, rfl⟩
+
+theorem grpcCfgOk_of_startedM_law_holds : grpcCfgOk_of_startedM.law (GF := GF) (hG := hG) :=
+  grpcCfgOk_of_startedM
+
+theorem raftKV_serverM_law_holds : v3rpc.raftKV_serverM.law (GF := GF) (hG := hG) :=
+  v3rpc.raftKV_serverM
 
 end start
 

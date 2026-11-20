@@ -1,0 +1,760 @@
+--- a/examples/k8s/etcd3/k8setcd3.go	2026-11-17 11:35:30.000000000 +0000
++++ b/examples/k8s/etcd3/k8setcd3.go	2026-11-17 11:52:22.389981154 +0000
+@@ -291,7 +291,19 @@
+ func (o *Obj) GetUID() types.UID                           { return types.UID(o.UID) }
+ func (o *Obj) SetUID(uid types.UID)                        { o.UID = string(uid) }
+ func (o *Obj) GetResourceVersion() string                  { return rvString(o.ResourceVersion) }
+-func (o *Obj) SetResourceVersion(version string)           {}
++func (o *Obj) SetResourceVersion(version string) {
++	// (7g experiment) the Model sets resource versions as decimal strings (strconv.FormatUint)
++	if !setRVDecimal {
++		return
++	}
++	if version == "" {
++		o.ResourceVersion = 0
++		return
++	}
++	if n, err := strconv.ParseUint(version, 10, 64); err == nil {
++		o.ResourceVersion = n
++	}
++}
+ func (o *Obj) GetGeneration() int64                        { return 0 }
+ func (o *Obj) SetGeneration(generation int64)              {}
+ func (o *Obj) GetSelfLink() string                         { return "" }
+@@ -1329,7 +1341,7 @@
+ 		return rvBytes(0)
+ 	}
+ 	if m < 55 {
+-		return rvBytes(1)
++		return rvBytes(clampRV(1))
+ 	}
+ 	if !hasC {
+ 		return ""
+@@ -1342,15 +1354,15 @@
+ 		return ""
+ 	}
+ 	if m < 84 {
+-		return rvBytes(r)
++		return rvBytes(clampRV(r))
+ 	}
+ 	if m < 98 {
+ 		if r <= d {
+-			return rvBytes(1)
++			return rvBytes(clampRV(1))
+ 		}
+-		return rvBytes(r - d)
++		return rvBytes(clampRV(r - d))
+ 	}
+-	return rvBytes(r + d)
++	return rvBytes(clampRV(r + d))
+ }
+ 
+ // genList is the List client id picks for the random number n on the key key with its cached
+@@ -1949,3 +1961,32 @@
+ 	}
+ 	return r
+ }
++
++// (7g experiment) whether Obj.SetResourceVersion parses a decimal string (the Model's form).
++var setRVDecimal = false
++
++// (7g experiment) metav1.ListInterface for ObjList (meta.ListAccessor), the resource version as
++// the versioner's string.
++func (l *ObjList) GetResourceVersion() string { return rvString(l.ResourceVersion) }
++func (l *ObjList) SetResourceVersion(version string) {
++	if n, err := parseRV(version); err == nil {
++		l.ResourceVersion = n
++	}
++}
++func (l *ObjList) GetSelfLink() string        { return "" }
++func (l *ObjList) SetSelfLink(selfLink string) {}
++func (l *ObjList) GetContinue() string        { return l.Continue }
++func (l *ObjList) SetContinue(c string)       { l.Continue = c }
++func (l *ObjList) GetRemainingItemCount() *int64 { return l.RemainingItemCount }
++func (l *ObjList) SetRemainingItemCount(c *int64) { l.RemainingItemCount = c }
++
++// (7g experiment) the seed's revision: a drawn resource version below it (but not 0) is raised to
++// it (the replay knows the states from the initial Model's revision on).
++var floorRV uint64
++
++func clampRV(r uint64) uint64 {
++	if r != 0 && r < floorRV {
++		return floorRV
++	}
++	return r
++}
+--- a/examples/k8s/etcd3/watch.go	2026-11-17 11:35:30.000000000 +0000
++++ b/examples/k8s/etcd3/watch.go	2026-11-17 11:52:22.393505161 +0000
+@@ -104,7 +104,7 @@
+ 	case m == 1:
+ 		rv = rvBytes(0)
+ 	case m == 2:
+-		rv = rvBytes(1)
++		rv = rvBytes(clampRV(1))
+ 	case m >= 3:
+ 		r := c.ResourceVersion
+ 		if m == 5 {
+@@ -116,7 +116,7 @@
+ 		} else if m == 6 {
+ 			r = r + d + 1
+ 		}
+-		rv = rvString(r)
++		rv = rvString(clampRV(r))
+ 	}
+ 	key := workloadKeys()[ki]
+ 	ns, name := splitKey(key)
+--- /dev/null	2026-10-29 22:56:13.636740684 +0000
++++ b/examples/k8s/etcd3/realcheck_test.go	2026-11-17 11:57:17.210012712 +0000
+@@ -0,0 +1,482 @@
++package etcd3
++
++// Stage 7g experiment (notes/k8s-7g-scope.md): run Kubernetes' own checker (a copy of
++// k8s.io/apiserver/pkg/storage/testing/correctness, with or without the D30g patch) on the
++// driver's real histories, as TestCorrectness does: porcupine with correctness.Model over the
++// unary operations, Replay along porcupine's linearization, Replay.Validate of every operation,
++// WatchValidator of every watch. The driver's own check (RunLin2 with Model) runs as before; the
++// raw requests and responses are recorded beside it.
++
++import (
++	"context"
++	"fmt"
++	"os"
++	"sort"
++	"strings"
++	"sync"
++	"testing"
++	"time"
++
++	"github.com/anishathalye/porcupine"
++	"go.uber.org/zap"
++
++	clientv3 "go.etcd.io/etcd/client/v3"
++	"go.etcd.io/etcd/client/v3/kubernetes"
++
++	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++	"k8s.io/apimachinery/pkg/runtime"
++	"k8s.io/apimachinery/pkg/types"
++	"k8s.io/apimachinery/pkg/watch"
++	"k8s.io/apiserver/pkg/storage"
++
++	"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3/correctness"
++	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
++	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
++	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
++)
++
++type rawRec struct {
++	in    Input
++	req   correctness.Request
++	resp  correctness.Response
++	wreq  correctness.WatchRequest
++	wresp correctness.WatchResponse
++	// a watch whose Watch call failed, or a skipped one
++	wfailed bool
++	skip    bool
++}
++
++type recorder struct {
++	mu   sync.Mutex
++	recs map[int][]rawRec
++}
++
++func (r *recorder) add(id int, rec rawRec) {
++	r.mu.Lock()
++	r.recs[id] = append(r.recs[id], rec)
++	r.mu.Unlock()
++}
++
++// rawCall is call, keeping the raw request and response.
++func rawCall(s storage.Interface, in Input) (correctness.Request, correctness.Response, Output) {
++	ctx := context.Background()
++	if in.Kind == KList {
++		l := &ObjList{}
++		opts := listOptions(in)
++		req := correctness.Request{Op: correctness.OpList, Key: in.ListKey, List: correctness.ListRequest{Options: opts}}
++		if err := s.GetList(ctx, in.ListKey, opts, l); err != nil {
++			return req, correctness.Response{Err: err}, errOut(err)
++		}
++		return req, correctness.Response{Object: l}, listOut(l)
++	}
++	out := &Obj{}
++	var err error
++	var req correctness.Request
++	key := storeKey(in.Key)
++	if in.Kind == KCreate {
++		ns, name := splitKey(in.Key)
++		obj := &Obj{Namespace: ns, Name: name, UID: in.UID, Value: in.Val, Node: in.Node, App: in.App}
++		req = correctness.Request{Op: correctness.OpCreate, Key: key, Create: correctness.CreateRequest{Object: obj.DeepCopyObject()}}
++		err = s.Create(ctx, key, obj, out, 0)
++	} else if in.Kind == KDelete {
++		req = correctness.Request{Op: correctness.OpDelete, Key: key, Delete: correctness.DeleteRequest{
++			Preconditions: preconditions(in), ValidateDeletion: validateFor(in.HasReject, in.Reject),
++			CachedExistingObject: cachedObj(in)}}
++		err = s.Delete(ctx, key, out, preconditions(in), validateFor(in.HasReject, in.Reject),
++			cachedObj(in), storage.DeleteOptions{})
++	} else if in.Kind == KUpdate {
++		req = correctness.Request{Op: correctness.OpUpdate, Key: key, Update: correctness.UpdateRequest{
++			UpdateFunc: tryUpdateFor(in), IgnoreNotFound: in.IgnoreNotFound,
++			Preconditions: preconditions(in), CachedExistingObject: cachedObj(in)}}
++		err = s.GuaranteedUpdate(ctx, key, out, in.IgnoreNotFound, preconditions(in),
++			tryUpdateFor(in), cachedObj(in))
++	} else {
++		opts := storage.GetOptions{IgnoreNotFound: in.IgnoreNotFound, ResourceVersion: in.MinRV}
++		req = correctness.Request{Op: correctness.OpGet, Key: key, Get: correctness.GetRequest{Options: opts}}
++		err = s.Get(ctx, key, opts, out)
++	}
++	if err != nil {
++		return req, correctness.Response{Err: err}, errOut(err)
++	}
++	return req, correctness.Response{Object: out}, objOut(*out)
++}
++
++// rawConsume is consume, keeping the raw events.
++func rawConsume(w watch.Interface, in Input) ([]WEvent, []watch.Event) {
++	timer := time.NewTimer(watchDuration)
++	defer timer.Stop()
++	if in.Behavior == BStalled {
++		<-time.After(hiccupDuration)
++		return nil, nil
++	}
++	initialDone := in.SendInit != 2
++	hiccupDone := in.Behavior != BHiccup
++	var evs []WEvent
++	var raw []watch.Event
++	for {
++		if initialDone {
++			var delay time.Duration
++			if !hiccupDone && len(evs) > 0 {
++				delay = hiccupDuration
++				hiccupDone = true
++			} else if in.Behavior == BSlow {
++				delay = slowDelay
++			}
++			if delay > 0 {
++				select {
++				case <-timer.C:
++					return evs, raw
++				case <-time.After(delay):
++				}
++			}
++		}
++		select {
++		case <-timer.C:
++			return evs, raw
++		case ev, open := <-w.ResultChan():
++			if !open {
++				return evs, raw
++			}
++			we := toWEvent(ev)
++			evs = append(evs, we)
++			raw = append(raw, ev)
++			if we.Type == WBookmark {
++				initialDone = true
++			}
++			if len(evs) >= maxEvents {
++				return evs, raw
++			}
++		}
++	}
++}
++
++func rawWatch(s storage.Interface, in Input) (Output, Obj, bool, rawRec) {
++	rec := rawRec{in: in}
++	if in.Skip {
++		rec.skip = true
++		return Output{WFailed: true}, Obj{}, false, rec
++	}
++	start := time.Now()
++	opts := watchOptions(in)
++	rec.wreq = correctness.WatchRequest{Key: in.WKey, Options: opts}
++	ctx, cancel := context.WithCancel(context.Background())
++	w, err := s.Watch(ctx, in.WKey, opts)
++	var evs []WEvent
++	if err != nil {
++		cancel()
++		rec.wfailed = true
++		rec.wresp = correctness.WatchResponse{Err: err}
++	} else {
++		var raw []watch.Event
++		evs, raw = rawConsume(w, in)
++		w.Stop()
++		cancel()
++		rec.wresp = correctness.WatchResponse{Events: raw}
++	}
++	if d := time.Since(start); d < hiccupDuration {
++		time.Sleep(hiccupDuration - d)
++	}
++	if rec.wfailed {
++		return Output{WFailed: true}, Obj{}, false, rec
++	}
++	o, ok := lastObj(evs)
++	return Output{WEvents: encodeWEvents(evs)}, o, ok, rec
++}
++
++// rawApply is Apply, recording the raw request and response.
++func rawApply(s storage.Interface, tbl *cache, rc *recorder, input any) any {
++	in := input.(Input)
++	if in.Kind == KWatch {
++		out, last, ok, rec := rawWatch(s, in)
++		if ok {
++			tbl.putW(in.Client, last)
++		}
++		rc.add(in.Client, rec)
++		return out
++	}
++	req, resp, out := rawCall(s, in)
++	if out.Err == ENone && out.Name != "" {
++		tbl.put(in.Client, objOf(out))
++	}
++	tbl.done.Add(1)
++	rc.add(in.Client, rawRec{in: in, req: req, resp: resp})
++	return out
++}
++
++func toPorcupineModel(s *correctness.Model) porcupine.Model {
++	return porcupine.Model{
++		Init: func() any { return s.Clone() },
++		Step: func(state, input, output any) (bool, any) {
++			ok, next, _ := state.(*correctness.Model).Step(input.(correctness.Request), output.(correctness.Response))
++			return ok, next
++		},
++		Equal: func(a, b any) bool { return a.(*correctness.Model).Equal(b.(*correctness.Model)) },
++	}
++}
++
++func keyFunc(obj runtime.Object) (string, error) {
++	o, ok := obj.(*Obj)
++	if !ok {
++		return "", fmt.Errorf("not an Obj: %T", obj)
++	}
++	return storeKey(o.Namespace + "/" + o.Name), nil
++}
++
++// initialModel is the Model of the seeded store st0: its items, its resource version, and (with
++// the D30g patch) the keys whose stored data is not canonical.
++func initialModel(st0 mstore, patched bool) *correctness.Model {
++	m := correctness.NewEmptyModel(Prefix, newObj, func() runtime.Object { return &ObjList{} }, versioner{})
++	m.ResourceVersion = st0.rv
++	for _, it := range st0.items {
++		o := it.obj
++		m.Items[storeKey(it.key)] = &o
++		if patched && !it.canon {
++			if m.NeedsRewrite == nil {
++				m.NeedsRewrite = map[string]bool{}
++			}
++			m.NeedsRewrite[storeKey(it.key)] = true
++		}
++	}
++	return m
++}
++
++type realStats struct {
++	unary, failedUnary, watches, failedWatches, skipped, errorEvents, eventsAfterError int
++	verdict                                                                          string
++}
++
++// truncateAtError is the events up to and including the first Error event.
++func truncateAtError(evs []watch.Event) ([]watch.Event, bool) {
++	for i, ev := range evs {
++		if ev.Type == watch.Error {
++			return evs[:i+1], i+1 < len(evs)
++		}
++	}
++	return evs, false
++}
++
++// realCheck runs the maintainers' checker on the recorded history (the driver's linearized ops
++// give the call and return times).
++func realCheck(t *testing.T, st0 mstore, ops []porcupine.Operation, rc *recorder, patched bool, truncate bool) realStats {
++	var st realStats
++	// map each op to its raw record: per client, by call time
++	byClient := map[int][]porcupine.Operation{}
++	for _, op := range ops {
++		byClient[op.ClientId] = append(byClient[op.ClientId], op)
++	}
++	var unary []correctness.Operation
++	var watches []correctness.WatchOperation
++	for id, cops := range byClient {
++		sort.Slice(cops, func(i, j int) bool { return cops[i].Call < cops[j].Call })
++		recs := rc.recs[id]
++		if len(recs) != len(cops) {
++			t.Fatalf("client %d: %d records, %d ops", id, len(recs), len(cops))
++		}
++		for i, op := range cops {
++			rec := recs[i]
++			if rec.in.Kind == KWatch {
++				if rec.skip {
++					st.skipped++
++					continue
++				}
++				st.watches++
++				if rec.wfailed {
++					st.failedWatches++
++				}
++				evs := rec.wresp.Events
++				for _, ev := range evs {
++					if ev.Type == watch.Error {
++						st.errorEvents++
++						break
++					}
++				}
++				if tr, after := truncateAtError(evs); after {
++					st.eventsAfterError++
++					if truncate {
++						evs = tr
++					}
++				}
++				watches = append(watches, correctness.WatchOperation{Request: rec.wreq,
++					Response: correctness.WatchResponse{Events: evs, Err: rec.wresp.Err}})
++				continue
++			}
++			st.unary++
++			if op.Output.(Output).Err == EOther {
++				st.failedUnary++
++			}
++			unary = append(unary, correctness.Operation{ClientID: id, Request: rec.req, Response: rec.resp,
++				Start: time.Unix(0, op.Call), End: time.Unix(0, op.Return)})
++		}
++	}
++	init := initialModel(st0, patched)
++	pops := make([]porcupine.Operation, len(unary))
++	for i, op := range unary {
++		pops[i] = porcupine.Operation{ClientId: op.ClientID, Input: op.Request, Call: op.Start.UnixNano(),
++			Output: op.Response, Return: op.End.UnixNano()}
++	}
++	res, info := porcupine.CheckOperationsVerbose(toPorcupineModel(init), pops, time.Minute)
++	if res != porcupine.Ok {
++		st.verdict = fmt.Sprintf("porcupine %v", res)
++		return st
++	}
++	lins := info.PartialLinearizations()
++	if len(lins) != 1 || len(lins[0]) != 1 {
++		st.verdict = "no linearization"
++		return st
++	}
++	ordered := make([]correctness.Operation, len(lins[0][0]))
++	for i, idx := range lins[0][0] {
++		ordered[i] = unary[idx]
++	}
++	replay, err := correctness.NewReplay(init, ordered)
++	if err != nil {
++		st.verdict = "NewReplay: " + err.Error()
++		return st
++	}
++	var bad []string
++	for _, op := range ordered {
++		if err := replay.Validate(op.Request, op.Response); err != nil {
++			bad = append(bad, "Validate: "+firstLine(err.Error()))
++		}
++	}
++	validator := correctness.NewWatchValidator(versioner{}, replay, keyFunc)
++	for _, w := range watches {
++		if err := validator.ValidateWatch(w.Request, w.Response); err != nil {
++			bad = append(bad, "ValidateWatch: "+firstLine(err.Error()))
++		}
++	}
++	if len(bad) > 0 {
++		kinds := map[string]int{}
++		for _, b := range bad {
++			k := b
++			if i := strings.IndexAny(b, "0123456789"); i >= 0 {
++				k = b[:i]
++			}
++			kinds[k]++
++		}
++		st.verdict = fmt.Sprintf("%d failures %v; first: %s", len(bad), kinds, strings.Join(bad[:min(len(bad), 3)], " | "))
++		return st
++	}
++	st.verdict = "Ok"
++	return st
++}
++
++func firstLine(s string) string {
++	if i := strings.IndexByte(s, '\n'); i >= 0 {
++		return s[:i]
++	}
++	if len(s) > 300 {
++		return s[:300]
++	}
++	return s
++}
++
++func envBool(name string, def bool) bool {
++	switch os.Getenv(name) {
++	case "1", "true":
++		return true
++	case "0", "false":
++		return false
++	}
++	return def
++}
++
++// runReal runs the driver's check with the raw recording, then the real checker.
++func runReal(t *testing.T, s storage.Interface, st0 mstore, h0 []mstore, clients, ops, watchers, wops int) {
++	rc := &recorder{recs: map[int][]rawRec{}}
++	if envBool("K8S7G_FLOOR", false) {
++		floorRV = st0.rv
++	}
++	t.Logf("floorRV %d", floorRV)
++	tbl := newWCache(clients, int64(clients)*int64(ops))
++	apply := func(input any) any { return rawApply(s, tbl, rc, input) }
++	gen := func(id int) any { return Gen(tbl, id) }
++	r, lops := lintest.RunLin2(Model(st0, h0), apply, gen, lintest.CounterClock(), clients, ops, watchers, wops, 0)
++	t.Logf("driver's check: %v", r)
++	if r != porcupine.Ok {
++		t.Fatalf("driver's check %v", r)
++	}
++	patched := envBool("K8S7G_PATCH", true)
++	truncate := envBool("K8S7G_TRUNC", true)
++	st := realCheck(t, st0, lops, rc, patched, truncate)
++	t.Logf("real checker (D30g patch %v, SetResourceVersion decimal %v, truncate at Error %v): %s", patched, setRVDecimal, truncate, st.verdict)
++	t.Logf("unary %d (failed %d), watches %d (failed %d, with Error %d, events after Error %d), skipped %d",
++		st.unary, st.failedUnary, st.watches, st.failedWatches, st.errorEvents, st.eventsAfterError, st.skipped)
++	if os.Getenv("K8S7G_REQUIRE_OK") == "1" && st.verdict != "Ok" {
++		t.Errorf("real checker: %s", st.verdict)
++	}
++}
++
++// TestRealChecker: one member (Main's setup).
++func TestRealChecker(t *testing.T) {
++	setRVDecimal = envBool("K8S7G_SETRV", true)
++	t.Chdir(t.TempDir())
++	lg := zap.NewNop()
++	cl := "127.0.0.1:23991"
++	srv, err := etcdstart.StartServer("k8s7g", "127.0.0.1:23990", cl, lg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err := etcdstart.Serve(srv, cl); err != nil {
++		t.Fatal(err)
++	}
++	kc, err := kubernetes.New(clientv3.Config{Endpoints: []string{cl}, Logger: lg, MaxUnaryRetries: 1})
++	if err != nil {
++		t.Fatal(err)
++	}
++	s, st0, h0, ok := newStore(kc)
++	if !ok {
++		t.Fatal("store")
++	}
++	runReal(t, s, st0, h0, 8, 300, 16, 8)
++}
++
++// TestRealCheckerPartition: k members under a schedule (K8SETCD3_SCHED; K8SETCD3_K).
++func TestRealCheckerPartition(t *testing.T) {
++	setRVDecimal = envBool("K8S7G_SETRV", true)
++	k := testK(t)
++	name := os.Getenv("K8S7G_SCHED")
++	var sched []cluster3.Step
++	if name != "" {
++		sched = partitionSchedules(int(k))[name]
++	}
++	inChild(t, "TestRealCheckerPartition", "", func(t *testing.T) {
++		srvs, brs, kc, ok := startCluster(k, zap.NewNop())
++		if !ok {
++			t.Fatal("startCluster")
++		}
++		s, st0, h0, ok := newStore(kc)
++		if !ok {
++			t.Fatal("store")
++		}
++		if sched != nil {
++			go cluster3.Partitioner(srvs, brs, sched)
++		}
++		runReal(t, s, st0, h0, 4, 120, 8, 12)
++	})
++}
++
++// TestD30gRealModel: the seeded key's no-op update against the real Model, unpatched and
++// patched (the store rewrites the non-canonical data; nonissues/k8s-correctness-model-noop-rewrite.md).
++func TestD30gRealModel(t *testing.T) {
++	setRVDecimal = true
++	st0 := mstore{items: []item{{key: "ns-1/pod-1", obj: Obj{Namespace: "ns-1", Name: "pod-1", Value: "x", ResourceVersion: 2}, canon: false}}, rv: 2}
++	in := Input{Kind: KUpdate, Key: "ns-1/pod-1", NoOp: true}
++	// the store's answer (the driver's model, which is the store's rule): a rewrite at RV 3
++	_, o := mstep(in, st0)
++	if o.RV != 3 {
++		t.Fatalf("driver's model: RV %d, want 3", o.RV)
++	}
++	resp := correctness.Response{Object: &Obj{Namespace: "ns-1", Name: "pod-1", Value: "x", ResourceVersion: 3}}
++	req := correctness.Request{Op: correctness.OpUpdate, Key: storeKey(in.Key), Update: correctness.UpdateRequest{UpdateFunc: tryUpdateFor(in)}}
++	for _, patched := range []bool{false, true} {
++		m := initialModel(st0, patched)
++		ok, _, ch := m.Step(req, resp)
++		t.Logf("patched %v: Model accepts the rewrite: %v (change %v)", patched, ok, ch != nil)
++		if ok != patched {
++			t.Errorf("patched %v: got %v", patched, ok)
++		}
++	}
++	_ = types.UID("")
++	_ = metav1.StatusFailure
++}
+--- /dev/null	2026-10-29 22:56:13.636740684 +0000
++++ b/examples/k8s/etcd3/realfacts_test.go	2026-11-17 11:58:38.104573842 +0000
+@@ -0,0 +1,123 @@
++package etcd3
++
++// Stage 7g evidence (notes/k8s-7g-scope.md): the facts the Scope's trust-boundary specs and
++// departures rest on, on the driver's own types.
++
++import (
++	"errors"
++	"reflect"
++	"strings"
++	"testing"
++
++	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++	"k8s.io/apimachinery/pkg/runtime"
++	"k8s.io/apimachinery/pkg/watch"
++	"k8s.io/apiserver/pkg/storage"
++
++	"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3/correctness"
++)
++
++// reflect.DeepEqual on the values the checker compares: objects by their fields, lists by items
++// (nil and empty Items differ), the remaining count by its pointee, storage errors by code, key,
++// resource version and inner error (two errors.New of one message are deeply equal), sentinels by
++// identity or message, different dynamic types never.
++func TestDeepEqualFacts(t *testing.T) {
++	o := func(v string, rv uint64) *Obj { return &Obj{Namespace: "ns-1", Name: "pod-1", Value: v, ResourceVersion: rv} }
++	n1, n2 := int64(1), int64(1)
++	cases := []struct {
++		name string
++		a, b any
++		eq   bool
++	}{
++		{"obj same fields", runtime.Object(o("x", 3)), runtime.Object(o("x", 3)), true},
++		{"obj value", runtime.Object(o("x", 3)), runtime.Object(o("y", 3)), false},
++		{"obj rv", runtime.Object(o("x", 3)), runtime.Object(o("x", 4)), false},
++		{"obj annotated", runtime.Object(o("x", 3)), runtime.Object(&Obj{Namespace: "ns-1", Name: "pod-1", Value: "x", ResourceVersion: 3, Annotated: true}), false},
++		{"obj vs list", runtime.Object(o("x", 3)), runtime.Object(&ObjList{}), false},
++		{"nil vs obj", nil, runtime.Object(o("x", 3)), false},
++		{"list nil vs empty items", runtime.Object(&ObjList{ResourceVersion: 5}), runtime.Object(&ObjList{Items: []Obj{}, ResourceVersion: 5}), false},
++		{"list empty items", runtime.Object(&ObjList{Items: []Obj{}, ResourceVersion: 5}), runtime.Object(&ObjList{Items: []Obj{}, ResourceVersion: 5}), true},
++		{"list remaining pointee", runtime.Object(&ObjList{Items: []Obj{}, RemainingItemCount: &n1}), runtime.Object(&ObjList{Items: []Obj{}, RemainingItemCount: &n2}), true},
++		{"list remaining nil", runtime.Object(&ObjList{Items: []Obj{}, RemainingItemCount: &n1}), runtime.Object(&ObjList{Items: []Obj{}}), false},
++		{"not found", error(storage.NewKeyNotFoundError("/registry/objs/a", 4)), error(storage.NewKeyNotFoundError("/registry/objs/a", 4)), true},
++		{"not found rv", error(storage.NewKeyNotFoundError("/registry/objs/a", 4)), error(storage.NewKeyNotFoundError("/registry/objs/a", 5)), false},
++		{"invalid same msg", error(storage.NewInvalidObjError("k", "Precondition failed: x")), error(storage.NewInvalidObjError("k", "Precondition failed: x")), true},
++		{"invalid other msg", error(storage.NewInvalidObjError("k", "Precondition failed: x")), error(storage.NewInvalidObjError("k", "Precondition failed: y")), false},
++		{"sentinel itself", error(errUpdateRejected), error(errUpdateRejected), true},
++		{"sentinels differ", error(errUpdateRejected), error(errDeleteRejected), false},
++		{"errors.New same text", errors.New("a"), errors.New("a"), true},
++		{"response", correctness.Response{Object: o("x", 3)}, correctness.Response{Object: o("x", 3)}, true},
++		{"response err", correctness.Response{Err: storage.NewKeyExistsError("k", 0)}, correctness.Response{Err: storage.NewKeyExistsError("k", 0)}, true},
++		{"map", map[string]runtime.Object{"a": o("x", 3)}, map[string]runtime.Object{"a": o("x", 3)}, true},
++		{"map extra key", map[string]runtime.Object{"a": o("x", 3)}, map[string]runtime.Object{"a": o("x", 3), "b": o("x", 3)}, false},
++		{"empty map vs nil map", map[string]runtime.Object{}, map[string]runtime.Object(nil), false},
++	}
++	for _, tc := range cases {
++		if got := reflect.DeepEqual(tc.a, tc.b); got != tc.eq {
++			t.Errorf("%s: DeepEqual %v, want %v", tc.name, got, tc.eq)
++		}
++	}
++}
++
++func bookmark(rv uint64) watch.Event {
++	return watch.Event{Type: watch.Bookmark, Object: &Obj{ResourceVersion: rv, Annotated: true}}
++}
++
++// The two places the maintainers' WatchValidator is stricter than the driver's check (the 7f
++// Scope's departures 1 and 2): an Error event that is not the last, and a watch-list whose events
++// end before the initial-events-end bookmark. Both are rejected; truncated at the Error, or with
++// no initial event, they are accepted.
++func TestValidatorDepartures(t *testing.T) {
++	setRVDecimal = true
++	st0 := mstore{items: []item{{key: "ns-1/pod-1", obj: Obj{Namespace: "ns-1", Name: "pod-1", Value: "x", ResourceVersion: 2}, canon: true}}, rv: 2}
++	init := initialModel(st0, true)
++	// one write: an update of pod-1 to "y" at RV 3
++	in := Input{Kind: KUpdate, Key: "ns-1/pod-1", Val: "y"}
++	req := correctness.Request{Op: correctness.OpUpdate, Key: storeKey(in.Key), Update: correctness.UpdateRequest{UpdateFunc: tryUpdateFor(in)}}
++	y := &Obj{Namespace: "ns-1", Name: "pod-1", Value: "y", ResourceVersion: 3}
++	replay, err := correctness.NewReplay(init, []correctness.Operation{{Request: req, Response: correctness.Response{Object: y}}})
++	if err != nil {
++		t.Fatal(err)
++	}
++	v := correctness.NewWatchValidator(versioner{}, replay, keyFunc)
++	tr := true
++	pred := storage.Everything
++	pred.AllowWatchBookmarks = true
++	wl := correctness.WatchRequest{Key: "/objs/", Options: storage.ListOptions{Recursive: true, SendInitialEvents: &tr,
++		ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan, Predicate: pred}}
++	x := &Obj{Namespace: "ns-1", Name: "pod-1", Value: "x", ResourceVersion: 2}
++	errEv := watch.Event{Type: watch.Error, Object: &metav1.Status{Status: metav1.StatusFailure}}
++	cases := []struct {
++		name string
++		evs  []watch.Event
++		ok   bool
++	}{
++		{"full watch-list", []watch.Event{{Type: watch.Added, Object: x}, bookmark(2), {Type: watch.Modified, Object: y}}, true},
++		{"error last", []watch.Event{{Type: watch.Added, Object: x}, bookmark(2), errEv}, true},
++		{"error in the middle (departure 1)", []watch.Event{{Type: watch.Added, Object: x}, bookmark(2), errEv, {Type: watch.Modified, Object: y}}, false},
++		{"cut before the bookmark (departure 2)", []watch.Event{{Type: watch.Added, Object: x}}, false},
++		{"cut before any event", nil, true},
++	}
++	for _, tc := range cases {
++		err := v.ValidateWatch(wl, correctness.WatchResponse{Events: tc.evs})
++		if (err == nil) != tc.ok {
++			t.Errorf("%s: %v, want ok %v", tc.name, err, tc.ok)
++		} else if err != nil {
++			t.Logf("%s: rejected: %s", tc.name, strings.SplitN(err.Error(), "\n", 2)[0])
++		}
++	}
++	// a stale list at a revision before the initial Model's is not in the replay
++	l := listInput()
++	l.MinRV = rvBytes(1)
++	l.Match = MExact
++	err = replay.Validate(correctness.Request{Op: correctness.OpList, Key: l.ListKey, List: correctness.ListRequest{Options: listOptions(l)}},
++		correctness.Response{Object: &ObjList{Items: []Obj{}, ResourceVersion: 1}})
++	t.Logf("Exact list at RV 1 < the initial RV 2: %v", err)
++	if err == nil {
++		t.Errorf("want an error")
++	}
++}
++
++func listInput() Input {
++	return Input{Kind: KList, ListKey: ResourcePrefix + "/", Recursive: true}
++}
+--- /dev/null	2026-10-29 22:56:13.636740684 +0000
++++ b/examples/k8s/etcd3/correctness/cmpdiff_7g_test.go	2026-11-17 11:59:00.449711862 +0000
+@@ -0,0 +1,41 @@
++package correctness
++
++// Stage 7g evidence (notes/k8s-7g-scope.md, the trust-boundary spec of cmp.Diff at
++// []eventReference): cmp.Diff returns "" exactly when the two slices are equal element by
++// element (==) and both nil or both non-nil (a nil and an empty slice differ: toEventReference
++// always makes a non-nil slice), and does not panic on the unexported type.
++
++import (
++	"testing"
++
++	"github.com/google/go-cmp/cmp"
++	"k8s.io/apimachinery/pkg/watch"
++)
++
++func TestCmpDiffEventRefs(t *testing.T) {
++	a := eventReference{Key: "/objs/ns-1/pod-1", Type: watch.Added, ResourceVersion: 4}
++	b := eventReference{Key: "/objs/ns-1/pod-1", Type: watch.Modified, ResourceVersion: 4}
++	c := eventReference{Key: "/objs/ns-1/pod-1", Type: watch.Added, ResourceVersion: 5}
++	cases := []struct {
++		x, y []eventReference
++		eq   bool
++	}{
++		{nil, nil, true},
++		{nil, []eventReference{}, false},
++		{[]eventReference{}, nil, false},
++		{[]eventReference{}, []eventReference{}, true},
++		{[]eventReference{a}, []eventReference{a}, true},
++		{[]eventReference{a, c}, []eventReference{a, c}, true},
++		{[]eventReference{a}, []eventReference{b}, false},
++		{[]eventReference{a}, []eventReference{c}, false},
++		{[]eventReference{a}, []eventReference{a, a}, false},
++		{[]eventReference{a, c}, []eventReference{c, a}, false},
++		{nil, []eventReference{a}, false},
++	}
++	for i, tc := range cases {
++		d := cmp.Diff(tc.x, tc.y)
++		if (d == "") != tc.eq {
++			t.Errorf("case %d: Diff %q, want equal %v", i, d, tc.eq)
++		}
++	}
++}

@@ -10,6 +10,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecDefs
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader__Read
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 
@@ -148,12 +149,8 @@ theorem errOk_newVar (X msg : GoString) :
   icases H with ⟨%x, #Hx, #HE⟩
   iexists x
   iframe Hx
-  iunfold errOk
-  imodintro
-  iintro %Φ HΦ
-  iapply HE
-  inext
-  iapply HΦ
+  iapply errorString_errOk
+  iexact HE
 
 /-- The readers, the files and what they delivered are lists of the same length. -/
 theorem ownFbrs_len (IoE : GoInterface → Prop) (eof : GoInterface) :

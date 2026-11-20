@@ -78,16 +78,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.api.v3.version
 
--- `server/v3/lease/leasepb` (types only: the lease's protobuf message)
-namespace go_etcd_io.etcd.server.v3.lease.leasepb
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.lease.leasepb
+-- `server/v3/lease/leasepb`'s instances are in the server's `Base.lean` (schema imports it, 2026-11-19).
 
 -- `container/heap` (names only)
 namespace container.heap
@@ -109,8 +100,10 @@ def leaseErrVar (g : GoString) : IProp GF :=
     ⌜_root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
       methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
       methodSet e.ty !! go!"GRPCStatus" = none ∧
-      -- (premise-fixes-4) nor a `Format` one (`fmt` prints it with its `Error`)
-      methodSet e.ty !! go!"Format" = none⌝ ∗
+      -- (premise-fixes-4) nor a `Format` one (`fmt` prints it with its `Error`); (fmt soundness 2)
+      -- its `Error` is `Error() string`
+      (methodSet e.ty !! go!"Format" = none ∧
+        methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))⌝ ∗
     ∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
       WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }})
 

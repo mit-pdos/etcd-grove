@@ -94,20 +94,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- A mode-`on` entry's step extends the model's log. -/
-theorem kvEntryOn_extends (c₀ : w64) (ch : apply.Chain) (st : OnState)
-    (m : EntryModel) : st.2.1 <+: (kvEntryOn c₀ ch st m).2.1 := by
-  unfold kvEntryOn
-  split
-  · split
-    · split
-      · exact List.prefix_refl _
-      · split
-        · exact List.prefix_refl _
-        · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
-    · exact List.prefix_refl _
-  · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
-
 theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (B : List EntryModel) :
     ∀ st : OnState, st.2.1 <+: (kvRaftOfOn c₀ ch st B).2.1 := by
   induction B with

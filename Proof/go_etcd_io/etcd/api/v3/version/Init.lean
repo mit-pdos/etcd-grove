@@ -3,15 +3,17 @@ Package initialization of `go_etcd_io.etcd.api.v3.version`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
-`MinClusterVersion` `"3.0.0"`. Its
-initializer runs its variables' untranslated initializers (`version.go`): string constants,
-`semver` versions (`*semver.New(3, 6, 0, "", "")`), and `AllVersions`; the trust-boundary axioms
-`Version_init`, `V3_6_init` and `MinClusterVersion_init` state the three the fact reads,
-`opaqueInitsOk` the others.
+`MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string variables
+(`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since 2026-11-19,
+until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`) and runs its other
+variables' untranslated initializers: `semver` versions (`*semver.New(3, 6, 0, "", "")`, which
+formats with `fmt`) and `AllVersions`; the trust-boundary axiom `V3_6_init` states the one the fact
+reads, `opaqueInitsOk` the others.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.lease.Base
+public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -42,9 +44,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([APIVersion.init,
-        GitSHA.init,
-        V3_0.init,
+    ∀ v ∈ ([V3_0.init,
         V3_1.init,
         V3_2.init,
         V3_3.init,
@@ -67,20 +67,10 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `Version = "3.8.0-alpha.0"` (`version.go`). -/
-axiom Version_init :
-    {{ (True : IProp GF) }} (App (Val Version.init) (Val #()))
-    {{ RET #(); globalAddr Version ↦ go!"3.8.0-alpha.0" }}
-
 /-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/
 axiom V3_6_init :
     {{ (True : IProp GF) }} (App (Val V3_6.init) (Val #()))
     {{ RET #(); ∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v }}
-
-/-- `MinClusterVersion = "3.0.0"` (`version.go`). -/
-axiom MinClusterVersion_init :
-    {{ (True : IProp GF) }} (App (Val MinClusterVersion.init) (Val #()))
-    {{ RET #(); globalAddr MinClusterVersion ↦ go!"3.0.0" }}
 
 end go_etcd_io.etcd.api.v3.version
 end opaqueInits
@@ -106,10 +96,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply MinClusterVersion_init as HMinClusterVersion
-  wp_apply Version_init as HVersion
-  wp_apply (opaqueInitsOk APIVersion.init (by mem_tac))
-  wp_apply (opaqueInitsOk GitSHA.init (by mem_tac))
+  wp_apply wp_GlobalAlloc (V := GoString) GitSHA _ as HGitSHA
+  wp_apply wp_GlobalAlloc (V := GoString) APIVersion _ as HAPIVersion
+  wp_apply wp_GlobalAlloc (V := GoString) Version _ as HVersion
+  wp_apply wp_GlobalAlloc (V := GoString) MinClusterVersion _ as HMinClusterVersion
+  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of MinClusterVersion))
+  -- translated initializer of Version))
+  -- translated initializer of APIVersion))
+  -- translated initializer of GitSHA))
+  try wp_auto
   wp_apply (opaqueInitsOk V3_0.init (by mem_tac))
   wp_apply (opaqueInitsOk V3_1.init (by mem_tac))
   wp_apply (opaqueInitsOk V3_2.init (by mem_tac))

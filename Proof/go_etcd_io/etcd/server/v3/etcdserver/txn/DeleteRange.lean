@@ -35,9 +35,9 @@ theorem txn.DeleteRange.wp_proof
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))
     (hdel : txn.deleteRange.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg kv γ dr o q B P Pre Q Post f ot te L I R
+  intro ctx cd nd lg kv γ dr o q B P Pre Q Post f ot te L I R wn
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hdr, Hown, #Hctx, #Hct, Hto, #Hnd, #Hlg, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hdr, Hown, #Hwit, %Hwin, #Hctx, #Hct, Hto, #Hnd, #Hlg, Hbk, Hcs, Hau⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -71,7 +71,7 @@ theorem txn.DeleteRange.wp_proof
       (traceutil.fieldsWf_cons_string _ _ _ traceutil.fieldsWf_nil)
   (try wp_auto)
   -- `kv.Write(trace)`
-  iunfold txn.delAU at Hau
+  iunfold txn.delAUW at Hau
   ihave Hau := txn.beginAU_reach hpers hreach kv γ _ $$ Hkv Hau
   icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
   obtain ⟨kty, kvv, rfl, -, hWriteC, -⟩ := Hsh
@@ -85,15 +85,17 @@ theorem txn.DeleteRange.wp_proof
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
   -- `deleteRange(ctx, txnWrite, dr)`
-  ihave Hown : EtcdGrove.lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) $$ [Hown]
+  ihave Hown : EtcdGrove.lease.leaseOwnW (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) wn $$ [Hown]
   · rw [Hitems]; iexact Hown
-  wp_apply (hdel ctx' { cd with Values := vs } nd _ γ trace false σ₀ [] dr o L)
+  wp_apply (hdel ctx' { cd with Values := vs } nd _ γ trace false σ₀ [] dr o L wn)
     $$ [$Hctx' $Htx $Htrc $Hdr $Hown] as %resp %err ⟨Htrc, Hout⟩
   · isplitl [Hnd]
     · cases nd
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
-    ipureintro; exact Hreach0.1
+    isplitl []
+    · ipureintro; exact Hreach0.1
+    ipureintro; rw [Hitems]; exact Hwin
   rw [txn.pendState_nil]
   simp only [List.nil_append]
   icases Hout with (⟨%Herr, Htx, #Hresp, Hhdr, Hown⟩ | ⟨%Hne, Htx, Hown⟩)
@@ -102,6 +104,10 @@ theorem txn.DeleteRange.wp_proof
     ihave Hcommit := Hcommit $$ %true
     have hdp : txn.delPend o σ₀ true = txn.delChanges (mvcc.stateAfter σ₀.log) o := rfl
     rw [hdp]
+    -- the lessor's window witness for the items after the deletes (item 7b F2)
+    iunfold EtcdGrove.lease.winWitOk at Hwit
+    imod Hwit $$ Hown with ⟨Hown, #Hw⟩
+    ihave Hcommit := Hcommit $$ Hw
     wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀ true)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Hrd, Hbk, HR⟩
     (try wp_auto)
     iapply HΦ
@@ -125,6 +131,9 @@ theorem txn.DeleteRange.wp_proof
     ihave Hcommit := Hcommit $$ %false
     have hdp : txn.delPend o σ₀ false = [] := rfl
     rw [hdp]
+    iunfold EtcdGrove.lease.winWitOk at Hwit
+    imod Hwit $$ Hown with ⟨Hown, #Hw⟩
+    ihave Hcommit := Hcommit $$ Hw
     wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀ false)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Hrd, Hbk, HR⟩
     (try wp_auto)
     iapply HΦ

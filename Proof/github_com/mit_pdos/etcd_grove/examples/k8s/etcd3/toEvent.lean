@@ -34,7 +34,7 @@ theorem toEvent.wp_proof
     (wp_FE : fieldSel.Empty.spec (GF := GF) (hG := hG))
     (wp_GA : getAttrs.spec (GF := GF) (hG := hG)) :
     toEvent.spec (GF := GF) (hG := hG) := by
-  have wp_Matches := mlistMatches.wp_proof wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
+  have wp_Matches := mlistMatches.wp_ok wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
   intro x ch
   wp_start as -
   wp_auto

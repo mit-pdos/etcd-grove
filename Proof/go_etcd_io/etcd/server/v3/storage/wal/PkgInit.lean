@@ -15,6 +15,8 @@ specs read of its package variables, read-only for good.
   compares them yet.)
 * `openWALFilesFn = openWALFiles` (wal.go:57, a `var` only tests assign): the function
   `openWALFiles` (`ValidSnapshotEntries` calls through it).
+* `MaxSaveBatchBytes` (wal.go, `1 << 42`, fix 0009, a `var` only tests assign): `2^42`, and
+  `ErrSaveBatchTooLarge` (an `errors.New` error variable, above), `Save`'s refusal of a larger batch.
 
 Proofs read a part through its projection (`wal.walInit_<part>`), not by position. Its `wp_initialize'`: `Init.lean` (`etc/gen-init.py`, `LFS_PKGS` and `LFS_SPECIAL`).
 WAL package init, 2026-11-13.
@@ -68,7 +70,9 @@ abbrev wal.walInit : IProp GF :=
     wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSliceOutOfRange ∗
     wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrDecoderNotFound ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.wal.openWALFilesFn ↦□
-      functions go_etcd_io.etcd.server.v3.storage.wal.openWALFiles [])
+      functions go_etcd_io.etcd.server.v3.storage.wal.openWALFiles [] ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.wal.MaxSaveBatchBytes ↦□ (W64 4398046511104) ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSaveBatchTooLarge)
 
 /-! The fact's parts, by name (proofs use these, not `walInit`'s positions, so that a new
 conjunct breaks none of them). -/
@@ -131,7 +135,19 @@ theorem wal.walInit_ErrDecoderNotFound : wal.walInit (GF := GF) ⊢ wal.errVar g
 theorem wal.walInit_openWALFilesFn : wal.walInit (GF := GF) ⊢ globalAddr go_etcd_io.etcd.server.v3.storage.wal.openWALFilesFn ↦□
       functions go_etcd_io.etcd.server.v3.storage.wal.openWALFiles [] := by
   unfold wal.walInit
-  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, #H⟩
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_maxSaveBatch : wal.walInit (GF := GF) ⊢
+    globalAddr go_etcd_io.etcd.server.v3.storage.wal.MaxSaveBatchBytes ↦□ (W64 4398046511104) := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrSaveBatchTooLarge : wal.walInit (GF := GF) ⊢
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSaveBatchTooLarge := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, #H⟩
   iexact H
 
 end EtcdGrove

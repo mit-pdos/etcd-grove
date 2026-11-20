@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem isReadRaft_of_raftNode
     (hRS : raftNode.ReadState.spec (GF := GF) (hG := hG))
     (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG))
-    (E : RNEnv GF) (γ : RNNames) (r : Loc) :
+    (E : RNEnv GF) (γ : RNNames GF) (r : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ⊢
       isReadRaft (interface.mkOk (go.GoType.PointerType raftNode.ty) #r) E.γr E.RQ := by
   iintro ⟨#Hpkg, #Hr⟩

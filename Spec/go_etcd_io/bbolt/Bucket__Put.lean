@@ -31,19 +31,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `b.Put(key, value)` of a current handle in a write transaction, an entry of at most
-`bboltEntryMax` bytes: an empty key or one above `MaxKeySize` is refused, nothing changed;
-otherwise the entry set (bbolt copies the key and keeps the value: read-only for good). The
-bound excludes `ErrValueTooLarge` (`bboltEntryMax < MaxValueSize`): values bbolt accepts but
-cannot store are not `Put`'s (`notes/bbolt-spec-decisions.md`, D4). -/
+/-- `b.Put(key, value)` of a current handle in a write transaction: an empty key, one above
+`MaxKeySize`, or an entry (key plus value) above `bboltEntryMax` bytes is refused, nothing changed
+(the last `ErrValueTooLarge`, the fork's check since 3f8520bd: upstream accepted values a page of
+four entries cannot hold, `issues/bbolt-max-value-size-unusable.md`; until 2026-11-19 a premise of
+this spec, `notes/bbolt-spec-decisions.md`, D4); otherwise the entry set (bbolt copies the key and
+keeps the value: read-only for good). -/
 abbrev Bucket.Put.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
     (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
   {{ boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx γ b n (T.gen n) ∗ key ↦*{dk} kb ∗ value ↦*□ vb ∗
-      ⌜T.rw = true ∧ T.cur.lookup n = some m ∧ kb.length + vb.length ≤ bboltEntryMax⌝ }}
+      ⌜T.rw = true ∧ T.cur.lookup n = some m⌝ }}
     (App (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Put")) (Val #key)) (Val #value))
   {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗
-      (if kb.length = 0 ∨ maxKeySize < kb.length
+      (if kb.length = 0 ∨ maxKeySize < kb.length ∨ bboltEntryMax < kb.length + vb.length
        then iprop(⌜err ≠ GoInterface.nil⌝ ∗ boltTx tx γ 1 T)
        else iprop(⌜err = GoInterface.nil⌝ ∗ boltTx tx γ 1 (T.setBkt n (m.insert kb vb)))) }}
 

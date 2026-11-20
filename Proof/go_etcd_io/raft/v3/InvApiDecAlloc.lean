@@ -45,7 +45,8 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
     (mxd : Option Nat) (Hmxd : ∀ b, mxd = some b → b ≤ 2 ^ 31) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = 0 ∧
-        γ.raft.reTrace = none ∧ γ.raft.maxData = mxd⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
+        γ.raft.reTrace = none ∧ γ.raft.maxData = mxd ∧ γ.raft.reNoSnap = false⌝ ∗
+        ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         joinAuthU γ (GMap.listToSet vs) ∗
@@ -82,7 +83,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
   subst Hγr
   have Hrn : DecNames γ c0 gd := by
-    refine ⟨Hv.1, Hv, ?_, Hns, ?_, ?_, Hrd⟩
+    refine ⟨Hv.1, Hv, ?_, ?_, ?_, Hrd⟩
     · unfold RaftNames.dyn; rw [Hdyn]; simp [DynCfg.all_self, dc]
     · intro L d; rw [Hsok]; trivial
     · rw [Hrg]; simp
@@ -151,7 +152,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
   iexists γ
   iframe Hops Hctx Hdc Hja
   isplitr
-  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL]; rfl, Htr0, Hmxd'⟩
+  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL]; rfl, Htr0, Hmxd', Hns⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd

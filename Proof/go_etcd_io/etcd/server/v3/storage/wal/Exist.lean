@@ -46,11 +46,11 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
       walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s ∗ Lin (s.wal !! dir))
     (hin : InArea r dir nm) (hnmO : NameOk nm) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-        WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+        WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
         WalFs.walUnlockedTok ∗ A }}
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Exist)) (Val #dir))
     {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗
-        ((⌜b = true⌝ ∗ walAreaRes jr) ∨ (⌜b = false⌝ ∗ WalFs.walAreaResFree jr nm)) ∗ osCallPerm 1 ∗
+        ((⌜b = true⌝ ∗ walAreaRes jr) ∨ (⌜b = false⌝ ∗ WalFs.walAreaResFree jr nm)) ∗ osCallPerm (callKey R r) 1 ∗
         WalFs.walUnlockedTok ∗ ∃ od, Lin od ∗ ⌜b = false → od = none⌝ }} := by
   wp_start as ⟨#Hok, Hp, Hres, Hperm, Hu, HA⟩
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
@@ -68,7 +68,8 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
   subst hdc
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
+  have hrb := And.intro hrb0 hrb1
   iunfold walAreaRes at Hres
   icases Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %a1, %a2, Hc, %a3, %a4⟩
   iapply wp_notCrashed_acc _ _ rfl

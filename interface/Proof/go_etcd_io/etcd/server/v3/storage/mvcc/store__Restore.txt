@@ -2,18 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem mvcc.cmpOk_restored (L : mvcc.Log) (hb : mvcc.LogB L) (r : mvcc.CmpRecs) (ents : List
-    mvcc.KvEnt) (hrec : mvcc.recsOk L r) (hpos : mvcc.recsPos r) (hcut : mvcc.entsCutAt L r.crev
-    ents) : mvcc.snap.cmpOk L (mvcc.bucketOfEnts ents) ∅ r (r.finRev, { main := W64 0, sub := W64 0
-    })
-
-theorem mvcc.cmpTrack_restored (γ : mvcc.StoreNames) (d' : mvcc.KBReal) (hk : γ.kb = some d') (hon :
-    d'.cm = true) (L : mvcc.Log) (hb : mvcc.LogB L) (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt)
-    (hrec : mvcc.recsOk L r) (hpos : mvcc.recsPos r) (hcut : mvcc.entsCutAt L r.crev ents) :
-    mvcc.kbVals (some d') (mvcc.recBytes r.fin, mvcc.recBytes r.sched) ∅ ∗ ghostVar γ.rcv (Qp.half
-    1) r.crev ∗ ghostVar γ.jc (Qp.half 1) (r.finRev, { main := W64 0, sub := W64 0 }) ∗
-    monoNatAuthOwn γ.rcl 1 (mvcc.crevN r.crev) ⊢ mvcc.cmpTrack γ L (mvcc.bucketOfEnts ents) r
-
 theorem mvcc.store.Restore.wp_proof (hStop : schedule.Scheduler.Stop.spec) (hNewIdx :
     mvcc.newTreeIndex.spec) (hFifo : schedule.NewFIFOScheduler.spec) (hRestore :
     mvcc.store.restore.spec) (hCLF : mvcc.store.compactLockfree.spec) : mvcc.store.Restore.spec

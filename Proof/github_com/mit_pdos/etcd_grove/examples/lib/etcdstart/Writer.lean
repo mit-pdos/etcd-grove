@@ -9,7 +9,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
 @[expose] public section
 
@@ -34,7 +34,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem Writer.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
-    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (h_client_Put_kv : client.client_Put_kv.law (GF := GF) (hG := hG)) :
     Writer.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC cl api γk QW OkF w tsl tried lo hi hP hAs hlo hlh hhi hsz
   wp_start as ⟨#Hkvf, #Hkv, #Ht, #Hau, #Hconv, #Hmu⟩
@@ -76,7 +77,7 @@ theorem Writer.wp_proof
     wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
       as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
     (try wp_auto)
-    wp_apply (client.client_Put_kv cl api γk false cctx cd x.Key' x.Val' slice.nil
+    wp_apply (h_client_Put_kv cl api γk false cctx cd x.Key' x.Val' slice.nil
         (QW x.Key' x.Val') (hsz x (List.mem_of_getElem? Hx_lookup)).put) $$ [Hau1] as %resp %err Hout
     · iframe #
     -- `cancel()`

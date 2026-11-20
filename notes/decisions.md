@@ -32958,7 +32958,10 @@ delegation, 2026-11-06).
 
 **2026-11-06 · decided by etcd-grove-82 under the user's delegation (user offline, pending the
 user's review) · supersedes "`fmt.Errorf`'s `%w` errors: the model's body, not the axiom"
-(2026-10-13) · the fix is the stage `errorf-wrap` (branch `errorf-wrap`)**
+(2026-10-13) · the fix is the stage `errorf-wrap` (branch `errorf-wrap`)** · *superseded in part*
+2026-11-18 by "fmt soundness: `ErrorfWrap` a theorem, the model's facts in the model's disjunct"
+(below): the rule's "no fact from the model" now reads "no fact of the model attributed to Go"; the
+`%w` spec is proved from the model, and the text search is a term-level gate.
 
 **What was wrong.** Perennial's model of `fmt.Errorf` is `errors.New(format)`: it ignores the
 arguments and does not model `%w` (`Perennial/TrustedCode/fmt.lean`). The 2026-10-13 entry knew
@@ -40476,6 +40479,20 @@ code that we can't yet reason about"): not done in unit `locks`, session 2; what
 to the WAL's own files (a set given by the WAL's paths, which needs a data-step lifting that sees the tree)
 is later work; the premise is stated generally, so it can replace (a) without touching the semantics.
 
+**Lock requests and directory reads covered (the user's approval, 2026-11-19, option (a) of
+`notes/wal-units/noioerr.md`, "Blocked"; branch `wal-link`).** `wal.Create` locks its first segment and reads
+its fresh temporary directory, `WAL.cut` locks its new tail, and neither call was covered, so their errors
+(on which etcd panics) were not excluded. `IoCovers` gains `Flock`, `OfdLock` (an fd of a covered inode) and
+`DirReadNext` (a directory fd of a covered inode), in the same "succeeds whenever it can" form: a lock
+request with no conflicting lock among the process's fds succeeds, an unlock succeeds, a read with a name
+left or at its end does not fail. `ErrnoZero "DirReadNext"` also accepts `ENOENT`: the semantics gives it
+only for a removed directory, as Linux does, and a premise excluding it there would be false of Linux.
+Not covered, though named in the approval: `LstatDir` (its outcome `isDir = 0` is both a non-directory and a
+failed `lstat` of a directory, so there is no success to name; the WAL never reaches it on a directory) and
+the queries `PathKind`, `FdKind` (one answer from each state; "covering" them would add text and exclude
+nothing). Go example: `premise_no_io_err.go` (assumed; measured as support on C:
+`premise_no_io_err_test.go`).
+
 **Not an I/O error: `EFBIG` at `maxBytes`** (unit `noioerr`, second session). A write that reaches ext4's
 `s_maxbytes` fails whatever the premise (no success exists there), so an error-free flush needs the tail's
 stream to end before it: the no-error specs that write take a sealed handle with room
@@ -40620,6 +40637,37 @@ translation is about a build nobody ships; the stage-2 merge had made every raft
   (`tla_outs`: the part's translations over the main tree's); `etc/import-all-check.py` reads
   `RaftTla/`; `etc/proof_roots.py` finds the part from `etc/goose.py`.
 
+## fmt soundness: `ErrorfWrap` a theorem, the model's facts in the model's disjunct (2026-11-18)
+
+**2026-11-18 · approved by the user, 2026-11-18, via etcd-grove-03 (H0 of `notes/perheap-scope.md`
+§5a, landed ahead of the per-heap redesign) · branch `fmt-soundness` · supersedes in part "`fmt.Errorf`
+with `%w`: no fact from the model" (2026-11-06)**
+
+- **What was wrong.** `fmt.ErrorfWrap.wp_proof` (an axiom) gave `⌜pre <+: errDesc (ok err)⌝` of the
+  value it returns, unconditionally. True per run of Go, but `errDesc` is an opaque function of the
+  value, and the model allocates `Errorf`'s result like any `errors.New`: two programs
+  `Errorf("A%w", e)` and `Errorf("B%w", e)` reaching one address give both prefixes of one value
+  (F1). The pure fact must not hold of what the model returns.
+- **The choice.** The conjunct becomes conditional on an `Unwrap() error` method in the error's
+  method set: Go's `*fmt.wrapError` has it, the model's `*errors.errorString` does not (goose's
+  generated method set), so it is vacuous of the model and Go's side keeps the prefix (the right
+  disjunct `fmt.wrapErrIs` states the method). The model's disjunct `fmt.modelErrIs` gains its
+  message cell (`errStrCell x (pre ++ s)`), a model fact, in the model's disjunct only: no proof
+  learns it of Go's error. With that text the spec is *provable from the model*
+  (`Proof/fmt/ErrorfWrap.lean`, 20 lines): the axiom leaves the trust base. A proof that needs the
+  prefix cases on the disjunction: Go's side by the method, the model's by the cell
+  (`ServerKVOn.rangeErrOther_facts`: the cell against mvcc's variables' cells, and a leaf
+  `*errorString` passed through by `togRPCError` is a context error's value).
+- **The rule now.** A proof may step into Perennial's `fmt.Errorf` model only when its statement is
+  true of Go's `Errorf` too: Go wraps `%w` (`*fmt.wrapError`/`*fmt.wrapErrors`) and calls the
+  arguments' formatting methods (`Error`, `String`, `Format`, `GoString`), so the premise must make
+  those calls harmless (`fmt.argsOk`: basic arguments, or methods with a persistent resource-free
+  spec and no `Format`) and the post must say nothing the model and Go disagree on, or say it in a
+  disjunct of the model's own. `etc/errorf-wrap-check.py` enforces the review on proof terms
+  (`etc/tcb-report.lean` marks every constant using `fmt.Assumptions.Errorf_unfold` or
+  `fmt.Errorf.impl`), in place of the text search, which missed `Proof/fmt/Errorf{Errs,Strs,Any}.lean`.
+  The general fix is Perennial's (`notes/perennial-changes.md`, 2026-11-18).
+
 ## fsExt: `mmap` out of address space does not return; `NoMapLockErr` excludes every `mmap` error (2026-11-17 · **pending the user's review** · branch `bbolt-oom`)
 
 S3a's `NoMapLockErr` (`notes/bbolt-spec-decisions.md`, "S3a") had to keep `mmap`'s `ENOMEM`: the
@@ -40744,7 +40792,8 @@ left are `etc/tier-baseline.txt`, which only shrinks.
   `AuthnSpec`, `ReadUpds`, `apply_no_v3_no_write` into `apply/InvUber`, `etcdLeaseReadAt` into
   `InvLeaseRead`). Names and statements unchanged; porcupine's `Linked.lean` (a linked *list*, no
   linked result) renamed `LinkedList.lean`.
-- **What is left** (the baseline): proof files that use linked results of their callees instead of
+- *(Superseded in part, 2026-11-18: the `proof->linking` edges are fixed, "Import tiers: a proof
+  takes a linked lemma as a law" below.)* **What is left** (the baseline): proof files that use linked results of their callees instead of
   taking their specs as hypotheses (the examples' `Main`s over the server's served theorems, the
   k8s client's calls over `client_range_any`, the auth checks over `adt`'s `Link`, `NewServer` over
   `NodeStartLinked`): `proof->linking`. Fixing one changes its `wp_proof`'s hypotheses (its spec
@@ -41027,3 +41076,92 @@ echo's `SafeDistLinked.lean` are deleted. A kit's theorem is
   `robust_of_kitBoot`, `#print axioms` Lean's three. It also follows from `echo_crash_robust` by
   `Robust.of_all_crashing` (a run with no crashing machine is a run in which every machine may
   crash, `distCrashNsteps_more_boots`); it goes through the bridge to show the bridge applies.
+
+## Import tiers: a proof takes a linked lemma as a law (2026-11-18 · the user's direction · branch `tiers3/2026-11-18`)
+
+Supersedes in part "Import tiers: specs never import proofs" above, whose baseline left the 86
+`proof->linking` edges (proof files using a callee's linked result) to their owners.
+
+**The fix.** A function's proof never imports a linking module: what it used of one becomes a
+hypothesis of its `wp_proof`, and the `Link` (generated or, for the examples' `MainLinked`, by hand)
+passes the linked result. Three kinds:
+
+- **a callee's linked spec** (`client.v3.kv.wp_Txn`, `txn.wp_If`, adt's `intervalTree.wp_*_bytes`,
+  `kv.wp_Get`, `txn.wp_CommitM`): the callee's `.spec` (`.specM`) is the hypothesis, an `@` callee
+  of the mode's list (or `=client.v3.txn.wp_CommitM`). The plain-operation corollaries
+  `txn.Then.spec_plain`/`Else.spec_plain` moved to a defs module (`client/v3/TxnPlainSpec.lean`), so
+  a proof takes `txn.Then.spec` and applies them; `TxnPlain.lean` keeps the linked instances.
+- **a lemma proved over linked results** (`client_Get_st`, `client_range_any`, `client_Put_on`,
+  `work_*`, `grpcCfgOk_of_startedM`, v3rpc's `raftKV_serverM`, `raftNode_of_StartNode`, ...): its
+  statement, copied verbatim, is `abbrev <lemma>.law : Prop` in a defs module beside the linking one
+  (`client/v3/ClientCallLaws.lean`, `ServeLaws.lean`, txnlin's `CallsLaws`, auth's `CallLaws`,
+  partition's `WatchWritesLaws`, compactwatch's `RoundLaws`, the server's `NodeStartLaws`); `<lemma>_law_holds : <lemma>.law := <lemma>` in the linking module (not a
+  `Link`/`Results`, so no new root); the proof takes `(h_<lemma> : <lemma>.law)`, the Link passes
+  `=<lemma>_law_holds` (`etc/gen-link.py`'s `EXTRA_IMPORTS` imports the linking module). The
+  lemma's statement is unchanged; Lean checks the law against it (`_law_holds` is the lemma itself,
+  by unfolding). A law is the narrowest hypothesis the proof needed without re-proving the lemma
+  over its own callees' specs; doing that (the lemma's proof moved to defs, over the callees'
+  `.spec`s) is the better fix where a lemma has few linked inputs, left for when one is touched.
+- **a linked lemma inside a proof file** (k8s etcd3's `cas_commit`, `client_Get_nil`, `wp_syncGet`):
+  the same hypothesis on the helper, passed by the `wp_proof`. `NewServer`'s `wp_proofG`/`wp_proofM`
+  take the node-start law too (the server's `Results.lean` passes it to `wp_proofM`).
+
+Lemmas of a linking module that use no linked result (`clientWriteOnce_api`,
+`srvRangeOk_getKeyRev`, compactor's `loop_step`) moved to a defs module, unchanged (client
+`Results.lean`'s `kvServerAt_of_is`, a root, stays; `cluster3.StartMember`, which used it, is linking).
+
+**The examples' entry points are linking** (22 modules, `etc/tier-linking.txt`): each `Main`/`run`/
+cluster or member start (`cluster3.StartMember`) composes the started server's served results (`kv_served`, `wk_served_nd`,
+`ak_served_*`: the whole server's linked proof at the member it starts) with the client's linked
+calls, and only its `MainLinked`/`Link` imports it. Taking each served theorem as a law would move
+the composition into a hypothesis without making the proof any less a composition.
+
+**defs->proof** (branch `tiers3/defs`): a lemma or definition a defs module needed from a proof file
+moved, unchanged, to a `<F>Lemmas`/`<F>Defs` module beside it; a defs module that applies a
+`wp_proof` itself and that only linking modules import is listed as linking (bbolt's freelist
+contracts, `FreepagesLink`, wal `ImportCheck`/`RaftModel.Laws`, RaftTla `TracedConfChangeHook`).
+Left: the generated `Init.lean`s (each `wp_initialize'` applies its callees' `wp_proof`s, and specs
+import Init for the package facts: a gen-init split into a facts module and an initializer proof
+would fix them), and a few defs lemmas that apply a `wp_proof` (bbolt `Write/CreateBktWp`, `PutWp`,
+auth `TokenKeeperRun`, `SnapRecvFacts`), which only a statement change fixes.
+
+**Checked:** every exported result (`Link`/`Results`/`MainLinked` root) has the same statement; every
+declaration reachable from the roots has the same type and value hash except the changed `wp_proof`s
+(and helpers) and the new laws; `etc/tcb-report.py --check` and every collection unchanged.
+
+## Import tiers: the package initializers split; variant proofs are proofs (2026-11-19 · the coordinator's request · branch `tiers4/2026-11-19`)
+
+**The generated `Init.lean`s.** `etc/gen-init.py` splits a package's `Init.lean` when its
+`wp_initialize'` applies a proof or linking module's theorem (a `SPECIAL` import such as
+`prometheus.NewCounter`, the B-tree's `initialize`), directly or through an import's split
+initializer (`split`, `proofish` reads `etc/tier-check.py`'s classification): `Init.lean` keeps the
+facts (the trust-boundary axioms `opaqueInitsOk`/`initFuncsOk`/`<X>_init`, the `pre` declarations such
+as `ContextReadErrs`) and imports only its imports' facts; `InitLinked.lean` (linking, by its name)
+holds `wp_initialize'_lb`/`_res` and `wp_initialize'`, importing the facts, its imports' initializers
+(`InitLinked` where split) and the proofs. 61 packages split (the 18 Init violations and every package
+above them); the others, below them (raft's hand-written `Init` imports `os`'s, protobuf's), keep one
+module: their `wp_initialize'` applies only defs-tier facts. The examples' `Adequacy` (linking) import
+their program's `InitLinked`. Axioms stay with the facts: they state the translation's initializers,
+read by the trust-base tools by name, not by module. Rejected: a uniform split of every `Init`
+(raft's hand-written one would have to split too, for no tier gained), and hypotheses on
+`wp_initialize'` (they propagate to every package above).
+
+**`wp_proofX` files are proofs.** `etc/tier-check.py` counted a module as a proof only if it declared
+exactly `<F>.wp_proof`; 89 modules declare only variants (`wp_proofSnapM`, `wp_proof_crash`,
+`wp_proofCreateTruncS`) and counted as defs. Widened to `wp_proof\w*`: 27 defs->proof and spec->proof
+edges became visible and are fixed by moving declarations, unchanged, out of the proof files:
+`etcdserver/ApplyAllSnapLemmas` (the four lemmas before `applyAll.wp_proofSnapM`; nine example defs
+and three specs imported the proof for its imports), bbolt `DB__loadFreelistSpec` (`lfOK`, ...,
+`spec_open`) and `Open/CloseMapDefs` (`closeKeep` and its two siblings), `os/OpenFileTruncLemmas`
+(`trFile_*`, `wp_truncS`), `os/WriteFileLemmas` (`osAU_triv`, `crTr_false`, `crOut_join`),
+the bboltfs and crashlog `TopLevelDefs` imported crash proofs they
+did not use; the WAL's `InvOpenTest` (a test nothing imports) takes `os.Rename.specFileSnc` as a
+hypothesis. Moving the lemmas also removed five proof->proof edges (os `WriteFile`, `WriteFileTrunc`,
+`OpenFileTruncSN`, fileutil `IsDirWriteable`, bbolt `Open`). Tried and dropped: `os/RenameS`'s
+`wp_linkError` to a defs module (two more edges, `RenameAny`, `RenameAbsentSrc`): `etc/link_walfs.py`
+collects a Link's section instances from the linked proofs' modules' `variable` lines, and the move
+took `[syscall.Assumptions]` out of `durable`'s Link, changing 29 root statements (an instance
+argument fewer). The 34 proof->proof
+edges the widening revealed that apply another variant's proof (`MkdirAllDir` -> `MkdirAll`,
+bbolt's `Open` family, wal `SaveSnapshotPre` -> `cutPre`, ...) join the baseline: each is a variant
+derived from another variant's proof, which only a hypothesis (or a Link-level composition) removes.

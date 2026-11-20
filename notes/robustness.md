@@ -58,14 +58,32 @@ panics unless porcupine accepts it, as `Main` of kv, kvdurable and kvwitness doe
 
 ## Every closed example is an instance (2026-11-18)
 
-Each closed theorem of the examples has a restatement `…_robust` next to it (same file, same
-hypotheses but the generic ones `Robust` states itself), proved from it:
+Each closed theorem of the examples has a restatement `…_robust` (the same hypotheses but the
+generic ones `Robust` states itself), in two files named `TopLevelRobustness.lean` per example
+directory (2026-11-18, the user's: easy to find, and a statement to audit apart from its proof):
+
+- `Spec/<example>/TopLevelRobustness.lean` only **states** the results, one
+  `def <name>.spec : Prop` each (every hypothesis, then `Robustness.Robust …`);
+- `Proof/<example>/TopLevelRobustness.lean` only **proves** them, `theorem <name> : <name>.spec`,
+  from the example's closed theorem (in its `Results.lean`, or `Adequacy.lean` for lintest's and
+  `mvccrand`).
+
+- `Proof/<example>/TopLevelDefs.lean` holds the definitions the statement is written in that
+  used to sit in `Adequacy.lean`/`Results.lean` (the program; for the etcd-server examples also the
+  ghost-state bundle, its heap helper and the lists of names and addresses), moved unchanged, so
+  that the Spec file imports no proof: "specs never import proofs" (CLAUDE.md, "Import tiers",
+  which landed the same day). `etc/tier-check.py` counts the `Proof/` side's
+  `TopLevelRobustness` as a linking module.
+
+(The parts have theirs under `Net/`, `RaftWitness/`, `RaftTla/` and, as copies, `RaftNoAx/`.
+`etc/proof_roots.py` counts the proof files as results files, so the trust-base report covers
+them. `find . -name TopLevelRobustness.lean` lists them all.)
 
 | shape | bridge (`Robustness/Statement.lean`) | `Robust` form | examples |
 |---|---|---|---|
 | one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv` |
 | one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three), `osfs/bboltfs` |
-| several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`NetTcp/…/net/*`) |
+| several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`Net/…/net/*`) |
 | several machines that never crash, `DistNsteps` (2026-11-19) | `robust_of_kitBoot`, `robust_of_kitProto` (`Net/Statement/KitBridge.lean`: `distNsteps_of_crash_nil`, then `goose_dist_adequacy`), under the kit deployment premise `KitDeploy plan hosts nodes g` (`Net/Statement/KitDeploy.lean`) | `KitDeploy … → Robust [] nodes g bound` | the network kits (`notes/dsverify-net-port-plan.md`, phases 4 and 6); `echo_kit_robust` (`Net/…/net/echo/RobustLinked.lean`), the non-vacuity check |
 
 - **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's), `2^28 - 1` (the
@@ -92,7 +110,7 @@ hypotheses but the generic ones `Robust` states itself), proved from it:
   program is now `Main()`, which panics unless `Test`'s answer is `"a"` or `"b"`
   (`examples/goose/prophkv/prophkv.go`, `Main.spec`, `goose_prophkv_safe` with the result `#()`).
 - Generated once by a script (not kept: the theorems are ordinary text now); `RaftNoAx/`'s copies
-  by `etc/copy-part.py`.
+  by `etc/copy-part.py` (kvdurable's `TopLevelRobustness` is one of its roots).
 
 **History.** Version 1 (2026-11-15) had a semantics of its own (`Run.lean`: `World`, `Who`, `Timed`,
 `RunStep`/`Run`), a `Deployment`, an abstract network class `StreamNet`, arbitrary environment nodes
@@ -148,7 +166,7 @@ machine, 27 by resets) and 47 link-fault episodes.
 
 - The checking client as a Go program (`examples/raft/kvnet/cmd/...`): the clients' traffic and
   configuration changes, the history, porcupine, a panic unless `Ok`; no fault injection. Then
-  translate it and the replica (`net` through the TCP extension, `NetTcp/`).
+  translate it and the replica (`net` through the TCP extension, `Net/`).
 - Adequacy for machines that never crash: `goose_dist_crash_adequacy` lets every node crash, so
   through `Robust.of_all_crashing` the client's proof would have to survive its own crash, losing
   its history. A version with a boot list for some nodes only (no crash obligation for the others)

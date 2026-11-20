@@ -128,6 +128,35 @@ theorem pendItems_put (ilog : Log) (pend : List Change) (k v : GoString) (l : w6
   · rw [if_pos hk, ← hJk, (leaseItem_eq_iff it k).2 hk]
   · rw [if_neg hk, hJ it hk]
 
+/-- **A put's item map, item by item**. -/
+theorem pendItems_put_lookup (ilog : Log) (pend : List Change) (k v : GoString) (l : w64) (it : LeaseItem) :
+    (pendItems ilog (pend ++ [.put k v l])).lookup it =
+      if it.Key' = k then (if l = W64 0 then none else some l) else (pendItems ilog pend).lookup it := by
+  unfold pendItems
+  rw [applyChanges_append_singleton]
+  simp only [applyChange]
+  rw [leaseItemsOf_putKv (applyChanges_sorted _ pend (stateAfter_sorted ilog))]
+
+/-- **A delete's item map, item by item**. -/
+theorem pendItems_del_lookup (ilog : Log) (pend : List Change) (k : GoString) (it : LeaseItem) :
+    (pendItems ilog (pend ++ [.del k])).lookup it =
+      if it.Key' = k then none else (pendItems ilog pend).lookup it := by
+  unfold pendItems
+  rw [applyChanges_append_singleton]
+  simp only [applyChange]
+  rw [leaseItemsOf_del]
+
+/-- **The item map after deletes of the keys `ks`, item by item**. -/
+theorem pendItems_dels_lookup (ilog : Log) (pend : List Change) (ks : List GoString) (it : LeaseItem) :
+    (pendItems ilog (pend ++ ks.map Change.del)).lookup it =
+      if it.Key' ∈ ks then none else (pendItems ilog pend).lookup it := by
+  induction ks generalizing pend with
+  | nil => simp
+  | cons x ks ih =>
+    rw [List.map_cons, show pend ++ Change.del x :: ks.map Change.del = (pend ++ [.del x]) ++ ks.map Change.del by
+      simp, ih, pendItems_del_lookup]
+    by_cases h1 : it.Key' = x <;> by_cases h2 : it.Key' ∈ ks <;> simp [h1, h2]
+
 /-- **A delete's item map**: any map agreeing with the pending one off the key, and none on
 it. -/
 theorem pendItems_del (ilog : Log) (pend : List Change) (k : GoString) (J : GMap LeaseItem w64)

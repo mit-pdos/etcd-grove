@@ -10,14 +10,14 @@ theorem etcdstart.memberBoot_of [v3rpc_sem :
     (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[],
     []]) (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (lm : lease.Mode) (hrun : lease.runCfg
     lm lm) (Hklg : γk.lm = lm) (hpfx : lm = lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈
-    γk.gps) (hpo : kvPfxOk γk) (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts γs.slog) : ⊢
-    srvRaftLogInv { raft := γ, pre := [], ai0 := W64 0 } -∗ idClusterInv issued cnt wn fs
-    srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint { raft := γ, pre := [], ai0 := W64 0 }
-    γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0 } issued -∗ kvInv { raft := γ, pre :=
-    [], ai0 := W64 0 } γk -∗ ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs
-    (idPfxOf (W16 (uint.Z id)), 0) x ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id
-    RaftState.init ∗ nodeVacant γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗
-    idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) -∗ ghostMapAuth reg 1 ∅ -∗
+    γk.gps) (hpo : kvPfxOk γk) (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts γs.slog) (Hns :
+    ¬clusterNoSnap γ.cl) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0 := W64 0 } -∗ idClusterInv
+    issued cnt wn fs srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint { raft := γ, pre := [],
+    ai0 := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0 } issued -∗ kvInv {
+    raft := γ, pre := [], ai0 := W64 0 } γk -∗ ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([], none) ∗
+    idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗
+    raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗
+    ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) -∗ ghostMapAuth reg 1 ∅ -∗
     srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 ∅ -∗ ghostMapAuth rev 1 ∅ ==∗ ∃ ρ,
     ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
     kvSame ρ.rd.kv γk⌝ ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot :=

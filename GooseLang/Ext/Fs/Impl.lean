@@ -19,14 +19,40 @@ interval; not `journal_async_commit`, `nobarrier`, `data=journal`/`writeback`, `
 filesystems, options and kernels are outside the model until tested on their own.
 
 **Environment** (hypotheses of the adequacy statement, not of this file). The roots (`FsState.roots`)
-name distinct directories of the filesystem, none in another's tree; every entry in their trees is
+name distinct directories of the filesystem, none in another's tree, and no root's ancestor resolves
+(through a symlink or a mount) into another root's tree; every entry in their trees is
 a regular file or a directory (no symlink, mount point, device, FIFO or socket) and no file is a
 hard link of another; no other process changes their trees or moves a directory above a root; **the
 roots and their ancestors are existing directories throughout** (an ancestor may be a symlink to
 one, a root is none: so a root's `lstat` answers as its `stat`, and `mkdir` of either fails with no
 effect; `PathKind`; the program never removes, renames or replaces one either, as no step can); the
 filesystem has no error or shutdown event (then an `fsync` may return 0 without committing); the
-tree at boot is their trees' entries. The journal (jbd2) commits whole transactions, in order; a
+tree at boot is their trees' entries. No Linux security module denies a file lock on them
+(`security_file_lock`, which `flock(2)` and `fcntl`'s lock commands call before any lock is taken;
+2026-11-19, decided by etcd-grove-03 after the attack on `NoIoErr`'s lock coverage). **No fd is closed
+while a lock call on it is in flight**: the program never `close`s an fd while a `flock(2)` or `fcntl`
+lock command on that fd, made by another of its threads, has not returned (on Linux the call holds its
+own reference to the description, `fdget`, so it may take its lock, and succeed, after the `close`
+returned: a run the model's one-step `Flock`/`OfdLock`, which needs the fd open, excludes; the WAL and
+bbolt never close a file while locking it; 2026-11-19, the user's decision on the attack's finding F1';
+`examples/osfs/semantics/env_no_close_during_lock.go`). **Fds within the limits**: at every `open(2)`
+the process holds fewer fds than its `RLIMIT_NOFILE` soft limit (which Go raises at start, `syscall`'s
+`init`), and the system's open files are below `fs.file-max` (so `open` gives no `EMFILE`/`ENFILE`: the
+model always has a free fd, `FdFree`, so `NoIoErr` lets no covered `open` fail on it; 2026-11-19, the
+user's decision on the attack's finding F2'; `env_config.go`, measured: `TestNoIoErrEmfile`).
+**Permissions**: the process
+may search every ancestor of every root, search and write every directory of the roots' trees, and read
+and write every file in them (no `EACCES` from `inode_permission`, on the walk or on an `open` for
+writing); no directory's sticky bit denies a removal or a rename in it; no entry has the immutable or
+append-only attribute; the sysctls `fs.protected_symlinks` and `fs.protected_regular` deny nothing (a
+symlink named as a call's last component in a sticky world-writable directory, such as a root's ancestor
+that `Open`'s outside case opens; an `O_CREAT` open of a file in one); if the
+filesystem is reached through an idmapped mount, the mount maps the process's fsuid and fsgid (else
+`may_create` fails with `EOVERFLOW`); and no Linux security module, seccomp filter or fanotify permission
+event denies or fails a call on them (`may_delete`, `may_create` and the LSM hooks return no
+`EPERM`/`EACCES`, no seccomp `SECCOMP_RET_ERRNO`, no `FAN_DENY`) (2026-11-19, the user's approvals via
+etcd-grove-03, after the attack A2 on `PathErrno` and the attack on its fix;
+`examples/osfs/semantics/env_config.go`). The journal (jbd2) commits whole transactions, in order; a
 metadata call joins a transaction no earlier than those of the calls that returned before it
 began (measured, `notes/axiom-review/fs-v2-r5.md`, B1); an `fsync` of a directory commits the
 whole journal (`ext4_force_commit` for a file that is not regular, `fs/ext4/fsync.c`).
@@ -94,9 +120,10 @@ with no claim on what that makes durable, and closes).
   empty `Write` makes no extension step, as a zero-byte `write(2)` of an ext4 file changes nothing:
   `File.Write.impl`). A mapped load that could see a change in flight is stuck (a
   hole), and a racing `pread` or `fstat` returns any mix. Path calls
-  (`CallBegin` … step) overlap, except that a rename of a directory is stuck while any other path
-  call is in flight: Linux walks a path a component at a time, and the model resolves it at one
-  instant, which agrees with Linux only when no directory is moved during the walk. This stuck
+  (`CallBegin` … step) overlap, except that a rename of a directory is stuck while another path
+  call in its root's tree is in flight, and a rename across roots is stuck: Linux walks a path a
+  component at a time, and the model resolves it at one instant, which agrees with Linux only when
+  no directory on the walk's path is moved during it. This stuck
   case depends on other threads, so the model contains Linux's behaviours for the runs of programs
   proved not stuck (every WP is), which never have that overlap. A crash keeps a set of logged
   operations that respects the journal's order (`Tree.lean`, `Follows`).
@@ -109,9 +136,20 @@ with no claim on what that makes durable, and closes).
 **Locks** (2026-11-15, the user's approval of lock state; **pending the user's review**,
 `notes/wal-units/locks.md`). Whole-file OFD (`fcntl(F_OFD_SETLK[W])`) and `flock` locks, held per
 open file description (`OsFd.ofd`, `OsFd.flk`), so two opens in one process conflict; the two kinds
-are independent; a lock goes with its description at its `close` and at a crash. A request succeeds
-only with no conflicting lock on another description (a blocking one waits for that), and may fail
-with any errno and no change, `EAGAIN` from a non-blocking one only on a conflict (`LockStep`).
+are independent; a lock goes with its description at a crash, and at its fd's `close` unless a live
+mapping made through that fd keeps the description open: then the description, with the locks it
+holds at the `close`, lives until the last such mapping is unmapped (`MapDesc`; 2026-11-19, the
+user's approval via etcd-grove-03, after the attack F1 on `NoIoErr`). A request succeeds only with no
+conflicting lock on another description, an fd's or one a mapping keeps (a blocking one waits for
+that), and may fail with any errno and no change (`LockStep`), `EAGAIN` from a non-blocking one
+included **even with no conflict in the model**: another process may hold a reference to a
+description the program has closed (briefly, a read of `/proc/<pid>/fd/N` or `/proc/<pid>/fdinfo/N`,
+`get_file` … `fput`; for as long as it keeps it, a copy made by `pidfd_getfd(2)` or through ptrace),
+which keeps the description, and its locks, alive past the `close`, a fact of Linux the model does not
+track (2026-11-19, the user's decision, option (b) of the attack on F1's fix;
+`examples/osfs/semantics/locks_spurious_eagain.go`). A blocking request then only waits (for as long as
+the other process keeps its reference, indefinitely for a copy it never closes). A lock call's fd is
+not closed while the call is in flight (the environment, above: `env_no_close_during_lock.go`).
 Classic per-process POSIX locks (`F_SETLK[W]`) are not modelled (the trusted models panic).
 
 **Heap.** The steps never touch user memory except through `HeapRendered`: after every step, the
@@ -250,7 +288,9 @@ def valAt (l : Cands) (n : Nat) : w8 := ((l.filter (·.2 ≤ n)).getLast?.map (�
 offset of `Seek`/`Write`/`Read` is the Go model's, `TrustedCode/os.lean`: every step here is
 positional.) No step duplicates an fd (no `dup`, `fork` or fd passing), so each fd is its own
 description, and the description's locks live in it: its `close` releases them (`Close` removes the
-entry) and a crash does (the process's state is gone). **Locks** (2026-11-15, the user's approval of
+entry), unless a live mapping made through the fd holds the description (then the mapping keeps it,
+locks included, until the last such mapping goes: `MapDesc`), and a crash does (the process's state is
+gone). **Locks** (2026-11-15, the user's approval of
 lock state, I5; the semantics **pending the user's review**, `notes/wal-units/locks.md`): `ofd`, its
 OFD lock (`fcntl(F_OFD_SETLK[W])`), and `flk`, its `flock` lock, each `none`, `some false` (shared)
 or `some true` (exclusive); the two kinds are independent (Linux keeps them on separate lists:
@@ -304,6 +344,23 @@ structure OsMap where
   ino : Ino
   len : Nat
 
+/-- The open file description a mapping holds (Linux's `vma->vm_file`, a reference on the `struct
+file` taken by `mmap`, dropped by the `munmap` that removes the mapping; the description, and its OFD
+and `flock` locks, go at the last reference's drop, `__fput` → `locks_remove_file`): while the fd it
+was made through is open, that fd's (`live fd`: the fd's entry is the description, locks and all);
+once that fd is closed, the description as it was at the `close` (`held d`), which no step can change
+any more (no fd reaches it), whose locks still conflict (`LockConflict`) until the mapping goes.
+Several mappings of one description each hold it: its locks live until the last goes. Measured on C:
+`examples/osfs/semantics/locks_mmap_close.go`, `locks_test.go`'s `TestLocksMmapKeepsDescription`. -/
+inductive MapDesc where
+  | live (fd : w64)
+  | held (d : OsFd)
+
+/-- A mapping's description after `close(fd)` of the fd whose description is `d`. -/
+def MapDesc.close (fd : w64) (d : OsFd) : MapDesc → MapDesc
+  | .live fd' => if fd' = fd then .held d else .live fd'
+  | .held d' => .held d'
+
 /-- Where a directory fd's `Readdirnames` is: not begun; begun, with the names that were there when
 it began and that no operation has touched since (`untouched`), the names there at some point since
 it began (`seen`), and those it has returned (`returned`); or done (a second read is stuck). -/
@@ -336,21 +393,24 @@ structure FsState where
 /-- The process's state: its fds (of files, of directories of the roots' trees, and of directories
 outside them, at or above a root's parent, `ofds`; all with distinct numbers), its changes in flight
 (by the token their first step returned, `osTokV`), its mappings (by base address), and its calls on
-paths in flight (by the token `CallBegin` returned: the length of the log when the call began). The
-two kinds of token are distinct. -/
+paths in flight (by the token `CallBegin` returned: the length of the log when the call began, and
+the path the call's step names). The two kinds of token are distinct. Each mapping also holds an
+open file description (`mapDesc`, by the same base address: `MapDesc`). -/
 structure ProcState where
   fds : GMap w64 OsFd
   dfds : GMap w64 OsDirFd
   inflight : GMap Nat OsChange
   maps : GMap Loc OsMap
-  calls : GMap Nat Nat
+  calls : GMap Nat (Nat × GoString)
   /-- The fds of directories outside the roots' trees (a strict ancestor of a root, `Open`'s
   outside case, 2026-11-13): the model knows nothing of them but that they are open. -/
   ofds : GMap w64 Unit := ∅
+  /-- The description each mapping holds (`MapDesc`; added with the mapping, removed with it). -/
+  mapDesc : GMap Loc MapDesc := ∅
 
 /-- A process with nothing open or in flight. -/
 def ProcState.empty : ProcState :=
-  { fds := ∅, dfds := ∅, inflight := ∅, maps := ∅, calls := ∅, ofds := ∅ }
+  { fds := ∅, dfds := ∅, inflight := ∅, maps := ∅, calls := ∅, ofds := ∅, mapDesc := ∅ }
 
 /-- A node's state: the machine's and the process's. -/
 structure OsState where
@@ -380,7 +440,8 @@ def O_TRUNC : Nat := 0x200
 def O_CLOEXEC : Nat := 0x80000
 
 def EINTR : w64 := 4
-/-- `EAGAIN` (= `EWOULDBLOCK`): what a non-blocking lock request returns on a conflict (`LockStep`). -/
+/-- `EAGAIN` (= `EWOULDBLOCK`): what a non-blocking lock request returns on a conflict, or on a
+description another process keeps alive past its `close` (`LockStep`, which allows it at any time). -/
 def EAGAIN : w64 := 11
 def F_OFD_SETLK : Nat := 37
 def F_OFD_SETLKW : Nat := 38
@@ -582,6 +643,13 @@ def OsState.TreeName (st : OsState) (p : GoString) : Prop := ∃ rj ∈ st.fs.ro
 def OsState.TreePath (st : OsState) (p : GoString) : Prop :=
   (∃ rj ∈ st.fs.roots, rj.1 = p) ∨ st.TreeName p
 
+/-- `a` and `b` are in one root's tree (`IsUnder`: the root itself or below it). A directory's
+rename waits only for the calls on paths in its root's tree, and a rename's source and target must
+be in one root's tree (`Rename`; `examples/osfs/semantics/meta_dir_rename_stuck.go`,
+`meta_rename_cross_root.go`). -/
+def OsState.SameRoot (st : OsState) (a b : GoString) : Prop :=
+  ∃ rj ∈ st.fs.roots, IsUnder rj.1 a ∧ IsUnder rj.1 b
+
 /-- `p` is a root or an ancestor of one: not empty, and a root is `p` or below it, textually
 (`IsUnder`; the roots being canonical and absolute, `RootForm`, such a `p` is `/c₁/…/cₖ`, a prefix of
 a root's components). The environment (the header) keeps each an existing directory. -/
@@ -734,7 +802,7 @@ any nonzero errno. -/
 abbrev OpenOutside (v : val) (st : OsState) (e' : Expr) (st' : OsState) : Prop :=
   ∃ (p : GoString) (fl : w64) (t start : Nat),
     v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ ¬ st.TreePath p ∧ st.AboveRoot p ∧
-    (fl.toNat = O_RDONLY ∨ fl.toNat = O_CLOEXEC) ∧ st.proc.calls !! t = some start ∧
+    (fl.toNat = O_RDONLY ∨ fl.toNat = O_CLOEXEC) ∧ st.proc.calls !! t = some (start, p) ∧
     ((∃ fd : w64, FdFree st fd ∧ st' = (st.metaEnd t).addOfd fd ∧ e' = osRes (#fd) 0) ∨
      (∃ e : w64, e ≠ 0 ∧ st' = st.metaEnd t ∧ e' = osRes (#(-1 : w64)) e))
 
@@ -745,34 +813,48 @@ def OsState.setFd (st : OsState) (fd : w64) (d : OsFd) : OsState :=
   st.setProc { st.proc with fds := <[fd := d]> st.proc.fds }
 
 /-- A lock request of kind `k` through the fd `fd`, on the file `i`, exclusive iff `ex`, conflicts:
-another fd (another description) of the file holds a lock of the same kind that is exclusive, or
-any lock of that kind if the request is exclusive. The kinds are independent
+another description of the file holds a lock of the same kind that is exclusive, or any lock of that
+kind if the request is exclusive; that description is another fd's, or one a live mapping holds after
+its fd's close (`MapDesc.held`, `locks_mmap_close.go`). The kinds are independent
 (`examples/osfs/semantics/locks_flock_vs_ofd.go`). -/
 def LockConflict (st : OsState) (k : LockKind) (fd : w64) (i : Ino) (ex : Bool) : Prop :=
-  ∃ fd' d', st.proc.fds !! fd' = some d' ∧ fd' ≠ fd ∧ d'.ino = i ∧
-    ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true)
+  (∃ fd' d', st.proc.fds !! fd' = some d' ∧ fd' ≠ fd ∧ d'.ino = i ∧
+    ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true)) ∨
+  (∃ base d', st.proc.mapDesc !! base = some (.held d') ∧ d'.ino = i ∧
+    ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true))
 
 /-- **The lock rule**, of a request of kind `k` through the fd `fd` (description `d`): `req` is
-`some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking.
+`some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking (the rule's outcomes
+are the same for both: a blocking request only waits where a non-blocking one fails; kept as an argument
+so that the calls name the request whole).
 * A lock, only on a description with no lock of the kind (re-locking, a conversion included, is
   stuck: Linux accepts it; etcd never does it): success (errno 0) only when there is no conflict
   (`LockConflict`), and the description holds the lock; or any nonzero errno and **no change**,
-  `EAGAIN` from a non-blocking request only on a conflict. A blocking request so takes no successful
-  step while another description holds a conflicting lock: it waits, or fails (any errno, at any
-  time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded).
+  `EAGAIN` from a non-blocking request included whether or not the model sees a conflict: a
+  description the program closed may still hold its locks while another process holds a reference
+  to it (briefly, a read of `/proc/<pid>/fdinfo/N` or `/proc/<pid>/fd/N`; for as long as it keeps
+  it, a `pidfd_getfd` or ptrace copy;
+  measured on C: `examples/osfs/semantics/locks_spurious_eagain.go`, `locks_test.go`'s
+  `TestLocksProcReaderEagain`; 2026-11-19, the user's decision, option (b)). A blocking request so
+  takes no successful step while another description holds a conflicting lock: it waits, or fails (any
+  errno, at any time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded).
 * An unlock: success, the description's lock of the kind gone (none before: no change); or any
   nonzero errno, the lock gone or kept.
+One step, which needs the fd open (`FdOpen`, in `IsFsStep`): on Linux the call holds its own
+reference to the description and may take its lock after another thread's `close` of the fd
+returned; the environment excludes that (the header: no fd is closed while a lock call on it is in
+flight; `examples/osfs/semantics/env_no_close_during_lock.go`).
 Measured on C (`examples/osfs/semantics/locks_ofd.go`, `locks_flock.go`, `locks_blocking.go`,
 `locks_test.go`); `fs/locks.c` (`posix_lock_inode`, `flock_lock_inode`: `-EAGAIN` only on a conflict
-when the request may not sleep, the lock inserted only on success). -/
+with a lock some description holds, when the request may not sleep, the lock inserted only on success;
+`locks_remove_file` releases a description's locks only at its last reference's `__fput`). -/
 def LockStep (st : OsState) (k : LockKind) (fd : w64) (d : OsFd) (req : Option Bool) (nb : Bool)
     (e' : Expr) (st' : OsState) : Prop :=
   match req with
   | some ex => d.lk k = none ∧
       ((¬ LockConflict st k fd d.ino ex ∧ st' = st.setFd fd (d.setLk k (some ex)) ∧
           e' = Val (#(0 : w64))) ∨
-       (∃ e : w64, e ≠ 0 ∧ (nb = true → e = EAGAIN → LockConflict st k fd d.ino ex) ∧ st' = st ∧
-          e' = Val (#e)))
+       (∃ e : w64, e ≠ 0 ∧ st' = st ∧ e' = Val (#e)))
   | none => (st' = st.setFd fd (d.setLk k none) ∧ e' = Val (#(0 : w64))) ∨
       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.setFd fd (d.setLk k none)))
 
@@ -819,7 +901,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   that instant, where the step may be placed. Go example: `examples/osfs/semantics/meta_enoent.go`. -/
   | "Open" => (∃ (p : GoString) (fl : w64) (t start : Nat),
       v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ st.TreePath p ∧ OpenFlagsOk fl.toNat ∧
-      st.proc.calls !! t = some start ∧
+      st.proc.calls !! t = some (start, p) ∧
       let acc := fl.toNat % 4
       let creat := decide (fl.toNat / O_CREAT % 2 = 1)
       let trunc := decide (fl.toNat / O_TRUNC % 2 = 1)
@@ -910,28 +992,43 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "Flock" => ∃ (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool),
       v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧ flockReq how.toNat = some (req, nb) ∧
       LockStep st .flock fd d req nb e' st'
-  /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno. -/
+  /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno; never stuck. A live
+  mapping made through `fd` keeps its description, as it is now, locks included (`MapDesc.close`;
+  `locks_mmap_close.go`); otherwise the description and its locks go from the model (on Linux another
+  process's reference may keep them longer: a moment for a `/proc/<pid>/fdinfo` read, as long as it
+  keeps it for a `pidfd_getfd` copy; only a lock request can tell, a non-blocking one's `EAGAIN` is
+  allowed at any time and a blocking one waits, `LockStep`). Never while a lock call on `fd` is in
+  flight (the environment, the header: `env_no_close_during_lock.go`). -/
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
-      st' = st.setProc { st.proc with fds := GMap.delete fd st.proc.fds } ∧ e' = Val (#e)
+      st' = st.setProc { st.proc with
+        fds := GMap.delete fd st.proc.fds,
+        mapDesc := GMap.fmap (MapDesc.close fd d) st.proc.mapDesc } ∧ e' = Val (#e)
   /- `mmap(nil, len, prot, flags, fd, off)`: `(#fd, #off, #len, #prot, #flags) ↦ (#base, #errno)`.
-  The cells are fresh and page-aligned; `HeapRendered` creates them. The failure is any nonzero
-  errno, `ENOMEM` included (Linux: no room in the address space, `vm.max_map_count`, `RLIMIT_AS`).
-  When no free range of the mapping's length is left in `(0, maxAddr]`, the call may also not return
-  (`MmapStall`, a step of `FsStep` that sees the heap; **pending the user's review**). -/
+  The cells are fresh and page-aligned; `HeapRendered` creates them. The mapping holds `fd`'s
+  description (`MapDesc.live`). The failure is any nonzero errno, `ENOMEM` included (Linux: no room
+  in the address space, `vm.max_map_count`, `RLIMIT_AS`). When no free range of the mapping's length
+  is left in `(0, maxAddr]`, the call may also not return (`MmapStall`, a step of `FsStep` that sees
+  the heap; **pending the user's review**). -/
   | "Mmap" => ∃ (fd off len prot fl : w64) (d : OsFd),
       v = PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl)))) ∧
       FdOpen st fd d ∧ d.readable ∧ off = 0 ∧ 0 < len.toInt ∧ prot.toNat = PROT_READ ∧
       (fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) ∧
       ((∃ base : Loc, 0 < base.addr ∧ (osPageSize : Int) ∣ base.addr ∧
           st.proc.maps !! base = none ∧
-          st' = st.setProc { st.proc with maps := <[base := ⟨d.ino, len.toNat⟩]> st.proc.maps } ∧
+          st' = st.setProc { st.proc with
+            maps := <[base := ⟨d.ino, len.toNat⟩]> st.proc.maps,
+            mapDesc := <[base := .live fd]> st.proc.mapDesc } ∧
           e' = osRes (#base) 0) ∨
        (∃ e : w64, e ≠ 0 ∧ st' = st ∧ e' = osRes (#null) e))
-  /- `munmap` of a whole mapping, as Go's `unix.Munmap(b)` takes it: `(#ptr, #len, #cap) ↦ #errno`. -/
+  /- `munmap` of a whole mapping, as Go's `unix.Munmap(b)` takes it: `(#ptr, #len, #cap) ↦ #errno`.
+  The mapping goes with the description it holds (`mapDesc`): the last one to go releases a closed
+  description's locks. -/
   | "Munmap" => ∃ (base : Loc) (len cap : w64) (m : OsMap),
       v = PairV (#base) (PairV (#len) (#cap)) ∧
       st.proc.maps !! base = some m ∧ len.toNat = m.len ∧ cap.toNat = m.len ∧
-      let st1 := st.setProc { st.proc with maps := GMap.delete base st.proc.maps }
+      let st1 := st.setProc { st.proc with
+        maps := GMap.delete base st.proc.maps,
+        mapDesc := GMap.delete base st.proc.mapDesc }
       (st' = st1 ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st1))
   /- What `fd` is: `#fd ↦ #0` for a file's fd, `#1` for a directory's, `#2` for a directory's
@@ -954,13 +1051,13 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "OutClose" => ∃ (fd e : w64), v = #fd ∧ st.proc.ofds !! fd = some () ∧ st' = st.delOfd fd ∧
       e' = Val (#e)
   /- The start of a system call on a path (`open`, `rename`, `unlink`, `rmdir`, `mkdir`, `lstat`):
-  `#() ↦ tok`, a token recording the length of the log now (the operations that have taken effect
+  `#p ↦ tok`, `p` the path the call's step names, a token recording the length of the log now (the operations that have taken effect
   before the call began: the journal has them before it, and the call's walk of its path sees them).
-  The call's step ends it. Not a system call; calls overlap freely, but a directory's rename waits
-  for every other one (see `Rename`). A trusted model makes one `CallBegin` per system-call attempt
+  The call's step ends it, and names `p` (else it is stuck). Not a system call; calls overlap
+  freely, but a directory's rename waits for every other one in its root's tree (see `Rename`). A trusted model makes one `CallBegin` per system-call attempt
   (inside Go's `EINTR` retry loop), before the attempt enters the kernel, and passes its token to
   that attempt's step only. A model that returns without the step leaves the call in flight for
-  good, which makes every later directory rename stuck. -/
+  good, which makes every later directory rename in that root's tree stuck. -/
   /- Where the path `p` is: `#p ↦ #1` for a `TreeName` (strictly below a root), `#0` for a root,
   `#2` for a strict ancestor of a root (`AboveRoot`: `/` included); stuck on any other path. A query
   of the model, not a system call (no state changes): `os.MkdirAll`'s model asks it, so that at a
@@ -974,9 +1071,9 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       (st.TreeName p ∧ e' = Val (#(1 : w64)) ∨
        ¬ st.TreeName p ∧ (∃ rj ∈ st.fs.roots, rj.1 = p) ∧ e' = Val (#(0 : w64)) ∨
        ¬ st.TreePath p ∧ st.AboveRoot p ∧ e' = Val (#(2 : w64)))
-  | "CallBegin" => ∃ t : Nat, v = #() ∧ st.proc.calls !! t = none ∧
+  | "CallBegin" => ∃ (t : Nat) (p : GoString), v = #p ∧ st.proc.calls !! t = none ∧
       st.proc.inflight !! t = none ∧
-      st' = st.setProc { st.proc with calls := <[t := st.fs.metaLog.length]> st.proc.calls } ∧
+      st' = st.setProc { st.proc with calls := <[t := (st.fs.metaLog.length, p)]> st.proc.calls } ∧
       e' = Val (osTokV t)
   /- `fsync(fd)` of a directory: `#fd ↦ #errno`. Success makes every logged operation durable
   (ext4 commits the whole journal for a file that is not regular); a failure guarantees nothing
@@ -1014,20 +1111,25 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   returns then; `#0` otherwise, and for a directory too (the `lstat` failed: `Rename`'s model then
   goes on to `rename(2)`, as Go does). -/
   | "LstatDir" => ∃ (p : GoString) (isDir e : w64) (t start : Nat),
-      v = PairV (osTokV t) (#p) ∧ st.TreePath p ∧ st.proc.calls !! t = some start ∧
+      v = PairV (osTokV t) (#p) ∧ st.TreePath p ∧ st.proc.calls !! t = some (start, p) ∧
       st' = st.metaEnd t ∧
       ((∃ j, st.lookup p = some (.dir j)) ∧ isDir = 1 ∧ e ≠ 0 ∨ isDir = 0) ∧
       e' = Val (PairV (#isDir) (#e))
   /- `rename(2)` of a call (`tok`, from `CallBegin`): `(tok, #s, #t) ↦ #errno`. As `RenameOk` says,
   or a no-op on an entry renamed to itself; any case may fail, a failure with or without the effect.
-  Open fds of a moved file or directory keep it (they hold its inode). A rename of a directory is
-  stuck while any other call on a path is in flight: Linux walks a path a component at a time,
-  without locking the directories it has passed, so a call walking through a directory being moved
-  may find a path that no single tree of the log has; the model resolves a path at its step, so it
-  excludes that overlap. -/
+  Open fds of a moved file or directory keep it (they hold its inode). A rename across roots is
+  stuck (its walk of the target's path would race the target root's renames unseen:
+  `examples/osfs/semantics/meta_rename_cross_root.go`). A rename of a directory is stuck while
+  another call on a path in its root's tree is in flight: Linux walks a path a component at a time,
+  validating only each parent as it steps, so a call walking through a directory being moved may
+  find a path that no single tree of the log has; the model resolves a path at its step, so it
+  excludes that overlap. A call in another root's tree, or above the roots, never walks through it
+  (no root is in another's tree, and no root's ancestor resolves into another root's tree; `t` is
+  in `s`'s root by `SameRoot s t`, roots not being nested, `RootsOk`). The call began on `s`. -/
   | "Rename" => ∃ (s t : GoString) (k start : Nat), v = PairV (osTokV k) (PairV (#s) (#t)) ∧
-      st.TreeName s ∧ st.TreeName t ∧ st.proc.calls !! k = some start ∧
-      ((∃ j, st.lookup s = some (.dir j)) → ∀ k' start', st.proc.calls !! k' = some start' → k' = k) ∧
+      st.TreeName s ∧ st.TreeName t ∧ st.SameRoot s t ∧ st.proc.calls !! k = some (start, s) ∧
+      ((∃ j, st.lookup s = some (.dir j)) → ∀ k' start' p', st.proc.calls !! k' = some (start', p') →
+        k' = k ∨ ¬ st.SameRoot s p') ∧
       let st0 := st.metaEnd k
       ((RenameOk st s t ∧ ∃ o, RenameOp st s t o ∧
           (st' = st0.metaDo o start ∧ e' = Val (#(0 : w64)) ∨
@@ -1037,7 +1139,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `unlink(2)` of a metadata call: `(tok, #p) ↦ #errno`. A file's name is removed (its fds keep
   the file, which stays in `files`); any case may fail, a failure with or without the effect. -/
   | "Unlink" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
-      st.proc.calls !! k = some start ∧
+      st.proc.calls !! k = some (start, p) ∧
       let st0 := st.metaEnd k
       ((∃ i j b, st.lookup p = some (.file i) ∧ st.parent p = some (j, b) ∧
           (st' = st0.metaDo (.remove j b (.file i)) start ∧ e' = Val (#(0 : w64)) ∨
@@ -1047,7 +1149,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `rmdir(2)` of a metadata call: `(tok, #p) ↦ #errno`. An empty directory is removed (an fd on it
   keeps it, empty); any case may fail, a failure with or without the effect. -/
   | "Rmdir" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
-      st.proc.calls !! k = some start ∧
+      st.proc.calls !! k = some (start, p) ∧
       let st0 := st.metaEnd k
       ((∃ j' j b, EmptyDir st p j' ∧ st.parent p = some (j, b) ∧
           (st' = st0.metaDo (.remove j b (.dir j')) start ∧ e' = Val (#(0 : w64)) ∨
@@ -1057,7 +1159,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `mkdir(2)` of a metadata call: `(tok, #p) ↦ #errno`. A new directory of a fresh inode where
   nothing is, in an existing directory; any case may fail, a failure with or without the effect. -/
   | "Mkdir" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
-      st.proc.calls !! k = some start ∧
+      st.proc.calls !! k = some (start, p) ∧
       let st0 := st.metaEnd k
       let o (j : Ino) (b : GoString) := MetaOp.mkdir j b st.fs.nextIno
       ((∃ j b, st.lookup p = none ∧ st.parent p = some (j, b) ∧

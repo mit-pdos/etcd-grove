@@ -1199,8 +1199,6 @@ opaque AlarmType_value.init [GooseExts] [GoGlobalContext] : val
 noncomputable def RangeRequest_SortOrder_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortOrder_name"
 
-opaque RangeRequest_SortOrder_name.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def RangeRequest_SortOrder_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortOrder_value"
 
@@ -1208,8 +1206,6 @@ opaque RangeRequest_SortOrder_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RangeRequest_SortTarget_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortTarget_name"
-
-opaque RangeRequest_SortTarget_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RangeRequest_SortTarget_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortTarget_value"
@@ -5604,6 +5600,26 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"NONE"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"ASCEND"))
+  (Let "$k4" (Val #(W32 2))
+  (Let "$v5" (Val #(go!"DESCEND"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"KEY"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"VERSION"))
+  (Let "$k4" (Val #(W32 2))
+  (Let "$v5" (Val #(go!"CREATE"))
+  (Let "$k6" (Val #(W32 3))
+  (Let "$v7" (Val #(go!"MOD"))
+  (Let "$k8" (Val #(W32 4))
+  (Let "$v9" (Val #(go!"VALUE"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k6"))) (ElementExpression go.string (Var "$v7"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k8"))) (ElementExpression go.string (Var "$v9")))]))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5803,11 +5819,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val RangeRequest_SortTarget_value.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val RangeRequest_SortTarget_name.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr RangeRequest_SortTarget_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val RangeRequest_SortOrder_value.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val RangeRequest_SortOrder_name.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr RangeRequest_SortOrder_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val AlarmType_value.init) (Val #()))))))
   (App (Val doExecute)
@@ -5836,6 +5852,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc RangeRequest_SortOrder_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc RangeRequest_SortTarget_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc KV_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))
   (App (Val doExecute)

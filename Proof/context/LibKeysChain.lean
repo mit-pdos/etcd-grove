@@ -65,8 +65,7 @@ accept; otel's `currentSpanKey`: a value `SpanFromContext`'s callers accept, `tr
 the chain form of all four parts of `context.libCtxOk` (`context.libCtxOk_of_libCtxOkC`).
 `trace.spanCtxOkC` is the chain form of `trace.spanCtxOk` (a span, `isSpan`, rather than otel's). -/
 def context.libCtxOkC (ctx : GoInterfaceOk) : IProp GF :=
-  iprop((∃ v : GoInterface, ⌜metadata.incomingRes v⌝ ∗
-      _root_.Perennial.context.ctxValue ctx metadata.mdIncomingKeyAny (· = v)) ∗
+  iprop(metadata.incomingCtxOk ctx ∗
     metadata.outgoingCtxOkC ctx ∗
     _root_.Perennial.context.ctxValue ctx peer.peerKeyAny peer.peerRes ∗
     _root_.Perennial.context.ctxValue ctx trace.spanKeyVal trace.spanRes)
@@ -142,6 +141,118 @@ theorem context.keyEqOk_of_ty_ne (k key : GoInterface)
   obtain ⟨h1 | h1, h2⟩ := h
   · exact absurd h2 (hk ki kk h1.1 h1.2)
   · exact absurd h2.symm (hk kk ki h1.1 h1.2)
+
+/-! #### The incoming metadata's chain laws (perheap step 0; all proved, none trusted) -/
+
+theorem metadata.mdIncomingKey_notIntPtr :
+    _root_.Perennial.context.notIntPtrKey metadata.mdIncomingKeyAny :=
+  context.libKeys_notIntPtr _ (by simp)
+
+/-- `Background()` has no incoming metadata. -/
+theorem metadata.ctxInMD_background :
+    ⊢ metadata.ctxInMD (GF := GF) _root_.Perennial.context.backgroundCtxVal none := by
+  unfold metadata.ctxInMD
+  iexists GoInterface.nil
+  isplitl []
+  · iapply _root_.Perennial.context.ctxValue_background
+  iapply metadata.incomingHeld_nil
+
+/-- `TODO()` has no incoming metadata. -/
+theorem metadata.ctxInMD_todo :
+    ⊢ metadata.ctxInMD (GF := GF) _root_.Perennial.context.todoCtxVal none := by
+  unfold metadata.ctxInMD
+  iexists GoInterface.nil
+  isplitl []
+  · iapply _root_.Perennial.context.ctxValue_todo
+  iapply metadata.incomingHeld_nil
+
+/-- **A child by `WithCancel` or a deadline constructor** (`ctxValueFrom`) has its parent's incoming
+metadata. -/
+theorem metadata.ctxInMD_from (parent child : GoInterfaceOk) md :
+    _root_.Perennial.context.ctxValueFrom (GF := GF) parent child ∗ metadata.ctxInMD parent md ⊢
+      metadata.ctxInMD child md := by
+  iintro ⟨#Hf, #H⟩
+  unfold metadata.ctxInMD
+  icases H with ⟨%v, #Hv, #Hh⟩
+  iexists v
+  iframe #
+  unfold _root_.Perennial.context.ctxValueFrom
+  iapply Hf
+  · ipureintro; exact metadata.mdIncomingKey_notIntPtr
+  iexact Hv
+
+theorem metadata.incomingCtxOk_from (parent child : GoInterfaceOk) :
+    _root_.Perennial.context.ctxValueFrom (GF := GF) parent child ∗ metadata.incomingCtxOk parent ⊢
+      metadata.incomingCtxOk child := by
+  iintro ⟨#Hf, #H⟩
+  unfold metadata.incomingCtxOk
+  icases H with ⟨%md, #H⟩
+  iexists md
+  iapply metadata.ctxInMD_from; iframe #
+
+/-- **A `*cancelCtx` has its parent's incoming metadata** (was the axiom `incomingOf_cancelCtx`,
+refuted: `notes/axiom-review/incomingof.md`; now a theorem of Perennial's chain). -/
+theorem metadata.ctxInMD_cancel (c : Loc) (p : GoInterfaceOk) md :
+    _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok p) ∗ metadata.ctxInMD (GF := GF) p md ⊢
+      metadata.ctxInMD
+        (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c) md := by
+  iintro ⟨#Hf, #H⟩
+  iapply metadata.ctxInMD_from
+  iframe #
+  iapply _root_.Perennial.context.ctxValueFrom_cancel; iexact Hf
+
+/-- **A `*timerCtx` has its parent's incoming metadata.** -/
+theorem metadata.ctxInMD_timer (c : Loc) (p : GoInterfaceOk) md :
+    _root_.Perennial.context.ctxField (_root_.Perennial.context.tcc c) ↦□ (GoInterface.ok p) ∗
+      metadata.ctxInMD (GF := GF) p md ⊢
+      metadata.ctxInMD
+        (interface.mk (go.GoType.PointerType _root_.Perennial.context.timerCtx.ty) #c) md := by
+  iintro ⟨#Hf, #H⟩
+  iapply metadata.ctxInMD_from
+  iframe #
+  iapply _root_.Perennial.context.ctxValueFrom_timer; iexact Hf
+
+/-- **A `valueCtx` at a key of another type than grpc's** has its parent's incoming metadata. -/
+theorem metadata.ctxInMD_valueCtx (q : Loc) (p : GoInterfaceOk) (key val : GoInterface)
+    (hkey : ∀ kk : GoInterfaceOk, key = GoInterface.ok kk →
+      kk.ty ≠ google_golang_org.grpc.metadata.mdIncomingKey.ty) md :
+    _root_.Perennial.context.vctxField q ↦□ (interface.ok p : GoInterface) ∗
+      structFieldRef _root_.Perennial.context.valueCtx go!"key" q ↦□ key ∗
+      structFieldRef _root_.Perennial.context.valueCtx go!"val" q ↦□ val ∗
+      metadata.ctxInMD (GF := GF) p md ⊢
+      metadata.ctxInMD
+        (interface.mk (go.GoType.PointerType _root_.Perennial.context.valueCtx.ty) #q) md := by
+  iintro ⟨#Hf, #Hk, #Hv, #Hp⟩
+  have hne : metadata.mdIncomingKeyAny ≠ key := by
+    intro h
+    exact hkey _ h.symm rfl
+  unfold metadata.ctxInMD
+  icases Hp with ⟨%v, #Hpv, #Hh⟩
+  iexists v
+  iframe #
+  iapply _root_.Perennial.context.ctxValue_valueCtx q p key val
+  iframe #
+  isplitl []
+  · iapply context.keyEqOk_of_ty_ne
+    intro ki kk h1 h2
+    simp only [GoInterface.ok.injEq] at h1
+    subst h1
+    exact (hkey kk h2).symm
+  · simp only [hne, ↓reduceIte]
+    iexact Hpv
+
+/-- **The `valueAt` form** (`ctx.Value(mdIncomingKey{})` returns `v`), what a reader of the WP form
+takes. -/
+theorem metadata.ctxInMD_valueAt (ctx : GoInterfaceOk) md :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗ metadata.ctxInMD ctx md ⊢
+      ∃ v : GoInterface, context.valueAt ctx metadata.mdIncomingKeyAny (· = v) ∗
+        metadata.incomingHeld v md := by
+  iintro ⟨#Hpkg, #H⟩
+  unfold metadata.ctxInMD
+  icases H with ⟨%v, #Hv, #Hh⟩
+  iexists v
+  iframe #
+  iapply context.valueAt_of_ctxValue; iframe #
 
 /-- **A `valueCtx` at a key of another type than grpc's** answers grpc's key as its parent. -/
 theorem metadata.outgoingCtxOkC_valueCtx (q : Loc) (p : GoInterfaceOk) (key val : GoInterface)
@@ -271,12 +382,11 @@ theorem context.libCtxOk_of_libCtxOkC (ctx : GoInterfaceOk) :
     isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.libCtxOkC ctx ⊢ context.libCtxOk ctx := by
   iintro ⟨#Hpkg, #H⟩
   unfold context.libCtxOkC metadata.outgoingCtxOkC
-  icases H with ⟨⟨%vi, %hvi, #Hi⟩, ⟨%vo, %hvo, #Ho⟩, #Hp, #Hs⟩
-  unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
+  icases H with ⟨#Hi, ⟨%vo, %hvo, #Ho⟩, #Hp, #Hs⟩
+  unfold context.libCtxOk metadata.outgoingCtxOk peer.peerCtxOk
     trace.spanValOk
   isplitl []
-  · iexists vi; iframe %hvi
-    iapply context.valueAt_of_ctxValue; iframe #
+  · iexact Hi
   isplitl []
   · iexists vo; iframe %hvo
     iapply context.valueAt_of_ctxValue; iframe #
@@ -306,14 +416,11 @@ theorem context.libCtxOkC_from (parent child : GoInterfaceOk) :
       context.libCtxOkC child := by
   iintro ⟨#Hf, #H⟩
   unfold context.libCtxOkC
-  icases H with ⟨⟨%vi, %hvi, #Hi⟩, #Ho, #Hp, #Hs⟩
+  icases H with ⟨#Hi, #Ho, #Hp, #Hs⟩
   ihave #Hf' := Hf
   iunfold _root_.Perennial.context.ctxValueFrom at Hf'
   isplitl []
-  · iexists vi; iframe %hvi
-    iapply Hf'
-    · ipureintro; exact context.libKeys_notIntPtr _ (by simp)
-    iexact Hi
+  · iapply metadata.incomingCtxOk_from; iframe #
   isplitl []
   · iapply metadata.outgoingCtxOkC_from; iframe #
   isplitl []

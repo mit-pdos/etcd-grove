@@ -20,10 +20,9 @@ public import Spec.go_etcd_io.etcd.client.v3.authClient__UserGrantRole
 public import Spec.go_etcd_io.etcd.client.v3.authClient__RoleAdd
 public import Spec.go_etcd_io.etcd.client.v3.authClient__RoleGrantPermission
 public import Spec.go_etcd_io.etcd.client.v3.authClient__AuthEnable
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
 public import Perennial.Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetupInv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CallLaws
 
 @[expose] public section
 
@@ -55,7 +54,8 @@ theorem SetUp.wp_proof
     (wp_UserGrantRole : authClient.UserGrantRole.spec (GF := GF) (hG := hG))
     (wp_RoleAdd : authClient.RoleAdd.spec (GF := GF) (hG := hG))
     (wp_RoleGrantPermission : authClient.RoleGrantPermission.spec (GF := GF) (hG := hG))
-    (wp_AuthEnable : authClient.AuthEnable.spec (GF := GF) (hG := hG)) :
+    (wp_AuthEnable : authClient.AuthEnable.spec (GF := GF) (hG := hG))
+    (h_client_Put_on : client_Put_on.law (GF := GF) (hG := hG)) :
     SetUp.spec (GF := GF) (hG := hG) := by
   intro CS EA FA RA CRE CEC cl ep V s E ρ cid mid γa hmode hc0 hAs
   wp_start as ⟨#Hnc, #Htok, #Hput, #Hkv, #Hauth, #Htls, Hview⟩
@@ -136,7 +136,7 @@ theorem SetUp.wp_proof
       (try wp_auto)
       have hk : keyOfK x w go!"d" ∈ setupKeys := by
         unfold setupKeys; exact List.mem_flatMap.2 ⟨w, hwm, List.mem_map.2 ⟨x, hxm, rfl⟩⟩
-      wp_apply (client_Put_on cl api conn ep s E ρ cid mid cctx cd (keyOfK x w go!"d")
+      wp_apply (h_client_Put_on cl api conn ep s E ρ cid mid cctx cd (keyOfK x w go!"d")
           go!"setup" slice.nil (fun _ => iprop(True)) []
           (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
             ((show ∀ k ∈ setupKeys, k.length ≤ 2 ^ 28 by decide) _ hk) (by decide) (by decide)))

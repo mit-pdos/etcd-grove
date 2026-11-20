@@ -17,7 +17,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier__Apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.UberLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyKVL
 
 @[expose] public section
@@ -75,6 +75,8 @@ def apply.uberKVC (ua : GoInterface) (E : apply.AEnv GF) (ci : apply.Chain)
         apply.certPreVW v3 E x.chain rq x.log
           (apply.kvOutLT E.authMode E.lg hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log T) ∗
         ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
+        ⌜(E.lg = true → apply.winTgtL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log E.win T) ∧
+          (E.lg = false → E.win = none)⌝ ∗
         ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
         E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
         apply.ltHalf E T ∗ apply.revokeOwn E rq ∗ L hs ∗
@@ -119,7 +121,9 @@ abbrev apply.Apply.kvSpecL : Prop :=
       apply.certPreVW v3 E x.chain rq x.log
         (apply.kvOutLT E.authMode E.lg hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log T) ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
-        apply.dispatchOk E.authOn rq⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
+        apply.dispatchOk E.authOn rq⌝ ∗ ⌜(E.lg = true → apply.winTgtL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log E.win T) ∧
+          (E.lg = false → E.win = none)⌝ ∗
+      srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.ltHalf E T ∗ apply.revokeOwn E rq ∗ L hs ∗
       ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true ∧
@@ -163,12 +167,14 @@ theorem apply.uberKVC_of (hUA : apply.uberApplier.Apply.kvSpecL (GF := GF) (hG :
   isplitr
   · ipureintro; exact Hua
   iintro !> %x %r %rq %skip %v3 %F %Pre %Q %Post %rs %hs %T
-  wp_start_folded as ⟨#Hwr, Hown, Hkv, Hcp, %Hp1, %Hp2, HF, Htt, HFS, HSp, HRO, HLt, Hrv, HL, %Hx⟩
+  wp_start_folded as ⟨#Hwr, Hown, Hkv, Hcp, %Hp1, %Hpw, %Hp2, HF, Htt, HFS, HSp, HRO, HLt, Hrv, HL, %Hx⟩
   wp_apply (hUA E p opts x r rq skip v3 F Pre Q Post rs ci L hs T)
       $$ [Hown Hkv Hcp HF Htt HFS HSp HRO HLt Hrv HL] as %ar HQ
   · iframe # Hown Hkv Hcp HF Htt HFS HSp HRO HLt Hrv HL
     isplitr
     · ipureintro; exact Hp1
+    isplitr
+    · ipureintro; exact Hpw
     isplitr
     · ipureintro; exact Hp2
     ipureintro; exact Hx
@@ -178,7 +184,7 @@ theorem apply.uberKVC_of (hUA : apply.uberApplier.Apply.kvSpecL (GF := GF) (hG :
 theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.kvSpecL (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs ci L hh T
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Hkv, #Hcp, %Hprem, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, HL, %Hx⟩
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Hkv, #Hcp, %Hprem, %Hwin, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, HL, %Hx⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
   iunfold apply.uberKVC at Hfor
   icases Hfor with ⟨%p, %Hua, #Htr⟩
@@ -214,7 +220,7 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     wp_apply Htr $$ %x %r %rq %sk %v3 %F %Pre %Q %Post %rs %hh %T
         [Hown Hkv Htt HFS HSp HRO HLt Hrv HL] as %ar HQ
     · iframe # Hown Hkv Htt HFS HSp HRO HLt Hrv HL
-      ipureintro; exact ⟨⟨Hrq, Hdk⟩, Hskt, Hx⟩
+      ipureintro; exact ⟨⟨Hrq, Hdk⟩, Hwin, Hskt, Hx⟩
     iapply HΦ; iexact HQ
   subst Hid'
   icases Hout with (⟨%sk, ⟨Htt, Hrt, HFS, Hrv, %x', %out, Hown, Hkv, HPP, HLt, HRO, Hra, %Hst, Htr, Hres, #Hauth, HL, %HXo, %HXe⟩, Hwv⟩ |

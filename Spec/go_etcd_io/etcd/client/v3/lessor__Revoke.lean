@@ -25,14 +25,17 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `l.Revoke(ctx, id)` on a `*lessor` over a connection to `addr` (`lessorRemoteAt`), for a spec
 `Spec` registered for `LeaseRevoke` and the caller's `Q`: the request `{ID: id}` through the retry
 lease client; on success the reply itself (`(*LeaseRevokeResponse)(resp)`, read-only) with `Q` of
-it; otherwise `nil` and `ContextError(ctx, err)`. -/
+it; otherwise `nil` and `ContextError(ctx, err)`. (Auth-lease S4, Freeze §2.2) Over the connection `conn` (`lessorRemoteAtC`), metadata-indexed: the
+spec at every metadata an attempt may deliver (`attemptPre`); the old form is the new one at
+`GrpcSpec.md` (`attemptPre_md`, `isGrpcRpcs_md`, `lessorRemoteAt_conn`). -/
 abbrev lessor.Revoke.spec : Prop :=
-  ∀ (l : Loc) (addr : List GoString)
-    (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
+  ∀ (l conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
     (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
-      isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗ □ ▷ Spec id Q ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+      isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec id Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
       (Val #(GoInterface.ok ctx))) (Val #id))

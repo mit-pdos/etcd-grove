@@ -23,9 +23,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **Trust boundary** (D22 S-f): `BackendPath()` is `datadir.ToBackendFileName(c.DataDir)`,
-`filepath.Join(c.DataDir, "member", "snap", "db")`: a pure function of the field (here opaque,
-`backendPathOf`), with no other effect. What would discharge it: translating `datadir` with its
-body over a spec of `filepath.Join` (and `backendPathOf` defined as it). -/
+`filepath.Join(c.DataDir, "member", "snap", "db")`: a pure function of the field, `backendPathOf`,
+with no other effect. (wal-link, 2026-11-19, option B1) `backendPathOf d` is the name `db` in the
+snapshot directory `snapDirOf d`; (wal-fsfix2, 2026-11-20, approved by the user) `snapDirOf d` is
+Go's `filepath.Join(d, "member", "snap")` (`path.joinModel`; until then opaque, `c.SnapDir()`), so
+this axiom claims that `BackendPath()` is `filepath.Join(d, "member", "snap") + "/db"`, the string
+Go's `filepath.Join(d, "member", "snap", "db")` is (`config/Defs.lean`'s header; the Go test
+`examples/etcd/snappaths/snappaths_test.go`). What would discharge it: translating `datadir` with
+its body over the spec of `filepath.Join` (`Spec/path/filepath/Join.lean`) and a lemma that
+`Clean(p + "/db")` is `Clean(p) + "/db"` when `Clean(p)` ends in the element `snap`. -/
 axiom config.ServerConfig.BackendPath.wp_proof :
   config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG)
 

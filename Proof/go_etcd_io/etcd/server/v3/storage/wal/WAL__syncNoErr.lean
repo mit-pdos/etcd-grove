@@ -8,7 +8,7 @@ error arms gone. Lean-first.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TailWriterWNE
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasyncNE
 
@@ -95,7 +95,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
       [Henc Htw] as %err ⟨Henc, Hres⟩
   · iexact Hws
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, HB⟩)
+  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, -, HB⟩)
   rotate_left
   · iexfalso; iexact HB
   subst Herr

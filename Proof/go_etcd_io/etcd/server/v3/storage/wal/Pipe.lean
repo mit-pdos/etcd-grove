@@ -113,24 +113,24 @@ def pipeQ (j : Ino) (n : Nat) : IProp GF :=
 "the client keeps no call permission while a WAL is open"), the fraction `dq` of the directory's
 path. -/
 def pipeRes (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) : IProp GF :=
-  iprop(osCallPerm (1 : Qp).half.half ∗ osPathS R dir dq j)
+  iprop(osCallPerm (callKey R dir) (1 : Qp).half.half ∗ osPathS R dir dq j)
 
 /-- The call permission's halves, split. -/
-theorem osCallPerm_halfSplit (q : Qp) :
-    ⊢ osCallPerm (L := hG.goose_localGS) q -∗
-      osCallPerm (L := hG.goose_localGS) q.half ∗ osCallPerm (L := hG.goose_localGS) q.half := by
+theorem osCallPerm_halfSplit (k : GoString) (q : Qp) :
+    ⊢ osCallPerm (L := hG.goose_localGS) k q -∗
+      osCallPerm (L := hG.goose_localGS) k q.half ∗ osCallPerm (L := hG.goose_localGS) k q.half := by
   iintro H
-  have h := osCallPerm_split (L := hG.goose_localGS) q.half q.half
+  have h := osCallPerm_split (L := hG.goose_localGS) k q.half q.half
   rw [Qp.half_add_half] at h
   iapply h.1
   iexact H
 
 /-- The call permission's halves, joined. -/
-theorem osCallPerm_halfJoin (q : Qp) :
-    ⊢ osCallPerm (L := hG.goose_localGS) q.half -∗ osCallPerm (L := hG.goose_localGS) q.half -∗
-      osCallPerm (L := hG.goose_localGS) q := by
+theorem osCallPerm_halfJoin (k : GoString) (q : Qp) :
+    ⊢ osCallPerm (L := hG.goose_localGS) k q.half -∗ osCallPerm (L := hG.goose_localGS) k q.half -∗
+      osCallPerm (L := hG.goose_localGS) k q := by
   iintro H1 H2
-  have h := osCallPerm_split (L := hG.goose_localGS) q.half q.half
+  have h := osCallPerm_split (L := hG.goose_localGS) k q.half q.half
   rw [Qp.half_add_half] at h
   iapply h.2
   iframe

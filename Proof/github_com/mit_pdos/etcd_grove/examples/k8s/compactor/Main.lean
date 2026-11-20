@@ -59,15 +59,6 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
 
-/-- The API servers' loop's counters: one more round, one more `Add`. -/
-theorem loop_step (n : w64) (k : w32)
-    (hk : sint.Z k ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 5 ∧ 0 ≤ sint.Z k)
-    (h3 : sint.Z n < sint.Z (W64 5)) :
-    sint.Z (k + W32 1) ≤ sint.Z (n + W64 1) ∧ 0 ≤ sint.Z (n + W64 1) ∧ sint.Z (n + W64 1) ≤ 5 ∧
-      0 ≤ sint.Z (k + W32 1) := by
-  obtain ⟨h1, h2, h4, h5⟩ := hk
-  word
-
 set_option maxHeartbeats 1600000 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
@@ -138,7 +129,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartCompactingServer N memberName peerAddr clientAddr (W64 0) lg
       (LogEntry.toEntries boot 0) ctxs (etcdstart.dir1 peerAddr id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN
       HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide)
+      (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide)
       (by rw [hkr]; decide) Haf Hbuq Hdbo)
       $$ [Htok Hmb Hfresh]
     as %srv %err Hr
