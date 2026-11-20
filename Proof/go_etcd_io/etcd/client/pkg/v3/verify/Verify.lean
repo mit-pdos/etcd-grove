@@ -29,7 +29,7 @@ theorem verify.Verify.wp_proof
     verify.Verify.spec (GF := GF) (hG := hG) := by
   intro msg f P
   wp_start as ⟨HP, Hf⟩
-  wp_auto
+  try wp_auto
   wp_apply hEnabled as %b Hb
   icases Hf with (Hf | #Hvoff)
   · cases b

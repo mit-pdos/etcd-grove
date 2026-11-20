@@ -34,7 +34,7 @@ theorem RequestOp.GetRequestTxn.wp_proof : RequestOp.GetRequestTxn.spec (GF := G
     wp_auto
     wp_if_destruct
     · exact absurd rfl Hnn
-    · wp_auto
+    · try wp_auto
       iapply HΦ
       iunfold txn.txnFieldsIs
       iframe Hf

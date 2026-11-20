@@ -39,10 +39,10 @@ theorem backend.ValidateCalledInsideUnittest.wp_proof
   wp_apply hEnabled as %b Hb
   ispecialize Hb $$ Hvoff
   icases Hb with %Hb
-  obtain rfl : b = false := Hb (Or.inr rfl)
+  obtain rfl : b = false := Hb (Or.inr (by first | rfl | trivial))
   wp_auto
   iapply HΦ
-  done
+  itrivial
 
 end proof
 

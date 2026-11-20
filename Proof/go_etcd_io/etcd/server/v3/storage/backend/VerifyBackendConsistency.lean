@@ -37,13 +37,9 @@ theorem backend.VerifyBackendConsistency.wp_proof
   wp_auto
   wp_apply (hVerify _ _ iprop(True)) $$ []
   · iframe #
-    isplitr
-    · done
-    iright
-    iexact Hvoff
-  wp_auto
+  try wp_auto
   iapply HΦ
-  done
+  itrivial
 
 end proof
 

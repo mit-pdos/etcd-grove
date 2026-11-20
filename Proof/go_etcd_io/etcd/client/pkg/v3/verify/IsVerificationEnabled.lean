@@ -44,7 +44,7 @@ theorem verify.IsVerificationEnabled.wp_proof (hGetenv : os.Getenv.spec (GF := G
     ispecialize Hoff $$ Hv
     icases Hoff with %Hoff
     ipureintro
-    obtain ⟨h1, -, -⟩ := Hoff rfl
+    obtain ⟨h1, -, -⟩ := Hoff (by first | rfl | trivial)
     have := (Hlv go!"all" (by decide)).1 hall
     simp [h1] at this
   · rw [decide_eq_false hall]
@@ -55,7 +55,7 @@ theorem verify.IsVerificationEnabled.wp_proof (hGetenv : os.Getenv.spec (GF := G
     ispecialize Hoff $$ Hv
     icases Hoff with %Hoff
     ipureintro
-    obtain ⟨-, h2, h3⟩ := Hoff rfl
+    obtain ⟨-, h2, h3⟩ := Hoff (by first | rfl | trivial)
     intro ht
     simp only [decide_eq_false_iff_not]
     intro heq

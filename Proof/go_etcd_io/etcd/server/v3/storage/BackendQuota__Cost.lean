@@ -39,11 +39,9 @@ theorem storage.costPut_wp (r : Loc) (o : OpFull) :
   wp_start as #Hr
   iunfold txn.putRequestIs at Hr
   icases Hr with ⟨%Hnn, %ksl, %vsl, %k, %v, %l, %pk, %iv, %il, #HK, -, #HV, -⟩
-  wp_func_call
-  wp_call
   wp_auto
   iapply HΦ
-  done
+  itrivial
 
 /-- `costTxn(r)` of a transaction request with the fields `cs ts es` returns: by induction on the
 size of its operations (a nested transaction's are smaller). -/
@@ -69,8 +67,6 @@ theorem storage.costTxn_wp
       {{ (c : w64), RET #c; True }} := by
     intro p op hop
     wp_start as #Hp
-    wp_func_call
-    wp_call
     wp_auto
     wp_apply (hPut p op) $$ [$Hp] as %rr Hrr
     icases Hrr with (⟨%o, %Ho, #Hr⟩ | %Hrn)
@@ -82,7 +78,7 @@ theorem storage.costTxn_wp
       wp_apply (storage.costPut_wp rr o) $$ [] as %c -
       · iunfold txn.putRequestIs; iframe #; ipureintro; exact Hnn
       wp_auto
-      iapply HΦ; done
+      iapply HΦ; itrivial
     · obtain ⟨rfl, -⟩ := Hrn
       wp_auto
       wp_apply (hTxn p op) $$ [$Hp] as %tr Htr
@@ -97,19 +93,17 @@ theorem storage.costTxn_wp
         wp_apply (ih tr cs' ts' es' hlt) $$ [] as %c -
         · iframe #; ipureintro; exact Htn
         wp_auto
-        iapply HΦ; done
+        iapply HΦ; itrivial
       all_goals
         icases Htr with %Htn
         subst Htn
         wp_auto
-        iapply HΦ; done
+        iapply HΦ; itrivial
   wp_start as ⟨%Hrnn, #Hf⟩
   iunfold txn.txnFieldsIs at Hf
   icases Hf with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm, #Hfl, #Hfs, #Hfm⟩
   ihave %Hslen := ownSlice_len _ _ _ $$ Hss
   ihave %Hflen := ownSlice_len _ _ _ $$ Hfs
-  wp_func_call
-  wp_call
   wp_auto
   -- the success branch
   ihave IH : (∃ (k : w64) (uv : Loc) (acc : w64), "i" ∷ i_ptr ↦ k ∗ "u" ∷ u_ptr ↦ uv ∗
@@ -169,7 +163,7 @@ theorem storage.costTxn_wp
     iframe
     ipureintro; exact ⟨by word, by word⟩
   wp_auto
-  wp_if_destruct <;> (wp_auto; iapply HΦ; done)
+  wp_if_destruct <;> (wp_auto; iapply HΦ; itrivial)
 
 theorem storage.BackendQuota.Cost.wp_proof
     (hPut : RequestOp.GetRequestPut.spec (GF := GF) (hG := hG))
@@ -178,15 +172,13 @@ theorem storage.BackendQuota.Cost.wp_proof
   intro q t r
   wp_start as #Hq
   iunfold apply.quotaReqOk at Hq
-  wp_method_call
-  wp_call
   wp_auto
   icases Hq with (⟨%Ht, %o, #Hr⟩ | ⟨%Ht, %m, #Hr⟩ | %Ht) <;> subst Ht
   · wp_auto
     wp_apply (storage.costPut_wp r o) $$ [] as %c -
     · iframe #
     wp_auto
-    iapply HΦ; done
+    iapply HΦ; itrivial
   · wp_auto
     iunfold txn.txnRequestIs at Hr
     icases Hr with ⟨%Hnn, #Hf⟩
@@ -194,9 +186,9 @@ theorem storage.BackendQuota.Cost.wp_proof
       $$ [] as %c -
     · iframe #; ipureintro; exact Hnn
     wp_auto
-    iapply HΦ; done
+    iapply HΦ; itrivial
   · wp_auto
-    iapply HΦ; done
+    iapply HΦ; itrivial
 
 end proof
 
