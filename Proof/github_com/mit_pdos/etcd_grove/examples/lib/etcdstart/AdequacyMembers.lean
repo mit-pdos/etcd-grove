@@ -66,16 +66,26 @@ theorem progOk_walAreas [hG : HeapGS .hasLC GF] [go.BasicIntoValInj] (hPre : Abs
     (R B : IProp GF) (init : val) (body : Expr) (φ : val → Prop) (hbody : toVal body = none)
     (σ : state) (hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (Ds : List GoString) (hDs : Ds.Nodup)
     (hW : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hF : ∀ d ∈ Ds, Fs.DirFits (srvWalDirOf d))
     (h : progOk R iprop(B ∗ [∗list] d ∈ Ds, memberAreasFresh d) init body φ) :
     progOk R iprop(B ∗ extsLocalStart (L := hG.goose_localGS) σ.world) init body φ := by
   obtain ⟨getInit, I, Hinit, Hbody⟩ := h
   refine ⟨getInit, I, Hinit, ?_⟩
   iintro HI Htok ⟨HB, Hl⟩
   imod etcdFs_start σ hfs $$ Hl with ⟨#Hinv, -, Ht⟩
-  iapply wp_walAreas hPre etcdFsExts_sat _ hfs Ds hDs hW ⟨hrb⟩ body hbody _ $$ Hinv Ht
+  iapply wp_walAreas hPre etcdFsExts_sat etcdFsExts_satL _ hfs Ds hDs hW hF ⟨hrb⟩ body hbody _ $$ Hinv Ht
   iintro Hw
   iapply Hbody $$ HI Htok [HB Hw]
   iframe
+
+/-- (wal-fsfix2) **The members' WAL directories fit** when their names are at most 200 bytes (what
+`WalA.fits` takes at the areas' allocation). -/
+theorem walDirsFit_of_names (ms : List (GoString × etcdstart.MemberAddrs)) (Ds : List GoString)
+    (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds) (hmsL : ∀ m ∈ ms, m.1.length ≤ 200) :
+    ∀ d ∈ Ds, Fs.DirFits (srvWalDirOf d) := by
+  intro d hd
+  obtain ⟨m, hm, rfl⟩ := List.mem_map.1 (hD.mem_iff.2 hd)
+  exact dirFits_srvWalDirOf_memberDataDir m.1 (hmsL m hm)
 
 /-- **An etcd example's closed theorem, from its members' start bundles** (hub step 7's L4, D2):
 `etcd_adequate`, the body proved from the start bundles of the members `ms`
@@ -83,7 +93,8 @@ theorem progOk_walAreas [hG : HeapGS .hasLC GF] [go.BasicIntoValInj] (hPre : Abs
 addresses and `Bs` are `As` up to order and the members' data directories are `Ds` up to order;
 (wal-link P2) the members' WAL areas as `etcdWalAreasInit` says at start (`HWal`), each allocated before
 the body's first step (`progOk_walAreas`), for a body that is not a value and an execution of fewer
-than `2 ^ 62` steps (the WAL's receipts' bound). -/
+than `2 ^ 62` steps (the WAL's receipts' bound); (wal-fsfix2) the members' names of at most 200 bytes
+(`hmsL`, by `decide` for literal members: their WAL directories fit, `walDirsFit_of_names`). -/
 theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go.BasicIntoValInj]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (hbody : toVal body = none)
@@ -106,14 +117,15 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go
       threadBound GF = max (n + 2) srvLevelK →
       progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
         iprop(([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b)
-        init body φ) :
+        init body φ)
+    (hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs HDs HEnv
     n κs t2 σ2 Hsteps fun hG HN HT =>
       progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ (sep_reassoc5 _ _ _ _ _)
         (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
-          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn)
+          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn) (walDirsFit_of_names ms Ds hD hmsL)
           (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
             (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD) (Hprog hG HN HT)))
 
@@ -143,7 +155,8 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
         (⊢ (|==> ∃ x, T x : IProp GF)) ∧
         ∀ x, progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
           iprop((([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗
-            [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ) :
+            [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ)
+    (hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate_alloc init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs
@@ -152,7 +165,7 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
       exact ⟨X, T, Halloc, fun x => progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
         sep_assoc.2
         (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
-          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn)
+          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn) (walDirsFit_of_names ms Ds hD hmsL)
           (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
             (sep_swap_right3 _ _ _ |>.trans
               (sep_mono_left (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD)))

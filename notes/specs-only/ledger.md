@@ -3258,3 +3258,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `bootstrapContract`: the open WAL it hands out was covered by `NoIoErr` only → also by `NoMapLockErr` (its lock
   calls succeed whenever they can), in a directory that fits.
 - **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03; an independent attack before relying on it.
+
+## 2026-11-20: `cut.specNoErr` also needs the WAL directory's paths covered (`WalA.cov` is inodes only)
+
+- **Spec.** `WalA`/`WalH` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), `WAL.cut.specNoErr`
+  (`Spec/.../storage/wal/WAL__cutNoErr.lean`, premise `∀ st i, Sio.ino st i`).
+- **Defect.** `NoIoErr Sio` covers a path call (`open`, `rename`, `mkdir`, `unlink`, `rmdir`) only when
+  `Sio.path p ∧ PathFits p` (`IoCovers`, `Premises.lean`). `cut` makes three: the pipeline's `OpenFile(dir/<n>.tmp,
+  O_CREATE)` (`filePipeline.alloc`), `os.Rename(dir/<n>.tmp, dir/<seq>-<idx>.wal)` and `LockFile`'s
+  `OpenFile(dir/<seq>-<idx>.wal, O_WRONLY)`; the low-level no-error lemmas take it (`wp_osOpenCreateSNE`,
+  `wp_osOpenFileSNE`: `Sio.path (child d b)`; `wp_osRenameFileSNE`: `∀ p, Sio.path p`). `WalA.cov` (`walCov Sio`)
+  covers every inode and no path, so even with the approved `satL`/`fits` (entry above) an uncovered `open` may
+  fail with any errno and `cut` return its error: `cut.specNoErr` stays unprovable in `Save`'s covered case. The
+  entry above's `Fs.DirFits dir` is also not derivable from `bootCfgFresh`'s `DirFits DataDir` as written there
+  (`srvWalDirOf d` is 3 bytes longer than `d`; `DirFits` bounds at 3800): implemented instead at the area's
+  allocation, from the member's name of at most 200 bytes (`dirFits_srvWalDirOf_memberDataDir`), so `walAreaFresh`
+  carries it (no change to `bootCfgFresh`).
+- **Evidence.** wal-fsfix2's survey of `cut`'s callees (`WAL__cut.lean`, `NoErrSpecsOpenFile.lean`,
+  `NoErrSpecsRename.lean`); no WAL spec over an open WAL names `Sio.path` (grep).
+- **Proposed change.** `WalA` gains `covP : ∀ b, Sio.path (Fs.child dir b)` (the WAL directory's entries; the
+  closed theorems' `allIo` covers every path, so the allocation gives it by `trivial`); `cut.specNoErr` takes it
+  with `satL` and `fits`. Old → new meaning of `bootstrapContract`'s `wal.bootOk`: the open WAL's files covered by
+  `NoIoErr`/`NoMapLockErr` by inode → also its directory's names by path (a covered `open`/`rename` there that can
+  succeed does). Alternative: `covP : ∀ p, Sio.path p` (simpler, as `FsNoErr`; claims more than `cut` needs).
+- **Decision.** Pending (wal-fsfix2's stop, 2026-11-20).

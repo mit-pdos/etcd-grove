@@ -135,6 +135,13 @@ def k8setcd3NDirs (k : Nat) : List GoString := (members k).map (fun m => memberD
 def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
   (startOf (members k)).map (fun m => (m.1, ⟨some m.2.1, m.2.2⟩))
 
+/-- (wal-fsfix2) The start bundles' names are at most 200 bytes (`etcd_adequate_members`' `hmsL`). -/
+theorem startAddrs_names_len (k : Nat) : ∀ m ∈ startAddrs k, m.1.length ≤ 200 := by
+  intro m hm
+  obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hm
+  obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+  exact members_names_len k y hy
+
 theorem k8setcd3NAddrs_perm (k : Nat) :
     ((startAddrs k).flatMap (fun (m : GoString × MemberAddrs) => m.2.addrs) ++ bridges k).Perm
       (k8setcd3NAddrs k) := by

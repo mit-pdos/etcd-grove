@@ -96,7 +96,7 @@ theorem etcd_authlease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_authlease.authleaseAddrs_lit k hk)
+  refine etcd_adequate_members (GF := putgetGF) (hmsL := etcd_authlease.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_authlease.authleaseAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.authlease.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Main) #(W64 (k : Int)))
     (fun v => v = #(W64 0) ∨ v = #(W64 1)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)

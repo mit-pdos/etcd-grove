@@ -1,6 +1,30 @@
 # wal-fsfix2 handoff
 
-## START HERE (2026-11-20 a2) — item 2 for a fresh agent
+## START HERE (2026-11-20 a3) — item 2 stopped: the WalH change needs path coverage too
+
+- Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`). Plain build-slot; lean-check `--max-open 2`.
+- **Done (a3, uncommitted → committed as "wal-fsfix2 (2a)")**: the approved `WalH` change, as `WalA` fields (so
+  `walAreaFresh`, allocated at adequacy, carries them and a faithful `bootstrap` can hand them on): `satL :
+  FsStepSat (NoMapLockErr Sio)`, `fits : Fs.DirFits dir`. `fits` is NOT derivable from `bootCfgFresh`'s
+  `DirFits DataDir` (the WAL directory is 3 bytes longer; bound 3800), so it comes from the member's name of at
+  most 200 bytes at the areas' allocation: `dirFits_srvWalDirOf_memberDataDir` (`storage/WalLayoutFits.lean`),
+  `walAreasFresh_boot`/`wp_walAreas`/`progOk_walAreas` take `∀ d ∈ Ds, DirFits (srvWalDirOf d)`,
+  `etcd_adequate_members`/`_alloc_members` a trailing `hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide`
+  (`walDirsFit_of_names`); N variants pass `startAddrs_names_len k` (new in each `Dir.lean`), k8s/all a split.
+  `etcdFsExts_satL` (`FsExts.lean`). No closed statement changed.
+- **STOP (the report)**: `cut.specNoErr` also needs the WAL directory's **paths** covered: `NoIoErr` covers `open`/
+  `rename` only on `Sio.path p ∧ PathFits p`, and `WalA.cov` covers inodes only. Ledger entry "2026-11-20: `cut.specNoErr`
+  also needs the WAL directory's paths covered" (proposal: `WalA.covP : ∀ b, Sio.path (child dir b)`).
+- Independent attack on the WalH change: see the report / `questions.md`.
+- **Next after the decision**: add `covP` (at adequacy `trivial`, `allIo`); then item 2 as planned below. Beware:
+  the pipeline's `Open` error comes from the background `alloc` (`filePipeline.run`), so a no-error `Open` needs
+  `isFilePipe` to carry `Sio`/coverage/`DirFits dir` from `newFilePipeline` (Create, openAtIndex): a ripple.
+- Item 3 (`rnNewStorageOk_holds`): needs `walStorSpecs h` for every `WalH`, i.e. the storage specs linked, whose
+  WAL `Save`/`SaveSnapshot` hang on `h_wal_WAL_cutNoErr` (WAL `Link.lean`); `Create` is not in it (bootOk is
+  assumed), so no `Create.specNoErr` expected; to confirm once `cut` is linked.
+
+## START HERE (2026-11-20 a2, superseded) — item 2 for a fresh agent
 
 - Item 1 LANDED (lean 9d6a486a91, merged into this branch). Worktree `/shared/etcd-grove-walfsfix2`, branch
   `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`, `PERENNIAL_DIR=/shared/perennial-c44b74871`);

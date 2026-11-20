@@ -19,6 +19,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Boot0
 public import GooseLang.Ext.Fs.TreeSharedSwitchE
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalLayoutFits
 
 @[expose] public section
 
@@ -76,20 +77,24 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF]
 
 /-- **The WAL area `r` (the directory `j` under the roots `R`) with the WAL directory `dir`**, over the
-program's file system instances, at the WAL ghost state `W`, every inode in the no-I/O-error set. -/
-abbrev etcdWalArea (W : WalFs.WalGS GF) (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (R : Fs.Roots)
-    (j : Fs.Ino) (r dir : GoString) : WalA GF where
+program's file system instances, at the WAL ghost state `W`, every inode in the no-I/O-error set (and,
+wal-fsfix2, the no-lock-error set), `dir` fitting. -/
+abbrev etcdWalArea (W : WalFs.WalGS GF) (hsat : Fs.FsStepSat (Fs.NoIoErr allIo))
+    (hsatL : Fs.FsStepSat (Fs.NoMapLockErr allIo)) (R : Fs.Roots)
+    (j : Fs.Ino) (r dir : GoString) (hfits : Fs.DirFits dir) : WalA GF where
   ext := inferInstance
   semOk := inferInstance
   has := inferInstance
   W := W
   Sio := allIo
   sat := hsat
+  satL := hsatL
   cov := fun _ _ => trivial
   R := R
   jr := j
   r := r
   dir := dir
+  fits := hfits
 
 /-- The area is durable at the first boot (as WalTester's `dirDurable_boot0`). -/
 theorem walDirDurable_boot0 [W : WalFs.WalGS GF] (r : GoString) :
@@ -107,10 +112,12 @@ in turn; see the file header): from the shared mode's resources, the whole claim
 roots among them), each data directory `d` of `Ds` (a member's, `memberDataDir`) gives its
 `walAreaFresh (srvWalDirOf d)` and (2026-11-19) its `dataAreaFresh d`. -/
 theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
-    (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (R : Fs.Roots) (V : Fs.Hist) (hV : V.2 = [])
+    (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (hsatL : Fs.FsStepSat (Fs.NoMapLockErr allIo))
+    (R : Fs.Roots) (V : Fs.Hist) (hV : V.2 = [])
     (hR : Fs.RootsOk R) (hrb : ReceiptBoundLe GF (2 ^ 62)) :
     ∀ (Ds : List GoString) (Js : List Fs.Ino) (M : GMap GoString Unit), Ds.Nodup →
       (∀ d ∈ Ds, ∃ n, d = memberDataDir n) →
+      (∀ d ∈ Ds, Fs.DirFits (srvWalDirOf d)) →
       (∀ d ∈ Ds, ∃ j, (walAreaOf d, j) ∈ R ∧ j ∈ Js ∧
         ∀ b, WalFs.AreaSlot b → V.now.entry j b = none) →
       (∀ d ∈ Ds, ∃ j, (d, j) ∈ R ∧ j ∈ Js ∧ ∀ b, V.now.entry j b = none) →
@@ -125,17 +132,18 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
   intro Ds
   induction Ds with
   | nil =>
-    intro _ _ _ _ _ _ _ _
+    intro _ _ _ _ _ _ _ _ _
     iintro _ _ _ _ _
     imodintro
     iapply BigSepL.bigSepL_nil.2; iempintro
   | cons d Ds ih =>
-    intro Js M hnd hN hJ hJd hM hMd
+    intro Js M hnd hN hF hJ hJd hM hMd
     obtain ⟨j, hrj, hjJ, hsl⟩ := hJ d List.mem_cons_self
     obtain ⟨jd, hrjd, hjdJ, hemp⟩ := hJd d List.mem_cons_self
     have hnd' := (List.nodup_cons.1 hnd)
     have hNd := hN d List.mem_cons_self
     have hN' : ∀ d' ∈ Ds, ∃ n, d' = memberDataDir n := fun d' h => hN d' (List.mem_cons_of_mem _ h)
+    have hF' : ∀ d' ∈ Ds, Fs.DirFits (srvWalDirOf d') := fun d' h => hF d' (List.mem_cons_of_mem _ h)
     -- the area's and the data directory's inodes differ
     have hjd : jd ≠ j := by
       rintro rfl
@@ -202,7 +210,7 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     ihave Hrest := (BigSepL.bigSepL_perm (Φ := fun j => Fs.osNames (L := hG.goose_localGS) j (.except [])
       (DFrac.own 1) (Fs.namesOf V j (.except []))) (List.perm_cons_erase hjd')).1 $$ Hrest
     icases Hrest with ⟨Hjd, Hrest⟩
-    imod ih ((Js.erase j).erase jd) (GMap.delete d (GMap.delete (walAreaOf d) M)) hnd'.2 hN' hJ' hJd'
+    imod ih ((Js.erase j).erase jd) (GMap.delete d (GMap.delete (walAreaOf d) M)) hnd'.2 hN' hF' hJ' hJd'
       hM' hMd' $$ Hos Hsh Hab Hrest Hperms with Hrest
     ihave #Hdd := walDirDurable_boot0 (W := W) (walAreaOf d) $$ Hp
     imodintro
@@ -211,7 +219,7 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     unfold memberAreasFresh
     isplitl [Hres Hu Hsp Hpd Hown]
     · unfold walAreaFresh
-      iexists etcdWalArea W hsat R j (walAreaOf d) (srvWalDirOf d)
+      iexists etcdWalArea W hsat hsatL R j (walAreaOf d) (srvWalDirOf d) (hF d List.mem_cons_self)
       isplitr
       · ipureintro
         exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1)⟩
@@ -239,8 +247,10 @@ extension's initial state `st` (`FsInit`, no I/O error assumed: `hsat`) with the
 invariant of the mapped cells and the tree's whole legacy history) follows from its WP given each data
 directory's `walAreaFresh` and (2026-11-19) `dataAreaFresh`. -/
 theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
-    (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (st : Fs.OsState) (hfs : Fs.FsInit st)
+    (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (hsatL : Fs.FsStepSat (Fs.NoMapLockErr allIo))
+    (st : Fs.OsState) (hfs : Fs.FsInit st)
     (Ds : List GoString) (hDs : Ds.Nodup) (hW : etcdWalAreasInit st Ds)
+    (hF : ∀ d ∈ Ds, Fs.DirFits (srvWalDirOf d))
     (hrb : ReceiptBoundLe GF (2 ^ 62))
     (e : Expr) (he : toVal e = none) (Φ : val → IProp GF) :
     ⊢ Fs.osInv (L := hG.goose_localGS) -∗
@@ -273,9 +283,9 @@ theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
       | cons c cs => simp [joinPath] at hrc
     rw [GMap.lookup_delete_ne _ hne]
     exact Fs.permMap_lookup st.fs.roots _ (.inr ⟨j, hrj⟩)
-  imod walAreasFresh_boot hPre hsat st.fs.roots (st.fs.treeDur, []) rfl hR hrb Ds
+  imod walAreasFresh_boot hPre hsat hsatL st.fs.roots (st.fs.treeDur, []) rfl hR hrb Ds
     ((GMap.toList (Fs.Hist.now (st.fs.treeDur, []))).map (·.1)) (GMap.delete [] (Fs.permMap st.fs.roots))
-    hDs (fun d hd => (hW d hd).1)
+    hDs (fun d hd => (hW d hd).1) hF
     (fun d hd => by
       obtain ⟨j, hrj, hsl⟩ := (hW d hd).2.1
       exact ⟨j, hrj, hmemJ j ⟨_, hrj⟩, hsl⟩)
