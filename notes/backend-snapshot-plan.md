@@ -66,6 +66,16 @@ generic library tied to the server's level numbering, 0-4 taken). Per `notes/bou
 constructor keeps `b.mu`'s other slots as a counted stock (`bmTok`), and `Snapshot` takes one and gives it
 back; the server's apply thread holds one, delivered as the constructor's counted open shares are.
 
+**Refined (2026-11-20, B3): the slot rides in `rdTok`.** A new token delivered to the apply thread would
+run through `newPostKP`, mvcc's open laws, `NewStore`'s post, the server's boot and its restore path. But
+the apply thread already holds a backend reader token at the call (`apply.bkRT`'s `rdTok`, which
+`SnapSendBranch` takes out and gives back around the snapshot), and SpecPlan's `Snapshot` takes a counted
+reader slot too (`beRdToks γ 1`). So every `rdTok` also carries a `b.mu` read slot (`bmSlot`, tied to
+the backend's database by `bDB`), and `Snapshot` borrows the caller's `rdTok`. `b.mu` has
+`actualMaxReaders` slots and the batch transaction keeps one, so the constructor makes one `rdTok` fewer
+(`rdStockN` one smaller; its last `readTx.mu` slot unused). The spec chain: `backend.Snapshot.spec`, mvcc's
+`mvccImage_snapshot.law`, the server's `senderImage.law`/`snapImageG`, and `SnapSendBranch`'s call.
+
 ## Stages
 
 - **B1** the commit point: `ownDB` at half of `boltState`, the backend's commit invariant (`cmtInv`,
@@ -154,8 +164,18 @@ entry in the invariant `∃ R Q, savedProp γR ½ R ∗ savedPred γΨ ½ (λ D,
 `regs_arm`, `obsIn_of_lock`); `batchTx.commit` arms at its commit point or a no-op (`cmt_arm_noop`), over a
 frame `F` with `F ⊢ obsIn` (kept whole); `unsafeCommit`/`batchTxBuffered.commit` take `cntLb n` and `W`
 (out of a stop and a window) and give `cntLb (n + 1)`; `Commit.specCnt` (and `Commit.spec` from it);
-`CommitAndStop`, `run`, `Unlock` pass `cntLb 0`. **Left in B2:** the window case's frame is a `sorry`
-(`unsafeCommit`), step (c).
+`CommitAndStop`, `run`, `Unlock` pass `cntLb 0`.
+
+**Step (c), as done (2026-11-20, `5b38d08e58`): no restructure.** The commit glue takes an arming step
+(`armStep`: from a frame `F`, at the commit point's mask, arm every registration at `S` and bump the
+counter, `F` back) instead of `F ⊢ obsIn`; `regs_arm`'s inputs may come by a ghost update (`|==> obsIn`),
+which is *hypothetical*: the conclusion is pure, so the and-trick keeps the original resources and drops
+the update's effects. In a window (`RegWindow.lean`, `armStep_win`) the step borrows the clients'
+deposit from `cacheInv` (the open window, `rtCm`'s half of `γ.cur`, says it is there), moves the view's
+three fractions to `L'` and applies the `Unlock` caller's wand for `W` inside the hypothetical update
+(`obsIn_win`), and puts the deposit back unchanged. `unsafeCommit`/`commit` lend the caller's wand
+through a window (`Qw`); `Unlock` passes it. `cacheInv`, `rtRes_cm_close` and the window protocol are
+unchanged.
 
 **Step (c), concretely (2026-11-20).** The window opens in `Unlock` with `rtRes_wb_close … true`, which
 deposits the clients' half `bView γ 1 vd` in `cacheInv` (`(win = false) ∨ ∃ vd, bView γ 1 vd`); the commit
