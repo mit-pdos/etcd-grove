@@ -6,9 +6,10 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
 error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-only for good. Its
-initializer runs its variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New`
-call (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states;
-`linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`); `opaqueInitsOk` the others.
+initializer runs its variables' initializers: (prove-errinits, 2026-11-19) its errors' are translated,
+`errors.New` calls and verb-less `fmt.Errorf` calls (`msg_codec.go`, `http.go`, `peer.go`,
+`stream.go`; `fmt.Errorf`'s trusted model is `errors.New(format)`), until then the trust-boundary axiom
+`errorsNewVarsInit`; `linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`).
 (const-inits, 2026-11-19) The timeouts and intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`,
 `proberInterval`, `statusMonitoringInterval`, `statusErrorInterval`), `errMemberNotFound`
 (`fmt.Errorf`, its proof) and `supportedStream` (a map literal of slice literals) are translated
@@ -56,6 +57,7 @@ public import Proof.path.Init
 public import Proof.runtime.Init
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
+public import Perennial.Proof.errors.NewVar
 public import Proof.errors.NewVarCell
 
 @[expose] public section
@@ -90,18 +92,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`'s variables initialized by `errors.New`.** Each
-listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
-it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
-axiom errorsNewVarsInit :
-    ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrExceedSizeLimit.init, ErrExceedSizeLimit, go!"rafthttp: error limit exceeded"),
-        (errIncompatibleVersion.init, errIncompatibleVersion, go!"incompatible version"),
-        (ErrClusterIDMismatch.init, ErrClusterIDMismatch, go!"cluster ID mismatch"),
-        (errStopped.init, errStopped, go!"stopped"),
-        (errMemberRemoved.init, errMemberRemoved, go!"the member has been permanently removed from the cluster"),
-        (errUnsupportedStreamType.init, errUnsupportedStreamType, go!"unsupported stream type")] : List (val × GoString × GoString)) →
-    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
 
 /-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat's encoding's size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/
 axiom linkHeartbeatSize_init :

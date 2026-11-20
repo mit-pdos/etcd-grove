@@ -1,6 +1,13 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# Types and names only: function and method bodies are axiomatized; (prove-errinits, 2026-11-19) the
+# error variables (`errors.go`: `errors.New` calls) translated.
+translate = ["!*",
+  "ErrUnknownMethod", "ErrStopped", "ErrCanceled", "ErrTimeout",
+  "ErrTimeoutDueToLeaderFail", "ErrTimeoutDueToConnectionLost", "ErrTimeoutLeaderTransfer", "ErrTimeoutWaitAppliedIndex",
+  "ErrLeaderChanged", "ErrNotEnoughStartedMembers", "ErrLearnerNotReady", "ErrNoLeader",
+  "ErrNotLeader", "ErrRequestTooLarge", "ErrNoSpace", "ErrTooManyRequests",
+  "ErrUnhealthy", "ErrCorrupt", "ErrBadLeaderTransferee", "ErrClusterVersionUnavailable",
+  "ErrWrongDowngradeVersionFormat", "ErrKeyNotFound"]
+imports = ["!*", "errors"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

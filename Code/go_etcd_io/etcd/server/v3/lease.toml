@@ -27,7 +27,10 @@ translate = ["!*",
   "LeaseQueue.Len", "LeaseQueue.Less", "LeaseQueue.Swap", "LeaseQueue.Push", "LeaseQueue.Pop",
   "newLeaseExpiredNotifier", "LeaseExpiredNotifier.RegisterOrUpdate",
   # the lease-expiry plan's S1 (2026-11-03, the user's): the snapshot's restore, proved
-  "lessor.Recover", "lessor.initAndRecover", "LeaseExpiredNotifier.Init"]
+  "lessor.Recover", "lessor.initAndRecover", "LeaseExpiredNotifier.Init",
+  # (prove-errinits, 2026-11-19) the remaining package variables: constants and a counter
+  "defaultLeaseRevokeRate", "leaseCheckpointRate", "defaultLeaseCheckpointInterval",
+  "maxLeaseCheckpointBatchSize", "defaultExpiredleaseRetryInterval", "leaseRenewed"]
 imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/version",
   "go.etcd.io/etcd/server/v3/lease/leasepb",

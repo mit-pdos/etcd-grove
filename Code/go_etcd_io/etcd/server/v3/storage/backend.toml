@@ -6,6 +6,8 @@
 translate = ["!*",
   # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
   "commitSec", "rebalanceSec", "spillSec", "writeSec",
+  # (prove-errinits, 2026-11-19) the other metrics
+  "defragSec", "defragBlockingSec", "snapshotTransferSec", "isDefragActive",
   # tx_buffer.go
   "bucketBufferInitialSize", "txBuffer.reset", "txWriteBuffer.put", "txWriteBuffer.putSeq",
   "txWriteBuffer.putInternal", "txWriteBuffer.reset", "txWriteBuffer.writeback",

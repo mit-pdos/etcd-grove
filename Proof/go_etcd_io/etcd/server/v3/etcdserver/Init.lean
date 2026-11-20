@@ -16,7 +16,11 @@ guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `e
 reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
 axiom `NewCounter.wp_proof`), which
-`revokeExpiredLeases` increments.
+`revokeExpiredLeases` increments. (prove-errinits, 2026-11-19) Its other metrics (`learnerPromoteFailed`,
+`learnerPromoteSucceed`, `currentVersion`, `currentGoVersion`, `fdUsed`, `fdLimit`),
+and `recommendedMaxRequestBytesString` (`humanize.Bytes`, over its spec) are translated too;
+`opaqueInitsOk` keeps `monitorVersionInterval` (`rafthttp.ConnWriteTimeout - time.Second`, which
+reads a variable rafthttp's fact does not hold) and `_` (`var _ serverversion.Server = ...`).
 -/
 module
 
@@ -106,14 +110,7 @@ runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
     ∀ v ∈ ([«_».init,
-        learnerPromoteFailed.init,
-        learnerPromoteSucceed.init,
-        currentVersion.init,
-        currentGoVersion.init,
-        fdUsed.init,
-        fdLimit.init,
-        monitorVersionInterval.init,
-        recommendedMaxRequestBytesString.init] : List val),
+        monitorVersionInterval.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver`'s untranslated `init` functions return.** Goose

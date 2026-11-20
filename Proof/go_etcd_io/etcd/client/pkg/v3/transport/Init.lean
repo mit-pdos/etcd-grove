@@ -2,15 +2,17 @@
 Package initialization of `go_etcd_io.etcd.client.pkg.v3.transport`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer initializes its imports, allocates its one variable,
+`ErrNotTCP`, and runs its translated initializer (`limit_listen.go`: an `errors.New` call; until
+2026-11-19 untranslated, `opaqueInitsOk`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Perennial.Proof.errors.Link
 public import Proof.crypto.tls.Init
 public import Proof.go_uber_org.zap.Init
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -28,24 +30,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.client.pkg.v3.transport
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.client.pkg.v3.transport`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrNotTCP.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.client.pkg.v3.transport
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -67,9 +51,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrNotTCP _ as HErrNotTCP
+  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.crypto.tls.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk ErrNotTCP.init (by mem_tac))
+  -- translated initializer of ErrNotTCP))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNotTCP #MErrNotTCP
   iframe Hown
   is_pkg_init_finish
 

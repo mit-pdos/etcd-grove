@@ -109,6 +109,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopWatchStreamDuration _ as HwatchSendLoopWatchStreamDuration
   wp_apply wp_GlobalAlloc (V := Loc) clientRequests _ as HclientRequests
   wp_apply wp_GlobalAlloc (V := Loc) streamFailures _ as HstreamFailures
+  wp_apply wp_GlobalAlloc (V := GoInterface) receivedBytes _ as HreceivedBytes
+  wp_apply wp_GlobalAlloc (V := GoInterface) sentBytes _ as HsentBytes
   wp_apply wp_GlobalAlloc (V := Loc) metricsServerCached _ as HmetricsServerCached
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) metricsServerLock _ as HmetricsServerLock
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -206,8 +208,12 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1))
     $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk sentBytes.init (by mem_tac))
-  wp_apply (opaqueInitsOk receivedBytes.init (by mem_tac))
+  -- translated initializer of sentBytes))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %csentBytes ⟨#CsentBytes, -⟩
+  try wp_auto
+  -- translated initializer of receivedBytes))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %creceivedBytes ⟨#CreceivedBytes, -⟩
+  try wp_auto
   -- translated initializer of streamFailures))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"Type", go!"API"])); isplitr; (· ipureintro; rfl); iintro %sstreamFailures ⟨SstreamFailures, -⟩

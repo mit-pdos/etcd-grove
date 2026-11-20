@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.io
 public import Code.go_etcd_io.etcd.client.pkg.v3.verify
+public import Perennial.Code.fmt
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -48,12 +49,8 @@ noncomputable def defaultBufferBytes [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrShortRead [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.ErrShortRead"
 
-opaque ErrShortRead.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrExpectEOF [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.ErrExpectEOF"
-
-opaque ErrExpectEOF.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewPageWriter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.NewPageWriter"
@@ -435,7 +432,7 @@ noncomputable def limitedBufferReader.Read.impl [GooseExts] [GoGlobalContext] : 
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.ioutil where
-  pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
+  pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.fmt]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -446,13 +443,22 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 131072))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"ioutil: short read"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"ioutil: expect EOF"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val ErrExpectEOF.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrExpectEOF))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val ErrShortRead.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrShortRead))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultBufferBytes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -460,7 +466,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc defaultBufferBytes go.int)) (Val #()))))))))
+  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultBufferBytes go.int)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrShortRead go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrExpectEOF go.error)) (Val #()))))))))
 
 structure PageWriter [GooseExts] where
   mk ::
@@ -685,6 +697,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewLimitedBufferReader_unfold : FuncUnfold NewLimitedBufferReader [] NewLimitedBufferReader.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
+  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
 
 attribute [instance] Assumptions.PageWriter_instance
   Assumptions.ReaderAndCloser_instance
@@ -694,6 +707,7 @@ attribute [instance] Assumptions.PageWriter_instance
   Assumptions.NewLimitedBufferReader_unfold
   Assumptions.import_io_Assumption
   Assumptions.import_verify_Assumption
+  Assumptions.import_fmt_Assumption
 
 end go_etcd_io.etcd.pkg.v3.ioutil
 

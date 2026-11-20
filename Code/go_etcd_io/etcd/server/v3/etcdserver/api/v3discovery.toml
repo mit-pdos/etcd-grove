@@ -1,7 +1,10 @@
 # Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
+translate = ["!*",
+  # (prove-errinits, 2026-11-19) the error variables (`errors.New`) and the retry bounds translated
+  "ErrInvalidURL", "ErrBadSizeKey", "ErrSizeNotFound", "ErrFullCluster", "ErrTooManyRetries",
+  "nRetries", "maxExponentialRetries"]
 # (unit N4, 2026-10-17: clientv3, so that `DiscoveryConfig` is translated)
-imports = ["!*", "go.etcd.io/etcd/client/v3"]
+imports = ["!*", "errors", "math", "go.etcd.io/etcd/client/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

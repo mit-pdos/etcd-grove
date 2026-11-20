@@ -25,6 +25,9 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -66,12 +69,18 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) leaseTotalTTLs _ as HleaseTotalTTLs
+  wp_apply wp_GlobalAlloc (V := GoInterface) leaseRenewed _ as HleaseRenewed
   wp_apply wp_GlobalAlloc (V := GoInterface) leaseRevoked _ as HleaseRevoked
   wp_apply wp_GlobalAlloc (V := GoInterface) leaseGranted _ as HleaseGranted
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseTTLTooLarge _ as HErrLeaseTTLTooLarge
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseExists _ as HErrLeaseExists
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseNotFound _ as HErrLeaseNotFound
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNotPrimary _ as HErrNotPrimary
+  wp_apply wp_GlobalAlloc (V := w64) defaultExpiredleaseRetryInterval _ as HdefaultExpiredleaseRetryInterval
+  wp_apply wp_GlobalAlloc (V := w64) maxLeaseCheckpointBatchSize _ as HmaxLeaseCheckpointBatchSize
+  wp_apply wp_GlobalAlloc (V := w64) defaultLeaseCheckpointInterval _ as HdefaultLeaseCheckpointInterval
+  wp_apply wp_GlobalAlloc (V := w64) leaseCheckpointRate _ as HleaseCheckpointRate
+  wp_apply wp_GlobalAlloc (V := w64) defaultLeaseRevokeRate _ as HdefaultLeaseRevokeRate
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Time) forever _ as Hforever
   wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
@@ -93,11 +102,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of forever))
-  wp_apply (opaqueInitsOk defaultLeaseRevokeRate.init (by mem_tac))
-  wp_apply (opaqueInitsOk leaseCheckpointRate.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultLeaseCheckpointInterval.init (by mem_tac))
-  wp_apply (opaqueInitsOk maxLeaseCheckpointBatchSize.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultExpiredleaseRetryInterval.init (by mem_tac))
+  -- translated initializer of defaultLeaseRevokeRate))
+  -- translated initializer of leaseCheckpointRate))
+  -- translated initializer of defaultLeaseCheckpointInterval))
+  -- translated initializer of maxLeaseCheckpointBatchSize))
+  -- translated initializer of defaultExpiredleaseRetryInterval))
   -- translated initializer of ErrNotPrimary))
   -- translated initializer of ErrLeaseNotFound))
   -- translated initializer of ErrLeaseExists))
@@ -122,7 +131,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     icases CleaseRevoked with ⟨#K, -, -⟩
     unfold go_etcd_io.etcd.server.v3.lease.counterSpec
     iexact K
-  wp_apply (opaqueInitsOk leaseRenewed.init (by mem_tac))
+  -- translated initializer of leaseRenewed))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cleaseRenewed ⟨#CleaseRenewed, -⟩
+  try wp_auto
   -- translated initializer of leaseTotalTTLs))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bleaseTotalTTLs BleaseTotalTTLs
   try wp_auto

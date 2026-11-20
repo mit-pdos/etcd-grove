@@ -67,10 +67,8 @@ axiom Perennial.go_etcd_io.etcd.server.v3.auth.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.lease.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk

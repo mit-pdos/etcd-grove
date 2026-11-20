@@ -277,12 +277,8 @@ noncomputable def RaftSnapshotPrefix [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def errIncompatibleVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errIncompatibleVersion"
 
-opaque errIncompatibleVersion.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ErrClusterIDMismatch"
-
-opaque ErrClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def activePeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activePeers"
@@ -335,8 +331,6 @@ noncomputable def readBytesLimit [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrExceedSizeLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ErrExceedSizeLimit"
 
-opaque ErrExceedSizeLimit.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ConnReadTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ConnReadTimeout"
 
@@ -345,8 +339,6 @@ noncomputable def ConnWriteTimeout [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def errStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errStopped"
-
-opaque errStopped.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def proberInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.proberInterval"
@@ -363,8 +355,6 @@ noncomputable def snapResponseReadTimeout [GooseExts] [GoGlobalContext] : GoStri
 noncomputable def errUnsupportedStreamType [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errUnsupportedStreamType"
 
-opaque errUnsupportedStreamType.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def supportedStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.supportedStream"
 
@@ -378,8 +368,6 @@ opaque linkHeartbeatSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMemberRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errMemberRemoved"
-
-opaque errMemberRemoved.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errMemberNotFound"
@@ -8078,6 +8066,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"/raft"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr RaftPrefix))) (Val #())))
@@ -8095,7 +8089,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.path.Join []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"incompatible version"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"cluster ID mismatch"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
   (Let "$v1" (Val #(go!"network"))
@@ -8248,11 +8246,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 536870912))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"rafthttp: error limit exceeded"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val DefaultConnReadTimeout)
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val DefaultConnWriteTimeout)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"stopped"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoSub _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GlobalVarAddr ConnReadTimeout))) (Val #()))) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8262,6 +8264,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"unsupported stream type"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$k0" (Val #(go!"2.0.0"))
   (Let "$k1" (Val #(go!"2.1.0"))
@@ -8306,6 +8311,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"the member has been permanently removed from the cluster"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"member not found"))
   (Let "$a1" (Val #slice.nil)
@@ -8316,7 +8324,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errMemberNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val errMemberRemoved.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errMemberRemoved))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val linkHeartbeatSize.init) (Val #()))))))
   (App (Val doExecute)
@@ -8324,7 +8332,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.SliceType streamType.ty))))) (Pair (App (Val (GoInstruction (GlobalVarAddr supportedStream))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val errUnsupportedStreamType.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errUnsupportedStreamType))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr snapResponseReadTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -8334,13 +8342,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr proberInterval))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val errStopped.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errStopped))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr ConnWriteTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr ConnReadTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrExceedSizeLimit.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrExceedSizeLimit))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (GlobalVarAddr readBytesLimit))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -8374,9 +8382,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr activePeers))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrClusterIDMismatch.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrClusterIDMismatch))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val errIncompatibleVersion.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errIncompatibleVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr RaftSnapshotPrefix))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -8456,6 +8464,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc RaftSnapshotPrefix go.string)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errIncompatibleVersion go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrClusterIDMismatch go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc activePeers (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc disconnectedPeers (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty))) (Val #()))))))
@@ -8488,9 +8500,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc readBytesLimit go.uint64)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrExceedSizeLimit go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ConnReadTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ConnWriteTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errStopped go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc proberInterval _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -8500,9 +8516,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc snapResponseReadTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errUnsupportedStreamType go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc supportedStream (go.GoType.MapType go.string (go.GoType.SliceType streamType.ty)))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc linkHeartbeatMessage _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errMemberRemoved go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc errMemberNotFound go.error)) (Val #()))))))))
 

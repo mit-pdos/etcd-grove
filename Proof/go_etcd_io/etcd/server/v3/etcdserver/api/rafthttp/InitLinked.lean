@@ -26,7 +26,7 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.httputil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
@@ -87,14 +87,18 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) errMemberNotFound _ as HerrMemberNotFound
+  wp_apply wp_GlobalAlloc (V := GoInterface) errMemberRemoved _ as HerrMemberRemoved
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message) linkHeartbeatMessage _ as HlinkHeartbeatMessage
   wp_apply wp_GlobalAlloc (V := Loc) supportedStream _ as HsupportedStream
+  wp_apply wp_GlobalAlloc (V := GoInterface) errUnsupportedStreamType _ as HerrUnsupportedStreamType
   wp_apply wp_GlobalAlloc (V := w64) snapResponseReadTimeout _ as HsnapResponseReadTimeout
   wp_apply wp_GlobalAlloc (V := w64) statusErrorInterval _ as HstatusErrorInterval
   wp_apply wp_GlobalAlloc (V := w64) statusMonitoringInterval _ as HstatusMonitoringInterval
   wp_apply wp_GlobalAlloc (V := w64) proberInterval _ as HproberInterval
+  wp_apply wp_GlobalAlloc (V := GoInterface) errStopped _ as HerrStopped
   wp_apply wp_GlobalAlloc (V := w64) ConnWriteTimeout _ as HConnWriteTimeout
   wp_apply wp_GlobalAlloc (V := w64) ConnReadTimeout _ as HConnReadTimeout
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrExceedSizeLimit _ as HErrExceedSizeLimit
   wp_apply wp_GlobalAlloc (V := w64) readBytesLimit _ as HreadBytesLimit
   wp_apply wp_GlobalAlloc (V := Loc) rttSec _ as HrttSec
   wp_apply wp_GlobalAlloc (V := Loc) snapshotReceiveSeconds _ as HsnapshotReceiveSeconds
@@ -111,6 +115,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := Loc) sentBytes _ as HsentBytes
   wp_apply wp_GlobalAlloc (V := Loc) disconnectedPeers _ as HdisconnectedPeers
   wp_apply wp_GlobalAlloc (V := Loc) activePeers _ as HactivePeers
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrClusterIDMismatch _ as HErrClusterIDMismatch
+  wp_apply wp_GlobalAlloc (V := GoInterface) errIncompatibleVersion _ as HerrIncompatibleVersion
   wp_apply wp_GlobalAlloc (V := GoString) RaftSnapshotPrefix _ as HRaftSnapshotPrefix
   wp_apply wp_GlobalAlloc (V := GoString) RaftStreamPrefix _ as HRaftStreamPrefix
   wp_apply wp_GlobalAlloc (V := GoString) ProbingPrefix _ as HProbingPrefix
@@ -183,10 +189,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   subst HjN
   rw [show EtcdGrove.path.joinModel [go!"/raft", go!"snapshot"] = go!"/raft/snapshot" from by decide]
   try wp_auto
-  wp_apply (errorsNewVarsInit errIncompatibleVersion.init errIncompatibleVersion go!"incompatible version" (by mem_tac))
-    as ⟨%xerrIncompatibleVersion, HerrIncompatibleVersion, #MerrIncompatibleVersion, #CerrIncompatibleVersion⟩
-  wp_apply (errorsNewVarsInit ErrClusterIDMismatch.init ErrClusterIDMismatch go!"cluster ID mismatch" (by mem_tac))
-    as ⟨%xErrClusterIDMismatch, HErrClusterIDMismatch, #MErrClusterIDMismatch, #CErrClusterIDMismatch⟩
+  -- translated initializer of errIncompatibleVersion))
+  try wp_auto
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xerrIncompatibleVersion ⟨#MerrIncompatibleVersion, #CerrIncompatibleVersion⟩
+  -- translated initializer of ErrClusterIDMismatch))
+  try wp_auto
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrClusterIDMismatch ⟨#MErrClusterIDMismatch, #CErrClusterIDMismatch⟩
   -- translated initializer of activePeers))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"Local", go!"Remote"])); isplitr; (· ipureintro; rfl); iintro %sactivePeers ⟨SactivePeers, -⟩
@@ -284,22 +292,29 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"To"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SrttSec $BrttSec] as %vrttSec #LrttSec
   try wp_auto
   -- translated initializer of readBytesLimit))
-  wp_apply (errorsNewVarsInit ErrExceedSizeLimit.init ErrExceedSizeLimit go!"rafthttp: error limit exceeded" (by mem_tac))
-    as ⟨%xErrExceedSizeLimit, HErrExceedSizeLimit, #MErrExceedSizeLimit, #CErrExceedSizeLimit⟩
+  -- translated initializer of ErrExceedSizeLimit))
+  try wp_auto
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xErrExceedSizeLimit ⟨#MErrExceedSizeLimit, #CErrExceedSizeLimit⟩
   -- translated initializer of ConnReadTimeout))
   simp only [DefaultConnReadTimeout]
   try wp_auto
   -- translated initializer of ConnWriteTimeout))
   simp only [DefaultConnWriteTimeout]
   try wp_auto
-  wp_apply (errorsNewVarsInit errStopped.init errStopped go!"stopped" (by mem_tac))
-    as ⟨%xerrStopped, HerrStopped, #MerrStopped, #CerrStopped⟩
+  -- translated initializer of errStopped))
+  try wp_auto
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xerrStopped ⟨#MerrStopped, #CerrStopped⟩
   -- translated initializer of proberInterval))
   -- translated initializer of statusMonitoringInterval))
   -- translated initializer of statusErrorInterval))
   -- translated initializer of snapResponseReadTimeout))
-  wp_apply (errorsNewVarsInit errUnsupportedStreamType.init errUnsupportedStreamType go!"unsupported stream type" (by mem_tac))
-    as ⟨%xerrUnsupportedStreamType, HerrUnsupportedStreamType, #MerrUnsupportedStreamType, #CerrUnsupportedStreamType⟩
+  -- translated initializer of errUnsupportedStreamType))
+  try wp_auto
+  -- `fmt.Errorf("unsupported stream type")`: no verb, Go returns `errors.New` of the format, as Perennial's model
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xerrUnsupportedStreamType ⟨#MerrUnsupportedStreamType, #CerrUnsupportedStreamType⟩
   -- translated initializer of supportedStream))
   try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType streamType.ty)) as %mss Hss
@@ -364,8 +379,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage
   · iframe HlinkHeartbeatMessage Hphb
   wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
-  wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
-    as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩
+  -- translated initializer of errMemberRemoved))
+  try wp_auto
+  -- `fmt.Errorf("the member has been permanently removed from the cluster")`: no verb, Go returns `errors.New` of the format, as Perennial's model
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xerrMemberRemoved ⟨#MerrMemberRemoved, #CerrMemberRemoved⟩
   -- translated initializer of errMemberNotFound))
   wp_apply (_root_.Perennial.fmt.wp_Errorf go!"member not found" slice.nil [] _root_.Perennial.fmt.ArgsWf.nil) $$ [] as %emnf -
   · iframe #; iapply ownSlice_nil

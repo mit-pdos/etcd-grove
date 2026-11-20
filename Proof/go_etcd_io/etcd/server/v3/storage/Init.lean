@@ -4,10 +4,11 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (`quota.go`, 2026-11-19; until then untranslated, `opaqueInitsOk`): the
+gauge `quotaBackendBytes` (over prometheus's `NewGauge` spec) and the strings `DefaultQuotaSize` and
+`maxQuotaSize` (`humanize.Bytes` of the constant quotas, over its spec); and its untranslated `init`
+function, which the trust-boundary axiom `initFuncsOk` says returns.
 -/
 module
 
@@ -15,6 +16,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sync.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
+public import Proof.github_com.dustin.go_humanize.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.Init
@@ -46,16 +49,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([quotaBackendBytes.init,
-        DefaultQuotaSize.init,
-        maxQuotaSize.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
