@@ -11,7 +11,11 @@ backoff function returns; the trust-boundary axiom `defaultOptions_init`), and i
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
 trust-boundary axiom `LeaseResponseChSize_init`), and the translated constants
 `defaultUnaryMaxRetries`, `defaultStreamMaxRetries` and `defaultBackoffWaitBetween`
-(`options.go`). Its initializer also runs its other untranslated initializers (`opaqueInitsOk`).
+(`options.go`). (prove-smallinits, 2026-11-20) Its other variables' initializers are translated
+too: the three `errors.New` errors, the call options (grpc's `WaitForReady`, `MaxCallSendMsgSize`,
+`MaxCallRecvMsgSize`), `defaultCallOpts` (their slice) and `defaultBackoffJitterFraction` (until then
+`opaqueInitsOk` and the trust-boundary axioms `defaultCallOpts_init`,
+`defaultBackoffJitterFraction_init`).
 -/
 module
 

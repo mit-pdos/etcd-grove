@@ -50,7 +50,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply wp_GlobalAlloc (V := w64) «α» _ as H«α»
+  wp_apply wp_GlobalAlloc (V := w64) «α» _ as Hα
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrExist _ as HErrExist
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNotFound _ as HErrNotFound
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'

@@ -309,6 +309,8 @@ local model go.
   review** (a semantic assumption).
 - **Proposed.** Goose folds constant expressions of untyped constants (the language's "Constant
   expressions"), or Perennial's `UntypedIntSemantics` gains the two steps. Not yet proposed.
+- **Also hit** (2026-11-20, `prove-smallinits`): `bufio`'s `errorRune = []byte(string(utf8.RuneError))`
+  (`Convert go.untypedRune go.string #65533`, a non-ASCII rune), so `bufio.opaqueInitsOk` stays.
 
 ### `Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx` of a `uint64`, `Time.Format` (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 

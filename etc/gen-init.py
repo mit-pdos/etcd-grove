@@ -1768,7 +1768,11 @@ backoff function returns; the trust-boundary axiom `defaultOptions_init`), and i
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
 trust-boundary axiom `LeaseResponseChSize_init`), and the translated constants
 `defaultUnaryMaxRetries`, `defaultStreamMaxRetries` and `defaultBackoffWaitBetween`
-(`options.go`). Its initializer also runs its other untranslated initializers (`opaqueInitsOk`).''',
+(`options.go`). (prove-smallinits, 2026-11-20) Its other variables' initializers are translated
+too: the three `errors.New` errors, the call options (grpc's `WaitForReady`, `MaxCallSendMsgSize`,
+`MaxCallRecvMsgSize`), `defaultCallOpts` (their slice) and `defaultBackoffJitterFraction` (until then
+`opaqueInitsOk` and the trust-boundary axioms `defaultCallOpts_init`,
+`defaultBackoffJitterFraction_init`).''',
     imports=['Proof.time.Unix'],
     alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
                  'noPrefixEnd': 'GoSlice', 'LeaseResponseChSize': 'w64', 'defaultUnaryMaxRetries': 'w64', 'defaultStreamMaxRetries': 'w64',
@@ -3246,7 +3250,8 @@ def gen(p, cfg=None):
             for l in cfg.get('after', {}).get(x, []):
                 A('  ' + hdsub(l))
         elif kind == 'alloc':
-            A(f'  wp_apply wp_GlobalAlloc (V := {cfg.get("alloc_types", {}).get(x, "TODO")}) {x} _ as H{x}')
+            # (a quoted name, `«α»`, is no Iris hypothesis name: `Hα`)
+            A(f'  wp_apply wp_GlobalAlloc (V := {cfg.get("alloc_types", {}).get(x, "TODO")}) {x} _ as H{x.strip("«»")}')
         else:
             A(f'  -- translated initializer of {x}')
             # (2026-10-23) steps before a translated initializer too (a constant to unfold)
