@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.server.v3.auth.Init
+public import Proof.go_etcd_io.etcd.server.v3.lease.leasepb.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init

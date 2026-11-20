@@ -3,9 +3,9 @@ Package initialization of `go_etcd_io.etcd.server.v3.lease.leasehttp`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`lease/leasehttp/Base.lean`): `LeasePrefix` holds some string. Its initializer
-runs its variables' untranslated initializers (`http.go`); the trust-boundary axiom
-`LeasePrefix_init` states the one the fact reads (`"/leases"`, its value not stated),
-`opaqueInitsOk` the others.
+sets the translated `LeasePrefix` (`"/leases"`) and `LeaseInternalPrefix` (`http.go`; until
+2026-11-19 the trust-boundary axiom `LeasePrefix_init`) and runs its other variables'
+untranslated initializers, which `opaqueInitsOk` says run.
 -/
 module
 
@@ -40,15 +40,9 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([LeaseInternalPrefix.init,
-        applyTimeout.init,
+    ∀ v ∈ ([applyTimeout.init,
         ErrLeaseHTTPTimeout.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- `LeasePrefix = "/leases"` (`http.go`): some string. -/
-axiom LeasePrefix_init :
-    {{ (True : IProp GF) }} (App (Val LeasePrefix.init) (Val #()))
-    {{ RET #(); ∃ p : GoString, globalAddr LeasePrefix ↦ p }}
 
 end go_etcd_io.etcd.server.v3.lease.leasehttp
 end opaqueInits
@@ -74,8 +68,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply LeasePrefix_init as ⟨%pLeasePrefix, HLeasePrefix⟩
-  wp_apply (opaqueInitsOk LeaseInternalPrefix.init (by mem_tac))
+  wp_apply wp_GlobalAlloc (V := GoString) LeaseInternalPrefix _ as HLeaseInternalPrefix
+  wp_apply wp_GlobalAlloc (V := GoString) LeasePrefix _ as HLeasePrefix
+  -- translated initializer of LeasePrefix))
+  -- translated initializer of LeaseInternalPrefix))
   wp_apply (opaqueInitsOk applyTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrLeaseHTTPTimeout.init (by mem_tac))
   ipersist HLeasePrefix

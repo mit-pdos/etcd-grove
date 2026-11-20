@@ -10,7 +10,8 @@ metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) 
 variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
 `openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
-untranslated `prometheus` constructors (the trust-boundary axioms `<X>_init`, metrics.go), the
+translated `prometheus` constructors (metrics.go, over prometheus's `NewHistogram`, `ExponentialBuckets`
+and `NewGauge` specs; until 2026-11-19 the trust-boundary axioms `<X>_init`), the
 translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbInit`), `crcTable =
 crc32.MakeTable(crc32.Castagnoli)` (`hash.crc32.MakeTable.wp_proof`), and its untranslated `init`
 function (`prometheus.MustRegister` of the metrics), which the trust-boundary axiom `initFuncsOk`
@@ -76,21 +77,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `walFsyncSec = prometheus.New...(...)` (`metrics.go`): a metric whose method returns. -/
-axiom walFsyncSec_init :
-    {{ (True : IProp GF) }} (App (Val walFsyncSec.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr walFsyncSec ↦ GoInterface.ok h ∗ EtcdGrove.wal.histSpec h }}
-
-/-- `walWriteSec = prometheus.New...(...)` (`metrics.go`): a metric whose method returns. -/
-axiom walWriteSec_init :
-    {{ (True : IProp GF) }} (App (Val walWriteSec.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr walWriteSec ↦ GoInterface.ok h ∗ EtcdGrove.wal.histSpec h }}
-
-/-- `walWriteBytes = prometheus.New...(...)` (`metrics.go`): a metric whose method returns. -/
-axiom walWriteBytes_init :
-    {{ (True : IProp GF) }} (App (Val walWriteBytes.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr walWriteBytes ↦ GoInterface.ok h ∗ EtcdGrove.wal.gaugeAddSpec h }}
 
 end go_etcd_io.etcd.server.v3.storage.wal
 end opaqueInits

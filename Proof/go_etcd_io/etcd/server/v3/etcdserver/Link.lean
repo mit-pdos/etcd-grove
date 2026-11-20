@@ -512,6 +512,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeG
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthEnabled
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthRevision
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.leaseIDToBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustDeleteMemberFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustReadMembersFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustSaveMemberToBackend
@@ -1209,9 +1210,13 @@ theorem sort.StringSlice.wp_Sort :
     sort.StringSlice.Sort.spec (GF := GF) (hG := hG) :=
   sort.StringSlice.Sort.wp_proof
 
+theorem schema.wp_leaseIDToBytes :
+    schema.leaseIDToBytes.spec (GF := GF) (hG := hG) :=
+  schema.leaseIDToBytes.wp_proof binary.bigEndian.wp_PutUint64
+
 theorem schema.wp_UnsafeDeleteLease :
     schema.UnsafeDeleteLease.spec (GF := GF) (hG := hG) :=
-  schema.UnsafeDeleteLease.wp_proof
+  schema.UnsafeDeleteLease.wp_proof schema.wp_leaseIDToBytes
 
 theorem auth.wp_getMergedPerms :
     auth.getMergedPerms.spec (GF := GF) (hG := hG) :=

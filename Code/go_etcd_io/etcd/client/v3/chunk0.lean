@@ -693,8 +693,6 @@ opaque ErrMutuallyExclusiveCfg.init [GooseExts] [GoGlobalContext] : val
 noncomputable def LeaseResponseChSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.LeaseResponseChSize"
 
-opaque LeaseResponseChSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def noPrefixEnd [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.noPrefixEnd"
 
@@ -716,17 +714,11 @@ opaque defaultMaxCallRecvMsgSize.init [GooseExts] [GoGlobalContext] : val
 noncomputable def defaultUnaryMaxRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultUnaryMaxRetries"
 
-opaque defaultUnaryMaxRetries.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultStreamMaxRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultStreamMaxRetries"
 
-opaque defaultStreamMaxRetries.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultBackoffWaitBetween [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultBackoffWaitBetween"
-
-opaque defaultBackoffWaitBetween.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBackoffJitterFraction [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultBackoffJitterFraction"
@@ -11076,14 +11068,22 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 16))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W8 0))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 100))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoComplement go.uint))) (Val #(W64 0)))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 25)) (Val #(W64 1000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -11111,11 +11111,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultBackoffJitterFraction.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val defaultBackoffWaitBetween.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultBackoffWaitBetween))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultStreamMaxRetries.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultStreamMaxRetries))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultUnaryMaxRetries.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultUnaryMaxRetries))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val defaultMaxCallRecvMsgSize.init) (Val #()))))))
   (App (Val doExecute)
@@ -11125,7 +11125,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr noPrefixEnd))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val LeaseResponseChSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr LeaseResponseChSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrMutuallyExclusiveCfg.init) (Val #()))))))
   (App (Val doExecute)
@@ -11187,7 +11187,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc LeaseResponseChSize go.int)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc noPrefixEnd (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultUnaryMaxRetries go.uint)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultStreamMaxRetries go.uint)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultBackoffWaitBetween _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc valCtxCh (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))) (Val #()))))))
   (App (Val doExecute)

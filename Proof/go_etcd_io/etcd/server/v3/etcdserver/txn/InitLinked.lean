@@ -24,6 +24,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InitLinked
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.reflect.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -64,6 +68,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) slowApplies _ as HslowApplies
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
       EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd17⟩
   wp_apply (_root_.Perennial.reflect.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
@@ -89,7 +94,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply slowApplies_init as ⟨%cslowApplies, HslowApplies, #SslowApplies⟩
+  -- translated initializer of slowApplies))
+  wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cslowApplies ⟨#CslowApplies, -⟩
+  try wp_auto
+  ihave #EslowApplies : (go_etcd_io.etcd.server.v3.lease.counterSpec cslowApplies : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at CslowApplies
+    icases CslowApplies with ⟨#K, -, -⟩
+    unfold go_etcd_io.etcd.server.v3.lease.counterSpec
+    iexact K
   wp_apply (opaqueInitsOk applySec.init (by mem_tac))
   wp_apply (opaqueInitsOk rangeSec.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))

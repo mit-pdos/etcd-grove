@@ -62,6 +62,7 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions]
 
 namespace go_etcd_io.etcd.client.v3
 
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
@@ -77,7 +78,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) maxBackoff _ as HmaxBackoff
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Time) zeroTime _ as HzeroTime
   wp_apply wp_GlobalAlloc (V := GoChan) valCtxCh _ as HvalCtxCh
+  wp_apply wp_GlobalAlloc (V := w64) defaultBackoffWaitBetween _ as HdefaultBackoffWaitBetween
+  wp_apply wp_GlobalAlloc (V := w64) defaultStreamMaxRetries _ as HdefaultStreamMaxRetries
+  wp_apply wp_GlobalAlloc (V := w64) defaultUnaryMaxRetries _ as HdefaultUnaryMaxRetries
   wp_apply wp_GlobalAlloc (V := GoSlice) noPrefixEnd _ as HnoPrefixEnd
+  wp_apply wp_GlobalAlloc (V := w64) LeaseResponseChSize _ as HLeaseResponseChSize
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd27⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd26⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
@@ -117,7 +122,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrNoAvailableEndpoints.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrOldCluster.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrMutuallyExclusiveCfg.init (by mem_tac))
-  wp_apply LeaseResponseChSize_init as HLeaseResponseChSize
+  -- translated initializer of LeaseResponseChSize))
   -- translated initializer of noPrefixEnd))
   wp_apply wp_slice_literal (l := [W8 0])
   isplitr
@@ -127,9 +132,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk defaultWaitForReady.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultMaxCallSendMsgSize.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultMaxCallRecvMsgSize.init (by mem_tac))
-  wp_apply defaultUnaryMaxRetries_init as ⟨%ndefaultUnaryMaxRetries, HdefaultUnaryMaxRetries⟩
-  wp_apply (opaqueInitsOk defaultStreamMaxRetries.init (by mem_tac))
-  wp_apply defaultBackoffWaitBetween_init as ⟨%ddefaultBackoffWaitBetween, HdefaultBackoffWaitBetween⟩
+  -- translated initializer of defaultUnaryMaxRetries))
+  -- translated initializer of defaultStreamMaxRetries))
+  -- translated initializer of defaultBackoffWaitBetween))
   wp_apply defaultBackoffJitterFraction_init as ⟨%fdefaultBackoffJitterFraction, HdefaultBackoffJitterFraction⟩
   wp_apply defaultCallOpts_init as ⟨%sldefaultCallOpts, %vsdefaultCallOpts, HdefaultCallOpts, #SdefaultCallOpts, %PdefaultCallOpts⟩
   wp_apply defaultOptions_init as ⟨%dpdefaultOptions, %ovdefaultOptions, HdefaultOptions, #PdefaultOptions, #SdefaultOptions, %RdefaultOptions⟩
