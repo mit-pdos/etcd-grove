@@ -33,7 +33,7 @@ the packages etcd, its dependencies (otelgrpc, the prometheus interceptors) and 
 `examples/` building against it checks. The packages it no longer reaches are not in it
 (`internal/transport`, the balancers, `internal/idle`, the delegating resolver, ...). Its changes are
 marked `MODEL:`, and its difference from grpc-go is computed, never stored: `diff.py grpc [--stat]`
-(2026-11-20: 16 files of the root package, +2590 -3807 lines). What it replaces:
+(2026-11-20: 16 files of the root package, +2724 -3807 lines). What it replaces:
 
 - **The transport** (`model_transport.go` over `model_wire.go`), in place of HTTP/2: one stream per
   connection. The client writes HTTP/2's 24-byte preface (cmux's `HTTP2()` matcher reads exactly
