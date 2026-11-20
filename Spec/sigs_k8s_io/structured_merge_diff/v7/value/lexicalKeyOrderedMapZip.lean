@@ -31,11 +31,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. The premise on the key counts (post-freeze change B2c, 2026-11-20): the
+keys are collected in a slice and sorted (`sort.Strings`, at most `2^62` items). -/
 abbrev value.lexicalKeyOrderedMapZip.spec : Prop :=
   ∀ (al : value.Allocator) (lm rm : value.Map) (ol or_ : Option (List (GoString × UVal)))
     (fn : GoFunc) (I : List GoString → IProp GF) (Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isMapO lm ol ∗ isMapO rm or_ ∗ zipFnOk al true fn ol or_ I Q ∗ I [] }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isMapO lm ol ∗ isMapO rm or_ ∗
+      ⌜(kvsOrEmpty ol).length + (kvsOrEmpty or_).length ≤ 2 ^ 62⌝ ∗ zipFnOk al true fn ol or_ I Q ∗ I [] }}
     (App (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.lexicalKeyOrderedMapZip)) (Val #al)) (Val #lm)) (Val #rm)) (Val #fn))
   {{ (b : Bool), RET #b; isAlloc al ∗ mapIterPost true (zipKeys ol or_) I Q b }}
 

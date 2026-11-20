@@ -321,7 +321,7 @@ def mapIfaceM (i : GoInterfaceOk) : IProp GF :=
     (∀ kvs or_ (a : value.Allocator) (o : value.Map) (order : w64) (fn : GoFunc)
         (I : List GoString → IProp GF) (Q : IProp GF),
       {{ isMapV (.ok i) kvs ∗ isMapO o or_ ∗ isAlloc a ∗ ⌜zipOrderOk order⌝ ∗
-          zipFnOk a (order = W64 1) fn (some kvs) or_ I Q ∗ I [] }}
+          ⌜order = W64 1 → kvs.length + (kvsOrEmpty or_).length ≤ 2 ^ 62⌝ ∗ zipFnOk a (order = W64 1) fn (some kvs) or_ I Q ∗ I [] }}
       (App (App (App (App (Val #(methods i.ty go!"ZipUsing" i.v)) (Val #a)) (Val #o)) (Val #order)) (Val #fn))
       {{ (r : Bool), RET #r; isAlloc a ∗
           mapIterPost (order = W64 1) (zipKeys (some kvs) or_) I Q r }}))

@@ -33,7 +33,7 @@ theorem value.defaultMapZip.wp_proof
     (h_lexicalKeyOrderedMapZip : value.lexicalKeyOrderedMapZip.spec (GF := GF))
     (h_unorderedMapZip : value.unorderedMapZip.spec (GF := GF)) :
     value.defaultMapZip.spec (GF := GF) := fun al lm rm ol or_ order fn I Q => by
-  wp_start as ⟨Ha, Hl, Hr, %Hord, #Hfn, HI⟩
+  wp_start as ⟨Ha, Hl, Hr, %Hord, %Hzl, #Hfn, HI⟩
   wp_auto
   rcases Hord with rfl | rfl
   · rw [show decide ((W64 0 : w64) = W64 1) = false by decide]
@@ -44,7 +44,9 @@ theorem value.defaultMapZip.wp_proof
   · rw [show decide ((W64 1 : w64) = W64 1) = true by decide]
     wp_auto
     wp_apply h_lexicalKeyOrderedMapZip al lm rm ol or_ fn I Q $$ [Ha Hl Hr HI] as %b Hb
-    · iframe; iexact Hfn
+    · iframe; isplitr
+      · ipureintro; exact Hzl rfl
+      iexact Hfn
     wp_end
 
 end proof

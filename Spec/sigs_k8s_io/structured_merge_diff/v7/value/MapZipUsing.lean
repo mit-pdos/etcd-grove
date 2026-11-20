@@ -34,11 +34,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. The premise on the key counts in `LexicalKeyOrder` (post-freeze change
+B2c, 2026-11-20): the lexical zip collects both maps' keys in a slice and sorts it
+(`sort.Strings`, at most `2^62` items). -/
 abbrev value.MapZipUsing.spec : Prop :=
   ∀ (al : value.Allocator) (lm rm : value.Map) (ol or_ : Option (List (GoString × UVal)))
     (order : w64) (fn : GoFunc) (I : List GoString → IProp GF) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isAlloc al ∗ isMapO lm ol ∗ isMapO rm or_ ∗ ⌜zipOrderOk order⌝ ∗
+      ⌜order = W64 1 → (kvsOrEmpty ol).length + (kvsOrEmpty or_).length ≤ 2 ^ 62⌝ ∗
       zipFnOk al (order = W64 1) fn ol or_ I Q ∗ I [] }}
     (App (App (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.MapZipUsing)) (Val #al)) (Val #lm)) (Val #rm)) (Val #order)) (Val #fn))
   {{ (b : Bool), RET #b; isAlloc al ∗ mapIterPost (order = W64 1) (zipKeys ol or_) I Q b }}

@@ -31,7 +31,7 @@ variable [package_sem : value.Assumptions]
 theorem value.MapZipUsing.wp_proof
     (h_mapUnstructuredString_ZipUsing : value.mapUnstructuredString.ZipUsing.spec (GF := GF)) :
     value.MapZipUsing.spec (GF := GF) := fun al lm rm ol or_ order fn I Q => by
-  wp_start as ⟨Ha, Hl, Hr, %Hord, #Hfn, HI⟩
+  wp_start as ⟨Ha, Hl, Hr, %Hord, %Hzl, #Hfn, HI⟩
   ihave %Hlc := isMapO_cases $$ Hl
   ihave %Hrc := isMapO_cases $$ Hr
   wp_auto
@@ -57,6 +57,8 @@ theorem value.MapZipUsing.wp_proof
         · simp only [isMapO]; ipureintro; trivial
         isplitr
         · ipureintro; exact Hord
+        isplitr
+        · ipureintro; intro h; have := Hzl h; simp only [kvsOrEmpty, Option.getD] at this ⊢; omega
         iunfold zipFnOk
         imodintro
         iintro %done %k %vl %vr %Hstep %Φ' !> ⟨Ha, HI, Hvl, Hvr⟩ HΦ'
@@ -80,6 +82,8 @@ theorem value.MapZipUsing.wp_proof
       · simp only [isMapO]; iexact Hl
       isplitr
       · ipureintro; exact Hord
+      isplitr
+      · ipureintro; exact Hzl
       iexact Hfn
     wp_end
 

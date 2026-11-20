@@ -31,7 +31,7 @@ variable [package_sem : value.Assumptions]
 theorem value.mapUnstructuredString.ZipUsing.wp_proof
     (h_defaultMapZip : value.defaultMapZip.spec (GF := GF)) :
     value.mapUnstructuredString.ZipUsing.spec (GF := GF) := fun m kvs al o or_ order fn I Q => by
-  wp_start as ⟨Hm, Ho, Ha, %Hord, #Hfn, HI⟩
+  wp_start as ⟨Hm, Ho, Ha, %Hord, %Hzl, #Hfn, HI⟩
   wp_auto
   wp_apply h_defaultMapZip al _ o (some kvs) or_ order fn I Q $$ [Hm Ho Ha HI] as %b Hb
   · iframe
@@ -39,6 +39,8 @@ theorem value.mapUnstructuredString.ZipUsing.wp_proof
     · simp only [isMapO]; iexact Hm
     isplitr
     · ipureintro; exact Hord
+    isplitr
+    · ipureintro; exact Hzl
     iexact Hfn
   wp_end
 
