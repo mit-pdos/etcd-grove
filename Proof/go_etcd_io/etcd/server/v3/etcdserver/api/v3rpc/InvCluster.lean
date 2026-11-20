@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MemberContracts
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 
 @[expose] public section
 
@@ -64,6 +65,34 @@ def memberOutC (Pin : IProp GF) (Qin : GoSlice → GoInterface → IProp GF)
     ((⌜err = GoInterface.nil⌝ ∗ ∃ sl : GoSlice, Qin sl GoInterface.nil) ∨
      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e0 : GoInterface, ⌜e0 ≠ GoInterface.nil⌝ ∗
         grpcErrOut (fun _ => True) e0 err ∗ ((∃ sl : GoSlice, Qin sl e0) ∨ (Pin ∗ W e0)))))
+
+/-- **`membership.NewMemberAsLearner("", urls, "", &now)` and `membership.NewMember(...)`** (names
+only, taken as a contract): from the parsed peer URLs `urls` (kept, as `now`), a fresh member `m`
+whose peer URLs are a fresh slice of strings and whose client URLs are none, a learner exactly for
+`NewMemberAsLearner`; its id is computed (a hash of the URLs, the cluster's name and the time), so
+nothing is stated of it. -/
+def newMemberOk : IProp GF :=
+  iprop((□ ∀ (us : GoSlice) (uvs : List _root_.Perennial.net.url.URL) (nowp : Loc)
+      (tv : _root_.Perennial.time.Time),
+    {{ us ↦* uvs ∗ nowp ↦ tv }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberAsLearner))
+        (Val #(go!""))) (Val #us)) (Val #(go!""))) (Val #nowp))
+    {{ (m : Loc), RET #m; us ↦* uvs ∗ nowp ↦ tv ∗
+        ∃ (memb : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (ps : List GoString),
+          m ↦ memb ∗ memberSlices memb (DFrac.own 1) (DFrac.own 1) ps [] ∗
+          ⌜memb.RaftAttributes'.IsLearner' = true⌝ }}) ∗
+    (□ ∀ (us : GoSlice) (uvs : List _root_.Perennial.net.url.URL) (nowp : Loc)
+      (tv : _root_.Perennial.time.Time),
+    {{ us ↦* uvs ∗ nowp ↦ tv }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember))
+        (Val #(go!""))) (Val #us)) (Val #(go!""))) (Val #nowp))
+    {{ (m : Loc), RET #m; us ↦* uvs ∗ nowp ↦ tv ∗
+        ∃ (memb : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (ps : List GoString),
+          m ↦ memb ∗ memberSlices memb (DFrac.own 1) (DFrac.own 1) ps [] ∗
+          ⌜memb.RaftAttributes'.IsLearner' = false⌝ }}))
+
+instance newMemberOk_persistent : Persistent (newMemberOk (GF := GF)) := by
+  unfold newMemberOk; infer_instance
 
 end defs
 
