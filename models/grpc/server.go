@@ -967,6 +967,10 @@ func (s *Server) handleRawConn(lisAddr string, rawConn net.Conn) {
 		rawConn.Close()
 		return
 	}
+	if _, err := rawConn.Write([]byte{frameSettings}); err != nil {
+		rawConn.Close()
+		return
+	}
 	rawConn.SetDeadline(time.Time{})
 	st := newServerTransport(rawConn, s.opts.maxReceiveMessageSize)
 	st.peer.AuthInfo = authInfo

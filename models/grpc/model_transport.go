@@ -232,8 +232,8 @@ type clientTransportStream struct {
 }
 
 // newClientTransportStream creates the stream of an attempt on conn (a fresh connection, just
-// dialed and handshaken): http2Client.NewStream's work, with the header fields made by
-// createHeaderFields, sent after the preface in one write. A newStreamError if it fails; it allows
+// dialed, handshaken and its prefaces exchanged): http2Client.NewStream's work, with the header
+// fields made by createHeaderFields, sent in one write. A newStreamError if it fails; it allows
 // a transparent retry exactly when the server cannot have read the head (the write that carried
 // it failed before writing all of it).
 func newClientTransportStream(ctx context.Context, cc *ClientConn, conn net.Conn, authInfo credentials.AuthInfo, hdr *callHdr, maxRecv int) (*clientTransportStream, error) {
@@ -258,8 +258,7 @@ func newClientTransportStream(ctx context.Context, cc *ClientConn, conn net.Conn
 		conn.Close()
 		return nil, &newStreamError{Err: ErrClientConnClosing, AllowTransparentRetry: false}
 	}
-	b := append([]byte(clientPreface), 0)[:len(clientPreface)]
-	b = appendHeaderBlock(b, frameHead, fields)
+	b := appendHeaderBlock(nil, frameHead, fields)
 	s.wmu.Lock()
 	n, werr := conn.Write(b)
 	s.wmu.Unlock()

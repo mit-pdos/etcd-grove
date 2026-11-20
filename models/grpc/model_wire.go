@@ -14,7 +14,10 @@ package grpc
 
 // MODEL: the model's wire (notes/specs-only/tcp-extension-design.md, section 4.2, with one stream
 // per connection). A connection carries one RPC. The client writes HTTP/2's 24-byte client preface
-// (so that cmux's HTTP2() matcher, which reads exactly it, still matches), then frames:
+// (so that cmux's HTTP2() matcher, which reads exactly it, still matches) and the server answers
+// with its preface (one settings frame, as HTTP/2's SETTINGS) before the client sends anything
+// else (grpc-go's client writes streams only on a connection whose server preface arrived); then
+// frames:
 //
 //	frame   = kind:u8 body
 //	head, header, trailer: length:u32be fields     (a header block; length bounded before reading)
@@ -49,13 +52,14 @@ import (
 
 // The frame kinds.
 const (
-	frameHead    byte = 1 // client: the request's header fields
-	frameData    byte = 2 // either: one gRPC message
-	frameClose   byte = 3 // client: no more request messages
-	frameCancel  byte = 4 // client: the client gave the stream up
-	frameHeader  byte = 5 // server: the response's header fields
-	frameTrailer byte = 6 // server: the trailer fields; the stream's end
-	frameReset   byte = 7 // server: RST_STREAM with an HTTP/2 error code; the stream's end
+	frameHead     byte = 1 // client: the request's header fields
+	frameData     byte = 2 // either: one gRPC message
+	frameClose    byte = 3 // client: no more request messages
+	frameCancel   byte = 4 // client: the client gave the stream up
+	frameHeader   byte = 5 // server: the response's header fields
+	frameTrailer  byte = 6 // server: the trailer fields; the stream's end
+	frameReset    byte = 7 // server: RST_STREAM with an HTTP/2 error code; the stream's end
+	frameSettings byte = 8 // server: its preface (HTTP/2's SETTINGS), right after the client's
 )
 
 // maxHeaderBlock bounds a header block's length (grpc-go's default limit on a received header

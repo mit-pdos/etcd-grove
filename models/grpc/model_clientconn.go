@@ -319,7 +319,25 @@ func (cc *ClientConn) getTransportConn(ctx context.Context, failFast bool) (net.
 			return nil, nil, status.Error(codes.Unavailable, "connection error: desc = \"transport: Error while dialing\"")
 		}
 		addr := addrs[modelChooseN(len(addrs))]
-		conn, authInfo, err := cc.dialAddr(addr)
+		// The connection attempt is the subchannel's, not the RPC's: the RPC stops waiting for it
+		// when its context is done (the connection, if made, is then closed: no later RPC is
+		// sent on it, as none of this attempt's was).
+		ch := make(chan dialResult, 1)
+		go func() {
+			conn, authInfo, err := cc.dialAddr(addr)
+			ch <- dialResult{conn, authInfo, err}
+		}()
+		var r dialResult
+		select {
+		case r = <-ch:
+		case <-ctx.Done():
+			go abandonDial(ch)
+			return nil, nil, status.FromContextError(ctx.Err()).Err()
+		case <-cc.ctx.Done():
+			go abandonDial(ch)
+			return nil, nil, ErrClientConnClosing
+		}
+		conn, authInfo, err := r.conn, r.authInfo, r.err
 		if err == nil {
 			cc.csMgr.updateState(connectivity.Ready)
 			return conn, authInfo, nil
@@ -344,9 +362,26 @@ func (cc *ClientConn) getTransportConn(ctx context.Context, failFast bool) (net.
 	}
 }
 
+// dialResult is a connection attempt's outcome.
+type dialResult struct {
+	conn     net.Conn
+	authInfo credentials.AuthInfo
+	err      error
+}
+
+// abandonDial closes the connection of an attempt nobody waits for any more.
+func abandonDial(ch chan dialResult) {
+	if r := <-ch; r.conn != nil {
+		r.conn.Close()
+	}
+}
+
 // dialAddr connects to addr (transport's dial and NewHTTP2Client's handshake): through the dial
 // options' dialer, else a net.Dialer; then the transport credentials' client handshake, which the
-// model supports only for insecure credentials.
+// model supports only for insecure credentials; then the client's preface out and the server's
+// in (HTTP/2's SETTINGS: grpc-go uses a connection only once the server's preface arrived, within
+// the connect deadline), so that no stream is ever written on a connection the server has not
+// accepted as gRPC.
 func (cc *ClientConn) dialAddr(addr resolver.Address) (net.Conn, credentials.AuthInfo, error) {
 	connectCtx, cancel := context.WithTimeout(cc.ctx, minConnectTimeout)
 	defer cancel()
@@ -381,5 +416,20 @@ func (cc *ClientConn) dialAddr(addr resolver.Address) (net.Conn, credentials.Aut
 		conn.Close()
 		return nil, nil, connectionError{Desc: "transport: authentication handshake failed: " + err.Error()}
 	}
+	if _, err := conn.Write([]byte(clientPreface)); err != nil {
+		conn.Close()
+		return nil, nil, connectionError{Desc: "transport: failed to write client preface: " + err.Error()}
+	}
+	dl, _ := connectCtx.Deadline()
+	conn.SetReadDeadline(dl)
+	kind, err := readFrameKind(conn)
+	if err == nil && kind != frameSettings {
+		err = errMalformedFrame
+	}
+	if err != nil {
+		conn.Close()
+		return nil, nil, connectionError{Desc: "error reading server preface: " + err.Error()}
+	}
+	conn.SetReadDeadline(time.Time{})
 	return conn, authInfo, nil
 }
