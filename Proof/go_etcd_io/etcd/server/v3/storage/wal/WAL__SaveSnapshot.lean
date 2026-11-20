@@ -26,7 +26,8 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CalleeCov
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encode
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot__GetIndex
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SavePure
