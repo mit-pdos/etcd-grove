@@ -14,7 +14,7 @@ def bbolt.Open.spec : Prop :=
                 ⌜N ## Fs.osN⌝ ∗
                   Fs.osSharedInv R ∗
                     Fs.osPathS R d dq j ∗
-                      Fs.osCallPerm qc ∗
+                      Fs.osCallPerm (Fs.callKey R d) qc ∗
                         Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗
                           bbolt.nameHolds h b D ∗
                             bbolt.optsAtNoErr opts dqo o ∗
@@ -23,7 +23,7 @@ def bbolt.Open.spec : Prop :=
                 ∀ db err,
                   (bbolt.optsAtNoErr opts dqo o ∗
                       Fs.osPathS R d dq j ∗
-                        Fs.osCallPerm qc ∗
+                        Fs.osCallPerm (Fs.callKey R d) qc ∗
                           ∃ oc,
                             crOut j b h (DFrac.own 1) oc ∗
                               ((⌜err = GoInterface.nil⌝ ∗

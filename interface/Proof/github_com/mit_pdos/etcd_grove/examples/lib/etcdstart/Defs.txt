@@ -48,7 +48,7 @@ def etcdstart.memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
 def etcdstart.cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
     Prop :=
   cfg.Name' = name ∧
-    cfg.DataDir' = name ++ go!".etcd" ∧
+    cfg.DataDir' = memberDataDir name ∧
       cfg.InitialClusterToken' = token ∧ cfg.NewCluster' = true ∧ cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 
 theorem etcdstart.grpcUpM_true [v3rpc_sem :

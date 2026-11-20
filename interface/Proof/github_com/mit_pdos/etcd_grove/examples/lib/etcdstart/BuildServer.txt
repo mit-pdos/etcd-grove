@@ -56,8 +56,7 @@ theorem etcdstart.BuildServer.wp_proof (wp_newServer : etcdstart.newServer.spec)
                                                     threadTok ∗
                                                       etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0) (W64 0)
                                                           (W64 0) bootKV lm ∗
-                                                        leaseTTLRowR s ps ∗
-                                                          srvDataDir s (name ++ go!".etcd") -∗
+                                                        leaseTTLRowR s ps ∗ srvDataDir s (memberDataDir name) -∗
                                                 Φ (intoVal s, intoVal err)) -∗
                                           WP
                                             (((((((((intoVal
@@ -129,7 +128,7 @@ theorem etcdstart.BuildServer.wp_proofRestart (wp_newServer : etcdstart.newServe
                                                     ∃ ρ' E₀',
                                                       ⌜restartNames ρ ρ'⌝ ∗
                                                         etcdstart.memberBuiltR s ρ' E₀' lg γn id N false ∗
-                                                          srvDataDir s (name ++ go!".etcd")) -∗
+                                                          srvDataDir s (memberDataDir name)) -∗
                                               Φ (intoVal s, intoVal err)) -∗
                                         WP
                                           (((((((((intoVal

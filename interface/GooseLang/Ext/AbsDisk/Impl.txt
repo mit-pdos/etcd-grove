@@ -2,15 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def Perennial.instCountableHardStateM_gooseLang : Pos.Countable HardStateM :=
-  Pos.Countable.ofInjective (fun h => Pos.Countable.encode (h.Term', h.Vote', h.Commit'))
-    instCountableHardStateM_gooseLang._proof_1
-
-def Perennial.instCountableConfStateM_gooseLang : Pos.Countable ConfStateM :=
-  Pos.Countable.ofInjective
-    (fun c => Pos.Countable.encode (c.Voters', c.Learners', c.VotersOutgoing', c.LearnersNext', c.AutoLeave'))
-    instCountableConfStateM_gooseLang._proof_1
-
 def Perennial.absDiskUpd (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDur) : AbsDiskState :=
   match s.wal !! dir with
   | some d => { area := s.area, wal := <[dir := f d]>s.wal, dirs := s.dirs }
@@ -93,15 +84,6 @@ theorem Perennial.walCode_inj {A : Type} [Pos.Countable A] {a b : A} (h : walCod
 def Perennial.walCode {A : Type} [Pos.Countable A] (a : A) : GoString :=
   List.replicate (Pos.Countable.encode a).toNat 0
 
-def Perennial.instCountableWalOpG {E : Type} [Pos.Countable E] : Pos.Countable (WalOpG E) :=
-  Pos.Countable.ofInjective
-    (fun o =>
-      Pos.Countable.encode
-        (match o with
-        | WalOpG.save h es => Sum.inl (h, es)
-        | WalOpG.snap m => Sum.inr m))
-    ⋯
-
 def Perennial.instInhabitedAbsDiskState : Inhabited AbsDiskState :=
   { default := { area := [], wal := ∅, dirs := ∅ } }
 
@@ -123,10 +105,6 @@ structure Perennial.WalDur : Type where
   named : Bool
   sized : Bool
 
-inductive Perennial.WalOpG (E : Type) : Type
-  | Perennial.WalOpG.save {E : Type} (h : HardStateM) (es : List E) : WalOpG E
-  | Perennial.WalOpG.snap {E : Type} (m : SnapshotMetadataM) : WalOpG E
-
 structure Perennial.AbsDiskState : Type where
   area : GoString
   wal : GMap GoString WalDur
@@ -142,10 +120,6 @@ structure Perennial.WalEnt : Type where
   index : w64
   typ : w32
   data : List w8
-
-def Perennial.instCountableSnapshotMetadataM_gooseLang : Pos.Countable SnapshotMetadataM :=
-  Pos.Countable.ofInjective (fun m => Pos.Countable.encode (m.ConfState', m.Index', m.Term'))
-    instCountableSnapshotMetadataM_gooseLang._proof_1
 
 def Perennial.instCountableWalEnt : Pos.Countable WalEnt :=
   Pos.Countable.ofInjective (fun e => Pos.Countable.encode (e.term, e.index, e.typ, e.data)) instCountableWalEnt._proof_1
