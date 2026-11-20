@@ -109,6 +109,10 @@ def ownStorage (sn : StorNames) (st : Storage) (σ : StorState) : IProp GF :=
 theorem storCaught_unrec [package_sem : Assumptions] (sn : StorNames) (q : Qp) (n : Nat) : ⊢
     monoNatAuthOwn sn.ga q n -∗ storCaught sn.unrec
 
+theorem isStorageP_mono_SV [package_sem : Assumptions] (sz : Bool) (SV SV' : SnapshotM → IProp GF)
+    (Bnd DL : Nat → IProp GF) (st : Storage) (h : ∀ (sv : SnapshotM), SV sv ⊢ SV' sv) : isStorageP
+    sz SV Bnd DL st ⊢ isStorageP sz SV' Bnd DL st
+
 theorem storPast_pers (st : Storage) (m : Int) : Persistent (storPast st m)
 
 theorem storPast_of_cut (st : Storage) (n : Int) : storCut st n ⊢ storPast st n
