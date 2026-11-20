@@ -179,7 +179,7 @@ theorem list_wf (S : Schema) (hS : S.WF) (t e : TypeRef) (rel : ElemRel) (ks : L
       ∀ k ∈ ks, keyFieldOk S fs k = true := by
   have hw := find_wf S hS _ _ h
   simp only [Atom.wf, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq] at hw
-  obtain ⟨_, h1 | ⟨⟨⟨h2, _⟩, h3⟩, h4⟩⟩ := hw
+  obtain ⟨_, h1 | ⟨⟨⟨⟨h2, _⟩, h3⟩, _⟩, h4⟩⟩ := hw
   · exact absurd h1 hr
   · refine ⟨h2, h3, ?_⟩
     split at h4

@@ -115,13 +115,14 @@ def keyFieldOk (S : Schema) (fs : List (GoString × TypeRef)) (k : GoString) : B
     | _ => false
   | none => false
 
-/-- An atom in the plan's scope: a list atomic, or associative with distinct keys, each a declared
-scalar field of the element map type; a map's field names distinct; every reference resolves. -/
+/-- An atom in the plan's scope: a list atomic, or associative with distinct keys (at most `2^62`,
+`FieldList.Sort`'s bound), each a declared scalar field of the element map type; a map's field names distinct; every reference resolves. -/
 def Atom.wf (S : Schema) : Atom → Bool
   | .scalar _ => true
   | .list e rel ks => S.resolves e &&
       (decide (rel = .atomic) ||
        (decide (rel = .associative) && !ks.isEmpty && decide ks.Nodup &&
+        decide (ks.length ≤ 2 ^ 62) &&
         match S.find e.name with
         | some (.map fs _ _) => ks.all (keyFieldOk S fs)
         | _ => false))

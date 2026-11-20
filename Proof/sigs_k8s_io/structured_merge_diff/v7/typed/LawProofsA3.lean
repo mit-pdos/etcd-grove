@@ -380,6 +380,15 @@ theorem isListV_dispatchL [package_sem : typed.Assumptions]
       · iframe #; ipureintro; exact h
       · iexact HΦ
 
+/-- An associative list type's key count is at most `2^62` (`Atom.wf`). -/
+theorem list_wf_len (S : Schema) (hS : S.WF) (t : GoString) (e : TypeRef) (ks : List GoString)
+    (h : S.find t = some (.list e .associative ks)) : ks.length ≤ 2 ^ 62 := by
+  have hw := LawB.find_wf S hS _ _ h
+  simp only [Atom.wf, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq] at hw
+  obtain ⟨_, h1 | ⟨⟨⟨⟨_, _⟩, _⟩, h2⟩, _⟩⟩ := hw
+  · cases h1
+  · exact h2
+
 end LawA3
 
 end proof

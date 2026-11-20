@@ -1,8 +1,7 @@
 /-
-`typed.keyedAssociativeListItemToPathElement`: proved except one fact (`sorry`): `FieldList.Sort`'s
-premise that the key field list has at most `2^62` fields needs the list type's key count bounded,
-which `Schema.WF` (`Atom.wf`) does not state (the fix: `ks.length ≤ 2^62` in `Atom.wf`'s
-associative case; the driver's schema has it by `decide`). Everything else is proved: the keys
+`typed.keyedAssociativeListItemToPathElement`: proved. `FieldList.Sort`'s premise that the key field
+list has at most `2^62` fields: the list type's key count is bounded by `Atom.wf`
+(`LawA3.list_wf_len`), the fields a sublist of the keys. The keys
 looked up (`Get`; an absent key's default is nil), the `FieldList` sorted (`mergeSort` = `keyOf`'s
 `flSort`, `LawA3.sort_pairs`), the `PathElement{Key: &keyMap}` (`LawA3.isPE_key_intro`).
 
@@ -212,7 +211,7 @@ theorem typed.keyedAssociativeListItemToPathElement.wp_proof
     have hnd : (fls.map (·.Name')).Nodup := by
       rw [Hnm]; exact hksnd.sublist (LawA3.keyNames_sublist ks kvs)
     have hbound : ks.length ≤ 2 ^ 62 := by
-      sorry -- not derivable: see the report (the key count needs a bound in `Atom.wf`)
+      exact LawA3.list_wf_len S Hwf _ e ks Hft
     have hflen : fls.length ≤ 2 ^ 62 := by
       rw [Hfl]; exact Nat.le_trans (List.length_filterMap_le _ _) hbound
     rw [method_unfold (t := go.GoType.PointerType value.FieldList.ty) (m := go!"Sort") #keyMap_ptr]
