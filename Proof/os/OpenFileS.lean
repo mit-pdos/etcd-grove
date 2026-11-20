@@ -41,7 +41,8 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
-  wp_apply wp_osCallBeginS R qc h.next CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
@@ -287,11 +288,11 @@ private abbrev os.OpenFile.tripleOldCreateS : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crMeta o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
@@ -303,15 +304,15 @@ private abbrev os.OpenFile.tripleNECreateS : Prop :=
   ∀ (Sio : IoSet) [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)]
     (d b : GoString) (flag : w64) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac) (h : NamesH)
     (q r qc : Qp) (Q : Option (Nat × Nat × Ino) → IProp GF),
-  Sio.path (child d b) →
+  Sio.path (child d b) ∧ PathFits (child d b) →
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crMeta o ∗
         ∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
           os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
@@ -337,7 +338,8 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
-  wp_apply wp_osCallBeginS R qc h.next CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
@@ -515,16 +517,17 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
       have hE4 : e = EINTR := by rcases hres with ⟨h, -⟩ | ⟨-, -, h⟩; exact absurd h he0; exact h
       exact absurd hE4 he4
 
-/-- **`specCreateS`**: by cases on `FsNoErr`, the error-free triple (its set of paths covers
-`d/b`) or the one without the witness, whose error arm then has `¬ FsNoErr`. -/
+/-- **`specCreateS`**: by cases on `FsNoErr ∧ PathFits (child d b)`, the error-free triple (its set
+of paths covers `d/b`, which fits) or the one without the witness, whose error arm then has
+`¬ FsNoErr ∨ ¬ PathFits (child d b)`. -/
 theorem os.OpenFile.wp_proofCreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG) := by
   intro d b flag perm R j dq h q r qc Q hfl hcr htr hb hnd hq
   iintro %Φ Hpre HΦ
-  by_cases hne : FsNoErr
-  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
+  by_cases hne : FsNoErr ∧ PathFits (child d b)
+  · obtain ⟨⟨Sio, hSio, hs1, hs2, hsp⟩, hfit⟩ := hne
     haveI := hs1
     haveI := hs2
-    iapply os.OpenFile.wp_NECreateS Sio d b flag perm R j dq h q r qc Q (hsp _) hfl hcr htr hb hnd hq
+    iapply os.OpenFile.wp_NECreateS Sio d b flag perm R j dq h q r qc Q ⟨hsp _, hfit⟩ hfl hcr htr hb hnd hq
       $$ Hpre
     inext
     iintro %f %err ⟨Hp, Hperm, %o, HQ, Hc, Hm, H⟩
@@ -542,7 +545,8 @@ theorem os.OpenFile.wp_proofCreateS : os.OpenFile.specCreateS (GF := GF) (hG := 
     iframe HQ Hc Hm
     icases H with (H | ⟨%he, Hok⟩)
     · ileft; iexact H
-    · iright; iframe Hok; ipureintro; exact ⟨he.1, he.2, hne⟩
+    · iright; iframe Hok; ipureintro
+      exact ⟨he.1, he.2, (Classical.not_and_iff_not_or_not.1 hne)⟩
 
 end proof
 

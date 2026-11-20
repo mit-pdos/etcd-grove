@@ -18,6 +18,7 @@ public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -198,21 +199,19 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     iframe Hown
     iexists eUAE; iframe HeUAE; ipureintro; rfl
   ihave %Hnone := userOut_null st0 name $$ Hu
-  wp_join iprop(∃ (o' : Loc) (b : Bool) (ou : Option GoString)
-      (ms : google_golang_org.protobuf.internal.impl.MessageState)
-      (uf : GoSlice) (sc : w32) (dq : DFrac) (u : GoString), options_ptr ↦ o' ∗
-      ⌜o' ≠ null ∧ ou = some u ∧ userOptsUfOk ou⌝ ∗
-      o' ↦{dq} ({ state' := ms, NoPassword' := b, unknownFields' := uf, sizeCache' := sc } :
-        authpb.UserAddOptions) ∗ uf ↦*□ u ∗ ⌜b = nob⌝)
-    with [options] as ⟨%o', %b, %ou, %ms, %uf, %sc, %dq, %u, options, %Ho'nn, Hom, #Huf, %Hbnob⟩
+  -- the fresh `Options`' size cache goes into its invariant: `R` under an update
+  wp_join iprop(|={⊤}=> ∃ (o' : Loc) (b : Bool) (ou : Option GoString), options_ptr ↦ o' ∗
+      ⌜o' ≠ null ∧ userOptsUfOk ou⌝ ∗ userOptsIs o' b ou ∗ ⌜b = nob⌝)
+    with [options]
   · -- nil options: `&authpb.UserAddOptions{NoPassword: false}`
     ihave %Hpnn := typedPointsto_not_null _ _ _ $$ «$r0»
-    iexists «$r0_ptr», false, some [], _, _, _, _, []
-    iframe options «$r0»
+    imod userOptsIs_freeze ⊤ «$r0_ptr» _ false _ [] _ $$ [«$r0»] with #Hfo
+    · iframe «$r0»; iapply ownSlice_nil
+    imodintro
+    iexists «$r0_ptr», false, some []
+    iframe options Hfo
     isplitr
-    · ipureintro; exact ⟨Hpnn, rfl, userOptsUfOk_empty⟩
-    isplitr
-    · iapply ownSlice_nil
+    · ipureintro; exact ⟨Hpnn, userOptsUfOk_empty⟩
     iunfold userOptsAt at Hopts
     icases Hopts with ⟨%ou, -, Hopts⟩
     iunfold userOptsIs at Hopts
@@ -221,21 +220,22 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     · exact absurd rfl Honn
   · -- the request's options
     iunfold userOptsAt at Hopts
-    icases Hopts with ⟨%ou, %Hou, Hopts⟩
-    iunfold userOptsIs at Hopts
-    icases Hopts with (%Hn | ⟨%Honn, %ms, %uf, %sc, %u, %Hu, #Hm, #Huf⟩)
+    icases Hopts with ⟨%ou, %Hou, #Hopts⟩
+    ihave #Hopts2 := Hopts
+    iunfold userOptsIs at Hopts2
+    icases Hopts2 with (%Hn | ⟨%Honn, -⟩)
     · exact absurd Hn.1 Hif
-    iexists o, nob, ou, ms, uf, sc, DFrac.discard, u
-    iframe options Hm Huf
-    ipureintro; exact ⟨⟨Honn, Hu, Hou⟩, rfl⟩
-  ipersist Hom
-  ihave #Hopts' : userOptsIs o' b ou $$ []
-  · iunfold userOptsIs; iright; isplitr
-    · ipureintro; exact Ho'nn.1
-    iexists ms, uf, sc, u; iframe Hom Huf; ipureintro; exact Ho'nn.2.1
-  ihave Homf := typedPointsto_split _ _ _ $$ Hom
-  simp only [TypedPointsto.typedPointstoDef]
-  iNamed Homf
+    imodintro
+    iexists o, nob, ou
+    iframe options Hopts
+    ipureintro; exact ⟨⟨Honn, Hou⟩, rfl⟩
+  iintro HR
+  imod HR with ⟨%o', %b, %ou, options, %Ho'nn, #Hopts', %Hbnob⟩
+  (try wp_auto)
+  ihave #Hom := Hopts'
+  iunfold userOptsIs at Hom
+  icases Hom with (%Hn | ⟨-, %uf, %u, -, #NoPassword, -, -, -⟩)
+  · exact absurd Hn.1 Ho'nn.1
   (try wp_auto)
   cases b
   · -- the password selected
@@ -261,10 +261,10 @@ theorem auth.authStore.UserAdd.wp_tieSureB
       (try wp_auto)
       ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have Hstep := (Hok st0 Hl0)
-      wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
+      wp_apply +noauto wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
       ipersist Hnsl
-      (try wp_auto)
-      let urN : UserRec := ⟨name, pwb, [], false, ou, Ho'nn.2.2⟩
+      wp_take_receipt as Hrc
+      let urN : UserRec := ⟨name, pwb, [], false, ou, Ho'nn.2⟩
       ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
       · iunfold ownUser
         iexists _, _, _, _, _, _
@@ -277,7 +277,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
         · iapply ownSlice_nil
         · iexact Hopts'
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
-      iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hsw $Hnu]
+      iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
       · ipureintro; exact ⟨by decide, List.Pairwise.nil, (List.length_pos_iff.2 hname), Hlen, by simp [urN]⟩
       inext
       iintro ⟨HL, Hsw, -⟩
@@ -360,10 +360,10 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     (try wp_auto)
     ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
     have Hstep := (Hok st0 Hl0)
-    wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
+    wp_apply +noauto wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
     ipersist Hnsl
-    (try wp_auto)
-    let urN : UserRec := ⟨name, [], [], true, ou, Ho'nn.2.2⟩
+    wp_take_receipt as Hrc
+    let urN : UserRec := ⟨name, [], [], true, ou, Ho'nn.2⟩
     ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
     · iunfold ownUser
       iexists _, _, _, _, _, _
@@ -376,7 +376,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
       · iapply ownSlice_nil
       · iexact Hopts'
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
-    iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hsw $Hnu]
+    iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
     · ipureintro; exact ⟨by decide, List.Pairwise.nil, (List.length_pos_iff.2 hname), Hlen, by simp [urN]⟩
     inext
     iintro ⟨HL, Hsw, -⟩

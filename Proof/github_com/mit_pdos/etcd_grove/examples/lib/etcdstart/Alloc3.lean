@@ -118,7 +118,9 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
     (Hklg : γk.lm = lm) (hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)
     (hpo : kvPfxOk γk)
-    (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog) :
+    (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog)
+    -- (auth-lease S4, 2026-11-16) the cluster outside raft's no-snapshot mode
+    (Hns : ¬ clusterNoSnap γ.cl) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
@@ -170,6 +172,8 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       hpfx, ?_, trivial, by rw [hkc', Hkc], trivial,
       (by rw [hklg', Hklg]; exact hrun)⟩
     rw [hpfx]; exact HΦ
+  isplitr
+  · ipureintro; exact Hns
   iunfold idNoZero
   rw [hiss', Hiss]
   iexact H0
@@ -256,9 +260,10 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
       (fun h => Hnz _ (hperm.subset h) rfl) cmp cret lm (idPfxOf (W16 (uint.Z id₁)))
       (idPfxsOf [id₁, id₂, id₃]) (gpsOk_of_apart lm _ id₁ (by simp) hap)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+  have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
   -- (lease-mono3 step 2) the cluster's names meet the grant prefixes' condition, each member's
   -- prefix one of them
   have hpo : kvPfxOk γk :=
@@ -272,15 +277,15 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
   icases Hwns' with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod (memberBoot_of γ ps ctxs reg₁ issued cnt wn fs γk Φs id₁ γm idx₁ cok₁ rev₁
       (xs (idPfxOf (W16 (uint.Z id₁)))) Hx₁ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hklg (hmem id₁ (by simp)) hpo HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
+      hvs cmp hkc lm hrun hklg (hmem id₁ (by simp)) hpo HΦ₁ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
   imod (memberBoot_of γ ps ctxs reg₂ issued cnt wn fs γk Φs id₂ γm idx₂ cok₂ rev₂
       (xs (idPfxOf (W16 (uint.Z id₂)))) Hx₂ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hklg (hmem id₂ (by simp)) hpo HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
+      hvs cmp hkc lm hrun hklg (hmem id₂ (by simp)) hpo HΦ₂ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, %Hρ₂, Hb₂⟩
   imod (memberBoot_of γ ps ctxs reg₃ issued cnt wn fs γk Φs id₃ γm idx₃ cok₃ rev₃
       (xs (idPfxOf (W16 (uint.Z id₃)))) Hx₃ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hklg (hmem id₃ (by simp)) hpo HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
+      hvs cmp hkc lm hrun hklg (hmem id₃ (by simp)) hpo HΦ₃ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network (rafthttp stage 6d; until then a slot per member): each peer address
   -- reserved for the raft protocol, so every member's transport may post to the others'
@@ -352,7 +357,7 @@ theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   simp only [memberStartRes, memberFreshRes]
-  iintro #Hmarsh ⟨#Hv₁, Hw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, Hw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, Hw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
+  iintro #Hmarsh ⟨#Hv₁, Hw₁, WaHw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, Hw₂, WaHw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, Hw₃, WaHw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
   imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb
       Hrb2 lm hrun hap cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,

@@ -42,11 +42,11 @@ abbrev os.Remove.specFileSncN : Prop :=
   ∀ (d b : GoString) (j i : Ino) (N : NameSet) (R : Roots) (dq : DFrac) (h : NamesH) (q r qc : Qp)
     (Q : Option (Nat × Nat) → IProp GF),
   NameOk b → N.Mem b → h.cur !! b = some (.file i) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j N (DFrac.own q) h ∗
       osAUnc (osNames j N (DFrac.own r) h) (rmFileOutN j N b i h (DFrac.own r)) Q }}
     (App (Val (@! os.Remove)) (Val #(child d b)))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ rmFileOutN j N b i h (DFrac.own q) o }}
 
 end spec

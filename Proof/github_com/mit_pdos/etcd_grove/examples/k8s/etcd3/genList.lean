@@ -30,41 +30,59 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-/-- What `genList` keeps of its input `x` and has established of the list `y` so far. -/
+/-- What `genList` keeps of its input `x` and has established of the list `y` so far (before the
+options: no match option yet). -/
 private def LK (x y : Input) : Prop :=
   y.Key' = x.Key' ∧ y.UID' = x.UID' ∧ y.Node' = x.Node' ∧ y.App' = x.App' ∧ y.Val' = x.Val' ∧
     y.UseCached' = x.UseCached' ∧ y.Kind' = W64 4 ∧ go!"/objs/" <+: y.ListKey' ∧
     (∀ r, (k8s.prepareKeyM go!"/objs" y.ListKey' r).isSome) ∧ y.ListKey'.length ≤ 2 ^ 20 ∧
-    (y.Match' = W64 0 ∨ y.Match' = W64 1 ∨ y.Match' = W64 2) ∧ 0 ≤ sint.Z y.Limit'
+    y.Match' = W64 0 ∧ 0 ≤ sint.Z y.Limit'
+
+/-- What `genList` returns: `LK` with the options set (`ListOptOk`). -/
+private def LKf (x y : Input) : Prop :=
+  y.Key' = x.Key' ∧ y.UID' = x.UID' ∧ y.Node' = x.Node' ∧ y.App' = x.App' ∧ y.Val' = x.Val' ∧
+    y.UseCached' = x.UseCached' ∧ y.Kind' = W64 4 ∧ go!"/objs/" <+: y.ListKey' ∧
+    (∀ r, (k8s.prepareKeyM go!"/objs" y.ListKey' r).isSome) ∧ y.ListKey'.length ≤ 2 ^ 20 ∧
+    (y.Match' = W64 0 ∨ y.Match' = W64 1 ∨ y.Match' = W64 2) ∧ 0 ≤ sint.Z y.Limit' ∧
+    (y.MinRV' = [] → y.Match' = W64 0) ∧ (y.Match' = W64 2 → parseRVD y.MinRV' ≠ some 0)
 
 /-- The input `genList` returns is one `Gen` may return. -/
-private theorem lk_genIn (x y : Input) (hy : LK x y) (hk : x.Key' ∈ wkKeysL)
+private theorem lk_genIn (x y : Input) (hy : LKf x y) (hk : x.Key' ∈ wkKeysL)
     (hu : x.UID'.length < 256) (hn : x.Node'.length < 256) (ha : x.App'.length < 256)
-    (hv : x.Val'.length ≤ 2 ^ 20) (hr : ∃ k, parseRVD y.MinRV' = some k ∧ uint.Z k < 2 ^ 63) :
-    GenIn y ∧ y.UseCached' = x.UseCached' := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := hy
-  refine ⟨⟨⟨h1 ▸ hk, h2 ▸ hu, h3 ▸ hn, h4 ▸ ha, hr, fun _ => ⟨h11, h8, h12, h9 _, h10⟩⟩, ?_,
-    h5 ▸ hv, ?_⟩, h6⟩
+    (hv : x.Val'.length ≤ 2 ^ 20) (f : w64)
+    (hr : ∃ k, parseRVD y.MinRV' = some k ∧ uint.Z k < 2 ^ 63 ∧ (k = 0 ∨ uint.nat f ≤ uint.nat k)) :
+    GenIn y ∧ y.UseCached' = x.UseCached' ∧ FloorOk f y := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩ := hy
+  obtain ⟨k, hr1, hr2, hr3⟩ := hr
+  refine ⟨⟨⟨h1 ▸ hk, h2 ▸ hu, h3 ▸ hn, h4 ▸ ha, ⟨k, hr1, hr2⟩, fun _ => ⟨h11, h8, h12, h9 _, h10⟩⟩, ?_,
+    h5 ▸ hv, ?_, fun _ => ⟨h13, h14⟩⟩, h6, fun q hq => ?_⟩
   · exact Or.inr (Or.inr (Or.inr (Or.inr h7)))
   · intro _ h; rw [h7] at h; exact absurd h (by decide)
+  · rw [hr1] at hq; cases hq; exact hr3
 
 set_option hygiene false in
 /-- `return in`: the final record is `Gen`'s. -/
 local macro "gl_fin" : tactic => `(tactic| (
   (try wp_auto); iapply HΦ; ipureintro
-  refine lk_genIn x _ ?_ hk hu hn ha hv ⟨k, ?_, hk2⟩
-  · simp only [LK] at Hy ⊢
+  refine lk_genIn x _ ?_ hk hu hn ha hv f ⟨k, ?_, hk2, hkf⟩
+  · simp only [LK, LKf] at Hy ⊢
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := Hy
-    refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, ?_, ?_⟩
-    · first | exact h11 | simp
+    refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, ?_, ?_, ?_, ?_⟩
+    · first | exact Or.inl h11 | simp
     · first | exact h12 | word
+    · intro hmn; first | exact h11 | exact absurd hmn (by assumption)
+    · intro hm2
+      first
+        | (rw [h11] at hm2; exact absurd hm2 (by decide))
+        | exact absurd hm2 (by decide)
+        | (rw [hk1]; intro hc; cases hc; exact absurd hrk (by assumption))
   · simp only []; exact hk1))
 
 set_option hygiene false in
 /-- `LK x y` of the record after the list key is set (the first join). -/
 local macro "lk_key" : tactic => `(tactic| (
   simp only [LK]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hm, hl⟩ <;> (try trivial) <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hm, hl⟩ <;> (try rfl) <;>
   (simp only [wkKeysL, List.mem_cons, List.not_mem_nil, or_false] at hk
    rcases hk with h | h | h | h <;> (try rw [h]) <;>
      first | decide | (intro r; cases r <;> decide))))
@@ -84,7 +102,7 @@ theorem genList.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
     (wp_minRV : minRV.spec (GF := GF) (hG := hG))
     (wp_parseRV : parseRV.spec (GF := GF) (hG := hG)) :
     genList.spec (GF := GF) (hG := hG) := by
-  intro n x c hasC hk hu hn ha hv hm hl
+  intro n x c hasC f hf hk hu hn ha hv hm hl
   wp_start
   wp_auto
   wp_apply wp_splitKey
@@ -157,10 +175,11 @@ theorem genList.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
   wp_apply wp_minRV
   (try wp_auto)
   obtain ⟨k, hk1, hk2⟩ := minRVL_ok (n / W64 4 / W64 10 / W64 100 / W64 100 / W64 2 / W64 2 % W64 100)
-    (n / W64 4 / W64 10 / W64 100 / W64 100 / W64 2 / W64 2 / W64 100 % W64 200 + W64 1) c hasC
-    (by word)
+    (n / W64 4 / W64 10 / W64 100 / W64 100 / W64 2 / W64 2 / W64 100 % W64 200 + W64 1) c hasC f
+    (by word) hf
+  have hkf := minRVL_floor _ _ c hasC f k hk1
   wp_if_destruct
-  all_goals (try wp_apply wp_parseRV as %r %err -)
+  all_goals (try (wp_apply wp_parseRV as %r %err Hr; rw [hk1]; icases Hr with %hrr; have hrk := hrr.2))
   all_goals (repeat' wp_if_destruct)
   all_goals gl_fin
 

@@ -1,0 +1,69 @@
+From 34dea163a76cc68a02e9a6ae1e86df0cec069be7 Mon Sep 17 00:00:00 2001
+From: Frans Kaashoek <kaashoek@mit.edu>
+Date: Wed, 18 Nov 2026 20:32:31 +0000
+Subject: [PATCH] wal: SaveSnapshot does not cut before Create has a file
+ pipeline
+
+The previous commit made SaveSnapshot cut once the tail passes
+SegmentSizeBytes. Create calls SaveSnapshot before the WAL has a file
+pipeline (w.fp is nil), so a Create whose first segment (the metadata
+and the empty snapshot) passes SegmentSizeBytes panicked in cut.
+SaveSnapshot now only syncs while w.fp is nil, as before.
+TestCreateLargeMetadata fails before (nil pointer) and passes after.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/storage/wal/savesnapshot_cut_test.go | 24 +++++++++++++++++++++
+ server/storage/wal/wal.go                   |  4 +++-
+ 2 files changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/server/storage/wal/savesnapshot_cut_test.go b/server/storage/wal/savesnapshot_cut_test.go
+index 287570944..4811c027d 100644
+--- a/server/storage/wal/savesnapshot_cut_test.go
++++ b/server/storage/wal/savesnapshot_cut_test.go
+@@ -72,3 +72,27 @@ func TestSaveSnapshotCuts(t *testing.T) {
+ 	require.Equal(t, state.GetTerm(), st.GetTerm())
+ 	require.Empty(t, ents)
+ }
++
++// TestCreateLargeMetadata checks that Create still succeeds when its first
++// segment (the metadata and the empty snapshot) passes SegmentSizeBytes:
++// SaveSnapshot does not cut before the WAL has a file pipeline.
++func TestCreateLargeMetadata(t *testing.T) {
++	p := t.TempDir()
++
++	restoreLater := SegmentSizeBytes
++	SegmentSizeBytes = 2 * 1024
++	defer func() { SegmentSizeBytes = restoreLater }()
++
++	md := make([]byte, 1024*1024)
++	md[0] = 1
++	w, err := Create(zaptest.NewLogger(t), p, md)
++	require.NoError(t, err)
++	require.NoError(t, w.Close())
++
++	nw, err := Open(zaptest.NewLogger(t), p, &walpb.Snapshot{Index: new(uint64(0)), Term: new(uint64(0))})
++	require.NoError(t, err)
++	defer nw.Close()
++	gmd, _, _, err := nw.ReadAll()
++	require.NoError(t, err)
++	require.Equal(t, md, gmd)
++}
+diff --git a/server/storage/wal/wal.go b/server/storage/wal/wal.go
+index 376ed447a..c77da2ba1 100644
+--- a/server/storage/wal/wal.go
++++ b/server/storage/wal/wal.go
+@@ -1177,7 +1177,9 @@ func (w *WAL) SaveSnapshot(e *walpb.Snapshot) error {
+ 	if err != nil {
+ 		return err
+ 	}
+-	if curOff < SegmentSizeBytes {
++	// Create saves its snapshot record before the WAL has a file pipeline (w.fp):
++	// its first segment keeps the metadata whatever its size, as before.
++	if curOff < SegmentSizeBytes || w.fp == nil {
+ 		return w.sync()
+ 	}
+ 	return w.cut()
+-- 
+2.53.0
+

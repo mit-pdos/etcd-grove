@@ -8,11 +8,18 @@
 to order (`etcdstart.memberStartRes_intro`, D2). A module of its own, not `Adequacy.lean`: the start
 bundles' module imports the server's (the restart bundle's `srvDiskImage`), which the raft examples
 importing `Adequacy.lean` must not (the witness part declares raft's names again).
+
+(wal-link P2, 2026-11-19) Over the etcd examples' extensions (`FsExts.lean`: `[idIssueExt, fsExt]`, the
+file extension without I/O errors), and with the members' WAL areas (`WalAreas.lean`): the theorems
+take the premise `etcdWalAreasInit` on the file extension's initial state (each member's area a root
+holding no WAL), and before the program's first step their proof allocates each member's WAL area
+(`progOk_walAreas`), which the member's start bundle holds (`walAreaFresh`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreas
 
 @[expose] public section
 
@@ -26,8 +33,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section adequacy
-variable [GooseExts] [GooseInterp]
-variable [GooseSemantics] [GoGlobalContext]
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsSem
+  etcdFsExts_hasIdIssue etcdFsExts_hasFs etcdFsSemOk etcdFsNoErr
+variable [GoGlobalContext]
 variable {GF : BundledGFunctors}
 
 /-- **`progOk` at a body resource that gives the one proved**. -/
@@ -39,17 +47,51 @@ theorem progOk_pre [hG : HeapGS .hasLC GF] (R B B' : IProp GF) (init : val) (bod
   ihave HB' := hB $$ HB
   iapply Hbody $$ HI Htok HB'
 
+/-- Reassociation: the start rights and the extensions' start resources. -/
+theorem sep_reassoc5 (P1 P2 P3 P4 P5 : IProp GF) :
+    iprop(P1 ∗ P2 ∗ P3 ∗ P4 ∗ P5) ⊢ iprop((P1 ∗ P2 ∗ P3 ∗ P4) ∗ P5) := by
+  iintro ⟨H1, H2, H3, H4, H5⟩
+  iframe
+
+/-- Reassociation: the start rights, the allocated ghost state, the WAL areas. -/
+theorem sep_swap_right3 (P Q W : IProp GF) :
+    iprop((P ∗ Q) ∗ W) ⊢ iprop((P ∗ W) ∗ Q) := by
+  iintro ⟨⟨HP, HQ⟩, HW⟩
+  iframe
+
+/-- **The members' WAL areas, allocated before the body's first step** (wal-link P2; `wp_walAreas`):
+`progOk` at a body resource with the file extension's start resources, from `progOk` at one with each
+data directory's fresh WAL area, over an initial state with the areas `etcdWalAreasInit` says. -/
+theorem progOk_walAreas [hG : HeapGS .hasLC GF] [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
+    (R B : IProp GF) (init : val) (body : Expr) (φ : val → Prop) (hbody : toVal body = none)
+    (σ : state) (hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (Ds : List GoString) (hDs : Ds.Nodup)
+    (hW : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (h : progOk R iprop(B ∗ [∗list] d ∈ Ds, memberAreasFresh d) init body φ) :
+    progOk R iprop(B ∗ extsLocalStart (L := hG.goose_localGS) σ.world) init body φ := by
+  obtain ⟨getInit, I, Hinit, Hbody⟩ := h
+  refine ⟨getInit, I, Hinit, ?_⟩
+  iintro HI Htok ⟨HB, Hl⟩
+  imod etcdFs_start σ hfs $$ Hl with ⟨#Hinv, -, Ht⟩
+  iapply wp_walAreas hPre etcdFsExts_sat _ hfs Ds hDs hW ⟨hrb⟩ body hbody _ $$ Hinv Ht
+  iintro Hw
+  iapply Hbody $$ HI Htok [HB Hw]
+  iframe
+
 /-- **An etcd example's closed theorem, from its members' start bundles** (hub step 7's L4, D2):
 `etcd_adequate`, the body proved from the start bundles of the members `ms`
 (`etcdstart.memberStartRes`) and the listen rights of the other addresses `Bs`, when the members'
-addresses and `Bs` are `As` up to order and the members' data directories are `Ds` up to order. -/
-theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+addresses and `Bs` are `As` up to order and the members' data directories are `Ds` up to order;
+(wal-link P2) the members' WAL areas as `etcdWalAreasInit` says at start (`HWal`), each allocated before
+the body's first step (`progOk_walAreas`), for a body that is not a value and an execution of fewer
+than `2 ^ 62` steps (the WAL's receipts' bound). -/
+theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go.BasicIntoValInj]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (hbody : toVal body = none)
     (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
     (Ds : List GoString) (hDs : Ds.Nodup)
     (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
-    (hD : (ms.map (fun m => etcdstart.memberDataDir m.1)).Perm Ds)
+    (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
@@ -57,29 +99,34 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
       [read.slowReadIndexName, read.readIndexFailedName])
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (HEnv : verifyEnvOff (init #() ;; body))
-    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
+    (n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
       threadBound GF = max (n + 2) srvLevelK →
       progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
-        iprop(([∗list] m ∈ ms, etcdstart.memberStartRes m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b)
+        iprop(([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b)
         init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs HDs HEnv
     n κs t2 σ2 Hsteps fun hG HN HT =>
-      progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
-        (etcdstart.memberStartRes_intro ms Bs As Ds hA hD) (Hprog hG HN HT)
+      progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ (sep_reassoc5 _ _ _ _ _)
+        (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
+          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn)
+          (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
+            (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD) (Hprog hG HN HT)))
 
 /-- **`etcd_adequate_alloc`, from the members' start bundles** (hub step 7's L4): as
 `etcd_adequate_members`, with ghost state allocated first. -/
-theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go.BasicIntoValInj]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (hbody : toVal body = none)
     (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
     (Ds : List GoString) (hDs : Ds.Nodup)
     (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
-    (hD : (ms.map (fun m => etcdstart.memberDataDir m.1)).Perm Ds)
+    (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
@@ -87,14 +134,15 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
       [read.slowReadIndexName, read.readIndexFailedName])
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (HEnv : verifyEnvOff (init #() ;; body))
-    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
+    (n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
       threadBound GF = max (n + 2) srvLevelK →
       ∃ (X : Type) (T : X → IProp GF),
         (⊢ (|==> ∃ x, T x : IProp GF)) ∧
         ∀ x, progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
-          iprop((([∗list] m ∈ ms, etcdstart.memberStartRes m.1 m.2) ∗
+          iprop((([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗
             [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
@@ -102,7 +150,13 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
     HDs HEnv n κs t2 σ2 Hsteps fun hG HN HT => by
       obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT
       exact ⟨X, T, Halloc, fun x => progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
-        (sep_mono_left (etcdstart.memberStartRes_intro ms Bs As Ds hA hD)) (Hp x)⟩
+        sep_assoc.2
+        (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
+          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn)
+          (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
+            (sep_swap_right3 _ _ _ |>.trans
+              (sep_mono_left (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD)))
+            (Hp x)))⟩
 
 end adequacy
 

@@ -52,8 +52,8 @@ theorem mlist.wp_proof
     (wp_PrepareKey : storage.PrepareKey.spec (GF := GF) (hG := hG))
     (wp_PCT : storage.PrepareContinueToken.spec (GF := GF) (hG := hG)) :
     mlist.spec (GF := GF) (hG := hG) := by
-  have wp_Matches := mlistMatches.wp_proof wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
-  have wp_PrepareContinueToken := mlistPCT.wp_proof wp_PCT wp_SM wp_SE wp_LM wp_LE wp_FM wp_FE wp_GA
+  have wp_Matches := mlistMatches.wp_ok wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
+  have wp_PrepareContinueToken := mlistPCT.wp_ok wp_PCT wp_SM wp_SE wp_LM wp_LE wp_FM wp_FE wp_GA
   intro x c g
   wp_start as #Hc
   unfold cfgOwn storeOwn

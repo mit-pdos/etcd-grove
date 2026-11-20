@@ -219,12 +219,12 @@ theorem pr_remove (wp_Remove : os.Remove.specFileSncN (GF := GF) (hG := hG)) (W 
     (hlk : LkRel hj' tg.2.2.1 nm0 ls b) (h0 : bt ≠ nm0) (hnl : bt ∉ ls.map (·.1)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ WalFs.walInv (W := W) walCodec Mr R0 jr r ∗
         walPurgeAcc (W := W) dir Pc ∗ walDirKey (W := W) dir j X ∗
-        osPathS R dir (DFrac.own q) j ∗ osCallPerm qc ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj' ∗
+        osPathS R dir (DFrac.own q) j ∗ osCallPerm (callKey R dir) qc ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj' ∗
         walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) (<[dir := b]> (∅ : GMap GoString Nat)) ∗
         walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗ walTailKey (W := W) dir γ ∗
         tailVar (W := W) γ tg ∗ walCutFrag (W := W) none ∗ Pc }}
       (App (Val (@! os.Remove)) (Val #(child dir bt)))
-    {{ (rerr : GoInterface), RET #rerr; osPathS R dir (DFrac.own q) j ∗ osCallPerm qc ∗
+    {{ (rerr : GoInterface), RET #rerr; osPathS R dir (DFrac.own q) j ∗ osCallPerm (callKey R dir) qc ∗
         ∃ hjN : NamesH, osNames j (.except X) (DFrac.own (1 : Qp).half) hjN ∗
         walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) (<[dir := b]> (∅ : GMap GoString Nat)) ∗
         walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗ walTailKey (W := W) dir γ ∗
@@ -447,7 +447,7 @@ theorem purgeRound.wp_proof
       "n" ∷ n_ptr ↦ k ∗ "Ht" ∷ tsl ↦* L ∗
       "Hn" ∷ osNames j (.except X) (DFrac.own (1 : Qp).half) hj' ∗
       "Hlk" ∷ walDirLks (W := W) dir hj' nm0 lfs tg.2.2.1 ∗ "Hp" ∷ osPathS R dir (DFrac.own q) j ∗
-      "Hc" ∷ osCallPerm (1 : Qp).half.half ∗
+      "Hc" ∷ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
       "Ho" ∷ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
       "Htk" ∷ walTailKey (W := W) dir γ ∗ "Hv" ∷ tailVar (W := W) γ tg ∗ "Hcf" ∷ walCutFrag (W := W) none ∗
       "Htl" ∷ walTailLk tfd ino ∗ "HPc" ∷ Pc ∗

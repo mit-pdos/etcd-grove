@@ -58,7 +58,7 @@ theorem leaseClient.LeaseGrant.wp_proof
   ihave Hblank : pbLeaseGrantResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbLeaseGrantResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseGrant" pbLeaseGrantRequestT
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseGrant" pbLeaseGrantRequestT
     pbLeaseGrantResponseT pbLeaseGrantRequestT_reg pbLeaseGrantResponseT_reg Spec (req.TTL', req.ID') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
   simp only [pbLeaseGrantRequestT, pbLeaseGrantResponseT] at hI
   rw [show (pbLeaseGrantRequest (GF := GF)).ty = etcdserverpb.LeaseGrantRequest.ty from rfl,

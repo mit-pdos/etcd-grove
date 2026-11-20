@@ -29,7 +29,7 @@ what the call reads, the raft wrapper's node and its inbound methods (`rnStepIfc
 thread can report a dropped merged snapshot (`applyAll`'s merge, D-A0-6); until then over the whole
 `srvProcOk γn s id γd`, which contains them (`NetBridge`'s caller). -/
 abbrev EtcdServer.ReportSnapshot.spec : Prop :=
-  ∀ (γ : RNNames) (s : Loc) (x : w64) (st : SnapshotStatus),
+  ∀ (γ : RNNames GF) (s : Loc) (x : w64) (st : SnapshotStatus),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γ ∗ rnStepIfc γ (rnNodeIface γ) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ReportSnapshot")) (Val #x))

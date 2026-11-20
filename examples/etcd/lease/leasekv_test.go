@@ -7,6 +7,8 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestMainRun runs Main for real: one member in a fresh data directory (Main's DataDir is
@@ -15,6 +17,7 @@ import (
 // the answers about it.
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "leasekv") // the members' WAL areas (wal-link P2)
 	Main()
 
 	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{clientAddr}, Logger: zap.NewNop()})

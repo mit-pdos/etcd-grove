@@ -4,12 +4,14 @@
 `Watch` call failed (`watchEvents`: a non-initial-events watch from revision 0), answers
 `Output{WFailed: true}` and no object; any other answers `Output{WEvents: encodeWEvents(evs)}` for
 the events `wes` it received (`watchEvents`' post: each `kWEvRel` of a store event in `kes`, which
-are `kSeen`), with `lastObj(evs)` (`lastObjL wes`). The hiccup sleep (`time.Sleep`) is not modelled.
+are `kSeen`), with `lastObj(evs)` (`lastObjL wes`), and (k8s 7g) the events as received in its `Raw`
+(`wEventsRawOut`: read-only, of views `rs` whose records are `wes`, `consume`'s post). The hiccup sleep (`time.Sleep`) is not modelled.
 The watch's facts (`watchEvents.spec`'s premises) are needed only for a watch that is not skipped.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KModel
 
 @[expose] public section
 
@@ -36,6 +38,14 @@ def wFailedOut : Output := { (zero_val Output) with WFailed' := true }
 /-- `Output{WEvents: s}`. -/
 def wEventsOut (s : GoString) : Output := { (zero_val Output) with WEvents' := s }
 
+/-- `Output{WEvents: s, Raw: Raw{Events: rsl}}` (k8s 7g). Its plain value is `wEventsOut s`. -/
+def wEventsRawOut (s : GoString) (rsl : GoSlice) : Output :=
+  { wEventsOut s with
+    Raw' := { (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw) with Events' := rsl } }
+
+theorem plainOut_wEventsRawOut (s : GoString) (rsl : GoSlice) :
+    plainOut (wEventsRawOut s rsl) = wEventsOut s := rfl
+
 /-- See the file header. -/
 abbrev runWatch.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
@@ -59,11 +69,12 @@ abbrev runWatch.spec : Prop :=
         #sp))) (Val #x))
   {{ (y : Output) (o : Obj) (ok : Bool), RET (PairV (PairV #y #o) #ok);
       (⌜y = wFailedOut ∧ ok = false ∧ (x.Skip' = true ∨ (sieOfL x = some false ∧ uint.nat n = 0))⌝) ∨
-      (∃ (wes : List WEv) (kes : List (KWEv DObj)),
-        ⌜x.Skip' = false ∧ y = wEventsOut (encWEventsL wes) ∧
+      (∃ (wes : List WEv) (kes : List (KWEv DObj)) (rs : List k8s_correctness.REv) (rsl : GoSlice),
+        ⌜x.Skip' = false ∧ y = wEventsRawOut (encWEventsL wes) rsl ∧
+          wes = rs.map k8s_correctness.toWEvL ∧
           lastObjL wes = (if ok then some o else none) ∧ List.Forall₂ kWEvRel kes wes ∧
           ∀ w ∈ wes, (encodeWith tagV1 w.o).length < 2 ^ 63⌝ ∗
-        kSeen c (selD x) (predEmptyL x) (kScopeOf c k x.Recursive')
+        k8s_correctness.evsRO rsl rs ∗ kSeen c (selD x) (predEmptyL x) (kScopeOf c k x.Recursive')
           (kModeOf (sieOfL x) x.Bookmarks' n) Q kes) }}
 
 end spec

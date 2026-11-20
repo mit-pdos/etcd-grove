@@ -5,7 +5,8 @@
 `etcd_watch.wk_served_nd` without the watch: from `v3rpc.Server`'s postcondition (`grpcUpOn`), the member's
 started facts (`memberUpOn`'s `srvAuthStoreOn`: the store's cost field and `Authenticate` side), the listener and the run pools, the right to serve,
 etcd's KV methods with auth on at the address (`akKVOn`), the five Auth admin methods
-(`setupAuthServed`) and `Authenticate` (`etcd_kv_auth_served_on`). `ak_served_watch`: its watch
+(`setupAuthServed`) and `Authenticate` (`etcd_kv_auth_served_on`), and the persistent server token
+(`grpcServerAt`, for further registrations: auth-lease S4's Lease service). `ak_served_watch`: its watch
 half, from the stream server `ak_served_kv` returns, the watch server and the run pools: the watch
 server's facts at the address (`watchAddrFacts`) and its mode (`modeTag`, `Work`'s), the members' KV facts from the auth-on read view
 (`srvKVCoreM_of_readM`, G2's mode-generic `srvKVFacts`).
@@ -87,7 +88,8 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
         srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd ⊢
       |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
         akKVOn addr s E ρ cid mid ∗ setupAuthServed addr s E ρ ∗
-        isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) := by
+        isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) ∗
+        grpcServerAt addr [il, im, iu] regs γ := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Hpa, #HBF, #Hil, #Him, #Hiu, Hgs,
     Hlis, #Hb, #Hrp⟩
   imod (grpc.start' gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf hnd) $$ [Hgs Hlis]
@@ -109,7 +111,7 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
   · iframe; iframe #
   imodintro
   iexists γ
-  iframe Htok Hss Hauth
+  iframe Htok Hss Hauth Hat'
   isplitl []
   · unfold akKVOn
     iframe #
@@ -169,7 +171,7 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
     icases Hrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
     ihave #Hon := srvKVInvsM_true s E γr $$ Hkvi
     iunfold srvKVInvsOn at Hon
-    icases Hon with ⟨-, -, -, -, -, -, -, %Hm⟩
+    icases Hon with ⟨-, -, -, -, -, -, -, %Hm, -⟩
     ipureintro; exact Hm.1
   ihave #Honce := client.srvOnce_noCmp V.W γr hC Hcm
   imodintro

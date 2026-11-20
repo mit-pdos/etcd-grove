@@ -104,9 +104,9 @@ def leasecatchupAddrs : List GoString :=
 
 /-- The members' data directories `<name>.etcd` (sweep repairs 1, W3/W4: until then their WAL directories). -/
 def leasecatchupDataDirs : List GoString :=
-  [(etcd_leasecatchup.clusterCfg.Name1' ++ go!".etcd"),
-    (etcd_leasecatchup.clusterCfg.Name2' ++ go!".etcd"),
-    (etcd_leasecatchup.clusterCfg.Name3' ++ go!".etcd")]
+  [(memberDataDir etcd_leasecatchup.clusterCfg.Name1'),
+    (memberDataDir etcd_leasecatchup.clusterCfg.Name2'),
+    (memberDataDir etcd_leasecatchup.clusterCfg.Name3')]
 
 end adequacy
 end EtcdGrove

@@ -433,6 +433,40 @@ order. -/
 def delKeys (ilog : Log) (pend : List Change) (endNil : Bool) (k e : GoString) : List GoString :=
   (rangeTaken (ilog ++ [pend]) endNil k e (W64 (writeRev ilog pend)) (W64 0)).map Prod.fst
 
+/-- **The keys a range delete selects**: the key `k` alone (`end == nil`), or the keys of `[k, e)`. -/
+def delSel (endNil : Bool) (k e : GoString) (kk : GoString) : Prop :=
+  if endNil then kk = k else inRange k e kk = true
+
+/-- **Every key to delete is one the range selects** (auth-lease S4 item 7b; no well-formedness needed). -/
+theorem delKeys_sel (ilog : Log) (pend : List Change) (endNil : Bool) (k e : GoString) (kk : GoString)
+    (h : kk ∈ delKeys ilog pend endNil k e) : delSel endNil k e kk := by
+  unfold delKeys at h
+  rw [List.mem_map] at h
+  obtain ⟨a, ha, rfl⟩ := h
+  unfold rangeTaken at ha
+  unfold delSel
+  cases endNil with
+  | true =>
+    simp only [if_true, rangeAnswers] at ha ⊢
+    split at ha
+    · simp at ha; rw [ha]
+    · simp at ha
+  | false =>
+    simp only [Bool.false_eq_true, if_false, rangeAnswers] at ha ⊢
+    have ha' : a ∈ rangeAt (indexOf (evsOf (ilog ++ [pend]))) k e (W64 (writeRev ilog pend)) := by
+      unfold takeLimit at ha
+      split at ha
+      · exact List.mem_of_mem_take ha
+      · exact ha
+    unfold rangeAt at ha'
+    rw [List.mem_filterMap] at ha'
+    obtain ⟨z, hz, hza⟩ := ha'
+    rw [List.mem_filter] at hz
+    cases hk : kiGet z.2 (W64 (writeRev ilog pend)) with
+    | none => rw [hk] at hza; cases hza
+    | some r =>
+      rw [hk] at hza; simp at hza; rw [← hza]; exact hz.2
+
 /-- Every key to delete is present after the pending changes. -/
 theorem delKeys_present (ilog : Log) (pend : List Change) (endNil : Bool) (k e : GoString)
     (hwf : LogWf (ilog ++ [pend])) (hlen : (ilog ++ [pend]).length < 2 ^ 63)

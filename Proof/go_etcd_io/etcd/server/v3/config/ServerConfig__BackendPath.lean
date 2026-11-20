@@ -23,9 +23,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **Trust boundary** (D22 S-f): `BackendPath()` is `datadir.ToBackendFileName(c.DataDir)`,
-`filepath.Join(c.DataDir, "member", "snap", "db")`: a pure function of the field (here opaque,
-`backendPathOf`), with no other effect. What would discharge it: translating `datadir` with its
-body over a spec of `filepath.Join` (and `backendPathOf` defined as it). -/
+`filepath.Join(c.DataDir, "member", "snap", "db")`: a pure function of the field, `backendPathOf`,
+with no other effect. (wal-link, 2026-11-19, option B1) `backendPathOf d` is the name `db` in the
+snapshot directory `snapDirOf d` (opaque: `c.SnapDir()`), so this axiom also claims that
+`BackendPath()` is `SnapDir() + "/db"` (`config/Defs.lean`'s header; the Go test
+`examples/etcd/snappaths/snappaths_test.go`). What would discharge it: translating `datadir` with
+its body over a spec of `filepath.Join` (and `snapDirOf` defined as it). -/
 axiom config.ServerConfig.BackendPath.wp_proof :
   config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG)
 

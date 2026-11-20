@@ -40,19 +40,12 @@ theorem prefix_joinPath_cons (r c : GoString) (cs : List GoString) :
     (r ++ [slashB]).IsPrefix (joinPath r (c :: cs)) :=
   ⟨c ++ cs.flatMap (fun c => slashB :: c), by simp [joinPath]⟩
 
-/-- **A strict ancestor of a root is no path of the roots' trees** (well-formed roots). -/
-theorem rootsAbove_not_treePath {st : OsState} {p : GoString} (hR : RootsOk st.fs.roots)
-    (h : RootsAbove st.fs.roots p) : ¬ st.TreePath p := by
-  have hlen : ∀ rj ∈ st.fs.roots, 2 ≤ rj.1.length := fun rj hm => rootForm_len (hR.2.2 rj hm).1
-  -- `r ++ "/"` is a prefix of `p` for a root `r` of which `p` is the root or below
-  have hpre : st.TreePath p → ∃ rj ∈ st.fs.roots, rj.1 = p ∨ (rj.1 ++ [slashB]).IsPrefix p := by
-    rintro (⟨rj, hm, rfl⟩ | ⟨rj, hm, cs, hne, -, rfl⟩)
-    · exact ⟨rj, hm, .inl rfl⟩
-    · rcases cs with _ | ⟨c, cs⟩
-      · exact absurd rfl hne
-      · exact ⟨rj, hm, .inr (prefix_joinPath_cons _ _ _)⟩
-  intro htp
-  obtain ⟨r2, hm2, h2⟩ := hpre htp
+/-- **A strict ancestor of a root is under no root** (well-formed roots). -/
+theorem rootsAbove_not_under {R : Roots} {p : GoString} (hR : RootsOk R)
+    (h : RootsAbove R p) : ¬ ∃ rj ∈ R, rj.1 = p ∨ (rj.1 ++ [slashB]).IsPrefix p := by
+  have hlen : ∀ rj ∈ R, 2 ≤ rj.1.length := fun rj hm => rootForm_len (hR.2.2 rj hm).1
+  intro hex
+  obtain ⟨r2, hm2, h2⟩ := hex
   rcases h with rfl | ⟨hne, r1, hm1, h1⟩
   · -- `/` is shorter than any root, and than anything below one
     have hl2 := hlen r2 hm2
@@ -68,6 +61,27 @@ theorem rootsAbove_not_treePath {st : OsState} {p : GoString} (hR : RootsOk st.f
     by_cases heq : r2.1 = r1.1
     · have := h21.length_le; rw [heq] at this; simp at this; omega
     · exact (hR.2.2 r2 hm2).2 r1 hm1 heq (.inr h21)
+
+/-- **A strict ancestor of a root is no path of the roots' trees** (well-formed roots). -/
+theorem rootsAbove_not_treePath {st : OsState} {p : GoString} (hR : RootsOk st.fs.roots)
+    (h : RootsAbove st.fs.roots p) : ¬ st.TreePath p := by
+  rintro (⟨rj, hm, rfl⟩ | ⟨rj, hm, cs, hne, -, rfl⟩)
+  · exact rootsAbove_not_under hR h ⟨rj, hm, .inl rfl⟩
+  · rcases cs with _ | ⟨c, cs⟩
+    · exact absurd rfl hne
+    · exact rootsAbove_not_under hR h ⟨rj, hm, .inr (prefix_joinPath_cons _ _ _)⟩
+
+/-- **The key of a strict ancestor of a root is `[]`** (well-formed roots). -/
+theorem callKey_above {R : Roots} {p : GoString} (hR : RootsOk R) (h : RootsAbove R p) :
+    callKey R p = [] := by
+  unfold callKey
+  rw [dif_neg]
+  rintro ⟨rj, hm, hu⟩
+  refine rootsAbove_not_under hR h ⟨rj, hm, ?_⟩
+  unfold IsUnder at hu
+  rcases hu with hu | hu
+  · exact .inl hu.symm
+  · exact .inr hu
 
 /-! ## Outside fds -/
 
@@ -296,9 +310,9 @@ outside case): the call ends (its fraction of the call permission back); an outs
 errno. -/
 theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 : Nat) (q : Qp)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallS (L := L) k s0 q -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallS (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗ (⌜e = 0⌝ -∗ osOutFd (L := L) fd) -∗ Φ (PairV (#fd) (#e))) -∗
+        osCallPerm (L := L) (callKey R p) q -∗ (⌜e = 0⌝ -∗ osOutFd (L := L) fd) -∗ Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv #Hsi Hk HΦ
@@ -307,7 +321,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
   icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
+  · iexfalso; iapply legacy_callS_excl st k s0 p q $$ Hk Hm
   unfold treeShared
   icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -324,7 +338,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
   have hntp : ¬ st.TreePath p := rootsAbove_not_treePath hw.roots hp
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := hc.calls k _ hk
+  have hcall : st.proc.calls !! k = some (s0, p) := hc.calls k _ hk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -349,8 +363,8 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
   -- the call's fraction back
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
-    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
-      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+    (Φ := fun (_t : Nat) (x : CallV) =>
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
   unfold ofdCtx
@@ -379,7 +393,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
       iframe
       ipureintro
       exact ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩,
-        (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl⟩
+        (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl rfl⟩
     isplitl [Ha]
     · isplitr
       · ipureintro; exact hd'

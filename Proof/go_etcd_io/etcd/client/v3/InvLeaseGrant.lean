@@ -214,6 +214,11 @@ theorem isGrpcRpc_mono_with {Req Rep : ProtoMsg GF} (addr name : GoString) (P : 
   iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
   iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
   iframe
+  iunfold grpcSpecAt at HSpec
+  icases HSpec with ⟨%md, #Hmd, HSpec⟩
+  iunfold grpcSpecAt
+  iexists md
+  iframe Hmd
   simp only [GrpcSpec.md]
   icases HSpec with ⟨HSpec, #HΨe⟩
   iframe HΨe

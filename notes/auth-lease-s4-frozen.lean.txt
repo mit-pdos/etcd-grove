@@ -1,0 +1,832 @@
+module
+
+public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
+public import Proof.go_etcd_io.etcd.client.v3.ResultsOn
+public import Proof.go_etcd_io.etcd.client.v3.LeaseReadServed
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseKeepAlive
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseTimeToLive
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseLeases
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseGrant
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseRevoke
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__requireAuthInfo
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseGrant
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseRevoke
+
+/-! auth-lease S4 item 4 (the Freeze package, `notes/auth-lease-s4-freeze.md`, rev 3): every new text, under a
+`…N` name beside the old one, type-checked. Unlinked scratch; no proof, no `sorry` (statements are
+`Prop` definitions). The per-member law (§5) takes the cluster's no-snapshot mode
+`⌜clusterNoSnap γr.raft.raft.cl⌝` (L1 option 1, approved by the user 2026-11-16; Freeze §8.4). -/
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+/-! ## §5 The per-member lessor law (rev 2: §8.3's form, L2 (a) over the client's `etcdKV` view, L3 generic) -/
+
+section lawpure
+variable [GooseExts]
+
+/-- §5 (rev 2) **`k` is on the lease `id` at every revision of the KV state `σ` from `r₀` on** (pure,
+in the client's vocabulary: `σ`'s revisions keep each key-value's lease, so `leaseItemsOf (σ.at r).kvs`
+is the lessor's item map at revision `r`). -/
+def leaseKeptIn (σ : KVState) (r₀ : Nat) (id : w64) (k : GoString) : Prop :=
+  r₀ ≤ σ.rev ∧ ∀ r : Nat, r₀ ≤ r → r ≤ σ.rev →
+    (mvcc.leaseItemsOf (σ.at r).kvs).lookup ⟨k⟩ = some id
+
+/-- §5: a lessor snapshot holds `k` on the live lease `id` (the S4 probe's `leaseHoldsFrom`, at one
+index). -/
+def lsHolds (σ : lease.LSnap) (id : w64) (k : GoString) : Prop :=
+  (∃ l, σ.1.lookup id = some l) ∧ σ.2.1.lookup ⟨k⟩ = some id
+
+end lawpure
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- §5 (rev 3, review r3's R3-1; new vocabulary, exported with its body) **The namespaces the lessor law
+opens**: the server's KV, raft and store invariants. If item 7 puts the lessor-index ↔ applied-revision tie in
+another invariant (§5.4's fallback: the lessor's own), its namespace is added here (a form: a caller proves
+`lessorLawMask ⊆ Em` by unfolding, and only needs its own namespaces disjoint from these). -/
+def lessorLawMask : CoPset := ↑kvN ∪ ↑srvRaftN ∪ ↑srvApi.kvsN
+
+/-- §5 **The per-member lessor law** (statement; `lessor_keys_of_read`; rev 3). Given a floor `F` of the
+member's own store (`srvApi.kvLogLb E.γs F`: the store applied `F`, whose revision is `F.length - 1`,
+`kvStateOf_rev`; a read's result carries one at the log it read, `InvRead`'s `∃ log, srvApi.kvLogLb E.γs log ∗ …`), the member's lessor has a lower bound
+`m`, and every lessor snapshot `σl` from `m` on holds `k` on the live lease `id` if the KV state `σ` the
+caller's view holds (`etcdKV`) keeps `k` on `id` at every revision from `F`'s on. (Rev 3, review r2's S1:
+rev 2's threshold `log.length` over `readLogOk γr c log` was false: `log` may extend what the member had
+applied; the floor is member-local.)
+
+Mode-generic (over `isServerReadM E.authOn`; L3). At auth off, or wherever `kvInv` holds the whole model
+state, the law's proof must show the hypothesis contradictory or the conclusion direct; if it cannot, the
+law is restated at `isServerReadM true` (a literal the mode gate counts) and comes back for review (r2's S6).
+
+The mask: any `Em` containing `lessorLawMask` (r2's S4, r3's R3-1): the conclusion for an index pushed
+after the law fired opens the invariant holding the lessor-index ↔ applied-revision tie (§5.4).
+
+Why a member-local floor (r3's R3-4): the check the law serves reads this same member's lessor (a lease read
+is served by the member it reaches, `nonissues/etcd-lease-checks-lagging-member.md`), so the threshold must be
+a revision this member had applied; the driver gets `F` from its linearizable read at that member (barrier 2's
+`client_range_on`, whose reply's log has revision `≥ r_put`). The proof
+obligation this states (r2's S5): `σ` of `etcdKV` is the KV model of the committed log, and a member applies
+only committed entries, so an entry a member has begun applying is in `σ` (its revision `≤ σ.rev`).
+
+**L1 (option 1, approved by the user 2026-11-16; Freeze §8.4):** the member's cluster in raft's
+no-snapshot mode (`clusterNoSnap`, a pure fact of the names, chosen at the cluster's allocation). It excludes
+the snapshot `Ready` (`readySnap_mode`, L-r3), so `applySnapshot`'s `Recover` (which empties the lessor's
+items before `kv.Restore` re-attaches them) and a restart's recovery never run: outside the mode the law is
+false (`nonissues/etcd-lease-keys-mid-apply.md`, "A second window: after a snapshot"). Within an entry the
+pair changes at most once, so `leaseKeptIn`'s two revisions around it cover the other window. -/
+abbrev lessor_keys_of_read_stmt : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (id : w64) (k : GoString),
+  clusterNoSnap γr.raft.raft.cl →
+  (isServerReadM E.authOn s E γr ∗ srvApi.kvLogLb E.γs F ⊢ |={⊤}=>
+    ∃ m : Nat, lease.lessorLb (mvcc.api.mvccLeases E.γ) m ∗
+      □ ∀ (i : Nat) (σl : lease.LSnap), ⌜m ≤ i⌝ -∗ lease.lessorAt (mvcc.api.mvccLeases E.γ) i σl -∗
+        ∀ (Em : CoPset) (σ : KVState),
+          ⌜lessorLawMask ⊆ Em⌝ -∗
+          etcdKV γr.kv σ ={Em}=∗ etcdKV γr.kv σ ∗ ⌜leaseKeptIn σ (F.length - 1) id k → lsHolds σl id k⌝)
+
+end defs
+
+namespace client
+
+section kv
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-! ## §1 The KV specs' lease filters -/
+
+/-- §1.1 `etcdPutSpecOn`, new. -/
+def etcdPutSpecOnN (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
+    GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
+  fun md (o : OpFull) (Φ : PutRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
+      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0 ∨ ρ.kv.lm = .revocable⌝ ∗
+        v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.put o) Q ∗
+        ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
+          v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut o) -∗ Φ m)
+
+/-- §1.2 `etcdPutSpecM`, new. -/
+def etcdPutSpecMN (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
+    GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
+  fun md (o : OpFull) (Φ : PutRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
+      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0 ∨ (on = true ∧ ρ.kv.lm = .revocable)⌝ ∗
+        v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.put o) Q ∗
+        ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
+          (⌜on = false⌝ → kvRevLb ρ.rd.kv m.hdr.revision) -∗
+          (⌜on = true⌝ → v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut o)) -∗ Φ m)
+
+/-- §1.3 `etcdTxnSpecOn`, new. -/
+def etcdTxnSpecOnN (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse :=
+  fun md (t : TxnModel) (Φ : TxnRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ⌜(txn.txnReadonly t = true → txnModelIn t) ∧ (txn.txnReadonly t = false →
+        ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw))⌝ ∗
+      ∃ Q : KVState → IProp GF,
+      (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
+        (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
+        (⌜txn.txnReadonly t = false ∧ (txn.txnPlain t ∨ (ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
+            txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
+          v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.txn t) Q)) ∗
+      ∃ (c : w64) (F : mvcc.Log) (n : Nat), committedAtLeast γr c ∗
+      srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
+      ∀ m : TxnRespM, txnReplied E ρ.rd γr c F t Q cid mid m -∗
+        txnAuthOn s E ρ γr c n (auth.mdTokenOf md) t -∗ Φ m)
+
+/-- §1.4 `etcdTxnSpecM`, new. -/
+def etcdTxnSpecMN (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cid mid : w64) : GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse :=
+  fun md (t : TxnModel) (Φ : TxnRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ⌜(txn.txnReadonly t = true → txnModelIn t) ∧ (on = true → txn.txnReadonly t = false →
+        ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw))⌝ ∗
+      ∃ Q : KVState → IProp GF,
+      (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
+        (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
+        (⌜txn.txnReadonly t = false ∧
+            (txn.txnPlain t ∨ (on = true ∧ ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
+            txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
+          v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.txn t) Q)) ∗
+      ∃ (c : w64) (F : mvcc.Log) (n : Nat), committedAtLeast γr c ∗
+      srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
+      ∀ m : TxnRespM, txnReplied E ρ.rd γr c F t Q cid mid m -∗
+        (⌜on = false⌝ → txnRevLb ρ.rd.kv t m) -∗
+        (⌜on = true⌝ → txnAuthOn s E ρ γr c n (auth.mdTokenOf md) t) -∗ Φ m)
+
+/-- The new `On` texts are the new `M` texts' views at `true`, and the old `M` text is the new one's
+at `false` (statements only: the variance check of §1.5). -/
+abbrev putViews_stmt : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) md o Φ Ψe,
+    (etcdPutSpecOnN s E ρ cid mid md o Φ Ψe ⊢ etcdPutSpecMN true s E ρ cid mid md o Φ Ψe) ∧
+    (etcdPutSpecMN false s E ρ cid mid md o Φ Ψe ⊣⊢ etcdPutSpecM false s E ρ cid mid md o Φ Ψe)
+
+/-- §1.4 (rev 3, review r2's second tier): the Txn views, type-checked as `putViews_stmt`. -/
+abbrev txnViews_stmt : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) md t Φ Ψe,
+    (etcdTxnSpecOnN s E ρ γr cid mid md t Φ Ψe ⊢ etcdTxnSpecMN true s E ρ γr cid mid md t Φ Ψe) ∧
+    (etcdTxnSpecMN false s E ρ γr cid mid md t Φ Ψe ⊣⊢ etcdTxnSpecM false s E ρ γr cid mid md t Φ Ψe)
+
+end kv
+
+/-! ## §2 The lease client's specs at the metadata form -/
+
+section lessor
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- §2.1 **What the unary calls of the `*lessor` `l` read, over the connection `conn`**
+(`lessorRemoteAt` with its connection named, as `kvObjAtC`). -/
+def lessorRemoteAtC (l conn : Loc) (addr : List GoString) : IProp GF :=
+  iprop(∃ (rlc : Loc) (sl : GoSlice),
+    structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty) #rlc :
+        GoInterface) ∗
+    retryLeaseAt rlc conn ∗ isEtcdConn conn addr ∗
+    structFieldRef go_etcd_io.etcd.client.v3.lessor go!"callOpts" l ↦□ sl ∗ callOptsAt sl)
+
+/-- The old remote is the new one at some connection (statement). -/
+abbrev lessorRemoteAt_conn_stmt : Prop :=
+  ∀ (l : Loc) (addr : List GoString),
+    lessorRemoteAt (GF := GF) l addr ⊣⊢ ∃ conn, lessorRemoteAtC l conn addr
+
+/-- §2.2 `lessor.Grant.spec`, new. -/
+abbrev lessor.Grant.specN : Prop :=
+  ∀ (l conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
+    (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (ttl : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+      isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (ttl, W64 0) Q ∗
+      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
+      (Val #(GoInterface.ok ctx))) (Val #ttl))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseGrantRespM) (h : Loc),
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗
+        hdrFull h m.hdr ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ID" resp ↦□ m.id ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"TTL" resp ↦□ m.ttl ∗ Q m) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
+
+/-- §2.2 `lessor.Revoke.spec`, new. -/
+abbrev lessor.Revoke.specN : Prop :=
+  ∀ (l conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
+    (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+      isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec id Q ∗
+      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
+      (Val #(GoInterface.ok ctx))) (Val #id))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗ Q m) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
+
+/-- §2.2 `lessor.TimeToLive.spec`, new. -/
+abbrev lessor.TimeToLive.specN : Prop :=
+  ∀ (l conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
+    (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (id : w64) (sl : GoSlice) (gs : List (Bool → Bool)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+      isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (id, leaseKeysFold gs false) Q ∗
+      leaseOptsAt sl gs ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+    (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!!
+        go!"TimeToLive")) (Val #(GoInterface.ok ctx))) (Val #id)) (Val #sl))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseTTLRespM) (h : Loc) (ks : GoSlice),
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"ResponseHeader" resp ↦□ h ∗
+        hdrFull h m.hdr ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"ID" resp ↦□ m.id ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"TTL" resp ↦□ m.ttl ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"GrantedTTL" resp ↦□
+          m.grantedTtl ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"Keys" resp ↦□ ks ∗ Q m) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
+
+/-- §2.2 `lessor.Leases.spec`, new. -/
+abbrev lessor.Leases.specN : Prop :=
+  ∀ (l conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
+    (Q : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+      isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec () Q ∗
+      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Leases"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseLeasesRespM) (h : Loc) (sl : GoSlice),
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"ResponseHeader" resp ↦□ h ∗
+        hdrFull h m.hdr ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"Leases" resp ↦□ sl ∗
+        sl ↦* (m.ids.map (fun id => (go_etcd_io.etcd.client.v3.LeaseStatus.mk id))) ∗ Q m) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
+
+/-- §2.3 `retryLeaseClient.LeaseGrant.spec`, new (the three others alike). -/
+abbrev retryLeaseClient.LeaseGrant.specN : Prop :=
+  ∀ (rlc conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
+    (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.LeaseGrantRequest) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (req.TTL', req.ID') Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
+      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
+    (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
+        go!"LeaseGrant")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (∃ req' : etcdserverpb.LeaseGrantRequest, inp ↦ req') ∗ leaseGrantCallOut Q resp err }}
+
+/-- §2.3 `retryLeaseClient.LeaseRevoke.spec`, new (full text, second tier). -/
+abbrev retryLeaseClient.LeaseRevoke.specN : Prop :=
+  ∀ (rlc conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
+    (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.LeaseRevokeRequest) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec req.ID' Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
+      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
+    (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
+        go!"LeaseRevoke")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (∃ req' : etcdserverpb.LeaseRevokeRequest, inp ↦ req') ∗ leaseRevokeCallOut Q resp err }}
+
+/-- §2.3 `retryLeaseClient.LeaseTimeToLive.spec`, new (full text, second tier). -/
+abbrev retryLeaseClient.LeaseTimeToLive.specN : Prop :=
+  ∀ (rlc conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
+    (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.LeaseTimeToLiveRequest) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (req.ID', req.Keys') Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
+      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
+    (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
+        go!"LeaseTimeToLive")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (∃ req' : etcdserverpb.LeaseTimeToLiveRequest, inp ↦ req') ∗ leaseTTLCallOut Q resp err }}
+
+/-- §2.3 `retryLeaseClient.LeaseLeases.spec`, new (full text, second tier). -/
+abbrev retryLeaseClient.LeaseLeases.specN : Prop :=
+  ∀ (rlc conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
+    (Q : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.LeaseLeasesRequest) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec () Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
+      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
+    (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
+        go!"LeaseLeases")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (∃ req' : etcdserverpb.LeaseLeasesRequest, inp ↦ req') ∗ leaseLeasesCallOut Q resp err }}
+
+end lessor
+
+/-! ## §3 The client's linearizable lease calls with auth on (F3; rev 2: C1, C2/D-h, C3/D-i) -/
+
+section grant3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- C1 (v3rpc `ServerKVOn`, internal): `v3rpc.opGrantT` covering the lease operations: a grant's and a
+revocation's update is told its grant (`writeGrantG` of `irrLeaseGrant id ttl` / `irrLeaseRevoke id`,
+the header bound to the token), as `leaseGrantPermitM`/`leaseRevokePermitM` already hand it. The other
+operations' rows unchanged. -/
+def opGrantTN (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString) :
+    KVOp → List EntryModel → KVState → IProp GF
+  | .leaseGrant id ttl, L₀ =>
+    writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) (irrLeaseGrant id ttl) L₀
+  | .leaseRevoke id, L₀ =>
+    writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) (irrLeaseRevoke id) L₀
+  | op, L₀ => v3rpc.opGrantT s E ρ tok op L₀
+
+end grant3
+
+section f3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- C1: `clientGrant` over `opGrantTN` (the lease rows). -/
+def clientGrantN (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
+    (op : KVOp) (L₀ : List EntryModel) (σ : KVState) : IProp GF :=
+  iprop(∃ md, ⌜clientAttemptMd conn ctx md⌝ ∗ opGrantTN s E ρ (auth.mdTokenOf md) op L₀ σ)
+
+/-- C1: `clientOpAuOn` over `clientGrantN` (a lease operation's update told its grant). -/
+def clientOpAuOnN (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
+    (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
+    kvAu1G ρ.kv (kvOpStep op) (clientGrantN s E ρ conn ctx op L₀) Q)
+
+/-- K1 (internal): `txnUpdAtOn`'s write branch widened as `etcdTxnSpecOnN`'s (a leased transaction
+at the revocable lease mode). -/
+def txnUpdAtOnN (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
+    (γr : ReadNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
+    (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
+    (⌜txn.txnReadonly t = false ∧ (txn.txnPlain t ∨ (ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
+        txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
+      clientOpAuOnN s E ρ conn ctx (.txn t) Q))
+
+/-- C3 / D-i: `clientTokAt` with the client's `Lease`, a `*lessor` over the same connection (as 5b and
+F-W3 added `Auth` and `Watcher`); `New`'s post gives it. -/
+def clientTokAtN (cl : Loc) (eps : List GoString) (P : GoString → IProp GF) : IProp GF :=
+  iprop(∃ api conn : Loc,
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api : GoInterface) ∗
+    kvObjAtC api conn eps ∗ attemptTokOk conn P ∗
+    (∃ ap : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" cl ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #ap :
+          GoInterface) ∗
+      authObjAtC ap conn eps) ∗
+    (∃ w : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
+        GoInterface.ok (watcherIfaceOf w) ∗ watcherConnAt w conn) ∗
+    -- (S4, D-i) its `Lease`, a `*lessor` over the same connection
+    ∃ lp : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Lease" cl ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #lp : GoInterface) ∗
+      lessorRemoteAtC lp conn eps)
+
+end f3
+
+section specsOn3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- C2 / D-h (rev 3, review r2's H1): `etcdLeaseGrantSpecOn` (S3c) for a caller holding a lower bound
+`n` of the published auth index, whose reply also carries `requireAuthInfo`'s check at the attempt's token,
+relative to `n` (`leaseCheckT … n (fun _ => True)`: auth disabled at a state no older than `n`, or a
+principal bound to the token; rev 2's `□ (E.authOn → ∃ info, …)` was false of Go, which grants with no
+token while auth is disabled); `Q` is of the model's state **before** the grant. -/
+def etcdLeaseGrantSpecOnN (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName) :
+    GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+  fun md (req : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ⌜req.2 = W64 0⌝ ∗ ∃ n : Nat, auth.authPubLbM E.authMode n ∗
+      ∃ Q : w64 → KVState → IProp GF,
+      leaseGrantPermitM E.authOn ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md)) req.1 Q ∗
+      ∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗
+        etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision -∗
+        (∃ (i : Nat) (l : Loc), lease.leaseLiveFrom γl i m.id l ∗ lease.leaseReqIs γl m.id req.1) -∗
+        v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) req.1 m.id Q -∗
+        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗
+        Φ m)
+
+/-- C2 / D-h (rev 3): `etcdLeaseRevokeSpecOn` (S3c) with the same `n`-relative check. -/
+def etcdLeaseRevokeSpecOnN (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse :=
+  fun md (id : w64) (Φ : LeaseRevokeRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ n : Nat, auth.authPubLbM E.authMode n ∗ ∃ Q : KVState → IProp GF,
+      leaseRevokePermitM E.authOn ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md)) id Q ∗
+      ∀ m : LeaseRevokeRespM, etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision -∗
+        v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q -∗
+        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗
+        Φ m)
+
+end specsOn3
+
+section f3r
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- §3.1 `client_lease_grant_on` (statement; rev 2, `client_put_on`'s shape: C1, C2). -/
+abbrev client_lease_grant_on_stmt : Prop :=
+  ∀ (l conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat) (ttl : w64)
+    (Q : w64 → KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn [addr] ∗ auth.authPubLbM E.authMode n ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOnN s E ρ γl) ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗
+      □ (∀ id : w64, clientOpAuOnN s E ρ conn (GoInterface.ok ci) (.leaseGrant id ttl) (Q id)) }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
+      (Val #(GoInterface.ok ci))) (Val #ttl))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseGrantRespM) (h : Loc),
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗
+        hdrFull h m.hdr ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ID" resp ↦□ m.id ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"TTL" resp ↦□ m.ttl ∗
+        ⌜m.id ≠ W64 0⌝ ∗
+        etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
+        (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
+        ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+          v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) ttl m.id Q ∗
+          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
+
+/-- §3.2 `client_lease_revoke_on` (statement; rev 2, as §3.1). -/
+abbrev client_lease_revoke_on_stmt : Prop :=
+  ∀ (l conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat) (id : w64)
+    (Q : KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn [addr] ∗ auth.authPubLbM E.authMode n ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOnN s E ρ) ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗
+      □ clientOpAuOnN s E ρ conn (GoInterface.ok ci) (.leaseRevoke id) Q }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
+      (Val #(GoInterface.ok ci))) (Val #id))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗
+        etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
+        ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+          v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q ∗
+          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
+
+/-- K1: `client_put_on` (statement) generalized to the put's options `gs` (the no-option form an
+instance, `gs := []`), at the widened registration `etcdPutSpecOnN`, the lease filter a pure premise. -/
+abbrev client_put_on_stmt : Prop :=
+  ∀ (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+    (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Q : KVState → IProp GF)
+    (F : mvcc.Log),
+    opSizeOk (opPutModel key val gs) →
+    ¬ (opPutModel key val gs).putPanics →
+    (opPutModel key val gs).t = W64 2 →
+    ((putWireOf (opPutModel key val gs)).leaseID = W64 0 ∨ ρ.kv.lm = .revocable) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        kvObjAtC api conn [addr] ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOnN s E ρ cid mid) ∗
+        srvApi.kvLogLb E.γs F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
+        (□ clientOpAuOnN s E ρ conn (GoInterface.ok ci) (.put (putWireOf (opPutModel key val gs))) Q ∨
+          (writeOnce api [addr] ∗
+            clientOpAuOnN s E ρ conn (GoInterface.ok ci) (.put (putWireOf (opPutModel key val gs))) Q)) }}
+      (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
+            putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
+            ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
+              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))) ∨
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
+
+end f3r
+
+/-! ## §4 The read handlers with auth on -/
+
+section reads
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- §4.1 (rev 2: R1, R2, second tier) **etcd's `LeaseTimeToLive` at the lessor `γl`, metadata-indexed**
+(new; the one spec of the handler, any auth mode): a reply's lease is the request's; its TTL row fact
+(`etcdLeaseTTLSpecLive`'s, kept so that this text subsumes `etcdLeaseTTLSpec`/`…Live`); the check passed
+at the token (`leaseCheckT`: auth off at `≥ n`, or a principal bound to the token that is an admin or,
+with keys, has read on every key the lease holds from `m` on; without keys, `True`: `requireAuthInfo`'s
+authentication alone, R1). An error carries nothing. -/
+def etcdLeaseTTLSpecMd (s : Loc) (E : apply.AEnv GF) (γl : GName) :
+    GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
+  fun md (req : w64 × Bool) (Φ : LeaseTTLRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ n m : Nat, auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+      ∀ r : LeaseTTLRespM, ⌜r.id = req.1⌝ -∗
+        □ (leaseTTLRow s γl -∗
+            (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i r.id r.grantedTtl) ∨
+            lease.leaseAbsentFrom γl m r.id) -∗
+        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n
+          (fun info => if req.2 then leaseKeysVerdictFrom E.authMode n info γl m req.1 .read
+            else iprop(True)) -∗
+        Φ r)
+
+/-- §4.2 (rev 2: R2) **etcd's `LeaseLeases` at the lessor `γl`, metadata-indexed** (new; the one spec,
+any auth mode): a listing at some lessor index `i ≥ m`, no duplicates, every listed lease's keys
+verdict at the token. Subsumes `etcdLeaseLeasesSpecLive` and `…Any`. -/
+def etcdLeaseLeasesSpecMd (s : Loc) (E : apply.AEnv GF) (γl : GName) :
+    GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+  fun md (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ n m : Nat, auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+      ∀ r : LeaseLeasesRespM, ⌜r.ids.Nodup⌝ -∗
+        (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseIdsAt γl i r.ids ∗
+          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n
+            (fun info => iprop([∗list] id ∈ r.ids, leaseKeysVerdictFrom E.authMode n info γl i id .read))) -∗
+        Φ r)
+
+end reads
+
+section served
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- §4.3 (rev 2: R2) `etcd_lease_read_served` (statement): the read handlers registered at the
+metadata specs §4.1/§4.2, at any auth mode (no `E.authMode = .on γa`: nothing in the handler path uses
+it) and at a free lessor `γl` (the lease-read contract's). The auth-off `etcd_leaseReadMethodsOk`'s
+texts (`etcdLeaseTTLSpec`, `etcdLeaseLeasesSpecAny`) become corollaries (`GrpcSpec.md`). -/
+abbrev etcd_lease_read_served_stmt : Prop :=
+  ∀ (addr : GoString) (ql pl s : Loc) (A : v3rpc.KVAns GF)
+    (lcid lmid : w64) (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (il im iu : GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface)) (γ : GName),
+    A.revR = mvcc.api.mvccReaders E.γ 1 →
+    (∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) → srvLevels (GF := GF) →
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      v3rpc.quotaLeaseServerAt ql
+        ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩ s ∗
+      v3rpc.leaseServerAt pl s A lcid lmid ∗
+      v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ levelTok 0) (mvcc.api.mvccReaders E.γ 1) ∗
+      srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗ srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+      grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+    |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecMd s E γl) ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecMd s E γl))
+
+end served
+
+end client
+
+/-! ## §4.4 The server's lease reads: the `ErrLeaseNotFound` arm tied to the check -/
+
+section srvreads
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- §4.4 (rev 3, review r2's T1/H1; new vocabulary, `AuthWhy.lean`) **The caller authenticated, relative to
+`n`** (persistent): auth disabled at a state no older than `n`, or a principal bound to the context
+(`requireAuthInfo`'s success: it returns `nil` only when the flag reads `false`, read after the caller's
+`n` was published, or when the context's token names a principal). -/
+def authedFrom (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface) : IProp GF :=
+  iprop(auth.enabledVerdictFrom M n false ∨
+    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, □ (⌜M.isOn = true⌝ → principalBound s M ctx (some info)))
+
+/-- §4.4 (rev 3, r4's R4-3) `authedFrom` is persistent (an instance in `AuthWhy.lean`; both disjuncts are). -/
+abbrev authedFrom_persistent_stmt : Prop :=
+  ∀ (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface), Persistent (authedFrom (GF := GF) s M n ctx)
+
+/-- §4.4 (rev 3, r3's R3-6) the bridge to the lease checks (exported law): `authedFrom` is
+`leaseCheckFrom … (fun _ => True)`'s content. (`authedFrom` is persistent: both disjuncts are.) -/
+abbrev leaseCheckFrom_of_authedFrom_stmt : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (n : Nat),
+    authedFrom s E.authMode n ctx ⊢ leaseCheckFrom s E ctx n (fun _ => iprop(True))
+
+/-- §4.4 (rev 3, T1) `EtcdServer.requireAuthInfo.specC`, new: the success also carries `authedFrom … n`
+(a stronger post of a proved function; frozen, so listed). -/
+abbrev EtcdServer.requireAuthInfo.specCN : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvAuthAt s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      E.RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutC s E.authMode n (GoInterface.ok ctx) err ∗
+      (⌜err = GoInterface.nil⌝ -∗ authedFrom s E.authMode n (GoInterface.ok ctx)) ∗
+      authErrVarIs err }}
+
+/-- §4.4 (rev 3, H1) `EtcdServer.LeaseGrant.spec`, new: for a caller's lower bound `n` of the published
+auth index, the success also carries `authedFrom … n` (what `etcdLeaseGrantSpecOnN`'s `leaseCheckT … n`
+comes from). -/
+abbrev EtcdServer.LeaseGrant.specN : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (ttl id0 : w64) (Q : w64 → KVState → IProp GF) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      ⌜srvGrantsLeases E ρ ∧ (ρ.rd.kv.lm = .revocable → id0 = W64 0)⌝ ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ auth.authPubLbM E.authMode n ∗
+      srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
+      context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
+      leaseGrantReqOwn r ttl id0 ∗
+      leaseGrantPermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) ttl Q }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp ttl ∗
+          authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
+          authedFrom s E.authMode n (GoInterface.ok ctx) ∗
+          leaseGrantResM E.authOn s E ρ ctx ttl resp Q) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+
+/-- §4.4 (rev 3, H1) `EtcdServer.LeaseRevoke.spec`, new: as `LeaseGrant.specN`. -/
+abbrev EtcdServer.LeaseRevoke.specN : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (id : w64) (Q : KVState → IProp GF) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜srvRevokesLeases E ρ⌝ ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ auth.authPubLbM E.authMode n ∗
+      srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
+      context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
+      leaseRevokeReqRO r id ∗
+      leaseRevokePermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) id Q }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRevoke"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseRevokedResp E resp ∗
+          authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
+          authedFrom s E.authMode n (GoInterface.ok ctx) ∗
+          leaseRevokeResM E.authOn s E ρ ctx id Q) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+
+/-- §4.4 `EtcdServer.LeaseTimeToLive.spec`, new: the error arm adds the passed check at
+`ErrLeaseNotFound`; (rev 3, review r2's T1) with or without keys, both arms carry `requireAuthInfo`'s
+check relative to `n` (`leaseCheckFrom … n`, its key verdict only with keys), from `requireAuthInfo.specC`'s
+strengthened success (`requireAuthInfo.specCN`). -/
+abbrev EtcdServer.LeaseTimeToLive.specN : Prop :=
+  leasePeersOk →
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
+    (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
+      srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ http.netCtxOk ctx ∗ v3rpc.ctxCauseOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
+      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ r ↦{dq} v }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseTimeToLive"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗
+      levelTok lease.lessorLvl ∗ r ↦{dq} v ∗
+      ((⌜err = GoInterface.nil⌝ ∗
+          (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗
+            ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+            □ (leaseTTLRow s γl -∗
+                (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+                lease.leaseAbsentFrom γl m v.ID')) ∗
+          authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
+          leaseCheckFrom s E (GoInterface.ok ctx) n
+            (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
+              else iprop(True))) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗
+              (leaseTTLRow s γl -∗ lease.leaseAbsentFrom γl m v.ID') ∗
+              authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
+              leaseCheckFrom s E (GoInterface.ok ctx) n
+                (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
+                  else iprop(True))))) }}
+
+/-- §4.4 `EtcdServer.LeaseLeases.spec`, new: its error is never `ErrLeaseNotFound`. -/
+abbrev EtcdServer.LeaseLeases.specN : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (mid cid : w64) (n m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReadM E.authOn s E γr ∗ srvHeaderFacts s cid mid ∗ levelTok lease.lessorLvl ∗ mvcc.api.mvccReaders E.γ 1 ∗
+      srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗
+      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 62⌝ }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseLeases"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok lease.lessorLvl ∗ mvcc.api.mvccReaders E.γ 1 ∗ E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (ids : List w64), ⌜m ≤ i⌝ ∗
+          lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cid mid ids ∗
+          leaseCheckFrom s E (GoInterface.ok ctx) n (fun info => iprop([∗list] id ∈ ids,
+            leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ False))) }}
+
+end srvreads
+
+section v3rpcH1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- (rev 3, r4's R4-1) `v3rpc.LeaseServer.LeaseGrant.spec`, new (frozen `Spec/`, proved): for the caller's
+lower bound `n` of the published auth index, the success also carries `requireAuthInfo`'s check at the
+request context's token relative to `n` (from `EtcdServer.LeaseGrant.specN`'s `authedFrom`, through
+`leaseCheckFrom_of_authedFrom` and `leaseCheckT_of_from`; the handler passes its `ctx` unchanged,
+`api/v3rpc/lease.go:44-60`). The contract `lessorGrantOkGM` takes the same `n` and returns the same check. -/
+abbrev v3rpc.LeaseServer.LeaseGrant.specN : Prop :=
+  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
+    (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64) (Q : w64 → KVState → IProp GF) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorGrantOkGM on s E ρ S G R ∗ S ∗
+      auth.authPubLbM E.authMode n ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseGrantReqIs r m ∗
+      v3rpc.leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ ∗
+      leaseGrantPermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m.1 Q }}
+    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseGrant"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseGrantOut E cid mid resp err ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
+        structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id ∗
+        v3rpc.leaseGrantResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m.1 id Q ∗
+        v3rpc.leaseCheckT s E (auth.ctxTokenOf (GoInterface.ok ci)) n (fun _ => iprop(True))) ∗
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
+
+/-- (rev 3, r4's R4-1) `v3rpc.LeaseServer.LeaseRevoke.spec`, new: as `LeaseGrant.specN`
+(`lessorRevokeOkM` likewise). -/
+abbrev v3rpc.LeaseServer.LeaseRevoke.specN : Prop :=
+  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
+    (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64)
+    (Q : KVState → IProp GF) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorRevokeOkM on s E ρ S ∗ S ∗
+      auth.authPubLbM E.authMode n ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseRevokeReqIs r m ∗
+      leaseRevokePermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m Q }}
+    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseRevoke"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseRevokeOut E cid mid resp err ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ (v3rpc.leaseRevokeResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m Q ∗
+        v3rpc.leaseCheckT s E (auth.ctxTokenOf (GoInterface.ok ci)) n (fun _ => iprop(True)))) ∗
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
+
+end v3rpcH1
+
+end EtcdGrove
+end Perennial

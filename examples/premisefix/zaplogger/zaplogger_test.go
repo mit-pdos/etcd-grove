@@ -20,6 +20,7 @@ import (
 	"unsafe"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -625,6 +626,7 @@ func TestExamplesLoggers(t *testing.T) {
 		Peer1: p[0], Peer2: p[1], Peer3: p[2], Client1: p[3], Client2: p[4], Client3: p[5],
 		Bridge1: p[6], Bridge2: p[7], Bridge3: p[8], SnapCount: etcdstart.NoSnapCount,
 		SnapCatchUp: etcdstart.NoSnapCatchUp}
+	walarea.Reset(t, cfg.Name1, cfg.Name2, cfg.Name3)
 	lg := zap.NewNop()
 	mustHold(t, "zapLoggerOk(zap.NewNop()) [the examples' logger]", ZapLoggerOk(lg))
 	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
@@ -693,6 +695,7 @@ func TestRaftNodeLogger(t *testing.T) {
 		Peer1: p[0], Peer2: p[1], Peer3: p[2], Client1: p[3], Client2: p[4], Client3: p[5],
 		Bridge1: p[6], Bridge2: p[7], Bridge3: p[8], SnapCount: etcdstart.NoSnapCount,
 		SnapCatchUp: etcdstart.NoSnapCatchUp}
+	walarea.Reset(t, cfg.Name1, cfg.Name2, cfg.Name3)
 	lg := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), &syncBuf{},
 		zapcore.InfoLevel))
 	mustHold(t, "zapLoggerOk(the passed logger)", ZapLoggerOk(lg))

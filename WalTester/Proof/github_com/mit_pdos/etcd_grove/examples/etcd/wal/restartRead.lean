@@ -5,7 +5,7 @@ the oracle with the snapshot's index appended to its opens stored (`tCandOk_addO
 committed, `tInv_openAu` over `tCandOk_open`), `ReadAll` (unchanged, `tInv_readAu`, its newest-pair premise
 from the history and read position, which no update of the restart moves); on success the read built
 (`hsGet`'s getters, `fromRaft` of each entry) and related to an image by `tRead_of_readAll`; on failure
-`Close.specFailed`, then `Repair` (unchanged) once. Lean-first (no Rocq counterpart).
+`Close.spec` (state `failed`), then `Repair` (unchanged) once. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -16,7 +16,7 @@ public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.fr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ValidSnapshotEntries
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Open
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__ReadAll
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseFailed
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Repair
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCallees
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot__GetIndex
@@ -50,7 +50,8 @@ theorem restartRead.wp_proof
     (wp_readAll : ∀ W : WalGS GF,
       go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (W := W) (walRaftP (GF := GF)) walRaftMr)
     (wp_closeF : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specFailed (W := W) walRaftMr)
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (Sio := ioNone) (walRaftP (GF := GF))
+        walRaftMr)
     (wp_repair : ∀ W : WalGS GF, wal.Repair.spec (W := W) walRaftMr)
     (wp_getIndex : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF))
     (wp_getTerm : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetTerm.spec (GF := GF))
@@ -62,6 +63,11 @@ theorem restartRead.wp_proof
   obtain ⟨hia, hnm, hca, hdl⟩ := hpath
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, #Hzap, #Harea, Hpath, Hres, Htok, Hop, Hov, Hrep, Ho,
     Hwo, #HrW⟩
+  iunfold tPerm at Hperm
+  icases Hperm with ⟨Hperm, Hor⟩
+  icases osPathS_callKey e.R e.area _ e.jr $$ Hpath with ⟨Hpath, %hkc⟩
+  have hkw : callKey e.R (tWalDir e.area) = callKey e.R e.area := by rw [tWalDir_child]; exact hkc _
+  ihave Hperm := osCallPerm_congr 1 hkw $$ Hperm
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
   wp_auto
@@ -194,9 +200,10 @@ theorem restartRead.wp_proof
       "repaired" ∷ repaired_ptr ↦ rep ∗ "Hov" ∷ m.[member, go!"o"] ↦ vc ∗
       "Hrep" ∷ oracleRep vc (tWithOpens o l) ∗ "Ho" ∷ tOrOwn γ (tWithOpens o l) none ∗
       "Hwo" ∷ tWalOwn γ (some dc) ∗ "Htok" ∷ WalFs.walUnlockedTok (W := W) ∗
-      "Hperm" ∷ osCallPerm (GF := GF) 1 ∗
+      "Hperm" ∷ osCallPerm (GF := GF) (callKey e.R e.area) 1 ∗
+      "Hor" ∷ osCallPerm (GF := GF) (callKey e.R e.orDir) 1 ∗
       "%Hl" ∷ ⌜l.length = (if rep then 1 else 0) ∧ dc.H = d.H ∧ dc.cut = d.cut ∧
-        tCandOk (tWithOpens o l) cd dc⌝ : IProp GF) $$ [repaired Hov Hrep Ho Hwo Htok Hperm]
+        tCandOk (tWithOpens o l) cd dc⌝ : IProp GF) $$ [repaired Hov Hrep Ho Hwo Htok Hperm Hor]
   · iexists false, [], d, v
     rw [tWithOpens_nil]
     simp only [named]
@@ -236,7 +243,7 @@ theorem restartRead.wp_proof
   ihave #HrW1 := tRelW_withOpens W e.area o cd (l ++ [pr.1]) $$ HrW
   ihave #Hrel1 := tRelI_of_relW e.area (tWithOpens o (l ++ [pr.1])) cd dc hcd hok1 $$ HrW1
   wp_apply (wp_store W e γ _ (tWithOpens o l) (tWithOpens o (l ++ [pr.1])) (some dc) 1 hf hsm1)
-    $$ [Hh Hperm Hrep1 Ho Hwo] as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
+    $$ [Hh Hor Hrep1 Ho Hwo] as ⟨Hh, Hor, Hrep1, Ho, Hwo⟩
   · iframe; iframe #
   try wp_auto
   -- `Open(lg, walDir, &walpb.Snapshot{Index: newU64(idx), Term: newU64(term)})`
@@ -299,8 +306,11 @@ theorem restartRead.wp_proof
     | nil => exact absurd rfl herr3
     | ok ie3 =>
     wp_auto
-    wp_apply (wp_closeF W e.R e.jr e.area w (tWalDir e.area)) $$ [Hfail] as %errc Hc
-    · iframe; iframe #
+    wp_apply (wp_closeF W e.R e.jr e.area w (tWalDir e.area) .failed (fun _ => iprop(True))) $$ [Hfail]
+      as %errc Hc
+    · dsimp only
+      iframe; iframe #
+      iPkgInit
     cases errc with
     | ok iec =>
       wp_auto
@@ -332,7 +342,8 @@ theorem restartRead.wp_proof
       rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
       itrivial
     wp_auto
-    ihave Hperm := osCallPerm_halfJoin 1 $$ Hph Hph2
+    ihave Hph2 := osCallPerm_congr _ hkw $$ Hph2
+    ihave Hperm := osCallPerm_halfJoin _ 1 $$ Hph Hph2
     wp_apply (wp_repair W lg e.R e.jr e.area (tWalDir e.area) go!"wal" qp
         (fun od => iprop(⌜od = some (walOpenRaise pr dc)⌝ ∗ tWalOwn γ (some (walOpenRaise pr dc))))
         hia hnm hca hdl) $$ [Hpath Hres Hperm Htok Hwo]
@@ -442,6 +453,8 @@ theorem restartRead.wp_proof
   simp only [readOK]
   try wp_auto
   wp_for_post
+  ihave Hph : tPerm (GF := GF) e (1 : Qp).half $$ [Hph Hor]
+  · iunfold tPerm; rw [hkw]; iframe
   iapply HΦ
   have hH1 : (walOpenRaise pr dc).H = d.H := hdH
   have hra' : WalEnc.walReadAllOk (d.H.map WalOpG.toM) (walOpenRaise pr dc).cut pr σ := by

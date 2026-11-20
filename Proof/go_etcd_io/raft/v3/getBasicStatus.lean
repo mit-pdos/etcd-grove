@@ -32,6 +32,7 @@ theorem getBasicStatus.wp_proof
   wp_apply raft.wp_load_leadTransfereeC $$ Hphys as Hphys
   icases ownRaftPhysC_core c r id s $$ Hphys with ⟨Hcore, Hpb⟩
   wp_apply wp_raft_hardState r id s $$ Hcore as %hp ⟨#Hhs, Hcore⟩
+  ihave #Hhs := hsROC_hsRO _ _ $$ Hhs
   ihave Hphys := Hpb $$ Hcore
   wp_apply wp_raft_softState $$ Hphys as Hphys
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys

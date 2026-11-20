@@ -52,15 +52,15 @@ theorem walReadAllOk_read0 {I : WalHist} {cut : Nat} {s : w64 × w64} {σ' : Sto
     obtain ⟨o, ho, hos⟩ := hmem
     cases o with
     | save _ _ => cases hos
-    | snap m =>
+    | snap m al =>
       simp only at hos
       split at hos
       · rename_i hmc
         cases hos
         obtain ⟨j, hj⟩ := List.getElem?_of_mem ho
         rw [List.getElem?_drop] at hj
-        have ha : ∃ (i : Nat) (m' : SnapshotMetadataM), I[i]? = some (WalOpG.snap m') ∧
-            m'.Index' = m.Index' := ⟨k + j, m, hj, rfl⟩
+        have ha : ∃ (i : Nat) (m' : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m' al) ∧
+            m'.Index' = m.Index' := ⟨k + j, m, _, hj, rfl⟩
         have hknb : k ≤ walNameBound I (uint.nat m.Index') false :=
           Nat.le_trans hk (Nat.min_le_right _ _)
         have heq := walReadCut_eq hknb hmax ha hmc hcl h0 hcutk

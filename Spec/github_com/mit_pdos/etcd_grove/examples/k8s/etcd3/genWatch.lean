@@ -29,11 +29,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev genWatch.spec : Prop :=
-  ∀ (id : w64) (c : Obj) (hasC : Bool),
+  ∀ (id : w64) (c : Obj) (hasC : Bool) (f : w64), uint.Z f < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genWatch))
-      (Val #id)) (Val #c)) (Val #hasC))
-  {{ (x : Input), RET #x; ⌜GenInW x⌝ }}
+    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genWatch))
+      (Val #id)) (Val #c)) (Val #hasC)) (Val #f))
+  {{ (x : Input), RET #x; ⌜GenInW x ∧ FloorOk f x⌝ }}
 
 end spec
 

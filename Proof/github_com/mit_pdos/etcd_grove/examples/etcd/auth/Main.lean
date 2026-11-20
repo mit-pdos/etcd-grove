@@ -11,7 +11,7 @@ were this proof's, and `Run` is the same code moved into a function auth3 shares
 
 What the result rests on (`etc/tcb-collections/authkv.txt`; no `sorry` since 2026-11-13): the
 trust-boundary axioms its callees' proofs reach, and `startServer`'s spec, a premise here, linked in
-`Results.lean` (`authkv_startServer`, at D22's named hypothesis `authSchemaSrv`), and so in the
+`Results.lean` (`authkv_startServer`), and so in the
 closed theorem (`Adequacy.lean`).
 -/
 module

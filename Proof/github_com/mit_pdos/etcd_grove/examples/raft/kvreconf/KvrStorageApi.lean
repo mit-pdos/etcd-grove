@@ -286,12 +286,16 @@ theorem kvrJ_bnd (γ : Cluster) (K : GName) (c : Nat) (htr : Cluster.trace γ = 
     memBnd (kvrJ (GF := GF) γ K) c ⊢ storBnd γ K c := by
   -- (2026-11-12, Q39 (a)) through raft's law: `storBnd` is sealed and gated on the trace
   unfold memBnd kvrJ
-  iintro ⟨%k, %Hk, #Hl⟩
-  iapply storBnd_intro_untraced γ K k c htr $$ Hl
+  iintro ⟨%k, %Hk, #Hl, %Hns⟩
+  iapply storBnd_intro_untraced γ K k c htr Hns $$ Hl
   ipureintro; exact Hk
 
 theorem kvrJ_B0 (γ : Cluster) (K : GName) : ⊢ (kvrJ (GF := GF) γ K).B 0 := by
-  unfold kvrJ; exact nodeAppliedLb_zero γ K
+  show ⊢ iprop(nodeAppliedLb γ K 0 ∗ ⌜clusterNoSnap γ → 0 ≤ 1⌝)
+  iintro
+  isplitr
+  · iapply (nodeAppliedLb_zero (GF := GF) γ K)
+  ipureintro; intro _; omega
 
 /-- **The store's storage meets the storage contract of key `K`** (under `kvrStorageModel`). -/
 theorem kvrStorage_isStorage

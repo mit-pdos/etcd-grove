@@ -39,7 +39,7 @@ set_option hygiene false in
 /-- `Watch`'s end, after the `select`: `sws.close()`, then `return err`. -/
 local macro "watch_tail" : tactic => `(tactic| (
   iapply wp_fupd
-  wp_apply hClose sws_ptr r Up Dn _ ci cd (W32 0 + W32 1)
+  wp_apply hClose sws_ptr r Up Dn _ ci tok cd (W32 0 + W32 1)
     iprop(True ∗ mvcc.api.mvccReaders W.γm 1) $$ [Hcl Hcc Hadd] as HP
   · iframe #; iframe
   icases HP with ⟨-, HrdS⟩
@@ -83,13 +83,13 @@ theorem v3rpc.watchServer.Watch.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) := by
-  intro p R W st γs Up Dn ci cd N₂ N₃ γ₂ γ₃ F₂ F₃
+  intro p R W st γs Up Dn ci tok cd N₂ N₃ γ₂ γ₃ F₂ F₃
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ kv γ, Persistent (mvcc.api.isMvcc (GF := GF) kv γ) := hP.1
   have := v3rpc.srvWOk_persistent hP W R.wsl v3rpc.wsN
   have := v3rpc.swsIs_persistent (GF := GF) hP
   have : ∀ γ n, Timeless (mvcc.api.mvccReaders (GF := GF) γ n) := hP.2.2.2.2.2.2.2.1
-  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, %Htb4, #Hp2, #Hp3, HrdS, Hl4⟩
+  wp_start as ⟨#HWS, #HW, #Hstream, #HtokC, #Hspec, #Hup, Hrt, Hst, HAux, %Htb4, #Hp2, #Hp3, HrdS, Hl4⟩
   obtain ⟨Htb, HT4⟩ := Htb4
   ihave #HWS' := HWS
   iunfold v3rpc.isWatchServer at HWS'
@@ -143,7 +143,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   -- run's control-stream names, so a stand-in for them states it before they exist)
   let r0 : v3rpc.WRun GF := ⟨R, W, γs, ws, ι, γreg, γtok, γpk, γr, γcl, γa, ctrl, ⟨γch, γa, γa⟩, pm, vm,
     fm, cc, γch⟩
-  let P' : Int → Loc → IProp GF := v3rpc.ctrlP r0 ci
+  let P' : Int → Loc → IProp GF := v3rpc.ctrlP r0 tok
   imod start_spsc ctrl P' (fun _ => iprop(True)) γch $$ Hctrl [Hoc] with ⟨%γctrl, #Hspsc, Hprod, Hcons'⟩
   · iright; iexact Hoc
   -- `closec`: a broadcast channel
@@ -171,8 +171,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
     with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
   imod sync.join.init (v3rpc.swsF sws_ptr go!"wg") γwg $$ [$HisWg $Hctr $Hwaiters] with Hadd
   let r : v3rpc.WRun GF := ⟨R, W, γs, ws, ι, γreg, γtok, γpk, γr, γcl, γa, ctrl, γctrl, pm, vm, fm, cc, γcc⟩
-  have hP : v3rpc.ctrlP r ci = P' := by funext k l; rfl
-  ihave #Hsws : v3rpc.swsIs sws_ptr r Up Dn st ci cd $$ []
+  have hP : v3rpc.ctrlP r tok = P' := by funext k l; rfl
+  ihave #Hsws : v3rpc.swsIs sws_ptr r Up Dn st ci tok cd $$ []
   · iunfold v3rpc.swsIs
     rw [hP]
     iframe #
@@ -186,7 +186,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   -- `GetProgressReportInterval` lends to the interval's pool
   wp_apply wp_fork_tok_body $$ [Hst Hcons' Hrcv HA Hmutok Hdone HrdS]
   · iintro Htt
-    wp_apply hSend sws_ptr r Up Dn st ci cd $$ [$Hst $Hcons' $Hrcv $HA $Hmutok $Htt $HrdS]
+    wp_apply hSend sws_ptr r Up Dn st ci tok cd $$ [$Hst $Hcons' $Hrcv $HA $Hmutok $Htt $HrdS]
       as ⟨Htt, HrdS⟩
     · iframe #; ipureintro; exact ⟨Htb, HT4⟩
     wp_apply sync.join.WaitGroup.wp_Done (mvcc.api.mvccReaders W.γm 1) (v3rpc.swsF sws_ptr go!"wg")
@@ -243,7 +243,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   imodintro
   isplitl [Hrt Hprod HPool HprodE HF2 HRD HrdR HF3 Hl2 Hl3 Ht0 Ht1 Ht4]
   · iapply wp_fupd
-    wp_apply hRecv sws_ptr r Up Dn st ci cd [] [] $$ [$Hrt $Hprod $HPool $HRD $HrdR]
+    wp_apply hRecv sws_ptr r Up Dn st ci tok cd [] [] $$ [$Hrt $Hprod $HPool $HRD $HrdR]
       as %rerr ⟨#Hrerr, HrdR, HRD, %sent', Hprod⟩
     · iframe #
     imod threadPool.giveBackL N₂ 2 γ₂ iprop(F₂ ∗ R.E.RD) ⊤ (fun _ _ => CoPset.mem_full)

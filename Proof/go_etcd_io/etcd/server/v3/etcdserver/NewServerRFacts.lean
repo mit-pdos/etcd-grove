@@ -204,7 +204,7 @@ theorem restart_peerURLs (γ : ServerRaftNames) (γk : KVNames) (A : List EntryM
   ihave #Hinv' := Hinv
   iunfold srvRaftLogInv at Hinv'
   icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, %Hvs0⟩
-  have hvs := Hvs0.2
+  have hvs : _ ∧ _ := ⟨Hvs0.2.1, Hvs0.2.2.1⟩
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
   ihave %Hpfx := srvRLogLb_prefix γ _ A $$ [Hb HA]
@@ -316,6 +316,7 @@ theorem restartStore_holds (Hp : mvcc.api.persistent.law (GF := GF)) (kv : GoInt
   imodintro
   iunfold kvStoreInvG
   iunfold wSt
+  iunfold wStQ
   iunfold crOwn
   iframe Hm Hinv Hw1 Hw2 Hc
 
@@ -608,7 +609,7 @@ index `σ.b = |A.take σ.b|`, the base's term, the conf state `cs` the voters' (
 token was generalized to the attached snapshot, approved by etcd-grove-81; until then over the
 records' certificate and the server's log, from which the exact answer did not follow.) -/
 theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (σ : StorContents)
+    (E : RNEnv GF) (γ : RNNames GF) (r ms0 : Loc) (γs : MemStorNames) (σ : StorContents)
     (cs : ConfStateM) (γr : ServerRaftNames) (A : List EntryModel) (Hms0 : γ.ms = ms0)
     (hb : σ.b ≤ A.length) (hcs : confStateIs cs (Membership.simple γr.raft.cfg))
     (hsz : GMap.size γr.raft.cfg ≤ 2 ^ 20) :

@@ -166,6 +166,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-30, the repair, P9) the cluster's conf entries decided by the server's rule
   -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
   γ.rule = srvRule (W64 0) γ.boot →
+  -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode,
+  -- `SnapshotCatchUpEntries` at least `2^48`, the receipts' bound below (the log compacted at index
+  -- `1` only)
+  (clusterNoSnap γ.cl → 2 ^ 48 ≤ uint.Z cfg.SnapshotCatchUpEntries') →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
   ρ.rd.kv.log0 = [[], []] →
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
@@ -336,7 +340,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-          (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
+          (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
           -- (per-type stage B2, 2026-11-11, r5 §4.2) the raw serving stocks: the revocation's built

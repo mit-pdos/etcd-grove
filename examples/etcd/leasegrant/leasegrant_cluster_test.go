@@ -19,6 +19,7 @@ import (
 	"go.etcd.io/etcd/server/v3/lease/leasehttp"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestClusterLeaseGrant tests, on a three-member cluster, the facts the lease-grant specs claim
@@ -50,6 +51,7 @@ import (
 // TestClusterLeaseReads; the ports differ from it and from Main's, so the tests can run at once.
 func TestClusterLeaseGrant(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "leasegrant3") // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	peers := []string{"127.0.0.1:23961", "127.0.0.1:23962", "127.0.0.1:23963"}
 	clients := []string{"127.0.0.1:23967", "127.0.0.1:23968", "127.0.0.1:23969"}

@@ -57,7 +57,7 @@ no WAL, `walAbsent` of every directory). -/
 theorem walStart_boot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF) (C : WalCodec)
     (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (m : Tree) (hR : RootsOk R)
     (hr : (r, jr) ∈ R) (hnone : ∀ nm, walNameOk nm → m.entry jr nm = none) :
-    ⊢@{IProp GF} |==> ∃ W : WalGS GF, walStart L W C Mr R jr r (walBoot0St r) m ∗
+    ⊢@{IProp GF} |==> ∃ W : WalGS GF, ⌜W.roots = R⌝ ∗ walStart L W C Mr R jr r (walBoot0St r) m ∗
       walPast (W := W) (walBoot0St r) ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
       walOwn (W := W) ∅ := by
   imod preceipt_zero (GF := GF) with #H0
@@ -67,10 +67,12 @@ theorem walStart_boot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF) (C : WalCo
     iframe H0
     ipureintro
     intro dir d hd; simp [walBoot0St] at hd
-  imod walGhost_init hPre (walBoot0St r) (walKeysInArea_boot0 r) $$ Hst with
-    ⟨%W, Hg, Hown, #Hp, Hu, Hc, Hcr, Ht, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt⟩
+  imod walGhost_init hPre R (walBoot0St r) (walKeysInArea_boot0 r) $$ Hst with
+    ⟨%W, %hWR, Hg, Hown, #Hp, Hu, Hc, Hcr, Ht, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt⟩
   imodintro
   iexists W
+  isplitr
+  · ipureintro; exact hWR
   iframe Hp Hu Hc
   isplitr [Hown]
   rotate_left

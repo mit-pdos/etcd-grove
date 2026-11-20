@@ -489,7 +489,7 @@ theorem writer.revoke.wp_proof
     simp only
     (try wp_auto)
     ihave Hau := revoke_au hpers wv.h' γ σ Hs _ _ hok Hpn Hlen Hmatch $$ [$Hinv $Hgσ $Hlb]
-    wp_apply hR $$ [Hrdr Hrdo Hbk Hpre Hlo Hrvk Hrb Hbe Hau]
+    wp_apply (hR none) $$ [Hrdr Hrdo Hbk Hpre Hlo Hrvk Hrb Hbe Hau]
       as %err ⟨Hrdr, Hrdo, Hbk, Hbe, Hres⟩
     · iframe Hlinv Hrevoc Hrdr Hrdo Hbk Hhook Hrvk Hrb Hbe
       isplitr
@@ -506,10 +506,10 @@ theorem writer.revoke.wp_proof
       · ipureintro; exact ⟨Hpn, by omega, Hreach, Hbound⟩
       isplitl [Hau]
       · simp only [hidL, decide_true, ↓reduceIte]
-        iexact Hau
+        iapply srvApi.auBegin_pre $$ Hau
       isplitl [Hlo]
       · rw [← pendItems_nil]; iexact Hlo
-      ipureintro; exact HlP
+      ipureintro; exact ⟨HlP, lease.winDrops_none _ _⟩
     icases Hres with (⟨%Hnin, -⟩ | ⟨%Hok2, HY, Hpost, Hlo, Hrvk, Hrb⟩)
     · exact absurd hidL Hnin
     obtain ⟨-, rfl⟩ := Hok2
@@ -532,16 +532,16 @@ theorem writer.revoke.wp_proof
   (try wp_auto)
   ihave ⟨Hlo, #Hlb0⟩ := lease.leaseOwn_lb (mvccLeases γ.kv) _ _ $$ Hlo
   wp_apply (wp_Lookup lp (mvccLeases γ.kv) id 0 (some (L.filter (· != id),
-      leaseItemsOf (stateAfter (commitLog σ.log (leaseDels (stateAfter σ.log) id))))))
+      leaseItemsOf (stateAfter (commitLog σ.log (leaseDels (stateAfter σ.log) id))))) none)
     $$ [Hlrd Hlo] as %l ⟨Hlrd, -, Ho⟩
-  · iframe Hlinv Hlrd Hlb0; rw [lease.lookupView_some]; iexact Hlo
+  · iframe Hlinv Hlrd Hlb0; rw [lease.lookupViewW_some]; iexact Hlo
   ihave ⟨%Hl0, Ho⟩ : iprop(⌜l = null ↔ id ∉ L.filter (· != id)⌝ ∗
       ((⌜l = null⌝ ∗ lease.leaseOwn (mvccLeases γ.kv) (L.filter (· != id))
           (leaseItemsOf (stateAfter (commitLog σ.log (leaseDels (stateAfter σ.log) id))))) ∨
         lease.leaseOwnOpen (mvccLeases γ.kv) (L.filter (· != id))
           (leaseItemsOf (stateAfter (commitLog σ.log (leaseDels (stateAfter σ.log) id)))) id l))
     $$ [Ho]
-  · rw [← lease.lookupViewAfter_some]; iexact Ho
+  · rw [← lease.lookupViewAfterW_some]; iexact Ho
   have hnin : id ∉ L.filter (· != id) := by simp
   have hlnull : l = null := Hl0.2 hnin
   ihave Hlo : lease.leaseOwn (mvccLeases γ.kv) (L.filter (· != id))

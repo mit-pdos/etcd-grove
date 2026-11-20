@@ -59,6 +59,104 @@ theorem getLast?_getElem? {α : Type} {hs : List α} {σ : α} (h : hs.getLast? 
   · simp at h
   · simp
 
+/-- The last entry of a list whose `n+1`-th entry is absent is its `n`-th. -/
+theorem getLast?_of_next_none {α : Type} {l : List α} {n : Nat} {x : α} (hn : l[n]? = some x)
+    (hnext : l[n + 1]? = none) : l.getLast? = some x := by
+  have hl := (List.getElem?_eq_some_iff.1 hn).1
+  have hlen : l.length = n + 1 := by
+    have : ¬ n + 1 < l.length := fun h => by rw [List.getElem?_eq_getElem h] at hnext; cases hnext
+    omega
+  rw [List.getLast?_eq_getElem?, hlen]; simpa using hn
+
+/-- **A push keeps the windows' list** (auth-lease S4 item 7b): the history's new snapshot is a step of the open
+window from the last. -/
+theorem winsOk_snoc {hs : List LSnap} {ws : List LWinRec} {τ σ' : LSnap} (h : winsOk hs ws)
+    (hlast : hs.getLast? = some τ) (hstep : winStep (lastWin ws) τ.2.1 σ'.2.1) :
+    winsOk (hs ++ [σ']) ws := by
+  obtain ⟨h1, h2, h3⟩ := h
+  obtain ⟨hτ, hlen⟩ := getLast?_getElem? hlast
+  refine ⟨fun n r hr => by have := h1 n r hr; simp; omega, h2, ?_⟩
+  intro n s T j j' hn hsj hjj hj
+  have hs_lt : s < hs.length := h1 n _ hn
+  cases hnext : ws[n + 1]? with
+  | none =>
+    have hend : winEnd (hs ++ [σ']) ws n = hs.length := by simp [winEnd, hnext]
+    have hend0 : winEnd hs ws n = hs.length - 1 := by simp [winEnd, hnext]
+    rw [hend] at hj
+    have hlastw : lastWin ws = some (s, T) := by
+      unfold lastWin; rw [getLast?_of_next_none hn hnext]
+    intro σs σj hσs hσj k hk
+    rcases Nat.lt_or_ge j' hs.length with hjl | hjl
+    · rw [getElem?_snoc_lt hs σ' (by omega)] at hσs
+      rw [getElem?_snoc_lt hs σ' hjl] at hσj
+      exact h3 n s T j j' hn hsj hjj (by rw [hend0]; omega) σs σj hσs hσj k hk
+    · have hjeq : j' = hs.length := by omega
+      subst hjeq
+      rw [getElem?_snoc_len] at hσj
+      cases hσj
+      rcases Nat.lt_or_ge j hs.length with hjl' | hjl'
+      · rw [getElem?_snoc_lt hs σ' hjl'] at hσs
+        have hτk := h3 n s T j (hs.length - 1) hn hsj (by omega) (by rw [hend0]; exact Nat.le_refl _)
+          σs τ hσs hτ k hk
+        exact hstep (s, T) hlastw k hτk
+      · have hjeq : j = hs.length := by omega
+        subst hjeq
+        rw [getElem?_snoc_len] at hσs
+        cases hσs; exact hk
+  | some r =>
+    have hend : winEnd (hs ++ [σ']) ws n = r.1 := by simp [winEnd, hnext]
+    have hend' : winEnd hs ws n = r.1 := by simp [winEnd, hnext]
+    rw [hend] at hj
+    have hjl : j' < hs.length := by have := h1 (n + 1) r hnext; omega
+    intro σs σj hσs hσj
+    rw [getElem?_snoc_lt hs σ' (by omega)] at hσs
+    rw [getElem?_snoc_lt hs σ' hjl] at hσj
+    exact h3 n s T j j' hn hsj hjj (by rw [hend']; exact hj) σs σj hσs hσj
+
+/-- **A new entry of the windows' list at the history's last index** (`win_open`, `win_free`). -/
+theorem winsOk_open {hs : List LSnap} {ws : List LWinRec} (h : winsOk hs ws) (hne : 0 < hs.length)
+    (x : Option (GMap LeaseItem w64)) : winsOk hs (ws ++ [(hs.length - 1, x)]) := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨?_, ?_, ?_⟩
+  · intro n r hr
+    rcases getElem?_snoc_cases ws _ r n hr with ⟨_, hr⟩ | ⟨_, rfl⟩
+    · exact h1 n r hr
+    · simp only; omega
+  · intro n r r' hr hr'
+    rcases getElem?_snoc_cases ws _ r' (n + 1) hr' with ⟨hl, hr'⟩ | ⟨hl, rfl⟩
+    · rw [getElem?_snoc_lt ws _ (by omega)] at hr
+      exact h2 n r r' hr hr'
+    · rw [getElem?_snoc_lt ws _ (by omega)] at hr
+      simp only; have := h1 n r hr; omega
+  · intro n s T j j' hn hsj hjj hj
+    rcases getElem?_snoc_cases ws _ _ n hn with ⟨hl, hn'⟩ | ⟨hl, he⟩
+    · -- an old entry: its range ends where it did (the old last one's at the history's last index)
+      have hend : winEnd hs (ws ++ [(hs.length - 1, x)]) n = winEnd hs ws n := by
+        unfold winEnd
+        rcases Nat.lt_or_ge (n + 1) ws.length with h' | h'
+        · rw [getElem?_snoc_lt ws _ h']
+        · have : n + 1 = ws.length := by omega
+          rw [this, getElem?_snoc_len, List.getElem?_eq_none (Nat.le_refl _)]
+      rw [hend] at hj
+      exact h3 n s T j j' hn' hsj hjj hj
+    · -- the new window: its range is its start alone
+      simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl⟩ := he
+      have hend : winEnd hs (ws ++ [(hs.length - 1, some T)]) n = hs.length - 1 := by
+        unfold winEnd
+        rw [List.getElem?_eq_none (by simp; omega)]
+      rw [hend] at hj
+      have hjeq : j' = hs.length - 1 := by omega
+      have hjeq' : j = hs.length - 1 := by omega
+      subst hjeq hjeq'
+      intro σs σj hσs hσj k hk
+      rw [hσs] at hσj; cases hσj; exact hk
+
+/-- The open window of a list with a window appended is that window; with a free marker, none. -/
+theorem lastWin_snoc (ws : List LWinRec) (s : Nat) (x : Option (GMap LeaseItem w64)) :
+    lastWin (ws ++ [(s, x)]) = x.map (fun T => (s, T)) := by
+  unfold lastWin; cases x <;> simp
+
 /-- **Appending a snapshot whose lease map keeps the last one's ids keeps the history monotone**
 (the lease-grant plan's D2: `Grant`, `Attach`, `Detach`). -/
 theorem histMono_snoc {hs : List LSnap} {τ σ' : LSnap} (hlast : hs.getLast? = some τ)
@@ -574,15 +672,15 @@ theorem leaseTTLAt_ge_req (γl : GName) (j : Nat) (id r t : w64) (E : CoPset)
   subst H1; subst H2
   iinv Hinv with Hb Hclose
   iunfold lessorRdBody at Hb
-  icases Hb with ⟨%hs, %Sm, >Ha, >HS, >%Hok, >%Hmono, >HU, #>Htie, Hids, >HQ⟩
+  icases Hb with ⟨%hs, %Sm, >Ha, >HS, >%Hok, >%Hmono, >HU, #>Htie, Hids, >HW, >HQ⟩
   icases HQ with ⟨%Q, HQ, %HQo⟩
   ihave %Hhj := mono_list_auth_idx_lookup γr.1 _ hs j τ $$ Ha Hj
   ihave %Hqr := ghost_map_lookup $$ HQ Hq
   ihave #Hτt := BigSepL.bigSepL_lookup (Φ := fun _ σ => ttlTie (GF := GF) σ) Hhj $$ Htie
   iunfold ttlTie at Hτt
   icases Hτt with ⟨%Hdom, -⟩
-  imod Hclose $$ [Ha HS HU Hids HQ] with -
-  · inext; iunfold lessorRdBody; iexists hs, Sm; iframe Ha HS HU Htie Hids
+  imod Hclose $$ [Ha HS HU Hids HW HQ] with -
+  · inext; iunfold lessorRdBody; iexists hs, Sm; iframe Ha HS HU Htie Hids HW
     isplitr
     · ipureintro; exact Hok
     isplitr
@@ -608,9 +706,9 @@ theorem ever_live_mono (γl : GName) (U L : List w64) (I : GMap LeaseItem w64) (
     (hE : ↑lessorRdN ⊆ E) :
     lessorRdInv (GF := GF) γl ∗ lessorModeIs γl true ∗ leaseEver γl U ∗ leaseOwn γl L I ⊢
       |={E}=> leaseEver γl U ∗ leaseOwn γl L I ∗ ⌜∀ u ∈ U, u ∈ L⌝ := by
-  unfold lessorRdInv lessorModeIs leaseEver leaseOwn leaseClosers
+  unfold lessorRdInv lessorModeIs leaseEver leaseOwn leaseOwnW leaseClosers
   iintro ⟨⟨%γr1, #Hp1, #Hinv⟩, ⟨%γr2, #Hp2, %Hm⟩, ⟨%γr3, #Hp3, HUo⟩, Hf, %lp, %γga, %γcl, %C, %im,
-    #Hp, %HC, Him, HI, %HIL, %HIS, Hcs, %γr, %hs, %Sm, #Hpr, Ha, %Hlast, HSm⟩
+    #Hp, %HC, Him, HI, %HIL, %HIS, Hcs, %γr, %hs, %Sm, #Hpr, Ha, %Hlast, HSm, HW⟩
   ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hpr $Hp1]
   ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hpr $Hp2]
   ihave %H3 := lessorPinR_agree γl γr γr3 $$ [$Hpr $Hp3]
@@ -640,7 +738,7 @@ theorem ever_live_mono (γl : GName) (U L : List w64) (I : GMap LeaseItem w64) (
     isplitr; · ipureintro; exact HC
     isplitr; · ipureintro; exact HIL
     isplitr; · ipureintro; exact HIS
-    iexists γr, hs, Sm; iframe Hpr Ha HSm; ipureintro; exact Hlast
+    iexists γr, hs, Sm; iframe Hpr Ha HSm HW; ipureintro; exact Hlast
   ipureintro
   intro u hu
   obtain ⟨T, hT⟩ := Hlast

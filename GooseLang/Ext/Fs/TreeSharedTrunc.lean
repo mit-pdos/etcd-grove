@@ -348,11 +348,11 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     (hN : N.Mem b) (hi : h.cur !! b = some (.file i)) (hlen : xs.length = m.size)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       osMeta (L := L) i (DFrac.own 1) m -∗ osBytes (L := L) i 0 (DFrac.own 1) xs -∗
       mcellsAny (GF := GF) m.maps 0 (pageEnd m.size) -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
         ((⌜e ≠ 0⌝ ∗ osMeta (L := L) i (DFrac.own 1) m ∗ osBytes (L := L) i 0 (DFrac.own 1) xs ∗
             mcellsAny (GF := GF) m.maps 0 (pageEnd m.size)) ∨
          (∃ n, rsDone (L := L) true i 0 0 m n)) -∗
@@ -361,12 +361,13 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
         @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi Hp Hn Hk Hm Hbs Hc HΦ
+  icases osPathS_callKey R d dq j $$ Hp with ⟨Hp, %hkd⟩
   iapply wp_fs_stepM "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h0 Hw Ht
   unfold treeCtx
   icases Ht with ⟨Htr, Hcm⟩
   icases Htr with (Htr | Htr)
-  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Htr
+  · iexfalso; iapply legacy_callS_excl st k s0 (child d b) q $$ Hk Htr
   unfold treeShared
   icases Htr with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -386,7 +387,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   have hl0 : (st.metaEnd k).lookup (child d b) = some (.file i) := hl'
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := by
+  have hcall : st.proc.calls !! k = some (s0, child d b) := by
     exact hc.calls k _ hk
   icases osMeta_whole_facts $$ Hw Hm with ⟨Hw, Hm, %hmf⟩
   obtain ⟨⟨f, hf, hfsz⟩, hnb⟩ := hmf
@@ -413,8 +414,8 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   simp only [htr'] at hres
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
-    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
-      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+    (Φ := fun (_t : Nat) (x : CallV) =>
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
   -- the world at the call's end, the heap unchanged
@@ -427,7 +428,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     treeFrame_stampFile _ i _ f hf0
   have hw1 : FsTreeWf (truncSt (st.metaEnd k) i f) := hframe.wf (fsTreeWf_metaEnd hw k)
   have hc1 : TreeCohS (truncSt (st.metaEnd k) i f) s1 Γdf (GMap.delete k Γc) Γg :=
-    (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl
+    (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl rfl
   obtain ⟨-, hres⟩ := hres
   rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
@@ -464,10 +465,10 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
       iexists V0, s1, Γdf, GMap.delete k Γc, Γg
       iframe
       ipureintro
-      exact ⟨fsTreeWf_addFd hw1 hdfn, hc1.congr rfl rfl rfl rfl⟩
+      exact ⟨fsTreeWf_addFd hw1 hdfn, hc1.congr rfl rfl rfl rfl rfl⟩
     iapply wp_value'
     iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp Hn [Hrs]
-    · unfold osCallPerm; iexact Hq
+    · unfold osCallPerm; rw [← hkd b, ← hR]; iexact Hq
     · iright; iexact Hrs
     rw [if_pos rfl]; iexact Hfd
   · rcases hst with rfl | ⟨tgt, heff⟩
@@ -492,7 +493,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
         ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
       iapply wp_value'
       iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp Hn [Hm Hbs Hc]
-      · unfold osCallPerm; iexact Hq
+      · unfold osCallPerm; rw [← hkd b, ← hR]; iexact Hq
       · ileft; iframe; ipureintro; exact he
       rw [if_neg he]; iempintro
     · -- truncated, and failed
@@ -523,7 +524,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
         ipureintro; exact ⟨hw1, hc1⟩
       iapply wp_value'
       iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp Hn [Hrs]
-      · unfold osCallPerm; iexact Hq
+      · unfold osCallPerm; rw [← hkd b, ← hR]; iexact Hq
       · iright; iexact Hrs
       rw [if_neg he]; iempintro
 

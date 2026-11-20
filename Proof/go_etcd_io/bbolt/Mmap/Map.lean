@@ -162,7 +162,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
           isplitl
           · fmt_arg_method; iright; ileft; isplitr
             · iapply HeS; iempintro
-            · ipureintro; fmt_method_none
+            · ipureintro; fmt_method_facts
           · itrivial
         try wp_auto
         iapply HΦ

@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-# The files of `Open`'s handle, out of its decoder (`WAL.Close.specOpening`; the W7-W12 log of
+# The files of `Open`'s handle, out of its decoder (`WAL.Close.spec` (state `opening`); the W7-W12 log of
 `notes/wal-fsext-plan.md`, eighth session)
 
 `Close` of a handle `openAtIndex` made does not read the decoder: it syncs the tail and closes the

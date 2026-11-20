@@ -11,6 +11,8 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestMemberIDs checks D21e (A)'s premise on the member ids etcd computes for Main's cluster (from
@@ -141,6 +143,7 @@ func (c counts) report() string {
 // process (go test -c, then the binary once per run): Run leaves the members running.
 func TestRun(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "restart3-1", "restart3-2", "restart3-3") // the members' WAL areas (wal-link P2)
 	c := newCounts()
 	start := time.Now()
 	ok := Run(zap.New(c))

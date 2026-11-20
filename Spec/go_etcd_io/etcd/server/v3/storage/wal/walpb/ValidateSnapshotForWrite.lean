@@ -28,9 +28,9 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.spec : Prop :=
-  ∀ (Mr : WalEnc.WalMarshal) (sp : Loc) (sm : SnapshotMetadataM) (cs : Bool),
+  ∀ (Mr : WalEnc.WalMarshal) (sp : Loc) (sm : SnapshotMetadataM) (al cs : Bool),
   (sm.Index' = W64 0 ∨ cs = true) →
-  {{ walSnapAt (GF := GF) Mr sp sm cs }}
+  {{ walSnapAt (GF := GF) Mr sp sm al cs }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite)) (Val #sp))
   {{ RET #GoInterface.nil; True }}
 

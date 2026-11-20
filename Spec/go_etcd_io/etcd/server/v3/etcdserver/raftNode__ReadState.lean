@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 registrations of its request id (`isRNReadStateC E`, the read loop's `isReadStateC E.RQ`; 2026-10-13,
 the request path's unit 4b). -/
 abbrev raftNode.ReadState.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
+  ∀ (E : RNEnv GF) (γ : RNNames GF) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"ReadState")) (Val #()))
   {{ (c : Loc), RET #c; isRNReadStateC E c }}

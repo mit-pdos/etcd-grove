@@ -15,6 +15,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -58,10 +59,12 @@ def etcd_putget_robust.spec : Prop :=
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
-    (HDs : dataDirsAbsent putgetProgram [go!"putget.etcd"]) (HEnv : verifyEnvOff putgetProgram)
+    (HDs : dataDirsAbsent putgetProgram [go!"/tmp/etcd-grove-data/putget.etcd"]) (HEnv : verifyEnvOff putgetProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/putget.etcd"]),
     Robustness.Robust [] [(putgetProgram, σ)] g (2 ^ 28 - 1)
 
 end adequacy

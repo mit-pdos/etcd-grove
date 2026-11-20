@@ -41,16 +41,16 @@ theorem wp_osUnlinkAbsentSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet)
     (h : NamesH) (k s0 : Nat) (q : Qp) (hb : NameOk b) (hN : N.Mem b) (hi : h.cur !! b = none)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       ∃ e', IsFsStep "Unlink" (PairV (osTokV k) (#(child d b))) st e' (st.metaEnd k) :=
     fun st _ _ hcall hp => ⟨_, child d b, k, s0, rfl, treeName_child hp.1 hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       IsFsStep "Unlink" (PairV (osTokV k) (#(child d b))) st e' st' →
       st' = st.metaEnd k ∧ ∃ w, e' = Val w ∧ ∃ e : w64, e ≠ 0 ∧ w = #e := by
@@ -62,7 +62,7 @@ theorem wp_osUnlinkAbsentSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet)
     · rw [pathNames_child hw hp hb hN, hi] at hl; cases hl
     · exact ⟨rfl, _, rfl, e, he0, rfl⟩
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_callEndS "Unlink" _ (by simp [val.isPanic]) R k s0 q
+  iapply wp_callEndS "Unlink" _ (by simp [val.isPanic]) R k s0 (child d b) q
     iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) j N dqn h)
     (fun st => PathNames st d j N h) (fun w => ∃ e : w64, e ≠ 0 ∧ w = #e)
     (fun st Γn hR hcoh => pathNames_of R d dq j _ dqn h st Γn hR hcoh) hprog hpost hE hE' Φ
@@ -72,6 +72,7 @@ theorem wp_osUnlinkAbsentSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet)
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hn
 
 /-- **`rmdir(2)` of `d/b`, a name holding nothing**, with a fraction of a claim on names
@@ -80,16 +81,16 @@ theorem wp_osRmdirAbsentSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
     (h : NamesH) (k s0 : Nat) (q : Qp) (hb : NameOk b) (hN : N.Mem b) (hi : h.cur !! b = none)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       ∃ e', IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' (st.metaEnd k) :=
     fun st _ _ hcall hp => ⟨_, child d b, k, s0, rfl, treeName_child hp.1 hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' st' →
       st' = st.metaEnd k ∧ ∃ w, e' = Val w ∧ ∃ e : w64, e ≠ 0 ∧ w = #e := by
@@ -101,7 +102,7 @@ theorem wp_osRmdirAbsentSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
     · rw [pathNames_child hw hp hb hN, hi] at hl; cases hl
     · exact ⟨rfl, _, rfl, e, he0, rfl⟩
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_callEndS "Rmdir" _ (by simp [val.isPanic]) R k s0 q
+  iapply wp_callEndS "Rmdir" _ (by simp [val.isPanic]) R k s0 (child d b) q
     iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) j N dqn h)
     (fun st => PathNames st d j N h) (fun w => ∃ e : w64, e ≠ 0 ∧ w = #e)
     (fun st Γn hR hcoh => pathNames_of R d dq j _ dqn h st Γn hR hcoh) hprog hpost hE hE' Φ
@@ -111,6 +112,7 @@ theorem wp_osRmdirAbsentSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hn
 
 end specs
@@ -133,13 +135,14 @@ variable [os.Assumptions] [os.fileStat.FieldAssumptions]
 theorem os.model.wp_unlinkLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N : NameSet)
     (dq dqn : DFrac) (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hN : N.Mem c)
     (hn : hc.cur !! c = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.unlinkLoop) (Val #(child p c)))
-    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm qc }} := by
+    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn
-  wp_apply +noauto wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_auto
@@ -161,15 +164,16 @@ errno. -/
 theorem os.model.wp_openLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N : NameSet)
     (dq dqn : DFrac) (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hN : N.Mem c)
     (hn : hc.cur !! c = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.openLoop) (Val #(child p c)))
     {{ (fd e : w64), RET (PairV #fd #e); ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗
-        osCallPerm qc }} := by
+        osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   obtain ⟨hfl, htr, hcr⟩ := os.flRO_ok
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn
-  wp_apply +noauto wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_auto
@@ -190,13 +194,14 @@ theorem os.model.wp_openLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N :
 theorem os.model.wp_rmdirLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N : NameSet)
     (dq dqn : DFrac) (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hN : N.Mem c)
     (hn : hc.cur !! c = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.rmdirLoop) (Val #(child p c)))
-    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm qc }} := by
+    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn
-  wp_apply +noauto wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_auto
@@ -218,9 +223,9 @@ error pointer, nothing changed. -/
 theorem os.model.wp_removeAllFrom_absentN (p c : GoString) (R : Roots) (J : Ino) (N : NameSet)
     (dq dqn : DFrac) (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hN : N.Mem c)
     (hn : hc.cur !! c = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (App (Val os.model.removeAllFrom) (Val #p)) (Val #c))
-    {{ (pe : Loc), RET #pe; osPathS R p dq J ∗ osCallPerm qc ∗ os.peOk pe ∗
+    {{ (pe : Loc), RET #pe; osPathS R p dq J ∗ osCallPerm (callKey R p) qc ∗ os.peOk pe ∗
         osNames J N dqn hc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]
@@ -310,10 +315,11 @@ local macro "rm_finN" qc:term:max fin:tacticSeq : tactic => `(tactic| (
   try wp_auto
   wp_apply wp_osLstatDirGuardS R (child d b) t sg ($qc).half hp CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hg as %isDir %e5 %- Hg
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
   iapply HΦ
   iframe
   isplitl [Hperm Hg]
-  · iapply (os.osCallPerm_halves $qc).1; iframe
+  · iapply (os.osCallPerm_halves _ $qc).1; iframe
   ($fin)))
 
 theorem os.RemoveAll.wp_proofAbsentN : os.RemoveAll.specAbsentN (GF := GF) (hG := hG) := by
@@ -325,8 +331,9 @@ theorem os.RemoveAll.wp_proofAbsentN : os.RemoveAll.specAbsentN (GF := GF) (hG :
   wp_auto
   wp_apply os.wp_endsWithDot_child d b hb
   imod osLogLb_0 with #Hlb
-  icases (os.osCallPerm_halves qc).2 $$ Hperm with ⟨Hg, Hperm⟩
-  wp_apply +noauto wp_osCallBeginGuardS R qc.half 0 CoPset.subseteq_top CoPset.subseteq_top
+  icases (os.osCallPerm_halves _ qc).2 $$ Hperm with ⟨Hg, Hperm⟩
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
+  wp_apply +noauto wp_osCallBeginGuardS R _ qc.half 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
   wp_auto
   wp_apply os.model.wp_unlinkLoop_absentN d b R j N (DFrac.own qd) dqn h qc.half hb hN hn

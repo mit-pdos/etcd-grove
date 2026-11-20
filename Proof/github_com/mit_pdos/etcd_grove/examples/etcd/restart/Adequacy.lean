@@ -77,13 +77,15 @@ theorem etcd_restart3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed restart3Program restart3Names)
     (HAs : addrsUnclaimed restart3Program restart3Addrs)
     (HDs : dataDirsAbsent restart3Program
-      [(etcd_restart.name₁ ++ go!".etcd"), (etcd_restart.name₂ ++ go!".etcd"), (etcd_restart.name₃ ++ go!".etcd")])
+      [(memberDataDir etcd_restart.name₁), (memberDataDir etcd_restart.name₂), (memberDataDir etcd_restart.name₃)])
     (HEnv : verifyEnvOff restart3Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC restart3GF,
       ⊢ etcd_restart.premises (GF := restart3GF) (hG := heapAtR3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_restart.name₁), (memberDataDir etcd_restart.name₂), (memberDataDir etcd_restart.name₃)])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -92,11 +94,11 @@ theorem etcd_restart3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := restart3GF) (hAsLit := by decide) (HEnv := HEnv)
+  refine etcd_adequate_members (GF := restart3GF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.etcd.restart.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) restart3Addrs (by decide)
-    [(etcd_restart.name₁ ++ go!".etcd"), (etcd_restart.name₂ ++ go!".etcd"), (etcd_restart.name₃ ++ go!".etcd")]
+    [(memberDataDir etcd_restart.name₁), (memberDataDir etcd_restart.name₂), (memberDataDir etcd_restart.name₃)]
     (by decide)
     -- the members' start bundles: each peer address, no client address
     [(etcd_restart.name₁, ⟨some etcd_restart.peerAddr₁, none⟩),

@@ -300,7 +300,7 @@ theorem viewSame_noPuts {P : BParams} (hP : bridgeParams P) {st : BSess} (hst : 
 /-- A free state holds no puts. -/
 theorem sessPuts_free {P : BParams} (hP : bridgeParams P) {st : BSess} (h : freeOk P st) :
     sessPuts P st [] := by
-  refine ⟨h.2.2.1, by simpa using h.2.1, ?_, by simp, h.2.2.2.2⟩
+  refine ⟨h.2.2.1, by simpa using h.2.1, ?_, by simp, h.2.2.2.2.1⟩
   have hk := hP.1
   unfold BParams.has keyBI at hk
   exact h.2.2.2.1 _ _ hk (key_not_HB hP)
@@ -361,8 +361,8 @@ theorem sData_del_HB {P : BParams} {S : Data} {n k : GoString} (h : P.HB n = tru
   rw [GMap.lookup_insert_ne _ _ this]
 
 /-- A delete from a hook's bucket changes nothing the readers see. -/
-theorem viewSame_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString}
-    (hb : P.HB bi.name = true) (h : viewSame P st) : viewSame P (st.del bi k) := by
+theorem viewSame_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString} {cl : Bool}
+    (hb : P.HB bi.name = true) (h : viewSame P st) : viewSame P (st.del bi k cl) := by
   refine ⟨?_, h.2⟩
   show vData P (st.C, st.R) = sData P (st.S.insert bi.name ((bktOf st.S bi.name).delete k))
   rw [sData_del_HB hb]
@@ -383,8 +383,8 @@ theorem sData_insert_HB {P : BParams} {S : Data} {n : GoString} (x : BktData) (h
 off the hook's buckets are the same, and the write buffer's entry is at the hook bucket's id, which
 no other bucket of the table has (`BParams.Wf`). -/
 theorem viewSame_putHB {P : BParams} (hWf : P.Wf) {st : BSess} {bi : BucketInfo} {k v : GoString}
-    (hb : P.HB bi.name = true) (hhas : P.has bi) (h : viewSame P st) :
-    viewSame P (st.put bi k v false) := by
+    {cl : Bool} (hb : P.HB bi.name = true) (hhas : P.has bi) (h : viewSame P st) :
+    viewSame P (st.put bi k v false cl) := by
   refine ⟨?_, ?_⟩
   · show vData P (st.C, st.R) = sData P (st.S.insert bi.name ((bktOf st.S bi.name).insert k v))
     rw [sData_insert_HB _ hb]
@@ -1909,7 +1909,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
       cases hm : m.lookup kc with
       | none => rw [hm] at hc'; simp [Option.filter] at hc'
       | some w => exact hbm kc w hm
-  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hkv hW hpend (key_not_hk hP k)
+  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend (key_not_hk hP k)
     hP.2.2.2.2.1 (key_not_fk k) hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv] as Hl
   iapply HΦ
@@ -2086,7 +2086,7 @@ theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF)
       (st.S.insert leaseName ((bktOf st.S leaseName).delete k)) =
       rbPart γ (· = leaseName) (rbDel (rbData P st.S) leaseName k) := by
     unfold rbPut; rw [hrb]
-    simp only [↓reduceIte]
+    simp only [Bool.false_eq_true, ↓reduceIte]
     rw [rbData_del hrb]
   have hcg : ∀ n, n = leaseName →
       (rbDel (rbData P st.S) leaseName k).lookup n = (rbDel r leaseName k).lookup n := by
@@ -2275,7 +2275,7 @@ theorem bt_lockOut (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := G
     iframe
     ipureintro
     exact ⟨Hfree.2.2.1, by simpa using Hfree.2.1, viewSame_of_freeOk Hfree, by omega,
-      Hfree.2.2.2.2⟩
+      Hfree.2.2.2.2.1⟩
   iunfold bkRTx
   iframe Hrd
   iexact Ho
@@ -2644,7 +2644,7 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
   · iapply hkPut_of_not_HK γ P metaBI.name k st.S (hHK k hk)
   ihave Hfp : fkPut γ metaBI.name k $$ [Hfk]
   · rw [fkPut_of_fk γ _ _ (fkKey_meta hk)]; iexact Hfk
-  wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 (meta_entry_fits hk hv) hpend hSB
+  wp_apply (hUP γ P W Pk b t st bk metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB
       (fun _ => hFV v hv))
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv $Hhk $Hrb $Hfp] as ⟨Hl, -, -, Hfp⟩
   have hfk : fkPut (GF := GF) γ go_etcd_io.etcd.server.v3.storage.schema.metaName k =
@@ -3284,7 +3284,7 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
     · iapply hkPut_of_not_HK γ P metaBI.name k st'.S (hHK k hk)
     ihave Hfp : fkPut γ metaBI.name k $$ [Hfk]
     · rw [fkPut_of_fk γ _ _ (fkKey_meta hk)]; iexact Hfk
-    wp_apply (hUP γ P W Pk b t st' bk2 metaBI key val k v hP.2.1 hlen.1 hlen.2 (meta_entry_fits hk hv) hpend hSB
+    wp_apply (hUP γ P W Pk b t st' bk2 metaBI key val k v hP.2.1 hlen.1 hlen.2 hpend hSB
         (fun _ => hFV v hv))
       $$ [$Hb $Ht $Hl' $Hbk2 $Hk $Hv $Hhk $Hrb $Hfp] as ⟨Hl', -, -, Hfp⟩
     have hfk : fkPut (GF := GF) γ go_etcd_io.etcd.server.v3.storage.schema.metaName k =

@@ -1,6 +1,6 @@
 /-
 `(*wal.WAL).sync` (S/wal.go:967-992) of a handle without an encoder (`Open`'s, before `ReadAll`:
-`Close` of it, `WAL.Close.specOpening`): no flush, `fileutil.Fdatasync` of the last lock's file, which
+`Close` of it, `WAL.Close.spec` (state `opening`)): no flush, `fileutil.Fdatasync` of the last lock's file, which
 is the WAL's tail, never registered (idle): the file at the last `.wal` name of the WAL directory's
 claim, of which the program holds half (`wp_idleFsync`, `TailFsyncIdle.lean`). On success the
 program's halves of the tail are the synced ones (`OsMeta.synced`, every byte `durB`); on failure

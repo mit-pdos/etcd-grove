@@ -397,8 +397,8 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (hV : V.2 = []) (hR : RootsOk R) (hr : (r, jr) ∈ R) (hwf : TreeWf R V.now)
     (hbd : WalsBounded s) (hdr : DirsRoots R s) (hfo : BootFo V.now jr)
     (hrb : ReceiptBoundLe GF (2 ^ 62)) (henc : ∀ hs : HardStateM, (Mr.encState hs).length < 2 ^ 32)
-    (E : CoPset) (hE : ↑osShN ⊆ E) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ walStart L W C Mr R jr r s V.now -∗
+    (hWR : W.roots = R) (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ walStart L W C Mr R jr r s V.now -∗
       ([∗list] i ∈ bootFiles V.now jr, trFile (hG := ⟨G, L⟩) i False) -∗
       ([∗list] j ∈ (GMap.toList V.now).map (·.1),
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
@@ -408,7 +408,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       [∗list] j ∈ bootRest V.now jr,
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except [])) := by
   classical
-  iintro #Hos #Hsh Hst Hfiles Hall
+  iintro #Hos #Hsh #Hab Hst Hfiles Hall
   -- the claims: the area's, the WALs', those under an `nm.<sfx>`, the rest
   ihave Hall := (BigSepL.bigSepL_perm (Φ := fun j => osNames (L := L) j (.except []) (DFrac.own 1)
     (namesOf V j (.except []))) (dom_perm_taken hwf hr)).1 $$ Hall
@@ -461,7 +461,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   imod osPathS_root R r jr (DFrac.own 1) hr hE $$ Hsh with Hsp
   -- the new invariant
   imod walInv_alloc (W := W) C hC Mr L R jr r s V (bootCl V jr) hV (bootCl_hcl V jr) (bootCl_area V jr)
-    (fun nm J h he => ⟨_, bootCl_dirs h he⟩) (bootCl_dirs1 hwf hr)
+    (fun nm J h he => ⟨_, bootCl_dirs h he⟩) (bootCl_dirs1 hwf hr) hWR
     (dirsOk_roots hR hdr _ 0) (dirsAvoid_roots hR hdr jr) (bootJm V jr r)
     (fun dir nm J hin he => bootJm_lookup dir nm J hin he) (fun nm J h he => ⟨_, bootCl_names h he⟩)
     (bootCl_nok hwf) hbd hdr 1 E $$ Hst [Har Hwc Hnc] [Hwt] Hsp [Hwo]
@@ -522,7 +522,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   iframe Hoth Hrest
   isplitr
   · unfold walAreaOk
-    iframe Hinv Hos Hsh
+    iframe Hinv Hos Hsh Hab
     ipureintro; exact ⟨hrb, henc⟩
   unfold walAreaRes
   iexists bootN V.now jr, namesOf V jr (bootN V.now jr), bootCls V jr,

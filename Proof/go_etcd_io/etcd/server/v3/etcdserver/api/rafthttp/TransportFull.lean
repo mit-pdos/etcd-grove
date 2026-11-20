@@ -40,7 +40,7 @@ set_option hygiene false in
 `Hss`, `Hdir`. -/
 local macro "tr_state" H:ident : tactic => `(tactic| (
   iunfold trState at $H:ident
-  icases $H:ident with ⟨#Hfix, #Hprb, #Hstp, #Hgd, %sst, %Rm, #Hssf, #Hss, #Hdir⟩))
+  icases $H:ident with ⟨#Hfix, #Hprb, #Hstp, #Hgd, %sst, %ssd, %Rm, #Hssf, #Hss, #Hdir⟩))
 
 /-- **`t.AddPeer(id, us)` of a frozen peer, with the stop token** (D43 M5e, 2026-10-26,
 `AddPeer_frozen`): the transport not stopped (the token) and `id` one of its peers, it returns at
@@ -288,7 +288,7 @@ theorem rafthttp.Transport.Handler_full
     (netRh γn) t c.lid c.γd c.R c.γs c.γr c.L Hcov $$ Hpkg Hfix Hstp Hgd
   ihave #HARR := trAddRemoteReq_of hARR (netRh γn) t c.lid $$ Hpkg HAR
   wp_apply (rafthttp.Transport.Handler_core hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hSnServe
-      (netRh γn) t c.lid c.γd c.R c.γs c.γr a sst Rm Hown) $$ [] as %h Hh
+      (netRh γn) t c.lid c.γd c.R c.γs c.γr a sst ssd Rm Hown) $$ [] as %h Hh
   · iframe #
     rw [show (netRh γn).γn = γn from rfl]
     iexact Hdir

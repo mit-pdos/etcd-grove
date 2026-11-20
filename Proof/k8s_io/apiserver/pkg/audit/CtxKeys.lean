@@ -168,11 +168,12 @@ theorem k8sctx.spanValOkNil_of_spanCtx (ctx : GoInterface) :
   iframe #
   ipureintro; exact Hci
 
-/-- A context answering `nil` at each key. -/
+/-- A context answering `nil` at each key, with the libraries' values well formed. -/
 theorem k8sctx.k8sCtxOk_of_nil (ctx : GoInterfaceOk) :
     (□ ∀ k : GoInterface, ⌜k ∈ k8sctx.k8sKeys ∨ k ∈ context.libKeys⌝ -∗
-      context.valueAt (GF := GF) ctx k (· = GoInterface.nil)) ⊢ k8sctx.k8sCtxOk ctx := by
-  iintro #H
+      context.valueAt (GF := GF) ctx k (· = GoInterface.nil)) ∗ context.libCtxOk ctx ⊢
+      k8sctx.k8sCtxOk ctx := by
+  iintro ⟨#H, #Hl⟩
   unfold k8sctx.k8sCtxOk
   isplitl []
   · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
@@ -190,10 +191,7 @@ theorem k8sctx.k8sCtxOk_of_nil (ctx : GoInterfaceOk) :
   · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
     · intro v hv; left; exact hv
     iapply H; ipureintro; simp
-  iapply context.libCtxOk_of_nil
-  imodintro
-  iintro %k %hk
-  iapply H; ipureintro; right; exact hk
+  iexact Hl
 
 variable [package_sem : _root_.Perennial.context.Assumptions]
 
@@ -215,7 +213,9 @@ theorem k8sctx.k8sCtxOk_of_ctxValueNil (ctx : GoInterfaceOk) :
         _root_.Perennial.context.ctxValue ctx k (· = GoInterface.nil)) ⊢
       k8sctx.k8sCtxOk ctx := by
   iintro ⟨#Hpkg, #H⟩
+  ihave #Hl := context.libCtxOk_of_ctxValueNil ctx $$ [$Hpkg $H]
   iapply k8sctx.k8sCtxOk_of_nil
+  iframe #
   imodintro
   iintro %k %hk
   iapply context.valueAt_of_ctxValue

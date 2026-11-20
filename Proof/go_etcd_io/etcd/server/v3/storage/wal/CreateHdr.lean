@@ -41,7 +41,7 @@ theorem createStream_frames (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCr
     createStream Mr md =
       frame (walRecEnc ⟨crcType, hash.crc32.crc32c 0#32 [], []⟩) ++
       frame (walRecEnc ⟨metadataType, hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md, md⟩) ++
-      snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model := by
+      snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model true := by
   rw [createStream_recs]
   unfold snapFrame
   rw [hMr.2]
@@ -60,8 +60,8 @@ theorem createStream_fit (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreat
   have h2 := frame_walRecEnc_le metadataType (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) md
     (by decide)
   have h3 := frame_walRecEnc_le snapshotType (hash.crc32.crc32c (hash.crc32.crc32c
-    (hash.crc32.crc32c 0#32 []) md) (Mr.encSnap snapC0.model)) (Mr.encSnap snapC0.model) (by decide)
-  have h4 : (Mr.encSnap snapC0.model).length < 2 ^ 8 := by
+    (hash.crc32.crc32c 0#32 []) md) (Mr.encSnap snapC0.model true)) (Mr.encSnap snapC0.model true) (by decide)
+  have h4 : (Mr.encSnap snapC0.model true).length < 2 ^ 8 := by
     rw [hMr.2, hMr.1]; simp [snapC0, snapEnc, optVarintField, optBytesField, varintEnc]
   simp only [List.length_nil, List.length_append] at h1 ⊢
   omega

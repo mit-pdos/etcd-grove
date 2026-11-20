@@ -347,7 +347,7 @@ etcd-grove-81 (b′); `snapDirInv`'s `Rm`): a `.snap.db` file of index `j` may b
 member-level removal counter `γm` is past `j` (at least `j + 1`). The apply thread holds the
 counter's authority at most its ghost applied index plus one (`srvSnapOwn`; restart S6's CP2 route
 (C), 2026-11-13: the ghost index `g`, until then Go's applied index `ai ≤ g`): `applySnapshot(i)` raises it
-to `i + 1` when it takes the file out (`snapDir_take`; its own `Release` then removes the files below
+to `i + 1` when it takes the file out (`snapDir_take`, sealed with the counter: `snapRmM_take`; its own `Release` then removes the files below
 `i`), and `snapshot`'s `Release` at the applied index `ai` raises it to `ai`. The counter is the
 member's, not an incarnation's: the directory's invariant is allocated once, at the first start, and
 a restarted incarnation's apply thread reuses it (`srvDiskImage` carries it), while a stopped
@@ -358,66 +358,23 @@ def snapRmM (γm : GName) (j : w64) : IProp GF := monoNatLbOwn γm (uint.nat j +
 instance snapRmM_persistent (γm : GName) (j : w64) : Persistent (snapRmM (GF := GF) γm j) := by
   unfold snapRmM; infer_instance
 
-/-- (restart S6a) **The directory's invariant reads its snapshotter only through its paths**: two
-snapshotters with the same database-snapshot paths (`snapDBPath`; a restart's and the first start's,
-both `snapDBPathOf` of the data directory by the bootstrap contracts) have the same invariant. -/
-theorem snapDirInv_ss_congr {ss ss' : Loc} (h : snap.snapDBPath ss = snap.snapDBPath ss')
-    (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) :
-    snapDirInv (GF := GF) ss γd img Rm = snapDirInv ss' γd img Rm := by
-  unfold snapDirInv; rw [h]
-
-/-- (2026-11-01, J8a-5) **The snapshot's file taken from the directory** (`applyAll`'s, before
-`applySnapshot(i)`, whose `OpenSnapshotBackend` renames it): a saved index `i` at or above the
-removal counter `c` (restart S6a: `c ≤ ai + 1 ≤ i` at the applied index `ai < i`) is present, its
-removal fact (`snapRmM γm i`, the counter past `i`) refuted by the counter's authority; the counter
-raised to `i + 1` gives that fact, so the file leaves the directory, with its certificate. A later
-credit strips the invariant's later (`fileAt` is not timeless: its claims are under invariants). -/
-theorem snapDir_take (ss : Loc) (γd γm : GName)
-    (img : w64 → backend.Data → IProp GF) (i : w64) (c : Nat) (hc : c ≤ uint.nat i) :
-    ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img (snapRmM γm)) -∗ snapSaved γd i -∗
-      monoNatAuthOwn γm 1 c ={⊤}=∗
-      monoNatAuthOwn γm 1 (uint.nat i + 1) ∗
-      ∃ D : backend.Data, backend.fileAt (snap.snapDBPath ss i) D ∗ □ img i D := by
-  iintro Hlc #Hinv #Hsv Hγm
-  iinv Hinv with Hi Hclose
-  imod (lc_fupd_elim_later (P := snapDirInv ss γd img (snapRmM γm))) $$ Hlc Hi with Hi
-  iunfold snapDirInv at Hi
-  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, HF, #HEs, #HRm⟩
-  iunfold snapSaved at Hsv
-  ihave %HEi := ghost_map_lookup $$ Ha Hsv
-  cases hMi : M.lookup i with
-  | none =>
-    have hp : Es.lookup i ≠ none ∧ M.lookup i = none := ⟨by simp [HEi], hMi⟩
-    ihave #Hr := HRm $$ %i %hp
+/-- (wal-link L2, T1) **The take's premises at the removal fact `snapRmM γm`**: the counter's
+authority at `c ≤ i` refutes `snapRmM γm i`, and raising it to `i + 1` makes it (`snapDir_take`,
+`rafthttp/Net.lean`, the sealed take; until then this file's `snapDir_take`, handing out `fileHolds`). -/
+theorem snapRmM_take (γm : GName) (i : w64) (c : Nat) (hc : c ≤ uint.nat i) :
+    ⊢ (monoNatAuthOwn (GF := GF) γm 1 c -∗ snapRmM γm i -∗ False) ∗
+      (monoNatAuthOwn γm 1 c ==∗ monoNatAuthOwn γm 1 (uint.nat i + 1) ∗ □ snapRmM γm i) := by
+  isplitl
+  · iintro Hγm Hr
     iunfold snapRmM at Hr
     ihave %Hv := monoNatLbOwn_valid γm 1 c (uint.nat i + 1) $$ Hγm Hr
     exfalso; omega
-  | some D =>
+  · iintro Hγm
     imod (mono_nat_own_update (uint.nat i + 1) (by omega)) $$ Hγm with ⟨Hγm, #Htk⟩
-    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileAt
-      (snap.snapDBPath ss j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
-    imod Hclose $$ [Ha HM HF] with -
-    · inext
-      iunfold snapDirInv
-      iframe Hdi
-      iexists GMap.delete i M, Es
-      iframe Ha HM HF HEs
-      isplitr
-      · ipureintro
-        intro j hj
-        by_cases hji : i = j
-        · subst hji; exact absurd (GMap.lookup_delete M i) hj
-        · rw [GMap.lookup_delete_ne M hji] at hj; exact HME j hj
-      iintro !> %j %hj
-      by_cases hji : i = j
-      · subst hji
-        iunfold snapRmM; iexact Htk
-      · rw [GMap.lookup_delete_ne M hji] at hj
-        iapply HRm $$ %j %hj
     imodintro
     iframe Hγm
-    iexists D
-    iframe Hf Himg
+    iunfold snapRmM
+    iexact Htk
 
 /-- (restart S6a) **The removal facts below `ai`, from the counter's authority** (`snapshot`'s
 `Release` at the applied index `ai`): the counter, at most `g + 1` for the ghost index `g ≥ ai`
@@ -443,7 +400,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
   iprop(□ ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk lgh stp : Loc) (γd : GName)
       (idm : w64) (al ast lp cl : Loc) (ps : List w64) (dir : w64 → List GoString)
       (d : mvcc.KBReal),
-    ⌜E.BkTie = srvBkTie d ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
+    ⌜E.BkTie = srvBkTie d ∧ storage.dbOpensOk ∧
       storage.openMmapOk cfg ∧
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
       (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧
@@ -458,11 +415,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
       (d.P.has mvcc.alarmBI ∧
         d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
-      receiptBound GF ≤ backend.wbInit - 6 ∧
-      -- (restart S6a-2) the snapshotter's paths, the data directory's (`bootOk`'s `Hssp`): what the
-      -- stop hands to the image (`srvDiskImage`), so that a restarted incarnation's snapshotter,
-      -- at the same data directory, finds this directory's invariant
-      snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+      receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     -- (premise-fixes-6: until then `cfg.Logger' ≠ null` in the pure part) a zap logger
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ zapLoggerOk cfg.Logger' ∗
@@ -474,7 +427,12 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ cfg.QuotaBackendBytes' ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ cfg.WarningApplyDuration' ∗
     -- the snapshotter, the backend hooks over the consistent index, the storage over the snapshotter
-    structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗ snap.isSnapshotter ss ∗
+    structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
+    -- (restart S6a-2) of the data directory's snapshot directory (`bootOk`'s; wal-link, 2026-11-19:
+    -- the snapshotter's `dir` field, until then the equation `snapDBPath ss = snapDBPathOf
+    -- cfg.DataDir`): what the stop hands to the image (`srvDiskImage`), so that a restarted
+    -- incarnation's snapshotter, at the same data directory, finds this directory's invariant
+    snap.isSnapshotter ss (config.snapDirOf cfg.DataDir') ∗
     structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
     storage.isBackendHooks hk
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
@@ -483,7 +441,8 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     -- the member's snapshot directory, at raft's names for the member (D22 J2), its images'
     -- certificate the cluster's auth mode's (the auth-on pair's F8, `srvNet`'s)
     srvMemberIDAddr s ↦□ idm ∗
-    inv snapDirN (snapDirInv ss γd (srvImageM γr.raft.raft.authOn γr.raft.raft) (snapRmM γm)) ∗
+    inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd (srvImageM γr.raft.raft.authOn γr.raft.raft)
+      (snapRmM γm)) ∗
     -- the stores and their contracts on whichever backend
     srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
     srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ∗
@@ -517,7 +476,11 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
         go_etcd_io.etcd.server.v3.config.ServerConfig)) ∗
     -- (premise-fixes-6) the cluster's logger, a zap logger (`bootOk`'s `Hclg`): what
     -- `RaftCluster.Recover` logs through
-    (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc))
+    (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc) ∗
+    -- (wal-link L3, 2026-11-19: until then `storage.storageSnap stp ss` in the pure part) the storage over
+    -- the snapshotter `ss`, as the WAL contract's
+    (∃ h : WalH GF, isWalStorage (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss))
 
 instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     Persistent (srvSnapRO (GF := GF) s ci E γr γm) := by
@@ -547,14 +510,14 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iunfold srvSnapRO at H
   icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
     %Hp, #H1, #Hzl, #H2, #H3, #H4, #Hvo, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
-    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32, #H33⟩
+    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32, #H33, #H34⟩
   icombine Hal H14 gives %e1
   icombine Hau H15 gives %e2
   icombine Hle H16 gives %e3
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
-  obtain ⟨hkb0, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
-    -, hrb, hsp⟩ := Hp
+  obtain ⟨hkb0, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
+    -, hrb⟩ := Hp
   rw [hkb] at hkb0
   obtain rfl := srvBkTie_inj d d0 hkb0
   have e2' : ast = ast0 := by
@@ -567,8 +530,8 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iexists cfg, ss, hk, lgh, stp, γd, idm, al, ast, lp, cl, ps, dir, d'
   isplitr
   · ipureintro
-    refine ⟨hkb', hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      hRO, hrb, hsp⟩ <;> rw [hP] <;> assumption
+    refine ⟨hkb', hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      hRO, hrb⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl
   have e7 : (E.onBe b P f c RO RW).γ = E.γ := rfl

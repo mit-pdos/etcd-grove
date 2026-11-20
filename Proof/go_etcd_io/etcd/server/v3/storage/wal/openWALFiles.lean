@@ -75,7 +75,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
       "Hrsc" ∷ ownSliceCap GoInterface rssl (DFrac.own 1) ∗
       "ls" ∷ ls_ptr ↦ lssl ∗ "Hls" ∷ lssl ↦* lfs ∗ "Hlsc" ∷ ownSliceCap Loc lssl (DFrac.own 1) ∗
       "Hw2" ∷ slice.slice sl GoString k sl.len ↦*{dqs} ns ∗
-      "Hp" ∷ osPathS R d dq j ∗ "Hperm" ∷ osCallPerm qc ∗ "Hn" ∷ osNames j N dqn h ∗
+      "Hp" ∷ osPathS R d dq j ∗ "Hperm" ∷ osCallPerm (callKey R d) qc ∗ "Hn" ∷ osNames j N dqn h ∗
       "Hop" ∷ walOpenedRcs write d ns is (sint.nat jj) frs lfs rcs ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z jj ∧ sint.nat jj ≤ ns.length ∧ frs.length = sint.nat jj ∧
         lfs.length = sint.nat jj ∧ rcs.length = sint.nat jj⌝)
@@ -214,12 +214,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply wp_ErrorfT _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] (by
-            intro ii hii
-            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-            rcases hii with hii | hii
-            · left; cases hii; exact argWf_string _
-            · right; cases hii; simp) $$ [Hasl] as %e1 ⟨#He1, #He1t⟩
+        wp_apply wp_ErrorfT _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] ?wf $$ [Hasl] as %e1 ⟨#He1, #He1t⟩
+        case wf => errargs_wf
         · iframe
           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗
             errIsTerm (GoInterface.ok e)))).2
@@ -339,12 +335,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-            intro ii hii
-            right
-            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-            cases hii
-            simp) $$ [Hasl] as %e1 #He1
+        wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+        case wf => errargs_wf
         · iframe
           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
           iexact Hok

@@ -283,6 +283,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   ihave #HareaK := Harea
   iunfold WalFs.walAreaOk at Harea
   icases Harea with ⟨#Hinv, #HosI, #Hsi, -⟩
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   icases ownDecoder_halves dec IoE eof fs 0 0#32 true gs hfl (fun k F g h1 h2 => by
       obtain ⟨-, -, f, fd, lo, lk, -, hS⟩ := hfk k F g h1 h2
       exact ⟨f, fd, _, _, hS⟩) $$ Hdec with ⟨Hh, Hdbk⟩
@@ -602,7 +603,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           -- `fileutil.Fsync(w.dirFile)`
           wp_apply (wp_FsyncDir df dfd dir _ R jd .idle hnw.next) $$ [Hdf Hdfs] as %ed ⟨Hdf, Hdfs, Hed⟩
           · iframe; iframe #
-          icases Hed with (%hed | ⟨%hed, -⟩)
+          icases Hed with (⟨%hed, -⟩ | ⟨%hed, -⟩)
           · -- its error
             rcases ed with ei | _
             rotate_left
@@ -628,6 +629,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             ihave Henc : (⌜(null : Loc) = null⌝ ∨ ∃ c : w32, ownEncoder (null : Loc) (wal.fileWi fl) c []) $$ []
             · ileft; ipureintro; rfl
             rw [← hft]
+            ihave Hph := walPerm_ofW hWR dir _ $$ Hph
             iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ γt
               d0.H d0.metadata lay.cuts lay.wr mt bst fdl null hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0 hpt.2.1 hwrT
               $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks Hleft
@@ -680,6 +682,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             ihave Henc : (⌜(null : Loc) = null⌝ ∨ ∃ c : w32, ownEncoder (null : Loc) (wal.fileWi fl) c []) $$ []
             · ileft; ipureintro; rfl
             rw [← hft]
+            ihave Hph := walPerm_ofW hWR dir _ $$ Hph
             iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ γt
               d0.H d0.metadata lay.cuts lay.wr mt bst fdl null hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0 hpt.2.1 hwrT
               $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks Hleft
@@ -762,6 +765,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             ihave Henc : (⌜e = null⌝ ∨ ∃ c : w32, ownEncoder e (wal.fileWi fl) c []) $$ [Henc]
             · iright; iexists _; iexact Henc
             rw [← hft]
+            ihave Hph := walPerm_ofW hWR dir _ $$ Hph
             iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ γt
               d0.H d0.metadata lay.cuts lay.wr m bs fdl e hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0 hp.2.1 hwrT
               $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hkd Hlks Hleft
@@ -984,7 +988,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               isplitl [Hn Hpd Hph Hdfs Hout Htf Hnf Hlh]
               · unfold walDirH
                 iexists R, qd, Xd, hj, gl.name, DirPhS.idle
+                ihave Hph := walPerm_ofW hWR dir _ $$ Hph
                 iframe Hkd Hn Hpd Hsi Hph Hdfs Hnamed Hnf
+                isplitr
+                · ipureintro; exact hWR.symm
                 isplitl [Hout]
                 · iapply walOutFrag_eq' (W := W) $$ Hout
                   ipureintro
@@ -1026,6 +1033,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
       · iframe Hleft; iapply decPostB_streams $$ Hpb
       obtain ⟨rfl, rfl⟩ := hjd
       obtain ⟨hlastN, hXt⟩ := hglastN trivial
+      ihave Hph := walPerm_ofW hWR dir _ $$ Hph
       iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
         hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
         $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
@@ -1143,13 +1151,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                 iintro %asl ⟨Hasl, -⟩
                 wp_apply wp_Errorf _ _ [GoInterface.ok eX, interface.mkOk go.uint64 #s.1,
                     interface.mkOk go.uint64 #s.2, interface.mkOk go.uint64 #e.Index',
-                    interface.mkOk go.uint64 #e.Term', interface.mkOk go.int #entsv.len] [eX] (by
-                    intro ii hii
-                    simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
-                    rcases hii with h | h | h | h | h | h
-                    · right; cases h; simp
-                    all_goals (left; cases h; first | exact raArgWf_uint64 _ | exact raArgWf_int _))
+                    interface.mkOk go.uint64 #e.Term', interface.mkOk go.int #entsv.len] [eX] ?wf
                   $$ [Hasl] as %e1 #He1
+                case wf => errargs_wf
                 · iframe
                   iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
                   iexact HeXok
@@ -1159,6 +1163,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                 · iframe Hleft; iapply ownDecoder_streams $$ Hdec
                 obtain ⟨rfl, rfl⟩ := hjd
                 obtain ⟨hlastN, hXt⟩ := hglastN trivial
+                ihave Hph := walPerm_ofW hWR dir _ $$ Hph
                 iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
                   hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
                   $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
@@ -1377,6 +1382,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               · iframe Hleft; iapply ownDecoder_streams $$ Hdec
               obtain ⟨rfl, rfl⟩ := hjd
               obtain ⟨hlastN, hXt⟩ := hglastN trivial
+              ihave Hph := walPerm_ofW hWR dir _ $$ Hph
               iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
                 hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
                 $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
@@ -1510,6 +1516,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               · iframe Hleft; iapply ownDecoder_streams $$ Hdec
               obtain ⟨rfl, rfl⟩ := hjd
               obtain ⟨hlastN, hXt⟩ := hglastN trivial
+              ihave Hph := walPerm_ofW hWR dir _ $$ Hph
               iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
                 hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
                 $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
@@ -1554,12 +1561,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply wp_Errorf _ _ [interface.mkOk go.int64 #r.typ] [] (by
-              intro ii hii
-              left
-              simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
-              injection hii with hii; subst hii
-              exact argWf_int64 _) $$ [Hasl] as %e1 #He1
+          wp_apply wp_Errorf _ _ [interface.mkOk go.int64 #r.typ] [] ?wf $$ [Hasl] as %e1 #He1
+          case wf => errargs_wf
           · iframe
             try simp only [BigSepL.bigSepL_nil]
             iempintro
@@ -1569,6 +1572,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           · iframe Hleft; iapply ownDecoder_streams $$ Hdec
           obtain ⟨rfl, rfl⟩ := hjd
           obtain ⟨hlastN, hXt⟩ := hglastN trivial
+          ihave Hph := walPerm_ofW hWR dir _ $$ Hph
           iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
             hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
             $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst

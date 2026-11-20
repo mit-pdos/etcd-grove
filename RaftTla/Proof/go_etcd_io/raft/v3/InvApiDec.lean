@@ -404,7 +404,7 @@ theorem ownConfDecisions_lookup_impl (γ : Cluster) (D : GMap Nat ConfDecision) 
   iunfold decElem at E
   icases E with ⟨%g', %Hg', #E⟩
   have Hg : g' = g := by
-    obtain ⟨⟨-, -, -, -, -, -, hg⟩, -⟩ := Hm
+    obtain ⟨⟨-, -, -, -, -, hg⟩, -⟩ := Hm
     rw [hg] at Hg'; exact (Option.some.inj Hg').symm
   subst Hg
   icases ghost_map_lookup $$ A E with %Hl
@@ -448,7 +448,7 @@ theorem confDecide_impl (γ : Cluster) (N : Namespace) (D : GMap Nat ConfDecisio
   iintro ⟨-, #Hl, #Ha, Hown⟩
   unfold ownConfDecisionsU
   icases Hown with ⟨%c0, %g, %Hm, A, #Hall⟩
-  have Hg : γ.raft.reDec = some g := by obtain ⟨⟨-, -, -, -, -, -, hg⟩, -⟩ := Hm; exact hg
+  have Hg : γ.raft.reDec = some g := by obtain ⟨⟨-, -, -, -, -, hg⟩, -⟩ := Hm; exact hg
   have hD' : (D.fmap ConfDecision.toOpt).lookup k = none := by
     show (D !! k).map ConfDecision.toOpt = none
     rw [hD]; rfl
@@ -590,7 +590,7 @@ theorem snapshotCert_make_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE :
   unfold isClusterU
   icases Hc with ⟨-, #Hci, -⟩
   have hm' := hm
-  obtain ⟨⟨h0, hv0, hd, Hns, Hsok, Hreg, -⟩, -⟩ := hm'
+  obtain ⟨⟨h0, hv0, hd, Hsok, Hreg, -⟩, -⟩ := hm'
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
@@ -626,7 +626,6 @@ theorem snapshotCert_make_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE :
       iframe HS Ha
   unfold snapshotCert
   iframe Hcert
-  isplitr; · ipureintro; exact Hns
   iexists L, M
   rw [HL]
   iframe Hlb HM
@@ -651,9 +650,9 @@ theorem snapshotCert_made_impl (γ : Cluster) (N : Namespace) (k : SnapTrip) :
   iintro ⟨⟨%Hu, -⟩, #Hk⟩
   obtain ⟨⟨c0, g, hm⟩, -⟩ := Hu
   have hm' := hm
-  obtain ⟨⟨h0, hv0, hd, -, -, Hreg, -⟩, -⟩ := hm'
+  obtain ⟨⟨h0, hv0, hd, -, Hreg, -⟩, -⟩ := hm'
   unfold snapshotCert
-  icases Hk with ⟨-, -, %L, %M, #Hlb, #HM, %HL, #Hr⟩
+  icases Hk with ⟨-, %L, %M, #Hlb, #HM, %HL, #Hr⟩
   obtain ⟨-, Hlen, -, Hat⟩ := HL
   obtain ⟨Hlast, Hok, Hfd⟩ := Hat Hreg
   have HD := Hfd _ hd

@@ -50,7 +50,7 @@ def gStep (G : StorContents) : WalOp × Bool → Option StorContents
       | some G' => if G'.commit ≤ G'.last then some G' else none
       | none => none
   | (.save _ _, false) => none
-  | (.snap m, b) => if gSnapOk m G then some (if b then walSaveSnap G m else G) else none
+  | (.snap m _, b) => if gSnapOk m G then some (if b then walSaveSnap G m else G) else none
 
 /-- **The guide's fold.** -/
 def gFold (G : StorContents) : List (WalOp × Bool) → Option StorContents
@@ -219,7 +219,7 @@ theorem gSnapOk_rel {R G : StorContents} (hr : SRel R G) {m : SnapshotMetadataM}
 /-- **A fold applying at least the guide's records follows it** (`R` related at every step). -/
 theorem gFold_remask (c : Nat) : ∀ (L : List (WalOp × Bool)) {R G G1 : StorContents},
     gFold G L = some G1 → SRel R G →
-    (∀ m, (WalOpG.snap m, true) ∈ L → uint.nat m.Index' ≤ c) →
+    (∀ m al, (WalOpG.snap m al, true) ∈ L → uint.nat m.Index' ≤ c) →
     ∃ R1, gFold R (remask c L) = some R1 ∧ SRel R1 G1 := by
   intro L
   induction L with
@@ -229,8 +229,8 @@ theorem gFold_remask (c : Nat) : ∀ (L : List (WalOp × Bool)) {R G G1 : StorCo
     obtain ⟨o, b⟩ := x
     simp only [gFold, Option.bind_eq_some_iff] at h
     obtain ⟨G', hst, h⟩ := h
-    have hk' : ∀ m, (WalOpG.snap m, true) ∈ L → uint.nat m.Index' ≤ c :=
-      fun m hm => hk m (List.mem_cons_of_mem _ hm)
+    have hk' : ∀ m al, (WalOpG.snap m al, true) ∈ L → uint.nat m.Index' ≤ c :=
+      fun m al hm => hk m al (List.mem_cons_of_mem _ hm)
     cases o with
     | save hs es =>
       cases b with
@@ -251,18 +251,18 @@ theorem gFold_remask (c : Nat) : ∀ (L : List (WalOp × Bool)) {R G G1 : StorCo
             rw [if_pos this]; exact hR1
           · cases hst
         · cases hst
-    | snap m =>
+    | snap m al =>
       simp only [gStep] at hst
       split at hst
       · next hok =>
         cases hst
         have hokR := gSnapOk_rel hr hok
-        have hrel : SRel (if walKeep c (WalOpG.snap m) then walSaveSnap R m else R)
+        have hrel : SRel (if walKeep c (WalOpG.snap m al) then walSaveSnap R m else R)
             (if b then walSaveSnap G m else G) := by
           cases b with
           | true =>
-            have hkm : walKeep c (WalOpG.snap m) = true := by
-              simp only [walKeep, decide_eq_true_eq]; exact hk m (List.mem_cons_self ..)
+            have hkm : walKeep c (WalOpG.snap m al) = true := by
+              simp only [walKeep, decide_eq_true_eq]; exact hk m al (List.mem_cons_self ..)
             rw [if_pos hkm]; exact snap_rel_both hr hok
           | false =>
             simp only [Bool.false_eq_true, ↓reduceIte]
@@ -291,7 +291,7 @@ theorem gStep_commitLe {G G' : StorContents} {x : WalOp × Bool} (hG : G.commit 
         · cases h; assumption
         · cases h
       · cases h
-  | snap m =>
+  | snap m al =>
     simp only [gStep] at h
     split at h
     · cases h; split
@@ -350,13 +350,13 @@ theorem gFold_remask_filter (c : Nat) : ∀ (L : WalHist) {G G1 : StorContents},
             exact ih2 n τ hτ
         · cases hst
       · cases hst
-    | snap m =>
+    | snap m al =>
       simp only [gStep] at hst
       split at hst
       · cases hst
-        by_cases hk : walKeep c (WalOpG.snap m) = true
+        by_cases hk : walKeep c (WalOpG.snap m al) = true
         · rw [if_pos hk] at ih1 ih2 hG'
-          have hf : (WalOpG.snap m :: L).filter (walKeep c) = WalOpG.snap m :: L.filter (walKeep c) := by
+          have hf : (WalOpG.snap m al :: L).filter (walKeep c) = WalOpG.snap m al :: L.filter (walKeep c) := by
             simp [List.filter_cons, hk]
           rw [hf]
           refine ⟨ih1, ?_⟩
@@ -367,7 +367,7 @@ theorem gFold_remask_filter (c : Nat) : ∀ (L : WalHist) {G G1 : StorContents},
             rw [List.take_succ_cons] at hτ; simp only [walFoldChkFrom] at hτ
             exact ih2 n τ hτ
         · rw [if_neg hk] at ih1 ih2
-          have hf : (WalOpG.snap m :: L).filter (walKeep c) = L.filter (walKeep c) := by
+          have hf : (WalOpG.snap m al :: L).filter (walKeep c) = L.filter (walKeep c) := by
             simp [List.filter_cons, Bool.not_eq_true _ ▸ hk]
           rw [hf]; exact ⟨ih1, ih2⟩
       · cases hst
@@ -435,7 +435,7 @@ theorem gSnap_last_ge {G : StorContents} {m : SnapshotMetadataM} (hok : gSnapOk 
 /-- **A fold at a fixed base `B` stays within the guide's last index** (or `B`). -/
 theorem fold_bound (c B : Nat) : ∀ (L : List (WalOp × Bool)) {G G' τ0 τ : StorContents},
     gFold G L = some G' → τ0.b = B → τ0.last ≤ max B G.last →
-    (∀ m, WalOpG.snap m ∈ L.map Prod.fst → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ B) →
+    (∀ m al, WalOpG.snap m al ∈ L.map Prod.fst → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ B) →
     walFoldChkFrom τ0 ((L.map Prod.fst).filter (walKeep c)) = some τ →
     τ.b = B ∧ τ.last ≤ max B G'.last := by
   intro L
@@ -449,8 +449,8 @@ theorem fold_bound (c B : Nat) : ∀ (L : List (WalOp × Bool)) {G G' τ0 τ : S
     obtain ⟨o, bm⟩ := x
     simp only [gFold, Option.bind_eq_some_iff] at h
     obtain ⟨G2, hst, h⟩ := h
-    have hsn' : ∀ m, WalOpG.snap m ∈ L.map Prod.fst → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ B :=
-      fun m hm => hsn m (by simp only [List.map_cons]; exact List.mem_cons_of_mem _ hm)
+    have hsn' : ∀ m al, WalOpG.snap m al ∈ L.map Prod.fst → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ B :=
+      fun m al hm => hsn m al (by simp only [List.map_cons]; exact List.mem_cons_of_mem _ hm)
     cases o with
     | save hs es =>
       cases bm with
@@ -482,17 +482,17 @@ theorem fold_bound (c B : Nat) : ∀ (L : List (WalOp × Bool)) {G G' τ0 τ : S
                 omega
           · cases hst
         · cases hst
-    | snap m =>
+    | snap m al =>
       simp only [gStep] at hst
       split at hst
       · next hok =>
         cases hst
         have hlG := gSnap_last_ge hok bm
         simp only [List.map_cons, List.filter_cons] at hf
-        by_cases hk : walKeep c (WalOpG.snap m) = true
+        by_cases hk : walKeep c (WalOpG.snap m al) = true
         · rw [if_pos hk] at hf; simp only [walFoldChkFrom] at hf
           have hmB : uint.nat m.Index' ≤ B :=
-            hsn m (by simp) (by simpa [walKeep] using hk)
+            hsn m al (by simp) (by simpa [walKeep] using hk)
           by_cases hlt : uint.nat m.Index' < τ0.b
           · rw [walSaveSnap_noop hlt] at hf
             exact ih h hb (by omega) hsn' hf
@@ -508,8 +508,8 @@ theorem fold_bound (c B : Nat) : ∀ (L : List (WalOp × Bool)) {G G' τ0 τ : S
           exact ih h hb (by omega) hsn' hf
       · cases hst
 
-theorem walLastHS_bad (P : WalHist) (m : SnapshotMetadataM) (es : List EntryM) :
-    walLastHS (P ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) = walLastHS P := by
+theorem walLastHS_bad (P : WalHist) (m : SnapshotMetadataM) (al : Bool) (es : List EntryM) :
+    walLastHS (P ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) = walLastHS P := by
   rw [walLastHS_eq, walLastHS_eq, List.foldl_append]
   simp only [List.foldl_cons, List.foldl_nil, walHsStep]
   exact phsNext_empty _ _ ⟨rfl, rfl, rfl⟩
@@ -539,7 +539,7 @@ theorem gFold_hs : ∀ (L : List (WalOp × Bool)) {G G1 : StorContents}, gFold G
           · cases hst; rw [walFoldChkFrom_hs hg3]; rfl
           · cases hst
         · cases hst
-    | snap m =>
+    | snap m al =>
       simp only [gStep] at hst
       split at hst
       · cases hst; split
@@ -566,28 +566,28 @@ from the start, ending at `σ1`), the record `m` above both its commit and its l
 `Save`'s first entries (above `m`) without its state record. From any position, `ReadAll`'s fold reaches
 the entries with its last index below `m`'s (`fold_bound`), so the first of them is past the end. -/
 theorem readAll_bad {L : List (WalOp × Bool)} {σ1 : StorContents} (hL : gFold walFresh L = some σ1)
-    {m : SnapshotMetadataM} (hc : σ1.commit < uint.nat m.Index') (hl : σ1.last < uint.nat m.Index')
+    {m : SnapshotMetadataM} {al : Bool} (hc : σ1.commit < uint.nat m.Index') (hl : σ1.last < uint.nat m.Index')
     {es : List EntryM} (hne : es ≠ []) (hes : ∀ e ∈ es, uint.nat m.Index' < uint.nat e.Index')
     (cut : Nat) (s : w64 × w64) (σ' : StorContents) :
-    ¬ walReadAllOk (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) cut s σ' := by
+    ¬ walReadAllOk (L.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) cut s σ' := by
   rintro ⟨k, -, -, hs, hat⟩
-  have hhs : walLastHS (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) =
+  have hhs : walLastHS (L.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) =
       σ1.hs := by
     rw [walLastHS_bad, walLastHS_eq, gFold_hs L hL]; rfl
   have hcI : uint.nat (walLastHS (L.map Prod.fst ++
-      [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es])).Commit' = σ1.commit := by rw [hhs]; rfl
+      [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es])).Commit' = σ1.commit := by rw [hhs]; rfl
   obtain ⟨hsc, hsmax⟩ := validSnaps_bounds hs
   rw [hcI] at hsc hsmax
   unfold walReadAt at hat
   rw [hcI] at hat
-  have hst : (⟨walLastHS ((L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]).take k),
+  have hst : (⟨walLastHS ((L.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]).take k),
       none, entryID.mk s.2 s.1, []⟩ : StorContents).last = uint.nat s.1 := by
     simp only [StorContents.last, StorContents.b, List.length_nil, Nat.add_zero]
   have hlen : (L.map Prod.fst).length = L.length := List.length_map _
   by_cases hk : k ≤ L.length
   · obtain ⟨Gk, hGk, hGd⟩ := gFold_split walFresh L k hL
-    have hdrop : (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]).drop k =
-        (L.drop k).map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es] := by
+    have hdrop : (L.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]).drop k =
+        (L.drop k).map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es] := by
       rw [List.drop_append_of_le_length (by rw [hlen]; exact hk), List.map_drop]
     rw [hdrop, List.filter_append, walFoldChkFrom_append] at hat
     have hnc : ¬ uint.nat m.Index' ≤ σ1.commit := by omega
@@ -599,12 +599,12 @@ theorem readAll_bad {L : List (WalOp × Bool)} {σ1 : StorContents} (hL : gFold 
       rw [hX, Option.bind_some] at hat
       obtain ⟨hτb, hτl⟩ := fold_bound σ1.commit (uint.nat s.1) (L.drop k) hGd rfl
         (by rw [hst]; omega)
-        (fun m' hm' hmc => hsmax m' (by rw [hdrop]; exact List.mem_append_left _ hm') hmc) hX
+        (fun m' al' hm' hmc => hsmax m' al' (by rw [hdrop]; exact List.mem_append_left _ hm') hmc) hX
       rw [save_fail (τ := τ) (m := m) (by omega) _ hne hes] at hat
       cases hat
   · by_cases hk1 : k = L.length + 1
     · subst hk1
-      have hdrop : (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]).drop
+      have hdrop : (L.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]).drop
           (L.length + 1) = [WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es] := by
         rw [List.drop_append, List.drop_of_length_le (by rw [hlen]; omega), hlen]
         simp
@@ -612,9 +612,9 @@ theorem readAll_bad {L : List (WalOp × Bool)} {σ1 : StorContents} (hL : gFold 
       simp only [List.filter_cons, walKeep, decide_true, ↓reduceIte, List.filter_nil] at hat
       rw [save_fail (m := m) (by rw [hst]; omega) _ hne hes] at hat
       cases hat
-    · have hdrop : (L.map Prod.fst ++ [WalOpG.snap m, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]).drop k =
+    · have hdrop : (L.map Prod.fst ++ [WalOpG.snap m al, WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]).drop k =
           [] := List.drop_of_length_le (by simp; omega)
-      have hv : walValidSnaps (L.map Prod.fst ++ [WalOpG.snap m,
+      have hv : walValidSnaps (L.map Prod.fst ++ [WalOpG.snap m al,
           WalOpG.save ⟨W64 0, W64 0, W64 0⟩ es]) k = [] := by
         unfold walValidSnaps
         rw [if_neg (by omega), hdrop]; rfl

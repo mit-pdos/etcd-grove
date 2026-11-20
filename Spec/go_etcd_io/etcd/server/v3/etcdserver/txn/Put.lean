@@ -37,18 +37,20 @@ the batch lock (`Post`). The caller's pin, if any, is in its `R`. The logger nil
 premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
-drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. Auth-lease S4 item 7b, 2026-11-17: in the
+lessor window `w`, the put moving the items toward its target, `putItemsOf`, the caller's at the begin: `putAUW`.) -/
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
     (γ : MvccName) (p : Loc) (o : OpFull) (q : Qp) (B : MvccStorage) (P Pre Q Post : IProp GF)
     (f : GoFunc) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
-    (ot : Option Loc) (te : Bool) (R : MvccState → IProp GF),
+    (ot : Option Loc) (te : Bool) (R : MvccState → IProp GF) (w : Option lease.LWin),
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.isTxnLessor le (mvccLeases γ) ∗
-      lease.lessorUser (mvccLeases γ) L I ∗ txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
+      lease.lessorUserW (mvccLeases γ) L I w ∗
+      txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ zapLoggerOrNil lg ∗
       txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗
-      (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then txn.putAU γ o L I R
+      (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then txn.putAUW γ w o L I R
        else iprop(True)) ∗
       ⌜o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax⌝ }}
     (App (App (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le))
@@ -58,19 +60,19 @@ abbrev txn.Put.spec : Prop :=
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
       ((⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L ∧ resp = null⌝ ∗
           txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ Pre ∗
-          lease.lessorUser (mvccLeases γ) L I) ∨
+          lease.lessorUserW (mvccLeases γ) L I w) ∨
        ∃ σ₀ : MvccState, ⌜txn.Reach σ₀ ∧ σ₀.pending = none⌝ ∗ Post ∗ R σ₀ ∗
         ((⌜txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter σ₀.log) = none ∧
               resp = null⌝ ∗
             txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err ∗
-            lease.lessorUser (mvccLeases γ) L I) ∨
+            lease.lessorUserW (mvccLeases γ) L I w) ∨
          (⌜err = GoInterface.nil ∧
               (txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter σ₀.log)).isSome)⌝ ∗
             txn.putResponseIs resp (W64 (σ₀.log.length : Int))
               (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter σ₀.log) else none) ∗
             txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
             txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))) ∗
-            lease.lessorUser (mvccLeases γ) L (mvcc.pendItems σ₀.log (txn.putPend o σ₀))))) }}
+            lease.lessorUserW (mvccLeases γ) L (mvcc.pendItems σ₀.log (txn.putPend o σ₀)) w))) }}
 
 end spec
 

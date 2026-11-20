@@ -252,6 +252,45 @@ theorem mvccfullNames_ok [GooseExts] [GoGlobalContext] : ∀ b ∈ mvccfullNames
       · have := itoaM_mem k c hc; omega
       · revert c; decide
 
+/-- A number below `10 ^ k` has at most `k` decimal digits (as `runner__newVal.lean`'s, private there). -/
+theorem decDigits_length_le' : ∀ (k n : Nat), n < 10 ^ k → (decDigits n).length ≤ k
+  | 0, n, h => by
+    have : n = 0 := by simpa using h
+    subst this; rw [decDigits]; simp
+  | k + 1, n, h => by
+    rw [decDigits]
+    split
+    · simp
+    · simp only [List.length_append, List.length_singleton]
+      have := decDigits_length_le' k (n / 10) (by rw [Nat.pow_succ] at h; omega)
+      omega
+
+/-- Each of `Main`'s files is a name of at most 255 bytes (wal-fsfix, 2026-11-20: with `Fs.DirFits r`,
+its path fits, `PathFits`). -/
+theorem mvccfullNames_len [GooseExts] [GoGlobalContext] : ∀ b ∈ mvccfullNames, b.length ≤ 255 := by
+  intro b hb
+  have hi : ∀ n, n < 10 ^ 20 → (itoaM n).length ≤ 20 := fun n hn => by
+    unfold itoaM; split
+    · decide
+    · exact decDigits_length_le' 20 n hn
+  unfold mvccfullNames filePathsM at hb
+  rcases List.mem_append.1 hb with h | h
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
+    rcases h with rfl | rfl <;> simp [memberPathM, mainConfigM, itoaM] <;>
+      first | decide | (have := decDigits_length_le' 1 1 (by decide); omega)
+  · obtain ⟨k, hk, rfl⟩ := List.mem_map.1 h
+    have hk' : k < 10 ^ 20 := by
+      rw [List.mem_range'_1] at hk
+      have : sint.nat (mainConfigM go!"mvccfull" (zeroValDef : Mix)).Ops' ≤ 12000 := by
+        simp [mainConfigM] <;> decide
+      omega
+    have := hi k hk'
+    simp only [buildPathM, mainConfigM, List.length_append] at this ⊢
+    have h8 : (go!"mvccfull" : GoString).length = 8 := by decide
+    have h2 : (go!"-b" : GoString).length = 2 := by decide
+    have h3 : (go!".db" : GoString).length = 3 := by decide
+    omega
+
 /-- **`MainConfig`'s configuration is in `Run`'s scope** (its read weights the code's), at any
 prefix (`Main.lean`'s `mainConfig_ok`, at `"mvccfull"`). -/
 theorem mainConfig_okAt [GooseExts] [GoGlobalContext] (pfx : GoString) (mx : Mix) :
@@ -329,6 +368,7 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
     (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
+    (Hrfit : Fs.DirFits r)
     (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([mvccfullProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -361,7 +401,9 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave Hown := (ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit (GF := mvccfullGF))) $$ Hgs
   iapply start_fileHolds (extLocal Fs.fsExt σ.world) Hfs r j0 mvccfull.mvccfullNames Hr
-    mvccfull.mvccfullNames_nodup mvccfull.mvccfullNames_ok Habs _ rfl _ $$ [Hl]
+    mvccfull.mvccfullNames_nodup
+    (fun b hb => ⟨mvccfull.mvccfullNames_ok b hb,
+      Fs.pathFits_of_dirFits Hrfit (mvccfull.mvccfullNames_len b hb)⟩) Habs _ rfl _ $$ [Hl]
   · iapply Hst $$ Hl
   iintro Hfiles
   unfold mvccfullProgram

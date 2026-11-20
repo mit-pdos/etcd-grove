@@ -57,7 +57,7 @@ abbrev startMember.spec : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       (⌜err = GoInterface.nil⌝ ∗ etcdstart.memberUp s ρ E₀ lg γn id ∗
-        srvDataDir s (name ++ go!".etcd")) }}
+        srvDataDir s (memberDataDir name)) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev startMember.specRestart : Prop :=
@@ -78,7 +78,7 @@ abbrev startMember.specRestart : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF), ⌜restartNames ρ ρ'⌝ ∗
-        etcdstart.memberUp s ρ' E₀' lg γn id ∗ srvDataDir s (name ++ go!".etcd")) }}
+        etcdstart.memberUp s ρ' E₀' lg γn id ∗ srvDataDir s (memberDataDir name)) }}
 
 end spec
 

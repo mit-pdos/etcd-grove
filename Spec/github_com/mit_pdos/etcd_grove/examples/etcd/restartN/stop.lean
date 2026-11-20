@@ -5,7 +5,7 @@ entry per member),
 then `s.HardStop()`. Lean-first (no Rocq counterpart).
 
 **The triple:** from the applied index's invariant (`srvAppliedInv`), the server's data directory
-(`srvDataDir`, `name ++ ".etcd"`), the right to stop it (`srvStopRight`, at an apply environment in the
+(`srvDataDir`, `memberDataDir name`), the right to stop it (`srvStopRight`, at an apply environment in the
 stop's scope) and its unused serving readers (`srvStopReaders`), of a cluster whose bootstrap log has
 at most `k` entries: the member's data directory as the stop left it, at the request names `ρ`
 (`srvDiskImage`), as its restart bundle without addresses (`etcdstart.memberRestartRes`; its peer
@@ -39,7 +39,7 @@ abbrev stop.spec : Prop :=
     (γn : NetNames GF) (name : GoString) (k : w64),
   ρ.rd.raft.raft.boot.length ≤ uint.nat k → srvStop.scope E →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restartN ∗
-      srvAppliedInv s Ea ρ.rd ∗ srvDataDir s (name ++ go!".etcd") ∗
+      srvAppliedInv s Ea ρ.rd ∗ srvDataDir s (memberDataDir name) ∗
       srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.stop)) (Val #s)) (Val #k))
   {{ RET #(); etcdstart.memberRestartRes name {} γn ρ.rd.raft.raft ρ id }}

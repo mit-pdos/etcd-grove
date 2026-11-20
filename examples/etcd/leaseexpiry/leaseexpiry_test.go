@@ -7,6 +7,8 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestMainRun runs Main for real: one member in a fresh data directory (Main's DataDir is
@@ -14,6 +16,7 @@ import (
 // the lease really expired: the listing is empty, and a grant made now expires as Main's did.
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "leaseexpiry") // the members' WAL areas (wal-link P2)
 	start := time.Now()
 	Main()
 	t.Logf("Main returned after %v", time.Since(start))

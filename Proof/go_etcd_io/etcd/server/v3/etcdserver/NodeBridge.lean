@@ -60,22 +60,22 @@ raft's `node.Stop.spec` covers `Stop`, over the node's whole running token. -/
 
 /-- Raft's node, by the wrapper's names (the node API's `isNode` of the node `nl` in the
 server's cluster). -/
-def rnIsNode (γ : RNNames) : IProp GF :=
+def rnIsNode (γ : RNNames GF) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   isNode γ.nl γ.node.cl srvClusterN γ.id
 
-instance rnIsNode_persistent (γ : RNNames) : Persistent (rnIsNode (GF := GF) γ) := by
+instance rnIsNode_persistent (γ : RNNames GF) : Persistent (rnIsNode (GF := GF) γ) := by
   unfold rnIsNode
   letI := srvStor (GF := GF) γ.node
   exact isNode_persistent _ _ _ _
 
 /-- The `MemoryStorage`'s registration, by the wrapper's names (`isRaftNode`'s `Hreg`). -/
-abbrev rnMemStorReg (γ : RNNames) : IProp GF :=
+abbrev rnMemStorReg (γ : RNNames GF) : IProp GF :=
   letI : MemStorReg GF := ⟨γ.reg⟩
   memStorReg γ.ms γ.γs
 
 /-- The `raft.Node` interface value holding the `*node` `γ.nl`. -/
-abbrev rnNodeIface (γ : RNNames) : GoInterface :=
+abbrev rnNodeIface (γ : RNNames GF) : GoInterface :=
   interface.mkOk (go.GoType.PointerType node.ty) #γ.nl
 
 /-- **The node's inbound methods** (persistent; D21 M2, 2026-10-19): `Step` of a peer's message
@@ -83,7 +83,7 @@ abbrev rnNodeIface (γ : RNNames) : GoInterface :=
 `EtcdServer.Process`/`ReportUnreachable`/`ReportSnapshot` call (from the transport's goroutines,
 as soon as it starts: so stated apart from `isRaftNodeIfc`, whose `ReadIndex` needs the server's
 committed index, allocated later). -/
-def rnStepIfc (γ : RNNames) (n : GoInterface) : IProp GF :=
+def rnStepIfc (γ : RNNames GF) (n : GoInterface) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (ml : Loc),
@@ -96,7 +96,7 @@ def rnStepIfc (γ : RNNames) (n : GoInterface) : IProp GF :=
       (App (App (Val #(methods ni.ty go!"ReportSnapshot" ni.v)) (Val #x)) (Val #st))
       {{ RET #(); True }}))
 
-instance rnStepIfc_persistent (γ : RNNames) (n : GoInterface) :
+instance rnStepIfc_persistent (γ : RNNames GF) (n : GoInterface) :
     Persistent (rnStepIfc (GF := GF) γ n) := by
   unfold rnStepIfc; infer_instance
 
@@ -284,7 +284,7 @@ proposal registered and its update converted, `srvProp_register`/`srvPropAu_api`
 `node.ApplyConfChange.spec` in a static cluster for a change `ccRaftOk` admits,
 `ccShrink_addVoter`): the proposals' witnesses are the server's registry's
 (`srvPropWits_of`). -/
-theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
+theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames GF)
     (wp_Propose : letI := srvStor (GF := GF) γ.node;
       node.Propose.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -359,7 +359,7 @@ at `k` from the view's by `nodeConfig_confAt` and `confAt_noConf`), the conf ent
 view and `k` none, `skippedIn_noConf`; the stopped answer refuted by the running token's share,
 `nodeRunning_stopped`; until then `node.ApplyConfChange.dynamicSpec` at the decoder): with the
 driver's view and the committed log delivered; its answer is the view at `⟨k + 1, m'⟩`. -/
-theorem raftApplyCC_of_isNode (γ : RNNames)
+theorem raftApplyCC_of_isNode (γ : RNNames GF)
     (wp_ApplyConfChange : letI := srvStor (GF := GF) γ.node;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnIsNode γ ∗ srvClusterOk γ.srv ⊢
@@ -416,7 +416,7 @@ from `node.Tick.spec`, `Stop` from `node.Stop.spec`, `ReadIndex` from `node.Read
 context committed to the read's update after the committed log the caller's bound names
 (`srvReadCtx_commit`, by the context's fresh token); the registration `E.RQ id n Qr` is the
 context's (`srvRQ`), the error `applyErrIs_of_nodeErr`'s (through `nodeErrS_nodeErr`). -/
-theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued : GName)
+theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issued : GName)
     (wp_Ready : letI := srvStor (GF := GF) γ.node; node.Ready.spec (GF := GF) (hG := hG))
     (wp_Advance : letI := srvStor (GF := GF) γ.node;
       node.Advance.spec (GF := GF) (hG := hG))
@@ -675,7 +675,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
 
 /-- **The node meets `rnStepIfc`** (D21 M2; 2026-10-27: the node API's `node.Step`,
 `ReportUnreachable`, `ReportSnapshot`). -/
-theorem rnStepIfc_of_isNode (γ : RNNames)
+theorem rnStepIfc_of_isNode (γ : RNNames GF)
     (wp_Step : letI := srvStor (GF := GF) γ.node; node.Step.spec (GF := GF) (hG := hG))
     (wp_ReportUnreachable : letI := srvStor (GF := GF) γ.node;
       node.ReportUnreachable.spec (GF := GF) (hG := hG))

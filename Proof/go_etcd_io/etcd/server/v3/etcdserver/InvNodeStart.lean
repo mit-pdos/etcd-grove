@@ -228,27 +228,6 @@ def rnRaftStatusOk : IProp GF :=
 instance rnRaftStatusOk_persistent : Persistent (rnRaftStatusOk (GF := GF)) := by
   unfold rnRaftStatusOk; infer_instance
 
-/-- (D22 J1a, 2026-10-26) **The storage `st` is a `*storage` made over the snapshotter `ss`**
-(`storage.storageSnap`): what `storage.Release`'s axiom names the snapshot directory by. -/
-def rnStorageOf (st : GoInterface) (ss : Loc) : Prop :=
-  ∃ p : Loc, st = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p ∧
-    storage.storageSnap p ss
-
-/-- **`serverstorage.NewStorage(lg, w, ss)`** (names-only): the WAL as the raft loop uses it
-(`isRNWal`); (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`NewStorage` returns
-`&storage{lg: lg, w: w, s: s}`, `storage.go`). (2026-10-31, `notes/axiom-review/savesnap.md`) Over a WAL ready to write
-(`storage.walReady`): until then over any `w`, false for a nil one (`isRNWal`'s `Close` panics on
-it). The storage is over `w`'s open token (`storage.walOpen w`, shared by every storage over `w`;
-2026-10-31, the user's decision), which `bootstrap`'s contract gives. -/
-def rnNewStorageOk : IProp GF :=
-  iprop(□ ∀ (lg w ss : Loc), {{ ⌜storage.walReady w⌝ }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #w))
-      (Val #ss))
-    {{ (st : GoInterface), RET #st; isWalStorage st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
-
-instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
-  unfold rnNewStorageOk; infer_instance
-
 /-- **`cl.IsIDRemoved(id)`** of the cluster `cl` (`membership.RaftCluster`): some boolean.
 (premise-fixes-4: until then this said names-only; `IsIDRemoved` is translated and proved, and this
 triple follows from its spec, `membership.RaftCluster.IsIDRemoved.spec_static`, under the cluster's
@@ -279,18 +258,18 @@ components, independent of where the struct lives (`NewServer` copies `*newRaftN
 `EtcdServer.r` by value): the logger a zap logger (premise-fixes-6: until then non-nil), `msgSnapC`'s bag, `applyc`'s SPSC channel,
 `readStateC`'s bag of answered read states, the ticker, the detector, `stopped`'s bag and `done`'s
 broadcast channel (its `Unknown` view). -/
-def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
+def rnParts (E : RNEnv GF) (γ : RNNames GF) (rv : raftNode) : IProp GF :=
   iprop("#Hlgnn" ∷ zapLoggerOk rv.lg' ∗
     "#Hmsci" ∷ isRNMsgSnapC γ rv.msgSnapC' ∗
     "#Hapci" ∷ isRNApplyc E γ rv.applyc' ∗
     "#Hrsci" ∷ isRNReadStateC E rv.readStateC' ∗
     "#Htki" ∷ isRNTicker rv.ticker' ∗
     "#Htdi" ∷ isRNTimeoutDetector rv.td' ∗
-    "#Hstci" ∷ rnStopBag E γ (storage.walOf rv.raftNodeConfig'.storage') rv.stopped' ∗
+    "#Hstci" ∷ rnStopBag E γ rv.stopped' ∗
     "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done
-      (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Unknown)
+      (rnDoneEsc γ) .Unknown)
 
-instance rnParts_persistent (E : RNEnv GF) (γ : RNNames) (rv : raftNode) :
+instance rnParts_persistent (E : RNEnv GF) (γ : RNNames GF) (rv : raftNode) :
     Persistent (rnParts E γ rv) := by
   unfold rnParts; infer_instance
 
@@ -302,7 +281,7 @@ components' predicates (`rnParts`), `applyc`'s two halves with `cum` at `[L₀]`
 the start log `L₀`, `[]` at a first start; until then `[[]]`) (the loop's and
 the apply side's ghost state, `rnLoopTok`/`rnApplyTok`), the right to close `done`, and the
 claim on the stop's escrow (`rnStopClaim`). -/
-def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) (L₀ : List EntryModel) :
+def rnBuilt (E : RNEnv GF) (γ : RNNames GF) (r : Loc) (cv : raftNodeConfig) (L₀ : List EntryModel) :
     IProp GF :=
   iprop(∃ rv : raftNode,
     "Hr" ∷ r ↦ rv ∗
@@ -314,7 +293,7 @@ def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) (L₀ 
     "Hcum" ∷ monoListAuthOwn γ.cum 1 [L₀] ∗
     "Hcum0" ∷ monoListIdxOwn γ.cum 0 L₀ ∗
     "Hdtok" ∷ ownBroadcastChan rv.done' γ.done
-      (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Pending ∗
+      (rnDoneEsc γ) .Pending ∗
     -- (2026-11-03, R2b-3b) the claim on the stop's escrow
     "Hsc" ∷ rnStopClaim γ)
 
@@ -342,7 +321,9 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
   | .restart σ cs S a m _ =>
     letI := srvStor (GF := GF) γr
     iprop(⌜rnRestartCfg bv cv lok pv ∧ σ.b ≤ a ∧ a ≤ σ.commit ∧ γr.cl.bootLen ≤ σ.commit ∧
-        confStateIs cs m ∧ StorageHolds S σ⌝ ∗
+        confStateIs cs m ∧ StorageHolds S σ ∧
+        -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
+        ¬ clusterNoSnap γr.cl⌝ ∗
       restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q ∗
       isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ nodeVacant γr.cl cv.ID' ∗
       raftState γr.cl cv.ID' S ∗ confAt γr.cl a m)

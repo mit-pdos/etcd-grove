@@ -129,7 +129,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 `cfgOk` at the member's name): member `name` of a new cluster with token `putget3`, data directory
 `name.etcd`, raft's clock `100` ms and `10` ticks. -/
 def cfgOk (name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Name' = name ∧ cfg.DataDir' = name ++ go!".etcd" ∧
+  cfg.Name' = name ∧ cfg.DataDir' = memberDataDir name ∧
     cfg.InitialClusterToken' = go!"putget3" ∧ cfg.NewCluster' = true ∧
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 

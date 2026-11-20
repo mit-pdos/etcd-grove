@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- (D22 S-l sender) A `Ready`'s message opened: its fields at some fraction, and back to what
 it is for the transport (any but a `MsgSnap`) or for `msgSnapC` (a `MsgSnap`). -/
-theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
+theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames GF) (m : Loc) :
     rnMsgR E γ m ⊢ ∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗
       ((⌜st.msg.Type' ≠ MsgSnap⌝ -∗ msgOwn m dq st -∗ rnMsgOk E m) ∧
        (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg γ m)) := by

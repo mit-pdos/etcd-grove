@@ -682,7 +682,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iintro %asl ⟨Hasl, -⟩
                 (try wp_auto)
                 -- `%w` of the context's error: no fact from Perennial's model (errorf-wrap)
-                ihave #Hcs := go_etcd_io.etcd.cache.v3.isCtxErr_stringMethodSpec ci $$ Hce
+                ihave #Hcs := go_etcd_io.etcd.cache.v3.isCtxErr_fmtErrorOk ci $$ Hce
                 rw [show (go!"rangeKeys: context cancelled: %w" : GoString) = go!"rangeKeys: context cancelled: " ++ go!"%w" from rfl]
                 wp_apply (hWrap go!"rangeKeys: context cancelled: " _ ci (DFrac.own 1) (by decide))
                   $$ [$Hasl $Hcs] as %e0 ⟨-, #Hw, %Hpre⟩
@@ -692,12 +692,16 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   · iunfold mvcc.ctxErrorf
                     iapply go_etcd_io.etcd.cache.v3.ctxWrapErr_wrap $$ Hw Hce
                   isplitr
-                  · ipureintro; exact Hpre
+                  · iexists e0, _
+                    isplitr
+                    · ipureintro; rfl
+                    iframe Hw
+                    ipureintro; exact Hpre
                   iexists e0
                   iunfold EtcdGrove.fmt.errorfWrapIs at Hw
                   icases Hw with (#HM | #HW)
                   · iunfold EtcdGrove.fmt.modelErrIs at HM
-                    icases HM with ⟨-, %s, #HE⟩
+                    icases HM with ⟨%x, -, %s, -, #HE⟩
                     iexists s
                     isplitr
                     · ipureintro; rfl

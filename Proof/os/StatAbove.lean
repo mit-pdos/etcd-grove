@@ -26,13 +26,13 @@ variable [os.Assumptions] [os.fileStat.FieldAssumptions]
   [go.BasicIntoValInj]
 
 theorem os.Stat.wp_proofAboveRoot : os.Stat.specAboveRoot (GF := GF) (hG := hG) := by
-  intro p R qc hp
-  wp_start as ⟨#Hos, #Hsi, Hperm⟩
+  intro p R hp
+  wp_start as ⟨#Hos, #Hsi⟩
   wp_apply os.model.wp_stat_aboveS _ p R (os.aboveRoot_rootsAbove hp) $$ [Hos Hsi]
     as %fi %err -
   · isplitl [] <;> iassumption
   iapply HΦ
-  iexact Hperm
+  itrivial
 
 end proof
 

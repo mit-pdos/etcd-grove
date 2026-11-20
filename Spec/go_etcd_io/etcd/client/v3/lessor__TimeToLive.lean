@@ -29,16 +29,18 @@ success a new `*LeaseTimeToLiveResponse` whose header, `ID`, `TTL`, `GrantedTTL`
 (`resp.GetHeader()`; read-only, though Go's struct is fresh and owned, as `lessor.Grant.spec`'s)
 and whose `Keys` is the reply's slice, with `Q` of the reply;
 otherwise `nil` and `ContextError(ctx, err)`, a client error grpc's `status` accepts (as
-`lessor.Grant.spec`). -/
+`lessor.Grant.spec`). (Auth-lease S4, Freeze §2.2) Over the connection `conn` (`lessorRemoteAtC`), metadata-indexed: the
+spec at every metadata an attempt may deliver (`attemptPre`); the old form is the new one at
+`GrpcSpec.md` (`attemptPre_md`, `isGrpcRpcs_md`, `lessorRemoteAt_conn`). -/
 abbrev lessor.TimeToLive.spec : Prop :=
-  ∀ (l : Loc) (addr : List GoString)
-    (Spec : GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
+  ∀ (l conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
     (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64) (sl : GoSlice) (gs : List (Bool → Bool)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
-      isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
-      □ ▷ Spec (id, leaseKeysFold gs false) Q ∗ leaseOptsAt sl gs ∗
-      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+      isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (id, leaseKeysFold gs false) Q ∗
+      leaseOptsAt sl gs ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd }}
     (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!!
         go!"TimeToLive")) (Val #(GoInterface.ok ctx))) (Val #id)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

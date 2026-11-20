@@ -16,12 +16,15 @@ through (encoder.go: `write`, `e.bw.Flush()`), over a `*os.File`.
   trusted model does not keep it, `LinuxFs/TrustedCode/os.lean`'s `File.Write.impl`, so the
   stream says nothing of it.) Until 2026-11-13 (`wal-bridge`) the error left `W (out ++ ys)`,
   `ys` a prefix of `xs` and `n = len(ys)`, which a file whose offset a failed `Write` loses (the
-  model's `-1`) cannot give.
+  model's `-1`) cannot give. The error is `errOkOrNil` (an error `fmt` formats by its `Error()`
+  alone: fmt soundness, 2026-11-18, so that the WAL's `fmt.Errorf("%w (after: %v)", ...)` of a
+  sync's error meets `fmt.ErrorfErrs.spec`'s premise); `*os.File`'s errors (`*fs.PathError`) are.
 Lean-first.
 -/
 module
 
 public import Perennial.Proof.io
+public import Spec.fmt.ErrorfErrs
 
 @[expose] public section
 
@@ -47,7 +50,7 @@ def io.writerStream (wi : GoInterfaceOk) (lim : Nat) (W : List w8 → IProp GF)
       (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err); p ↦*{dq} xs ∗
         ((⌜err = GoInterface.nil ∧ sint.Z n = xs.length⌝ ∗ W (out ++ xs)) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗ B out xs)) }})
+         (⌜err ≠ GoInterface.nil⌝ ∗ errOkOrNil err ∗ B out xs)) }})
 
 instance io.writerStream_persistent (wi : GoInterfaceOk) (lim : Nat) (W : List w8 → IProp GF)
     (B : List w8 → List w8 → IProp GF) : Persistent (io.writerStream wi lim W B) := by
@@ -65,7 +68,7 @@ def io.writerStreamP (wi : GoInterfaceOk) (ok : List w8 → Prop) (W : List w8 �
       (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err); p ↦*{dq} xs ∗
         ((⌜err = GoInterface.nil ∧ sint.Z n = xs.length⌝ ∗ W (out ++ xs)) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗ B out xs)) }})
+         (⌜err ≠ GoInterface.nil⌝ ∗ errOkOrNil err ∗ B out xs)) }})
 
 instance io.writerStreamP_persistent (wi : GoInterfaceOk) (ok : List w8 → Prop)
     (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) :
@@ -87,7 +90,7 @@ def io.writerStreamPNE (wi : GoInterfaceOk) (ok : List w8 → Prop) (W : List w8
       (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err); p ↦*{dq} xs ∗
         ((⌜err = GoInterface.nil ∧ sint.Z n = xs.length⌝ ∗ W (out ++ xs)) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗ B out xs)) }})
+         (⌜err ≠ GoInterface.nil⌝ ∗ errOkOrNil err ∗ B out xs)) }})
 
 instance io.writerStreamPNE_persistent (wi : GoInterfaceOk) (ok : List w8 → Prop)
     (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) :

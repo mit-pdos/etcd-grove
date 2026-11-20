@@ -43,8 +43,8 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E γl S ci cd r dq v n m
-  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #Hnet, #Hcause, #Hpub, #Hllb, Hr⟩
+  intro p s A cid mid E γl S ci cd tok r dq v n m
+  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #HtokC, #Hnet, #Hcause, #Hpub, #Hllb, Hr⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
@@ -56,7 +56,7 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
   ihave ⟨%eNF, #HNF, #HNFe, %HNFl⟩ := v3rpc.leaseNotFoundErr $$ Hlp
   have hpt : ptrTarget (GoInterface.ok eNF) := fun tii h => by cases h; exact HNFl.1
   wp_auto
-  wp_apply HT $$ [HS HR Hr] as %resp %err ⟨HS, HR, Hr, Hans⟩
+  wp_apply HT $$ %ci %tok %cd %r %dq %v %n %m [HS HR Hr] as %resp %err ⟨HS, HR, Hr, Hans⟩
   · iframe; iframe #
   iunfold v3rpc.ttlAns at Hans
   icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %Hid, ⟨%hv, Hhv⟩, #Hf⟩, #Hauth, #Hchk⟩ | ⟨%Hn, #Hae, #Hnf⟩)
@@ -103,8 +103,9 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
       iframe Hfd
       iexists dq', r'
       iframe Hrev
+    iframe Hauth Hchk
     ileft
-    iframe #
+    iexact Hf
   · obtain ⟨rfl, Hen⟩ := Hn
     cases err with
     | nil => exact absurd rfl Hen
@@ -149,6 +150,12 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
           · iapply typedPointsto_combine _ _ _ Hrn
             simp only [TypedPointsto.typedPointstoDef]
             iframe
+          ihave Hit : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
+          · iunfold errIsTrue
+            iexists S', I', U'
+            iframe Htree
+            ipureintro; exact ⟨HS.1, HS.2.2, Hw1 (by simp) (by simp)⟩
+          ihave ⟨-, #Hauth, #Hchk⟩ := Hnf $$ %eNF HNF Hit
           ihave %Hvn := typedPointsto_not_null _ _ _ $$ «$v0»
           iStructNamed «$v0»
           ihave Hwh : v3rpc.hdrW «$v0_ptr» $$ [ClusterId MemberId RaftTerm LeaderId]
@@ -181,16 +188,18 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
             iframe Hfd
             iexists dq', r'
             iframe Hrev
+          iframe Hauth Hchk
           iright
           isplitr
           · ipureintro; rfl
           iintro !> #Hrow
-          ihave Hit : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
+          ihave Hit2 : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
           · iunfold errIsTrue
             iexists S', I', U'
             iframe Htree
             ipureintro; exact ⟨HS.1, HS.2.2, Hw1 (by simp) (by simp)⟩
-          iapply Hnf $$ %eNF HNF Hit Hrow
+          ihave ⟨Hab, -, -⟩ := Hnf $$ %eNF HNF Hit2
+          iapply Hab $$ Hrow
 
 end proof
 

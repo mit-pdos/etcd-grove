@@ -35,7 +35,7 @@ and the compaction revision's permit `crevOk`, with their laws: what the server 
 fields fixed (`WSrv`: the server, its environment, the watchable store, the auth mode's tag, the
 cluster and member ids, the logger, the request budget).
 
-**One run** (`WRun`, `swsIs sws r Up Dn st ci cd`, persistent; the draft's §3, §6): the run's
+**One run** (`WRun`, `swsIs sws r Up Dn st ci tok cd`, persistent; the draft's §3, §6): the run's
 `serverWatchStream` `sws`, its fields (the gRPC stream, the mvcc watch stream `ws` (an interface
 value: `NewWatchStream` does not say its dynamic type) with its API name `ι`, the control stream
 `ctrl` (an SPSC channel from the receive loop to the send loop, `ctrlP`: each control response
@@ -511,18 +511,18 @@ instance watchStreamSpec_persistent (γs : StreamNames) (R : WSrv GF) (W : SrvW 
 
 /-- **A control response** `l` on the control stream: a response holding a model `m` with the
 server's header ids, no ghost source, answering a request of the stream (`ctrlOk`, at the run's
-context's token; with the request's answer token: not persistent). -/
-def ctrlP (r : WRun GF) (ci : GoInterfaceOk) (_k : Int) (l : Loc) : IProp GF :=
+context's token `tok`; with the request's answer token: not persistent). -/
+def ctrlP (r : WRun GF) (tok : Option GoString) (_k : Int) (l : Loc) : IProp GF :=
   iprop(∃ m : WatchRespM, watchRespMsg l m ∗
     ⌜m.hdr.clusterId = r.srv.cid ∧ m.hdr.memberId = r.srv.mid ∧ m.src = none⌝ ∗
-      ctrlOk r (auth.ctxTokenOf (GoInterface.ok ci)) m)
+      ctrlOk r tok m)
 
 /-- **The run's `serverWatchStream` `sws`** (persistent; the draft's `swsIs2`): the fields, the
 gRPC stream and its spec at the model, the client's content (`upOk`), the mvcc stream
 (`isMvccWatchStream`, its interface value the field's), the run's invariant (`wsInv`), the server's
 side (`srvWOk`), the control stream, `closec`, `mu`. -/
 def swsIs (sws : Loc) (r : WRun GF) (Up : Nat → WatchReqM → IProp GF)
-    (Dn : Nat → WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (Dn : Nat → WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk) (tok : Option GoString)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(⌜sws ≠ null⌝ ∗ zapLoggerOk r.srv.lg ∗
     swsF sws go!"lg" ↦□ r.srv.lg ∗
@@ -541,21 +541,22 @@ def swsIs (sws : Loc) (r : WRun GF) (Up : Nat → WatchReqM → IProp GF)
     swsF sws go!"closec" ↦□ r.cc ∗
     watchSrvOk r.srv.s r.srv.E r.srv.tag ∗
     srvStreamIs st r.γs pbWatchRequest pbWatchResponse Up Dn ci cd ∗
-    watchStreamSpec r.γs r.srv r.W (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
+    □ (⌜r.srv.E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗
+    watchStreamSpec r.γs r.srv r.W tok Dn ∗
     streamAuxIs r.γs (auxOf r) ∗
     upOk r.srv.E.authMode Up ∗
     mvcc.api.isMvccWatchStream r.ws r.W.γm r.ι ∗
     inv wsN (wsInv r) ∗
     srvWOk r.W r.srv.wsl wsN ∗
-    isSpsc r.γctrl r.ctrl (ctrlP r ci) (fun _ => iprop(True)) ∗
+    isSpsc r.γctrl r.ctrl (ctrlP r tok) (fun _ => iprop(True)) ∗
     ownBroadcastChan r.cc r.γcc iprop(True) .Unknown ∗
     sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm r.γpk))
 
 /-- `swsIs` is persistent (its mvcc parts by the API's `persistent.law`). -/
 theorem swsIs_persistent (hP : mvcc.api.persistent.law (GF := GF)) (sws : Loc) (r : WRun GF)
     (Up : Nat → WatchReqM → IProp GF) (Dn : Nat → WatchRespM → IProp GF) (st : GoInterface)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    Persistent (swsIs sws r Up Dn st ci cd) := by
+    (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (swsIs sws r Up Dn st ci tok cd) := by
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have := srvWOk_persistent hP r.W r.srv.wsl wsN
   unfold swsIs; infer_instance

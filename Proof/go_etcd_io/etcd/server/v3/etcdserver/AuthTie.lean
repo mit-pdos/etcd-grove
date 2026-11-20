@@ -183,6 +183,41 @@ theorem srvHist_pairwise (γk : KVNames) (L : List EntryModel) :
       rw [admStates_snoc_other _ _ _ _ ha]
       exact ih
 
+/-- **The model's admin steps never lower the auth state's order** (from the start's state). -/
+theorem srvAuthAtLog_ord (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) :
+    authOrd st₀ ≤ authOrd (srvAuthAtLog γk st₀ L) := by
+  suffices h : ∀ R : List EntryModel, authOrd st₀ ≤ authOrd (srvAuthAtLog γk st₀ R.reverse) by
+    simpa using h L.reverse
+  intro R
+  induction R with
+  | nil =>
+    have h := admStates_last γk st₀ []
+    rw [admStates_conf γk st₀ [] (by simp)] at h
+    simp only [List.getLast?_singleton, Option.some.injEq] at h
+    simp only [List.reverse_nil]
+    rw [← h]; exact Nat.le_refl _
+  | cons m R ih =>
+    rw [List.reverse_cons]
+    by_cases ha : admEntry γk.c0 (srvAuthAtLog γk st₀ R.reverse) m
+    · obtain ⟨ht, hd, rq, hdec, hv, hna, -, hne⟩ := ha
+      rw [srvAuthAtLog_snoc_adm _ _ _ _ rq ht hd hdec hv hna]
+      exact Nat.le_trans ih (Nat.le_of_lt (adminNext_ord rq _ hne))
+    · have h := admStates_last γk st₀ (R.reverse ++ [m])
+      rw [admStates_snoc_other _ _ _ _ ha, admStates_last] at h
+      simp only [Option.some.injEq] at h
+      rw [← h]; exact ih
+
+/-- **The applied auth state's revision is at least 1** (auth-schema-srv A6's L-rev: what the lend
+`authBkLend` takes): the start's state `bump bootState` has order 2, which no step lowers. -/
+theorem srvAuthAtLog_rev_pos (γk : KVNames) (L : List EntryModel) :
+    1 ≤ (srvAuthAtLog γk (auth.bump auth.bootState) L).revision := by
+  have h := srvAuthAtLog_ord γk (auth.bump auth.bootState) L
+  unfold authOrd at h
+  have hb : (if (srvAuthAtLog γk (auth.bump auth.bootState) L).enabled = true then 1 else 0) ≤ 1 := by
+    split <;> omega
+  simp only [auth.bump, auth.bootState, Bool.false_eq_true, ↓reduceIte, Nat.zero_add] at h hb ⊢
+  omega
+
 theorem srvHist_nodup (γk : KVNames) (L : List EntryModel) : (srvHist γk L).Nodup :=
   (srvHist_pairwise γk L).imp (fun h => Nat.ne_of_lt h ∘ congrArg authOrd)
 

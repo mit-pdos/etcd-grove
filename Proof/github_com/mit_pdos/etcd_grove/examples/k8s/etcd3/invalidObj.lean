@@ -26,11 +26,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem invalidObj.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG)) :
     invalidObj.spec (GF := GF) (hG := hG) := by
-  intro key
+  intro key msg
   wp_start as -
   wp_auto
   wp_apply wp_storeKey
-  simp only [invalidObjL, mkeyL, errOutL]
+  simp only [invalidObjL, invalidOutL, mkeyL]
   iapply HΦ
   (try ipureintro; trivial)
 

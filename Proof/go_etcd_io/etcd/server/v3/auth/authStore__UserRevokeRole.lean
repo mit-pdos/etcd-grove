@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -137,6 +138,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨#HUG, -, -, -, -⟩
+  wp_take_receipt as Hrc
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
   iapply HUG $$ %st0 %name HL
@@ -312,8 +314,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #uu))
   iapply HPutU $$ %st0 %Post %uu
     %({ ur with roles := roles' } : UserRec) %AuthSess.init
-    [HL Hsw Huu]
-  · iframe HL Hsw
+    [HL Hrc Hsw Huu]
+  · iframe HL Hrc Hsw
     isplitl [Huu]
     · iunfold ownUser
       iexists zeroValDef, unm, upw, sl, uo, (0 : w32)

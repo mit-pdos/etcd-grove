@@ -174,7 +174,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   icases Hw with ⟨%d', %π0, %g, %up', %opts', %L, %spc, %jf, %γcf, %w0, %RD0, %up, %lg, %ua,
     %Hpure, #HB, #HhkAt', #HbhF', #HSC, -, -, -, #HCI', #HhkS, -, -, #Hro', #Hwa, #Hlga, Hwok,
     #HplRO, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb, Hleb, Hlo, Hlrd, Hlrv, HLt1, HLt2, HEv,
-    #HRqs, Hrdat, #Haus, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', HmO, HmB, HwSt, HcrO, Htl, Hlgr, Hai, Hatt,
+    #HRqs, Hrdat, #Haus, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', HmO, HmB, HwSt, HcrO, HWtn, Htl, Hlgr, Hai, Hatt,
     Hds, Hms, Hcsa, Hcso, Hpath, #Hbf, Halb, HRD2, Hube, Hua, Hra, Hauar, HRD0, -⟩
   obtain ⟨hP', hcm', hm0, hbr', hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -, ho11, ho12⟩ :=
     Hpure
@@ -207,11 +207,18 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   · iframe #; iframe Hauar
   have hxl : x.log.length ≤ (kvModelM E.authOn γr.kv A').length := by
     rw [hxA]; exact (srvApi.kvModelM_prefix E.authOn γr.kv A A' hAA').length_le
+  -- (auth-lease S4 item 7b) no lessor window, the default window token (`srvEnvOk`)
+  ihave #HsrvW := Hsrv
+  iunfold isServerM at HsrvW
+  icases HsrvW with ⟨-, -, ⟨%vW, HfW⟩, -⟩
+  iunfold srvFieldsAtM at HfW
+  icases HfW with ⟨-, -, -, -, -, %HenvW, -⟩
   ihave HKV' := snap_applyKV s γ ci E ρ γr π0 d.P d' g up' opts' w0 RD0 al ast lp cl x A'
-      (srvIds E (appliedTableM E.authOn γr A').ids) E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') hxl hnl $$
-      [Huo' Hua HwSt HcrO HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl' Hrt Hra Hauar
+      (srvIds E (appliedTableM E.authOn γr A').ids) E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') hxl hnl
+      HenvW.2.2.1 $$
+      [Huo' Hua HwSt HcrO HWtn HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl' Hrt Hra Hauar
         Hwok HRD0]
-  · iframe #; iframe Huo' Hua HwSt HcrO HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl'
+  · iframe #; iframe Huo' Hua HwSt HcrO HWtn HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl'
       Hrt Hra Hauar Hwok HRD0
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets

@@ -279,7 +279,7 @@ theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL :
   rcases Hp with ⟨R, hR⟩ | hpb
   · -- past the bootstrap log
     rw [← hR]
-    obtain ⟨hne, hnd, hbo⟩ := Hok
+    obtain ⟨hne, hnd, hbo, -⟩ := Hok
     refine restReplay_close γr.raft.raft.vs γr.raft.raft.boot R rp.b hbo hnd Hurl ?_ ?_
     · intro e he cc hd
       have hm : EntryModel.ofM e ∈ rp.A₀ := by
@@ -290,7 +290,7 @@ theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL :
     · intro m hm ht cc hd
       exact hccA m (by rw [← hR]; exact List.mem_append_right _ hm) ht cc hd
   · -- inside the bootstrap log: every entry a conf change, whose replay is the identity
-    obtain ⟨-, -, hbo⟩ := Hok
+    obtain ⟨-, -, hbo, -⟩ := Hok
     have hall : ∀ m ∈ rp.A₀.drop rp.b, m.typ ≠ W32 0 := by
       intro m hm
       have hm' : m ∈ γr.raft.raft.boot.map EntryModel.ofM :=

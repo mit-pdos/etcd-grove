@@ -1101,7 +1101,8 @@ def kErrOk (err : GoInterface) : IProp GF :=
     ⌜(e.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty → ∃ x : Loc, e.v = #x) ∧
       (e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
         ∃ y : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, e.v = #y)⌝ ∗
-    fmt.stringMethodSpec e go!"Error" ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗
+    fmt.stringMethodSpec e go!"Error" ∗ ⌜methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some noArgStringSig⌝ ∗
     (⌜go.typeSetContains e.ty k8s_io.apiserver.pkg.storage.etcd3.etcdError.ty = true⌝ -∗
       ∀ Φ : val → IProp GF, ▷ (∀ c : google_golang_org.grpc.codes.Code, Φ #c) -∗
         WP (App (Val #(methods e.ty go!"Code" e.v)) (Val #())) {{ Φ }}) ∗

@@ -1121,18 +1121,18 @@ private theorem boltOpenFd (i : Ino) :
   have h1 : (W64 0x42 ||| W64 0x80000).toNat % 4 = 2 := by decide
   simp only [openFd, h1, O_WRONLY, O_RDONLY]; rfl
 
-/-- **The shared mode's open of the database file** as `openFileDb.spec` at `Ek := ¬ FsNoErr`:
-`os.OpenFile.specCreateS` (an error carries `¬ FsNoErr`); the claim's halves, the trivial update, the outcome's claim back
+/-- **The shared mode's open of the database file** as `openFileDb.spec` at
+`Ek := ¬ FsNoErr ∨ ¬ PathFits (child d b)`: `os.OpenFile.specCreateS` (an error carries it); the claim's halves, the trivial update, the outcome's claim back
 whole; the file the open left at the name, mappable. -/
 private theorem openFileDb_shared
     (hCS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (perm : w32)
     (D : Data) (hb : NameOk b) :
-    openFileDb.spec (GF := GF) (hG := hG) (¬ FsNoErr) (· ≤ 0xFFFFFFFFFFFF)
-      iprop(osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+    openFileDb.spec (GF := GF) (hG := hG) (¬ FsNoErr ∨ ¬ PathFits (child d b)) (· ≤ 0xFFFFFFFFFFFF)
+      iprop(osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
         osNames j (.only [b]) (DFrac.own 1) h ∗ nameHolds h b D)
       (fun oc : Option (Nat × Nat × Ino) =>
-        iprop(osPathS (GF := GF) R d dq j ∗ osCallPerm qc ∗ crOut j b h (DFrac.own 1) oc))
+        iprop(osPathS (GF := GF) R d dq j ∗ osCallPerm (callKey R d) qc ∗ crOut j b h (DFrac.own 1) oc))
       (fun oc i => crIno b h oc i) (child d b) perm D := by
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hnh⟩ HΦ
   obtain ⟨hfl, hcr, htr⟩ := boltOpenFlag_create
@@ -1235,7 +1235,8 @@ private theorem optsW_mmap (Ek : Prop) (opts : Loc) (dq : DFrac) (v : go_etcd_io
 
 omit [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] in
 set_option maxHeartbeats 4000000 in
-/-- **`Open.spec`**: `Open.wp_proofG` at `Ek := ¬ FsNoErr` (every callee's error arm witnesses it),
+/-- **`Open.spec`**: `Open.wp_proofG` at `Ek := ¬ FsNoErr ∨ ¬ PathFits (child d b)` (every callee's
+error arm witnesses `¬ FsNoErr`, the open's either),
 the file mappable (`nameHolds`), the options' witness half of `optsAtNoErr`'s points-to. -/
 theorem Open.wp_proof [sync.Assumptions]
     (hCS : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
@@ -1265,8 +1266,10 @@ theorem Open.wp_proof [sync.Assumptions]
   icases pt_split_half opts v dqo $$ Hv with ⟨Hv1, Hv2⟩
   iapply Open.wp_proofG hName hFlock hStat hSize hMZ hInit hGPS hMmap hLoad hSync hFds hBegin
     hCommit hClose hclose hLogger hOptStr hModeStr _ _ _ N (child d b) mode opts (dfHalf dqo) o D
-    (¬ FsNoErr) (· ≤ 0xFFFFFFFFFFFF) (opts ↦{dfHalf dqo} v) id (fun _ hn => Or.inr hn)
-    (optsW_timeout _ opts (dfHalf dqo) v hv.2) (optsW_nfs (¬ FsNoErr) opts (dfHalf dqo) v hv.2)
+    (¬ FsNoErr ∨ ¬ PathFits (child d b)) (· ≤ 0xFFFFFFFFFFFF) (opts ↦{dfHalf dqo} v) Or.inl
+    (fun _ hn => Or.inr hn)
+    (optsW_timeout _ opts (dfHalf dqo) v hv.2)
+    (optsW_nfs (¬ FsNoErr ∨ ¬ PathFits (child d b)) opts (dfHalf dqo) v hv.2)
     (optsW_mmap _ opts (dfHalf dqo) v hv.2)
     (openFileDb_shared hCS R d b dq j qc h mode D hb) $$ [Hp Hperm Hn Hnh Hv1 Hv2 Hlgr]
   · iframe; iframe #

@@ -78,7 +78,7 @@ def createAreaL (jr : Ino) (nm : GoString) (N : NameSet) (h : NamesH) (cl : List
 /-- **What `Create` gets back from its cleanup's rename** (see the file header). -/
 def createFin (R : Roots) (jr : Ino) (r nm : GoString) (qa : Qp) (f : Loc) (N : NameSet) (h : NamesH)
     (cl : List (GoString × Claim)) (Wn : List GoString) (_err : GoInterface) : IProp GF :=
-  iprop(osPathS (L := hG.goose_localGS) R r (DFrac.own qa) jr ∗ osCallPerm (L := hG.goose_localGS) 1 ∗
+  iprop(osPathS (L := hG.goose_localGS) R r (DFrac.own qa) jr ∗ osCallPerm (L := hG.goose_localGS) (callKey R r) 1 ∗
     (∃ nmf : GoString, os.ownFile f (-1 : w64) nmf (DFrac.own 1)) ∗
     createAreaL (W := W) jr nm N h cl Wn)
 
@@ -187,7 +187,7 @@ theorem create_cleanupLaw [os.fileStat.FieldAssumptions] (Mr : WalMarshal) (R : 
       (∀ b, (N.diff [tmpName nm]).Mem b → b ≠ nm → ¬ BrokenSlot b → h''.cur !! b = h.cur !! b) →
       ⊢ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
         osPathS (L := hG.goose_localGS) R r (DFrac.own (d + (d + qa))) jr -∗
-        osCallPerm (L := hG.goose_localGS) 1 -∗
+        osCallPerm (L := hG.goose_localGS) (callKey R r) 1 -∗
         (∃ nmf : GoString, os.ownFile f (-1 : w64) nmf (DFrac.own 1)) -∗
         areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmpName nm))) -∗
         walSplitFrag (W := W) Wn -∗ walUnlockedTokX (W := W) -∗

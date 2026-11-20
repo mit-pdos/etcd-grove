@@ -85,7 +85,6 @@ axiom dataDirFresh
 axiom dataDirsApart
 axiom envVerifyOffTok
 axiom fmt.Errorf.wp_proof
-axiom fmt.ErrorfWrap.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom heap.Init_.wp_proof

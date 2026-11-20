@@ -37,10 +37,10 @@ abbrev os.WriteFile.specTruncS : Prop :=
   ∀ (d b : GoString) (sl : GoSlice) (dqs : DFrac) (perm : w32) (R : Roots) (j i : Ino) (N : NameSet)
     (dq dqn : DFrac) (h : NamesH) (qc : Qp),
   NameOk b → N.Mem b → h.cur !! b = some (.file i) →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h ∗
       trFile i False ∗ sl ↦*{dqs} ([] : List w8) }}
     (App (App (App (Val (@! os.WriteFile)) (Val #(child d b))) (Val #sl)) (Val #perm))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h ∗
+  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h ∗
       trFile i False ∗ sl ↦*{dqs} ([] : List w8) }}
 
 end spec

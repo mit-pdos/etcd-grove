@@ -488,11 +488,12 @@ theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG :=
   -- the snapshot clause at the new backend
   ihave #Hsn := Hsnap
   iunfold authSchemaSnap at Hsn
-  imod Hsn $$ %lg %abl %dn %W %Pk %f %r %(srvAuthAtLog γr.kv srvAuthSt0 A') [] [] Habl [] HisB Hhk
+  imod Hsn $$ %lg %abl %dn %W %Pk %f %r %(srvAuthAtLog γr.kv srvAuthSt0 A') [] [] [] Habl [] HisB Hhk
       [] Hrb Hslots HbO Hlk Hsucc
     with ⟨%γc, #HokH, HCu, #HwR, #HwH, #HLend, HT', #Hlife'⟩
   · ipureintro; exact Hlg
   · ipureintro; exact Hbk
+  · ipureintro; exact hk _ (List.mem_of_getLast? (srvHist_last γr.kv A'))
   · ipureintro; exact Hhas
   · ipureintro; exact Hf
   -- the apply thread's reader of the store: its `R`, for `Recover`

@@ -84,10 +84,10 @@ abbrev fileutil.ReadDir.specAbsentIs : Prop :=
   es.length = gs.length → NameOk b → N.Mem b → h.cur !! b = none →
   {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗
-      osPathS (GF := GF) R d dq j ∗ osCallPerm (GF := GF) qc ∗ osNames (GF := GF) j N dqn h ∗
+      osPathS (GF := GF) R d dq j ∗ osCallPerm (GF := GF) (callKey R d) qc ∗ osNames (GF := GF) j N dqn h ∗
       sl ↦*{dqs} gs ∗ [∗list] i ↦ g ∈ gs, fileutil.withExtFn (GF := GF) g (es.getD i "") }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir)) (Val #(child d b))) (Val #sl))
-  {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
+  {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j N dqn h ∗ sl ↦*{dqs} gs ∗ ⌜err ≠ interface.nil⌝ ∗ ∃ bn : Bool, errIsNotExist err bn }}
 
 /-- See the file header. -/
@@ -98,12 +98,12 @@ abbrev fileutil.ReadDir.specChildIs : Prop :=
   es.length = gs.length → NameOk b → Np.Mem b → hp.cur !! b = some (.dir J) →
   {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗
-      osPathS (GF := GF) R d dq jp ∗ osNames (GF := GF) jp Np dqp hp ∗ osCallPerm (GF := GF) qc ∗
+      osPathS (GF := GF) R d dq jp ∗ osNames (GF := GF) jp Np dqp hp ∗ osCallPerm (GF := GF) (callKey R d) qc ∗
       osNames (GF := GF) J N dqn h ∗
       sl ↦*{dqs} gs ∗ [∗list] i ↦ g ∈ gs, fileutil.withExtFn (GF := GF) g (es.getD i "") }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir)) (Val #(child d b))) (Val #sl))
   {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq jp ∗ osNames jp Np dqp hp ∗
-      osCallPerm qc ∗ osNames J N dqn h ∗ sl ↦*{dqs} gs ∗
+      osCallPerm (callKey R d) qc ∗ osNames J N dqn h ∗ sl ↦*{dqs} gs ∗
       ((∃ names rs : List GoString, ⌜err = interface.nil ∧ (∀ b ∈ names, NameOk b) ∧
             (∀ b, N.Mem b → ((h.cur !! b).isSome ↔ b ∈ names)) ∧
             (∀ b, N.Mem b → names.count b ≤ 1) ∧ fileutil.ReadDirOut names (fileutil.optsExt es) rs⌝ ∗

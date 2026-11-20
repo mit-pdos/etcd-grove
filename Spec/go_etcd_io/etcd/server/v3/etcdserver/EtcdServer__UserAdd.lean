@@ -72,19 +72,19 @@ abbrev EtcdServer.UserAdd.spec : Prop :=
 /-- **What a mode-`on` `UserAdd` of `name` answers** (`adminOutOn` for the request the handler
 proposed, some model `m` of it with the name `name`, the password choice `b` and a password choice
 that cannot fail). -/
-def userAddOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk) (F : mvcc.Log)
+def userAddOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString) (F : mvcc.Log)
     (name : GoString)
     (b : Bool) (Q : List auth.AuthState → IProp GF) (l : Loc) (err : GoInterface) : IProp GF :=
   iprop(∃ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ ∗
-    adminOutOn s E ρ ctx (irrUserAdd m) F (adminQh ρ.kv (irrUserAdd m) Q)
+    adminOutOn s E ρ tok (irrUserAdd m) F (adminQh ρ.kv (irrUserAdd m) Q)
       etcdserverpb.AuthUserAddResponse.ty l err)
 
 /-- **A mode-`on` `UserAdd`'s client update of the auth history** (5b): `histAu` for every model of
 the request the handler may propose (the name `name`, the password choice `b`, sure). -/
-def userAddHistAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+def userAddHistAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (name : GoString) (b : Bool) (Q : List auth.AuthState → IProp GF) : IProp GF :=
   iprop(∀ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ →
-    adminHistAu s E ρ ctx (irrUserAdd m) Q)
+    adminHistAu s E ρ tok (irrUserAdd m) Q)
 
 end spec
 

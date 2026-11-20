@@ -31,16 +31,13 @@ theorem raft.hardState.wp_proof : raft.hardState.spec (GF := GF) (hG := hG) := b
   iapply wp_fupd
   wp_auto
   ihave Hlog := Hlb $$ Hl
-  imod cellRO_alloc $$ «$v0» with #cT
-  imod cellRO_alloc $$ «$v1» with #cV
-  imod cellRO_alloc $$ «$v2» with #cC
   irename «$r0» => Hp
   generalize «$r0_ptr» = p at *
-  imod hsRO_of_struct p (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0) (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp] with #Hhs
+  imod hsROC_of_struct p (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0) (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp «$v0» «$v1» «$v2»] with #Hhs
   · iframe Hp
     rw [Hlv.1]
     simp only [hardstateVal, nodeHardstate]
-    iframe cT cV cC
+    iframe
   imodintro
   iapply HΦ
   iframe Hhs

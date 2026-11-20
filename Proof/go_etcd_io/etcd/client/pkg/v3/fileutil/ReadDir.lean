@@ -42,13 +42,13 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
   have hOk : ∀ names, OkN names → names.length ≤ 2 ^ 62 := fun names h => by
     have := h.2.2.2; omega
   have wpOpen : ∀ Φ : val → IProp GF,
-      ⊢ iprop(osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h) -∗
+      ⊢ iprop(osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h) -∗
         (∀ (f : Loc) (err : GoInterface),
           ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd d (DFrac.own 1) ∗
               iprop(osDirFdS fd j .idle ∗ osInv) ∗
-              iprop(osSharedInv R ∗ osNames j N dqn h ∗ osPathS R d dq j ∗ osCallPerm qc)) ∨
+              iprop(osSharedInv R ∗ osNames j N dqn h ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc)) ∨
            (⌜err ≠ interface.nil⌝ ∗ Er err ∗
-              iprop(osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h))) -∗ Φ (PairV #f #err)) -∗
+              iprop(osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h))) -∗ Φ (PairV #f #err)) -∗
         WP (App (Val (@! os.Open)) (Val #d)) {{ Φ }} := by
     intro Φ
     iintro ⟨#Hinv, #Hsi, Hp, Hperm, Hn⟩ HΦ
@@ -66,10 +66,10 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
       iexists e; iframe Herr; ipureintro; exact he.1
   have wpRead : ∀ (f : Loc) (fd n : w64) (Φ : val → IProp GF), ⊢ ⌜sint.Z n ≤ 0⌝ -∗
       os.ownFile f fd d (DFrac.own 1) -∗ iprop(osDirFdS fd j .idle ∗ osInv) -∗
-      iprop(osSharedInv R ∗ osNames j N dqn h ∗ osPathS R d dq j ∗ osCallPerm qc) -∗
+      iprop(osSharedInv R ∗ osNames j N dqn h ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc) -∗
       (∀ (r : GoSlice) (err : GoInterface), os.ownFile f fd d (DFrac.own 1) -∗
         iprop(osInv ∗ ∃ ph, osDirFdS fd j ph) -∗
-        iprop(osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h) -∗
+        iprop(osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h) -∗
         ((∃ names : List GoString, ⌜err = interface.nil ∧ OkN names⌝ ∗ r ↦* names) ∨
          (⌜err ≠ interface.nil⌝ ∗ Er err)) -∗ Φ (PairV #r #err)) -∗
       WP (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Readdirnames")) (Val #n))
