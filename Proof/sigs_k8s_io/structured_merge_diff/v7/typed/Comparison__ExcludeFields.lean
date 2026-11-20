@@ -1,6 +1,6 @@
 /-
-`typed.Comparison.ExcludeFields`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.Comparison.ExcludeFields`: proved (Prove phase, 2026-11-20): the argument is nil (the scope), so it
+returns the comparison unchanged.
 -/
 module
 
@@ -31,8 +31,13 @@ variable [package_sem : typed.Assumptions]
 theorem typed.Comparison.ExcludeFields.wp_proof
     (h_Set_Empty : fieldpath.Set.Empty.spec (GF := GF))
     (h_Set_RecursiveDifference : fieldpath.Set.RecursiveDifference.spec (GF := GF)) :
-    typed.Comparison.ExcludeFields.spec (GF := GF) := by
-  sorry
+    typed.Comparison.ExcludeFields.spec (GF := GF) :=
+    fun c C fields => by
+  wp_start as ⟨Hc, %Hf⟩
+  subst Hf
+  wp_auto
+  iapply HΦ
+  iexact Hc
 
 end proof
 

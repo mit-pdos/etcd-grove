@@ -1,6 +1,6 @@
 /-
-`typed.Comparison.FilterFields`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.Comparison.FilterFields`: proved (Prove phase, 2026-11-20): the argument is nil (the scope), so it
+returns the comparison unchanged.
 -/
 module
 
@@ -27,8 +27,13 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.Comparison.FilterFields.wp_proof :
-    typed.Comparison.FilterFields.spec (GF := GF) := by
-  sorry
+    typed.Comparison.FilterFields.spec (GF := GF) :=
+    fun c C filter => by
+  wp_start as ⟨Hc, %Hf⟩
+  subst Hf
+  wp_auto
+  iapply HΦ
+  iexact Hc
 
 end proof
 
