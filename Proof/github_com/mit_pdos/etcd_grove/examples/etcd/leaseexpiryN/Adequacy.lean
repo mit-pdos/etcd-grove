@@ -40,6 +40,7 @@ public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.InitLinked
 
 @[expose] public section
 
@@ -88,6 +89,8 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_leaseexpiryN.leaseexpiryNDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -96,7 +99,7 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetNGF) (hAsLit := etcd_leaseexpiryN.leaseexpiryNAddrs_lit k hk)
+  refine etcd_adequate_members (GF := putgetNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseexpiryN.leaseexpiryNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_leaseexpiryN.leaseexpiryNAddrs k)

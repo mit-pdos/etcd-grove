@@ -50,8 +50,11 @@ theorem apierrors.NewTimeoutError.wp_proof :
   iframe
   isplitr
   · ipureintro; rfl
+  isplitr
+  · ipureintro
+    exact ⟨rfl, rfl, rfl⟩
   ipureintro
-  exact ⟨rfl, rfl, rfl⟩
+  rfl
 
 end proof
 

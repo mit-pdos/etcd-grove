@@ -354,6 +354,15 @@ instance k8s_io_apimachinery_pkg_util_runtime_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.runtime :=
   build_get_is_pkg_init_wf
 
+-- (2026-11-18) component-base's `metrics` (names only; no initializer fact), which etcd3's
+-- `metrics` imports since `OperationLatencyTracker` is a struct (moved here from the cacher's Base)
+instance k8s_io_component_base_metrics_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.component_base.metrics :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_component_base_metrics_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.component_base.metrics :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_apiserver_pkg_storage_etcd3_metrics_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics :=
   define_is_pkg_init metricsInit
@@ -403,6 +412,14 @@ instance k8s_io_apiserver_pkg_storage_feature_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.feature :=
   build_get_is_pkg_init_wf
 
+-- `k8s.io/utils/trace` (names only), which `tracing` imports (its `Span`'s field type)
+instance k8s_io_utils_trace_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.utils.trace :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_utils_trace_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.utils.trace :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_component_base_tracing_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.component_base.tracing :=
   define_is_pkg_init iprop(True)
@@ -438,7 +455,7 @@ variable [sem : go.Semantics]
 2026-11-10): a `*errorString` is a leaf without `Is` or `GRPCStatus` (`EtcdGrove.ErrorStringLeaf`,
 of the method set goose emits), and its `Error()` returns its message. `metricsInit`'s
 `ErrTransactionConflict`, which `txnError` returns. -/
-theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] (x : Loc) (msg : GoString) :
+theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
     (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
         go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
@@ -457,7 +474,7 @@ theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] (x : Loc) (msg : GoS
   · ipureintro; exact hl
   isplitr
   rotate_left
-  · ipureintro; exact EtcdGrove.ErrorStringLeaf.noFormat
+  · ipureintro; exact ⟨EtcdGrove.ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h

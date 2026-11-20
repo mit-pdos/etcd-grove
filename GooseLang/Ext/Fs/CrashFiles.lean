@@ -61,7 +61,7 @@ theorem treeCrashed_trans {V V' V'' : Hist} (h1 : TreeCrashed V V') (h2 : TreeCr
 section after
 variable {st st' : OsState} {Γb : GMap (Ino × Nat) ByteG} {Γm : GMap Ino OsMeta}
   {Γf : GMap w64 OsFd} {Γt : GMap Nat TokInfo} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
-  {Γc : GMap Nat (Nat × Qp)}
+  {Γc : GMap Nat CallV}
 
 /-- After a machine crash, the state is one a program may start in. -/
 theorem machineCrash_init (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc)
@@ -110,13 +110,14 @@ theorem osCrash_rel (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc) (hc : OsCr
 (`closed_cut`, from the shared mode's disciplines on the log), and each slot of the new tree holds
 what it held right after the last kept entry writing it. -/
 theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
-    {Γg : GMap Nat (Nat × Qp)} (htc : TreeCohS st s0 Γdf Γc Γg) (hc : MachineCrash st st') :
+    {Γg : GMap Nat CallV} (htc : TreeCohS st s0 Γdf Γc Γg) (hc : MachineCrash st st') :
     FsInit st' ∧ ∃ S, (∀ x, S x → x < st.fs.metaLog.length) ∧ Closed st.fs.metaLog S ∧
       (∀ y, st.fs.committed y → S y) ∧
       ∀ j b, st'.fs.treeDur.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b := by
   obtain ⟨hp, hr, hlog, hcom, hino, -, ⟨S, hSlt, hSc, hcl, htr⟩, hfiles⟩ := hc
-  obtain ⟨hwf, hslot, hnamed, ⟨t, ht, hkeys⟩⟩ := closed_cut (R := st.fs.roots) htc.starts htc.pss
-    htc.dox htc.valid (fun t ht => (htw.hist t ht).1) hSlt hcl
+  obtain ⟨ρ, hrc, -⟩ := htc.rc
+  obtain ⟨hwf, hslot, hnamed, hkeys⟩ := closed_cut htc.starts htc.pss
+    hrc.dox hrc.tags htc.valid (fun t ht => (htw.hist t ht).1) hSlt hcl
   refine ⟨⟨hp, hlog, hcom, by rw [hr]; exact htw.roots, by rw [hr, htr]; exact hwf, ?_, ?_, ?_, ?_⟩,
     S, hSlt, hcl, hSc, fun j b => by rw [htr]; exact hslot j b⟩
   · intro i hi
@@ -137,13 +138,15 @@ theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : F
     obtain ⟨t', ht', hnt⟩ := hnamed i hn'
     obtain ⟨f, hf⟩ := (htw.hist t' ht').2.1 i hnt
     exact htw.files_lt i (by rw [GMap.mem_iff, hf]; rfl)
-  · intro j hj; rw [hino]; rw [htr] at hj; exact (htw.hist t ht).2.2 j ((hkeys j).1 hj)
+  · intro j hj; rw [hino]; rw [htr] at hj
+    obtain ⟨t, ht, hjt⟩ := hkeys j hj
+    exact (htw.hist t ht).2.2 j hjt
 
 /-- **What a crash keeps of the tree, in the shared mode**: the new state is one a program may
 start in, on the same roots, every file it names is there, and the crash kept a closed set of the
 log's entries, with the committed ones, each slot as right after its last kept writer. -/
 theorem osCrash_relS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
-    {Γg : GMap Nat (Nat × Qp)} (htc : TreeCohS st s0 Γdf Γc Γg) (hc : OsCrash st st') :
+    {Γg : GMap Nat CallV} (htc : TreeCohS st s0 Γdf Γc Γg) (hc : OsCrash st st') :
     FsInit st' ∧ st'.fs.roots = st.fs.roots ∧
       (∀ i, Named st'.fs.treeDur i → (st'.fs.files !! i).isSome) ∧
       ∃ S, (∀ x, S x → x < st.fs.metaLog.length) ∧ Closed st.fs.metaLog S ∧

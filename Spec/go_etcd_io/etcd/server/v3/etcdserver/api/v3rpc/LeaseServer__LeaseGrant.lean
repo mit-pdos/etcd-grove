@@ -31,7 +31,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`ls.LeaseGrant(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
-(`leaseServerAt`), whose `LeaseGrant` meets the grant contract `lessorGrantOkG s E S G` (the
+(`leaseServerAt`), whose `LeaseGrant` meets the grant contract `lessorGrantOkGM on s E ρ S G R` (the
 lease-grant plan's (F2): the grant contract alone, with the success fact `G`), in a gRPC run (its
 context, the resource `S`), on a decoded request: `ls.le.LeaseGrant(ctx, r)`, then the header
 filled: `S` back, and the server's response with its header filled by the cluster `cid` and the
@@ -41,22 +41,26 @@ request and it (2026-11-05, the lease-expiry plan's E3/R5: the granted TTL; unti
 id only). (E3, 2026-11-04) The request is one the contract's filter `R` covers. (Auth-lease S3c, decision D6/C5′,
 2026-11-15: the contract at the auth mode `on`, `lessorGrantOkGM on s E ρ S G R`, with the client's `Q`
 and the server's permit at the request context's token, handed through unchanged, and on success the
-client's result `leaseGrantResT`; at `on = false` the auth-off contract, `lessorGrantOkGM_false`.) -/
+client's result `leaseGrantResT`; at `on = false` the permit and the result are `True`.) (Auth-lease S4, Freeze §7 R4-1, D-h) For the caller's lower bound `n` of the published auth index, a
+success also carries `requireAuthInfo`'s check at the request context's token relative to `n`
+(`leaseCheckFrom … n (fun _ => True)`). -/
 abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
-    (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64) (Q : w64 → KVState → IProp GF),
+    (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk) (tok : Option GoString)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64) (Q : w64 → KVState → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorGrantOkGM on s E ρ S G R ∗ S ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseGrantReqIs r m ∗
+      auth.authPubLbM E.authMode n ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ □ (⌜on = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ v3rpc.leaseGrantReqIs r m ∗
       v3rpc.leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ ∗
-      leaseGrantPermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m.1 Q }}
+      leaseGrantPermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode tok) m.1 Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseGrantOut E cid mid resp err ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
         structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id ∗
-        v3rpc.leaseGrantResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m.1 id Q) ∗
+        v3rpc.leaseGrantResT on s E ρ tok m.1 id Q ∗
+        leaseCheckFrom s E tok n (fun _ => iprop(True))) ∗
       go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec

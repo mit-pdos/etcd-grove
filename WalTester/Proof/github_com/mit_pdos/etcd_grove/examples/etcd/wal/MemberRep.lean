@@ -40,7 +40,7 @@ def memSaveRes (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o 
     (d : WalDur) (qc : Qp) : IProp GF :=
   iprop(osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
-      osCallPerm (GF := GF) qc ∗
+      tPerm (GF := GF) e qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ m.[member, go!"o"] ↦ v ∗
       oracleRep v o ∗ tOrOwn γ os none ∗ tWalOwn γ (some d) ∗
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
@@ -52,7 +52,7 @@ def memSaveRes (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o 
 /-- `member.save.spec`'s postcondition at the oracle `o`, the hard state `h` and the entries `es`. -/
 def memSavePost (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOracle) (c : TCand) (qc : Qp)
     (h : THs) (es : List TEnt) (b : Bool) : IProp GF :=
-  iprop(DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
+  iprop(DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ tPerm (GF := GF) e qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗ (∃ os' : TOracle, tOrOwn γ os' none) ∗
       if b then ∃ d' : WalDur, oracleRep v' (tSaveO o h es) ∗ tWalOwn γ (some d') ∗

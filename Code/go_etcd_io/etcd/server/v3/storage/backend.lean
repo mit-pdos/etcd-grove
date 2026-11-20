@@ -207,42 +207,26 @@ opaque boltOpenOptions.init [GooseExts] [GoGlobalContext] : val
 noncomputable def commitSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.commitSec"
 
-opaque commitSec.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def rebalanceSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.rebalanceSec"
-
-opaque rebalanceSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def spillSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.spillSec"
 
-opaque spillSec.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def writeSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.writeSec"
-
-opaque writeSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defragSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragSec"
 
-opaque defragSec.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defragBlockingSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragBlockingSec"
-
-opaque defragBlockingSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotTransferSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.snapshotTransferSec"
 
-opaque snapshotTransferSec.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def isDefragActive [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.isDefragActive"
-
-opaque isDefragActive.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultBackendConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.DefaultBackendConfig"
@@ -3506,6 +3490,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 10000))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val #(W64 1000000))))
@@ -3517,32 +3509,108 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 30)) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"disk"))
+  (Let "$v2" (Val #(go!"backend_commit_duration_seconds"))
+  (Let "$v3" (Val #(go!"The latency distributions of commit called by backend."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4562254508917369340))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 14))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"disk"))
+  (Let "$v2" (Val #(go!"backend_commit_rebalance_duration_seconds"))
+  (Let "$v3" (Val #(go!"The latency distributions of commit.rebalance called by bboltdb backend."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4562254508917369340))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 14))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"disk"))
+  (Let "$v2" (Val #(go!"backend_commit_spill_duration_seconds"))
+  (Let "$v3" (Val #(go!"The latency distributions of commit.spill called by bboltdb backend."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4562254508917369340))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 14))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"disk"))
+  (Let "$v2" (Val #(go!"backend_commit_write_duration_seconds"))
+  (Let "$v3" (Val #(go!"The latency distributions of commit.write called by bboltdb backend."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4562254508917369340))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 14))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"disk"))
+  (Let "$v2" (Val #(go!"backend_defrag_duration_seconds"))
+  (Let "$v3" (Val #(go!"The latency distribution of backend defragmentation."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4591870180066957722))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 13))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"disk"))
+  (Let "$v2" (Val #(go!"backend_defrag_blocking_duration_seconds"))
+  (Let "$v3" (Val #(go!"The latency distribution of the stop-the-world phase of non-blocking backend defragmentation, during which client requests are blocked."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4562254508917369340))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 14))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"disk"))
+  (Let "$v2" (Val #(go!"backend_snapshot_duration_seconds"))
+  (Let "$v3" (Val #(go!"The latency distribution of backend snapshots."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4576918229304087675))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 17))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"disk"))
+  (Let "$v2" (Val #(go!"defrag_inflight"))
+  (Let "$v3" (Val #(go!"Whether or not defrag is active on the member. 1 means active, 0 means not."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val isDefragActive.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr isDefragActive))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val snapshotTransferSec.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr snapshotTransferSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defragBlockingSec.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defragBlockingSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defragSec.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defragSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val writeSec.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr writeSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val spillSec.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr spillSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val rebalanceSec.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr rebalanceSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val commitSec.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr commitSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val boltOpenOptions.init) (Val #()))))))
   (App (Val doExecute)
@@ -3596,7 +3664,23 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc InitialMmapSize go.uint64)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc minSnapshotWarningTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc minSnapshotWarningTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc commitSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc rebalanceSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc spillSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc writeSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defragSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defragBlockingSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc snapshotTransferSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc isDefragActive _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))))
 
 abbrev Backend [GooseExts] : Type := GoInterface
 

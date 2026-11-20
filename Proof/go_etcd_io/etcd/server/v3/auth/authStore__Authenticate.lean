@@ -118,7 +118,7 @@ theorem auth.authStore.Authenticate.wp_core
   iunfold ownUser at Hu
   icases Hu with ⟨%s1, %n, %pw, %rl, %o, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
   iunfold userOptsIs at Ho
-  icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, %u2, -, #Hov, -⟩)
+  icases Ho with (%Ho | ⟨%Hon, %uf2, %u2, -, #NoPassword, -, -, -⟩)
   · obtain ⟨Ho, -⟩ := Ho
     subst Ho
     (try wp_auto)
@@ -221,10 +221,6 @@ theorem auth.authStore.Authenticate.wp_core
     have hd : decide (o = null) = false := decide_eq_false Hon
     rw [hd]
     (try wp_auto)
-    simp only
-    icases typedPointsto_split _ _ _ $$ Hov with Hov
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hov
     (try wp_auto)
     cases hnp : ur.noPassword
     rotate_left

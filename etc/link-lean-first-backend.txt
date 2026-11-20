@@ -18,6 +18,7 @@ ValidateCalledInsideApply:
 ValidateCalledInsideUnittest:
 ValidateCalledOutSideApply:
 bbolt_Bucket__Cursor: @
+bbolt_Bucket__ForEach: @
 bbolt_DB__Close: @
 bbolt_Open: @
 bbolt_Bucket__Delete: @
@@ -65,6 +66,7 @@ backend__UnlockForSafeRangeDelete:
 backend__begin: backend__unsafeBegin bbolt_Tx__Size bbolt_Tx__DB bbolt_DB__Stats bbolt_DB__Info
 backend__run: batchTx__safePending batchTx__lock batchTxBuffered__commit batchTx__Unlock batchTxBuffered__CommitAndStop
 backend__unsafeBegin: bbolt_DB__Begin zap_Error zap_Logger__Fatal
+baseReadTx__UnsafeForEach: txReadBuffer__ForEach unsafeForEach
 baseReadTx__UnsafeRange: txReadBuffer__Range bbolt_Tx__Bucket bbolt_Bucket__Cursor unsafeRange
 batchTxBuffered__Commit: batchTx__lock batchTxBuffered__commit batchTx__Unlock
 batchTxBuffered__CommitAndStop: batchTx__lock batchTxBuffered__commit batchTx__Unlock
@@ -76,6 +78,7 @@ batchTxBuffered__UnsafeCreateBucket: batchTx__UnsafeCreateBucket
 batchTxBuffered__UnsafeDelete: batchTx__UnsafeDelete
 batchTxBuffered__UnsafeDeleteBucket: batchTx__UnsafeDeleteBucket
 batchTxBuffered__UnsafePut: batchTx__UnsafePut txWriteBuffer__put
+batchTxBuffered__UnsafeForEach: batchTx__UnsafeForEach
 batchTxBuffered__UnsafeRange: batchTx__UnsafeRange
 batchTxBuffered__UnsafeSeqPut: batchTx__UnsafeSeqPut txWriteBuffer__putSeq
 batchTxBuffered__commit: readTx__Lock batchTxBuffered__unsafeCommit readTx__Unlock
@@ -87,6 +90,7 @@ batchTx__Unlock:
 batchTx__UnsafeCreateBucket: bbolt_Tx__CreateBucketIfNotExists zap_Stringer zap_Error zap_Logger__Fatal
 batchTx__UnsafeDelete: bbolt_Tx__Bucket zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Delete zap_Error
 batchTx__UnsafeDeleteBucket: bbolt_Tx__DeleteBucket zap_Stringer zap_Error zap_Logger__Fatal
+batchTx__UnsafeForEach: unsafeForEach
 batchTx__UnsafePut: batchTx__unsafePut
 batchTx__UnsafeRange: bbolt_Tx__Bucket zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Cursor unsafeRange
 batchTx__UnsafeSeqPut: batchTx__unsafePut
@@ -114,6 +118,7 @@ readTx__Lock:
 readTx__RLock: 
 readTx__RUnlock: 
 readTx__Unlock: 
+readTx__UnsafeForEach: baseReadTx__UnsafeForEach
 readTx__UnsafeRange: baseReadTx__UnsafeRange
 readTx__reset: txReadBuffer__reset
 txBuffer__reset: 
@@ -126,6 +131,7 @@ txWriteBuffer__putInternal: newBucketBuffer bucketBuffer__add
 txWriteBuffer__putSeq: verify_Verify txWriteBuffer__putInternal
 txWriteBuffer__reset: txBuffer__reset
 txWriteBuffer__writeback: bucketBuffer__dedupe bucketBuffer__merge txWriteBuffer__reset
+unsafeForEach: bbolt_Tx__Bucket bbolt_Bucket__ForEach
 unsafeRange: bbolt_Cursor__Seek bbolt_Cursor__Next
 backend_newBackend: newBoltLoggerZap BackendConfig__mmapSize zap_NewNop zap_String zap_Error zap_Logger__Panic newBatchTxBuffered backend__run bbolt_Open
 newBatchTxBuffered: backend__begin

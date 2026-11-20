@@ -32,9 +32,9 @@ preface) never fails, whatever the junk sender sends (half a preface, which the 
 lets it give up on), however the connections fail, with whatever kind of error (closed, timeout,
 system), whether a failed dial leaves its connection abandoned for the server to accept (D16), or
 the nodes crash or exit (a crash does not clear the bytes in flight on a connection: the network is
-global state). It rests on Perennial's
-trust-boundary axiom `time.Now.wp_proof` (`time.Now` returns some time: the server's deadline),
-which `#print axioms` below lists with the translation's axiomatized types.
+global state). The server's deadline comes from `time.Now`, which Perennial proves (since its
+`932c9c388`) over its trusted model of the runtime's clock (`runtimeNow`: any reading); `#print
+axioms` below lists what the result rests on, with the translation's axiomatized types.
 -/
 module
 

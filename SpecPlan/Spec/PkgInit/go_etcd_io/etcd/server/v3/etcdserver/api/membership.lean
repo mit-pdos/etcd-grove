@@ -7,11 +7,14 @@ public import SpecPlan.Spec.PkgInit.encoding.json
 public import Perennial.Proof.sort.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
+public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.notify
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.version
 public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
+public import Perennial.Proof.errors.Base
+public import SpecPlan.Spec.PkgInit.path
 
 @[expose] public section
 noncomputable section

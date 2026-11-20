@@ -1,18 +1,25 @@
 /-
-`meta.ListAccessor(obj)` (`k8s.io/apimachinery/pkg/api/meta/meta.go`, names-only): the list's
-metadata accessor. **A named hypothesis, boundary pending approval** (one of the reflector's `list`
-callees, through the pager; phase 4 of `notes/k8s-daemonset-plan.md`, fifth round): `?` in
-`etc/link-lean-first-k8scache.txt`.
+`meta.ListAccessor(obj)` (`k8s.io/apimachinery/pkg/api/meta/meta.go:69-86`, apimachinery
+`v0.0.0-20261021173754-0b7d352f711c`) of a value whose dynamic type is in `meta.List`'s type set
+(`metav1.ListInterface`'s methods): the type switch's first case (`case List: return t, nil`)
+returns the same interface value, as a `meta.List`, and a nil error. It reads nothing. Proved
+from the translated body (`Proof/k8s_io/apimachinery/pkg/api/meta/ListAccessor.lean`; k8s 7g
+follow-up (B'), `notes/k8s-7g-listaccessor-bprime.md`: until then a trust-boundary axiom with a
+row for the reflector's typed lists and one for the k8s driver's `*ObjList`, and before 7g a named
+hypothesis of the reflector's `list`). The shape of `Accessor.spec`.
 
-What the code does, for a typed list of the model (`*v1.PodList`, ...): the type switch's first case
-(`List`, `metav1.ListInterface`, which the list implements through its embedded `ListMeta`) returns
-the list itself and no error; its `GetResourceVersion()` and `GetContinue()` (promoted from
-`*ListMeta`, names-only) read the list's metadata: the version `rv` and the continue token, `""`
-(`typedListAt`). Stated for that case only (the reflector's lists are those).
+A typed nil pointer of such a type (a nil `*ObjList`) is in the type set too, and Go returns it
+unchanged: `TestListAccessorObjList` (`examples/k8s/etcd3/trustspecs_test.go`). A nil `obj`, or one
+outside the type set, takes the other cases (`ListMetaAccessor`, `errNotList`), which no caller
+reaches and the spec does not state.
+
+Callers: the k8s driver's checker (`Model.listResponseRV`, `Model.equalListResponse`,
+`Replay.validateList`, on its `*ObjList`), and client-go's pager (`ListPager.list`, on the
+reflector's typed lists `*v1.PodList`, ...: their type-set membership and their promoted
+`ListMeta` accessors are the reflector's pending hypothesis `cache.typedListMeta`).
 -/
 module
 
-public import Proof.k8s_io.client_go.tools.cache.RefWatchDefs
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
 
 @[expose] public section
@@ -25,7 +32,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace apimeta
 
-open Iris Iris.BI apimodel cache
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -34,32 +41,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-/-- **The list accessor of the typed list `q`** (persistent): `GetResourceVersion()` and
-`GetContinue()` read its metadata (the list's ownership kept). -/
-def listAccOk (res : Res) (q : Loc) (m : GoInterface) : IProp GF :=
-  iprop(⌜m = interface.mkOk (go.GoType.PointerType (resListTy res)) #q⌝ ∗
-    □ (∀ (os : List Obj) (rv : GoString) (Φ : val → IProp GF), typedListAt res q os rv -∗
-      ▷ (typedListAt res q os rv -∗ Φ #rv) -∗
-      WP (App (Val #(methods (go.GoType.PointerType (resListTy res)) go!"GetResourceVersion" #q))
-        (Val #())) {{ Φ }}) ∗
-    □ (∀ (os : List Obj) (rv : GoString) (Φ : val → IProp GF), typedListAt res q os rv -∗
-      ▷ (typedListAt res q os rv -∗ Φ #(go!"")) -∗
-      WP (App (Val #(methods (go.GoType.PointerType (resListTy res)) go!"GetContinue" #q))
-        (Val #())) {{ Φ }}))
-
-instance listAccOk_persistent (res : Res) (q : Loc) (m : GoInterface) :
-    Persistent (listAccOk (GF := GF) res q m) := by
-  unfold listAccOk; infer_instance
-
-/-- `meta.ListAccessor(obj)` of a typed list: the list itself, no error. -/
+/-- **`meta.ListAccessor(x)`** of an `x` whose dynamic type is in `meta.List`'s type set: `x`
+itself and `nil`. -/
 abbrev ListAccessor.spec : Prop :=
-  ∀ (res : Res) (q : Loc) (os : List Obj) (rv : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.«meta» ∗
-      typedListAt res q os rv }}
-    (App (Val (@! k8s_io.apimachinery.pkg.api.«meta».ListAccessor))
-      (Val #(interface.mkOk (go.GoType.PointerType (resListTy res)) #q)))
-  {{ (m err : GoInterface), RET (PairV #m #err); ⌜err = interface.nil⌝ ∗
-      typedListAt res q os rv ∗ listAccOk res q m }}
+  ∀ (ii : GoInterfaceOk),
+    go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.«meta».List'.ty = true →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.«meta» }}
+    (App (Val (@! k8s_io.apimachinery.pkg.api.«meta».ListAccessor)) (Val #(GoInterface.ok ii)))
+  {{ RET (PairV #(GoInterface.ok ii : k8s_io.apimachinery.pkg.api.«meta».List')
+      #(interface.nil : GoInterface)); True }}
 
 end spec
 

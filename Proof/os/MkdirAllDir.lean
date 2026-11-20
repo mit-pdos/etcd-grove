@@ -32,10 +32,10 @@ a `fileStat`, or an error; nothing changes. -/
 theorem os.Stat.wp_childDirS (d b : GoString) (R : Roots) (j J : Ino) (qd qn : Qp) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc }}
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Stat)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc ∗
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc ∗
         ((∃ (fs : Loc) (sz : w64), ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs sz) ∨
@@ -46,11 +46,13 @@ theorem os.Stat.wp_childDirS (d b : GoString) (R : Roots) (j J : Ino) (qd qn : Q
   icases (osPathS_frac R d ε a' j).1 $$ Hp with ⟨Hpe, Hpa⟩
   icases (osNames_frac j (.only [b]) ε b' h).1 $$ Hn with ⟨Hne, Hnb⟩
   ihave Hpc := osPathS_child R d b (DFrac.own ε) j J h hb hJ $$ Hpe Hne
+  icases osCallPerm_child R d b _ j qc $$ Hpa Hperm with ⟨Hpa, Hperm⟩
   wp_apply os.Stat.wp_dirS (child d b) R J (DFrac.own ε) qc $$ [Hpc Hperm]
     as %fi %err ⟨Hpc, Hperm, Hres⟩
   · iframe; iframe #
   icases os.osPathS_unchild R d b j J ε a' hb $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
   · iframe
+  icases osCallPerm_unchild R d b _ j qc $$ Hp Hperm with ⟨Hp, Hperm⟩
   icases osNames_agree j (.only [b]) _ _ h'' h $$ Hne Hnb with %he
   subst he
   ihave Hn := (osNames_frac j (.only [b]) ε b' h'').2 $$ [Hne Hnb]
@@ -62,10 +64,10 @@ theorem os.Stat.wp_childDirS (d b : GoString) (R : Roots) (j J : Ino) (qd qn : Q
 theorem os.Lstat.wp_childDirS (d b : GoString) (R : Roots) (j J : Ino) (qd qn : Qp) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc }}
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Lstat)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc ∗
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc ∗
         ((∃ (fs : Loc) (sz : w64), ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs sz) ∨
@@ -76,11 +78,13 @@ theorem os.Lstat.wp_childDirS (d b : GoString) (R : Roots) (j J : Ino) (qd qn : 
   icases (osPathS_frac R d ε a' j).1 $$ Hp with ⟨Hpe, Hpa⟩
   icases (osNames_frac j (.only [b]) ε b' h).1 $$ Hn with ⟨Hne, Hnb⟩
   ihave Hpc := osPathS_child R d b (DFrac.own ε) j J h hb hJ $$ Hpe Hne
+  icases osCallPerm_child R d b _ j qc $$ Hpa Hperm with ⟨Hpa, Hperm⟩
   wp_apply os.Lstat.wp_dirS (child d b) R J (DFrac.own ε) qc $$ [Hpc Hperm]
     as %fi %err ⟨Hpc, Hperm, Hres⟩
   · iframe; iframe #
   icases os.osPathS_unchild R d b j J ε a' hb $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
   · iframe
+  icases osCallPerm_unchild R d b _ j qc $$ Hp Hperm with ⟨Hp, Hperm⟩
   icases osNames_agree j (.only [b]) _ _ h'' h $$ Hne Hnb with %he
   subst he
   ihave Hn := (osNames_frac j (.only [b]) ε b' h'').2 $$ [Hne Hnb]
@@ -112,6 +116,8 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩
   icases (os.osPathS_unfold R d _ j).1 $$ Hp with ⟨%r0, %j0, %cs, %hp, Hs⟩
   obtain ⟨hR, hm, hcs, rfl⟩ := hp
+  have hkr : callKey R (joinPath r0 cs) = callKey R r0 := callKey_joinPath hR hm cs
+  rw [hkr]
   have hcsb : ∀ x ∈ cs ++ [b], NameOk x := by
     intro x hx; simp only [List.mem_append, List.mem_singleton] at hx
     rcases hx with hx | rfl
@@ -128,7 +134,8 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
   wp_apply os.Stat.wp_childDirS (joinPath r0 cs) b R j J qd qn h qc hb hJ $$ [Hp Hn Hperm]
     as %fi %err ⟨Hp, Hn, Hperm, Hres⟩
-  · iframe; iframe #
+  · (try rw [hkr]); iframe; iframe #
+  (try rw [hkr])
   icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr)
   · -- `Stat` found it: `nil` if `IsDir`, else `ENOTDIR`
     obtain ⟨rfl, rfl⟩ := hfe
@@ -158,7 +165,8 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   wp_auto
   ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
   wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ qc hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm⟩
-  · iframe; iframe #
+  · (try rw [hkr]); iframe; iframe #
+  (try rw [hkr])
   ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
   cases e with
   | ok ie2 =>
@@ -171,7 +179,8 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
   wp_apply os.Mkdir.wp_takenS (joinPath r0 cs) b perm R j (.only [b]) _ (DFrac.own qn) h qc hb hbN
       (by rw [hJ]; rfl) $$ [Hp Hn Hperm] as %e ⟨Hp, Hn, Hperm, %he⟩
-  · iframe; iframe #
+  · (try rw [hkr]); iframe; iframe #
+  (try rw [hkr])
   cases e with
   | nil => exact absurd rfl he
   | ok ie3 =>
@@ -179,7 +188,8 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   rw [show (go!"os.Lstat" : GoString) = os.Lstat from rfl]
   wp_apply os.Lstat.wp_childDirS (joinPath r0 cs) b R j J qd qn h qc hb hJ $$ [Hp Hn Hperm]
     as %fi %err ⟨Hp, Hn, Hperm, Hres⟩
-  · iframe; iframe #
+  · (try rw [hkr]); iframe; iframe #
+  (try rw [hkr])
   icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr2)
   · obtain ⟨rfl, rfl⟩ := hfe
     wp_auto

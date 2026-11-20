@@ -620,6 +620,10 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # (the import tiers, 2026-11-18) the client's laws its proofs take (`=client.*_law_holds`,
+                 # `=etcd_txnlin.*_law_holds` callees)
+                 "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
+                           "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
                  "--raft": ["Perennial.Proof.time.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
@@ -672,11 +676,34 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               "Proof.sort.SortAnyLess",
                               # (the `lean` merge, R6/R8, 2026-11-07) mvcc's API laws the server's
                               # proofs take as terms (`=mvcc.api.*` callees)
-                              "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"]}
+                              "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
+                              # (the import tiers, 2026-11-18) `NewServer`'s node start, a law
+                              # (`=raftNode_of_StartNode_law_holds`)
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
     EXTRA_IMPORTS.setdefault(_m, []).append("Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults")
+# (the import tiers, 2026-11-18) the laws of the client's linked calls the call proofs take
+# (`=client.*_law_holds`, `=*_law_holds` of `CallsLinked.lean`)
+EXTRA_IMPORTS["--linkvtxn"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
+                                "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"]
+EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
+                                 "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
+# (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
+EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
+# (k8s 7g) the maintainers' checker's trust-boundary axioms (`=`, `notes/k8s-7g-trust.md` §1) and
+# `strconv.ParseUint`'s result (`Obj.SetResourceVersion`)
+EXTRA_IMPORTS["--k8setcd3"] += ["Proof.reflect.DeepEqualK8s", "Proof.maps.Keys", "Proof.maps.Clone",
+                                "Proof.maps.Equal", "Proof.github_com.google.go_cmp.cmp.Diff",
+                                "Proof.k8s_io.apimachinery.pkg.api.meta.SetList",
+                                "Perennial.Proof.strconv.Link"]
+EXTRA_IMPORTS.setdefault("--common", []).extend(["Proof.go_etcd_io.etcd.client.v3.ServeFromStart",
+                             "Proof.go_etcd_io.etcd.client.v3.ClientPutGet"])
+EXTRA_IMPORTS.setdefault("--linkv3p", []).append(
+    "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked")
+EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
+                              "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}

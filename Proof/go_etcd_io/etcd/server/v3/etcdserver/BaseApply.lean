@@ -117,24 +117,9 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.xia
 
 end github_com.xiang90.probing
 
--- (D38, rafthttp's stage 1: the packages its message path names, names only)
-namespace internal.bytealg
+-- (`internal/bytealg`'s fact, `True`: in `apply/Base.lean` since 2026-11-19, with `path`'s)
 
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.internal.bytealg :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.internal.bytealg :=
-  build_get_is_pkg_init_wf
-
-end internal.bytealg
-
-namespace path
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
-  build_get_is_pkg_init_wf
-
-end path
+-- (`path`'s fact, `True`: in `apply/Base.lean` since 2026-11-19, which membership's now needs)
 
 
 namespace go_etcd_io.etcd.pkg.v3.httputil
@@ -306,8 +291,10 @@ abbrev ctxDeadlineLeaf : IProp GF :=
       SafeMapKey (GF := GF) go.error (GoInterface.ok e) ∧
       -- (k8s etcd3 7c, HS-7, DRAFT) no `GRPCStatus` method (grpc's `status.FromError` accepts it)
       methodSet e.ty !! go!"GRPCStatus" = none ∧
-      -- (premise-fixes-4) no `Format` method (`fmt` prints it with its `Error`)
-      methodSet e.ty !! go!"Format" = none⌝ ∗
+      -- (premise-fixes-4) no `Format` method (`fmt` prints it with its `Error`); (fmt soundness 2)
+      -- its `Error` is `Error() string`
+      (methodSet e.ty !! go!"Format" = none ∧
+        methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))⌝ ∗
     EtcdGrove.errMsgOk e)
 
 /-- `ctxDeadlineLeaf` without the `Format` conjunct (premise-fixes-4): what the premise

@@ -46,7 +46,8 @@ the user's approval of lock state; **pending the user's review**, `notes/wal-uni
 `how` `LOCK_SH`, `LOCK_EX` or `LOCK_UN`, with or without `LOCK_NB`, a lock succeeds only when no other
 open file description of the file holds a conflicting `flock` lock (two opens in one process
 conflict), a blocking one waiting for that, and any request may fail with any errno and no change,
-`EWOULDBLOCK` only on a conflict with `LOCK_NB`. Stuck on an fd that is not a file's, on another
+`EWOULDBLOCK` included even with no conflict in the model (a description another process keeps alive
+past its close: `locks_spurious_eagain.go`, 2026-11-19). Stuck on an fd that is not a file's, on another
 `how`, and on re-locking a description. Go examples: `examples/osfs/semantics/locks_flock.go`,
 `locks_blocking.go`. -/
 noncomputable def Flock.impl : val :=
@@ -120,8 +121,9 @@ depends on, is not loaded). A whole-file request (`Whence` `SEEK_SET`, `Start` a
 `Pid` 0 and `Type` `F_RDLCK` (0), `F_WRLCK` (1) or `F_UNLCK` (2) is the extension's
 `OfdLock (fd, (cmd, Type))`: the lock rule on the description's OFD lock (a lock succeeds only when no
 other open file description holds a conflicting one, two opens in one process conflicting; a blocking
-one waits for that; any request may fail with any errno and no change, `EAGAIN` only on a conflict of
-a non-blocking one). Anything else panics, not modelled: a byte range (Linux accepts it), `Pid` not 0
+one waits for that; any request may fail with any errno and no change, `EAGAIN` included even with no
+conflict in the model: a description another process keeps alive past its close,
+`locks_spurious_eagain.go`, 2026-11-19). Anything else panics, not modelled: a byte range (Linux accepts it), `Pid` not 0
 (Linux: `EINVAL`), another `Type` (`EINVAL`). Nothing is written back (`F_SETLK` copies nothing out).
 Go examples: `examples/osfs/semantics/locks_ofd.go`, `locks_blocking.go`.
 

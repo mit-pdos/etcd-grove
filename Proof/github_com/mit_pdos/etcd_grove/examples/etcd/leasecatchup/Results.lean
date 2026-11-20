@@ -14,7 +14,7 @@ the build log (`#print axioms`). Lean-first (no Rocq counterpart).
   theorem. Every real execution of `n` steps of `leasecatchup`'s initialization followed by
   `Main()`, from a fresh state with one thread, has no stuck thread, no thread ended in a panic, and
   the main thread's result, if any, is `#()`; under the hypotheses of the three-member partition
-  examples (`k8s_compactor_partition_safe`'s, without its schedule and `clock.RealClock.After`) and
+  examples (the retired `k8s_compactor_partition_safe`'s, without its schedule and `clock.RealClock.After`) and
   leasegrant's lease hypotheses (`leasePeersOk`, `lease.leasesNoExpiry`). It is the first closed
   result over a configuration in which a member's lessor is rebuilt from a snapshot in Go (the
   example's test counts a merged snapshot sent to member 3 and its lease store restored, every run;
@@ -85,6 +85,8 @@ theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
           etcd_leasecatchup.clusterCfg n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) leasecatchupDataDirs)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([leasecatchupProgram], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -92,7 +94,7 @@ theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_leasecatchup_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp Hlne
-    HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

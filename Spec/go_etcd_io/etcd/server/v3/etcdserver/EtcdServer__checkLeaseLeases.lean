@@ -34,21 +34,25 @@ the lease of its id (`x.2`) at a lessor index no older than `m` (what `Leases()`
 disabled at a state no older than `n`, or the request's principal an admin at one or allowed to read
 every key of each lease `x.1` of `x.2` at a lessor index no older than `m`; on an error, an error the gRPC
 layer can take, and only with auth on (`nil` at once when `IsAuthEnabled` answers `false`,
-`v3_server.go:754-756`; the lease-grant plan's amendment (F3)). The revision re-check is not stated
+`v3_server.go:754-756`; the lease-grant plan's amendment (F3)). The error is moreover one of the auth package's error
+variables (`authApplyErrIs`, as `checkLeaseTimeToLive.spec`'s; auth-lease S4, Freeze §9: so that
+`LeaseLeases` tells it apart from `lease.ErrLeaseNotFound`). The revision re-check is not stated
 (`checkLeaseRenew.spec`'s margin). -/
 abbrev EtcdServer.checkLeaseLeases.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (ls : List (Loc × w64)) (dq : DFrac) (n m : Nat),
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (sl : GoSlice) (ls : List (Loc × w64)) (dq : DFrac) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ levelTok lease.leaseLvl ∗
+      mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD ∗ levelTok lease.leaseLvl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ sl ↦*{dq} ls.map Prod.fst ∗
       ([∗list] x ∈ ls, lease.isLeaseObj γl x.1 ∗ lease.leaseLiveFrom γl m x.2 x.1) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseLeases"))
       (Val #(GoInterface.ok ctx))) (Val #sl))
   {{ (err : GoInterface), RET #err; E.RD ∗ levelTok lease.leaseLvl ∗ sl ↦*{dq} ls.map Prod.fst ∗
-      ⌜E.authOn = false → err = GoInterface.nil⌝ ∗ applyErrIs err ∗
-      (∀ _ : err = GoInterface.nil, leaseCheckFrom s E (GoInterface.ok ctx) n
+      ⌜E.authOn = false → err = GoInterface.nil⌝ ∗ authApplyErrIs err ∗
+      (∀ _ : err = GoInterface.nil, leaseCheckFrom s E tok n
         (fun info => iprop([∗list] x ∈ ls,
           leaseOfKeysVerdictFrom E.authMode n info γl m x.2 x.1 .read))) }}
 

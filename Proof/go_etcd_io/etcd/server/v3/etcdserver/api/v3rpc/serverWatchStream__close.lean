@@ -33,13 +33,13 @@ theorem v3rpc.serverWatchStream.close.wp_proof
     (hShapes : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG) := by
-  intro sws r Up Dn st ci cd n P
+  intro sws r Up Dn st ci tok cd n P
   have := v3rpc.swsIs_persistent (GF := GF) hP
   wp_start as ⟨#Hsws, Htok, Hcc, Hadd⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
-  icases Hsws' with ⟨%Hnn, -, -, -, -, -, -, -, -, -, #Fws, -, -, -, -, #Fcc, -, -, -, -, -, #Hwstream,
+  icases Hsws' with ⟨%Hnn, -, -, -, -, -, -, -, -, -, #Fws, -, -, -, -, #Fcc, -, -, -, -, -, -, #Hwstream,
     #Hinv, -⟩
   ihave %Hsh := hShapes.2.2.2 r.ws r.W.γm r.ι $$ Hwstream
   obtain ⟨ty, v, hws, -, -, -, -, -, hClose, -⟩ := Hsh

@@ -48,13 +48,6 @@ abbrev cacherMetricsInit : IProp GF :=
   iprop(∃ v : Loc, globalAddr k8s_io.apiserver.pkg.storage.cacher.metrics.WatchCacheReadWait ↦□ v ∗
     ⌜EtcdGrove.kmetrics.vecLabels v [go!"group", go!"resource"]⌝)
 
-instance k8s_io_component_base_metrics_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.component_base.metrics :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_component_base_metrics_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.component_base.metrics :=
-  build_get_is_pkg_init_wf
-
 instance k8s_io_apiserver_pkg_storage_cacher_metrics_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics :=
   define_is_pkg_init cacherMetricsInit
@@ -94,13 +87,6 @@ instance k8s_io_client_go_features_get_is_pkg_init_wf_inst :
 
 -- `k8s.io/apimachinery/pkg/util/sets`'s instance: `storage/etcd3/Base.lean` (2026-11-19: `field`,
 -- which imports it, has its instance there)
-
-instance k8s_io_utils_trace_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.utils.trace :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_utils_trace_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.utils.trace :=
-  build_get_is_pkg_init_wf
 
 instance k8s_io_client_go_util_consistencydetector_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.util.consistencydetector :=

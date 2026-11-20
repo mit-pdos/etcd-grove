@@ -125,35 +125,36 @@ with `runOk`). Unary: the run value of Go's handler `(name, mh, srv) ∈ c.regs`
 the registration the client deposited (`isGrpcRpcAt γ name Spec`), at the message models whose
 registration the client's `Invoke` required before depositing (`grpcReqModelOf`/`grpcRepModelOf`,
 transferred: "The pair"), and its request precondition
-`▷ Spec md m Φ Ψe` at the metadata the run's context carries; grpc's context, decoder and chain
+`▷ Spec md m Φ Ψe` at the metadata `md` the run's context carries (`metadata.ctxInMD ci md`; perheap
+1b, 2026-11-18: until then at `metadata.incomingOf ci`, a pure function of the context); grpc's context, decoder and chain
 (Go facts); the reply channel `grpcReplyTo r Rep Φ Ψe`. Stream: the run value of Go's handler
 `(name, mh, srv) ∈ c.sregs`; the deposited stream registration, at the models whose registration
 `NewStream` required (`streamReqModelOf`/`streamRepModelOf`, transferred); Go's composed stream interceptor;
-the stream's shared persistent `Spec md γs Dn` and its raw server end with both tokens at `[]`;
+the stream's shared persistent `Spec md γs Dn` at the metadata `md` its context carries, and its raw server end with both tokens at `[]`;
 grpc's `info`. -/
 def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
   iprop((∃ (name : GoString) (mh : GoFunc) (srv : GoInterface) (ci : GoInterfaceOk)
         (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc) (Req Rep : ProtoMsgT GF)
         (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF)
-        (Ψe : GoString → IProp GF),
+        (Ψe : GoString → IProp GF) (md : GrpcMd),
       ⌜r = google_golang_org.grpc.model.runUnary mh srv ci dec ui⌝ ∗ ⌜(name, mh, srv) ∈ c.regs⌝ ∗
       ⌜grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
       isGrpcRpcAt γ name Spec ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req.toProtoMsg m ∗
       grpcSrvChain c.ics ui ∗
-      ▷ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe ∗
+      metadata.ctxInMD ci md ∗ ▷ Spec md m Φ Ψe ∗
       grpcReplyTo r Rep Φ Ψe) ∨
     (∃ (name : GoString) (mh : GoFunc) (srv : GoInterface) (ci : GoInterfaceOk)
         (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc) (si : GoFunc)
         (Req Rep : StreamMsgT GF) (Up : Nat → Req.M → IProp GF)
         (Spec : GrpcMd → StreamSpec Rep.toStreamMsg) (γs : StreamNames)
-        (Dn : Nat → Rep.M → IProp GF),
+        (Dn : Nat → Rep.M → IProp GF) (md : GrpcMd),
       ⌜r = google_golang_org.grpc.model.runStream mh srv st info ci si⌝ ∗
       ⌜(name, mh, srv) ∈ c.sregs⌝ ∗
       ⌜streamReqModelOf GF Req.ty = some Req ∧ streamRepModelOf GF Rep.ty = some Rep⌝ ∗
       isGrpcStreamAt γ name Up Spec ∗
       grpcSrvStreamChain c.sics si ∗
-      □ Spec (metadata.incomingOf (GoInterface.ok ci)) γs Dn ∗
+      metadata.ctxInMD ci md ∗ □ Spec md γs Dn ∗
       srvRawStreamIs st γs Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd ∗
       srvRecvTok (Req := Req.toStreamMsg) γs [] ∗ srvSendTok (Rep := Rep.toStreamMsg) γs [] ∗
       streamAuxTok γs ∗ srvStreamInfoIs info))

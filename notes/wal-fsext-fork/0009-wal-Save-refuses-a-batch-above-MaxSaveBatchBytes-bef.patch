@@ -1,0 +1,108 @@
+From d3feef9bcdddb9ad15ee5fc8bf725050395debb4 Mon Sep 17 00:00:00 2001
+From: Frans Kaashoek <kaashoek@mit.edu>
+Date: Thu, 19 Nov 2026 01:30:48 +0000
+Subject: [PATCH] wal: Save refuses a batch above MaxSaveBatchBytes before
+ writing
+
+Save wrote a whole batch into the tail segment before checking whether to
+cut, so a batch past the file system's file-size limit (ext4: 16 TiB, EFBIG)
+left a torn record in the tail. Save now sums proto.Size(e)+64 over the
+entries and returns ErrSaveBatchTooLarge, before taking w.mu and before
+writing anything, once the sum passes MaxSaveBatchBytes (4 TiB): the WAL
+stays usable. TestSaveBatchTooLarge.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/storage/wal/save_batch_limit_test.go | 48 +++++++++++++++++++++
+ server/storage/wal/wal.go                   | 19 ++++++++
+ 2 files changed, 67 insertions(+)
+ create mode 100644 server/storage/wal/save_batch_limit_test.go
+
+diff --git a/server/storage/wal/save_batch_limit_test.go b/server/storage/wal/save_batch_limit_test.go
+new file mode 100644
+index 000000000..5f85de6db
+--- /dev/null
++++ b/server/storage/wal/save_batch_limit_test.go
+@@ -0,0 +1,48 @@
++package wal
++
++import (
++	"errors"
++	"testing"
++
++	"go.uber.org/zap/zaptest"
++
++	"go.etcd.io/raft/v3/raftpb"
++)
++
++// TestSaveBatchTooLarge: a batch above MaxSaveBatchBytes is refused before anything is
++// written, and the WAL keeps working: a later Save succeeds and ReadAll sees only it.
++func TestSaveBatchTooLarge(t *testing.T) {
++	old := MaxSaveBatchBytes
++	defer func() { MaxSaveBatchBytes = old }()
++	MaxSaveBatchBytes = 4096
++
++	dir := t.TempDir()
++	w, err := Create(zaptest.NewLogger(t), dir, nil)
++	if err != nil {
++		t.Fatal(err)
++	}
++	big := make([]*raftpb.Entry, 0, 8)
++	for i := uint64(1); i <= 8; i++ {
++		big = append(big, &raftpb.Entry{Index: new(i), Term: new(uint64(1)), Data: make([]byte, 1024)})
++	}
++	if err := w.Save(&raftpb.HardState{Term: new(uint64(1)), Commit: new(uint64(0))}, big); !errors.Is(err, ErrSaveBatchTooLarge) {
++		t.Fatalf("Save of a large batch: err = %v, want ErrSaveBatchTooLarge", err)
++	}
++	if err := w.Save(&raftpb.HardState{Term: new(uint64(1)), Commit: new(uint64(1))}, big[:1]); err != nil {
++		t.Fatalf("Save after the refused batch: %v", err)
++	}
++	w.Close()
++
++	w, err = Open(zaptest.NewLogger(t), dir, nil)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer w.Close()
++	_, st, ents, err := w.ReadAll()
++	if err != nil {
++		t.Fatal(err)
++	}
++	if len(ents) != 1 || st.GetCommit() != 1 {
++		t.Fatalf("ReadAll: %d entries, commit %d; want 1 entry, commit 1", len(ents), st.GetCommit())
++	}
++}
+diff --git a/server/storage/wal/wal.go b/server/storage/wal/wal.go
+index c77da2ba1..a96b9366d 100644
+--- a/server/storage/wal/wal.go
++++ b/server/storage/wal/wal.go
+@@ -1101,7 +1101,26 @@ func (w *WAL) saveState(s *raftpb.HardState) error {
+ 	return w.encoder.encode(rec)
+ }
+ 
++// MaxSaveBatchBytes bounds the bytes one Save may write: an entry counts its encoding
++// (proto.Size) plus saveEntryOverhead (its record's frame and padding). A larger batch
++// is refused before anything is written, so the WAL stays usable; a batch written
++// whole into one segment could otherwise pass the file system's file-size limit
++// (ext4: 16 TiB, EFBIG) and leave a torn record in the tail.
++var MaxSaveBatchBytes int64 = 1 << 42 // 4 TiB
++
++const saveEntryOverhead = 64
++
++var ErrSaveBatchTooLarge = errors.New("wal: batch exceeds MaxSaveBatchBytes")
++
+ func (w *WAL) Save(st *raftpb.HardState, ents []*raftpb.Entry) error {
++	var n int64
++	for _, e := range ents {
++		n += int64(proto.Size(e)) + saveEntryOverhead
++		if n > MaxSaveBatchBytes {
++			return ErrSaveBatchTooLarge
++		}
++	}
++
+ 	w.mu.Lock()
+ 	defer w.mu.Unlock()
+ 
+-- 
+2.53.0
+

@@ -39,9 +39,9 @@ theorem etcd_adequate [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoLocalCo
     (Hsteps : RealNsteps n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS
     HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvLevelK → progOk
     read.readRegPerm iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
-    ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) init body φ) : (∀ (v : val) (t2' : List Expr),
-    t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 →
-    ¬UnrecoveredPanic e2
+    ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff ∗ extsLocalStart σ.world) init body φ) : (∀ (v :
+    val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀
+    (e2 : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
 
 theorem etcd_adequate_alloc [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoLocalContext] (init :
     val) (body : Expr) (φ : val → Prop) (hφ : ∀ (p : val), ¬φ p.PanicV) (As : List GoString) (hAs :
@@ -55,12 +55,22 @@ theorem etcd_adequate_alloc [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoL
     (Hsteps : RealNsteps n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS
     HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvLevelK → ∃ X T, (⊢
     |==> ∃ x, T x) ∧ ∀ (x : X), progOk read.readRegPerm iprop((([∗list] a ∈ As, netAddrFree a) ∗
-    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x) init
-    body φ) : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 →
-    RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
+    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x ∗
+    extsLocalStart σ.world) init body φ) : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀
+    (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 → ¬UnrecoveredPanic e2
 
 theorem adequate_of_unrecovered {t2 : List Expr} {P Q : Prop} (H : P ∧ Q ∧ ∀ (e2 : Expr), e2 ∈ t2 →
     ¬UnrecoveredPanic e2) : P ∧ Q ∧ ∀ (v : val), v ∈ t2 → v.isPanic = false
+
+theorem init_adequate_below [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoLocalContext] (init :
+    val) (body : Expr) (φ : val → Prop) (hφ : ∀ (p : val), ¬φ p.PanicV) (σ : state) (g :
+    GlobalState) (Hinitg : extsInitgP g.globalWorld) (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1) (T n : Nat) (κs
+    : List Observation) (t2 : List Expr) (σ2 : CfgState) (Hsteps : RealNstepsBelow T n ([init
+    (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS HasLC.hasLC GF), receiptBound
+    GF = n + 1 → threadBound GF = T → progOk0 init body φ) : (∀ (v : val) (t2' : List Expr), t2 = v
+    :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (e2 : Expr), e2 ∈ t2 →
+    ¬UnrecoveredPanic e2
 
 def progOk0 [GoGlobalContext] (init : val) (body : Expr) (φ : val → Prop) : Prop :=
   ∃ getInit I,

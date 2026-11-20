@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.net.url
+public import Perennial.GeneratedProof.strconv
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 

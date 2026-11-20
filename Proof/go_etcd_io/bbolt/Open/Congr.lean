@@ -6,7 +6,8 @@ file's (`etc/api/bbolt-layout.txt`: a proof file exposes only its `wp_proof`).
 module
 
 public import Spec.go_etcd_io.bbolt.Api
-public import Proof.go_etcd_io.bbolt.Open.CloseFile
+public import Proof.go_etcd_io.bbolt.Open.CloseMapDefs
+public import Proof.go_etcd_io.bbolt.Inv.Txs
 
 @[expose] public section
 

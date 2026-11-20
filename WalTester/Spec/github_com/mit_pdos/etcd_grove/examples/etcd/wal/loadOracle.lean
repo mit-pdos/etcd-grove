@@ -35,9 +35,9 @@ abbrev loadOracle.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
-      osCallPerm (GF := GF) qc ∗ tOrOwn γ o none }}
+      osCallPerm (GF := GF) (callKey e.R e.orDir) qc ∗ tOrOwn γ o none }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.wal.loadOracle)) (Val #(tOrPath e.orDir)))
-  {{ (v : oracle), RET #v; DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
+  {{ (v : oracle), RET #v; DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) (callKey e.R e.orDir) qc ∗
       oracleRep v o ∗ tOrOwn γ o none }}
 
 end spec

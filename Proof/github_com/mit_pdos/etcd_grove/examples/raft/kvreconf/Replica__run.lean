@@ -144,6 +144,7 @@ theorem Replica.run.wp_proof
       ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ _ $$ Hrest
       iunfold readyRest at Hrest
       icases Hrest with ⟨#HesO, Hmsl, Hmsok, -, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      ihave #Hhs := hsOptC_hsOpt _ _ $$ Hhs
       ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hnull, Happ, #Hcef, -⟩
@@ -336,6 +337,7 @@ theorem Replica.run.wp_proof
       icases nodeDriver_nodeCommitLb _ _ _ _ $$ Hdrv with ⟨Hdrv, #HclD⟩
       iunfold readyRest at Hrest
       icases Hrest with ⟨#HesO, Hmsl, Hmsok, -, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
+      ihave #Hhs := hsOptC_hsOpt _ _ $$ Hhs
       ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩
@@ -391,7 +393,9 @@ theorem Replica.run.wp_proof
         $$ [$HstRec $HrP $HmsInv $Hlog $Hend $HsnLb $Heood Hs2] as ⟨Hs2, #HcpS, #Hdum, HendS, -⟩
       · simp only [kvrJ]
         isplitl []
-        · iexact Hgiven
+        · isplitr
+          · iexact Hgiven
+          ipureintro; intro h; exact absurd h Hnsn
         isplitl []
         · iexact Hsv
         isplitl []

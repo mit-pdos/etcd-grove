@@ -105,7 +105,7 @@ theorem opDs_noCrc (M : WalMarshal) (o : WalOp) : ∀ p ∈ opDs M o, p.1 ≠ cr
       · simp at hp
       · simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
         subst hp; exact absurd ht (by simp only; decide)
-  | snap m =>
+  | snap m al =>
     simp only [opDs, List.mem_cons, List.not_mem_nil, or_false] at hp
     subst hp; exact absurd ht (by simp only; decide)
 

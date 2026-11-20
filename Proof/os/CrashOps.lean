@@ -265,7 +265,7 @@ theorem wp_osOpenCreate_cf (d b : GoString) (N : Namespace) (R : Roots) (γ : GN
     (hok : FileOk Good (newMeta, [], none)) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ cfInv (L := L) N (child d b) R γ Good -∗
       ghostVar γ (1 : Qp).half (none : CFile) -∗ osTree (L := L) (DFrac.own (1 : Qp).half.half) R V -∗
-      osCall (L := L) k s0 (1 : Qp).half.half -∗
+      osCall (L := L) k s0 (child d b) (1 : Qp).half.half -∗
       (∀ fd : w64, ∀ e : w64,
         ((∃ i, ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗
             cfOwn (L := L) (child d b) R γ (some (i, newMeta, [], none))

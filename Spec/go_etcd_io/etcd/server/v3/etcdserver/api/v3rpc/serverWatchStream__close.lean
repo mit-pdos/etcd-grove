@@ -37,10 +37,10 @@ and waits for the send loop (the wait group's adder). The mvcc API migration (20
 the send loop's `Done` deposited (`▷ P`: its store reader token, back to the run). -/
 abbrev v3rpc.serverWatchStream.close.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
-    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk) (tok : Option GoString)
     (cd : context.ContextDesc (IProp GF)) (n : w32) (P : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.closeTok r.γcl ∗
+      v3rpc.swsIs sws r Up Dn st ci tok cd ∗ v3rpc.closeTok r.γcl ∗
       ownBroadcastChan r.cc r.γcc iprop(True) .Pending ∗
       sync.join.ownAdder (v3rpc.swsF sws go!"wg") n P }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"close")) (Val #()))

@@ -697,9 +697,12 @@ def authHistHalf (γa : AuthNames) (hs : List AuthState) : IProp GF :=
   iprop(monoListAuthOwn γa.hist (1 : Qp).half hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
 
 /-- The batch lock's quarter of the history's authority (a half until H5, 2026-10-29, which gave
-the other quarter to the revision invariant, `authHistRev`). -/
+the other quarter to the revision invariant, `authHistRev`), with the states' valid permission keys
+(auth-schema-srv A6's P1', approved by etcd-grove-03, 2026-11-18: so the backend's realization, which holds
+only this quarter at a batch's `Unlock`, can record the session's state, `authStateAt`; every share comes from
+`authHist`, which carries the fact). -/
 def authLockQ (γa : AuthNames) (hs : List AuthState) : IProp GF :=
-  monoListAuthOwn γa.hist Qp.quarter hs
+  iprop(monoListAuthOwn γa.hist Qp.quarter hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
 
 instance authLockQ_timeless (γa : AuthNames) (hs : List AuthState) :
     Timeless (authLockQ (GF := GF) γa hs) := by
@@ -720,8 +723,8 @@ theorem authHist_split (γa : AuthNames) (hs : List AuthState) :
   constructor
   · iintro ⟨H, %Hk⟩
     icases h.1 $$ H with ⟨H1, H2⟩
-    iframe H1 H2; ipureintro; exact Hk
-  · iintro ⟨⟨H1, %Hk⟩, H2⟩
+    iframe H1 H2; isplitr <;> ipureintro <;> exact Hk
+  · iintro ⟨⟨H1, %Hk⟩, H2, -⟩
     isplitl [H1 H2]
     · iapply h.2; iframe H1 H2
     · ipureintro; exact Hk
@@ -730,7 +733,7 @@ theorem authHist_split (γa : AuthNames) (hs : List AuthState) :
 theorem authHistHalf_lockQ_agree (γa : AuthNames) (hs hs' : List AuthState) :
     ⊢ authHistHalf (GF := GF) γa hs -∗ authLockQ γa hs' -∗ ⌜hs = hs'⌝ := by
   unfold authHistHalf authLockQ
-  iintro ⟨H1, -⟩ H2
+  iintro ⟨H1, -⟩ ⟨H2, -⟩
   ihave %H := monoListAuthOwn_agree γa.hist _ _ hs hs' $$ H1 H2
   ipureintro; exact H.2
 

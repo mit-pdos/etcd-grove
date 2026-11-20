@@ -3,15 +3,15 @@ The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean` (W3/W5 of
 `notes/wal-fsext-plan.md`, thirteenth session): `openAtIndex` in write mode (its spec), then
 `fileutil.OpenDir(w.dir)` (`OpenDir.wp_proofOk`) over a path to the WAL directory (`walInv_dirPath`,
 from the WAL's key and the lock's `walNamesFrag none` the handle holds, `walReadH_namesOut`; until
-2026-11-14 the hypothesis `WalDirPathLaw`); on its error, `w.Close()` (`WAL.Close.specOpening`,
-proved: `WAL.Close.wp_proofOpening`, `WAL__CloseOpening.lean`) and the error wrapped. Callee specs:
-`openAtIndex.spec`, `WAL.Close.specOpening`, `fmt.ErrorfErrs.spec`.
+2026-11-14 the hypothesis `WalDirPathLaw`); on its error, `w.Close()` (`WAL.Close.spec` at the state `opening`,
+proved: `WAL.Close.wp_opening`, `WAL__CloseOpening.lean`) and the error wrapped. Callee specs:
+`openAtIndex.spec`, `WAL.Close.spec` at the state `opening`, `fmt.ErrorfErrs.spec`.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Open
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.openAtIndex
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseOpening
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.fmt.ErrorfErrs
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDirOk
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtPin
@@ -76,26 +76,29 @@ theorem walReadH_namesOut (write : Bool) (w : Loc) (dir : GoString) (s : w64 × 
 /-- A `fmtErrorOkOrNil` error is `errOk`. -/
 theorem walOpenDir_errOk (e : GoInterfaceOk) :
     fmtErrorOkOrNil (GF := GF) (GoInterface.ok e) ⊢ errOk e := by
-  unfold fmtErrorOkOrNil fmtErrorOk
-  iintro ⟨-, H⟩
-  unfold errOk
-  rw [fmt.stringMethodSpec_unfold]
-  iexact H
+  exact errOk_of_fmtErrorOkOrNil e
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     (wp_open : go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (W := W) Mr)
-    (wp_Close : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specOpening (W := W) Mr)
+    (wp_Close : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (Sio := WalFs.ioNone) WalFs.walPbNone Mr)
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.Open.spec (W := W) Mr := by
   intro lg R jr r dir nm sp s qp Q hin hnmO hr hdl
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
+  have hrb := And.intro hrb0 hrb1
+  icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc⟩
+  have hdc : dir = child r nm := by rw [hin.2]; simp [child]; rfl
+  have hkd : callKey R dir = callKey R r := by rw [hdc]; exact hkc nm
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
+  rw [← hkd]
   try wp_auto
   wp_apply wp_open lg R jr r dir nm sp s true qp Q hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
     as %w %err ⟨Hp, Hres, %o, HQ, Hr⟩
-  · iframe; iframe #
+  · (try rw [hkd]); iframe; iframe #
+  (try rw [← hkd])
   icases Hr with (⟨%he, Hu, Hperm, %e, %hee, #He⟩ | ⟨%he, %ho, Hdf, Hop, Hrh, Hperm, Hcp⟩)
   · -- `openAtIndex` failed
     subst hee
@@ -105,12 +108,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-        intro ii hii
-        right
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-        cases hii
-        simp) $$ [Hasl] as %e1 #He1
+    wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+    case wf => errargs_wf
     · iframe
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
       iexact He
@@ -152,6 +151,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
       · ipureintro; rfl
       isplitr
       · ipureintro; exact ho
+      ihave Hperm := walPerm_toW hWR dir _ $$ Hperm
       unfold walOpeningF
       iframe Hop Hperm Hcp
       isplitl [Hlg Hdir Hstart Hrest]
@@ -171,8 +171,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
         | ok e2 => exact ⟨e2, rfl⟩
       try wp_auto
       try wp_auto
-      wp_apply wp_Close R jr r w dir s $$ [Hop Hrest Hlg Hdir Hstart Hperm Hdf] as %ec ⟨Hu, Hperm⟩
-      · iframe Hop Hperm
+      wp_apply wp_Close R jr r w dir (.opening s) (fun _ => iprop(True)) $$ [Hop Hrest Hlg Hdir Hstart Hperm Hdf]
+        as %ec ⟨Hu, Hperm⟩
+      · dsimp only
+        iframe Hop Hperm
         iframe #
         isplitr [Hdf]
         · unfold walReadH walOpenIn
@@ -187,17 +189,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
       ihave #He2' := walOpenDir_errOk e2 $$ He2
-      wp_apply wp_Errorf _ _ [interface.ok e2] [e2] (by
-          intro ii hii
-          right
-          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-          cases hii
-          simp) $$ [Hasl] as %e1 #He1
+      wp_apply wp_Errorf _ _ [interface.ok e2] [e2] ?wf $$ [Hasl] as %e1 #He1
+      case wf => errargs_wf
       · iframe
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact He2'
       try wp_auto
-      ihave Hperm := osCallPerm_halfJoin 1 $$ Hperm Hcp
+      ihave Hperm := osCallPerm_halfJoin _ 1 $$ Hperm Hcp
       iapply HΦ
       iframe Hp Hres
       iexists o

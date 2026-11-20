@@ -35,7 +35,8 @@ REVIEWED = {
     'Spec/errors/IsStatusErr.lean':
         'a leaf: == compares values, Is answers true only for an equal description (grpcErrMethodsOk)',
     'Spec/fmt/ErrorfWrap.lean':
-        "the model's errorString cell and Go's wrapError msg are written once",
+        "the model's errorString cell and Go's wrapError msg are written once; the errDesc prefix "
+        "only given an Unwrap method (Go's wrapError; H0, 2026-11-18: vacuous of the model's error)",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
     'Spec/go_etcd_io/etcd/client/v3/waitRetryBackoff.lean': 'statusErrOk opened, not used',
     'Spec/google_golang_org/grpc/model/respond.lean':

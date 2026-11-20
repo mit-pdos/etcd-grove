@@ -276,6 +276,12 @@ theorem parseRVD_rvStr (n : w64) : parseRVD (rvStr n) = some n := by
     simp only [rvBytes] at hb ⊢
     simp [hb]
 
+/-- `rvStr` is injective (moved from `Calls.lean`, k8s 7g). -/
+theorem rvStr_inj {a b : w64} (h : rvStr a = rvStr b) : a = b := by
+  have ha := parseRVD_rvStr a
+  rw [h, parseRVD_rvStr b] at ha
+  exact (Option.some.inj ha).symm
+
 /-! ## The store's codec of the driver -/
 
 /-- The empty object (`NewFunc()`'s, `&Obj{}`). -/

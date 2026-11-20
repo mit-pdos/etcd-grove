@@ -24,16 +24,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 /-- `le.Attach(id, items)` (locked), by the lease owner (`leaseOwn γl L I`) for a live `id`
 (`id ∈ L`) and items on no other lease: adds the items to the lease's item set and the item map
-(the owner's `I`, unit T3, L2b) and returns `nil`. -/
+(the owner's `I`, unit T3, L2b) and returns `nil`.
+(auth-lease S4 item 7b, 2026-11-17) In the owner's open window `w` (`leaseOwnW`; `leaseOwn` is `w = none`),
+the items at the window's target stay there (`winStep`), so the snapshot it pushes is stable in the window. -/
 abbrev lease.lessor.Attach.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id : w64) (items : GoSlice) (xs : List LeaseItem) (dq : DFrac)
-    (L : List w64) (I : GMap LeaseItem w64),
+    (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
+      leaseOwnW γl L I w ∗ ⌜winStep w I (insertAll I xs id)⌝ ∗ ⌜id ∈ L⌝ ∗
       ⌜∀ it ∈ xs, I.lookup it = none ∨ I.lookup it = some id⌝ ∗
       ⌜∀ it ∈ xs, (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗ items ↦*{dq} xs }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Attach")) (Val #id)) (Val #items))
-  {{ RET #GoInterface.nil; leaseOwn γl L (insertAll I xs id) ∗ items ↦*{dq} xs }}
+  {{ RET #GoInterface.nil; leaseOwnW γl L (insertAll I xs id) w ∗ items ↦*{dq} xs }}
 
 end spec
 

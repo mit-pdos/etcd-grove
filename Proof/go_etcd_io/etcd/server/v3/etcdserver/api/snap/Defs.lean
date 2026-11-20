@@ -2,14 +2,18 @@
 **The snapshotter** (`etcdserver/api/snap`, names only; D22 S-f, 2026-10-19): the vocabulary of
 its trust-boundary specs. Lean-first (no Rocq counterpart).
 
-* `isSnapshotter ss` (persistent): `ss` is a `*snap.Snapshotter` (`snap.New(lg, dir)`: its fields,
-  the logger and the snapshot directory, set once and read-only after). An opaque predicate
-  (`snapshotterRO`) made persistent by its definition: the snapshotter's fields are not modeled.
-* `snapDBPath ss i` (opaque): the path of the database snapshot of index `i` in `ss`'s
-  directory (`ss.dbFilePath(i)`: `<dir>/<i as 16 hex digits>.snap.db`; Go's parameter is named
-  `id`, but it is the snapshot's index, not a member id). `DBFilePath` returns
-  it (`Spec/.../snap/Snapshotter__DBFilePath.lean`); the transport's `SaveDBFrom` writes the file
-  there (D22 S-i).
+* `isSnapshotter ss sd` (persistent): `ss` is a `*snap.Snapshotter` of the directory `sd`
+  (`snap.New(lg, dir)`: its fields, the logger and the snapshot directory, set once and read-only
+  after): the persistent cells of its `lg` and `dir` fields (`snapLgAddr`, `snapDirAddr`), the rest
+  an opaque predicate (`snapshotterRO`). (wal-link, 2026-11-19, approved by the user via
+  etcd-grove-03: the directory is the `dir` field's cell, so it is fixed per execution by the heap;
+  until then a pure opaque function of the location, `snapDBPath ss`, which the bootstrap contracts
+  pinned per run: `notes/snapdir-crossworld.md`.)
+* `snapDBPath sd i` (a definition): the path of the database snapshot of index `i` in the directory
+  `sd` (`ss.dbFilePath(i)`: `<sd>/<i as 16 hex digits>.snap.db`; Go's parameter is named `id`, but it
+  is the snapshot's index, not a member id). `DBFilePath` returns it
+  (`Spec/.../snap/Snapshotter__DBFilePath.lean`); the transport's `SaveDBFrom` writes the file there
+  (D22 S-i).
 * `snapDirOwn p` and `snapDirIs p γd` (restart S6a, M1; approved by the user 2026-11-13 via
   etcd-grove-81): the environment's one-time right to the snapshot directory whose files are at the
   paths `p` (`bootOk`, the first start: the directory holds no `.snap.db` file, and nothing outside
@@ -19,12 +23,12 @@ its trust-boundary specs. Lean-first (no Rocq counterpart).
   size)`: the raft message `ml`, the reader `rc` wrapped in an exact-size reader, the total size
   and the one-slot `closeC` channel), its fields read-only for good (`NewMessage` writes them
   once; `CloseWithError` reads the reader and sends on `closeC`, `CloseNotify` reads `closeC`). An
-  opaque predicate (`msgRO`): `snap.Message` is an axiomatized type, so its fields are not
-  modeled. `NewMessage`'s spec makes it (D22 S-h), and only it, of a reader whose `Close` returns
+  predicate of the fields (`msgRO`; opaque until 2026-11-19, when `snap.Message`'s
+  `CloseNotify` and `CloseWithError` were translated with their bodies). `NewMessage`'s spec makes it (D22 S-h), and only it, of a reader whose `Close` returns
   (`io.rcCloseOk`; sweep repairs 1, S1) and a size in its premise's range (S2); the transport's
   `SendSnapshot` takes it.
 * `msgCloseC m c` (persistent; D22 S-h): `m`'s `closeC` is the channel `c` (`NewMessage`'s
-  `make(chan bool, 1)`, read by `CloseNotify`). An opaque predicate (`msgCloseRO`), as `msgRO`.
+  `make(chan bool, 1)`, read by `CloseNotify`): the field, read-only (`msgCloseRO`).
 -/
 module
 
@@ -32,6 +36,9 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Golang.Theory
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import Spec.go_uber_org.zap.Defs
+public import Proof.go_etcd_io.etcd.server.v3.config.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Hex16
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
 @[expose] public section
 
@@ -43,32 +50,45 @@ namespace snap
 
 open Iris Iris.BI
 
-/-- **The path of the database snapshot of index `i`** of the snapshotter `ss` (opaque; see the
-file header). -/
-opaque snapDBPath [GooseExts] (ss : Loc) (i : w64) : GoString
+/-- **The name of the database snapshot of index `i`** (`fmt.Sprintf("%016x.snap.db", id)`,
+`server/etcdserver/api/snap/db.go:118`; wal-link, 2026-11-19). -/
+def snapDBName (i : w64) : GoString := WalFs.hex16 (uint.nat i) ++ go!".snap.db"
 
-/-- **The path of the database snapshot of index `i` in the data directory `dd`** (opaque; restart
-S6a, approved by the user 2026-11-13 via etcd-grove-81): `<dd>/member/snap/<i as 16 hex
-digits>.snap.db`, a function of `dd` alone. `i` is the snapshot's index (Go's `dbFilePath(id)`
-names it `id`); the member enters only through its data directory `dd`. The bootstrap contracts (`bootOk`, `bootOkR`) say that
-the snapshotter `bootstrap` returns has `snapDBPath ss = snapDBPathOf cfg.DataDir`, so that two
-incarnations of a member over one data directory write their snapshots to the same files. Go:
-`bootstrapSnapshot` returns `snap.New(cfg.Logger, cfg.SnapDir())` (`server/etcdserver/bootstrap.go:252`);
-`SnapDir()` is `filepath.Join(c.MemberDir(), "snap")` and `MemberDir()` is
-`datadir.ToMemberDir(c.DataDir)` (`server/config/config.go:300,309`); `dbFilePath(id)` is
-`filepath.Join(s.dir, fmt.Sprintf("%016x.snap.db", id))` (`server/etcdserver/api/snap/db.go:117-119`),
-and `s.dir` is written only by `New` (`snapshotter.go:34-40`). `filepath.Join` is lexical, so the
-equation is about strings; that equal path strings name the same file (no change of working
-directory between incarnations under a relative `DataDir`, no symbolic link or other alias of the
-directory, and a restart under the same `DataDir` string) is the file-system model's assumption that a
-path string names one file, as for `config.backendPathOf` and `backend.bPath`. No law: only the
-equation of the contracts relates it to `snapDBPath`. -/
-opaque snapDBPathOf [GooseExts] (dd : GoString) (i : w64) : GoString
+/-- **The path of the database snapshot of index `i` in the snapshot directory `sd`** (restart
+S6a, approved by the user 2026-11-13 via etcd-grove-81, as `snapDBPathOf dd`, opaque; wal-link,
+2026-11-19, decided by etcd-grove-03, option B1: a definition; wal-link, 2026-11-19, approved by the
+user via etcd-grove-03: over the directory string, `snapDBPathOf dd` gone for `snapDBPath (snapDirOf
+dd)`, and the snapshotter's own opaque `snapDBPath ss` gone: `notes/snapdir-crossworld.md`):
+`<sd>/<i as 16 hex digits>.snap.db`, the name `snapDBName i` in `sd`. `i` is the snapshot's index
+(Go's `dbFilePath(id)` names it `id`). For a member, `sd` is `config.snapDirOf cfg.DataDir`
+(`<dd>/member/snap`, where the backend's file, `config.backendPathOf dd`, is the name `db`): the
+bootstrap contracts (`bootOk`, `bootOkR`) give `isSnapshotter ss (config.snapDirOf cfg.DataDir)`, so
+that two incarnations of a member over one data directory write their snapshots to the same files.
+Go: `bootstrapSnapshot` returns `snap.New(cfg.Logger, cfg.SnapDir())`
+(`server/etcdserver/bootstrap.go:252`); `SnapDir()` is `filepath.Join(c.MemberDir(), "snap")` and
+`MemberDir()` is `datadir.ToMemberDir(c.DataDir)` (`server/config/config.go:300,309`);
+`dbFilePath(id)` is `filepath.Join(s.dir, fmt.Sprintf("%016x.snap.db", id))`
+(`server/etcdserver/api/snap/db.go:117-119`), and `s.dir` is written only by `New`
+(`snapshotter.go:34-40`). `filepath.Join` is lexical and cleans; a snapshotter's `s.dir` is some
+`cfg.SnapDir()` (`isSnapshotter`), already clean and not ending in `/` (it ends in `snap`), and the
+name is clean, so the join is `s.dir ++ "/" ++ name` (the Go test
+`examples/etcd/snappaths/snappaths_test.go`). The equation is about strings; that equal path strings
+name the same file (no change of working directory between incarnations under a relative `DataDir`,
+no symbolic link or other alias of the directory, and a restart under the same `DataDir` string) is
+the file-system model's assumption that a path string names one file, as for `config.backendPathOf`
+and `backend.bPath`. -/
+def snapDBPath (sd : GoString) (i : w64) : GoString := sd ++ slashB :: snapDBName i
 
 /-- The address of the snapshotter `ss`'s logger field (`s.lg`; `snap.Snapshotter` is an
 axiomatized type, so the field is named, not modeled). -/
 abbrev snapLgAddr [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (ss : Loc) : Loc :=
-  structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" ss
+  structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" ss
+
+/-- The address of the snapshotter `ss`'s directory field (`s.dir`, written only by `snap.New`,
+`snapshotter.go:34-40`, read by `dbFilePath`, `DBFilePath`, `SaveDBFrom`, `ReleaseSnapDBs`;
+wal-link, 2026-11-19). -/
+abbrev snapDirAddr [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (ss : Loc) : Loc :=
+  structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"dir" ss
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -79,11 +99,14 @@ variable [sem : go.Semantics]
 /-- `ss`'s fields, read-only (opaque; see the file header). -/
 opaque snapshotterRO (ss : Loc) : IProp GF
 
-/-- **`ss` is a snapshotter** (persistent; see the file header), its logger a zap logger
-(`zapLoggerOk`; premise fixes 6: `SaveDBFrom` logs through it; `snap.New(lg, dir)` stores `lg`,
-nil replaced by `zap.NewNop()`). -/
-def isSnapshotter (ss : Loc) : IProp GF :=
-  iprop(□ snapshotterRO ss ∗ ∃ lg : Loc, snapLgAddr ss ↦□ lg ∗ zapLoggerOk lg)
+/-- **`ss` is a snapshotter of the directory `sd`** (persistent; see the file header): its `dir`
+field `sd` (wal-link, 2026-11-19), a snapshot directory of etcd's (`cfg.SnapDir()` of some data
+directory: `bootstrapSnapshot`'s `snap.New(cfg.Logger, cfg.SnapDir())`, the only snapshotter etcd
+makes, `server/etcdserver/bootstrap.go:252`), its logger a zap logger (`zapLoggerOk`; premise fixes 6:
+`SaveDBFrom` logs through it; `snap.New(lg, dir)` stores `lg`, nil replaced by `zap.NewNop()`). -/
+def isSnapshotter (ss : Loc) (sd : GoString) : IProp GF :=
+  iprop(□ snapshotterRO ss ∗ snapDirAddr ss ↦□ sd ∗ ⌜∃ dd, sd = config.snapDirOf dd⌝ ∗
+    ∃ lg : Loc, snapLgAddr ss ↦□ lg ∗ zapLoggerOk lg)
 
 /-- **The snapshotter `ss`'s directory reads** (opaque, a named premise about the program's
 environment; D22 receiver epochs, S8d, 2026-10-24): listing `ss`'s directory does not fail
@@ -108,7 +131,7 @@ instance snapDirIs_persistent (p : w64 → GoString) (γd : GName) :
 
 /-- **The program's right to the snapshot directory at the paths `p`** (restart S6a, M1; approved by
 the user 2026-11-13 via etcd-grove-81; a named premise about the program's environment, which
-`bootOk` gives at the first start at `p = snapDBPathOf cfg.DataDir`, and `bootOkR` never gives).
+`bootOk` gives at the first start at `p = snapDBPath (config.snapDirOf cfg.DataDir)`, and `bootOkR` never gives).
 The environment assumption: at the first start the snapshot directory holds no `.snap.db` file, and
 nothing outside the server's snapshotters writes `.snap.db` files there (etcd's own
 `bootstrapSnapshot` removes only `tmp*` and `*.snap` files, `bootstrap.go:210-252`, so a `.snap.db`
@@ -125,11 +148,47 @@ theorem snapDirOwn_claim (p : w64 → GoString) (γd : GName) :
   iintro H
   iapply H
 
-instance isSnapshotter_persistent (ss : Loc) : Persistent (isSnapshotter (GF := GF) ss) := by
+instance isSnapshotter_persistent (ss : Loc) (sd : GoString) :
+    Persistent (isSnapshotter (GF := GF) ss sd) := by
   unfold isSnapshotter; infer_instance
 
-/-- `m`'s fields, read-only (opaque; see the file header). -/
-opaque msgRO (m ml : Loc) (rc : GoInterface) : IProp GF
+/-- `m`'s `closeC` field, read-only (see the file header; opaque until 2026-11-19). -/
+def msgCloseRO (m c : Loc) : IProp GF :=
+  iprop(structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" m ↦□ c)
+
+/-- **`m`'s `closeC` is `c`** (persistent; D22 S-h; see the file header). -/
+def msgCloseC (m c : Loc) : IProp GF := iprop(□ msgCloseRO m c)
+
+instance msgCloseC_persistent (m c : Loc) : Persistent (msgCloseC (GF := GF) m c) := by
+  unfold msgCloseC; infer_instance
+
+end defs
+
+section msgDefs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- `m`'s fields, read-only (see the file header; opaque until 2026-11-19, when `CloseWithError` was
+translated and proved): the raft message `ml`; the total size, not negative; the reader, an
+exact-size wrapper whose complete streams are `rc`'s and whose `Close` returns; and `closeC`, a
+channel of booleans whose receives carry nothing (`isChanBag` at `True`). `NewMessage` makes it
+(its trust-boundary axiom, `Proof/.../snap/NewMessage.lean`). -/
+def msgRO (m ml : Loc) (rc : GoInterface) : IProp GF :=
+  iprop(structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" m ↦□ ml ∗
+    (∃ tsz : w64, structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message
+      go!"TotalSize" m ↦□ tsz ∗ ⌜0 ≤ sint.Z tsz⌝) ∗
+    (∃ (rd : GoInterface) (ri : GoInterfaceOk),
+      structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message
+        go!"ReadCloser" m ↦□ rd ∗ ⌜rd = GoInterface.ok ri⌝ ∗
+      □ (∀ Φ : List w8 → Prop, backend.readerStreams rc Φ -∗ backend.readerStreams rd Φ) ∗
+      □ {{ (True : IProp GF) }}
+          (App (Val #(methods ri.ty go!"Close" ri.v)) (Val #()))
+        {{ (err : GoInterface), RET #err; True }}) ∗
+    (∃ (c : Loc) (γc : ChanNames),
+      structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" m ↦□ c ∗
+      isChanBag γc c (V := Bool) (fun _ => iprop(True))))
 
 /-- **`m` is a `*snap.Message` of the raft message `ml` and the reader `rc`** (persistent; see the
 file header). -/
@@ -139,16 +198,7 @@ instance msgIs_persistent (m ml : Loc) (rc : GoInterface) :
     Persistent (msgIs (GF := GF) m ml rc) := by
   unfold msgIs; infer_instance
 
-/-- `m`'s `closeC` field, read-only (opaque; see the file header). -/
-opaque msgCloseRO (m c : Loc) : IProp GF
-
-/-- **`m`'s `closeC` is `c`** (persistent; D22 S-h; see the file header). -/
-def msgCloseC (m c : Loc) : IProp GF := iprop(□ msgCloseRO m c)
-
-instance msgCloseC_persistent (m c : Loc) : Persistent (msgCloseC (GF := GF) m c) := by
-  unfold msgCloseC; infer_instance
-
-end defs
+end msgDefs
 
 end snap
 end EtcdGrove

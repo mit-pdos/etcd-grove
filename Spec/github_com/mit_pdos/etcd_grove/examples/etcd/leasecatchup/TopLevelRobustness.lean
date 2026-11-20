@@ -13,6 +13,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -64,7 +65,9 @@ def etcd_leasecatchup_robust.spec : Prop :=
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC leasecatchupGF,
       ⊢ cluster3.premises (GF := leasecatchupGF) (hG := heapAtLcu hG lctx)
           etcd_leasecatchup.clusterCfg n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) leasecatchupDataDirs),
     Robustness.Robust [] [(leasecatchupProgram, σ)] g (2 ^ 28 - 1)
 
 end adequacy

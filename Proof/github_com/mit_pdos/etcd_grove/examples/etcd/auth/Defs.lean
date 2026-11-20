@@ -10,8 +10,8 @@ plan"). Lean-first (no Rocq counterpart).
 * The program's auth state and verdicts: `Model.lean`.
 
 These premises are those of the server's start as watchkv states them; `Main`'s proof (`Main.lean`,
-done 2026-10-31) needed no other, and the auth-enabled server's start takes D22's `authSchemaSrv`
-as its own named premise (`Results.lean`'s `authkv_startServer`, `Adequacy.lean`).
+done 2026-10-31) needed no other (the auth-enabled server's start took D22's `authSchemaSrv` as its own named
+premise until auth-schema-srv A7, which proved it).
 -/
 module
 
@@ -65,7 +65,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 new cluster with token `authkv`, data directory `authkv.etcd`, raft's clock `100` ms and `10`
 ticks, and the simple token provider. -/
 def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Name' = go!"authkv" ∧ cfg.DataDir' = go!"authkv.etcd" ∧
+  cfg.Name' = go!"authkv" ∧ cfg.DataDir' = go!"/tmp/etcd-grove-data/authkv.etcd" ∧
     cfg.InitialClusterToken' = go!"authkv" ∧ cfg.NewCluster' = true ∧
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10 ∧ cfg.AuthToken' = go!"simple"
 

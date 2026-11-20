@@ -12,7 +12,9 @@
 # `zap` and `semver` for the struct `lessor` (its logger, its cluster's version); `container/heap`
 # (names only) for the expiry notifier's queue; `leasepb` and `schema` for `persistTo` and
 # `Revoke`'s writes; `version` for `shouldPersistCheckpoints`; prometheus for the metrics.
-translate = ["!*", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrNotPrimary", "ErrLeaseNotFound",
+translate = ["!*",
+  # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
+  "leaseGranted", "leaseRevoked", "leaseTotalTTLs", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrNotPrimary", "ErrLeaseNotFound",
   "ErrLeaseExists", "ErrLeaseTTLTooLarge",
   "lessor.GetLease", "lessor.Attach", "lessor.Detach", "lessor.Lookup", "lessor.SetRangeDeleter",
   "lessor.isPrimary", "lessor.Grant", "lessor.Revoke", "lessor.Checkpoint",
@@ -25,7 +27,10 @@ translate = ["!*", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrNotPrimary
   "LeaseQueue.Len", "LeaseQueue.Less", "LeaseQueue.Swap", "LeaseQueue.Push", "LeaseQueue.Pop",
   "newLeaseExpiredNotifier", "LeaseExpiredNotifier.RegisterOrUpdate",
   # the lease-expiry plan's S1 (2026-11-03, the user's): the snapshot's restore, proved
-  "lessor.Recover", "lessor.initAndRecover", "LeaseExpiredNotifier.Init"]
+  "lessor.Recover", "lessor.initAndRecover", "LeaseExpiredNotifier.Init",
+  # (prove-errinits, 2026-11-19) the remaining package variables: constants and a counter
+  "defaultLeaseRevokeRate", "leaseCheckpointRate", "defaultLeaseCheckpointInterval",
+  "maxLeaseCheckpointBatchSize", "defaultExpiredleaseRetryInterval", "leaseRenewed"]
 imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/version",
   "go.etcd.io/etcd/server/v3/lease/leasepb",

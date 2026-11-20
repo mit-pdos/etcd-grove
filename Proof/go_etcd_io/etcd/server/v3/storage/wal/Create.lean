@@ -32,7 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLocked
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PreSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHdr
 public import Proof.os.MkdirAllParts
@@ -55,7 +55,7 @@ public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
 public import Proof.os.NsS
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCleanup
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfErrs
 
 @[expose] public section
 
@@ -118,6 +118,18 @@ macro "create_seg_exit" : tactic => `(tactic| (
     ipureintro; intro hc; cases hc))
 
 set_option hygiene false in
+/-- `fmt.ErrorfErrs.spec`'s error arguments `[cei, pei]` (the cleanup's error, `Hcef`, and the parent
+directory's, `Hpe`): `errOk` each. Unhygienic. -/
+macro "create_errs_pre" : tactic => `(tactic| (
+    iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ e => errOk (GF := GF) e)).2
+    isplitr
+    · first | (iapply errOk_of_fmtErrorOkOrNil; iexact Hcef) | (iapply errOk_of_fmtErrorOk; iexact Hcef)
+    iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ e => errOk (GF := GF) e)).2
+    isplitr
+    · first | (iapply errOk_of_fmtErrorOkOrNil; iexact Hpe) | (iapply errOk_of_fmtErrorOk; iexact Hpe)
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro))
+
+set_option hygiene false in
 /-- **The deferred calls after the commit, on an error exit of the parent's sync** (the parent's
 `OpenDir`, `Fsync` or `Close` failed, `perr = ok pei`; at the deferred cleanup closure, the handle
 before naming `walOpenWFU P Mr w (child r nm) R d f` whole): `cleanupWAL` (`WAL.cleanupWAL.spec`) over
@@ -137,8 +149,8 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       · unfold createFr; iframe
       iapply create_cleanupLaw Mr R jr r nm _ N h cl Wn c d hn J $tf hok hin.1 hNnm hnmO _hcq hnm.1
         $$ Hok
-    icases Hcr with (⟨%hce, Hlt, Hnf, Hcp, Hfr, %fd', %nmf, %d', Hf', Hfd', Hlks'⟩ |
-      ⟨%hce, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | Hfin)
+    icases Hcr with (⟨%hce, #Hcef, Hlt, Hnf, Hcp, Hfr, %fd', %nmf, %d', Hf', Hfd', Hlks'⟩ |
+      ⟨%hce, #Hcef, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | ⟨Hfin, #Hcef⟩)
     · -- `Close` failed in its sync: no rename
       rcases cerr with cei | _
       rotate_left
@@ -149,11 +161,11 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
       try wp_auto
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
-      · iexact Hasl
-      rcases ef with efi | _
-      rotate_left
-      · exact absurd rfl hef
+      wp_apply wp_ErrorfErrs _ _ [GoInterface.ok cei, GoInterface.ok pei] [cei, pei] ?wf $$ [Hasl]
+        as %efi -
+      case wf => errargs_wf
+      · iframe Hasl
+        create_errs_pre
       try wp_auto
       ($fA)
       try wp_auto
@@ -187,11 +199,11 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
       try wp_auto
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
-      · iexact Hasl
-      rcases ef with efi | _
-      rotate_left
-      · exact absurd rfl hef
+      wp_apply wp_ErrorfErrs _ _ [GoInterface.ok cei, GoInterface.ok pei] [cei, pei] ?wf $$ [Hasl]
+        as %efi -
+      case wf => errargs_wf
+      · iframe Hasl
+        create_errs_pre
       try wp_auto
       ($fB)
       try wp_auto
@@ -218,7 +230,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
     · -- the rename was called: `createFin`; `retErr` the cleanup's error wrapped, or `perr`
       unfold createFin
       icases Hfin with ⟨Hp, Hcp, ⟨%nmf, Hf'⟩, HaL⟩
-      ihave Hcp := (osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half).1 $$ [Hcp]
+      ihave Hcp := (osCallPerm_split (L := hG.goose_localGS) (callKey R r) (1 : Qp).half (1 : Qp).half).1 $$ [Hcp]
       · rw [Qp.half_add_half]; iexact Hcp
       icases Hcp with ⟨Hcp, -⟩
       rcases cerr with cei | _
@@ -229,11 +241,11 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
         try wp_auto
-        wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
-        · iexact Hasl
-        rcases ef with efi | _
-        rotate_left
-        · exact absurd rfl hef)
+        wp_apply wp_ErrorfErrs _ _ [GoInterface.ok cei, GoInterface.ok pei] [cei, pei] ?wf $$ [Hasl]
+          as %efi -
+        case wf => errargs_wf
+        · iframe Hasl
+          create_errs_pre)
       all_goals (
         try wp_auto
         ($fC)
@@ -270,6 +282,8 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     iunfold createUH at HUH
     icases HUH with ⟨HQ, ⟨%s', #Hpast, %hs'⟩, ⟨%c, %hn, Hnm, %hnm⟩, #HlbX, ⟨%ht, Htmp, %hht⟩, Hsf'⟩
     obtain ⟨_hcq, hnm⟩ := hnm
+    icases walInv_roots _ _ _ _ _ $$ Hinv with %hWRc
+    icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkcR⟩
     try wp_auto
     -- `pdir, perr := fileutil.OpenDir(filepath.Dir(w.dir))`
     icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
@@ -279,18 +293,22 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     subst pd
     ihave Hw := Hw $$ Hdir
     icases walOpenWFU_permAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hperm, Hw⟩
+    ihave Hperm := walPerm_ofW hWRc (child r nm) _ $$ Hperm
+    ihave Hperm := osCallPerm_congr _ (hkcR nm) $$ Hperm
     wp_apply wp_OpenDir r R jr (DFrac.own (e + a')) (1 : Qp).half.half $$ [Hp Hperm]
       as %pf %perr ⟨Hp, Hperm, Hod⟩
     · iframe; iframe #
-    icases Hod with (⟨%pfd, %hperr, Hpf, Hpfd⟩ | ⟨%hperr, -⟩)
+    icases Hod with (⟨%pfd, %hperr, Hpf, Hpfd⟩ | ⟨%hperr, #Hpe⟩)
     rotate_left
     · -- `OpenDir` failed: logged, then the deferred `cleanupWAL`
+      ihave Hperm := osCallPerm_congr _ (hkcR nm).symm $$ Hperm
+      ihave Hperm := walPerm_toW hWRc (child r nm) _ $$ Hperm
       ihave Hw := Hw $$ Hperm
       try wp_auto
       icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
       rcases perr with pei | _
       rotate_left
-      · exact absurd rfl hperr
+      · exact absurd rfl hperr.1
       try wp_auto
       wp_apply wp_Dir (child r nm) as %pd -
       wp_apply wp_String as %f1 -
@@ -314,7 +332,7 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     wp_apply wp_FsyncDir pf pfd r (DFrac.own 1) R jr .idle (x.1 + 1) $$ [Hpf Hpfd] as %ferr
       ⟨Hpf, Hpfd, Hfr⟩
     · iframe; iframe #
-    icases Hfr with (%hfe | ⟨%hfe, #Hcm⟩)
+    icases Hfr with (⟨%hfe, #Hpe⟩ | ⟨%hfe, #Hcm⟩)
     · -- `Fsync` failed: the parent closed (not by `dirCloser`, which would overwrite `perr`: the fork's
       -- fix, `nonissues/etcd-wal-create-parent-fsync-nil-nil.md`), logged, the deferred `cleanupWAL`
       rcases ferr with pei | _
@@ -323,6 +341,8 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
       try wp_auto
       wp_apply os.File.Close.wp_dirS pf pfd r jr .idle $$ [Hpf Hpfd] as %cerr0 -
       · iframe; iframe #
+      ihave Hperm := osCallPerm_congr _ (hkcR nm).symm $$ Hperm
+      ihave Hperm := walPerm_toW hWRc (child r nm) _ $$ Hperm
       ihave Hw := Hw $$ Hperm
       icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
       try wp_auto
@@ -360,7 +380,7 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     iclear Hhspec Hhs
     try wp_auto
     -- `dirCloser()`
-    wp_apply os.File.Close.wp_dirS pf pfd r jr .idle $$ [Hpf Hpfd] as %cerr -
+    wp_apply os.File.Close.wp_dirS pf pfd r jr .idle $$ [Hpf Hpfd] as %cerr #Hpe
     · iframe; iframe #
     by_cases hce : cerr = interface.nil
     rotate_left
@@ -368,6 +388,8 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
       rcases cerr with pei | _
       rotate_left
       · exact absurd rfl hce
+      ihave Hperm := osCallPerm_congr _ (hkcR nm).symm $$ Hperm
+      ihave Hperm := walPerm_toW hWRc (child r nm) _ $$ Hperm
       ihave Hw := Hw $$ Hperm
       icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
       try wp_auto
@@ -392,6 +414,8 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half.half
       (tmpName_nameOk hnmO) hht $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
     · iframe; iframe #
+    ihave Hperm := osCallPerm_congr _ (hkcR nm).symm $$ Hperm
+    ihave Hperm := walPerm_toW hWRc (child r nm) _ $$ Hperm
     ihave Hw := Hw $$ Hperm
     -- the success exit (after the parent's close: the twenty-seventh session): the parent's fsync names
     -- the WAL (`walInv_named`), and the name is registered now (`walInv_register`; design P,
@@ -459,8 +483,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       (hG := hG))
     (wp_saveCrc : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG))
     (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG))
-    (wp_SaveSnapPre : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (GF := GF)
-      (hG := hG) Mr)
+    (wp_SaveSnap : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) (Sio := WalFs.ioNone)
+      P Mr)
     (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
     (wp_Fdatasync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec (GF := GF) (hG := hG))
     (wp_syncDir : go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec (GF := GF) (hG := hG))
@@ -472,7 +496,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (wp_cleanupWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (W := W) P Mr)
-    (wp_ErrorfAny : fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorfErrs : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) P Mr := by
   intro lg R jr r dir nm mp md qp Q Pv hin hnmO hdl hr hmp hmd hmdne hMr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
@@ -512,7 +536,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
   -- the claim on `nm.tmp`, off the area claim (`walInvBody_drop`), with what it holds
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb, -⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb, -, #Hab⟩
   -- `Exist`'s `false`: `nm` free in the area (in the claim, absent, not registered)
   icases Hres with (⟨%hb, -⟩ | ⟨-, Hres⟩)
   · cases hb
@@ -662,12 +686,14 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     icases (osNames_join jr (.only [tmpName nm]) e b' hT2 hqq).2 $$ HT with ⟨HTe, HTb⟩
     ihave Hpc := osPathS_child R r (tmpName nm) (DFrac.own e) jr J hT2 (tmpName_nameOk hnmO) hJs.1
       $$ Hpe HTe
+    icases osCallPerm_child R r (tmpName nm) _ jr 1 $$ Hpa Hperm with ⟨Hpa, Hperm⟩
     wp_apply wp_createSeg wp_cNWF wp_OpenC R (child r (tmpName nm)) (DFrac.own e) J (walFileName 0 0) _ 1
       hb0 hcur0 $$ [Hpc Hperm HJ0] as %lf %err ⟨Hpc, Hperm, %o, Ho, Hm, Hcs⟩
     · iframe; iframe #
     icases os.osPathS_unchild R r (tmpName nm) jr J e a' (tmpName_nameOk hnmO) $$ [Hpc Hpa]
       with ⟨%hT3, Hp, HTe, %-⟩
     · iframe
+    icases osCallPerm_unchild R r (tmpName nm) _ jr 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases osNames_agree jr (.only [tmpName nm]) _ _ hT3 hT2 $$ HTe HTb with %he
     subst he
     ihave HT := (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).1 $$ [HTe HTb]
@@ -929,16 +955,38 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     have hlen2 := congrArg List.length hys2
     have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1) (⟨i, false, true, lo, lk⟩ : OsFd) m2
       (zs2.map (fun c => ((0 : w8), c)))
-    wp_apply (wp_SaveSnapPre wl lg (child r nm) mp md enc lf f (W64 0) (W64 0) _ _ _
-        (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
-        (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) «$a0_ptr» snapC0.model false
-        (Or.inl (by simp [snapC0, WalSnapC.model])) (by
-          rw [hFr]
-          simp only [List.length_append, List.length_nil] at hlen1 hlen2 ⊢; omega)
-        (by omega) hsyncOk)
-      $$ [Hws] [Hpre Henc HW2] as %serr3 ⟨%snapi', %enti', Hpre, %hse3, Hr3⟩
-    · iexact Hws
-    · iframe; iframe #
+    have hfit3 : ([] ++ ys1 ++ ys2 ++ pend2 ++
+        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model true).length ≤
+        (createStream Mr md).length := by
+      rw [hFr]
+      simp only [List.length_append, List.length_nil] at hlen1 hlen2 ⊢; omega
+    -- `SaveSnapshot.spec` at the state `pre` (the client model and `Sio` unused there)
+    wp_apply (wp_SaveSnap R jr r wl (child r nm)
+        (.pre lg mp md enc lf f (W64 0) (W64 0)
+          (os.fileWI f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+            (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))))
+          (os.fileBI f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+            (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))))
+          (os.fileS f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+            (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))))
+          (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
+          (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md))
+        «$a0_ptr» snapC0.model true false true (fun _ => iprop(True)))
+      $$ [Hpre Henc HW2 fp] as %serr3 ⟨%snapi', %enti', Hpre, fp, %hse3, Hr3⟩
+    · dsimp only
+      isplitr
+      · ipureintro; exact Or.inl (by simp [snapC0, WalSnapC.model])
+      isplitr
+      · ipureintro; exact hfit3
+      isplitr
+      · ipureintro; omega
+      isplitr
+      · ipureintro; exact hsyncOk
+      isplitr
+      · ipureintro
+        exact os.fileWI_preSeekOk f fd _ _ _ _ m2 _ _ (by
+          have := createStream_room Mr md hMr hmd; omega)
+      iframe; iframe #
     icases Hr3 with (⟨%he3, Henc, HS⟩ | ⟨%he3, %c3, %pend3, Henc, HBW⟩)
     rotate_left
     · -- `SaveSnapshot` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
@@ -974,6 +1022,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     icases (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).2 $$ HT with ⟨HTe, HTb⟩
     ihave Hpc := osPathS_child R r (tmpName nm) (DFrac.own e) jr J hT3 (tmpName_nameOk hnmO) hJs.1
       $$ Hpe HTe
+    icases osCallPerm_child R r (tmpName nm) _ jr 1 $$ Hpa Hperm with ⟨Hpa, Hperm⟩
     wp_apply wp_syncDir (child r (tmpName nm)) R J (DFrac.own e) 1
       (max (hJ.restrict J ((NameSet.except []).diff [walFileName 0 0])).next (x0 + 1)) $$ [Hpc Hperm]
       as %serr4 ⟨Hpc, Hperm, Hsd⟩
@@ -981,6 +1030,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     icases os.osPathS_unchild R r (tmpName nm) jr J e a' (tmpName_nameOk hnmO) $$ [Hpc Hpa]
       with ⟨%hT5, Hp, HTe, %-⟩
     · iframe
+    icases osCallPerm_unchild R r (tmpName nm) _ jr 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases osNames_agree jr (.only [tmpName nm]) _ _ hT3 hT5 $$ HTb HTe with %he5
     subst he5
     ihave HT := (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).1 $$ [HTe HTb]
@@ -1058,7 +1108,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     have hm2c : m2.cut = none := by
       rw [hgrow.1]; simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
     have hout : [] ++ ys1 ++ ys2 ++ pend2 ++
-        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model = createStream Mr md := by
+        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model true = createStream Mr md := by
       rw [hFr]
       simp only [List.nil_append] at hys1 ⊢
       rw [show ys1 ++ ys2 ++ pend2 = ys1 ++ (ys2 ++ pend2) by simp, hys2, ← List.append_assoc, hys1]
@@ -1154,7 +1204,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         OsFile.ofDisk, hpe0], by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk],
         by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, hpe0]⟩⟩
       have hoffE : W64 ((((0 + ([] ++ ys1 ++ ys2 ++ pend2 ++ snapFrame Mr
-          (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model).length : Nat)) : Int)) =
+          (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model true).length : Nat)) : Int)) =
           W64 (((createStream Mr md).length : Nat) : Int) := by
         rw [hout, Nat.zero_add]
       have htmS := createSeg_tailMeta Mr md hMr i m2 mS zs2 ysS hokS' hm2s hm2c hmaps2 hzp
@@ -1175,12 +1225,15 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           · assumption
           · cases hb
         · rw [restrictN_lookup_not _ _ _ hm] at hb; cases hb
+      icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
+      icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc1⟩
+      ihave Hperm := osCallPerm_congr _ (hkc1 nm).symm $$ Hperm
       ihave HhIn := create_handleIn P Mr hMr wl lg r nm mp md enc lf f fd
         (child (child r (tmpName nm)) (walFileName 0 0)) (child r (tmpName nm))
         (⟨i, false, true, lo, lk⟩ : OsFd) _ (createSeg i mS ysS) jr J
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) R d dfd df (child r nm) null func.nil fp γ R
         (DFrac.own d) sz rfl hwr hoffE hmp rfl htmS hL hszS hj0 hj1 hfpn
-        hfi.1 rfl rfl $$ [Hpre Henc Hf Hfd Hlks Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
+        hfi.1 rfl rfl hWR $$ [Hpre Henc Hf Hfd Hlks Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
           Hfpf Hpipe Hmain Ht1 Hopen]
       · iframe; iframe #
       icases HhIn with ⟨%γt, HhIn⟩

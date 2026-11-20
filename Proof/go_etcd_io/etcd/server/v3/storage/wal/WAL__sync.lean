@@ -29,6 +29,7 @@ public import Spec.go_uber_org.zap.Duration
 public import Spec.time.Duration__Seconds_ptr
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLemmas
 
 @[expose] public section
 
@@ -39,42 +40,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Fs WalEnc WalFs
-
-/-- **A handle with every record encoded**: its writer's and page writer's bytes are the tail's
-stream past `o0`. -/
-theorem WalHS.split_rest0 [GooseExts] {Mr : WalMarshal} {h : WalHS} (hs : h.Split Mr)
-    (hr : h.rest = 0) :
-    h.out ++ h.pend = (tailStream Mr h.H h.md h.cuts).drop h.o0 ∧
-      h.o0 + (h.out ++ h.pend).length = (tailStream Mr h.H h.md h.cuts).length := by
-  obtain ⟨h1, h2, -⟩ := hs
-  have he : h.encRecs Mr = tailRecs Mr h.H h.md h.cuts := by
-    unfold WalHS.encRecs; rw [hr, Nat.sub_zero, List.take_length]
-  rw [he, ← tailStream_recs] at h1 h2
-  have hl : ((tailStream Mr h.H h.md h.cuts).take h.o0).length = h.o0 := by
-    rw [List.length_take]; omega
-  constructor
-  · conv => rhs; rw [← h1]
-    rw [List.append_assoc, List.drop_left' hl]
-  · have := congrArg List.length h1
-    simp only [List.length_append] at this ⊢
-    omega
-
-/-- The tail's guard holds of everything the encoder has accepted, inside the size. -/
-theorem tailOk_rest0 [GooseExts] {Mr : WalMarshal} {h : WalHS} (hs : h.Split Mr)
-    (hr : h.rest = 0) (hsz : h.o0 + h.out.length + h.pend.length ≤ h.sz) :
-    tailOk Mr h.H h.md h.cuts h.o0 h.sz (h.out ++ h.pend) := by
-  refine ⟨?_, ?_⟩
-  · rw [(WalHS.split_rest0 hs hr).1]; exact List.prefix_refl _
-  · simp only [List.length_append]; omega
-
-/-- The split after a flush. -/
-theorem WalHS.split_flush [GooseExts] {Mr : WalMarshal} {h : WalHS} (hs : h.Split Mr) :
-    WalHS.Split Mr { h with out := h.out ++ h.pend, pend := [] } := by
-  obtain ⟨h1, h2, h3⟩ := hs
-  refine ⟨?_, h2, h3⟩
-  have he : WalHS.encRecs Mr { h with out := h.out ++ h.pend, pend := [] } = h.encRecs Mr := rfl
-  simp only [he, List.append_nil, List.append_assoc] at h1 ⊢
-  exact h1
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
@@ -253,7 +218,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
           locks ↦* lfs ∗ WalFs.walOpenW (W := W) w dir ∗ WalFs.walSyncedLb dir h.H.length ∗
           ⌜max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000⌝) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walOpenW (W := W) w dir ∗
+        (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walOpenW (W := W) w dir ∗
           ∃ (rd : Bool) (lo lk : Option Bool), os.ownFile f fd name (DFrac.own 1) ∗
             osFd fd (DFrac.own 1) ⟨h.ino, rd, true, lo, lk⟩ ∗ fdLocks fd ⟨h.ino, rd, true, lo, lk⟩) }} := by
   wp_start as ⟨#Harea, Hlg, #Hzap, Hns, He, Henc, Htw, Hlocks, Hls, #Hltf, #Henv, #Hwpk, Hopen⟩
@@ -279,7 +244,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       [Henc Htw] as %err ⟨Henc, Hres⟩
   · iexact Hws
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, HB⟩)
+  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, #Hek, HB⟩)
   rotate_left
   · -- the flush failed: the tail's file and fd back (`tailWB`)
     rcases err with ei | _
@@ -288,7 +253,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     wp_auto
     iapply HΦ
     unfold tailWB
-    iright; iframe Hopen HB; ipureintro; exact Herr
+    iright; iframe Hopen HB
+    isplitr
+    · ipureintro; exact Herr
+    iapply fmtErrorOk_of_errOkOrNil _ Herr; iexact Hek
   subst Herr
   iunfold walTailWS at Htw
   icases Htw with ⟨Htw, %hbx⟩
@@ -353,6 +321,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     · iright
       isplitr
       · ipureintro; unfold errnoErr; simp; exact H0
+      isplitr
+      · iapply (_root_.Perennial.errnoErr_fmtErrorOk en (by intro h; exact H0 h))
       unfold walTailW
       icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
@@ -377,6 +347,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     · iright
       isplitr
       · ipureintro; unfold errnoErr; simp; exact H0
+      isplitr
+      · iapply (_root_.Perennial.errnoErr_fmtErrorOk en (by intro h; exact H0 h))
       unfold walTailW
       icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
@@ -409,7 +381,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proof [os.file.FieldAs
       hsplit hoff hsz Hen Hlt) $$ [Hlg Hns He Henc Htw Hlocks Hls Hopen] as %err Hr
   · iframe; iframe #
   iapply HΦ
-  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen, Htf⟩)
+  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, #Hek, Hopen, Htf⟩)
   · ileft
     iframe HS
     isplitr
@@ -452,7 +424,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
       hsplit hoff hsz Hen Hlt) $$ [Hlg Hns He Henc Htw Hlocks Hls Hopen] as %err Hr
   · iframe; iframe #
   iapply HΦ
-  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen, Htf⟩)
+  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, #Hek, Hopen, Htf⟩)
   · ileft
     iframe HS
     isplitr
@@ -469,8 +441,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
   · iright
     isplitr
     · ipureintro; exact H0
+    iframe Hek
     unfold walDirH
-    icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, Hnmd, -, -, Hnf, -⟩
+    icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, -, Hnmd, -, -, Hnf, -⟩
     iframe Hnf
     isplitl [Hopen]
     · iapply walOpenW_lockedTok $$ Hopen
@@ -501,7 +474,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofCut [os.file.Fiel
     rw [hc]
     iexact Hh
   · iright; ipureintro; exact H0
-
 
 end proof
 

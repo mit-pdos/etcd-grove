@@ -149,9 +149,9 @@ def guardOut1 (Pin : IProp GF) (Q : GoInterface → IProp GF) (err : GoInterface
 
 /-- **Why `Alarm`'s guard refused** (auth-guard-completeness G3): the authenticated class's reason for
 a get (`AlarmRequest_GET`), the admin class's otherwise (as `alarmTok`). -/
-def alarmWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface) (act : w32)
+def alarmWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) (act : w32)
     (e : GoInterface) : IProp GF :=
-  if act = W32 0 then authedWhy M n ctx e else adminWhy s M n ctx e
+  if act = W32 0 then authedWhy M n tok e else adminWhy s M n tok e
 
 /-- **A guarded wrapper's outcome with the guard's reason** (auth-guard-completeness G3): the inner
 call's answer, or `nil` and an error with `Pin` untouched, the guard's error `e0` (`togRPCError`'s

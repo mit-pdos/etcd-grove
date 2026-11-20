@@ -40,8 +40,8 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     (hZapErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend key k L crev Z
-  wp_start as ⟨Htw, #Hkey, Hown, %Hpresent, %Hkvb⟩
+  intro trace tw s γ ilog pend key k L crev Z w
+  wp_start as ⟨Htw, #Hkey, Hown, %Hpresent, %Hwm, %Hkvb⟩
   try simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -206,7 +206,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   ihave %Hlpeq := lease.lessorPin_agree γ.leases lp lpr $$ [$Hpin $Hpinr]
   subst Hlpeq
   ihave #HGetL' := HGetL $$ %({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) %L
-    %(mvcc.pendItems ilog pend)
+    %(mvcc.pendItems ilog pend) %w
   (try wp_auto)
   wp_apply HGetL' $$ [$Hrd $Hown] as ⟨Hrd, Hown⟩
   generalize hold : ((mvcc.findKey k (mvcc.applyChanges (W64 ilog.length) (mvcc.stateAfter ilog)
@@ -220,7 +220,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   wp_if_destruct
   · (try wp_auto)
     -- the key has no lease: the item map is the delete's
-    ihave Hown := lease.leaseOwn_eq (mvcc.pendItems_del ilog pend k _ (fun _ _ => rfl)
+    ihave Hown := lease.leaseOwnW_eq (mvcc.pendItems_del ilog pend k _ (fun _ _ => rfl)
       (by rw [hIk]; simp)).symm $$ Hown
     iapply HΦ; iframe Hown; iapply Hpack $$ Htw Hlrd
   · (try wp_auto)
@@ -230,22 +230,24 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     · ipureintro; rfl
     iintro %items ⟨Hitems, -⟩
     (try wp_auto)
-    ihave #HDetach' := HDetach $$ %lid %_ %_ %(DFrac.own 1) %L %(mvcc.pendItems ilog pend)
-    wp_apply HDetach' $$ [$Hitems $Hown] as ⟨Hown, -⟩
-    · ipureintro
-      refine ⟨List.cons_ne_nil _ _, ?_⟩
-      intro it hit
-      rw [List.mem_singleton] at hit; subst hit
-      rw [hIk, if_neg hl0]
-    (try wp_auto)
-    -- `if err != nil { Error }`: not taken (resolved by `wp_auto`); the key detached
-    ihave Hown := lease.leaseOwn_eq (mvcc.pendItems_del ilog pend k
+    have hfin := mvcc.pendItems_del ilog pend k
       (lease.deleteAll (mvcc.pendItems ilog pend)
         [({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem)])
       (fun it hit => by
         rw [lease.deleteAll_lookup, if_neg (by
           intro hm; rw [List.mem_singleton] at hm; exact hit (by rw [hm]))])
-      (by rw [lease.deleteAll_lookup, if_pos (List.mem_singleton_self _)])).symm $$ Hown
+      (by rw [lease.deleteAll_lookup, if_pos (List.mem_singleton_self _)])
+    ihave #HDetach' := HDetach $$ %lid %_ %_ %(DFrac.own 1) %L %(mvcc.pendItems ilog pend) %w
+    wp_apply HDetach' $$ [$Hitems $Hown] as ⟨Hown, -⟩
+    · ipureintro
+      refine ⟨?_, List.cons_ne_nil _ _, ?_⟩
+      · rw [← hfin]; exact lease.winStep_of_move Hwm
+      intro it hit
+      rw [List.mem_singleton] at hit; subst hit
+      rw [hIk, if_neg hl0]
+    (try wp_auto)
+    -- `if err != nil { Error }`: not taken (resolved by `wp_auto`); the key detached
+    ihave Hown := lease.leaseOwnW_eq hfin.symm $$ Hown
     iapply HΦ; iframe Hown; iapply Hpack $$ Htw Hlrd
 
 end proof

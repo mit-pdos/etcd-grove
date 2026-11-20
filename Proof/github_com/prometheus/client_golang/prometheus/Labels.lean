@@ -11,8 +11,11 @@ constraints: `curry` is empty, `constrain` the identity.)
 
 `vecLabels v ls` (opaque, pure, so persistent): `v` is a `*CounterVec`/`*GaugeVec`/`*HistogramVec`
 built by `prometheus.New<Kind>Vec(opts, ls)`, uncurried, with unconstrained, pairwise distinct
-variable labels `ls`. Only the trust-boundary axioms `<X>_init` of the vectors' untranslated
-initializers state it (`etc/gen-init.py`), each with the label names of its `metrics.go`.
+valid variable labels `ls` and a valid name (`labelNamesOk`, `nameOk`); a `*HistogramVec` also
+with buckets `NewHistogram` accepts and no label `le` (what its lazily built histograms check:
+`newHistogram`). Only the constructors' trust-boundary specs state it (`NewCounterVec`,
+`NewGaugeVec`, `NewHistogramVec`, metric-vecs 2026-11-19; until then the trust-boundary axioms
+`<X>_init` of the vectors' untranslated initializers, `etc/gen-init.py`).
 -/
 module
 
@@ -28,8 +31,23 @@ namespace EtcdGrove
 namespace prometheus
 
 /-- The metric vector `v` has the variable labels `ls` (pairwise distinct; uncurried,
-unconstrained). Opaque: only the vectors' initializers' trust-boundary axioms state it. -/
+unconstrained). Opaque: only the vectors' constructors' trust-boundary specs state it. -/
 opaque vecLabels (v : Loc) (ls : List GoString) : Prop
+
+/-- A label name `NewDesc` accepts (`checkLabelName`: `model.UTF8Validation.IsValidLabelName`,
+non-empty valid UTF-8, and no reserved prefix `__`), stated for ASCII names (valid UTF-8).
+Decidable: `decide` checks a literal. -/
+def labelNameOk (l : GoString) : Prop :=
+  l ≠ [] ∧ (∀ b ∈ l, b.toNat < 128) ∧ l.take 2 ≠ [W8 95, W8 95]
+
+instance (l : GoString) : Decidable (labelNameOk l) := by unfold labelNameOk; infer_instance
+
+/-- Variable label names a vector's `NewDesc` accepts (no error recorded in its descriptor): each
+valid (`labelNameOk`), pairwise distinct ("duplicate label names"). Decidable. -/
+def labelNamesOk (ls : List GoString) : Prop :=
+  ls.Nodup ∧ ∀ l ∈ ls, labelNameOk l
+
+instance (ls : List GoString) : Decidable (labelNamesOk ls) := by unfold labelNamesOk; infer_instance
 
 /-- Label values `WithLabelValues` accepts for the label names `ls`: one per label, each valid
 UTF-8 (`validateLabelValues`). -/

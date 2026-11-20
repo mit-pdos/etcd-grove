@@ -239,7 +239,9 @@ theorem check.wp_proof
     unfold srvApi.kvLogLb; exact monoListLbOwn_nil _) with #HF0
   -- `resp, err := s.Range(ctx, &pb.RangeRequest{...})`
   have hany : E.authMode ≠ .any := by rw [hoff]; intro h; cases h
-  wp_apply (wp_Range s E { ρ with wait := γw } ρ.rd (W64 0) ctx cd «$a1_ptr» r1RangeOp none false
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  wp_apply (wp_Range s E { ρ with wait := γw } ρ.rd (W64 0) ctx cd none «$a1_ptr» r1RangeOp none false
       (fun L => iprop(□ (fun σ => iprop(⌜r1Ok σ r3NPuts⌝) : KVState → IProp GF)
         (kvStOff ρ.rd.kv L))) [] 0 hany) $$ [Hcall] as %resp %err ⟨-, Hout⟩
   · rw [HEc.2.1]

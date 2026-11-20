@@ -281,7 +281,7 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
   ihave #Hinv' := Hinv
   iunfold srvRaftLogInv at Hinv'
   icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, %Hvs0⟩
-  have hvs := Hvs0.2
+  have hvs : _ ∧ _ := ⟨Hvs0.2.1, Hvs0.2.2.1⟩
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
   ihave %Hpfx := srvRLogLb_prefix γ _ A $$ [Hb HA]
@@ -487,7 +487,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold srvBeHooked at Hbh
   icases Hbh with ⟨%d, %bh, %lgh, %gx, %Hd, -, #Hbhk, #HhkAt, -⟩
   obtain ⟨hBT, hcK, hhP, hPk⟩ := Hd
-  obtain ⟨-, -, γB, HH, hRO, -, d', _al, _stl, _lp, hBT', hγB, -⟩ := Henv
+  obtain ⟨-, -, -, γB, HH, hRO, -, d', _al, _stl, _lp, hBT', hγB, -⟩ := Henv
   have hdd' : d' = d := srvBkTie_inj d' d (hBT'.symm.trans hBT)
   subst d' γB
   -- the store invariant (`srvKVInvs`'s)
@@ -513,7 +513,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     -, -, #Hddo, -, -, -, -, -, -, -, -, -, -, #Hmidm, #Hsdinv, -⟩
   icombine Hmidr Hmidm gives %hidm
   have hloc : C.γr.raft.raft.snapLoc C.rn.id = some γdo := by
-    rw [hidm]; exact Hsrop.2.2.2.2.2.1
+    rw [hidm]; exact Hsrop.2.2.2.2.1
   iunfold srvSnapRes at Hsr
   icases Hsr with ⟨%d2, %al2, %dd2, %hd2, #Hsch, Hhalf, -, #Hdd2, Hpath, #Hbf⟩
   have hd2' : d2 = d := srvBkTie_inj d2 d (hd2.symm.trans hBT)
@@ -526,10 +526,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ihave HKV := hK.2 $$ HKV
   iunfold srvApplyKV at HKV
   icases HKV with ⟨%ua, -, -, Hakv, Hbo, -, -, -, -⟩
-  iunfold apply.applyKV at Hakv
-  icases Hakv with ⟨%p, -, -, Hko, Hcmo⟩
-  iunfold apply.kvOwn at Hko
-  icases Hko with ⟨⟨%c, Hws⟩, Hkb, -, -⟩
+  icases srvApplyKVW_open B.E ua x $$ Hakv with ⟨%p, %c, -, -, Hws, Hkb, Hcmo, -⟩
   iunfold apply.kvBk at Hkb
   icases Hkb with ⟨%B2, HmB, -, HtB⟩
   ihave %HB2 : ⌜B2 = d⌝ $$ [HtB]
@@ -538,14 +535,14 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold apply.cmpOwn at Hcmo
   icases Hcmo with ⟨Hop, Hcr⟩
   -- the writer's compaction revision, the apply thread's
-  iunfold srvApi.wSt at Hws
+  iunfold srvApi.wStQ at Hws
   icases Hws with ⟨Hws1, Hws2⟩
   iunfold srvApi.crOwn at Hcr
   icombine Hws2 Hcr gives %Hcc
   have hcx : c = x.crev := Hcc.2
   subst hcx
-  ihave Hws : srvApi.wSt B.E.γs x.log x.crev $$ [Hws1 Hws2]
-  · iunfold srvApi.wSt; iframe Hws1 Hws2
+  ihave Hws : srvApi.wStQ B.E.γs B.E.stq x.log x.crev $$ [Hws1 Hws2]
+  · iunfold srvApi.wStQ; iframe Hws1 Hws2
   iunfold srvBeOwn at Hbo
   icases Hbo with ⟨%d3, %hd3, Hbe, Hg, -, HbPl, Hrt⟩
   have hd3' : d3 = d := srvBkTie_inj d3 d (hd3.symm.trans hBT)
@@ -702,6 +699,13 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold rnWalClosedW at Hw
   icombine Hst' Hst2 gives %hsteq
   subst hsteq
+  -- (wal-link L3) the WAL's files at its directory, (P2) the data directory's dedicated one (`srvFiles`' form)
+  ihave Hw : iprop(∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗
+      walFiles a C.rn.id cid σ true) $$ [Hw]
+  · icases Hw with ⟨%cidw, Hw⟩
+    iexists C.rn.wal.h.toWalA, cidw
+    iframe Hw
+    ipureintro; exact hwd
   -- the backend's file
   iunfold srvDataDir at Hdd
   icases Hdd with ⟨#Hdd1, -⟩
@@ -709,7 +713,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   subst hddeq
   icases Hfile with (Hcd | %hbad)
   rotate_left
-  · exact absurd hdisk.2.1.2.2.2 hbad
+  · exact absurd hdisk.2.2.2 hbad
   -- (S5) the closed backend's inode, at the claim on the backend path: the file there
   ihave Hfh := backend.bPath_join d.γB.db (config.backendPathOf dd) D $$ [Hpath Hcd]
   · iframe Hpath Hcd
@@ -721,7 +725,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold srvDiskImageAt
   rw [hρ] at *
   iunfold srvFiles
-  rw [← hwd, ← hγ]
+  rw [← hγ]
   have h1 := hp.2.2.2.2.2.1
   have h2 := hσ.2.1
   have h3 := hσ.2.2
@@ -746,14 +750,12 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   -- (restart S6a-2) its paths the data directory's: the snapshotter's (`srvSnapRO`'s, from
   -- `bootOk`'s `Hssp`) at the configuration's `DataDir`, which is the stop's `dd`
   icombine Hdd1 Hddo gives %hddo
-  have hsp : snap.snapDBPath sso = snap.snapDBPathOf dd := by
-    rw [hddo]; exact Hsrop.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
-  iexists sso, γdo, γm, cm
+  iexists γdo, γm, cm
   isplitr
-  · ipureintro; exact ⟨hloc, hsp, by omega⟩
+  · ipureintro; exact ⟨hloc, by omega⟩
   isplitr
   · rw [show (fun j : w64 => monoNatLbOwn (GF := GF) γm (uint.nat j + 1)) = snapRmM γm from rfl]
-    iexact Hsdinv
+    first | (rw [hddo]; iexact Hsdinv) | (rw [← hddo]; iexact Hsdinv)
   iexact Hγm
 
 end proof

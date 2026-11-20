@@ -16,6 +16,7 @@ public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.dustin.go_humanize
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.pbutil
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config

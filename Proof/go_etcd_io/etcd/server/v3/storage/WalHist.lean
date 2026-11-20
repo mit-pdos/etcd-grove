@@ -47,12 +47,12 @@ theorem EntryM.toRaw_toM (e : WalEnt) : e.toM.toRaw = e := rfl
 /-- An operation over raw entries as one over the model's. -/
 def _root_.Perennial.WalOpG.toM : WalOpG WalEnt → WalOp
   | .save h es => .save h (es.map WalEnt.toM)
-  | .snap m => .snap m
+  | .snap m al => .snap m al
 
 /-- An operation over the model's entries as one over raw entries. -/
 def _root_.Perennial.WalOpG.toRaw : WalOp → WalOpG WalEnt
   | .save h es => .save h (es.map EntryM.toRaw)
-  | .snap m => .snap m
+  | .snap m al => .snap m al
 
 theorem _root_.Perennial.WalOpG.toM_toRaw (o : WalOp) : o.toRaw.toM = o := by
   cases o <;> simp [WalOpG.toRaw, WalOpG.toM, Function.comp_def, WalEnt.toM_toRaw]
@@ -65,7 +65,7 @@ def hsEmptyP (h : HardStateM) : Prop := h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ 
 
 /-- The last saved hard state (`w.state`: `MustSync`'s `prevst`; `ReadAll`'s returned state). -/
 def walLastHS (H : WalHist) : HardStateM :=
-  H.foldl (fun p o => match o with | .save h _ => phsNext p h | .snap _ => p) hsZero
+  H.foldl (fun p o => match o with | .save h _ => phsNext p h | .snap _ _ => p) hsZero
 
 /-- Whether `Save(h, es)` syncs before returning, after `H` (`wal.go:1047`, `raft.MustSync`; a
 cut, `:1073`, syncs too: the margin). -/
@@ -83,14 +83,14 @@ def readEnt (b : Nat) (ents : List EntryM) (e : EntryM) : Option (List EntryM) :
 /-- The fold from `σ`, checked (`walSaveSnap` as today's, WalRecs.lean). -/
 def walFoldChkFrom (σ : StorContents) : WalHist → Option StorContents
   | [] => some σ
-  | .snap m :: H => walFoldChkFrom (walSaveSnap σ m) H
+  | .snap m _ :: H => walFoldChkFrom (walSaveSnap σ m) H
   | .save h es :: H => do
       let ents ← es.foldlM (fun ents e => readEnt σ.b ents e) σ.ents
       walFoldChkFrom { σ with hs := phsNext σ.hs h, ents := ents } H
 
 /-- Whether a restart keeps the operation: a snapshot record only at or below the commit `c`. -/
 def walKeep (c : Nat) : WalOp → Bool
-  | .snap m => uint.nat m.Index' ≤ c | .save _ _ => true
+  | .snap m _ => uint.nat m.Index' ≤ c | .save _ _ => true
 
 /-- **What a restart reads from a WAL whose history is `I`, nothing purged** (Scope §2.1): the
 snapshot records above the last saved commit dropped, the rest folded; `none` when the read fails
@@ -102,7 +102,7 @@ def walRead (I : WalHist) : Option StorContents :=
 `newestSnapshotEntry` and the tester's loop). -/
 def walNewest (H : WalHist) : Option SnapshotMetadataM :=
   H.foldl (fun best o => match o with
-    | .snap m => match best with
+    | .snap m _ => match best with
       | none => some m
       | some b => if uint.nat b.Index' ≤ uint.nat m.Index' then some m else best
     | .save _ _ => best) none

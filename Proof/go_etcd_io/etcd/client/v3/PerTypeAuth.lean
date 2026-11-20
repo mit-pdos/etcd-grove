@@ -57,22 +57,14 @@ theorem treeWp_userOpts (Φ : val → IProp GF) :
   isplitr
   · ipureintro; rfl
   iintro %p Hp
-  ihave %Hnn := typedPointsto_not_null $$ Hp
-  imod (typedPointsto_dfractional (GF := GF) p _).dfractional_persist _ $$ Hp with #Hp
+  imod auth.userOptsIs_freeze _ p _ false _ [] _ $$ [Hp] with #Hoi
+  · iframe Hp; iapply ownSlice_nil
   imodintro
   iapply H
-  unfold userOptsFalse auth.userOptsAt auth.userOptsIs
+  unfold userOptsFalse auth.userOptsAt
   iexists some []
-  isplitr
-  · ipureintro; exact auth.userOptsUfOk_empty
-  iright
-  isplitr
-  · ipureintro; exact Hnn
-  iexists _, _, _, []
-  isplitr
-  · ipureintro; rfl
-  iframe Hp
-  iapply ownSlice_nil
+  iframe Hoi
+  ipureintro; exact auth.userOptsUfOk_empty
 
 /-- **The store of a user addition**: its name and password (`HashedPassword` empty, as the
 client sends it), its `Options`. -/
@@ -282,16 +274,16 @@ theorem treeWp_permW (w : auth.PermW) (Hk : w.key.length < 2 ^ 63 - 1) (Φ : val
   · ipureintro; rfl
   iintro %p Hp
   ihave %Hnn := typedPointsto_not_null $$ Hp
-  imod (typedPointsto_dfractional (GF := GF) p _).dfractional_persist _ $$ Hp with #Hp
   imod ownSlice_persist _ _ _ $$ Hks with #Hks
   imod ownSlice_persist _ _ _ $$ Hrs with #Hrs
+  imod auth.ownPermW_freeze _ p w _ ksl rsl _ [] _ $$ [Hp] with #Hpw
+  · iframe Hp Hks Hrs
+    isplitr
+    · ipureintro; exact ⟨Hnn, Hk⟩
+    iapply ownSlice_nil
   imodintro
   iapply H
-  unfold auth.ownPermW
-  isplitr
-  · ipureintro; exact ⟨Hnn, Hk⟩
-  iexists _, ksl, rsl, _, _
-  iframe Hp Hks Hrs
+  iexact Hpw
 
 /-- **The store of a permission grant to a role**: the role's name and the permission (always
 present: the sender's is not nil). -/

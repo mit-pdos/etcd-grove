@@ -63,12 +63,12 @@ local macro "cd_refresh" : tactic => `(tactic| (
   icases (ownState_split c st s) $$ Hos with ⟨%x', Hos, -⟩
   icases Hph with (⟨%Hcur, HW, Hlc, Hc, Htok, Hp⟩ | ⟨%σ, %kv, #Hfs, %Hkv, HT⟩)
   · -- the cached state: the re-read is the first read
-    imod (rwInv_alloc_at γc γt γp c key (stepHand c (delStep key (c.S.preOk pr) validate)) W Φu ⊤) $$ [HW Hc] with #Hrw
+    imod (rwInv_alloc_at γc γt γp c key (stepHand c (delStep key (c.S.preF pr) validate)) W Φu ⊤) $$ [HW Hc] with #Hrw
     · iframe HW Hc
-    ihave Hmk := (rwInv_maker γc γt γp c key (delStep key (c.S.preOk pr) validate) (stepHand c (delStep key (c.S.preOk pr) validate))
-      (handOk_del c key (c.S.preOk pr) validate) W Φu) $$ [Hp]
+    ihave Hmk := (rwInv_maker γc γt γp c key (delStep key (c.S.preF pr) validate) (stepHand c (delStep key (c.S.preF pr) validate))
+      (handOk_del c key (c.S.preF pr) validate) W Φu) $$ [Hp]
     · iframe Hrw Hp Hau
-    wp_apply (wp_refresh Obj c st s _ f x' key false (rdQ γc γp c key (stepHand c (delStep key (c.S.preOk pr) validate)))) $$ [Hos Hmk]
+    wp_apply (wp_refresh Obj c st s _ f x' key false (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate)))) $$ [Hos Hmk]
       as %st' %err' Hr
     · isimp only [Hcur, Bool.false_eq_true, ↓reduceIte]
       iframe Hos Hf Hmk
@@ -91,7 +91,7 @@ local macro "cd_refresh" : tactic => `(tactic| (
     ihave #Hrq' := Hrq
     iunfold rdQ at Hrq'
     icases Hrq' with ⟨#Hfs, -, -⟩
-    imod (rwInv_after γc γt γp c key (delStep key (c.S.preOk pr) validate) (stepHand c (delStep key (c.S.preOk pr) validate)) (handOk_del c key (c.S.preOk pr) validate) W Φu σ)
+    imod (rwInv_after γc γt γp c key (delStep key (c.S.preF pr) validate) (stepHand c (delStep key (c.S.preF pr) validate)) (handOk_del c key (c.S.preF pr) validate) W Φu σ)
       $$ [Htok Hrq Hlc] with HT
     · iframe Hrw Htok Hrq Hlc
     unfold stAt
@@ -103,8 +103,8 @@ local macro "cd_refresh" : tactic => `(tactic| (
       subst Hep
       rw [if_neg (fun h => by cases h.1)] at He'
       subst He'
-      have hid := delete_none c σ key hf (c.S.preOk pr) validate
-      have hh := hand_true c (delStep key (c.S.preOk pr) validate) σ (by simp [delStep, hid])
+      have hid := delete_none c σ key hf (c.S.preF pr) validate
+      have hh := hand_true c (delStep key (c.S.preF pr) validate) σ (by simp [delStep, hid])
       isimp only [hh, ↓reduceIte] at HT
       icases HT with ⟨%σ1, HΦ1, %Hsame⟩
       (try wp_auto)
@@ -134,7 +134,7 @@ local macro "cd_refresh" : tactic => `(tactic| (
       · iframe Hfrom Hfs
       obtain ⟨b, hb⟩ := Hit
       have hid := hmod (c.abs σ) b hb
-      have hh := hand_true c (delStep key (c.S.preOk pr) validate) σ (by simp [delStep, hid])
+      have hh := hand_true c (delStep key (c.S.preF pr) validate) σ (by simp [delStep, hid])
       isimp only [hh, ↓reduceIte] at HT
       icases HT with ⟨%σ1, HΦ1, %Hsame⟩
       (try wp_auto)
@@ -167,7 +167,7 @@ local macro "cd_refresh" : tactic => `(tactic| (
       ipureintro; exact ⟨hf, Hs0⟩
   · -- a read's state: current, the check's error back
     have Hcur : s.current = true := Hkv.2.2.2.2
-    wp_apply (wp_refresh Obj c st s _ f x' key false (rdQ γc γp c key (stepHand c (delStep key (c.S.preOk pr) validate)))) $$ [Hos]
+    wp_apply (wp_refresh Obj c st s _ f x' key false (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate)))) $$ [Hos]
       as %st' %err' Hr
     · isimp only [Hcur, ↓reduceIte]
       iframe Hos
@@ -179,7 +179,7 @@ local macro "cd_refresh" : tactic => `(tactic| (
     · iframe Hfrom Hfs
     obtain ⟨b, hb⟩ := Hit
     have hid := hmod (c.abs σ) b hb
-    have hh := hand_true c (delStep key (c.S.preOk pr) validate) σ (by simp [delStep, hid])
+    have hh := hand_true c (delStep key (c.S.preF pr) validate) σ (by simp [delStep, hid])
     isimp only [hh, ↓reduceIte] at HT
     icases HT with ⟨%σ1, HΦ1, %Hsame⟩
     (try wp_auto)
@@ -215,7 +215,7 @@ theorem store.conditionalDelete.wp_proof
   -- the first read's names (its invariant, with the caller's token, made at the first read)
   ihave Hnames := rwNames_alloc (GF := GF)
   imod Hnames with ⟨%γc, %γt, %γp, Hc, Htok, Hp⟩
-  have hR : ∀ R0 m σ, rdQ (GF := GF) γc γp c key (stepHand c (delStep key (c.S.preOk pr) validate)) R0 m σ ⊢
+  have hR : ∀ R0 m σ, rdQ (GF := GF) γc γp c key (stepHand c (delStep key (c.S.preF pr) validate)) R0 m σ ⊢
       ⌜kvWf c σ⌝ := fun R0 m σ => by
     iintro #H
     iunfold rdQ at H
@@ -225,7 +225,7 @@ theorem store.conditionalDelete.wp_proof
     ipureintro; exact h.1
   wp_auto_lc 1
   wp_apply (wp_getCur Obj sp c ci cd go!"deleteGet" key v p false
-      (rdQ γc γp c key (stepHand c (delStep key (c.S.preOk pr) validate))) hk hkl hR (by decide)) $$ [] as %f #Hf
+      (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate))) hk hkl hR (by decide)) $$ [] as %f #Hf
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)
@@ -236,10 +236,10 @@ theorem store.conditionalDelete.wp_proof
     icases Hca with %Hcx
     subst Hcx
     (try wp_auto)
-    imod (rwInv_alloc_at γc γt γp c key (stepHand c (delStep key (c.S.preOk pr) validate)) W Φu ⊤) $$ [HW Hc] with #Hrw
+    imod (rwInv_alloc_at γc γt γp c key (stepHand c (delStep key (c.S.preF pr) validate)) W Φu ⊤) $$ [HW Hc] with #Hrw
     · iframe HW Hc
-    ihave Hmk := (rwInv_maker γc γt γp c key (delStep key (c.S.preOk pr) validate) (stepHand c (delStep key (c.S.preOk pr) validate))
-      (handOk_del c key (c.S.preOk pr) validate) W Φu) $$ [Hp]
+    ihave Hmk := (rwInv_maker γc γt γp c key (delStep key (c.S.preF pr) validate) (stepHand c (delStep key (c.S.preF pr) validate))
+      (handOk_del c key (c.S.preF pr) validate) W Φu) $$ [Hp]
     · iframe Hrw Hp Hau
     ihave #Hf' := Hf
     iunfold getStateOk at Hf'
@@ -261,7 +261,7 @@ theorem store.conditionalDelete.wp_proof
     ihave #Hrq' := Hrq
     iunfold rdQ at Hrq'
     icases Hrq' with ⟨#Hfs, -, -⟩
-    imod (rwInv_after γc γt γp c key (delStep key (c.S.preOk pr) validate) (stepHand c (delStep key (c.S.preOk pr) validate)) (handOk_del c key (c.S.preOk pr) validate) W Φu σ)
+    imod (rwInv_after γc γt γp c key (delStep key (c.S.preF pr) validate) (stepHand c (delStep key (c.S.preF pr) validate)) (handOk_del c key (c.S.preF pr) validate) W Φu σ)
       $$ [Htok Hrq Hlc1] with HT
     · iframe Hrw Htok Hrq Hlc1
     unfold stAt
@@ -271,8 +271,8 @@ theorem store.conditionalDelete.wp_proof
       iunfold storageErrIs at Herr
       icases Herr with ⟨%ep, %Hep, #Hep⟩
       subst Hep
-      have hid := delete_none c σ key hf (c.S.preOk pr) validate
-      have hh := hand_true c (delStep key (c.S.preOk pr) validate) σ (by simp [delStep, hid])
+      have hid := delete_none c σ key hf (c.S.preF pr) validate
+      have hh := hand_true c (delStep key (c.S.preF pr) validate) σ (by simp [delStep, hid])
       isimp only [hh, ↓reduceIte] at HT
       icases HT with ⟨%σ1, HΦ1, %Hsame⟩
       (try wp_auto)
@@ -303,7 +303,7 @@ theorem store.conditionalDelete.wp_proof
                 dghostVar γp (DFrac.own 1) (none : Option (w64 × w64))) ∨
               (∃ (σ : KVState) (kv : EtcdKv), rdFacts c σ ∗
                 ⌜mvcc.findKey key σ.kvs = some kv ∧ stOfKv c kv s⌝ ∗
-                (if stepHand c (delStep key (c.S.preOk pr) validate) σ then iprop(∃ σ1, Φu σ1 ∗
+                (if stepHand c (delStep key (c.S.preF pr) validate) σ then iprop(∃ σ1, Φu σ1 ∗
                   ⌜(c.abs σ1).items key = (c.abs σ).items key ∧ σ1.rev = σ.rev⌝) else W))) : IProp GF) $$ [origState err Hos HT Hout]
     · iexists st, s0, GoInterface.nil
       iframe origState err Hos Hout Hfrom
@@ -352,7 +352,7 @@ theorem store.conditionalDelete.wp_proof
                 dghostVar γp (DFrac.own 1) (none : Option (w64 × w64))) ∨
               (∃ (σ : KVState) (kv : EtcdKv), rdFacts c σ ∗
                 ⌜mvcc.findKey key σ.kvs = some kv ∧ stOfKv c kv s⌝ ∗
-                (if stepHand c (delStep key (c.S.preOk pr) validate) σ then iprop(∃ σ1, Φu σ1 ∗
+                (if stepHand c (delStep key (c.S.preF pr) validate) σ then iprop(∃ σ1, Φu σ1 ∗
                   ⌜(c.abs σ1).items key = (c.abs σ).items key ∧ σ1.rev = σ.rev⌝) else W))) : IProp GF) $$ [origState err Hos HW Hlc1 Hc Htok Hp Hout]
     · iexists st, ⟨o1, r1, c.S.encode o1, false, false⟩, GoInterface.nil
       iframe origState err Hos Hout
@@ -374,7 +374,7 @@ theorem store.conditionalDelete.wp_proof
     wp_for HI
     iunfold ownState at Hos
     icases Hos with ⟨%x, %m, %dsl, %Hstn, Hstp, Hobj, #Hdsl, Hm⟩
-    ihave %Hpn : ⌜pp = null → (c.S.preOk pr) s.o (uint.nat s.rev) = true⌝ $$ []
+    ihave %Hpn : ⌜pp = null → (c.S.preF pr) s.o (uint.nat s.rev) = true⌝ $$ []
     · ihave #Hpre' := Hpre
       iunfold preAt at Hpre'
       icases Hpre' with (%H | ⟨%lu, %lr, #Hpp, -⟩)
@@ -405,10 +405,10 @@ theorem store.conditionalDelete.wp_proof
         ihave HW : W $$ [Hph]
         · icases Hph with (⟨-, HW, -⟩ | ⟨%σ, %kv, #Hfs, %Hkv, HT⟩)
           · iexact HW
-          · have hh := del_read_hand c σ key hk kv Hkv.1 s Hkv.2 (c.S.preOk pr) validate hpre hvd
+          · have hh := del_read_hand c σ key hk kv Hkv.1 s Hkv.2 (c.S.preF pr) validate hpre hvd
             isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
             iexact HT
-        wp_apply (wp_deleteOnce Obj E sp c ci cd key out o0 rv0 st s v p (c.S.preOk pr) validate W Φu hk hkl
+        wp_apply (wp_deleteOnce Obj E sp c ci cd key out o0 rv0 st s v p (c.S.preF pr) validate W Φu hk hkl
             Hsr hpre hvd) $$ [Hos Hout HW] as %st' %ok %derr Hd
         · iframe #
           iframe Hos Hout HW
@@ -446,8 +446,8 @@ theorem store.conditionalDelete.wp_proof
             iunfold storageErrIs at Herr
             icases Herr with ⟨%ep, %Hep, #Hep⟩
             subst Hep
-            have hid := delete_none c σ' key hf (c.S.preOk pr) validate
-            have hh := hand_true c (delStep key (c.S.preOk pr) validate) σ' (by simp [delStep, hid])
+            have hid := delete_none c σ' key hf (c.S.preF pr) validate
+            have hh := hand_true c (delStep key (c.S.preF pr) validate) σ' (by simp [delStep, hid])
             isimp only [hh, ↓reduceIte] at HT'
             (try wp_auto)
             wp_for_post
@@ -481,7 +481,7 @@ theorem store.conditionalDelete.wp_proof
           iframe Hfs'
           isplitr
           · ipureintro; exact ⟨hf, Hs'⟩
-          cases hh : (stepHand c (delStep key (c.S.preOk pr) validate)) σ'
+          cases hh : (stepHand c (delStep key (c.S.preF pr) validate)) σ'
           · isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT'
             simp only [Bool.false_eq_true, ↓reduceIte]
             iexact HT'
@@ -495,7 +495,7 @@ theorem store.conditionalDelete.wp_proof
         rotate_left
         · exact absurd rfl Hvres.1
         have hmod := fun (st0 : KSt Obj) (b : Bool) h =>
-          delete_item_val st0 key s.o (uint.nat s.rev) b h (c.S.preOk pr) validate hpre ue hvd
+          delete_item_val st0 key s.o (uint.nat s.rev) b h (c.S.preF pr) validate hpre ue hvd
         ihave #Hε : □ (∀ o rv, c.S.objAt out o rv -∗
             respIs c (KResp.err (KErr.user ue) : KResp Obj E) (GoInterface.ok ei) out) $$ []
         · imodintro
@@ -517,22 +517,24 @@ theorem store.conditionalDelete.wp_proof
       iintro %e1 ⟨Hobj, Hck⟩
       cases hpok : pr.ok (c.S.uid s.o) (c.S.fmtRV s.rev)
       · isimp only [hpok, Bool.false_eq_true, ↓reduceIte] at Hck
-        ihave #Hck0 := Hck
+        ihave #HckM := Hck
+        ihave #Hck0 := invalidErrMsg_is _ _ _ $$ HckM
         ihave #Hck' := Hck0
         iunfold invalidErrIs at Hck'
         icases Hck' with ⟨%l, %e2, %Hl, -⟩
         subst Hl
-        have hpf : (c.S.preOk pr) s.o (uint.nat s.rev) = false := by
-          unfold ObjCodec.preOk; rw [W64_uint_nat]; exact hpok
+        have hpf : (c.S.preF pr) s.o (uint.nat s.rev) = false := by
+          show c.S.preOk pr _ _ = _; unfold ObjCodec.preOk; rw [W64_uint_nat]; exact hpok
         have hmod := fun (st0 : KSt Obj) (b : Bool) h =>
-          delete_item_pre st0 key s.o (uint.nat s.rev) b h (c.S.preOk pr) validate hpf
+          delete_item_pre st0 key s.o (uint.nat s.rev) b h (c.S.preF pr) validate hpf
         ihave #Hε : □ (∀ o rv, c.S.objAt out o rv -∗
-            respIs c (KResp.err (KErr.invalidObj key) : KResp Obj E)
+            respIs c (KResp.err (KErr.invalidObj key ((c.S.preF pr).msg s.o (uint.nat s.rev))) : KResp Obj E)
               (interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.StorageError.ty) #l) out) $$ []
         · imodintro
           iintro %o %rv Ho
-          simp only [respIs]
-          iframe Hck0
+          simp only [respIs, ObjCodec.preF]
+          rw [W64_uint_nat]
+          iframe HckM
           iexists o, rv
           iexact Ho
         (try wp_auto)
@@ -540,8 +542,8 @@ theorem store.conditionalDelete.wp_proof
       · isimp only [hpok, ↓reduceIte] at Hck
         icases Hck with %He1
         subst He1
-        have hpre : (c.S.preOk pr) s.o (uint.nat s.rev) = true := by
-          unfold ObjCodec.preOk; rw [W64_uint_nat]; exact hpok
+        have hpre : (c.S.preF pr) s.o (uint.nat s.rev) = true := by
+          show c.S.preOk pr _ _ = _; unfold ObjCodec.preOk; rw [W64_uint_nat]; exact hpok
         (try wp_auto)
         iunfold validateOk at Hval
         wp_apply Hval $$ [$Hobj] as %verr Hobj %Hvres
@@ -558,10 +560,10 @@ theorem store.conditionalDelete.wp_proof
           ihave HW : W $$ [Hph]
           · icases Hph with (⟨-, HW, -⟩ | ⟨%σ, %kv, #Hfs, %Hkv, HT⟩)
             · iexact HW
-            · have hh := del_read_hand c σ key hk kv Hkv.1 s Hkv.2 (c.S.preOk pr) validate hpre hvd
+            · have hh := del_read_hand c σ key hk kv Hkv.1 s Hkv.2 (c.S.preF pr) validate hpre hvd
               isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
               iexact HT
-          wp_apply (wp_deleteOnce Obj E sp c ci cd key out o0 rv0 st s v p (c.S.preOk pr) validate W Φu hk hkl
+          wp_apply (wp_deleteOnce Obj E sp c ci cd key out o0 rv0 st s v p (c.S.preF pr) validate W Φu hk hkl
               Hsr hpre hvd) $$ [Hos Hout HW] as %st' %ok %derr Hd
           · iframe #
             iframe Hos Hout HW
@@ -599,8 +601,8 @@ theorem store.conditionalDelete.wp_proof
               iunfold storageErrIs at Herr
               icases Herr with ⟨%ep, %Hep, #Hep⟩
               subst Hep
-              have hid := delete_none c σ' key hf (c.S.preOk pr) validate
-              have hh := hand_true c (delStep key (c.S.preOk pr) validate) σ' (by simp [delStep, hid])
+              have hid := delete_none c σ' key hf (c.S.preF pr) validate
+              have hh := hand_true c (delStep key (c.S.preF pr) validate) σ' (by simp [delStep, hid])
               isimp only [hh, ↓reduceIte] at HT'
               (try wp_auto)
               wp_for_post
@@ -634,7 +636,7 @@ theorem store.conditionalDelete.wp_proof
             iframe Hfs'
             isplitr
             · ipureintro; exact ⟨hf, Hs'⟩
-            cases hh : (stepHand c (delStep key (c.S.preOk pr) validate)) σ'
+            cases hh : (stepHand c (delStep key (c.S.preF pr) validate)) σ'
             · isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT'
               simp only [Bool.false_eq_true, ↓reduceIte]
               iexact HT'
@@ -648,7 +650,7 @@ theorem store.conditionalDelete.wp_proof
           rotate_left
           · exact absurd rfl Hvres.1
           have hmod := fun (st0 : KSt Obj) (b : Bool) h =>
-            delete_item_val st0 key s.o (uint.nat s.rev) b h (c.S.preOk pr) validate hpre ue hvd
+            delete_item_val st0 key s.o (uint.nat s.rev) b h (c.S.preF pr) validate hpre ue hvd
           ihave #Hε : □ (∀ o rv, c.S.objAt out o rv -∗
               respIs c (KResp.err (KErr.user ue) : KResp Obj E) (GoInterface.ok ei) out) $$ []
           · imodintro

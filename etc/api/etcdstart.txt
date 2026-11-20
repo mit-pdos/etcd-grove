@@ -37,8 +37,13 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelD
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
+# (wal-link P2 and the data-directory fix, 2026-11-19) the closed theorems' premise `etcdWalAreasInit`
+# (`HWal`) and the areas' allocation at adequacy, which `AdequacyMembers` publicly imports
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreas
 # the package's initialization
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLinked
 # the starters' specs
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember
@@ -88,6 +93,10 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLea
 # `ServedLease` (`kv_served`, `kv_lease_served*`)
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLinked
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseLinked
+# (auth-lease S4, 2026-11-19) the Lease service registered with auth on: `etcdLeaseServedOn` (defs) and
+# `lease_served_on` (over linked results)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOn
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOnLinked
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartStop
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchBase

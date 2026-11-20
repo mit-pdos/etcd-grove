@@ -50,7 +50,7 @@ theorem errOut.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   ihave ⟨%lD, %lU, #HD, #HU, -, -⟩ := drvInit_sents $$ Hi
   iunfold errIs at Hy
-  icases Hy with (⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, Hse, %Hy⟩ | ⟨#Ht, %Hy⟩ |
+  icases Hy with (⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, %m, Hse, %Hy⟩ | ⟨#Ht, %Hy⟩ |
     ⟨Hs, %Hy⟩ | ⟨%Hy, #Hn, %eD, %eU, #HD', #HU', %Hne⟩)
   · -- not found
     iunfold k8s.storageErrIs at Hse
@@ -70,21 +70,26 @@ theorem errOut.wp_proof
     simp only [errOutL, tooLargeL, otherL, rejectedL]
     iapply HΦ
     itrivial
-  · -- an invalid object (a failed precondition; stage 7b)
-    iunfold k8s.invalidErrIs at Hse
-    icases Hse with ⟨%p, %e, %He, #Hp⟩
+  · -- an invalid object (a failed precondition; stage 7b), its message (stage 7g: `Unwrap`, then
+    -- the inner `*errorString`'s `Error`)
+    iunfold k8s.invalidErrMsg at Hse
+    icases Hse with ⟨%p, %x, %He, #Hp, #Hx⟩
     subst He Hy
     iStructNamed Hp
     wp_auto
-    simp only [errOutL, tooLargeL, otherL, rejectedL]
+    rw [method_unfold]
+    wp_auto
+    rw [method_unfold]
+    iStructNamed Hx
+    wp_auto
+    simp only [invalidOutL]
     iapply HΦ
     itrivial
   · -- too large (stage 7e-4): a `*StatusError`, recognized
     subst Hy
+    ihave %Hp := apierrors.tooLargeErrIs_ptr err $$ Ht
     iunfold apierrors.tooLargeErrIs at Ht
-    icases Ht with ⟨%st, %cs, #Hv, %Hst⟩
-    ihave %Hp := apierrors.tooLargeErrIs_ptr err $$ [Hv]
-    · iunfold apierrors.tooLargeErrIs; iexists st, cs; iframe Hv; ipureintro; exact Hst
+    icases Ht with ⟨%st, %cs, #Hv, %Hst, -⟩
     obtain ⟨l, rfl⟩ := Hp
     wp_auto
     wp_apply wp_IsTooLarge _ (.status st cs) $$ [Hv]

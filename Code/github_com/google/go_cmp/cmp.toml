@@ -1,0 +1,7 @@
+# Names only (project k8s-apiserver; k8s 7g): `cmp.Diff`, which the driver's copy of Kubernetes'
+# checker calls (`WatchValidator.compareEvents`, the replay's error messages); its spec at the
+# checker's types is a trust-boundary axiom (notes/k8s-7g-scope.md §1.2). The types of `Diff`'s
+# signature translated (the interfaces `Option` and the `applicableOption` its method returns), so
+# that a call's variadic `[]Option` has a translated type; the rest axiomatized.
+translate = ["!*", "Option", "applicableOption"]
+imports = ["!*"]

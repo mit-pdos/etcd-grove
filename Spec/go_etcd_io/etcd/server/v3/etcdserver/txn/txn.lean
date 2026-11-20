@@ -41,7 +41,7 @@ a zap logger: `txn` logs the error through it (premise fixes 6). -/
 abbrev txn.txn.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (γ : MvccName) (trace : Loc) (te : Bool) (tw : GoInterface) (ro : Bool) (σ : MvccState)
-    (rt : Loc) (t : TxnModel) (pl : GoSlice) (skip : Bool) (L : List w64),
+    (rt : Loc) (t : TxnModel) (pl : GoSlice) (skip : Bool) (L : List w64) (w : Option lease.LWin),
   let k : MTxn := if ro then .read σ else .write σ []
   let chs := txn.txnChs σ.log t
   {{ pkgInit ∗ mvcc.api.mvccTxn tw γ trace k ∗ traceutil.ownTrace trace te ∗ mvcc.txnCtx ctx cd ∗
@@ -50,10 +50,12 @@ abbrev txn.txn.spec : Prop :=
       txn.leasesOk L (txn.opsLeases (mvcc.stateAfter σ.log)
         (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))) ∗
       (if ro then iprop(True) else txn.leasesKnown L (mvcc.stateAfter σ.log)) ∗
-      (⌜ro = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ.log))) ∗
+      (⌜ro = true⌝ ∨ lease.leaseOwnW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ.log)) w) ∗
       ⌜txn.Reach σ ∧ (ro = false → σ.pending = none) ∧
         txn.OpsOk false (mvcc.stateAfter σ.log) (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log)
           (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t)) ∧
+        (ro = true ∨ txn.WinOps w (mvcc.stateAfter σ.log) (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log)
+          (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))) ∧
         (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true) ∧
         (∀ op ∈ t.branch (txn.txnOk (mvcc.stateAfter σ.log) t), op.putsLe etcdKeyMax)⌝ ∗
       (if nd then iprop(True) else zapLoggerOk lg) }}
@@ -68,8 +70,8 @@ abbrev txn.txn.spec : Prop :=
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
         (if ro then iprop(True) else
           txn.leasesKnown L (mvcc.applyChanges (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) chs)) ∗
-        (⌜ro = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.applyChanges
-          (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) chs)))) ∨
+        (⌜ro = true⌝ ∨ lease.leaseOwnW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.applyChanges
+          (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) chs)) w)) ∨
       (⌜nd = false⌝ ∗ mvcc.ctxErrorf err ∗ mvcc.api.mvccTxn tw γ trace k ∗
         txn.txnRespShell resp ∗ txn.roTxnRespRd resp ∗
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))) }}

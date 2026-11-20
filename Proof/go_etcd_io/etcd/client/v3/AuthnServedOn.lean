@@ -28,6 +28,7 @@ public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.ClientUser
 public import Proof.go_etcd_io.etcd.client.v3.LeaseGrantServed
 public import Proof.go_etcd_io.etcd.client.v3.AuthnSpec
+public import Proof.go_etcd_io.etcd.client.v3.ServeLaws
 
 @[expose] public section
 
@@ -69,6 +70,9 @@ theorem authTokReg_of (addr u pw : GoString) (γa : auth.AuthNames) :
     iintro %t #Ht !>
     iexact Ht
 
+theorem authTokReg_of_law_holds : authTokReg_of.law (GF := GF) (hG := hG) :=
+  authTokReg_of
+
 /-- **`Authenticate`'s run slot** (`EtcdServer.Authenticate`'s readers: of `s.leadTimeMu`, `s.lgMu`,
 the read loop's lock, and the server's reader resource), given back. -/
 def authnSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
@@ -102,7 +106,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #Hrdv, #HNR, #Hast, #Hauthn⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hpw, Hspec⟩ HΨ
-  icases Hspec with ⟨Hspec, #HΨe⟩
+  ihave ⟨Hspec, #HΨe⟩ := grpcSpecAt_md_elim _ _ _ _ _ $$ Hspec
   simp only [pbAuthenticateRequest]
   icases Hr with ⟨%Hrn, #HN⟩
   iunfold authnSlot at Hslot

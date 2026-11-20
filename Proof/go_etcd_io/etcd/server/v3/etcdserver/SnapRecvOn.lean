@@ -595,7 +595,8 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   iintro #Hinvs #Himg Hka Hrest #Hrc
   ihave ⟨%f0, %Hf0, Hrest, HrL, HrG, HrQ, HrE⟩ := srvRestM_open true E γr A $$ Hrest
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, %Hrows⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, %Hrows0, %Hrows1, -⟩
+  have Hrows := And.intro Hrows0 Hrows1
   -- the certificate's KV names agree with the member's on the start values
   iunfold srvImageOn at Himg
   icases Himg with ⟨%γk', %hk', #Hdb⟩

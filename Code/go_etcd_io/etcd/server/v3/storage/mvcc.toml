@@ -42,13 +42,25 @@ translate = ["!*",
   "store.compact", "store.updateCompactRev", "store.checkPrevCompactionCompleted",
   "store.compactBarrier", "store.Restore", "store.Close", "store.HashStorage", "store.Commit",
   # (restore plan R0, 2026-10-23) the restore from the backend
-  "restoreChunkKeys", "store.restore", "store.setupMetricsReporter", "restoreIntoIndex",
+  "restoreChunkKeys", "defaultCompactionBatchLimit", "defaultCompactionSleepInterval", "store.restore", "store.setupMetricsReporter", "restoreIntoIndex",
   "restoreChunk",
   # (restore plan R2, 2026-10-23) metrics.go: the reporters setupMetricsReporter sets, and their locks
   "reportDbTotalSizeInBytesMu", "reportDbTotalSizeInBytes",
   "reportDbTotalSizeInUseInBytesMu", "reportDbTotalSizeInUseInBytes",
   "reportDbOpenReadTxNMu", "reportDbOpenReadTxN", "reportCurrentRevMu", "reportCurrentRev",
   "reportCompactRevMu", "reportCompactRev",
+  # (metric-inits, 2026-11-19) the metrics the KV core uses (metrics.go): `prometheus.NewCounter`,
+  # `NewGauge` and `NewHistogram` of an options literal, over prometheus's constructor specs
+  "rangeCounter", "putCounter", "deleteCounter", "txnCounter", "dbCompactionKeysCounter",
+  "keysGauge", "watchStreamGauge", "watcherGauge", "slowWatcherGauge", "pendingEventsGauge",
+  "totalPutSizeGauge", "dbCompactionLast",
+  "indexCompactionPauseMs", "dbCompactionPauseMs", "dbCompactionTotalMs",
+  # (prove-initmisc, 2026-11-20) the rest of metrics.go: `totalEventsCounter`, `hashSec`, `hashRevSec`
+  # (over the same specs), the `prometheus.NewGaugeFunc` gauges (over its spec: the closure is not
+  # called), and `_` (watchable_store.go: `var _ WatchableKV = (*watchableStore)(nil)`, a conversion);
+  # until then the trust-boundary axiom `opaqueInitsOk`
+  "totalEventsCounter", "hashSec", "hashRevSec", "dbTotalSize", "dbTotalSizeInUse", "dbOpenReadTxN",
+  "currentRev", "compactRev", "_",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go

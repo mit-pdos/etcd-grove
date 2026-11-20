@@ -61,13 +61,18 @@ theorem apply.newApplierV3.wp_proof
   ihave #Hok := Hopts
   iunfold apply.backendOptsOk at Hok
   icases Hok with ⟨-, -, -, -, #Hle, #Has, -⟩
-  ihave #Hb' := Hb $$ %E Hopts
-  ihave #Hq' := Hq $$ %E %.backend Hb'
   ihave #HA := HpA $$ %E Has Hle
   iunfold apply.baseAuth
   iexists p, q
-  iframe HA Hq' Hpas Hple
-  ipureintro; rfl
+  iframe HA Hpas Hple
+  isplitr
+  · ipureintro; rfl
+  -- (item 7b) at every window: `backendOptsOk` does not read `E.win`
+  iunfold apply.applierSpecW
+  iintro !> %w
+  ihave #Hopts' := apply.backendOptsOk_win E w opts $$ Hopts
+  ihave #Hb' := Hb $$ %{ E with win := w } Hopts'
+  iapply Hq $$ %{ E with win := w } %.backend Hb'
 
 end proof
 

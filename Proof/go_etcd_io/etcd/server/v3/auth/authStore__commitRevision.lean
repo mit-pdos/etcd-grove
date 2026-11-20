@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Revision
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -71,12 +72,13 @@ theorem auth.authStore.commitRevision.wp_proof
   icases (authOwnF_split M (hs ++ [bump sta])).1 $$ Hown with ⟨Hown, Hsh⟩
   ihave Hown' : authOwnOpt M (some (hs ++ [bump sta])) $$ [Hown]
   · rw [authOwnOpt_some]; iexact Hown
-  wp_apply (h_Revision st R M (some (hs ++ [bump sta]))) $$ [$Hinv $Hown'] as %x ⟨Hown', -, %Hx⟩
+  wp_apply +noauto (h_Revision st R M (some (hs ++ [bump sta]))) $$ [$Hinv $Hown'] as %x ⟨Hown', -, %Hx⟩
   simp only [authOwnOpt_some]
   ihave Hown' := (authOwnF_split M (hs ++ [bump sta])).2 $$ [Hown' Hsh]
   · iframe Hown' Hsh
+  wp_take_receipt as Hrc
   wp_bind (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #x))
-  iapply HSaveRev $$ %sta %X %x HLk
+  iapply HSaveRev $$ %sta %X %x [$HLk $Hrc]
   inext
   iintro HLk
   wp_auto

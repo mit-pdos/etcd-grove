@@ -197,7 +197,7 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
   iintro #Hinvs Ha #Hlb
   ihave #Hinvs' := Hinvs
   iunfold srvKVInvsOn at Hinvs'
-  icases Hinvs' with ⟨-, -, -, -, -, -, %HNx, %Hrows⟩
+  icases Hinvs' with ⟨-, -, -, -, -, -, %HNx, %Hrows, -⟩
   imod kv_applied_step_on E γr st₀ A m x st _ hlen $$ Hinvs Ha Hlb with ⟨%Hp, Ha⟩
   obtain ⟨Hpl, hdet, -, hch⟩ := Hp
   -- (auth-lease S3a2) a KV request of the auth-on log at its lease mode (a leased put or transaction too)

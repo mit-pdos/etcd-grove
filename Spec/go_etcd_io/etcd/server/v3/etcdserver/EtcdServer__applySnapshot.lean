@@ -40,7 +40,7 @@ abbrev EtcdServer.applySnapshot.specEmpty : Prop :=
 
 /-- **`s.applySnapshot(ep, ap)` with a non-empty snapshot, in the server's auth mode** (D22 receiver epochs, S8d, 2026-10-26;
 `notes/snapshot-s8-plan.md`): the snapshot `sv` newer than the applied index `ai` (Go panics
-otherwise), its backend file `snapDBPath ss i` holding the image `D` (its metadata, `metaIs`, at the
+otherwise), its backend file `snapDBPath (config.snapDirOf cfg.DataDir) i` holding the image `D` (its metadata, `metaIs`, at the
 snapshot's index and the image's stored term `tI`, D22 J7b: until then the snapshot's
 `Metadata.Term`, which the image's certificate does not give and the proof does not need, the term
 only naming the consistent index's protocol at the new backend), the apply thread's resources
@@ -130,7 +130,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hlp : mvcc.leaseParams d.P)
     (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
-    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
+    (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
     -- (the backend-auth-split stage) the alarm bucket in the table
     (halbi : d.P.has mvcc.alarmBI ∧
@@ -166,15 +166,22 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hany : E.authMode ≠ .any) (hauthI : snapAuthImgM E.authMode γr d.P D A A')
     -- (2026-11-01, J8a-1, item 8) the payload's two-receive `notifyc` (`rnApSnap`'s), before its
     -- first receive (until then a unit bag)
-    (γnc : NotifyNames),
+    (γnc : NotifyNames)
+    -- (wal-link L3, 2026-11-19) the raft node's names and the apply thread's share of the WAL (`Release`'s)
+    (γw : RNNames GF) (q : Qp)
+    -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (`applyAll`'s payload's): the walk
+    -- frees the lessor window before `Recover`
+    (hns : ¬ clusterNoSnap γr.raft.raft.cl),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
        -- (sweep repairs 1, W2) the first receive's payload: the storage's WAL records at or
        -- above the snapshot's index (what `Release` takes)
+       -- (wal-link L3, 2026-11-19: until then `walBaseLb (storage.walOf st) i`) the snapshot's WAL record
        taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc
-         (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
-         go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+         iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γw.wal.h j m ∗
+           ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
+       rnWalTokA γw (srvRAddr s) q ∗
        notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
@@ -184,7 +191,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- logger a zap logger (`OpenSnapshotBackend`'s `openPre`)
        srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-       snap.isSnapshotter ss ∗ backend.fileAt (snap.snapDBPath ss sv.Metadata'.Index') D ∗
+       snap.isSnapshotter ss (config.snapDirOf cfg.DataDir') ∗
+       -- (wal-link L2, T1) the file taken from the directory with the removal counter sealed in
+       storage.snapHeld (snap.snapDBPath (config.snapDirOf cfg.DataDir') sv.Metadata'.Index') D (monoNatAuthOwn γt 1 nt) ∗
        backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
@@ -211,10 +220,14 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗ srvWTPool E γp ∗
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
+       -- (wal-link L3, 2026-11-19: until then the pure `storage.storageSnap stp ss`) the storage over the
+       -- snapshotter `ss` (`srvSnapRO`'s)
+       (∃ h : WalH GF, isWalStorage (interface.mkOk (go.GoType.PointerType
+         go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss) ∗
        -- (2026-11-01, J8a-1, item 8) the directory's removal fact `srvSnapRm`, as the server's
        -- bundle (`srvSnapRO`) has it (until then `snapTakenLb γt`, its first disjunct); (restart
        -- S6a) the member's removal counter `γt` (`snapRmM`), its authority at most the index plus one
-       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗ monoNatAuthOwn γt 1 nt ∗
+       inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd img (snapRmM γt)) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
@@ -253,7 +266,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
     {{ RET #(); srvSnapAppliedM E.authOn s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
-      notifyRcvN γnc 1 ∗ threadTok }}
+      notifyRcvN γnc 1 ∗ threadTok ∗ rnWalTokA γw (srvRAddr s) q }}
 
 /-- **`applySnapshot`'s spec** (J8b, 2026-11-01): both cases, the empty snapshot (`specEmpty`) and a
 non-empty one in the server's auth mode (`specSnapM`; until 2026-11-03 the mode-off `specSnap`), for

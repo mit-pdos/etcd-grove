@@ -8,6 +8,7 @@ public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.co
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.nameBound
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__ReleaseLockTo
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.OwnSnapAu
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.OwnSnapPurge
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.purgeRound
@@ -84,7 +85,8 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     (wp_nameBound : nameBound.spec (GF := GF) (hG := hG))
     (wp_store : storeOracle.spec (GF := GF) (hG := hG))
     (wp_Release : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (W := W) (walRaftP (GF := GF)) walRaftMr)
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specR (W := W) (Sio := ioNone) (walRaftP (GF := GF))
+        walRaftMr)
     (wp_purge : purgeRound.spec (GF := GF) (hG := hG)) :
     member.opOwnSnap.spec (GF := GF) (hG := hG) := by
   intro W e γ m lg qc o hf hroom
@@ -324,14 +326,18 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
       isplitl
       · rw [tRaiseNames_mark]; iexact H16
       · iexact H15
-    wp_apply (wp_store W e γ v1 os1 (tRaiseNames (tSnapO o a ta) a) (some d1) qc hf hsm')
+    iunfold tPerm at H6
+    icases H6 with ⟨Hpw_, H6⟩
+    wp_apply (wp_store W e γ v1 os1 (tRaiseNames (tSnapO o a ta) a) (some d1) 1 hf hsm')
       $$ [H5 H6 Hrep H11 H12] as ⟨H5, H6, Hrep, H11, H12⟩
     · iframe; iframe #
+    ihave H6 : tPerm (GF := GF) e qc $$ [Hpw_ H6]
+    · iunfold tPerm; iframe
     try wp_auto
     have hlh : tCandHist (tSnapO o a ta) c = tCandHist o c ++ [tSnapOp a ta] := tSnapO_hist o c a ta
     have hmark1 : tCandMark (tSnapO o a ta) c = (tCandHist o c).length + 1 := by
       unfold tSnapO; rw [tSynced_mark _ c hl1, tSnapO1_hist']; simp
-    have hH1 : d1.H[(tCandHist o c).length]? = some (WalOpG.snap (absSnapMd a ta)) := by
+    have hH1 : d1.H[(tCandHist o c).length]? = some (WalOpG.snap (absSnapMd a ta) true) := by
       have h4 : d1.H.map WalOpG.toM = (tCandHist (tSnapO o a ta) c).map absOp := hok1.2.2.2.1
       rw [hlh, List.map_append] at h4
       have h5 := congrArg (fun L => L[(tCandHist o c).length]?) h4
@@ -343,7 +349,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
       | some x =>
         rw [hx] at h5
         cases x with
-        | snap m => simp only [Option.map_some, Option.some.injEq] at h5; cases h5; rfl
+        | snap m al => simp only [Option.map_some, Option.some.injEq] at h5; cases h5; rfl
         | save h es => simp [WalOpG.toM, absOp, tSnapOp] at h5
     ihave Hau := tInv_releaseAu W e γ (tRaiseNames (tSnapO o a ta) a) (tRaiseCand (tSnapO o a ta) a c) d1 a ta
       (tCandHist o c).length (tCandMark (tSnapO o a ta) c) ⟨[W64 1], [], [], [], false⟩ hok1.1
@@ -351,13 +357,26 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     · iframe
       iframe H3 H15
       rw [tRaiseNames_mark]; iexact H16
-    wp_apply (wp_Release W e.R e.jr e.area w (tWalDir e.area) a ta (tCandHist o c).length
+    -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and
+    -- taken back after it
+    iapply fupd_wp
+    imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [H14]
+      with ⟨%γs, H14⟩
+    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ H14
+    imodintro
+    wp_apply (lc := 1) (wp_Release W e.R e.jr e.area w (tWalDir e.area) γs 1 a ta (tCandHist o c).length
         (tCandMark (tSnapO o a ta) c) ⟨[W64 1], [], [], [], false⟩
         (fun d' => iprop(⌜d' = d1⌝ ∗ tWalOwn γ (some (tReleaseD d1 a)) ∗
           tOrOwn γ (tRaiseNames (tSnapO o a ta) a) none))) $$ [H14 Hau]
       as %err ⟨H14, %dq, %hdq, H12, H11⟩
     · iframe; iframe #
     subst dq
+    iapply fupd_wp
+    imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [H14 Hlc1]
+      with H14
+    · iframe H14 Hlc1
+    imodintro
+    ihave H14 := walHdl_wf (W := W) ioNone _ _ _ _ $$ H14
     cases err with
     | ok ie =>
       wp_auto
@@ -501,9 +520,13 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
             isplitl
             · rw [tPurNames_mark, hmk2]; iexact H16
             · iexact H15
-          wp_apply (wp_store W e γ v1 o2 (tPurNames o2) (some d2) qc hf hsm4)
+          iunfold tPerm at H6
+          icases H6 with ⟨Hpw_, H6⟩
+          wp_apply (wp_store W e γ v1 o2 (tPurNames o2) (some d2) 1 hf hsm4)
             $$ [H5 H6 Hrep H11 H12] as ⟨H5, H6, Hrep, H11, H12⟩
           · iframe; iframe #
+          ihave H6 : tPerm (GF := GF) e qc $$ [Hpw_ H6]
+          · iunfold tPerm; iframe
           try wp_auto
           wp_apply wp_choose $$ [$Hrv] as %k3 ⟨⟨%rv3, Hrv⟩, %hk3⟩
           rw [if_neg (by word)] at hk3

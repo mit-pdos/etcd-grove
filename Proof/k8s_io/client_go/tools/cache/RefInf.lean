@@ -13,7 +13,7 @@ pushes (`infInv_pushChangeAU`, `infInv_pushBookmarkAU`, `infInv_pushReplaceAU`).
   version, `n` (`reflLast`), the Go string the decimal of `n` (`rvRel`), positive.
 * `lwOk lw γa cfg res` (persistent): the list-watch lists and watches resource `res` of the model
   API server, all namespaces, as its typed clients do (`typedListRet`, `watchRet`), every error
-  printable (`fmt.argOk`); a list is of a state at least any past state the caller knew before the
+  printable (`fmtErrorOkOrNil`; `fmt.argOk` until fmt soundness 2, 2026-11-18); a list is of a state at least any past state the caller knew before the
   call (the typed clients' `List` is logically atomic: it reads the current state). In `Main` the typed informers' list-watch closures do (gap D2: their
   constructors are names-only), so for `Main` this is a named hypothesis of the construction.
 * `keysOk γa` (persistent): every state the server reaches has keys without a slash (the store's
@@ -30,7 +30,7 @@ module
 public import Proof.k8s_io.client_go.tools.cache.InformerGlue
 public import Proof.k8s_io.client_go.tools.cache.RefDefs
 public import Proof.k8s_io.client_go.tools.cache.RefWatchDefs
-public import Spec.fmt.Errorf
+public import Spec.fmt.ErrorOk
 public import Proof.k8s_io.client_go.tools.pager.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.WatchLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.WriteLemmas
@@ -248,7 +248,7 @@ def lwOk (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_g
       (dq : DFrac) (lo : kd.meta.ListOptions) (σ0 : apimodel.St) (Φ : val → IProp GF),
       kd.meta.ListOptions.own opts dq lo -∗ pastSt γa σ0 -∗
       ▷ (∀ (q : Loc) (err : GoInterface) (σ : apimodel.St), kd.meta.ListOptions.own opts dq lo -∗
-          typedListRet γa cfg.FailReads' false res go!"" lo σ q err -∗ fmt.argOk err -∗
+          typedListRet γa cfg.FailReads' false res go!"" lo σ q err -∗ fmtErrorOkOrNil err -∗
           ⌜apimodel.St.le σ0 σ⌝ -∗
           Φ (PairV #(interface.mkOk (go.GoType.PointerType (resListTy res)) #q) #err)) -∗
       WP (App (App (Val #(methods lw.ty go!"ListWithContext" lw.v)) (Val #ctx)) (Val #opts))
@@ -257,7 +257,7 @@ def lwOk (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_g
       (dq : DFrac) (lo : kd.meta.ListOptions) (Φ : val → IProp GF),
       kd.meta.ListOptions.own opts dq lo -∗
       ▷ (∀ (w err : GoInterface) (σ : apimodel.St), kd.meta.ListOptions.own opts dq lo -∗
-          watchRet γa cfg false res go!"" lo σ w err -∗ fmt.argOk err -∗ Φ (PairV #w #err)) -∗
+          watchRet γa cfg false res go!"" lo σ w err -∗ fmtErrorOkOrNil err -∗ Φ (PairV #w #err)) -∗
       WP (App (App (Val #(methods lw.ty go!"WatchWithContext" lw.v)) (Val #ctx)) (Val #opts))
         {{ Φ }}))
 
@@ -651,7 +651,7 @@ theorem typedListRet_pageRes (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (lo : kd.meta.ListOptions) (σ0 σ : apimodel.St) (q : Loc) (err : GoInterface)
     (hle : apimodel.St.le σ0 σ) :
-    typedListRet (GF := GF) γa cfg.FailReads' false res go!"" lo σ q err ∗ fmt.argOk err ⊢
+    typedListRet (GF := GF) γa cfg.FailReads' false res go!"" lo σ q err ∗ fmtErrorOkOrNil err ⊢
       pager.pageRes res (listS γa σ0 res)
         (interface.mkOk (go.GoType.PointerType (resListTy res)) #q) err := by
   unfold typedListRet pager.pageRes

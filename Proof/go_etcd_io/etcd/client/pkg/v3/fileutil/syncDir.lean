@@ -36,13 +36,13 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proof
   wp_auto
   wp_apply wp_OpenDir p R j dq qc $$ [Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
   · iframe; isplitl [] <;> iassumption
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, -⟩)
   · subst herr
     wp_auto
     wp_apply wp_Fsync f fd p (DFrac.own 1) R j .idle n $$ [Hf Hfd] as %e ⟨Hf, Hfd, He⟩
     · iframe; isplitl [] <;> try iassumption
       isplitl [] <;> iassumption
-    icases He with (%he | ⟨%he, #Hc⟩)
+    icases He with (⟨%he, -⟩ | ⟨%he, #Hc⟩)
     · cases e with
       | nil => exact absurd rfl he
       | ok i =>
@@ -78,11 +78,12 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proofAboveRoot
     (wp_OpenDir : go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specAboveRoot (GF := GF) (hG := hG))
     (wp_Fsync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specOutS (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.specAboveRoot (GF := GF) (hG := hG) := by
-  intro p R qc hp
-  wp_start as ⟨#Hinv, #Hsi, Hperm⟩
+  intro p R hp
+  wp_start as ⟨#Hinv, #Hsi, #Hab⟩
   wp_auto
-  wp_apply wp_OpenDir p R qc hp $$ [Hperm] as %f %err ⟨Hperm, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  wp_apply wp_OpenDir p R hp $$ [] as %f %err Hr
+  · isplitl [] <;> try isplitl []
+    all_goals iassumption
   icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
   · subst herr
     wp_auto
@@ -94,20 +95,20 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proofAboveRoot
       wp_apply os.File.Close.wp_outS f fd p $$ [Hf Hfd] as %e' -
       · iframe; iassumption
       iapply HΦ
-      iframe
+      itrivial
     | nil =>
       wp_auto
       wp_apply os.File.Close.wp_outS f fd p $$ [Hf Hfd] as %e' -
       · iframe; iassumption
       iapply HΦ
-      iframe
+      itrivial
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
     | nil => exact absurd rfl herr
     | ok i =>
       wp_auto
       iapply HΦ
-      iframe
+      itrivial
 
 end proof
 

@@ -61,6 +61,7 @@ public import Proof.runtime.StartFiles
 public import Proof.runtime.Threads
 public import Robustness.Statement
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.InitLinked
 
 @[expose] public section
 
@@ -98,7 +99,7 @@ variable [go_gctx : GoGlobalContext]
 
 /-- **mvcc's randomized tester passes** (see the file header): every real execution of
 `mvccrandProgram r` from a fresh state with one thread, whose file system's root `r` has no entry
-`mvccrand.db`, of `n` steps: if the main thread has finished, its result is `#()` (`Run` returned:
+`mvccrand.db` and fits (`Fs.DirFits r`: under 3800 bytes, no component over 255; wal-fsfix 2026-11-20), of `n` steps: if the main thread has finished, its result is `#()` (`Run` returned:
 every check of mvcc passed); no thread is stuck; no thread has ended in a panic. -/
 theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
@@ -114,6 +115,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
     (Habs : (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 go!"mvccrand.db" = none)
+    (Hrfit : Fs.DirFits r)
     (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([mvccrandProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -149,7 +151,8 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit (GF := mvccrandGF))) $$ Hgs
   iapply start_fileHolds (extLocal Fs.fsExt σ.world) Hfs r j0 [go!"mvccrand.db"] Hr
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) (fun b hb => by
-      simp only [List.mem_singleton] at hb; subst hb; decide)
+      simp only [List.mem_singleton] at hb; subst hb
+      exact ⟨by decide, Fs.pathFits_of_dirFits Hrfit (by decide)⟩)
     (fun b hb => by simp only [List.mem_singleton] at hb; subst hb; exact Habs) _ rfl _ $$ [Hl]
   · iapply Hst $$ Hl
   iintro Hfiles

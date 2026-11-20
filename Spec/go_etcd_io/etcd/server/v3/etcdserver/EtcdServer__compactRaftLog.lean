@@ -44,12 +44,16 @@ and cap.)
 
 (D22 S-h, 2026-10-20) **The in-flight skip**: it first reads `s.inflightSnapshots` (`srvInflight`)
 and returns at once, compacting nothing, while it is not `0`. (2026-10-19, D21 M3)
-`SnapshotCatchUpEntries` is `scu` (read-only). (2026-10-26, its body translated) The logger's cell
+`SnapshotCatchUpEntries` is `scu` (read-only). (auth-lease S4, 2026-11-16) In the cluster's no-snapshot
+mode (`clusterNoSnap`), `snapi ≤ scu`: the storage is compacted at most to `1`. (2026-10-26, its body translated) The logger's cell
 `s.lg` (`l`, not `nil`). -/
 abbrev EtcdServer.compactRaftLog.spec : Prop :=
   ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (γr : SrvRaft) (K : GName)
     (scu : w64) (l : Loc),
   1 ≤ uint.Z snapi →
+  -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode, `snapi` within
+  -- `SnapshotCatchUpEntries`, so the compaction index is `1` (`memStorJ.B`'s cap)
+  (clusterNoSnap γr.cl → uint.Z snapi ≤ uint.Z scu) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvLgReader s ∗
       srvLgAddr s ↦□ l ∗ zapLoggerOk l ∗
       srvInflight s ∗

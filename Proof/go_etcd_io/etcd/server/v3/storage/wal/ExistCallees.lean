@@ -52,14 +52,14 @@ theorem fileutil.ReadDir.wp_specChildIs
     iexact H
   have wpOpen : ∀ Φ : val → IProp GF,
       ⊢ iprop(osInv ∗ osSharedInv R ∗ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osPathS R d dq jp ∗
-          osNames jp Np dqp hp ∗ osCallPerm qc ∗ osNames J N dqn h) -∗
+          osNames jp Np dqp hp ∗ osCallPerm (callKey R d) qc ∗ osNames J N dqn h) -∗
         (∀ (f : Loc) (err : GoInterface),
           ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
               iprop(osDirFdS fd J .idle ∗ osInv) ∗
               iprop(osSharedInv R ∗ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osNames J N dqn h ∗
-                osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm qc)) ∨
+                osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm (callKey R d) qc)) ∨
            (⌜err ≠ interface.nil⌝ ∗ Er err ∗
-              iprop(osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm qc ∗ osNames J N dqn h))) -∗
+              iprop(osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm (callKey R d) qc ∗ osNames J N dqn h))) -∗
           Φ (PairV #f #err)) -∗
         WP (App (Val (@! os.Open)) (Val #(child d b))) {{ Φ }} := by
     intro Φ
@@ -81,10 +81,10 @@ theorem fileutil.ReadDir.wp_specChildIs
   have wpRead : ∀ (f : Loc) (fd n : w64) (Φ : val → IProp GF), ⊢ ⌜sint.Z n ≤ 0⌝ -∗
       os.ownFile f fd (child d b) (DFrac.own 1) -∗ iprop(osDirFdS fd J .idle ∗ osInv) -∗
       iprop(osSharedInv R ∗ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osNames J N dqn h ∗
-        osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm qc) -∗
+        osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm (callKey R d) qc) -∗
       (∀ (r : GoSlice) (err : GoInterface), os.ownFile f fd (child d b) (DFrac.own 1) -∗
         iprop(osInv ∗ ∃ ph, osDirFdS fd J ph) -∗
-        iprop(osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm qc ∗ osNames J N dqn h) -∗
+        iprop(osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm (callKey R d) qc ∗ osNames J N dqn h) -∗
         ((∃ names : List GoString, ⌜err = interface.nil ∧ OkN names⌝ ∗ r ↦* names) ∨
          (⌜err ≠ interface.nil⌝ ∗ Er err)) -∗ Φ (PairV #r #err)) -∗
       WP (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Readdirnames")) (Val #n))
@@ -150,12 +150,12 @@ theorem fileutil.ReadDir.wp_specAbsentIs
   let Er : GoInterface → IProp GF := fun err => iprop(∃ bn : Bool, errIsNotExist err bn)
   have wpOpen : ∀ Φ : val → IProp GF,
       ⊢ iprop(osInv ∗ osSharedInv R ∗ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osPathS R d dq j ∗
-          osCallPerm qc ∗ osNames j N dqn h) -∗
+          osCallPerm (callKey R d) qc ∗ osNames j N dqn h) -∗
         (∀ (f : Loc) (err : GoInterface),
           ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
               iprop(⌜False⌝) ∗ iprop(emp)) ∨
            (⌜err ≠ interface.nil⌝ ∗ Er err ∗
-              iprop(osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h))) -∗
+              iprop(osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h))) -∗
           Φ (PairV #f #err)) -∗
         WP (App (Val (@! os.Open)) (Val #(child d b))) {{ Φ }} := by
     intro Φ
@@ -172,7 +172,7 @@ theorem fileutil.ReadDir.wp_specAbsentIs
   have wpRead : ∀ (f : Loc) (fd n : w64) (Φ : val → IProp GF), ⊢ ⌜sint.Z n ≤ 0⌝ -∗
       os.ownFile f fd (child d b) (DFrac.own 1) -∗ iprop(⌜False⌝) -∗ iprop(emp) -∗
       (∀ (r : GoSlice) (err : GoInterface), os.ownFile f fd (child d b) (DFrac.own 1) -∗
-        iprop(⌜False⌝) -∗ iprop(osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h) -∗
+        iprop(⌜False⌝) -∗ iprop(osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h) -∗
         ((∃ names : List GoString, ⌜err = interface.nil ∧ False⌝ ∗ r ↦* names) ∨
          (⌜err ≠ interface.nil⌝ ∗ Er err)) -∗ Φ (PairV #r #err)) -∗
       WP (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Readdirnames")) (Val #n))

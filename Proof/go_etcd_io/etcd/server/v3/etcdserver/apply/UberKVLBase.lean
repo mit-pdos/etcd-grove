@@ -53,7 +53,8 @@ theorem apply.uberKVL_of_base
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨-, -, -, -, -, %base, #Hbf, -, -, #Hbase⟩
   iunfold apply.baseAuth at Hbase
-  icases Hbase with ⟨%pa, %inner, %Hpa, #Hai, #Hin, #Has, #Hle⟩
+  icases Hbase with ⟨%pa, %inner, %Hpa, #Hai, #HinW, #Has, #Hle⟩
+  ihave #Hin := apply.applierSpecW_at _ _ _ $$ HinW
   subst Hpa
   ihave #HaL : apply.authIsL E pa L $$ []
   · iunfold apply.authIsL

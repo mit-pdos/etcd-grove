@@ -14,6 +14,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -68,7 +69,9 @@ def etcd_txnlinfaultsN_robust.spec : Prop :=
     (HEnv : verifyEnvOff (txnlinfaultsNProgram k clients ops steps))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_txnlinfaultsN.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_txnlinfaultsN.txnlinfaultsNDirs k)),
     Robustness.Robust [] [(txnlinfaultsNProgram k clients ops steps, σ)] g (2 ^ 28 - 1)
 
 end adequacy

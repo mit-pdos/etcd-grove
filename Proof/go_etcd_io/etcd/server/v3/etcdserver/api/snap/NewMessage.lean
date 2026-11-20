@@ -35,7 +35,10 @@ etcd's merged message is a `MsgSnap` with an empty snapshot `Data`, 16-67 bytes 
 `notes/axiom-review/snap-stream.md`); `closeC` is fresh, sent on only by the message's `CloseWithError` (the
 transport's, once a send ends) and received from by `CloseNotify`'s callers, the values carrying
 nothing the proof reads. `msgIs` records that `m` is this message of `rs` and `rc` (the transport
-streams `rc` through the wrapper). What would discharge it: translating `snap/message.go` (with
+streams `rc` through the wrapper); since 2026-11-19 it is defined (`msgRO`, `Proof/.../snap/Defs.lean`):
+the fields read-only, `TotalSize` not negative, the wrapper's streams `rc`'s and its `Close`
+returning, and `closeC`'s `isChanBag` at `True` (what the `fields` axiom stated until then; this
+one is now the one place those facts are assumed). What would discharge it: translating `snap/message.go` (with
 `snap.Message` a translated struct: its imports, `io` and raftpb, in `snap.toml`) and
 `ioutil.NewExactReadCloser`, over a spec of `proto.Size` of a raft message. -/
 axiom snap.NewMessage.wp_proof : snap.NewMessage.spec (GF := GF) (hG := hG)

@@ -17,21 +17,27 @@ one right.
 
 **What is axiomatized** (each true of prometheus's Go code, client_golang v1.24.1, the version
 etcd's `server/go.mod` pins):
-- `counterOpts o ns sub name help`: `o` is the `CounterOpts` value with those four fields and
-  the others zero (`Opts` is an axiomatized type, so its values are opaque);
 - `collectorName c n`: the collector `c` describes exactly one descriptor, valid, named `n`,
   without labels (what `NewCounter` makes);
 - `nameFree n` (abstract resource): the right to register a collector whose one descriptor is
   `n`'s, without labels, in the default registry: no collector registered there (now, or
   later by anyone but the holder) has a descriptor named `n`, nor one whose ID is that
   descriptor's ID (`xxhash(n + "\xff")`), nor a collector ID equal to it;
-- `wp_counterOptsLit`: the composite literal `prometheus.CounterOpts{Namespace: ns, Subsystem:
-  sub, Name: name, Help: help}` returns such a value.
 
-Each is about uninterpreted constants (`Opts`, `CompositeLiteral` of its type, the names-only
-functions), so a model in which they diverge satisfies them: they cannot make the logic
-inconsistent. The specs of `NewCounter` and `MustRegister` are in
-`Spec/github_com/prometheus/client_golang/prometheus/`.
+`counterOpts o ns sub name help` (`o` is the `CounterOpts` literal with those four fields, the
+others zero) is a definition: `Opts` is translated (until 2026-11-18 it was an axiomatized type,
+and `counterOpts` and the literal's spec `wp_counterOptsLit` were axioms).
+
+(metric-inits, 2026-11-19) The constructors `NewGauge` and `NewHistogram` (and the histograms'
+`ExponentialBuckets`, for a factor of 2) have specs like `NewCounter`'s, with the definitions
+`histOpts` (a `HistogramOpts` literal with a `Buckets` slice), `bucketsOk` (bounds `NewHistogram`
+accepts) and `expBuckets`/`expBucketsArgsOk` (`ExponentialBuckets(start, 2, n)`'s exact buckets, as
+float64 bits; `expBuckets_ok` proves them accepted), so that the packages' metric variables have
+translated initializers rather than one trust-boundary axiom `<X>_init` each.
+
+Each axiom is about uninterpreted constants (the names-only functions), so a model in which they
+diverge satisfies them: they cannot make the logic inconsistent. The specs of `NewCounter` and
+`MustRegister` are in `Spec/github_com/prometheus/client_golang/prometheus/`.
 -/
 module
 
@@ -61,6 +67,63 @@ def nameOk (n : GoString) : Prop := n ≠ [] ∧ ∀ b ∈ n, b.toNat < 128
 
 instance (n : GoString) : Decidable (nameOk n) := by unfold nameOk; infer_instance
 
+/-- The bits of the float64 `2.0`. -/
+def float64Two : w64 := W64 0x4000000000000000
+
+/-- The arguments `start` (float64 bits) and `count` of `ExponentialBuckets(start, 2, count)` for
+which its buckets are exact: `start` a positive normal float64 (biased exponent at least 1, sign
+bit clear), `count ≥ 1`, and the `count`-th bucket `start * 2^(count-1)` still finite (biased
+exponent at most `0x7FE`). Doubling a normal float64 whose result is normal is exact and adds 1 to
+the biased exponent, i.e. `2^52` to the bits. -/
+def expBucketsArgsOk (start count : w64) : Prop :=
+  0x10000000000000 ≤ uint.nat start ∧ 1 ≤ sint.Z count ∧
+    uint.nat start + (sint.Z count).toNat.pred * 2 ^ 52 < 0x7FF0000000000000
+
+instance (start count : w64) : Decidable (expBucketsArgsOk start count) := by
+  unfold expBucketsArgsOk; infer_instance
+
+/-- The buckets (float64 bits) of `ExponentialBuckets(start, 2, n)` under `expBucketsArgsOk`:
+`start * 2^i` for `i < n`, i.e. `start`'s bits plus `i * 2^52`. -/
+def expBuckets (start : w64) (n : Nat) : List w64 :=
+  (List.range n).map (fun i : Nat => W64 (uint.Z start + (i : Int) * 2 ^ 52))
+
+/-- Bucket upper bounds `NewHistogram` accepts (`histogram.go`, `newHistogram`: "histogram
+buckets must be in increasing order"), stated for finite non-negative float64s (bits below
+`+Inf`'s `0x7FF0000000000000`, sign bit clear), whose float order is their bits' order: strictly
+increasing. -/
+def bucketsOk (bs : List w64) : Prop :=
+  (∀ b ∈ bs, uint.nat b < 0x7FF0000000000000) ∧ bs.Pairwise (fun a b => uint.nat a < uint.nat b)
+
+instance (bs : List w64) : Decidable (bucketsOk bs) := by unfold bucketsOk; infer_instance
+
+theorem expBuckets_nat {start : w64} {n i : Nat} (hi : i < n)
+    (h : uint.nat start + n.pred * 2 ^ 52 < 0x7FF0000000000000) :
+    uint.nat (W64 (uint.Z start + (i : Int) * 2 ^ 52)) = uint.nat start + i * 2 ^ 52 := by
+  have hi' : i ≤ n.pred := Nat.le_pred_of_lt hi
+  have : i * 2 ^ 52 ≤ n.pred * 2 ^ 52 := Nat.mul_le_mul_right _ hi'
+  word
+
+/-- `ExponentialBuckets(start, 2, n)`'s buckets under `expBucketsArgsOk` (stated of `n`, the
+count as a `Nat`) are ones `NewHistogram` accepts. -/
+theorem expBuckets_ok {start : w64} {n : Nat}
+    (hb : uint.nat start + n.pred * 2 ^ 52 < 0x7FF0000000000000) :
+    bucketsOk (expBuckets start n) := by
+  unfold bucketsOk expBuckets
+  constructor
+  · intro b hb'
+    simp only [List.mem_map, List.mem_range] at hb'
+    obtain ⟨i, hi, rfl⟩ := hb'
+    rw [expBuckets_nat hi hb]
+    have : i * 2 ^ 52 ≤ n.pred * 2 ^ 52 := Nat.mul_le_mul_right _ (Nat.le_pred_of_lt hi)
+    exact Nat.lt_of_le_of_lt (Nat.add_le_add_left this _) hb
+  · rw [List.pairwise_map]
+    refine List.pairwise_lt_range.imp_of_mem ?_
+    intro i j hi hj hij
+    simp only [List.mem_range] at hi hj
+    rw [expBuckets_nat hi hb, expBuckets_nat hj hb]
+    have : i * 2 ^ 52 < j * 2 ^ 52 := Nat.mul_lt_mul_of_pos_right hij (by decide)
+    exact Nat.add_lt_add_left this _
+
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -68,9 +131,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The `CounterOpts` value `o` is `prometheus.CounterOpts{Namespace: ns, Subsystem: sub, Name:
-name, Help: help}` (its other fields zero: no const labels, no unit). -/
-axiom counterOpts (o : github_com.prometheus.client_golang.prometheus.CounterOpts)
-  (ns sub name help : GoString) : Prop
+name, Help: help}` (its other fields zero: no const labels, no unit). The value such a literal
+evaluates to (`Opts` is translated). -/
+def counterOpts (o : github_com.prometheus.client_golang.prometheus.CounterOpts)
+    (ns sub name help : GoString) : Prop :=
+  o = { Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Unit' := [],
+        ConstLabels' := null, now' := func.nil }
+
+/-- The `HistogramOpts` value `o` is `prometheus.HistogramOpts{Namespace: ns, Subsystem: sub,
+Name: name, Help: help, Buckets: s}` (its other fields zero: no const labels, no unit, native
+histograms off). The value such a literal evaluates to (`HistogramOpts` is translated). -/
+def histOpts (o : github_com.prometheus.client_golang.prometheus.HistogramOpts)
+    (ns sub name help : GoString) (s : GoSlice) : Prop :=
+  o = { (zeroValDef : github_com.prometheus.client_golang.prometheus.HistogramOpts) with
+        Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Buckets' := s }
 
 /-- The collector `c` describes exactly one descriptor: valid, of fully-qualified name `n`,
 without const or variable labels (a counter `NewCounter` made). -/
@@ -81,20 +155,6 @@ no collector registered there, now or later by anyone but the holder, has a desc
 `n`, or whose ID (or collector ID) is the ID of `n`'s label-free descriptor. Given at program
 start, once per name. -/
 axiom nameFree {GF : BundledGFunctors} (n : GoString) : IProp GF
-
-/-- **Trust boundary: a `CounterOpts` literal** (`read/metrics.go`'s two): it evaluates to the
-value with the four fields given, the others zero (a Go composite literal does not panic). -/
-axiom wp_counterOptsLit (ns sub name help : GoString) :
-  {{ (True : IProp GF) }}
-    (App (Val (GoInstruction (CompositeLiteral
-      github_com.prometheus.client_golang.prometheus.CounterOpts.ty)))
-      (Val (LiteralValueV [
-        KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Val #ns)),
-        KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Val #sub)),
-        KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Val #name)),
-        KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Val #help))])))
-  {{ (o : github_com.prometheus.client_golang.prometheus.CounterOpts), RET #o;
-      ⌜counterOpts o ns sub name help⌝ }}
 
 end preds
 

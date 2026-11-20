@@ -95,8 +95,8 @@ theorem mvcc.kvsOutRd_keyVals (γd : backend.DBNames) (rtx : Loc) (keys vals : G
     [(k, v)] | none => []) ⊢ |==> mvcc.keyVals (backend.rdB γd rtx) keys vals m k
 
 theorem mvcc.viewSame_del {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo} {k :
-    GoString} (hb : P.HB bi.name = true) (h : backend.viewSame P st) : backend.viewSame P (st.del bi
-    k)
+    GoString} {cl : Bool} (hb : P.HB bi.name = true) (h : backend.viewSame P st) : backend.viewSame
+    P (st.del bi k cl)
 
 theorem mvcc.window_sublist (es : List backend.Ent) (klo khi : GoString) : (mvcc.window es klo
     khi).Sublist es
@@ -948,8 +948,8 @@ theorem mvcc.bridge_crt [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.A
     b))) (intoVal ())) {{ Φ }}
 
 theorem mvcc.viewSame_putHB {P : backend.BParams} (hWf : P.Wf) {st : backend.BSess} {bi :
-    backend.BucketInfo} {k v : GoString} (hb : P.HB bi.name = true) (hhas : P.has bi) (h :
-    backend.viewSame P st) : backend.viewSame P (st.put bi k v false)
+    backend.BucketInfo} {k v : GoString} {cl : Bool} (hb : P.HB bi.name = true) (hhas : P.has bi) (h
+    : backend.viewSame P st) : backend.viewSame P (st.put bi k v false cl)
 
 theorem mvcc.bt_lockIn [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hLI :
     backend.batchTxBuffered.LockInsideApply.spec) {P : backend.BParams} (hP : mvcc.bridgeParams P)

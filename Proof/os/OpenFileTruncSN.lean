@@ -5,7 +5,7 @@ The proof of `Spec/os/OpenFileTruncSN.lean`: `Proof/os/OpenFileTruncS.lean`'s pr
 -/
 module
 
-public import Proof.os.OpenFileTruncS
+public import Proof.os.OpenFileTruncLemmas
 public import Spec.os.OpenFileTruncSN
 public import GooseLang.Ext.Fs.TreeSharedCreateN
 
@@ -38,7 +38,8 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
-  wp_apply wp_osCallBeginS R qc h.next CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']

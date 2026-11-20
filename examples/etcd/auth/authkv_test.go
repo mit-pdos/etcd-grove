@@ -12,6 +12,8 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestMemberIDs checks the premise on the member id etcd computes for Main's one-member cluster
@@ -43,6 +45,7 @@ func TestMemberIDs(t *testing.T) {
 // as root whether u's permitted writes took effect (so that the history check was not vacuous).
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "authkv") // the members' WAL areas (wal-link P2)
 	if r := Main(); r != Ok {
 		t.Fatalf("got %v", r)
 	}

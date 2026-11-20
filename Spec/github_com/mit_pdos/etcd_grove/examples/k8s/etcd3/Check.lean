@@ -6,7 +6,8 @@
 driver's model from the seeded store and its history `g0`): never `Illegal`, and `Ok` without a
 timeout. Premises: `Apply`'s (the store, the instance's invariant at each member, the library's
 state at the model's start, the feature gate's streaming off), `Run`'s bounds, and the seeded
-store's and history's size (`Model`'s).
+store's and history's size (`Model`'s), and (k8s 7g) the seeded configuration's facts the maintainers'
+checker's run needs (`RunOk g0`, `realCheck`'s premise; proved for the seeded `g0s`, `SeedRun.lean`).
 -/
 module
 
@@ -15,6 +16,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Contract
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WRun
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealB4
 
 @[expose] public section
 
@@ -52,6 +54,7 @@ abbrev Check.spec : Prop :=
   0 ≤ sint.Z ops → 0 ≤ sint.Z wops →
   sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60 →
   g0.st.items.length + g0.hist.length < 2 ^ 60 → uint.nat g0.st.rv ≤ g0.hist.length →
+  k8s_correctness.RunOk g0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       context.isClosedchanInit ∗ k8s.isStore sp c ∗ rangeStreamOff ∗

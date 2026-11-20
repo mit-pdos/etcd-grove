@@ -44,7 +44,21 @@ last paragraph): the Go model stays the trust base. Status: `notes/k8s-daemonset
 - **Deep values** (`etc/gen-k8s-deep.py` -> `Proof/k8s_io/api/Deep.lean`): the 166 structs reachable
   from `Pod`, `Node`, `DaemonSet`, `ControllerRevision`, `ListOptions` and `DeleteOptions` as Lean
   values (`kd.*`) with deep ownership; opaque: `IntOrString` (C5), the `resource.Quantity` maps
-  (must be nil), `RawExtension.Object` (nil), `FieldsV1`.
+  (must be nil), `RawExtension.Object` (nil), `FieldsV1`; since 2026-11-18 a pointer to a `Quantity`,
+  a `FieldsV1` or a struct holding a `Quantity` must be nil too (`ownNilPtrD`: a deep copy copies the
+  pointee), a pointer to an `IntOrString` (or `HTTPGetAction`, `TCPSocketAction`) keeps its
+  nil-ness only.
+- **Deep copies** (2026-11-18, `etc/gen-k8s-deep.py` -> `Proof/k8s_io/api/DeepCopy/`): the real
+  `zz_generated.deepcopy.go` translated (the generated `translate` blocks of the core, apps, meta
+  and runtime tomls) and proved, per struct a `kd.*.DeepCopyInto.spec` (the copy owns, whole, the
+  original's deep value) and a generated proof over its fields' (one tactic block per field kind,
+  over `Proof/k8s_io/api/DeepCopyBase.lean`: `wp_slice_for_range`, `wp_map_copy_loop`,
+  `copyPrefix`, `metav1.Time`'s two methods): 110 of the 126 structs the four objects' copies
+  reach. `ControllerRevision.DeepCopyObject.wp_proof` is a theorem; `Pod`'s, `DaemonSet`'s and
+  `Node`'s stay axioms: their copies reach `ProbeHandler`/`LifecycleHandler`/
+  `RollingUpdateDaemonSet` (an `IntOrString` pointer, gap C5) and `LifecycleHandler`/`NodeStatus`
+  (a copy of a pointer-free struct between two places, which goose's guard R4 refuses;
+  `notes/perennial-changes.md`). The 16 unproved structs are those and their ancestors.
 - **`time.Time.Equal`** is specified by Perennial as returning some `bool`: `daemonSetStatusEqual`
   compares the conditions' transition times with it, so `dsStatusMut` (UpdateStatus's mutation)
   allows a write whenever, and a write of nothing only when the status's other fields are equal.

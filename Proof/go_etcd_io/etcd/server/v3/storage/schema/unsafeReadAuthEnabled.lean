@@ -33,7 +33,7 @@ theorem schema.unsafeReadAuthEnabled.wp_proof :
   · iapply isPkgInit_access $$ Hpkg
   icases Hsi with ⟨-, -, -, -, -, -, -, ⟨%ab, #HAuth, -⟩, -, -, ⟨%sae, #HAE, #HAEb⟩, -, ⟨%sen, #HEn, #HEnb⟩, -⟩
   iunfold schema.authReader at Hrd
-  icases Hrd with ⟨#HA, -, -⟩
+  icases Hrd with ⟨#HA, -, -, -⟩
   iunfold schema.authPointSpec at HA
   ihave #HAEk : (sae ↦*□ schema.authEnabledKey : IProp GF) $$ []
   · unfold schema.authEnabledKey; iexact HAEb

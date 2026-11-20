@@ -307,8 +307,9 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
     (hsome : ∀ q m', Γm' !! q = some m' → ∃ m, Γm !! q = some m ∧
       m' = { m with maps := m'.maps } ∧
       ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩)
-    (htok : ∀ t ti, Γt !! t = some ti → Γm' !! ti.ino = some ti.meta) :
-    OsCoh { st with proc := { st.proc with maps := X } } Γb Γm' Γf Γt :=
+    (htok : ∀ t ti, Γt !! t = some ti → Γm' !! ti.ino = some ti.meta)
+    (M : GMap Loc MapDesc := st.proc.mapDesc) :
+    OsCoh { st with proc := { st.proc with maps := X, mapDesc := M } } Γb Γm' Γf Γt :=
   { hcoh with
     meta_dom := fun q => (hdom q).trans (hcoh.meta_dom q)
     meta_some := fun q m' h => by

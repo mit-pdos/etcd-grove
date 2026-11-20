@@ -406,11 +406,17 @@ theorem newClient.wp_proof
       iapply authObjAtC_of
       iframe HapS Hconn
     -- (G2's F-W3) its `Watcher`, over the same connection
-    iexists w
     subst Hwi
-    iframe Watcher
-    ihave #Hwc := watcherConnAt_of_core (GF := GF) _ w $$ Hcw
-    iexact Hwc
+    isplitl []
+    · iexists w
+      iframe Watcher
+      ihave #Hwc := watcherConnAt_of_core (GF := GF) _ w $$ Hcw
+      iexact Hwc
+    -- (auth-lease S4, D-i) its `Lease`, over the same connection
+    iexists lp
+    iframe Lease
+    iapply lessorRemoteAtC_of
+    iframe HlpS Hconn
   · cases derr with
     | nil => exact absurd rfl Hderr
     | ok e =>

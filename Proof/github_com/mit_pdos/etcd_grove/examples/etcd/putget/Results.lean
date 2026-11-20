@@ -69,7 +69,7 @@ theorem etcd_putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent putgetProgram [go!"putget.etcd"])
+    (HDs : dataDirsAbsent putgetProgram [go!"/tmp/etcd-grove-data/putget.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff putgetProgram)
     (n : Nat)
@@ -77,6 +77,8 @@ theorem etcd_putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/putget.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -85,7 +87,7 @@ theorem etcd_putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_putget_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs
+  etcd_putget_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

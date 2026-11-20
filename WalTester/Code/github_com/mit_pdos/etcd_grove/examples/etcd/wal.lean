@@ -2179,9 +2179,10 @@ noncomputable def lastIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
 
 /-- cutPos is walCutPos (WalDisk.lean): a WAL file can start at position b of h (0, or right after
-    a Save that writes a record).
+    a Save that writes a record, or right after a SaveSnapshot: both cut once the tail passes
+    SegmentSizeBytes, the fork's fix 0007).
 
-    go: ref.go:350:6 -/
+    go: ref.go:351:6 -/
 noncomputable def cutPos.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "b"
@@ -2193,9 +2194,9 @@ noncomputable def cutPos.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoLoad walOp.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType walOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "b")) (Val #(W64 1)))))))
   (Let "o" (App (Val (GoInstruction (GoAlloc walOp.ty))) (App (Val (GoInstruction (GoZeroVal walOp.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef walOp.ty go!"snap"))) (Var "o")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (Let "$a0" (App (Val (GoInstruction (GoLoad hardState.ty))) (App (Val (GoInstruction (StructFieldRef walOp.ty go!"hs"))) (Var "o")))
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef walOp.ty go!"snap"))) (Var "o"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (Let "$a0" (App (Val (GoInstruction (GoLoad hardState.ty))) (App (Val (GoInstruction (StructFieldRef walOp.ty go!"hs"))) (Var "o")))
   (App (App (Val (GoInstruction (FuncResolve hsEmpty []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (App (Val (GoInstruction (StructFieldRef walOp.ty go!"ents"))) (Var "o")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType entry.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false))) (Val #false))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType entry.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2219,7 +2220,7 @@ noncomputable def cutPos.impl [GooseExts] [GoGlobalContext] : val :=
     most a); Open at a unlocks only records before it, and ReleaseLockTo(a) too (walOpenPos,
     walReleasePos <= it).
 
-    go: ref.go:362:6 -/
+    go: ref.go:363:6 -/
 noncomputable def nameBound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "a"
@@ -2266,7 +2267,7 @@ noncomputable def nameBound.impl [GooseExts] [GoGlobalContext] : val :=
 /-- openBound is the largest nameBound at a of the images imgs (an Open at a after a crash unlocks
     below nameBound of the image it opened, one of them).
 
-    go: ref.go:378:6 -/
+    go: ref.go:379:6 -/
 noncomputable def openBound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "imgs"
   (Lam "a"

@@ -1,13 +1,13 @@
 /-
 The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cleanupWAL.lean` (W4 of
-`notes/wal-fsext-plan.md`, `notes/wal-units/create.md`): `w.Close()` (`WAL.Close.specU`), then the
+`notes/wal-fsext-plan.md`, `notes/wal-units/create.md`): `w.Close()` (`WAL.Close.spec` at the state `unnamed`), then the
 broken name (`time.Now`, `time.Time.Format.specBroken`, `fmt.SprintfBroken.spec`) and the rename
 (`os.Rename.specDirAnySnc`) over the caller's law. Lean-first.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cleanupWAL
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseU
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.time.Time__FormatBroken
 public import Spec.fmt.SprintfBroken
 public import Spec.go_uber_org.zap.String
@@ -36,7 +36,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
-    (wp_CloseU : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (W := W) P Mr)
+    (wp_CloseU : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (Sio := WalFs.ioNone) P Mr)
     (wp_Now : time.Now.spec (GF := GF) (hG := hG))
     (wp_Format : time.Time.Format.specBroken (GF := GF) (hG := hG))
     (wp_Sprintf : fmt.SprintfBroken.spec (GF := GF) (hG := hG))
@@ -54,9 +54,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   isimp only [isPkgInitDeps] at Hdeps
   icases Hdeps with ⟨-, -, #Hfmt, -, -, -, -, -, -, -, -, -, #Hos, #Htime, -, -, #Hzp, -, -, -, -, -, -, -⟩
   try wp_auto
-  wp_apply wp_CloseU R jr r w (child r nm) Rp qp tf $$ [Hw Hpw] as %cerr Hc
-  · iframe; iframe #
-  icases Hc with (⟨Hdir, Hu, Hnf, Hperm2, Hpaths, Htf⟩ | ⟨%hcerr, Hlk, Hnf, Htf⟩)
+  wp_apply wp_CloseU R jr r w (child r nm) (.unnamed Rp qp tf) (fun _ => iprop(True)) $$ [Hw Hpw] as %cerr Hc
+  · dsimp only
+    iframe; iframe #
+  icases Hc with (⟨#Hek, Hdir, Hu, Hnf, Hperm2, Hpaths, Htf⟩ | ⟨%hcerr, #Hek, Hlk, Hnf, Htf⟩)
   rotate_left
   · -- the sync failed: `Close`'s error returned
     rcases cerr with ei | _
@@ -75,7 +76,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     iapply HΦ
     ileft
     iframe
-    ipureintro; exact hcerr
+    isplitr
+    · ipureintro; exact hcerr
+    iexact Hek
   by_cases hce : cerr = interface.nil
   rotate_left
   · -- `Close` returned everything but an error: returned
@@ -95,7 +98,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     iapply HΦ
     iright; ileft
     iframe
-    ipureintro; exact hce
+    isplitr
+    · ipureintro; exact hce
+    iapply fmtErrorOkOrNil_ne _ hce; iexact Hek
   subst hce
   try wp_auto
   wp_apply wp_Now as %t -
@@ -112,9 +117,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   subst hbn
   try wp_auto
   -- the rename, over the law
-  ihave Hperm := (osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half).2 $$ [Hperm Hperm2]
-  · iframe
-  rw [Qp.half_add_half]
   iunfold cleanupLaw at Hlaw
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
@@ -123,11 +125,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   iframe Hnc
   imodintro
   obtain ⟨hN1, hN2, hJ, hq⟩ := hp
+  icases osPathS_callKey R r _ _ $$ Hp with ⟨Hp, %hkc⟩
+  ihave Hperm2 := osCallPerm_congr _ (hkc nm) $$ Hperm2
+  ihave Hperm := (osCallPerm_split (L := hG.goose_localGS) (callKey R r) (1 : Qp).half (1 : Qp).half).2 $$ [Hperm Hperm2]
+  · iframe
+  rw [Qp.half_add_half]
   have hne : nm ≠ brokenName nm ts := fun he => by
     have := congrArg List.length he
     simp [brokenName] at this
   wp_apply wp_Rename r nm (brokenName nm ts) jr J N R qd h q rr lb Qr hnmO
-    (brokenName_nameOk hnmO hts) hN1 hN2 hne hJ hq $$ [Hp Hperm Hlb HN Hau] as %rerr ⟨Hp, Hperm, Hout⟩
+    (brokenName_nameOk hnmO hts) hN1 hN2 hne hJ hq $$ [Hp Hperm Hlb HN Hau] as %rerr ⟨Hp, Hperm, #Hrf, Hout⟩
   · iframe; iframe #
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
@@ -151,11 +158,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     try wp_auto
     iapply HΦ
     iright; iright
-    iexact Hfin
+    iframe Hfin Hrf
   · try wp_auto
     iapply HΦ
     iright; iright
-    iexact Hfin
+    iframe Hfin Hrf
 
 end proof
 

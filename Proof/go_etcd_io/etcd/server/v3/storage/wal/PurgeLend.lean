@@ -154,17 +154,17 @@ theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : 
     walDirH (W := W) dir j dfd ino name k lfs cuts nmd nf ⊢
       ∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString),
         walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-        osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗
+        osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
         walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗ walDirLks (W := W) dir hj nm0 lfs cuts ∗
         ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ (∀ b ∈ X, walNameP b = false) ∧
           ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝ ∗
         ∀ hj' : NamesH, ⌜WalSub hj hj' nm0⌝ -∗
           osNames j (.except X) (DFrac.own (1 : Qp).half) hj' -∗ osPathS R dir (DFrac.own q) j -∗
-          osSharedInv R -∗ osCallPerm (1 : Qp).half.half -∗
+          osSharedInv R -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
           walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗ walDirLks (W := W) dir hj' nm0 lfs cuts -∗
           walDirH (W := W) dir j dfd ino name k lfs cuts nmd nf := by
   unfold walDirH
-  iintro ⟨%R, %q, %X, %hj, %nm0, %ph, #Hkey, Hn, Hp, #Hsh, Hc, Hfd, Hnmd, Ho, Hlk, Hnf, %hf⟩
+  iintro ⟨%R, %q, %X, %hj, %nm0, %ph, #Hkey, Hn, Hp, #Hsh, %hRW, Hc, Hfd, Hnmd, Ho, Hlk, Hnf, %hf⟩
   obtain ⟨hw0, hc0, hpd, htmp, hX, hsq, hmax⟩ := hf
   iexists R, q, X, hj, nm0
   iframe Hkey Hn Hp Hsh Hc Ho Hlk
@@ -173,6 +173,8 @@ theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : 
   iintro %hj' %hs Hn Hp - Hc Ho Hlk
   iexists R, q, X, hj', nm0, ph
   iframe Hkey Hn Hp Hsh Hc Hfd Hnmd Ho Hlk Hnf
+  isplitr
+  · ipureintro; exact hRW
   ipureintro
   refine ⟨hw0, ?_, hpd, htmp, hX, hsq, fun b n hb hw => ?_⟩
   · rcases hs nm0 hw0 with e | ⟨hne, -⟩
@@ -191,7 +193,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
       ∃ (j : Ino) (X : List GoString) (hj : NamesH) (R : Roots) (q : Qp) (nm0 : GoString) (ino : Ino)
         (lfs : List Loc) (γ : GName) (tg : TailG) (tfd : w64),
         walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-        osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗
+        osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
         walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗ walDirLks (W := W) dir hj nm0 lfs tg.2.2.1 ∗
         walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗ walCutFrag (W := W) none ∗
         walTailLk (GF := GF) tfd ino ∗
@@ -199,7 +201,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
           ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝ ∗
         ∀ hj' : NamesH, ⌜WalSub hj hj' nm0⌝ -∗
           osNames j (.except X) (DFrac.own (1 : Qp).half) hj' -∗ osPathS R dir (DFrac.own q) j -∗
-          osSharedInv R -∗ osCallPerm (1 : Qp).half.half -∗
+          osSharedInv R -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
           walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗
           walDirLks (W := W) dir hj' nm0 lfs tg.2.2.1 -∗ walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗
           walCutFrag (W := W) none -∗ walTailLk (GF := GF) tfd ino -∗ walOpenWF (W := W) P Mr w dir := by

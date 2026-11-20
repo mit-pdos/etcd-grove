@@ -4,7 +4,10 @@ The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__ReleaseLockTo.lean
 over the locks reads each lock's file name (`walLockNamed`: `Name()`, `filepath.Base`,
 `parseWALName`), stopping at the first index `≥ a`; the earlier locks but the last of them closed
 (all non-tail locks, `walLockH`); the reslice `w.locks[smaller:]` keeps the tail last
-(`ownSlice_slice_with_cap`). Lean-first.
+(`ownSlice_slice_with_cap`). Over a share of the handle since wal-link L1a (2026-11-17, `notes/wal-link-scope.md`
+§8): after the lock the share gives the handle (`walOpenWS_acquire`, `walHdl_open`), which goes back before
+the unlock (`walOpenWS_release`, `walHdl_close`: the tail's stream untouched, its room kept). The former
+`specNoErr`'s proof; the former `spec` is its corollary `specR` (`spec_R`). Lean-first.
 -/
 module
 
@@ -18,6 +21,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReleaseTie
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
 public import Perennial.Proof.sync.Results
 
 @[expose] public section
@@ -37,20 +41,33 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
 /-- See the file header; no error: every lock's name is a segment's (`walLockNamed`), which
 `parseWALName` accepts (`scanWalName_walFileName`). -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [_root_.Perennial.path.filepath.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_Base : filepath.Base.spec (GF := GF) (hG := hG))
     (wp_parse : go_etcd_io.etcd.server.v3.storage.wal.parseWALName.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specNoErr (W := W) P Mr := by
-  intro R jr r w dir a t i n cs Q
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (Sio := Sio) (W := W) P Mr := by
+  intro R jr r w dir γ q a t i n cs Q
   wp_start as ⟨#Harea, Hw, #Hsy, Hau⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
-  icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, -⟩
+  icases walOpenWS_pers Sio P Mr w dir γ q $$ Hw with ⟨Hw, #Hpers⟩
+  icases walShPers_facts Sio P Mr w dir γ $$ Hpers with ⟨#Hmu, #Hsync, -⟩
+  ihave #Harea2 := Harea
+  iunfold WalFs.walAreaOk at Harea2
+  icases Harea2 with ⟨#Hinv, #Hosinv, -⟩
+  wp_auto
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply (lc := 1) sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
+  iapply fupd_wp
+  imod walOpenWS_acquire Sio P Mr w dir γ q $$ [Hw Hlocked Hlc1] with ⟨-, Hheld, Hh⟩
+  · iframe Hw Hlocked Hlc1
+  imodintro
+  icases walHdl_open Sio P Mr w dir $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu', Henti, Hsnapi,
@@ -62,7 +79,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
   iunfold walTailW at Htw
   icases Htw with ⟨Hf, Hfdo, Hoff, Htk, %m, %bs, Hm, Hbs, %hmb, Hv⟩
   iunfold walDirH at Hdh
-  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnmd, Hout, Hdl,
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, #HRdW, Hperm, Hdfd, #Hnmd, Hout, Hdl,
     Hnf, %hdh⟩
   iunfold walDirLks at Hdl
   icases Hdl with ⟨%γt, %b, %lsI, Htf, HlksI, %hlkr⟩
@@ -89,18 +106,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
     rw [hlfs]; simp [hlen]
   ihave %Hll := ownSlice_len _ _ _ $$ Hls
   ihave %Hcw := ownSliceCap_wf _ _ $$ Hcap
-  ihave #Harea2 := Harea
-  iunfold WalFs.walAreaOk at Harea2
-  icases Harea2 with ⟨#Hinv, #Hosinv, -⟩
-  wp_auto
-  wp_apply wp_with_defer as %defer defer
-  (try wp_auto)
-  wp_apply sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
   -- the commit, right after the lock, the locked range raised with `unl`
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walInv_releaseLks walCodec Mr R jr r dir a
-    (fun d => d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩) ∧ i < n) Q j X hj h.γ
+    (fun d => (∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n) Q j X hj h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) γt b hlkr.2.1
     $$ Hinv Hnc Hau Hdk Hcl Htk [Hv] Htf with ⟨Hnc, HQ, Hcl, Htk, Hv, %b', Htf, %hb'⟩
   · unfold tailVar; iexact Hv
@@ -249,16 +259,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
   wp_if_destruct
   · -- nothing to release
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
-    (try wp_auto)
-    iapply HΦ
-    isplitr; · ipureintro; rfl
-    iframe HQ
-    iapply (walOpenWF_iff P Mr w dir).2
-    iexists h
-    iframe Hr
-    isplitl
-    · iunfold walHandleIn
+    iapply fupd_wp
+    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hr Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti
+      Hsnapi He Henc Hlocks Hls Hcap Hfp Hpipe Hopen Hf Hfdo Hoff Htk Hm Hbs Hv Hcl Hpd Hperm Hdfd Hout Hnf
+      Htf HlksI] with ⟨Hw, Hlocked⟩
+    · iframe Hpers Hheld
+      iapply walHdl_close Sio P Mr w dir h hD hmd hroom
+      iframe Hr
+      iunfold walHandleIn
       iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
       iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc
         Hlocks Hls Hcap Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
@@ -273,7 +281,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
       isplitl [Hcl Hpd Hperm Hdfd Hout Hnf Htf HlksI]
       · iunfold walDirH
         iexists Rd, qd, X, hj, nm0, ph
-        iframe Hdk Hcl Hpd Hsid Hperm Hdfd Hnmd Hout Hnf
+        iframe Hdk Hcl Hpd Hsid HRdW Hperm Hdfd Hnmd Hout Hnf
         isplitl [Htf HlksI]
         · iunfold walDirLks
           iexists γt, b', lsI
@@ -284,7 +292,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
           simpa using this
         ipureintro; exact hdh
       ipureintro; exact ⟨Hlt, Hpure⟩
-    · ipureintro; exact ⟨hD, hmd⟩
+    imodintro
+    wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+    (try wp_auto)
+    iapply HΦ
+    isplitr; · ipureintro; rfl
+    iframe HQ Hw
   -- the kept lock `m`'s segment starts at or before the raised range
   have hsm1 : 0 < sint.Z sm' := by
     have : ¬ sint.Z sm' ≤ sint.Z (W64 0) := Hif
@@ -383,16 +396,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
   rw [hsub]
   have hsmn : sint.nat sm' < lfs.length := by word
   wp_auto
-  wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
-  (try wp_auto)
-  iapply HΦ
-  isplitr; · ipureintro; rfl
-  iframe HQ
-  iapply (walOpenWF_iff P Mr w dir).2
-  iexists h
-  iframe Hr
-  isplitl
-  · iunfold walHandleIn
+  iapply fupd_wp
+  imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hr Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti
+    Hsnapi He Henc Hlocks Hls Hcap Hfp Hpipe Hopen Hf Hfdo Hoff Htk Hm Hbs Hv Hcl Hpd Hperm Hdfd Hout Hnf
+    Htf HlksI] with ⟨Hw, Hlocked⟩
+  · iframe Hpers Hheld
+    iapply walHdl_close Sio P Mr w dir h hD hmd hroom
+    iframe Hr
+    iunfold walHandleIn
     iexists lg, df, sp, e, fp, lt, f, mds, slice.slice locks Loc sm' locks.len,
       lfs.drop (sint.nat sm'), fd, dfd, name, dnm, j, rc
     rw [dropLast_drop lfs (sint.nat sm')]
@@ -409,7 +420,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
     isplitl [Hcl Hpd Hperm Hdfd Hout Hnf Htf HlksI]
     · iunfold walDirH
       iexists Rd, qd, X, hj, nm0, ph
-      iframe Hdk Hcl Hpd Hsid Hperm Hdfd Hnmd Hout Hnf
+      iframe Hdk Hcl Hpd Hsid HRdW Hperm Hdfd Hnmd Hout Hnf
       isplitl [Htf HlksI]
       · iunfold walDirLks
         iexists γt, b', lsI.drop (sint.nat sm')
@@ -417,20 +428,20 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
         ipureintro; exact hrel
       ipureintro; exact hdh
     ipureintro; exact ⟨by rw [getLast?_drop lfs _ hsmn]; exact Hlt, Hpure⟩
-  · ipureintro; exact ⟨hD, hmd⟩
+  imodintro
+  wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+  (try wp_auto)
+  iapply HΦ
+  isplitr; · ipureintro; rfl
+  iframe HQ Hw
 
-/-- `ReleaseLockTo.spec` is `specNoErr` with the result forgotten. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
-    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [_root_.Perennial.path.filepath.Assumptions]
-    (P : WalPbIn GF) (Mr : WalMarshal)
-    (wp_Base : filepath.Base.spec (GF := GF) (hG := hG))
-    (wp_parse : go_etcd_io.etcd.server.v3.storage.wal.parseWALName.spec (GF := GF) (hG := hG))
-    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (W := W) P Mr := by
-  intro R jr r w dir a t i n cs Q
+/-- `ReleaseLockTo.specR` is `spec` with the result forgotten. -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec_R (P : WalPbIn GF) (Mr : WalMarshal)
+    (h : go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (Sio := Sio) (W := W) P Mr) :
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specR (Sio := Sio) (W := W) P Mr := by
+  intro R jr r w dir γ q a t i n cs Q
   iintro %Φ Hpre HΦ
-  iapply (go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr P Mr wp_Base wp_parse
-    wp_Close R jr r w dir a t i n cs Q) $$ Hpre
+  iapply (h R jr r w dir γ q a t i n cs Q) $$ Hpre
   inext
   iintro %err ⟨-, Hw, HQ⟩
   iapply HΦ

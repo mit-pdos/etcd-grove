@@ -5,7 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint
-public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects_bytes
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -25,7 +25,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.checkKeyPoint.wp_proof
-    (h_NewBytesAffinePoint : adt.NewBytesAffinePoint.spec (GF := GF) (hG := hG)) :
+    (h_NewBytesAffinePoint : adt.NewBytesAffinePoint.spec (GF := GF) (hG := hG))
+    (h_Intersects_bytes : adt.intervalTree.Intersects_bytes.spec (GF := GF) (hG := hG)) :
     auth.checkKeyPoint.spec (GF := GF) (hG := hG) := by
   intro lg p Lr Lw key k dk pt
   wp_start as ⟨#Hp, Hk, %Hpt, %Hlen⟩
@@ -39,7 +40,7 @@ theorem auth.checkKeyPoint.wp_proof
   rcases Hpt with rfl | rfl
   · wp_if_destruct
     · (try wp_auto)
-      wp_apply (adt.intervalTree.wp_Intersects_bytes tr Lr key e k (k ++ [W8 0]) dk (DFrac.own 1)
+      wp_apply (h_Intersects_bytes tr Lr key e k (k ++ [W8 0]) dk (DFrac.own 1)
         .discard) $$ [$Htr $Hk $He] as ⟨-, Hk, -⟩
       first | (iapply HΦ; iframe Hk) | iframe Hk
       ipureintro
@@ -52,7 +53,7 @@ theorem auth.checkKeyPoint.wp_proof
   · wp_if_destruct
     · exfalso; revert Hif; word
     · (try wp_auto)
-      wp_apply (adt.intervalTree.wp_Intersects_bytes tw Lw key e k (k ++ [W8 0]) dk (DFrac.own 1)
+      wp_apply (h_Intersects_bytes tw Lw key e k (k ++ [W8 0]) dk (DFrac.own 1)
         .discard) $$ [$Htw $Hk $He] as ⟨-, Hk, -⟩
       first | (iapply HΦ; iframe Hk) | iframe Hk
       ipureintro

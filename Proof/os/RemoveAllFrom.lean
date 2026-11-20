@@ -80,11 +80,12 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
     (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
     (hfo : FilesOnly hJ0.cur) (hqg : q + g = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
-        osCallPerm q ∗ osGuardS t sg g ∗ osLogLb sg }}
+        osCallPerm (callKey R d) q ∗ osGuardS t sg (child d b) g ∗ osLogLb sg }}
       (App (App (Val os.model.removeAllFrom) (Val #d)) (Val #b))
-    {{ (pe : Loc), RET #pe; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm q ∗
-        osGuardS t sg g ∗ os.peOk pe }} := by
+    {{ (pe : Loc), RET #pe; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) q ∗
+        osGuardS t sg (child d b) g ∗ os.peOk pe }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
+  icases osPathS_callKey R d _ j $$ Hp with ⟨Hp, %hkd⟩
   rw [show d ++ [47#8] ++ b = child d b by simp [child, slashB]]
   wp_apply os.model.wp_unlinkLoop_dirSt d b j J R (DFrac.own qd) h hJ0 q hb hJ $$ [Hp Hst Hperm]
     as %e ⟨%he0, Hp, Hst, Hperm⟩
@@ -249,7 +250,8 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
               rw [os.restrict_only_cur] at h'
               obtain ⟨i, hi⟩ := hfo c _ (hsubk c _ h')
               cases hi) (.inl rfl) $$ [Hpc Hc Hperm] as %pe ⟨Hpc, Hperm, Hpe, %hc', Hc, %hlo⟩
-          · iframe; iframe #
+          · rw [hkd b]; iframe; iframe #
+          rw [hkd b]
           imod os.osNames_merge1 R J c hc' (hJ'.restrict J (.except [c])) $$ Hsi Hc Hr
             with ⟨%h'', HJ, %hm⟩
           have hsub'' : EntsSub h''.cur hJ0.cur := os.entsSub_merge1 hsubk hlo hm

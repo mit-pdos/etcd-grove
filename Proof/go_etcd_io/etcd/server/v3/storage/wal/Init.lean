@@ -1,14 +1,18 @@
 /-
 Package initialization of `go_etcd_io.etcd.server.v3.storage.wal`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
-`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, `MaxSaveBatchBytes`
+`2^42` (fix 0009), every error
 variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
 `openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
-untranslated `prometheus` constructors (the trust-boundary axioms `<X>_init`, metrics.go), the
+translated `prometheus` constructors (metrics.go, over prometheus's `NewHistogram`, `ExponentialBuckets`
+and `NewGauge` specs; until 2026-11-19 the trust-boundary axioms `<X>_init`), the
 translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbInit`), `crcTable =
 crc32.MakeTable(crc32.Castagnoli)` (`hash.crc32.MakeTable.wp_proof`), and its untranslated `init`
 function (`prometheus.MustRegister` of the metrics), which the trust-boundary axiom `initFuncsOk`
@@ -39,9 +43,8 @@ public import Proof.hash.crc32.Init
 public import Proof.os.Init
 public import Proof.path.filepath.Init
 public import Perennial.Proof.errors.NewVar
-public import Proof.hash.crc32.MakeTable
 public import Proof.errors.ErrIsTerm
-public import Proof.runtime.PkgInitExt
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 
@@ -76,255 +79,7 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `walFsyncSec = prometheus.New...(...)` (`metrics.go`): a metric whose method returns. -/
-axiom walFsyncSec_init :
-    {{ (True : IProp GF) }} (App (Val walFsyncSec.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr walFsyncSec ↦ GoInterface.ok h ∗ EtcdGrove.wal.histSpec h }}
-
-/-- `walWriteSec = prometheus.New...(...)` (`metrics.go`): a metric whose method returns. -/
-axiom walWriteSec_init :
-    {{ (True : IProp GF) }} (App (Val walWriteSec.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr walWriteSec ↦ GoInterface.ok h ∗ EtcdGrove.wal.histSpec h }}
-
-/-- `walWriteBytes = prometheus.New...(...)` (`metrics.go`): a metric whose method returns. -/
-axiom walWriteBytes_init :
-    {{ (True : IProp GF) }} (App (Val walWriteBytes.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr walWriteBytes ↦ GoInterface.ok h ∗ EtcdGrove.wal.gaugeAddSpec h }}
-
 end go_etcd_io.etcd.server.v3.storage.wal
 end opaqueInits
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-variable [_root_.Perennial.log.NewModel]
-
-namespace go_etcd_io.etcd.server.v3.storage.wal
-
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.wal get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  iapply wp_fupd
-  wp_apply wp_GlobalAlloc (V := Loc) crcTable _ as HcrcTable
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrDecoderNotFound _ as HErrDecoderNotFound
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSliceOutOfRange _ as HErrSliceOutOfRange
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSnapshotNotFound _ as HErrSnapshotNotFound
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSnapshotMismatch _ as HErrSnapshotMismatch
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrCRCMismatch _ as HErrCRCMismatch
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrFileNotFound _ as HErrFileNotFound
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrMetadataConflict _ as HErrMetadataConflict
-  wp_apply wp_GlobalAlloc (V := GoFunc) openWALFilesFn _ as HopenWALFilesFn
-  wp_apply wp_GlobalAlloc (V := w64) SegmentSizeBytes _ as HSegmentSizeBytes
-  wp_apply wp_GlobalAlloc (V := GoInterface) errBadWALName _ as HerrBadWALName
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize'
-      EtcdGrove.ExternalInit.go_etcd_io_raft_v3 _root_.Perennial.go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd23⟩
-  wp_apply (_root_.Perennial.hash.crc32.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd22⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
-      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd21⟩
-  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd20⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
-      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd19⟩
-  wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd18⟩
-  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply (_root_.Perennial.path.filepath.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
-      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
-      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
-      EtcdGrove.ExternalInit.google_golang_org_protobuf_proto _root_.Perennial.google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
-      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (_root_.Perennial.hash.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
-      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
-      EtcdGrove.ExternalInit.encoding_binary _root_.Perennial.encoding.binary.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply walFsyncSec_init as ⟨%hwalFsyncSec, HwalFsyncSec, #SwalFsyncSec⟩
-  wp_apply walWriteSec_init as ⟨%hwalWriteSec, HwalWriteSec, #SwalWriteSec⟩
-  wp_apply walWriteBytes_init as ⟨%hwalWriteBytes, HwalWriteBytes, #SwalWriteBytes⟩
-  -- translated initializer of errBadWALName))
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBW #EBW
-  try wp_auto
-  -- translated initializer of SegmentSizeBytes))
-  -- translated initializer of openWALFilesFn))
-  -- translated initializer of ErrMetadataConflict))
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xMC #EMC
-  try wp_auto
-  -- translated initializer of ErrFileNotFound))
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFN #EFN
-  try wp_auto
-  -- translated initializer of ErrCRCMismatch))
-  try wp_auto
-  ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd11
-  icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT⟩
-  try wp_auto
-  -- translated initializer of ErrSnapshotMismatch))
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSM #ESM
-  try wp_auto
-  -- translated initializer of ErrSnapshotNotFound))
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSN #ESN
-  try wp_auto
-  -- translated initializer of ErrSliceOutOfRange))
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSO #ESO
-  try wp_auto
-  -- translated initializer of ErrDecoderNotFound))
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xDN #EDN
-  try wp_auto
-  -- translated initializer of crcTable))
-  try wp_auto
-  rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]
-  wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab
-  try wp_auto
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch))
-  ipersist HerrBadWALName
-  ipersist HErrMetadataConflict
-  ipersist HErrFileNotFound
-  ipersist HErrCRCMismatch
-  ipersist HErrSnapshotMismatch
-  ipersist HErrSnapshotNotFound
-  ipersist HErrSliceOutOfRange
-  ipersist HErrDecoderNotFound
-  ipersist HcrcTable
-  ipersist HSegmentSizeBytes
-  ipersist HwalFsyncSec
-  ipersist HwalWriteSec
-  ipersist HwalWriteBytes
-  ipersist HopenWALFilesFn
-  ihave #VerrBadWALName : (EtcdGrove.wal.errVar errBadWALName : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar
-    iexists _
-    iframe HerrBadWALName
-    isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EBW
-      inext
-      iapply HΦ'
-    · iapply EtcdGrove.errIsTerm_errorString xBW; iexact Hd2
-  ihave #VErrMetadataConflict : (EtcdGrove.wal.errVar ErrMetadataConflict : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar
-    iexists _
-    iframe HErrMetadataConflict
-    isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EMC
-      inext
-      iapply HΦ'
-    · iapply EtcdGrove.errIsTerm_errorString xMC; iexact Hd2
-  ihave #VErrFileNotFound : (EtcdGrove.wal.errVar ErrFileNotFound : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar
-    iexists _
-    iframe HErrFileNotFound
-    isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EFN
-      inext
-      iapply HΦ'
-    · iapply EtcdGrove.errIsTerm_errorString xFN; iexact Hd2
-  ihave #VErrSnapshotMismatch : (EtcdGrove.wal.errVar ErrSnapshotMismatch : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar
-    iexists _
-    iframe HErrSnapshotMismatch
-    isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESM
-      inext
-      iapply HΦ'
-    · iapply EtcdGrove.errIsTerm_errorString xSM; iexact Hd2
-  ihave #VErrSnapshotNotFound : (EtcdGrove.wal.errVar ErrSnapshotNotFound : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar
-    iexists _
-    iframe HErrSnapshotNotFound
-    isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESN
-      inext
-      iapply HΦ'
-    · iapply EtcdGrove.errIsTerm_errorString xSN; iexact Hd2
-  ihave #VErrSliceOutOfRange : (EtcdGrove.wal.errVar ErrSliceOutOfRange : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar
-    iexists _
-    iframe HErrSliceOutOfRange
-    isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESO
-      inext
-      iapply HΦ'
-    · iapply EtcdGrove.errIsTerm_errorString xSO; iexact Hd2
-  ihave #VErrDecoderNotFound : (EtcdGrove.wal.errVar ErrDecoderNotFound : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar
-    iexists _
-    iframe HErrDecoderNotFound
-    isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EDN
-      inext
-      iapply HΦ'
-    · iapply EtcdGrove.errIsTerm_errorString xDN; iexact Hd2
-  ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []
-  · unfold EtcdGrove.wal.errVar
-    iexists _
-    iframe HErrCRCMismatch HpbOk HpbT
-  iframe Hown
-  imodintro
-  isplitr
-  · ipureintro
-    exact isPanic_intoVal _
-  is_pkg_init_finish
-  imodintro
-  unfold EtcdGrove.wal.walInit EtcdGrove.WalFs.walCrcTable EtcdGrove.wal.metricsInit
-  iframe #
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.wal get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end go_etcd_io.etcd.server.v3.storage.wal
-
-end init
 
 end Perennial

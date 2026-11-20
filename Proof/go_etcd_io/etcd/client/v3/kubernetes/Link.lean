@@ -36,6 +36,8 @@ public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_etcd_io.etcd.client.v3.WithLease
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
 public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
@@ -156,11 +158,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 theorem Client.wp_Get :
     EtcdGrove.kubernetes.Client.Get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.kubernetes.Client.Get.wp_proof v3.wp_WithRev v3.wp_WithLimit
+  EtcdGrove.kubernetes.Client.Get.wp_proof v3.wp_WithRev v3.wp_WithLimit client.client_range_any_law_holds
 
 theorem Client.wp_List :
     EtcdGrove.kubernetes.Client.List.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.kubernetes.Client.List.wp_proof v3.wp_WithRev v3.wp_WithLimit v3.wp_WithRange v3.wp_GetPrefixRangeEnd
+  EtcdGrove.kubernetes.Client.List.wp_proof v3.wp_WithRev v3.wp_WithLimit v3.wp_WithRange v3.wp_GetPrefixRangeEnd client.client_range_any_law_holds
 
 theorem wp_kvFromTxnResponse :
     EtcdGrove.kubernetes.kvFromTxnResponse.spec (GF := GF) (hG := hG) :=
@@ -168,11 +170,11 @@ theorem wp_kvFromTxnResponse :
 
 theorem Client.wp_OptimisticDelete :
     EtcdGrove.kubernetes.Client.OptimisticDelete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.kubernetes.Client.OptimisticDelete.wp_proof v3.wp_OpDelete v3.wp_OpGet v3.wp_ModRevision v3.wp_Compare wp_kvFromTxnResponse
+  EtcdGrove.kubernetes.Client.OptimisticDelete.wp_proof v3.wp_OpDelete v3.wp_OpGet v3.wp_ModRevision v3.wp_Compare wp_kvFromTxnResponse client.v3.kv.wp_Txn client.v3.txn.wp_If client.v3.txn.wp_Then client.v3.txn.wp_Else etcd_txnlin.txn_Commit_st_law_holds
 
 theorem Client.wp_OptimisticPut :
     EtcdGrove.kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.kubernetes.Client.OptimisticPut.wp_proof v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet v3.wp_ModRevision v3.wp_Compare wp_kvFromTxnResponse
+  EtcdGrove.kubernetes.Client.OptimisticPut.wp_proof v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet v3.wp_ModRevision v3.wp_Compare wp_kvFromTxnResponse client.v3.kv.wp_Txn client.v3.txn.wp_If client.v3.txn.wp_Then client.v3.txn.wp_Else etcd_txnlin.txn_Commit_st_law_holds
 
 theorem wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.kubernetes.New.spec (GF := GF) (hG := hG) :=

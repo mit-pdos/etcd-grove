@@ -31,9 +31,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `leaseCheckFrom` is monotone in its keys' verdict `K`. -/
-theorem leaseCheckFrom_mono (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (n : Nat)
+theorem leaseCheckFrom_mono (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
     (K K' : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (h : ∀ info, K info ⊢ K' info) :
-    leaseCheckFrom s E ctx n K ⊢ leaseCheckFrom s E ctx n K' := by
+    leaseCheckFrom s E tok n K ⊢ leaseCheckFrom s E tok n K' := by
   unfold leaseCheckFrom
   iintro (H | ⟨%info, Hb, (Ha | Hk)⟩)
   · ileft; iexact H
@@ -46,8 +46,10 @@ theorem EtcdServer.LeaseLeases.wp_proof
     (hChk : EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG))
     (hHdr : EtcdServer.newHeader.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
-  intro s E γr γl ctx cd r mid cid n m
-  wp_start as ⟨#Hsr, #Hhf, Hst, Hrk, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, %Hb1, %Hb2⟩
+  intro s E γr γl ctx cd tok r mid cid n m
+  wp_start as ⟨#Hsr, #Hhf, Hst, Hrk, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #HtokC, HRD, #Hpool, %Hb1, %Hb2⟩
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) $$ []
+  · iintro !> %h; iapply HtokC; ipureintro; exact h
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hlr' := Hlr
@@ -62,7 +64,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
   ihave ⟨#Hobj, #Hid⟩ := BigSepL.bigSepL_sep_eqv.1 $$ Hls
   (try wp_auto)
   -- `if err := s.checkLeaseLeases(ctx, ls); err != nil { return nil, err }`
-  wp_apply (hChk s E γl ctx cd sl ls (DFrac.own 1) n li) $$ [$HRD $Hst $Hsl]
+  wp_apply (hChk s E γl ctx cd tok sl ls (DFrac.own 1) n li) $$ [$HRD $Hst $Hsl]
       as %err ⟨HRD, Hst, Hsl, %Hoff, #Herr, Hok⟩
   · iframe #
     isplitr
@@ -75,13 +77,19 @@ theorem EtcdServer.LeaseLeases.wp_proof
     iapply HΦ
     iframe HRD Hst Hrk
     iright
+    iunfold authApplyErrIs at Herr
+    icases Herr with ⟨#Herr, #Hev⟩
     iframe Herr
-    ipureintro
-    refine ⟨rfl, ?_, ?_⟩
-    · intro h; cases h
-    · cases hon : E.authOn
-      · cases Hoff hon
-      · rfl
+    isplitr
+    · ipureintro
+      refine ⟨rfl, ?_, ?_⟩
+      · intro h; cases h
+      · cases hon : E.authOn
+        · cases Hoff hon
+        · rfl
+    ihave #Hap : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
+    · iPkgInit
+    iapply authErrVarIs_leaseNotFound_absurd $$ [$Hap $Hlp $Hev]
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   (try wp_auto)
   wp_apply (wp_slice_make2 (V := Loc) sl.len) as %lsl ⟨Hlsl, -⟩

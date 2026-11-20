@@ -114,9 +114,9 @@ theorem purge_openTriple (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
     fileutil.OpenTriple (X := Unit)
-      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc))
+      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (child d b) flag (W32 384)
-      (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc))
+      (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (fun _ i' => i' = i) := by
   unfold fileutil.OpenTriple
   iintro %Φ ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ

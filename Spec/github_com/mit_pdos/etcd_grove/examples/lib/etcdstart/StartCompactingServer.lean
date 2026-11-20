@@ -49,6 +49,9 @@ abbrev StartCompactingServer.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the member's name valid UTF-8, `bootPremise`'s
   -- condition on the initial cluster's names
   utf8Valid name →
+  -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
+  -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
+  name.length ≤ 200 →
   -- (K3 of the k8s compactor plan, 2026-11-04) the retention positive, or `0`: etcd's compactor
   -- off, every compaction a client's (Kubernetes' deployment; `v3compactor.bootCfg`'s off case)
   0 ≤ sint.Z retention →

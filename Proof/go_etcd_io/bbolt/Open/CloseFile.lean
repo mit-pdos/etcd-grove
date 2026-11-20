@@ -8,6 +8,7 @@ is whole pages (`wdbOK`), each slot one of the three.
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.CloseImage
+public import Proof.go_etcd_io.bbolt.Open.CloseMapDefs
 public import Proof.go_etcd_io.bbolt.Mmap.RemapBase
 public import Proof.go_etcd_io.bbolt.Mmap.Cells
 public import Proof.go_etcd_io.bbolt.Mmap.RemapCells
@@ -219,22 +220,6 @@ variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- What `close` unmaps, the file's `OsMeta` `m` named (`closeMapRes`, whose `m` is hidden). -/
-def closeMapResM (p : BFile) (m : OsMeta) : MapSt → IProp GF
-  | none => iprop(emp)
-  | some (b, l) => iprop(⌜0 < l ∧ m.maps !! b = some l⌝ ∗ osMeta p.ino (DFrac.own 1) m ∗
-      ∃ vf, cellsR b 0 l vf)
-
-/-- The file's `OsMeta` the closer keeps when nothing is mapped (`close` takes it otherwise). -/
-def closeKeep (p : BFile) (m : OsMeta) : MapSt → IProp GF
-  | none => iprop(osMeta p.ino (DFrac.own 1) m)
-  | some _ => iprop(emp)
-
-/-- What `close`'s unmapping gives back: the `OsMeta` with the mapping removed. -/
-def closeMapBack (p : BFile) (m : OsMeta) : MapSt → IProp GF
-  | none => iprop(emp)
-  | some (b, _) => iprop(osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete b m.maps })
 
 theorem closeMapResM_res (p : BFile) (m : OsMeta) (ms : MapSt) :
     closeMapResM (GF := GF) p m ms ⊢ closeMapRes p ms := by

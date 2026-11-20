@@ -32,10 +32,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assu
 abbrev github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.spec : Prop :=
   ∀ (γ : DurGS) (f : DFile) (R : Roots) (qc : Qp) (p : DurPhys), f.Ok → (∃ s, DurOk f s p) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗
-      durHandleP (GF := GF) γ f R p ∗ osCallPerm (GF := GF) qc }}
+      durHandleP (GF := GF) γ f R p ∗ osCallPerm (GF := GF) (callKey R f.d) qc }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead)) (Val #f.name))
   {{ (str : GoString) (ok done : Bool), RET (PairV (PairV #str #ok) #done);
-      durHandleP γ f R p ∗ osCallPerm qc ∗
+      durHandleP γ f R p ∗ osCallPerm (callKey R f.d) qc ∗
       ⌜done = true → ∃ v, p.CurIs f v ∧ str = v.getD [] ∧ ok = v.isSome⌝ }}
 
 end spec

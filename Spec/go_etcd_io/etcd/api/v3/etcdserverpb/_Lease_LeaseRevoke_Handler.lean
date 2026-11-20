@@ -47,7 +47,7 @@ abbrev etcdserverpb._Lease_LeaseRevoke_Handler.spec : Prop :=
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+      grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
     (methodHandlerCall (@! etcdserverpb._Lease_LeaseRevoke_Handler) #(GoInterface.ok srv)
       #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗

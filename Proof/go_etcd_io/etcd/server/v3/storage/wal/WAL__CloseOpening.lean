@@ -12,7 +12,7 @@ Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseOpening
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncIdle
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.filePipeline__Close
@@ -44,11 +44,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
-theorem osCallPerm_halves :
-    osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half.half (1 : Qp).half.half
+theorem osCallPerm_halves (k : GoString) :
+    osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ∗
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ⊢
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half.half (1 : Qp).half.half
   rw [Qp.half_add_half] at h
   exact h.2
 
@@ -75,7 +75,7 @@ theorem syncOut_seg (g : SegG) (hlen : g.bs.length = g.om.size) (P : Prop) :
     exact ⟨rfl, hlen.symm⟩
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (Mr : WalMarshal)
     (wp_syncIdle : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIdle (W := W) Mr)
     (wp_fpClose : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Close.spec (GF := GF) (hG := hG))
@@ -84,7 +84,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
     (wp_CloseNil : os.File.Close.specNil (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_LError : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specOpening (W := W) Mr := by
+      ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (s : w64 × w64),
+      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
+          WalFs.walAreaOk walCodec Mr R jr r ∗
+          WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+          structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) }}
+        (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
+          (Val #()))
+      {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half }} := by
   intro R jr r w dir s
   wp_start as ⟨#Harea, Hop, Hrh, Hperm, Hdf⟩
   unfold walReadH walOpenIn walReadTie
@@ -98,6 +105,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   ihave #Harea2 := Harea
   iunfold WalFs.walAreaOk at Harea2
   icases Harea2 with ⟨#Hinv, #Hosinv, -⟩
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Henv0 := Henv
@@ -138,7 +146,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   (try wp_auto)
   -- the pipeline's `Close`
   iunfold walPipeH at Hpipe
-  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn⟩
+  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
   simp only [decide_eq_false hfpn]
   (try wp_auto)
   wp_apply wp_fpClose fp γp Rp dir dqp j szp $$ [Hmain] as %perr Hleft
@@ -169,6 +177,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
   icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+  subst hRpW
+  ihave Hperm2 := walPerm_ofW hWR dir _ $$ Hperm2
   ihave Htmps := tmpClaims_walTmpsRes (L := hG.goose_localGS) j b (pipeTmp (np + 1)) hb
     (pipeTmp_mem_walTmps _) $$ [Htb Hpc]
   · iframe
@@ -198,7 +208,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
     (try wp_auto)
     iapply HΦ
     iframe Hunl
-    iapply osCallPerm_halves
+    iapply osCallPerm_halves _
     iframe
   | nil =>
   wp_auto
@@ -303,7 +313,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   (try wp_auto)
   iapply HΦ
   iframe Hunl
-  iapply osCallPerm_halves
+  iapply osCallPerm_halves _
   iframe
 
 end proof

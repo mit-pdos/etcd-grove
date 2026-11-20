@@ -36,7 +36,6 @@ axiom envVerifyOffTok
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
-axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom heap.Init_.wp_proof
@@ -94,14 +93,12 @@ axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
-axiom rafthttp.waitSchedule.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
-axiom schema.UnsafeDeleteLease.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof
@@ -109,7 +106,6 @@ axiom semver.Version.Major.wp_proof
 axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
-axiom snap.Message.CloseNotify.wp_proof
 axiom snap.Message.GetTo.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
@@ -120,7 +116,6 @@ axiom sort.StringSlice.Sort.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom storage.storage.Release.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strconv.Itoa.wp_proof
 axiom strings.ToLower.wp_proof
@@ -130,14 +125,11 @@ axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.RangeSecObserve.wp_proof
-axiom types.ID.String.wp_proof
-axiom types.ID.String_ptr.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom verify.Verify.wp_proof
-axiom version.LessThan.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof

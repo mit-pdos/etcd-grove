@@ -5,7 +5,7 @@ the restart takes is `tRelW` (created, `cd`'s mark synced and the WAL named; or 
 `Boot`'s restart after a crash between `Create` and the store of `created`, B1): `ValidSnapshotEntries`, the
 newest valid pair `(idx, term)`, then at most two attempts (`Repair` once between them), each storing the
 oracle with `idx` appended to its opens (`storeOracle`; the open raises `d.unl` within the new opens bound,
-`tCandOk_open`) before `Open`, then `ReadAll`; a failed `ReadAll` is followed by `Close` (`Close.specFailed`)
+`tCandOk_open`) before `Open`, then `ReadAll`; a failed `ReadAll` is followed by `Close` (`Close.spec` (state `failed`))
 and `Repair`. Every update leaves `d`'s history and read position as they are.
 
 The post, whatever the result: the oracle `tWithOpens o l` (at most two opens appended) stored and the
@@ -59,7 +59,7 @@ abbrev restartRead.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
-      osCallPerm (GF := GF) 1 ∗ zapLoggerOk lg ∗
+      tPerm (GF := GF) e 1 ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
       osPathS (GF := GF) e.R (e.area) (DFrac.own qp) e.jr ∗ WalFs.walAreaRes (W := W) e.jr ∗
       WalFs.walUnlockedTok (W := W) ∗
@@ -76,7 +76,7 @@ abbrev restartRead.spec : Prop :=
       ⌜l.length ≤ 2 ∧ Option.Rel (fun d d' => d'.H = d.H ∧ d'.cut = d.cut ∧
         tCandOk (tWithOpens o l) cd d') od od'⌝ ∗
       if st = W64 0 then
-        osCallPerm (GF := GF) (1 : Qp).half ∗ ∃ (c : TContents) (d : WalDur), ⌜od = some d⌝ ∗
+        tPerm (GF := GF) e (1 : Qp).half ∗ ∃ (c : TContents) (d : WalDur), ⌜od = some d⌝ ∗
         contentsRep vc c ∗
         ⌜∃ img ∈ tImgs (tCandHist o cd) (tCandMark o cd), d.H.map WalOpG.toM = img.map absOp ∧
           tRead img = some c⌝ ∗

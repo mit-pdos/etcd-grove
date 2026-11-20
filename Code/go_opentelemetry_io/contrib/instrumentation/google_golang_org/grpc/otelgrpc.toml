@@ -1,6 +1,8 @@
-# Types and names only: function and method bodies are axiomatized.
+# Types and names only: function and method bodies are axiomatized. grpc's `stats` is imported so
+# that the types naming it translate (`NewServerHandler`'s result, a `stats.Handler`: an
+# implementation can return one, etcd-refimpl's reference implementation).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "google.golang.org/grpc/stats"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

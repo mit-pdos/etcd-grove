@@ -9,7 +9,7 @@ What the invariant holds of the WAL `Create` commits (`walCreate_osAUnc`'s `habs
 * `createLay`: the layout.
 * `createLay_abs`: its static relation `WalAbsD` over a directory whose `.wal` entries are `g` alone.
 * `createSeg`, `createSeg_facts`: the segment after the header stream over the preallocated zeros and
-  the fdatasync (`SaveSnapshot.specPre`'s `os.fileS`).
+  the fdatasync (`SaveSnapshot.spec`'s `os.fileS` at the state `pre`).
 -/
 module
 

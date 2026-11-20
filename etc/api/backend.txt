@@ -28,6 +28,7 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
@@ -52,11 +53,15 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Size
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SizeInUse
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__UnlockForSafeRangeDelete
+# (auth-schema-srv port, 2026-11-19) the auth realization's `lk_commit`: schema's `Unlock` calls the batch's `Commit`
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockInsideApply
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockOutsideApply
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
+# (auth-schema-srv A6 (c), 2026-11-18) the auth realization's batch reader walks the users' bucket
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeForEach
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut
@@ -66,6 +71,7 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__Unsa
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
@@ -82,4 +88,10 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.RangeLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Model
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
+# (auth-schema-srv A1, 2026-11-17) the tracked buckets' read model (kinds, `rvBkt`), which `InvBackend` and
+# `InvBatch` import publicly
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.TrkModel
+# (auth-schema-srv A1, 2026-11-17) the claimed buckets: the claim (`batchLocked_claim`), the claimed parts'
+# split laws, `Unlock`'s accessor (`rbAcc`, `unlockOk`), which `Unlock.spec` names (A1.8: one spec)
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas

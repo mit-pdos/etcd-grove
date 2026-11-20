@@ -10,7 +10,8 @@ that took effect and returned `EINTR` is retried; the retry finds the source gon
 fraction keeps it so) and fails: the error is non-nil, the outcome the logged one.
 
 * `os.Rename.specFileS`: the file `d/bs` (inode `i`) onto `d'/bt` (a file or nothing), the names in
-  two claims of distinct keys (the WAL's cut: `N.tmp`'s claim and the directory's). Outcome
+  two claims of distinct keys (the WAL's cut: `N.tmp`'s claim and the directory's), both names in
+  one root's tree (`SameRootR`: the extension's `Rename` is stuck across roots). Outcome
   `some (x, s)`: the entry `x`, by a call begun at `s` after both claims' last change.
 * `os.Rename.specFileSnc`: `specFileS` with `osAUnc` (`Proof/os/SharedAu.lean`), whose opening gets
   the generation's `notCrashed`; it gives `specFileS`.
@@ -65,13 +66,13 @@ abbrev os.Rename.specFileS : Prop :=
     (h h' : NamesH) (q1 r1 q2 r2 qc : Qp) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N'.Mem bt → (j, N) ≠ (j', N') →
   h.cur !! bs = some (.file i) → (∀ J, h'.cur !! bt ≠ some (.dir J)) →
-  q1 + r1 = 1 → q2 + r2 = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm qc ∗
+  q1 + r1 = 1 → q2 + r2 = 1 → SameRootR R (child d bs) (child d' bt) →
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
       osNames j N (DFrac.own q1) h ∗ osNames j' N' (DFrac.own q2) h' ∗
       osAU iprop(osNames j N (DFrac.own r1) h ∗ osNames j' N' (DFrac.own r2) h')
         (renFileOut j j' i N N' bs bt h h' (DFrac.own r1) (DFrac.own r2)) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d' bt)))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm qc ∗
+  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗
         renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) o }}
 
@@ -83,13 +84,13 @@ abbrev os.Rename.specFileSnc : Prop :=
     (h h' : NamesH) (q1 r1 q2 r2 qc : Qp) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N'.Mem bt → (j, N) ≠ (j', N') →
   h.cur !! bs = some (.file i) → (∀ J, h'.cur !! bt ≠ some (.dir J)) →
-  q1 + r1 = 1 → q2 + r2 = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm qc ∗
+  q1 + r1 = 1 → q2 + r2 = 1 → SameRootR R (child d bs) (child d' bt) →
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
       osNames j N (DFrac.own q1) h ∗ osNames j' N' (DFrac.own q2) h' ∗
       osAUnc iprop(osNames j N (DFrac.own r1) h ∗ osNames j' N' (DFrac.own r2) h')
         (renFileOut j j' i N N' bs bt h h' (DFrac.own r1) (DFrac.own r2)) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d' bt)))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm qc ∗
+  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗
         renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) o }}
 
@@ -112,11 +113,11 @@ abbrev os.Rename.specDirS : Prop :=
     (q r : Qp) (lb : Nat) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N.Mem bt → bs ≠ bt →
   h.cur !! bs = some (.dir J) → h.cur !! bt = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       osLogLb lb ∗ osNames j N (DFrac.own q) h ∗
       osAU (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
-  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Q o ∗
         renDirOut j J N bs bt h (DFrac.own q) lb o }}
 
@@ -128,11 +129,11 @@ abbrev os.Rename.specDirSnc : Prop :=
     (q r : Qp) (lb : Nat) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N.Mem bt → bs ≠ bt →
   h.cur !! bs = some (.dir J) → h.cur !! bt = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       osLogLb lb ∗ osNames j N (DFrac.own q) h ∗
       osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
-  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Q o ∗
         renDirOut j J N bs bt h (DFrac.own q) lb o }}
 

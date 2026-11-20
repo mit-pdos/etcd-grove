@@ -18,14 +18,6 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Main.lean`), at the context errors'
   premise `ContextReadErrs` (k8s etcd3 7c-2 part 2, S7: the compactor's channel context's errors'
   descriptions; `k8s_etcd3_safe` already took it, `Hctx`).
-* **`k8s_etcd3_safe`** (`Adequacy.lean`'s `k8s_etcd3_adequate`): the closed theorem. Every real
-  execution of `n` steps of `k8setcd3`'s initialization followed by `Main(clients, ops, watchers, wops)`, from a
-  fresh state with one thread, has no stuck thread, no thread ended in a panic (so never
-  "k8setcd3: porcupine found the history not linearizable"), and the main thread's result, if
-  any, is `Ok` or `Unknown`; under k8setcd3's hypotheses at k8setcd3's configuration, the
-  Kubernetes packages' semantics assumptions (the method-set facts `objTyOk` and
-  `storageErrTyOk` follow from them), and (7f-6 stage E, Q4, approved by the user 2026-11-16) the
-  client's context errors' premise `ContextErrsClient` (`Hcec`).
 * **`k8setcd3_MainCluster`** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`; step 1 of "k8s etcd3
   over cluster3" in `notes/k8s-etcd3-plan.md`, 2026-11-06; `k` members since stage A of
   `notes/k8s-7f6-scope.md`, 2026-11-16, approved by the user): `MainCluster(k, clients, ops, watchers, wops)` --
@@ -33,10 +25,6 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   bridge, the client of the `k` bridges with etcd's default retries) -- does not panic and returns
   `Ok` or `Unknown`, for every `1 ≤ k ≤ 1000`
   (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`).
-* **`k8s_etcd3_cluster_safe`** (`Adequacy.lean`'s `k8s_etcd3_cluster_adequate`): its closed
-  theorem, `k8s_etcd3_safe`'s conclusion for `MainCluster(k, clients, ops, watchers, wops)`, for every
-  `1 ≤ k ≤ 1000`, under the cluster's hypotheses (its boot facts in putgetN's list form and premises
-  at its members, its `3k` addresses unclaimed, its `k` data directories fresh) for the one member's.
 * **`k8setcd3_MainPartition`** (`MainLinked.lean`'s `k8s_etcd3.wp_MainPartition`; step 2 of "k8s
   etcd3 over cluster3", 2026-11-07; `k` members since stage A): `MainPartition(k, clients, ops,
   watchers, wops, sched)` -- `MainCluster` with
@@ -44,10 +32,12 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   unblackholed, its connections dropped) while `Check`'s clients run -- does not panic and returns
   `Ok` or `Unknown`, for every schedule
   (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainPartition.lean`).
-* **`k8s_etcd3_partition_safe`** (`Adequacy.lean`'s `k8s_etcd3_partition_adequate`): its closed
-  theorem, `k8s_etcd3_cluster_safe`'s conclusion for `MainPartition(k, clients, ops, watchers, wops, sched)` with the
-  schedule `steps` built as a slice literal (`schedLit`), for every `steps` of fewer than `2 ^ 63`
-  steps, under `k8s_etcd3_cluster_safe`'s hypotheses.
+
+**The closed theorems retired (2026-11-20, the user's decision D3 of `notes/k8s-unified-scope.md`).**
+Its closed theorems `k8s_etcd3_safe`, `k8s_etcd3_cluster_safe` and `k8s_etcd3_partition_safe`
+(with `Adequacy.lean`, `TopLevelDefs.lean` and the `TopLevelRobustness.lean` pair) are gone: the one closed Kubernetes theorem `k8s_safe` (`examples/k8s/all`,
+`Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/Results.lean`) runs `MainPartition` beside the
+compactor driver's in one process; the function triples here stay (`k8setcd3_MainPartition` is its callee).
 
 **No pending hypotheses (k8s 7e-1, 2026-11-10).** The client's `List` spec, `GetAt` spec and
 `clientErrPlain` were hypotheses of every result here during 7e-4; 7e-1 proved `Client.List`
@@ -67,8 +57,8 @@ take registered ones since stages A and B (lean `51e51adb99`, 2026-11-12).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Adequacy
-public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainLinked
 
 @[expose] public section
 
@@ -113,154 +103,9 @@ theorem k8setcd3_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
 
 end results
 
-section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
-variable [go_gctx : GoGlobalContext]
-
-/-- **The Kubernetes etcd3 store's linearizability instance is safe, in the operational semantics** (`k8s_etcd3_adequate`,
-see the file header and `Adequacy.lean`). -/
-theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
-    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
-    [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextErrsClient (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget.BootFacts id ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (clients ops watchers wops : w64)
-    (Hc0 : 0 ≤ sint.Z clients) (Hw0 : 0 ≤ sint.Z watchers) (Hc31 : sint.Z clients + sint.Z watchers < 2 ^ 31)
-    (Hops : 0 ≤ sint.Z ops) (Hwops : 0 ≤ sint.Z wops)
-    (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
-    (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops watchers wops) k8setcd3Names)
-    (HAs : addrsUnclaimed (k8setcd3Program clients ops watchers wops) [go!"127.0.0.1:23896"])
-    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"k8setcd3.etcd"])
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff (k8setcd3Program clients ops watchers wops))
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([k8setcd3Program clients ops watchers wops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_etcd3_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0
-    Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-
-/-- **The Kubernetes etcd3 store's linearizability instance over `k` members is safe, in the
-operational semantics** (`k8s_etcd3_cluster_adequate`, see the file header and `Adequacy.lean`). -/
-theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
-    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
-    [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextErrsClient (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
-    (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (clients ops watchers wops : w64)
-    (Hc0 : 0 ≤ sint.Z clients) (Hw0 : 0 ≤ sint.Z watchers) (Hc31 : sint.Z clients + sint.Z watchers < 2 ^ 31)
-    (Hops : 0 ≤ sint.Z ops) (Hwops : 0 ≤ sint.Z wops)
-    (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
-    (HNs : prometheus.namesUnclaimed (k8setcd3CProgram k clients ops watchers wops) k8setcd3Names)
-    (HAs : addrsUnclaimed (k8setcd3CProgram k clients ops watchers wops) (k8s_etcd3N.k8setcd3NAddrs k))
-    (HDs : dataDirsAbsent (k8setcd3CProgram k clients ops watchers wops) (k8s_etcd3N.k8setcd3NDirs k))
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff (k8setcd3CProgram k clients ops watchers wops))
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([k8setcd3CProgram k clients ops watchers wops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_etcd3_cluster_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
-    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
-
-/-- **The Kubernetes etcd3 store's linearizability instance over `k` members under any partition
-schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
-header and `Adequacy.lean`; the `zap.Logger` and `errors.IsCtxErr` axioms it once rested on were
-refuted and are repaired since premise fixes 6: see the file header). -/
-theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
-    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
-    [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextErrsClient (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
-    (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
-    (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (clients ops watchers wops : w64)
-    (Hc0 : 0 ≤ sint.Z clients) (Hw0 : 0 ≤ sint.Z watchers) (Hc31 : sint.Z clients + sint.Z watchers < 2 ^ 31)
-    (Hops : 0 ≤ sint.Z ops) (Hwops : 0 ≤ sint.Z wops)
-    (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
-    (Hsteps : steps.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8setcd3PProgram k clients ops watchers wops steps) k8setcd3Names)
-    (HAs : addrsUnclaimed (k8setcd3PProgram k clients ops watchers wops steps) (k8s_etcd3N.k8setcd3NAddrs k))
-    (HDs : dataDirsAbsent (k8setcd3PProgram k clients ops watchers wops steps) (k8s_etcd3N.k8setcd3NDirs k))
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    (HEnv : verifyEnvOff (k8setcd3PProgram k clients ops watchers wops steps))
-    (n : Nat)
-    (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState)
-    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : σ.threads = 1)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps' : RealNsteps n ([k8setcd3PProgram k clients ops watchers wops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
-    (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_etcd3_partition_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
-    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2
-    Hsteps' Hn
-
-end adequacy
-
 #print axioms k8setcd3_Main
-#print axioms k8s_etcd3_adequate
-#print axioms k8s_etcd3_safe
 #print axioms k8setcd3_MainCluster
-#print axioms k8s_etcd3_cluster_adequate
-#print axioms k8s_etcd3_cluster_safe
 #print axioms k8setcd3_MainPartition
-#print axioms k8s_etcd3_partition_adequate
-#print axioms k8s_etcd3_partition_safe
 
 end EtcdGrove
 end Perennial

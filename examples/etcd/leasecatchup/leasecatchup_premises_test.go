@@ -48,6 +48,7 @@ import (
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // configAt is config() at the addresses 127.0.0.1:base+11..13 (peer), +21..23 (client),
@@ -283,6 +284,7 @@ type obs struct {
 func scenario(t *testing.T, cfg cluster3.Config,
 	start func(cluster3.Config, *zap.Logger) []*etcdserver.EtcdServer) *obs {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, cfg.Name1, cfg.Name2, cfg.Name3) // the members' WAL areas (wal-link P2)
 	o := &obs{ids: memberIDsOf(t, cfg), rc: newRunCounts()}
 	o.revoked0, o.granted0 = leaseCounter(t, "revoked"), leaseCounter(t, "granted")
 	o.start = time.Now()
@@ -531,6 +533,7 @@ func TestCatchUpMutant(t *testing.T) {
 func TestHoldTokenPerMember(t *testing.T) {
 	t.Chdir(t.TempDir())
 	cfg := configAt(24300, "lchold")
+	walarea.Reset(t, cfg.Name1, cfg.Name2, cfg.Name3) // the members' WAL areas (wal-link P2)
 	peers := []types.URLs{{{Scheme: "http", Host: cfg.Peer1}}, {{Scheme: "http", Host: cfg.Peer2}},
 		{{Scheme: "http", Host: cfg.Peer3}}}
 	cluster := types.URLsMap{cfg.Name1: peers[0], cfg.Name2: peers[1], cfg.Name3: peers[2]}

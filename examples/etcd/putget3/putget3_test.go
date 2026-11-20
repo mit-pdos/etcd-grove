@@ -9,6 +9,8 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
+
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestMemberIDs checks D21e (A)'s premise on the member ids etcd computes for Main's cluster (from
@@ -40,6 +42,7 @@ func TestMemberIDs(t *testing.T) {
 // reached over their raft handlers), and that the cluster has three members.
 func TestPutGet3(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "putget3-1", "putget3-2", "putget3-3") // the members' WAL areas (wal-link P2)
 	Main()
 
 	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{clientAddr}, Logger: zap.NewNop()})

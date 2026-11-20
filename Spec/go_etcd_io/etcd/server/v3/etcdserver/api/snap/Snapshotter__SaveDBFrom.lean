@@ -3,7 +3,8 @@
 2026-10-24, **D22's interface**: settled by the user for the D22 owner, 2026-10-25, D42; until
 stage 7 its effect was inside the snapshot handler's axiom). It copies `r` to its end into a
 temporary file (`io.Copy`, which reads until a `Read` returns `io.EOF`, then fsyncs), and links it
-to the index's path (`snapDBPath ss id`), or, when a file of that index is already there, keeps
+to the index's path (`snapDBPath sd id`, `sd` the snapshotter's directory: `isSnapshotter ss sd`;
+wal-link, 2026-11-19, until then the opaque `snapDBPath ss`, `notes/snapdir-crossworld.md`), or, when a file of that index is already there, keeps
 that one (D22's finding 7: both are images of the committed state at `id`). Stated over any reader
 of the stream contract (`http.streamReaderOk`: the snapshot handler's body after the envelope,
 `http.bodyStream`), from what has been read `r0`, the rest's complete streams images of `D`
@@ -49,11 +50,11 @@ variable [sem : go.Semantics]
 
 /-- `ss.SaveDBFrom(rd, id)` (see the file header). -/
 abbrev snap.Snapshotter.SaveDBFrom.spec : Prop :=
-  ∀ (ss : Loc) (rd : GoInterface) (Src : List w8 → IProp GF) (Pre Φ : List w8 → Prop)
+  ∀ (ss : Loc) (sd : GoString) (rd : GoInterface) (Src : List w8 → IProp GF) (Pre Φ : List w8 → Prop)
     (e : GoInterface) (r0 : List w8) (id : w64) (D : backend.Data) (γd : GName)
     (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
   (∀ t, Φ (r0 ++ t) → backend.boltImage t D) →
-  {{ isSnapshotter (GF := GF) ss ∗ inv snapDirN (snapDirInv ss γd img Rm) ∗
+  {{ isSnapshotter (GF := GF) ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
       http.streamReaderOk rd Src Pre Φ e ∗ http.ioEOF e ∗ Src r0 ∗ □ img id D }}
     (App (App (Val (ss @!! go.GoType.PointerType
         _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!!
