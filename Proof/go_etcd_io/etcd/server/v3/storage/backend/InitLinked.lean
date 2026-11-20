@@ -23,6 +23,10 @@ public import Proof.go_etcd_io.bbolt.InitLinked
 public import Proof.go_etcd_io.bbolt.errors.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -63,6 +67,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) writeSec _ as HwriteSec
+  wp_apply wp_GlobalAlloc (V := GoInterface) spillSec _ as HspillSec
+  wp_apply wp_GlobalAlloc (V := GoInterface) rebalanceSec _ as HrebalanceSec
+  wp_apply wp_GlobalAlloc (V := GoInterface) commitSec _ as HcommitSec
   wp_apply wp_GlobalAlloc (V := w64) minSnapshotWarningTimeout _ as HminSnapshotWarningTimeout
   wp_apply wp_GlobalAlloc (V := w64) InitialMmapSize _ as HInitialMmapSize
   wp_apply wp_GlobalAlloc (V := w64) defragLimit _ as HdefragLimit
@@ -99,10 +107,42 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of InitialMmapSize))
   -- translated initializer of minSnapshotWarningTimeout))
   wp_apply boltOpenOptions_init as ⟨%pboltOpenOptions, HboltOpenOptions, #SboltOpenOptions⟩
-  wp_apply commitSec_init as ⟨%hcommitSec, HcommitSec, #ScommitSec⟩
-  wp_apply rebalanceSec_init as ⟨%hrebalanceSec, HrebalanceSec, #SrebalanceSec⟩
-  wp_apply spillSec_init as ⟨%hspillSec, HspillSec, #SspillSec⟩
-  wp_apply writeSec_init as ⟨%hwriteSec, HwriteSec, #SwriteSec⟩
+  -- translated initializer of commitSec))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bcommitSec BcommitSec
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BcommitSec as %ccommitSec ⟨#CcommitSec, -⟩
+  try wp_auto
+  ihave #EcommitSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec ccommitSec : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CcommitSec
+    unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
+    iexact CcommitSec
+  -- translated initializer of rebalanceSec))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %brebalanceSec BrebalanceSec
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BrebalanceSec as %crebalanceSec ⟨#CrebalanceSec, -⟩
+  try wp_auto
+  ihave #ErebalanceSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec crebalanceSec : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CrebalanceSec
+    unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
+    iexact CrebalanceSec
+  -- translated initializer of spillSec))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bspillSec BspillSec
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BspillSec as %cspillSec ⟨#CspillSec, -⟩
+  try wp_auto
+  ihave #EspillSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cspillSec : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CspillSec
+    unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
+    iexact CspillSec
+  -- translated initializer of writeSec))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwriteSec BwriteSec
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwriteSec as %cwriteSec ⟨#CwriteSec, -⟩
+  try wp_auto
+  ihave #EwriteSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cwriteSec : IProp GF) $$ []
+  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwriteSec
+    unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
+    iexact CwriteSec
   wp_apply (opaqueInitsOk defragSec.init (by mem_tac))
   wp_apply (opaqueInitsOk defragBlockingSec.init (by mem_tac))
   wp_apply (opaqueInitsOk snapshotTransferSec.init (by mem_tac))

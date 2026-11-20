@@ -15,7 +15,8 @@ fact lacks it). Its precondition has the read package's registration rights
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
 errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` (with its label
 names) and the four
-`watchSendLoop*` histograms (untranslated: the trust-boundary axioms `<X>_init`),
+`watchSendLoop*` histograms (translated, over prometheus's `NewHistogram` and `ExponentialBuckets`
+specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
 `progressReportInterval` (`10 * time.Minute`: `intervalP`).
 -/
@@ -125,26 +126,6 @@ axiom clientRequests_init :
 axiom streamFailures_init :
     {{ (True : IProp GF) }} (App (Val streamFailures.init) (Val #()))
     {{ RET #(); ∃ v : Loc, globalAddr streamFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"Type", go!"API"]⌝ }}
-
-/-- `watchSendLoopWatchStreamDuration = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom watchSendLoopWatchStreamDuration_init :
-    {{ (True : IProp GF) }} (App (Val watchSendLoopWatchStreamDuration.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr watchSendLoopWatchStreamDuration ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}) }}
-
-/-- `watchSendLoopWatchStreamDurationPerEvent = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom watchSendLoopWatchStreamDurationPerEvent_init :
-    {{ (True : IProp GF) }} (App (Val watchSendLoopWatchStreamDurationPerEvent.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr watchSendLoopWatchStreamDurationPerEvent ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}) }}
-
-/-- `watchSendLoopControlStreamDuration = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom watchSendLoopControlStreamDuration_init :
-    {{ (True : IProp GF) }} (App (Val watchSendLoopControlStreamDuration.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr watchSendLoopControlStreamDuration ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}) }}
-
-/-- `watchSendLoopProgressDuration = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
-axiom watchSendLoopProgressDuration_init :
-    {{ (True : IProp GF) }} (App (Val watchSendLoopProgressDuration.init) (Val #()))
-    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr watchSendLoopProgressDuration ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}) }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 end opaqueInits

@@ -50,6 +50,10 @@ public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.status.Init
 public import Proof.math.rand.Init
 public import Proof.unicode.utf8.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -96,6 +100,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) progressReportIntervalMu _ as HprogressReportIntervalMu
   wp_apply wp_GlobalAlloc (V := w64) progressReportInterval _ as HprogressReportInterval
+  wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopProgressDuration _ as HwatchSendLoopProgressDuration
+  wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopControlStreamDuration _ as HwatchSendLoopControlStreamDuration
+  wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopWatchStreamDurationPerEvent _ as HwatchSendLoopWatchStreamDurationPerEvent
+  wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopWatchStreamDuration _ as HwatchSendLoopWatchStreamDuration
   wp_apply wp_GlobalAlloc (V := Loc) metricsServerCached _ as HmetricsServerCached
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) metricsServerLock _ as HmetricsServerLock
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -197,10 +205,30 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk receivedBytes.init (by mem_tac))
   wp_apply streamFailures_init as ⟨%vstreamFailures, HstreamFailures, #LstreamFailures⟩
   wp_apply clientRequests_init as ⟨%vclientRequests, HclientRequests, #LclientRequests⟩
-  wp_apply watchSendLoopWatchStreamDuration_init as ⟨%hwatchSendLoopWatchStreamDuration, HwatchSendLoopWatchStreamDuration, #SwatchSendLoopWatchStreamDuration⟩
-  wp_apply watchSendLoopWatchStreamDurationPerEvent_init as ⟨%hwatchSendLoopWatchStreamDurationPerEvent, HwatchSendLoopWatchStreamDurationPerEvent, #SwatchSendLoopWatchStreamDurationPerEvent⟩
-  wp_apply watchSendLoopControlStreamDuration_init as ⟨%hwatchSendLoopControlStreamDuration, HwatchSendLoopControlStreamDuration, #SwatchSendLoopControlStreamDuration⟩
-  wp_apply watchSendLoopProgressDuration_init as ⟨%hwatchSendLoopProgressDuration, HwatchSendLoopProgressDuration, #SwatchSendLoopProgressDuration⟩
+  -- translated initializer of watchSendLoopWatchStreamDuration))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwatchSendLoopWatchStreamDuration BwatchSendLoopWatchStreamDuration
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopWatchStreamDuration as %cwatchSendLoopWatchStreamDuration ⟨#CwatchSendLoopWatchStreamDuration, -⟩
+  try wp_auto
+  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwatchSendLoopWatchStreamDuration
+  -- translated initializer of watchSendLoopWatchStreamDurationPerEvent))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwatchSendLoopWatchStreamDurationPerEvent BwatchSendLoopWatchStreamDurationPerEvent
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopWatchStreamDurationPerEvent as %cwatchSendLoopWatchStreamDurationPerEvent ⟨#CwatchSendLoopWatchStreamDurationPerEvent, -⟩
+  try wp_auto
+  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwatchSendLoopWatchStreamDurationPerEvent
+  -- translated initializer of watchSendLoopControlStreamDuration))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwatchSendLoopControlStreamDuration BwatchSendLoopControlStreamDuration
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopControlStreamDuration as %cwatchSendLoopControlStreamDuration ⟨#CwatchSendLoopControlStreamDuration, -⟩
+  try wp_auto
+  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwatchSendLoopControlStreamDuration
+  -- translated initializer of watchSendLoopProgressDuration))
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwatchSendLoopProgressDuration BwatchSendLoopProgressDuration
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopProgressDuration as %cwatchSendLoopProgressDuration ⟨#CwatchSendLoopProgressDuration, -⟩
+  try wp_auto
+  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwatchSendLoopProgressDuration
   wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, %kftoGRPCErrorMap, %kctoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, #FtoGRPCErrorMap, #CtoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, %PtoGRPCErrorMap⟩
   -- translated initializer of progressReportInterval))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
@@ -289,13 +317,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HwatchSendLoopControlStreamDuration
   ipersist HwatchSendLoopProgressDuration
   ihave #WH0 : (EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDuration : IProp GF) $$ []
-  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopWatchStreamDuration SwatchSendLoopWatchStreamDuration
+  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopWatchStreamDuration CwatchSendLoopWatchStreamDuration
   ihave #WH1 : (EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDurationPerEvent : IProp GF) $$ []
-  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopWatchStreamDurationPerEvent SwatchSendLoopWatchStreamDurationPerEvent
+  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopWatchStreamDurationPerEvent CwatchSendLoopWatchStreamDurationPerEvent
   ihave #WH2 : (EtcdGrove.v3rpc.histVar watchSendLoopControlStreamDuration : IProp GF) $$ []
-  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopControlStreamDuration SwatchSendLoopControlStreamDuration
+  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopControlStreamDuration CwatchSendLoopControlStreamDuration
   ihave #WH3 : (EtcdGrove.v3rpc.histVar watchSendLoopProgressDuration : IProp GF) $$ []
-  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopProgressDuration SwatchSendLoopProgressDuration
+  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopProgressDuration CwatchSendLoopProgressDuration
   -- `traceutil.Tracer`
   ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd44

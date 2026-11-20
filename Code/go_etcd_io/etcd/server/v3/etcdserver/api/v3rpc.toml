@@ -5,6 +5,8 @@
 # rest of the package (the other services, the interceptors, metrics.go's init) are names
 # only.
 translate = ["!*",
+  # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
+  "watchSendLoopWatchStreamDuration", "watchSendLoopWatchStreamDurationPerEvent", "watchSendLoopControlStreamDuration", "watchSendLoopProgressDuration",
   # key.go
   "kvServer", "NewKVServer", "kvServer.Range", "kvServer.RangeStream", "kvServer.Put",
   "kvServer.DeleteRange", "kvServer.Txn", "kvServer.Compact",

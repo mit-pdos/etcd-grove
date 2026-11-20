@@ -1,9 +1,9 @@
 # The real WAL (project etcd's part `LinuxFs/`, etc/goose.py), with bodies over the part's `os`
 # (the per-byte Linux file extension fsExt): decoder.go, encoder.go, file_pipeline.go, repair.go,
-# util.go, wal.go. Names only: metrics.go (the prometheus histograms and gauge, and the `init.0`
-# that registers them) and version.go (`MinimalEtcdVersion` and the protobuf-reflection visitors).
+# util.go, wal.go, and metrics.go's histograms and gauge (metric-inits, 2026-11-19). Names only:
+# metrics.go's `init.0` that registers them and version.go (`MinimalEtcdVersion` and the protobuf-reflection visitors).
 translate = ["*",
-  "!walFsyncSec", "!walWriteSec", "!walWriteBytes", "!init.*",
+  "!init.*",
   "!ReadWALVersion", "!walVersion.*", "!MinimalEtcdVersion", "!VisitFileDescriptor", "!visit*",
   "!maxVersion", "!etcdVersionFromOptionsString"]
 imports = ["!*", "bytes", "encoding/binary", "errors", "fmt", "hash", "hash/crc32", "io", "os",
