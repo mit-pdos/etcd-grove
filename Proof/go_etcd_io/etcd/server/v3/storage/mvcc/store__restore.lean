@@ -576,9 +576,9 @@ theorem mvcc.store.restore.wp_proof
       iintro %items ⟨Hitems, -⟩
       (try wp_auto)
       wp_apply HAttach $$ %lid %_ %_ %(DFrac.own 1) %Ls
-          %(mvcc.ktlItems (mvcc.ktlApply ∅ ents) (keys.take i.toNat)) [$Hown $Hitems] as ⟨Hown, -⟩
+          %(mvcc.ktlItems (mvcc.ktlApply ∅ ents) (keys.take i.toNat)) %none [$Hown $Hitems] as ⟨Hown, -⟩
       · ipureintro
-        refine ⟨hcl.1, ?_, ?_⟩
+        refine ⟨lease.winStep_none _ _, hcl.1, ?_, ?_⟩
         · intro it hit
           rw [List.mem_singleton] at hit; subst hit
           left

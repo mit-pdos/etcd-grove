@@ -31,12 +31,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem listOut.wp_proof (wp_encodeItems : encodeItems.spec (GF := GF) (hG := hG)) :
     listOut.spec (GF := GF) (hG := hG) := by
-  intro pl os rv cont rem
-  unfold ListSpec.listAtItems driverListSpec itemsAtD metaAtD
-  wp_start as ⟨%Hpl, %s, Hs, Hit, Hm⟩
+  intro pl s os rv cont rem
+  unfold driverListSpec itemsAtD metaAtD
+  wp_start as ⟨%Hpn, Hs, Hit, Hm⟩
   icases Hit with ⟨%vs, Hsl, -, %Hf⟩
   icases Hm with ⟨Hrv, Hc, %r, Hr, Hrem⟩
   imod ownSlice_persist $$ Hsl with #Hsl
+  ipersist Hs
+  ipersist Hrv
+  ipersist Hc
+  ipersist Hr
   wp_auto
   wp_apply wp_encodeItems $$ [Hsl]
   · iframe #
@@ -49,16 +53,49 @@ theorem listOut.wp_proof (wp_encodeItems : encodeItems.spec (GF := GF) (hG := hG
     subst hr
     wp_auto
     iapply HΦ
-    ipureintro
-    exact ⟨vs, Hf, rfl⟩
+    iexists vs
+    isplitr
+    · ipureintro
+      exact ⟨Hf, rfl⟩
+    unfold k8sDeep.deepRep k8sDeep.itemsRep k8sDeep.remRep
+    iexists pl, s, null
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply typedPointsto_combine pl _ _ Hpn.1
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe #
+    dsimp only
+    isplitr
+    · isplitr
+      · ipureintro; exact Hpn.2
+      iexact Hsl
+    ipureintro; rfl
   | some n =>
     iunfold remIs at Hrem
     icases (typedPointsto_not_null_dup _ _ _) $$ Hrem with ⟨Hrem, %Hn⟩
+    ipersist Hrem
     rw [decide_eq_false Hn]
     wp_auto
     iapply HΦ
-    ipureintro
-    exact ⟨vs, Hf, rfl⟩
+    iexists vs
+    isplitr
+    · ipureintro
+      exact ⟨Hf, rfl⟩
+    unfold k8sDeep.deepRep k8sDeep.itemsRep k8sDeep.remRep
+    iexists pl, s, r
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply typedPointsto_combine pl _ _ Hpn.1
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe #
+    dsimp only
+    isplitr
+    · isplitr
+      · ipureintro; exact Hpn.2
+      iexact Hsl
+    iexact Hrem
 
 end proof
 

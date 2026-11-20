@@ -21,21 +21,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `tw.Put(key, value, lease)` of a write transaction: the counters, then the wrapped `Put`. -/
+/-- `tw.Put(key, value, lease)` of a write transaction: the counters, then the wrapped `Put`. (Item 7b,
+2026-11-17) In the owner's lessor window `w`, as `put`. -/
 abbrev mvcc.metricsTxnWrite.Put.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (puts deletes putSize : w64) (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64)
-    (crev : Int) (Z : IProp GF),
+    (crev : Int) (Z : IProp GF) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
       ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ ⌜k.length ≤ etcdKeyMax ∧ v.length ≤ etcdKeyMax⌝ ∗
-      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
+      lease.leaseOwnW γ.leases L (mvcc.pendItems ilog pend) w ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+      ⌜lease.winMove w (mvcc.pendItems ilog pend) (mvcc.pendItems ilog (pend ++ [.put k v leaseID]))⌝ }}
     (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))
       (Val #value)) (Val #leaseID))
   {{ RET #(W64 (ilog.length : Int) : w64);
       mvcc.isTxnWrite mw s γ trace ilog (pend ++ [.put k v leaseID]) (puts + W64 1) deletes
         (putSize + (key.len + value.len)) crev Z ∗
-      lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [.put k v leaseID])) }}
+      lease.leaseOwnW γ.leases L (mvcc.pendItems ilog (pend ++ [.put k v leaseID])) w }}
 
 end spec
 

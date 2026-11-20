@@ -249,7 +249,7 @@ theorem raftNode_of_RestartNode
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
   iNamed Hpre
-  obtain ⟨Hcfg, Hhb, Hwal, Hfit, H0, Hsz, Hba, Hac, Hboot, Hhold, Hterm, Hcs, Hcsb⟩ := Hraft
+  obtain ⟨Hcfg, Hhb, Hwal, Hfit, H0, Hsz, Hba, Hac, Hboot, Hhold, Hterm, Hcs, Hcsb, Hnsm⟩ := Hraft
   have Hbc : σ.b ≤ σ.commit := Nat.le_trans Hba Hac
   -- the cluster untraced (`srvClusterOk`'s, in the server's raft-log invariant)
   ihave %HtrC : ⌜Cluster.trace γr.cl = none⌝ $$ []
@@ -275,7 +275,7 @@ theorem raftNode_of_RestartNode
   ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs σ cs 0
       (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
-        memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz
+        memSnapNone γs (walSnapCS σ cs))) Hbc HtrC Hγsz Hnsm
       $$ [Hfresh Hmeta Hents Hend Hval Hsn]
   · iframe Hreg Hlock Hval
     isplitl [Hfresh Hmeta Hents Hend Hsn]
@@ -294,7 +294,7 @@ theorem raftNode_of_RestartNode
     · ipureintro; exact ⟨Hhb, Hwal, HtrC⟩
     simp only [rnBootPre]
     isplitr
-    · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold⟩
+    · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩
     isplitl [Hbs]
     · iExactEq Hbs; rfl
     isplitr
@@ -417,7 +417,7 @@ theorem raftNode_of_RestartNode
     · -- the restart data: the restart disjunct
       iunfold rnRestartOk; iright
       isplitr
-      · ipureintro; rw [Hwpre, Hws0, Hwa0, Hwc0]; exact ⟨rfl, Hba, Hac⟩
+      · ipureintro; rw [Hwpre, Hws0, Hwa0, Hwc0]; exact ⟨rfl, Hba, Hac, by rw [Hwnode]; exact Hnsm⟩
       rw [Hsrv, Hwa0]; iexact HA0
     simp only [Hrvcfg]
     iframe Hidri Hsti Htri Hmsi

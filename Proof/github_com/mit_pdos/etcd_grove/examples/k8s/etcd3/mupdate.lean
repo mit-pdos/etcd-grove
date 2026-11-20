@@ -3,6 +3,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.sameObj
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preOk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preMsg
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mupdate
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.setItem
@@ -49,6 +50,7 @@ theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     (wp_notFound : notFound.spec (GF := GF) (hG := hG))
     (wp_preOk : preOk.spec (GF := GF) (hG := hG))
     (wp_invalidObj : invalidObj.spec (GF := GF) (hG := hG))
+    (wp_preMsg : preMsg.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG))
     (wp_updated : updated.spec (GF := GF) (hG := hG))
     (wp_sameObj : sameObj.spec (GF := GF) (hG := hG)) :
@@ -81,9 +83,11 @@ theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     wp_apply wp_preOk
     cases hp : preOkL x zObj
     · (try wp_auto)
+      wp_apply wp_preMsg
+      (try wp_auto)
       wp_apply wp_invalidObj
       iapply HΦ
-      have : mupdateL x g = (g, invalidObjL x.Key') := by simp [mupdateL, hn, hi, hp]
+      have : mupdateL x g = (g, invalidObjL x.Key' (preMsgL x zObj)) := by simp [mupdateL, hn, hi, hp]
       rw [this]
       iframe Hk
       ipureintro; exact ⟨Hr, rfl⟩
@@ -117,9 +121,11 @@ theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     wp_apply wp_preOk
     cases hp : preOkL x it.obj'
     · (try wp_auto)
+      wp_apply wp_preMsg
+      (try wp_auto)
       wp_apply wp_invalidObj
       iapply HΦ
-      have : mupdateL x g = (g, invalidObjL x.Key') := by simp [mupdateL, hn, ← hit, hp]
+      have : mupdateL x g = (g, invalidObjL x.Key' (preMsgL x it.obj')) := by simp [mupdateL, hn, ← hit, hp]
       rw [this]
       iframe Hk
       ipureintro; exact ⟨Hr, rfl⟩

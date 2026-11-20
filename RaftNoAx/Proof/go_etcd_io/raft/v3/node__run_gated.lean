@@ -1072,7 +1072,7 @@ theorem node.run.gated_of
           ipureintro; exact ⟨Hrdz, Hbatch⟩
         | some l =>
           simp only [readyDataL, readySnapData, rdSnapOut]
-          icases Hsnz with ⟨Hhalf, #Hdc, %Hlo⟩
+          icases Hsnz with ⟨Hhalf, #Hdc, %Hrns, %Hlo⟩
           ihave ⟨#Hll, %Hbl⟩ : iprop(snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
               ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ []
           · rw [Hgid]; iapply Hlloc $$ %l %rfl
@@ -1085,6 +1085,8 @@ theorem node.run.gated_of
           · iexists h; iframe Hhh; ipureintro; rfl
           isplitr
           · ipureintro; exact Hbl
+          isplitr
+          · ipureintro; exact Hrns
           isplitr
           · ipureintro; exact Hllast l rfl
           isplitr

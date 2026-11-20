@@ -232,7 +232,7 @@ theorem RawNode.Step.traced
             (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
               trCapB s.gh.tr γ rnv.raft' id cf bt' (fun C => SimIdle C s') (stepLastEv (fun _ => True)))))
           Hwf
-        (RNMode.pre_net Hpf (fun h => absurd h (by trnet_ne Hnt))) (fun _ => Hns0.1)
+        (RNMode.pre_net Hpf (fun h => absurd h (by trnet_ne Hnt))) (fun h => absurd h (by trnet_ne Hnt))
         (fun h => absurd h (by trnet_ne Hnt)) (fun h => absurd h (by trnet_ne Hnt))
         (fun h => absurd h (by trnet_ne Hnt)) (fun h => absurd h (by trnet_ne Hnt))
         -- (2026-11-12, implementation step 3) no transfer stepped; no transferee (`rnTrace`'s (b))

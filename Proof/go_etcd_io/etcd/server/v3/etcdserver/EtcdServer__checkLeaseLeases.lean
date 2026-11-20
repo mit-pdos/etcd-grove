@@ -69,7 +69,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     isplitr
     · ipureintro; intro _; rfl
     isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     iintro %_
     iunfold leaseCheckFrom
     ileft; iexact Hen
@@ -77,16 +77,18 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   ihave %HaOn := enabledVerdictFrom_true_isOn E.authMode n $$ Hen
   (try wp_auto)
   -- `authInfo, err := s.AuthInfoFromCtx(ctx)`
-  wp_apply (hAI s _ E.RD E.authMode cca ctx cd n tok) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
+  wp_apply (hAI s _ E.RD E.authMode cca ctx cd n tok) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, #Hae, -⟩
   · iframe #
   ihave #Herr := authApplyErrIs_apply _ $$ Herr0
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Htok Hsl Herr
+    iframe HRD Htok Hsl
     isplitr
     · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
+    isplitr
+    · iunfold authApplyErrIs; iframe Herr; iapply Hae; ipureintro; exact HaOn
     iintro %h; cases h
   (try wp_auto)
   iunfold authInfoOpt at Ha
@@ -95,9 +97,16 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     subst Han
     (try wp_auto)
     iapply HΦ
-    iframe HRD Htok Hsl HUEe
+    iframe HRD Htok Hsl
     isplitr
     · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
+    isplitr
+    · ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hap
+      icases Hai with ⟨#HUEv, -⟩
+      iapply apply.authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrUserEmpty
+        (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) _ $$ HUEv
+      iexists eUE; iframe HUE; ipureintro; rfl
     iintro %h; cases h
   ihave #Hp := authInfoIs_pointsto a user rev' $$ Hai0
   ihave #Hib := principalBoundOn_of_ctxBound E.authOn s E tok a user rev' $$ [Hb Hai0]
@@ -120,7 +129,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     isplitr
     · ipureintro; intro _; rfl
     isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     iintro %_
     iunfold leaseCheckFrom
     iright
@@ -234,8 +243,6 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
         iframe HRD Htok Hsl
         isplitr
         · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
-        iunfold authApplyErrIs at Herr3
-        icases Herr3 with ⟨#Herr3, -⟩
         iframe Herr3
         iintro %h; cases h
     have hallk : ks.take (sint.nat k) = ks := by
@@ -271,7 +278,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     isplitr
     · ipureintro; intro _; rfl
     isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     iintro %_
     iunfold leaseCheckFrom
     iright
@@ -280,9 +287,16 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     iright
     iexact Hcls
   · iapply HΦ
-    iframe HRD Htok Hsl HORe
+    iframe HRD Htok Hsl
     isplitr
     · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
+    isplitr
+    · ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hap
+      icases Hai with ⟨-, -, -, #HORa, -⟩
+      iapply apply.authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision
+        (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) (GoInterface.ok eOR) $$ HORa
+      iexists eOR; iframe HOR; ipureintro; rfl
     iintro %h; cases h
 
 end proof

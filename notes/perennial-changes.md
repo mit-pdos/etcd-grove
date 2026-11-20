@@ -38,6 +38,67 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `internal/stringslite`), `strconv.FormatBool`/`ParseBool`, `io.ReadFull`/`ReadAtLeast`.
 - **Status.** Open.
 
+### `SprintfOut` of a literal prefix and of `pre%vmid%v` (2026-11-18, k8s 7g)
+
+- **Missing.** `fmt`'s inversions (`Perennial/Proof/fmt/Base.lean`) go one byte at a time
+  (`byte_inv`) or name whole formats (`v_str`, `str_x`, ...); nothing copies a `%`-free literal in one
+  step, nor computes a format of the shape `lit%vlit%v`.
+- **Who needs it.** `storage.Preconditions.Check`'s message (`KPre.failMsg`, k8s 7g: the checker's
+  model compares two `NewInvalidObjError`s by their messages).
+- **Workaround.** `k8s.sprintfOut_lit` and `k8s.sprintfOut_v2` in
+  `Proof/k8s_io/apiserver/pkg/storage/InvalidMsg.lean`, from `byte_inv`, `strArg_inv`, `v_str`.
+- **Proposed.** `SprintfOut.lit_inv` (a `%`-free literal) beside `byte_inv`. Status: recorded, not
+  proposed yet.
+
+### `≤u` to an interface does not chain through a named interface alias (2026-11-18, k8s 7g)
+
+- **Missing.** `method_interface_ok` needs `[t ≤u go.InterfaceType elems]`. For `meta.List`
+  (goose: `List'.ty`, underlying the reducible `List'.underlying := metav1.ListInterface.ty`, itself
+  a named interface) instance search does not find `List'.ty ≤u InterfaceType _`, though both
+  `List'.ty <u metav1.ListInterface.ty` and `metav1.ListInterface.ty ≤u InterfaceType _` are found
+  (the outParam of the first is the reducible `List'.underlying`, not syntactically the type the
+  second instance is keyed on). `wp_auto` then makes no progress on `accessor.GetResourceVersion()`.
+- **Who needs it.** The maintainers' checker's `listResponseRV`/`equalListResponse` (k8s 7g step 3).
+- **Workaround.** In the proof: `haveI : List'.ty ≤u InterfaceType _ :=
+  ⟨hle2.underlying_unfold.trans hle1.underlying_eq⟩` from the two found instances
+  (`Model__listResponseRV.lean`, `Model__equalListResponse.lean`).
+- **Proposed.** Goose emits the alias's `underlying` instance at the aliased type itself (or the
+  transitive instance unfolds reducible outParams). Status: recorded, not proposed yet.
+
+### Generic maps and slices iterators: `maps.Keys`/`Clone`/`Equal`, `slices.Sorted`/`Collect`/`AppendSeq` (2026-11-17, k8s 7g)
+
+- **Missing.** Perennial translates the standard library's `maps` names only (no bodies), and
+  `slices.Sorted`, `slices.Collect`, `slices.AppendSeq`, `slices.Values` names only, so no generic
+  spec of them exists. They are small, generic and need no reflection: `maps.Keys(m)` is a closure
+  ranging over `m`; `slices.Sorted(seq)` is `Collect` then `Sort`; `Collect` is
+  `AppendSeq(nil, seq)`, a range over a function iterator (which goose already translates:
+  `testdata/examples/semantics/range_func.go`); `maps.Equal` is a length test and a loop with
+  `==` on a `comparable` value type; `maps.Clone` calls the runtime's `maps.clone` (linkname).
+- **Who needs it.** The maintainers' checker in the k8s etcd3 driver (k8s 7g,
+  `notes/k8s-7g-scope.md` Q8): `slices.Sorted(maps.Keys(s.Items))` in `Model.list`/`listItems`, and
+  the D30g patch's `maps.Clone`/`maps.Equal` of `NeedsRewrite`. Any later Go code ranging over
+  sorted map keys (a common idiom since Go 1.23) needs the same.
+- **Workaround here.** Four trust-boundary specs at the checker's types only
+  (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
+  iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
+  test (`examples/k8s/etcd3/trustspecs_test.go`). They go when the pin reaches the change.
+- **Proposed change (translation and proofs only, no new assumption).**
+  1. Translate `maps` with bodies: `Keys`, `Values`, `All`, `Equal`, `EqualFunc`, `Copy`, `Collect`,
+     `Insert`, `DeleteFunc`; `Clone` with a model of `runtime.maps.clone` as a loop of inserts over a
+     fresh map (`make(M, len(m))` then `for k, v := range m { r[k] = v }`), which is the observable
+     behavior (a fresh map, same entries; `nil` for `nil`), stated in the model's docstring.
+  2. Translate `slices.Collect`, `AppendSeq`, `Sorted`, `SortedFunc`, `Values`, `All` with bodies.
+  3. Specs over `ownMap` (with `SafeMapKey` for the key type) and an iterator protocol: a predicate
+     `seqYields f P xs` ("running `f` with a yield that accepts yields `xs` in order, under the
+     resource `P`"), produced by `maps.Keys` (`xs` some order of the domain, `P` the map points-to),
+     consumed by `Collect`/`AppendSeq`/`Sorted` (`Sorted` at an ordered element type: the sorted
+     permutation, at `string` by `go.GoStringLt`, reusing `slices.Sort`'s spec); `Equal` at a
+     strictly comparable value type (`b = true ↔ m1 = m2` for non-nil maps; nil maps as empty);
+     `Clone` (`m ↦$ M` fresh, or `nil` for `nil`).
+- **Status (2026-11-17).** Proposed only (no Perennial branch). To be designed and reviewed on a
+  branch off Perennial's `lean` when the user wants it.
+
+
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
 
 - **Limitation.** `modelcheck.Assign` (`docs/design/unsafe-memory.md`, R4) reports every copy of a
@@ -2935,3 +2996,33 @@ parameter.
   exactly when the error's dynamic type is the target's element type (or implements it, for an
   interface target), and then stores the error's value into the target. Status: not proposed (found by
   the refimpl session, 2026-11-18).
+
+## 2026-11-19: `wp_slice_make3` does not say the slice is not `nil` (k8s 7g, `toEventReference`)
+
+- **The gap.** Perennial's `wp_slice_make3` gives the new slice's points-to and capacity but not
+  `sl ≠ slice.nil`, which Go guarantees for `make([]T, n, c)` (and which a caller comparing the result
+  with `nil`, here `reflect.DeepEqual` in the k8s checker, needs).
+- **Worked around locally.** `wp_slice_make3_nn` (`Proof/.../k8s/etcd3/correctness/WatchLemmas.lean`): a
+  copy of `wp_slice_make3`'s proof with the extra conjunct.
+- **Proposed (general).** Strengthen `wp_slice_make3`'s post with `⌜sl ≠ slice.nil⌝` (a stronger post,
+  no premise). **Status.** Recorded only.
+
+## 2026-11-19: closure values and their captured cells (k8s 7g, `realCheck`)
+
+- **The gap.** Nothing relates a closure value (`GoFunc`) to the cells it captured: two WP specs of one
+  closure give no pure agreement of what they are about. `realCheck`'s porcupine model needs it (two
+  operations with the same `Request` value, i.e. the same `validateFor`/`tryUpdateFor` closure, step alike).
+- **Worked around locally.** `Proof/.../k8s/etcd3/ClosPin.lean`: `exprVals` (the leaf values of an `Expr`) and
+  pins at the indices of the translated bodies (`validatePin`, `tryUpdatePin`), proved by the closures' specs.
+- **Proposed (general).** A Perennial notion of a closure's captured cells (e.g. `func.captures f ls`, produced
+  by `wp_auto` when it evaluates a `Lam` under allocated variables), with agreement for equal values.
+  **Status.** Recorded only.
+
+## 2026-11-19: `GMap.ofList`'s docstring says the opposite of its definition (k8s 7g, `initialModel`)
+
+- **The gap.** `Perennial/Std/GMap.lean`: `ofList` and `listToMap` are documented as "later bindings win",
+  but `ofList ((k, v) :: l) = insert k v (ofList l)` inserts the head last, so the FIRST binding of a key wins.
+- **Worked around locally.** None needed: `initialModel`'s spec takes distinct store keys
+  (`(st.items.map (storeKeyL ∘ key)).Nodup`), so the order does not matter there.
+- **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
+  **Status.** Recorded only.

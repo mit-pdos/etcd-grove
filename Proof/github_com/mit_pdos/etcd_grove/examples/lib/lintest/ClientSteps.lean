@@ -13,7 +13,9 @@ timeless) and takes the step of `InvLemmas.lean`.
   least every `τ` of the client's records and its previous reading.
 - `wp_apply_commit`: the operation is linearized when the clock reads `t`, appended to the log
   and to the client's records with `τ = t`, and `t` is at least the client's last reading; the
-  client's thread token is lent to the library and given back.
+  client's thread token is lent to the library and given back. When the library returns an
+  output `o'` other than the committed one, the invariant is opened again (a second later
+  credit) and the record and its log entry take `o'` (`InvOk.swap`).
 -/
 module
 
@@ -83,12 +85,13 @@ theorem wp_apply_commit (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF)
     (clockVal : w64 → IProp GF) (Eapp : CoPset) (n : Nat) (γ : GName) (apply : GoFunc)
     (c : Nat) (v : ClientV) (i : GoInterface) (HE : (↑lintestN : CoPset) ⊆ ⊤ \ Eapp) :
     {{ applySpec S inOk libState Eapp apply ∗ inOk i ∗ threadTok ∗
-        inv lintestN (linInv S.M libState clockVal n γ) ∗ £ 1 ∗ clientTok γ c v }}
+        inv lintestN (linInv S.M libState clockVal n γ) ∗ £ 1 ∗ £ 1 ∗ clientTok γ c v }}
       (App (Val #apply) (Val #i))
     {{ (o : GoInterface) (t : w64), RET #o; clientTok γ c (v.1 ++ [((i, o), t)], v.2) ∗
         ⌜sint.Z v.2 ≤ sint.Z t⌝ ∗ S.ioOk i o ∗ threadTok }} := by
-  iintro %Φ ⟨#Happ, Hin, Htt, #Hinv, Hlc, Htok⟩ HΦ
+  iintro %Φ ⟨#Happ, Hin, Htt, #Hinv, Hlc, Hlc', Htok⟩ HΦ
   iunfold applySpec at Happ
+  iapply wp_fupd
   iapply Happ $$ %i [Hin Htt]
   · iframe
   inext
@@ -110,7 +113,20 @@ theorem wp_apply_commit (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF)
     ipureintro
     exact Hok.commit Hlook Hstep
   imodintro
-  iintro ⟨Hio, Htt⟩
+  iintro %o' ⟨%Heq, Hio, Htt⟩
+  -- the record takes the returned output
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc' Hi with Hi
+  icases Hi with ⟨%s2, %t2, %L2, %Ls2, Hlib, Hcv, Hauth, %Hok2⟩
+  icombine Hauth Htok gives %Hlook2
+  imod ghost_map_update (v.1 ++ [((i, o'), t)], v.2) $$ Hauth Htok with ⟨Hauth, Htok⟩
+  imod Hclose $$ [Hlib Hcv Hauth] with -
+  · inext
+    iexists s2, t2, L2.map (swapRec c v.1.length (i, o')), _
+    iframe
+    ipureintro
+    exact Hok2.swap Hlook2 Heq
+  imodintro
   iapply HΦ
   iframe
   ipureintro

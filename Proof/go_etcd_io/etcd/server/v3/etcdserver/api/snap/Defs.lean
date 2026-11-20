@@ -23,12 +23,12 @@ its trust-boundary specs. Lean-first (no Rocq counterpart).
   size)`: the raft message `ml`, the reader `rc` wrapped in an exact-size reader, the total size
   and the one-slot `closeC` channel), its fields read-only for good (`NewMessage` writes them
   once; `CloseWithError` reads the reader and sends on `closeC`, `CloseNotify` reads `closeC`). An
-  opaque predicate (`msgRO`): `snap.Message` is an axiomatized type, so its fields are not
-  modeled. `NewMessage`'s spec makes it (D22 S-h), and only it, of a reader whose `Close` returns
+  predicate of the fields (`msgRO`; opaque until 2026-11-19, when `snap.Message`'s
+  `CloseNotify` and `CloseWithError` were translated with their bodies). `NewMessage`'s spec makes it (D22 S-h), and only it, of a reader whose `Close` returns
   (`io.rcCloseOk`; sweep repairs 1, S1) and a size in its premise's range (S2); the transport's
   `SendSnapshot` takes it.
 * `msgCloseC m c` (persistent; D22 S-h): `m`'s `closeC` is the channel `c` (`NewMessage`'s
-  `make(chan bool, 1)`, read by `CloseNotify`). An opaque predicate (`msgCloseRO`), as `msgRO`.
+  `make(chan bool, 1)`, read by `CloseNotify`): the field, read-only (`msgCloseRO`).
 -/
 module
 
@@ -38,6 +38,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.config.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Hex16
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
 @[expose] public section
 
@@ -81,13 +82,13 @@ def snapDBPath (sd : GoString) (i : w64) : GoString := sd ++ slashB :: snapDBNam
 /-- The address of the snapshotter `ss`'s logger field (`s.lg`; `snap.Snapshotter` is an
 axiomatized type, so the field is named, not modeled). -/
 abbrev snapLgAddr [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (ss : Loc) : Loc :=
-  structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" ss
+  structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" ss
 
 /-- The address of the snapshotter `ss`'s directory field (`s.dir`, written only by `snap.New`,
 `snapshotter.go:34-40`, read by `dbFilePath`, `DBFilePath`, `SaveDBFrom`, `ReleaseSnapDBs`;
 wal-link, 2026-11-19). -/
 abbrev snapDirAddr [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (ss : Loc) : Loc :=
-  structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"dir" ss
+  structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"dir" ss
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -151,8 +152,43 @@ instance isSnapshotter_persistent (ss : Loc) (sd : GoString) :
     Persistent (isSnapshotter (GF := GF) ss sd) := by
   unfold isSnapshotter; infer_instance
 
-/-- `m`'s fields, read-only (opaque; see the file header). -/
-opaque msgRO (m ml : Loc) (rc : GoInterface) : IProp GF
+/-- `m`'s `closeC` field, read-only (see the file header; opaque until 2026-11-19). -/
+def msgCloseRO (m c : Loc) : IProp GF :=
+  iprop(structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" m ↦□ c)
+
+/-- **`m`'s `closeC` is `c`** (persistent; D22 S-h; see the file header). -/
+def msgCloseC (m c : Loc) : IProp GF := iprop(□ msgCloseRO m c)
+
+instance msgCloseC_persistent (m c : Loc) : Persistent (msgCloseC (GF := GF) m c) := by
+  unfold msgCloseC; infer_instance
+
+end defs
+
+section msgDefs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- `m`'s fields, read-only (see the file header; opaque until 2026-11-19, when `CloseWithError` was
+translated and proved): the raft message `ml`; the total size, not negative; the reader, an
+exact-size wrapper whose complete streams are `rc`'s and whose `Close` returns; and `closeC`, a
+channel of booleans whose receives carry nothing (`isChanBag` at `True`). `NewMessage` makes it
+(its trust-boundary axiom, `Proof/.../snap/NewMessage.lean`). -/
+def msgRO (m ml : Loc) (rc : GoInterface) : IProp GF :=
+  iprop(structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" m ↦□ ml ∗
+    (∃ tsz : w64, structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message
+      go!"TotalSize" m ↦□ tsz ∗ ⌜0 ≤ sint.Z tsz⌝) ∗
+    (∃ (rd : GoInterface) (ri : GoInterfaceOk),
+      structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message
+        go!"ReadCloser" m ↦□ rd ∗ ⌜rd = GoInterface.ok ri⌝ ∗
+      □ (∀ Φ : List w8 → Prop, backend.readerStreams rc Φ -∗ backend.readerStreams rd Φ) ∗
+      □ {{ (True : IProp GF) }}
+          (App (Val #(methods ri.ty go!"Close" ri.v)) (Val #()))
+        {{ (err : GoInterface), RET #err; True }}) ∗
+    (∃ (c : Loc) (γc : ChanNames),
+      structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" m ↦□ c ∗
+      isChanBag γc c (V := Bool) (fun _ => iprop(True))))
 
 /-- **`m` is a `*snap.Message` of the raft message `ml` and the reader `rc`** (persistent; see the
 file header). -/
@@ -162,16 +198,7 @@ instance msgIs_persistent (m ml : Loc) (rc : GoInterface) :
     Persistent (msgIs (GF := GF) m ml rc) := by
   unfold msgIs; infer_instance
 
-/-- `m`'s `closeC` field, read-only (opaque; see the file header). -/
-opaque msgCloseRO (m c : Loc) : IProp GF
-
-/-- **`m`'s `closeC` is `c`** (persistent; D22 S-h; see the file header). -/
-def msgCloseC (m c : Loc) : IProp GF := iprop(□ msgCloseRO m c)
-
-instance msgCloseC_persistent (m c : Loc) : Persistent (msgCloseC (GF := GF) m c) := by
-  unfold msgCloseC; infer_instance
-
-end defs
+end msgDefs
 
 end snap
 end EtcdGrove

@@ -83,6 +83,11 @@ jobs:
       # etcd-raft and etcd.
       - name: Check the Goose translation
         run: ./etc/goose.py --check
+      # The k8s etcd3 driver's copy of Kubernetes' checker (`examples/k8s/etcd3/correctness`) is
+      # upstream's at the driver's `k8s.io/apiserver` pin plus `etc/k8s-correctness/d30g.patch`,
+      # byte for byte (k8s 7g, `notes/k8s-7g-scope.md` §1.1). Reads the sources and the module.
+      - name: Check the k8s checker copy
+        run: ./etc/k8s-correctness-check.py
       # `RaftTla/` (raft's `with_tla` build, for the trace check) compiles the main tree's raft
       # specs and proofs again: its copies must be what `etc/gen-raft-tla.py` generates from them.
       # Reads the sources only.

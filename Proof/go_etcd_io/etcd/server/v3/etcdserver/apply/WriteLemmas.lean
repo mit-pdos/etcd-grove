@@ -9,6 +9,7 @@ counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WinLemmas
 
 @[expose] public section
 
@@ -38,7 +39,7 @@ def kvRest (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) : IProp GF :=
 /-- `mPreW`, split (see the file header). -/
 theorem mPreW_split (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    mPreW E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wSt E.γs log cr ∗
+    mPreW E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wStQ E.γs E.stq log cr ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ E.BkTie B ∗
       chainRes c a info ∗ kvRest E log B := by
   iintro H
@@ -51,7 +52,7 @@ theorem mPreW_split (E : AEnv GF) (c : Chain) (a : GoInterface)
 
 /-- The thread's KV resources from the split. -/
 theorem kvOwn_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : Int) :
-    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ kvRest E log B ⊢ kvOwn E log := by
+    srvApi.wStQ E.γs E.stq log cr ∗ E.BkTie B ∗ kvRest E log B ⊢ kvOwn E log := by
   iintro ⟨Hw, Htie, Hr⟩
   iunfold kvRest at Hr
   icases Hr with ⟨Hbk, Hhk, Hll, Hrd⟩
@@ -62,24 +63,164 @@ theorem kvOwn_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : In
   · iunfold kvBk; iexists B; iframe Hbk Hhk Htie
   iframe Hll Hrd
 
+/-- A put's pending changes at the writer's state: none (the key missing for an ignore flag), else
+its one change. -/
+theorem putPend_cases (o : OpFull) (log : mvcc.Log) (c : Int) :
+    (txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none ∧
+        txn.putPend o (srvApi.stAt log c) = []) ∨
+      ((txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome) ∧
+        txn.putPend o (srvApi.stAt log c) =
+          [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]) := by
+  unfold txn.putPend
+  simp only [srvApi.stAt]
+  by_cases h : txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none
+  · left; exact ⟨h.1, h.2, by simp [h]⟩
+  · right
+    refine ⟨fun hn => ?_, by simp [h]⟩
+    cases hf : mvcc.findKey o.key (mvcc.stateAfter log) with
+    | none => exact absurd ⟨hn, hf⟩ h
+    | some _ => rfl
+
+/-- **A put's lessor-window target** (auth-lease S4 item 7b, the applier at a window): with the request's lease live
+(or none) at the live set `T`, the window's target is the item map after the put's outcome at the writer's state. -/
+theorem putWinTgt (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (c : Int) (T : List w64)
+    (h : winTgt w rq log T) (hrq : rq.put = some o) (hk : dispatchKind rq = .put)
+    (hl : o.leaseID = W64 0 ∨ o.leaseID ∈ T) :
+    ∀ (s : Nat) (T' : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T') →
+      T' = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.putPend o (srvApi.stAt log c)))) := by
+  intro s T' hw
+  rcases putPend_cases o log c with ⟨hn, hf, hp⟩ | ⟨hn, hp⟩
+  · rw [hp]
+    have := h s T' hw (.rejected .backend)
+      (by unfold backendStep; rw [hk]; exact ⟨o, hrq, Or.inr (Or.inl ⟨hn, hf, rfl⟩)⟩)
+      (by simp only [leaseExactL, hk]; intro op hop; rw [hrq] at hop; cases hop
+          exact ⟨fun _ => rfl, fun _ => Or.inr ⟨hn, hf⟩⟩)
+    simpa [Outcome.logAfter, mvcc.commitLog] using this
+  · rw [hp]
+    have := h s T' hw (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
+      (by unfold backendStep; rw [hk]; exact ⟨o, hrq, Or.inr (Or.inr ⟨hn, rfl⟩)⟩)
+      (by simp only [leaseExactL, hk]; intro op hop; rw [hrq] at hop; cases hop
+          exact ⟨fun h => (hl.elim h.1 h.2).elim, fun h => by cases h⟩)
+    simpa [Outcome.logAfter, mvcc.commitLog] using this
+
+/-- **A put that writes moves the items toward the window's target** (item 7b): `putAUW`'s begin premise. -/
+theorem putWinMove (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (T : List w64)
+    (h : winTgt w rq log T) (hrq : rq.put = some o) (hk : dispatchKind rq = .put)
+    (hl : o.leaseID = W64 0 ∨ o.leaseID ∈ T)
+    (hn : txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome) :
+    Perennial.EtcdGrove.lease.winMove w (mvcc.leaseItemsOf (mvcc.stateAfter log))
+      (txn.putItemsOf (mvcc.leaseItemsOf (mvcc.stateAfter log)) o) := by
+  cases w with
+  | none => exact Perennial.EtcdGrove.lease.winMove_none _ _
+  | some v =>
+    obtain ⟨s, T'⟩ := v
+    have ht := h s T' rfl (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
+      (by unfold backendStep; rw [hk]; exact ⟨o, hrq, Or.inr (Or.inr ⟨hn, rfl⟩)⟩)
+      (by simp only [leaseExactL, hk]; intro op hop; rw [hrq] at hop; cases hop
+          exact ⟨fun h => (hl.elim h.1 h.2).elim, fun h => by cases h⟩)
+    simp only [Outcome.logAfter] at ht
+    have e1 : mvcc.commitLog log [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))] =
+        log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]] := by
+      unfold mvcc.commitLog; simp
+    have e0 : mvcc.commitLog log [] = log := by unfold mvcc.commitLog; simp
+    rw [ht, ← e1, ← txn.pendItems_commitLog, txn.pendItems_putChangeOf, txn.pendItems_commitLog, e0]
+    exact txn.winMove_to_target s _ _
+
+/-- **A range delete's lessor-window target** (item 7b): the window's target is the item map after the delete. -/
+theorem delWinTgt (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (T : List w64)
+    (h : winTgt w rq log T) (hrq : rq.deleteRange = some o) (hk : dispatchKind rq = .deleteRange) :
+    ∀ (s : Nat) (T' : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T') →
+      T' = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o))) := by
+  intro s T' hw
+  have := h s T' hw (.applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false)
+    (by unfold backendStep; rw [hk]; exact ⟨o, hrq, rfl⟩)
+    (leaseExactL_other T rq log _ (by rw [hk]; decide) (by rw [hk]; decide))
+  simpa [Outcome.logAfter] using this
+
+/-- **A range delete's window drops its range's items** (item 7b): `txn.DeleteRange.spec`'s `winDrops`. -/
+theorem delWinDrops (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (T : List w64)
+    (h : winTgt w rq log T) (hrq : rq.deleteRange = some o) (hk : dispatchKind rq = .deleteRange) :
+    Perennial.EtcdGrove.lease.winDrops w (mvcc.leaseItemsOf (mvcc.stateAfter log)) (txn.delSelOf o) := by
+  intro v hv it hsel hpres
+  obtain ⟨s, T'⟩ := v
+  have ht := delWinTgt w rq o log T h hrq hk s T' hv
+  simp only at ht ⊢
+  subst ht
+  rw [txn.stateAfter_commitLog]
+  simp only [mvcc.leaseItemsOf_lookup] at hpres ⊢
+  obtain ⟨kv, hkv⟩ : ∃ kv, mvcc.findKey it.Key' (mvcc.stateAfter log) = some kv := by
+    cases h' : mvcc.findKey it.Key' (mvcc.stateAfter log) with
+    | none => rw [h'] at hpres; exact absurd rfl hpres
+    | some kv => exact ⟨kv, rfl⟩
+  have hmem : kv ∈ mvcc.stateAfter log := List.mem_of_find?_eq_some hkv
+  have hkk : kv.key = it.Key' := by simpa using List.find?_some hkv
+  have hin : kv ∈ rangeIn (mvcc.stateAfter log) o := by
+    unfold rangeIn
+    rw [List.mem_filter]
+    exact ⟨hmem, by rw [hkk]; exact (txn.delSelOf_iff o it).1 hsel⟩
+  have hks : it.Key' ∈ (rangeIn (mvcc.stateAfter log) o).map EtcdKv.key := by
+    rw [← hkk]; exact List.mem_map_of_mem hin
+  have hdel : txn.delChanges (mvcc.stateAfter log) o =
+      ((rangeIn (mvcc.stateAfter log) o).map EtcdKv.key).map .del := by
+    unfold txn.delChanges; rw [List.map_map]; rfl
+  rw [hdel, txn.findKey_applyChanges_dels_mem _ _ _ _ hks]
+  rfl
+
+/-- **A writing transaction's lessor-window target** (item 7b): with its checks passed at the live set `L`, the
+window's target is the item map after its run. -/
+theorem txnWinTgt (w : Option lease.LWin) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (L : List w64)
+    (h : winTgt w rq log L) (hrq : rq.txn = some t) (hk : dispatchKind rq = .txn)
+    (hro : txn.txnReadonly t = false)
+    (hig : txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+      txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))) :
+    ∀ (s : Nat) (T' : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T') →
+      T' = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.txnChs log t))) := by
+  intro s T' hw
+  have := h s T' hw (.applied (mvcc.commitLog log
+      (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false)
+    (by unfold backendStep; rw [hk]
+        exact ⟨t, hrq, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig.1⟩⟩)
+    (by simp only [leaseExactL, hk]
+        intro t' ht'; rw [hrq] at ht'; cases ht'
+        exact ⟨fun _ => hig.2, fun _ h => by cases h⟩)
+  simp only [Outcome.logAfter] at this
+  exact this
+
+/-- **A writing transaction's run is within the window** (item 7b): `txnBeginAUW`'s begin premise, from its keys'
+distinctness (`txnKeysNodup`, etcd's `checkIntervals`). -/
+theorem txnWinOps (w : Option lease.LWin) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (L : List w64)
+    (h : winTgt w rq log L) (hrq : rq.txn = some t) (hk : dispatchKind rq = .txn)
+    (hro : txn.txnReadonly t = false) (hnd : txn.txnKeysNodup t)
+    (hig : txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+      txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))) :
+    txn.WinOps w (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
+      (t.branch (txn.txnOk (mvcc.stateAfter log) t)) := by
+  cases w with
+  | none => exact txn.winOps_none _ _ _ _
+  | some v =>
+    obtain ⟨s, T'⟩ := v
+    rw [txnWinTgt _ rq t log L h hrq hk hro hig s T' rfl, txn.stateAfter_commitLog]
+    exact txn.winOps_txn_of_nodup s log t
+      (by simpa [txn.txnChs, txn.srvRunTxn] using hnd (mvcc.stateAfter log) _ (mvcc.stateAfter_sorted log))
+
 /-- The thread's KV resources at the live set `L`, from the split's pieces (auth-lease S3a). -/
 theorem kvOwnAt_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : Int) (L : List w64) :
-    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗
+    (srvApi.wStQ E.γs E.stq log cr ∗ E.Wt E.win) ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗
-      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗ ltHalf E L ∗
+      lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗ ltHalf E L ∗
       E.RD ⊢ kvOwnAt E log L := by
-  iintro ⟨Hw, Htie, Hbk, Hhk, Hk, Hu, Hlt, Hrd⟩
+  iintro ⟨⟨Hw, HWt⟩, Htie, Hbk, Hhk, Hk, Hu, Hlt, Hrd⟩
   iunfold kvOwnAt
   isplitl [Hw]
   · iexists cr; iexact Hw
   isplitl [Hbk Hhk Htie]
   · iunfold kvBk; iexists B; iframe Hbk Hhk Htie
-  iframe Hk Hu Hlt Hrd
+  iframe Hk Hu Hlt HWt Hrd
 
 /-- **Two writer halves at different logs are impossible** (each holds a half of `γs.st`). -/
-theorem wSt_ne_false (γs : srvApi.KVSNames) (l l' : mvcc.Log) (c c' : Int) (h : l ≠ l') :
-    srvApi.wSt (GF := GF) γs l c ∗ srvApi.wSt γs l' c' ⊢ False := by
-  unfold srvApi.wSt
+theorem wSt_ne_false (γs : srvApi.KVSNames) {q q' : Qp} (l l' : mvcc.Log) (c c' : Int) (h : l ≠ l') :
+    srvApi.wStQ (GF := GF) γs q l c ∗ srvApi.wStQ γs q' l' c' ⊢ False := by
+  unfold srvApi.wStQ
   iintro ⟨⟨Hs, -⟩, ⟨Hs', -⟩⟩
   icombine Hs Hs' gives %H
   exfalso
@@ -91,7 +232,7 @@ theorem wSt_ne_false (γs : srvApi.KVSNames) (l l' : mvcc.Log) (c c' : Int) (h :
 token back. -/
 theorem mPostW_backend (E : AEnv GF) (a : GoInterface) (log : mvcc.Log) (Pre Post : IProp GF)
     (B : mvcc.KBReal) (cr : Int) :
-    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ kvRest E log B ∗ (Post ∨ Pre) ∗ bkRT B ⊢
+    srvApi.wStQ E.γs E.stq log cr ∗ E.BkTie B ∗ kvRest E log B ∗ (Post ∨ Pre) ∗ bkRT B ⊢
       mPostW E .backend a log Pre Post := by
   iintro ⟨Hw, Htie, Hr, HPP, Hrt⟩
   icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
@@ -106,7 +247,7 @@ theorem mPostW_backend (E : AEnv GF) (a : GoInterface) (log : mvcc.Log) (Pre Pos
 /-- `mPreV` (the cluster methods', with `v3`), split as `mPreW`. -/
 theorem mPreV_split (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    mPreV v3 E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wSt E.γs log cr ∗
+    mPreV v3 E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wStQ E.γs E.stq log cr ∗
       cPre v3 (E.Pk B) E.f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ E.BkTie B ∗
       chainRes c a info ∗ kvRest E log B := by
   iintro H
@@ -121,7 +262,7 @@ theorem mPreV_split (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 theorem mPostV_of (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Post : IProp GF)
     (B : mvcc.KBReal) (cr : Int) :
-    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ kvRest E log B ∗ chainRes c a info ∗
+    srvApi.wStQ E.γs E.stq log cr ∗ E.BkTie B ∗ kvRest E log B ∗ chainRes c a info ∗
       cPost v3 Pre Post ∗ bkRT B ⊢ mPostV v3 E c a info log Pre Post := by
   iintro ⟨Hw, Htie, Hr, Hres, HPP, Hrt⟩
   icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
@@ -135,7 +276,7 @@ theorem mPostV_of (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 /-- **`mPre` without the chain's resources** (strict M1, 2026-11-05): what a wrapper passes on
 unchanged, or gives back with `Pre` when it rejects (`mPreRest_reject`). -/
 def mPreRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post)
 
@@ -161,7 +302,7 @@ theorem mPre_of_rest (E : AEnv GF) (c : Chain) (a : GoInterface)
 
 /-- **`mPreRest` at the live set `T`** (auth-lease S3a2): `mPreAt` without the chain's resources. -/
 def mPreRestAt (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLiveAt E (mvcc.stateAfter log) T ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wStQ E.γs E.stq log cr) ∗ leasesLiveAt E (mvcc.stateAfter log) T ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post)
 
@@ -205,8 +346,8 @@ theorem mPreRest_of_at (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post
 (`mPreRest_lend` at the live set: the lender gives back the same `T`). -/
 theorem mPreRestAt_lend (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) :
     mPreRestAt E log T Pre Q Post ⊢ E.RD ∗
-      lease.lessorUser (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-      (E.RD -∗ lease.lessorUser (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+      lease.lessorUserW (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗
+      (E.RD -∗ lease.lessorUserW (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win -∗
         mPreRestAt E log T Pre Q Post) := by
   iintro H
   iunfold mPreRestAt at H
@@ -236,43 +377,60 @@ theorem mPreAt_ltHalf (E : AEnv GF) (c : Chain) (a : GoInterface)
     iframe H
     try itrivial
   · simp only [↓reduceIte]
-    iintro ⟨⟨Hw, ⟨Hk, Hu, Hlt⟩, Hrd, Hres, Hb⟩, HT⟩
+    iintro ⟨⟨Hw, ⟨Hk, Hu, Hlt, HWt⟩, Hrd, Hres, Hb⟩, HT⟩
     icombine Hlt HT gives %H
-    iframe Hw Hk Hu Hlt Hrd Hres Hb HT
+    iframe Hw Hk Hu Hlt HWt Hrd Hres Hb HT
     ipureintro; intro _; exact H.2
 
 /-- **`putPre` from the class track's certificate** (auth-lease S3a2, Draft §1's `putPre_of_old`): `certPre`
 at every outcome, the request, and `mPre` split at its live set. -/
 theorem putPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (r : Loc) (rq : IRRModel) (o : OpFull)
-    (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (log : mvcc.Log) (Pre Q Post : IProp GF) (T0 : List w64)
+    (hw : E.lg = true → winTgt E.win rq log T0) (hn : E.lg = false → E.win = none)
     (h : rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log ∧
       o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax) :
-    certPre E c rq log ∗ txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post ⊢
-      putPre E c a info r rq o log Pre Q Post := by
-  iintro ⟨#Hcp, #Hr, Hm⟩
+    certPre E c rq log ∗ txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post ∗ ltHalf E T0 ⊢
+      putPre E c a info r rq o log Pre Q Post ∗ ltHalf E T0 := by
+  iintro ⟨#Hcp, #Hr, Hm, HT⟩
   ihave ⟨%T, Hm⟩ := (mPre_iff_at E c a info log Pre Q Post).1 $$ Hm
+  ihave ⟨%HL, Hm, HT⟩ := mPreAt_ltHalf E c a info log T T0 Pre Q Post $$ [$Hm $HT]
+  iframe HT
   iunfold putPre
   isplitr; · ipureintro; exact h
   iframe Hr
   iexists T
+  isplitr
+  · ipureintro
+    cases hlg : E.lg
+    · rw [hn hlg]; exact winTgt_none _ _ _
+    · rw [HL hlg]; exact hw hlg
   iframe Hm
   iapply certPreT_of_certPre; iexact Hcp
 
 /-- **`txnPre` from the class track's certificate** (as `putPre_of_mPre`). -/
 theorem txnPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (r : Loc) (rq : IRRModel) (t : TxnModel)
-    (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (log : mvcc.Log) (Pre Q Post : IProp GF) (T0 : List w64)
+    (hw : E.lg = true → winTgt E.win rq log T0) (hn : E.lg = false → E.win = none) (hnd : txn.txnKeysNodup t)
     (h : rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log ∧
       t.putsLe etcdKeyMax) :
-    certPre E c rq log ∗ txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post ⊢
-      txnPre E c a info r rq t log Pre Q Post := by
-  iintro ⟨#Hcp, #Hr, Hm⟩
+    certPre E c rq log ∗ txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post ∗ ltHalf E T0 ⊢
+      txnPre E c a info r rq t log Pre Q Post ∗ ltHalf E T0 := by
+  iintro ⟨#Hcp, #Hr, Hm, HT⟩
   ihave ⟨%T, Hm⟩ := (mPre_iff_at E c a info log Pre Q Post).1 $$ Hm
+  ihave ⟨%HL, Hm, HT⟩ := mPreAt_ltHalf E c a info log T T0 Pre Q Post $$ [$Hm $HT]
+  iframe HT
   iunfold txnPre
   isplitr; · ipureintro; exact h
   iframe Hr
   iexists T
+  isplitr
+  · ipureintro
+    refine ⟨?_, hnd⟩
+    cases hlg : E.lg
+    · rw [hn hlg]; exact winTgt_none _ _ _
+    · rw [HL hlg]; exact hw hlg
   iframe Hm
   iapply certPreT_of_certPre; iexact Hcp
 
@@ -310,7 +468,7 @@ theorem mPreW_reject (E : AEnv GF) (c : Chain) (a : GoInterface)
 
 /-- **`mPreW` without the chain's resources** (as `mPreRest`). -/
 def mPreWRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post)
 
@@ -351,8 +509,8 @@ theorem mPreRest_reject_cs (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF
 `kvOwn_lend`). -/
 theorem mPreRest_lend (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
     mPreRest E log Pre Q Post ⊢ E.RD ∗ ∃ L : List w64,
-      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-      (E.RD -∗ lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+      lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗
+      (E.RD -∗ lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win -∗
         mPreRest E log Pre Q Post) := by
   iintro H
   iunfold mPreRest at H
@@ -411,7 +569,7 @@ theorem mPreWRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) 
 
 /-- **`mPreV` without the chain's resources** (as `mPreRest`). -/
 def mPreVRest (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       cPre v3 (E.Pk B) E.f Pre Q Post)
 

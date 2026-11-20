@@ -16,7 +16,7 @@ caller's callback, answering `f` (`tryUpdateOk`).
 
 `ignoreNotFound` (`ign`) runs `tryUpdate` on the zero object at resource version `0` for an absent
 key (the model's `update`, which creates it). The preconditions `pp` hold `pr` (`preAt`; `nil`:
-none), checked as the model's `pre` (`ObjCodec.preOk`). The cached object `cx` is `nil` or one the
+none), checked as the model's `pre` (`ObjCodec.preF`, with `Check`'s message). The cached object `cx` is `nil` or one the
 key held at its resource version `r` (`cachedOk`); with one, the store runs the preconditions and
 `tryUpdate` on it, and if the result encodes as it does, re-reads the key and returns (or rewrites)
 what it finds without running them again, so the spec asks (D1, a scope premise, the user's choice
@@ -81,14 +81,14 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt dest o0 rv0 ∗ preAt pp pr ∗
       cachedOk c (c.pathPrefix ++ k) cx ca ∗ W ∗
       ([∗list] x ∈ c.ms,
-        k8sAuRW x.γr.kv c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preOk pr) f) W Φ) ∗
+        k8sAuRW x.γr.kv c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f) W Φ) ∗
       tryUpdateOk c f uf }}
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"GuaranteedUpdate"))
       (Val #(GoInterface.ok ci))) (Val #key)) (Val #dest)) (Val #ign)) (Val #pp)) (Val #uf))
       (Val #cx))
   {{ (err : GoInterface), RET #err;
-      updOut c (c.pathPrefix ++ k) ign c.S.zero (c.S.preOk pr) f Φ err dest }}
+      updOut c (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f Φ err dest }}
 
 end spec
 

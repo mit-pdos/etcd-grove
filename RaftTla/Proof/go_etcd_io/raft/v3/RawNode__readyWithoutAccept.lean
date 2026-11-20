@@ -718,8 +718,15 @@ theorem RawNode.readyWithoutAccept.wp_proof
       have Hlen : fp0.length = (uint.Z svs.Metadata'.Index').toNat := by
         have : uint.Z (snapId svs).index' = uint.Z svs.Metadata'.Index' := rfl
         omega
+      -- (auth-lease S4, 2026-11-16) outside the no-snapshot mode: a snapshot is pending
+      have Hrns : γ.reNoSnap = false := by
+        cases Hc : γ.reNoSnap
+        · rfl
+        · exfalso
+          have := (Hlns (by rw [Hnl.1]; exact Hc)).1
+          rw [Hss] at this; cases this
       refine ⟨⟨HMf, by trivial, Hss, Hsp, Hk, Hi0, rfl, Hce0, Hdpre, Hlen, Hapl, Hnx, Hhas⟩,
-        ⟨rfl, Hce0, Hdpre, ?_, Hlen, Hi0, Hlt61, ?_, ?_⟩, fun h => ?_, fun l' hl' => ?_⟩
+        ⟨Hrns, rfl, Hce0, Hdpre, ?_, Hlen, Hi0, Hlt61, ?_, ?_⟩, fun h => ?_, fun l' hl' => ?_⟩
       · -- (D22 S-r) past the committed log handed out: `applying` is below the snapshot
         have : uint.Z (snapId svs).index' = uint.Z svs.Metadata'.Index' := rfl
         have := uint_Z_nonneg s.logst.applying

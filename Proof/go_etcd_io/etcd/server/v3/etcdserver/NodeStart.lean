@@ -475,7 +475,7 @@ theorem srvMem_bootStorage
   · iintro !> %k %hk
     have : k = 0 := by omega
     subst this
-    unfold memStorJ
+    iapply memStorJ_B_le_one γr.cl K 0 (by decide)
     iapply nodeAppliedLb_zero γr.cl K
   · ileft; ipureintro; rfl
   ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
@@ -580,7 +580,9 @@ theorem srvMem_restartStorage
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) (A : Nat)
     (F : GName → IProp GF) (Hbc : σ.b ≤ σ.commit)
-    (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true) :
+    (htr : Cluster.trace γr.cl = none) (hsz : γs.sz = true)
+    -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
+    (Hns : ¬ clusterNoSnap γr.cl) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorRestarted ms γs σ cs ∗
@@ -635,7 +637,7 @@ theorem srvMem_restartStorage
   iintro %K #HA #HD
   ihave #HB : □ (∀ k, ⌜k ≤ σ.b⌝ -∗ (memStorJ γr.cl K).B k) $$ []
   · iintro !> %k %hk
-    simp only [memStorJ]
+    iapply memStorJ_B_off γr.cl K k Hns
     iapply nodeAppliedLb_mono γr.cl K _ k (by omega) $$ HA
   ihave Hsv : (⌜(walSnapCS σ cs).Metadata'.Index' = W64 0⌝ ∨
       (memStorJ γr.cl K).SV (walSnapCS σ cs) ∗
@@ -819,7 +821,9 @@ abbrev NodeStartSpecR : Prop :=
           (∀ m' : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m') → m'.Term' = σ.base.term') ∧
           confStateIs cs (Membership.simple γr.cfg) ∧
           (cs.Voters'.length + cs.Learners'.length + cs.VotersOutgoing'.length +
-            cs.LearnersNext'.length : Int) ≤ 2 ^ 62⌝ ∗
+            cs.LearnersNext'.length : Int) ≤ 2 ^ 62 ∧
+          -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`RestartNode`'s)
+          ¬ clusterNoSnap γr.cl⌝ ∗
         "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
         -- the registered `MemoryStorage` as `bootstrappedWAL.MemoryStorage` rebuilds it

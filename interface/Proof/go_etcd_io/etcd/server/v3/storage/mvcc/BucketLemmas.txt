@@ -2,6 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem mvcc.delKeys_sel (ilog : mvcc.Log) (pend : List mvcc.Change) (endNil : Bool) (k e kk :
+    GoString) (h : kk ∈ mvcc.delKeys ilog pend endNil k e) : mvcc.delSel endNil k e kk
+
 theorem mvcc.bucketOf_mem_of_BucketHas (log : mvcc.Log) (hwf : mvcc.LogWf log) (rev : mvcc.Rev) (kv
     : EtcdKv) (h : mvcc.BucketHas log rev kv) (hmod : kv.modRev = rev.main) : (mvcc.revBytes rev
     false, mvcc.kvEncode kv) ∈ mvcc.bucketOf log
@@ -26,6 +29,9 @@ theorem mvcc.changeKv_append_lt (r : w64) (s : List EtcdKv) (cs : List mvcc.Chan
 
 def mvcc.pendPuts (ilog : mvcc.Log) (pend : List mvcc.Change) : List (GoString × GoString) :=
   mvcc.bucketOfRev (List.length ilog) (mvcc.stateAfter ilog) pend
+
+def mvcc.delSel (endNil : Bool) (k e kk : GoString) : Prop :=
+  if endNil = true then kk = k else mvcc.inRange k e kk = true
 
 theorem mvcc.capWithLimit_rangeTaken (log : mvcc.Log) (endNil : Bool) (k e : GoString) (atRev limit
     : w64) : mvcc.capWithLimit limit (mvcc.rangeTaken log endNil k e atRev limit).length =

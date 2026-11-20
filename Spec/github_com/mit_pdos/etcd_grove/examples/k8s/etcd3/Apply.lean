@@ -7,11 +7,16 @@ form `lintest`'s `applySpec` takes for the closure `Check` passes,
 
   `{{ kInOk i ∗ threadTok }} <<{ ∀∀ S, kState γ g0 S }>> Apply(s, i) @@ drvE
      <<{ ∃∃ S' o, kState γ g0 S' ∗ ⌜(k8setcd3S g0).M.step S (i, o) = some S'⌝ }>>
-     {{ RET #o; ioOk i o ∗ threadTok }}`
+     {{ o', RET #o'; ⌜∀ s, step s (i, o') = step s (i, o)⌝ ∗ ioOk i o' ∗ threadTok }}`
+
+It returns an answer `o'` the model cannot tell from the committed `o` (`plainOut o' = plainOut o`:
+the answer's `Raw` holds the store's error, allocated after the linearization point; 2026-11-19,
+option A of `notes/k8s-7g-handoff.md`).
 
 over the library's state `kState γ g0 S` (the history's ghost variable, whose other half is in the
 instance's invariant `kInv γ c g0 γr.kv` at each member: `Proof/.../k8setcd3/Inv.lean`). The input
-is one `Gen` may return (`kInOk c`: its cached object one of the store's); an answer with a name
+is one `Gen` may return (`kInOk c g0.st.rv`: its cached object one of the store's, its resource version
+floored at the seeded revision); an answer with a name
 becomes the client's cached object in the table `tbl` (`isCache c tbl`, stage 7b).
 
 Premises: the store `s` (`isStore sp c`) holds the driver's objects (`c.S = driverSpec`) under
@@ -22,6 +27,8 @@ Stage E of 7f-6: a watcher's input (kind 5) runs `runWatch`, whose events the mo
 (`kSpec`'s observation) against the configuration at the commit; it needs the instance's invariant
 at the cluster's KV names `γk` (whose read updates the watch fires), the store's watcher at them
 (`storeWatchOk`, the driver's watch spec `driverW`) and the `WatchList` gate on (`watchListOn`).
+k8s 7g step 5: the seeded revision within the seeded history (`kInv_lb_seed`: a watch starts past the
+seeds, for the `ioOk` of its received events, `wrawOk`).
 -/
 module
 
@@ -59,18 +66,21 @@ abbrev Apply.spec : Prop :=
   c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  uint.nat g0.st.rv ≤ g0.hist.length →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 -∗
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 -∗
     k8s.isStore sp c -∗ ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) -∗ ⌜c.ms ≠ []⌝ -∗
     isCache c tbl -∗ rangeStreamOff -∗
     kInv γ c g0 γk -∗ storeWatchOk sp c driverW γk -∗ watchListOn -∗
     iprop(∀ i : GoInterface,
-      {{ kInOk c i ∗ threadTok }} <<{ ∀∀ S, kState γ g0 S }>>
+      {{ kInOk c g0.st.rv i ∗ threadTok }} <<{ ∀∀ S, kState γ g0 S }>>
         (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply))
           (Val #(interface.mkOk (go.GoType.PointerType
             k8s_io.apiserver.pkg.storage.etcd3.store.ty) #sp))) (Val #tbl)) (Val #i)) @@ drvE
       <<{ ∃∃ S' o, kState γ g0 S' ∗ ⌜(k8setcd3S (GF := GF) g0).M.step S (i, o) = some S'⌝ }>>
-      {{ RET #o; (k8setcd3S (GF := GF) g0).ioOk i o ∗ threadTok }})
+      {{ (o' : GoInterface), RET #o';
+        ⌜∀ s, (k8setcd3S (GF := GF) g0).M.step s (i, o') = (k8setcd3S (GF := GF) g0).M.step s (i, o)⌝ ∗
+        (k8setcd3S (GF := GF) g0).ioOk i o' ∗ threadTok }})
 
 end spec
 

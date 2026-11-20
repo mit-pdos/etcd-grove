@@ -25,6 +25,7 @@ public import Perennial.Spec.context.Background
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLease
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Proof.go_etcd_io.etcd.client.v3.LessorPlain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseLinked
 
 @[expose] public section
@@ -63,6 +64,8 @@ theorem Main.wp_proof
     (wp_TimeToLive : lessor.TimeToLive.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
+  have wp_Leases := lessor.Leases.specP_of wp_Leases
+  have wp_TimeToLive := lessor.TimeToLive.specP_of wp_TimeToLive
   intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)

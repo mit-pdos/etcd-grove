@@ -294,7 +294,9 @@ theorem Replica.snapshot.wp_proof
         iapply HΦ; itrivial
       ihave #HB : (kdJ γ.r.cluster ρ.key).B (uint.nat (fi + rb)) $$ []
       · unfold kdJ
-        iapply nodeAppliedLb_mono γ.r.cluster ρ.key (uint.nat q.compact') _ (by word) $$ Hal
+        isplitr
+        · iapply nodeAppliedLb_mono γ.r.cluster ρ.key (uint.nat q.compact') _ (by word) $$ Hal
+        ipureintro; intro h; exact absurd h Hnsn
       ihave #Hxlb : memSnapLb ρ.γs (uint.nat (fi + rb)) $$ []
       · iapply (memSnapLb_mono ρ.γs (uint.nat k1) (uint.nat (fi + rb)) (by word))
         iexact Hkn1

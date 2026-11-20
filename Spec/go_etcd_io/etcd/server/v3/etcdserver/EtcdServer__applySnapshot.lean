@@ -168,7 +168,10 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- first receive (until then a unit bag)
     (γnc : NotifyNames)
     -- (wal-link L3, 2026-11-19) the raft node's names and the apply thread's share of the WAL (`Release`'s)
-    (γw : RNNames GF) (q : Qp),
+    (γw : RNNames GF) (q : Qp)
+    -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (`applyAll`'s payload's): the walk
+    -- frees the lessor window before `Recover`
+    (hns : ¬ clusterNoSnap γr.raft.raft.cl),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗

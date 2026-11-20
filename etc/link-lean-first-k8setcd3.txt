@@ -11,6 +11,7 @@ storeKey:
 objOut:
 notFound: storeKey
 invalidObj: storeKey
+preMsg: rvString
 rvBytes:
 rvString: rvBytes
 preOk: rvString
@@ -20,8 +21,8 @@ splitKey:
 updated: splitKey
 tryUpdateFor: updated
 mcreate: lookup setItem storeKey objOut splitKey
-mdelete: lookup delItem notFound preOk invalidObj objOut validateFor
-mupdate: lookup setItem notFound preOk invalidObj objOut updated sameObj
+mdelete: lookup delItem notFound preOk invalidObj preMsg objOut validateFor
+mupdate: lookup setItem notFound preOk invalidObj preMsg objOut updated sameObj
 parseRV:
 mget: parseRV lookup notFound objOut
 mstep: mcreate mdelete mupdate mget
@@ -152,18 +153,19 @@ workloadVals:
 pick:
 uidOf:
 withPre: rvString
-minRV: rvBytes
+floored:
+minRV: rvBytes floored
 workloadNodes:
 workloadApps:
 genList: splitKey storeKey pick workloadNodes workloadApps minRV parseRV
 genFrom: workloadKeys workloadVals workloadNodes workloadApps pick uidOf withPre minRV genList
 # (7f-6 stage E) the watch generator
-genWatchFrom: pick rvBytes rvString workloadKeys splitKey workloadNodes storeKey workloadApps parseRV
+genWatchFrom: pick rvBytes rvString workloadKeys splitKey workloadNodes storeKey workloadApps parseRV floored
 genWatch: genWatchFrom
 etcd3_Gen: cache__get cache__getW genFrom genWatch
 RunLin2: @
 CounterClock: @
-etcd3_Check: RunLin2 CounterClock etcd3_Model newWCache etcd3_Gen etcd3_Apply
+etcd3_Check: RunLin2 CounterClock etcd3_Model newWCache etcd3_Gen etcd3_Apply failureFree realCheck
 #
 # the seeding and `Main` (over the shared start's, the clients' and the store's, `@`)
 # (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
@@ -197,3 +199,81 @@ consume: toWEvent =_root_.Perennial.time.wp_NewTimer =_root_.Perennial.time.wp_A
 etcd3_store__Watch: @
 watchEvents: etcd3_store__Watch watchOptions consume SelectionPredicate__Matches SelectionPredicate__Empty labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs
 runWatch: watchEvents lastObj encodeWEvents =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_Since =_root_.Perennial.time.wp_Sleep
+#
+# (k8s 7g) the maintainers' checker (`correctness`, `examples/k8s/etcd3/correctness`) and `realCheck`
+# (`realcheck.go`), which `Check` runs on a failure-free `Ok` history; the storage and apimachinery
+# functions it calls (`@`: the k8s etcd3 store's Link), its trust-boundary specs (`=`: the axioms of
+# `notes/k8s-7g-trust.md` §1) and the two axioms decided at night 21 (`meta.ListAccessor`,
+# `apierrors.IsTooManyRequests`: option A, etcd-grove-03 2026-11-19)
+keyFunc: storeKey
+newObjList:
+Obj__DeepCopyObject:
+Obj__SetResourceVersion: =_root_.Perennial.strconv.wp_ParseUint
+ObjList__GetContinue:
+ObjList__SetContinue:
+ObjList__DeepCopyObject:
+ObjList__GetResourceVersion: rvString
+NewKeyExistsError: @
+NewKeyNotFoundError: @
+NewTooLargeResourceVersionError: @
+Preconditions__Check: @
+fmt_Errorf: @
+strconv_FormatUint:
+isErrCode:
+IsNotFound: isErrCode
+StorageError__Unwrap:
+HasInitialEventsEndBookmarkAnnotation: meta_Accessor
+SuggestsClientDelay:
+meta_ListAccessor:
+errors_IsTooManyRequests:
+CheckOperationsVerbose: @
+LinearizationInfo__PartialLinearizations: @
+correctness_checkKey: PrepareKey
+correctness_keyInScope: TrimSuffix
+correctness_GetReadConsistency:
+correctness_ListReadConsistency: versioner__ParseResourceVersion fmt_Errorf
+correctness_NewEmptyModel:
+correctness_Model__Clone: Obj__DeepCopyObject =maps.Clone.wp_proof_strBool
+correctness_Model__Equal: =reflect.DeepEqual.wp_proof_k8s =maps.Equal.wp_proof_strBool
+correctness_Model__create: correctness_checkKey versioner__ObjectResourceVersion Obj__DeepCopyObject Obj__SetResourceVersion NewKeyExistsError meta_Accessor strconv_FormatUint
+correctness_Model__delete: correctness_checkKey Obj__DeepCopyObject Obj__SetResourceVersion Obj__GetUID Obj__GetResourceVersion NewKeyNotFoundError Preconditions__Check meta_Accessor strconv_FormatUint
+correctness_Model__update: correctness_checkKey newObj versioner__ObjectResourceVersion Obj__DeepCopyObject Obj__SetResourceVersion Obj__GetUID Obj__GetResourceVersion NewKeyNotFoundError Preconditions__Check meta_Accessor strconv_FormatUint =reflect.DeepEqual.wp_proof_k8s
+correctness_Model__get: correctness_checkKey versioner__ParseResourceVersion newObj Obj__DeepCopyObject NewTooLargeResourceVersionError NewKeyNotFoundError
+correctness_Model__listItems: correctness_keyInScope Obj__DeepCopyObject =maps.Keys.wp_proof_objMap SelectionPredicate__Matches labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs
+correctness_Model__list: PrepareKey correctness_ListReadConsistency correctness_keyInScope Obj__DeepCopyObject =maps.Keys.wp_proof_objMap NewTooLargeResourceVersionError newObjList =meta.SetList.wp_proof_objList versioner__UpdateList PrepareContinueToken SelectionPredicate__Matches SelectionPredicate__Empty labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs
+correctness_Model__execute: correctness_Model__Clone correctness_Model__create correctness_Model__delete correctness_Model__update correctness_Model__get correctness_Model__list
+correctness_Model__validCacherContinue: correctness_Model__listItems SelectionPredicate__Matches SelectionPredicate__Empty labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs
+correctness_Model__equalListResponse: =reflect.DeepEqual.wp_proof_k8s meta_ListAccessor ObjList__GetContinue ObjList__SetContinue ObjList__DeepCopyObject correctness_Model__validCacherContinue
+correctness_Model__listResponseRV: meta_ListAccessor ObjList__GetResourceVersion versioner__ParseResourceVersion
+correctness_Model__validateGet: =reflect.DeepEqual.wp_proof_k8s versioner__ParseResourceVersion versioner__ObjectResourceVersion correctness_GetReadConsistency IsNotFound IsTooLargeResourceVersion SuggestsClientDelay StorageError__Unwrap
+correctness_Model__validateList: =reflect.DeepEqual.wp_proof_k8s correctness_ListReadConsistency correctness_Model__equalListResponse correctness_Model__listResponseRV IsTooLargeResourceVersion SuggestsClientDelay StorageError__Unwrap
+correctness_Model__Step: =reflect.DeepEqual.wp_proof_k8s correctness_Model__execute correctness_Model__validateGet correctness_Model__validateList errors_IsTooManyRequests StorageError__Unwrap
+correctness_Model__initialEvents: correctness_Model__listItems
+correctness_NewReplay: correctness_Model__Clone correctness_Model__Step
+correctness_Replay__validateGet: =reflect.DeepEqual.wp_proof_k8s correctness_GetReadConsistency correctness_Model__get versioner__ParseResourceVersion IsTooLargeResourceVersion StorageError__Unwrap
+correctness_Replay__validateList: correctness_ListReadConsistency correctness_Model__list correctness_Model__equalListResponse meta_ListAccessor ObjList__GetResourceVersion versioner__ParseResourceVersion
+correctness_Replay__Validate: correctness_Replay__validateGet correctness_Replay__validateList
+correctness_Change__toWatchEvent: SelectionPredicate__Matches labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs Obj__DeepCopyObject versioner__UpdateObject
+correctness_Replay__EventsForRVs: correctness_Change__toWatchEvent correctness_keyInScope
+correctness_Replay__InitialEvents: correctness_Model__initialEvents
+correctness_NewWatchValidator:
+correctness_objectRV: meta_Accessor Obj__GetResourceVersion versioner__ParseResourceVersion
+correctness_eventResourceVersionRange: correctness_objectRV
+correctness_watchRevisionRange: correctness_eventResourceVersionRange versioner__ParseResourceVersion
+correctness_filterOutBookmarksAndErrors:
+correctness_validateMaybeLastEventError:
+correctness_WatchValidator__checkWatch: correctness_checkKey versioner__ParseResourceVersion SelectionPredicate__Empty labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty
+correctness_WatchValidator__toEventReference: keyFunc correctness_objectRV
+correctness_WatchValidator__compareEvents: correctness_WatchValidator__toEventReference =cmp.Diff.wp_proof_eventRefs =reflect.DeepEqual.wp_proof_k8s
+correctness_WatchValidator__splitInitialEvents: correctness_filterOutBookmarksAndErrors HasInitialEventsEndBookmarkAnnotation Obj__GetAnnotations
+correctness_WatchValidator__validateBookmarks: correctness_objectRV HasInitialEventsEndBookmarkAnnotation Obj__GetAnnotations
+correctness_WatchValidator__validateInitialEvents: versioner__ParseResourceVersion correctness_Replay__InitialEvents correctness_WatchValidator__compareEvents
+correctness_WatchValidator__validateReliable: correctness_watchRevisionRange correctness_Replay__EventsForRVs correctness_filterOutBookmarksAndErrors correctness_WatchValidator__compareEvents
+correctness_WatchValidator__ValidateWatch: correctness_WatchValidator__checkWatch correctness_validateMaybeLastEventError correctness_WatchValidator__validateBookmarks correctness_WatchValidator__splitInitialEvents correctness_objectRV correctness_WatchValidator__validateInitialEvents correctness_WatchValidator__validateReliable
+failureFree:
+realRequest: listOptions storeKey splitKey preconditions validateFor tryUpdateFor cachedObj
+realEvents:
+initialModel: correctness_NewEmptyModel storeKey
+toPorcupineModel: correctness_Model__Clone correctness_Model__Step correctness_Model__Equal
+etcd3_orderByLinearization:
+realCheck: realRequest realEvents watchOptions initialModel toPorcupineModel etcd3_orderByLinearization CheckOperationsVerbose LinearizationInfo__PartialLinearizations correctness_NewReplay correctness_Replay__Validate correctness_NewWatchValidator correctness_WatchValidator__ValidateWatch

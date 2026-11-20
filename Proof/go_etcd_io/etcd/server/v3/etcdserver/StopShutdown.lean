@@ -487,7 +487,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold srvBeHooked at Hbh
   icases Hbh with ⟨%d, %bh, %lgh, %gx, %Hd, -, #Hbhk, #HhkAt, -⟩
   obtain ⟨hBT, hcK, hhP, hPk⟩ := Hd
-  obtain ⟨-, -, γB, HH, hRO, -, d', _al, _stl, _lp, hBT', hγB, -⟩ := Henv
+  obtain ⟨-, -, -, γB, HH, hRO, -, d', _al, _stl, _lp, hBT', hγB, -⟩ := Henv
   have hdd' : d' = d := srvBkTie_inj d' d (hBT'.symm.trans hBT)
   subst d' γB
   -- the store invariant (`srvKVInvs`'s)
@@ -526,10 +526,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ihave HKV := hK.2 $$ HKV
   iunfold srvApplyKV at HKV
   icases HKV with ⟨%ua, -, -, Hakv, Hbo, -, -, -, -⟩
-  iunfold apply.applyKV at Hakv
-  icases Hakv with ⟨%p, -, -, Hko, Hcmo⟩
-  iunfold apply.kvOwn at Hko
-  icases Hko with ⟨⟨%c, Hws⟩, Hkb, -, -⟩
+  icases srvApplyKVW_open B.E ua x $$ Hakv with ⟨%p, %c, -, -, Hws, Hkb, Hcmo, -⟩
   iunfold apply.kvBk at Hkb
   icases Hkb with ⟨%B2, HmB, -, HtB⟩
   ihave %HB2 : ⌜B2 = d⌝ $$ [HtB]
@@ -538,14 +535,14 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold apply.cmpOwn at Hcmo
   icases Hcmo with ⟨Hop, Hcr⟩
   -- the writer's compaction revision, the apply thread's
-  iunfold srvApi.wSt at Hws
+  iunfold srvApi.wStQ at Hws
   icases Hws with ⟨Hws1, Hws2⟩
   iunfold srvApi.crOwn at Hcr
   icombine Hws2 Hcr gives %Hcc
   have hcx : c = x.crev := Hcc.2
   subst hcx
-  ihave Hws : srvApi.wSt B.E.γs x.log x.crev $$ [Hws1 Hws2]
-  · iunfold srvApi.wSt; iframe Hws1 Hws2
+  ihave Hws : srvApi.wStQ B.E.γs B.E.stq x.log x.crev $$ [Hws1 Hws2]
+  · iunfold srvApi.wStQ; iframe Hws1 Hws2
   iunfold srvBeOwn at Hbo
   icases Hbo with ⟨%d3, %hd3, Hbe, Hg, -, HbPl, Hrt⟩
   have hd3' : d3 = d := srvBkTie_inj d3 d (hd3.symm.trans hBT)

@@ -149,6 +149,14 @@ def srvOps (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) : List TxnOp → List 
       (srvOp s0 r s op).2 :: (srvOps s0 r (applyChanges r s (srvOp s0 r s op).1) ops).2)
 end
 
+/-- **A transaction's run changes each key at most once** at every (sorted) start state and revision (what
+`checkIntervals` gives, `v3rpc.txnKeysNodup_of_check`): the lessor's window needs it (each lease item moves once per
+entry, `txn.winOps_txn_of_nodup`). (Auth-lease S4 item 7b step 6; here, not in the server's `WorkloadDefs`, so that the
+apply thread's `rqOk` can carry it.) -/
+def txnKeysNodup (t : TxnModel) : Prop :=
+  ∀ (s0 : List EtcdKv) (r : w64), s0.Pairwise etcdKvLess →
+    ((srvOps s0 r s0 (t.branch (txnOk s0 t))).1.map Change.key).Nodup
+
 /-- **The server's transaction** at revision `r` on the state `s`: the verdict, the changes of
 the chosen branch's run (the write transaction's pending changes), its results. -/
 def srvRunTxn (r : w64) (s : List EtcdKv) (t : TxnModel) :

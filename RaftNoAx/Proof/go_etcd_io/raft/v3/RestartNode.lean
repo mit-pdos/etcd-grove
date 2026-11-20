@@ -90,7 +90,7 @@ private theorem snapValid_raftCert (γ : Cluster) (N : Namespace) (E : CoPset) (
   icases Hm with ⟨%gr, %K, %key, %Hk, #HK, -⟩
   obtain ⟨Hreg, HkK, Hmat⟩ := Hk
   have hm' := hm
-  obtain ⟨⟨h0, -, hd, -, Hsok, -, -⟩, -⟩ := hm'
+  obtain ⟨⟨h0, -, hd, Hsok, -, -⟩, -⟩ := hm'
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
@@ -132,7 +132,7 @@ private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c :
     iexists 0
     isplitr; · ipureintro; omega
     ileft; iexact H0
-  icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩)⟩
+  icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩), -⟩
   · ileft
     iexists 0
     isplitr; · ipureintro; omega
@@ -408,7 +408,8 @@ private theorem wp_RestartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec
-  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Htlk HtrC
+  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk
+    HtrC
   have HtrG : γ.raft.reTrace = none := HtrC
   wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
   iunfold EtcdGrove.isCluster at Hcl
@@ -826,7 +827,10 @@ private theorem wp_RestartNode_impl
       rw [HtoP1]; simp only [restartP]; exact HI1 rfl
     · intro h; change (toPState s1).role = .leader at h; rw [HtoP1, Hrole1] at h; cases h
     · intro h; change (toPState s1).role = .candidate at h; rw [HtoP1, Hrole1] at h; cases h
-  have Hns : γ.raft.reNoSnap = false := HmA.1.2.2.2.1
+  have Hns : γ.raft.reNoSnap = false := by
+    unfold clusterNoSnap at Hnsm; cases h : γ.raft.reNoSnap
+    · rfl
+    · exact absurd h Hnsm
   ihave Hghost : ownStepGhost γ.raft (RNMode.toG (γ.mode inferInstance) g) (stOf m).cfg cv.ID' s1
       $$ [Hg]
   · rw [Hmd]

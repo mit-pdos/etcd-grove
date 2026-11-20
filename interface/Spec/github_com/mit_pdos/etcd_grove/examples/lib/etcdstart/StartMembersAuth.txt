@@ -5,7 +5,8 @@
 def etcdstart.StartMembersAuth.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (token : GoString) (snapCount catchUp : w64) (msl : GoSlice)
     (lg : Loc) (xs : List (etcdstart.GMember × etcdstart.MemberG GF)) (ps : List w64) (bootLog : List EntryM)
-    (ctxs : List (List w8)) (dir : w64 → List GoString) (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
+    (ctxs : List (List w8)) (dir : w64 → List GoString) (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    (m : lease.Mode),
     threadBound GF ≤ 2 ^ 28 →
       receiptBound GF ≤ 2 ^ 48 →
         receiptBound GF ≤ N + 1 →
@@ -26,38 +27,40 @@ def etcdstart.StartMembersAuth.spec : Prop :=
                           authRecordsFit →
                             apply.backendUnderQuota →
                               storage.diskOk →
-                                ⊢
-                                  ∀ Φ,
-                                    (isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-                                        zapLoggerOk lg ∗
-                                          threadTok ∗
-                                            ownSlice msl (List.map (fun x => x.fst) xs) DFrac.discard ∗
-                                              etcdstart.commonPremises ∗
-                                                context.isClosedchanInit ∗
-                                                  [∗list] x ∈ xs,
-                                                    etcdstart.memberPreOn N token (List.map (fun x => x.fst) xs) ps
-                                                      bootLog ctxs dir Φs γn x) -∗
-                                      (▷
-                                          ∀ ssl err,
+                                (∀ (x : etcdstart.GMember × etcdstart.MemberG GF),
+                                    x ∈ xs → clusterNoSnap x.snd.γ.cl → 2 ^ 48 ≤ uint.Z catchUp) →
+                                  ⊢
+                                    ∀ Φ,
+                                      (isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                          zapLoggerOk lg ∗
                                             threadTok ∗
-                                                (⌜err ≠ GoInterface.nil⌝ ∨
-                                                  ⌜err = GoInterface.nil⌝ ∗
-                                                    ∃ ss,
-                                                      ownSlice ssl ss (DFrac.own 1) ∗
-                                                        [∗list] s;x ∈ ss;xs,
-                                                          iprop(threadTok -∗
-                                                              ∃ γa,
-                                                                etcdstart.memberUpOn s x.snd.ρ x.snd.E lg γn x.snd.id
-                                                                  γa)) -∗
-                                              Φ (intoVal ssl, intoVal err)) -∗
-                                        WP
-                                          ((((((intoVal
-                                                      (functions
-                                                        github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth
-                                                        []))
-                                                    (intoVal msl))
-                                                  (intoVal token))
-                                                (intoVal snapCount))
-                                              (intoVal catchUp))
-                                            (intoVal lg))
-                                          {{ Φ }}
+                                              ownSlice msl (List.map (fun x => x.fst) xs) DFrac.discard ∗
+                                                etcdstart.commonPremises ∗
+                                                  context.isClosedchanInit ∗
+                                                    [∗list] x ∈ xs,
+                                                      etcdstart.memberPreOn N token (List.map (fun x => x.fst) xs) ps
+                                                        bootLog ctxs dir Φs γn x m) -∗
+                                        (▷
+                                            ∀ ssl err,
+                                              threadTok ∗
+                                                  (⌜err ≠ GoInterface.nil⌝ ∨
+                                                    ⌜err = GoInterface.nil⌝ ∗
+                                                      ∃ ss,
+                                                        ownSlice ssl ss (DFrac.own 1) ∗
+                                                          [∗list] s;x ∈ ss;xs,
+                                                            iprop(threadTok -∗
+                                                                ∃ γa,
+                                                                  etcdstart.memberUpOn s x.snd.ρ x.snd.E lg γn x.snd.id γa
+                                                                    m)) -∗
+                                                Φ (intoVal ssl, intoVal err)) -∗
+                                          WP
+                                            ((((((intoVal
+                                                        (functions
+                                                          github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth
+                                                          []))
+                                                      (intoVal msl))
+                                                    (intoVal token))
+                                                  (intoVal snapCount))
+                                                (intoVal catchUp))
+                                              (intoVal lg))
+                                            {{ Φ }}

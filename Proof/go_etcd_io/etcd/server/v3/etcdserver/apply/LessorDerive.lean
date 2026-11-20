@@ -189,14 +189,14 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
         RO := by
   iintro ⟨#Hpkg, #Hmpkg, #Hinv, #Hlens⟩
   iunfold revokeClause
-  iintro !> %id %σ₀ %L %rs %q %B %Pre %Q %Post %Y %Φ !>
-    ⟨Hmr, ⟨%rd, Hro, #Hdel⟩, #Hrev, Hbk, #Hhook, HBT, Hcs, %Hpure, Hau, Hown, Hrvk, #HK, HRO⟩ HΦ
+  iintro !> %id %σ₀ %L %rs %q %B %Pre %Q %Post %Y %w %Φ !>
+    ⟨Hmr, ⟨%rd, Hro, #Hdel⟩, #Hrev, Hbk, #Hhook, HBT, Hcs, %Hpure, Hau, Hown, %Hwd, Hrvk, #HK, HRO⟩ HΦ
   iunfold revokeLens at Hlens
   icases Hlens $$ %B %rs HBT HRO with ⟨HBT, Hrb, %hlp, Hbe, Hcl⟩
-  iapply (hRv lp γ id rd q B (Pk B) f σ₀ L rs.bk Pre Q Post Y) $$
+  iapply (hRv lp γ id rd q B (Pk B) f σ₀ L rs.bk Pre Q Post Y w) $$
     [Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe]
   · iframe Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrev Hdel Hhook
-    ipureintro; exact ⟨Hpure, hlp⟩
+    ipureintro; exact ⟨Hpure, hlp, Hwd⟩
   iintro !> %err ⟨Hmr, Hro, Hbk, Hbe, Hcase⟩
   icases Hcase with
     (⟨%Hnin, ⟨%e, #He, %Herr⟩, HPre, Hown, Hrvk, Hrb⟩ |
@@ -288,14 +288,14 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %id %ttl %L %I %B %rs %Pre %Q %Post %U %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, HBT, #Hgr,
+  · iintro !> %id %ttl %L %I %B %rs %Pre %Q %Post %U %w %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, HBT, #Hgr,
       HRO, HU, HUf⟩ HΦ
     iunfold revokeLens at Hlens
     icases Hlens $$ %B %rs HBT HRO with ⟨HBT, Hrb, %hlp, Hbe, Hcl⟩
     icases Hbe0 $$ %B HBT with ⟨HBT, #Hbd⟩
     iapply (hGrant lp (mvccLeases γ) id ttl L I (Pk B) f (bkWT B) (lease.lessorBeOn lp B.be)
       (bkRT B) (backend.rbPart B.γB (· = mvcc.leaseName)) rs.bk
-      Pre Q Post U) $$ [Hcs Hown Hrvk Hwt Hrt Hbe Hrb HU HUf]
+      Pre Q Post U w) $$ [Hcs Hown Hrvk Hwt Hrt Hbe Hrb HU HUf]
     · iframe; iframe #
     iintro !> %l %err ⟨Hrt, Hbe, (⟨%Hne, #Herr, Hown, Hrvk, HPre, Hrb, HU⟩ |
       ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, Hrb, HU, #Hreq⟩⟩)⟩

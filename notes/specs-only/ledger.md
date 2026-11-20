@@ -25,6 +25,20 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: `leaseStep`'s grant -- a server-chosen id is fresh in the history, the plan says only "not live"
+
+- **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, `leaseStep` (`.leaseGrant`: `σ.leases id' = none`);
+  the real counterpart `writeGrantG` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/ProposeOn.lean`), read by
+  `v3rpc.opGrantT`'s `.leaseGrant` row (frozen `opGrantTN`, `notes/auth-lease-s4-freeze.md`, "Thaw 1").
+- **Defect.** Too weak for a user: a client holding a persistent grant update (auth on) cannot rule out a
+  re-grant of a revoked id, so a later re-delivered put could re-attach a key to it; the auth-lease driver's
+  check 6 (keys of a revoked lease stay deleted) is unprovable.
+- **Evidence.** `questions.md` (auth-lease S4, "Item 9, the Cell: BLOCKER", 2026-11-18); Go: `EtcdServer.LeaseGrant`
+  draws `r.ID` from `reqIDGen` while it is 0 (`v3_server.go:436`), ids distinct per member prefix (`kvGrantIds`).
+- **Proposed change.** Real spec (done, approved): `writeGrantG` gains `∀ g, rqRevGrantId γk.lm rq₀ = some g → ∀ r ≤
+  σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ 0 → kv.lease ≠ g`. Plan: `leaseStep`'s chosen-id case (`id = 0`) adds
+  `id' ∉ σ.granted` (the plan's own history of granted ids), which implies the real form.
+- **Decision.** Real spec: accepted (the user, 2026-11-18, option (A), via etcd-grove-03). Plan change: pending.
 ## 2026-11-18: `SpecPlan/Spec/google_golang_org/grpc/Api.lean` `ctxInMD_agree.spec` -- unprovable from the definitions, false in the intended model, and used by no spec or proof
 
 - **Spec.** `ctxInMD_agree.spec` (`Api.lean:922-925`: `ctxInMD ctx o ∗ ctxInMD ctx o' ⊢ ⌜o = o'⌝`, and the
@@ -2778,6 +2792,124 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `KvNext`'s step disjunct gains `KvOne σ σ'` (every revision the step adds has at most one change);
   `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
 - **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).
+
+## 2026-11-16: auth-lease S4 Freeze rev 2 (review r2): D-h and the lessor law's threshold
+
+- **Spec.** Freeze drafts (not yet in `Spec/`): `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn`'s D-h reply fact;
+  `lessor_keys_of_read`'s threshold; `EtcdServer.LeaseTimeToLive.spec`'s no-keys arm (R1).
+- **Defect.** D-h's `□ (E.authOn = true → ∃ info, principalBoundT …)` is false of Go (with auth disabled in the store,
+  `requireAuthInfo` returns `nil` and a token-less grant succeeds; `E.authOn` is the component, not the flag). The law's
+  threshold `log.length` over `readLogOk γr c log` is false (`log` may extend what the member applied; also off by one).
+  R1's no-keys arm has no server spec to come from (`authedOutB`'s disabled arm is unanchored).
+- **Evidence.** `/shared/tmp/auth-lease-s4/freeze-review-r2.md` (H1, S1, T1); `v3_server.go:1277-1280`;
+  `kvStateOf_rev` (`KVModelDefs.lean:988`).
+- **Proposed change.** Freeze rev 3 (§10 of `notes/auth-lease-s4-freeze.md`): `n`-relative `leaseCheckT … n` replies
+  with a new `authedFrom` on `requireAuthInfo.specC`/`LeaseGrant.spec`/`LeaseRevoke.spec`; the law over the member's
+  store floor `kvLogLb E.γs F`, threshold `F.length - 1`.
+- **Decision.** Pending (Freeze review by etcd-grove-02 and the user).
+
+## 2026-11-16: auth-lease S4 item 7b: the lessor window token threaded in place (thaw approved)
+
+- **Spec.** The write chain from the apply loop to `lease.lessor.Attach`/`Detach` (the list, old → new, in
+  `notes/auth-lease-handoff.md`, "7b plan").
+- **Defect.** The per-member lessor law (`lessor_keys_of_read`, Freeze §5) cannot be proved for a snapshot pushed by
+  the entry still being applied. Its fact must be stored in the lessor's invariant at push time, and `Attach`/`Detach`
+  can prove it only with the entry's target item map (`questions.md`, "Item 7b").
+- **Evidence.** The design review of 2026-11-16 (read only). Each encoding that skips a push-site premise fails: a
+  frozen-item set, per-key tokens, a self-dropping window hidden in `leaseOwn`, epoch tags.
+- **Proposed change.** Every statement of the chain takes `lease.leaseOwnW γl L I w` (`w : Option LWin`) in place of
+  `lease.leaseOwn γl L I`, plus the premise `winStep w I I'`, which is trivial at `none`. `leaseOwn γl L I` becomes
+  `leaseOwnW γl L I none`, so a client that holds `leaseOwn` discharges the new premise trivially: no client's
+  statement gets weaker.
+- **Decision.** Approved by the user, 2026-11-16, via etcd-grove-02: option 2 (in place; no `…specW` siblings). Limits:
+  STOP if the change reaches a closed theorem's statement, needs an axiom, `sorry` or trusted text, or makes a thawed
+  statement weaker for an existing client. `lessorLawMask` gains `lessorRdN` (the form approved with the Freeze).
+- **Landed (step 1-2, lease, 2026-11-17).** Vocabulary: `lease.LWin`, `LWinRec`, `lastWin`, `winStep`, `winStable`,
+  `winEnd`, `winsOk`, `itemsLive`, `winOwn`, `lessorWinTie`, `leaseOwnW γl L I w` (`leaseOwn γl L I` is now the
+  abbreviation `leaseOwnW γl L I none`, as are `lessorUser`/`leaseOwnOpen`/`lessorUserOpen`/`lookupView`/
+  `lookupViewAfter` of their `W` forms), `win_push` (open a window or a free marker). The `NewLessor` axiom's ghost
+  allocation extended (decided by etcd-grove-03, soundness note in `questions.md`, "Item 7b step 1"); its post gains
+  `lessorWinTie γl []`. Thawed, old → new:
+  - `lease.lessor.Attach.spec`: `leaseOwn γl L I` → `leaseOwnW γl L I w ∗ ⌜winStep w I (insertAll I xs id)⌝`, post
+    `leaseOwn γl L (insertAll I xs id)` → `leaseOwnW γl L (insertAll I xs id) w` (∀ `w`; at `none` the old spec).
+  - `lease.lessor.Detach.spec`: the same with `deleteAll I xs`.
+  - `lease.lessor.GetLease.spec`, `Grant.spec`: `leaseOwn γl L I` → `leaseOwnW γl L I w` in pre and post (`w` passed
+    through; at `none` the old spec). `Lookup.spec`: `lookupView γl U`/`lookupViewAfter γl id l U` →
+    `lookupViewW γl w U`/`lookupViewAfterW γl id l w U` (the same).
+  - `Revoke.spec` unchanged so far (its deletes need `mvccDeleter`'s window form, step 3).
+  - Closed results whose text is unchanged and whose meaning gets stronger (decided fine by etcd-grove-03,
+    2026-11-17): `txn/Results.lean` `txn_runTxn` (`lessorUser`), `etcdserver/Results.lean` `server_kv_backend`
+    (post `mvccDeleter`), `lessor_apply_contract` (`isApplyLessor`).
+- **Step 3 (mvcc, 2026-11-17).** Decided by etcd-grove-03 (option (a) of `questions.md`, "Item 7b step 3"):
+  **premise strengthened, discharged by every client.** Old → new:
+  - `mvcc.isLessor le γl` (`InvStore.lean`): the `GetLease`/`Attach`/`Detach` clauses over `leaseOwn γl L I` →
+    `∀ w`, over `leaseOwnW γl L I w` (`Attach`/`Detach` with `⌜winStep w I I'⌝`); `SetRangeDeleter` unchanged.
+  - `txn.isTxnLessor le γl` (`txn/Defs.lean`): `isLessor` as above, and the `Lookup` clause over `lessorUser γl L I`
+    / `lessorUserOpen …` → `∀ w`, over `lessorUserW γl L I w` / `lessorUserOpenW … w`.
+  - Closed results whose premise text is unchanged and whose premise gets stronger: `etcdserver/Results.lean`
+    `server_kv_backend` and its two siblings (lines 939, 1010, 1155: `mvcc.isLessor le γl`), `txn/Results.lean`
+    `txn_runTxn` (`isTxnLessor`). Every client discharges them from the real lessor (`isLessor_of_lessorInv`,
+    `isTxnLessor_of_lessorInv`, which the window-generic lessor specs prove at any `w`).
+  - Form: `winStep w I I'` is now monotone (`I k = T k → I' k = T k`: an item at its target stays there), weaker than
+    the step-1 form (an item changed goes to its target), so that `put`'s `Detach` then `Attach` of a key moving to its
+    target are both steps; `Attach`/`Detach`'s premise gets weaker (their specs stronger). Above the lessor the callers
+    take `winMove w I I'` (the step-1 form) for the whole write, which gives each lessor call's `winStep`
+    (`winStep_pre`/`winStep_post`/`winStep_of_move`).
+  - `mvcc.storeTxnWrite.{put,delete,deleteRange,Put,DeleteRange}.spec`, `metricsTxnWrite.{Put,DeleteRange}.spec`:
+    `leaseOwn γ.leases L (pendItems ilog pend)` → `leaseOwnW … w` in pre and post (∀ `w`, last binder), plus the
+    premise `⌜winMove w (pendItems ilog pend) (pendItems ilog (pend ++ ops))⌝` (`True` at `none`).
+  - `mvcc.api.Txn.Put.contract`: the same (`leaseOwnW … w`, `winMove w (pendItems σ.log pend) (pendItems σ.log (pend
+    ++ [.put k vv leaseID]))`). `Txn.DeleteRange.contract`: `leaseOwnW … w` and `⌜winDrops w (pendItems σ.log pend)
+    (fun it => delSel (decide (endk = slice.nil)) k e it.Key')⌝` (the window drops the range's items: stated over the
+    range, since the caller learns the keys found, `delKeys`, only after the call).
+  - `lease.lessor.Revoke.spec`: `leaseOwn γl L I₀` → `leaseOwnW γl L I₀ w` in pre and both posts (∀ `w`, last
+    binder), plus `⌜winDrops w I₀ (fun it => I₀.lookup it = some id)⌝` (the window drops the lease's items).
+  - Not thawed (left at `leaseOwn`): `KV.Put/DeleteRange.contract`, `writeView.{Put,DeleteRange}.spec` (no apply-loop
+    caller), `mvccDeleter` (the window is in the owner's resource, not in the deleter's transaction).
+- **Step 4 (server txn, 2026-11-17).** Form accepted by etcd-grove-03 (`questions.md`, "Item 7b step 3 forms: reviewed").
+  New vocabulary (`txn/ApiVocab.lean`): `txn.delSelOf o` (the items a delete's range selects), `txn.putItemsOf I o` (the
+  item map after a put request), `txn.WinOp`/`txn.WinOps w s0 r s ops` (built as `OpsOk`: a put's `winMove` to the
+  state its change leaves, a delete's `winDrops` over its range, a nested transaction's chosen branch); lemmas
+  `winOps_none`, `winOps_append`/`_drop`/`_drop'`, `winOp_txn`, `winOps_gets`, `winOp_put_et`, `pendItems_putChangeOf`
+  (`ApiLemmas.lean`). Thawed, old → new (each `∀ w`, last binder; at `none` the old spec):
+  - `txn.put.spec`: `leaseOwn γl L (pendItems σ.log pend)` → `leaseOwnW … w` in pre and post, plus
+    `⌜winMove w (pendItems σ.log pend) (pendItems σ.log (pend ++ [putChangeOf o …]))⌝`.
+  - `txn.deleteRange.spec`: the same with `⌜winDrops w (pendItems σ.log pend) (txn.delSelOf o)⌝`.
+  - `txn.executeTxn.spec`: `(⌜isRead k⌝ ∨ leaseOwn …)` → `(⌜isRead k⌝ ∨ leaseOwnW … w)` in pre and post, plus the pure
+    conjunct `isRead k = true ∨ WinOps w s0 r (mstate k) ops`.
+  - `txn.txn.spec`: `(⌜ro⌝ ∨ leaseOwn …)` → `(⌜ro⌝ ∨ leaseOwnW … w)`, plus `ro = true ∨ WinOps w s0 r s0 branch`.
+  - `txn.Txn.specSole`: `lessorUser γl L I` → `lessorUserW γl L I w` in pre and both posts, plus
+    `⌜WinOps w (stateAfter log) (W64 log.length) (stateAfter log) (t.branch …)⌝`. `specRead` unchanged.
+  - `txn.Put.spec`: `lessorUser` → `lessorUserW … w` (pre, three posts), plus `⌜winMove w I (txn.putItemsOf I o)⌝`.
+  - `txn.DeleteRange.spec`: `leaseOwn γl L I` → `leaseOwnW … w` (pre, both posts), plus
+    `⌜winDrops w I (txn.delSelOf o)⌝`.
+  - `txn.checkLease.spec`, `checkPut.spec`, `checkTxn.spec`: `lessorUser γl L I` → `lessorUserW γl L I w` (passed
+    through; `isTxnLessor`'s `Lookup` is at any window since step 3).
+  - Callers: `txn/Results.lean` `txn_runTxn` (statement unchanged, at `none`: `winOps_none`); the applier's
+    `applierV3backend.{Put,DeleteRange,Txn}` at `none` until step 6.
+- **Step 5 (2026-11-17).** `txn/WinLemmas.lean`: `winOps_of_nodup`, `winOps_txn_of_nodup` (a run whose changes have
+  distinct keys is within the window targeting the items after it). No statement thawed.
+- **Step 6, the permits (2026-11-17).** Decided by etcd-grove-03 (`questions.md`, "Item 7b step 6 decision"): **premise
+  strengthened; every client (the v3rpc handlers) discharges it by `check_gives_nodup` from `siblingSafeL`/
+  `noFromKeyDelL`.** New `txn.txnKeysNodup t` (`WorkloadDefs.lean`: the run's change keys distinct at every sorted
+  start state, as `txnShape`), with `txn.delsPresent_srvOps` and `v3rpc.txnKeysNodup_of_check` (`CheckShape.lean`; no
+  new client premise: the handler's `checkIntervals`, `txnNoZeroEnd` and `siblingSafeL`). Old → new:
+  `txnPermit` (`InvRequest.lean`), `txnPermitOn`, `txnPermitM` (`ReqOn.lean`): `… ∧ txn.txnShape t⌝` →
+  `… ∧ txn.txnShape t ∧ txn.txnKeysNodup t⌝`. Closed result whose premise text is unchanged and gets stronger:
+  `etcdserver/Results.lean` `txn_applied` (`txnPermit`). `ServerKVOn.txnPermitM_of_dep`'s shape hypothesis gains it.
+- **Step 6, the apply thread's premise (2026-11-17).** Form (agent; `questions.md`, "rqShape's conjunct: forms"):
+  `apply.rqOk`'s transaction arm `txn.TxnPreA log t ∧ putOk log` → `… ∧ txn.txnKeysNodup t` (internal: no `Results`
+  statement mentions `rqOk`; producers `rqShape_txnL`/`rqShape_of_txn` discharge it from the permits).
+  `txn.txnKeysNodup` moved to `txn/TxnRun.lean`.
+- **F1-F3, F2 (2026-11-17).** Accepted by etcd-grove-03: `txn.isTxnLessor` gains the window-witness clause (now named
+  `lease.winWitOk`): premise of the closed `txn_runTxn` and of `server_kv_backend`'s chain strengthened, text unchanged,
+  discharged by `isTxnLessor_of_lessorInv` (`lease.win_wit`). `lessor.Revoke.spec`'s begin payload `winWit … -∗ auEnd`.
+  F2: `txn.putAU/delAU/txnBeginAU` = `…W none`, the commit under `lease.winWit … w (pendItems σ₀.log pend) -∗`;
+  `txn.Put/DeleteRange/Txn.spec` take the `W` forms; `txn.DeleteRange.spec` gains `lease.winWitOk (mvccLeases γ)`; the
+  `winMove`/`WinOps` premises of `txn.Put.spec`/`Txn.specSole` move into the begin payloads (forms in `questions.md`).
+- **The applier at a window (2026-11-17, in progress).** `AEnv.win`/`AEnv.Wt` (defaulted fields), `winTgt` in
+  `putPre`/`deletePre`/`txnPre`/`revokePre`, `envAus`' end builder at `∀ w` with the token, `revokeClause` and
+  `isApplyLessor`'s `Grant` at `∀ w` (forms in `questions.md`, "Item 7b F2 and the applier at a window: forms").
 
 ## 2026-11-16: the auth read contract per bucket, the write contract's sessions (auth-schema-srv A0)
 

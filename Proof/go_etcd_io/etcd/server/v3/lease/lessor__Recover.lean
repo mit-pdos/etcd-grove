@@ -46,7 +46,7 @@ theorem lease.lessor.Recover.wp_proof
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I', %rd1, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls,
     Hx, Hhist⟩
-  iunfold leaseOwn at Hown
+  iunfold leaseOwn at Hown; iunfold leaseOwnW at Hown
   icases Hown with ⟨Hown, Hcls⟩
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag

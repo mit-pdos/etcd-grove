@@ -461,7 +461,10 @@ the WAL's synced commit: crash-design §2.3), so it stays this one conjunct, and
 need it (the loop's fact, row 2's `commit0 < snapIdx`) is stated with it. -/
 def rnRestartOk (γ : RNNames GF) : IProp GF :=
   iprop(⌜γ.a0 = [] ∧ γ.t0 = W64 0 ∧ γ.commit0 = 0 ∧ γ.snap0 = 0⌝ ∨
-    (⌜γ.pre = [] ∧ γ.snap0 ≤ γ.a0.length ∧ γ.a0.length ≤ γ.commit0⌝ ∗ srvRLogLb γ.srv γ.a0))
+    -- (auth-lease S4, 2026-11-16) a restart only outside the cluster's no-snapshot mode
+    -- (`RestartNode`'s)
+    (⌜γ.pre = [] ∧ γ.snap0 ≤ γ.a0.length ∧ γ.a0.length ≤ γ.commit0 ∧ ¬ clusterNoSnap γ.node.cl⌝ ∗
+      srvRLogLb γ.srv γ.a0))
 
 instance rnRestartOk_persistent (γ : RNNames GF) : Persistent (rnRestartOk (GF := GF) γ) := by
   unfold rnRestartOk; infer_instance
@@ -475,7 +478,17 @@ theorem rnRestartOk_a0_le (γ : RNNames GF) (c : Nat) (hc : γ.commit0 ≤ c) :
   iintro #Hr
   icases Hr with (%Ha | ⟨%Ha, -⟩)
   · ipureintro; rw [Ha.1]; exact Nat.zero_le _
-  · ipureintro; exact Nat.le_trans Ha.2.2 hc
+  · ipureintro; exact Nat.le_trans Ha.2.2.1 hc
+
+/-- (auth-lease S4, 2026-11-16) **In the cluster's no-snapshot mode, a first start** (`a0 = []`): a
+restart is outside the mode. -/
+theorem rnRestartOk_mode (γ : RNNames) :
+    rnRestartOk (GF := GF) γ ⊢ ⌜clusterNoSnap γ.node.cl → γ.a0 = []⌝ := by
+  unfold rnRestartOk
+  iintro #Hr
+  icases Hr with (%Ha | ⟨%Ha, -⟩)
+  · ipureintro; intro _; exact Ha.1
+  · ipureintro; intro hm; exact absurd hm Ha.2.2.2
 
 /-- (R2d'a task 4; S1, 2026-11-11: derived, until then R2d'a's A8 `rnWinInstallAbove`, a premise)
 **A `Ready`'s snapshot above the restart point**: a snapshot a `Ready` hands the driver at the hard
@@ -1931,7 +1944,9 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp G
       -- (J8b, 2026-11-01) past the boot log (`rnReadySnap_bootLen`, open)
       (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' ∧
       -- (R2d'a task 4) above the restart point (A8's bound, from the receive: `rnBusySP`)
-      (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)⌝ ∗
+      (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length) ∧
+      -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`readySnap_mode`)
+      ¬ clusterNoSnap γ.node.cl⌝ ∗
     -- (2026-11-01, J8a-5) no committed entries with a snapshot (raft's `readySnap`: `ce = []`)
     ap.entries' ↦*□ ([] : List Loc) ∗
     ownSnapM ap.snapshot' DFrac.discard sv ∗

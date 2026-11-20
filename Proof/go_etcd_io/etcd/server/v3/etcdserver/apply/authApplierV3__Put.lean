@@ -35,7 +35,7 @@ theorem apply.authApplierV3.Put.wp_proof
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.putPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, %T, #Hcp, Hm⟩
+  icases Hpre with ⟨%Hk, #Hr, %T, %Hwt, #Hcp, Hm⟩
   ihave #Hcp := apply.certPreT_auth E E.authOn c rq log T $$ Hcp
   icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, Hu, Hkv⟩ := apply.mPreRestAt_lend E log T Pre Q Post $$ Hm
@@ -50,7 +50,7 @@ theorem apply.authApplierV3.Put.wp_proof
   wp_auto
   ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ _ $$ Hle
   wp_apply (hPut st le E.γ E.Pk E.f E.BkTie E.RD E.authMode E.RW _ info (DFrac.own 1) r o T
-      (mvcc.leaseItemsOf (mvcc.stateAfter log))) $$ [$Hst $HleA $Hinfo $Hard $Hu $Hr]
+      (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win) $$ [$Hst $HleA $Hinfo $Hard $Hu $Hr]
     as %err ⟨Hinfo, Hard, Hu, #HeI, %Hoff, #Hcls⟩
   ihave Hkv := Hkv $$ Hard Hu
   cases err with
@@ -82,6 +82,8 @@ theorem apply.authApplierV3.Put.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hwt
     iapply apply.mPreAt_of_rest
     iframe
   iapply HΦ

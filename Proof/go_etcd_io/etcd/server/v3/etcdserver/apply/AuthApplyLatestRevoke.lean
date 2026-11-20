@@ -38,7 +38,8 @@ def apply.revokePreW (E : apply.AEnv GF) (c : apply.Chain) (a : GoInterface)
   iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ apply.putOk log ∧
       (mvcc.stateAfter log).length ≤ 2 ^ 62⌝ ∗
     apply.certPreW E c rq log X ∗
-    apply.leaseRevokeIs r id ∗ apply.mPre E c a info log Pre Q Post ∗ apply.revokeRes E T rs)
+    apply.leaseRevokeIs r id ∗ apply.mPre E c a info log Pre Q Post ∗ apply.revokeRes E T rs ∗
+    ⌜(∃ oc, X oc ∧ oc ≠ .rejected .auth) → apply.winTgt E.win rq log T⌝)
 
 end defs
 
@@ -127,7 +128,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_latest
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.revokePreW at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, Hrr⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, Hrr, %Hwt⟩
   icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, %Lw, Hu, Hkv⟩ := apply.mPreRest_lend E log Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
@@ -186,8 +187,10 @@ theorem apply.authApplierV3.LeaseRevoke.wp_latest
     iframe # Hrr
     isplitr
     · ipureintro; exact Hk
-    iapply apply.mPre_of_rest
-    iframe
+    isplitl
+    · iapply apply.mPre_of_rest
+      iframe
+    ipureintro; exact Hwt (apply.pass_exists c rq log _ (apply.backendStep_exists_revoke rq log id Hk.1 Hk.2.1) Hpass)
   iapply HΦ
   iframe Htt HL
   ihave #Hrc : apply.reqClass (GF := GF) E.authMode info rq $$ []

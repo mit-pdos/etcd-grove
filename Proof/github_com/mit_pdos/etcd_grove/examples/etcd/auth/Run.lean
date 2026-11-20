@@ -112,7 +112,7 @@ theorem Run.wp_proof
     iPkgInit
   (try wp_auto)
   icases etcdstart.memberUpOn_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd0,
-    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, #Htls, #HBF⟩
+    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, #Htls, #HBF, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   -- `Serve(s, clientAddr)`, with the ghost steps `ak_served_kv` (the KV methods with auth on, the
   -- Auth service's admin methods and `Authenticate` at the address) and `ak_served_watch` (the
@@ -150,7 +150,7 @@ theorem Run.wp_proof
     rw [HCA]
     imod (ak_served_kv addr gs q p pa srv lis E { ρ with wait := γw } cid mid C.n
         il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu⟩
+      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, -⟩
     · iframe; iframe #
       iintro !>
       imodintro

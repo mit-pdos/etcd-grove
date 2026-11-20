@@ -1,5 +1,5 @@
 /-
-`(*schema.GroupResource).String`: the trust boundary (apimachinery's `runtime/schema` is translated
+`(*schema.GroupResource).String` (proved since 2026-11-19; was a trust boundary: apimachinery's `runtime/schema` is translated
 types and names only). Goose calls the value method `gr.String()` on the addressable loop variable
 `gr` through the pointer's method set (`consistency.go:203`, the consistency store's error message).
 Go's `GroupResource.String` returns `Resource`, or `Resource + "." + Group`; the spec says only

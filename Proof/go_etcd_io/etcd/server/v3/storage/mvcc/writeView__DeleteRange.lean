@@ -65,7 +65,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   ihave Htx := mvcc.isTxnWrite_toT _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx
   wp_apply (hDel t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e L)
     $$ [$Htx $Hkey $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr⟩
-  · ipureintro; exact ⟨HLp, mvcc.ChPutsLe.nil _⟩
+  · ipureintro; exact ⟨lease.winMove_none _ _, HLp, mvcc.ChPutsLe.nil _⟩
   ihave Htx := mvcc.isTxnWrite_ofT _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx
   (try wp_auto)
   -- the deferred `tw.End()`

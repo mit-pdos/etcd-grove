@@ -93,6 +93,28 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 
+/-- **What serving a member's Lease service takes** (`serve_member`'s post): the premises of
+`etcdstart.lease_served_on` past the packages' initializers and the id credential, at the server `s`
+that `Serve` started on `addr` in lease mode `m`: the server's views in the mode on, its range check and
+lessor reader side, the Lease service's registrations (`grpcLeaseUp`), the three unary interceptors and
+the gRPC server they run in, the revocation loop built and the run pool. authN serves no Lease service
+and drops it; authlease's `serve_member_lease` serves it from this. -/
+def leaseReady (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (m : lease.Mode) :
+    IProp GF :=
+  iprop(∃ (A : v3rpc.KVAns GF) (il im iu : GoFunc) (regs : List (GoString × GoFunc × GoInterface))
+      (γ : GName),
+    ⌜A.revR = mvcc.api.mvccReaders E.γ 1⌝ ∗
+    isServerReqM true s E ρ ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗ srvLeaseRd s E m ∗
+    grpcLeaseUp s A regs ∗
+    srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
+    srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+    grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
+
+instance leaseReady_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (m : lease.Mode) : Persistent (leaseReady addr s E ρ m) := by
+  unfold leaseReady; infer_instance
+
 /-- **A served member's facts** (`serve_member`'s post, at the witnesses): server `s` of member `x`
 with auth on at `γa`, environment `E`, wait names `γw`, cluster and member ids `cid`/`mid`, watch
 server `R`. -/
@@ -147,25 +169,18 @@ theorem mod_len_sint (len : w64) (L c : Nat) (hkl : uint.nat len = L) (hL : 0 < 
   generalize (W64 (c : Int) % len) = x at h3 ⊢
   word
 
-end served
-
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions]
-
 /-- **A member served** (auth3's, copied; `Run`'s `Serve` step): `etcdstart.Serve(s, addr)` with the ghost steps
 `ak_served_kv` and `ak_served_watch`; on success, the member's served facts at its environment and
-the thread token (from the `GoAttach` resources `grpcUpOn` holds). -/
-theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
+the thread token (from the `GoAttach` resources `grpcUpOn` holds), and what serving its Lease service
+in its lease mode `m` takes (`leaseReady`: authN's members are in mode `.none` and drop it; authlease's
+`serve_member_lease` serves the Lease service of its `.revocable` members from it). -/
+theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF))
     (s lg : Loc) (addr : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (γn : NetNames GF)
-    (id : w64) (γa : auth.AuthNames)
+    (id : w64) (γa : auth.AuthNames) (m : lease.Mode)
     (Htb : threadBound GF ≤ 2 ^ 28) (HLv : srvLevels (GF := GF)) (Hrb48 : receiptBound GF ≤ 2 ^ 48)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hms : v3rpc.ServerMethodSets)
     (hlog : ρ.rd.kv.log0 = [[], []]) :
@@ -173,7 +188,7 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ client.eofOk ∗
-        zapLoggerOk lg ∗ netAddrFree addr ∗ etcdstart.memberUpOn s ρ E₀ lg γn id γa }}
+        zapLoggerOk lg ∗ netAddrFree addr ∗ etcdstart.memberUpOn s ρ E₀ lg γn id γa m }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve)) (Val #s))
         (Val #addr))
     {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∨
@@ -183,10 +198,11 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
             □ (srvTLSId s -∗ False) ∗ akKVOn addr s E { ρ with wait := γw } cid mid ∗
             setupAuthServed addr s E { ρ with wait := γw } ∗
             isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) ∗
-            watchAddrFacts (akV addr ρ R) ∗ auth.modeTag R.tag (.on γa)) }} := by
+            watchAddrFacts (akV addr ρ R) ∗ auth.modeTag R.tag (.on γa) ∗
+            leaseReady addr s E { ρ with wait := γw } m) }} := by
   iintro %Φ ⟨#Pst, #Psrv, #Pv3, #Ppb, #Heo, #Hlgz, Haddr, Hup⟩ HΦ
-  icases etcdstart.memberUpOn_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd0,
-    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, #Htls, #HBF⟩
+  icases etcdstart.memberUpOn_served _ _ _ _ _ _ _ m $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd0,
+    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, #Htls, #HBF, #Hlr⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
@@ -197,7 +213,8 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
         akKVOn addr s E { ρ with wait := γw } cid mid ∗
         setupAuthServed addr s E { ρ with wait := γw } ∗
         isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) ∗
-        watchAddrFacts (akV addr ρ R) ∗ auth.modeTag R.tag E.authMode ∗ srvGoRes s)))
+        watchAddrFacts (akV addr ρ R) ∗ auth.modeTag R.tag E.authMode ∗ srvGoRes s ∗
+        leaseReady addr s E { ρ with wait := γw } m)))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -208,14 +225,14 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
       %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgr,
-      Hlis, -⟩
+      Hlis, #Hlu⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     imod (etcdstart.kvServeStocks_pools s E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
     rw [HCA]
     imod (ak_served_kv addr gs q p pa s lis E { ρ with wait := γw } cid mid C.n
         il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu⟩
+      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -232,13 +249,27 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
       $$ [HWok] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
+    -- what serving the Lease service in lease mode `m` takes (`leaseReady`)
+    ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
+    ihave #Him' := Him $$ %v3rpc.learnerReqOk
+    ihave #Hreq' : isServerReqM true s E { ρ with wait := γw } $$ []
+    · rw [← hon]; iexact Hreq
+    ihave #Hrd' : isServerReadM true s E ρ.rd $$ []
+    · rw [← hon]; iexact Hrd0
+    ihave #HLS : leaseReady addr s E { ρ with wait := γw } m $$ []
+    · iunfold leaseReady
+      iexists C.A, il, im, iu, regs, γ
+      isplitl []
+      · ipureintro; rw [HCA]; rfl
+      rw [HCA]
+      iframe #
     imodintro
-    iframe HKV HSA HAu HWF Htag Hgr
+    iframe HKV HSA HAu HWF Htag Hgr HLS
     isplitl [Hserv]
     · iexists γ; iexact Hserv
     ipureintro; exact ⟨hRE, hRs⟩
   iapply HΦ
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag, Hgr⟩⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag, Hgr, #HLS⟩⟩)
   · ileft; ipureintro; exact Hserr
   iright
   iunfold srvGoRes at Hgr
@@ -248,11 +279,20 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
   · ipureintro; exact Hserr
   iexists E, γw, cid, mid, R
   rw [← hon]
-  iframe HKV HSA HAu HWF Hrd0 Htls
+  iframe HKV HSA HAu HWF Hrd0 Htls HLS
   isplitl []
   · ipureintro; exact ⟨HEo, HRQ⟩
   rw [← HEo]; iexact Htag
 
+
+end served
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions]
 
 set_option maxHeartbeats 3200000 in
 set_option maxRecDepth 10000 in
@@ -376,10 +416,10 @@ theorem run.wp_proof
     icases Hcfree with ⟨Hcj, Hcfree⟩
     have hxj : xj ∈ xs := List.mem_of_getElem? Hxj_lookup
     wp_apply (serve_member wp_Serve wp_BcryptCost hP hR sj lg xj.1.Client' xj.2.ρ xj.2.E γn xj.2.id γa
-        Htb HLv Hrb48 Hbuq Hrf Hms (hlogx xj hxj)) $$ [Hcj Hupj] as %serr Hs
+        .none Htb HLv Hrb48 Hbuq Hrf Hms (hlogx xj hxj)) $$ [Hcj Hupj] as %serr Hs
     · iframe; iframe #
     icases Hs with (%Hserr | ⟨%Hserr, Htok, %E, %γw, %cid, %mid, %R, %HR, #Hrd, #Htls,
-      #HKV, #HSA, #HAu, #HWF, #Htag⟩)
+      #HKV, #HSA, #HAu, #HWF, #Htag, -⟩)
     · cases serr with
       | nil => exact absurd rfl Hserr
       | ok ei => ?_

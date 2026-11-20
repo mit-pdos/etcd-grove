@@ -36,8 +36,8 @@ contract's per-call resources `S` and the header's revision reader `A.revR` (whi
 `newHeader()` reads too), at a context and the lower bounds `n`, `m`: `s.LeaseLeases(ctx, r)`,
 `ErrLeaseNotFound` turned into an empty listing, another error through `togRPCError`, then the
 header filled. Everything back, and `leaseLeasesOut`: on success the response with its header
-filled and the server's listing with each lease's verdict (or the empty listing); on an error
-`nil`. -/
+filled and the server's listing with each lease's verdict (the empty-listing arm unreachable: the
+server never returns `ErrLeaseNotFound`, auth-lease S4 Freeze §4.4 F4); on an error `nil`. -/
 abbrev v3rpc.LeaseServer.LeaseLeases.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (γl : GName)
     (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
