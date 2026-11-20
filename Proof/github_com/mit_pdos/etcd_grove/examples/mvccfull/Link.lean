@@ -582,7 +582,7 @@ theorem runner.wp_shut [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem heap.wp_Init_ :
     EtcdGrove.heap.Init_.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.Init_.wp_proof
+  EtcdGrove.heap.Init_.wp_proof heap.wp_down
 
 theorem lease.LeaseExpiredNotifier.wp_Init :
     EtcdGrove.lease.LeaseExpiredNotifier.Init.spec (GF := GF) (hG := hG) :=

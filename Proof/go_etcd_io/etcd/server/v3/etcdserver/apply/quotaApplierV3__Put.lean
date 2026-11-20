@@ -53,7 +53,11 @@ theorem apply.quotaApplierV3.Put.wp_proof :
   icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   wp_auto
   wp_apply HAvail $$ %_ %r [] as %ok %Hok
-  · ipureintro; exact Or.inl rfl
+  · iunfold apply.quotaReqOk
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists o; iexact Hr
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ Hf Hres
   wp_apply HPut $$ %r %rq %o %log %F %Pre %Q %Post [Htt Hm Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
   · iframe Htt

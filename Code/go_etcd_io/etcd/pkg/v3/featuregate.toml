@@ -1,5 +1,7 @@
 # Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
+# (prove-smallinits, 2026-11-20) the `prerelease` constants `features.DefaultEtcdServerFeatureGates`
+# names.
+translate = ["!*", "Alpha", "Beta"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

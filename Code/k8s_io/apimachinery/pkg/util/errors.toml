@@ -1,7 +1,8 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
-imports = ["!*"]
+# (prove-smallinits, 2026-11-20) `ErrPreconditionViolated`, an `errors.New` call (until then `opaqueInitsOk`).
+translate = ["!*", "ErrPreconditionViolated"]
+imports = ["!*", "errors"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

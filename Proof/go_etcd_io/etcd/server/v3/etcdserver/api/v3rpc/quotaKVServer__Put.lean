@@ -31,13 +31,13 @@ theorem v3rpc.quotaKVServer.Put.wp_proof
     (wp_check : v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG) := by
   intro Req Rep Spec q s kv S m Φ' Ψe ci cd r
-  wp_start_folded as ⟨#Hq, #Hh, HS, Hqr, #Hctx, #Hrc, #Hr, HSpec⟩
+  wp_start_folded as ⟨#Hq, #Hh, HS, Hqr, #Hctx, #Hrc, #Hr, #Hquota, HSpec⟩
   rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaKVServer.ty) (m := go!"Put")]
   wp_call
   iunfold v3rpc.quotaKVServerAt at Hq
   icases Hq with ⟨%Hqn, #Hkv, #Hqa⟩
   wp_auto
-  wp_apply wp_check _ s ci r (go.GoType.PointerType etcdserverpb.PutRequest.ty) (Or.inl rfl)
+  wp_apply wp_check _ s ci r (go.GoType.PointerType etcdserverpb.PutRequest.ty)
     $$ [Hqr] as %err ⟨%Herr, Hqr⟩
   · iframe; iframe #
   cases err with

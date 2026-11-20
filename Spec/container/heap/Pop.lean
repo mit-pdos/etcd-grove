@@ -1,5 +1,5 @@
 /-
-`heap.Pop(h)` (`container/heap`, names only: the trust boundary). Lean-first; see
+`heap.Pop(h)` (`container/heap`, translated, proved in `Proof/container/heap/Pop.lean` over `down`; the trust boundary until 2026-11-20). Lean-first; see
 `Proof/container/heap/Defs.lean`. For client-go's delaying queue.
 -/
 module
