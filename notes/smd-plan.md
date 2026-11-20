@@ -975,3 +975,12 @@ the Prove phase's. To do before the walkers' proofs.
   `errors.New`/`fmt.Errorf`; callers have it from conformance).
 - (round 2, D1c) `validatingObjectWalker.validate` dropped its `prefixOk f` premise (no errors on
   conforming values, so `f` is never called; all callers D1c's).
+- (round 2, C2) `isPE` (sealed) carries `UVal.mapLensOk` of key/value elements' values, so `isPE_wf`
+  stays true; `KeyElement` pre `fl.all (·.2.mapLensOk)`; `FieldList.Compare` pre `all mapLensOk` on
+  both lists (only caller `PathElement.Compare`).
+- (round 2, coordinator) `PathSet.card_nodes.law` false at `{[]}`: premise `[] ∉ S` (unused).
+- (round 2, coordinator) `fieldpath.NewSet` takes its paths fractionally (`isPathF`) and gives them
+  back (the reconcile walker owns its path buffer); persistent callers convert by `isPath_isPathF`.
+- (round 2, coordinator) the reconcile walker cluster and `ReconcileFieldSetWithSchema` take a bound
+  on the set's count (< 2^63, `CardLt`), so `Set.Size` is determined; `merge`'s
+  `reconcileManagedFieldsWithSchemaChanges` discharges it from D9's `inputsSmall`.
