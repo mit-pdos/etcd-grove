@@ -109,3 +109,49 @@ session's logical view `L'`: before the commit point the inputs at `S` do not ex
    not Go's behavior (`Snapshot` does not retry), so no.
 3. SpecPlan's history statement for the snapshot (the client reasons about images): moves the same
    question to mvcc's invariant, where the window's logical view is mvcc's own.
+
+**Decided (2026-11-20; the user: "make your own choice ... the top-level robustness theorems should
+have fewer axioms"): option 1.** Why:
+- Option 3 (SpecPlan) does not avoid the question: mvcc's snapshot law observes the frozen writer's
+  state through `W` (`lateW`) and the view quarter (`SnapLaws.lean`, `snapObs`), and compaction's
+  sessions commit in `Unlock` windows while mvcc snapshots, so mvcc's history update would need the
+  same commit-time `W` in a window; and it changes `backend.Snapshot.spec`, mvcc's
+  `mvccImage_snapshot.law`, `KVStoreLaws`/`SnapSendBranch`/`applyAll` on top.
+- A cheaper exclusion (the snapshotter holds a share of the clients' view, `bView`, so no window,
+  which needs the clients' whole half, can be open while it is registered) fails for mvcc: mvcc's
+  clients' half is in the writer's resources inside the batch lock's `W` (`bkView` = `bView`), not
+  with the snapshotter (`mvccReaders` are pool tokens).
+- Option 1 keeps every client-facing spec (mvcc's API, the server's) and the same axiom reduction (all
+  26 collections reaching `backend.Snapshot`); it matches Go (snapshots concurrent with window commits).
+
+**Option 1's restructure.** In a window, `W` exists only as the `Unlock` caller's wand
+`bView γ 1 (relog P vd st) -∗ W ∗ Q` (`batchTxBuffered.Unlock.spec`'s second case), and the clients'
+half is deposited in `cacheInv` while `γ.cur` says `win`. So, in `unsafeCommit`, before
+`batchTx.commit`, a ghost-only step advances what the close advances that does not depend on the new
+read transaction: the history entry `(ver, idx + 1) ↦ (S, R.reset)`, `γ.cur` to it out of the window
+(fresh, so `cacheInv`'s poison condition holds), the view's three fractions to `L'` (`view_upd3`); the
+clients' half then leaves `cacheInv` and the caller's wand gives `W ∗ Q`. The registrations are armed
+with `W`, `Pk` and the lock's halves at `S` (as at an ordinary commit). After the commit a variant of
+`rtRes_cm_close` (from an intermediate `rtCmMid`) does the physical part (the new interval, `γ.rd`,
+`γ.rvs`). `unsafeCommit.spec`'s window case takes the caller's wand and returns `W ∗ Q` in place of
+`bView γ 1 L'`; `Unlock` passes it. Readers cannot see the intermediate state (`readTx.mu` is held
+from `rtRes_cm_open` to the close).
+
+**Arming, refined (2026-11-20).** Arming happens *at* the commit point (in the commit glue, inside bbolt's
+update), from the lock's inputs at `S` passed to `batchTx.commit` (`obsIn γ P W Pk S`, `bStopView`'s
+shape, given back), so that no snapshot can `Begin` between an arming and the data changing. Every call
+of `batchTx.commit` (a commit, or a no-op when nothing is pending: then `S = C`, `sessWf`) arms every
+registration and increments a counter `c` in `cmtInv` at once. The invariant: every registration made at
+a count below `c` has `Q` of the committed data. A registration records the count `n`; `Snapshot`'s own
+`Commit()` gives `cntLb (n + 1)` (a second spec of `batchTxBuffered.Commit`, pre `cntLb n`, post
+`cntLb (n + 1)`, through `commit`/`unsafeCommit`'s same parameter); at `Begin` the registration is armed.
+A registration: the map `γ.txb` (fixed value `(γR, γΨ, n)`, the registrant's element whole), the
+entry in the invariant `∃ R Q, savedProp γR ½ R ∗ savedPred γΨ ½ (λ D, ⌜obsAt P Q D⌝) ∗ R ∗ obsWand … R Q ∗
+⌜n < c → obsAt P Q Dc⌝`. At the commit point each wand is applied to `▷ R` and the inputs, kept by
+`P ⊢ P ∧ P` (the conclusion is pure: `◇`).
+
+**Next steps, in order:** (a) B2 registry defs (`ObsQ`, `obsAt`, `obsWand`, entries with saved
+`R`/saved predicate, `γ.txb` as the map's authority; `viewAt`/`viewAtD` moved to `InvBackend`); (b) arming
+at an ordinary commit (unsafeCommit, before `batchTx.commit`, from `thinV_trans`, `dlVd_of_dlsOk`,
+`bStopG`-like extraction); (c) the window restructure above; (d) arming at `Snapshot`'s own no-op
+commit (`sessWf`'s new fact); (e) B3; (f) B4.

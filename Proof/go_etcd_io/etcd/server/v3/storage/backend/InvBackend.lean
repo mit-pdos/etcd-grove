@@ -1186,6 +1186,21 @@ theorem viewQ_split (γ : BNames) (a b : Qp) (phys L : VData) :
     iframe Hv
     iframe #
 
+-- (backend-snapshot B2, from `InvSnapshot.lean`: the registrations' wands name them)
+/-- **The batch lock's quarter of the readers' view, its physical view at `vd`** (see the file
+header): the quarter at some logical view `L` that `vd` is thin of (question 2, option (a), the
+user's, 2026-10-29: the batch lock's quarter is over the logical view, `batchViewQ`; until then the
+quarter at `vd` itself, an instance: `viewQ_exact`). -/
+def viewAt (γ : BNames) (vd : VData) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L)
+
+/-- **The batch lock's quarter of the readers' view at a commit, with the safe-range buckets'
+deleted entries** (the user's decision, 2026-11-04, probe M2: a snapshot's observation knows the
+safe-range bucket exactly): the quarter at a logical view `L`, the physical view `vd` thin of it,
+and `vd` exactly `L` but the deleted entries `X` on the safe-range buckets (`dlVd`). -/
+def viewAtD (γ : BNames) (P : BParams) (vd X : VData) : IProp GF :=
+  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L ∗ ⌜dlVd P vd L X⌝)
+
 /-- A quarter at an exact view. -/
 theorem viewQ_exact (γ : BNames) (q : Qp) (vd : VData) :
     ghostVar (GF := GF) γ.view q vd ⊢ viewQ γ q vd vd := by
@@ -1628,22 +1643,104 @@ invariant's other case). -/
 /-- The commit invariant's namespace. -/
 abbrev cmtN : Namespace := bN.@"cmt"
 
-/-- **The registered observations at the committed data `D`** (B2: a snapshot's registration
-armed at each commit; until then nothing). -/
-def cmtRegs (_γ : BNames) (_P : BParams) (_W _Pk : IProp GF) (_D : Data) : IProp GF := iprop(True)
+/-! ### Snapshots' observations, registered (B2) -/
 
-instance cmtRegs_timeless (γ : BNames) (P : BParams) (W Pk : IProp GF) (D : Data) :
-    Timeless (cmtRegs (GF := GF) γ P W Pk D) := by
-  unfold cmtRegs; infer_instance
+/-- **A snapshot's observation** (`backend.Snapshot.spec`'s `Q`): a fact of the safe-range view, the
+hook's own keys, the tracked buckets and the compaction keys' values of the committed data. -/
+abbrev ObsQ : Type :=
+  VData → GMap (GoString × GoString) GoString → GMap GoString BktData → FkVals → Prop
+
+/-- The observation `Q` of the data `D`. -/
+def obsAt (P : BParams) (Q : ObsQ) (D : Data) : Prop :=
+  Q (sData P D) (hkData P D) (rbData P D) (fkVals D)
+
+/-- **A snapshot's observation, from `R`** (persistent; `backend.Snapshot.spec`'s premise): with the
+batch lock's resources and its halves of the writer's contents, `R` gives `Q`. -/
+def obsWand (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) : IProp GF :=
+  iprop(□ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData)
+      (v : FkVals), ∀ X : VData,
+      R -∗ W -∗ Pk -∗ viewAtD γ P vd X -∗ dlsOwn γ X -∗ hkOwn γ d -∗ rbOwn γ r -∗ fkdOwn γ v -∗
+        ⌜Q vd d r v⌝))
+
+instance obsWand_persistent (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) :
+    Persistent (obsWand (GF := GF) γ P W Pk R Q) := by
+  unfold obsWand; infer_instance
+
+/-- **The batch lock's inputs to an observation at the writer's contents `S`**: its client
+resources and its halves at `S` (`InvStop.lean`'s `bStopView` without the readers' lower bound);
+what a commit holds at its commit point, where `S` becomes the committed data. -/
+def obsIn (γ : BNames) (P : BParams) (W Pk : IProp GF) (S : Data) : IProp GF :=
+  iprop(W ∗ Pk ∗ (∃ X : VData, viewAtD γ P (sData P S) X ∗ dlsOwn γ X) ∗
+    hkOwn γ (hkData P S) ∗ rbOwn γ (rbData P S) ∗ fkdOwn γ (fkVals S))
+
+/-- An observation's wand applied to the inputs at `S`: `Q` of `S`, the inputs and `R` kept (the
+conclusion is pure). -/
+theorem obsWand_apply (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) (S : Data) :
+    obsIn (GF := GF) γ P W Pk S ∗ R ∗ obsWand γ P W Pk R Q ⊢
+      (obsIn γ P W Pk S ∗ R ∗ obsWand γ P W Pk R Q) ∗ ⌜obsAt P Q S⌝ := by
+  refine (and_intro .rfl ?_).trans persistent_and_sep_mp
+  unfold obsIn obsWand obsAt
+  iintro ⟨⟨HW, HPk, ⟨%X, Hva, Hdl⟩, Hhk, Hrb, Hfk⟩, HR, #Hw⟩
+  iapply Hw $$ HR HW HPk Hva Hdl Hhk Hrb Hfk
+
+/-- The same with `R` and the wand under a later (a registration's, in the commit invariant): `Q` of
+`S` after an `◇`. -/
+theorem obsWand_apply_later (γ : BNames) (P : BParams) (W Pk R : IProp GF) (Q : ObsQ) (S : Data) :
+    obsIn (GF := GF) γ P W Pk S ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢
+      ◇ ((obsIn γ P W Pk S ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q) ∗ ⌜obsAt P Q S⌝) := by
+  have h0 : obsIn (GF := GF) γ P W Pk S ∗ ▷ R ∗ ▷ obsWand γ P W Pk R Q ⊢ ▷ ⌜obsAt P Q S⌝ := by
+    iintro ⟨Hi, HR, Hw⟩
+    inext
+    ihave Hp := obsWand_apply γ P W Pk R Q S $$ [$Hi $HR $Hw]
+    icases Hp with ⟨-, %Hp⟩
+    ipureintro; exact Hp
+  have h := h0.trans (Timeless.timeless (P := iprop(⌜obsAt P Q S⌝)))
+  refine (and_intro except0_intro h).trans ?_
+  refine except0_and.2.trans (except0_mono persistent_and_sep_mp)
+
+/-- **The registry's names** (persistent): the free name `γ.txb` (unused since stage S1) holds, read-only,
+the registry map's `gm` and the commit counter's `gc`. -/
+def cmtNames (γ : BNames) (gm gc : GName) : IProp GF :=
+  dghostVar γ.txb DFrac.discard ((gm, gc) : GName × GName)
+
+instance cmtNames_persistent (γ : BNames) (gm gc : GName) :
+    Persistent (cmtNames (GF := GF) γ gm gc) := by
+  unfold cmtNames; infer_instance
+
+/-- **A registration's entry** at the commit count `c` and the committed data `Dc`, of the
+registration `e = (γR, γΨ, n)` (the saved `R`, the saved observation, the count it was made at): the
+other halves of the saved `R` and observation, `R` itself, the wand, and, once a commit point came after
+it, the observation of the committed data. -/
+def regEntry (γ : BNames) (P : BParams) (W Pk : IProp GF) (c : Nat) (Dc : Data)
+    (e : GName × GName × Nat) : IProp GF :=
+  iprop(∃ (R : IProp GF) (Q : ObsQ), savedPropOwn e.1 (DFrac.own (1 : Qp).half) R ∗
+    savedPredOwn e.2.1 (DFrac.own (1 : Qp).half) (fun D : Data => iprop(⌜obsAt P Q D⌝)) ∗
+    R ∗ obsWand γ P W Pk R Q ∗ ⌜e.2.2 < c → obsAt P Q Dc⌝)
+
+/-- **The registered observations at the committed data `Dc`**: the count of commit points `c`, the
+registrations `M`, each one's entry. -/
+def cmtRegs (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc : Data) : IProp GF :=
+  iprop(∃ (gm gc : GName) (c : Nat) (M : GMap Nat (GName × GName × Nat)), cmtNames γ gm gc ∗
+    monoNatAuthOwn gc 1 c ∗ ghostMapAuth gm 1 M ∗ [∗map] _i ↦ e ∈ M, regEntry γ P W Pk c Dc e)
 
 /-- **The commit invariant's content**: the committed data's other half (`dbHalf`) with the
 registrations at it, or the backend stopped (`Close` has taken the half). -/
 def cmtBody (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
   iprop((∃ Dc : Data, dbHalf γ.db Dc ∗ cmtRegs γ P W Pk Dc) ∨ bStopped γ)
 
-instance cmtBody_timeless (γ : BNames) (P : BParams) (W Pk : IProp GF) :
-    Timeless (cmtBody (GF := GF) γ P W Pk) := by
-  unfold cmtBody bStopped; infer_instance
+/-- **A commit point came after the count `n`** (persistent): a lower bound of the commit counter. -/
+def cntLb (γ : BNames) (n : Nat) : IProp GF :=
+  iprop(∃ gm gc : GName, cmtNames γ gm gc ∗ monoNatLbOwn gc n)
+
+instance cntLb_persistent (γ : BNames) (n : Nat) : Persistent (cntLb (GF := GF) γ n) := by
+  unfold cntLb; infer_instance
+
+/-- **The registration `i` of `R` and `Q`** (exclusive; the snapshot's): its map element, its halves
+of the saved `R` and observation, made at the count `n`. -/
+def regTok (γ : BNames) (P : BParams) (i : Nat) (n : Nat) (R : IProp GF) (Q : ObsQ) : IProp GF :=
+  iprop(∃ (gm gc γR γΨ : GName), cmtNames γ gm gc ∗ ghostMapElem gm i (DFrac.own 1) (γR, γΨ, n) ∗
+    savedPropOwn γR (DFrac.own (1 : Qp).half) R ∗
+    savedPredOwn γΨ (DFrac.own (1 : Qp).half) (fun D : Data => iprop(⌜obsAt P Q D⌝)))
 
 /-- **The backend's commit invariant** (persistent; see the section header). -/
 def cmtInv (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
