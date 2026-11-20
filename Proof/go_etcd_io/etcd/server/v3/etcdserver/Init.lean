@@ -6,7 +6,8 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`: the gauges and counters
 translated, over prometheus's constructor specs, until 2026-11-19 the trust-boundary axioms
-`<X>_init`; the vectors untranslated, the axioms `<X>_init`, with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
+`<X>_init`; the vectors, with their label names, translated over the `New<Kind>Vec` specs, until
+2026-11-19 the axioms `<X>_init`), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
@@ -124,24 +125,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `serverFeatureEnabled = prometheus.NewGaugeVec(..., []string{"name", "stage"})`
-(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
-axiom serverFeatureEnabled_init :
-    {{ (True : IProp GF) }} (App (Val serverFeatureEnabled.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr serverFeatureEnabled ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"name", go!"stage"]⌝ }}
-
-/-- `serverID = prometheus.NewGaugeVec(..., []string{"server_id"})`
-(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
-axiom serverID_init :
-    {{ (True : IProp GF) }} (App (Val serverID.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr serverID ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"server_id"]⌝ }}
-
-/-- `requestDurationSec = prometheus.NewHistogramVec(..., []string{"type", "success"})`
-(`metrics.go`): a `*HistogramVec` with those label names (`vecLabels`). -/
-axiom requestDurationSec_init :
-    {{ (True : IProp GF) }} (App (Val requestDurationSec.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr requestDurationSec ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"type", go!"success"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver
 end opaqueInits

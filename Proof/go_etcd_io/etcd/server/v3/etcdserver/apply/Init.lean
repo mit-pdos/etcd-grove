@@ -5,7 +5,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.apply`
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`applyInit`, `Base.lean`): its gauge vector `alarms` with its label names
-(`metrics.go`, untranslated: the trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
+(`metrics.go`, translated, over prometheus's `NewGaugeVec` spec; until 2026-11-19 the
+trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
 (`applyErrVars`), from their packages' facts (`etcdserver/errors`', `lease`'s, `mvcc`'s), leaf
 errors by `EtcdGrove.ErrorStringLeaf`.
 -/
@@ -71,12 +72,6 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-/-- `alarms = prometheus.NewGaugeVec(..., []string{"server_id", "alarm_type"})`
-(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
-axiom alarms_init :
-    {{ (True : IProp GF) }} (App (Val alarms.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr alarms ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"server_id", go!"alarm_type"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.apply
 end opaqueInits

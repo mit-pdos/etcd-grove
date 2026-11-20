@@ -2,18 +2,15 @@
 # transport, peers, stream writers and readers, the pipeline, remotes, the pipeline and stream
 # handlers, the two codecs, the URL picker, the peer status and the request helpers; (2026-10-24,
 # stage 7c) the snapshot stream (the sender, its handler, `SendSnapshot`, `peer.sendSnap`). Names
-# only: the probes, the package variables' and metrics' initializers and `init`, and the round
+# only: the probes, the package variables' initializers and `init`, and the round
 # trippers' and listener's constructors (the HTTP boundary's). (const-inits, 2026-11-19) The
 # initializers of constants, `fmt.Errorf` errors and literals translated: the timeouts and
 # intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`, `proberInterval`, ...),
-# `errMemberNotFound` and `supportedStream`.
+# `errMemberNotFound` and `supportedStream`. (metric-vecs, 2026-11-19) The metric vectors'
+# initializers translated (metrics.go), over prometheus's `New<Kind>Vec` specs.
 translate = ["*", "!init.*",
   "!addPeerToProber", "!monitorProbingStatus",
   "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper", "!waitSchedule",
-  "!activePeers", "!disconnectedPeers", "!sentBytes", "!receivedBytes", "!sentFailures",
-  "!recvFailures", "!snapshotSend", "!snapshotSendInflights", "!snapshotSendFailures",
-  "!snapshotSendSeconds", "!snapshotReceive", "!snapshotReceiveInflights",
-  "!snapshotReceiveFailures", "!snapshotReceiveSeconds", "!rttSec",
   # the package variables' initializers (errors, the stream table, timeouts, URL prefixes):
   # untranslated for now, run by `Init.lean`'s `opaqueInitsOk`; their values become facts with
   # the HTTP boundary (stage 2), where the proofs first read them
