@@ -109,7 +109,9 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
           uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧
           (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' ∧
           -- (R2d'a task 4) above the restart point (`rnApSnap`'s, A8's bound)
-          (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)⌝ ∗
+          (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length) ∧
+          -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode
+          ¬ clusterNoSnap γ.node.cl⌝ ∗
         ap.entries' ↦*□ ([] : List Loc) ∗ ownSnapM ap.snapshot' DFrac.discard sv ∗
         (letI := srvStor (GF := GF) γ.node
          snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗

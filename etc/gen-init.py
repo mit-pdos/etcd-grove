@@ -97,6 +97,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth3',
          # authN (2026-11-15, notes/authN-plan.md): auth3 with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.authN',
+         # auth-lease S4 (2026-11-17, notes/auth-lease-s4-draft.md): authN's start with the lease rows
+         'github_com.mit_pdos.etcd_grove.examples.etcd.authlease',
          # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
          'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
@@ -3030,6 +3032,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.authN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.authlease':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':

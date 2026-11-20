@@ -17,7 +17,7 @@ taking `lg`, which replaced the draft `kv_lease_grant_served`), `LeaseGrant` and
 registered at the specs at the lessor's history instead (`etcdLeaseGrantAt`): a grant's reply carries
 its lease's grant (`etcdLeaseGrantSpec`), and a listing lists every grant the caller hands in
 (`etcdLeaseLeasesSpec`); the KV's registrations are not passed on (the KV service makes no claim in
-that cluster, the plan's Q1). The grant handler calls the server's (`v3rpc.lessorGrantOkL_server`).
+that cluster, the plan's Q1). The grant handler calls the server's (`v3rpc.lessorGrantOkLM_server`).
 `kv_lease_served_false`: the post at `lg = false`, as before. `kv_lease_served_watch` (lease-mono3's
 pass 2(c), 2026-11-06): the same, with the member's `Watch` stream served at the address,
 `noRefusalAt` and `srvGoRes` (what `cluster3.memberServed` keeps in every lease mode).

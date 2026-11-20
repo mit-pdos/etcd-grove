@@ -50,7 +50,7 @@ theorem apply.applierV3backend.Range.wp_proof
   icases Haus with ⟨-, #HauR, -⟩
   iunfold apply.isApplyKV at Hkv
   icases Hkv with #Hkv
-  ihave Hau := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hw []
+  ihave Hau := HauR $$ %log %c %(srvApi.wStQ E.γs E.stq log c) Hw []
   · iintro Hw; iexact Hw
   iunfold srvApi.auRead at Hau
   iStructNamed Hopts

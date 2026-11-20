@@ -132,7 +132,7 @@ theorem srvApplyKVM_open (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)
     (x : apply.ApplyKV) (st : auth.AuthState) :
     srvApplyKVM (GF := GF) on s E γw x st ⊣⊢
       iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
-        apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ kvAuthM on s E ua st ∗
+        srvApplyKVW E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ kvAuthM on s E ua st ∗
         (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
           waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
         (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ)) := by

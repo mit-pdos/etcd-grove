@@ -76,3 +76,8 @@ compaction revision, the tombstone, and `scheduleCompaction` deletes the put's b
 watch from that revision gets the `DELETE` alone. The root cause is the same (a revision with two
 changes of one key), and the cheap fix removes both. With the watch consequence, a follow-up comment
 on #16380 has more to say than the cost argument.
+
+A further consequence (2026-11-17, auth-lease S4 item 7b): with a nested put and a later sibling's delete of the same
+key carrying a lease, the apply attaches the key to the lease and then detaches it within one entry, so a concurrent
+lessor reader (`LeaseTimeToLive` with keys) can see the item transiently, at no revision; the proof's write permit
+excludes it (`txn.txnKeysNodup` in `txnPermit`/`txnPermitOn`, from `v3rpc.txnKeysNodup_of_check` under `siblingSafeL`).

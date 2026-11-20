@@ -299,7 +299,7 @@ did not yet fix); `applyBuiltOn` holds the same parts; (2026-11-04) the range de
 def srvApplyKVOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
-    apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyResB s E st ∗
+    srvApplyKVW E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyResB s E st ∗
     (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ))
@@ -365,7 +365,7 @@ theorem authOn_false_of_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI 
   imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %Hch
   iunfold srvApplyKV at Hkv
   icases Hkv with ⟨%ua, Hua, Hap, Hakv, Hrest⟩
-  icases applyKV_authOn E ua x $$ Hakv with ⟨Hakv, %Hc⟩
+  icases srvApplyKVW_authOn E ua x $$ Hakv with ⟨Hakv, %Hc⟩
   iunfold kvApplied at Hka
   icases Hka with ⟨Hka, %Hx⟩
   imodintro
@@ -384,13 +384,13 @@ theorem authOn_false_of_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI 
 thread's start, `kvRun`; the auth-mode merge, 2026-10-29: `start`'s reader view's gated row). -/
 theorem authOn_false_of_run (E : apply.AEnv GF) (γr : ReadNames) (ua : GoInterface)
     (x : apply.ApplyKV) (ai₀ c₀ : w64) (A : List EntryModel) :
-    srvKVInvs (GF := GF) E γr ∗ apply.applyKV E ua x ∗ kvRun γr ai₀ c₀ A x ={⊤}=∗
-      ⌜E.authOn = false⌝ ∗ apply.applyKV E ua x ∗ kvRun γr ai₀ c₀ A x := by
+    srvKVInvs (GF := GF) E γr ∗ srvApplyKVW E ua x ∗ kvRun γr ai₀ c₀ A x ={⊤}=∗
+      ⌜E.authOn = false⌝ ∗ srvApplyKVW E ua x ∗ kvRun γr ai₀ c₀ A x := by
   iintro ⟨#Hki, Hakv, Hkr⟩
   iunfold srvKVInvs at Hki
   icases Hki with ⟨#Hki, -⟩
   imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %Hch
-  icases applyKV_authOn E ua x $$ Hakv with ⟨Hakv, %Hc⟩
+  icases srvApplyKVW_authOn E ua x $$ Hakv with ⟨Hakv, %Hc⟩
   iunfold kvRun at Hkr
   icases Hkr with ⟨Hka, %Hr⟩
   iunfold kvApplied at Hka

@@ -999,7 +999,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   icases Hspec with ⟨#HΨe, %F, #HF, Hspec⟩
   ihave ⟨%d, Hdep, %Hdp, Hk⟩ : iprop(∃ d : v3rpc.KVDep GF,
       v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.mdTokenOf md) d ∗
-      ⌜v3rpc.kvDepPreM E.authOn d (.put o)⌝ ∗
+      ⌜v3rpc.kvDepPreML E.authOn ρ.kv.lm d (.put o)⌝ ∗
       ∀ m : PutRespM, putReplied E ρ.rd F o (v3rpc.opDepQ d) cid mid m -∗
         (⌜E.authOn = false⌝ → kvRevLb ρ.rd.kv m.hdr.revision) -∗
         (⌜E.authOn = true⌝ → v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut o)) -∗
@@ -1033,7 +1033,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iexact H0
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
   iapply wp_fupd
-  iapply (v3rpc.put_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) (auth.mdTokenOf md) r o F d 0) $$
+  iapply (v3rpc.put_end_to_endML p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) (auth.mdTokenOf md) r o F d 0) $$
     [Hlt Hsr Hlg Hrd Hard Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
@@ -1703,7 +1703,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   icases Hr with ⟨#Hreq, #Hw⟩
   ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]
   ihave ⟨%d, Hdep, %Hdp, %HdQ⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.mdTokenOf md) d ∗
-      ⌜v3rpc.kvDepPre d (.txn t.cmps ts es)⌝ ∗
+      ⌜v3rpc.kvDepPreL (E.authOn = true ∧ ρ.kv.lm = .revocable) d (.txn t.cmps ts es)⌝ ∗
       ⌜(txn.txnReadonly t = true ∧ ((d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q)) ∨
         (txn.txnReadonly t = false ∧ d = .op1 (.txn t) Q)⌝) $$ [Hnp]
   · icases Hnp with (%Hro | ⟨%Hrs, #Hau⟩ | ⟨%Hw, Hau⟩)
@@ -1738,7 +1738,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       right
       have hfl := v3rpc.txnModelOf_ops Hmod
       obtain ⟨-, hpl, hnz, hn1, hn2, hs1, hs2⟩ := Hw
-      exact ⟨⟨Q, rfl⟩, hpl, hnz,
+      exact ⟨⟨Q, rfl⟩, hpl.imp id (fun h => ⟨⟨h.1, h.2.1⟩, h.2.2⟩), hnz,
         siblingSafeL_of_model ts t.thenOps hfl.1 hs1,
         siblingSafeL_of_model es t.elseOps hfl.2 hs2, hn1, hn2⟩
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
@@ -1751,7 +1751,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   ihave Hu := HNR
   imod Hu with Hid
   iapply wp_fupd
-  iapply (v3rpc.txn_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) (auth.mdTokenOf md) r t.cmps ts es F d na) $$ [Hlt Hsr Hlg Hrd Hid Hdep]
+  iapply (v3rpc.txn_end_to_endML p s E ρ γr c cid mid n (GoInterface.ok ci) (auth.mdTokenOf md) r t.cmps ts es F d na) $$ [Hlt Hsr Hlg Hrd Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
     isplitl []
@@ -3570,7 +3570,7 @@ From the gRPC handler down to the server's lessor (`v3rpc/InvLease.lean`): the g
 `RegisterLeaseServer` is given (`NewQuotaLeaseServer(s)`: its `LeaseGrant` checks the quota first,
 its `LeaseRevoke` is the embedded `*LeaseServer` `lp`'s, promoted), `LeaseServer.LeaseGrant` and
 `LeaseServer.LeaseRevoke` (the server's call, then the header filled), over the server's lease
-methods taken as a contract (`v3rpc.raftLessor s E S`, a premise, as the KV's `raftKV`), meet
+methods taken as a contract (`v3rpc.raftLessorM E.authOn s E ρ S`, a premise, as the KV's `raftKV`), meet
 the client's specs `etcdLeaseGrantSpecAny`/`etcdLeaseRevokeSpec` at the server's model of etcd
 (`v3rpc.etcdModelOfServer E`): `etcd_lease_served` registers them at `addr`, and
 `client_lessor_isEtcdLease_served`/`client_new_isEtcdLeaseClient_served` restate the client's
@@ -3578,7 +3578,10 @@ lease results over those premises instead of the registrations (the keep-alive s
 `leaseKAStreamOk`, still a premise). `etcd_kv_lease_served` serves the KV's and the Lease's unary
 methods together (one `grpc.serve`: the run slot `etcdGrpcSlot`, the lessor contract at the KV
 handlers' slot `etcdRunSlot`). The server side (`EtcdServer.LeaseGrant`/`LeaseRevoke` through
-`raftRequest`, meeting `raftLessor`) is not done: blocked on the lease workload's design.
+`raftRequest`, meeting `raftLessorM`) is `v3rpc`'s `lessorGrantOkLiveM_server`/`lessorRevokeOkM_server`.
+(Auth-lease S4, the C5′ merge, D5, 2026-11-16: the contract is `raftLessorM E.authOn s E ρ S`, until
+then the auth-off `raftLessor s E S`; these results are auth-off, `E.authOn = false`, from
+`isServerReq` or a premise of the two handler results.)
 -/
 
 section lease_served
@@ -3596,26 +3599,27 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 server's model, with the lessor contract's run resource `S`: `LeaseServer.LeaseGrant`'s answer, its
 header persisted, is the reply's message. -/
 theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
-    (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) (hNx : E.Nx = srvApi.kvNx γr on) (S : IProp GF) :
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (on : Bool) (hNx : E.Nx = srvApi.kvNx γr on)
+    (hoff : E.authOn = false) (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessor s E S ⊢
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessorM E.authOn s E ρ S ⊢
       grpcHandlerOwnOk (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseGrant") S
         (etcdLeaseGrantSpecAny (EM := v3rpc.etcdModelOfServer E γr on)) := by
+  rw [hoff]
   iintro ⟨#Pv, #Hat, #HL⟩
   unfold grpcHandlerOwnOk
   iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hid, Hspec⟩ HΨ
   rw [show (pbLeaseGrantRequest (GF := GF)).recv r m = v3rpc.leaseGrantReqIs r m from rfl]
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
-  ihave #HLG := v3rpc.raftLessor_grantG s E S $$ HL
-  -- (auth-lease S3c) the handler's spec at auth off: the contract by `_false`, the off permit
-  ihave #HLM := (v3rpc.lessorGrantOkGM_false s E (⟨γr.kv.st, γr⟩ : ReqNames) S (fun _ _ => iprop(True))
-      (fun _ => True)).2 $$ HLG
+  -- (auth-lease S3c) the handler's spec at auth off, the off permit
+  ihave #HLM := v3rpc.raftLessorM_grantG false s E ρ S $$ HL
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn0
   ihave #HtokF : iprop(□ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ci) none)) $$ []
   · iintro !> %h; cases h
-  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S
-      (fun _ _ => iprop(True)) (fun _ => True) ci none cd r m (fun _ _ => iprop(True))) $$ [HS Hid]
+  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid false E ρ S
+      (fun _ _ => iprop(True)) (fun _ => True) ci none cd r m (fun _ _ => iprop(True)) 0) $$ [HS Hid]
   · iframe; iframe #
     isplitr
     · ipureintro; trivial
@@ -3660,27 +3664,26 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
 /-- **etcd's `LeaseRevoke` handler meets etcd's `LeaseRevoke` spec** (as
 `etcd_leaseGrantHandlerOk`). -/
 theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
-    (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) (hNx : E.Nx = srvApi.kvNx γr on) (S : IProp GF) :
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (on : Bool) (hNx : E.Nx = srvApi.kvNx γr on)
+    (hoff : E.authOn = false) (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessor s E S ⊢
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessorM E.authOn s E ρ S ⊢
       grpcHandlerOk (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseRevoke") S
         (etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E γr on)) := by
+  rw [hoff]
   iintro ⟨#Pv, #Hat, #HL⟩
   unfold grpcHandlerOk
   iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   rw [show (pbLeaseRevokeRequest (GF := GF)).recv r m = v3rpc.leaseRevokeReqIs r m from rfl]
   iapply wp_fupd
-  -- (auth-lease S3c) the handler's spec at auth off: the revocation contract by `_false`, the off permit
-  ihave #HLR : v3rpc.lessorRevokeOkM false s E (⟨γr.kv.st, γr⟩ : ReqNames) S $$ []
-  · iapply (v3rpc.lessorRevokeOkM_false s E _ S).2
-    iunfold v3rpc.raftLessor at HL
-    icases HL with ⟨-, #HR⟩
-    iexact HR
+  -- (auth-lease S3c) the handler's spec at auth off, the off permit
+  ihave #HLR := v3rpc.raftLessorM_revoke false s E ρ S $$ HL
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn0
   ihave #HtokF : iprop(□ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ci) none)) $$ []
   · iintro !> %h; cases h
-  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S ci none cd r m
-      (fun _ => iprop(True))) $$ [HS]
+  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid false E ρ S ci none cd r m
+      (fun _ => iprop(True)) 0) $$ [HS]
   · iframe; iframe #
     iunfold leaseRevokePermitM
     itrivial
@@ -3907,7 +3910,7 @@ theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
-        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessor s E S ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessorM E.authOn s E ρ S ∗
         v3rpc.quotaLeaseServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
@@ -3916,9 +3919,10 @@ theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
       [∗list] m ∈ etcdLeaseMethods q E γr,
         grpcMethodOkMd #m.handler m.srv [il, im, iu] (etcdLeaseSlot s S) m.spec := by
   iintro ⟨#Pv, #Ps, #Hsrv, #HNR, #Hat, #HL, #Hq, #Hil, #Him, #Hiu⟩
-  ihave #Hg := etcd_leaseGrantHandlerOk lp s A cid mid E γr false hNx S $$ []
+  ihave %hoff := isServerReq_authOff s E ρ $$ Hsrv
+  ihave #Hg := etcd_leaseGrantHandlerOk lp s A cid mid E ρ γr false hNx hoff S $$ []
   · iframe #
-  ihave #Hr := etcd_leaseRevokeHandlerOk lp s A cid mid E γr false hNx S $$ []
+  ihave #Hr := etcd_leaseRevokeHandlerOk lp s A cid mid E ρ γr false hNx hoff S $$ []
   · iframe #
   ihave #Hg' := grpcHandlerOwnOk_frame _ _ (srvLgReader s)
     (etcdLeaseGrantSpecAny (EM := v3rpc.etcdModelOfServer E γr false)) $$ Hg
@@ -4002,7 +4006,7 @@ the `*quotaLeaseServer` `q` over the `*LeaseServer` `lp` (`etcdLeaseRegs q` amon
 methods; per-type stage B3: each run on a fork of grpc's, borrowing from the server's built pools and
 run pool a bundle that holds `etcdLeaseSlot s S`, `h1`, `h2`), registers etcd's `LeaseGrant` and
 `LeaseRevoke` specs at `addr` at the server's model of etcd (`isGrpcRpc`), given the server's lease
-methods' contract (`raftLessor s E S`, a premise: the server side through raft is not done). -/
+methods' contract (`raftLessorM E.authOn s E ρ S`, a premise). -/
 theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
     (A : v3rpc.KVAns GF) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) (S F : IProp GF)
     (il im iu : GoFunc) (regs : List (GoString × GoFunc × GoInterface)) (γ : GName)
@@ -4013,7 +4017,7 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
-        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessor s E S ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessorM E.authOn s E ρ S ∗
         v3rpc.quotaLeaseServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
@@ -4047,7 +4051,7 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
 /-- **etcd's server serves its KV and Lease methods** (one gRPC server: `etcd_kv_served` and
 `etcd_lease_served` together, as `grpc.serve` takes every served method at once): the run slot is
 the KV's `etcdGrpcSlot`, and the lessor contract is at the KV handlers' slot without its `lgMu`
-reader, `etcdKVSlot s E γr` (what the server-side proof of `raftLessor` must meet; per-type stage
+reader, `etcdKVSlot s E γr` (what the server-side proof of `raftLessorM` must meet; per-type stage
 B3: each run on a fork of grpc's, borrowing from the server's built pools and run pool). -/
 theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n lcid lmid : w64)
@@ -4062,7 +4066,7 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
         v3rpc.quotaKVServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
         v3rpc.leaseServerAt lp s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) lcid lmid ∗
-        v3rpc.raftLessor s E (etcdKVSlot s E γr) ∗
+        v3rpc.raftLessorM E.authOn s E ρ (etcdKVSlot s E γr) ∗
         v3rpc.quotaLeaseServerAt ql
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
@@ -4106,7 +4110,7 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
 /-- **The client's lessor meets the clients' lease contract against etcd's server**
 (`client_lessor_isEtcdLease` at the server's model, its registrations from `etcd_lease_served`):
 the premises are the server's (built with the Lease service on `q` over `lp`, the lessor contract
-`raftLessor s E S`, its pools and a bundle holding `etcdLeaseSlot s S`) and the keep-alive stream's (`leaseKAStreamOk`, still a
+`raftLessorM E.authOn s E ρ S`, its pools and a bundle holding `etcdLeaseSlot s S`) and the keep-alive stream's (`leaseKAStreamOk`, still a
 premise). -/
 theorem client_lessor_isEtcdLease_served (l : Loc) (addr : GoString)
     (lp q s : Loc) (A : v3rpc.KVAns GF) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
@@ -4120,7 +4124,7 @@ theorem client_lessor_isEtcdLease_served (l : Loc) (addr : GoString)
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
-        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessor s E S ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessorM E.authOn s E ρ S ∗
         v3rpc.quotaLeaseServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
@@ -4152,7 +4156,7 @@ theorem client_new_isEtcdLeaseClient_served (cl : Loc) (ep : GoString)
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
-        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessor s E S ∗
+        v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessorM E.authOn s E ρ S ∗
         v3rpc.quotaLeaseServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗

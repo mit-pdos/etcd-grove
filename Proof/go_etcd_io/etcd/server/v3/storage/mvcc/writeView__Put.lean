@@ -65,7 +65,7 @@ theorem mvcc.writeView.Put.wp_proof
   -- `tw.Put(key, value, lease)`
   wp_apply (hPut t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID L)
     $$ [$Htx $Hkey $Hval $Hown] as ⟨Htx, Hown⟩
-  · ipureintro; exact ⟨Hklen, Hkvb, Hlease⟩
+  · ipureintro; exact ⟨Hklen, Hkvb, Hlease, lease.winMove_none _ _⟩
   (try wp_auto)
   -- the deferred `tw.End()`
   rw [List.nil_append]

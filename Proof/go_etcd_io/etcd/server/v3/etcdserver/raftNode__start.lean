@@ -231,7 +231,7 @@ theorem raftNode.start.wp_proof
         obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
         iunfold readySnap at HrSn
         icases HrSn with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HcLbS,
-          #HsnLoc, -⟩
+          #HsnLoc, -, %Hrns⟩
         obtain ⟨-, Hptr, -, -, -, -, -, -, -, Hli⟩ := Hl
         -- the snapshot's log `A'`, `pre ++ A'` the snapshot's index long
         have hlenA : (γ.pre ++ A').length = uint.nat l.snap.Metadata'.Index' := by
@@ -550,7 +550,8 @@ theorem raftNode.start.wp_proof
             simp only [Int.toNat_natCast]
             iframe Hcn Hcn1 HC Hc2M Hcert HsnLoc Hcal
             isplitr
-            · ipureintro; exact ⟨HLA, hlenA, Hb61, Hbb, Hbwa.imp_right (fun h => by rw [hlenA]; exact h)⟩
+            · ipureintro
+              exact ⟨HLA, hlenA, Hb61, Hbb, Hbwa.imp_right (fun h => by rw [hlenA]; exact h), Hrns⟩
             isplitr
             · ihave %HceL : iprop(⌜ceL.length = ([] : List EntryModel).length⌝) $$ []
               · iunfold entriesAt at Hcea; icases Hcea with ⟨%H, -⟩; ipureintro; exact H
@@ -702,7 +703,8 @@ theorem raftNode.start.wp_proof
           ihave Hlog := memStorLog_to γ.ms γ.γs _ _ _ $$ Hreg Hlog
           ihave Hend := memStorEnd_to γ.ms γ.γs _ $$ Hreg Hend
           ihave #HBJ : (memStorJ γ.node.cl γ.key).B (uint.nat l.snap.Metadata'.Index') $$ []
-          · unfold memStorJ; iExactEq Hgiven; rfl
+          · iapply memStorJ_B_off γ.node.cl γ.key _ Hrns
+            iExactEq Hgiven; rfl
           ihave #HsvJ : (memStorJ γ.node.cl γ.key).SV l.snap $$ []
           · unfold memStorJ; iexact HsvV
           ihave #HDLJ : (memStorJ γ.node.cl γ.key).DL (uint.nat l.snap.Metadata'.Index') $$ []

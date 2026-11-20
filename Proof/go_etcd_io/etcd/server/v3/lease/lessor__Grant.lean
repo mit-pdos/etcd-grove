@@ -42,7 +42,7 @@ theorem lease.lessor.Grant.wp_proof
     (hReg : lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG))
     (hSched : lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG)) :
     lease.lessor.Grant.spec (GF := GF) (hG := hG) := by
-  intro lp γl id ttl L I0 P f T Ln R Rb rb Pre Q Post U
+  intro lp γl id ttl L I0 P f T Ln R Rb rb Pre Q Post U w
   wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hrvk, Hcs, Hwtk, Hln, Hrtk, HRb, #Hgr, HUo, Hfr⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -125,7 +125,7 @@ theorem lease.lessor.Grant.wp_proof
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
-  iunfold leaseOwn at Hown
+  iunfold leaseOwnW at Hown
   icases Hown with ⟨Hown, Hcls⟩
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
@@ -152,7 +152,7 @@ theorem lease.lessor.Grant.wp_proof
     ileft
     iunfold srvApi.csContractA at Hcs
     icases Hcs with ⟨HPre, -, -⟩
-    iunfold leaseOwn
+    iunfold leaseOwnW
     iframe Hown Hcls Hrvk HPre HRb HUo
     isplitr
     · ipureintro; exact ⟨fun h => (by cases h), Or.inr (Or.inr ((HL id).2 (by rw [hM]; rfl)))⟩
@@ -191,7 +191,7 @@ theorem lease.lessor.Grant.wp_proof
     -- the live set grows; the lessor's state and its history with the new lease
     iapply fupd_wp
     imod closers_grant γl lp L M id l rc I I0 sm (grantTTL mt ttl) ⊤ (fun _ _ => CoPset.mem_full)
-      Hlnn hM HL U ttl (grantTTL_ge mt ttl)
+      Hlnn hM HL U ttl (grantTTL_ge mt ttl) w
       $$ [$Hrd $Hfr $HUo $Ha $Hcls $Hrvk $Hhist $Httl $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest]
       with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID, #Hlive, HUo, #Hreq⟩
     imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
@@ -273,7 +273,7 @@ theorem lease.lessor.Grant.wp_proof
     iapply HΦ
     iframe Hrtk Hln
     iright
-    iunfold leaseOwn
+    iunfold leaseOwnW
     iframe Hown Hcls Hrvk HPost HID Hlive
     isplitr
     · ipureintro; exact ⟨rfl, Hlnn, hid0, httl, hnot⟩

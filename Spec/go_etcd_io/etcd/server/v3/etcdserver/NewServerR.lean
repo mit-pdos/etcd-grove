@@ -67,6 +67,8 @@ abbrev NewServer.specR : Prop :=
   -- the restarted names the stopped ones where the cluster sees them
   restartNames ρo ρ →
   γ.rule = srvRule (W64 0) γ.boot →
+  -- (auth-lease S4, 2026-11-16) a cluster outside raft's no-snapshot mode (`RestartNode`'s)
+  ¬ clusterNoSnap γ.cl →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] →
   ρ.rd.kv.cmp = false →

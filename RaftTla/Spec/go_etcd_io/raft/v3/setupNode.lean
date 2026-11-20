@@ -78,7 +78,6 @@ abbrev setupNode.spec : Prop :=
   γ.reCfg = GMap.listToSet ps →
   γ.reBoot = bootLog →
   BootLogOk ps bootLog →
-  γ.reNoSnap = false →
   -- (step 5) in place of `TraceLoggerOk cv.TraceLogger'` (now in `trCapStart`) and `γ.reTrace = none`
   (γ.reTrace ≠ none → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧ ps.length < 2 ^ 40) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
@@ -91,7 +90,10 @@ abbrev setupNode.spec : Prop :=
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
             |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗
               -- (step 5) the storage's no-compaction (traced: from the client's contract)
-              trNoCut γ.reTrace (interface.ok si) ∗ R' }}) ∗
+              trNoCut γ.reTrace (interface.ok si) ∗
+              -- (auth-lease S4, 2026-11-16, L-r5) in the cluster's no-snapshot mode, the storage's
+              -- cap (`Bootstrap`'s)
+              ((⌜γ.reNoSnap = false⌝ ∨ storCapF (interface.ok si) 1) ∗ R') }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
       certLink γ sn ∗

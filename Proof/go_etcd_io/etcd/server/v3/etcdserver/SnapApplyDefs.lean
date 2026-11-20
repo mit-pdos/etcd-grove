@@ -163,6 +163,25 @@ theorem srvKVInvsM_kvStoreInvW (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : 
     iframe Hk
     ipureintro; exact ⟨Hm.2, HNx⟩
 
+/-- **The lessor-window tie and the witness's facts, at the server's KV invariants in either auth mode** (auth-lease
+S4 item 7b F4: what the snapshot path's free marker and the apply thread's window push take). -/
+theorem srvKVInvsM_winTie (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) on s E γr ⊢
+      srvApi.winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false) ∗ ⌜envWitOk E⌝ := by
+  cases on
+  · iintro #H
+    iunfold srvKVInvsM at H
+    iunfold srvKVInvs at H
+    icases H with ⟨-, -, -, -, %Hm, -, -, #Ht⟩
+    iframe Ht
+    ipureintro; exact Hm.2.2.1
+  · iintro #H
+    ihave #H' := srvKVInvsM_true s E γr $$ H
+    iunfold srvKVInvsOn at H'
+    icases H' with ⟨-, -, -, -, -, %Hm, -, -, #Ht⟩
+    iframe Ht
+    ipureintro; exact Hm.1
+
 /-- **An applier's options' builders** (`apply.envAus`, `backendOptsOk`'s): what the new applier's
 options need of the store, which the old applier's give (R4, 2026-11-07). -/
 theorem applierFor_envAus (ua : GoInterface) (E : apply.AEnv GF) :
@@ -273,7 +292,9 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- halves at the image's committed log (the mvcc merge: its model by the mode, `kvModelM`)
     mvcc.api.mvccOpen E.γ ∗
     mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) ∗
-    srvApi.wSt E.γs (kvModelM E.authOn γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
+    srvApi.wStQ E.γs E.stq (kvModelM E.authOn γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
+    -- (item 7b F4) the apply thread's window token at no window (the walk freed it)
+    E.Wt none ∗
     trLive γn t c L ∗ srvLgReader s ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗

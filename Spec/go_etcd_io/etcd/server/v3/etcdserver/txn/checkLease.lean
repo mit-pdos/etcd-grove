@@ -27,11 +27,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 the lessor granted: `leaseOk`); else `lease.ErrLeaseNotFound`. -/
 abbrev txn.checkLease.spec : Prop :=
   ∀ (le : GoInterface) (γl : GName) (p : Loc) (o : OpFull) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isTxnLessor le γl ∗
-      lease.lessorUser γl L I ∗ txn.putRequestIs p o }}
+      lease.lessorUserW γl L I w ∗ txn.putRequestIs p o }}
     (App (App (Val (@! txn.checkLease)) (Val #le)) (Val #p))
-  {{ (err : GoInterface), RET #err; lease.lessorUser γl L I ∗
+  {{ (err : GoInterface), RET #err; lease.lessorUserW γl L I w ∗
       ((⌜err = GoInterface.nil⌝ ∗ txn.leaseOk L o.leaseID) ∨
       (⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L⌝ ∗
         txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err)) }}

@@ -37,10 +37,10 @@ theorem lessor.TimeToLive.wp_proof
     (wp_GetHeader : LeaseTimeToLiveResponse.GetHeader.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     lessor.TimeToLive.spec (GF := GF) (hG := hG) := by
-  intro l addr Spec Q ctx cd id osl gs
+  intro l conn addr Spec Q ctx cd id osl gs
   wp_start as ⟨#Hrem, #Hrpc, #Hpre, #Hopts, #Hctx, #Hce⟩
-  iunfold lessorRemoteAt at Hrem
-  icases Hrem with ⟨%rlc, %conn, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
+  iunfold lessorRemoteAtC at Hrem
+  icases Hrem with ⟨%rlc, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, -⟩
   wp_auto

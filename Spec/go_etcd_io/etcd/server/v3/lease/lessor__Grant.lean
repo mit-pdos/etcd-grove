@@ -45,23 +45,25 @@ lease-expiry plan's S2–S4, Q-S8, 2026-11-05) The new lease's request is `ttl` 
 TTL the history gives `id` is at least `ttl` (`leaseTTLAt_ge_req`). (Strict M1, 2026-11-05: the
 frozen draft's `lessor.Grant.specA`, `notes/mvcc-api-clients/ServerSpecs.lean` §5: the
 critical-section contract over mvcc's API's `hookRun`, `csContractA`, the hook a `GoFunc`; merged
-with `lean`'s on 2026-11-06.) -/
+with `lean`'s on 2026-11-06.)
+(auth-lease S4 item 7b, 2026-11-17) In any window `w` of the owner (`leaseOwnW`), passed through: the snapshot
+it pushes keeps the item map. -/
 abbrev lease.lessor.Grant.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
     (P : IProp GF) (f : GoFunc) (T Ln R : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (rb : GMap GoString backend.BktData) (Pre Q Post : IProp GF) (U : List w64),
+    (rb : GMap GoString backend.BktData) (Pre Q Post : IProp GF) (U : List w64) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
-      lease.lessorCfg lp ∗ lease.lessorBackend lp P #f T Ln R Rb ∗ lease.leaseOwn γl L I ∗
+      lease.lessorCfg lp ∗ lease.lessorBackend lp P #f T Ln R Rb ∗ lease.leaseOwnW γl L I w ∗
       lease.leaseRevokers γl L ∗ csContractA P f Pre Q Post ∗ T ∗ Ln ∗ R ∗ Rb rb ∗
       lease.leaseGranted γl id ∗ lease.leaseEver γl U ∗ (lease.lessorModeIs γl true ∨ ⌜id ∉ U⌝) }}
     (App (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
       @!! go!"Grant")) (Val #id)) (Val #ttl))
   {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); R ∗ Ln ∗
       ((⌜err ≠ GoInterface.nil ∧ (id = W64 0 ∨ 9000000000 < sint.Z ttl ∨ id ∈ L)⌝ ∗
-        lease.lessorErrIs err ∗ lease.leaseOwn γl L I ∗ lease.leaseRevokers γl L ∗ Pre ∗ Rb rb ∗
+        lease.lessorErrIs err ∗ lease.leaseOwnW γl L I w ∗ lease.leaseRevokers γl L ∗ Pre ∗ Rb rb ∗
         lease.leaseEver γl U) ∨
       (⌜err = GoInterface.nil ∧ l ≠ null ∧ id ≠ W64 0 ∧ sint.Z ttl ≤ 9000000000 ∧ id ∉ L⌝ ∗
-        lease.leaseOwn γl (L ++ [id]) I ∗ lease.leaseRevokers γl (L ++ [id]) ∗ Post ∗
+        lease.leaseOwnW γl (L ++ [id]) I w ∗ lease.leaseRevokers γl (L ++ [id]) ∗ Post ∗
         lease.lsF go!"ID" l ↦□ id ∗ lease.leaseLiveFrom γl 0 id l ∗
         ∃ mt : w64, lease.lF go!"minLeaseTTL" lp ↦□ mt ∗
         lease.lsF go!"ttl" l ↦□ lease.grantTTL mt ttl ∗

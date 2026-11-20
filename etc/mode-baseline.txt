@@ -8,6 +8,6 @@ lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth 7
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth3 6
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/authN 3
 lit-mode github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 9
-lit-mode go_etcd_io/etcd/client/v3 25
+lit-mode go_etcd_io/etcd/client/v3 24
 lit-mode go_etcd_io/etcd/server/v3/etcdserver 276
-lit-mode go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 33
+lit-mode go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 30

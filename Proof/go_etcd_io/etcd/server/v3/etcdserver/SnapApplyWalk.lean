@@ -147,7 +147,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     -- (the lease-expiry plan's step 2) the range deleter's argument (the mvcc merge, 2026-11-06:
     -- `lean`'s `watchableStore.Write` and the compacting backend's safe-range specs dropped, the
     -- store's `Write` being `KV.Write.contract` at the handle's type, `shapes.law`)
-    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    -- (auth-lease S4 item 7b F4) outside the no-snapshot mode: the lessor window freed before `Recover`
+    (hns : ¬ clusterNoSnap γr.raft.raft.cl) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
@@ -443,6 +445,25 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   ihave HKV := (srvApplyKVM_open _ _ _ _ _ _).1 $$ HKV
   icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, Hauar, ⟨%w0, %RD0, #Hwf, #Hwok, HRD0⟩, Hrdat⟩
   ihave #Haus := applierFor_envAus ua E $$ Hufor
+  -- (auth-lease S4 item 7b F4) the lessor window freed (the tie's free marker, outside the no-snapshot mode),
+  -- the applier state at the server's environment, which has no window (`srvEnvOk`)
+  ihave #HsrvF := Hsrv
+  iunfold isServerM at HsrvF
+  icases HsrvF with ⟨-, -, ⟨%vF, HfF⟩, #HatF, -⟩
+  iunfold srvFieldsAtM at HfF
+  icases HfF with ⟨-, -, -, -, -, %HenvF, -⟩
+  iunfold srvAtomicsM at HatF
+  icases HatF with ⟨-, -, #HkviF⟩
+  ihave ⟨#HwTie, %HwOkF⟩ := srvKVInvsM_winTie E.authOn s E γr $$ HkviF
+  have hwin0 : E.win = none := HenvF.2.2.1.1
+  have hEw : ({ E with win := none } : apply.AEnv GF) = E := by rw [← hwin0]
+  iunfold srvApplyKVW at HaKV
+  icases HaKV with ⟨%wn, -, HaKV⟩
+  imod (haveI := HwOkF.1; haveI := HwOkF.2.1;
+    srvApi.applyKV_free E _ (fun h => absurd h hns) wn ua x) $$ [HwTie HaKV] with HaKV
+  · iframe HwTie HaKV
+  ihave HaKV : apply.applyKV E ua x $$ [HaKV]
+  · iExactEq HaKV; rw [hEw]
   iunfold apply.applyKV at HaKV
   icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn, HcO⟩
   iunfold apply.cmpOwn at HcO
@@ -456,21 +477,29 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases HB0 with %HB0
   subst B0
   ihave HwSt' := HwSt
-  iunfold srvApi.wSt at HwSt'
+  iunfold srvApi.wStQ at HwSt'
   icases HwSt' with ⟨HwSt1, HwSt2⟩
   iunfold srvApi.crOwn at HcrO
   icombine HwSt2 HcrO gives %Hc0
   obtain ⟨-, Hc0⟩ := Hc0
   subst Hc0
-  ihave HwSt : srvApi.wSt (GF := GF) E.γs x.log x.crev $$ [HwSt1 HwSt2]
-  · iunfold srvApi.wSt; iframe HwSt1 HwSt2
+  ihave HwSt : srvApi.wStQ (GF := GF) E.γs E.stq x.log x.crev $$ [HwSt1 HwSt2]
+  · iunfold srvApi.wStQ; iframe HwSt1 HwSt2
   ihave HcrO : srvApi.crOwn (GF := GF) E.γs x.crev $$ [HcrO]
   · iunfold srvApi.crOwn; iexact HcrO
+  -- (auth-lease S4 item 7b) no lessor window at the server's environment (`srvEnvOk`)
+  ihave #HsrvW := Hsrv
+  iunfold isServerM at HsrvW
+  icases HsrvW with ⟨-, -, ⟨%vW, HfW⟩, -⟩
+  iunfold srvFieldsAtM at HfW
+  icases HfW with ⟨-, -, -, -, -, %HenvW, -⟩
+  have hwin : E.win = none := HenvW.2.2.1.1
   iunfold apply.leasesLive at HlLive
-  icases HlLive with ⟨%Ll, #HlK, HlUser, HlLt⟩
+  icases HlLive with ⟨%Ll, #HlK, HlUser, HlLt, HlWt⟩
+  rw [hwin]
   -- (S2–S4, Probe 4) the two halves of the live set agree, and move to the records' ids
   imod ltHalf_agree_upd E Ll L0 Lr $$ HlLt HL0 with ⟨%HLeq, HLt1, HLt2⟩
-  iunfold lease.lessorUser at HlUser
+  iunfold lease.lessorUserW at HlUser
   icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
   -- the store invariant and the store's handle (`isServer`'s `srvKVInvs`)
   ihave #Hsrv3 := Hsrv
@@ -629,22 +658,37 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   ihave Hpost : iprop(batchLockInv (GF := GF) (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ={⊤}=∗
       batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ∗ True) $$ []
   · iintro H; imodintro; iframe H
+  -- (item 7b K1, F4) the apply thread's share is a quarter (`srvEnvOk`), the tie holding the other
+  have hstq : E.stq = (1 : Qp).half.half := HenvW.2.2.1.2
+  -- (item 7b F4) the restore at the apply thread's quarter, in the freed window (`au_restore_tie`)
+  have hlA : x.log <+: kvModelM E.authOn γr.kv A' := by
+    rw [hxA.1]; exact srvApi.kvModelM_prefix E.authOn γr.kv A A' hAA'
+  have hcA : x.crev ≤ crevOf γr.kv A' := by rw [hxA.2]; exact crevOf_mono γr.kv A A' hAA'
   ihave Hrp : srvApi.restorePreA (GF := GF) E.kv E.γ d d' (E.Pk d)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')) u Lr (DFrac.own (1 : Qp).half)
       func.nil iprop(True) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       iprop(True) iprop(True) iprop(True)
       (fun σ => iprop(⌜σ = srvApi.stAt x.log x.crev⌝ ∗
-        srvApi.wSt E.γs (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).log
+        srvApi.wStQ E.γs E.stq (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).log
           (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).crev ∗
-        srvApi.crOwn E.γs (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).crev))
-      $$ [HwSt HcrO HCp HmO HmB HsF HnH Hrun Hpost HlOwn]
-  · iapply (srvApi.restoreArgs_holds Hp E.kv E.γ γr E.authOn E.γs x.log x.crev A A' d d' (E.Pk d)
-      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) u Lr (DFrac.own (1 : Qp).half)
+        srvApi.crOwn E.γs (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).crev ∗ E.Wt none))
+      $$ [HwSt HcrO HCp HmO HmB HsF HnH Hrun Hpost HlOwn HlWt]
+  · iunfold srvApi.winTieRes at HwTie
+    icases HwTie with ⟨%γtw, %HWt, #Hti, -⟩
+    rw [hstq, HWt, Hkm.2]
+    ihave #Hnx : srvApi.kvNx (GF := GF) γr E.authOn (kvModelM E.authOn γr.kv A') $$ []
+    · iunfold srvApi.kvNx; iexists A'; iframe HA'; ipureintro; exact ⟨rfl, Hkey⟩
+    ihave HAU := srvApi.au_restore_tie (srvApi.kvNx γr E.authOn) (srvApi.crevOk γr) Hp E.kv E.γ E.γs _
+      (mvccLeases E.γ) γtw x.log (kvModelM E.authOn γr.kv A') x.crev (crevOf γr.kv A') hlA hcA
+      $$ HkS Hti HwSt HcrO HlWt Hnx HCp
+    iapply (srvApi.restorePreA_of_au Hp E.kv E.γ (srvApi.kvNx γr E.authOn) (srvApi.crevOk γr) E.γs d d' (E.Pk d)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
+      (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')) u Lr (DFrac.own (1 : Qp).half)
       func.nil iprop(True) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
-      iprop(True) hxA.1 hxA.2 hAA' hst.1 Hkey hit)
-    simp only [srvApi.stAt_log, srvApi.stAt_crev, srvApi.kvStoreInv_eq]
-    iframe HkS HwSt HcrO HA' HCp HmO HmB HsF HnH Hrun Hpost HlOwn
+      iprop(True) _ hst.1 rfl hit)
+    simp only [srvApi.stAt_log, srvApi.stAt_crev]
+    iframe HkS HmO HmB HsF HnH Hrun Hpost HlOwn HAU
   iunfold srvApi.restorePreA at Hrp
   icases Hrp with ⟨-, HmO, HmB, HsF, %Hσ', HnH, HPre, Hrun, Hpost, HX, #Hreq, HlOwn, -, HAU⟩
   haveI := Hp.1
@@ -660,14 +704,14 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       func.nil iprop(True) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       iprop(True) iprop(True) iprop(True)
       (fun σ => iprop(⌜σ = srvApi.stAt x.log x.crev⌝ ∗
-        srvApi.wSt E.γs (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).log
+        srvApi.wStQ E.γs E.stq (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).log
           (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).crev ∗
-        srvApi.crOwn E.γs (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).crev)))
+        srvApi.crOwn E.γs (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).crev ∗ E.Wt none)))
   rw [mvcc.api.etcdStorage_val] at hR
   simp only [interface.mkOk] at hR
   wp_apply hR
     $$ [HmO HmB HsF HnH HPre Hrun Hpost HX HlOwn HAU]
-    as ⟨HmO, HmB, HoRest, HnH, -, HlOwn, %σ0, %Hσ0, HwSt, HcrO⟩
+    as ⟨HmO, HmB, HoRest, HnH, -, HlOwn, %σ0, %Hσ0, HwSt, HcrO, HlWt⟩
   · iframe #
     rw [mvcc.api.etcdStorage_hook, mvcc.api.etcdStorage_req]
     iframe HmO HmB HsF HnH HPre Hrun Hpost HX HlOwn

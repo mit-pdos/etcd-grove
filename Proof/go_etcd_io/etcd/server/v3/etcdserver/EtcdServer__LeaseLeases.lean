@@ -77,13 +77,19 @@ theorem EtcdServer.LeaseLeases.wp_proof
     iapply HΦ
     iframe HRD Hst Hrk
     iright
+    iunfold authApplyErrIs at Herr
+    icases Herr with ⟨#Herr, #Hev⟩
     iframe Herr
-    ipureintro
-    refine ⟨rfl, ?_, ?_⟩
-    · intro h; cases h
-    · cases hon : E.authOn
-      · cases Hoff hon
-      · rfl
+    isplitr
+    · ipureintro
+      refine ⟨rfl, ?_, ?_⟩
+      · intro h; cases h
+      · cases hon : E.authOn
+        · cases Hoff hon
+        · rfl
+    ihave #Hap : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
+    · iPkgInit
+    iapply authErrVarIs_leaseNotFound_absurd $$ [$Hap $Hlp $Hev]
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   (try wp_auto)
   wp_apply (wp_slice_make2 (V := Loc) sl.len) as %lsl ⟨Hlsl, -⟩
