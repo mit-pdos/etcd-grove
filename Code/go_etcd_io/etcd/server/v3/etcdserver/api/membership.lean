@@ -5,6 +5,7 @@ public import Code.encoding.json
 public import Perennial.Code.sort
 public import Perennial.Code.sync
 public import Code.github_com.Masterminds.semver.v3
+public import Code.github_com.prometheus.client_golang.prometheus
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.pkg.v3.notify
@@ -134,8 +135,6 @@ noncomputable def ErrTooManyLearners [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def ClusterVersionMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ClusterVersionMetrics"
-
-opaque ClusterVersionMetrics.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def knownPeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.knownPeers"
@@ -1037,7 +1036,7 @@ noncomputable def MembersByID.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership where
-  pkgImportedPkgs := [pkg_id.encoding.json, pkg_id.sort, pkg_id.sync, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.errors]
+  pkgImportedPkgs := [pkg_id.encoding.json, pkg_id.sort, pkg_id.sync, pkg_id.github_com.Masterminds.semver.v3, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.errors]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -1045,6 +1044,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1079,6 +1080,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(go!"membership: too many learner members in cluster"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"cluster"))
+  (Let "$v2" (Val #(go!"version"))
+  (Let "$v3" (Val #(go!"Which version is running. 1 for 'cluster_version' label with current cluster version"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$a1" (Let "$v0" (Val #(go!"cluster_version"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGaugeVec []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1095,7 +1104,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val knownPeers.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ClusterVersionMetrics.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ClusterVersionMetrics))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTooManyLearners))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1116,6 +1125,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1139,7 +1150,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrMemberNotLearner go.error)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc ErrTooManyLearners go.error)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc ErrTooManyLearners go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ClusterVersionMetrics (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty))) (Val #()))))))))
 
 abbrev MembershipBackend [GooseExts] : Type := GoInterface
 
@@ -1613,6 +1626,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
+  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_notify_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Assumptions
@@ -1638,6 +1652,7 @@ attribute [instance] Assumptions.RaftCluster_instance
   Assumptions.import_sort_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_semver_Assumption
+  Assumptions.import_prometheus_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_notify_Assumption

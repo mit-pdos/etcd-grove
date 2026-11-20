@@ -110,7 +110,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cleaseGranted ⟨#CleaseGranted, -⟩
   try wp_auto
   ihave #EleaseGranted : (go_etcd_io.etcd.server.v3.lease.counterSpec cleaseGranted : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at CleaseGranted
+  · iunfold EtcdGrove.prometheus.metric.counterSpec at CleaseGranted
     icases CleaseGranted with ⟨#K, -, -⟩
     unfold go_etcd_io.etcd.server.v3.lease.counterSpec
     iexact K
@@ -118,7 +118,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cleaseRevoked ⟨#CleaseRevoked, -⟩
   try wp_auto
   ihave #EleaseRevoked : (go_etcd_io.etcd.server.v3.lease.counterSpec cleaseRevoked : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at CleaseRevoked
+  · iunfold EtcdGrove.prometheus.metric.counterSpec at CleaseRevoked
     icases CleaseRevoked with ⟨#K, -, -⟩
     unfold go_etcd_io.etcd.server.v3.lease.counterSpec
     iexact K
@@ -129,7 +129,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BleaseTotalTTLs as %cleaseTotalTTLs ⟨#CleaseTotalTTLs, -⟩
   try wp_auto
   ihave #EleaseTotalTTLs : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cleaseTotalTTLs : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CleaseTotalTTLs
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CleaseTotalTTLs
     unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
     iexact CleaseTotalTTLs
   wp_apply (initFuncsOk init.«0» (by mem_tac))

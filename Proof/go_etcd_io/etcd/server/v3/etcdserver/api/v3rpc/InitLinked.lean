@@ -28,7 +28,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.auth.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InitLinked
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
@@ -54,6 +54,9 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -104,6 +107,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopControlStreamDuration _ as HwatchSendLoopControlStreamDuration
   wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopWatchStreamDurationPerEvent _ as HwatchSendLoopWatchStreamDurationPerEvent
   wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopWatchStreamDuration _ as HwatchSendLoopWatchStreamDuration
+  wp_apply wp_GlobalAlloc (V := Loc) clientRequests _ as HclientRequests
+  wp_apply wp_GlobalAlloc (V := Loc) streamFailures _ as HstreamFailures
   wp_apply wp_GlobalAlloc (V := Loc) metricsServerCached _ as HmetricsServerCached
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) metricsServerLock _ as HmetricsServerLock
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -203,32 +208,42 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk sentBytes.init (by mem_tac))
   wp_apply (opaqueInitsOk receivedBytes.init (by mem_tac))
-  wp_apply streamFailures_init as ⟨%vstreamFailures, HstreamFailures, #LstreamFailures⟩
-  wp_apply clientRequests_init as ⟨%vclientRequests, HclientRequests, #LclientRequests⟩
+  -- translated initializer of streamFailures))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"Type", go!"API"])); isplitr; (· ipureintro; rfl); iintro %sstreamFailures ⟨SstreamFailures, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"Type", go!"API"] _ _ rfl (by decide) (by decide) $$ [$SstreamFailures] as %vstreamFailures #LstreamFailures
+  try wp_auto
+  -- translated initializer of clientRequests))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"type", go!"client_api_version"])); isplitr; (· ipureintro; rfl); iintro %sclientRequests ⟨SclientRequests, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"type", go!"client_api_version"] _ _ rfl (by decide) (by decide) $$ [$SclientRequests] as %vclientRequests #LclientRequests
+  try wp_auto
   -- translated initializer of watchSendLoopWatchStreamDuration))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwatchSendLoopWatchStreamDuration BwatchSendLoopWatchStreamDuration
   try wp_auto
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopWatchStreamDuration as %cwatchSendLoopWatchStreamDuration ⟨#CwatchSendLoopWatchStreamDuration, -⟩
   try wp_auto
-  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwatchSendLoopWatchStreamDuration
+  iunfold EtcdGrove.prometheus.metric.histSpec at CwatchSendLoopWatchStreamDuration
   -- translated initializer of watchSendLoopWatchStreamDurationPerEvent))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwatchSendLoopWatchStreamDurationPerEvent BwatchSendLoopWatchStreamDurationPerEvent
   try wp_auto
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopWatchStreamDurationPerEvent as %cwatchSendLoopWatchStreamDurationPerEvent ⟨#CwatchSendLoopWatchStreamDurationPerEvent, -⟩
   try wp_auto
-  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwatchSendLoopWatchStreamDurationPerEvent
+  iunfold EtcdGrove.prometheus.metric.histSpec at CwatchSendLoopWatchStreamDurationPerEvent
   -- translated initializer of watchSendLoopControlStreamDuration))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwatchSendLoopControlStreamDuration BwatchSendLoopControlStreamDuration
   try wp_auto
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopControlStreamDuration as %cwatchSendLoopControlStreamDuration ⟨#CwatchSendLoopControlStreamDuration, -⟩
   try wp_auto
-  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwatchSendLoopControlStreamDuration
+  iunfold EtcdGrove.prometheus.metric.histSpec at CwatchSendLoopControlStreamDuration
   -- translated initializer of watchSendLoopProgressDuration))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwatchSendLoopProgressDuration BwatchSendLoopProgressDuration
   try wp_auto
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopProgressDuration as %cwatchSendLoopProgressDuration ⟨#CwatchSendLoopProgressDuration, -⟩
   try wp_auto
-  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwatchSendLoopProgressDuration
+  iunfold EtcdGrove.prometheus.metric.histSpec at CwatchSendLoopProgressDuration
   wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, %kftoGRPCErrorMap, %kctoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, #FtoGRPCErrorMap, #CtoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, %PtoGRPCErrorMap⟩
   -- translated initializer of progressReportInterval))
   wp_apply (initFuncsOk init.«0» (by mem_tac))

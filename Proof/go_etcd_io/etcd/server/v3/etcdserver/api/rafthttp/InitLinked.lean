@@ -41,6 +41,10 @@ public import Proof.path.Clean
 public import Proof.path.lazybuf__index
 public import Proof.path.lazybuf__append
 public import Proof.path.lazybuf__string
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
+public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -92,6 +96,21 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) ConnWriteTimeout _ as HConnWriteTimeout
   wp_apply wp_GlobalAlloc (V := w64) ConnReadTimeout _ as HConnReadTimeout
   wp_apply wp_GlobalAlloc (V := w64) readBytesLimit _ as HreadBytesLimit
+  wp_apply wp_GlobalAlloc (V := Loc) rttSec _ as HrttSec
+  wp_apply wp_GlobalAlloc (V := Loc) snapshotReceiveSeconds _ as HsnapshotReceiveSeconds
+  wp_apply wp_GlobalAlloc (V := Loc) snapshotReceiveFailures _ as HsnapshotReceiveFailures
+  wp_apply wp_GlobalAlloc (V := Loc) snapshotReceiveInflights _ as HsnapshotReceiveInflights
+  wp_apply wp_GlobalAlloc (V := Loc) snapshotReceive _ as HsnapshotReceive
+  wp_apply wp_GlobalAlloc (V := Loc) snapshotSendSeconds _ as HsnapshotSendSeconds
+  wp_apply wp_GlobalAlloc (V := Loc) snapshotSendFailures _ as HsnapshotSendFailures
+  wp_apply wp_GlobalAlloc (V := Loc) snapshotSendInflights _ as HsnapshotSendInflights
+  wp_apply wp_GlobalAlloc (V := Loc) snapshotSend _ as HsnapshotSend
+  wp_apply wp_GlobalAlloc (V := Loc) recvFailures _ as HrecvFailures
+  wp_apply wp_GlobalAlloc (V := Loc) sentFailures _ as HsentFailures
+  wp_apply wp_GlobalAlloc (V := Loc) receivedBytes _ as HreceivedBytes
+  wp_apply wp_GlobalAlloc (V := Loc) sentBytes _ as HsentBytes
+  wp_apply wp_GlobalAlloc (V := Loc) disconnectedPeers _ as HdisconnectedPeers
+  wp_apply wp_GlobalAlloc (V := Loc) activePeers _ as HactivePeers
   wp_apply wp_GlobalAlloc (V := GoString) RaftSnapshotPrefix _ as HRaftSnapshotPrefix
   wp_apply wp_GlobalAlloc (V := GoString) RaftStreamPrefix _ as HRaftStreamPrefix
   wp_apply wp_GlobalAlloc (V := GoString) ProbingPrefix _ as HProbingPrefix
@@ -168,21 +187,102 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     as ⟨%xerrIncompatibleVersion, HerrIncompatibleVersion, #MerrIncompatibleVersion, #CerrIncompatibleVersion⟩
   wp_apply (errorsNewVarsInit ErrClusterIDMismatch.init ErrClusterIDMismatch go!"cluster ID mismatch" (by mem_tac))
     as ⟨%xErrClusterIDMismatch, HErrClusterIDMismatch, #MErrClusterIDMismatch, #CErrClusterIDMismatch⟩
-  wp_apply activePeers_init as ⟨%vactivePeers, HactivePeers, #LactivePeers⟩
-  wp_apply disconnectedPeers_init as ⟨%vdisconnectedPeers, HdisconnectedPeers, #LdisconnectedPeers⟩
-  wp_apply sentBytes_init as ⟨%vsentBytes, HsentBytes, #LsentBytes⟩
-  wp_apply receivedBytes_init as ⟨%vreceivedBytes, HreceivedBytes, #LreceivedBytes⟩
-  wp_apply sentFailures_init as ⟨%vsentFailures, HsentFailures, #LsentFailures⟩
-  wp_apply recvFailures_init as ⟨%vrecvFailures, HrecvFailures, #LrecvFailures⟩
-  wp_apply snapshotSend_init as ⟨%vsnapshotSend, HsnapshotSend, #LsnapshotSend⟩
-  wp_apply snapshotSendInflights_init as ⟨%vsnapshotSendInflights, HsnapshotSendInflights, #LsnapshotSendInflights⟩
-  wp_apply snapshotSendFailures_init as ⟨%vsnapshotSendFailures, HsnapshotSendFailures, #LsnapshotSendFailures⟩
-  wp_apply snapshotSendSeconds_init as ⟨%vsnapshotSendSeconds, HsnapshotSendSeconds, #LsnapshotSendSeconds⟩
-  wp_apply snapshotReceive_init as ⟨%vsnapshotReceive, HsnapshotReceive, #LsnapshotReceive⟩
-  wp_apply snapshotReceiveInflights_init as ⟨%vsnapshotReceiveInflights, HsnapshotReceiveInflights, #LsnapshotReceiveInflights⟩
-  wp_apply snapshotReceiveFailures_init as ⟨%vsnapshotReceiveFailures, HsnapshotReceiveFailures, #LsnapshotReceiveFailures⟩
-  wp_apply snapshotReceiveSeconds_init as ⟨%vsnapshotReceiveSeconds, HsnapshotReceiveSeconds, #LsnapshotReceiveSeconds⟩
-  wp_apply rttSec_init as ⟨%vrttSec, HrttSec⟩
+  -- translated initializer of activePeers))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"Local", go!"Remote"])); isplitr; (· ipureintro; rfl); iintro %sactivePeers ⟨SactivePeers, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"Local", go!"Remote"] _ _ rfl (by decide) (by decide) $$ [$SactivePeers] as %vactivePeers #LactivePeers
+  try wp_auto
+  -- translated initializer of disconnectedPeers))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"Local", go!"Remote"])); isplitr; (· ipureintro; rfl); iintro %sdisconnectedPeers ⟨SdisconnectedPeers, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"Local", go!"Remote"] _ _ rfl (by decide) (by decide) $$ [$SdisconnectedPeers] as %vdisconnectedPeers #LdisconnectedPeers
+  try wp_auto
+  -- translated initializer of sentBytes))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssentBytes ⟨SsentBytes, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsentBytes] as %vsentBytes #LsentBytes
+  try wp_auto
+  -- translated initializer of receivedBytes))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %sreceivedBytes ⟨SreceivedBytes, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SreceivedBytes] as %vreceivedBytes #LreceivedBytes
+  try wp_auto
+  -- translated initializer of sentFailures))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssentFailures ⟨SsentFailures, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsentFailures] as %vsentFailures #LsentFailures
+  try wp_auto
+  -- translated initializer of recvFailures))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %srecvFailures ⟨SrecvFailures, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SrecvFailures] as %vrecvFailures #LrecvFailures
+  try wp_auto
+  -- translated initializer of snapshotSend))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotSend ⟨SsnapshotSend, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSend] as %vsnapshotSend #LsnapshotSend
+  try wp_auto
+  -- translated initializer of snapshotSendInflights))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotSendInflights ⟨SsnapshotSendInflights, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSendInflights] as %vsnapshotSendInflights #LsnapshotSendInflights
+  try wp_auto
+  -- translated initializer of snapshotSendFailures))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotSendFailures ⟨SsnapshotSendFailures, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSendFailures] as %vsnapshotSendFailures #LsnapshotSendFailures
+  try wp_auto
+  -- translated initializer of snapshotSendSeconds))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapshotSendSeconds BsnapshotSendSeconds
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotSendSeconds ⟨SsnapshotSendSeconds, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"To"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SsnapshotSendSeconds $BsnapshotSendSeconds] as %vsnapshotSendSeconds #LsnapshotSendSeconds
+  try wp_auto
+  -- translated initializer of snapshotReceive))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotReceive ⟨SsnapshotReceive, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceive] as %vsnapshotReceive #LsnapshotReceive
+  try wp_auto
+  -- translated initializer of snapshotReceiveInflights))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotReceiveInflights ⟨SsnapshotReceiveInflights, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceiveInflights] as %vsnapshotReceiveInflights #LsnapshotReceiveInflights
+  try wp_auto
+  -- translated initializer of snapshotReceiveFailures))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotReceiveFailures ⟨SsnapshotReceiveFailures, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceiveFailures] as %vsnapshotReceiveFailures #LsnapshotReceiveFailures
+  try wp_auto
+  -- translated initializer of snapshotReceiveSeconds))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapshotReceiveSeconds BsnapshotReceiveSeconds
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotReceiveSeconds ⟨SsnapshotReceiveSeconds, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"From"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SsnapshotReceiveSeconds $BsnapshotReceiveSeconds] as %vsnapshotReceiveSeconds #LsnapshotReceiveSeconds
+  try wp_auto
+  -- translated initializer of rttSec))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %brttSec BrttSec
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %srttSec ⟨SrttSec, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"To"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SrttSec $BrttSec] as %vrttSec #LrttSec
+  try wp_auto
   -- translated initializer of readBytesLimit))
   wp_apply (errorsNewVarsInit ErrExceedSizeLimit.init ErrExceedSizeLimit go!"rafthttp: error limit exceeded" (by mem_tac))
     as ⟨%xErrExceedSizeLimit, HErrExceedSizeLimit, #MErrExceedSizeLimit, #CErrExceedSizeLimit⟩

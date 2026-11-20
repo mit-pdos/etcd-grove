@@ -36,9 +36,9 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Init
 public import Proof.go_etcd_io.etcd.server.v3.auth.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.InitLinked
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Init
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Init
@@ -66,6 +66,9 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -112,7 +115,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoFunc) raftStatus _ as HraftStatus
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) raftStatusMu _ as HraftStatusMu
+  wp_apply wp_GlobalAlloc (V := Loc) serverFeatureEnabled _ as HserverFeatureEnabled
+  wp_apply wp_GlobalAlloc (V := Loc) serverID _ as HserverID
   wp_apply wp_GlobalAlloc (V := GoInterface) leaseExpired _ as HleaseExpired
+  wp_apply wp_GlobalAlloc (V := Loc) requestDurationSec _ as HrequestDurationSec
   wp_apply wp_GlobalAlloc (V := GoInterface) proposalsFailed _ as HproposalsFailed
   wp_apply wp_GlobalAlloc (V := GoInterface) proposalsPending _ as HproposalsPending
   wp_apply wp_GlobalAlloc (V := GoInterface) proposalsApplied _ as HproposalsApplied
@@ -253,14 +259,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %chasLeader ⟨#ChasLeader, #DhasLeader, -⟩
   try wp_auto
   ihave #EhasLeader : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec chasLeader : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec at DhasLeader
+  · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DhasLeader
     unfold go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec
     iexact DhasLeader
   -- translated initializer of isLeader))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisLeader ⟨#CisLeader, #DisLeader, -⟩
   try wp_auto
   ihave #EisLeader : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cisLeader : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec at DisLeader
+  · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DisLeader
     unfold go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec
     iexact DisLeader
   -- translated initializer of leaderChanges))
@@ -278,14 +284,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsCommitted ⟨#CproposalsCommitted, #DproposalsCommitted, -⟩
   try wp_auto
   ihave #EproposalsCommitted : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cproposalsCommitted : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec at DproposalsCommitted
+  · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DproposalsCommitted
     unfold go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec
     iexact DproposalsCommitted
   -- translated initializer of proposalsApplied))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsApplied ⟨#CproposalsApplied, #DproposalsApplied, -⟩
   try wp_auto
   ihave #EproposalsApplied : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cproposalsApplied : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec at DproposalsApplied
+  · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DproposalsApplied
     unfold go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec
     iexact DproposalsApplied
   -- translated initializer of proposalsPending))
@@ -294,14 +300,31 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of proposalsFailed))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsFailed ⟨#CproposalsFailed, -⟩
   try wp_auto
-  wp_apply requestDurationSec_init as ⟨%vrequestDurationSec, HrequestDurationSec, #LrequestDurationSec⟩
+  -- translated initializer of requestDurationSec))
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %brequestDurationSec BrequestDurationSec
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"type", go!"success"])); isplitr; (· ipureintro; rfl); iintro %srequestDurationSec ⟨SrequestDurationSec, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"type", go!"success"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SrequestDurationSec $BrequestDurationSec] as %vrequestDurationSec #LrequestDurationSec
+  try wp_auto
   -- translated initializer of leaseExpired))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩
   try wp_auto
   wp_apply (opaqueInitsOk currentVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk currentGoVersion.init (by mem_tac))
-  wp_apply serverID_init as ⟨%vserverID, HserverID, #LserverID⟩
-  wp_apply serverFeatureEnabled_init as ⟨%vserverFeatureEnabled, HserverFeatureEnabled, #LserverFeatureEnabled⟩
+  -- translated initializer of serverID))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"server_id"])); isplitr; (· ipureintro; rfl); iintro %sserverID ⟨SserverID, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"server_id"] _ _ rfl (by decide) (by decide) $$ [$SserverID] as %vserverID #LserverID
+  try wp_auto
+  -- translated initializer of serverFeatureEnabled))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"name", go!"stage"])); isplitr; (· ipureintro; rfl); iintro %sserverFeatureEnabled ⟨SserverFeatureEnabled, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"name", go!"stage"] _ _ rfl (by decide) (by decide) $$ [$SserverFeatureEnabled] as %vserverFeatureEnabled #LserverFeatureEnabled
+  try wp_auto
   wp_apply (opaqueInitsOk fdUsed.init (by mem_tac))
   wp_apply (opaqueInitsOk fdLimit.init (by mem_tac))
   wp_apply (opaqueInitsOk monitorVersionInterval.init (by mem_tac))

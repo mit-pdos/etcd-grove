@@ -17,7 +17,10 @@ and set (until then the trust-boundary axioms `<X>_init` and `opaqueInitsOk`).
 (`path.Join`, proved), `ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds), `readBytesLimit`
 (512 MiB) and (raft-entsize, route H1, 2026-11-10) `linkHeartbeatMessage`
 (`raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}`, `stream.go`: `Enum`'s proof inlined, the
-literal frozen by `hbMsg_init`) are translated and set.
+literal frozen by `hbMsg_init`) are translated and set. (metric-vecs, 2026-11-19) So are its metric
+vectors (`metrics.go`: `sentBytes`, `activePeers`, `rttSec`, the snapshot metrics, ...), over
+prometheus's `New<Kind>Vec` specs, each with its label names (`vecLabels`; until then the
+trust-boundary axioms `<X>_init`).
 -/
 module
 
@@ -104,95 +107,6 @@ axiom errorsNewVarsInit :
 axiom linkHeartbeatSize_init :
     {{ (True : IProp GF) }} (App (Val linkHeartbeatSize.init) (Val #()))
     {{ RET #(); ∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝ }}
-
-/-- `receivedBytes = prometheus.NewCounterVec(..., []string{"From"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom receivedBytes_init :
-    {{ (True : IProp GF) }} (App (Val receivedBytes.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr receivedBytes ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
-
-/-- `recvFailures = prometheus.NewCounterVec(..., []string{"From"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom recvFailures_init :
-    {{ (True : IProp GF) }} (App (Val recvFailures.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr recvFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
-
-/-- `sentBytes = prometheus.NewCounterVec(..., []string{"To"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom sentBytes_init :
-    {{ (True : IProp GF) }} (App (Val sentBytes.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr sentBytes ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
-
-/-- `sentFailures = prometheus.NewCounterVec(..., []string{"To"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom sentFailures_init :
-    {{ (True : IProp GF) }} (App (Val sentFailures.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr sentFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
-
-/-- `activePeers = prometheus.NewGaugeVec(..., []string{"Local", "Remote"})`
-(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
-axiom activePeers_init :
-    {{ (True : IProp GF) }} (App (Val activePeers.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr activePeers ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝ }}
-
-/-- `disconnectedPeers = prometheus.NewCounterVec(..., []string{"Local", "Remote"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom disconnectedPeers_init :
-    {{ (True : IProp GF) }} (App (Val disconnectedPeers.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr disconnectedPeers ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝ }}
-
-/-- `rttSec = prometheus.NewHistogramVec(...)` (`metrics.go`): some pointer, read-only for good. -/
-axiom rttSec_init :
-    {{ (True : IProp GF) }} (App (Val rttSec.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr rttSec ↦ v }}
-
-/-- `snapshotSend = prometheus.NewCounterVec(..., []string{"To"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom snapshotSend_init :
-    {{ (True : IProp GF) }} (App (Val snapshotSend.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr snapshotSend ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
-
-/-- `snapshotSendInflights = prometheus.NewGaugeVec(..., []string{"To"})`
-(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
-axiom snapshotSendInflights_init :
-    {{ (True : IProp GF) }} (App (Val snapshotSendInflights.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr snapshotSendInflights ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
-
-/-- `snapshotSendFailures = prometheus.NewCounterVec(..., []string{"To"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom snapshotSendFailures_init :
-    {{ (True : IProp GF) }} (App (Val snapshotSendFailures.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr snapshotSendFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
-
-/-- `snapshotSendSeconds = prometheus.NewHistogramVec(..., []string{"To"})`
-(`metrics.go`): a `*HistogramVec` with those label names (`vecLabels`). -/
-axiom snapshotSendSeconds_init :
-    {{ (True : IProp GF) }} (App (Val snapshotSendSeconds.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr snapshotSendSeconds ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
-
-/-- `snapshotReceive = prometheus.NewCounterVec(..., []string{"From"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom snapshotReceive_init :
-    {{ (True : IProp GF) }} (App (Val snapshotReceive.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr snapshotReceive ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
-
-/-- `snapshotReceiveInflights = prometheus.NewGaugeVec(..., []string{"From"})`
-(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
-axiom snapshotReceiveInflights_init :
-    {{ (True : IProp GF) }} (App (Val snapshotReceiveInflights.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr snapshotReceiveInflights ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
-
-/-- `snapshotReceiveFailures = prometheus.NewCounterVec(..., []string{"From"})`
-(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
-axiom snapshotReceiveFailures_init :
-    {{ (True : IProp GF) }} (App (Val snapshotReceiveFailures.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr snapshotReceiveFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
-
-/-- `snapshotReceiveSeconds = prometheus.NewHistogramVec(..., []string{"From"})`
-(`metrics.go`): a `*HistogramVec` with those label names (`vecLabels`). -/
-axiom snapshotReceiveSeconds_init :
-    {{ (True : IProp GF) }} (App (Val snapshotReceiveSeconds.init) (Val #()))
-    {{ RET #(); ∃ v : Loc, globalAddr snapshotReceiveSeconds ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits

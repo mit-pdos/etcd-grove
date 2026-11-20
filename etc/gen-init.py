@@ -248,7 +248,10 @@ and set (until then the trust-boundary axioms `<X>_init` and `opaqueInitsOk`).
 (`path.Join`, proved), `ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds), `readBytesLimit`
 (512 MiB) and (raft-entsize, route H1, 2026-11-10) `linkHeartbeatMessage`
 (`raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}`, `stream.go`: `Enum`'s proof inlined, the
-literal frozen by `hbMsg_init`) are translated and set.''',
+literal frozen by `hbMsg_init`) are translated and set. (metric-vecs, 2026-11-19) So are its metric
+vectors (`metrics.go`: `sentBytes`, `activePeers`, `rttSec`, the snapshot metrics, ...), over
+prometheus's `New<Kind>Vec` specs, each with its label names (`vecLabels`; until then the
+trust-boundary axioms `<X>_init`).''',
     newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded",
         errIncompatibleVersion="incompatible version", ErrClusterIDMismatch="cluster ID mismatch",
         errStopped="stopped",
@@ -748,7 +751,7 @@ def metric_conv(x, kind, tgt):
         get = [], f'D{x}', 'gaugeSetSpec', 'D'
     pre, h, src, hn = get
     return ([f'ihave #E{x} : ({tgt} c{x} : IProp GF) $$ []',
-             f'· iunfold {_MV}.{src} at {hn}{x}'] + pre +
+             f'· iunfold EtcdGrove.prometheus.metric.{src} at {hn}{x}'] + pre +
             [f'  unfold {tgt}', f'  iexact {h}'])
 
 def metric_steps_to(x, kind, tgt):
@@ -1310,30 +1313,48 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
                      'try wp_auto']},
 )
 
-def promvec(x, kind, labels, file='metrics.go'):
-    """A metric vector `x = prometheus.New<kind>Vec(opts, labels)` (D19l (iii), 2026-10-18): a
-    fixed pointer with its label names (`EtcdGrove.prometheus.vecLabels`)."""
+# (metric-vecs, 2026-11-19) a metric vector whose initializer is translated: `prometheus.New<kind>Vec`
+# of an options literal and a `[]string` literal of label names (a histogram's buckets
+# `ExponentialBuckets(start, 2, n)`), over prometheus's constructor specs: `v<x>` the vector, `#L<x>`
+# its label names (`vecLabels`), the steps before its store (`before`, keyed by the variable). Until
+# then the trust-boundary axioms `<X>_init`, with the same post (D19l (iii), 2026-10-18).
+PROM_VEC_CTORS = [f'Proof.github_com.prometheus.client_golang.prometheus.{f}'
+                  for f in ['NewCounterVec', 'NewGaugeVec', 'NewHistogramVec', 'ExponentialBuckets']]
+
+def vec_steps(x, kind, labels):
+    P = 'EtcdGrove.prometheus'
     ls = '[' + ', '.join(f'go!"{l}"' for l in labels) + ']'
-    golist = ', '.join(f'"{l}"' for l in labels)
-    return dict(
-        doc=f'/-- `{x} = prometheus.New{kind}Vec(..., []string{{{golist}}})`\n(`{file}`): a `*{kind}Vec` with those label names (`vecLabels`). -/',
-        post=f'∃ v : Loc, globalAddr {x} ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v {ls}⌝',
-        pat='⟨%v@, H@, #L@⟩')
+    pre, opts, more, hb = ['try wp_auto'], 'rfl', '', ''
+    if kind == 'Histogram':
+        pre += [f'wp_apply {P}.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %b{x} B{x}',
+               'try wp_auto']
+        opts, more, hb = '(by rfl)', f' ({P}.expBuckets_ok (by decide)) (by decide)', f' $B{x}'
+    args = '_ _ _ _ _ ' + ('_ _ ' if kind == 'Histogram' else '') + ls + ' _ _' + (' _' if kind == 'Histogram' else '')
+    return pre + [
+        f'wp_apply (wp_slice_literal (l := {ls})); isplitr; (· ipureintro; rfl); iintro %s{x} ⟨S{x}, -⟩',
+        'try wp_auto',
+        f'wp_apply {P}.New{kind}Vec.wp_proof {args} {opts} (by decide) (by decide){more} $$ [$S{x}{hb}]'
+        f' as %v{x} #L{x}',
+        'try wp_auto']
+
+def promvec(cfg, x, kind, labels):
+    """`x = prometheus.New<kind>Vec(opts, labels)`, translated (`vec_steps`) in the package config
+    `cfg`: a fixed pointer with its label names (`EtcdGrove.prometheus.vecLabels`)."""
+    cfg.setdefault('before', {})[x] = vec_steps(x, kind, labels)
+    cfg.setdefault('alloc_types', {})[x] = 'Loc'
+    imps = cfg.setdefault('imports', [])
+    imps += [m for m in PROM_VEC_CTORS if m not in imps]
 
 # (2026-10-23, rafthttp stage 4) the pipeline's metric vectors
 for _x, _l in [('receivedBytes', 'From'), ('recvFailures', 'From'), ('sentBytes', 'To'),
                ('sentFailures', 'To')]:
-    SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom'][_x] = promvec(_x, 'Counter', [_l])
+    promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'], _x, 'Counter', [_l])
 # (2026-10-23, rafthttp stage 4d) the peer status's
-SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['activePeers'] = promvec(
-    'activePeers', 'Gauge', ['Local', 'Remote'])
-SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['disconnectedPeers'] = promvec(
-    'disconnectedPeers', 'Counter', ['Local', 'Remote'])
+promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'], 'activePeers', 'Gauge', ['Local', 'Remote'])
+promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'], 'disconnectedPeers', 'Counter', ['Local', 'Remote'])
 # (2026-10-23, rafthttp stage 6c) the probers' round-trip histogram, which `AddPeer` hands to
-# `addPeerToProber` (untranslated, the prober's axiom)
-SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['rttSec'] = dict(
-    doc='/-- `rttSec = prometheus.NewHistogramVec(...)` (`metrics.go`): some pointer, read-only for good. -/',
-    post='∃ v : Loc, globalAddr rttSec ↦ v', pat='⟨%v@, H@⟩')
+# `addPeerToProber` (untranslated, the prober's axiom): the fact only says it is some pointer
+promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'], 'rttSec', 'Histogram', ['To'])
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HreceivedBytes', 'ipersist HrecvFailures', 'ipersist HsentBytes', 'ipersist HsentFailures',
     'ipersist HactivePeers', 'ipersist HdisconnectedPeers', 'ipersist HrttSec']
@@ -1344,7 +1365,7 @@ _SNAP_METRICS = [('snapshotSend', 'Counter', 'To'), ('snapshotSendInflights', 'G
                  ('snapshotReceiveFailures', 'Counter', 'From'),
                  ('snapshotReceiveSeconds', 'Histogram', 'From')]
 for _x, _k, _l in _SNAP_METRICS:
-    SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom'][_x] = promvec(_x, _k, [_l])
+    promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'], _x, _k, [_l])
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     f'ipersist H{_x}' for _x, _, _ in _SNAP_METRICS]
 
@@ -1357,15 +1378,13 @@ fixed pointer (a `*prometheus.GaugeVec`, with its label names: D19l (iii)), and 
 initializer allocates its error variables, initializes its imports, runs their translated
 initializers (`errors.go`: `errors.New` calls, Perennial's `errors.wp_New_errorString`; translated
 since 2026-11-19, until then the trust-boundary axiom `errorsNewVarsInit`) and its other variables'
-untranslated initializers; the trust-boundary axiom `ClusterVersionMetrics_init` states the one the
-fact reads (`metrics.go`: `prometheus.NewGaugeVec(...)`), `opaqueInitsOk` the others.''',
+untranslated initializers (`opaqueInitsOk`), but the one the fact reads, `ClusterVersionMetrics`
+(`metrics.go`: `prometheus.NewGaugeVec(...)`, translated, over its spec; until 2026-11-19 the
+trust-boundary axiom `ClusterVersionMetrics_init`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types={x: 'GoInterface' for x in _MEMBERSHIP_ERRS},
     before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
             for x in _MEMBERSHIP_ERRS},
-    custom={
-        'ClusterVersionMetrics': promvec('ClusterVersionMetrics', 'Gauge', ['cluster_version']),
-    },
     finish=['ipersist HClusterVersionMetrics'] +
         [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] + FIN_PRE[:6] +
         ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
@@ -1373,6 +1392,9 @@ fact reads (`metrics.go`: `prometheus.NewGaugeVec(...)`), `opaqueInitsOk` the ot
          'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
          'iframe #'],
 )
+
+promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'], 'ClusterVersionMetrics', 'Gauge',
+        ['cluster_version'])
 
 def hist(x, file='metrics.go'):
     return dict(doc=f'/-- `{x} = prometheus.NewHistogram(...)` (`{file}`): a `Histogram`, whose `Observe` returns. -/',
@@ -2107,10 +2129,10 @@ def _noSpaceApart():
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.apply'] = dict(
     doc="""Its fact (`applyInit`, `Base.lean`): its gauge vector `alarms` with its label names
-(`metrics.go`, untranslated: the trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
+(`metrics.go`, translated, over prometheus's `NewGaugeVec` spec; until 2026-11-19 the
+trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
 (`applyErrVars`), from their packages' facts (`etcdserver/errors`', `lease`'s, `mvcc`'s), leaf
 errors by `EtcdGrove.ErrorStringLeaf`.""",
-    custom={'alarms': promvec('alarms', 'Gauge', ['server_id', 'alarm_type'])},
     pre=_ERRLEAF_PRE,
     finish=(['ipersist Halarms'] +
             errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrCorrupt', 'etcdserver: corrupt cluster', 'Hd19', 'COR') +
@@ -2140,6 +2162,8 @@ errors by `EtcdGrove.ErrorStringLeaf`.""",
             FIN_PRE[:6] + ['imodintro', 'unfold applyInit applyErrVars authErrsApart', 'iframe #']),
 )
 
+promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.apply'], 'alarms', 'Gauge', ['server_id', 'alarm_type'])
+
 _SRV_ERRS = [('ErrTooManyRequests', 'etcdserver: too many requests', 'TMR'),
              ('ErrRequestTooLarge', 'etcdserver: request is too large', 'RTL'),
              ('ErrStopped', 'etcdserver: server stopped', 'STP'),
@@ -2154,15 +2178,15 @@ _SRV_METRICS = ([(x, 'gauge') for x in _SRV_SET + ['proposalsPending', 'applySna
                 [(x, 'counter') for x in ['leaderChanges', 'heartbeatSendFailures', 'proposalsFailed']])
 _srv_steps = {x: (metric_steps_to(x, k, 'go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec')
                   if x in _SRV_SET else metric_steps(x, k)) for x, k in _SRV_METRICS}
-_srv_custom = {}
-# the construction's gauge vectors (unit N4, 2026-10-17: `NewServer` reads them)
-_srv_custom['serverFeatureEnabled'] = promvec('serverFeatureEnabled', 'Gauge', ['name', 'stage'])
-_srv_custom['serverID'] = promvec('serverID', 'Gauge', ['server_id'])
-_srv_custom['requestDurationSec'] = promvec('requestDurationSec', 'Histogram', ['type', 'success'])
+# the construction's gauge vectors (unit N4, 2026-10-17: `NewServer` reads them) and the request
+# path's histogram vector (translated since 2026-11-19, `promvec` below)
+_SRV_VECS = [('serverFeatureEnabled', 'Gauge', ['name', 'stage']), ('serverID', 'Gauge', ['server_id']),
+             ('requestDurationSec', 'Histogram', ['type', 'success'])]
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver'] = dict(
     doc="""Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`: the gauges and counters
 translated, over prometheus's constructor specs, until 2026-11-19 the trust-boundary axioms
-`<X>_init`; the vectors untranslated, the axioms `<X>_init`, with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
+`<X>_init`; the vectors, with their label names, translated over the `New<Kind>Vec` specs, until
+2026-11-19 the axioms `<X>_init`), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
@@ -2173,14 +2197,13 @@ reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `
 axiom `NewCounter.wp_proof`), which
 `revokeExpiredLeases` increments.""",
     imports=PROM_CTORS,
-    custom=_srv_custom,
     alloc_types={'raftStatusMu': '_root_.Perennial.sync.Mutex', 'raftStatus': 'GoFunc',
                  'leaseExpired': 'GoInterface', **{x: 'GoInterface' for x, _ in _SRV_METRICS}},
     # (revoke-open, 2026-11-06) `leaseExpired`'s translated initializer: the literal, `NewCounter`
     before={'leaseExpired': [
         'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩',
         'try wp_auto'], **_srv_steps},
-    finish=([f'ipersist H{x}' for x in _srv_custom] + [f'ipersist H{x}' for x, _ in _SRV_METRICS] +
+    finish=([f'ipersist H{x}' for x, _, _ in _SRV_VECS] + [f'ipersist H{x}' for x, _ in _SRV_METRICS] +
             ['ipersist HleaseExpired'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
              '· inext', '  iexists _', '  iframe HraftStatus'] +
@@ -2212,6 +2235,8 @@ axiom `NewCounter.wp_proof`), which
             ['imodintro', 'unfold srvInit srvRaftInit srvReqInit srvApplyLoopInit srvErrVars', 'iframe #',
              'ipureintro', 'first | exact fun x => EtcdGrove.errorString_errLeaf x | exact fun x => EtcdGrove.errorString_leaf x']),
 )
+for _x, _k, _l in _SRV_VECS:
+    promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver'], _x, _k, _l)
 
 _V_ERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided', 'ErrGRPCLeaseProvided',
            'ErrGRPCTooManyOps', 'ErrGRPCDuplicateKey', 'ErrGRPCKeyNotFound', 'ErrGRPCNoSpace',
@@ -2222,7 +2247,9 @@ _V_WERRS = ['ErrGRPCInvalidAuthToken', 'ErrGRPCAuthOldRevision', 'ErrGRPCUserEmp
             'ErrGRPCPermissionDenied', 'ErrGRPCWatchCanceled']
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'] = dict(
     doc="""Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter vector
-`clientRequests` with its label names (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
+`clientRequests` with its label names (the map untranslated: the trust-boundary axiom
+`toGRPCErrorMap_init`; the vector translated, over `NewCounterVec`'s spec, until 2026-11-19 an
+axiom `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
@@ -2231,13 +2258,13 @@ fact lacks it). Its precondition has the read package's registration rights
 (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to `etcdserver`'s initializer.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
 errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` (with its label
-names) and the four
+names; translated, over `NewCounterVec`'s spec, until 2026-11-19 an axiom) and the four
 `watchSendLoop*` histograms (translated, over prometheus's `NewHistogram` and `ExponentialBuckets`
 specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
 `progressReportInterval` (`10 * time.Minute`: `intervalP`).""",
     imports=['Perennial.Proof.sync.RWMutexGuard'] + PROM_CTORS,
-    before={x: metric_steps(x, 'hist') + [f'iunfold {_MV}.histSpec at C{x}'] for x in _V_HIST},
+    before={x: metric_steps(x, 'hist') + [f'iunfold EtcdGrove.prometheus.metric.histSpec at C{x}'] for x in _V_HIST},
     alloc_types={**{x: 'GoInterface' for x in _V_HIST},
                  'progressReportIntervalMu': '_root_.Perennial.sync.RWMutex',
                  'progressReportInterval': 'w64', 'metricsServerCached': 'Loc',
@@ -2247,9 +2274,6 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
             doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc\'s `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`), and the two have their `errors.New` descriptions (`kvstore.go:38-39`; k8s etcd3 7c-2 part 2, G2-a); every value is one grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: the `status.Error`s and the two `EtcdError`s, leaves with only `Code` and `Error`); the value of each variable of `grpcErrKeyGlobals` (the literal\'s 53 keys) is a key (k8s etcd3 7c-2 part 2, S2: stated as a persistent wand on the variable\'s persisted cell, asserting no cell of another package). -/',
             post='∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ □ (∀ (g : GoString) (k : GoInterface), ⌜g ∈ grpcErrKeyGlobals⌝ → globalAddr g ↦□ k -∗ ⌜(M !! k).isSome⌝) ∗ ⌜grpcErrMapOk M kf kc⌝',
             pat='⟨%mp@, %M@, %kf@, %kc@, H@, #S@, #F@, #C@, #V@, #K@, %P@⟩'),
-        'clientRequests': promvec('clientRequests', 'Counter', ['type', 'client_api_version']),
-        # (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
-        'streamFailures': promvec('streamFailures', 'Counter', ['Type', 'API']),
     },
     finish=(['ipersist HtoGRPCErrorMap', 'ipersist HclientRequests',
              'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
@@ -2327,6 +2351,10 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
             ['imodintro', 'unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr ctxErrDescs interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
              'iframe #', 'ipureintro', 'exact PtoGRPCErrorMap']),
 )
+promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'], 'clientRequests', 'Counter',
+        ['type', 'client_api_version'])
+# (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
+promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'], 'streamFailures', 'Counter', ['Type', 'API'])
 
 
 # Item 8 (2026-10-17): the read package, its `init()`'s `MustRegister` given the registration

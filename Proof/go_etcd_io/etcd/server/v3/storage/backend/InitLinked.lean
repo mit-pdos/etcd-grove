@@ -27,6 +27,9 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
+public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -113,7 +116,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BcommitSec as %ccommitSec ⟨#CcommitSec, -⟩
   try wp_auto
   ihave #EcommitSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec ccommitSec : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CcommitSec
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CcommitSec
     unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
     iexact CcommitSec
   -- translated initializer of rebalanceSec))
@@ -122,7 +125,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BrebalanceSec as %crebalanceSec ⟨#CrebalanceSec, -⟩
   try wp_auto
   ihave #ErebalanceSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec crebalanceSec : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CrebalanceSec
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CrebalanceSec
     unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
     iexact CrebalanceSec
   -- translated initializer of spillSec))
@@ -131,7 +134,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BspillSec as %cspillSec ⟨#CspillSec, -⟩
   try wp_auto
   ihave #EspillSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cspillSec : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CspillSec
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CspillSec
     unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
     iexact CspillSec
   -- translated initializer of writeSec))
@@ -140,7 +143,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwriteSec as %cwriteSec ⟨#CwriteSec, -⟩
   try wp_auto
   ihave #EwriteSec : (go_etcd_io.etcd.server.v3.storage.backend.histSpec cwriteSec : IProp GF) $$ []
-  · iunfold go_etcd_io.etcd.server.v3.storage.mvcc.histSpec at CwriteSec
+  · iunfold EtcdGrove.prometheus.metric.histSpec at CwriteSec
     unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
     iexact CwriteSec
   wp_apply (opaqueInitsOk defragSec.init (by mem_tac))
