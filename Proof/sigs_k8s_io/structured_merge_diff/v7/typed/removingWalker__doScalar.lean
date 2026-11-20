@@ -1,11 +1,14 @@
 /-
-`typed.removingWalker.doScalar`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.removingWalker.doScalar`: proved (Prove phase, 2026-11-20): the output is the value's
+`Unstructured()`, which at a scalar type is what removal leaves (`removeAt_scalar`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.removingWalker__doScalar
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__Unstructured_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsAPure
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBPers
 
 @[expose] public section
 
@@ -29,8 +32,22 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.removingWalker.doScalar.wp_proof
     (h_valueUnstructured_Unstructured_ptr : value.valueUnstructured.Unstructured_ptr.spec (GF := GF)) :
-    typed.removingWalker.doScalar.spec (GF := GF) := by
-  sorry
+    typed.removingWalker.doScalar.spec (GF := GF) :=
+    fun w sc S v dq x rp R a t tp s => by
+  wp_start as ⟨Hown, Hv, %Hfind⟩
+  rw [removeAt_scalar_law_holds S t s R x Hfind]
+  ihave %Hcv := isValF_concrete_law_holds v dq x $$ Hv
+  obtain ⟨p, rfl⟩ := Hcv
+  unfold rmOwn
+  icases Hown with ⟨Hw, #Hsc, %HWF, #HR, Ha⟩
+  wp_auto
+  wp_apply h_valueUnstructured_Unstructured_ptr p dq x $$ [Hv] as %u ⟨Hv, #Hu⟩
+  · iframe Hv
+  iapply HΦ
+  iexists u
+  iframe
+  iframe #
+  ipureintro; exact HWF
 
 end proof
 

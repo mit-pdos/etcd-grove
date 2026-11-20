@@ -164,6 +164,12 @@ theorem fieldSet_card_law_holds : fieldSet_card.law := by
 theorem cmpO_below_law_holds : cmpO_below.law := fun S t p l r h =>
   cmpO_below_resolved S t p l r h
 
+/-- At a scalar type a conforming value sets its own path (`toFieldSetWalker.doScalar`). -/
+theorem fieldsAt_scalar (S : Schema) (t : TypeRef) (s : Scalar) (p : Path) (x : UVal)
+    (h : S.find t.name = some (.scalar s)) (hc : conforms S t x) : fieldsAt S t p x = ins p := by
+  unfold conforms at hc
+  cases x <;> simp_all [conformsB, fieldsAt]
+
 end LawA
 
 export LawA (cmpO_below_law_holds fieldSet_fieldsAt_law_holds removeAt_scalar_law_holds conforms_item_law_holds
