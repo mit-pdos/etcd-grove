@@ -565,8 +565,7 @@ tests kept as differential tests against the real library, a "not modelled" pani
    server's connection loop to the point of a hijack (dsverify's `Proof/net/http`); the
    translation's missing imports (`go/token` for `token.IsExported`; `bufio` is the main tree's).
    **The Lean half, first part (2026-11-20, branch `models-rpc-http-lean`, on `models-rpc-http`
-   merged with `lean` `57d66952d9`; NOT landed: the disk had under 10 GB free, so no full build and
-   no gates; see "Landing" below).**
+   merged with `lean`; landed after the coordinator freed disk).**
    *Compiles* (`lake build Net`, 2295 jobs): `Net/Code/net/{rpc,http}.lean` and their
    `GeneratedProof`. `Net/Code/net/http.toml` widened to what net/rpc's HTTP path runs, with
    bodies: `ReadResponse`, `Handle`, `ServeMux.{Handle,register,registerErr,ServeHTTP,Handler,
@@ -639,13 +638,12 @@ tests kept as differential tests against the real library, a "not modelled" pani
       `HandleHTTP`. This is Go's real server, not dsverify's 324-line one: its proof is the largest
       item (dsverify's `Proof/net/http` is 1.4k lines for a server without background reads,
       contexts or pools).
-   *Landing.* `etc/land.sh` needs the full build and `etc/gates.sh`; `df -h /` showed 9.1 GB, then
-   7.9 GB free during this session (the task's floor is 10 GB), so neither ran: the branch is
-   committed, not landed, `lean` not pushed. Checks run: `lake build Net` (2331 jobs, with every new
-   module), `etc/goose.py --check --project models-net`, `go test` of the new `TestIsExportedASCII`.
-   Still to run before landing: the full `lake build`, `etc/tcb-report.py --collection
-   etc/tcb-collections/models-net.txt --check --update` (expected: no axiom, no `sorry`), and
-   `etc/land.sh` (its gates).
+   *Landing.* The first attempt stopped at the disk floor (7.2 GB free); after the coordinator freed
+   disk: merged with `lean` and `origin/lean`, full `lake build` (22523 jobs) green,
+   `etc/tcb-report.py --collection etc/tcb-collections/models-net.txt --check --update`: 10 roots,
+   no axiom of this repository or Perennial, no `sorry` (the baseline is empty), then `etc/land.sh`
+   (its gates). Also checked: `etc/goose.py --check --project models-net`, `go test` of
+   `TestIsExportedASCII`.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
