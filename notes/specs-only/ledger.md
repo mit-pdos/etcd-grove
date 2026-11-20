@@ -3273,3 +3273,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `isPkgInit raftpb` in the precondition (the one caller, `sendMergedSnap`, gets it by `iPkgInit`);
   `msgRO` keeps the raft message's read-only content (`∃ st, msgOwn ml □ st`), which `NewMessage`'s precondition gives.
 - **Decision.** Applied (prove-grpcsmall, 2026-11-20).
+
+## 2026-11-20: `verify.Verify` takes its function as any `val` (prove-etcdapi)
+
+- **Spec.** `verify.Verify.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean`), a trust-boundary axiom.
+- **Defect.** Not false of Go, but unprovable over the real code: `f` ranges over every `val`, where Go's `f` is a
+  `VerifyFunc` value. `Verify`'s body first stores `f` into a `VerifyFunc`-typed local (`GoAlloc VerifyFunc.ty f`), whose
+  semantics Perennial gives only for a value of the type (`IntoValTyped`), not for an arbitrary `val`. (A panic outcome
+  `f = PanicV p` alone is provable: `f()` and `Verify(msg, f)` both unwind to it, which `f`'s WP excludes; the attempt has
+  the lemma, `wp_absurd_of_pure`, in `/tmp` only, not landed.)
+- **Evidence.** The proof attempt (prove-etcdapi): `wp_auto` stops at the `GoAlloc` of `f`.
+- **Proposed change.** `∀ (f : GoFunc)`, the call `(Val #f)` and `f`'s WP over `#f` (as bbolt's `common.Verify.spec`).
+  The five callers (mvcc `restoreIntoIndex`, `watcher.send`; backend `txWriteBuffer.putSeq`; schema
+  `unsafeUpdateConsistentIndex`; etcdserver `verifyConsistentIndexIsLatest`) pass function literals, so the change is
+  only the quantifier's type at their `wp_apply`s. Formally a weakening of the axiom's statement (fewer `f`), so not
+  applied without the user; with it, `verify.Verify` is provable as bbolt's (over `os.Getenv`, `strings.ToLower`).
+- **Decision.** Open: recorded only.

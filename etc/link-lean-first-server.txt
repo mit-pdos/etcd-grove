@@ -992,7 +992,8 @@ path_Dir: path_Split path_Clean
 path_Base: bytealg_LastIndexByteString
 path_Join: path_Clean
 httputil_GracefulClose:
-transport_IsClosedConnError:
+transport_IsClosedConnError: strings_Contains
+strings_Contains:
 rate_Limiter__Wait:
 proto_MarshalPb:
 path_Split: bytealg_LastIndexByteString
