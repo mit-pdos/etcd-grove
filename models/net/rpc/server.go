@@ -129,15 +129,12 @@ client.
 package rpc
 
 import (
-	"bufio"
-	"encoding/gob"
 	"errors"
 	"go/token"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"reflect"
 	"strings"
 	"sync"
 )
@@ -148,21 +145,18 @@ const (
 	DefaultDebugPath = "/debug/rpc"
 )
 
-// Precompute the reflect type for error.
-var typeOfError = reflect.TypeFor[error]()
-
+// MODEL: a method is the program's generated Method (codec.go) in place of reflection's
+// reflect.Method and argument types; a service's receiver is kept as it was passed to
+// Register.
 type methodType struct {
 	sync.Mutex // protects counters
-	method     reflect.Method
-	ArgType    reflect.Type
-	ReplyType  reflect.Type
+	m          *Method
 	numCalls   uint
 }
 
 type service struct {
 	name   string                 // name of service
-	rcvr   reflect.Value          // receiver of methods for the service
-	typ    reflect.Type           // type of the receiver
+	rcvr   any                    // receiver of methods for the service
 	method map[string]*methodType // registered methods
 }
 
@@ -186,9 +180,13 @@ type Response struct {
 }
 
 // Server represents an RPC Server.
+//
+// MODEL: the services are a map under a mutex in place of a sync.Map (the same
+// LoadOrStore and Load).
 type Server struct {
-	serviceMap sync.Map   // map[string]*service
-	reqLock    sync.Mutex // protects freeReq
+	mapLock    sync.Mutex          // protects serviceMap
+	serviceMap map[string]*service // map[string]*service
+	reqLock    sync.Mutex          // protects freeReq
 	freeReq    *Request
 	respLock   sync.Mutex // protects freeResp
 	freeResp   *Response
@@ -196,21 +194,11 @@ type Server struct {
 
 // NewServer returns a new [Server].
 func NewServer() *Server {
-	return &Server{}
+	return &Server{serviceMap: make(map[string]*service)}
 }
 
 // DefaultServer is the default instance of [*Server].
 var DefaultServer = NewServer()
-
-// isExportedOrBuiltinType reports whether t is an exported or builtin type
-func isExportedOrBuiltinType(t reflect.Type) bool {
-	for t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	}
-	// PkgPath will be non-empty even for an exported type,
-	// so we need to check the type name as well.
-	return token.IsExported(t.Name()) || t.PkgPath() == ""
-}
 
 // Register publishes in the server the set of methods of the
 // receiver value that satisfy the following conditions:
@@ -237,16 +225,23 @@ func (server *Server) RegisterName(name string, rcvr any) error {
 // To debug registration, recompile the package with this set to true.
 const logRegisterError = false
 
+// MODEL: the receiver's facts reflection gives (its type's name and string, the methods
+// suitableMethods finds for its type and for a pointer to it) are the program's generated
+// Codec's (codec.go, Receiver), which panics for a receiver of a type it does not list.
 func (server *Server) register(rcvr any, name string, useName bool) error {
 	s := new(service)
-	s.typ = reflect.TypeOf(rcvr)
-	s.rcvr = reflect.ValueOf(rcvr)
+	r := getCodec().Receiver(rcvr)
+	s.rcvr = rcvr
 	sname := name
 	if !useName {
-		sname = reflect.Indirect(s.rcvr).Type().Name()
+		if r.NilPtr {
+			// reflect.Indirect of a nil pointer is the zero Value, whose Type panics
+			panic("reflect: call of reflect.Value.Type on zero Value")
+		}
+		sname = r.Name
 	}
 	if sname == "" {
-		s := "rpc.Register: no service name for type " + s.typ.String()
+		s := "rpc.Register: no service name for type " + r.Type
 		log.Print(s)
 		return errors.New(s)
 	}
@@ -258,14 +253,16 @@ func (server *Server) register(rcvr any, name string, useName bool) error {
 	s.name = sname
 
 	// Install the methods
-	s.method = suitableMethods(s.typ, logRegisterError)
+	s.method = make(map[string]*methodType)
+	for mname, m := range r.Methods {
+		s.method[mname] = &methodType{m: m}
+	}
 
 	if len(s.method) == 0 {
 		str := ""
 
 		// To help the user, see if a pointer receiver would work.
-		method := suitableMethods(reflect.PointerTo(s.typ), false)
-		if len(method) != 0 {
+		if r.PtrHasMethods {
 			str = "rpc.Register: type " + sname + " has no exported methods of suitable type (hint: pass a pointer to value of that type)"
 		} else {
 			str = "rpc.Register: type " + sname + " has no exported methods of suitable type"
@@ -274,71 +271,16 @@ func (server *Server) register(rcvr any, name string, useName bool) error {
 		return errors.New(str)
 	}
 
-	if _, dup := server.serviceMap.LoadOrStore(sname, s); dup {
+	server.mapLock.Lock()
+	_, dup := server.serviceMap[sname]
+	if !dup {
+		server.serviceMap[sname] = s
+	}
+	server.mapLock.Unlock()
+	if dup {
 		return errors.New("rpc: service already defined: " + sname)
 	}
 	return nil
-}
-
-// suitableMethods returns suitable Rpc methods of typ. It will log
-// errors if logErr is true.
-func suitableMethods(typ reflect.Type, logErr bool) map[string]*methodType {
-	methods := make(map[string]*methodType)
-	for m := 0; m < typ.NumMethod(); m++ {
-		method := typ.Method(m)
-		mtype := method.Type
-		mname := method.Name
-		// Method must be exported.
-		if !method.IsExported() {
-			continue
-		}
-		// Method needs three ins: receiver, *args, *reply.
-		if mtype.NumIn() != 3 {
-			if logErr {
-				log.Printf("rpc.Register: method %q has %d input parameters; needs exactly three\n", mname, mtype.NumIn())
-			}
-			continue
-		}
-		// First arg need not be a pointer.
-		argType := mtype.In(1)
-		if !isExportedOrBuiltinType(argType) {
-			if logErr {
-				log.Printf("rpc.Register: argument type of method %q is not exported: %q\n", mname, argType)
-			}
-			continue
-		}
-		// Second arg must be a pointer.
-		replyType := mtype.In(2)
-		if replyType.Kind() != reflect.Pointer {
-			if logErr {
-				log.Printf("rpc.Register: reply type of method %q is not a pointer: %q\n", mname, replyType)
-			}
-			continue
-		}
-		// Reply type must be exported.
-		if !isExportedOrBuiltinType(replyType) {
-			if logErr {
-				log.Printf("rpc.Register: reply type of method %q is not exported: %q\n", mname, replyType)
-			}
-			continue
-		}
-		// Method needs one out.
-		if mtype.NumOut() != 1 {
-			if logErr {
-				log.Printf("rpc.Register: method %q has %d output parameters; needs exactly one\n", mname, mtype.NumOut())
-			}
-			continue
-		}
-		// The return type of the method must be error.
-		if returnType := mtype.Out(0); returnType != typeOfError {
-			if logErr {
-				log.Printf("rpc.Register: return type of method %q is %q, must be error\n", mname, returnType)
-			}
-			continue
-		}
-		methods[mname] = &methodType{method: method, ArgType: argType, ReplyType: replyType}
-	}
-	return methods
 }
 
 // A value sent as a placeholder for the server's response value when the server
@@ -371,71 +313,24 @@ func (m *methodType) NumCalls() (n uint) {
 	return n
 }
 
-func (s *service) call(server *Server, sending *sync.Mutex, wg *sync.WaitGroup, mtype *methodType, req *Request, argv, replyv reflect.Value, codec ServerCodec) {
+// MODEL: the method is called through the program's generated Method (codec.go) in place of
+// reflect's Value.Call.
+func (s *service) call(server *Server, sending *sync.Mutex, wg *sync.WaitGroup, mtype *methodType, req *Request, argv, replyv any, codec ServerCodec) {
 	if wg != nil {
 		defer wg.Done()
 	}
 	mtype.Lock()
 	mtype.numCalls++
 	mtype.Unlock()
-	function := mtype.method.Func
 	// Invoke the method, providing a new value for the reply.
-	returnValues := function.Call([]reflect.Value{s.rcvr, argv, replyv})
+	errInter := mtype.m.Call(s.rcvr, argv, replyv)
 	// The return value for the method is an error.
-	errInter := returnValues[0].Interface()
 	errmsg := ""
 	if errInter != nil {
-		errmsg = errInter.(error).Error()
+		errmsg = errInter.Error()
 	}
-	server.sendResponse(sending, req, replyv.Interface(), codec, errmsg)
+	server.sendResponse(sending, req, replyv, codec, errmsg)
 	server.freeRequest(req)
-}
-
-type gobServerCodec struct {
-	rwc    io.ReadWriteCloser
-	dec    *gob.Decoder
-	enc    *gob.Encoder
-	encBuf *bufio.Writer
-	closed bool
-}
-
-func (c *gobServerCodec) ReadRequestHeader(r *Request) error {
-	return c.dec.Decode(r)
-}
-
-func (c *gobServerCodec) ReadRequestBody(body any) error {
-	return c.dec.Decode(body)
-}
-
-func (c *gobServerCodec) WriteResponse(r *Response, body any) (err error) {
-	if err = c.enc.Encode(r); err != nil {
-		if c.encBuf.Flush() == nil {
-			// Gob couldn't encode the header. Should not happen, so if it does,
-			// shut down the connection to signal that the connection is broken.
-			log.Println("rpc: gob error encoding response:", err)
-			c.Close()
-		}
-		return
-	}
-	if err = c.enc.Encode(body); err != nil {
-		if c.encBuf.Flush() == nil {
-			// Was a gob problem encoding the body but the header has been written.
-			// Shut down the connection to signal that the connection is broken.
-			log.Println("rpc: gob error encoding body:", err)
-			c.Close()
-		}
-		return
-	}
-	return c.encBuf.Flush()
-}
-
-func (c *gobServerCodec) Close() error {
-	if c.closed {
-		// Only call c.rwc.Close once; otherwise the semantics are undefined.
-		return nil
-	}
-	c.closed = true
-	return c.rwc.Close()
 }
 
 // ServeConn runs the server on a single connection.
@@ -444,15 +339,11 @@ func (c *gobServerCodec) Close() error {
 // ServeConn uses the gob wire format (see package gob) on the
 // connection. To use an alternate codec, use [ServeCodec].
 // See [NewClient]'s comment for information about concurrent access.
+//
+// MODEL: the codec is the model's frame codec over the program's generated Codec
+// (codec.go), in place of gob's.
 func (server *Server) ServeConn(conn io.ReadWriteCloser) {
-	buf := bufio.NewWriter(conn)
-	srv := &gobServerCodec{
-		rwc:    conn,
-		dec:    gob.NewDecoder(conn),
-		enc:    gob.NewEncoder(buf),
-		encBuf: buf,
-	}
-	server.ServeCodec(srv)
+	server.ServeCodec(newServerCodec(conn))
 }
 
 // ServeCodec is like [ServeConn] but uses the specified codec to
@@ -545,7 +436,10 @@ func (server *Server) freeResponse(resp *Response) {
 	server.respLock.Unlock()
 }
 
-func (server *Server) readRequest(codec ServerCodec) (service *service, mtype *methodType, req *Request, argv, replyv reflect.Value, keepReading bool, err error) {
+// MODEL: the argument and reply values are made by the program's generated Method (codec.go)
+// in place of reflect.New (and reflect.MakeMap, MakeSlice for a map or slice reply): argv is
+// always a pointer to the argument (the Method dereferences it for a method that takes a value).
+func (server *Server) readRequest(codec ServerCodec) (service *service, mtype *methodType, req *Request, argv, replyv any, keepReading bool, err error) {
 	service, mtype, req, keepReading, err = server.readRequestHeader(codec)
 	if err != nil {
 		if !keepReading {
@@ -557,29 +451,13 @@ func (server *Server) readRequest(codec ServerCodec) (service *service, mtype *m
 	}
 
 	// Decode the argument value.
-	argIsValue := false // if true, need to indirect before calling.
-	if mtype.ArgType.Kind() == reflect.Pointer {
-		argv = reflect.New(mtype.ArgType.Elem())
-	} else {
-		argv = reflect.New(mtype.ArgType)
-		argIsValue = true
-	}
+	argv = mtype.m.NewArg()
 	// argv guaranteed to be a pointer now.
-	if err = codec.ReadRequestBody(argv.Interface()); err != nil {
+	if err = codec.ReadRequestBody(argv); err != nil {
 		return
 	}
-	if argIsValue {
-		argv = argv.Elem()
-	}
 
-	replyv = reflect.New(mtype.ReplyType.Elem())
-
-	switch mtype.ReplyType.Elem().Kind() {
-	case reflect.Map:
-		replyv.Elem().Set(reflect.MakeMap(mtype.ReplyType.Elem()))
-	case reflect.Slice:
-		replyv.Elem().Set(reflect.MakeSlice(mtype.ReplyType.Elem(), 0, 0))
-	}
+	replyv = mtype.m.NewReply()
 	return
 }
 
@@ -609,12 +487,14 @@ func (server *Server) readRequestHeader(codec ServerCodec) (svc *service, mtype 
 	methodName := req.ServiceMethod[dot+1:]
 
 	// Look up the request.
-	svci, ok := server.serviceMap.Load(serviceName)
+	server.mapLock.Lock()
+	svci, ok := server.serviceMap[serviceName]
+	server.mapLock.Unlock()
 	if !ok {
 		err = errors.New("rpc: can't find service " + req.ServiceMethod)
 		return
 	}
-	svc = svci.(*service)
+	svc = svci
 	mtype = svc.method[methodName]
 	if mtype == nil {
 		err = errors.New("rpc: can't find method " + req.ServiceMethod)

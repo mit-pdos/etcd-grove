@@ -6,7 +6,6 @@ package rpc
 
 import (
 	"bufio"
-	"encoding/gob"
 	"errors"
 	"io"
 	"log"
@@ -190,10 +189,11 @@ func (call *Call) done() {
 // so no interlocking is required. However each half may be accessed
 // concurrently so the implementation of conn should protect against
 // concurrent reads or concurrent writes.
+//
+// MODEL: the codec is the model's frame codec over the program's generated Codec
+// (codec.go), in place of gob's.
 func NewClient(conn io.ReadWriteCloser) *Client {
-	encBuf := bufio.NewWriter(conn)
-	client := &gobClientCodec{conn, gob.NewDecoder(conn), gob.NewEncoder(encBuf), encBuf}
-	return NewClientWithCodec(client)
+	return NewClientWithCodec(newClientCodec(conn))
 }
 
 // NewClientWithCodec is like [NewClient] but uses the specified
@@ -205,35 +205,6 @@ func NewClientWithCodec(codec ClientCodec) *Client {
 	}
 	go client.input()
 	return client
-}
-
-type gobClientCodec struct {
-	rwc    io.ReadWriteCloser
-	dec    *gob.Decoder
-	enc    *gob.Encoder
-	encBuf *bufio.Writer
-}
-
-func (c *gobClientCodec) WriteRequest(r *Request, body any) (err error) {
-	if err = c.enc.Encode(r); err != nil {
-		return
-	}
-	if err = c.enc.Encode(body); err != nil {
-		return
-	}
-	return c.encBuf.Flush()
-}
-
-func (c *gobClientCodec) ReadResponseHeader(r *Response) error {
-	return c.dec.Decode(r)
-}
-
-func (c *gobClientCodec) ReadResponseBody(body any) error {
-	return c.dec.Decode(body)
-}
-
-func (c *gobClientCodec) Close() error {
-	return c.rwc.Close()
 }
 
 // DialHTTP connects to an HTTP RPC server at the specified network address
