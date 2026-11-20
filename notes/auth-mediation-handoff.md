@@ -20,29 +20,20 @@
   contracts `MemberContracts.lean` (`mayAddOk`, `mayPromoteOk`, `configureCcOk`, `memberSlices`,
   `addChangeType`); specs + proofs of `AddMember`, `UpdateMember`, `promoteMember` (not linked yet);
   `PromoteMember`'s metrics in `srvApplyLoopInit` (gen-init; `revokeExpiredLeases`' pattern adjusted).
-- M2, second session (2026-11-20). Committed, build `20261120-201939-1779142` (after the
-  etcdserverpb regeneration: exit 1, only `membersToProtoMembers` failing): etcdserverpb's Cluster
-  messages translated (`etcdserverpb.toml`; they were axiomatized types with `sorry` instances, so no
-  handler could be proved); `v3rpc/InvCluster.lean` (`clusterServerIs`, `clusterHdrOk`,
-  `memberOutC`) and `MemberContracts.lean`'s `memChkAns`, `memCfgAns` (built); specs of
-  `ClusterServer.{header,MemberRemove,MemberList,MemberUpdate}` and `membersToProtoMembers`;
-  `header`'s proof (built). **Not yet checked**: the proofs of `MemberRemove`, `MemberList`,
-  `MemberUpdate` (drafts, never compiled: not reached by the build's targets until linked; check each
-  with `etc/lean-check.py`) and `membersToProtoMembers` (line 93: `wp_auto: no progress` at the
-  `&pb.Member{...}` literal; written when `pb.Member` was axiomatized, retry now; then the
-  `wp_store_slice_index` into `protoMembs[i]` and the loop's close, drafted below it).
-- M2 next: (1) **`PromoteMember` is blocked** (reported to etcd-grove-03): its
-  `learnerPromoteFailed.WithLabelValues(err.Error())` panics unless the message is valid UTF-8, and
-  the guard's error (`checkMembershipOperationPermission`'s `adminOutC`) carries no message fact
-  (`adminWhy` is `True` with auth off). Recommended: strengthen the guard's post with `authErrVarIs
-  err` (its errors are `AuthInfoFromCtx`'s `authApplyErrIs` and `IsAdminPermitted`'s; with auth off
-  `nil`), whose messages are `auth.authErrMsgs` literals (`authErrVarIs_cell`); the contracts'
-  answers then add a UTF-8 message fact. It changes a row spec of `client_port_mediated` (stronger):
-  a hard stop. Draft contract `promoteHTTPOk`: `/shared/tmp/authmed/m2-next/`. (2) `MemberAdd`:
-  `types.NewURLs`'s axiom covers only non-empty plain `http://host:port` lists (premise on the
-  request's peer URLs, recorded as the margin) and `membership.NewMember(AsLearner)` are names only
-  (a contract `newMemberOk learner`); the premises `∀ id, configureCcOk ...` and `∀ memb ps,
-  mayAddOk ...` (the member's id is computed). (3) `NewClusterServer`'s post: `clusterServerIs` (a
-  stronger post). (4) Link (`etc/gen-link.py --server` list), `etc/auth-table.txt` rows 13-17
-  (13, 15 contract once MemberAdd/Update are linked; 14 contract; 16 e2e; 17 contract after
-  PromoteMember), `ClientPortTable.lean`, gate baseline, tcb update (the two JSON axioms).
+- M2, third session (2026-11-20): done, see `git log` (commits `b38c566b57`..): the four handler drafts and
+  `membersToProtoMembers` proved; the guard's post `authErrVarIs` (decided by etcd-grove-03); contracts'
+  answers carry a UTF-8 message (`errMsgP`, moved to `etcdserver/ErrMsg.lean`); `EtcdServer.PromoteMember`
+  (forwarding as `LeaseRenew`'s, `promoteHTTPOk` contract) and `ClusterServer.MemberPromote`;
+  `ClusterServer.MemberAdd` (margin: plain `http://host:port` peer URLs, a premise; `newMemberOk` contract);
+  `NewClusterServer` posts `clusterServerIs`; Links (`--server`, `--v3rpc`); table rows 13, 14, 15, 17
+  `contract`; row 16 (MemberList) stays `server` (its server spec takes `isServerReq`, auth off: ledger
+  entry, reported); gate baseline; lean merged (`5ebda1039e`).
+- State at handoff: full timed build started after the merge (log `/shared/tmp/authmed/build1.log`,
+  not seeded: incremental from this worktree's build); its result is in the report to etcd-grove-03.
+- Next (M2 land stop): if the build failed, fix (likely candidates: importers of `v3rpc.errMsgP`, now in
+  `etcdserver/ErrMsg.lean`; `Server.lean` uses `NewClusterServer` as `%pc -`); then tcb-report `--check
+  --update` (expected delta: +2 axioms, the JSON Marshal specs, in the server/v3rpc collections), collections
+  `--check --update`, every gen-link mode (`--server`, `--v3rpc` regenerated after the merge?), interfaces,
+  tier, gen-init/goose `--check`, mode, bounds, axiom-tok, `etc/auth-mediation-check.py --check`; a STATUS
+  entry (front of "Last updated", oldest to status-history, append-only); report and STOP (no land.sh).
+- Then M3 (RangeStream), M4 (STOP first with the exported specs' old -> new).

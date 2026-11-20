@@ -3242,3 +3242,29 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   error arms `¬ FsNoErr ∨ ¬ PathFits p`; a bound on the member's data directory in `bootCfgFresh`, discharged in
   the examples from the member name (≤ 200 bytes).
 - **Decision.** Option 2, the user, 2026-11-20, via etcd-grove-03; flock left to `NoMapLockErr` the same day.
+
+## 2026-11-20: `checkMembershipOperationPermission` says nothing of its error's message (auth-mediation M2)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__checkMembershipOperationPermission.lean`
+  (post `adminOutC`); the membership contracts' handler answers `memChkAns`, `memCfgAns`
+  (`MemberContracts.lean`).
+- **Defect.** `PromoteMember` labels `learnerPromoteFailed` with `err.Error()`, which panics unless valid UTF-8;
+  the guard's error carried no message fact (`adminWhy` is `True` with auth off), nor did the contracts' errors.
+- **Evidence.** The proof of `EtcdServer.PromoteMember` (auth-mediation M2, 2026-11-20).
+- **Proposed change.** The guard's post gains `authErrVarIs err` (its errors are `AuthInfoFromCtx`'s and
+  `IsAdminPermitted`'s auth variables, `nil` with auth off; their messages are `auth.authErrMsgs` literals,
+  `errMsgP_of_authErrVarIs`); the contracts' error answers gain `v3rpc.errMsgP err utf8Valid`.
+- **Decision.** Decided by etcd-grove-03, 2026-11-20 (a stronger post on a proved spec).
+
+## 2026-11-20: `EtcdServer.MemberList.spec` holds only with auth off (auth-mediation M2, found)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__MemberList.lean` (and so
+  `ClusterServer.MemberList.spec`), premise `isServerReq s E ρ`, which includes `⌜E.authOn = false⌝`.
+- **Defect.** The client port's MemberList row (authenticated class) rests on it, but with auth on the spec
+  says nothing: its guard's verdict (`authedRes`) is only stated for an auth-off server. `EtcdServer.Compact.spec`
+  takes the same premise (its row's guard, `AuthAdmin.isPermitted`, is a separate spec, so that row is not
+  affected the same way).
+- **Evidence.** Reading the premise while writing the handler's spec (auth-mediation M2, 2026-11-20).
+- **Proposed change.** Restate over `isServerReqM E.authOn`/`isServerReadM E.authOn` (as `EtcdServer.Range`),
+  the proof taking the fields through `srvReqFieldsAtM`/`srvReadFieldsAtM`; then the row can be `e2e`.
+- **Decision.** Open (reported to etcd-grove-03): the row stays `server`, its reason saying why.
