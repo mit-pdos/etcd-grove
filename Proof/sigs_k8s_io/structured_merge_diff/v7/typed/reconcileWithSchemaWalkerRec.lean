@@ -1,5 +1,5 @@
 /-
-`typed.reconcileWithSchemaWalkerRec`: the cluster's Löb induction (Draft: `sorry`).
+`typed.reconcileWithSchemaWalkerRec`: the cluster's Löb induction .
 -/
 module
 
@@ -39,7 +39,45 @@ theorem typed.reconcileWithSchemaWalkerRec.wp_proof
     (h_reconcileWithSchemaWalker_visitListItems_body : typed.reconcileWithSchemaWalker.visitListItems.specBody (GF := GF))
     (h_reconcileWithSchemaWalker_visitMapItems_body : typed.reconcileWithSchemaWalker.visitMapItems.specBody (GF := GF)) :
     typed.reconcileWithSchemaWalkerRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ typed.reconcileWithSchemaWalkerRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H0 := h_reconcileWithSchemaWalker_doList_body $$ IH
+    ihave H1 := h_reconcileWithSchemaWalker_doMap_body $$ IH
+    ihave H2 := h_reconcileWithSchemaWalker_reconcile_body $$ IH
+    ihave H3 := h_reconcileWithSchemaWalker_visitListItems_body $$ IH
+    ihave H4 := h_reconcileWithSchemaWalker_visitMapItems_body $$ IH
+    unfold typed.reconcileWithSchemaWalkerRec.specI
+    isplit
+    · iexact H0
+    isplit
+    · iexact H1
+    isplit
+    · iexact H2
+    isplit
+    · iexact H3
+    iexact H4
+  unfold typed.reconcileWithSchemaWalkerRec.specI typed.reconcileWithSchemaWalker.doList.specI typed.reconcileWithSchemaWalker.doMap.specI typed.reconcileWithSchemaWalker.reconcile.specI typed.reconcileWithSchemaWalker.visitListItems.specI typed.reconcileWithSchemaWalker.visitMapItems.specI at H
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, -, HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
+    iintro %Φ HP HΦ
+    ihave ⟨-, -, -, -, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

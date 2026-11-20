@@ -49,7 +49,6 @@ theorem typed.typeRefAtPath.wp_proof
       intro htr; rw [htr] at h; exact h rfl
   ihave %Hetz := hcmp e etv $$ Hetv
   wp_auto
-  trace_state
   sorry
 
 end proof
