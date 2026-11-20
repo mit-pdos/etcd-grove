@@ -18,4 +18,4 @@ State (2026-11-20):
   STATUS entry.
 - Builds: full timed `20261120-161449-844527` (at 2a3a51669a), after merging lean 9d6a486a91 incremental timed
   `20261120-164052-938906`, both green.
-- Next: gates (`etc/gates.sh`), then LAND STOP (the coordinator runs etc/land.sh).
+- `etc/gates.sh`: all passed (head 6328ec7f5f + this note). LAND STOP: the coordinator runs etc/land.sh.
