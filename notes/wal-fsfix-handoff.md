@@ -18,7 +18,14 @@
   - `InvBbolt.lean`: `fileHoldsF`/`nameAtF`/`fileFreeF` carry `PathFits path` (last conjunct); `bPath_join`,
     `fileAt_fileHolds` fixed; `newBackend.lean`'s `kvGlue_Open`, `Proof/os/Rename.lean` (`rename_fileNE` takes
     `hfit`) fixed; `StartFiles.lean`: `hok : ∀ b ∈ bs, NameOk b ∧ PathFits (child r b)`.
-- **Next (in order)**: build `GooseLang.Ext.Fs.*` (a run was queued on build-slot), then `Proof.os.*`, bbolt `Open`,
+- **Also done (d78e350c1e and the commit after)**: mvccrand/mvccfull `Adequacy`, `Results`, `TopLevelRobustness`
+  (Spec+Proof) take `Hrfit : Fs.DirFits r` (closed-statement change) with `mvccfullNames_len`; new
+  `storage/WalLayoutFits.lean` (`memberDataDir_child`, `dirFits_memberDataDir`: name ≤ 200 → `DirFits`, lean-check
+  clean); `bootCfgFresh`'s last conjunct `(∀ k, … utf8Valid k) ∧ Fs.DirFits cfg.DataDir'` (destructuring sites of
+  `bootCfgFresh` need `.2.2.1` for the UTF-8 part now). `bootstrapContract` (a closed premise) thereby changes: its
+  precondition gains `DirFits`, its `bootOk`'s `Hsfree` (`snapFreeAll` → `fileFree`) now carries `PathFits` of each
+  snapshot path: list both in the land report.
+- **Next (in order)**: build `GooseLang.Ext.Fs.*` (a run was queued on build-slot: log /shared/tmp/walfsfix/fsbuild.log), then `Proof.os.*`, bbolt `Open`,
   backend; then the producers of the name claims: (a) `start_fileHolds` callers: mvccrand/mvccfull `Adequacy`
   (+ their `TopLevelRobustness` Spec/Proof): new premise `Fs.DirFits r` (closed-statement change: report) and a
   length lemma for `mvccfullNames` (as `mvccfullNames_ok`); (b) the etcd examples' snapshot names
