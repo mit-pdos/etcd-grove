@@ -230,8 +230,8 @@ fi
 # generated codec is exactly its generator's output for its derived input (pbgen: the roots'
 # descriptors; --check), every protobuf.toml in the tree (but old/) is one of them, the codec helpers
 # against protowire, unicode/utf8 and encoding/json, the generated codecs against protobuf-go and
-# encoding/json, pbgen's random-schema differential test and refusals (models/internal/pbgenrand),
-# and pbgen's codec of etcd's messages (examples/models)
+# encoding/json, pbgen's and jsongen's random differential tests and refusals
+# (models/internal/{pbgenrand,jsongenrand}), and pbgen's codec of etcd's messages (examples/models)
 nm=0
 : > "$tmp/nm.log"
 pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
@@ -243,10 +243,22 @@ done
 for t in $(git ls-files '*protobuf.toml' ':!old/'); do  # old/: reference copies, not built
   grep -q "^$t:" <<< "$pbinputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
 done
-python3 models/json/jsongen.py models/internal/jsondifftest/json.toml models/internal/jsondifftest/codec \
-  --pkg codec --check >> "$tmp/nm.log" 2>&1 || nm=1
+# jsongen: every toml with a [json] table (but in old/) is checked (the dump by reflection included);
+# jsongen's random-type differential test and refusals run in models' go test (internal/jsongenrand)
+jsoninputs="models/internal/jsondifftest/json.toml:models/internal/jsondifftest/codec:codec
+models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec"
+for x in $jsoninputs; do
+  IFS=: read -r t o p <<< "$x"
+  python3 models/json/jsongen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
+done
+for t in $(git grep -l '^\[json\]' -- '*.toml' ':!old/'); do  # old/: reference copies, not built
+  grep -q "^$t:" <<< "$jsoninputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
+done
 (cd models && GOWORK=off go vet ./... && GOWORK=off gotest ./...) >> "$tmp/nm.log" 2>&1 || nm=1
 (cd examples && GOWORK=off gotest ./models/...) >> "$tmp/nm.log" 2>&1 || nm=1
+# the encoding/json model (models/encoding/json): its stream tests against the real encoding/json's
+# golden transcripts, in the real build and in the model build (an overlay: goroot.py)
+models/internal/jsonstreamtest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
 # deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
