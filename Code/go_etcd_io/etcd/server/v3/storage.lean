@@ -295,6 +295,16 @@ noncomputable def BackendHooks.SetConfState.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef BackendHooks.ty go!"confStateLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendHooks.ty)))) (Var "bh")))) (Val #()))))))))
   (Val #()))))
 
+/-- go: metrics.go:28:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr quotaBackendBytes))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))
+  (Val #())))
+
 /-- go: storage.go:54:6 -/
 noncomputable def NewStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
@@ -807,6 +817,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   storage_instance : storage.TypeAssumptions
   OpenSnapshotBackend_unfold : FuncUnfold OpenSnapshotBackend [] OpenSnapshotBackend.impl
   NewBackendHooks_unfold : FuncUnfold NewBackendHooks [] NewBackendHooks.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   NewStorage_unfold : FuncUnfold NewStorage [] NewStorage.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_os_Assumption : _root_.Perennial.os.Assumptions
@@ -833,6 +844,7 @@ attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.storage_instance
   Assumptions.OpenSnapshotBackend_unfold
   Assumptions.NewBackendHooks_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.NewStorage_unfold
   Assumptions.import_fmt_Assumption
   Assumptions.import_os_Assumption

@@ -32,7 +32,9 @@ returns a histogram vector with the variable labels `ls` (`vecLabels`: what its
 `WithLabelValues` needs, which builds each label combination's histogram with these options,
 `newHistogram`, and so panics on bad buckets or a label `le`). The vector keeps both slices (its
 descriptor's `variableLabels.names`; the options' `Buckets`, every histogram's `upperBounds`):
-their points-to are consumed. -/
+their points-to are consumed.(mustreg, 2026-11-20) As a collector
+(`*HistogramVec`), it describes one descriptor, of `opts`' fully-qualified name (`collectorName`: what
+`MustRegister` needs). -/
 abbrev prometheus.NewHistogramVec.spec : Prop :=
   ∀ (o : github_com.prometheus.client_golang.prometheus.HistogramOpts) (ns sub name help : GoString)
     (bk : GoSlice) (bs : List w64) (ls : List GoString) (s : GoSlice) (dq dq' : DFrac),
@@ -43,7 +45,10 @@ abbrev prometheus.NewHistogramVec.spec : Prop :=
   go!"le" ∉ ls →
   {{ (s ↦*{dq} ls : IProp GF) ∗ bk ↦*{dq'} bs }}
     (App (App (Val (@! github_com.prometheus.client_golang.prometheus.NewHistogramVec)) (Val #o)) (Val #s))
-  {{ (v : Loc), RET #v; ⌜prometheus.vecLabels v ls⌝ }}
+  {{ (v : Loc), RET #v; ⌜prometheus.vecLabels v ls⌝ ∗
+      ⌜prometheus.collectorName
+        (interface.mk (go.GoType.PointerType github_com.prometheus.client_golang.prometheus.HistogramVec.ty) #v)
+        (prometheus.fqName ns sub name)⌝ }}
 
 end spec
 

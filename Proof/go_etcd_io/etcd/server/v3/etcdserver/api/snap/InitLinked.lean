@@ -18,6 +18,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBu
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
+public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -45,16 +46,20 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.ap
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
+theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap get_is_pkg_init) :
+    {{ EtcdGrove.ownInitResL get_is_pkg_init (EtcdGrove.regResL (GF := GF) regQs) }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+    {{ RET #(); EtcdGrove.ownInitResL get_is_pkg_init (EtcdGrove.regResL (GF := GF) regQs) ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap }} := by
   wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
+  iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
+    (L1 := EtcdGrove.regResL (GF := GF) [])
+    (L2 := EtcdGrove.regResL (GF := GF) [])
+    (L' := EtcdGrove.regResL (GF := GF) []) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
+    (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
-  iintro Hown
+  iintro ⟨Hown, HR⟩
   wp_auto
   wp_apply wp_GlobalAlloc (V := GoInterface) snapDBFsyncSec _ as HsnapDBFsyncSec
   wp_apply wp_GlobalAlloc (V := GoInterface) snapDBSaveSec _ as HsnapDBSaveSec
@@ -62,53 +67,99 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) snapSaveSec _ as HsnapSaveSec
   wp_apply wp_GlobalAlloc (V := GoInterface) snapMarshallingSec _ as HsnapMarshallingSec
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoDBSnapshot _ as HErrNoDBSnapshot
-  wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
-      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
+      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.1))
+    $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1))
+    $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrNoDBSnapshot))
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoDBSnapshot #MErrNoDBSnapshot
   -- translated initializer of snapMarshallingSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapMarshallingSec BsnapMarshallingSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapMarshallingSec as %csnapMarshallingSec ⟨#CsnapMarshallingSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapMarshallingSec as %csnapMarshallingSec ⟨#CsnapMarshallingSec, %NsnapMarshallingSec⟩
   try wp_auto
   -- translated initializer of snapSaveSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapSaveSec BsnapSaveSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapSaveSec as %csnapSaveSec ⟨#CsnapSaveSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapSaveSec as %csnapSaveSec ⟨#CsnapSaveSec, %NsnapSaveSec⟩
   try wp_auto
   -- translated initializer of snapFsyncSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapFsyncSec BsnapFsyncSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapFsyncSec as %csnapFsyncSec ⟨#CsnapFsyncSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapFsyncSec as %csnapFsyncSec ⟨#CsnapFsyncSec, %NsnapFsyncSec⟩
   try wp_auto
   -- translated initializer of snapDBSaveSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapDBSaveSec BsnapDBSaveSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapDBSaveSec as %csnapDBSaveSec ⟨#CsnapDBSaveSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapDBSaveSec as %csnapDBSaveSec ⟨#CsnapDBSaveSec, %NsnapDBSaveSec⟩
   try wp_auto
   -- translated initializer of snapDBFsyncSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bsnapDBFsyncSec BsnapDBFsyncSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapDBFsyncSec as %csnapDBFsyncSec ⟨#CsnapDBFsyncSec, -⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BsnapDBFsyncSec as %csnapDBFsyncSec ⟨#CsnapDBFsyncSec, %NsnapDBFsyncSec⟩
   try wp_auto
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  iunfold EtcdGrove.prometheus.namesFree at HR
+  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames at HR
+  icases HR with ⟨HR1, HR2, HR3, HR4, HR5, -⟩
+  wp_apply wp_slice_literal (l := [GoInterface.ok csnapMarshallingSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s1 ⟨S1, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapMarshallingSec $$ [S1 HR1] as S1
+  · iframe S1 HR1
+  wp_apply wp_slice_literal (l := [GoInterface.ok csnapSaveSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s2 ⟨S2, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapSaveSec $$ [S2 HR2] as S2
+  · iframe S2 HR2
+  wp_apply wp_slice_literal (l := [GoInterface.ok csnapFsyncSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s3 ⟨S3, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapFsyncSec $$ [S3 HR3] as S3
+  · iframe S3 HR3
+  wp_apply wp_slice_literal (l := [GoInterface.ok csnapDBSaveSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s4 ⟨S4, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapDBSaveSec $$ [S4 HR4] as S4
+  · iframe S4 HR4
+  wp_apply wp_slice_literal (l := [GoInterface.ok csnapDBFsyncSec])
+  isplitr
+  · ipureintro; rfl
+  iintro %s5 ⟨S5, -⟩
+  try wp_auto
+  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapDBFsyncSec $$ [S5 HR5] as S5
+  · iframe S5 HR5
   iframe Hown
   is_pkg_init_finish
 
-/-- Perennial's form, from `wp_initialize'_lb`. -/
+/-- Perennial's form with the rights to register the closure's metric names (decision D16),
+from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
+  EtcdGrove.wp_init_of_regResL _ _ _ _ (wp_initialize'_res get_is_pkg_init Hinit)
 
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap

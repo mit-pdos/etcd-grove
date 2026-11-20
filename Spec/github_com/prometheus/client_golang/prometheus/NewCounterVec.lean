@@ -29,7 +29,9 @@ variable [sem : go.Semantics]
 labels) with a valid name, and a slice `s` of valid, pairwise distinct label names `ls`
 (`labelNamesOk`), returns a counter vector with the variable labels `ls` (`vecLabels`: what its
 `WithLabelValues` needs). The vector keeps `s` (its descriptor's `variableLabels.names`, read by
-every `WithLabelValues`): the slice's points-to is consumed. -/
+every `WithLabelValues`): the slice's points-to is consumed. (mustreg, 2026-11-20) As a
+collector (`*CounterVec`), it describes one descriptor, of `opts`' fully-qualified name
+(`collectorName`: what `MustRegister` needs). -/
 abbrev prometheus.NewCounterVec.spec : Prop :=
   ∀ (o : github_com.prometheus.client_golang.prometheus.CounterOpts) (ns sub name help : GoString)
     (ls : List GoString) (s : GoSlice) (dq : DFrac),
@@ -38,7 +40,10 @@ abbrev prometheus.NewCounterVec.spec : Prop :=
   prometheus.labelNamesOk ls →
   {{ (s ↦*{dq} ls : IProp GF) }}
     (App (App (Val (@! github_com.prometheus.client_golang.prometheus.NewCounterVec)) (Val #o)) (Val #s))
-  {{ (v : Loc), RET #v; ⌜prometheus.vecLabels v ls⌝ }}
+  {{ (v : Loc), RET #v; ⌜prometheus.vecLabels v ls⌝ ∗
+      ⌜prometheus.collectorName
+        (interface.mk (go.GoType.PointerType github_com.prometheus.client_golang.prometheus.CounterVec.ty) #v)
+        (prometheus.fqName ns sub name)⌝ }}
 
 end spec
 

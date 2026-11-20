@@ -11,16 +11,17 @@ XOR) already a registered collector's. So whether it panics depends on what was 
 before, by any package of the program: a resource. `nameFree n` is the exclusive right to
 register `n`; the Hoare triple of `MustRegister` of a counter named `n` takes it. Program start
 (the adequacy theorem, item 9) owns the rights of the names no default collector has, and gives
-each to the one package that registers it (`readRegPerm`, the read package's); since every right
+each to the one package that registers it (`namesFree regNames`, a registering package's; `ownInitResL`, mustreg 2026-11-20); since every right
 exists once, two packages registering one name would show up there, as two packages needing
 one right.
 
 **What is axiomatized** (each true of prometheus's Go code, client_golang v1.24.1, the version
 etcd's `server/go.mod` pins):
 - `collectorName c n`: the collector `c` describes exactly one descriptor, valid, named `n`,
-  without labels (what `NewCounter` makes);
+  without const labels (what `NewCounter` makes; mustreg, 2026-11-20: also a vector
+  `New<Kind>Vec` makes, its variable labels outside the descriptor's ID);
 - `nameFree n` (abstract resource): the right to register a collector whose one descriptor is
-  `n`'s, without labels, in the default registry: no collector registered there (now, or
+  `n`'s, without const labels, in the default registry: no collector registered there (now, or
   later by anyone but the holder) has a descriptor named `n`, nor one whose ID is that
   descriptor's ID (`xxhash(n + "\xff")`), nor a collector ID equal to it;
 
@@ -147,7 +148,10 @@ def histOpts (o : github_com.prometheus.client_golang.prometheus.HistogramOpts)
         Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Buckets' := s }
 
 /-- The collector `c` describes exactly one descriptor: valid, of fully-qualified name `n`,
-without const or variable labels (a counter `NewCounter` made). -/
+without const labels (a counter `NewCounter` made; mustreg, 2026-11-20: or a metric vector
+`New<Kind>Vec` made, whose variable labels enter only the descriptor's `dimHash`, not its ID:
+`NewDesc` in client_golang v1.24.1's `desc.go` hashes the name and the const label values into
+`id`, the help and all label names into `dimHash`). -/
 axiom collectorName (c : GoInterfaceOk) (n : GoString) : Prop
 
 /-- **The right to register the name `n`** with prometheus's default registry (exclusive):

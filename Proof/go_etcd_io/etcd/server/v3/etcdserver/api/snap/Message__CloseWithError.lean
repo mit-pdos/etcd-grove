@@ -29,7 +29,7 @@ theorem snap.Message.CloseWithError.wp_proof :
   intro m ml rc err
   wp_start as #Hm
   unfold msgIs msgRO
-  icases Hm with ⟨#Hml, ⟨%tsz, #Htsz, %Htsz⟩, ⟨%rd, %ri, #Hrd, %Hrd, #Hstr, #Hclose⟩, ⟨%c, %γc, #Hc, #Hbag⟩⟩
+  icases Hm with ⟨#Hml, ⟨%tsz, #Htsz, %Htsz⟩, ⟨%rd, %ri, #Hrd, %Hrd, #Hstr, #Hclose⟩, ⟨%c, %γc, #Hc, #Hbag⟩, -⟩
   subst Hrd
   try wp_auto
   wp_apply Hclose as %cerr -

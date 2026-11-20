@@ -38,7 +38,9 @@ nothing the proof reads. `msgIs` records that `m` is this message of `rs` and `r
 streams `rc` through the wrapper); since 2026-11-19 it is defined (`msgRO`, `Proof/.../snap/Defs.lean`):
 the fields read-only, `TotalSize` not negative, the wrapper's streams `rc`'s and its `Close`
 returning, and `closeC`'s `isChanBag` at `True` (what the `fields` axiom stated until then; this
-one is now the one place those facts are assumed). What would discharge it: translating `snap/message.go` (with
+one is now the one place those facts are assumed); since 2026-11-20 (prove-grpcsmall, to prove the
+promoted `GetTo`) also `rs`'s read-only content, the precondition's persistent `msgOwn rs □ st`
+handed back. What would discharge it: translating `snap/message.go` (with
 `snap.Message` a translated struct: its imports, `io` and raftpb, in `snap.toml`) and
 `ioutil.NewExactReadCloser`, over a spec of `proto.Size` of a raft message. -/
 axiom snap.NewMessage.wp_proof : snap.NewMessage.spec (GF := GF) (hG := hG)

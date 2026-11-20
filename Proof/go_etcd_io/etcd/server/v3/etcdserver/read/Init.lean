@@ -12,7 +12,7 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
 (`EtcdGrove.ContextReadErrs`, a premise: Perennial's `context` fact lacks them). Its translated
 `init()` registers the two counters (`prometheus.MustRegister`, the trust-boundary axiom
 `MustRegister.wp_proof`), which takes the right to register each name: the precondition
-`EtcdGrove.read.readRegPerm` (decision D16).
+`namesFree regNames` (decision D16; until mustreg, 2026-11-20, `EtcdGrove.read.readRegPerm`).
 -/
 module
 
@@ -30,6 +30,8 @@ public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Metrics
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.runtime.PkgInitRes
 
 @[expose] public section
 
@@ -115,5 +117,25 @@ theorem EtcdGrove.ContextReadErrs.errs_strong [EtcdGrove.ContextReadErrs (GF := 
     ipureintro; exact ⟨Hdl.1, Hdl.2.1, Hdl.2.2.1, Hdl.2.2.2.1, Hdl.2.2.2.2, hF2, hE2⟩
 
 end ctxFacts
+
+namespace go_etcd_io.etcd.server.v3.etcdserver.read
+
+/-- The fully-qualified names of the metrics this package's `init()` registers with
+prometheus's default registry, in its order (`MustRegister`; `metrics.go`). -/
+def regNames : List GoString :=
+  [EtcdGrove.prometheus.fqName go!"etcd" go!"server" go!"slow_read_indexes_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"server" go!"read_indexes_failed_total"]
+
+/-- The packages of this package's import closure (itself included) whose initializers
+register metrics, with their names: their registration rights are its initializer's
+resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
+def regQs : List (GoString × List GoString) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regNames)]
+
+/-- The metric names its initializer registers, with those of its import closure: its
+`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
+def initNames : List GoString := regQs.flatMap (·.2)
+
+end go_etcd_io.etcd.server.v3.etcdserver.read
 
 end Perennial

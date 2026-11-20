@@ -94,12 +94,24 @@ variable [sem : go.Semantics]
 interface: a struct converted to it is the interface holding it). `type LoggerV2
 internal.LoggerV2` names a package this translation does not import, so the type is
 axiomatized (Goose's gap G3, `notes/k8s-etcd3-goose.md`) and the conversion does not step; the
-axiom says it returns some interface value, which is all `SetLoggerV2`'s spec needs. -/
+axiom says it returns the interface holding the `klogWrapper` (what Perennial's
+`convert_to_interface` gives a non-interface type; since 2026-11-20, prove-grpcsmall, so that
+`SetLoggerV2`'s premise, not a `*componentData`, is discharged: it returned some interface). -/
 axiom k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2 (v : val) :
     {{ (True : IProp GF) }}
       (App (Val (GoInstruction (Convert k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty
         google_golang_org.grpc.grpclog.LoggerV2.ty))) (Val v))
-    {{ (i : GoInterface), RET #i; True }}
+    {{ RET #(interface.mkOk k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty v); True }}
+
+/-- A `klogWrapper` is not grpc's `*componentData` (`SetLoggerV2`'s premise). -/
+theorem k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_ne_componentData (v w : val) :
+    interface.mkOk k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty v ≠
+      interface.mkOk (go.GoType.PointerType google_golang_org.grpc.grpclog.componentData.ty) w := by
+  intro h
+  injection h with h
+  injection h with h
+  unfold k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty at h
+  cases h
 
 end toLoggerV2
 

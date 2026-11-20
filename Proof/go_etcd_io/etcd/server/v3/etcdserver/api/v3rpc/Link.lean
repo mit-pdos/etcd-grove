@@ -182,8 +182,10 @@ public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.Logger__check
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Perennial.Proof.errors.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
@@ -237,13 +239,21 @@ theorem header.wp_fill :
     EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
 
+theorem zap.Logger.wp_check :
+    EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Debug.wp_proof
+  EtcdGrove.zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Warn.wp_proof
+  EtcdGrove.zap.Logger.Warn.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
@@ -299,7 +309,7 @@ theorem zap.wp_String :
 
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Info.wp_proof
+  EtcdGrove.zap.Logger.Info.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem «attribute».wp_Bool :
     EtcdGrove.«attribute».Bool.spec (GF := GF) (hG := hG) :=
@@ -375,7 +385,7 @@ theorem trace.wp_WithAttributes :
 
 theorem zap.Logger.wp_Error :
     EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Error.wp_proof
+  EtcdGrove.zap.Logger.Error.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
 theorem verify.wp_Assert :
     EtcdGrove.verify.Assert.spec (GF := GF) (hG := hG) :=

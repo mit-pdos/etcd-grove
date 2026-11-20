@@ -105,12 +105,12 @@ namespace go_etcd_io.etcd.server.v3.etcdserver
 set_option maxHeartbeats 8000000 in
 theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver get_is_pkg_init) :
-    {{ EtcdGrove.ownInitRes get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read (EtcdGrove.read.readRegPerm (GF := GF)) }}
+    {{ EtcdGrove.ownInitResL get_is_pkg_init (EtcdGrove.regResL (GF := GF) regQs) }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitRes get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read (EtcdGrove.read.readRegPerm (GF := GF)) ∗
+    {{ RET #(); EtcdGrove.ownInitResL get_is_pkg_init (EtcdGrove.regResL (GF := GF) regQs) ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }} := by
   wp_start as Hown
-  iapply EtcdGrove.wp_package_init_res (heq := Hinit.1) $$ [Hown] HΦ
+  iapply EtcdGrove.wp_package_init_resL (heq := Hinit.1) $$ [Hown] HΦ
   iframe Hown
   iintro Hown
   wp_auto
@@ -137,132 +137,160 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) leaderChanges _ as HleaderChanges
   wp_apply wp_GlobalAlloc (V := GoInterface) isLeader _ as HisLeader
   wp_apply wp_GlobalAlloc (V := GoInterface) hasLeader _ as HhasLeader
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regQs)
+      (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd58⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd57⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd56⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd55⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.encoding.base64.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.encoding.base64.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd54⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd53⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd52⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.features.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.features.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd51⟩
-  wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd50⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regQs)
+      (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd50⟩
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regQs)
+      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd49⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd48⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd47⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd46⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd45⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.auth.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.auth.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd44⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd43⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd42⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.schedule.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.schedule.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd41⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd40⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd39⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd38⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
       EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd37⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
       EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd36⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.contention.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.contention.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd35⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd34⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.log _root_.Perennial.log.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.log _root_.Perennial.log.initialize'
       EtcdGrove.ExternalInit.log _root_.Perennial.log.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd33⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd32⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd31⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd30⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
       EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd29⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
       EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd28⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize'
       EtcdGrove.ExternalInit.go_etcd_io_raft_v3 _root_.Perennial.go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd27⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regQs)
+      (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd26⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd25⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regQs)
+      (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd24⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd23⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd22⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regQs)
+      (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd21⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regQs)
+      (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd20⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regQs)
+      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd19⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
+      (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.regQs)
+      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd18⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.config.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.config.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
       EtcdGrove.ExternalInit.google_golang_org_protobuf_proto _root_.Perennial.google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.dustin.go_humanize.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.dustin.go_humanize.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.net.http.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.net.http.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.1))
     $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1))
     $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
@@ -287,7 +315,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"Reason"])); isplitr; (· ipureintro; rfl); iintro %slearnerPromoteFailed ⟨SlearnerPromoteFailed, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"Reason"] _ _ rfl (by decide) (by decide) $$ [$SlearnerPromoteFailed] as %vlearnerPromoteFailed #LlearnerPromoteFailed
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"Reason"] _ _ rfl (by decide) (by decide) $$ [$SlearnerPromoteFailed] as %vlearnerPromoteFailed ⟨#LlearnerPromoteFailed, -⟩
   try wp_auto
   -- translated initializer of learnerPromoteSucceed))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %clearnerPromoteSucceed ⟨#ClearnerPromoteSucceed, -⟩
@@ -324,7 +352,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"type", go!"success"])); isplitr; (· ipureintro; rfl); iintro %srequestDurationSec ⟨SrequestDurationSec, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"type", go!"success"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SrequestDurationSec $BrequestDurationSec] as %vrequestDurationSec #LrequestDurationSec
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"type", go!"success"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SrequestDurationSec $BrequestDurationSec] as %vrequestDurationSec ⟨#LrequestDurationSec, -⟩
   try wp_auto
   -- translated initializer of leaseExpired))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩
@@ -333,25 +361,25 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"server_version"])); isplitr; (· ipureintro; rfl); iintro %scurrentVersion ⟨ScurrentVersion, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"server_version"] _ _ rfl (by decide) (by decide) $$ [$ScurrentVersion] as %vcurrentVersion #LcurrentVersion
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"server_version"] _ _ rfl (by decide) (by decide) $$ [$ScurrentVersion] as %vcurrentVersion ⟨#LcurrentVersion, -⟩
   try wp_auto
   -- translated initializer of currentGoVersion))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"server_go_version"])); isplitr; (· ipureintro; rfl); iintro %scurrentGoVersion ⟨ScurrentGoVersion, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"server_go_version"] _ _ rfl (by decide) (by decide) $$ [$ScurrentGoVersion] as %vcurrentGoVersion #LcurrentGoVersion
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"server_go_version"] _ _ rfl (by decide) (by decide) $$ [$ScurrentGoVersion] as %vcurrentGoVersion ⟨#LcurrentGoVersion, -⟩
   try wp_auto
   -- translated initializer of serverID))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"server_id"])); isplitr; (· ipureintro; rfl); iintro %sserverID ⟨SserverID, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"server_id"] _ _ rfl (by decide) (by decide) $$ [$SserverID] as %vserverID #LserverID
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"server_id"] _ _ rfl (by decide) (by decide) $$ [$SserverID] as %vserverID ⟨#LserverID, -⟩
   try wp_auto
   -- translated initializer of serverFeatureEnabled))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"name", go!"stage"])); isplitr; (· ipureintro; rfl); iintro %sserverFeatureEnabled ⟨SserverFeatureEnabled, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"name", go!"stage"] _ _ rfl (by decide) (by decide) $$ [$SserverFeatureEnabled] as %vserverFeatureEnabled #LserverFeatureEnabled
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"name", go!"stage"] _ _ rfl (by decide) (by decide) $$ [$SserverFeatureEnabled] as %vserverFeatureEnabled ⟨#LserverFeatureEnabled, -⟩
   try wp_auto
   -- translated initializer of fdUsed))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cfdUsed ⟨#CfdUsed, #DfdUsed, -⟩
@@ -468,14 +496,15 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipureintro
   first | exact fun x => EtcdGrove.errorString_errLeaf x | exact fun x => EtcdGrove.errorString_leaf x
 
-/-- Perennial's form with the resource (decision D16), from `wp_initialize'_res`. -/
+/-- Perennial's form with the rights to register the closure's metric names (decision D16),
+from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.read.readRegPerm (GF := GF) }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }} :=
-  EtcdGrove.wp_init_of_res _ _ _ _ _ (wp_initialize'_res get_is_pkg_init Hinit)
+  EtcdGrove.wp_init_of_regResL _ _ _ _ (wp_initialize'_res get_is_pkg_init Hinit)
 
 
 end go_etcd_io.etcd.server.v3.etcdserver

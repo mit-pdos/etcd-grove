@@ -9,6 +9,7 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking.
 module
 
 public import Proof.go_uber_org.zap.PkgInit
+public import Perennial.Proof.fmt.Link
 public import Proof.go_uber_org.zap.zapcore.Init
 public import Proof.runtime.PkgInitExt
 
@@ -74,7 +75,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.go_uber_org.zap.zapcore.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.zapcore.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk errNoEncoderNameSpecified.init (by mem_tac))
   wp_apply (opaqueInitsOk _encoderNameToConstructor.init (by mem_tac))
   wp_apply (opaqueInitsOk _errArrayElemPool.init (by mem_tac))

@@ -4,6 +4,8 @@
 #
 #   etc/land.sh            from the branch's worktree; LAKE_PACKAGES / PERENNIAL_CHECKOUT as for
 #                          etc/gates.sh
+#   ETCD_GROVE_GATES=CMD etc/land.sh   runs CMD instead of etc/gates.sh (e.g. a wrapper that runs
+#                          etc/gates.sh on a remote build machine); everything else is unchanged
 #
 # Under `flock $ETCD_GROVE_LAND_LOCK` (default /shared/tmp/etcd-grove-land.lock), held from the check
 # through the fast-forward:
@@ -45,7 +47,7 @@ if [ -z "$(git diff --name-only lean HEAD -- . ':!notes' ':(exclude,top,glob)*.m
 else
   exec 8>>"$build_lock"
   if ! flock -n 8; then echo "land: a full build holds $build_lock; waiting"; flock 8; fi
-  etc/gates.sh || { echo "land: gates failed; lean unchanged"; exit 1; }
+  ${ETCD_GROVE_GATES:-etc/gates.sh} || { echo "land: gates failed; lean unchanged"; exit 1; }
   flock -u 8
 fi
 git -C "$main" merge --ff-only -q "$branch" || { echo "land: fast-forward failed"; exit 1; }

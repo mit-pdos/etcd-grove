@@ -43,8 +43,9 @@ def authNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.authN.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.authN.Main) #(W64 (k : Int))
 
-/-- The read package's two metric names, which `authN`'s initialization registers (auth3's). -/
-def authNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def authNNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authN.initNames
 
 end adequacy
 end EtcdGrove

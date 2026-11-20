@@ -139,9 +139,12 @@ attribute_String:
 attribute_Int64:
 attribute_Bool:
 zap_Error:
-zap_Logger__Warn:
-zap_Logger__Debug:
-zap_Logger__Error:
+# (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
+zap_Logger__check:
+zapcore_CheckedEntry__Write:
+zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
+zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
+zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
 zap_NewNop:
 zap_Duration:
 time_Duration__Seconds:
@@ -209,7 +212,7 @@ prometheus_ServerMetrics__StreamServerInterceptor:
 prometheus_ServerMetrics__InitializeMetrics:
 prometheus_Register:
 zap_String:
-zap_Logger__Info:
+zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 RegisterKVServer: grpc_Server__RegisterService
 RegisterWatchServer: grpc_Server__RegisterService
 RegisterLeaseServer: grpc_Server__RegisterService

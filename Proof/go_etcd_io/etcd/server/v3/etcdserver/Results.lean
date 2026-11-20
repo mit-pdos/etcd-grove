@@ -2005,7 +2005,7 @@ theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
         auth.simpleWaitOk p γa.rdy ⊢
       auth.tokenProviderOkA (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
         (.on γa) (auth.simpleAdmin p) :=
-  auth.tokenSimple_okA_run zap.Logger.Debug.wp_proof zap.String.wp_proof
+  auth.tokenSimple_okA_run zap.Logger.wp_Debug zap.wp_String
     auth.tokenSimple.wp_genTokenPrefix p γa
 
 /-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;

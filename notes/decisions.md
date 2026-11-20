@@ -41165,3 +41165,33 @@ argument fewer). The 34 proof->proof
 edges the widening revealed that apply another variant's proof (`MkdirAllDir` -> `MkdirAll`,
 bbolt's `Open` family, wal `SaveSnapshotPre` -> `cutPre`, ...) join the baseline: each is a variant
 derived from another variant's proof, which only a hypothesis (or a Link-level composition) removes.
+
+## Registering packages' `init()` translated: a list of registration rights (2026-11-20 · the coordinator's batch E · branch `prove-mustreg/2026-11-20`)
+
+D16/D19e gave one package (read) the rights to its metric names as its initializer's precondition, in
+the `_res` form `ownInitRes g q R` (one `(q, R)`): `etc/gen-init.py`'s `pre_res` asserted at most one
+such package per closure. Eight more packages' `init()` only register their metrics
+(`prometheus.MustRegister`: membership, rafthttp, snap, v3rpc, apply, txn, storage, the WAL); their
+`initFuncsOk` axioms go once `init.0` is translated and stepped over `MustRegister`'s spec.
+
+**Decision:** the `_res` form takes a list (`ownInitResL g L`, `Proof/runtime/PkgInitRes.lean`): for
+each `(q, R)` of `L`, `R` unless `q` is initialized. A registering package (`PRE_RES`, filled by
+`register(...)` in `gen-init.py`) has `R = namesFree regNames` (its generated list of fully-qualified
+names, in `init()`'s order); a package's list is its closure's registering packages, sorted
+(`regQs`). Its own entry is spent by `wp_package_init_resL_self`; an import whose closure has some of
+the list's packages takes a sublist (`initResL_sub`: the others stay held, Perennial's monotone
+package map `ownGoStateLb`); an import with none is carried by its `_lb` form. The standard form's
+precondition is `namesFree initNames` (`initNames = regQs.flatMap (·.2)`), and each etcd program's
+name list (`<prog>Names`, the closed theorems' `namesUnclaimed` premise) is its root's `initNames`:
+the same premise, over 41 names instead of 2. `etcd_adequate*` take the names `Ns` (implicit) with
+`Ns.Nodup` (a trailing argument, `decide +kernel` by default).
+
+The vector constructors' specs (`New{Counter,Gauge,Histogram}Vec`) now also post `collectorName` of
+the vector as a collector (`*<Kind>Vec`): a strengthening of trust-boundary axioms, true of
+client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable labels enter its
+`dimHash`, not its ID), and `collectorName`'s and `MustRegister`'s docstrings now cover vectors.
+
+**Not done:** auth, lease, backend and mvcc register only too, but their closures are reached by
+`mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
+`PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
+stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
