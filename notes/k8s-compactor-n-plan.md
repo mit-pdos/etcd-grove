@@ -116,3 +116,8 @@ at the compactor's members and token (etcd3's `premises` text at `k8s_compactorN
 The compactor's `cluster3.BootFacts id₁ id₂ id₃`/`cluster3.premises clusterCfg` premises go. Every
 premise keeps its kind: no new premise beyond `k₂`'s range; `Hlow` widens from `ids ++ [id₁, id₂, id₃]` to
 `ids ++ ids'`.
+
+## Decision
+
+Approved by the user, 2026-11-20, via etcd-grove-03: `k₁ ≤ 1000`, `k₂ ≤ 600` with token
+`k8scompactorN-235946`, and the `k8s_robust.spec` text of §4 (with `hk₂ : k₂ ≤ 600`).
