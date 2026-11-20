@@ -36,10 +36,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
-instance atomHandlerOk_pers (A : Atom) (a : schema.Atom) (T : go.GoType) (hv : val) (Pre : IProp GF)
-    (Q : GoSlice → IProp GF) : Persistent (atomHandlerOk A a T hv Pre Q) := by
-  cases A <;> unfold atomHandlerOk <;> infer_instance
-
 set_option synthInstance.maxHeartbeats 200000 in
 set_option synthInstance.maxSize 4096 in
 theorem typed.mergingWalker.merge.wp_proofBody

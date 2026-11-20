@@ -29,6 +29,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+instance atomHandlerOk_pers (A : Atom) (a : schema.Atom) (T : go.GoType) (hv : val) (Pre : IProp GF)
+    (Q : GoSlice → IProp GF) : Persistent (atomHandlerOk A a T hv Pre Q) := by
+  cases A <;> unfold atomHandlerOk <;> infer_instance
+
 instance ruleKeepRHSOk_pers (f : GoFunc) : Persistent (ruleKeepRHSOk (GF := GF) f) := by
   unfold ruleKeepRHSOk; infer_instance
 
