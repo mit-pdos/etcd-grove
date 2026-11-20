@@ -14,11 +14,16 @@
   Matrix corrections in `notes/auth-matrix.md`; the v3lock issue's front matter (`upstream: known`).
   Row 12 (LeaseKeepAlive) confirmed: `kaStreamSpec` gives every response `kaDn`, the renewal's
   `leaseCheckFrom` verdict at its request's bounds.
-- M1 (statements written and proved, at the STOP): `etcdserverpbDescs` (cache/v3/Base.lean) and
-  `svcDescsOk` (BaseStart) state every descriptor exactly (Cluster, Maintenance, KV's and
-  Maintenance's streams with handlers; `pbDescOk`, `descOk` deleted); `v3rpc.serverRegsOk`
-  (InvGrpcStart) the exact registrations; `v3rpc.Server.spec` posts it (+ `pc pm`); consumers use
-  `serverRegsOk_sub`; `ClientPortTable.lean` (defs) the Lean table; `client_port_mediated`
-  (v3rpc/Results.lean). Gate checks the Lean table against etc/auth-table.txt.
-  The Base change rebuilds ~7400 modules: next build is a full one.
-- Next after the user's go: full timed build, then M2 (Cluster handlers + JSON spec).
+- M1 (approved by the user 2026-11-20, at the land stop): `etcdserverpbDescs` (cache/v3/Base.lean) and
+  `svcDescsOk` (BaseStart) state every descriptor exactly; `v3rpc.serverRegsOk` (InvGrpcStart) the
+  exact registrations; `v3rpc.Server.spec` posts it; `ClientPortTable.lean` the Lean table;
+  `client_port_mediated` (v3rpc/Results.lean). lean `951d520138` merged; builds
+  `20261120-182540-1298292` + `20261120-184907-1359064`; tcb unchanged; etc/gates.sh passes.
+- M2 next (after the land): the JSON trust-boundary specs are drafted and attacked, awaiting the
+  STOP's answer: `/shared/tmp/authmed/m2-draft/MarshalMember.lean` (two specs, `MarshalMember` and
+  `MarshalConfigChangeContext`, beside the k8s token spec; opaque outputs with a `PeerURLs` nil flag);
+  attack round 1 refuted the flagless draft (nil vs empty `PeerURLs`), round 2 sound; the Go tests to
+  commit with it (`examples/...` or beside the axiom): `/shared/tmp/authmed/m2-draft/jsontests/`.
+  Then: translate `EtcdServer.AddMember/UpdateMember/PromoteMember/promoteMember` and the five
+  `ClusterServer` handlers (re-check the Marshal call's Goose shape), specs over contracts for
+  `mayAddMember`, `configure`, `NewURLs`/`NewMember`, `promoteMemberHTTP`.
