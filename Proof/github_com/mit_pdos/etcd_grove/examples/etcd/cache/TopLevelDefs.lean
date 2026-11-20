@@ -10,7 +10,7 @@ module
 
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.cache
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Metrics
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Init
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 
@@ -44,8 +44,9 @@ def cachekvProgram [GoSemanticsFunctions] (nw nops : w64) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.cache.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.cache.Main) #nw #nops
 
-/-- The read package's two metric names, which `cachekv`'s initialization registers. -/
-def cachekvNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def cachekvNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.initNames
 
 end adequacy
 end EtcdGrove

@@ -8,7 +8,10 @@
 translate = ["!*", "Message.GetTo", "Message.CloseNotify", "Message.CloseWithError",
   # (prove-errinits, 2026-11-19) the package variables: an `errors.New` error and the metrics
   "ErrNoDBSnapshot", "snapMarshallingSec", "snapSaveSec", "snapFsyncSec", "snapDBSaveSec",
-  "snapDBFsyncSec"]
+  "snapDBFsyncSec",
+  # (mustreg, 2026-11-20) metrics.go's `init.0` (`prometheus.MustRegister` of the metrics), translated:
+  # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
+  "init.0"]
 imports = ["!*", "errors", "io", "github.com/prometheus/client_golang/prometheus",
   "go.etcd.io/raft/v3/raftpb"]
 

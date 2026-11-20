@@ -98,9 +98,9 @@ def k8sProgram [GoSemanticsFunctions] (k : Nat) (clients ops watchers wops : w64
     (Val #(W64 (k : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops))
     (schedLit steps₁)) (schedLit steps₂)
 
-/-- The read package's two metric names, which the program's initialization registers (`readRegPerm`,
-D16). -/
-def k8sNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def k8sNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.all.initNames
 
 /-- The compactor cluster's addresses: its three members' peer addresses, their client addresses and
 their bridges' addresses (`k8s_compactor.clusterCfg`'s). -/

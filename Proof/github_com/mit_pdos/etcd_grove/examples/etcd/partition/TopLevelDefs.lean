@@ -100,9 +100,9 @@ def linkv3pAddrs : List GoString :=
     etcd_partition.clientAddr₁, etcd_partition.clientAddr₂, etcd_partition.clientAddr₃,
     etcd_partition.bridgeAddr₁, etcd_partition.bridgeAddr₂, etcd_partition.bridgeAddr₃]
 
-/-- The read package's two metric names, which `linkv3p`'s initialization registers (`readRegPerm`,
-D16). -/
-def linkv3pNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def linkv3pNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.initNames
 
 end adequacy
 end EtcdGrove
