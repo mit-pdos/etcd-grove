@@ -494,7 +494,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     dbFile db γd path ∗
     muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
     ownWB (wbOf t) ⟨∅, ∅⟩ ∗ bF go!"txPostLockInsideApplyHook" b ↦ func.nil ∗
-    ownDB db γd D ∗ ownWTx wtx γd D D ∗ txDB wtx γd db ∗
+    ownDB db γd D ∗ dbHalf γd D ∗ ownWTx wtx γd D D ∗ txDB wtx γd db ∗
     sync.rwmutex.isRWMutex (rmuOf (baseOf rt)) γrw (nroot.@"rw") ∗
     sync.rwmutex.ownRWMutex γrw (rwmutex.RLocked 0) ∗
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -514,7 +514,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
       isStopChansAt γ P (W γ) (Pk γ) b sc dc γsc γdc ∗ ownBroadcastChan dc γdc (bDoneEsc γ P (W γ) (Pk γ)) .Pending ∗ runTok γ ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ghostVar γ.used (1 : Qp).half 0 := by
   iintro ⟨#Hvoff, #Hhk, Hmk, #Ht, #Hrt, #Hlim, #Hlg, #Hzl, #Hh, #Hbe, #Htm, #Hsc, #Hdc, #Hmi, #Hmug, Hmus,
-    #Hdb, #Hdbfile, Hmx, Htxf, Hpend, Hdel, Hwb, Hphk, Hown, Hwtx, #Hwdb, #Hrw, Hst, Hrtoks, Hrtx, Hlive,
+    #Hdb, #Hdbfile, Hmx, Htxf, Hpend, Hdel, Hwb, Hphk, Hown, Hhalf, Hwtx, #Hwdb, #Hrw, Hst, Hrtoks, Hrtx, Hlive,
     Hrwg, Hwg, Hrb1, Hrb2, Hm, Hcm, Hcmm, Htmz, Hcmu, Hcbuf, Hcver, #Hscc, Hsco,
     #Hdcc, Hdco, Hsr⟩
   -- the ghost names
@@ -731,13 +731,22 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     rw [sync.rwmutex.actualMaxReaders_unseal]; omega
   icases rep_guard _ hn (rmuOf (baseOf rt)) (rtRes γ P rt) $$ Hrmus with ⟨Hrmus, #Hrg⟩
   icases rep_guard _ hn tm (fun q => tmTok γ q) $$ Htms with ⟨Htms, #Htg⟩
+  -- (backend-snapshot B1) the commit invariant, with the committed data's other half
+  imod inv_alloc cmtN ⊤ (cmtBody γ P (W γ) (Pk γ)) $$ [Hhalf] with #Hcmt
+  · inext
+    unfold cmtBody cmtRegs
+    ileft
+    iexists D
+    iframe Hhalf
   -- the backend
   ihave #Hnh : isBackendNH γ P (W γ) (Pk γ) b h $$ []
   · unfold isBackendNH
     iintro !>
     iexists t, rt, tm, db, lg
     iframe #
-    ipureintro; exact hP
+    isplitr
+    · ipureintro; exact hP
+    unfold cmtInv; iexact Hcmt
   ihave #Hb : isBackend γ P (W γ) (Pk γ) b $$ []
   · iapply isBackend_of_hooks γ P (W γ) (Pk γ) b h
     iframe #

@@ -80,7 +80,7 @@ private theorem bbolt.kvGlue_Open
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err);
       (∃ x : w64, backend.optsAt opts dq { o with initialMmapSize := x }) ∗
-      ⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ wrTok γ ∗ isDB db γ ∗
+      ⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ dbHalf γ D ∗ wrTok γ ∗ isDB db γ ∗
           dbFile db γ path ∗ bPath γ path }} := by
   intro hT hR path mode opts dq o D
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
@@ -89,8 +89,8 @@ private theorem bbolt.kvGlue_Open
     iexfalso; iexact H
   · haveI := fax; haveI := fsax
     have h' := @h fax fsax
-    simp only [backend.fileHolds, backend.ownDB, backend.isDB, backend.boltLogger, backend.bPath,
-      hfs, onFs_some hfs]
+    simp only [backend.fileHolds, backend.ownDB, backend.dbHalf, backend.isDB, backend.boltLogger,
+      backend.bPath, hfs, onFs_some hfs]
     obtain ⟨Sio, hino, hpath, hs1, hs2⟩ := nex.ok
     have hne : Fs.FsNoErr := Fs.fsNoErr_of Sio hino hpath
     iintro %Φ ⟨#Hpkg, Hf, Hbo, %Hok, #Hlog⟩ HΦ
@@ -122,7 +122,8 @@ private theorem bbolt.kvGlue_Open
     isplitr
     · ipureintro; exact He
     iexists γ
-    iframe Hdb Hst
+    icases (backend.boltState_halves γ D).1 $$ Hst with ⟨Hst, Hsh⟩
+    iframe Hdb Hst Hsh
     isplitl [Hcl]
     · unfold dbRestF
       iexists i
@@ -234,7 +235,7 @@ theorem backend.newBackend.wp_proof
     refine ⟨OptsM.ok_withLogger o _ Hok.1 ⟨_, lc, rfl, rfl⟩, ?_, Hok.2.1, ?_⟩
     · simp only []; exact HP.2.2.2.1
     · simp only []; exact HP.2.2.2.2
-  icases Hres with ⟨%Herr, %γd, Hown, Hwr, #Hdb, #Hdbfile, Hbp⟩
+  icases Hres with ⟨%Herr, %γd, Hown, Hhalf, Hwr, #Hdb, #Hdbfile, Hbp⟩
   subst Herr
   wp_auto
   -- the backend's structure
@@ -298,7 +299,7 @@ theorem backend.newBackend.wp_proof
   imod backend_init P W Pk K cfg.Hooks' «$r0_ptr» t «$v5_ptr» «$v3_ptr» «$v2_ptr» db lg wtx rtx m cm γd
     cfg.Path'
     γrw D sc dc γsc γdc HP.1 $$ [Hmk Hmu1 Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
-      Hwtx Hst Hrtoks rtx Hlive rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
+      Hhalf Hwtx Hst Hrtoks rtx Hlive rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
       cbuf cbufVersion Hsco Hdco Hsr1]
     with ⟨%γ, %Hγd, #Hbfile, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩
   · rw [HP.2.1]

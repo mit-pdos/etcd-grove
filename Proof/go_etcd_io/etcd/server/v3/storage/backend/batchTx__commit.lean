@@ -35,35 +35,166 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Pe
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
-`_kv` spec `Tx.Commit_kv`). -/
+`_kv` spec `Tx.Commit_kv`). (backend-snapshot B1, 2026-11-20) The commit point: bbolt's update is
+fired through the backend's commit invariant (`cmtInv`), which holds the committed data's other
+half; the batch lock's quarter of the open flag rules out its stopped case. A stopping commit
+(paid with the rest of the open flag, `stopPay`) stops the backend there and takes the invariant's
+half out (`dbHalf`, for `Close`), leaving `bStopped` in its place. -/
 private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
       [os.fileStat.FieldAssumptions], bbolt.Tx.Commit.spec (GF := GF) (hG := hG)) :
-  ∀ (db tx : Loc) (γ : DBNames) (D S : backend.Data),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ D ∗ backend.txDB tx γ db ∗ ownWTx tx γ D S }}
+  ∀ (db tx : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (path : GoString) (stop : Bool)
+    (D S : backend.Data),
+  γ.db.ns = dbNs path →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ.db D ∗ backend.txDB tx γ.db db ∗
+      ownWTx tx γ.db D S ∗ cmtInv γ P W Pk ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
+      (if stop then stopPay γ else emp) }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Commit")) (Val #()))
   {{ (err : GoInterface), RET #err; backend.txDone tx ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ownDB db γ S ∗ wrTok γ) ∨ ⌜err ≠ GoInterface.nil⌝) }} := by
-  intro db tx γ D S
+      ((⌜err = GoInterface.nil⌝ ∗ ownDB db γ.db S ∗ wrTok γ.db ∗
+        (if stop then iprop(bStopped γ ∗ dbHalf γ.db S)
+         else dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false)) ∨
+        ⌜err ≠ GoInterface.nil⌝) }} := by
+  intro db tx γ P W Pk path stop D S hns
+  have hE : (↑cmtN : CoPset) ⊆ ⊤ \ ↑γ.db.ns := by rw [hns]; exact cmtN_dbNs path
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
     iexfalso; iexact H
-  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
-      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
-      onFs_some hfs]
-    iintro %Φ ⟨-, ⟨#Hdb, Hs, Hrest⟩, #Hd, ⟨%G, Hl⟩⟩ HΦ
-    ihave Hau := bbolt.boltState_commit_au γ D S $$ Hs
-    have h' := h tx γ (wView D S G) (bbolt.boltState γ 1 S)
-    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
-    wp_apply h' $$ [$Hl $Hau] as %err ⟨#Hdn, Hr⟩
-    all_goals try (ipureintro; first | trivial | rfl)
-    iapply HΦ; iframe Hdn
-    icases Hr with (⟨%He, Hs⟩ | ⟨%He, -⟩)
-    · ileft; isplitr; · ipureintro; exact He
-      iframe Hs Hdb Hrest
-      unfold wrTok; itrivial
-    · iright; ipureintro; exact He
+  · simp only [backend.ownDB, backend.dbHalf, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx,
+      backend.ownWTxG, backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq,
+      backend.bktEnts_eq, backend.seekIdx_eq, onFs_some hfs]
+    iintro %Φ ⟨-, ⟨#Hdb, Hs, Hrest⟩, #Hd, ⟨%G, Hl⟩, #Hinv, Hopn, Hsp⟩ HΦ
+    cases stop
+    · -- an ordinary commit: the invariant's half moves to `S`
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ihave Hau : AU <{ ∃∃ (D' : backend.Data), bbolt.boltState γ.db 1 D' }> @ ⊤ \ ↑γ.db.ns, ∅
+          <{ ⌜D' = D⌝ ∗ bbolt.boltState γ.db 1 S,
+             COMM bbolt.boltState γ.db (1 : Qp).half S ∗
+               dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false }> $$ [Hs Hopn Hsp]
+      · iauintro
+        unfold atomic_acc
+        iunfold cmtInv at Hinv
+        iinv Hinv with >Hb Hclose <;> try exact hE
+        iunfold cmtBody at Hb
+        icases Hb with (⟨%Dc, Hh, -⟩ | #Hst)
+        rotate_left
+        · unfold bStopped
+          icombine Hopn Hst gives %Hcb
+          exact absurd Hcb.2 (by decide)
+        isimp only [backend.dbHalf, onFs_some hfs] at Hh
+        ihave %HD := bbolt.boltState_agree γ.db _ _ D Dc $$ [Hs Hh]
+        · iframe Hs Hh
+        subst HD
+        ihave Hw := (backend.boltState_halves γ.db D).2 $$ [Hs Hh]
+        · iframe Hs Hh
+        iapply fupd_mask_intro Std.LawfulSet.empty_subset
+        iintro Hcl
+        isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+        iexists D
+        iframe Hw
+        isplit
+        · iintro Hw
+          imod Hcl with -
+          icases (backend.boltState_halves γ.db D).1 $$ Hw with ⟨Hs, Hh⟩
+          imod Hclose $$ [Hh] with -
+          · inext
+            iunfold cmtBody
+            ileft
+            iexists D
+            isimp only [backend.dbHalf, onFs_some hfs]
+            iframe Hh
+            unfold cmtRegs; itrivial
+          imodintro
+          iframe Hs Hopn
+          try iframe Hsp
+        · iintro ⟨-, Hw⟩
+          imod Hcl with -
+          icases (backend.boltState_halves γ.db S).1 $$ Hw with ⟨Hs, Hh⟩
+          imod Hclose $$ [Hh] with -
+          · inext
+            iunfold cmtBody
+            ileft
+            iexists S
+            isimp only [backend.dbHalf, onFs_some hfs]
+            iframe Hh
+            unfold cmtRegs; itrivial
+          imodintro
+          iframe Hs Hopn
+      have h' := h tx γ.db (wView D S G)
+        (iprop(bbolt.boltState γ.db (1 : Qp).half S ∗
+          dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false))
+      try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
+      wp_apply h' $$ [$Hl $Hau] as %err ⟨#Hdn, Hr⟩
+      all_goals try (ipureintro; first | trivial | rfl)
+      iapply HΦ; iframe Hdn
+      icases Hr with (⟨%He, Hs, Hopn⟩ | ⟨%He, -⟩)
+      · ileft; isplitr; · ipureintro; exact He
+        iframe Hs Hdb Hrest Hopn
+        unfold wrTok; itrivial
+      · iright; ipureintro; exact He
+    · -- the stop's commit: the backend stopped there, the invariant's half taken out
+      simp only [↓reduceIte]
+      ihave Hau : AU <{ ∃∃ (D' : backend.Data), bbolt.boltState γ.db 1 D' }> @ ⊤ \ ↑γ.db.ns, ∅
+          <{ ⌜D' = D⌝ ∗ bbolt.boltState γ.db 1 S,
+             COMM bbolt.boltState γ.db 1 S ∗ bStopped γ }> $$ [Hs Hopn Hsp]
+      · iauintro
+        unfold atomic_acc
+        iunfold cmtInv at Hinv
+        iinv Hinv with >Hb Hclose <;> try exact hE
+        iunfold cmtBody at Hb
+        icases Hb with (⟨%Dc, Hh, -⟩ | #Hst)
+        rotate_left
+        · unfold bStopped
+          icombine Hopn Hst gives %Hcb
+          exact absurd Hcb.2 (by decide)
+        isimp only [backend.dbHalf, onFs_some hfs] at Hh
+        ihave %HD := bbolt.boltState_agree γ.db _ _ D Dc $$ [Hs Hh]
+        · iframe Hs Hh
+        subst HD
+        ihave Hw := (backend.boltState_halves γ.db D).2 $$ [Hs Hh]
+        · iframe Hs Hh
+        iapply fupd_mask_intro Std.LawfulSet.empty_subset
+        iintro Hcl
+        isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+        iexists D
+        iframe Hw
+        isplit
+        · iintro Hw
+          imod Hcl with -
+          icases (backend.boltState_halves γ.db D).1 $$ Hw with ⟨Hs, Hh⟩
+          imod Hclose $$ [Hh] with -
+          · inext
+            iunfold cmtBody
+            ileft
+            iexists D
+            isimp only [backend.dbHalf, onFs_some hfs]
+            iframe Hh
+            unfold cmtRegs; itrivial
+          imodintro
+          iframe Hs Hopn
+          try iframe Hsp
+        · iintro ⟨-, Hw⟩
+          imod Hcl with -
+          imod opn_stop_cmt γ $$ [$Hopn $Hsp] with #Hbs
+          imod Hclose $$ [] with -
+          · inext
+            iunfold cmtBody
+            iright
+            iexact Hbs
+          imodintro
+          iframe Hw Hbs
+      have h' := h tx γ.db (wView D S G) (iprop(bbolt.boltState γ.db 1 S ∗ bStopped γ))
+      try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
+      wp_apply h' $$ [$Hl $Hau] as %err ⟨#Hdn, Hr⟩
+      all_goals try (ipureintro; first | trivial | rfl)
+      iapply HΦ; iframe Hdn
+      icases Hr with (⟨%He, Hw, #Hbs⟩ | ⟨%He, -⟩)
+      · ileft; isplitr; · ipureintro; exact He
+        icases (backend.boltState_halves γ.db S).1 $$ Hw with ⟨Hs, Hh⟩
+        iframe Hs Hh Hdb Hrest Hbs
+        unfold wrTok; itrivial
+      · iright; ipureintro; exact He
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
@@ -102,7 +233,8 @@ theorem backend.batchTx.commit.wp_proof
   replace hCommit := bbolt.kvGlue_Tx__Commit_kv hCommit
   replace hStats := bbolt.kvGlue_Tx__Stats_kv hStats
   intro γ P W Pk b t db st stop
-  wp_start as ⟨#Hb, #Ht, Hw, Hown, #Htxdb, Hmu⟩
+  wp_start as ⟨#Hb, #Ht, Hw, Hown, #Htxdb, Hmu, Hopn, Hsp⟩
+  icases isBackend_cmtInv γ P W Pk b $$ Hb with ⟨#Hcmt, %path, %hns⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
@@ -137,7 +269,8 @@ theorem backend.batchTx.commit.wp_proof
     · exact absurd ⟨Hif, rfl⟩ hA
     try wp_auto
     wp_apply time.wp_Now as %start -
-    wp_apply (hCommit db st.tx γ.db st.C st.S) $$ [$Hown $Htxdb $Hwtx] as %err ⟨#Hdone, Hr⟩
+    wp_apply (hCommit db st.tx γ P W Pk path true st.C st.S hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $Hopn $Hsp]
+      as %err ⟨#Hdone, Hr⟩
     wp_apply (hStats st.tx) $$ [$Hdone] as %s1 -
     wp_apply hSeconds as %f1 -
     wp_apply Hs1
@@ -151,7 +284,7 @@ theorem backend.batchTx.commit.wp_proof
     wp_apply hSeconds as %f4 -
     wp_apply Hs4
     wp_apply (wp_commitsAdd b (W64 1)) $$ [$Hmi] as %nc -
-    icases Hr with (⟨%Herr, Hown, Hwr⟩ | %Herr)
+    icases Hr with (⟨%Herr, Hown, Hwr, Hx⟩ | %Herr)
     · subst Herr
       wp_auto
       try wp_auto
@@ -164,7 +297,7 @@ theorem backend.batchTx.commit.wp_proof
       iexists _
       iframe Htxf
       simp only [↓reduceIte]
-      itrivial
+      iexact Hx
     · rcases err with ei | _
       · wp_auto
         wp_apply hError as %f -
@@ -179,7 +312,8 @@ theorem backend.batchTx.commit.wp_proof
       · exact absurd rfl Herr
   · try wp_auto
     wp_apply time.wp_Now as %start -
-    wp_apply (hCommit db st.tx γ.db st.C st.S) $$ [$Hown $Htxdb $Hwtx] as %err ⟨#Hdone, Hr⟩
+    wp_apply (hCommit db st.tx γ P W Pk path stop st.C st.S hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $Hopn $Hsp]
+      as %err ⟨#Hdone, Hr⟩
     wp_apply (hStats st.tx) $$ [$Hdone] as %s1 -
     wp_apply hSeconds as %f1 -
     wp_apply Hs1
@@ -193,7 +327,7 @@ theorem backend.batchTx.commit.wp_proof
     wp_apply hSeconds as %f4 -
     wp_apply Hs4
     wp_apply (wp_commitsAdd b (W64 1)) $$ [$Hmi] as %nc -
-    icases Hr with (⟨%Herr, Hown, Hwr⟩ | %Herr)
+    icases Hr with (⟨%Herr, Hown, Hwr, Hx⟩ | %Herr)
     · subst Herr
       wp_auto
       cases stop
@@ -223,7 +357,7 @@ theorem backend.batchTx.commit.wp_proof
         iexists _
         iframe Htxf
         simp only [↓reduceIte]
-        itrivial
+        iexact Hx
     · rcases err with ei | _
       · wp_auto
         wp_apply hError as %f -

@@ -1314,7 +1314,9 @@ def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
 committed data `C`, with the lock's ghost shares at `C` (`bStopG`, R2b-3c part 2) (the stop's
 commit's; `CommitAndStop` adds the lock's client resources, `bDBOut`). -/
 def bDBOutG (γ : BNames) (P : BParams) : IProp GF :=
-  iprop(∃ (db : Loc) (C : Data), bDB γ db ∗ ownDB db γ.db C ∗ bStopG γ P C)
+  iprop(∃ (db : Loc) (C : Data), bDB γ db ∗ ownDB db γ.db C ∗
+    -- (backend-snapshot B1) the commit invariant's half, which the stop's commit took out
+    dbHalf γ.db C ∗ bStopG γ P C)
 
 /-- (R2b-3c) **What `CommitAndStop` gives up**: the stopped batch transaction's (`bDBOutG`) and the
 batch lock's client resources `W ∗ Pk`, which the stopped lock no longer holds (the stop's escrow,
@@ -1614,6 +1616,73 @@ def metricsInv (b : Loc) : IProp GF :=
 instance metricsInv_persistent (b : Loc) : Persistent (metricsInv (GF := GF) b) := by
   unfold metricsInv; infer_instance
 
+/-! ## The commit point (backend-snapshot B1, 2026-11-20; `notes/backend-snapshot-plan.md`)
+
+bbolt's `boltState` of the committed data is shared: the batch lock holds half (`ownDB`), the
+commit invariant `cmtInv` the other half (`dbHalf`). A commit fires bbolt's update at its
+linearization point by opening the invariant (both halves to the committed contents); a read
+transaction under the batch lock reads its own half; `backend.Snapshot`, which holds no lock, reads
+the invariant's. `Close` takes the invariant's half once the backend is stopped (`bStopped`, the
+invariant's other case). -/
+
+/-- The commit invariant's namespace. -/
+abbrev cmtN : Namespace := bN.@"cmt"
+
+/-- **The registered observations at the committed data `D`** (B2: a snapshot's registration
+armed at each commit; until then nothing). -/
+def cmtRegs (_γ : BNames) (_P : BParams) (_W _Pk : IProp GF) (_D : Data) : IProp GF := iprop(True)
+
+instance cmtRegs_timeless (γ : BNames) (P : BParams) (W Pk : IProp GF) (D : Data) :
+    Timeless (cmtRegs (GF := GF) γ P W Pk D) := by
+  unfold cmtRegs; infer_instance
+
+/-- **The commit invariant's content**: the committed data's other half (`dbHalf`) with the
+registrations at it, or the backend stopped (`Close` has taken the half). -/
+def cmtBody (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
+  iprop((∃ Dc : Data, dbHalf γ.db Dc ∗ cmtRegs γ P W Pk Dc) ∨ bStopped γ)
+
+instance cmtBody_timeless (γ : BNames) (P : BParams) (W Pk : IProp GF) :
+    Timeless (cmtBody (GF := GF) γ P W Pk) := by
+  unfold cmtBody bStopped; infer_instance
+
+/-- **The backend's commit invariant** (persistent; see the section header). -/
+def cmtInv (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
+  inv cmtN (cmtBody γ P W Pk)
+
+instance cmtInv_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) :
+    Persistent (cmtInv (GF := GF) γ P W Pk) := by
+  unfold cmtInv; infer_instance
+
+/-- **A stopping commit's payment** (`payIn`'s stop case): the clients' half and the `run`
+goroutine's quarter of the open flag. With the batch lock's quarter they make the backend stopped
+(`opn_stop_cmt`), at the stop's commit point, where the commit takes the commit invariant's half
+out for `Close` and leaves `bStopped` in its place (backend-snapshot B1). -/
+def stopPay (γ : BNames) : IProp GF :=
+  iprop(dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗
+    dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false)
+
+/-- The open flag's shares make the backend stopped (`InvBatch.lean`'s `opn_stop`, over
+`stopPay`). -/
+theorem opn_stop_cmt (γ : BNames) :
+    dghostVar (GF := GF) γ.opn (DFrac.own (1 : Qp).half.half) false ∗ stopPay γ ==∗ bStopped γ := by
+  unfold stopPay
+  iintro ⟨H1, Ho, H2⟩
+  icombine H1 H2 as H
+  unfold bStopped
+  imod dghostVar_update_halves true γ.opn false false $$ H Ho with ⟨H, -⟩
+  iapply dghostVar_persist $$ H
+
+/-- The commit invariant's namespace is not the database's (`dbFile`: `γ.ns = dbNs path`). -/
+theorem cmtN_dbNs (p : GoString) : (↑cmtN : CoPset) ⊆ ⊤ \ ↑(dbNs p) := by
+  intro x hx
+  rw [Iris.Std.LawfulSet.mem_diff]
+  refine ⟨CoPset.mem_full, fun h' => ?_⟩
+  have h1 : x ∈ (↑(nroot.@"backend") : CoPset) := nclose_subseteq (nroot.@"backend") "cmt" x hx
+  have h2 : x ∈ (↑(nroot.@"etcdBackendDb") : CoPset) := by
+    unfold dbNs at h'
+    exact nclose_subseteq _ _ x h'
+  exact ndot_ne_disjoint nroot (show ("backend" : String) ≠ "etcdBackendDb" by decide) x ⟨h1, h2⟩
+
 /-- `b` is a backend with parameters `P`, ghost names `γ`, the client's batch-lock resources
 `W` (the lock holder's) and `Pk` (the hooks') (persistent). (Sweep repairs 1, B4, 2026-11-07) With
 `ETCD_VERIFY` off (`envVerifyOff`): what its batch transaction's lock checks
@@ -1632,7 +1701,9 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     -- (2026-11-04, R2b-3c) the database and its file
     (∃ path : GoString, bDBAt γ db path ∗ dbFile db γ.db path) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off
-    envVerifyOff)
+    envVerifyOff ∗
+    -- (backend-snapshot B1) the commit invariant
+    cmtInv γ P W Pk)
 
 instance isBackend_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     Persistent (isBackend γ P W Pk b) := by
@@ -1645,8 +1716,21 @@ theorem isBackend_envVerifyOff (γ : BNames) (P : BParams) (W Pk : IProp GF) (b 
   iintro #Hb
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    -, -, -, #Hv⟩
+    -, -, -, #Hv, -⟩
   iexact Hv
+
+/-- (backend-snapshot B1) **A backend's commit invariant**, and its database's namespace (what a
+commit or a snapshot opens it beside: `cmtN_dbNs`). -/
+theorem isBackend_cmtInv (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    isBackend γ P W Pk b ⊢ cmtInv γ P W Pk ∗ ∃ path : GoString, ⌜γ.db.ns = dbNs path⌝ := by
+  iintro #Hb
+  unfold isBackend
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, ⟨%path, -, #Hf⟩, -, #Hc⟩
+  iframe Hc
+  iexists path
+  unfold dbFile
+  iexact Hf
 
 /-! ## Readers -/
 
