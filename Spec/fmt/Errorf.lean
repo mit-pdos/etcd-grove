@@ -308,6 +308,27 @@ theorem fmt.argsOk_intro {mv : List w8} {format : GoString} {ds : List fmt.Direc
   · ipureintro; exact h
   · iexact H
 
+/-- A read-only `[]string` is `fmt.argOkAt` a `%v`/`%s` directive (`fmt.sliceArgOk`: strings have
+no methods). -/
+theorem fmt.argOkAt_strSlice {mv : List w8} {d : fmt.Directive} (sl : GoSlice) (ss : List GoString)
+    (hd : d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false) :
+    sl ↦*□ ss ⊢ fmt.argOkAt (GF := GF) mv d (interface.mkOk (go.GoType.SliceType go.string) #sl) := by
+  iintro #Hs
+  iapply (fmt.argOkAt_slice (T := go.string) (V := GoString) sl ss hd (by
+    rw [go.is_underlying]; rfl))
+  isplitr; · iexact Hs
+  have key : ∀ (i : Nat) (x : GoString), ss[i]? = some x →
+      iprop(□ (True : IProp GF)) ⊢ fmt.argOkAtBase mv d (interface.mkOk go.string #x) := by
+    intro i x _
+    iintro -
+    unfold fmt.argOkAtBase
+    ileft
+    ipureintro
+    exact (show _root_.Perennial.fmt.ArgsWf [interface.mkOk go.string #x] from
+      .cons_string _ _ .nil) _ (List.mem_singleton_self _)
+  iapply (BigSepL.bigSepL_intro (P := iprop(□ (True : IProp GF))) key)
+  imodintro; itrivial
+
 /-- An argument that is `fmt.argOk` is `fmt.argOkAt` a method-verb directive other than `%#v`/`%#w`
 and `%w` (premise fixes 6, D; `%w` excluded since fmt soundness 2: under it, `fmt.argOkAt_of_error`). -/
 theorem fmt.argOkAt_of_argOk {mv : List w8} {d : fmt.Directive} {a : GoInterface} :

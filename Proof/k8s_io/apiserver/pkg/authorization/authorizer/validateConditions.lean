@@ -8,13 +8,14 @@ module
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.validateConditions
 public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Has
 public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Insert
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfLeaf
 public import Spec.k8s_io.apimachinery.pkg.util.validation.field.NewPath
 public import Spec.k8s_io.apimachinery.pkg.util.validation.IsDomainPrefixedKey
 public import Spec.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToAggregate_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.sets.PtrMethods
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B2Lemmas
+public import Proof.k8s_io.apimachinery.pkg.util.errors.ErrTreeOk
 
 @[expose] public section
 
@@ -40,10 +41,11 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 theorem validateConditions.wp_proof
     (wp_Set__Has : EtcdGrove.sets.Set.Has.spec (GF := GF) (hG := hG))
     (wp_Set__Insert : EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG))
-    (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG))
+    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG))
     (wp_NewPath : EtcdGrove.field.NewPath.spec (GF := GF) (hG := hG))
     (wp_IsDomainPrefixedKey : EtcdGrove.validation.IsDomainPrefixedKey.spec (GF := GF) (hG := hG))
-    (wp_ErrorList_ToAggregate_ptr : EtcdGrove.field.ErrorList.ToAggregate_ptr.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorList_ToAggregate_ptr : EtcdGrove.field.ErrorList.ToAggregate_ptr.spec (GF := GF) (hG := hG))
+    (wp_aggregate_Error : EtcdGrove.utilerrors.aggregate.Error.spec (GF := GF) (hG := hG)) :
     validateConditions.spec (GF := GF) (hG := hG) := by
   intro seen S s dq cs
   wp_start as ⟨Hseen, Hs, #Hcs⟩
@@ -83,12 +85,16 @@ theorem validateConditions.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       (try wp_auto)
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
-      · iexact Hargs
+      wp_apply wp_ErrorfLeaf _ _ _ _ $$ [Hargs] as %ef ⟨-, #Hef, %hef⟩
+      · iframe Hargs
+        (try rw [show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl])
+        fmt_args_ok
       (try wp_auto)
       wp_for_post
       iapply HΦ
       iframe
+      iapply utilerrors.errTreeOrNil_of_errOk ef hef
+      iexact Hef
     simp only [hh, _root_.decide_false]
     wp_auto
     wp_apply wp_slice_literal
@@ -107,19 +113,31 @@ theorem validateConditions.wp_proof
     · simp only [he1, _root_.decide_true]
       wp_auto
       wp_apply wp_ErrorList_ToAggregate_ptr errs_ptr (DFrac.own 1) el1 (DFrac.own 1) errs1
-        $$ [$errs $Hel1] as %agg -
+        $$ [$errs $Hel1] as %agg ⟨-, -, #Hagg⟩
       · iexact Hok1
       (try wp_auto)
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       (try wp_auto)
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
-      · iexact Hargs
+      wp_apply wp_ErrorfLeaf _ _ _ _ $$ [Hargs] as %ef ⟨-, #Hef, %hef⟩
+      · iframe Hargs
+        fmt_args_intro
+        isplitl
+        · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+          isplitr
+          · ipureintro; exact ⟨by decide, by decide⟩
+          iapply utilerrors.errTreeOrNil_fmtErrorOkOrNil wp_aggregate_Error
+          isplitr
+          · iPkgInit
+          · iexact Hagg
+        · itrivial
       (try wp_auto)
       wp_for_post
       iapply HΦ
       iframe
+      iapply utilerrors.errTreeOrNil_of_errOk ef hef
+      iexact Hef
     simp only [he1, _root_.decide_false]
     wp_auto
     wp_apply HgetCond' as %cnd -
@@ -132,12 +150,16 @@ theorem validateConditions.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       (try wp_auto)
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
-      · iexact Hargs
+      wp_apply wp_ErrorfLeaf _ _ _ _ $$ [Hargs] as %ef ⟨-, #Hef, %hef⟩
+      · iframe Hargs
+        (try rw [show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl])
+        fmt_args_ok
       (try wp_auto)
       wp_for_post
       iapply HΦ
       iframe
+      iapply utilerrors.errTreeOrNil_of_errOk ef hef
+      iexact Hef
     simp only [hc, _root_.decide_false]
     wp_auto
     wp_apply HgetType' as %ty -
@@ -154,12 +176,16 @@ theorem validateConditions.wp_proof
         try (isplitr; (ipureintro; rfl))
         iintro %sla ⟨Hargs, -⟩
         (try wp_auto)
-        wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
-        · iexact Hargs
+        wp_apply wp_ErrorfLeaf _ _ _ _ $$ [Hargs] as %ef ⟨-, #Hef, %hef⟩
+        · iframe Hargs
+          (try rw [show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl])
+          fmt_args_ok
         (try wp_auto)
         wp_for_post
         iapply HΦ
         iframe
+        iapply utilerrors.errTreeOrNil_of_errOk ef hef
+        iexact Hef
       simp only [hds, _root_.decide_false]
       wp_auto
       wp_for_post
@@ -178,19 +204,31 @@ theorem validateConditions.wp_proof
     · simp only [he2, _root_.decide_true]
       wp_auto
       wp_apply wp_ErrorList_ToAggregate_ptr errs_ptr (DFrac.own 1) el2 (DFrac.own 1) errs2
-        $$ [$errs $Hel2] as %agg -
+        $$ [$errs $Hel2] as %agg ⟨-, -, #Hagg⟩
       · iexact Hok2
       (try wp_auto)
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       (try wp_auto)
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
-      · iexact Hargs
+      wp_apply wp_ErrorfLeaf _ _ _ _ $$ [Hargs] as %ef ⟨-, #Hef, %hef⟩
+      · iframe Hargs
+        fmt_args_intro
+        isplitl
+        · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+          isplitr
+          · ipureintro; exact ⟨by decide, by decide⟩
+          iapply utilerrors.errTreeOrNil_fmtErrorOkOrNil wp_aggregate_Error
+          isplitr
+          · iPkgInit
+          · iexact Hagg
+        · itrivial
       (try wp_auto)
       wp_for_post
       iapply HΦ
       iframe
+      iapply utilerrors.errTreeOrNil_of_errOk ef hef
+      iexact Hef
     simp only [he2, _root_.decide_false]
     wp_auto
     wp_apply HgetDesc' as %dsc -
@@ -202,12 +240,16 @@ theorem validateConditions.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       (try wp_auto)
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
-      · iexact Hargs
+      wp_apply wp_ErrorfLeaf _ _ _ _ $$ [Hargs] as %ef ⟨-, #Hef, %hef⟩
+      · iframe Hargs
+        (try rw [show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl])
+        fmt_args_ok
       (try wp_auto)
       wp_for_post
       iapply HΦ
       iframe
+      iapply utilerrors.errTreeOrNil_of_errOk ef hef
+      iexact Hef
     simp only [hds, _root_.decide_false]
     wp_auto
     wp_for_post
@@ -219,6 +261,7 @@ theorem validateConditions.wp_proof
     wp_auto
     iapply HΦ
     iframe
+    iapply utilerrors.errTreeOrNil_nil
 
 end proof
 

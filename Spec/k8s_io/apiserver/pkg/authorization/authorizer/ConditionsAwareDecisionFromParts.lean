@@ -29,7 +29,8 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 /-- See the file header. -/
 abbrev ConditionsAwareDecisionFromParts.spec : Prop :=
   ∀ (k : w64) (r : GoString) (e : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗
+      utilerrors.errTreeOrNil e }}
     (App (App (App (Val (@! ConditionsAwareDecisionFromParts)) (Val #k)) (Val #r)) (Val #e))
   {{ (d : ConditionsAwareDecision), RET #d; isDecision d (Dec.ofWord k) }}
 

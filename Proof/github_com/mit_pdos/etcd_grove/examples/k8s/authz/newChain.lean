@@ -78,9 +78,9 @@ theorem newChain.wp_proof
         iintro %c %a
         iunfold authzCallOk
         iintro !> %Ψ' _ HΨ'
-        wp_apply (wp_legacyAuthorize c a) as %dec %r %e _
+        wp_apply (wp_legacyAuthorize c a) as %dec %r %e #He
         iapply HΨ'
-        itrivial
+        iexact He
       iapply HΨ
       iexact Hd
     · iintro %ctx %d %data

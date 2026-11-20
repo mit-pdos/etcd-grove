@@ -12,7 +12,7 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Reason
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Error
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__FailureDecision
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfLeaf
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
 
@@ -43,7 +43,7 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrError.wp_proof
     (wp_ConditionsAwareDecision_Reason : EtcdGrove.authorizer.ConditionsAwareDecision.Reason.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_Error : EtcdGrove.authorizer.ConditionsAwareDecision.Error.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_FailureDecision : EtcdGrove.authorizer.ConditionsAwareDecision.FailureDecision.spec (GF := GF) (hG := hG))
-    (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecision.UnconditionalPartsOrError.spec (GF := GF) (hG := hG) := by
   intro d m
   wp_start as #Hd
@@ -85,8 +85,9 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrError.wp_proof
   wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of wp_ConditionsAwareDecision_FailureDecision
     d_ptr (DFrac.own 1) d m) $$ [$Hdp] as Hdp
   · iexact Hd
-  wp_apply (wp_ErrorfAny _ slice.nil ([] : List GoAny) (DFrac.own 1)) as %e -
-  · iapply ownSlice_nil
+  wp_apply (wp_ErrorfLeaf _ slice.nil ([] : List GoInterface) (DFrac.own 1)) as %e -
+  · isplitr; · iapply ownSlice_nil
+    fmt_args_ok
   iapply HΦ; itrivial
 
 end proof

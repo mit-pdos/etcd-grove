@@ -53,19 +53,26 @@ theorem ConditionsMap.Evaluate.wp_proof
     wp_auto
     ihave #Hf1 := evalFnOk_elim_b2 f ctx' cond data' $$ Hf
     ihave #Hcall := evalCallOk_elim_b2 f ctx' cond data' $$ Hf1
-    wp_apply Hcall as %b %e -
+    wp_apply Hcall as %b %e #He
     · iexact Hcond
     rcases e with ei | _
     · wp_auto
-      wp_apply wp_ConditionEvaluationResultError as %e' -
+      wp_apply wp_ConditionEvaluationResultError $$ [] as %e' #He'
+      · iexact He
       (try wp_auto)
       iapply HΨ
-      itrivial
+      unfold resOk
+      isplitr
+      · ipureintro; word
+      · iexact He'
     · wp_auto
       wp_apply wp_ConditionEvaluationResultBoolean
       (try wp_auto)
       iapply HΨ
-      itrivial
+      unfold resOk
+      isplitr
+      · ipureintro; split <;> word
+      · iapply utilerrors.errTreeOrNil_nil
   unfold isWFDecision
   icases Hd with ⟨%m, #Hdm, -⟩
   wp_apply (wp_ConditionsAwareDecision_UnconditionalPartsOrError d m) as %dec %r %e -

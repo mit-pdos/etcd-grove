@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 abbrev arbErr.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbErr)) (Val #()))
-  {{ (e : GoInterface), RET #e; True }}
+  {{ (e : GoInterface), RET #e; utilerrors.errTreeOrNil e }}
 
 end spec
 

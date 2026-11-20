@@ -15,7 +15,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__PossibleDecisions
 public import Spec.k8s_io.apimachinery.pkg.util.sets.ListW
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.Decision__String
-public import Spec.fmt.SprintfDecisions
+public import Spec.fmt.SprintfArgs
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.FmtArgs
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B1Lemmas
@@ -50,7 +51,7 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof
     (wp_ConditionsAwareDecision_PossibleDecisions : EtcdGrove.authorizer.ConditionsAwareDecision.PossibleDecisions.spec (GF := GF) (hG := hG))
     (wp_List : EtcdGrove.sets.List'.specW (GF := GF) (hG := hG))
     (wp_Decision_String : EtcdGrove.authorizer.Decision.String.spec (GF := GF) (hG := hG))
-    (wp_fmt_SprintfDecisions : EtcdGrove.fmt.SprintfDecisions.spec (GF := GF) (hG := hG)) :
+    (wp_SprintfArgs : EtcdGrove.fmt.SprintfArgs.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecision.UnconditionalPartsOrFailClosed.spec (GF := GF) (hG := hG) := by
   intro d m
   wp_start as #Hd
@@ -96,6 +97,7 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof
     d_ptr (DFrac.own 1) d m) $$ [$Hdp] as %s ⟨⟨%S, HS, %HSm⟩, Hdp⟩
   · iexact Hd
   wp_apply (wp_List s (DFrac.own 1) S (setIs_size_le_b1 HSm)) $$ [$HS] as %sl %ks ⟨HS, Hsl, %Hks⟩
+  imod ownSlice_persist $$ Hsl with #Hsl
   wp_apply (Decision.wp_ptr_String_of wp_Decision_String failureDecision_ptr (DFrac.own 1) _)
     $$ [$failureDecision] as %str Hfd
   wp_apply wp_slice_literal (V := GoInterface)
@@ -104,9 +106,18 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   try wp_auto
-  wp_apply (wp_fmt_SprintfDecisions _ _ (DFrac.own 1) sl ks (DFrac.own 1) str) $$ [Hasl Hsl]
-    as %r ⟨Hasl, Hsl⟩
-  · iframe
+  wp_apply (wp_SprintfArgs _ _ _ (DFrac.own 1)) $$ [$Hasl] as %r Hasl
+  · fmt_args_intro
+    isplitl
+    · iapply (Decision.sliceArgOkAt wp_Decision_String sl ks ⟨by decide, Or.inl rfl, rfl⟩)
+      isplitr
+      · iPkgInit
+      · iexact Hsl
+    isplitl
+    · simp only [fmt.argOkAt]; ileft; ipureintro
+      exact (show _root_.Perennial.fmt.ArgsWf [interface.mkOk go.string #str] from
+        .cons_string _ _ .nil) _ (List.mem_singleton_self _)
+    · itrivial
   iapply HΦ; itrivial
 
 end proof

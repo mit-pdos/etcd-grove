@@ -32,7 +32,8 @@ abbrev collectReasonsAndErrors.spec : Prop :=
     (App (App (App (Val (@! collectReasonsAndErrors)) (Val #s)) (Val #d)) (Val #k))
   {{ (rs es : GoSlice), RET (PairV #rs #es); s ↦*{dq} pre ∗
       (∃ xs : List GoString, rs ↦* xs ∗ ownSliceCap GoString rs (DFrac.own 1)) ∗
-      (∃ ys : List GoInterface, es ↦* ys ∗ ownSliceCap GoInterface es (DFrac.own 1)) }}
+      (∃ ys : List GoInterface, es ↦* ys ∗ ownSliceCap GoInterface es (DFrac.own 1) ∗
+        [∗list] e ∈ ys, utilerrors.errTree e) }}
 
 end spec
 

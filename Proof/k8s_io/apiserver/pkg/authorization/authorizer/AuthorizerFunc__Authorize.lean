@@ -33,9 +33,9 @@ theorem AuthorizerFunc.Authorize.wp_proof :
   wp_start as #Hf
   wp_auto
   unfold authzFnOk authzCallOk
-  wp_apply Hf as %dec %r %e -
+  wp_apply Hf as %dec %r %e #He
   iapply HΦ
-  itrivial
+  iexact He
 
 end proof
 

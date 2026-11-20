@@ -38,7 +38,7 @@ abbrev ErrorList.ToAggregate_ptr.spec : Prop :=
     (App (Val (l @!! go.GoType.PointerType
       _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorList.ty @!!
       go!"ToAggregate")) (Val #()))
-  {{ (a : GoInterface), RET #a; l ↦{dl} s ∗ s ↦*{dq} errs }}
+  {{ (a : GoInterface), RET #a; l ↦{dl} s ∗ s ↦*{dq} errs ∗ utilerrors.errTreeOrNil a }}
 
 end spec
 

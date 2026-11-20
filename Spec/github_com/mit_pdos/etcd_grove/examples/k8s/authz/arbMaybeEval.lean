@@ -31,7 +31,7 @@ abbrev arbMaybeEval.spec : Prop :=
   ∀ (ctx cond data : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbMaybeEval)) (Val #ctx)) (Val #cond)) (Val #data))
-  {{ (r : ConditionEvaluationResult), RET #r; True }}
+  {{ (r : ConditionEvaluationResult), RET #r; resOk r }}
 
 end spec
 

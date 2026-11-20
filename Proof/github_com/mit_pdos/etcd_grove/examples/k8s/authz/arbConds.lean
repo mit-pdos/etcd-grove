@@ -75,8 +75,8 @@ theorem arbConds.wp_proof
     iintro %ctx %data
     iunfold condEvalOk
     iintro !> %Ψ _ HΨ
-    wp_apply (wp_arbCondition_Evaluate c ctx data) as %r _
-    iapply HΨ; itrivial
+    wp_apply (wp_arbCondition_Evaluate c ctx data) as %r #Hr
+    iapply HΨ; iexact Hr
   wp_auto
   wp_apply wp_Int63n as %n %Hn
   · ipureintro; decide

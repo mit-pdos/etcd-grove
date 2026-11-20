@@ -6,6 +6,8 @@ leaf's by `errOk`, an `aggregate`'s by `aggregate.Error`'s spec), its type has `
 module
 
 public import Spec.k8s_io.apimachinery.pkg.util.errors.aggregate__Error
+public import Spec.fmt.ErrorOk
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 
@@ -93,6 +95,37 @@ theorem errTreeOrNil_errOkOrNil (wp_Error : aggregate.Error.spec (GF := GF) (hG 
     · iframe #
     cases h
     iexact Hok
+
+/-- `nil` or a tree is `fmtErrorOkOrNil` (what `fmt.argOkAt_of_fmtErrorOkOrNil` takes). -/
+theorem errTreeOrNil_fmtErrorOkOrNil [_root_.Perennial.fmt.Assumptions]
+    (wp_Error : aggregate.Error.spec (GF := GF) (hG := hG)) (e : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.errors ∗ errTreeOrNil e ⊢
+      fmtErrorOkOrNil e := by
+  iintro ⟨#Hpkg, #He⟩
+  ihave #Hok := errTreeOrNil_errOkOrNil wp_Error e $$ [Hpkg He]
+  · iframe #
+  cases e with
+  | nil => unfold fmtErrorOkOrNil; itrivial
+  | ok ii =>
+    unfold fmtErrorOkOrNil
+    iapply fmtErrorOk_of_errOk
+    iapply errOkOrNil_ne
+    iexact Hok
+
+/-- An `errors.New` error (`errors.wp_New_errorString`'s post) is a tree. -/
+theorem errorString_errTreeOrNil [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Error" #x))
+        (Val #())) {{ Φ }}) ⊢
+    errTreeOrNil (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  iintro #H
+  ihave #Hok := errorString_errOk x msg $$ H
+  iapply errTreeOrNil_of_errOk ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+  · have h := (go.MethodSetIs.method_set_is
+      (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Errors")
+    simp only [go.methodSetLookup] at h
+    simpa using h
+  iexact Hok
 
 end lemmas
 

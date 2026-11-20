@@ -33,7 +33,7 @@ abbrev conditionsToAppliedErroredUnevaluated.spec : Prop :=
     (App (App (App (App (Val (@! conditionsToAppliedErroredUnevaluated)) (Val #it)) (Val #ev))
       (Val #effect)) (Val #desc))
   {{ (r : GoString) (es us : GoSlice), RET (PairV (PairV #r #es) #us);
-      (∃ errs : List GoInterface, es ↦* errs) ∗
+      (∃ errs : List GoInterface, es ↦* errs ∗ [∗list] e ∈ errs, utilerrors.errTree e) ∗
       (∃ uc : List GoInterface, us ↦* uc ∗ [∗list] c ∈ uc, isCondition c) }}
 
 end spec

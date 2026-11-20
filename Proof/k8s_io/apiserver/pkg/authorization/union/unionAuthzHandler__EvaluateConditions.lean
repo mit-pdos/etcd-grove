@@ -20,7 +20,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler__e
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__PossibleDecisions
 public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Has
 public import Spec.k8s_io.apimachinery.pkg.util.sets.ListW
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfLeaf
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.FmtArgs
 public import Perennial.Spec.fmt.Sprintf
 public import Perennial.Spec.strings.Join
 public import Spec.k8s_io.apimachinery.pkg.util.errors.NewAggregate
@@ -64,10 +65,11 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
     (wp_ConditionsAwareDecision_PossibleDecisions : EtcdGrove.authorizer.ConditionsAwareDecision.PossibleDecisions.spec (GF := GF) (hG := hG))
     (wp_Set__Has : EtcdGrove.sets.Set.Has.spec (GF := GF) (hG := hG))
     (wp_List : EtcdGrove.sets.List'.specW (GF := GF) (hG := hG))
-    (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG))
+    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG))
     (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG))
-    (wp_NewAggregate : EtcdGrove.utilerrors.NewAggregate.spec (GF := GF) (hG := hG)) :
+    (wp_NewAggregate : EtcdGrove.utilerrors.NewAggregate.spec (GF := GF) (hG := hG))
+    (wp_Decision_String : EtcdGrove.authorizer.Decision.String.spec (GF := GF) (hG := hG)) :
     unionAuthzHandler.EvaluateConditions.spec (GF := GF) (hG := hG) := by
   intro h ctx d m data
   wp_start as ⟨#Hu, #Hd, %Hwf⟩
@@ -251,13 +253,25 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
             · iexact Hv
             (try wp_auto)
             wp_apply (wp_List s2 (DFrac.own 1) S2 (EtcdGrove.authorizer.setIs_size_le_b1 HSm2)) $$ [$HS2] as %sl %dws ⟨HS2, Hsl, -⟩
+            imod ownSlice_persist $$ Hsl with #Hsl
             (try wp_auto)
             wp_apply wp_slice_literal
             isplitr
             · ipureintro; rfl
             iintro %sp ⟨Hs, -⟩
             (try wp_auto)
-            wp_apply wp_ErrorfAny $$ [$Hs] as %ferr ⟨Hs, -⟩
+            wp_apply wp_ErrorfLeaf $$ [$Hs] as %ferr ⟨Hs, -⟩
+            · fmt_args_intro
+              isplitl
+              · iapply fmt.argOkAt_of_base
+                iapply (authorizer.Decision.argOkAtBase wp_Decision_String dw ⟨by decide, rfl, by decide⟩)
+                iPkgInit
+              isplitl
+              · iapply (authorizer.Decision.sliceArgOkAt wp_Decision_String sl dws ⟨by decide, Or.inl rfl, rfl⟩)
+                isplitr
+                · iPkgInit
+                · iexact Hsl
+              · itrivial
             (try wp_auto)
             iframe
             ipureintro

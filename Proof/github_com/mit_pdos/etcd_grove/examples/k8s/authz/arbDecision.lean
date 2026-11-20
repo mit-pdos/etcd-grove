@@ -63,9 +63,10 @@ theorem arbDecision.wp_proof
   · wp_auto
     wp_apply wp_arbReason as %r _
     (try wp_auto)
-    wp_apply wp_arbErr as %e _
+    wp_apply wp_arbErr as %e #He
     (try wp_auto)
-    wp_apply (wp_ConditionsAwareDecisionDeny r e) as %d #Hd
+    wp_apply (wp_ConditionsAwareDecisionDeny r e) $$ [] as %d #Hd
+    · iexact He
     (try wp_auto)
     iapply HΦ
     iunfold isWFDecision
@@ -75,9 +76,10 @@ theorem arbDecision.wp_proof
   · wp_auto
     wp_apply wp_arbReason as %r _
     (try wp_auto)
-    wp_apply wp_arbErr as %e _
+    wp_apply wp_arbErr as %e #He
     (try wp_auto)
-    wp_apply (wp_ConditionsAwareDecisionAllow r e) as %d #Hd
+    wp_apply (wp_ConditionsAwareDecisionAllow r e) $$ [] as %d #Hd
+    · iexact He
     (try wp_auto)
     iapply HΦ
     iunfold isWFDecision
@@ -87,9 +89,10 @@ theorem arbDecision.wp_proof
   · wp_auto
     wp_apply wp_arbReason as %r _
     (try wp_auto)
-    wp_apply wp_arbErr as %e _
+    wp_apply wp_arbErr as %e #He
     (try wp_auto)
-    wp_apply (wp_ConditionsAwareDecisionNoOpinion r e) as %d #Hd
+    wp_apply (wp_ConditionsAwareDecisionNoOpinion r e) $$ [] as %d #Hd
+    · iexact He
     (try wp_auto)
     iapply HΦ
     iunfold isWFDecision

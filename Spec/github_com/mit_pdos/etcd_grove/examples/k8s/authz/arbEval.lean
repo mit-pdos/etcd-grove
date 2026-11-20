@@ -30,7 +30,7 @@ abbrev arbEval.spec : Prop :=
   ∀ (ctx cond data : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbEval)) (Val #ctx)) (Val #cond)) (Val #data))
-  {{ (b : Bool) (e : GoInterface), RET (PairV #b #e); True }}
+  {{ (b : Bool) (e : GoInterface), RET (PairV #b #e); utilerrors.errTreeOrNil e }}
 
 end spec
 

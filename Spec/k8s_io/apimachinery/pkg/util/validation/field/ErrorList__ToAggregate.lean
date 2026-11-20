@@ -1,7 +1,9 @@
 /-
 `field.ErrorList.ToAggregate()` (`errors.go`, translated with its body; proved,
 `Proof/.../field/ErrorList__ToAggregate.lean`): some `Aggregate` (`nil` for an empty list, else
-`utilerrors.NewAggregate` of the errors with distinct messages), the list kept. It formats each
+`utilerrors.NewAggregate` of the errors with distinct messages), the list kept; `nil` or an error
+tree (`utilerrors.errTreeOrNil`: an `aggregate` of `*field.Error`s, leaves `fmt` formats by their
+`Error()`, 2026-11-20, what `fmt.Errorf("%w", errs.ToAggregate())` needs). It formats each
 error, `fmt.Sprintf("%v", err)`, which calls its `Error()`: hence the premise that each is
 `field.errorOk` (read-only, a known type, a string bad value: `Spec/.../field/ErrorOk.lean`) and
 `field`'s initialization (2026-11-19: until then a names-only trust boundary without them).
@@ -10,6 +12,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Spec.k8s_io.apimachinery.pkg.util.validation.field.ErrorOk
+public import Proof.k8s_io.apimachinery.pkg.util.errors.Defs
 
 @[expose] public section
 
@@ -37,7 +40,7 @@ abbrev ErrorList.ToAggregate.spec : Prop :=
       s ↦*{dq} errs ∗ [∗list] e ∈ errs, errorOk e }}
     (App (Val (s @!! _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorList.ty @!!
       go!"ToAggregate")) (Val #()))
-  {{ (a : GoInterface), RET #a; s ↦*{dq} errs }}
+  {{ (a : GoInterface), RET #a; s ↦*{dq} errs ∗ utilerrors.errTreeOrNil a }}
 
 end spec
 

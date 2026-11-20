@@ -5,7 +5,7 @@ Rocq counterpart).
 module
 
 public import Spec.k8s_io.apiserver.pkg.authorization.union.New
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfLeaf
 
 @[expose] public section
 
@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.authorization.union.Assumptions]
 
 theorem New.wp_proof
-    (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
   intro s nas
   wp_start as ⟨#Hs, #Has⟩
@@ -62,13 +62,14 @@ theorem New.wp_proof
     wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hnl
     wp_if_destruct
     · -- an empty name
-      wp_apply (wp_ErrorfAny _ slice.nil [] (DFrac.own 1)) $$ [] as %ferr ⟨-, %Hferr⟩
-      · iapply ownSlice_nil
+      wp_apply (wp_ErrorfLeaf _ slice.nil [] (DFrac.own 1)) $$ [] as %ferr -
+      · isplitr; · iapply ownSlice_nil
+        fmt_args_ok
       (try wp_auto)
       wp_for_post
       iapply HΦ
       ileft
-      ipureintro; exact Hferr
+      ipureintro; simp
     · (try wp_auto)
       wp_apply (wp_map_lookup2 go.string Authorizer.ty mref mm na'.AuthorizerName' (DFrac.own 1)) $$ [$Hmref]
         as Hmref
@@ -81,12 +82,13 @@ theorem New.wp_proof
         · ipureintro; rfl
         iintro %sp ⟨Hsp, -⟩
         (try wp_auto)
-        wp_apply wp_ErrorfAny $$ [$Hsp] as %ferr ⟨-, %Hferr⟩
+        wp_apply wp_ErrorfLeaf $$ [$Hsp] as %ferr -
+        · fmt_args_ok
         (try wp_auto)
         wp_for_post
         iapply HΦ
         ileft
-        ipureintro; exact Hferr
+        ipureintro; simp
       | none =>
         simp only [Option.isSome_none]
         wp_auto

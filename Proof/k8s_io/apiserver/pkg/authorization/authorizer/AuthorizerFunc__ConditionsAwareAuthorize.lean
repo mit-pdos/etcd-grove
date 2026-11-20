@@ -36,20 +36,23 @@ theorem AuthorizerFunc.ConditionsAwareAuthorize.wp_proof
       {{ l ↦ f ∗ authzFnOk (GF := GF) f }}
         (App (App (Val (l @!! go.GoType.PointerType AuthorizerFunc.ty @!! go!"Authorize"))
           (Val #ctx)) (Val #a))
-      {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); l ↦ f }} := by
+      {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); l ↦ f ∗
+          utilerrors.errTreeOrNil e }} := by
     intro l f ctx a
     wp_start as ⟨Hl, #Hf⟩
     wp_auto
-    wp_apply (wp_AuthorizerFunc_Authorize f ctx a) as %dec %r %e -
+    wp_apply (wp_AuthorizerFunc_Authorize f ctx a) as %dec %r %e #He
     · iexact Hf
     iapply HΦ
     iframe
+    iexact He
   intro f ctx a
   wp_start as #Hf
   wp_auto
-  wp_apply (wp_ptr_Authorize f_ptr f ctx a) $$ [$f] as %dec %r %e Hfp
+  wp_apply (wp_ptr_Authorize f_ptr f ctx a) $$ [$f] as %dec %r %e ⟨Hfp, #He⟩
   · iexact Hf
-  wp_apply (wp_ConditionsAwareDecisionFromParts dec r e) as %d #Hd
+  wp_apply (wp_ConditionsAwareDecisionFromParts dec r e) $$ [] as %d #Hd
+  · iexact He
   iapply HΦ
   unfold isWFDecision
   iexists _

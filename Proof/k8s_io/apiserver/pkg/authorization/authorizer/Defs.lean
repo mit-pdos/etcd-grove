@@ -46,11 +46,20 @@ caller (the driver's arbitrary leaves): what the library needs of them is that t
 called (non-`nil`, persistent triples) and, for an authorizer's `ConditionsAwareAuthorize`, that it
 returns a `WF` decision (the leaves build theirs with the library's constructors). Their results
 are otherwise arbitrary: `EvaluateConditions` may return any decision word, reason and error.
+
+**Errors** (2026-11-20, after `lean`'s fmt soundness removed `fmt.ErrorfAny`): the library formats
+the errors of decisions (`collectReasonsAndErrors`: `fmt.Errorf("%s: %w", ...)`) and of evaluation
+results (`conditionsToAppliedErroredUnevaluated`), so every error a decision or a result holds, and
+every error the untrusted functions return, is `nil` or an error tree
+(`utilerrors.errTreeOrNil`: `fmt` can call its `Error()`, and an `aggregate` of such errors is one
+too): `isDecisionRaw`'s unconditional cases, `resOk`, `evalCallOk`, `authzCallOk`, and the builder's
+errors (`ownBuilder`).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.Base
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Defs
+public import Proof.k8s_io.apimachinery.pkg.util.errors.Defs
 
 @[expose] public section
 
@@ -319,11 +328,21 @@ instance strMethodOk_persistent (ci : GoInterfaceOk) (meth : GoString) :
     Persistent (strMethodOk (GF := GF) ci meth) := by
   unfold strMethodOk; infer_instance
 
+/-- **An evaluation result as the library's constructors build it** (2026-11-20): its type is one of
+the four (`Unevaluatable`, `True`, `False`, `Error`: `resultType ≤ 3`, so the `default` arm of
+`conditionsToAppliedErroredUnevaluated`'s switch is dead) and its error is `nil` or an error tree
+(what `fmt.Errorf("%w", evalResult.Error())` needs). -/
+def resOk (r : ConditionEvaluationResult) : IProp GF :=
+  iprop(⌜uint.Z r.resultType' ≤ 3⌝ ∗ utilerrors.errTreeOrNil r.err')
+
+instance resOk_persistent (r : ConditionEvaluationResult) : Persistent (resOk (GF := GF) r) := by
+  unfold resOk; infer_instance
+
 /-- `Evaluate(ctx, data)` of the condition `ci` returns some evaluation result. -/
 def condEvalOk (ci : GoInterfaceOk) (ctx data : GoInterface) : IProp GF :=
   iprop({{ (True : IProp GF) }}
     (App (App (Val #(methods ci.ty go!"Evaluate" ci.v)) (Val #ctx)) (Val #data))
-    {{ (r : ConditionEvaluationResult), RET #r; True }})
+    {{ (r : ConditionEvaluationResult), RET #r; resOk r }})
 
 instance condEvalOk_persistent (ci : GoInterfaceOk) (ctx data : GoInterface) :
     Persistent (condEvalOk (GF := GF) ci ctx data) := by
@@ -364,7 +383,7 @@ evaluation result. -/
 def maybeEvalCallOk (f : GoFunc) (ctx cond data : GoInterface) : IProp GF :=
   iprop({{ isCondition (GF := GF) cond }}
     (App (App (App (Val #f) (Val #ctx)) (Val #cond)) (Val #data))
-    {{ (r : ConditionEvaluationResult), RET #r; True }})
+    {{ (r : ConditionEvaluationResult), RET #r; resOk r }})
 
 instance maybeEvalCallOk_persistent (f : GoFunc) (ctx cond data : GoInterface) :
     Persistent (maybeEvalCallOk (GF := GF) f ctx cond data) := by
@@ -383,7 +402,7 @@ error. -/
 def evalCallOk (f : GoFunc) (ctx cond data : GoInterface) : IProp GF :=
   iprop({{ isCondition (GF := GF) cond }}
     (App (App (App (Val #f) (Val #ctx)) (Val #cond)) (Val #data))
-    {{ (b : Bool) (e : GoInterface), RET (PairV #b #e); True }})
+    {{ (b : Bool) (e : GoInterface), RET (PairV #b #e); utilerrors.errTreeOrNil e }})
 
 instance evalCallOk_persistent (f : GoFunc) (ctx cond data : GoInterface) :
     Persistent (evalCallOk (GF := GF) f ctx cond data) := by
@@ -416,13 +435,14 @@ mutual
 /-- The decision value `d` is described by the model `m` (without the persistence modality; see
 `isDecision`). -/
 def isDecisionRaw (d : ConditionsAwareDecision) : Dec → IProp GF
-  | .deny => iprop(⌜d.decisionType' = W64 0⌝)
-  | .allow => iprop(⌜d.decisionType' = W64 11⌝)
-  | .noOpinion => iprop(⌜d.decisionType' = W64 12⌝)
-  | .cmap dn no al => iprop(⌜d.decisionType' = W64 13⌝ ∗ isConditionsMap d.conditionsMap' dn no al)
+  | .deny => iprop(⌜d.decisionType' = W64 0⌝ ∗ utilerrors.errTreeOrNil d.err')
+  | .allow => iprop(⌜d.decisionType' = W64 11⌝ ∗ utilerrors.errTreeOrNil d.err')
+  | .noOpinion => iprop(⌜d.decisionType' = W64 12⌝ ∗ utilerrors.errTreeOrNil d.err')
+  | .cmap dn no al => iprop(⌜d.decisionType' = W64 13⌝ ∗ isConditionsMap d.conditionsMap' dn no al ∗
+      utilerrors.errTreeOrNil d.err')
   | .union ks => iprop(⌜d.decisionType' = W64 14⌝ ∗ subOk d.union' DFrac.discard ks ∗
       (∃ nds : List namedConditionsAwareDecision, d.union'.inner' ↦*□ nds ∗
-        isDecisionRawL (nds.map (·.d')) ks))
+        isDecisionRawL (nds.map (·.d')) ks) ∗ utilerrors.errTreeOrNil d.err')
 /-- The decision values `ds` are described by the models `ks`, one by one. -/
 def isDecisionRawL : List ConditionsAwareDecision → List Dec → IProp GF
   | [], [] => iprop(True)
@@ -455,6 +475,17 @@ def isWFDecision (d : ConditionsAwareDecision) : IProp GF :=
 instance isWFDecision_persistent (d : ConditionsAwareDecision) :
     Persistent (isWFDecision (GF := GF) d) := by
   unfold isWFDecision; infer_instance
+
+/-- A decision's error is `nil` or an error tree (2026-11-20). -/
+theorem isDecision_err (d : ConditionsAwareDecision) (m : Dec) :
+    isDecision (GF := GF) d m ⊢ utilerrors.errTreeOrNil d.err' := by
+  unfold isDecision
+  cases m <;> simp only [isDecisionRaw]
+  · iintro #⟨-, H⟩; iexact H
+  · iintro #⟨-, H⟩; iexact H
+  · iintro #⟨-, H⟩; iexact H
+  · iintro #⟨-, -, H⟩; iexact H
+  · iintro #⟨-, -, -, H⟩; iexact H
 
 /-- A decision's type tag is its model's (`IsAllow`, ... read it). -/
 theorem isDecision_tag (d : ConditionsAwareDecision) (m : Dec) :
@@ -546,7 +577,7 @@ instance seq2Ok_persistent {K V : Type} (f : GoFunc)
 condition returns some evaluation result. -/
 def evalCondCallOk (ev : GoFunc) (cond : GoInterface) : IProp GF :=
   iprop({{ isCondition (GF := GF) cond }} (App (Val #ev) (Val #cond))
-    {{ (r : ConditionEvaluationResult), RET #r; True }})
+    {{ (r : ConditionEvaluationResult), RET #r; resOk r }})
 
 /-- **A condition evaluator** (`func(cond Condition) ConditionEvaluationResult`, the closure
 `partiallyEvaluateConditionsMapInternal` builds): callable on any condition. -/
@@ -559,7 +590,8 @@ instance evalCondOk_persistent (ev : GoFunc) : Persistent (evalCondOk (GF := GF)
 /-- A call `f(ctx, a)` of an authorization function returns some decision word, reason and error. -/
 def authzCallOk (f : GoFunc) (ctx a : GoInterface) : IProp GF :=
   iprop({{ (True : IProp GF) }} (App (App (Val #f) (Val #ctx)) (Val #a))
-    {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); True }})
+    {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e);
+        utilerrors.errTreeOrNil e }})
 
 /-- **An authorization function** (an `AuthorizerFunc`'s function, untrusted): callable, returning
 anything. -/
@@ -578,7 +610,7 @@ theorem isDecision_union (d : ConditionsAwareDecision) (ks : List Dec) :
         isDecisionL (nds.map (·.d')) ks := by
   unfold isDecision isDecisionL
   simp only [isDecisionRaw]
-  iintro #⟨-, -, %nds, #Hs, #HL⟩
+  iintro #⟨-, -, ⟨%nds, #Hs, #HL⟩, -⟩
   iexists nds
   isplitl
   · iexact Hs
@@ -590,7 +622,7 @@ theorem isDecision_union_subOk (d : ConditionsAwareDecision) (ks : List Dec) :
     isDecision (GF := GF) d (.union ks) ⊢ subOk d.union' DFrac.discard ks := by
   unfold isDecision
   simp only [isDecisionRaw]
-  iintro #⟨-, #H, -⟩
+  iintro #⟨-, #H, -, -⟩
   iexact H
 
 /-- A conditions map decision's conditions map. -/
@@ -598,7 +630,7 @@ theorem isDecision_cmap (d : ConditionsAwareDecision) (dn no al : List GoInterfa
     isDecision (GF := GF) d (.cmap dn no al) ⊢ isConditionsMap d.conditionsMap' dn no al := by
   unfold isDecision
   simp only [isDecisionRaw]
-  iintro #⟨-, H⟩
+  iintro #⟨-, H, -⟩
   iexact H
 
 theorem isDecisionRawL_lookup : ∀ (ds : List ConditionsAwareDecision) (ks : List Dec) (i : Nat)
@@ -651,6 +683,7 @@ def ownBuilder (p : Loc) (ks : List Dec) : IProp GF :=
     u.inner' ↦* nds ∗ ownSliceCap namedConditionsAwareDecision u.inner' (DFrac.own 1) ∗
     isDecisionL (nds.map (·.d')) ks ∗
     u.errs' ↦* es ∗ ownSliceCap GoInterface u.errs' (DFrac.own 1) ∗
+    ([∗list] e ∈ es, utilerrors.errTree e) ∗
     subOk u (DFrac.own 1) ks)
 
 /-- The zero builder (`var u ConditionsAwareDecisionUnion`) has no children. -/
@@ -672,6 +705,8 @@ theorem ownBuilder_zero (p : Loc) :
   · iapply ownSlice_nil
   isplitr
   · iapply ownSliceCap_nil
+  isplitr
+  · iapply BigSepL.bigSepL_nil.2; itrivial
   unfold subOk
   isplitr
   · ipureintro; rfl

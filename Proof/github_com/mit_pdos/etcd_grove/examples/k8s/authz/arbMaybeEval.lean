@@ -34,10 +34,10 @@ theorem arbMaybeEval.wp_proof
   intro ctx cond data
   wp_start
   wp_auto
-  wp_apply wp_arbResult as %r _
+  wp_apply wp_arbResult as %r #Hr
   (try wp_auto)
   iapply HΦ
-  itrivial
+  iexact Hr
 
 end proof
 

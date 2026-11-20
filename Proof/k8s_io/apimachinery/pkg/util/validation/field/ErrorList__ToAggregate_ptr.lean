@@ -34,9 +34,9 @@ theorem ErrorList.ToAggregate_ptr.wp_proof
   intro l dl s dq errs
   wp_start as ⟨Hl, Hs, #Herrs⟩
   wp_auto
-  wp_apply wp_ToAggregate $$ [$Hs] as %a Hs
+  wp_apply wp_ToAggregate $$ [$Hs] as %a ⟨Hs, #Ha⟩
   · iexact Herrs
-  iapply HΦ; iframe
+  iapply HΦ; iframe; iexact Ha
 
 end proof
 

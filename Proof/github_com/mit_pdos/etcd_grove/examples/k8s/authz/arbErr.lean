@@ -4,6 +4,8 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.k8s_io.apimachinery.pkg.util.errors.ErrTreeOk
+public import Perennial.Proof.errors.NewVar
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbErr
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbBool
 public import Perennial.Spec.errors.New
@@ -37,13 +39,14 @@ theorem arbErr.wp_proof
   wp_apply wp_arbBool as %b _
   cases b
   · wp_auto
-    wp_apply wp_errors_New as %e _
+    wp_apply _root_.Perennial.errors.wp_New_errorString as %x #Hx
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iapply utilerrors.errorString_errTreeOrNil x _
+    iexact Hx
   · wp_auto
     iapply HΦ
-    itrivial
+    iapply utilerrors.errTreeOrNil_nil
 
 end proof
 

@@ -22,6 +22,8 @@ public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Clone
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B3Lemmas
 public import Proof.k8s_io.apimachinery.pkg.util.sets.PtrMethods
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB3
+public import Proof.k8s_io.apimachinery.pkg.util.errors.ErrTreeOk
+public import Perennial.Proof.errors.NewVar
 
 @[expose] public section
 
@@ -62,15 +64,20 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
   intro p ks
   wp_start as Hb
   iunfold ownBuilder at Hb
-  icases Hb with ⟨%u, %nds, %es, %Hwfl, Hp, Hin, Hinc, #HL, Hes, Hesc, Hsub⟩
+  icases Hb with ⟨%u, %nds, %es, %Hwfl, Hp, Hin, Hinc, #HL, Hes, Hesc, #Hest, Hsub⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hes
   wp_auto
   wp_if_destruct
   rotate_left
-  · wp_apply (wp_NewAggregate u.errs' (DFrac.own 1) es) $$ [$Hes] as %agg Hes
+  · wp_apply (wp_NewAggregate u.errs' (DFrac.own 1) es) $$ [$Hes] as %agg ⟨Hes, Hagg⟩
+    ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' es agg $$ [Hagg]
+    · isplitr
+      · iexact Hest
+      · iexact Hagg
     wp_apply (wp_ConditionsAwareDecisionUnion_FailureDecision p (DFrac.own 1) u (DFrac.own 1) ks)
       $$ [$Hp $Hsub] as ⟨Hp, Hsub⟩
-    wp_apply (wp_ConditionsAwareDecisionFromParts _ _ _) as %dd #Hdd
+    wp_apply (wp_ConditionsAwareDecisionFromParts _ _ _) $$ [] as %dd #Hdd
+    · first | iassumption | iapply utilerrors.errTreeOrNil_nil
     iapply HΦ
     isplitl []
     · iunfold isWFDecision
@@ -123,10 +130,12 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
             iexists S0
             iframe #
             ipureintro; exact HS0
-          iexists nds
-          iframe #
-          iunfold isDecisionL at HL
-          iexact HL
+          isplitl
+          · iexists nds
+            iframe #
+            iunfold isDecisionL at HL
+            iexact HL
+          · iapply utilerrors.errTreeOrNil_nil
         · ipureintro
           have := Dec.union_card_pos ks
           exact ⟨Hwfl, by omega⟩
@@ -183,12 +192,15 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
           "Hrc" ∷ ownSliceCap GoString rsl (DFrac.own 1) ∗
           "aggregateErrors" ∷ aggregateErrors_ptr ↦ esl ∗ "Hen" ∷ esl ↦* eys ∗
           "Hec" ∷ ownSliceCap GoInterface esl (DFrac.own 1) ∗
+          "#Heys" ∷ ([∗list] e ∈ eys, utilerrors.errTree e) ∗
           "namedDecision" ∷ namedDecision_ptr ↦ nd ∗
           "onlyPossibleDecision" ∷ onlyPossibleDecision_ptr ↦ k0 : IProp GF)
         $$ [i Hin aggregateReasons Hrn Hrc aggregateErrors Hen Hec namedDecision onlyPossibleDecision]
       · iexists W64 0, slice.nil, slice.nil, [], [], _
         iframe
-        ipureintro; constructor <;> word
+        isplitr
+        · ipureintro; constructor <;> word
+        iapply BigSepL.bigSepL_nil.2; itrivial
       wp_for HI
       by_cases hlt : sint.Z j < sint.Z u.inner'.len
       · simp only [hlt, _root_.decide_true, ↓reduceIte]
@@ -208,7 +220,7 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
           rw [List.getElem?_map, hv]; rfl
         icases isDecisionL_lookup _ ks (sint.nat j) v.d' hvd $$ HL with ⟨%mj, %Hmj, #Hdj⟩
         wp_apply (wp_collectReasonsAndErrors _ (DFrac.own 1) [v.conditionalAuthorizerName'] v.d' mj k0)
-          $$ [Hnsl] as %rs %es2 ⟨-, ⟨%xs2, Hrs, -⟩, ⟨%ys2, Hes2, -⟩⟩
+          $$ [Hnsl] as %rs %es2 ⟨-, ⟨%xs2, Hrs, -⟩, ⟨%ys2, Hes2, -, #Hys2⟩⟩
         · iframe; iexact Hdj
         wp_apply wp_slice_append $$ [$Hrn $Hrc $Hrs] as %rsl' ⟨Hrn, Hrc, -⟩
         wp_apply wp_slice_append $$ [$Hen $Hec $Hes2] as %esl' ⟨Hen, Hec, -⟩
@@ -216,13 +228,22 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
         iframe
         iexists j + W64 1, _, _, _, _, _
         iframe
-        ipureintro; constructor <;> word
+        isplitr
+        · ipureintro; constructor <;> word
+        iapply BigSepL.bigSepL_append.2
+        isplitr; · iexact Heys
+        iexact Hys2
       · simp only [hlt, _root_.decide_false, Bool.false_eq_true, ↓reduceIte]
         wp_auto
         wp_if_destruct
         · wp_apply (wp_Join rsl rxs (DFrac.own 1) _) $$ [$Hrn] as Hrn
-          wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg Hen
-          wp_apply (wp_ConditionsAwareDecisionDeny _ _) as %dd #Hdd
+          wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg ⟨Hen, Hagg⟩
+          ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' eys agg $$ [Hagg]
+          · isplitr
+            · iexact Heys
+            · iexact Hagg
+          wp_apply (wp_ConditionsAwareDecisionDeny _ _) $$ [] as %dd #Hdd
+          · first | iassumption | iapply utilerrors.errTreeOrNil_nil
           iapply HΦ
           isplitl []
           · iunfold isWFDecision
@@ -236,8 +257,13 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
           ipureintro; exact Hwfl
         · wp_if_destruct
           · wp_apply (wp_Join rsl rxs (DFrac.own 1) _) $$ [$Hrn] as Hrn
-            wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg Hen
-            wp_apply (wp_ConditionsAwareDecisionNoOpinion _ _) as %dd #Hdd
+            wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg ⟨Hen, Hagg⟩
+            ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' eys agg $$ [Hagg]
+            · isplitr
+              · iexact Heys
+              · iexact Hagg
+            wp_apply (wp_ConditionsAwareDecisionNoOpinion _ _) $$ [] as %dd #Hdd
+            · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             iapply HΦ
             isplitl []
             · iunfold isWFDecision
@@ -251,8 +277,13 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
             ipureintro; exact Hwfl
           · wp_if_destruct
             · wp_apply (wp_Join rsl rxs (DFrac.own 1) _) $$ [$Hrn] as Hrn
-              wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg Hen
-              wp_apply (wp_ConditionsAwareDecisionAllow _ _) as %dd #Hdd
+              wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg ⟨Hen, Hagg⟩
+              ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' eys agg $$ [Hagg]
+              · isplitr
+                · iexact Heys
+                · iexact Hagg
+              wp_apply (wp_ConditionsAwareDecisionAllow _ _) $$ [] as %dd #Hdd
+              · first | iassumption | iapply utilerrors.errTreeOrNil_nil
               iapply HΦ
               isplitl []
               · iunfold isWFDecision
@@ -264,8 +295,10 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
               iframe
               iframe #
               ipureintro; exact Hwfl
-            · wp_apply (wp_errors_New _) as %ee ⟨-, -⟩
-              wp_apply (wp_ConditionsAwareDecisionDeny _ _) as %dd #Hdd
+            · wp_apply _root_.Perennial.errors.wp_New_errorString as %ee #Hee
+              ihave #Hee := utilerrors.errorString_errTreeOrNil ee _ $$ Hee
+              wp_apply (wp_ConditionsAwareDecisionDeny _ _) $$ [] as %dd #Hdd
+              · first | iassumption | iapply utilerrors.errTreeOrNil_nil
               iapply HΦ
               isplitl []
               · iunfold isWFDecision

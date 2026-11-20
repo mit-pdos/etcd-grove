@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 abbrev arbResult.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbResult)) (Val #()))
-  {{ (r : ConditionEvaluationResult), RET #r; True }}
+  {{ (r : ConditionEvaluationResult), RET #r; resOk r }}
 
 end spec
 

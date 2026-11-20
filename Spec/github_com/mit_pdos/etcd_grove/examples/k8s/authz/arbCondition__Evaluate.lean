@@ -30,7 +30,7 @@ abbrev arbCondition.Evaluate.spec : Prop :=
   ∀ (c : arbCondition) (ctx data : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (App (Val (c @!! arbCondition.ty @!! go!"Evaluate")) (Val #ctx)) (Val #data))
-  {{ (r : ConditionEvaluationResult), RET #r; True }}
+  {{ (r : ConditionEvaluationResult), RET #r; resOk r }}
 
 end spec
 

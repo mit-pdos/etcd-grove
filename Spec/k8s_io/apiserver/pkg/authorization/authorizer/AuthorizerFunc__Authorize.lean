@@ -29,7 +29,8 @@ abbrev AuthorizerFunc.Authorize.spec : Prop :=
   ∀ (f : GoFunc) (ctx a : GoInterface),
   {{ authzFnOk (GF := GF) f }}
     (App (App (Val (f @!! AuthorizerFunc.ty @!! go!"Authorize")) (Val #ctx)) (Val #a))
-  {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); True }}
+  {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e);
+      utilerrors.errTreeOrNil e }}
 
 end spec
 

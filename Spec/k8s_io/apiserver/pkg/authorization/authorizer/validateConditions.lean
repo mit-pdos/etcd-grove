@@ -30,7 +30,8 @@ abbrev validateConditions.spec : Prop :=
   ∀ (seen : Loc) (S : GMap GoString sets.Elem) (s : GoSlice) (dq : DFrac) (cs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ seen ↦$ S ∗ s ↦*{dq} cs ∗ [∗list] c ∈ cs, isCondition c }}
     (App (App (Val (@! validateConditions)) (Val #seen)) (Val #s))
-  {{ (e : GoInterface), RET #e; (∃ S' : GMap GoString sets.Elem, seen ↦$ S') ∗ s ↦*{dq} cs }}
+  {{ (e : GoInterface), RET #e; (∃ S' : GMap GoString sets.Elem, seen ↦$ S') ∗ s ↦*{dq} cs ∗
+      utilerrors.errTreeOrNil e }}
 
 end spec
 

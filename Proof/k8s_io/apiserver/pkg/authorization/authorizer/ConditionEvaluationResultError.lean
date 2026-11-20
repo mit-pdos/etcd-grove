@@ -5,6 +5,8 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.k8s_io.apimachinery.pkg.util.errors.ErrTreeOk
+public import Perennial.Proof.errors.NewVar
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResultError
 public import Perennial.Spec.errors.New
 
@@ -32,18 +34,19 @@ theorem ConditionEvaluationResultError.wp_proof
     (wp_errors_New : _root_.Perennial.errors.New.spec (GF := GF) (hG := hG)) :
     ConditionEvaluationResultError.spec (GF := GF) (hG := hG) := by
   intro e
-  wp_start
+  wp_start as #He
   wp_auto
   cases e with
   | ok ei =>
     wp_auto
     iapply HΦ
-    itrivial
+    iexact He
   | nil =>
     wp_auto
-    wp_apply (wp_errors_New _) as %er -
+    wp_apply _root_.Perennial.errors.wp_New_errorString as %x #Hx
     iapply HΦ
-    itrivial
+    iapply utilerrors.errorString_errTreeOrNil x _
+    iexact Hx
 
 end proof
 

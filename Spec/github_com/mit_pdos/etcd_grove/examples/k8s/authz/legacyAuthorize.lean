@@ -31,7 +31,8 @@ abbrev legacyAuthorize.spec : Prop :=
   ∀ (ctx a : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.legacyAuthorize)) (Val #ctx)) (Val #a))
-  {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); True }}
+  {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e);
+      utilerrors.errTreeOrNil e }}
 
 end spec
 

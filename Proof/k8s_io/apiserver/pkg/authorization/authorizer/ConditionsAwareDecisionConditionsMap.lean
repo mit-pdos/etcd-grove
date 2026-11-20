@@ -8,7 +8,7 @@ module
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionConditionsMap
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionDeny
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionNoOpinion
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfLeaf
 public import Spec.k8s_io.apimachinery.pkg.util.sets.New
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.validateConditions
 public import Spec.slices.Clone
@@ -37,7 +37,7 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 theorem ConditionsAwareDecisionConditionsMap.wp_proof
     (wp_ConditionsAwareDecisionDeny : EtcdGrove.authorizer.ConditionsAwareDecisionDeny.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecisionNoOpinion : EtcdGrove.authorizer.ConditionsAwareDecisionNoOpinion.spec (GF := GF) (hG := hG))
-    (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG))
+    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG))
     (wp_sets_New : EtcdGrove.sets.New.spec (GF := GF) (hG := hG))
     (wp_validateConditions : EtcdGrove.authorizer.validateConditions.spec (GF := GF) (hG := hG))
     (wp_Clone : EtcdGrove.slices.Clone.spec (GF := GF) (hG := hG)) :
@@ -51,9 +51,12 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
   by_cases h0 : sd.len + sn.len + sa.len = W64 0
   · simp only [h0, _root_.decide_true]
     wp_auto
-    wp_apply wp_ErrorfAny _ slice.nil ([] : List GoAny) (DFrac.own 1) as %ef -
-    · iapply ownSlice_nil
-    wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+    wp_apply wp_ErrorfLeaf _ slice.nil ([] : List GoInterface) (DFrac.own 1) as %ef ⟨-, #Hef, %hef⟩
+    · isplitr; · iapply ownSlice_nil
+      fmt_args_ok
+    ihave #Hte := utilerrors.errTreeOrNil_of_errOk ef hef $$ Hef
+    wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+    · iexact Hte
     iapply HΦ
     iframe
     unfold isWFDecision
@@ -70,13 +73,16 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     try (isplitr; (ipureintro; rfl))
     iintro %sla ⟨Hargs, -⟩
     (try wp_auto)
-    wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
-    · iexact Hargs
+    wp_apply wp_ErrorfLeaf _ _ _ _ $$ [Hargs] as %ef ⟨-, #Hef, %hef⟩
+    · iframe Hargs
+      fmt_args_ok
+    ihave #Hte := utilerrors.errTreeOrNil_of_errOk ef hef $$ Hef
     (try wp_auto)
     by_cases hdl : sint.Z (W64 0) < sint.Z sd.len
     · simp only [hdl, _root_.decide_true]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionDeny) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionDeny) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -86,7 +92,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · ipureintro; trivial
     · simp only [hdl, _root_.decide_false]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -103,7 +110,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     by_cases haz : sa.len = W64 0
     · simp only [haz, _root_.decide_true]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -120,12 +128,13 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     wp_apply (wp_sets_New (K := GoString) (T := go.string) slice.nil (DFrac.own 1) []) as %seen ⟨Hseen, -⟩
     · iapply ownSlice_nil
     (try wp_auto)
-    wp_apply (wp_validateConditions seen _ sd qd dn) $$ [Hseen Hsd] as %e1 ⟨⟨%S1, Hseen⟩, Hsd⟩
+    wp_apply (wp_validateConditions seen _ sd qd dn) $$ [Hseen Hsd] as %e1 ⟨⟨%S1, Hseen⟩, Hsd, #Hte1⟩
     · iframe; iexact Hdn
     (try wp_auto)
     rcases e1 with ei1 | _
     · wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -134,12 +143,13 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · iexact Hd
       · ipureintro; trivial
     wp_auto
-    wp_apply (wp_validateConditions seen _ sn qn no) $$ [Hseen Hsn] as %e2 ⟨⟨%S2, Hseen⟩, Hsn⟩
+    wp_apply (wp_validateConditions seen _ sn qn no) $$ [Hseen Hsn] as %e2 ⟨⟨%S2, Hseen⟩, Hsn, #Hte2⟩
     · iframe; iexact Hno
     (try wp_auto)
     rcases e2 with ei2 | _
     · wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -148,12 +158,13 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · iexact Hd
       · ipureintro; trivial
     wp_auto
-    wp_apply (wp_validateConditions seen _ sa qa al) $$ [Hseen Hsa] as %e3 ⟨⟨%S3, Hseen⟩, Hsa⟩
+    wp_apply (wp_validateConditions seen _ sa qa al) $$ [Hseen Hsa] as %e3 ⟨⟨%S3, Hseen⟩, Hsa, #Hte3⟩
     · iframe; iexact Hal
     (try wp_auto)
     rcases e3 with ei3 | _
     · wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -193,7 +204,7 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
   wp_apply (wp_sets_New (K := GoString) (T := go.string) slice.nil (DFrac.own 1) []) as %seen ⟨Hseen, -⟩
   · iapply ownSlice_nil
   (try wp_auto)
-  wp_apply (wp_validateConditions seen _ sd qd dn) $$ [Hseen Hsd] as %e1 ⟨⟨%S1, Hseen⟩, Hsd⟩
+  wp_apply (wp_validateConditions seen _ sd qd dn) $$ [Hseen Hsd] as %e1 ⟨⟨%S1, Hseen⟩, Hsd, #Hte1⟩
   · iframe; iexact Hdn
   (try wp_auto)
   rcases e1 with ei1 | _
@@ -201,7 +212,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     by_cases hdl : sint.Z (W64 0) < sint.Z sd.len
     · simp only [hdl, _root_.decide_true]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionDeny) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionDeny) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -211,7 +223,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · ipureintro; trivial
     · simp only [hdl, _root_.decide_false]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -220,7 +233,7 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · iexact Hd
       · ipureintro; trivial
   wp_auto
-  wp_apply (wp_validateConditions seen _ sn qn no) $$ [Hseen Hsn] as %e2 ⟨⟨%S2, Hseen⟩, Hsn⟩
+  wp_apply (wp_validateConditions seen _ sn qn no) $$ [Hseen Hsn] as %e2 ⟨⟨%S2, Hseen⟩, Hsn, #Hte2⟩
   · iframe; iexact Hno
   (try wp_auto)
   rcases e2 with ei2 | _
@@ -228,7 +241,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     by_cases hdl : sint.Z (W64 0) < sint.Z sd.len
     · simp only [hdl, _root_.decide_true]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionDeny) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionDeny) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -238,7 +252,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · ipureintro; trivial
     · simp only [hdl, _root_.decide_false]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -247,7 +262,7 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · iexact Hd
       · ipureintro; trivial
   wp_auto
-  wp_apply (wp_validateConditions seen _ sa qa al) $$ [Hseen Hsa] as %e3 ⟨⟨%S3, Hseen⟩, Hsa⟩
+  wp_apply (wp_validateConditions seen _ sa qa al) $$ [Hseen Hsa] as %e3 ⟨⟨%S3, Hseen⟩, Hsa, #Hte3⟩
   · iframe; iexact Hal
   (try wp_auto)
   rcases e3 with ei3 | _
@@ -255,7 +270,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     by_cases hdl : sint.Z (W64 0) < sint.Z sd.len
     · simp only [hdl, _root_.decide_true]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionDeny) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionDeny) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision
@@ -265,7 +281,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · ipureintro; trivial
     · simp only [hdl, _root_.decide_false]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
       unfold isWFDecision

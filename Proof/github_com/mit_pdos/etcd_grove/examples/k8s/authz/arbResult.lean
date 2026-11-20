@@ -57,24 +57,37 @@ theorem arbResult.wp_proof
     wp_apply wp_ConditionEvaluationResultBoolean
     (try wp_auto)
     iapply HΦ
-    itrivial
+    unfold resOk
+    isplitr
+    · ipureintro; word
+    · iapply utilerrors.errTreeOrNil_nil
   · wp_auto
     wp_apply wp_ConditionEvaluationResultBoolean
     (try wp_auto)
     iapply HΦ
-    itrivial
+    unfold resOk
+    isplitr
+    · ipureintro; word
+    · iapply utilerrors.errTreeOrNil_nil
   · wp_auto
-    wp_apply wp_arbErr as %e _
+    wp_apply wp_arbErr as %e #He
     (try wp_auto)
-    wp_apply wp_ConditionEvaluationResultError as %e' _
+    wp_apply wp_ConditionEvaluationResultError $$ [] as %e' #He'
+    · iexact He
     (try wp_auto)
     iapply HΦ
-    itrivial
+    unfold resOk
+    isplitr
+    · ipureintro; word
+    · iexact He'
   · wp_auto
     wp_apply wp_ConditionsEvaluationResultUnevaluatable
     (try wp_auto)
     iapply HΦ
-    itrivial
+    unfold resOk
+    isplitr
+    · ipureintro; word
+    · iapply utilerrors.errTreeOrNil_nil
 
 end proof
 

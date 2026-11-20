@@ -7,7 +7,7 @@ module
 
 public import Spec.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler__evaluateConditions
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__FailureDecision
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfLeaf
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
 
 @[expose] public section
@@ -32,7 +32,7 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.union.Assumptions]
 
 theorem unionAuthzHandler.evaluateConditions.wp_proof
     (wp_ConditionsAwareDecision_FailureDecision : EtcdGrove.authorizer.ConditionsAwareDecision.FailureDecision.spec (GF := GF) (hG := hG))
-    (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG)) :
     unionAuthzHandler.evaluateConditions.spec (GF := GF) (hG := hG) := by
   intro h ctx name d data
   wp_start as ⟨#Hu, #Hd⟩
@@ -55,7 +55,8 @@ theorem unionAuthzHandler.evaluateConditions.wp_proof
     · ipureintro; rfl
     iintro %sp ⟨Hs, -⟩
     (try wp_auto)
-    wp_apply wp_ErrorfAny $$ [$Hs] as %ferr ⟨Hs, -⟩
+    wp_apply wp_ErrorfLeaf $$ [$Hs] as %ferr ⟨Hs, -⟩
+    · fmt_args_ok
     (try wp_auto)
     iapply HΦ
     itrivial

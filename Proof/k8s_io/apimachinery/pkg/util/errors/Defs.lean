@@ -157,6 +157,68 @@ theorem errTree_aggregate (sl : GoSlice) (ys : List GoInterface) :
   isplitr; · iexact Hs
   iexact Hys
 
+/-- An `errOk` error of a type without `Errors` is a tree (`fmt.ErrorfLeaf.spec`'s post). -/
+theorem errTreeOrNil_of_errOk (e : GoInterfaceOk) (h : methodSet e.ty !! go!"Errors" = none) :
+    errOk (GF := GF) e ⊢ errTreeOrNil (.ok e) := by
+  iintro #He
+  unfold errTreeOrNil
+  iapply errTree_of_leaf
+  simp only [errLeafOk]
+  isplitr; · iexact He
+  ipureintro; exact h
+
+theorem errTree_of_errOk (e : GoInterfaceOk) (h : methodSet e.ty !! go!"Errors" = none) :
+    errOk (GF := GF) e ⊢ errTree (.ok e) := by
+  iintro #He
+  iapply errTree_of_leaf
+  simp only [errLeafOk]
+  isplitr; · iexact He
+  ipureintro; exact h
+
+theorem errTreeOrNil_nil : ⊢ errTreeOrNil (GF := GF) GoInterface.nil := by
+  unfold errTreeOrNil; itrivial
+
+/-- What `NewAggregate`'s spec says of its result, from errors that are each `nil` or a tree: `nil`
+or a tree. -/
+theorem errTreeOrNil_of_newAggregate (es : List GoInterface) (a : GoInterface) :
+    ([∗list] e ∈ es, errTreeOrNil (GF := GF) e) ∗
+      (⌜a = interface.nil⌝ ∨ ∃ (sl : GoSlice) (ys : List GoInterface),
+        ⌜a = interface.mkOk aggregate.ty #sl ∧ ∀ y ∈ ys, y ≠ interface.nil ∧ y ∈ es⌝ ∗ sl ↦*□ ys) ⊢
+      errTreeOrNil a := by
+  iintro ⟨#Hes, Ha⟩
+  icases Ha with (%ha | ⟨%sl, %ys, ⟨%ha, %hys⟩, #Hys⟩)
+  · subst ha; unfold errTreeOrNil; itrivial
+  · subst ha
+    have key : ∀ (k : Nat) (y : GoInterface), ys[k]? = some y →
+        iprop(□ [∗list] e ∈ es, errTreeOrNil (GF := GF) e) ⊢ errTree y := by
+      intro k y hy
+      obtain ⟨hne, hmem⟩ := hys y (List.mem_of_getElem? hy)
+      obtain ⟨j, hj⟩ := List.getElem?_of_mem hmem
+      iintro #H
+      ihave #Hy := BigSepL.bigSepL_lookup hj $$ H
+      cases y with
+      | nil => exact absurd rfl hne
+      | ok ii => unfold errTreeOrNil; iexact Hy
+    iapply errTreeOrNil_of_errTree
+    iapply errTree_aggregate
+    isplitr; · iexact Hys
+    iapply (BigSepL.bigSepL_intro (P := iprop(□ [∗list] e ∈ es, errTreeOrNil (GF := GF) e))
+      (fun k y hy => key k y hy))
+    imodintro; iexact Hes
+
+/-- `errTreeOrNil_of_newAggregate` from errors that are each a tree. -/
+theorem errTreeOrNil_of_newAggregate' (es : List GoInterface) (a : GoInterface) :
+    ([∗list] e ∈ es, errTree (GF := GF) e) ∗
+      (⌜a = interface.nil⌝ ∨ ∃ (sl : GoSlice) (ys : List GoInterface),
+        ⌜a = interface.mkOk aggregate.ty #sl ∧ ∀ y ∈ ys, y ≠ interface.nil ∧ y ∈ es⌝ ∗ sl ↦*□ ys) ⊢
+      errTreeOrNil a := by
+  iintro ⟨#Hes, Ha⟩
+  iapply errTreeOrNil_of_newAggregate es a
+  isplitr
+  · iapply (BigSepL.bigSepL_mono (fun {_ y} _ => errTreeOrNil_of_errTree y))
+    iexact Hes
+  · iexact Ha
+
 end defs
 
 end utilerrors

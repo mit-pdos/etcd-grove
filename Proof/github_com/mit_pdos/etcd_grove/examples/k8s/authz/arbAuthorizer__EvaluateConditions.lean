@@ -84,9 +84,9 @@ theorem arbAuthorizer.EvaluateConditions.wp_proof
       iintro %ctx' %cond %data'
       iunfold maybeEvalCallOk
       iintro !> %Ψ _ HΨ
-      wp_apply wp_arbMaybeEval as %r _
+      wp_apply wp_arbMaybeEval as %r #Hr
       iapply HΨ
-      itrivial
+      iexact Hr
     iunfold isWFDecision at Hwf'
     icases Hwf' with ⟨%m', #Hd', %Hm'⟩
     (try wp_auto)
@@ -131,9 +131,9 @@ theorem arbAuthorizer.EvaluateConditions.wp_proof
           iintro %ctx' %cond %data'
           iunfold evalCallOk
           iintro !> %Ψ _ HΨ
-          wp_apply wp_arbEval as %b %e _
+          wp_apply wp_arbEval as %b %e #He
           iapply HΨ
-          itrivial
+          iexact He
         (try wp_auto)
         iapply HΦ
         itrivial

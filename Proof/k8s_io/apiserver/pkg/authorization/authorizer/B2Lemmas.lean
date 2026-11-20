@@ -155,7 +155,7 @@ theorem strMethodOk_elim_b2 (ci : GoInterfaceOk) (meth : GoString) :
 theorem evalCondOk_elim_b2 (ev : GoFunc) (cond : GoInterface) :
     evalCondOk (GF := GF) ev ⊢
       {{ isCondition (GF := GF) cond }} (App (Val #ev) (Val #cond))
-        {{ (r : ConditionEvaluationResult), RET #r; True }} := by
+        {{ (r : ConditionEvaluationResult), RET #r; resOk r }} := by
   unfold evalCondOk evalCondCallOk
   iintro #H
   iexact H
@@ -176,14 +176,14 @@ theorem condEvalOk_elim_b2 (ci : GoInterfaceOk) (ctx data : GoInterface) :
     condEvalOk (GF := GF) ci ctx data ⊢
       {{ (True : IProp GF) }}
         (App (App (Val #(methods ci.ty go!"Evaluate" ci.v)) (Val #ctx)) (Val #data))
-        {{ (r : ConditionEvaluationResult), RET #r; True }} := by
+        {{ (r : ConditionEvaluationResult), RET #r; resOk r }} := by
   unfold condEvalOk; exact .rfl
 
 theorem maybeEvalCallOk_elim_b2 (f : GoFunc) (ctx cond data : GoInterface) :
     maybeEvalCallOk (GF := GF) f ctx cond data ⊢
       {{ isCondition (GF := GF) cond }}
         (App (App (App (Val #f) (Val #ctx)) (Val #cond)) (Val #data))
-        {{ (r : ConditionEvaluationResult), RET #r; True }} := by
+        {{ (r : ConditionEvaluationResult), RET #r; resOk r }} := by
   unfold maybeEvalCallOk; exact .rfl
 
 theorem maybeEvalFnOk_elim_b2 (f : GoFunc) :
@@ -195,7 +195,7 @@ theorem evalCallOk_elim_b2 (f : GoFunc) (ctx cond data : GoInterface) :
     evalCallOk (GF := GF) f ctx cond data ⊢
       {{ isCondition (GF := GF) cond }}
         (App (App (App (Val #f) (Val #ctx)) (Val #cond)) (Val #data))
-        {{ (b : Bool) (e : GoInterface), RET (PairV #b #e); True }} := by
+        {{ (b : Bool) (e : GoInterface), RET (PairV #b #e); utilerrors.errTreeOrNil e }} := by
   unfold evalCallOk; exact .rfl
 
 theorem evalFnOk_elim_b2 (f : GoFunc) (ctx cond data : GoInterface) :

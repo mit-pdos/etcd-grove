@@ -47,6 +47,7 @@ theorem ErrorList.ToAggregate.wp_proof
   wp_auto
   wp_if_destruct
   · iapply HΦ; iframe
+    unfold utilerrors.errTreeOrNil; itrivial
   wp_apply wp_slice_make3 (V := GoInterface) (W64 0) s.len ⟨by word, by word⟩ as %o0 ⟨Ho, Hocap, -⟩
   rw [List.replicate_zero]
   wp_apply (sets.wp_NewString_nil_of wp_New) as %m Hm
@@ -64,11 +65,13 @@ theorem ErrorList.ToAggregate.wp_proof
       "Hm" ∷ m ↦$ ms ∗
       "err" ∷ err_ptr ↦ ev ∗
       "Hs" ∷ s ↦*{dq} errs ∗
-      "%Hb" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ errs.length⌝) $$ [i errs Ho Hocap errorMsgs Hm err Hs]
+      "%Hb" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ errs.length⌝ ∗
+      "%Hys" ∷ ⌜∀ y ∈ ys, ∃ x ∈ errs, y = interface.mkOk (go.GoType.PointerType Error.ty) #x⌝)
+      $$ [i errs Ho Hocap errorMsgs Hm err Hs]
   · iexists W64 0, o0, [], ∅, _
     iframe
     ipureintro
-    refine ⟨by word, by word⟩
+    refine ⟨⟨by word, by word⟩, by simp⟩
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.nat n < errs.length := by word
@@ -111,9 +114,50 @@ theorem ErrorList.ToAggregate.wp_proof
       iexists n + W64 1, _, _, _, _
       iframe
       ipureintro
-      refine ⟨by word, by word⟩
-  · wp_apply wp_NewAggregate $$ [$Ho] as %a Ho
-    iapply HΦ; iframe
+      refine ⟨⟨by word, by word⟩, fun y hy => ?_⟩
+      simp only [List.mem_append, List.mem_singleton] at hy
+      rcases hy with hy | rfl
+      · exact Hys y hy
+      · exact ⟨x, List.mem_of_getElem? Hx, rfl⟩
+  · wp_apply wp_NewAggregate $$ [$Ho] as %a ⟨Ho, Ha⟩
+    iapply HΦ
+    iframe
+    icases Ha with (%ha | ⟨%sl, %zs, ⟨%ha, %hzs⟩, #Hzs⟩)
+    · subst ha; unfold utilerrors.errTreeOrNil; itrivial
+    · subst ha
+      unfold utilerrors.errTreeOrNil
+      iapply utilerrors.errTree_aggregate
+      isplitr; · iexact Hzs
+      have key : ∀ z, z ∈ zs →
+          iprop(□ (isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.validation.field ∗
+            [∗list] e ∈ errs, errorOk e)) ⊢ utilerrors.errTree z := by
+        intro z hzin
+        obtain ⟨-, hzm⟩ := hzs z hzin
+        obtain ⟨x, hx, rfl⟩ := Hys z hzm
+        obtain ⟨j, hj⟩ := List.getElem?_of_mem hx
+        iintro #⟨#Hpkg, #Herrs⟩
+        ihave #Hxok := BigSepL.bigSepL_lookup hj $$ Herrs
+        ihave #HxS := Error.error_stringMethodSpec wp_SprintfArgs x $$ [Hpkg Hxok]
+        · iframe #
+        iapply utilerrors.errTree_of_leaf
+        simp only [utilerrors.errLeafOk, errOk]
+        isplitr
+        · isplitr
+          · ipureintro
+            have h2 := (go.MethodSetIs.method_set_is (t := go.GoType.PointerType Error.ty) go!"Error")
+            simp only [go.methodSetLookup] at h2
+            exact ⟨HmsE, by simpa [noArgStringSig] using h2⟩
+          · iunfold fmt.stringMethodSpec at HxS
+            iexact HxS
+        · ipureintro
+          have h3 := (go.MethodSetIs.method_set_is (t := go.GoType.PointerType Error.ty) go!"Errors")
+          simp only [go.methodSetLookup] at h3
+          simpa using h3
+      iapply (BigSepL.bigSepL_intro (P := iprop(□ (isPkgInit (PROP := IProp GF)
+          pkg_id.k8s_io.apimachinery.pkg.util.validation.field ∗ [∗list] e ∈ errs, errorOk e)))
+        (fun k z hz => key z (List.mem_of_getElem? hz)))
+      imodintro
+      iframe #
 
 end proof
 

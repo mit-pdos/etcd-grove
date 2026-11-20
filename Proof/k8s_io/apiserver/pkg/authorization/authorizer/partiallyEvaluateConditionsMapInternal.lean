@@ -68,7 +68,7 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
     subst Hci
     ihave #HevC := condEvalOk_elim_b2 ci ctx data $$ (Heval $$ %ctx %data)
     wp_auto
-    wp_apply HevC as %r -
+    wp_apply HevC as %r #Hr
     wp_apply (ConditionEvaluationResult.wp_ptr_IsUnevaluatable_of_b2
       wp_ConditionEvaluationResult_IsUnevaluatable result_ptr (DFrac.own 1) r) $$ [$result] as result
     by_cases hU : r.resultType' = W64 0
@@ -78,21 +78,21 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
       · simp only [hfn, _root_.decide_true, Bool.not_true]
         wp_auto
         iapply HΨ
-        itrivial
+        iexact Hr
       · simp only [hfn, _root_.decide_false, Bool.not_false]
         wp_auto
         ihave Hf2 := maybeEvalFnOk_elim_b2 f $$ Hf
         icases Hf2 with (%hnil | #Hcall)
         · exact absurd hnil hfn
         ihave #Hcall' := maybeEvalCallOk_elim_b2 f ctx (GoInterface.ok ci) data $$ (Hcall $$ %ctx %(GoInterface.ok ci) %data)
-        wp_apply Hcall' as %r' -
+        wp_apply Hcall' as %r' #Hr'
         · iexact Hcond
         iapply HΨ
-        itrivial
+        iexact Hr'
     · simp only [hU, _root_.decide_false]
       wp_auto
       iapply HΨ
-      itrivial
+      iexact Hr
   unfold isConditionsMap condsOk
   icases Hc with ⟨⟨#Hsd, #Hdn⟩, ⟨#Hsn, #Hno⟩, ⟨#Hsa, #Hal⟩⟩
   by_cases h00 : c.denyConditions'.len = W64 0
@@ -104,7 +104,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
       by_cases h20 : c.allowConditions'.len = W64 0
       · simp only [h20, _root_.decide_true, Bool.not_true]
         wp_auto
-        wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+        wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+        · first | iassumption | iapply utilerrors.errTreeOrNil_nil
         (try wp_auto)
         iapply HΦ
         unfold isWFDecision
@@ -118,7 +119,7 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
         (DFrac.own 1) c al) $$ [$c] as %it ⟨c, #Hit⟩
       · iexact Hsa
       (try wp_auto)
-      wp_apply (wp_conditionsToAppliedErroredUnevaluated it al ev) as %r %es %us ⟨⟨%el, Hes⟩, ⟨%ul, Hus, #Hul⟩⟩
+      wp_apply (wp_conditionsToAppliedErroredUnevaluated it al ev) as %r %es %us ⟨⟨%el, Hes, #Hel⟩, ⟨%ul, Hus, #Hul⟩⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_string_len r as -
@@ -131,7 +132,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
           by_cases hu : us.len = W64 0
           · simp only [hu, _root_.decide_true, Bool.not_true]
             wp_auto
-            wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+            wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+            · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
             unfold isWFDecision
@@ -153,9 +155,14 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
             iexact Hd
         · simp only [he, _root_.decide_false, Bool.not_false]
           wp_auto
-          wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg Hes
+          wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg ⟨Hes, Hagg⟩
+          ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' el agg $$ [Hagg]
+          · isplitr
+            · iexact Hel
+            · iexact Hagg
           (try wp_auto)
-          wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+          wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+          · first | iassumption | iapply utilerrors.errTreeOrNil_nil
           (try wp_auto)
           iapply HΦ
           unfold isWFDecision
@@ -165,7 +172,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
           · ipureintro; trivial
       · simp only [hr, _root_.decide_false, Bool.not_false]
         wp_auto
-        wp_apply (wp_ConditionsAwareDecisionAllow) as %d #Hd
+        wp_apply (wp_ConditionsAwareDecisionAllow) $$ [] as %d #Hd
+        · first | iassumption | iapply utilerrors.errTreeOrNil_nil
         (try wp_auto)
         iapply HΦ
         unfold isWFDecision
@@ -179,7 +187,7 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
       (DFrac.own 1) c no) $$ [$c] as %it ⟨c, #Hit⟩
     · iexact Hsn
     (try wp_auto)
-    wp_apply (wp_conditionsToAppliedErroredUnevaluated it no ev) as %r %es %us ⟨⟨%el, Hes⟩, ⟨%ul, Hus, #Hul⟩⟩
+    wp_apply (wp_conditionsToAppliedErroredUnevaluated it no ev) as %r %es %us ⟨⟨%el, Hes, #Hel⟩, ⟨%ul, Hus, #Hul⟩⟩
     · iframe #
     (try wp_auto)
     wp_apply wp_string_len r as -
@@ -195,7 +203,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
           by_cases h20 : c.allowConditions'.len = W64 0
           · simp only [h20, _root_.decide_true, Bool.not_true]
             wp_auto
-            wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+            wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+            · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
             unfold isWFDecision
@@ -209,7 +218,7 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
             (DFrac.own 1) c al) $$ [$c] as %it ⟨c, #Hit⟩
           · iexact Hsa
           (try wp_auto)
-          wp_apply (wp_conditionsToAppliedErroredUnevaluated it al ev) as %r %es %us ⟨⟨%el, Hes⟩, ⟨%ul, Hus, #Hul⟩⟩
+          wp_apply (wp_conditionsToAppliedErroredUnevaluated it al ev) as %r %es %us ⟨⟨%el, Hes, #Hel⟩, ⟨%ul, Hus, #Hul⟩⟩
           · iframe #
           (try wp_auto)
           wp_apply wp_string_len r as -
@@ -222,7 +231,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
               by_cases hu : us.len = W64 0
               · simp only [hu, _root_.decide_true, Bool.not_true]
                 wp_auto
-                wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+                wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+                · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                 (try wp_auto)
                 iapply HΦ
                 unfold isWFDecision
@@ -244,9 +254,14 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                 iexact Hd
             · simp only [he, _root_.decide_false, Bool.not_false]
               wp_auto
-              wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg Hes
+              wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg ⟨Hes, Hagg⟩
+              ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' el agg $$ [Hagg]
+              · isplitr
+                · iexact Hel
+                · iexact Hagg
               (try wp_auto)
-              wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+              wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+              · first | iassumption | iapply utilerrors.errTreeOrNil_nil
               (try wp_auto)
               iapply HΦ
               unfold isWFDecision
@@ -256,7 +271,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
               · ipureintro; trivial
           · simp only [hr, _root_.decide_false, Bool.not_false]
             wp_auto
-            wp_apply (wp_ConditionsAwareDecisionAllow) as %d #Hd
+            wp_apply (wp_ConditionsAwareDecisionAllow) $$ [] as %d #Hd
+            · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
             unfold isWFDecision
@@ -276,9 +292,14 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
           iexact Hd
       · simp only [he, _root_.decide_false, Bool.not_false]
         wp_auto
-        wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg Hes
+        wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg ⟨Hes, Hagg⟩
+        ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' el agg $$ [Hagg]
+        · isplitr
+          · iexact Hel
+          · iexact Hagg
         (try wp_auto)
-        wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+        wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+        · first | iassumption | iapply utilerrors.errTreeOrNil_nil
         (try wp_auto)
         iapply HΦ
         unfold isWFDecision
@@ -288,7 +309,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
         · ipureintro; trivial
     · simp only [hr, _root_.decide_false, Bool.not_false]
       wp_auto
-      wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       (try wp_auto)
       iapply HΦ
       unfold isWFDecision
@@ -302,7 +324,7 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
     (DFrac.own 1) c dn) $$ [$c] as %it ⟨c, #Hit⟩
   · iexact Hsd
   (try wp_auto)
-  wp_apply (wp_conditionsToAppliedErroredUnevaluated it dn ev) as %r %es %us ⟨⟨%el, Hes⟩, ⟨%ul, Hus, #Hul⟩⟩
+  wp_apply (wp_conditionsToAppliedErroredUnevaluated it dn ev) as %r %es %us ⟨⟨%el, Hes, #Hel⟩, ⟨%ul, Hus, #Hul⟩⟩
   · iframe #
   (try wp_auto)
   wp_apply wp_string_len r as -
@@ -321,7 +343,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
           by_cases h20 : c.allowConditions'.len = W64 0
           · simp only [h20, _root_.decide_true, Bool.not_true]
             wp_auto
-            wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+            wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+            · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
             unfold isWFDecision
@@ -335,7 +358,7 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
             (DFrac.own 1) c al) $$ [$c] as %it ⟨c, #Hit⟩
           · iexact Hsa
           (try wp_auto)
-          wp_apply (wp_conditionsToAppliedErroredUnevaluated it al ev) as %r %es %us ⟨⟨%el, Hes⟩, ⟨%ul, Hus, #Hul⟩⟩
+          wp_apply (wp_conditionsToAppliedErroredUnevaluated it al ev) as %r %es %us ⟨⟨%el, Hes, #Hel⟩, ⟨%ul, Hus, #Hul⟩⟩
           · iframe #
           (try wp_auto)
           wp_apply wp_string_len r as -
@@ -348,7 +371,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
               by_cases hu : us.len = W64 0
               · simp only [hu, _root_.decide_true, Bool.not_true]
                 wp_auto
-                wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+                wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+                · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                 (try wp_auto)
                 iapply HΦ
                 unfold isWFDecision
@@ -370,9 +394,14 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                 iexact Hd
             · simp only [he, _root_.decide_false, Bool.not_false]
               wp_auto
-              wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg Hes
+              wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg ⟨Hes, Hagg⟩
+              ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' el agg $$ [Hagg]
+              · isplitr
+                · iexact Hel
+                · iexact Hagg
               (try wp_auto)
-              wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+              wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+              · first | iassumption | iapply utilerrors.errTreeOrNil_nil
               (try wp_auto)
               iapply HΦ
               unfold isWFDecision
@@ -382,7 +411,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
               · ipureintro; trivial
           · simp only [hr, _root_.decide_false, Bool.not_false]
             wp_auto
-            wp_apply (wp_ConditionsAwareDecisionAllow) as %d #Hd
+            wp_apply (wp_ConditionsAwareDecisionAllow) $$ [] as %d #Hd
+            · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
             unfold isWFDecision
@@ -396,7 +426,7 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
           (DFrac.own 1) c no) $$ [$c] as %it ⟨c, #Hit⟩
         · iexact Hsn
         (try wp_auto)
-        wp_apply (wp_conditionsToAppliedErroredUnevaluated it no ev) as %r %es %us ⟨⟨%el, Hes⟩, ⟨%ul, Hus, #Hul⟩⟩
+        wp_apply (wp_conditionsToAppliedErroredUnevaluated it no ev) as %r %es %us ⟨⟨%el, Hes, #Hel⟩, ⟨%ul, Hus, #Hul⟩⟩
         · iframe #
         (try wp_auto)
         wp_apply wp_string_len r as -
@@ -412,7 +442,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
               by_cases h20 : c.allowConditions'.len = W64 0
               · simp only [h20, _root_.decide_true, Bool.not_true]
                 wp_auto
-                wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+                wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+                · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                 (try wp_auto)
                 iapply HΦ
                 unfold isWFDecision
@@ -426,7 +457,7 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                 (DFrac.own 1) c al) $$ [$c] as %it ⟨c, #Hit⟩
               · iexact Hsa
               (try wp_auto)
-              wp_apply (wp_conditionsToAppliedErroredUnevaluated it al ev) as %r %es %us ⟨⟨%el, Hes⟩, ⟨%ul, Hus, #Hul⟩⟩
+              wp_apply (wp_conditionsToAppliedErroredUnevaluated it al ev) as %r %es %us ⟨⟨%el, Hes, #Hel⟩, ⟨%ul, Hus, #Hul⟩⟩
               · iframe #
               (try wp_auto)
               wp_apply wp_string_len r as -
@@ -439,7 +470,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                   by_cases hu : us.len = W64 0
                   · simp only [hu, _root_.decide_true, Bool.not_true]
                     wp_auto
-                    wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+                    wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+                    · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                     (try wp_auto)
                     iapply HΦ
                     unfold isWFDecision
@@ -461,9 +493,14 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                     iexact Hd
                 · simp only [he, _root_.decide_false, Bool.not_false]
                   wp_auto
-                  wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg Hes
+                  wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg ⟨Hes, Hagg⟩
+                  ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' el agg $$ [Hagg]
+                  · isplitr
+                    · iexact Hel
+                    · iexact Hagg
                   (try wp_auto)
-                  wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+                  wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+                  · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                   (try wp_auto)
                   iapply HΦ
                   unfold isWFDecision
@@ -473,7 +510,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
                   · ipureintro; trivial
               · simp only [hr, _root_.decide_false, Bool.not_false]
                 wp_auto
-                wp_apply (wp_ConditionsAwareDecisionAllow) as %d #Hd
+                wp_apply (wp_ConditionsAwareDecisionAllow) $$ [] as %d #Hd
+                · first | iassumption | iapply utilerrors.errTreeOrNil_nil
                 (try wp_auto)
                 iapply HΦ
                 unfold isWFDecision
@@ -493,9 +531,14 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
               iexact Hd
           · simp only [he, _root_.decide_false, Bool.not_false]
             wp_auto
-            wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg Hes
+            wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg ⟨Hes, Hagg⟩
+            ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' el agg $$ [Hagg]
+            · isplitr
+              · iexact Hel
+              · iexact Hagg
             (try wp_auto)
-            wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+            wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+            · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             (try wp_auto)
             iapply HΦ
             unfold isWFDecision
@@ -505,7 +548,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
             · ipureintro; trivial
         · simp only [hr, _root_.decide_false, Bool.not_false]
           wp_auto
-          wp_apply (wp_ConditionsAwareDecisionNoOpinion) as %d #Hd
+          wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
+          · first | iassumption | iapply utilerrors.errTreeOrNil_nil
           (try wp_auto)
           iapply HΦ
           unfold isWFDecision
@@ -523,9 +567,14 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
         iexact Hd
     · simp only [he, _root_.decide_false, Bool.not_false]
       wp_auto
-      wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg Hes
+      wp_apply (wp_NewAggregate es (DFrac.own 1) el) $$ [$Hes] as %agg ⟨Hes, Hagg⟩
+      ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' el agg $$ [Hagg]
+      · isplitr
+        · iexact Hel
+        · iexact Hagg
       (try wp_auto)
-      wp_apply (wp_ConditionsAwareDecisionDeny) as %d #Hd
+      wp_apply (wp_ConditionsAwareDecisionDeny) $$ [] as %d #Hd
+      · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       (try wp_auto)
       iapply HΦ
       unfold isWFDecision
@@ -535,7 +584,8 @@ theorem partiallyEvaluateConditionsMapInternal.wp_proof
       · ipureintro; trivial
   · simp only [hr, _root_.decide_false, Bool.not_false]
     wp_auto
-    wp_apply (wp_ConditionsAwareDecisionDeny) as %d #Hd
+    wp_apply (wp_ConditionsAwareDecisionDeny) $$ [] as %d #Hd
+    · first | iassumption | iapply utilerrors.errTreeOrNil_nil
     (try wp_auto)
     iapply HΦ
     unfold isWFDecision

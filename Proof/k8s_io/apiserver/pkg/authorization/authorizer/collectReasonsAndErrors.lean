@@ -13,7 +13,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Error
 public import Perennial.Spec.strings.Join
 public import Perennial.Spec.fmt.Sprintf
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfLeaf
+public import Proof.k8s_io.apimachinery.pkg.util.errors.ErrTreeOk
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsUnion
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__UnionedDecisions
 public import Spec.slices.Concat
@@ -50,10 +51,11 @@ theorem collectReasonsAndErrors.wp_proof
     (wp_ConditionsAwareDecision_Error : EtcdGrove.authorizer.ConditionsAwareDecision.Error.spec (GF := GF) (hG := hG))
     (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG))
     (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG))
-    (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG))
+    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_IsUnion : EtcdGrove.authorizer.ConditionsAwareDecision.IsUnion.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_UnionedDecisions : EtcdGrove.authorizer.ConditionsAwareDecision.UnionedDecisions.spec (GF := GF) (hG := hG))
-    (wp_Concat : EtcdGrove.slices.Concat.spec (GF := GF) (hG := hG)) :
+    (wp_Concat : EtcdGrove.slices.Concat.spec (GF := GF) (hG := hG))
+    (wp_aggregate_Error : EtcdGrove.utilerrors.aggregate.Error.spec (GF := GF) (hG := hG)) :
     collectReasonsAndErrors.spec (GF := GF) (hG := hG) := by
   have H : ⊢ (∀ (s : GoSlice) (dq : DFrac) (pre : List GoString) (d : ConditionsAwareDecision)
       (m : Dec) (k : w64),
@@ -62,7 +64,8 @@ theorem collectReasonsAndErrors.wp_proof
       (App (App (App (Val (@! collectReasonsAndErrors)) (Val #s)) (Val #d)) (Val #k))
     {{ (rs es : GoSlice), RET (PairV #rs #es); s ↦*{dq} pre ∗
         (∃ xs : List GoString, rs ↦* xs ∗ ownSliceCap GoString rs (DFrac.own 1)) ∗
-        (∃ ys : List GoInterface, es ↦* ys ∗ ownSliceCap GoInterface es (DFrac.own 1)) }}
+        (∃ ys : List GoInterface, es ↦* ys ∗ ownSliceCap GoInterface es (DFrac.own 1) ∗
+          [∗list] e ∈ ys, utilerrors.errTree e) }}
       : IProp GF) := by
     iloeb as IH
     iintro %s %dq %pre %d %m %k
@@ -91,6 +94,8 @@ theorem collectReasonsAndErrors.wp_proof
     · iapply ownSlice_nil
     ihave Hec : ownSliceCap (GF := GF) GoInterface slice.nil (DFrac.own 1) $$ []
     · iapply ownSliceCap_nil
+    ihave #Hest : ([∗list] e ∈ ([] : List GoInterface), utilerrors.errTree (GF := GF) e) $$ []
+    · iapply BigSepL.bigSepL_nil.2; itrivial
     wp_if_destruct
     · wp_apply (ConditionsAwareDecision.wp_ptr_IsUnion_of wp_ConditionsAwareDecision_IsUnion _ _ d)
         $$ [$condAwareDecision] as condAwareDecision
@@ -99,6 +104,7 @@ theorem collectReasonsAndErrors.wp_proof
       · wp_auto
         iapply HΦ
         iframe
+        iapply BigSepL.bigSepL_nil.2; itrivial
       cases m with
       | union ks =>
         icases isDecision_union d ks $$ Hd with ⟨%nds, #Hinner, #HL⟩
@@ -114,13 +120,13 @@ theorem collectReasonsAndErrors.wp_proof
             (eys : List GoInterface) (sd : ConditionsAwareDecision) (an : GoString),
             aggregateReasons_ptr ↦ rsl ∗ rsl ↦* rxs ∗ ownSliceCap GoString rsl (DFrac.own 1) ∗
             aggregateErrors_ptr ↦ esl ∗ esl ↦* eys ∗ ownSliceCap GoInterface esl (DFrac.own 1) ∗
-            s ↦*{dq} pre ∗ authorizerNamePrefix_ptr ↦ s ∗ unconditionalDecisionToCollect_ptr ↦ k ∗
+            ([∗list] e ∈ eys, utilerrors.errTree e) ∗ s ↦*{dq} pre ∗ authorizerNamePrefix_ptr ↦ s ∗ unconditionalDecisionToCollect_ptr ↦ k ∗
             subDecision_ptr ↦ sd ∗ authorizerName_ptr ↦ an)) %(iprop(False)) []
         · iintro !> %i %kk %vv %Hi
           iunfold yield2Ok
           iintro !> %Ψ HI HΨ
           icases HI with ⟨HTok, %rsl, %esl, %rxs, %eys, %sd, %an, aggregateReasons, Hrn, Hrc,
-            aggregateErrors, Hen, Hec, Hs, authorizerNamePrefix, unconditionalDecisionToCollect,
+            aggregateErrors, Hen, Hec, #Hest, Hs, authorizerNamePrefix, unconditionalDecisionToCollect,
             subDecision, authorizerName⟩
           iapply Hy $$ %(#kk) %(#vv) %Ψ [] HTok
           · ipureintro; constructor <;> simp
@@ -153,7 +159,7 @@ theorem collectReasonsAndErrors.wp_proof
             | some nd => simp only [h, Option.map_some, Option.some.injEq, Prod.mk.injEq] at Hi ⊢; exact Hi.2
           icases isDecisionL_lookup _ ks i vv Hi' $$ HL with ⟨%mi, %Hmi, #Hdi⟩
           wp_apply IH $$ %s' %(DFrac.own 1) %([pre, [kk]].flatten) %vv %mi %k [Hs']
-            as %rs %es ⟨Hs', ⟨%xs2, Hrs, Hrsc⟩, ⟨%ys2, Hes, Hesc⟩⟩
+            as %rs %es ⟨Hs', ⟨%xs2, Hrs, Hrsc⟩, ⟨%ys2, Hes, Hesc, #Hest2⟩⟩
           · iframe
             iexact Hdi
           wp_apply wp_slice_append $$ [$Hrn $Hrc $Hrs] as %rsl' ⟨Hrn, Hrc, -⟩
@@ -168,6 +174,9 @@ theorem collectReasonsAndErrors.wp_proof
           iframe HTok
           iexists _, _, _, _, _, _
           iframe
+          iapply BigSepL.bigSepL_append.2
+          isplitr; · iexact Hest
+          iexact Hest2
         iunfold iterRunOk at Hrun
         iapply Hrun $$ [HTok aggregateReasons aggregateErrors Hrn Hrc Hen Hec Hs authorizerNamePrefix
           unconditionalDecisionToCollect subDecision authorizerName]
@@ -175,9 +184,10 @@ theorem collectReasonsAndErrors.wp_proof
           iframe HTok
           iexists slice.nil, slice.nil, [], [], _, _
           iframe
+          iapply BigSepL.bigSepL_nil.2; itrivial
         iintro !> Hpost
         icases Hpost with (⟨HTok, %rsl, %esl, %rxs, %eys, %sd, %an, aggregateReasons, Hrn, Hrc,
-          aggregateErrors, Hen, Hec, Hs, authorizerNamePrefix, unconditionalDecisionToCollect,
+          aggregateErrors, Hen, Hec, #Hest', Hs, authorizerNamePrefix, unconditionalDecisionToCollect,
           subDecision, authorizerName⟩ | %HF)
         rotate_left
         · exact HF.elim
@@ -188,6 +198,7 @@ theorem collectReasonsAndErrors.wp_proof
         wp_auto
         iapply HΦ
         iframe
+        iexact Hest'
       | deny => simp [Dec.isUnion] at hU
       | allow => simp [Dec.isUnion] at hU
       | noOpinion => simp [Dec.isUnion] at hU
@@ -202,6 +213,7 @@ theorem collectReasonsAndErrors.wp_proof
       · wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hlen
         wp_if_destruct
         · iframe
+          try (ipureintro; rfl)
         · wp_apply (wp_Join s pre dq) $$ [$Hs] as Hs
           wp_apply (wp_slice_literal [interface.mkOk go.string #(go!": ".intercalate pre),
             interface.mkOk go.string #d.reason'])
@@ -219,12 +231,18 @@ theorem collectReasonsAndErrors.wp_proof
           wp_join_done
       wp_apply (ConditionsAwareDecision.wp_ptr_Error_of wp_ConditionsAwareDecision_Error _ _ d)
         $$ [$condAwareDecision] as condAwareDecision
+      ihave #Hde := isDecision_err d m $$ Hd
       wp_join iprop(∃ (sl : GoSlice) (ys : List GoInterface), aggregateErrors_ptr ↦ sl ∗ sl ↦* ys ∗
-          ownSliceCap GoInterface sl (DFrac.own 1) ∗ s ↦*{dq} pre ∗ authorizerNamePrefix_ptr ↦ s) at next
+          ownSliceCap GoInterface sl (DFrac.own 1) ∗ s ↦*{dq} pre ∗ authorizerNamePrefix_ptr ↦ s ∗
+          [∗list] e ∈ ys, utilerrors.errTree e) at next
         with [aggregateErrors Hen Hec Hs authorizerNamePrefix err]
-        as ⟨%esl, %eys, aggregateErrors, Hen, Hec, Hs, authorizerNamePrefix⟩
+        as ⟨%esl, %eys, aggregateErrors, Hen, Hec, Hs, authorizerNamePrefix, #Hest'⟩
       · cases he : d.err' with
-        | nil => wp_auto; wp_join_done
+        | nil =>
+          wp_auto; wp_join_done
+          iexists _, []
+          iframe
+          try (iapply BigSepL.bigSepL_nil.2; itrivial)
         | ok ei =>
           wp_auto
           wp_apply (wp_Join s pre dq) $$ [$Hs] as Hs
@@ -232,15 +250,38 @@ theorem collectReasonsAndErrors.wp_proof
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply (wp_ErrorfAny _ _ _ _) $$ [$Hasl] as %e ⟨-, -⟩
+          wp_apply (wp_ErrorfLeaf _ _ _ _) $$ [$Hasl] as %e ⟨-, #He, %hE⟩
+          · fmt_args_intro
+            isplitl
+            · simp only [fmt.argOkAt]; ileft; ipureintro
+              exact (show _root_.Perennial.fmt.ArgsWf [interface.mkOk go.string #(go!": ".intercalate pre)] from
+                .cons_string _ _ .nil) _ (List.mem_singleton_self _)
+            isplitl
+            · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+              isplitr
+              · ipureintro; exact ⟨by decide, by decide⟩
+              rw [← he]
+              iapply utilerrors.errTreeOrNil_fmtErrorOkOrNil wp_aggregate_Error
+              isplitr
+              · iPkgInit
+              · iexact Hde
+            · itrivial
           wp_apply wp_slice_literal
           isplitr
           · ipureintro; rfl
           iintro %osl ⟨Hosl, -⟩
           wp_apply wp_slice_append $$ [$Hen $Hec $Hosl] as %esl' ⟨Hen, Hec, -⟩
+          ihave #Het := utilerrors.errTree_of_errOk e hE $$ He
           wp_join_done
+          iexists _, _
+          iframe
+          rw [List.nil_append]
+          iapply BigSepL.bigSepL_cons.2
+          isplitr; · iexact Het
+          iapply BigSepL.bigSepL_nil.2; itrivial
       iapply HΦ
       iframe
+      iexact Hest'
   intro s dq pre d m k
   iintro %Φ Hpre HΦ
   ihave #H := H

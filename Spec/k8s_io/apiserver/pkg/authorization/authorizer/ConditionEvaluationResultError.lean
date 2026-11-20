@@ -28,9 +28,10 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 /-- See the file header. -/
 abbrev ConditionEvaluationResultError.spec : Prop :=
   ∀ (e : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗
+      utilerrors.errTreeOrNil e }}
     (App (Val (@! ConditionEvaluationResultError)) (Val #e))
-  {{ (e' : GoInterface), RET #(ConditionEvaluationResult.mk (W64 3) e'); True }}
+  {{ (e' : GoInterface), RET #(ConditionEvaluationResult.mk (W64 3) e'); utilerrors.errTreeOrNil e' }}
 
 end spec
 

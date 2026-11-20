@@ -30,13 +30,14 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 theorem ConditionsAwareDecisionDeny.wp_proof :
     ConditionsAwareDecisionDeny.spec (GF := GF) (hG := hG) := by
   intro r e
-  wp_start
+  wp_start as #He
   wp_auto
   iapply HΦ
   unfold isDecision isDecisionRaw
   iintro !>
-  ipureintro
-  rfl
+  isplitr
+  · ipureintro; rfl
+  · iexact He
 
 end proof
 

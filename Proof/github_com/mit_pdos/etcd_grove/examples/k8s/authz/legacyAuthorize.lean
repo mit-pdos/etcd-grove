@@ -42,10 +42,10 @@ theorem legacyAuthorize.wp_proof
   (try wp_auto)
   wp_apply wp_arbReason as %r _
   (try wp_auto)
-  wp_apply wp_arbErr as %e _
+  wp_apply wp_arbErr as %e #He
   (try wp_auto)
   iapply HΦ
-  itrivial
+  iexact He
 
 end proof
 
