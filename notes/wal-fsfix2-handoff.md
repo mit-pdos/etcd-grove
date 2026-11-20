@@ -4,8 +4,12 @@
 
 - Worktree `/shared/etcd-grove-walfsfix2`, branch `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`). lean `5e22c9a3b5` merged (`c20016562f`; conflict k8s/all `Adequacy.lean`:
-  `hmsL` over both clusters, `k8s_compactorN.startAddrs_names_len` added). Full timed build and gates: see the report
-  (`/shared/tmp/walfsfix2/full1.log`, `gates*.log`).
+  `hmsL` over both clusters, `k8s_compactorN.startAddrs_names_len` added). Full timed build `20261120-193501-1550855`
+  (`/shared/tmp/walfsfix2/full1.log`) failed ONLY at `wal/openLast.lean`, `wal/openLastHeld.lean` (a6's `lockPostW`
+  fallout); both fixed in 54219764a9 (`lockPost_of_W`, lean-checked), their importers not yet built. **Next: rerun
+  the full timed build (normal slot), then the gates** (tcb --check --update, collections, gen-link modes incl.
+  `--walfs`/`--wal-tester`/`--durable`, interfaces --check --layout, tier, gen-init/goose --check, mode, bounds,
+  axiom-tok, reader-slot, errorf), STATUS entry (status-history append-only), then the land stop.
 - **Done (48debd09fe, b3fb796306):** Preallocate witness (`preallocExtend`/`Preallocate` posts `err ≠ nil → ¬ FsNoErrIno`,
   `syscall.Fallocate.wp_grow` over `wp_osFallocFinishW`); `pipeErrW dir` (alloc, `pipeErrP`, `Open`, `wp_walPipeH_open`);
   **`cut.spec` one spec over `Sio`** (premises `walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)` and the room;
