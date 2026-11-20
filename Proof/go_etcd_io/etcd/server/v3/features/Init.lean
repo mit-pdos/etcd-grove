@@ -2,9 +2,10 @@
 Package initialization of `go_etcd_io.etcd.server.v3.features`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer initializes its imports, allocates
+`DefaultEtcdServerFeatureGates` and runs its translated initializer, a map literal of
+`featuregate.FeatureSpec` literals (prove-smallinits, 2026-11-20; until then the trust-boundary axiom
+`opaqueInitsOk`).
 -/
 module
 
@@ -28,24 +29,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.features
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.features`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([DefaultEtcdServerFeatureGates.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.server.v3.features
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -66,8 +49,32 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply wp_GlobalAlloc (V := Loc) DefaultEtcdServerFeatureGates _ as HDefaultEtcdServerFeatureGates
   wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk DefaultEtcdServerFeatureGates.init (by mem_tac))
+  -- translated initializer of DefaultEtcdServerFeatureGates))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty) as %mHfg Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty) $$ Hfg as Hfg
+  try wp_auto
   iframe Hown
   is_pkg_init_finish
 

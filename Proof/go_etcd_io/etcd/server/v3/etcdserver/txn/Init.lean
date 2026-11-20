@@ -6,8 +6,9 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`txnInit`, `Base.lean`): `lease.ErrLeaseNotFound` and `etcdserver/errors.ErrKeyNotFound`
 (from their packages' facts) and its counter `slowApplies` (`metrics.go`, translated: `NewCounter`'s
-spec; until 2026-11-19 the trust-boundary axiom `slowApplies_init`). `opaqueInitsOk` states its other untranslated
-initializers run.
+spec; until 2026-11-19 the trust-boundary axiom `slowApplies_init`). Its histogram vectors `applySec` and
+`rangeSec` are translated too (`NewHistogramVec`'s spec; prove-smallinits, 2026-11-20, until then
+`opaqueInitsOk`).
 -/
 module
 
@@ -52,15 +53,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.txn`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([applySec.init,
-        rangeSec.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.txn`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only

@@ -4,10 +4,10 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs the
+translated initializer of `capabilityMaps` (a map literal of map literals) and its translated `init`
+function, which sets `enabledMap` to a map literal (prove-smallinits, 2026-11-20; until then the
+trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).
 -/
 module
 
@@ -31,33 +31,5 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.etcdserver.api
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([capabilityMaps.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.server.v3.etcdserver.api
-end opaqueInits
 
 end Perennial

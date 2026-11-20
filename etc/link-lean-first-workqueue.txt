@@ -19,13 +19,13 @@ clock_realTicker__C:
 clock_realTicker__Stop:
 Background:
 runtime_HandleCrashWithLogger:
-heap_Init_:
-heap_Pop:
 # (container/heap's `Push` and `Fix` proved on `lean`, over `up` and `down`)
 heap_up:
 heap_down:
 heap_Push: heap_up
 heap_Fix: heap_down heap_up
+heap_Init_: heap_down
+heap_Pop: heap_down
 #
 # k8s.io/apimachinery/pkg/util/sets (`Set[T]`'s methods the queue uses)
 Set__Has:

@@ -38,7 +38,7 @@ heap_up:
 heap_down:
 heap_Push: heap_up
 heap_Fix: heap_down heap_up
-heap_Init_:
+heap_Init_: heap_down
 schema_MustUnsafePutLease:
 binary_bigEndian__PutUint64:
 schema_leaseIDToBytes: binary_bigEndian__PutUint64

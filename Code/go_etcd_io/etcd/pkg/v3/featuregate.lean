@@ -60,9 +60,11 @@ opaque allAlphaGate [GooseExts] [GoGlobalContext] : val
 
 opaque allBetaGate [GooseExts] [GoGlobalContext] : val
 
-opaque Alpha [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Alpha [GooseExts] [GoGlobalContext] : val :=
+  #(go!"ALPHA")
 
-opaque Beta [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Beta [GooseExts] [GoGlobalContext] : val :=
+  #(go!"BETA")
 
 opaque GA [GooseExts] [GoGlobalContext] : val
 

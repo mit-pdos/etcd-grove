@@ -4,6 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.io
+public import GeneratedProof.unicode.utf8
 public import Perennial.Golang.Theory
 public import Code.bufio
 
