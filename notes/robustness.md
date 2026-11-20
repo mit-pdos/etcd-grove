@@ -84,7 +84,7 @@ directory (2026-11-18, the user's: easy to find, and a statement to audit apart 
   which landed the same day). `etc/tier-check.py` counts the `Proof/` side's
   `TopLevelRobustness` as a linking module.
 
-(The parts have theirs under `NetTcp/`, `RaftWitness/`, `RaftTla/` and, as copies, `RaftNoAx/`.
+(The parts have theirs under `Net/`, `RaftWitness/`, `RaftTla/` and, as copies, `RaftNoAx/`.
 `etc/proof_roots.py` counts the proof files as results files, so the trust-base report covers
 them. `find . -name TopLevelRobustness.lean` lists them all.)
 
@@ -92,7 +92,8 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
 |---|---|---|---|
 | one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv` |
 | one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three), `osfs/bboltfs` |
-| several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`NetTcp/…/net/*`) |
+| several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`Net/…/net/*`) |
+| several machines that never crash, `DistNsteps` (2026-11-19) | `robust_of_kitBoot`, `robust_of_kitProto` (`Net/Statement/KitBridge.lean`: `distNsteps_of_crash_nil`, then `goose_dist_adequacy`), under the kit deployment premise `KitDeploy plan hosts nodes g` (`Net/Statement/KitDeploy.lean`) | `KitDeploy … → Robust [] nodes g bound` | the network kits (`notes/dsverify-net-port-plan.md`, phases 4 and 6); `echo_kit_robust` (`Net/…/net/echo/RobustLinked.lean`), the non-vacuity check |
 
 - **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's), `2^40 - 11` at `2^28` threads
   (the 22 `etcd/*` examples, since 2026-11-20: the backend's write-back budget; until then `2^28 - 1`,
@@ -176,11 +177,14 @@ machine, 27 by resets) and 47 link-fault episodes.
 
 - The checking client as a Go program (`examples/raft/kvnet/cmd/...`): the clients' traffic and
   configuration changes, the history, porcupine, a panic unless `Ok`; no fault injection. Then
-  translate it and the replica (`net` through the TCP extension, `NetTcp/`).
+  translate it and the replica (`net` through the TCP extension, `Net/`).
 - Adequacy for machines that never crash: `goose_dist_crash_adequacy` lets every node crash, so
   through `Robust.of_all_crashing` the client's proof would have to survive its own crash, losing
   its history. A version with a boot list for some nodes only (no crash obligation for the others)
   is a general Perennial change, to propose there on its own (`notes/perennial-changes.md`).
+  The kits' bridge (`Net/Statement/KitBridge.lean`, 2026-11-19) covers only the case where **every**
+  machine is stable (`Robust [] nodes`: no boot program, so the executions are `DistNsteps` and
+  `goose_dist_adequacy` applies); a deployment with both kinds (kvnet's) still needs that change.
 - A mutation check that only the network finds (e.g. a `Read` served without a read index: a stale
   read from a partitioned old leader).
 - Other programs: the harness takes any binary; their statements are `Robust` of their machines.

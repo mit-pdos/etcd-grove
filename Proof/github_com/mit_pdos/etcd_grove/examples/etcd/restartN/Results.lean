@@ -96,7 +96,7 @@ requires the snapshot catch-up.
   log, as Go computes them; at the token `restartN-1440` `TestMemberIDs` checks the ids for every
   `k ≤ 1000`.
 - `Haf`, `Hbuq`, `Hdbo`: sizes of the auth records, the backend's quota, the WAL's and the disk's saves.
-- `HNs` (`namesUnclaimed`): the read package's metric names are claimed by no one else at start.
+- `HNs` (`namesUnclaimed`): the program's metric names (`initNames`: its closure's registering packages', mustreg 2026-11-20) are claimed by no one else at start.
 - `HAs` (`addrsUnclaimed`): the `k` peer addresses are free at start; no client address is served.
 - `HDs` (`dataDirsAbsent`): the `k` data directories do not exist at start.
 - `HEnv` (`verifyEnvOff`): `ETCD_VERIFY` is unset (every incarnation).

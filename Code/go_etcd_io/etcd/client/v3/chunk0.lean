@@ -678,17 +678,11 @@ opaque SortByValue [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrNoAvailableEndpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ErrNoAvailableEndpoints"
 
-opaque ErrNoAvailableEndpoints.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrOldCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ErrOldCluster"
 
-opaque ErrOldCluster.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrMutuallyExclusiveCfg [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ErrMutuallyExclusiveCfg"
-
-opaque ErrMutuallyExclusiveCfg.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def LeaseResponseChSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.LeaseResponseChSize"
@@ -699,17 +693,11 @@ noncomputable def noPrefixEnd [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultWaitForReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultWaitForReady"
 
-opaque defaultWaitForReady.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultMaxCallSendMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultMaxCallSendMsgSize"
 
-opaque defaultMaxCallSendMsgSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultMaxCallRecvMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultMaxCallRecvMsgSize"
-
-opaque defaultMaxCallRecvMsgSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultUnaryMaxRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultUnaryMaxRetries"
@@ -723,12 +711,8 @@ noncomputable def defaultBackoffWaitBetween [GooseExts] [GoGlobalContext] : GoSt
 noncomputable def defaultBackoffJitterFraction [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultBackoffJitterFraction"
 
-opaque defaultBackoffJitterFraction.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultCallOpts [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultCallOpts"
-
-opaque defaultCallOpts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultOptions"
@@ -11071,13 +11055,33 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"etcdclient: no available endpoints"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"etcdclient: old cluster version"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"Username/Password and Token configurations are mutually exclusive"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 16))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W8 0))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #true)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.WaitForReady []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W64 2097152))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.MaxCallSendMsgSize []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W64 2147483647))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.MaxCallRecvMsgSize []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 100))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -11085,7 +11089,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 25)) (Val #(W64 1000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 4591870180066957722))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (App (Val (GoInstruction (GlobalVarAddr defaultWaitForReady))) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (App (Val (GoInstruction (GlobalVarAddr defaultMaxCallSendMsgSize))) (Val #())))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (App (Val (GoInstruction (GlobalVarAddr defaultMaxCallRecvMsgSize))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v2")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
@@ -11107,9 +11116,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultOptions.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val defaultCallOpts.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultCallOpts))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultBackoffJitterFraction.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultBackoffJitterFraction))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultBackoffWaitBetween))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -11117,21 +11126,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultUnaryMaxRetries))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultMaxCallRecvMsgSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultMaxCallRecvMsgSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultMaxCallSendMsgSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultMaxCallSendMsgSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val defaultWaitForReady.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultWaitForReady))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr noPrefixEnd))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr LeaseResponseChSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrMutuallyExclusiveCfg.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrMutuallyExclusiveCfg))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrOldCluster.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrOldCluster))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrNoAvailableEndpoints.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNoAvailableEndpoints))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -11187,15 +11196,31 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrNoAvailableEndpoints go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrOldCluster go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrMutuallyExclusiveCfg go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc LeaseResponseChSize go.int)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc noPrefixEnd (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultWaitForReady _root_.Perennial.google_golang_org.grpc.CallOption.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultMaxCallSendMsgSize _root_.Perennial.google_golang_org.grpc.CallOption.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultMaxCallRecvMsgSize _root_.Perennial.google_golang_org.grpc.CallOption.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc defaultUnaryMaxRetries go.uint)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc defaultStreamMaxRetries go.uint)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc defaultBackoffWaitBetween _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultBackoffJitterFraction go.float64)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultCallOpts (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc valCtxCh (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))) (Val #()))))))
   (App (Val doExecute)

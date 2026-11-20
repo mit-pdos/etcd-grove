@@ -10,9 +10,11 @@ errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEt
 the method set goose emits), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
 `ErrAuthOldRevision`, `ErrNoLeader`, `ErrAuthNotEnabled` and the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors
 `v3rpc`'s checks and interceptors return and its metadata keys, and (D19j) the `ErrGRPC*` errors its
-watch server returns, whose `Error()` returns. Its variables'
-initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
-`<X>_init` state the ones the fact reads, `opaqueInitsOk` the others.
+watch server returns, whose `Error()` returns. (prove-rpcmap, 2026-11-20) Its
+variables' initializers (`error.go`, `md.go`, `metadatafields.go`) are all translated: the
+`status.Error` errors, the map literal `errStringToError` (keys `ErrorDesc(ErrGRPC*)`) and the
+client-side `Err* = Error(ErrGRPC*)` (`Error.wp_initErr`); until then the trust-boundary axioms
+`opaqueInitsOk`, `errStringToError_init` and `<X>_init` for the errors the fact reads.
 -/
 module
 
@@ -36,159 +38,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.api.v3.v3rpc.rpctypes
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.api.v3.v3rpc.rpctypes`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrGRPCLeaseNotFound.init,
-        ErrGRPCLeaseExist.init,
-        ErrGRPCLeaseTTLTooLarge.init,
-        ErrGRPCMemberExist.init,
-        ErrGRPCPeerURLExist.init,
-        ErrGRPCMemberNotEnoughStarted.init,
-        ErrGRPCMemberBadURLs.init,
-        ErrGRPCMemberNotFound.init,
-        ErrGRPCMemberNotLearner.init,
-        ErrGRPCLearnerNotReady.init,
-        ErrGRPCTooManyLearners.init,
-        ErrGRPCClusterIDMismatch.init,
-        ErrGRPCClusterIdMismatch.init,
-        ErrGRPCRequestTooLarge.init,
-        ErrGRPCRequestTooManyRequests.init,
-        ErrGRPCRootUserNotExist.init,
-        ErrGRPCRootRoleNotExist.init,
-        ErrGRPCUserAlreadyExist.init,
-        ErrGRPCUserNotFound.init,
-        ErrGRPCRoleAlreadyExist.init,
-        ErrGRPCRoleNotFound.init,
-        ErrGRPCRoleEmpty.init,
-        ErrGRPCAuthFailed.init,
-        ErrGRPCPermissionNotGiven.init,
-        ErrGRPCRoleNotGranted.init,
-        ErrGRPCPermissionNotGranted.init,
-        ErrGRPCAuthNotEnabled.init,
-        ErrGRPCInvalidAuthMgmt.init,
-        ErrGRPCNotLeader.init,
-        ErrGRPCLeaderChanged.init,
-        ErrGRPCStopped.init,
-        ErrGRPCTimeout.init,
-        ErrGRPCTimeoutDueToLeaderFail.init,
-        ErrGRPCTimeoutDueToConnectionLost.init,
-        ErrGRPCTimeoutWaitAppliedIndex.init,
-        ErrGRPCUnhealthy.init,
-        ErrGRPCCorrupt.init,
-        ErrGRPCBadLeaderTransferee.init,
-        ErrGRPCWrongDowngradeVersionFormat.init,
-        ErrGRPCInvalidDowngradeTargetVersion.init,
-        ErrGRPCClusterVersionUnavailable.init,
-        ErrGRPCDowngradeInProcess.init,
-        ErrGRPCNoInflightDowngrade.init,
-        ErrGRPCCanceled.init,
-        ErrGRPCDeadlineExceeded.init,
-        ErrEmptyKey.init,
-        ErrKeyNotFound.init,
-        ErrValueProvided.init,
-        ErrLeaseProvided.init,
-        ErrTooManyOps.init,
-        ErrDuplicateKey.init,
-        ErrInvalidSortOption.init,
-        ErrNoSpace.init,
-        ErrLeaseNotFound.init,
-        ErrLeaseExist.init,
-        ErrLeaseTTLTooLarge.init,
-        ErrMemberExist.init,
-        ErrPeerURLExist.init,
-        ErrMemberNotEnoughStarted.init,
-        ErrMemberBadURLs.init,
-        ErrMemberNotFound.init,
-        ErrMemberNotLearner.init,
-        ErrMemberLearnerNotReady.init,
-        ErrTooManyLearners.init,
-        ErrRequestTooLarge.init,
-        ErrTooManyRequests.init,
-        ErrRootUserNotExist.init,
-        ErrRootRoleNotExist.init,
-        ErrUserAlreadyExist.init,
-        ErrUserNotFound.init,
-        ErrRoleAlreadyExist.init,
-        ErrRoleNotFound.init,
-        ErrRoleEmpty.init,
-        ErrAuthFailed.init,
-        ErrPermissionDenied.init,
-        ErrRoleNotGranted.init,
-        ErrPermissionNotGranted.init,
-        ErrInvalidAuthMgmt.init,
-        ErrClusterIDMismatch.init,
-        ErrClusterIdMismatch.init,
-        ErrNotLeader.init,
-        ErrLeaderChanged.init,
-        ErrNotCapable.init,
-        ErrStopped.init,
-        ErrTimeout.init,
-        ErrTimeoutDueToLeaderFail.init,
-        ErrTimeoutDueToConnectionLost.init,
-        ErrTimeoutWaitAppliedIndex.init,
-        ErrUnhealthy.init,
-        ErrCorrupt.init,
-        ErrBadLeaderTransferee.init,
-        ErrClusterVersionUnavailable.init,
-        ErrWrongDowngradeVersionFormat.init,
-        ErrInvalidDowngradeTargetVersion.init,
-        ErrDowngradeInProcess.init,
-        ErrNoInflightDowngrade.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCFutureRev`'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4), an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`'s `TestRpctypesErrTypes` at the etcd pin). -/
-axiom ErrFutureRev_init :
-    {{ (True : IProp GF) }} (App (Val ErrFutureRev.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }}
-
-/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCCompacted`'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4), an `EtcdError` value (k8s etcd3 7e-2, D1: stated, checked by `examples/k8s7e2attack`'s `TestRpctypesErrTypes` at the etcd pin). -/
-axiom ErrCompacted_init :
-    {{ (True : IProp GF) }} (App (Val ErrCompacted.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ ∗ ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ }}
-
-/-- `errStringToError = map[string]error{...}` (`error.go`): a map whose values are `ErrGRPC*` errors, `status.Error(...)`s: `*status.Error`s, leaf errors whose `Error()`, `GRPCStatus()` and `Is` return. -/
-axiom errStringToError_init :
-    {{ (True : IProp GF) }} (App (Val errStringToError.init) (Val #()))
-    {{ RET #(); ∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ ⌜∀ (k : GoString) (v : GoInterface), m !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝ }}
-
-/-- `ErrUserEmpty = Error(ErrGRPCUserEmpty)` (`error.go`): an `EtcdError`, with `ErrGRPCUserEmpty`'s description (D29). -/
-axiom ErrUserEmpty_init :
-    {{ (True : IProp GF) }} (App (Val ErrUserEmpty.init) (Val #()))
-    {{ RET #(); ∃ x : EtcdError, globalAddr ErrUserEmpty ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc' = go!"etcdserver: user name is empty"⌝ }}
-
-/-- `ErrInvalidAuthToken = Error(ErrGRPCInvalidAuthToken)` (`error.go`): an `EtcdError`, with `ErrGRPCInvalidAuthToken`'s description (D29). -/
-axiom ErrInvalidAuthToken_init :
-    {{ (True : IProp GF) }} (App (Val ErrInvalidAuthToken.init) (Val #()))
-    {{ RET #(); ∃ x : EtcdError, globalAddr ErrInvalidAuthToken ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc' = go!"etcdserver: invalid auth token"⌝ }}
-
-/-- `ErrAuthOldRevision = Error(ErrGRPCAuthOldRevision)` (`error.go`): an `EtcdError`, with `ErrGRPCAuthOldRevision`'s description (D29). -/
-axiom ErrAuthOldRevision_init :
-    {{ (True : IProp GF) }} (App (Val ErrAuthOldRevision.init) (Val #()))
-    {{ RET #(); ∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc' = go!"etcdserver: revision of auth store is old"⌝ }}
-
-/-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/
-axiom ErrNoLeader_init :
-    {{ (True : IProp GF) }} (App (Val ErrNoLeader.init) (Val #()))
-    {{ RET #(); ∃ x : EtcdError, globalAddr ErrNoLeader ↦ interface.mkOk EtcdError.ty #x }}
-
-/-- `ErrAuthNotEnabled = Error(ErrGRPCAuthNotEnabled)` (`error.go`): an `EtcdError`. -/
-axiom ErrAuthNotEnabled_init :
-    {{ (True : IProp GF) }} (App (Val ErrAuthNotEnabled.init) (Val #()))
-    {{ RET #(); ∃ x : EtcdError, globalAddr ErrAuthNotEnabled ↦ interface.mkOk EtcdError.ty #x }}
-
-end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
-end opaqueInits
 
 /-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,
 `Unwrap`, `GRPCStatus` or `Is` method: a theorem of the method set goose emits
@@ -218,5 +67,66 @@ theorem EtcdGrove.rpctypesEtcdError_asTarget [GooseExts] [GoGlobalContext] [GoLo
     [sem : go.Semantics] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty :=
   Or.inr (by go_type_set)
+
+section rpcmap
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
+
+/-- (prove-rpcmap) A lookup in `<[k := v]> m` finds `v` at `k`, or one of `m`'s entries. -/
+theorem EtcdGrove.rpctypes_lookup_insert_some {K V : Type} [DecidableEq K] {m : GMap K V} {k k' : K}
+    {v w : V} (h : (<[k := v]> m) !! k' = some w) : (k = k' ∧ v = w) ∨ m !! k' = some w :=
+  ((GMap.lookup_insert_Some m k k' v w).1 h).imp id And.right
+
+/-- (prove-rpcmap) A key of `<[k := v]> m`: `k`, or one of `m`'s. -/
+theorem EtcdGrove.rpctypes_lookup_insert_isSome {K V : Type} [DecidableEq K] (m : GMap K V) (k k' : K)
+    (v : V) (h : k = k' ∨ (m !! k').isSome) : ((<[k := v]> m) !! k').isSome :=
+  (GMap.lookup_insert_is_Some m k k' v).2 (by by_cases hk : k = k' <;> simp_all)
+
+/-- (prove-rpcmap) The map literal `errStringToError` while `rpctypes`' initializer builds it: its
+values are errors grpc's `status` accepts, each under its description (`rpctypesInit`'s map). -/
+abbrev EtcdGrove.rpctypesErrMapInv (mref : Loc) (M : GMap GoString GoInterface) : IProp GF :=
+  iprop(mref ↦$ M ∗
+    (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗
+    ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝)
+
+theorem EtcdGrove.rpctypes_errMapInv_elim (mref : Loc) (M : GMap GoString GoInterface) :
+    (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ⊢ mref ↦$ M ∗
+      (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗
+      ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝ := by
+  iintro H; iexact H
+
+theorem EtcdGrove.rpctypes_errMapInv_empty (mref : Loc) :
+    (mref ↦$ (∅ : GMap GoString GoInterface) : IProp GF) ⊢ EtcdGrove.rpctypesErrMapInv mref ∅ := by
+  iintro Hm
+  unfold EtcdGrove.rpctypesErrMapInv
+  iframe Hm
+  isplitr
+  · iintro !> %k %v %h; simp at h
+  · ipureintro; intro k v h; simp at h
+
+/-- (prove-rpcmap) Inserting an error grpc's `status` accepts under its description. -/
+theorem EtcdGrove.rpctypes_wp_errMapInsert (mref : Loc) (M : GMap GoString GoInterface) (e : GoInterfaceOk) :
+    {{ (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}
+      (App (App (App (Val (map.insert go.string)) (Val #mref))
+        (Val #(go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e)))) (Val #(GoInterface.ok e)))
+    {{ RET #(); EtcdGrove.rpctypesErrMapInv mref
+        (<[go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) := GoInterface.ok e]> M) }} := by
+  wp_start_folded as ⟨Hinv, #Hok⟩
+  ihave ⟨Hm, #HS, %HD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hinv
+  wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string) $$ Hm as Hm
+  iapply HΦ
+  unfold EtcdGrove.rpctypesErrMapInv
+  iframe Hm
+  isplitr
+  · iintro !> %k %v %h
+    rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨-, rfl⟩ | h
+    · iexact Hok
+    · iapply HS; ipureintro; exact h
+  · ipureintro; intro k v h
+    rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨rfl, rfl⟩ | h
+    · rfl
+    · exact HD k v h
+
+end rpcmap
 
 end Perennial

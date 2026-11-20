@@ -95,8 +95,7 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
-    (HNs : prometheus.namesUnclaimed (init #() ;; body)
-      [read.slowReadIndexName, read.readIndexFailedName])
+    {Ns : List GoString} (HNs : prometheus.namesUnclaimed (init #() ;; body) Ns)
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (HEnv : verifyEnvOff (init #() ;; body))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
@@ -104,13 +103,14 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
       threadBound GF = max (n + 2) srvLevelK →
-      progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
+      progOk (hG := heapWith hG lctx) (prometheus.namesFree (GF := GF) Ns)
         iprop(([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b)
-        init body φ) :
+        init body φ)
+    (hNs : Ns.Nodup := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs HDs HEnv
-    n κs t2 σ2 Hsteps fun hG HN HT =>
+    n κs t2 σ2 Hsteps (hNs := hNs) fun hG HN HT =>
       progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ (sep_reassoc5 _ _ _ _ _)
         (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
           Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn)
@@ -166,8 +166,7 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
-    (HNs : prometheus.namesUnclaimed (init #() ;; body)
-      [read.slowReadIndexName, read.readIndexFailedName])
+    {Ns : List GoString} (HNs : prometheus.namesUnclaimed (init #() ;; body) Ns)
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (HEnv : verifyEnvOff (init #() ;; body))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
@@ -177,13 +176,14 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
       threadBound GF = max (n + 2) srvLevelK →
       ∃ (X : Type) (T : X → IProp GF),
         (⊢ (|==> ∃ x, T x : IProp GF)) ∧
-        ∀ x, progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
+        ∀ x, progOk (hG := heapWith hG lctx) (prometheus.namesFree (GF := GF) Ns)
           iprop((([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗
-            [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ) :
+            [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ)
+    (hNs : Ns.Nodup := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate_alloc init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs
-    HDs HEnv n κs t2 σ2 Hsteps fun hG HN HT => by
+    HDs HEnv n κs t2 σ2 Hsteps (hNs := hNs) fun hG HN HT => by
       obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT
       exact ⟨X, T, Halloc, fun x => progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
         sep_assoc.2

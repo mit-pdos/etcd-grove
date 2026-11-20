@@ -1,5 +1,5 @@
 /-
-`heap.Init(h)` (`container/heap`, names only: the trust boundary; the file is `Init_` since `Init.lean` is the package's initialization). Lean-first; see
+`heap.Init(h)` (`container/heap`, translated, proved in `Proof/container/heap/Init_.lean` over `down`; the trust boundary until 2026-11-20; the file is `Init_` since `Init.lean` is the package's initialization). Lean-first; see
 `Proof/container/heap/Defs.lean`. For client-go's delaying queue.
 -/
 module

@@ -1152,10 +1152,13 @@ axiom grpcConn_persistent {GF : BundledGFunctors} [GooseExts] (conn : Loc) (addr
 
 attribute [instance] grpcConn_persistent
 
-/-- **`v` is grpc's call option `grpc.Peer(p)`** (an axiomatized property, introduced only by
-`grpc.Peer`'s spec, `Spec/google_golang_org/grpc/Peer.lean`): after the call, the attempt's peer
-is written to `*p`. -/
-axiom grpcPeerOpt [GooseExts] (v : GoInterface) (p : Loc) : Prop
+/-- **`v` is grpc's call option `grpc.Peer(p)`**: `PeerCallOption{PeerAddr: p}` as a `CallOption`
+(grpc's `rpc_util.go`; `grpc.Peer`'s spec, `Spec/google_golang_org/grpc/Peer.lean`): after the call,
+the attempt's peer is written to `*p`. (prove-grpcsmall, 2026-11-20) A definition since `grpc.Peer`
+is translated and proved; it was an axiomatized property, introduced only by that spec. -/
+def grpcPeerOpt [GooseExts] [GoGlobalContext] (v : GoInterface) (p : Loc) : Prop :=
+  v = interface.mkOk google_golang_org.grpc.PeerCallOption.ty
+    #(google_golang_org.grpc.PeerCallOption.mk p)
 
 /-- **`pv` is a peer grpc's transport writes** for a call (an axiomatized property: its addresses
 are `net`'s, its auth info grpc's credentials', so its `String()` returns). -/

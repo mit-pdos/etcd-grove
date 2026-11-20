@@ -6,15 +6,18 @@ theorem Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.wp_initi
     [errors.Assumptions] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [ContextReadErrs]
     [log.NewModel] (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
     pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart get_is_pkg_init) : ⊢ ∀ Φ,
-    ownInitRes get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read read.readRegPerm -∗
-    ▷ (ownInitRes get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read read.readRegPerm
-    ∗ isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart -∗ Φ (intoVal ())) -∗
-    WP (github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize' (intoVal ())) {{ Φ }}
+    ownInitResL get_is_pkg_init (regResL
+    github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs) -∗ ▷ (ownInitResL get_is_pkg_init
+    (regResL github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs) ∗ isPkgInit
+    pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart -∗ Φ (intoVal ())) -∗ WP
+    (github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize' (intoVal ())) {{ Φ }}
 
 theorem Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.wp_initialize'
     [errors.Assumptions] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [ContextReadErrs]
     [log.NewModel] (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
     pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart get_is_pkg_init) : ⊢ ∀ Φ,
-    ownInitializing get_is_pkg_init ∗ read.readRegPerm -∗ ▷ (ownInitializing get_is_pkg_init ∗
-    isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart -∗ Φ (intoVal ())) -∗ WP
-    (github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize' (intoVal ())) {{ Φ }}
+    ownInitializing get_is_pkg_init ∗ prometheus.namesFree
+    github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initNames -∗ ▷ (ownInitializing
+    get_is_pkg_init ∗ isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart -∗ Φ
+    (intoVal ())) -∗ WP (github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize' (intoVal
+    ())) {{ Φ }}

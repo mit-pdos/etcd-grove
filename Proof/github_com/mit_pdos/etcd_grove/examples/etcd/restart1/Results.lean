@@ -81,7 +81,7 @@ and nothing else is in the range.
   theorem to use its stop-side parts: the disk snapshot's save and release (`SnapCount = 1`), the
   WAL's close and bbolt's close at the stop (each failure is logged as fatal or returned on a path
   that ends the run).
-- `HNs` (`namesUnclaimed`): the read package's metric names are claimed by no one else at start.
+- `HNs` (`namesUnclaimed`): the program's metric names (`initNames`: its closure's registering packages', mustreg 2026-11-20) are claimed by no one else at start.
 - `HDs` (`dataDirsAbsent [restart1.etcd]`): the data directory does not exist when the program
   starts (the test runs in a fresh `t.TempDir()`).
 - `HEnv` (`verifyEnvOff`): `ETCD_VERIFY` is unset for the run (both incarnations).

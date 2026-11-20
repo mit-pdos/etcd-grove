@@ -1,5 +1,5 @@
 /-
-`zap.Uint`: the trust boundary (`go.uber.org/zap` is names-only; unit P3a: the retry
+`zap.Uint`: proved over zap's code since 2026-11-20 (until then the trust boundary; unit P3a: the retry
 interceptor logs its attempt number).
 -/
 module

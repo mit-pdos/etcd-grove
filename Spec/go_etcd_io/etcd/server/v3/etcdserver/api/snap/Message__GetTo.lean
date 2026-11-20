@@ -24,10 +24,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `m.GetTo()` of a merged message: some id (the sender only logs it). -/
+/-- `m.GetTo()` of a merged message: some id (the sender only logs it). (prove-grpcsmall,
+2026-11-20) With raftpb's package initialization in the precondition: the body is raftpb's getter,
+promoted. -/
 abbrev snap.Message.GetTo.spec : Prop :=
   ∀ (m ml : Loc) (rc : GoInterface),
-  {{ msgIs (GF := GF) m ml rc }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
+      msgIs (GF := GF) m ml rc }}
     (App (Val (m @!! go.GoType.PointerType
         _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty @!!
         go!"GetTo")) (Val #()))

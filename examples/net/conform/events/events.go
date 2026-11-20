@@ -22,7 +22,7 @@ import (
 	"unsafe"
 )
 
-// Version is the trace format's version (README.md); the tracer's nettcpVersion.
+// Version is the trace format's version (README.md); the tracer's netextVersion.
 const Version = 1
 
 // Mono is CLOCK_MONOTONIC in nanoseconds: on Linux, what runtime.nanotime returns, so a driver's

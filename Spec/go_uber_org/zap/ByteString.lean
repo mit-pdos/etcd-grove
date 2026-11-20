@@ -1,5 +1,5 @@
 /-
-`zap.ByteString`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first (no Rocq
+`zap.ByteString`: proved over zap's code since 2026-11-20 (until then the trust boundary). Lean-first (no Rocq
 counterpart; unit P2: the auth store's `isOpPermitted` logs the key).
 -/
 module

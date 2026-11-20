@@ -1,0 +1,144 @@
+/-
+`examples/net/echo` as an instance of the kits' statement: `Robust` with no crashing machine
+(`Robustness/Statement.lean`) under the kit deployment premise (`KitDeploy`,
+`Net/Statement/KitDeploy.lean`), proved through the kits' bridge (`robust_of_kitBoot`,
+`Net/Statement/KitBridge.lean`): the check that the premise is not vacuous and that the bridge is
+usable (`notes/dsverify-net-port-plan.md`, phase 4).
+
+The three machines are the example's commands (`system`, `Results.lean`: `cmd/server`, `cmd/client`,
+`cmd/junk`, each its package's boot program), the plan `[(SrvAddr, "h")]` (well formed: `decide`,
+`echoPlan_wf`), every machine on the host `"h"` (the examples run on one machine). From the start
+resources the bridge gives (`SrvAddr` unset: its pending set and plan entry), the proof allocates
+echo's own protocol (`echoInvs`, `Defs.lean`) rather than the kits' library (a program may keep the
+network's resources in its own protocol), and each machine's boot program is safe by the same
+`wp_main` lemmas as `echo_crash_safety` (`Results.lean`).
+
+The theorem without restarts is weaker than `echo_crash_robust` (every machine may crash and
+restart), from which it also follows by `Robust.of_all_crashing` (a run with no crashing machine is
+a run in which every machine may crash: `distCrashNsteps_more_boots`); it is proved through the
+bridge to show the bridge applies to a real system.
+-/
+module
+
+public import Net.Statement.KitBridge
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.echo.Results
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Robustness
+
+namespace github_com.mit_pdos.etcd_grove.examples.net.echo
+
+attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
+  GooseGlobalGS.gooseInvGS
+
+section kit
+variable [GoGlobalContext]
+
+/-- The plan: the server's address, at the host `"h"`. -/
+def echoPlan : List (GoString × GoString) := [(srvAddr, go!"h")]
+
+/-- Every machine on the host `"h"`. -/
+def echoHosts : List GoString := [go!"h", go!"h", go!"h"]
+
+/-- The kit premise's plan part holds of echo's plan. -/
+theorem echoPlan_wf : PlanWellFormed echoPlan := by decide
+
+end kit
+
+set_option linter.unusedVariables false in
+/-- **echo as a kit**: the three machines, none of which crashes, deployed with the plan
+`echoPlan` and every machine on `"h"` (`KitDeploy`), are robust: in every execution, of any
+length, no thread of any machine is stuck and none has an unrecovered panic. -/
+theorem echo_kit_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
+    [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
+    [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    (σs σc σj : state) (g : GlobalState) (bound : Nat) :
+    KitDeploy echoPlan echoHosts (system σs σc σj) g → Robust [] (system σs σc σj) g bound := by
+  refine robust_of_kitBoot _ _ _ g bound ?_
+  intro G
+  iintro %hplan Hs
+  have HGp : (extGlobalGS netExt (G := G)).plan !! srvAddr = some go!"h" := by
+    rw [hplan]; rfl
+  unfold echoPlan
+  icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Hu, -⟩
+  unfold addrUnset addrTok
+  icases Hu with ⟨Hpend, %h, #Hplan, %HGh⟩
+  dsimp only at HGh
+  have hh : h = go!"h" := by rw [HGp] at HGh; cases HGh; rfl
+  subst hh
+  imod echoInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
+  imodintro
+  iexists fun _ => iprop(echoInvs (Gg := G) γm ∗ netPlan (extGlobalGS netExt) srvAddr go!"h" ∗
+    ⌜(extGlobalGS netExt (G := G)).plan !! srvAddr = some go!"h"⌝)
+  isplitr
+  · ipureintro
+    intro i m hh hm hhost hG hGG hctx
+    obtain ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
+    dsimp only at hGG hctx
+    subst hGG hctx
+    letI hG : HeapGS .hasLC netGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
+    match i, hm, hhost with
+    | 0, hm, hhost =>
+      cases hm; cases hhost
+      dsimp only
+      iintro ⟨#Hinvs, #Hplan, %HGp⟩ %Hh Hgs
+      rw [show boot_server = boot cmd.server.initialize' cmd.server.main from rfl]
+      iapply wp_boot cmd.server.initialize' cmd.server.main _ cmd.server.getIsPkgInit
+          (cmd.server.wp_initialize' _ cmd.server.getIsPkgInit_wf) _
+          (cmd.server.wp_main net.Listen.wp_proof net.Listener.Accept.wp_proof
+            (wire.ReadFull.wp_proof net.Conn.Read.wp_proof) net.Conn.Write.wp_proof
+            net.Conn.Close.wp_proof γm) $$ [] Hgs
+      iframe Hinvs
+      ipureintro
+      rw [Hh]
+      exact HGp
+    | 1, hm, hhost =>
+      cases hm; cases hhost
+      dsimp only
+      iintro ⟨#Hinvs, #Hplan, %HGp⟩ %Hh Hgs
+      rw [show boot_client = boot cmd.client.initialize' cmd.client.main from rfl]
+      iapply wp_boot cmd.client.initialize' cmd.client.main _ cmd.client.getIsPkgInit
+          (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf) _
+          (cmd.client.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+            net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm go!"h") $$ [] Hgs
+      iframe Hinvs Hplan
+    | 2, hm, hhost =>
+      cases hm; cases hhost
+      dsimp only
+      iintro ⟨#Hinvs, #Hplan, %HGp⟩ %Hh Hgs
+      rw [show boot_junk = boot cmd.junk.initialize' cmd.junk.main from rfl]
+      iapply wp_boot cmd.junk.initialize' cmd.junk.main _ cmd.junk.getIsPkgInit
+          (cmd.junk.wp_initialize' _ cmd.junk.getIsPkgInit_wf) _
+          (cmd.junk.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+            net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm go!"h") $$ [] Hgs
+      iframe Hinvs Hplan
+  · dsimp only
+    ihave #HP : iprop(echoInvs (Gg := G) γm ∗ netPlan (extGlobalGS netExt) srvAddr go!"h" ∗
+        ⌜(extGlobalGS netExt (G := G)).plan !! srvAddr = some go!"h"⌝) $$ []
+    · iframe Hinvs Hplan
+      ipureintro; exact HGp
+    simp only [system]
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iexact HP
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iexact HP
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iexact HP
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+
+#print axioms echo_kit_robust
+
+end github_com.mit_pdos.etcd_grove.examples.net.echo
+
+end Perennial

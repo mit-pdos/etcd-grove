@@ -35,8 +35,8 @@ replicas' crashes.
   (`examples/raft/kvnet/driver` runs the clients together with the harness that kills processes
   and partitions the network, which is the semantics' part here). `kvnetRobust (fun cfg => ...)
   (fun addrs => ...)` is the theorem to prove.
-* The extensions: any list of them with the TCP extension (`[HasExt Tcp.tcpExt]`,
-  `GooseLang/Ext/Tcp/Impl.lean`) and the Linux file extension (`[HasExt Fs.fsExt]`: the replicas'
+* The extensions: any list of them with the net extension (`[HasExt Net.netExt]`,
+  `GooseLang/Ext/Net/Impl.lean`) and the Linux file extension (`[HasExt Fs.fsExt]`: the replicas'
   file, written through `durable.Write`, reimplemented over `os` per `notes/decisions.md`, "One
   file semantics, fsExt; power loss only"), each with its own semantics (`HasExt.sem_eq`).
 -/
@@ -44,8 +44,8 @@ module
 
 public import Robustness.Statement
 public import GooseLang.Ext.Fs.Ghost
-public import GooseLang.Ext.Tcp.Ghost
-public import GooseLang.Ext.Tcp.Deploy
+public import GooseLang.Ext.Net.Ghost
+public import GooseLang.Ext.Net.Deploy
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -100,20 +100,20 @@ def replicaAddrs (cfgs : List NodeConfig) : List GoString :=
 
 section deployment
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] [HasExt Fs.fsExt]
-  [HasExt Tcp.tcpExt]
+  [HasExt Net.netExt]
 
 /-- The host of the machine with the local state `σ`. -/
-abbrev hostOf (σ : state) : GoString := (extLocal Tcp.tcpExt σ.world).host
+abbrev hostOf (σ : state) : GoString := (extLocal Net.netExt σ.world).host
 
 /-- The network at the start: the plan `plan` (each address and the host that may listen at it),
-well formed (`Tcp.PlanWellFormed`, the TCP extension's deployment, D13 and D20), and no
+well formed (`Net.PlanWellFormed`, the net extension's deployment, D13 and D20), and no
 connection. -/
 def FreshNet (plan : List (GoString × GoString)) (g : GlobalState) : Prop :=
-  Tcp.PlanWellFormed plan ∧ (extGlobal Tcp.tcpExt g.globalWorld).plan = GMap.ofList plan ∧
-  (extGlobal Tcp.tcpExt g.globalWorld).conns = ∅
+  Net.PlanWellFormed plan ∧ (extGlobal Net.netExt g.globalWorld).plan = GMap.ofList plan ∧
+  (extGlobal Net.netExt g.globalWorld).conns = ∅
 
 /-- The machine with the local state `σ` has no listener. -/
-abbrev NoListener (σ : state) : Prop := (extLocal Tcp.tcpExt σ.world).lis = ∅
+abbrev NoListener (σ : state) : Prop := (extLocal Net.netExt σ.world).lis = ∅
 
 /-- A replica's machine at the deployment's start (a fresh Go process: `Robust`'s premise): no
 listener; its files as on disk, its directory one of the file system's roots and empty; and every

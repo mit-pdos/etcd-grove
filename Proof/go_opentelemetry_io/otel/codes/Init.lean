@@ -2,9 +2,9 @@
 Package initialization of `go_opentelemetry_io.otel.codes`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer allocates its variables and runs their translated
+initializers, the map literals `codeToStr` and `strToCode` (prove-smallinits, 2026-11-20; until then
+the trust-boundary axiom `opaqueInitsOk`).
 -/
 module
 
@@ -27,25 +27,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace go_opentelemetry_io.otel.codes
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_opentelemetry_io.otel.codes`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([codeToStr.init,
-        strToCode.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end go_opentelemetry_io.otel.codes
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -66,8 +47,28 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk codeToStr.init (by mem_tac))
-  wp_apply (opaqueInitsOk strToCode.init (by mem_tac))
+  wp_apply wp_GlobalAlloc (V := Loc) strToCode _ as HstrToCode
+  wp_apply wp_GlobalAlloc (V := Loc) codeToStr _ as HcodeToStr
+  -- translated initializer of codeToStr))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) go_opentelemetry_io.otel.codes.Code.ty go.string) as %mHcs Hcs
+  try wp_auto
+  wp_apply (wp_mapInsert (K := w32) (V := GoString) go_opentelemetry_io.otel.codes.Code.ty) $$ Hcs as Hcs
+  try wp_auto
+  wp_apply (wp_mapInsert (K := w32) (V := GoString) go_opentelemetry_io.otel.codes.Code.ty) $$ Hcs as Hcs
+  try wp_auto
+  wp_apply (wp_mapInsert (K := w32) (V := GoString) go_opentelemetry_io.otel.codes.Code.ty) $$ Hcs as Hcs
+  try wp_auto
+  -- translated initializer of strToCode))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := w32) go.string go_opentelemetry_io.otel.codes.Code.ty) as %mHsc Hsc
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := w32) go.string) $$ Hsc as Hsc
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := w32) go.string) $$ Hsc as Hsc
+  try wp_auto
+  wp_apply (wp_mapInsert (K := GoString) (V := w32) go.string) $$ Hsc as Hsc
+  try wp_auto
   iframe Hown
   is_pkg_init_finish
 

@@ -18,14 +18,14 @@ import (
 
 // Network faults, between two network namespaces joined through a router
 // namespace (netns_helpers_test.go: the topology, the faults as iptables
-// rules in the router's FORWARD chain, the gate NETTCP_NETNS=1 and the
+// rules in the router's FORWARD chain, the gate NET_NETNS=1 and the
 // re-execution as root by sudo -n). Run them with
 //
-//	cd examples && NETTCP_NETNS=1 go test ./net/semantics/ -count=3 \
+//	cd examples && NET_NETNS=1 go test ./net/semantics/ -count=3 \
 //	    -run 'TestTimeoutOnBreak|TestResetInNetwork|TestPartitionHealed|TestAcceptOrder'
 //
 // Each test logs one EVIDENCE line per case: the decisions, the outcome
-// observed, and whether the model (GooseLang/Ext/Tcp/Impl.lean, v2.1, with
+// observed, and whether the model (GooseLang/Ext/Net/Impl.lean, v2.1, with
 // notes/net-tcp-v3-plan.md's E1 error kinds) allows it.
 
 // breakCase is one way of making the client's kernel give up on a

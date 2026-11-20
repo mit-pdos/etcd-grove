@@ -33,7 +33,11 @@ variable label named `le` (excluded: `go!"le" ∉ ls`; no const labels) or on bu
 not strictly increasing (excluded: `bucketsOk`; `NativeHistogramBucketFactor` zero, so no other
 option is checked), and keeps `opts.Buckets` as the histogram's `upperBounds` (the options are
 captured by the closure: the bucket slice is kept). `WithLabelValues` otherwise panics only on an
-error of `validateLabelValues`: what `HistogramVec.WithLabelValues.spec` takes from `vecLabels`. -/
+error of `validateLabelValues`: what `HistogramVec.WithLabelValues.spec` takes from `vecLabels`. (mustreg, 2026-11-20) Its post's `collectorName`: the
+result, as a `Collector` (`*HistogramVec`), describes one descriptor, `desc` (`MetricVec.Describe`,
+`vec.go:124`, is `metricMap.Describe`, which sends `m.desc` alone), named `BuildFQName(ns, sub,
+name)` (`fqName`), valid (as above), without const labels (`counterOpts`/`histOpts`: `ConstLabels`
+nil); its variable labels enter `desc.dimHash`, not `desc.id` (`NewDesc`, `desc.go`). -/
 axiom prometheus.NewHistogramVec.wp_proof : prometheus.NewHistogramVec.spec (GF := GF) (hG := hG)
 
 end proof

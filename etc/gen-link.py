@@ -74,7 +74,6 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
-       etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
        etc/gen-link.py --bbolt --results > Proof/go_etcd_io/bbolt/Results.lean
 
@@ -737,22 +736,7 @@ LEAN_FIRST["--mvccfull"] = ("link-lean-first-mvccfull.txt",
                             "github_com.mit_pdos.etcd_grove.examples.mvccfull",
                             "github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions",
                             "mvcc's full tester's proofs (`examples/mvccfull`)", [""])
-# Kubernetes' conditional authorization (KEP-5681: k8s.io/apiserver's pkg/authorization/{authorizer,
-# union}) and its driver (examples/k8s/authz, 2026-11-19): the three packages' specs, the trust
-# boundary of the opaque callees (axioms), Perennial's results as `=` terms
-LEAN_FIRST["--k8s-authz"] = ("link-lean-first-k8s-authz.txt",
-                             "k8s_io.apiserver.pkg.authorization.authorizer "
-                             "k8s_io.apiserver.pkg.authorization.union "
-                             "github_com.mit_pdos.etcd_grove.examples.k8s.authz",
-                             "github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assumptions",
-                             "Kubernetes' conditional authorization's proofs (KEP-5681: `k8s.io/apiserver`'s "
-                             "`pkg/authorization/{authorizer,union}`) and its driver's (`examples/k8s/authz`)",
-                             [""])
-NAMESPACED["--k8s-authz"] = "k8s_authz"
-EXTRA_IMPORTS["--k8s-authz"] = ["Perennial.Proof.errors.Link", "Perennial.Proof.context.Link",
-                                "Perennial.Proof.strings.Link", "Perennial.Proof.fmt.Link",
-                                "Perennial.Proof.slices.Link"]
-mode =LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
+mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)} {' '.join(PART_ALIASES)})")
 if ALIAS:

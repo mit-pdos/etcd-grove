@@ -581,6 +581,15 @@ def main():
         "that code means (each docstring says why)."
     )
     w(
+        "- **The library models' generators** (`models/`, `models/README.md`): a program whose "
+        "statement runs over a generated codec in place of a real library trusts the generator, "
+        "not each output (`notes/decisions.md`, \"Trusted generated code: the generator is the "
+        "trusted artifact\"): `models/protobuf/pbgen_core.py` (protobuf-go v1.36.12's "
+        "Marshal/Unmarshal, for the schemas it accepts; its doc gives the subset, the encoding "
+        "per field kind and the deviations) and `models/json/jsongen.py` (encoding/json, for its "
+        "listed types). No closed result runs over one yet."
+    )
+    w(
         "- **The statements**: a proved theorem says only what its statement says. The "
         "results and the definitions they rest on, listed above, are what must be read."
     )

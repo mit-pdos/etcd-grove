@@ -1,6 +1,6 @@
 // Package tcpwriteloop measures the corners of Go's Write loop that the TCP
-// semantics v3.1 models as a loop of steps (GooseLang/Ext/Tcp/Impl.lean, D2,
-// D15; NetTcp/TrustedCode/net.lean, model.writeLoop), for the v3.1 review
+// semantics v3.1 models as a loop of steps (GooseLang/Ext/Net/Impl.lean, D2,
+// D15; Net/TrustedCode/net.lean, model.writeLoop), for the v3.1 review
 // (notes/axiom-review/tcp-semantics.md, "v3.1 (2026-11-15)"). Tests only: none
 // is a counterexample; each records what Go and Linux do where a mismatch with
 // the model could hide, and says which model behavior covers it.
@@ -26,20 +26,20 @@ import (
 
 // Size is larger than loopback's socket buffers hold (tcp_wmem max 4 MiB,
 // tcp_rmem max 6 MiB here), so a Write of Size blocks while the peer does not
-// read (the measured Writes block after about 5.4 MB). $NETTCP_WL_SIZE
+// read (the measured Writes block after about 5.4 MB). $NET_WL_SIZE
 // overrides it (12 MiB for a traced run: the Lean replay overflows its stack
 // on a 32 MiB step).
 var Size = func() int {
-	if v, err := strconv.Atoi(os.Getenv("NETTCP_WL_SIZE")); err == nil && v > 0 {
+	if v, err := strconv.Atoi(os.Getenv("NET_WL_SIZE")); err == nil && v > 0 {
 		return v
 	}
 	return 32 << 20
 }()
 
-// iters returns n, or $NETTCP_WL_ITERS if set (1 for a traced run: the
+// iters returns n, or $NET_WL_ITERS if set (1 for a traced run: the
 // conformance tracer records every byte).
 func iters(n int) int {
-	if v, err := strconv.Atoi(os.Getenv("NETTCP_WL_ITERS")); err == nil && v > 0 {
+	if v, err := strconv.Atoi(os.Getenv("NET_WL_ITERS")); err == nil && v > 0 {
 		return v
 	}
 	return n

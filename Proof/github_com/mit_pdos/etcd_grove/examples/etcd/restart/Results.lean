@@ -87,7 +87,7 @@ at revision `1 + 25`), with its value, and nothing else in the range.
   configurations (putget3's; `TestMemberIDs` in `restart3_test.go` prints the ids).
 - `Haf`, `Hbuq`, `Hdbo`: sizes of the auth records, the backend's quota, the WAL's and the disk's
   saves (restart1's, with its stop-side parts).
-- `HNs` (`namesUnclaimed`): the read package's metric names are claimed by no one else at start.
+- `HNs` (`namesUnclaimed`): the program's metric names (`initNames`: its closure's registering packages', mustreg 2026-11-20) are claimed by no one else at start.
 - `HAs` (`addrsUnclaimed`): the three peer addresses are free at start (the closed-world clause the
   user accepted on 2026-11-14); no client address is served.
 - `HDs` (`dataDirsAbsent`): the three data directories do not exist at start.

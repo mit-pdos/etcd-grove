@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "NetTcp"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -108,21 +108,21 @@ globs = ["WalTester.+"]
 name = "Robustness"
 globs = ["Robustness.+"]
 
-# The TCP extension's `net` (`GooseLang/Ext/Tcp`, notes/net-tcp.md) with the programs proved over
+# The net extension's `net` (`GooseLang/Ext/Net`, notes/net-tcp.md) with the programs proved over
 # it (examples/net/), in a parallel tree with the same layout
-# (NetTcp/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; etc/goose.py's project
-# nettcp): the main tree's `net` is names only, with the axioms etcd's server proofs use, so the
-# two declare the same names; nothing outside NetTcp imports it.
+# (Net/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; etc/goose.py's project
+# net): the main tree's `net` is names only, with the axioms etcd's server proofs use, so the
+# two declare the same names; nothing outside Net imports it.
 [[lean_lib]]
-name = "NetTcp"
-globs = ["NetTcp.+"]
+name = "Net"
+globs = ["Net.+"]
 
 # The Lean certification of the TCP conformance checker's witnesses
 # (examples/net/conform/check/README.md, "Certification in Lean"): replays a witness and the run's
-# traced calls through the proved deciders of GooseLang/Ext/Tcp/Decide.lean.
+# traced calls through the proved deciders of GooseLang/Ext/Net/Decide.lean.
 [[lean_exe]]
-name = "nettcp-replay"
-root = "GooseLang.Ext.Tcp.Replay"
+name = "net-replay"
+root = "GooseLang.Ext.Net.Replay"
 
 [leanOptions]
 linter.unusedSectionVars = false
