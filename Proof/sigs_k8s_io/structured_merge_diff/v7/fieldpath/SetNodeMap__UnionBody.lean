@@ -147,7 +147,33 @@ theorem fieldpath.SetNodeMap.Union.wp_proofBody
           have hs2 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
           rw [hs, hs2]
           exact ⟨by word, by omega, by word, by omega, hf', ho'⟩
-        · sorry
+        · wp_auto
+          repeat (simp only [b1, b2, _root_.and_self, ↓reduceIte]; wp_auto)
+          try simp only [b1, b2, _root_.and_self, ↓reduceIte]
+          wp_apply (wp_load_slice_index m2.members' (sint.Z j) ns2 DFrac.discard n2 hj0) $$ [Hns2] as -
+          · iframe #; ipureintro; exact Hn2_lookup
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %nsl ⟨Hnsl, -⟩
+          wp_auto
+          wp_apply wp_slice_append $$ [$Hos $Hoc $Hnsl] as %osl' ⟨Hos, Hoc, -⟩
+          iapply wp_for_post_do
+          wp_pures
+          have hlt : PE.lt nl2[sint.nat j].1 nl1[sint.nat i].1 := by
+            rw [he1, he2]; exact hr2.1 rfl
+          obtain ⟨hf', ho'⟩ := fpC.union_step2 hok1.1 hok2.1 hfr hoi hi hj hlt
+          ihave #Hlo' := fpC.nodesL_snoc outs lo n2 pe2 S2 $$ [$Hlo $Hpe2 $HS2]
+          rw [he2] at ho'
+          iframe
+          iexists i, j + W64 1, osl', outs ++ [n2], lo ++ [(pe2, S2)]
+          iframe
+          isplit
+          · iexact Hlo'
+          ipureintro
+          have hs : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+          rw [hs]
+          exact ⟨hi0, hi1, by word, by omega, hf', ho'⟩
       · wp_auto
         simp only [b1, b2, _root_.and_self, ↓reduceIte]
         wp_apply (wp_load_slice_index m1.members' (sint.Z i) ns1 DFrac.discard n1 hi0) $$ [Hns1] as -
@@ -174,8 +200,98 @@ theorem fieldpath.SetNodeMap.Union.wp_proofBody
         have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
         rw [hs]
         exact ⟨by word, by omega, hj0, hj1, hf', ho'⟩
-    · sorry
-  · sorry
+    · -- `s2` consumed: the rest of `s` appended
+      rename_i Hif1
+      have hjn := Hif
+      have hjl : sint.nat j = nl2.length := by rw [← hnl2, hlen2.1]; word
+      have hin : sint.Z i ≤ sint.Z m1.members'.len := by word
+      rw [hjl] at hfr hoi
+      iapply wp_fupd
+      wp_if_destruct
+      · ihave %hwf := ownSlice_wf $$ Hns1
+        simp only [hi0, hin, hwf.2, _root_.and_self, ↓reduceIte]
+        icases (ownSlice_slice i m1.members'.len m1.members' DFrac.discard ns1
+          ⟨hi0, hin, Int.le_refl _⟩).1 $$ Hns1 with ⟨-, Hmid, -⟩
+        wp_apply (wp_slice_append (V := fieldpath.setNode) osl outs _ _ DFrac.discard)
+          $$ [$Hos $Hoc $Hmid] as %osl1 ⟨Hos, Hoc, -⟩
+        wp_if_destruct
+        · exact absurd Hif hjn
+        have hsl : subslice (sint.nat i) (sint.nat m1.members'.len) ns1 = ns1.drop (sint.nat i) := by
+          unfold subslice; rw [List.take_of_length_le (Nat.le_of_eq hlen1.1)]
+        rw [hsl]
+        ipersist Ho
+        ihave #Hd := fpC.nodesL_drop ns1 nl1 (sint.nat i) $$ Hnl1
+        ihave #Ho2 := fpC.nodesL_append outs (ns1.drop (sint.nat i)) lo (nl1.drop (sint.nat i)) $$ [$Hlo $Hd]
+        have hfin := fpC.union_tail1 hok1.1 hi1 hfr hoi
+        ipersist Hos
+        imodintro
+        iapply HΦ
+        iexists _
+        isplit
+        · iexact Ho
+        iapply (fpC.isNodesV_view _ _).2
+        iexists (outs ++ ns1.drop (sint.nat i)), (lo ++ nl1.drop (sint.nat i))
+        isplit
+        · iexact Hos
+        isplit
+        · iexact Ho2
+        ipureintro
+        exact ⟨hfin.1, fpC.union_final hfin D1 D2 hok1.2 hok2.2⟩
+      · exact absurd Hif1 Hif
+  · -- `s` consumed: the rest of `s2` appended
+    have hin := Hif
+    have hil : sint.nat i = nl1.length := by rw [← hnl1, hlen1.1]; word
+    rw [hil] at hfr hoi
+    iapply wp_fupd
+    wp_if_destruct
+    · exact absurd Hif hin
+    wp_if_destruct
+    · have hjn : sint.Z j ≤ sint.Z m2.members'.len := by word
+      ihave %hwf := ownSlice_wf $$ Hns2
+      simp only [hj0, hjn, hwf.2, _root_.and_self, ↓reduceIte]
+      icases (ownSlice_slice j m2.members'.len m2.members' DFrac.discard ns2
+        ⟨hj0, hjn, Int.le_refl _⟩).1 $$ Hns2 with ⟨-, Hmid, -⟩
+      wp_apply (wp_slice_append (V := fieldpath.setNode) osl outs _ _ DFrac.discard)
+        $$ [$Hos $Hoc $Hmid] as %osl1 ⟨Hos, Hoc, -⟩
+      have hsl : subslice (sint.nat j) (sint.nat m2.members'.len) ns2 = ns2.drop (sint.nat j) := by
+        unfold subslice; rw [List.take_of_length_le (Nat.le_of_eq hlen2.1)]
+      rw [hsl]
+      ipersist Ho
+      ihave #Hd := fpC.nodesL_drop ns2 nl2 (sint.nat j) $$ Hnl2
+      ihave #Ho2 := fpC.nodesL_append outs (ns2.drop (sint.nat j)) lo (nl2.drop (sint.nat j)) $$ [$Hlo $Hd]
+      have hfin := fpC.union_tail2 hok2.1 hj1 hfr hoi
+      ipersist Hos
+      imodintro
+      iapply HΦ
+      iexists _
+      isplit
+      · iexact Ho
+      iapply (fpC.isNodesV_view _ _).2
+      iexists (outs ++ ns2.drop (sint.nat j)), (lo ++ nl2.drop (sint.nat j))
+      isplit
+      · iexact Hos
+      isplit
+      · iexact Ho2
+      ipureintro
+      exact ⟨hfin.1, fpC.union_final hfin D1 D2 hok1.2 hok2.2⟩
+    · have hjl : sint.nat j = nl2.length := by rw [← hnl2, hlen2.1]; word
+      have hfin := fpC.union_tail2 hok2.1 hj1 hfr hoi
+      rw [hjl, List.drop_length, List.append_nil] at hfin
+      ipersist Ho
+      ipersist Hos
+      imodintro
+      iapply HΦ
+      iexists _
+      isplit
+      · iexact Ho
+      iapply (fpC.isNodesV_view _ _).2
+      iexists outs, lo
+      isplit
+      · iexact Hos
+      isplit
+      · iexact Hlo
+      ipureintro
+      exact ⟨hfin.1, fpC.union_final hfin D1 D2 hok1.2 hok2.2⟩
 
 end proof
 
