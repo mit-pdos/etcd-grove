@@ -60,6 +60,8 @@ theorem EtcdServer.sendMergedSnap.wp_proof
   wp_start as ⟨Hgr, Hlr, #Hlgf, #Hlgnn, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr, #Hmg, Hbun⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
+  ihave #Prpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
   (try wp_auto)
   -- `s.inflightSnapshots.Add(1)`
   wp_apply_core sync.atomic.Int64.wp_Add (srvInflightAddr s) (W64 1) $$ [] [-]

@@ -173,9 +173,7 @@ axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.NewServer.wp_proof
-axiom grpc.Peer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
-axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpc.WithPerRPCCredentials.wp_proof
@@ -195,7 +193,6 @@ axiom grpcConnsLink
 axiom grpcDialOptIs
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
-axiom grpcPeerOpt
 axiom grpcProtoCodec
 axiom grpcReplyTo
 axiom grpcResolverAt
@@ -237,7 +234,6 @@ axiom http.respReadAny_of_ok
 axiom http.respWrite_ok
 axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
-axiom insecure.NewCredentials.wp_proof
 axiom io.CopyN.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.NewSectionReader.wp_proof
@@ -354,7 +350,6 @@ axiom semver.Version.Major.wp_proof
 axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
-axiom snap.Message.GetTo.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.SliceIsSorted.wp_proof

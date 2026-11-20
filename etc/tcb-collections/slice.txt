@@ -25,11 +25,9 @@ axiom errors.IsDeadlineExceeded.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
-axiom grpc.StaticMethod.wp_proof
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcPeerOpt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom mvcc.hashStorage.Store.wp_proof

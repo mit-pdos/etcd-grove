@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import ManualProof.google_golang_org.grpc
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.google_golang_org.grpc.metadata
+public import GeneratedProof.google_golang_org.grpc.peer
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
 
@@ -1008,12 +1009,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
 noncomputable instance PeerCallOption_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.PeerCallOption :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.PeerCallOption where
+  typedPointstoDef l v dq := iprop(
+    "PeerAddr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance PeerCallOption_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.PeerCallOption google_golang_org.grpc.PeerCallOption.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.PeerCallOption google_golang_org.grpc.PeerCallOption.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance PeerCallOption_access_load_PeerAddr (l : Loc) (v : google_golang_org.grpc.PeerCallOption) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance PeerCallOption_access_store_PeerAddr (l : Loc) (v : google_golang_org.grpc.PeerCallOption) (PeerAddr' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) PeerAddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerAddr' := PeerAddr' } : google_golang_org.grpc.PeerCallOption) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end PeerCallOption
@@ -1476,25 +1498,6 @@ noncomputable instance noCopy_into_val_typed :
 
 end def_
 end noCopy
-
-namespace parser
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-noncomputable instance parser_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.parser :=
-  sorry -- axiomatized type
-
-noncomputable instance parser_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.parser google_golang_org.grpc.parser.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end parser
 
 end google_golang_org.grpc
 end
