@@ -24,13 +24,13 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
-variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)]
 
 theorem storage.storage.SaveSnap.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_SaveSnapshot : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (Sio := Sio) P Mr) :
     storage.storage.SaveSnap.spec (Sio := Sio) P Mr := by
   intro p ss R jr r w dir γ q sn mp dq m al sized Q
-  wp_start as ⟨#Hover, Hrd, HM, #Hmeta, %Hset, %Henc, #Harea, Hws, %Hcov, %Hidx, %Hlt, %Hlen, HAU⟩
+  wp_start as ⟨#Hover, Hrd, HM, #Hmeta, %Hset, %Henc, #Harea, Hws, %Hcov, %Hcd, %Hidx, %Hlt, %Hlen, HAU⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hrpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -60,7 +60,7 @@ theorem storage.storage.SaveSnap.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     $$ [Hws HAU] as %err Hpost
   · dsimp only
     iframe Hws HAU Harea Hsnap
-    ipureintro; exact ⟨Hcov, Hidx, Hlt, Hlen⟩
+    ipureintro; exact ⟨Hcov, Hcd, Hidx, Hlt, Hlen⟩
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HP]
   · inext; iunfold storagePw; iexact HP
   iintro Hrd

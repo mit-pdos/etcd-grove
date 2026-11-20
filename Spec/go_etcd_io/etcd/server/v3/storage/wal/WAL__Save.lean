@@ -51,7 +51,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
-variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)]
 
 /-- **`raft.MustSync` over the client's hard states** (raft's `rawnode.go`: `entsnum != 0 ||
 st.GetVote() != prevst.GetVote() || st.GetTerm() != prevst.GetTerm()`; a law of `P`, as
@@ -93,7 +93,9 @@ update only for a batch that fits: there the refusal is impossible). A batch tha
 a write past ext4's `s_maxbytes`, `fsExt`'s `maxBytes`, fails with `EFBIG`). The update commits right after `w.mu.Lock()`, before any record is encoded (a
 crash mid-call leaves an image of `H ++ [op]` past the mark, `walImg`); then the entries' records, `st`'s
 unless empty (`saveState`), then a `sync` if `MustSync`, or a `cut` if the tail reached
-`SegmentSizeBytes` (which syncs). `Save` of an empty state and no entries writes nothing (S/wal.go:1079)
+`SegmentSizeBytes` (which syncs; `cut.spec`'s premises: the lock and map premise at `Sio`,
+`FsStepSat (NoMapLockErr Sio)`, and, when `Sio` covers every inode, the WAL directory fitting, `DirFits dir`,
+with its children's paths in `Sio`: `WalA.fits`/`covP`). `Save` of an empty state and no entries writes nothing (S/wal.go:1079)
 while the model appends `save hsZero []` (no reader sees it). *Success*: the share, `Q d`, the history
 written to its new length (`walLenLb`), and synced if the save must sync (`walMustSync`). *Error* (only
 when `Sio` misses an inode, and then the caller holds the whole share: an I/O failure of a write, the
@@ -105,6 +107,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (P : WalPbIn GF) (Mr 
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (hp : Loc)
     (hs : HardStateM) (sl : GoSlice) (esL : List Loc) (es : List EntryM) (sized : Bool)
     (Q : WalDur → IProp GF),
+  (walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)) →
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
       P.hsIn hp hs ∗ sl ↦*□ esL ∗ walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗

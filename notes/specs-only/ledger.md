@@ -3273,3 +3273,97 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `isPkgInit raftpb` in the precondition (the one caller, `sendMergedSnap`, gets it by `iPkgInit`);
   `msgRO` keeps the raft message's read-only content (`∃ st, msgOwn ml □ st`), which `NewMessage`'s precondition gives.
 - **Decision.** Applied (prove-grpcsmall, 2026-11-20).
+## 2026-11-20: `cut.specNoErr` needs lock coverage and a WAL directory that fits (`WalH`)
+
+- **Spec.** `WalH` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`, the open WAL handed out by the assumed
+  `bootstrapContract`'s `wal.bootOk`); `WAL.cut.specNoErr` (`Spec/.../storage/wal/WAL__cutNoErr.lean`).
+- **Defect.** `cut.specNoErr` is not provable over `FsStepSat (NoIoErr Sio)` alone: `cut` locks its new segment
+  (`fileutil.LockFile`: OFD lock, `flock` fallback, covered by `NoMapLockErr`, not `NoIoErr`), and its path calls
+  (`dir/<seg>.wal`, `dir/<n>.tmp`) are covered only when they fit (`PathFits`, the user's A1 decision). `WalH`
+  carries neither the `NoMapLockErr` instance nor the WAL directory's `DirFits`, so `Save`'s covered case cannot
+  discharge them.
+- **Evidence.** wal-fsfix's attack (noioerr.md session 10, item 1) and the `cut` proof's callees (`WAL__cut.lean`).
+- **Proposed change.** `WalH` gains the `FsStepSat (NoMapLockErr Sio)` instance and `Fs.DirFits dir` (derived from
+  the data directory's `DirFits`, `bootCfgFresh`); `cut.specNoErr` takes them. Old → new meaning of
+  `bootstrapContract`: the open WAL it hands out was covered by `NoIoErr` only → also by `NoMapLockErr` (its lock
+  calls succeed whenever they can), in a directory that fits.
+- **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03; an independent attack before relying on it.
+
+## 2026-11-20: `cut.specNoErr` also needs the WAL directory's paths covered (`WalA.cov` is inodes only)
+
+- **Spec.** `WalA`/`WalH` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), `WAL.cut.specNoErr`
+  (`Spec/.../storage/wal/WAL__cutNoErr.lean`, premise `∀ st i, Sio.ino st i`).
+- **Defect.** `NoIoErr Sio` covers a path call (`open`, `rename`, `mkdir`, `unlink`, `rmdir`) only when
+  `Sio.path p ∧ PathFits p` (`IoCovers`, `Premises.lean`). `cut` makes three: the pipeline's `OpenFile(dir/<n>.tmp,
+  O_CREATE)` (`filePipeline.alloc`), `os.Rename(dir/<n>.tmp, dir/<seq>-<idx>.wal)` and `LockFile`'s
+  `OpenFile(dir/<seq>-<idx>.wal, O_WRONLY)`; the low-level no-error lemmas take it (`wp_osOpenCreateSNE`,
+  `wp_osOpenFileSNE`: `Sio.path (child d b)`; `wp_osRenameFileSNE`: `∀ p, Sio.path p`). `WalA.cov` (`walCov Sio`)
+  covers every inode and no path, so even with the approved `satL`/`fits` (entry above) an uncovered `open` may
+  fail with any errno and `cut` return its error: `cut.specNoErr` stays unprovable in `Save`'s covered case. The
+  entry above's `Fs.DirFits dir` is also not derivable from `bootCfgFresh`'s `DirFits DataDir` as written there
+  (`srvWalDirOf d` is 3 bytes longer than `d`; `DirFits` bounds at 3800): implemented instead at the area's
+  allocation, from the member's name of at most 200 bytes (`dirFits_srvWalDirOf_memberDataDir`), so `walAreaFresh`
+  carries it (no change to `bootCfgFresh`).
+- **Evidence.** wal-fsfix2's survey of `cut`'s callees (`WAL__cut.lean`, `NoErrSpecsOpenFile.lean`,
+  `NoErrSpecsRename.lean`); no WAL spec over an open WAL names `Sio.path` (grep).
+- **Proposed change.** `WalA` gains `covP : ∀ b, Sio.path (Fs.child dir b)` (the WAL directory's entries; the
+  closed theorems' `allIo` covers every path, so the allocation gives it by `trivial`); `cut.specNoErr` takes it
+  with `satL` and `fits`. Old → new meaning of `bootstrapContract`'s `wal.bootOk`: the open WAL's files covered by
+  `NoIoErr`/`NoMapLockErr` by inode → also its directory's names by path (a covered `open`/`rename` there that can
+  succeed does). Alternative: `covP : ∀ p, Sio.path p` (simpler, as `FsNoErr`; claims more than `cut` needs).
+- **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03: the narrow `WalA.covP : ∀ b, Sio.path (Fs.child
+  dir b)`; the forms (the fields in `WalA`, `fits` from the name bound via `hmsL`) accepted. An independent attack on
+  `covP` with `satL`/`fits` before relying on it.
+
+## 2026-11-20: `cut` under `walCov` can still fail: a blocking lock request in conflict may fail (no premise excludes it)
+
+- **Spec.** `WAL.cut.spec` in the decided one-spec form (error arm `err ≠ nil ∧ ¬ walCov Sio`), and through it `Save`/
+  `SaveSnapshot`'s covered case and item 3 (`rnNewStorageOk_holds`).
+- **Defect.** `cut` makes two blocking lock requests: the pipeline's `LockFile(dir/<n>.tmp, O_CREATE|O_WRONLY)` on the
+  fresh temporary file and step 8's `LockFile(dir/<seq>-<idx>.wal, O_WRONLY)` after `newTail.Close()` released the
+  lock (fileutil: `F_OFD_SETLKW`, or `flock(LOCK_EX)` without `LOCK_NB`). The lock rule (`LockStep`, `Impl.lean`) has a
+  success only when no other description holds a conflicting lock (`LockConflict`); otherwise only failures (any
+  errno: the model's "waits, or fails", `locks_blocking.go`, the user's 2026-11-15 choice, `locks.md` §2.4). `NoIoErr`'s
+  `OfdLock` clause and `NoMapLockErr`'s `Flock` clause ask errno 0 only where a success exists, so in a conflict they
+  allow every errno. Nothing in the logic excludes a conflict at those steps: the locks' ghost state (`lockCtx`,
+  `Locks.lean`) tracks exclusive locks only, and only while held (step 8 runs after the close released the token);
+  no resource says no other description on the inode exists or holds a shared lock. So the planned witness
+  `e ≠ 0 → ¬ FsNoErrIno` on the lock calls is not provable, and `cut`'s error arm `¬ walCov Sio` is not either.
+- **Evidence.** wal-fsfix2 a6 (reading `LockStep`, `IoCovers "OfdLock"`, `MapLockOk "Flock"`, `wp_osLockStep`,
+  `fileutil.wp_ofdLockFile`/`wp_flockLockFile`, `WAL__cut.lean` step 8). On Linux a blocking request in conflict waits
+  (measured, `TestLocksBlocking`); the model's failure there is what the premises leave open.
+- **Proposed change.** (A, recommended; trusted) the semantics gives a blocking request in conflict a wait step (the
+  call steps to itself, as `MmapStall`; `locks_blocking.go` updated: "waits" becomes a step), and the premises say a
+  covered blocking request ends errno 0 or waits (`NoIoErr` "OfdLock", `NoMapLockErr` "Flock"; `StepKeeps` holds: the
+  wait step is always there). The base semantics keeps its failures (§2.4 unchanged); only the covered case loses them,
+  resting on `SA_RESTART` (measured) and no allocation failure at entry (already the premises' assumption). Then the
+  lock witness is `e ≠ 0 → ¬ FsNoErrIno` and the decided plan goes on unchanged. (B, untrusted, large) a lock right per
+  inode and kind in `lockCtx` (shared locks tracked too), a fraction needed for every lock request, the whole one kept
+  by the WAL for its segments: changes every lock spec (fileutil `LockFile`/`TryLockFile`, bbolt's `flock`, the purge's
+  `TryLockFile` on WAL files), and the purge's concurrent locks must fit it. (C) `cut`'s error arm keeps a lock
+  disjunct: item 3 then stays unprovable.
+- **Decision.** Option (A), approved by the user 2026-11-20 via etcd-grove-03. Done: `LockStep` takes the call itself
+  (`self`) and has a third outcome, `nb = false ∧ LockConflict … ∧ st' = st ∧ e' = self`; `ErrnoZero "OfdLock"` and
+  `MapLockOk "Flock"` count the wait as no error; `locks_blocking.go` and `doc.go` updated; the lock calls are no longer
+  `FsRetOp` (not atomic: `CrashFile.lean`); `wp_osLockStep` handles the wait by Löb induction. Old → new meaning: a
+  blocking lock request in conflict waited by failing or by taking no step → it may step to itself; under
+  `NoIoErr`/`NoMapLockErr`, a covered blocking request ends with errno 0 or waits (was: any errno in a conflict).
+  An independent attack before relying on it.
+
+## 2026-11-20: `cut.spec` restated as one spec over `Sio`; `sync.specCut`, `Save`, `SaveSnapshot` and the storage specs follow
+
+- **Spec.** `WAL.cut.spec` and `WAL.cut.specNoErr` (deleted), `WAL.sync.specCut`, `WAL.Save.spec`, `WAL.SaveSnapshot.spec`,
+  `storage.storage.Save.spec`, `storage.storage.SaveSnap.spec`.
+- **Defect.** Two specs for one function (`cut.spec`, any error; `cut.specNoErr`, unproved, its premises incomplete:
+  the three entries above); `Save`/`SaveSnapshot` chose between them at the call (`CalleeCov.walCov_cut`).
+- **Evidence.** wal-fsfix2 a5-a8; the decided form (etcd-grove-03, 2026-11-20, `questions.md`).
+- **Proposed change.** One `cut.spec` parameterised by `Sio`, with `[FsStepSat (NoIoErr Sio)]` and
+  `[FsStepSat (NoMapLockErr Sio)]`: premises `walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)` and
+  `walCov Sio → o0 + |out| + |pend| ≤ maxBytes`; error arm `err ≠ nil ∧ ¬ walCov Sio`. `sync.specCut` the same way
+  (room premise, error `¬ walCov Sio`; proved from `sync.spec` and `sync.specNoErr`). `Save.spec` gains the instance
+  and the premise `walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)` (a Lean premise); `SaveSnapshot.spec`'s
+  `shared` precondition the same premise as a pure assertion; the storage specs the same, discharged by
+  `RnNewStorage` from `WalH.fits`/`covP` (`satL` the instance).
+- **Decision.** Decided by etcd-grove-03 (the one-spec form, 2026-11-20). Done (wal-fsfix2 a8): `cut.spec` proved
+  (`WAL__cut.lean`: every callee's error witnessed, `Fs.fsNoErrOn_of` refutes it under `walCov`), `cut.specNoErr`,
+  `walCov_cut` and `WAL__cutNoErr.lean` deleted; the WAL Link's hypothesis `h_wal_WAL_cutNoErr` gone.

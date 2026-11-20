@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Codec
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Srv
 public import Perennial.Ghost.MonoList
+public import GooseLang.Ext.Fs.PathFitsLemmas
 
 @[expose] public section
 
@@ -113,7 +114,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **A WAL area and directory** (see the section header): what a closed WAL's files are named by. -/
+/-- **A WAL area and directory** (see the section header): what a closed WAL's files are named by.
+(wal-fsfix2, 2026-11-20, approved by the user via etcd-grove-03: ledger "`cut.specNoErr` needs lock
+coverage and a WAL directory that fits") Every step also satisfies `NoMapLockErr Sio` (`satL`: the lock
+calls on the covered files succeed whenever they can, as `NoIoErr` for the other calls; `fileutil.LockFile`
+takes `flock` when `init` finds no OFD locks), and the WAL directory fits (`fits`, `Fs.DirFits`: the paths
+`cut` makes below it, `dir/<seq>-<index>.wal` and `dir/<n>.tmp`, fit, which `NoIoErr` asks of a path call
+it covers) and every path below it (`child dir b`, `b` possibly with `/`) is in `Sio` by path (`covP`, approved by the user 2026-11-20: ledger, "`cut.specNoErr`
+also needs the WAL directory's paths covered"; `cov` covers inodes only, and `NoIoErr` covers a path call only on a
+path in `Sio`). The closed theorems allocate the area with all three (`lib/etcdstart/WalAreas.lean`:
+`etcdSQ`'s second half, and the member's name of at most 200 bytes). -/
 structure WalA (GF : BundledGFunctors) where
   ext : ExtSemantics Fs.fsExt
   semOk : Fs.FsSemOk (S := ext)
@@ -121,11 +131,14 @@ structure WalA (GF : BundledGFunctors) where
   W : WalFs.WalGS GF
   Sio : Fs.IoSet
   sat : Fs.FsStepSat (Fs.NoIoErr Sio) (S := ext)
+  satL : Fs.FsStepSat (Fs.NoMapLockErr Sio) (S := ext)
   cov : WalFs.walCov Sio
   R : Fs.Roots
   jr : Fs.Ino
   r : GoString
   dir : GoString
+  fits : Fs.DirFits dir
+  covP : ∀ b, Sio.path (Fs.child dir b)
 
 /-- **An open WAL** (see the section header). -/
 structure WalH (GF : BundledGFunctors) extends WalA GF where

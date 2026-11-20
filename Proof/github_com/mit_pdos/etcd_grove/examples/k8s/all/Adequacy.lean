@@ -170,6 +170,8 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine etcd_adequate_alloc_members (GF := k8sGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
+    (hmsL := fun m hm => (List.mem_append.1 hm).elim (k8s_etcd3N.startAddrs_names_len k₁ m)
+      (k8s_compactorN.startAddrs_names_len k₂ m))
     (hAsLit := k8s_all.k8sAddrs_lit k₁ k₂ hk₁ hk₂) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.all.initialize'
     (App (App (App (App (App (App (App (App
