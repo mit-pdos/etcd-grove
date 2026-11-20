@@ -23,6 +23,10 @@ package grpc
 import (
 	"math/rand/v2"
 	"os"
+	"sync"
+	"time"
+
+	"google.golang.org/grpc/resolver"
 )
 
 var modelChooseRandom = os.Getenv("GRPC_MODEL_CHOOSE") == "random"
@@ -51,4 +55,73 @@ func modelChooseN(n int) int {
 		return rand.IntN(n)
 	}
 	return 0
+}
+
+// modelChooseAddr is the index of the address an attempt dials: an arbitrary index below
+// len(addrs) (trusted, as modelChooseN: its GooseLang body is any index). Its Go body plays
+// grpc-go's round_robin, so that a real run spreads its attempts as grpc-go does: in turn, over
+// the addresses whose last connection attempt did not fail and none of whose attempts has hung
+// for half a second (round_robin picks among READY subchannels), over all of them if none is
+// such. With GRPC_MODEL_CHOOSE=random, any index.
+func modelChooseAddr(p *modelPicks, addrs []resolver.Address) int {
+	if modelChooseRandom {
+		return rand.IntN(len(addrs))
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	var good []int
+	for i, a := range addrs {
+		h := p.health[a.Addr]
+		if h == nil || (!h.failed && (h.dialing == 0 || time.Since(h.dialStart) < 500*time.Millisecond)) {
+			good = append(good, i)
+		}
+	}
+	if len(good) == 0 {
+		for i := range addrs {
+			good = append(good, i)
+		}
+	}
+	p.next++
+	return good[p.next%len(good)]
+}
+
+// modelNoteDial records the start of a connection attempt to addr for modelChooseAddr's Go body,
+// and returns what records its end (trusted: in GooseLang both do nothing).
+func modelNoteDial(p *modelPicks, addr string) func(ok bool) {
+	p.mu.Lock()
+	if p.health == nil {
+		p.health = make(map[string]*addrHealth)
+	}
+	h := p.health[addr]
+	if h == nil {
+		h = &addrHealth{}
+		p.health[addr] = h
+	}
+	if h.dialing == 0 {
+		h.dialStart = time.Now()
+	}
+	h.dialing++
+	p.mu.Unlock()
+	return func(ok bool) {
+		p.mu.Lock()
+		h.dialing--
+		h.failed = !ok
+		if h.dialing > 0 {
+			h.dialStart = time.Now()
+		}
+		p.mu.Unlock()
+	}
+}
+
+// modelPicks is modelChooseAddr's memory (Go only).
+type modelPicks struct {
+	mu     sync.Mutex
+	next   int
+	health map[string]*addrHealth
+}
+
+type addrHealth struct {
+	failed    bool
+	dialing   int
+	dialStart time.Time
 }

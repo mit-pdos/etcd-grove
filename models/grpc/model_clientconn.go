@@ -318,13 +318,15 @@ func (cc *ClientConn) getTransportConn(ctx context.Context, failFast bool) (net.
 			// grpc-go's picker in TRANSIENT_FAILURE (every subchannel's last attempt failed).
 			return nil, nil, status.Error(codes.Unavailable, "connection error: desc = \"transport: Error while dialing\"")
 		}
-		addr := addrs[modelChooseN(len(addrs))]
+		addr := addrs[modelChooseAddr(&cc.picks, addrs)]
 		// The connection attempt is the subchannel's, not the RPC's: the RPC stops waiting for it
 		// when its context is done (the connection, if made, is then closed: no later RPC is
 		// sent on it, as none of this attempt's was).
 		ch := make(chan dialResult, 1)
 		go func() {
+			done := modelNoteDial(&cc.picks, addr.Addr)
 			conn, authInfo, err := cc.dialAddr(addr)
+			done(err == nil)
 			ch <- dialResult{conn, authInfo, err}
 		}()
 		var r dialResult

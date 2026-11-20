@@ -487,6 +487,8 @@ type ClientConn struct {
 	// The following provide their own synchronization, and therefore don't
 	// require cc.mu to be held to access them.
 	csMgr *connectivityStateManager
+	// picks is what the Go realization of the address choice remembers (model_choose.go).
+	picks modelPicks
 
 	// idleMu serializes the resolver's Build, ResolveNow and Close (grpc-go runs them on its
 	// resolver wrapper's serializer).
