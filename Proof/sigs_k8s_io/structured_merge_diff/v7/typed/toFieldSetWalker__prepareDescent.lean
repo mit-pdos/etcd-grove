@@ -85,7 +85,9 @@ theorem typed.toFieldSetWalker.prepareDescent.wp_proof :
       iframe
       iapply (BigSepL.bigSepL_nil_intro (P := iprop(True)))
       ipureintro; trivial
-    · ipureintro; exact Hspcnn
+    · isplitr
+      · ipureintro; exact Hspcnn
+      ipureintro; intro h; simp_all
   · unfold spareWalkers
     icases Hsp with (%Hn | ⟨%sl, %ws, Hspp, Hws, Hwsc, Hwl⟩)
     · exact absurd Hn Hif
@@ -95,7 +97,7 @@ theorem typed.toFieldSetWalker.prepareDescent.wp_proof :
     wp_if_destruct
     · list_elem ws (sint.nat sl.len - 1) as wl
       have hb : 0 ≤ sint.Z (sl.len - W64 1) ∧ sint.Z (sl.len - W64 1) < sint.Z sl.len := by word
-      simp only [hb, and_self, ↓reduceIte]
+      simp only [hb, _root_.and_self, ↓reduceIte]
       wp_apply (wp_load_slice_index sl (sint.Z (sl.len - W64 1)) ws (DFrac.own 1) wl (by word))
         $$ [Hws] as Hws
       · iframe; ipureintro
@@ -104,7 +106,7 @@ theorem typed.toFieldSetWalker.prepareDescent.wp_proof :
       ihave %Hwf := ownSlice_wf _ _ _ $$ Hws
       have hb2 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (sl.len - W64 1) ∧
           sint.Z (sl.len - W64 1) ≤ sint.Z sl.cap := by word
-      simp only [hb2, and_self, ↓reduceIte]
+      simp only [hb2, _root_.and_self, ↓reduceIte]
       -- the walker taken: the last of the spare list
       have hpos : 0 < sint.nat sl.len := by word
       have hlen := Hwslen.1
@@ -156,7 +158,9 @@ theorem typed.toFieldSetWalker.prepareDescent.wp_proof :
       · iright
         iexists _, ws'
         iframe
-      · ipureintro; exact Hspnn
+      · isplitr
+        · ipureintro; exact Hspnn
+        ipureintro; simp
     · have hws : ws = [] := by
         apply List.eq_nil_of_length_eq_zero
         have := Hwslen.1
@@ -196,7 +200,9 @@ theorem typed.toFieldSetWalker.prepareDescent.wp_proof :
       · iright
         iexists sl, []
         iframe
-      · ipureintro; exact Hspnn
+      · isplitr
+        · ipureintro; exact Hspnn
+        ipureintro; simp
 
 end proof
 
