@@ -3274,6 +3274,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `msgRO` keeps the raft message's read-only content (`∃ st, msgOwn ml □ st`), which `NewMessage`'s precondition gives.
 - **Decision.** Applied (prove-grpcsmall, 2026-11-20).
 
+## 2026-11-20: `http.ReadAll_spec` admits a reader's negative count (prove-http)
+
+- **Spec.** `http.ReadAll_spec` (`Proof/net/http/Boundary.lean`, the axiom `http.ReadAll_ok`) over `http.prefixReaderOk`.
+- **Defect.** `prefixReaderOk`'s `Read` post said `ys.length = sint.nat n`, met by a `Read` returning `(-1, nil)`;
+  go1.27.3's `io.ReadAll` slices `b[:len(b)+n]` (`io/io.go:723`) and panics.
+- **Evidence.** `examples/premisefix/negread`; `notes/axiom-review/http-readall-negread.md`.
+- **Proposed change.** `sint.Z n = ys.length` in `prefixReaderOk` and in `http.bodyRead_spec` (its producer's axiom, whose
+  post gets stronger: Go's body reader returns `0 <= n`); `NewLimitedBufferReader`'s proof passes it through.
+- **Decision.** Applied (prove-http, 2026-11-20).
 ## 2026-11-20: `fmt.SprintfClientPtr` admits any directive for a `*clientv3.Client` (prove-reflectfmt)
 
 - **Spec.** `fmt.SprintfClientPtr.spec` (`Spec/fmt/SprintfClientPtr.lean`), a trust-boundary axiom.
