@@ -81,7 +81,8 @@ namespace k8scache
 -- the reflector's list-watch (phase 4, fifth round): over the named hypotheses `handleAnyWatch`
 -- (D4), `retryWithDeadlineImpl.After` (Perennial's time lacks `Time.IsZero`),
 -- `isTooLargeResourceVersionError`, the boundary callees pending approval (the `apierrors`
--- predicates, `meta.ListAccessor`/`ExtractListWithAlloc`/`LenList`, `Trace.Step`) and the
+-- predicates, `meta.ExtractListWithAlloc`/`LenList`, `Trace.Step`), the typed lists'
+-- `typedListMeta` (k8s 7g (B'): what `meta.ListAccessor`'s former axiom said of them) and the
 -- outside-client-go names-only ones (klog, logr, `utilnet`, `rand`, `RealClock.After`,
 -- `wait.Group.Start`), all in `links_pending`
 #print axioms cache.wp_handleWatch

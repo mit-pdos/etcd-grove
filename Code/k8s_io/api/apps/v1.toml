@@ -7,6 +7,9 @@
 # notes/k8s-apimodel-goose.md); the types' own methods stay names only.
 translate = ["!*", "DaemonSet.Get*", "DaemonSet.Set*", "ControllerRevision.Get*",
   "ControllerRevision.Set*",
+  # (k8s 7g) the typed lists' promoted `ListMeta` version and continue token (`meta.ListAccessor`)
+  "DaemonSetList.GetResourceVersion", "DaemonSetList.GetContinue",
+  "ControllerRevisionList.GetResourceVersion", "ControllerRevisionList.GetContinue",
   # the constants the model reads (a names-only constant is a value of unknown shape)
   "RollingUpdateDaemonSetStrategyType", "DeprecatedTemplateGeneration",
   # the constants the DaemonSet controller reads (phase 5 of notes/k8s-daemonset-plan.md)

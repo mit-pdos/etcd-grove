@@ -300,9 +300,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩
   obtain ⟨rfl, HWp, HWc⟩ := HWp
   ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []
-  · unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods
-    iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC
-    iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HM
+  · unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods EtcdGrove.v3rpc.clusterDescMethods EtcdGrove.v3rpc.maintDescMethods
     iframe HK HL HC HA HM
     iexists ws
     iframe HW

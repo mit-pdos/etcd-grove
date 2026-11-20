@@ -7,6 +7,9 @@
 # unfolds into `ObjectMeta`'s, translated with bodies; examples/k8s/daemonset/apimodel,
 # notes/k8s-apimodel-goose.md); the types' own methods stay names only.
 translate = ["!*", "Pod.Get*", "Pod.Set*", "Node.Get*", "Node.Set*",
+  # (k8s 7g) the typed lists' promoted `ListMeta` version and continue token (`meta.ListAccessor`)
+  "PodList.GetResourceVersion", "PodList.GetContinue", "NodeList.GetResourceVersion",
+  "NodeList.GetContinue",
   # the constants the model reads (a names-only constant is a value of unknown shape)
   "DefaultTerminationGracePeriodSeconds", "PodPending", "PodFailed", "PodSucceeded",
   "RestartPolicyAlways", "DNSClusterFirst", "DefaultSchedulerName",

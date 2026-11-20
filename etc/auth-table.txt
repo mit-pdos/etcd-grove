@@ -1,0 +1,105 @@
+# The client port's registrations and their access control (notes/auth-mediation-scope.md, stage M0):
+# one row per method, hook or HTTP path that `etc/authmed` (etc/authmed/main.go) finds registered on
+# etcd's client port at the pin, checked by etc/auth-mediation-check.py (in etc/gates.sh).
+#
+# A row: KEY CLASS STATUS SPECS VOCAB WHY...
+#   KEY     a gRPC method's full name (/service/method), or hook:ORIGIN:EXPR, or http:ORIGIN:PATH
+#   CLASS   public | authenticated | rbac | admin | mixed (the auth matrix's, notes/auth-matrix.md),
+#           or - for a hook or an HTTP path
+#   STATUS  e2e        the handler's proved spec states the row's check for the request's principal,
+#                      at the server's entry point (and the gRPC wrapper carries it)
+#           e2e-apply  the same, with the check stated at the apply layer
+#           contract   the wrapper is proved; its effect is an inner operation taken as a contract
+#                      whose precondition needs the guard's token
+#           server     the server's entry point is proved, the gRPC wrapper is names-only
+#           guard      only the guard's spec is proved
+#           none       nothing past the request check
+#           public     public by design (no check required)
+#           excluded   not covered, by decision; WHY says which and where it is recorded
+#   SPECS   comma-separated spec files under Spec/, without `.lean` (S/ = go_etcd_io/etcd/server/v3/
+#           etcdserver/, R/ = S/api/v3rpc/, A/ = S/apply/), or -: each must declare its `<F>.spec`,
+#           have a proof file with `theorem <F>.wp_proof` and no `sorry`, and be linked (a Link.lean,
+#           Results.lean or *Linked.lean applies `<F>.wp_proof`); a row of status e2e, e2e-apply,
+#           contract or server names at least two (the guard's and the handler's)
+#   VOCAB   comma-separated names, or -: each must occur in the text of one of the row's specs (the
+#           guard's vocabulary; what a spec means is reviewed once per row, the gate keeps it there)
+#   WHY     free text; required for none and excluded; every issues/, nonissues/ or notes/ file it
+#           names must exist
+#
+# The baseline etc/auth-mediation-baseline.txt records each row's status; `--check` refuses a row
+# weaker than its baseline, and a registration without a row.
+
+# KV
+/etcdserverpb.KV/Range rbac e2e S/EtcdServer__doSerialize,S/EtcdServer__Range,R/kvServer__Range serialWhy,rangeWhyOut,rangeReadOkM checked by doSerialize's chk after the read index (linearizable or not)
+/etcdserverpb.KV/RangeStream rbac none - - stage M3: kvServer.RangeStream is translated, not proved; EtcdServer.RangeStream is names-only (notes/auth-mediation-scope.md §3.2); margin issues/etcd-rangestream-auth-revoked-midstream.md
+/etcdserverpb.KV/Put rbac e2e-apply A/checkPutAuth,A/authApplierV3__Put,S/EtcdServer__Put putClass,leaseKeysClass,putPermitM checked at apply (checkPutAuth)
+/etcdserverpb.KV/DeleteRange rbac e2e-apply A/authApplierV3__DeleteRange,S/EtcdServer__DeleteRange authIs,deletePermitM checked at apply
+/etcdserverpb.KV/Txn rbac e2e A/CheckTxnAuth,A/authApplierV3__Txn,S/EtcdServer__Txn txnClass,txnPermitM,txnWhyOut read-only: chk at the server; writes: at apply
+/etcdserverpb.KV/Compact admin contract R/AuthAdmin__isPermitted,R/kvServer__Compact,S/EtcdServer__Compact adminOutC,adminWhy,compactOk checked when served: nonissues/etcd-compact-admin-check-lagging-member.md
+# Watch
+/etcdserverpb.Watch/Watch rbac e2e R/serverWatchStream__isWatchPermitted,R/watchServer__Watch permWhy,watchStreamSpec checked per created watcher (watchStreamSpec: each create's watchAuthed); live watchers are not re-checked (etcd's documented behaviour)
+# Lease
+/etcdserverpb.Lease/LeaseGrant authenticated e2e S/EtcdServer__requireAuthInfo,S/EtcdServer__LeaseGrant,R/LeaseServer__LeaseGrant authedOutC,leaseGrantPermitM,leaseCheckFrom -
+/etcdserverpb.Lease/LeaseRevoke mixed e2e S/EtcdServer__requireAuthInfo,A/authApplierV3__LeaseRevoke,S/EtcdServer__LeaseRevoke,R/LeaseServer__LeaseRevoke leaseRevokePermitM,leaseCheckFrom the lease's keys checked at apply
+/etcdserverpb.Lease/LeaseTimeToLive mixed e2e S/EtcdServer__checkLeaseTimeToLive,S/EtcdServer__LeaseTimeToLive,R/LeaseServer__LeaseTimeToLive leaseCheckFrom,leaseTTLOut margin: issues/etcd-lease-timetolive-keys-toctou.md
+/etcdserverpb.Lease/LeaseLeases mixed e2e S/EtcdServer__checkLeaseLeases,S/EtcdServer__LeaseLeases,R/LeaseServer__LeaseLeases leaseCheckFrom,leaseLeasesOut -
+/etcdserverpb.Lease/LeaseKeepAlive mixed e2e S/EtcdServer__checkLeaseRenew,S/EtcdServer__LeaseRenew,R/LeaseServer__leaseKeepAlive,R/LeaseServer__LeaseKeepAlive leaseCheckFrom,kaStreamSpec checked per renewal (each response's kaDn); margins: nonissues/etcd-lease-renew-keys-follower-lag.md, nonissues/etcd-lease-checks-lagging-member.md
+# Cluster
+/etcdserverpb.Cluster/MemberAdd admin guard S/EtcdServer__checkMembershipOperationPermission adminOutC stage M2: EtcdServer.AddMember and ClusterServer.MemberAdd are names-only
+/etcdserverpb.Cluster/MemberRemove admin server S/EtcdServer__checkMembershipOperationPermission,S/EtcdServer__RemoveMember adminOutC,adminWhy stage M2: the wrapper ClusterServer.MemberRemove is names-only
+/etcdserverpb.Cluster/MemberUpdate admin guard S/EtcdServer__checkMembershipOperationPermission adminOutC stage M2: EtcdServer.UpdateMember and ClusterServer.MemberUpdate are names-only
+/etcdserverpb.Cluster/MemberList authenticated server S/EtcdServer__requireAuthInfo,S/EtcdServer__MemberList authedOutC,authedRes,authedWhy stage M2: the wrapper ClusterServer.MemberList is names-only
+/etcdserverpb.Cluster/MemberPromote admin guard S/EtcdServer__checkMembershipOperationPermission adminOutC stage M2: EtcdServer.PromoteMember and ClusterServer.MemberPromote are names-only
+# Maintenance (the inner maintenanceServer methods are contracts that need the guard's token)
+/etcdserverpb.Maintenance/Defragment admin contract R/authMaintenanceServer__isPermitted,R/authMaintenanceServer__Defragment adminOutC,adminRes,adminWhy -
+/etcdserverpb.Maintenance/Snapshot admin contract R/authMaintenanceServer__isPermitted,R/authMaintenanceServer__Snapshot adminOutC,adminRes,adminWhy -
+/etcdserverpb.Maintenance/Hash admin contract R/authMaintenanceServer__isPermitted,R/authMaintenanceServer__Hash adminOutC,adminRes,adminWhy -
+/etcdserverpb.Maintenance/HashKV admin contract R/authMaintenanceServer__isPermitted,R/authMaintenanceServer__HashKV adminOutC,adminRes,adminWhy -
+/etcdserverpb.Maintenance/MoveLeader admin contract R/authMaintenanceServer__isPermitted,R/authMaintenanceServer__MoveLeader adminOutC,adminRes,adminWhy -
+/etcdserverpb.Maintenance/Downgrade admin contract R/authMaintenanceServer__isPermitted,R/authMaintenanceServer__Downgrade adminOutC,adminRes,adminWhy -
+/etcdserverpb.Maintenance/Alarm mixed contract R/authMaintenanceServer__isPermitted,R/authMaintenanceServer__requireAuthInfo,R/authMaintenanceServer__Alarm alarmTok,alarmWhy GET authenticated; ACTIVATE and DEACTIVATE admin
+/etcdserverpb.Maintenance/Status authenticated contract R/authMaintenanceServer__requireAuthInfo,R/authMaintenanceServer__Status authedOutC,authedRes,authedWhy -
+# Auth
+/etcdserverpb.Auth/Authenticate public public S/EtcdServer__Authenticate,R/AuthServer__Authenticate authnStoreOk releases a token for a correct password (the store's contract)
+/etcdserverpb.Auth/AuthStatus public public R/AuthServer__AuthStatus - public on purpose (etcd-io/etcd#20802)
+/etcdserverpb.Auth/AuthEnable admin e2e-apply A/authApplierV3__Apply,R/AuthServer__AuthEnable,S/EtcdServer__AuthEnable adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/AuthDisable admin e2e-apply A/authApplierV3__Apply,R/AuthServer__AuthDisable,S/EtcdServer__AuthDisable adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/UserAdd admin e2e-apply A/authApplierV3__Apply,R/AuthServer__UserAdd,S/EtcdServer__UserAdd adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/UserDelete admin e2e-apply A/authApplierV3__Apply,R/AuthServer__UserDelete,S/EtcdServer__UserDelete adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/UserChangePassword admin e2e-apply A/authApplierV3__Apply,R/AuthServer__UserChangePassword adminPass,needAdminPermission checked at apply; EtcdServer.UserChangePassword is names-only (its wrapper is proved over the inner contract)
+/etcdserverpb.Auth/UserGrantRole admin e2e-apply A/authApplierV3__Apply,R/AuthServer__UserGrantRole,S/EtcdServer__UserGrantRole adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/UserRevokeRole admin e2e-apply A/authApplierV3__Apply,R/AuthServer__UserRevokeRole,S/EtcdServer__UserRevokeRole adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/UserList admin e2e-apply A/authApplierV3__Apply,R/AuthServer__UserList,S/EtcdServer__UserList adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/RoleAdd admin e2e-apply A/authApplierV3__Apply,R/AuthServer__RoleAdd,S/EtcdServer__RoleAdd adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/RoleDelete admin e2e-apply A/authApplierV3__Apply,R/AuthServer__RoleDelete,S/EtcdServer__RoleDelete adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/RoleGrantPermission admin e2e-apply A/authApplierV3__Apply,R/AuthServer__RoleGrantPermission,S/EtcdServer__RoleGrantPermission adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/RoleRevokePermission admin e2e-apply A/authApplierV3__Apply,R/AuthServer__RoleRevokePermission,S/EtcdServer__RoleRevokePermission adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/RoleList admin e2e-apply A/authApplierV3__Apply,R/AuthServer__RoleList,S/EtcdServer__RoleList adminPass,needAdminPermission checked at apply; refusal reason at the proposer: stage M4
+/etcdserverpb.Auth/UserGet mixed e2e-apply A/authApplierV3__UserGet,R/AuthServer__UserGet,S/EtcdServer__UserGet adminAdmitted,userGetClass admin or the user itself, checked at apply
+/etcdserverpb.Auth/RoleGet mixed e2e-apply A/authApplierV3__RoleGet,R/AuthServer__RoleGet,S/EtcdServer__RoleGet adminAdmitted,authRoleGetIs admin or a role the user has, checked at apply
+# grpc's health service (registered by v3rpc.Server)
+/grpc.health.v1.Health/Check public public - - the serving status only, no data (notes/auth-mediation-scope.md §1)
+/grpc.health.v1.Health/List public public - - the serving status only, no data (notes/auth-mediation-scope.md §1)
+/grpc.health.v1.Health/Watch public public - - the serving status only, no data (notes/auth-mediation-scope.md §1)
+# Lock and Election (registered by embed, untranslated): excluded by name (D3)
+/v3lockpb.Lock/Lock mixed excluded - - D3: a waiting Lock's watch is checked as another user, etcd-io/etcd#17502 (issues/etcd-v3election-shared-watch-wrong-user.md, issues/etcd-v3lock-watch-shared-stream-principal.md)
+/v3lockpb.Lock/Unlock rbac excluded - - D3: excluded with its service; runs through the untranslated in-process client (notes/auth-mediation-scope.md §3.1)
+/v3electionpb.Election/Campaign mixed excluded - - D3: a waiting Campaign's watch is checked as another user, etcd-io/etcd#17502 (issues/etcd-v3election-shared-watch-wrong-user.md)
+/v3electionpb.Election/Proclaim rbac excluded - - D3: excluded with its service; runs through the untranslated in-process client (notes/auth-mediation-scope.md §3.1)
+/v3electionpb.Election/Leader rbac excluded - - D3: excluded with its service; runs through the untranslated in-process client (notes/auth-mediation-scope.md §3.1)
+/v3electionpb.Election/Observe rbac excluded - - D3: its watch is checked as another user, etcd-io/etcd#17502 (issues/etcd-v3election-shared-watch-wrong-user.md)
+/v3electionpb.Election/Resign rbac excluded - - D3: excluded with its service; runs through the untranslated in-process client (notes/auth-mediation-scope.md §3.1)
+# other calls given the gRPC server
+hook:embed.serveCtx.serve:sctx.serviceRegister - excluded - - an embedder's hook (Config.ServiceRegister), nil in the etcd binary (notes/auth-mediation-scope.md §1)
+hook:embed.serveCtx.serve:grpcHandlerFunc - excluded - - serves the same gRPC server through the HTTP listener (TLS); no registration of its own
+hook:v3rpc.Server:serverMetrics.InitializeMetrics - excluded - - zero values of the server's metrics; registers nothing
+# the client port's HTTP paths (D6: the paper line says "gRPC request")
+http:embed.serveCtx.createMux:serveCtx.createMux:/v3/ - excluded - - the HTTP gateway: outside the verified code, transport (D6; notes/auth-mediation-scope.md §3.5)
+http:embed.serveCtx.createMux:serveCtx.createMux:/ - excluded - - the mux of serveClients, whose paths are the rows below
+http:embed.serveCtx.createMux:serveCtx.createMux:path - excluded - - the configuration's user handlers (pprof, debug requests; with options): unauthenticated by design (D6)
+http:etcdhttp.HandleDebug:HandleDebug:/debug/vars - excluded - - unauthenticated by design (D6)
+http:etcdhttp.HandleHealth:HandleHealth:/health - excluded - - unauthenticated by design (D6)
+http:etcdhttp.HandleHealth:CheckRegistry.installRootHTTPEndpoint:reg.RootPath() - excluded - - /livez and /readyz: unauthenticated by design (D6)
+http:etcdhttp.HandleHealth:CheckRegistry.InstallHTTPEndpoints:subpath - excluded - - /livez/<check> and /readyz/<check>: unauthenticated by design (D6)
+http:etcdhttp.HandleMetrics:HandleMetrics:/metrics - excluded - - unauthenticated by design (D6)
+http:etcdhttp.HandleVersion:HandleVersion:/version - excluded - - unauthenticated by design (D6)

@@ -180,7 +180,6 @@ axiom apierrors.NewConflict.wp_proof
 axiom apierrors.NewInternalError.wp_proof
 axiom apierrors.SuggestsClientDelay.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
-axiom apimeta.ListAccessor.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj

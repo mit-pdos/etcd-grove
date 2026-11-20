@@ -2,7 +2,9 @@
 # `storage.Preconditions.Check` calls on the etcd3 store's objects, notes/k8s-etcd3-plan.md stage
 # 7b): function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*", "Accessor"]
+# (k8s 7g, decided by etcd-grove-03 2026-11-19: proof over axiom) `ListAccessor`, with its body (a
+# type switch on the list interfaces), which the reflector's pager and the driver's checker call.
+translate = ["!*", "Accessor", "ListAccessor"]
 imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1"]
 
 # translate the definitions of all type declarations goose supports

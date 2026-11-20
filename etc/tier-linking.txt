@@ -54,6 +54,7 @@ Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main  # Main.wp_proof:
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.startCluster  # startCluster.wp_proof: over kv_served
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Main  # Main.wp_proof: over wk_served_nd
 Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main  # Main.wp_proof: over wk_served_nd
+Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.startCluster  # startCluster.wp_proof: over kvWatch_served (the etcd3 driver's, without its client)
 Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main  # Main.wp_proof: over kvWatch_served
 Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.startCluster  # startCluster.wp_proof: over kvWatch_served
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMember  # StartMember.wp_proof: a member started and served, over kv_lease_served_watch, grpcCfgOk_of_started, etcd_kv_started
