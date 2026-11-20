@@ -54,15 +54,18 @@ The user's (2026-11-18):
 - "Implement the plan": the recommendations below are taken as decided, each recorded in
   `notes/decisions.md` when its phase starts, open to revision.
 
-**Q1. Models are patches of the real packages.** Option B (accepted 2026-11-12, U2) writes each model
-as a patch of the real grpc-go / Go `net/http` source, keeping every type and option (etcd's
-translated code and its dependencies, `otelgrpc`, grpc-gateway, the prometheus interceptors,
-typecheck against the real API). dsverify-lab substitutes whole hand-written packages (a GOROOT
-symlink farm, `go.mod` replaces) with only the API its kits reach, which cannot serve etcd. So:
-`etc/model-patches/<project>/*.patch` (now: under `models/`, each patch beside its evidence, the user's
-decision of 2026-11-19, `notes/decisions.md`, "`models/`: the home of the trusted models"), applied by `etc/goose.py` (an overlay for the standard
-library), for grpc, net/http, net/rpc, encoding/json and gob; dsverify's model code becomes the
-content of the patches' added files (framing, transport, dispatch), and its differential tests stay.
+**Q1. Models are first-class Go packages** (the user's decision, 2026-11-20, superseding "models
+are patches of the real packages"; `notes/decisions.md`, "Models are first-class Go packages").
+Option B (accepted 2026-11-12, U2) keeps every type and option of the real grpc-go / Go `net/http`
+(etcd's translated code and its dependencies, `otelgrpc`, grpc-gateway, the prometheus interceptors,
+typecheck against the real API); dsverify-lab substitutes whole hand-written packages with only the
+API its kits reach, which cannot serve etcd. So each model is a Go package in `models/` that starts
+from the real library's source and keeps its API, real code wherever goose takes it, with the hard
+core replaced (dsverify's model code is the replacement's source: framing, transport, dispatch) and
+the places changed marked `MODEL:`; its difference from the library is computed, not stored
+(`models/diff.py`); dsverify's differential tests stay. A standard-library model builds by
+substituting its files for the toolchain's (`models/goroot.py`: an overlay for `go build`/`go test`,
+a GOROOT of links for goose; a goose project's `std_models`).
 
 **Q2. gRPC: one stream per connection** (option B's U3), not dsverify's sequence-numbered
 multiplexing: no stream ids, multiplexing or pool in the trusted model; cmux's `HTTP2()` matcher sees
@@ -323,8 +326,8 @@ first client, once its proof is copied here); the bufio laws above.
 
 ### Phase 5: one set of models, over the net extension (trusted Go code, proved specs)
 
-Each model a patch (Q1), dsverify's tests kept as differential tests against the real library, a
-"not modelled" panic outside its scope.
+Each model a first-class Go package in `models/` from the real library's source (Q1), dsverify's
+tests kept as differential tests against the real library, a "not modelled" panic outside its scope.
 1. **Codecs, one generator for both projects.** dsverify's `pbgen.py` (per-type plain protobuf
    marshal code, byte-exact against protobuf-go v1.36.12, `PbCodec` proved per type) is the E2 (b)
    model etcd decided on: `etc/pbgen.py` for etcd's and raft's `.proto` files too (used by etcd in
@@ -481,9 +484,81 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
      compared with encoding/json, including mutations of real encodings), about two days, simpler
      than pbgen's since no plugin is needed; (5) the gate and (6) a review as here. In all about a
      week; the scanner `jsoncodec.Scan` is already proved in part and tested against encoding/json.
-2. **net/rpc** (kits only): dsverify's model as a patch of Go's `net/rpc` (overlay), its proofs
-   (5.3k lines) ported over phase 4's specs; `rpcgen.py` with it.
-3. **net/http**: from dsverify's server and `ReadResponse` (net/rpc's CONNECT, craq), then option B
+2. **net/rpc** (kits only): Go's `net/rpc` as a model, dsverify's codec and dispatch in place of
+   gob and reflection, its proofs (5.3k lines) ported over phase 4's specs; `rpcgen.py` with it.
+
+   **The Go half done (2026-11-20, branch `models-rpc-http`; the Lean half lands with it).**
+   *The models.* `models/net/rpc/` and `models/net/http/` are Go 1.27.3's sources (committed
+   unmodified first, then changed; the places marked `MODEL:`; `models/diff.py net/rpc --stat`:
+   4 files, +392 -281 lines, of which 325 the new `codec.go`; `net/http`: 7 files, +201 -257,
+   162 the new `textproto_model.go`). Every exported name stays. *net/rpc*: kept as Go's code: the
+   Client (pending calls, sequence numbers, `input`, `send`, `Go`, `Call`, `Close`), `NewClient`,
+   `NewClientWithCodec`, `Dial`, `DialHTTP`, `DialHTTPPath` (its CONNECT handshake through
+   `http.ReadResponse`), the Server's request loop (`ServeCodec`, `ServeRequest`, `readRequestHeader`,
+   the free lists, `sendResponse`), `Accept`, `ServeHTTP` (Hijack), `HandleHTTP`, Register's checks
+   and messages. Replaced (reflection and gob: goose takes neither): `suitableMethods`, `reflect.New`
+   and `Value.Call` by the program's generated `Codec.Receiver` (per method `NewArg`, `NewReply`,
+   `Call`); gob's client and server codecs by the model's frame codec (`codec.go`: each gob message,
+   a header or a body, one length-prefixed frame, so a cut stream gives gob's errors: `io.EOF`
+   between messages, `io.ErrUnexpectedEOF` within one; sticky write errors as gob's bufio.Writer);
+   the `sync.Map` of services by a map under a mutex (no `sync.Map` spec in Perennial); the debug
+   page not modelled (panics). *rpcgen* (`models/net/rpc/rpcgen{,_core,_testgen}.py`, the trusted
+   core 569 lines with its doc: the claim, the subset, the refusals, the encoding, gob's merging
+   decode rules cited to `encoding/gob`'s source): input only the receiver types (and extra types),
+   the methods and every type's structure dumped by reflection (`models.lab/rpcdesc`, which copies
+   net/rpc's `suitableMethods`); refusals (exit 2, naming type, field or method) of floats, complex,
+   arrays, interfaces, channels, functions, uintptr, embedded fields, pointer elements, pointers to
+   pointers, structs with no exported field, recursive and unnamed struct types, unnameable types,
+   types with gob/encoding marshaler methods; decoding reproduces gob's merging into a non-zero
+   reply (fields not sent keep their value, slices reuse their backing array, maps keep their
+   entries). Over-approximations (panics, "documented deviations"): decoding a value of one type into
+   another type (gob matches fields by name), encoding a nil or unlisted value, decoding into a nil
+   pointer; the model's errors on malformed input are its own (no model peer sends any). *net/http*:
+   kept as Go's code: the whole server (`Serve`, `conn.serve`'s keep-alive loop, the background read
+   that cancels a request's context when the client goes, `Hijack`, the 400/431/501/505 answers, the
+   response writer with Content-Length or chunked framing, sniffing, `Date`), ServeMux and patterns,
+   the handlers, `Request`/`Response` and their Write methods, the Client's code, transfer.go's
+   framing for Content-Length and to-EOF bodies. Replaced: the HTTP/1.x head parser (net/textproto's
+   `ReadLine` and `readMIMEHeader`, as `readRequest`, the server and `ReadResponse` call them) by
+   `textproto_model.go` (textproto's results and its `ProtocolError` messages; panics on a header
+   continuation line and a header name with a space); not modelled (panic): chunked bodies, TLS and
+   unencrypted HTTP/2 serving, the Transport's round trip (the client is item 3's). For goose: four
+   declarations it refused changed (two body-less linkname declarations dropped, `readMIMEHeader`'s
+   linkname, a struct copy between two memory places through a local, a local type renamed): with
+   them goose takes all of net/http with its bodies (4.4 MB of Lean), so the configuration
+   (`Net/Code/net/http.toml`) translates types, names and the model's parser only for now.
+   *Build.* `models/goroot.py`: an overlay for `go build`/`go test` (`-tags netmodel` for the
+   programs' generated registration), a GOROOT of links for goose (its go/packages reads files from
+   disk: an overlay in GOFLAGS type-checks the real files); `etc/goose.py`'s project option
+   `std_models` and project `models-net` (into `Net/Code/net/{rpc,http}.lean`; `--check` of the
+   affected projects net, models, models-net, kv, putget unchanged/up to date). *Evidence*
+   (`models/internal/rpcdifftest/run.sh`, in the gates: the same tests against the real packages and
+   against the models): dsverify's net/rpc tests (calls, server errors, lookup errors, concurrent
+   calls, Close, a broken connection, at-most-once under random cuts, dial errors, the CONNECT
+   handshake by hand, Register/HandleHTTP errors) plus gob's merging through a call, `Go`, and
+   faults with exact outcomes: the server's response cut after every byte count (outcomes: `ok`,
+   `io.ErrUnexpectedEOF`, "reading body EOF", "reading body unexpected EOF", the same set in both),
+   the request cut likewise (`ServerError("EOF")`, `ServerError("unexpected EOF")`, ...), a
+   connection reset (a `*net.OpError` holding ECONNRESET), the server closing mid-call; the codec's
+   generated test against real gob (zero and non-zero targets); the generator's random-type test and
+   its refusals (`models/internal/rpcgenrand`); and the net/http model's transcripts
+   (`models/internal/httpdifftest`): 49 raw request exchanges with a server (keep-alive, pipelining,
+   Expect, HEAD, chunked responses, Flush, Hijack with buffered bytes, CONNECT, the malformed cases'
+   400/431/501/505) and `ReadRequest`/`ReadResponse` on 2011 heads and seeded mutations, against
+   golden transcripts the real build writes (the model may answer "not modelled" for an entry, never
+   another value; 1-2% of the mutations are). The tests found three discrepancies of the first parser
+   (textproto's `trim` is spaces and tabs only; it quotes the line with the name canonicalized), and
+   rpcgen's random test a package alias the generated tests' locals shadowed: all fixed.
+   *For the Lean task*: specs of `Client.Call`/`Go`/`Close`, `DialHTTP(Path)`, `NewClient`,
+   `Server.Register(Name)`, `ServeConn`/`ServeCodec`, `ServeHTTP`, `HandleHTTP`, the frame codec
+   (`readFrame`, the client and server codecs) over the net extension's `Conn`, and the generated
+   Codec's laws (`Encode`/`Decode` round trip on a zero target; `Receiver`'s methods as the
+   receiver's), replacing dsverify's `Proof/net/rpc`; for net/http: `ListenAndServe`/`Serve`,
+   `Handle`, `ServeMux.ServeHTTP` on an exact path, `ReadResponse` on a CONNECT answer, and the
+   server's connection loop to the point of a hijack (dsverify's `Proof/net/http`); the
+   translation's missing imports (`go/token` for `token.IsExported`; `bufio` is the main tree's).
+3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
+   model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
    `Shutdown`) for rafthttp and etcd's peer handlers; one per-address protocol vocabulary merging
    dsverify's `RpcWorld` and our `HttpNet`/`Proto` (`Proof/net/http/Boundary.lean`).
