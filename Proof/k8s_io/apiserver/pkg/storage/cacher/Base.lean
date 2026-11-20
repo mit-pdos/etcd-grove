@@ -85,8 +85,12 @@ instance k8s_io_client_go_features_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.client_go.features :=
   build_get_is_pkg_init_wf
 
--- `k8s.io/apimachinery/pkg/util/sets`'s instance: `storage/etcd3/Base.lean` (2026-11-19: `field`,
--- which imports it, has its instance there)
+instance k8s_io_apimachinery_pkg_util_sets_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_sets_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  build_get_is_pkg_init_wf
 
 instance k8s_io_client_go_util_consistencydetector_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.util.consistencydetector :=

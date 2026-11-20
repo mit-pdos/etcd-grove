@@ -1,7 +1,0 @@
-# Types and names only: function and method bodies are axiomatized (project k8s-authz: what the
-# authorizer and union packages name).
-translate = ["!*"]
-imports = ["!*"]
-
-# translate the definitions of all type declarations goose supports
-translate_types = true

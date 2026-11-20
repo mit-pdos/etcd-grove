@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.k8s_io.apiserver.pkg.storage.cacher.Base
 public import Perennial.Proof.cmp.Link
 public import Perennial.Proof.slices.Link
 public import Proof.runtime.PkgInitExt
