@@ -33,6 +33,15 @@ theorem tryUpdateFor.wp_proof (wp_updated : updated.spec (GF := GF) (hG := hG)) 
   ipersist «in»
   imodintro
   iapply HΦ
+  isplitr
+  · ipureintro; simp [func.nil]
+  isplitl []
+  rotate_left
+  · iunfold tryUpdatePin
+    iexists in_ptr
+    isplitr
+    · ipureintro; simp only [exprVals, List.cons_append, List.nil_append]; rfl
+    iframe #
   iunfold tryUpdateD
   imodintro
   iintro %x %o %r %Ψ Ho HΨ

@@ -275,6 +275,31 @@ theorem decA_ne : driverCodec.dec kvA.value ≠ none := by
 theorem decB_ne : driverCodec.dec kvB.value ≠ none := by
   show driverCodec.dec (v0 kB) ≠ none; rw [dec_v0B]; simp
 
+/-- **The seeded state's values are short** (`valsOk`, stage 7g step 5). -/
+theorem seed_vals : valsOk σs2 := by
+  have hA : ∀ d, driverCodec.dec kvA.value = some d → d.1.val.length ≤ 2 ^ 20 := by
+    intro d hd
+    change driverCodec.dec (v0 kA) = some d at hd
+    rw [dec_v0A] at hd; cases hd; simp [dA]
+  have hB : ∀ d, driverCodec.dec kvB.value = some d → d.1.val.length ≤ 2 ^ 20 := by
+    intro d hd
+    change driverCodec.dec (v0 kB) = some d at hd
+    rw [dec_v0B] at hd; cases hd; simp [dB]
+  intro r hr v hv
+  rw [σs2_rev] at hr
+  rw [σs2_at_kvs r hr] at hv
+  unfold seedKvs at hv
+  by_cases h1 : r ≤ 1
+  · rw [if_pos h1] at hv; cases hv
+  rw [if_neg h1] at hv
+  by_cases h2 : r = 2
+  · rw [if_pos h2, List.mem_singleton] at hv
+    subst hv; exact hA
+  rw [if_neg h2, List.mem_cons, List.mem_singleton] at hv
+  rcases hv with rfl | rfl
+  · exact hA
+  · exact hB
+
 theorem modA : uint.nat kvA.modRev = 2 := rfl
 theorem modB : uint.nat kvB.modRev = 3 := rfl
 
@@ -602,7 +627,7 @@ theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
       · ipureintro
         exact Nat.le_trans (List.length_filter_le _ _) (by simpa using hl)
     ipureintro
-    exact ⟨rfl, kOk_init σs2 (seed_wf c hc hp) (seed_wfHist c hc) seed_keys seed_krel g0s_len⟩
+    exact ⟨rfl, kOk_init σs2 (seed_wf c hc hp) (seed_wfHist c hc) seed_keys seed_vals seed_krel g0s_len⟩
   imodintro
   iexists ⟨γh, γp, γr, γch, σb.base⟩
   iunfold kInv

@@ -83,6 +83,15 @@ instance isCache_persistent (c : StoreCfg GF DObj) (tbl : Loc) :
     Persistent (isCache (GF := GF) c tbl) := by
   unfold isCache; infer_instance
 
+/-- **The cache's floor is `f`** (k8s 7g, D7g-1: `Gen` raises a drawn non-zero resource version below it
+to it): its `floor` field, read-only, below `2 ^ 62` (so that a floored resource version still parses below
+`2 ^ 63`). -/
+def cacheFloor (tbl : Loc) (f : w64) : IProp GF :=
+  iprop(tbl.[github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache, go!"floor"] ↦□ f ∗ ⌜uint.Z f < 2 ^ 62⌝)
+
+instance cacheFloor_persistent (tbl : Loc) (f : w64) : Persistent (cacheFloor (GF := GF) tbl f) := by
+  unfold cacheFloor; infer_instance
+
 /-- **An input's cached object is one** (`Gen`'s output): if the input uses one. -/
 def cachedIn (c : StoreCfg GF DObj) (x : Input) : IProp GF :=
   if x.UseCached' then cachedObjOk c x.Cached' else iprop(True)

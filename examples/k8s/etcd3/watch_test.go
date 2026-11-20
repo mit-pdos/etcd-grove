@@ -174,7 +174,7 @@ func peakRSS() string {
 // before it is recorded (the tests' counts and corruptions).
 func checkWWith(s storage.Interface, st0 mstore, h0 []mstore, clients, ops, watchers, wops int,
 	hook func(Input, Output) Output) porcupine.CheckResult {
-	tbl := newWCache(clients, int64(clients)*int64(ops))
+	tbl := newWCache(clients, int64(clients)*int64(ops), st0.rv)
 	apply := func(input any) any {
 		out := Apply(s, tbl, input).(Output)
 		if hook != nil {
@@ -337,7 +337,7 @@ func TestGenWatchCases(t *testing.T) {
 	cached := Obj{Namespace: "ns-1", Name: "pod-1", ResourceVersion: 300}
 	for i := 0; i < 20000; i++ {
 		hasC := i%2 == 0
-		in := genWatchFrom(rng.Uint64(), 7, cached, hasC)
+		in := genWatchFrom(rng.Uint64(), 7, cached, hasC, 0)
 		if in.Kind != KWatch || in.Client != 7 || in.Skip {
 			t.Fatalf("not a watch of client 7: %+v", in)
 		}
@@ -453,10 +453,10 @@ func TestWatchCancel(t *testing.T) {
 		defer close(stop)
 		rng := rand.New(rand.NewSource(2))
 		for i := 0; i < 24; i++ {
-			in := genWatchFrom(rng.Uint64(), 0, Obj{}, false)
+			in := genWatchFrom(rng.Uint64(), 0, Obj{}, false, 0)
 			in.Behavior = i % 4
 			start := time.Now()
-			_, failed := watchEvents(cs, in)
+			_, _, failed := watchEvents(cs, in)
 			d := time.Since(start)
 			if failed {
 				t.Fatalf("watch %d: the Watch call failed", i)

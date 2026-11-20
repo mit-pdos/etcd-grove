@@ -1,12 +1,12 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `storage.NewInvalidObjError`: `errors.New` of the message, the composite literal.
+The proof of `storage.NewInvalidObjError`: `errors.New` of the message (its struct
+read-only, `wp_New_errorString_ro`), the composite literal.
 -/
 module
 
 public import Spec.k8s_io.apiserver.pkg.storage.NewInvalidObjError
-public import Perennial.Proof.errors.Link
 
 @[expose] public section
 
@@ -32,13 +32,13 @@ theorem storage.NewInvalidObjError.wp_proof :
   intro key msg
   wp_start
   wp_auto
-  wp_apply (_root_.Perennial.errors.wp_New msg) as %e -
+  wp_apply (k8s.wp_New_errorString_ro msg) as %x #Hc
   irename «$r0» => He
   generalize «$r0_ptr» = p at *
   iapply HΦ
-  iexists (GoInterface.ok e)
+  iexists x
   rw [show (W64 0 : w64) = 0 from rfl]
-  iexact He
+  iframe He Hc
 
 end proof
 

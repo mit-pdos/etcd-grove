@@ -4,7 +4,7 @@ a paginated list (no streaming: `rangeStreamOff`) of the prepared key's scope. T
 `Q` (the state `σ` the read update fired at), the later pages `P σ` (reads at the first page's
 revision, of one history with `σ`); the answer is the store's list `kListL` of `σ`'s store at the
 read revision (`listRevL`: the latest, `σ`'s, or the past revision asked), in the list object
-(`listIs`), or a too-large error when that revision is above `σ`'s, or a failed read's error
+(`listIs`, its items slice non-nil: 2026-11-19, stage 7g), or a too-large error when that revision is above `σ`'s, or a failed read's error
 (`listErr`). `Q` fires for the revision `R'` its maker was given, `σ`'s on an answer; on a too-large
 error `R'` may be any (7e-1's R1: from the client's error, the update was made for a revision the
 client never learned). Proved (stage 7e-2, `notes/k8s-7e-2-draft.md` §2 with its corrections G1, G2, B2 and B5

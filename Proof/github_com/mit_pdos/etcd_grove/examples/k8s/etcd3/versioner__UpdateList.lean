@@ -25,16 +25,13 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem versioner.UpdateList.wp_proof : versioner.UpdateList.spec (GF := GF) (hG := hG) := by
-  intro pl os rv rv' cont cont' rem remV rem0
+  intro pl rv rv' cont cont' rem remV rem0
   wp_start as ⟨Hl, Hrem⟩
-  unfold ListSpec.listAtItems driverListSpec metaAtD at *
-  icases Hl with ⟨%Hpl, %s, Hit, Hits, Hrv, Hcont, %r, Hr, -⟩
+  unfold metaAtD
+  icases Hl with ⟨Hrv, Hcont, %r, Hr, -⟩
   wp_auto
   iapply HΦ
-  try unfold ListSpec.listAtItems driverListSpec metaAtD
-  simp only
   iframe
-  ipureintro; exact Hpl
 
 end proof
 

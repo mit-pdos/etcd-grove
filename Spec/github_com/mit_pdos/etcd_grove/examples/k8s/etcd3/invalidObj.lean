@@ -1,6 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`invalidObj(key)` (k8setcd3.go; stage 7b): `invalidObjL`, a failed precondition.
+`invalidObj(key, msg)` (k8setcd3.go; stage 7b, the message stage 7g): `invalidObjL`, a failed
+precondition with its message.
 -/
 module
 
@@ -27,10 +28,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev invalidObj.spec : Prop :=
-  ∀ (key : GoString),
+  ∀ (key msg : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj)) (Val #key))
-  {{ RET #(invalidObjL key); True }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj)) (Val #key))
+      (Val #msg))
+  {{ RET #(invalidObjL key msg); True }}
 
 end spec
 

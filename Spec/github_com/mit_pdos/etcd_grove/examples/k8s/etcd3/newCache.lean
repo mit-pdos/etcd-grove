@@ -31,7 +31,7 @@ abbrev newCache.spec : Prop :=
   ∀ (c : StoreCfg GF DObj),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newCache)) (Val #()))
-  {{ (tbl : Loc), RET #tbl; isCache c tbl }}
+  {{ (tbl : Loc), RET #tbl; isCache c tbl ∗ cacheFloor tbl 0 }}
 
 end spec
 

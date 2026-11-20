@@ -691,6 +691,12 @@ EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                  "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
 # (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
+# (k8s 7g) the maintainers' checker's trust-boundary axioms (`=`, `notes/k8s-7g-trust.md` §1) and
+# `strconv.ParseUint`'s result (`Obj.SetResourceVersion`)
+EXTRA_IMPORTS["--k8setcd3"] += ["Proof.reflect.DeepEqualK8s", "Proof.maps.Keys", "Proof.maps.Clone",
+                                "Proof.maps.Equal", "Proof.github_com.google.go_cmp.cmp.Diff",
+                                "Proof.k8s_io.apimachinery.pkg.api.meta.SetList",
+                                "Perennial.Proof.strconv.Link"]
 EXTRA_IMPORTS.setdefault("--common", []).extend(["Proof.go_etcd_io.etcd.client.v3.ServeFromStart",
                              "Proof.go_etcd_io.etcd.client.v3.ClientPutGet"])
 EXTRA_IMPORTS.setdefault("--linkv3p", []).append(
