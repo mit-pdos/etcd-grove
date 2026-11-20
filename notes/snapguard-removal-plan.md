@@ -77,7 +77,7 @@ Not an alternative: weakening `sentMsg_replaceSnapshot`'s premise to the leader 
 by `apl` needs the same term and ordering reasoning (the base moves by the same restores and
 compactions).
 
-## The replay-window deferral (6e8f0c004): same flavour, but bounded
+## The replay-window deferral (6e8f0c004): same flavour, but bounded (to be fixed too: the user, 2026-11-20)
 
 Inside `ep.appliedi < ConsistentIndex()` the merge is skipped and the snapshot reported failed. The
 window closes: after a restart raft re-delivers the committed entries from the storage snapshot up to
@@ -88,3 +88,17 @@ new `MsgSnap`), so this is a delay, not a permanent liveness hole. The proper fi
 backend holds: merge at the backend's own index, i.e. label the merged snapshot with
 `ConsistentIndex()`, its term (`ConsistentApplyingTerm`/the backend's term key) and the conf state at
 that index, instead of `(appliedt, appliedi, ep.confState)`; then nothing is deferred. Not done here.
+
+Analysis for the fix (2026-11-20, not started). Inside the window the backend is at the consistent index
+`ci > appliedi`, so the only correct label for the whole backend is `ci`'s: index `ci`, the term the
+backend stores with it (`schema.UnsafeReadConsistentIndex`'s term), and the conf state the backend stores
+(`schema.UnsafeConfStateFromBackend`), read in the same read transaction as the backend snapshot that is
+streamed. Outside the window `ci = appliedi` and the label is today's. Constraints to check before
+choosing it: (a) `ci` must be committed and in the sender's raft log at a term the merge lemma accepts
+(`isMessage_snap_recontent` needs a `commitWit` of `m.Term` with `c ≥ ci`): true after a graceful
+restart (`ci ≤` the saved commit), false after a power loss (`nonissues/etcd-backward-snapshot-install-
+panics-watcher.md`'s crash path: `ci` can exceed the WAL's commit), where the label would claim an index
+the sender's raft has not committed; (b) the proof needs the backend's image at `ci` (`srvImage` of the
+log through `ci`), which the restart proofs (`srvWinPend`) already reason about for the window. So: with
+(a), label at `ci` when `ci ≤` the batch's committed bound, and otherwise (crash case only) the open
+question is what upstream intends; record it then.
