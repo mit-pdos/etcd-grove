@@ -1,6 +1,25 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 z4, data-directory fix WRITTEN; building)
+## START HERE (2026-11-20 z5, PAUSED by 03 for merge-origin7; lean 34986d22ae MERGED)
+
+- **Branch** `wal-link` 2e27f70edc (merge of lean 34986d22ae: merge-origin6, fmt-soundness-2; pin still 3afd77e35,
+  `--packages=/shared/tmp/manifest-3af.json`). Conflicts: `Snapshotter.DBFilePath.spec` (ours over `sd` + lean's
+  `fmtErrorOk`), `notes/audit.md`, PkgTables (gen-init).
+- **Done:** z4 step 1: sd-b3's breaks fixed (1443916e61 and the next commit: `unfold cfgOk; simp [memberDataDir]` in newServerMode,
+  auth/startServer, auth3/startMember, StartMemberAuth; N-member `Dir` nodup via `memberDataDir_inj`). Pre-merge full
+  timed builds GREEN: 20261119-220651-2221489 (9141 modules, 1h40m, one failure) + 20261119-234923-2568835 (rc 0).
+  Step 2: the independent re-attack DONE (brief `/shared/tmp/wallink/attack-dd-brief.md`): no refutation; tasks
+  1/2/3/5 ok (satisfying assignment for k members + restart), task 6 suspect in the Go harness only
+  (`walarea.ResetFamily` leaves areas/data dirs absent while `etcdWalAreasInit` says empty roots; global data dirs:
+  reset-twice in auth3/compactor/linkv3p/leaseexpiryN/ctxsweep, one run per machine). Stale docstrings (InvRestart
+  `Hssp`, etcdstart/Defs `name.etcd`) left: a docstring edit rebuilds the cone.
+- **Post-merge full timed build** (`/shared/tmp/wallink/run-full-z5.sh`, log `full-z6.log`) STOPPED at 11390/14922 on
+  03's pause (no failure up to there); rerun it on "resume" (incremental).
+- **Next:** the rerun; then the land list: tcb `--check --update` + collections, interfaces, every gen-link mode
+  (LAKE_OPTS, PERENNIAL_DIR), tier baseline, Go suite (restartN back to back), txnlin go.sum note, STATUS; merge lean
+  once more before the land stop.
+
+### START HERE (2026-11-19 z4, data-directory fix WRITTEN; building)
 
 - **Branch** `wal-link` 72750d037d, pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`. 03 (user approval,
   2026-11-19): the snapdir fix c8c710970a and its forms ACCEPTED; the data-directory fix APPROVED (done here).
