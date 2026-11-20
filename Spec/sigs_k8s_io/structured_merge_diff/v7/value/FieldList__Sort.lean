@@ -31,10 +31,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. The premise (post-freeze change B2c, 2026-11-20): distinct names (the
+result is then the unique sorted permutation, whatever order `sort.SliceStable` leaves; its spec
+does not promise stability) and at most `2^62` fields (`sort.SliceStable`'s premise). -/
 abbrev value.FieldList.Sort.spec : Prop :=
   ∀ (f : GoSlice) (fs : List value.Field),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ f ↦* fs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ f ↦* fs ∗
+      ⌜(fs.map (·.Name')).Nodup ∧ fs.length ≤ 2 ^ 62⌝ }}
     (App (Val (f @!! value.FieldList.ty @!! go!"Sort")) (Val #()))
   {{ RET #(); f ↦* (fs.mergeSort (fun a b => !gsLt b.Name' a.Name')) }}
 
