@@ -1,6 +1,19 @@
 # wal-fsfix handoff
 
-## START HERE (2026-11-20 z3)
+## START HERE (2026-11-20 z4) — at the LAND STOP (report sent to etcd-grove-03)
+
+- Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
+  `PERENNIAL_DIR=/shared/perennial-c44b74871`. Builds: plain build-slot (never BUILD_SLOT_BIG).
+- Verified at dc31a67d3a (lean 4d716f5f47 merged): full timed build `20261120-134300-368428` green; tcb-report
+  --check 680 axioms/2 sorries (unchanged); 70 collections unchanged; interfaces regenerated (backend, bbolt,
+  etcdstart); tier/bounds/api checks ok. Then lean 5a18d777d2 (merge-origin10) merged (clean, STATUS by the merge
+  driver); its full timed build: `/shared/tmp/walfsfix/full4.log` (if it is not green, repair; then tcb --check and
+  the collections again, `--reuse` after one full run).
+- After the land stop do not commit unless the coordinator says so. Open work (separate stages): `cut.specNoErr`
+  (add `[FsStepSat (NoMapLockErr Sio)]` and `Fs.DirFits dir`; NE callee specs missing), `rnNewStorageOk_holds`
+  (blocked), `Create.specNoErr` (STOP), and whether to define `config.snapDirOf` as Go's `Join` (attack item 3).
+
+## History (2026-11-20 z3)
 
 - Branch `wal-fsfix`, worktree `/shared/etcd-grove-walfsfix`, head `git log -1`. **Merged lean 4d716f5f47**
   (merge-origin9): pin c44b74871, `--packages=/shared/tmp/manifest-c44.json` (`.lake/package-overrides.json` its
