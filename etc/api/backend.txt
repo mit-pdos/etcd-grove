@@ -53,6 +53,8 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Size
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SizeInUse
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__UnlockForSafeRangeDelete
+# (auth-schema-srv port, 2026-11-19) the auth realization's `lk_commit`: schema's `Unlock` calls the batch's `Commit`
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockInsideApply
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockOutsideApply
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
