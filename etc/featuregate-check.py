@@ -15,8 +15,9 @@ and compares the hits with the allow-list `etc/featuregate-allow.txt`, where eac
            text includes the value: another value is another line, so not allowed);
   outside  a mutation in a program the assumption is not claimed of (`OUTSIDE`).
 
-The programs the assumption is claimed of (`INSIDE`): the k8s etcd3 driver and the compactor, the
-programs of the closed theorems that use `featureGateOk`. `OUTSIDE`: the DaemonSet controller's
+The programs the assumption is claimed of (`INSIDE`): the k8s etcd3 driver, the compactor, and the
+program running both at once (`examples/k8s/all`), the programs of the closed theorems that use
+`featureGateOk`. `OUTSIDE`: the DaemonSet controller's
 program (`examples/k8s/daemonset/dsmain`), a separate process with its own adequacy theorem, which
 mutates the gate (`SetFromMap` of three client-side features; `k8s.io/kubernetes/pkg/features`'
 registration). For it the check is that no Lean module of its tree uses the gate's specs
@@ -38,6 +39,12 @@ ALLOW = ROOT / "etc/featuregate-allow.txt"
 INSIDE = [
     ("etcd3", "examples/k8s/etcd3", "."),
     ("compactor", "examples/k8s/compactor", "."),
+    # (2026-11-20, notes/k8s-unified-scope.md) the one closed Kubernetes theorem's program: the two
+    # drivers at once in one process. The order (each `Set` before any `Enabled` of its feature)
+    # holds under any interleaving: the store driver `Set`s `EtcdRangeStream` and `WatchList`
+    # before its store's first `Enabled`, and the compactor asks only `ListFromCacheSnapshot`,
+    # which nothing sets.
+    ("all", "examples/k8s/all", "."),
 ]
 OUTSIDE = [
     ("dsmain", "examples/k8s/daemonset", "./dsmain"),

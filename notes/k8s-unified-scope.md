@@ -423,3 +423,15 @@ Total: about 1,040 new hand-written lines, mostly copied from `compactor/Adequac
   `k8s_adequate` / **`k8s_safe`** / `k8s_robust`.
 - **D7** Return value: **`Main` returns nothing**, conclusion `v = #()`. etcd3's `Ok`/`Unknown` adds
   nothing to "no panic".
+
+---
+
+## 7. Decisions (2026-11-20)
+
+Approved by the user, 2026-11-20, via etcd-grove-03: **D1** concurrent `Main`; **D3** retire the five
+separate closed theorems, keep the drivers' function triples; **D5** the premise `Hlow`, the Go test, and
+the idutil docstring "members of the process". Decided by etcd-grove-03 as recommended: **D2** no
+single-member Mains; **D4** two independent schedules; **D6** names `k8s_all` / `k8s_adequate` /
+`k8s_safe` / `k8s_robust`; **D7** `Main` returns `#()`. Stops kept: the exact text of `k8s_robust.spec`
+and `k8s_safe` before proving past them; any Go change to an existing driver; any further trusted-text
+change; a refutation; the land stop (after an independent attack on the docstring change and `Hlow`).
