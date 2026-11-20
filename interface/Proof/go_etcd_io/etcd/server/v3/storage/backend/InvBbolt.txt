@@ -134,7 +134,7 @@ theorem backend.wBkt_timeless (tx : Loc) (γ : backend.DBNames) (b : Loc) (n : G
 def backend.nameAtF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path : GoString) (i :
     Fs.Ino) : IProp GF :=
   iprop(∃ R d b dq j qc h,
-      ⌜path = Fs.child d b ∧ NameOk b ∧ h.cur !! b = some (Fs.Node.file i)⌝ ∗
+      ⌜path = Fs.child d b ∧ NameOk b ∧ h.cur !! b = some (Fs.Node.file i) ∧ Fs.PathFits path⌝ ∗
         Fs.osInv ∗
           Fs.osSharedInv R ∗
             Fs.osPathS R d dq j ∗ Fs.osCallPerm (Fs.callKey R d) qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h)
@@ -230,7 +230,7 @@ theorem backend.txBytes_acc (tx : Loc) (γ : backend.DBNames) (s : GoSlice) (b :
 def backend.fileFreeF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path : GoString) :
     IProp GF :=
   iprop(∃ R d b dq j qc h,
-      ⌜path = Fs.child d b ∧ NameOk b ∧ h.cur !! b = none⌝ ∗
+      ⌜path = Fs.child d b ∧ NameOk b ∧ h.cur !! b = none ∧ Fs.PathFits path⌝ ∗
         Fs.osInv ∗
           Fs.osSharedInv R ∗
             Fs.osPathS R d dq j ∗ Fs.osCallPerm (Fs.callKey R d) qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h)
@@ -264,7 +264,7 @@ def backend.txLive (tx : Loc) (γ : backend.DBNames) (q : Qp) (T : bbolt.TxView)
 def backend.fileHoldsF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path : GoString) (D :
     backend.Data) : IProp GF :=
   iprop(∃ R d b dq j qc h,
-      ⌜path = Fs.child d b ∧ NameOk b⌝ ∗
+      ⌜path = Fs.child d b ∧ NameOk b ∧ Fs.PathFits path⌝ ∗
         Fs.osInv ∗
           Fs.osSharedInv R ∗
             Fs.osPathS R d dq j ∗

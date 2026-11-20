@@ -64,6 +64,7 @@ public import Proof.unicode.utf8.Valid
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalLayoutFits
 
 @[expose] public section
 
@@ -489,10 +490,15 @@ structure BootURLs [GooseExts] where
 `bootstrap.go:387-405`; a restart only warns, `:415-420`), and (Q8, 2026-11-02, moved here from the
 examples' `bootPremise`) the initial cluster's member names valid UTF-8 (`bootstrap` keeps a name
 raw in the cluster's members while the peers' contexts, `json.Marshal` of them, decode with U+FFFD
-in its place, so `bootOk`'s members are the contexts' decodings only for valid names). -/
+in its place, so `bootOk`'s members are the contexts' decodings only for valid names), and (wal-fsfix,
+2026-11-20, the user's decision) the data directory fits (`Fs.DirFits`: under 3800 bytes, no component
+over 255; the examples' `memberDataDir name` with a name of at most 200 bytes,
+`dirFits_memberDataDir`), so every path `bootstrap` and the server make below it fits (`PathFits`),
+which the no-error premise needs (`NoIoErr` covers only paths that fit, the user's A1 decision): a
+longer one fails on Linux with `ENAMETOOLONG`. -/
 def bootCfgFresh (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) : Prop :=
   cfg.NewCluster' = true ∧ cfg.DiscoveryCfg'.ConfigSpec'.Endpoints'.len = W64 0 ∧
-    ∀ k, (U.initMap.lookup k).isSome → utf8Valid k
+    (∀ k, (U.initMap.lookup k).isSome → utf8Valid k) ∧ Fs.DirFits cfg.DataDir'
 
 /-- **The configuration's URLs, read-only** (persistent; D19r (F)): what `bootstrap` reads of the
 configuration beyond its scalar fields (`VerifyBootstrap`, `NewClusterFromURLsMap`, the member's

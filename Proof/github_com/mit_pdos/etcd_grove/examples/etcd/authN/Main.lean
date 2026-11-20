@@ -145,6 +145,8 @@ theorem Main.wp_proof
   have hxs1 : ((members k).zip gs).map (·.1) = members k := List.map_fst_zip (by omega)
   have hutf : ∀ x ∈ (members k).zip gs, utf8Valid x.1.Name' :=
     fun x hx => members_names_utf8 k _ (List.of_mem_zip hx).1
+  have hnlen : ∀ x ∈ (members k).zip gs, x.1.Name'.length ≤ 200 :=
+    fun x hx => members_names_len k _ (List.of_mem_zip hx).1
   have hnd : (((members k).zip gs).map (·.1.Name')).Nodup := by
     rw [show ((members k).zip gs).map (·.1.Name') = (((members k).zip gs).map (·.1)).map (·.Name')
       by rw [List.map_map]; rfl, hxs1]
@@ -195,7 +197,7 @@ theorem Main.wp_proof
       (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (members k) ids) Φs γn .none Htb Hrb48 HrbN HwbN
       (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn2 Hdok Hbc hnd hutf hxok Haf Hbuq Hdbo
+      hγn2 Hdok Hbc hnd hutf hnlen hxok Haf Hbuq Hdbo
       (fun _ _ _ => Hcu48)) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]
     iframe; iframe #

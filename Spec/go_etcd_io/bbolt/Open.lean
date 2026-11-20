@@ -48,7 +48,8 @@ environment.
 - On success, the handle `isBolt db γ`, the file's inode (`boltIno`), all of the committed data
   `boltState γ 1 D` (the client decides where it lives) and the closer token `boltCloser γ`, which
   `DB.Close` consumes. The namespace `N` is the caller's (`γ.ns = N`), disjoint from OsFs's `osN`.
-- On an error, `¬ FsNoErr`: some step of the file model failed in a way `NoIoErr`/`NoMapLockErr`
+- On an error, `¬ FsNoErr ∨ ¬ PathFits (child d b)` (the second: the path does not fit, which
+  `NoIoErr` does not cover, wal-fsfix 2026-11-20); `¬ FsNoErr`: some step of the file model failed in a way `NoIoErr`/`NoMapLockErr`
   exclude (`Fs.fsNoErr_of`); the file is lost to the caller (`init` may have written part of it).
 - The bounds the owner needs (`notes/bounds-plan.md`, B1): fewer than `2 ^ 29` live threads (the
   read transactions plus `Commit`'s spare reader slot fit `mmaplock`'s readers); fewer than `2 ^ 62`
@@ -69,7 +70,7 @@ abbrev Open.spec : Prop :=
         ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
             ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗
             boltCloser γ) ∨
-         ⌜err ≠ GoInterface.nil ∧ ¬ FsNoErr⌝)) }}
+         ⌜err ≠ GoInterface.nil ∧ (¬ FsNoErr ∨ ¬ PathFits (child d b))⌝)) }}
 
 end spec
 

@@ -33,7 +33,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Ass
 theorem build.wp_proof (wp_BuildServer : etcdstart.BuildServer.spec (GF := GF) (hG := hG)) :
     build.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
-    ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Haf Hbuq Hdbo
+    ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 HnL Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
@@ -41,7 +41,7 @@ theorem build.wp_proof (wp_BuildServer : etcdstart.BuildServer.spec (GF := GF) (
   (try wp_auto)
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir Hdirps HU HU8 Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
+      Hdir Hdirps HU HU8 HnL Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
