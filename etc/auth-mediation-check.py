@@ -26,6 +26,9 @@ class, status, the specs that carry it and the guard vocabulary they must mentio
     notes/ file that does not exist;
   - when `.lake/tcb.json` is current (as `etc/tcb-report.py --reuse` takes it), a `sorry` it lists is
     declared in one of the rows' proof modules;
+  - `v3rpc.clientPortTable` (`.../api/v3rpc/ClientPortTable.lean`, the table `client_port_mediated`
+    states) differs from the table's gRPC rows: names (grpc's health service as one prefix row),
+    classes, statuses or specs;
   - (--check) a row is weaker than in `etc/auth-mediation-baseline.txt`, or a baseline row is gone.
 
 What it does not do: decide that a spec's post means "no effect without the check" (the vocabulary
@@ -42,6 +45,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "etc"))
 
 TABLE = os.path.join(ROOT, "etc", "auth-table.txt")
+LEAN_TABLE = os.path.join(ROOT, "Proof", "go_etcd_io", "etcd", "server", "v3", "etcdserver", "api",
+                          "v3rpc", "ClientPortTable.lean")
+HEALTH = "/grpc.health.v1.Health/"
 BASELINE = os.path.join(ROOT, "etc", "auth-mediation-baseline.txt")
 ABBREV = {
     "S/": "go_etcd_io/etcd/server/v3/etcdserver/",
@@ -201,6 +207,48 @@ def check_spec(key, s, need_proof):
     return text, pmod, errs
 
 
+def check_lean_table(rows):
+    """`v3rpc.clientPortTable` (ClientPortTable.lean) is the gRPC rows of the table: the same names
+    (grpc's health service as one prefix row), classes, statuses and specs."""
+    if not os.path.isfile(LEAN_TABLE):
+        return [f"{os.path.relpath(LEAN_TABLE, ROOT)} does not exist"]
+    errs = []
+    text = strip_comments(open(LEAN_TABLE).read())
+    lean = {}
+    for m in re.finditer(r'\{ key := go!"([^"]+)", isPrefix := (true|false), cls := \.(\w+), '
+                         r'status := \.(\w+),\s*specs :=(.*?)why := "', text, re.S):
+        key, pre, cls, st, specs = m.groups()
+        st = {"e2eApply": "e2e-apply", "pub": "public"}.get(st, st)
+        cls = "public" if cls == "pub" else cls
+        lean[key] = (pre == "true", cls, st, sorted(re.findall(r"([\w.]+)\.spec\b", specs)))
+    want = {}
+    for k, r in rows.items():
+        if not k.startswith("/"):
+            continue
+        names = []
+        for sp in r["specs"]:
+            sf = os.path.join(ROOT, "Spec", spec_path(sp) + ".lean")
+            m = os.path.isfile(sf) and re.search(r"\b(?:abbrev|def)\s+(\S+)\.spec\b",
+                                                  strip_comments(open(sf).read()))
+            if m:
+                names.append(m.group(1))
+        if k.startswith(HEALTH):
+            if r["status"] != "public" or r["specs"]:
+                errs.append(f"{k}: a health row must be public with no spec (the Lean table's prefix row)")
+            k, entry = HEALTH, (True, r["cls"], "public", [])
+        else:
+            entry = (False, r["cls"], r["status"], sorted(names))
+        want[k] = entry
+    for k in sorted(set(want) | set(lean)):
+        if k not in lean:
+            errs.append(f"{k}: a row of etc/auth-table.txt but not of v3rpc.clientPortTable")
+        elif k not in want:
+            errs.append(f"{k}: a row of v3rpc.clientPortTable but not of etc/auth-table.txt")
+        elif lean[k] != want[k]:
+            errs.append(f"{k}: v3rpc.clientPortTable has {lean[k]}, etc/auth-table.txt {want[k]}")
+    return errs
+
+
 def tcb_sorry_modules():
     """The modules of the `sorry`s of `.lake/tcb.json`, or None when it is not current."""
     j = os.path.join(ROOT, ".lake", "tcb.json")
@@ -258,6 +306,8 @@ def main():
             if not any(re.search(r"(?<![\w.])(?:[\w]+\.)*" + re.escape(w) + r"(?![\w])", t)
                        for t in texts):
                 errs.append(f"{k}: `{w}` occurs in none of its specs")
+
+    errs += check_lean_table(rows)
 
     sm = tcb_sorry_modules()
     if sm is None:

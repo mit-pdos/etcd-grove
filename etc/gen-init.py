@@ -2088,7 +2088,7 @@ _P['finish'] = ([f'ipersist S{t}' for t in _PB_SL] +
                 [f'iStructNamedSuffix H{d}_ServiceDesc "{d}"' for d in _PB_DESCS] +
                 ['ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name',
                  'ipersist Hso', 'ipersist Hst'] +
-                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs',
+                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescIs',
                  'isplitl []', '· iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ' + _PB_DOM(2),
                  'isplitl []', '· iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ' + _PB_DOM(4),
                  'iframe #',
@@ -2483,11 +2483,9 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
              'obtain ⟨rfl, HWp, HWc⟩ := HWp',
              'ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []',
-             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods',
+             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods EtcdGrove.v3rpc.clusterDescMethods EtcdGrove.v3rpc.maintDescMethods',
             
             
-             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC',
-             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HM',
              '  iframe HK HL HC HA HM',
              '  iexists ws',
              '  iframe HW',

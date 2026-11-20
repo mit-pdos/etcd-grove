@@ -14,5 +14,11 @@
   Matrix corrections in `notes/auth-matrix.md`; the v3lock issue's front matter (`upstream: known`).
   Row 12 (LeaseKeepAlive) confirmed: `kaStreamSpec` gives every response `kaDn`, the renewal's
   `leaseCheckFrom` verdict at its request's bounds.
-- Next: M1 (exhaustive `v3rpc.Server.spec`, `clientPortTable`, `client_port_mediated`): STOP with the
-  statements' exact text before proving past them.
+- M1 (statements written and proved, at the STOP): `etcdserverpbDescs` (cache/v3/Base.lean) and
+  `svcDescsOk` (BaseStart) state every descriptor exactly (Cluster, Maintenance, KV's and
+  Maintenance's streams with handlers; `pbDescOk`, `descOk` deleted); `v3rpc.serverRegsOk`
+  (InvGrpcStart) the exact registrations; `v3rpc.Server.spec` posts it (+ `pc pm`); consumers use
+  `serverRegsOk_sub`; `ClientPortTable.lean` (defs) the Lean table; `client_port_mediated`
+  (v3rpc/Results.lean). Gate checks the Lean table against etc/auth-table.txt.
+  The Base change rebuilds ~7400 modules: next build is a full one.
+- Next after the user's go: full timed build, then M2 (Cluster handlers + JSON spec).
