@@ -1103,6 +1103,36 @@ noncomputable def Convert_url_Values_To_v1_UpdateOptions [GooseExts] [GoGlobalCo
 noncomputable def RegisterDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.RegisterDefaults"
 
+/-- go: meta.go:133:23 -/
+noncomputable def ListMeta.GetResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ListMeta.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: meta.go:137:23 -/
+noncomputable def ListMeta.GetContinue.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ListMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ListMeta.ty go!"Continue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ListMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- go: meta.go:158:24 -/
 noncomputable def ObjectMeta.GetObjectMeta.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "obj"
@@ -2863,6 +2893,8 @@ class ListMeta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_ShardInfo : ∀ (x : ListMeta) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ListMeta.underlying go!"ShardInfo") (PairV #x #y) (Val #(({ x with ShardInfo' := y } : ListMeta)))
   method_set : go.MethodSetIs ListMeta.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListMeta.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ListMeta.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ListMeta.ty)] false []))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [ListInterface.ty]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType ShardInfo.ty)]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_GetContinue_unfold : MethodUnfold (go.GoType.PointerType ListMeta.ty) go!"GetContinue" ListMeta.GetContinue.impl
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ListMeta.ty) go!"GetResourceVersion" ListMeta.GetResourceVersion.impl
 
 attribute [instance] ListMeta.TypeAssumptions.type_repr
   ListMeta.TypeAssumptions.underlying
@@ -2878,6 +2910,8 @@ attribute [instance] ListMeta.TypeAssumptions.type_repr
   ListMeta.TypeAssumptions.set_ShardInfo
   ListMeta.TypeAssumptions.method_set
   ListMeta.TypeAssumptions.ptr_method_set
+  ListMeta.TypeAssumptions.ptr_GetContinue_unfold
+  ListMeta.TypeAssumptions.ptr_GetResourceVersion_unfold
 
 structure ShardInfo [GooseExts] where
   mk ::
