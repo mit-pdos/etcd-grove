@@ -45,8 +45,6 @@ axiom grpc.GenericClientStream.Context.wp_proof
 axiom grpc.GenericClientStream.Recv.wp_proof
 axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.NewClient.wp_proof
-axiom grpc.Peer.wp_proof
-axiom grpc.StaticMethod.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpc.WithPerRPCCredentials.wp_proof
 axiom grpc.WithResolvers.wp_proof
@@ -57,11 +55,9 @@ axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcDialOptIs
-axiom grpcPeerOpt
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
-axiom insecure.NewCredentials.wp_proof
 axiom k8sfeature.featureOff_persistent
 axiom k8sfeature.featureOn_persistent
 axiom klog.Errorf.wp_proof

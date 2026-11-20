@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 theorem snap.Message.fields.wp_proof : snap.Message.fields.spec (GF := GF) (hG := hG) := by
   intro m ml rc
   unfold msgIs msgRO
-  iintro #⟨Hml, Htsz, Hrd, -⟩
+  iintro #⟨Hml, Htsz, Hrd, -, -⟩
   iframe Hml Htsz Hrd
 
 end proof

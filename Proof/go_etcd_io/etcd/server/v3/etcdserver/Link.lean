@@ -2594,7 +2594,7 @@ theorem EtcdServer.wp_createMergedSnapshotMessage :
 
 theorem snap.Message.wp_GetTo :
     snap.Message.GetTo.spec (GF := GF) (hG := hG) :=
-  snap.Message.GetTo.wp_proof
+  snap.Message.GetTo.wp_proof raftpb.Message.wp_GetTo
 
 theorem EtcdServer.wp_sendMergedSnap :
     EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=
