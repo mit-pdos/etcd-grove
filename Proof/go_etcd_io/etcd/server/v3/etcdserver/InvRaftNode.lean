@@ -482,7 +482,7 @@ theorem rnRestartOk_a0_le (γ : RNNames GF) (c : Nat) (hc : γ.commit0 ≤ c) :
 
 /-- (auth-lease S4, 2026-11-16) **In the cluster's no-snapshot mode, a first start** (`a0 = []`): a
 restart is outside the mode. -/
-theorem rnRestartOk_mode (γ : RNNames) :
+theorem rnRestartOk_mode (γ : RNNames GF) :
     rnRestartOk (GF := GF) γ ⊢ ⌜clusterNoSnap γ.node.cl → γ.a0 = []⌝ := by
   unfold rnRestartOk
   iintro #Hr

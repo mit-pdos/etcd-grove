@@ -1079,7 +1079,7 @@ theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) 
 
 /-- (auth-lease S4, 2026-11-16) **In the cluster's no-snapshot mode the raft node's restart log is
 empty** (`rnRestartOk_mode`). -/
-theorem isRaftNode_mode (E : RNEnv GF) (γn : RNNames) (r : Loc) :
+theorem isRaftNode_mode (E : RNEnv GF) (γn : RNNames GF) (r : Loc) :
     isRaftNode E γn r ⊢ ⌜clusterNoSnap γn.node.cl → γn.a0 = []⌝ := by
   iintro #Hrn
   iunfold isRaftNode at Hrn
