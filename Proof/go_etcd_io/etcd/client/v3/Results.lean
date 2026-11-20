@@ -2348,7 +2348,9 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
         ihave ⟨HK, Hl⟩ := (etcdRunSlot_split s E γr).1 $$ H; iframe) $$ Hd
   ihave #Hqt := v3rpc.quotaKV_txnHandlerOkMd_of v3rpc.quotaKVServer.wp_Txn (etcdTxnSpecM E.authOn s E ρ γr cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ (etcdKVSlot s E γr)
-    (by intro r m; iintro ⟨#Hr, -⟩
+    (by intro r m
+        change iprop(txn.txnRequestIs (GF := GF) r m ∗ txnWireOk r m) ⊢ _
+        iintro ⟨Hr, -⟩
         iunfold apply.quotaReqOk
         iright; ileft
         isplitr
@@ -2357,7 +2359,9 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
   · iframe #
   ihave #Hqp := v3rpc.quotaKV_putHandlerOkMd_of v3rpc.quotaKVServer.wp_Put (etcdPutSpecM E.authOn s E ρ cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ (etcdKVSlot s E γr)
-    (by intro r m; iintro #Hr
+    (by intro r m
+        change txn.putRequestIs (GF := GF) r m ⊢ _
+        iintro Hr
         iunfold apply.quotaReqOk
         ileft
         isplitr
