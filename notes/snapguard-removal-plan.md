@@ -1,5 +1,13 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## Storage contract progress (2026-11-20)
+
+The main raft build checks `isStorageP_mono_SV`, the tagged storage contract
+`isStorageT`, the tagged memory-storage invariant, its allocation
+`memStorInvT_alloc`, and its contract law `memStorage_isStorageT`. Existing
+clients can keep their original validity predicate. The tag still needs to
+reach the startup and Ready interfaces before the server can use it.
+
 ## HANDOFF (2026-11-20, first session paused by the coordinator)
 
 **Done** (branch `prove-nosnapguard/2026-11-20`, worktree `/shared/etcd-grove-wt/prove-nosnapguard`, off

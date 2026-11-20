@@ -28063,6 +28063,8 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+*Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
+
 **2026-10-31 · accepted**
 
 `applyAll`'s `msgSnapC` branch merges the queued `MsgSnap` only if
@@ -41195,3 +41197,16 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 `mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
 `PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
+
+
+## Carry the stored snapshot's source through raft (2026-11-20)
+
+The caller may associate a persistent predicate with each nonempty snapshot returned by
+storage. The storage already supplies a validity certificate, pinned by raft at attach.
+A tagged memory storage can put validity and the caller's predicate in that certificate.
+The allocation proof uses the general memory-storage invariant allocation, including at
+a nonempty starting snapshot. The existing contract still works for clients that only
+need validity. The next step is to preserve the pin at node startup and the source in Ready.
+
+This supersedes the October 31 decision to retain the server's snapshot-index guard.
+The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
