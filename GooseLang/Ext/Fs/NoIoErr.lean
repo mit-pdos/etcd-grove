@@ -86,6 +86,19 @@ theorem lockStep_maps {st : OsState} {k : LockKind} {fd : w64} {d : OsFd} {req :
   | some ex => rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩ <;> rfl
   | none => rcases h with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩ <;> rfl
 
+/-- Every outcome of `open` leaves the mappings as they were. -/
+theorem isFsStep_open_maps {v : val} {st : OsState} {e' : Expr} {st' : OsState}
+    (hs : IsFsStep "Open" v st e' st') : st'.proc.maps = st.proc.maps := by
+  simp only [IsFsStep] at hs
+  rcases hs with ⟨p, fl, t, start, -, -, -, -, -, ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩⟩ |
+    ⟨p, fl, t, start, -, -, -, -, -, ⟨fd, -, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩
+  · have : st1.proc.maps = st.proc.maps := (openEffect_maps he).trans rfl
+    cases tgt <;> exact this
+  · rfl
+  · exact (openEffect_maps he).trans rfl
+  · rfl
+  · rfl
+
 /-- Every operation `IoCovers` names leaves the mappings as they were. -/
 theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Expr} {st' : OsState}
     (hc : IoCovers S o v st) (hs : IsFsStep o v st e' st') : st'.proc.maps = st.proc.maps := by
@@ -110,14 +123,7 @@ theorem isFsStep_maps {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Ex
   · -- DirClose
     obtain ⟨fd, e, df, -, -, rfl, -⟩ := hs; rfl
   · -- Open
-    rcases hs with ⟨p, fl, t, start, -, -, -, -, -, ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩⟩ |
-      ⟨p, fl, t, start, -, -, -, -, -, ⟨fd, -, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩
-    · have : st1.proc.maps = st.proc.maps := (openEffect_maps he).trans rfl
-      cases tgt <;> exact this
-    · rfl
-    · exact (openEffect_maps he).trans rfl
-    · rfl
-    · rfl
+    exact isFsStep_open_maps hs
   · -- Rename
     obtain ⟨s, t, k, start, -, -, -, -, -, -, h⟩ := hs
     rcases h with ⟨-, o, -, ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩⟩ | ⟨-, -, rfl, -⟩ | ⟨e, -, -, rfl⟩ <;> rfl
