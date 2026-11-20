@@ -36,7 +36,7 @@ abbrev apply.NewUberApplier.spec : Prop :=
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.alarmGetIs opts.AlarmStore' T z ∗ T ∗ zapLoggerOk opts.Logger' }}
+      apply.alarmGetIs opts.AlarmStore' T z ∗ T ∗ zapLoggerOk opts.Logger' ∗ apply.quotaBackend opts.Backend' }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier)) (Val #opts))
   {{ (ua : GoInterface), RET #ua; T ∗ ∃ p : Loc,
       ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗

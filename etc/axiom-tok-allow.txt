@@ -107,12 +107,6 @@ trunc Perennial.EtcdGrove.traceutil.Tracer.Start.wp_proof
 trunc Perennial.EtcdGrove.tracing.Start.wp_proof
 trunc Perennial.EtcdGrove.v3rpc.wp_WithTimeout_weak
 trunc Perennial.EtcdGrove.withVersion.wp_proof
-# k8s 7g (2026-11-19, etcd-grove-03): `apimeta.ListAccessor.wp_proof` (approved at the 7g Freeze, notes/k8s-7g-trust.md
-# §12) holds `typedListAt`, whose pod/node/DaemonSet rows own the items deeply (`kd.core.Pod.own`, ...): the walk is cut
-# in the generated deep-ownership tree (`kd.core.*VolumeSource.own`, `Probe.own`, `SecurityContext.own`, `ownPtrD`,
-# `ownSliceD`), as for the `DeepCopyObject` lines above; `--depth 20` still truncates there (measured). The follow-up
-# (B'), notes/k8s-7g-listaccessor-bprime.md, removes the axiom (and this line).
-trunc Perennial.EtcdGrove.apimeta.ListAccessor.wp_proof
 
 # --- k8s 7f-4 Revision 1, T-e' (2026-11-12; for etcd-grove-81's re-review, notes/k8s-7f4-freeze.md, "Revision 1") ---
 # `isReqAuth`'s triples take `auth.ctxDoneAny ctx` (Proof/go_etcd_io/etcd/server/v3/auth/CtxDone.lean), whose `Done()` post is

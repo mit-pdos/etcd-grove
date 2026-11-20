@@ -604,3 +604,24 @@ Programs and outputs: `/shared/tmp/walfsfix-attack9/` (`symlen/`, `joinfit/`).
    134 400 adversarial data directories). For the land report (or define `snapDirOf` as Go's `Join`).
 4. **mvccrand/mvccfull `Hrfit : Fs.DirFits r`**: satisfiable (a real root's components are ≤ 255; only
    `|r| < 3800` restricts) and sufficient (only `r/<name>` paths, names ≤ 255).
+
+## Session 11 (2026-11-20, branch `wal-fsfix2`): `config.snapDirOf` defined; the attack on it
+
+`config.snapDirOf d := path.joinModel [d, "member", "snap"]` (Go's `filepath.Join(d, "member", "snap")`, approved
+by the user 2026-11-20; until then opaque), so the `PathFits` of the backend and snapshot paths in `bootOk`'s
+claims follows from `bootCfgFresh`'s `DirFits` (`config/PathFits.lean` over `Proof/path/CleanFits.lean`), as
+the attack of session 10 (item 3) proposed.
+
+### The independent attack (read-only subagent, axiom skill; target 553c3c21f4): no refutation
+
+Program and output: `/shared/tmp/walfsfix2-attack/` (`snapdir/snapdir_test.go`, `out1.txt`; Go 1.27.3, the fork at
+the pin). The model (`cleanModel`/`joinModel`/`snapDirOf`) reimplemented in Go and compared with `cfg.SnapDir()`,
+`filepath.Join(d,"member","snap")` and `cfg.BackendPath()` on every string of length ≤ 9 over `/ . a`, 300k random
+strings (NUL, non-UTF-8 bytes included) and 3k strings of 3700-3850 bytes: all equal; the `PathFits` lemmas'
+statements held on every `DirFits` input; on ext4, data directories at the bound (3799 bytes, 255-byte
+components) gave no `ENAMETOOLONG` for `MkdirAll(SnapDir)`, the backend file and the 2^64−1 snapshot file. Defining
+`snapDirOf` makes no premise unsatisfiable (the restart contract's `srvFiles` already carries `PathFits` of
+`backendPathOf`; the examples' data directories are clean absolute roots, so `snapDirOf` is `d/member/snap`).
+Text fixes: the snappaths test's stale `snapDBPathOf`; `CleanFits.lean`'s header ("`Join` of elements that fit
+gives a path that fits": only the window property is kept, the length is `snapDirOf_fits`'s); `PathFits.lean`'s
+"`Clean` lengthens nothing" (not of `""`). `SpecPlan`'s `Config.snapDirOf` stays opaque (its own namespace).

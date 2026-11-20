@@ -32,7 +32,7 @@ abbrev apply.newQuotaApplierV3.spec : Prop :=
   ∀ (lg : Loc) (cfg : w64) (be app : GoInterface),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ zapLoggerOk lg }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ zapLoggerOk lg ∗ apply.quotaBackend be }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newQuotaApplierV3))
       (Val #lg)) (Val #cfg)) (Val #be)) (Val #app))
   {{ (a : GoInterface), RET #a;
