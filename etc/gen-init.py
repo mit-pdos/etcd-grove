@@ -3315,8 +3315,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.restartN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
@@ -3373,8 +3371,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester

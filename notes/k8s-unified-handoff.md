@@ -3,27 +3,27 @@
 ## START HERE
 
 Branch `k8s-unified-scope`, worktree `/shared/etcd-grove-k8sunified` (lean 5a18d777d2 merged; pin
-c44b74871: `--packages=/shared/tmp/manifest-c44.json`, `PERENNIAL_DIR=/shared/perennial-c44b74871`;
-`.lake/build` seeded from mergeorigin10). Scope: `notes/k8s-unified-scope.md` (decisions §7);
-`questions.md` (untracked) has the decisions.
+c44b74871: `--packages=/shared/tmp/manifest-c44.json`, `PERENNIAL_DIR=/shared/perennial-c44b74871`).
+Scope: `notes/k8s-unified-scope.md` (decisions §7); `questions.md` (untracked) has the decisions.
 
-Done:
-- U0 (commit "k8s-unified U0"): `examples/k8s/all` (Go `Main`, tests pass), project `k8s-all`
-  translated, gen-init root/program (`Proof/.../k8s/all/{Init,InitLinked,PkgTable}.lean`),
-  featuregate INSIDE. The idutil docstring change (approved, D5) is deferred to U3's full build
-  (it rebuilds the server's cone): `/shared/tmp/k8s-unified/idutil-docstring.patch` (`git apply`).
-- U1: `Proof/.../k8s/all/{Base,holdToken,Main,MainLinked,TopLevelDefs}.lean`,
-  `Spec/.../k8s/all/{holdToken,Main,TopLevelRobustness}.lean`; `Main.wp_proof` and `k8s_all.wp_Main`
-  check (lean-check, 0 errors).
+Done (U0-U3; statements approved by the user 2026-11-20):
+- U0/U1: `examples/k8s/all`, its translation and initializers, `Main`'s triple (`k8s_all.wp_Main`).
+- U2: `Proof/.../k8s/all/Disjoint.lean` (the two clusters' addresses and directories disjoint),
+  `Adequacy.lean` (`k8s_adequate`, `wp_schedLit`), `Results.lean` (`k8s_all_Main`, `k8s_safe`),
+  `TopLevelRobustness.lean` (`k8s_robust`).
+- U3: retired `k8s_etcd3{,_cluster,_partition}_{safe,adequate}`, `k8s_etcd3{,_cluster,_partition}_robust`,
+  `k8s_compactor{,_partition}_{safe,adequate,robust}`: deleted both drivers' `Adequacy`, `TopLevelDefs`,
+  `TopLevelRobustness` (Proof and Spec) and `PkgTable` (gen-init PROGRAMS entries), the `_safe`
+  sections of their `Results.lean` (triples kept), collections `k8setcd3.txt`/`k8scompactor.txt`;
+  new `etc/tcb-collections/k8s-all.txt` (597 axioms = their union); idutil docstring patch applied;
+  README, STATUS (entry; history append-only), leasecatchup comments.
+- Checked: full timed build `20261120-145821-645806`; tcb --check (674 axioms, 2 sorries, unchanged);
+  69 collections; gen-link modes; interfaces --check --layout; api; tier; gen-init; featuregate;
+  mode; bounds; goose; axiom-tok; `examples/k8s/all` Go tests. Independent attack on the idutil
+  docstring and `Hlow`: both survive (no restarts in this program; one generator per member).
 
-STOP now: the statements below to etcd-grove-03/the user. Next after approval:
-1. `Proof/.../k8s/all/Adequacy.lean` (`k8s_adequate`, via `etcd_adequate_alloc_members`: ms =
-   `k8s_etcd3N.startAddrs k ++ cluster3.members clusterCfg`, Bs = bridges ++, As = `k8sAddrs k`,
-   Ds = `k8sDirs k`; two disjointness lemmas; both `schedLit`s; registry allocated as the compactor's),
-   `Results.lean` (`k8s_all_Main`, `k8s_safe`, `#print axioms`), `Proof/.../all/TopLevelRobustness.lean`.
-2. U3: retire the five old closed theorems (etcd3/compactor `Adequacy`, `_safe`s, `TopLevelRobustness`
-   pairs, `TopLevelDefs`, PROGRAMS entries/PkgTables), apply the idutil patch, tcb collection
-   `etc/tcb-collections/k8s-all.txt`, STATUS, full timed build, checks; attack subagent; land stop.
+STOP: the land stop (report to etcd-grove-03; do not commit after it). If lean moves before the
+land: merge it, seed `.lake/build` as common-rules say, rebuild, rerun the checks.
 
 ## The statements (for review)
 
