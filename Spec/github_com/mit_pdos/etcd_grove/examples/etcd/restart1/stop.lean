@@ -36,7 +36,7 @@ abbrev stop.spec : Prop :=
     (γn : NetNames GF),
   ρ.rd.raft.raft.boot.length ≤ 1 → srvStop.scope E →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart1 ∗
-      srvAppliedInv s Ea ρ.rd ∗ srvDataDir s (name ++ go!".etcd") ∗
+      srvAppliedInv s Ea ρ.rd ∗ srvDataDir s (memberDataDir name) ∗
       srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart1.stop)) (Val #s))
   {{ RET #(); etcdstart.memberRestartRes name {} γn ρ.rd.raft.raft ρ id }}

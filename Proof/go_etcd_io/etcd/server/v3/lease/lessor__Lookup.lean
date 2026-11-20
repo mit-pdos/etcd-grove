@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG := hG) := by
-  intro lp γl id m U
+  intro lp γl id m U w
   wp_start as ⟨#Hinv, Hrd, #Hlb, HU⟩
   iunfold lessorInv at Hinv
   icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
@@ -48,14 +48,14 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
   cases hM : M.lookup id with
   | none =>
     -- the owner's view: its live set is the lock's
-    ihave HU' : lookupViewAfter (GF := GF) γl id null U ∗ lessorAuth γl _ lp L' M ∗
+    ihave HU' : lookupViewAfterW (GF := GF) γl id null w U ∗ lessorAuth γl _ lp L' M ∗
         leaseFrag γl _ L' $$ [HU Ha Hg]
     · cases U with
-      | none => rw [lookupViewAfter_none]; iframe
+      | none => rw [lookupViewAfterW_none]; iframe
       | some LI =>
         obtain ⟨L, I⟩ := LI
-        rw [lookupView_some, lookupViewAfter_some]
-        iunfold leaseOwn at HU
+        rw [lookupViewW_some, lookupViewAfterW_some]
+        iunfold leaseOwnW at HU
         icases HU with ⟨Hfr, Hcls⟩
         ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hfr $Hg]
         subst Hag
@@ -67,7 +67,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
         ileft
         isplitr
         · ipureintro; rfl
-        iunfold leaseOwn; iframe Hfr Hcls
+        iunfold leaseOwnW; iframe Hfr Hcls
     icases HU' with ⟨HU, Ha, Hg⟩
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhl] as Hrd
     · inext
@@ -94,14 +94,14 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
     ihave #Hlo' := Hlo
     iunfold isLeaseObj at Hlo'
     icases Hlo' with ⟨%Hnn, #Hlmu, -⟩
-    ihave HU' : lookupViewAfter (GF := GF) γl id l U ∗ lessorAuth γl _ lp L' M ∗
+    ihave HU' : lookupViewAfterW (GF := GF) γl id l w U ∗ lessorAuth γl _ lp L' M ∗
         leaseFrag γl _ L' $$ [HU Ha Hg]
     · cases U with
-      | none => rw [lookupViewAfter_none]; iframe
+      | none => rw [lookupViewAfterW_none]; iframe
       | some LI =>
         obtain ⟨L, I⟩ := LI
-        rw [lookupView_some, lookupViewAfter_some]
-        iunfold leaseOwn at HU
+        rw [lookupViewW_some, lookupViewAfterW_some]
+        iunfold leaseOwnW at HU
         icases HU with ⟨Hfr, Hcls⟩
         ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hfr $Hg]
         subst Hag
@@ -109,7 +109,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
         -- the owner's closer of `id` is the map's lease (the closers' map's authority agrees)
         iunfold leaseClosers at Hcls
         icases Hcls with ⟨%lp', %γga, %γcl, %C, %im', #Hp, %HC, Him', HI', %HIL, %HIS, Hcm,
-          %γr2, %hs2, %Sm2, #Hpr2, Ho2, %Hlast2, HSm2⟩
+          %γr2, %hs2, %Sm2, #Hpr2, Ho2, %Hlast2, HSm2, HW2⟩
         icases lessorAuth_pin γl _ lp lp' L M γga γcl $$ [$Ha $Hp] with ⟨%Hlp', Hcl, Hback⟩
         subst Hlp'
         obtain ⟨l', hCl⟩ : ∃ l', C.lookup id = some l' :=
@@ -128,12 +128,12 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
         · ipureintro
           exact ⟨fun h => absurd h Hnn, fun h => absurd hidL h⟩
         iright
-        iunfold leaseOwnOpen
+        iunfold leaseOwnOpenW
         iframe Hlo Hio Hslot
         isplitr
         · ipureintro; exact HIS
         iintro ⟨Hio, Hslot⟩
-        iunfold leaseOwn; iframe Hfr
+        iunfold leaseOwnW; iframe Hfr
         iunfold leaseClosers
         iexists lp, γga, γcl, C, im'
         iframe Hp Him' HI'
@@ -146,7 +146,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
         isplitl [Hcw He Hio Hslot]
         · iapply Hcw
           iunfold closerAt; iframe He Hio Hslot
-        iexists γr2, hs2, Sm2; iframe Hpr2 Ho2 HSm2; ipureintro; exact Hlast2
+        iexists γr2, hs2, Sm2; iframe Hpr2 Ho2 HSm2 HW2; ipureintro; exact Hlast2
     icases HU' with ⟨HU, Ha, Hg⟩
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhl] as Hrd
     · inext

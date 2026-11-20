@@ -24,6 +24,7 @@ import (
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 const grantRounds = 10
@@ -31,6 +32,7 @@ const grantRounds = 10
 func TestGrantEveryMember(t *testing.T) {
 	t.Chdir(t.TempDir())
 	cfg := configAt(24600, "lcgrant")
+	walarea.Reset(t, cfg.Name1, cfg.Name2, cfg.Name3) // the members' WAL areas (wal-link P2)
 	// the configuration's ids, and the premise on them
 	var low15 [3]uint64
 	seen := map[uint64]bool{}

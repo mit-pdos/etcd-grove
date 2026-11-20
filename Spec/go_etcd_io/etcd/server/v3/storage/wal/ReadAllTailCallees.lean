@@ -9,7 +9,7 @@ this handle, `TailMetaR`, the length word at `o0` zero: the reader's `io.EOF` st
 at least `o0`; the fdatasync's success: the key back (`walLentRes_unpend`), the tail exact (`walTailW …
 TailMeta`), the history synced. On an error the tail comes back (W4c U5, fifth session: `walTailPE`, the file's offset
 unknown and the length word at `o0` zero, after `ZeroToEnd`'s; `walTailP` unchanged after the fdatasync's),
-for `Close` to sync and put back (`WAL.Close.specFailed`). Lean-first.
+for `Close` to sync and put back (`WAL.Close.spec` (state `failed`)). Lean-first.
 -/
 module
 

@@ -292,18 +292,79 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
+/-- **The tester's call permission, the WAL's fraction `q`**: the call permission of the WAL directory's
+key (`tWalDir e.area`'s, the area root's: an open WAL's handle holds the rest, `WAL.Close` gives it back
+under that key) and the whole one of the oracle directory's root (two distinct roots; only the oracle
+file's `durable` calls use it). -/
+def tPerm (e : TEnv) (q : Qp) : IProp GF :=
+  iprop(osCallPerm (L := L) (callKey e.R (tWalDir e.area)) q ∗ osCallPerm (L := L) (callKey e.R e.orDir) 1)
+
+/-- The WAL directory is the area's `wal`. -/
+theorem tWalDir_child (a : GoString) : tWalDir a = child a go!"wal" := rfl
+
+/-- The WAL directory's key is the area root's. -/
+theorem tWalDir_key {R : Roots} {a : GoString} {jr : Ino} (hR : RootsOk R) (hr : (a, jr) ∈ R) :
+    callKey R (tWalDir a) = callKey R a := by
+  rw [callKey_eq hR hr (.inr ⟨go!"wal", by rw [tWalDir_child]; simp⟩), callKey_eq hR hr (.inl rfl)]
+
+open Iris.ProofMode in
+/-- **The tester's whole permission, from the switch's** (`wp_osShare`'s `osCallPerms`): the wholes of
+the area's root and of the oracle directory's (distinct roots). -/
+theorem tPerm_of_osCallPerms (e : TEnv) {jr jo : Ino} (hR : RootsOk e.R) (hr : (e.area, jr) ∈ e.R)
+    (ho : (e.orDir, jo) ∈ e.R) (hne : jo ≠ jr) :
+    osCallPerms (L := L) e.R ⊢ tPerm (L := L) e 1 := by
+  have hao : e.orDir ≠ e.area := by
+    intro h
+    apply hne
+    have := eq_of_nodup_map hR.1 ho hr (by simpa using h)
+    simpa using congrArg Prod.snd this
+  have hon : ([] : GoString) ≠ e.orDir := by
+    obtain ⟨cs, hcs, -, hrc⟩ := (hR.2.2 _ ho).1
+    intro h0
+    rw [← h0] at hrc
+    cases cs with
+    | nil => exact hcs rfl
+    | cons c cs => simp [joinPath] at hrc
+  unfold tPerm
+  iintro H
+  icases osCallPerms_root e.R e.area jr hR hr $$ H with ⟨Ha, Hrest⟩
+  have hl : GMap.delete e.area (GMap.delete [] (permMap e.R)) !! e.orDir = some () := by
+    rw [GMap.lookup_delete_ne _ (Ne.symm hao), GMap.lookup_delete_ne _ hon]
+    exact permMap_lookup e.R e.orDir (.inr ⟨jo, ho⟩)
+  icases (BigSepM.bigSepM_delete (M := GMap GoString)
+    (Φ := fun (r' : GoString) (_u : Unit) => osCallPerm (L := L) r' 1) (x := ()) hl).1 $$ Hrest
+    with ⟨Ho, -⟩
+  rw [tWalDir_key hR hr]
+  iframe Ha
+  rw [callKey_eq hR ho (.inl rfl)]
+  iexact Ho
+
+open Iris.ProofMode in
+/-- **The WAL's half back** (`member.close`, then `restart`): the tester's half and the half the handle
+held make the whole. -/
+theorem tPerm_join (e : TEnv) :
+    tPerm (L := L) e (1 : Qp).half ∗ osCallPerm (L := L) (callKey e.R (tWalDir e.area)) (1 : Qp).half ⊢
+      tPerm (L := L) e 1 := by
+  unfold tPerm
+  iintro ⟨⟨Ha, Ho⟩, Hb⟩
+  iframe Ho
+  have h := osCallPerm_split (L := L) (callKey e.R (tWalDir e.area)) (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  iapply h.2
+  iframe
+
 /-- **The boot precondition of an incarnation** (generation `L`), after the shared mode's switch:
 fresh WAL names `W`; the invariant and the program's halves (the oracle `o`, no `Write` pending; the
 WAL state `od`); the WAL's area (`walAreaOk` over the WAL's codec and raftpb's marshaller, U4), the
 area's durability (`Create`'s `dirDurable r`), the program's part of the area and the lock token;
-durable's invariant and handle on the oracle file; the whole call permission; the crash tokens the
+durable's invariant and handle on the oracle file; the whole call permission (`tPerm`); the crash tokens the
 crash obligation takes (`walInv_crash`'s, durable's). -/
 def TBoot (e : TEnv) : IProp GF :=
   iprop(∃ (W : WalGS GF) (γ : TGS) (o : TOracle) (od : Option WalDur),
     TInv (W := W) e γ ∗ tOrOwn γ o none ∗ tWalOwn γ od ∗
     WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
     WalFs.dirDurable (W := W) (e.area) ∗ WalFs.walAreaRes (W := W) e.jr ∗ WalFs.walUnlockedTok (W := W) ∗
-    DurFs.durInv γ.γd e.orFile ∗ DurFs.durHandle γ.γd e.orFile e.R ∗ osCallPerm 1 ∗
+    DurFs.durInv γ.γd e.orFile ∗ DurFs.durHandle γ.γd e.orFile e.R ∗ tPerm e 1 ∗
     WalFs.walCrashTok (W := W) ∗ DurFs.durCrashTok γ.γd)
 
 /-- **The program's part of `TBoot`** at its witnesses (the WAL names `W`, the ghost names `γ`, the oracle
@@ -313,7 +374,7 @@ def TRun (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Option WalDur)
     WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
     WalFs.dirDurable (W := W) (e.area) ∗ WalFs.walAreaRes (W := W) e.jr ∗ WalFs.walUnlockedTok (W := W) ∗
     DurFs.durInv γ.γd e.orFile ∗ DurFs.durHandle γ.γd e.orFile e.R ∗
-    osCallPerm 1)
+    tPerm e 1)
 
 open Iris.ProofMode in
 /-- **`TBoot` is the program's part and the crash tokens.** -/

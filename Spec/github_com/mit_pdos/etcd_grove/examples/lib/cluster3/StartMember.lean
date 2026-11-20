@@ -65,6 +65,9 @@ abbrev StartMember.spec : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
+  -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
+  -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
+  name.length ≤ 200 →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   -- (lease-mono3) the lease reads' deployment premise, in a mode that grants leases

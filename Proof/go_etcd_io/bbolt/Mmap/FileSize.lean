@@ -43,7 +43,7 @@ theorem fmtErrorOk_argOk (err : GoInterface) :
     iintro ⟨%h, #H⟩
     iright; ileft; isplitr
     · iexact H
-    · ipureintro; exact h.1
+    · ipureintro; exact h
 
 omit hos package_sem in
 /-- `fmt.Errorf`'s post gives `fmtErrorOk`. -/
@@ -135,7 +135,10 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       · iframe
         fmt_args_intro
         isplitl
-        · fmt_arg_method; iapply fmtErrorOk_argOk $$ Hek
+        · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+          isplitr
+          · ipureintro; decide
+          · iapply fmtErrorOkOrNil_of $$ Hek
         · itrivial
       try wp_auto
       iapply HΦ

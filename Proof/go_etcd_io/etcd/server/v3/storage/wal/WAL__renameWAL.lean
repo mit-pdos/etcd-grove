@@ -144,20 +144,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   · iapply isPkgInit_access $$ Hpkg
   ihave #Hseg := wal.walInit_segSize $$ Hwi
   icases walTmpsRes_split' J $$ Htmps with ⟨Ht0, Ht1⟩
-  ihave Hperm : osCallPerm ((1 : Qp).half + (1 : Qp).half) $$ [Hperm]
+  icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc⟩
+  ihave Hperm : osCallPerm (callKey R r) ((1 : Qp).half + (1 : Qp).half) $$ [Hperm]
   · rw [Qp.half_add_half]; iexact Hperm
-  icases (osCallPerm_split _ _).1 $$ Hperm with ⟨Hperm1, Hperm2⟩
-  icases osCallPerm_halfSplit (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm3⟩
+  icases (osCallPerm_split _ _ _).1 $$ Hperm with ⟨Hperm1, Hperm2⟩
+  icases osCallPerm_halfSplit _ (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm3⟩
   try wp_auto
   have hdl' : (child r nm).length < 2 ^ 61 := by omega
   wp_apply wp_nfp lg (child r nm) (W64 64000000) R dq J (by decide) (by decide) hdl' (by decide)
     $$ [Hperm1 Hs1 Ht0] as %fp ⟨%hfp, %γ, Hpipe, Hmain⟩
-  · iframe; iframe #; unfold pipeRes; iframe
+  · iframe; iframe #; unfold pipeRes; rw [hkc nm]; iframe
   try wp_auto
   wp_apply wp_OpenDir (child r nm) R J dq (1 : Qp).half $$ [Hs2 Hperm2] as %df %err ⟨Hs2, Hperm2, Hod⟩
-  · iframe; iframe #
+  · rw [hkc nm]; iframe; iframe #
+  rw [hkc nm]
   try wp_auto
-  icases Hod with (⟨%dfd, %herr, Hdf1, Hdfd⟩ | ⟨%herr, %hdf⟩)
+  icases Hod with (⟨%dfd, %herr, Hdf1, Hdfd⟩ | ⟨%herr, -⟩)
   · subst herr
     iapply HΦ
     unfold renameWALPost
@@ -177,7 +179,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     iframe Hp
     iright; iright; iright
     isplitr
-    · ipureintro; exact herr
+    · ipureintro; exact herr.1
     iexists x
     iunfold walLockIn at Hlk
     icases Hlk with ⟨-, Hf, Hfd, Hlks, -⟩

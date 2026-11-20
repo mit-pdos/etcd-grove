@@ -72,6 +72,73 @@ def txn.TxnPreA (log : mvcc.Log) (t : TxnModel) : Prop :=
 abbrev txn.txnChs (log : mvcc.Log) (t : TxnModel) : List mvcc.Change :=
   (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1
 
+/-! ### The lessor window of a write (auth-lease S4 item 7b, 2026-11-17) -/
+
+section winVocab
+variable [GooseExts]
+
+/-- **The items a delete's range selects**: mvcc's `delSel` of the arguments `deleteRange` gives
+`DeleteRange` (the key alone when the end is `nil`, else the keys of `[key, end)`). -/
+def txn.delSelOf (o : OpFull) (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) : Prop :=
+  mvcc.delSel (txn.srvEnd o.base.rangeEnd).1 o.key (txn.srvEnd o.base.rangeEnd).2 it.Key'
+
+/-- **The item map after a put request** of the item map `I`: the key's item is the request's lease
+(none for `0`), unless the put keeps the previous lease (`IgnoreLease`). -/
+def txn.putItemsOf (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (o : OpFull) :
+    GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 :=
+  if o.ignoreLease then I
+  else if o.leaseID = W64 0 then GMap.delete (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk o.key) I
+  else GMap.insert (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk o.key) o.leaseID I
+
+mutual
+/-- **One operation of a run within the lessor window `w`**, at the state `s` (as `OpOk`): a put
+moves the items toward the window's target (`lease.winMove`), a delete's range drops the items the
+window drops (`lease.winDrops`, stated over the range: the keys found are known only after the
+call), a nested transaction's chosen branch is within the window. `True` at `w = none`. -/
+def txn.WinOp (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) : List EtcdKv → TxnOp → Prop
+  | _, .get _ => True
+  | s, .put k v l => lease.winMove w (mvcc.leaseItemsOf s)
+      (mvcc.leaseItemsOf (mvcc.applyChanges r s (txn.srvOp s0 r s (.put k v l)).1))
+  | s, .putKeep k v => lease.winMove w (mvcc.leaseItemsOf s)
+      (mvcc.leaseItemsOf (mvcc.applyChanges r s (txn.srvOp s0 r s (.putKeep k v)).1))
+  | s, .putIgnVal k l => lease.winMove w (mvcc.leaseItemsOf s)
+      (mvcc.leaseItemsOf (mvcc.applyChanges r s (txn.srvOp s0 r s (.putIgnVal k l)).1))
+  | s, .delete o => lease.winDrops w (mvcc.leaseItemsOf s) (txn.delSelOf o)
+  | s, .txn cs ts es =>
+    match cs.all (cmpHolds s0) with
+    | true => txn.WinOps w s0 r s ts
+    | false => txn.WinOps w s0 r s es
+
+/-- **Every operation of a run within the lessor window `w`**, each at the state the ones before
+it left (as `OpsOk`). -/
+def txn.WinOps (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) : List EtcdKv → List TxnOp → Prop
+  | _, [] => True
+  | s, op :: ops => txn.WinOp w s0 r s op ∧
+      txn.WinOps w s0 r (mvcc.applyChanges r s (txn.srvOp s0 r s op).1) ops
+end
+
+mutual
+theorem txn.winOp_none (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (op : TxnOp), txn.WinOp none s0 r s op
+  | _, .get _ => trivial
+  | _, .put _ _ _ => fun _ h => by cases h
+  | _, .putKeep _ _ => fun _ h => by cases h
+  | _, .putIgnVal _ _ => fun _ h => by cases h
+  | _, .delete _ => fun _ h => by cases h
+  | s, .txn cs ts es => by
+    simp only [txn.WinOp]
+    cases cs.all (cmpHolds s0)
+    · exact txn.winOps_none s0 r s es
+    · exact txn.winOps_none s0 r s ts
+
+theorem txn.winOps_none (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (ops : List TxnOp), txn.WinOps none s0 r s ops
+  | _, [] => trivial
+  | s, op :: ops => ⟨txn.winOp_none s0 r s op, txn.winOps_none s0 r _ ops⟩
+end
+
+end winVocab
+
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -115,33 +182,61 @@ def txn.kvBackend (γ : MvccName) (q : Qp) (B : MvccStorage) (P : IProp GF) (f :
     IProp GF :=
   iprop(mvcc.api.mvccBackend γ q B P ∗ mvcc.api.hookIs B f)
 
-/-- **A put's updates**: the begin (the caller gives the lessor's item map `I` at the state, and,
-for `IgnoreLease`, that the key's lease is live), then the commit of `putPend o σ₀`, then `R σ₀`. -/
-def txn.putAU (γ : MvccName) (o : OpFull) (L : List w64)
+/-- **A put's updates at a window `w`** (item 7b F2): the begin (the caller gives the lessor's item map `I` at the
+state, that a put that writes moves the items toward the window's target (`lease.winMove`: at the begin state, where
+the caller knows whether the put writes), and, for `IgnoreLease`, that the key's lease is live), then, given the lessor's witness at `w` for the items after
+the put (`lease.winWit`, `True` at no window), the commit of `putPend o σ₀`, then `R σ₀`. -/
+def txn.putAUW (γ : MvccName) (w : Option lease.LWin) (o : OpFull) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → IProp GF) : IProp GF :=
   txn.beginAU γ (fun σ₀ =>
-    iprop(⌜mvcc.pendItems σ₀.log [] = I⌝ ∗
+    iprop(⌜mvcc.pendItems σ₀.log [] = I ∧
+        ((txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter σ₀.log)).isSome) →
+          lease.winMove w I (txn.putItemsOf I o))⌝ ∗
       (if o.ignoreLease then txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log)))
        else iprop(True)) ∗
-      txn.commitAU γ σ₀ (txn.putPend o σ₀) (R σ₀)))
+      (lease.winWit (mvccLeases γ) w (mvcc.pendItems σ₀.log (txn.putPend o σ₀)) -∗
+        txn.commitAU γ σ₀ (txn.putPend o σ₀) (R σ₀))))
 
-/-- **A delete's updates**: the begin (the item map `I` at the state), then the commit of the
-deletes (or, after a context error, of nothing), then `R σ₀ ok`. -/
-def txn.delAU (γ : MvccName) (o : OpFull)
+/-- **A put's updates** (no window: `putAUW … none`). -/
+abbrev txn.putAU (γ : MvccName) (o : OpFull) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → IProp GF) : IProp GF :=
+  txn.putAUW γ none o L I R
+
+/-- **A delete's updates at a window `w`** (item 7b F2): the begin (the item map `I` at the state), then, given the
+lessor's witness at `w` for the items after the deletes, the commit of the deletes (or, after a context error, of
+nothing), then `R σ₀ ok`. -/
+def txn.delAUW (γ : MvccName) (w : Option lease.LWin) (o : OpFull)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → Bool → IProp GF) :
     IProp GF :=
   txn.beginAU γ (fun σ₀ =>
     iprop(⌜mvcc.pendItems σ₀.log [] = I⌝ ∗
-      ∀ ok : Bool, txn.commitAU γ σ₀ (txn.delPend o σ₀ ok) (R σ₀ ok)))
+      ∀ ok : Bool, lease.winWit (mvccLeases γ) w (mvcc.pendItems σ₀.log (txn.delPend o σ₀ ok)) -∗
+        txn.commitAU γ σ₀ (txn.delPend o σ₀ ok) (R σ₀ ok)))
 
-/-- **`Txn`'s write updates at the sole writer of `log`** (a request that writes): the begin, where
-the caller gives the pin (the state's log is `log`: no commit since the read), then the commit of
-the run's changes at `log`, then `Qw σ`. The caller builds them from its read update's `Qr`, only
-once the checks passed (`Txn.specSole`'s wand), so that a failed check leaves its resources in `Qr`. -/
-def txn.txnBeginAU (γ : MvccName) (log : mvcc.Log) (t : TxnModel) (Qw : MvccState → IProp GF) :
+/-- **A delete's updates** (no window: `delAUW … none`). -/
+abbrev txn.delAU (γ : MvccName) (o : OpFull)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → Bool → IProp GF) :
     IProp GF :=
+  txn.delAUW γ none o I R
+
+/-- **`Txn`'s write updates at the sole writer of `log`, at a window `w`** (a request that writes; item 7b F2): the
+begin, where the caller gives the pin (the state's log is `log`: no commit since the read) and that the run's
+operations are within the window (`WinOps`: given only once the checks passed), then, given the lessor's
+witness at `w` for the items after the run, the commit of the run's changes at `log`, then `Qw σ`. The caller builds
+them from its read update's `Qr`, only once the checks passed (`Txn.specSole`'s wand), so that a failed check leaves
+its resources in `Qr`. -/
+def txn.txnBeginAUW (γ : MvccName) (w : Option lease.LWin) (log : mvcc.Log) (t : TxnModel)
+    (Qw : MvccState → IProp GF) : IProp GF :=
   txn.beginAU γ (fun σ =>
-    iprop(⌜σ.log = log⌝ ∗ txn.commitAU γ σ (txn.txnChs log t) (Qw σ)))
+    iprop(⌜σ.log = log ∧ txn.WinOps w (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
+        (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
+      (lease.winWit (mvccLeases γ) w (mvcc.pendItems σ.log (txn.txnChs log t)) -∗
+        txn.commitAU γ σ (txn.txnChs log t) (Qw σ))))
+
+/-- **`Txn`'s write updates at the sole writer of `log`** (no window: `txnBeginAUW … none`). -/
+abbrev txn.txnBeginAU (γ : MvccName) (log : mvcc.Log) (t : TxnModel) (Qw : MvccState → IProp GF) :
+    IProp GF :=
+  txn.txnBeginAUW γ none log t Qw
 
 /-- **A transaction's response after a failed run** (read-only; `txn`'s error outcome): not
 nil, its header and the header's revision, its `Responses` slice (what `Txn` reads for its

@@ -49,7 +49,7 @@ theorem os.WriteFile.wp_proofEmptyS (wp_Open : os.OpenFile.specCreateTruncS (GF 
   · subst herr
     wp_auto
     wp_apply os.File.Write.wp_empty f fd (child d b) (DFrac.own 1) sl dqs (W64 0) hfd
-      $$ [Hf Ho Hsl] as %n %e ⟨-, Hf, Ho, Hsl⟩
+      $$ [Hf Ho Hsl] as %n %e ⟨-, Hf, Ho, Hsl, -⟩
     · iframe
     have hsome : o.isSome = true := by
       rcases o with _ | ⟨x, s, i'⟩

@@ -53,6 +53,16 @@ theorem clientErr_statusError (e : GoInterfaceOk) (hl : errors.isLeafError e)
   rw [hty] at h
   simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty] at h
 
+/-- An `EtcdError` value's `Error` is `Error() string`, from `rpctypesEtcdErrorTy` (fmt soundness 2). -/
+theorem rpctypesEtcdErrorTy_errorSig (hty : rpctypesEtcdErrorTy (GF := GF) (hG := hG)) (e : GoInterfaceOk)
+    (h : ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+      GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) :
+    methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig := by
+  obtain ⟨x, hx⟩ := h
+  cases e
+  simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at hx
+  rw [hx.1]; exact hty.2.2.2.2
+
 theorem statusErrOk_nil' : ⊢ statusErrOk (GF := GF) GoInterface.nil := by
   unfold statusErrOk
   iintro !> %e %he
@@ -105,7 +115,7 @@ theorem WatchResponse.Err.wp_proof
       isplitl []
       · ipureintro; simp_all
       isplitl []
-      · imodintro; iintro -; iapply errStrOk_ok _ FCP.1; iexact HeCPs
+      · imodintro; iintro -; iapply errStrOk_ok _ ⟨FCP.1, rpctypesEtcdErrorTy_errorSig Hty _ FCP.2⟩; iexact HeCPs
       obtain ⟨x, hx⟩ := FCP.2
       rw [hx]
       isplitl []
@@ -145,7 +155,7 @@ theorem WatchResponse.Err.wp_proof
         isplitl []
         · ipureintro; simp
         isplitl []
-        · imodintro; iintro -; iapply errStrOk_ok _ FFR.1; iexact HeFRs
+        · imodintro; iintro -; iapply errStrOk_ok _ ⟨FFR.1, rpctypesEtcdErrorTy_errorSig Hty _ FFR.2⟩; iexact HeFRs
         obtain ⟨x, hx⟩ := FFR.2
         rw [hx]
         isplitl []

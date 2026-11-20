@@ -53,7 +53,7 @@ theorem walFoldChkFrom_congr : ∀ (L : WalHist) (τ τ' σ : StorContents),
   | cons o L ih =>
     intro τ τ' σ h1 h2 h3 h
     cases o with
-    | snap m =>
+    | snap m al =>
       simp only [walFoldChkFrom] at h ⊢
       obtain ⟨e1, e2, e3⟩ := walSaveSnap_congr m h1 h2 h3
       exact ih _ _ σ e1 e2 e3 h
@@ -125,7 +125,7 @@ def walReadAllOk (I : WalHist) (cut : Nat) (s : w64 × w64) (σ : StorContents) 
 (`walReadR_eq_openPos`'s) and `walReadsBack`. -/
 theorem walReadAllOk_walRead {I : WalHist} {cut : Nat} {s : w64 × w64} {σ σ' : StorContents}
     (hpost : walReadAllOk I cut s σ') (hmax : ¬ walHasMaxIdx I)
-    (ha : ∃ (i : Nat) (m : SnapshotMetadataM), I[i]? = some (WalOpG.snap m) ∧ m.Index' = s.1)
+    (ha : ∃ (i : Nat) (m : SnapshotMetadataM) (al : Bool), I[i]? = some (WalOpG.snap m al) ∧ m.Index' = s.1)
     (hac : uint.nat s.1 ≤ uint.nat (walLastHS I).Commit') (hcl : walCommitLe I)
     (h : walRead I = some σ) : σ'.hs = σ.hs ∧ σ'.ents = σ.ents := by
   obtain ⟨k, -, hk, hs, hat⟩ := hpost
@@ -136,8 +136,8 @@ theorem walReadAllOk_walRead {I : WalHist} {cut : Nat} {s : w64 × w64} {σ σ' 
 
 /-! ## Preservation of the condition -/
 
-theorem walLastHS_snoc_snap (I : WalHist) (m : SnapshotMetadataM) :
-    walLastHS (I ++ [WalOpG.snap m]) = walLastHS I := by
+theorem walLastHS_snoc_snap (I : WalHist) (m : SnapshotMetadataM) (al : Bool) :
+    walLastHS (I ++ [WalOpG.snap m al]) = walLastHS I := by
   rw [walLastHS_eq, walLastHS_eq, List.foldl_append]; rfl
 
 /-- `SaveSnapshot` keeps the commit within the last index. -/
@@ -156,8 +156,8 @@ theorem walSaveSnap_commitLe {τ : StorContents} (m : SnapshotMetadataM) (h : τ
       omega
 
 /-- **`SaveSnapshot` (any index) keeps the history reading back.** -/
-theorem walReadsBack_snap {I : WalHist} (m : SnapshotMetadataM) (h : walReadsBack I) :
-    walReadsBack (I ++ [WalOpG.snap m]) := by
+theorem walReadsBack_snap {I : WalHist} (m : SnapshotMetadataM) (al : Bool) (h : walReadsBack I) :
+    walReadsBack (I ++ [WalOpG.snap m al]) := by
   obtain ⟨hcl, σ, hr⟩ := h
   unfold walReadsBack walCommitLe walRead
   unfold walRead at hr
@@ -168,8 +168,8 @@ theorem walReadsBack_snap {I : WalHist} (m : SnapshotMetadataM) (h : walReadsBac
     have := hcl L.length σ
     rw [List.take_length] at this
     exact this hr
-  by_cases hk : walKeep (uint.nat (walLastHS I).Commit') (WalOpG.snap m) = true
-  · have hF : [WalOpG.snap m].filter (walKeep (uint.nat (walLastHS I).Commit')) = [WalOpG.snap m] := by
+  by_cases hk : walKeep (uint.nat (walLastHS I).Commit') (WalOpG.snap m al) = true
+  · have hF : [WalOpG.snap m al].filter (walKeep (uint.nat (walLastHS I).Commit')) = [WalOpG.snap m al] := by
       simp [List.filter_cons, hk]
     rw [hF]
     refine ⟨?_, walSaveSnap σ m, by rw [walFoldChkFrom_append, hr]; rfl⟩
@@ -181,7 +181,7 @@ theorem walReadsBack_snap {I : WalHist} (m : SnapshotMetadataM) (h : walReadsBac
       simp only [walFoldChkFrom, Option.some.injEq] at hτ
       subst hτ
       exact walSaveSnap_commitLe m hlast
-  · have hF : [WalOpG.snap m].filter (walKeep (uint.nat (walLastHS I).Commit')) = [] := by
+  · have hF : [WalOpG.snap m al].filter (walKeep (uint.nat (walLastHS I).Commit')) = [] := by
       simp [List.filter_cons, hk]
     rw [hF, List.append_nil]
     exact ⟨hcl, σ, hr⟩
@@ -194,7 +194,7 @@ the read (`hent`: raft's `Ready` entries start at most one past the last index a
 `WalSaveOk`), and its commit is within the resulting last index (`hcl'`: raft's
 `committed ≤ lastIndex`). -/
 theorem walReadsBack_save {I : WalHist} (h : HardStateM) (es : List EntryM) (hb : walReadsBack I)
-    (hfilt : ∀ m, WalOpG.snap m ∈ I →
+    (hfilt : ∀ m al, WalOpG.snap m al ∈ I →
       (uint.nat m.Index' ≤ uint.nat (walLastHS (I ++ [WalOpG.save h es])).Commit' ↔
         uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit'))
     (hent : ∀ σ, walRead I = some σ → ∃ ents, es.foldlM (fun ents e => readEnt σ.b ents e) σ.ents = some ents ∧
@@ -214,7 +214,7 @@ theorem walReadsBack_save {I : WalHist} (h : HardStateM) (es : List EntryM) (hb 
       intro o ho
       cases o with
       | save _ _ => rfl
-      | snap m => simp only [walKeep, decide_eq_decide]; exact hfilt m ho
+      | snap m al => simp only [walKeep, decide_eq_decide]; exact hfilt m al ho
   rw [hF]
   generalize hL : I.filter (walKeep (uint.nat (walLastHS I).Commit')) = L at hr hcl ⊢
   have hstep : walFoldChkFrom σ [WalOpG.save h es] = some { σ with hs := phsNext σ.hs h, ents := ents } := by

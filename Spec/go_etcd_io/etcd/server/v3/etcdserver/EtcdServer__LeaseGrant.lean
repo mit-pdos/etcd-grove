@@ -9,6 +9,7 @@ public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Proof.context.LibKeys
 
 @[expose] public section
@@ -66,22 +67,28 @@ it); no error branch carries a client result (D4).
 (The lease-expiry plan's E3, 2026-11-04, the user's: generated ids only.) In the revocable lease mode
 the request's `ID` is `0` (clientv3's `Grant` always sends `0`), so the lease id is always the
 member's generator's: a revoked lease's id is never granted again (the plan's "absent stays absent").
-A weaker spec (a premise more); the other modes as before. -/
+A weaker spec (a premise more); the other modes as before. (Auth-lease S4, Freeze §10 H1, D-h) For a caller's lower bound `n` of the published auth index
+(`auth.authPubLbM`), a success also carries `requireAuthInfo`'s `authedFrom … n` (auth disabled at a
+state no older than `n`, or a principal bound to the context). -/
 abbrev EtcdServer.LeaseGrant.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (ttl id0 : w64) (Q : w64 → KVState → IProp GF),
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (ttl id0 : w64) (Q : w64 → KVState → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜srvGrantsLeases E ρ ∧ (ρ.rd.kv.lm = .revocable → id0 = W64 0)⌝ ∗
-      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
-      context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
+      isServerReqM E.authOn s E ρ ∗ srvAuthAt s E ∗ auth.authPubLbM E.authMode n ∗
+      srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
+      context.isContext ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
       leaseGrantReqOwn r ttl id0 ∗
-      leaseGrantPermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) ttl Q }}
+      leaseGrantPermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E tok) ttl Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp ttl ∗
-          authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
-          leaseGrantResM E.authOn s E ρ ctx ttl resp Q) ∨
+          authedOutB s E.authMode tok GoInterface.nil ∗
+          authedFrom s E.authMode n tok ∗
+          leaseGrantResM E.authOn s E ρ tok ttl resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

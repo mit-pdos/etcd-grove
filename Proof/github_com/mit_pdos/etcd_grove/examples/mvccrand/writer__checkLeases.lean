@@ -201,17 +201,17 @@ theorem writer.checkLeases.wp_proof
       have hid0 : id0 ≠ W64 0 := by
         intro h; have := (Hn.2.1 id0 hidL).1; rw [h] at this; simp at this
       ihave ⟨Hlo, #Hlb0⟩ := lease.leaseOwn_lb (mvccLeases γ.kv) L (pendItems σ.log []) $$ Hlo
-      wp_apply (wp_Lookup lp (mvccLeases γ.kv) id0 0 (some (L, pendItems σ.log []))) $$
+      wp_apply (wp_Lookup lp (mvccLeases γ.kv) id0 0 (some (L, pendItems σ.log [])) none) $$
         [Hlrd Hlo] as %l ⟨Hlrd, -, Ho⟩
-      · iframe Hlinv Hlrd Hlb0; rw [lease.lookupView_some]; iexact Hlo
+      · iframe Hlinv Hlrd Hlb0; rw [lease.lookupViewW_some]; iexact Hlo
       ihave ⟨%Hl, Ho⟩ : iprop(⌜l = null ↔ id0 ∉ L⌝ ∗
           ((⌜l = null⌝ ∗ lease.leaseOwn (mvccLeases γ.kv) L (pendItems σ.log [])) ∨
             lease.leaseOwnOpen (mvccLeases γ.kv) L (pendItems σ.log []) id0 l)) $$ [Ho]
-      · rw [← lease.lookupViewAfter_some]; iexact Ho
+      · rw [← lease.lookupViewAfterW_some]; iexact Ho
       have hlnn : l ≠ null := fun h => (Hl.1 h) hidL
       icases Ho with (⟨%Hnl, -⟩ | Ho)
       · exact absurd Hnl hlnn
-      iunfold lease.leaseOwnOpen at Ho
+      iunfold lease.leaseOwnOpen at Ho; iunfold lease.leaseOwnOpenW at Ho
       icases Ho with ⟨%HIs, #Hlobj, Hio, Hslot, Hback⟩
       (try wp_auto)
       wp_apply wp_check

@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -140,6 +141,7 @@ theorem auth.authStore.UserDelete.wp_tie
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨#HUG, -, -, -, -⟩
+  wp_take_receipt as Hrc
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
   iapply HUG $$ %st0 %name HL
@@ -185,7 +187,7 @@ theorem auth.authStore.UserDelete.wp_tie
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok en st0 Hl0)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
-  iapply HDelU $$ %st0 %Post %name %AuthSess.init [$HL $Hsw]
+  iapply HDelU $$ %st0 %Post %name %AuthSess.init [$HL $Hrc $Hsw]
   · ipureintro; decide
   inext
   iintro ⟨HL, Hsw⟩

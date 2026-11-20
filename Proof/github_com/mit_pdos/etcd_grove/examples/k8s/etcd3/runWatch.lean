@@ -54,7 +54,7 @@ theorem runWatch.wp_proof
   wp_auto
   wp_apply wp_Now as %t -
   wp_apply (wp_watchEvents sp c γk x k n Q hS hQ hQQ hnr htb hk hkl hn hn63) $$ [HQ0]
-    as %sl %failed Hr
+    as %sl %rsl %failed Hr
   · iframe #; iframe HQ0
   simp only [github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.hiccupDuration]
   -- the hiccup sleep
@@ -67,18 +67,19 @@ theorem runWatch.wp_proof
   iintro -
   cases failed
   · rw [ite_eq_right Bool.false_ne_true]
-    icases Hr with ⟨%wes, %kes, Hsl, %Hrel, Hseen⟩
-    imod wevsOwnM_persist sl wes $$ Hsl with #Hs
+    icases Hr with ⟨%rs, %kes, Hsl, #Hrs, %Hrel, Hseen⟩
+    imod wevsOwnM_persist sl _ $$ Hsl with #Hs
     wp_auto
     wp_apply wp_lastObj $$ [$Hs] as %o %ok %Hlo
     wp_apply wp_encodeWEvents $$ [$Hs] as %Hlen
     (try wp_auto)
     iapply HΦ
     iright
-    iexists wes, kes
+    iexists rs.map k8s_correctness.toWEvL, kes, rs, rsl
     iframe
+    iframe #
     ipureintro
-    exact ⟨trivial, rfl, Hlo, Hrel, Hlen⟩
+    exact ⟨trivial, rfl, rfl, Hlo, Hrel, Hlen⟩
   · rw [ite_eq_left rfl]
     icases Hr with %Hr
     wp_auto

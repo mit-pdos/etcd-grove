@@ -40,11 +40,11 @@ variable [go_gctx : GoGlobalContext]
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/TopLevelRobustness.lean`). -/
 theorem etcd_restart1_robust : etcd_restart1_robust.spec := by
   intro lctx sem package_sem cache_sem _ Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv Hprem σ g
-    Hfs
+    Hfs HWal
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
       (etcd_restart1_safe
-        Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1
+        Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1
         hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy

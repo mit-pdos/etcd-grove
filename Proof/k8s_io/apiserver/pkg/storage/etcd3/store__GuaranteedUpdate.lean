@@ -106,7 +106,7 @@ private theorem rd_data {Obj : Type} [DecidableEq Obj] (c : StoreCfg GF Obj) (ke
 /-- The model's no-op at a read's state. -/
 private theorem rd_noop {E : Type} {Obj : Type} [DecidableEq Obj] (c : StoreCfg GF Obj) (key : GoString)
     (hpk : c.pfx <+: key) (ign : Bool) (σ : KVState) (s : OState Obj) (hrd : rdOf c key ign σ s)
-    (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) (o' : Obj)
+    (pre : KPreF Obj) (f : Obj → Nat → Except E Obj) (o' : Obj)
     (hpre : pre s.o (uint.nat s.rev) = true) (hok : f s.o (uint.nat s.rev) = .ok o')
     (hn : (!s.stale && decide (c.S.encode o' = s.data)) = true) :
     (c.abs σ).update key ign c.S.zero pre f = (c.abs σ, .obj s.o (uint.nat s.rev)) := by
@@ -163,7 +163,7 @@ private theorem ht_conv {Obj : Type} [DecidableEq Obj] (c : StoreCfg GF Obj) (ke
 
 /-- **The answer at a state where the model's step is the identity** (the token handed there). -/
 private theorem gu_answer {E : Type} [KUserErr E] {Obj : Type} [DecidableEq Obj] (c : StoreCfg GF Obj)
-    (key : GoString) (ign : Bool) (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj)
+    (key : GoString) (ign : Bool) (pre : KPreF Obj) (f : Obj → Nat → Except E Obj)
     (W : IProp GF) (Φ : KVState → IProp GF) (σ : KVState) (resp : KResp Obj E) (err dest : GoInterface)
     (h : (c.abs σ).update key ign c.S.zero pre f = (c.abs σ, resp)) :
     (if stepHand c (updStep key ign c.S.zero pre f) σ then iprop(∃ σ1, Φ σ1 ∗
@@ -185,7 +185,7 @@ end helpers
 
 set_option hygiene false in
 /-- The model's step of the update. -/
-local notation "STEP" => updStep pk ign c.S.zero (c.S.preOk pr) f
+local notation "STEP" => updStep pk ign c.S.zero (c.S.preF pr) f
 
 set_option hygiene false in
 /-- A return: the deferred `span.End`, then the caller's postcondition. -/
@@ -229,8 +229,8 @@ local macro "gu_once" : tactic => `(tactic| (
       icases Herr with ⟨%ep, %Hep, #Hep⟩
       subst Hep
       gu_ret
-      iapply (gu_answer c pk false (c.S.preOk pr) f W Φu σ' _ _ _
-        (update_none c σ' pk hf' c.S.zero (c.S.preOk pr) f))
+      iapply (gu_answer c pk false (c.S.preF pr) f W Φu σ' _ _ _
+        (update_none c σ' pk hf' c.S.zero (c.S.preF pr) f))
       iframe HT'
       simp only [respIs, storageErrIs]
       isplitl []
@@ -267,7 +267,7 @@ local macro "gu_refresh" : tactic => `(tactic| (
     imod (rwInv_alloc_at γc γt γp c pk (stepHand c STEP) W Φu ⊤) $$ [HW Hc] with #Hrw
     · iframe HW Hc
     ihave Hmk := (rwInv_maker γc γt γp c pk STEP (stepHand c STEP)
-      (handOk_upd c pk ign c.S.zero (c.S.preOk pr) f) W Φu) $$ [Hp]
+      (handOk_upd c pk ign c.S.zero (c.S.preF pr) f) W Φu) $$ [Hp]
     · iframe Hrw Hp Hau
     wp_apply (wp_refresh Obj c st s _ gf x' pk ign (rdQ γc γp c pk (stepHand c STEP))) $$ [Hx Hmk]
       as %st' %err' Hr
@@ -290,7 +290,7 @@ local macro "gu_refresh" : tactic => `(tactic| (
     iunfold rdQ at Hrq'
     icases Hrq' with ⟨#Hfs, -, -⟩
     imod (rwInv_after γc γt γp c pk STEP (stepHand c STEP)
-      (handOk_upd c pk ign c.S.zero (c.S.preOk pr) f) W Φu σ) $$ [Htok Hrq Hlc] with HT
+      (handOk_upd c pk ign c.S.zero (c.S.preF pr) f) W Φu σ) $$ [Htok Hrq Hlc] with HT
     · iframe Hrw Htok Hrq Hlc
     ihave Hat := stAt_cases c pk ign σ st' e0 $$ Hat
     icases Hat with (⟨%Hn, Herr⟩ | ⟨%He, %s0, Hos', %Hrd⟩)
@@ -301,8 +301,8 @@ local macro "gu_refresh" : tactic => `(tactic| (
       rw [if_neg (fun h => by cases h.1)] at He'
       subst He'
       gu_ret
-      iapply (gu_answer c pk false (c.S.preOk pr) f W Φu σ _ _ _
-        (update_none c σ pk hf c.S.zero (c.S.preOk pr) f))
+      iapply (gu_answer c pk false (c.S.preF pr) f W Φu σ _ _ _
+        (update_none c σ pk hf c.S.zero (c.S.preF pr) f))
       iframe HT
       simp only [respIs, storageErrIs]
       isplitl []
@@ -321,7 +321,7 @@ local macro "gu_refresh" : tactic => `(tactic| (
       obtain ⟨b, hb⟩ := Hit
       have hid := hmod (c.abs σ) (current_of_item _ pk ign c.S.zero _ _ b hb)
       gu_ret
-      iapply (gu_answer c pk ign (c.S.preOk pr) f W Φu σ _ _ _ hid)
+      iapply (gu_answer c pk ign (c.S.preF pr) f W Φu σ _ _ _ hid)
       iframe HT
       iapply Hε
       iexact Hout
@@ -352,7 +352,7 @@ local macro "gu_refresh" : tactic => `(tactic| (
     obtain ⟨rfl, rfl⟩ := Heq
     have hid := hmod (c.abs σ) (rd_current c pk hpfx ign σ s Hrd)
     gu_ret
-    iapply (gu_answer c pk ign (c.S.preOk pr) f W Φu σ _ _ _ hid)
+    iapply (gu_answer c pk ign (c.S.preF pr) f W Φu σ _ _ _ hid)
     iframe HT
     iapply Hε
     iexact Hout))
@@ -401,7 +401,7 @@ theorem store.GuaranteedUpdate.wp_proof
   -- the first read's names (its invariant, with the caller's token, made at the first read)
   ihave Hnames := rwNames_alloc (GF := GF)
   imod Hnames with ⟨%γc, %γt, %γp, Hc, Htok, Hp⟩
-  have hR : ∀ R0 m σ, rdQ (GF := GF) γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preOk pr) f)) R0 m σ ⊢
+  have hR : ∀ R0 m σ, rdQ (GF := GF) γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f)) R0 m σ ⊢
       ⌜kvWf c σ⌝ := fun R0 m σ => by
     iintro #H
     iunfold rdQ at H
@@ -451,7 +451,7 @@ theorem store.GuaranteedUpdate.wp_proof
   obtain ⟨rfl, Hv⟩ := Hen'
   wp_auto_lc 1
   wp_apply (wp_getCur Obj sp c ci' cd go!"updateGet" (c.pathPrefix ++ k) v p ign
-      (rdQ γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preOk pr) f))) hpfx hkl hR (by decide)) $$ [] as %gf #Hgf
+      (rdQ γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f))) hpfx hkl hR (by decide)) $$ [] as %gf #Hgf
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)
@@ -467,7 +467,7 @@ theorem store.GuaranteedUpdate.wp_proof
     imod (rwInv_alloc_at γc γt γp c pk (stepHand c STEP) W Φu ⊤) $$ [HW Hc] with #Hrw
     · iframe HW Hc
     ihave Hmk := (rwInv_maker γc γt γp c pk STEP (stepHand c STEP)
-      (handOk_upd c pk ign c.S.zero (c.S.preOk pr) f) W Φu) $$ [Hp]
+      (handOk_upd c pk ign c.S.zero (c.S.preF pr) f) W Φu) $$ [Hp]
     · iframe Hrw Hp Hau
     ihave #Hgf' := Hgf
     iunfold getStateOk at Hgf'
@@ -489,7 +489,7 @@ theorem store.GuaranteedUpdate.wp_proof
     iunfold rdQ at Hrq'
     icases Hrq' with ⟨#Hfs, -, -⟩
     imod (rwInv_after γc γt γp c pk STEP (stepHand c STEP)
-      (handOk_upd c pk ign c.S.zero (c.S.preOk pr) f) W Φu σ) $$ [Htok Hrq Hlc1] with HT
+      (handOk_upd c pk ign c.S.zero (c.S.preF pr) f) W Φu σ) $$ [Htok Hrq Hlc1] with HT
     · iframe Hrw Htok Hrq Hlc1
     ihave Hat := stAt_cases c pk ign σ st err $$ Hat
     icases Hat with (⟨%Hn, Herr⟩ | ⟨%He, %s0, Hos, %Hrd⟩)
@@ -498,8 +498,8 @@ theorem store.GuaranteedUpdate.wp_proof
       icases Herr with ⟨%ep, %Hep, #Hep⟩
       subst Hep
       gu_ret
-      iapply (gu_answer c pk false (c.S.preOk pr) f W Φu σ _ _ _
-        (update_none c σ pk hf c.S.zero (c.S.preOk pr) f))
+      iapply (gu_answer c pk false (c.S.preF pr) f W Φu σ _ _ _
+        (update_none c σ pk hf c.S.zero (c.S.preF pr) f))
       iframe HT
       simp only [respIs, storageErrIs]
       isplitl []
@@ -619,23 +619,25 @@ theorem store.GuaranteedUpdate.wp_proof
     iintro %e1 ⟨Hobj, Hck⟩
     cases hpok : pr.ok (c.S.uid s.o) (c.S.fmtRV s.rev)
     · isimp only [hpok, Bool.false_eq_true, ↓reduceIte] at Hck
-      ihave #Hck0 := Hck
+      ihave #HckM := Hck
+      ihave #Hck0 := invalidErrMsg_is _ _ _ $$ HckM
       ihave #Hck' := Hck0
       iunfold invalidErrIs at Hck'
       icases Hck' with ⟨%l, %e2, %Hl, -⟩
       subst Hl
-      have hpf : (c.S.preOk pr) s.o (uint.nat s.rev) = false := by
-        unfold ObjCodec.preOk; rw [W64_uint_nat]; exact hpok
+      have hpf : (c.S.preF pr) s.o (uint.nat s.rev) = false := by
+        show c.S.preOk pr _ _ = _; unfold ObjCodec.preOk; rw [W64_uint_nat]; exact hpok
       have hmod := fun (st0 : KSt Obj) h =>
-        update_cur_pre st0 pk ign c.S.zero (c.S.preOk pr) f s.o (uint.nat s.rev) h hpf
+        update_cur_pre st0 pk ign c.S.zero (c.S.preF pr) f s.o (uint.nat s.rev) h hpf
       ihave #Hε : □ (∀ o rv, c.S.objAt (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o rv -∗
-          respIs c (KResp.err (KErr.invalidObj pk) : KResp Obj E)
+          respIs c (KResp.err (KErr.invalidObj pk ((c.S.preF pr).msg s.o (uint.nat s.rev))) : KResp Obj E)
             (interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.StorageError.ty) #l)
             (interface.mkOk (go.GoType.PointerType c.S.objTy) #p)) $$ []
       · imodintro
         iintro %o %rv Ho
-        simp only [respIs]
-        iframe Hck0
+        simp only [respIs, ObjCodec.preF]
+        rw [W64_uint_nat]
+        iframe HckM
         iexists o, rv
         iexact Ho
       ihave Hos : ownState c st s $$ [Hstp Hobj Hm]
@@ -649,8 +651,8 @@ theorem store.GuaranteedUpdate.wp_proof
     · isimp only [hpok, ↓reduceIte] at Hck
       icases Hck with %He1
       subst He1
-      have hpre : (c.S.preOk pr) s.o (uint.nat s.rev) = true := by
-        unfold ObjCodec.preOk; rw [W64_uint_nat]; exact hpok
+      have hpre : (c.S.preF pr) s.o (uint.nat s.rev) = true := by
+        show c.S.preOk pr _ _ = _; unfold ObjCodec.preOk; rw [W64_uint_nat]; exact hpok
       (try wp_auto)
       ihave Hos : ownState c st s $$ [Hstp Hobj Hm]
       · iunfold ownState
@@ -667,7 +669,7 @@ theorem store.GuaranteedUpdate.wp_proof
         rotate_left
         · exact absurd rfl Huerr.1
         have hmod := fun (st0 : KSt Obj) h =>
-          update_cur_err st0 pk ign c.S.zero (c.S.preOk pr) f s.o (uint.nat s.rev) h hpre e hfr
+          update_cur_err st0 pk ign c.S.zero (c.S.preF pr) f s.o (uint.nat s.rev) h hpre e hfr
         ihave #Hε : □ (∀ o rv, c.S.objAt (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o rv -∗
             respIs c (KResp.err (KErr.user e) : KResp Obj E) (GoInterface.ok ei)
               (interface.mkOk (go.GoType.PointerType c.S.objTy) #p)) $$ []
@@ -723,7 +725,7 @@ theorem store.GuaranteedUpdate.wp_proof
               ihave HW : W $$ [Hph]
               · icases Hph with (⟨-, HW, -⟩ | ⟨%σ, #Hfs, %Hrd, HT⟩)
                 · iexact HW
-                · have hh := rd_hand_upd c σ pk hpfx s ign Hrd (c.S.preOk pr) f o' hpre hfr hw
+                · have hh := rd_hand_upd c σ pk hpfx s ign Hrd (c.S.preF pr) f o' hpre hfr hw
                   isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
                   iexact HT
               ihave Hx : ownStateX c st s x' $$ [Hstp Hm]
@@ -734,7 +736,7 @@ theorem store.GuaranteedUpdate.wp_proof
                 ipureintro; exact Hstn'
               wp_apply (wp_updateOnce Obj E sp c ci' cd spn pk
                   (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 st s x' esl v p ign
-                  (c.S.preOk pr) f o' W Φu hpfx hkl hpre hfr (hsz o' hfr hw) hw)
+                  (c.S.preF pr) f o' W Φu hpfx hkl hpre hfr (hsz o' hfr hw) hw)
                   $$ [$Hx $Hout $HW] as %st' %ok %uerr Hd
               · iframe #
                 ipureintro; exact ⟨Hspn, hsr0, Hv⟩
@@ -760,7 +762,7 @@ theorem store.GuaranteedUpdate.wp_proof
                 imod (rwInv_alloc_at γc γt γp c pk (stepHand c STEP) W Φu ⊤) $$ [HW Hc] with #Hrw
                 · iframe HW Hc
                 ihave Hmk := (rwInv_maker γc γt γp c pk STEP (stepHand c STEP)
-                  (handOk_upd c pk ign c.S.zero (c.S.preOk pr) f) W Φu) $$ [Hp]
+                  (handOk_upd c pk ign c.S.zero (c.S.preF pr) f) W Φu) $$ [Hp]
                 · iframe Hrw Hp Hau
                 ihave #Hgf' := Hgf
                 iunfold getStateOk at Hgf'
@@ -782,7 +784,7 @@ theorem store.GuaranteedUpdate.wp_proof
                 iunfold rdQ at Hrq'
                 icases Hrq' with ⟨#Hfs, -, -⟩
                 imod (rwInv_after γc γt γp c pk STEP (stepHand c STEP)
-                  (handOk_upd c pk ign c.S.zero (c.S.preOk pr) f) W Φu σ) $$ [Htok Hrq Hlc] with HT
+                  (handOk_upd c pk ign c.S.zero (c.S.preF pr) f) W Φu σ) $$ [Htok Hrq Hlc] with HT
                 · iframe Hrw Htok Hrq Hlc
                 ihave Hat := stAt_cases c pk ign σ st2 err2 $$ Hat
                 icases Hat with (⟨%Hn, Herr⟩ | ⟨%He, %s2, Hos2, %Hrd⟩)
@@ -791,8 +793,8 @@ theorem store.GuaranteedUpdate.wp_proof
                   icases Herr with ⟨%ep, %Hep, #Hep⟩
                   subst Hep
                   gu_ret
-                  iapply (gu_answer c pk false (c.S.preOk pr) f W Φu σ _ _ _
-                    (update_none c σ pk hf c.S.zero (c.S.preOk pr) f))
+                  iapply (gu_answer c pk false (c.S.preF pr) f W Φu σ _ _ _
+                    (update_none c σ pk hf c.S.zero (c.S.preF pr) f))
                   iframe HT
                   simp only [respIs, storageErrIs]
                   isplitl []
@@ -832,7 +834,7 @@ theorem store.GuaranteedUpdate.wp_proof
                 · -- the same data: the key holds the cached object (D1: the same answer)
                   have hq2e : c.S.encode o' = s2.data := of_decide_eq_true hq2
                   have hso2 : s2.o = o' := rd_data c pk ign σ s2 Hrd o' hq2e.symm
-                  have hpre2 : c.S.preOk pr s2.o (uint.nat s2.rev) = true := by
+                  have hpre2 : c.S.preF pr s2.o (uint.nat s2.rev) = true := by
                     rw [hso2, ho', preOk_rv_none c pr HD1.2.1 s.o (uint.nat s2.rev) (uint.nat s.rev)]
                     exact hpre
                   have hok2 : f s2.o (uint.nat s2.rev) = .ok o' := by
@@ -855,8 +857,8 @@ theorem store.GuaranteedUpdate.wp_proof
                     icases Hdres with ⟨%Hderr, Hout⟩
                     subst Hderr
                     gu_ret
-                    iapply (gu_answer c pk ign (c.S.preOk pr) f W Φu σ _ _ _
-                      (rd_noop c pk hpfx ign σ s2 Hrd (c.S.preOk pr) f o' hpre2 hok2 hn2))
+                    iapply (gu_answer c pk ign (c.S.preF pr) f W Φu σ _ _ _
+                      (rd_noop c pk hpfx ign σ s2 Hrd (c.S.preF pr) f o' hpre2 hok2 hn2))
                     iframe HT
                     simp only [respIs]
                     rw [W64_uint_nat]
@@ -864,7 +866,7 @@ theorem store.GuaranteedUpdate.wp_proof
                   · -- stale: the write, from the read
                     have hw2 : (!s2.stale && decide (c.S.encode o' = s2.data)) = false := by
                       rw [hst2]; rfl
-                    have hh := rd_hand_upd c σ pk hpfx s2 ign Hrd (c.S.preOk pr) f o' hpre2 hok2 hw2
+                    have hh := rd_hand_upd c σ pk hpfx s2 ign Hrd (c.S.preF pr) f o' hpre2 hok2 hw2
                     isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
                     (try simp only [Bool.not_true])
                     (try wp_auto)
@@ -878,7 +880,7 @@ theorem store.GuaranteedUpdate.wp_proof
                     icases Hfr with ⟨#Hfrom2, %Hsr2⟩
                     wp_apply (wp_updateOnce Obj E sp c ci' cd spn pk
                         (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 st2 s2 x2 esl v p ign
-                        (c.S.preOk pr) f o' W Φu hpfx hkl hpre2 hok2
+                        (c.S.preF pr) f o' W Φu hpfx hkl hpre2 hok2
                         (rd_szOk c pk ign f σ s2 hfsz hzsz Hrd Hvals o' hok2 hw2) hw2)
                         $$ [$Hx2 $Hout $HT] as %st' %ok %uerr Hd
                     · iframe #
@@ -897,8 +899,8 @@ theorem store.GuaranteedUpdate.wp_proof
                 icases Hdres with ⟨%Hderr, Hout⟩
                 subst Hderr
                 gu_ret
-                iapply (gu_answer c pk ign (c.S.preOk pr) f W Φu σ _ _ _
-                  (rd_noop c pk hpfx ign σ s Hrd (c.S.preOk pr) f o' hpre hfr hn))
+                iapply (gu_answer c pk ign (c.S.preF pr) f W Φu σ _ _ _
+                  (rd_noop c pk hpfx ign σ s Hrd (c.S.preF pr) f o' hpre hfr hn))
                 iframe HT
                 simp only [respIs]
                 rw [W64_uint_nat]
@@ -911,7 +913,7 @@ theorem store.GuaranteedUpdate.wp_proof
             ihave HW : W $$ [Hph]
             · icases Hph with (⟨-, HW, -⟩ | ⟨%σ, #Hfs, %Hrd, HT⟩)
               · iexact HW
-              · have hh := rd_hand_upd c σ pk hpfx s ign Hrd (c.S.preOk pr) f o' hpre hfr hw
+              · have hh := rd_hand_upd c σ pk hpfx s ign Hrd (c.S.preF pr) f o' hpre hfr hw
                 isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
                 iexact HT
             ihave Hx : ownStateX c st s x' $$ [Hstp Hm]
@@ -922,7 +924,7 @@ theorem store.GuaranteedUpdate.wp_proof
               ipureintro; exact Hstn'
             wp_apply (wp_updateOnce Obj E sp c ci' cd spn pk
                 (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 st s x' esl v p ign
-                (c.S.preOk pr) f o' W Φu hpfx hkl hpre hfr (hsz o' hfr hw) hw)
+                (c.S.preF pr) f o' W Φu hpfx hkl hpre hfr (hsz o' hfr hw) hw)
                 $$ [$Hx $Hout $HW] as %st' %ok %uerr Hd
             · iframe #
               ipureintro; exact ⟨Hspn, hsr0, Hv⟩

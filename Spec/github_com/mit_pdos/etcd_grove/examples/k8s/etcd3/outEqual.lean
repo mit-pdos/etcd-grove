@@ -1,6 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`outEqual(a, b)` (k8s_etcd3.go): `a = b` (every field compared).
+`outEqual(a, b)` (k8s_etcd3.go): `plainOut a = plainOut b`, every field compared but `Raw` (the store's
+answer itself, stage 7g, which the model ignores).
 -/
 module
 
@@ -30,7 +31,7 @@ abbrev outEqual.spec : Prop :=
   ∀ (a b : Output),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.outEqual)) (Val #a)) (Val #b))
-  {{ RET #(decide (a = b)); True }}
+  {{ RET #(decide (plainOut a = plainOut b)); True }}
 
 end spec
 

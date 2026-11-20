@@ -25,6 +25,67 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: `leaseStep`'s grant -- a server-chosen id is fresh in the history, the plan says only "not live"
+
+- **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, `leaseStep` (`.leaseGrant`: `σ.leases id' = none`);
+  the real counterpart `writeGrantG` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/ProposeOn.lean`), read by
+  `v3rpc.opGrantT`'s `.leaseGrant` row (frozen `opGrantTN`, `notes/auth-lease-s4-freeze.md`, "Thaw 1").
+- **Defect.** Too weak for a user: a client holding a persistent grant update (auth on) cannot rule out a
+  re-grant of a revoked id, so a later re-delivered put could re-attach a key to it; the auth-lease driver's
+  check 6 (keys of a revoked lease stay deleted) is unprovable.
+- **Evidence.** `questions.md` (auth-lease S4, "Item 9, the Cell: BLOCKER", 2026-11-18); Go: `EtcdServer.LeaseGrant`
+  draws `r.ID` from `reqIDGen` while it is 0 (`v3_server.go:436`), ids distinct per member prefix (`kvGrantIds`).
+- **Proposed change.** Real spec (done, approved): `writeGrantG` gains `∀ g, rqRevGrantId γk.lm rq₀ = some g → ∀ r ≤
+  σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ 0 → kv.lease ≠ g`. Plan: `leaseStep`'s chosen-id case (`id = 0`) adds
+  `id' ∉ σ.granted` (the plan's own history of granted ids), which implies the real form.
+- **Decision.** Real spec: accepted (the user, 2026-11-18, option (A), via etcd-grove-03). Plan change: pending.
+## 2026-11-18: `SpecPlan/Spec/google_golang_org/grpc/Api.lean` `ctxInMD_agree.spec` -- unprovable from the definitions, false in the intended model, and used by no spec or proof
+
+- **Spec.** `ctxInMD_agree.spec` (`Api.lean:922-925`: `ctxInMD ctx o ∗ ctxInMD ctx o' ⊢ ⌜o = o'⌝`, and the
+  same for `ctxPeerCN`); the real counterpart is the perheap redesign's `metadata.ctxInMD`
+  (`notes/perheap-scope.md` §2, not yet in the tree; today `metadata.incomingOf`, a pure opaque function).
+- **Defect.** An entailment with a pure conclusion over a per-heap relation (wording corrected after the
+  Scope's review 2, (3)). With `ctxInMD` defined over Perennial's `context.ctxValue` (what makes the refuted
+  `incomingOf_cancelCtx`/`incomingOf_cancellableContext` provable, `/shared/tmp/perheap/Probe.lean`) it is
+  **unprovable from the definitions**: `ctxChain`'s root may be a context of a foreign type with a `Value` WP
+  form (`Perennial/Proof/context/CtxValue.lean:79-82`; any chain can reach one: at another key a `valueCtx`
+  continues the chain, `:90-94`), and a partial-correctness WP admits every result; the leaves have no
+  agreement either. It is **false in the intended model** (in a run with a real transport `MD`, a context whose
+  `Value` diverges carries both `none` and `some f`). It is **consistent as a Lean axiom** (interpret the leaf
+  as `False`: `some` is never derivable and agreement holds trivially, making grpc's producers vacuous). As an
+  opaque with trusted transfer entailments it is consistent only with leaves indexed by the heap's names,
+  producers restricted to immutable chains, and an intended model (the review-1 m1 attack otherwise crosses
+  worlds).
+- **Evidence.** `notes/perheap-scope.md` §5; the incomingof refutations (`notes/axiom-review/incomingof.md`,
+  `notes/incomingof-crossworld.md`); reviews 1 and 2 of the perheap Scope (`/shared/tmp/perheap/review-1.md`,
+  M1, M2, m1; `/shared/tmp/perheap/review-2.md`, (3)). **Unused:** no `SpecPlan/` spec and no
+  `examples/specreq` snippet uses it (its only mentions: the definition, `Api.lean:923`, and
+  `notes/specs-only/integration-I3.md:65`). Its two would-be consumers in the real tree are restated with one
+  metadata value from one producer (`notes/perheap-scope.md` §3, §4.2, §4.3: `ctxBound` indexed by the token,
+  `AuthInfoFromCtx` taking the token, `grpcAccepted` the source of the `md` a spec is about).
+- **Proposed change.** Delete `ctxInMD_agree.spec` (both halves) from `SpecPlan/`; keep `ctxInMD_persistent`,
+  `rpcCtx_inMD`, `ctxInMD_background`; specs that would use agreement take the metadata (or the token) as a
+  parameter.
+- **Decision.** Accepted (decided by etcd-grove-03, 2026-11-18, the perheap Scope's Q2): both halves deleted from
+  `SpecPlan/` in the perheap step 0 commit.
+
+## 2026-11-18: `SpecPlan/Spec/google_golang_org/grpc/Api.lean` `errView` -- no case for an error wrapping a status error; no message-only view
+
+- **Spec.** `errView` (`Api.lean:266`), `plainErr` (`:256`); real counterparts: `status.FromError.spec`
+  (`Spec/google_golang_org/grpc/status/FromError.lean`) and the perheap redesign's `descIs`
+  (`notes/perheap-scope.md` §2.2).
+- **Defect.** Incomplete, not unsound: grpc v1.84.0's `FromError` (`status/status.go:112-125`) gives an error
+  wrapping a status error the wrapped code with message `err.Error()`; `errView` covers status errors, plain
+  errors (`Unknown`) and `nil` only. The server's and client's description reasoning (`togRPCError`'s
+  fallback, `rpctypes.ErrorDesc`, the handler outcome) needs the message without the code, for wrap errors too
+  (mvcc's `fmt.Errorf("…%w", ctx.Err())`).
+- **Evidence.** Review 1 of the perheap Scope, m4; `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/InvStore.lean:5632`
+  (`rangeKeysErr`), `…/v3rpc/ServerKVOn.lean:961`.
+- **Proposed change.** Add `descIs err m` (the message `FromError(err).Message()` returns: `nil` and `""`; an
+  error without `GRPCStatus`, wrapping or not, and its stable `Error()`; a status error's message), with the
+  value pin (`∀ y : EtcdError, err = mkOk #y → m = y.desc`), and `descIs_of_errView`; `errView` unchanged.
+- **Decision.** Pending: with the perheap Scope's Q4 (the user).
+
 ## 2026-11-18: k8s `trace.Trace.LogIfLong.spec`/`Step.spec` -- false on a nil receiver
 
 - **Spec.** `Spec/k8s_io/utils/trace/Trace__LogIfLong.lean` (the axiom `trace.Trace.LogIfLong.wp_proof`),
@@ -2732,6 +2793,124 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
 - **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).
 
+## 2026-11-16: auth-lease S4 Freeze rev 2 (review r2): D-h and the lessor law's threshold
+
+- **Spec.** Freeze drafts (not yet in `Spec/`): `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn`'s D-h reply fact;
+  `lessor_keys_of_read`'s threshold; `EtcdServer.LeaseTimeToLive.spec`'s no-keys arm (R1).
+- **Defect.** D-h's `□ (E.authOn = true → ∃ info, principalBoundT …)` is false of Go (with auth disabled in the store,
+  `requireAuthInfo` returns `nil` and a token-less grant succeeds; `E.authOn` is the component, not the flag). The law's
+  threshold `log.length` over `readLogOk γr c log` is false (`log` may extend what the member applied; also off by one).
+  R1's no-keys arm has no server spec to come from (`authedOutB`'s disabled arm is unanchored).
+- **Evidence.** `/shared/tmp/auth-lease-s4/freeze-review-r2.md` (H1, S1, T1); `v3_server.go:1277-1280`;
+  `kvStateOf_rev` (`KVModelDefs.lean:988`).
+- **Proposed change.** Freeze rev 3 (§10 of `notes/auth-lease-s4-freeze.md`): `n`-relative `leaseCheckT … n` replies
+  with a new `authedFrom` on `requireAuthInfo.specC`/`LeaseGrant.spec`/`LeaseRevoke.spec`; the law over the member's
+  store floor `kvLogLb E.γs F`, threshold `F.length - 1`.
+- **Decision.** Pending (Freeze review by etcd-grove-02 and the user).
+
+## 2026-11-16: auth-lease S4 item 7b: the lessor window token threaded in place (thaw approved)
+
+- **Spec.** The write chain from the apply loop to `lease.lessor.Attach`/`Detach` (the list, old → new, in
+  `notes/auth-lease-handoff.md`, "7b plan").
+- **Defect.** The per-member lessor law (`lessor_keys_of_read`, Freeze §5) cannot be proved for a snapshot pushed by
+  the entry still being applied. Its fact must be stored in the lessor's invariant at push time, and `Attach`/`Detach`
+  can prove it only with the entry's target item map (`questions.md`, "Item 7b").
+- **Evidence.** The design review of 2026-11-16 (read only). Each encoding that skips a push-site premise fails: a
+  frozen-item set, per-key tokens, a self-dropping window hidden in `leaseOwn`, epoch tags.
+- **Proposed change.** Every statement of the chain takes `lease.leaseOwnW γl L I w` (`w : Option LWin`) in place of
+  `lease.leaseOwn γl L I`, plus the premise `winStep w I I'`, which is trivial at `none`. `leaseOwn γl L I` becomes
+  `leaseOwnW γl L I none`, so a client that holds `leaseOwn` discharges the new premise trivially: no client's
+  statement gets weaker.
+- **Decision.** Approved by the user, 2026-11-16, via etcd-grove-02: option 2 (in place; no `…specW` siblings). Limits:
+  STOP if the change reaches a closed theorem's statement, needs an axiom, `sorry` or trusted text, or makes a thawed
+  statement weaker for an existing client. `lessorLawMask` gains `lessorRdN` (the form approved with the Freeze).
+- **Landed (step 1-2, lease, 2026-11-17).** Vocabulary: `lease.LWin`, `LWinRec`, `lastWin`, `winStep`, `winStable`,
+  `winEnd`, `winsOk`, `itemsLive`, `winOwn`, `lessorWinTie`, `leaseOwnW γl L I w` (`leaseOwn γl L I` is now the
+  abbreviation `leaseOwnW γl L I none`, as are `lessorUser`/`leaseOwnOpen`/`lessorUserOpen`/`lookupView`/
+  `lookupViewAfter` of their `W` forms), `win_push` (open a window or a free marker). The `NewLessor` axiom's ghost
+  allocation extended (decided by etcd-grove-03, soundness note in `questions.md`, "Item 7b step 1"); its post gains
+  `lessorWinTie γl []`. Thawed, old → new:
+  - `lease.lessor.Attach.spec`: `leaseOwn γl L I` → `leaseOwnW γl L I w ∗ ⌜winStep w I (insertAll I xs id)⌝`, post
+    `leaseOwn γl L (insertAll I xs id)` → `leaseOwnW γl L (insertAll I xs id) w` (∀ `w`; at `none` the old spec).
+  - `lease.lessor.Detach.spec`: the same with `deleteAll I xs`.
+  - `lease.lessor.GetLease.spec`, `Grant.spec`: `leaseOwn γl L I` → `leaseOwnW γl L I w` in pre and post (`w` passed
+    through; at `none` the old spec). `Lookup.spec`: `lookupView γl U`/`lookupViewAfter γl id l U` →
+    `lookupViewW γl w U`/`lookupViewAfterW γl id l w U` (the same).
+  - `Revoke.spec` unchanged so far (its deletes need `mvccDeleter`'s window form, step 3).
+  - Closed results whose text is unchanged and whose meaning gets stronger (decided fine by etcd-grove-03,
+    2026-11-17): `txn/Results.lean` `txn_runTxn` (`lessorUser`), `etcdserver/Results.lean` `server_kv_backend`
+    (post `mvccDeleter`), `lessor_apply_contract` (`isApplyLessor`).
+- **Step 3 (mvcc, 2026-11-17).** Decided by etcd-grove-03 (option (a) of `questions.md`, "Item 7b step 3"):
+  **premise strengthened, discharged by every client.** Old → new:
+  - `mvcc.isLessor le γl` (`InvStore.lean`): the `GetLease`/`Attach`/`Detach` clauses over `leaseOwn γl L I` →
+    `∀ w`, over `leaseOwnW γl L I w` (`Attach`/`Detach` with `⌜winStep w I I'⌝`); `SetRangeDeleter` unchanged.
+  - `txn.isTxnLessor le γl` (`txn/Defs.lean`): `isLessor` as above, and the `Lookup` clause over `lessorUser γl L I`
+    / `lessorUserOpen …` → `∀ w`, over `lessorUserW γl L I w` / `lessorUserOpenW … w`.
+  - Closed results whose premise text is unchanged and whose premise gets stronger: `etcdserver/Results.lean`
+    `server_kv_backend` and its two siblings (lines 939, 1010, 1155: `mvcc.isLessor le γl`), `txn/Results.lean`
+    `txn_runTxn` (`isTxnLessor`). Every client discharges them from the real lessor (`isLessor_of_lessorInv`,
+    `isTxnLessor_of_lessorInv`, which the window-generic lessor specs prove at any `w`).
+  - Form: `winStep w I I'` is now monotone (`I k = T k → I' k = T k`: an item at its target stays there), weaker than
+    the step-1 form (an item changed goes to its target), so that `put`'s `Detach` then `Attach` of a key moving to its
+    target are both steps; `Attach`/`Detach`'s premise gets weaker (their specs stronger). Above the lessor the callers
+    take `winMove w I I'` (the step-1 form) for the whole write, which gives each lessor call's `winStep`
+    (`winStep_pre`/`winStep_post`/`winStep_of_move`).
+  - `mvcc.storeTxnWrite.{put,delete,deleteRange,Put,DeleteRange}.spec`, `metricsTxnWrite.{Put,DeleteRange}.spec`:
+    `leaseOwn γ.leases L (pendItems ilog pend)` → `leaseOwnW … w` in pre and post (∀ `w`, last binder), plus the
+    premise `⌜winMove w (pendItems ilog pend) (pendItems ilog (pend ++ ops))⌝` (`True` at `none`).
+  - `mvcc.api.Txn.Put.contract`: the same (`leaseOwnW … w`, `winMove w (pendItems σ.log pend) (pendItems σ.log (pend
+    ++ [.put k vv leaseID]))`). `Txn.DeleteRange.contract`: `leaseOwnW … w` and `⌜winDrops w (pendItems σ.log pend)
+    (fun it => delSel (decide (endk = slice.nil)) k e it.Key')⌝` (the window drops the range's items: stated over the
+    range, since the caller learns the keys found, `delKeys`, only after the call).
+  - `lease.lessor.Revoke.spec`: `leaseOwn γl L I₀` → `leaseOwnW γl L I₀ w` in pre and both posts (∀ `w`, last
+    binder), plus `⌜winDrops w I₀ (fun it => I₀.lookup it = some id)⌝` (the window drops the lease's items).
+  - Not thawed (left at `leaseOwn`): `KV.Put/DeleteRange.contract`, `writeView.{Put,DeleteRange}.spec` (no apply-loop
+    caller), `mvccDeleter` (the window is in the owner's resource, not in the deleter's transaction).
+- **Step 4 (server txn, 2026-11-17).** Form accepted by etcd-grove-03 (`questions.md`, "Item 7b step 3 forms: reviewed").
+  New vocabulary (`txn/ApiVocab.lean`): `txn.delSelOf o` (the items a delete's range selects), `txn.putItemsOf I o` (the
+  item map after a put request), `txn.WinOp`/`txn.WinOps w s0 r s ops` (built as `OpsOk`: a put's `winMove` to the
+  state its change leaves, a delete's `winDrops` over its range, a nested transaction's chosen branch); lemmas
+  `winOps_none`, `winOps_append`/`_drop`/`_drop'`, `winOp_txn`, `winOps_gets`, `winOp_put_et`, `pendItems_putChangeOf`
+  (`ApiLemmas.lean`). Thawed, old → new (each `∀ w`, last binder; at `none` the old spec):
+  - `txn.put.spec`: `leaseOwn γl L (pendItems σ.log pend)` → `leaseOwnW … w` in pre and post, plus
+    `⌜winMove w (pendItems σ.log pend) (pendItems σ.log (pend ++ [putChangeOf o …]))⌝`.
+  - `txn.deleteRange.spec`: the same with `⌜winDrops w (pendItems σ.log pend) (txn.delSelOf o)⌝`.
+  - `txn.executeTxn.spec`: `(⌜isRead k⌝ ∨ leaseOwn …)` → `(⌜isRead k⌝ ∨ leaseOwnW … w)` in pre and post, plus the pure
+    conjunct `isRead k = true ∨ WinOps w s0 r (mstate k) ops`.
+  - `txn.txn.spec`: `(⌜ro⌝ ∨ leaseOwn …)` → `(⌜ro⌝ ∨ leaseOwnW … w)`, plus `ro = true ∨ WinOps w s0 r s0 branch`.
+  - `txn.Txn.specSole`: `lessorUser γl L I` → `lessorUserW γl L I w` in pre and both posts, plus
+    `⌜WinOps w (stateAfter log) (W64 log.length) (stateAfter log) (t.branch …)⌝`. `specRead` unchanged.
+  - `txn.Put.spec`: `lessorUser` → `lessorUserW … w` (pre, three posts), plus `⌜winMove w I (txn.putItemsOf I o)⌝`.
+  - `txn.DeleteRange.spec`: `leaseOwn γl L I` → `leaseOwnW … w` (pre, both posts), plus
+    `⌜winDrops w I (txn.delSelOf o)⌝`.
+  - `txn.checkLease.spec`, `checkPut.spec`, `checkTxn.spec`: `lessorUser γl L I` → `lessorUserW γl L I w` (passed
+    through; `isTxnLessor`'s `Lookup` is at any window since step 3).
+  - Callers: `txn/Results.lean` `txn_runTxn` (statement unchanged, at `none`: `winOps_none`); the applier's
+    `applierV3backend.{Put,DeleteRange,Txn}` at `none` until step 6.
+- **Step 5 (2026-11-17).** `txn/WinLemmas.lean`: `winOps_of_nodup`, `winOps_txn_of_nodup` (a run whose changes have
+  distinct keys is within the window targeting the items after it). No statement thawed.
+- **Step 6, the permits (2026-11-17).** Decided by etcd-grove-03 (`questions.md`, "Item 7b step 6 decision"): **premise
+  strengthened; every client (the v3rpc handlers) discharges it by `check_gives_nodup` from `siblingSafeL`/
+  `noFromKeyDelL`.** New `txn.txnKeysNodup t` (`WorkloadDefs.lean`: the run's change keys distinct at every sorted
+  start state, as `txnShape`), with `txn.delsPresent_srvOps` and `v3rpc.txnKeysNodup_of_check` (`CheckShape.lean`; no
+  new client premise: the handler's `checkIntervals`, `txnNoZeroEnd` and `siblingSafeL`). Old → new:
+  `txnPermit` (`InvRequest.lean`), `txnPermitOn`, `txnPermitM` (`ReqOn.lean`): `… ∧ txn.txnShape t⌝` →
+  `… ∧ txn.txnShape t ∧ txn.txnKeysNodup t⌝`. Closed result whose premise text is unchanged and gets stronger:
+  `etcdserver/Results.lean` `txn_applied` (`txnPermit`). `ServerKVOn.txnPermitM_of_dep`'s shape hypothesis gains it.
+- **Step 6, the apply thread's premise (2026-11-17).** Form (agent; `questions.md`, "rqShape's conjunct: forms"):
+  `apply.rqOk`'s transaction arm `txn.TxnPreA log t ∧ putOk log` → `… ∧ txn.txnKeysNodup t` (internal: no `Results`
+  statement mentions `rqOk`; producers `rqShape_txnL`/`rqShape_of_txn` discharge it from the permits).
+  `txn.txnKeysNodup` moved to `txn/TxnRun.lean`.
+- **F1-F3, F2 (2026-11-17).** Accepted by etcd-grove-03: `txn.isTxnLessor` gains the window-witness clause (now named
+  `lease.winWitOk`): premise of the closed `txn_runTxn` and of `server_kv_backend`'s chain strengthened, text unchanged,
+  discharged by `isTxnLessor_of_lessorInv` (`lease.win_wit`). `lessor.Revoke.spec`'s begin payload `winWit … -∗ auEnd`.
+  F2: `txn.putAU/delAU/txnBeginAU` = `…W none`, the commit under `lease.winWit … w (pendItems σ₀.log pend) -∗`;
+  `txn.Put/DeleteRange/Txn.spec` take the `W` forms; `txn.DeleteRange.spec` gains `lease.winWitOk (mvccLeases γ)`; the
+  `winMove`/`WinOps` premises of `txn.Put.spec`/`Txn.specSole` move into the begin payloads (forms in `questions.md`).
+- **The applier at a window (2026-11-17, in progress).** `AEnv.win`/`AEnv.Wt` (defaulted fields), `winTgt` in
+  `putPre`/`deletePre`/`txnPre`/`revokePre`, `envAus`' end builder at `∀ w` with the token, `revokeClause` and
+  `isApplyLessor`'s `Grant` at `∀ w` (forms in `questions.md`, "Item 7b F2 and the applier at a window: forms").
+
 ## 2026-11-16: the auth read contract per bucket, the write contract's sessions (auth-schema-srv A0)
 
 - **Spec.** `auth.authReadTxOk` (trusted: given by `authSchemaSrv`, `authSchemaSnap`, `authSchemaBoot` through
@@ -2789,6 +2968,107 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   premise `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)`; every other premise and the conclusion unchanged.
 - **Decision.** The user's decision (A) of 2026-11-15 for this class of change; listed for the user's review
   with the earlier 25.
+
+## 2026-11-17: the backend's hook step keeps the tracked buckets' write buffer and kinds (auth-schema-srv A1)
+
+- **Spec.** `backend.hookStep` (`Model2.lean`): in the hooks' contract `hooksSpec`/`hookFnSpec` (inside `isBackend`),
+  in `BackendHooks.OnPreCommitUnsafe.spec`'s post and the exported `cindex_hook_backend`
+  (`etcdserver/Results.lean:1068`, post `⌜backend.hookStep P st st'⌝`).
+- **Defect.** None of Go; a gap of the model: the hook step left the tracked buckets' contents (`rbData`) but not what
+  the write buffer holds for them, so a hook could buffer a put there (one it then deletes) that a later write-back
+  shows readers; A1's read model over the tracked buckets (`notes/auth-schema-srv-a1-scope.md`, D2) needs it excluded.
+- **Evidence.** The server's hook (`BackendHooks.OnPreCommitUnsafe`) writes `meta` only (`storage/hooks.go`), not a
+  tracked bucket (`mvcc.KBReal.P`'s `RB`: the rest buckets).
+- **Change.** Old: `... ∧ dlR P st'.dl = dlR P st.dl ∧ st'.win = st.win`. New: the same `∧ (∀ n i, P.BT.lookup n =
+  some i → P.RB n = true → bkOf st'.W.bks i = bkOf st.W.bks i) ∧ (∀ n, P.RB n = true → st'.tk n = st.tk n)` (`tk` the
+  new ghost field `BSess.tk`, the session's bucket kinds). Stronger only: as a post (`cindex_hook_backend`,
+  `OnPreCommitUnsafe`) it says more; as the hook's obligation it asks more of the hook, which the server's meets.
+- **Decision.** Accepted by etcd-grove-03 (2026-11-17, A1 Scope decision 4); the user to be told by etcd-grove-03.
+- **Addendum (A1.4, 2026-11-17, form decided by the agent, reviewed at checkpoint).** One more conjunct in `trkKept`:
+  `∧ st'.cw = st.cw` (`cw` the new ghost field `BSess.cw`, the claimed buckets written through a claimed part). Same
+  direction (stronger as a post, more asked of a hook: the server's writes `meta` through an unclaimed part, which
+  keeps `cw`). Needed by `unsafeCommit`: the commit after the hook needs every claimed bucket still idle (or, from
+  A1.5, handed to `Unlock`'s accessor), and the hook's batch lock is in the client-facing mode, which allows claimed
+  writes inside the hook's window (`cwOk`).
+
+## 2026-11-17: a nested auth message's size cache in an invariant, its `state` not held (auth-schema-srv A3)
+
+- **Specs.** The predicates `auth.userOptsIs` (and through it `auth.userOptsAt`), `auth.ownPermW`, `auth.ownPermS`
+  (`auth/Buckets.lean`); through them the trusted `proto.UnmarshalUser`, `proto.MarshalIRR`,
+  `pbutil.MustUnmarshalMessage`, the gRPC models of `AuthUserAddRequest`/`AuthRoleGrantPermissionRequest`
+  (`PerTypeAuth.lean`), and the exported `v3rpc.userAdd_end_to_end_on` (`api/v3rpc/Results.lean:794`, premise
+  `auth.userOptsAt o b`; its only linked caller, `Results.lean:959`, still goes through).
+- **Defect.** The predicates held the nested message's whole struct `↦□`, its `sizeCache` and `state` included: false
+  of Go (`proto.Marshal` of a message holding it stores the nested size caches; `String()` and any `ProtoReflect` store
+  a nested `state`), so no spec of `Marshal` (`proto.MarshalUser`/`MarshalRole`, A3) could be stated over them, and
+  `MarshalIRR`'s precondition held read-only cells the call writes.
+- **Evidence.** `examples/authpbmarshal/` (`TestMarshalWritesNestedSizeCache`, `TestStateWrites`,
+  `TestConcurrentSharedNested`; the attack's `TestNestedOnlySizeCache`, `TestConcurrentEverything`); review
+  `notes/axiom-review/auth-a3-marshal.md`; Draft `notes/auth-schema-srv-a3-draft.md` §1-§4.
+- **Change.** Old: `o ↦□ {state' := st, NoPassword' := b, unknownFields' := uf, sizeCache' := sc} ∗ uf ↦*□ u` (and
+  likewise the `Permission` of `ownPermW`/`ownPermS`, `ownPermW`'s unknown-field bytes not held). New: each wire field
+  `↦□` (`NoPassword`, `unknownFields` with its bytes; `PermType`, `Key`, `RangeEnd`, `unknownFields`, with
+  `ownPermW` now holding `∃ ub, uf ↦*□ ub`), `inv pbSizeCacheN (∃ sc, sizeCache ↦ sc)`, no `state`.
+  `userAdd_end_to_end_on`'s premise text is unchanged; its meaning moves: old, the request's `Options` whole struct
+  read-only; new, its wire fields read-only and its size cache in an invariant. Incomparable; both follow from a
+  freshly allocated or decoded message, which is what gRPC's decoder and a client's literal give.
+- **Decision.** Accepted by etcd-grove-03 (2026-11-17, A3 decisions 1-3, after the independent attack).
+
+## 2026-11-17: the auth realization's premise hands out one reader ticket fewer (auth-schema-srv A6.1b)
+
+- **Spec.** `authSchemaSrv` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`; trusted text, the closed
+  auth theorems' named hypothesis `hD22`, discharged at A7).
+- **Defect.** Not realizable as stated over the backend's specs: its write contract's reads (`authBackendReads`:
+  `GetUser`, `GetRole`, `GetAllUsers`, `{{ T ∗ authOwn M hs }}`) take no reader ticket, while schema's code runs
+  `ReadTx().RLock()`, which takes a reader slot (`backend.readTx.RLock.spec`'s `rdTok`); the realization's slots are
+  the store's share `authRdSlots` (`backend.authRdN` of them) and the premise handed out `authRdN` tickets, each of
+  which may be in use concurrently with the apply thread's read: `authRdN + 1` readers on `authRdN` slots.
+- **Evidence.** questions.md "A6.1b" (the count); `RdPool.lean` (`rdAuth`: exactly `authRdN` `rdTok`s); the server
+  never used the `authRdN`-th ticket (`AuthSrv.lean`, `srv_auth_tp_on`'s proof dropped it: `authRdSupply` is
+  `authRdN - 1` copies, the auth applier reading with the write token).
+- **Change.** Old: `([∗list] _x ∈ List.replicate backend.authRdN (), R)`. New: `([∗list] _x ∈ List.replicate
+  (backend.authRdN - 1) (), R)`; the realization keeps one slot for the write token's reads (exchanged against `T`,
+  exclusive). The premise promises less, so the closed theorems taking it are stronger; their text is unchanged.
+  `authSchemaSnap`'s text has no ticket count (the boot's tickets work on every later backend): unchanged.
+- **Decision.** Option (b), decided by etcd-grove-03 (2026-11-17), after the supply check: `authRdSupply`
+  (`authRdN - 1` plain copies), `newAuthStore_on` (`N = authRdN - 1`), the server's 66: no consumer short.
+
+## 2026-11-18: the auth realization's boot write contract takes the unset hook (auth-schema-srv A6, fix (A))
+
+- **Spec.** `authSchemaSrv` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`; trusted text, the closed
+  auth theorems' named hypothesis `hD22`, discharged at A7).
+- **Defect.** False (`notes/auth-schema-srv-refuted.md`, third refutation): the boot write contract (persistent, at
+  `authWTok γc`, hook `P f` chosen at boot) outlives the unset hook, which the constructor's wand gave back; a
+  client that sets a panicking hook and calls the contract's `Lock` (schema: `LockInsideApply`, which runs the
+  hook) gets a no-panic triple of a panicking call.
+- **Evidence.** `batch_tx.go:113-120` (`LockInsideApply` runs `txPostLockInsideApplyHook`);
+  `backend.batchTxBuffered.LockInsideApply.spec` takes `plHookAt γ dq f`; questions.md "A6 STOP".
+- **Change.** Old: `authWBackendOkR … P f (authWTok γc) Wb`; `{{ authWTok γc ∗ Wb }} CreateAuthBuckets {{ authWTok γc
+  }}`; the token `authWTok γc` handed out; `(Post -∗ bOpen d.γB qo ∗ plHook d.γB func.nil)`. New: at `T_b :=
+  authWTok γc ∗ plHook d.γB func.nil` (the contract, the triple, the token handed out); `(Post -∗ bOpen d.γB qo)`.
+  The premise is unchanged (still takes `plHook d.γB func.nil`). The contract now promises its `Lock` only to the
+  holder of the unset hook; the hook comes back with the token rather than after `Post`. Server: passes `T_b` to
+  `newAuthStore_on` and splits the token it gets back; `authApplyResPre` (internal) names the schema auth backend
+  (`ablOn`) in place of the boot contract, `authApplyResB_of_pre` taking the contract at the frozen hook.
+- **Decision.** Fix (A), decided by etcd-grove-03 (2026-11-18); for the A7 trusted-text list.
+
+## 2026-11-18: the auth lend takes a revision of at least 1; the snapshot clause takes `permKeysOk` (auth-schema-srv A6, STOP 2)
+
+- **Spec.** `authBkLend` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthBkHook.lean`; trusted text, in both
+  `authSchemaSrv` and `authSchemaSnap`) and `authSchemaSnap` (`AuthSnapKit.lean`; trusted text).
+- **Defect.** (L) False (`notes/auth-schema-srv-refuted.md`, fourth refutation): `authSchemaSrv` hands out the lend at
+  boot, before the auth buckets exist or hold a revision; its law promises `authBucketsAt bootState r` (which needs the
+  `authRevision` key) of empty buckets; a client lends at `[bootState]` and runs `backend.Snapshot` with the lend's
+  `RL`, whose post then claims it of the real data. (P) `authSchemaSnap` is not realizable as stated: the read
+  contract's views need `authStateAt` (with `permKeysOk`) of the snapshot's state, which neither `authLockI st` nor
+  `authBucketsAt st r` gives.
+- **Evidence.** `backend.backend.Snapshot.spec` (the observation's `Q` of the committed data); a fresh backend has
+  no auth bucket before `CreateAuthBuckets`; `auth.authStateAt` (`Model.lean`); questions.md "A6 STOP 2".
+- **Change.** (L) `authBkLend`'s clause takes `⌜1 ≤ st.revision⌝` after `⌜hs.getLast? = some st⌝`; the consumer
+  (`srvAuthApplyResB_lend`) discharges it from `bump bootState` and the monotone revision. (P) `authSchemaSnap` takes
+  `⌜auth.permKeysOk st⌝` after `⌜authBucketsAt st r⌝`; its caller discharges it from `SnapAuthRecover.histWf`. Both
+  ask less of the realization (weaker hypotheses).
+- **Decision.** (L-rev) and (P2) approved by etcd-grove-03 (2026-11-18); for the A7 trusted-text list with fix (A).
 
 ## 2026-11-17: `proto.Marshal.spec` (KeyValue) -- the encoding's length unstated (S1b)
 
@@ -2852,3 +3132,113 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   same axiom, restated). The plan's spec already has the premise (`isLogger l`).
 - **Decision.** Accepted (the user, 2026-11-17: "fix the axioms ... and the proofs above that axiom");
   made on branch `zap-panic-iface`.
+## 2026-11-17: raft's `Ready` hands out a canonical hard state (wal-link L1b, option (a))
+- **Specs.** `raft.hardState.spec`; `RawNode.readyWithoutAccept.spec`, `RawNode.Ready.spec` (and its traced triple);
+  the node API's `readyRest` (the post of `node.Ready`'s and `isReadyChan_recvAu`'s `Ready`), and the internal
+  predicates carrying a `Ready`'s hard state (`ownRawNodeReady`, `readyData`, `freshOk`, `staleOk`,
+  `ownRawNodeReady_abandon_keep`'s post).
+- **Defect.** The WAL's state records hold protobuf-go's bytes of the hard state's wire content; `hsRO` leaves the
+  unknown fields and the cells' presence free, so the bytes are not a function of the model and the WAL's crash
+  invariant (over a model marshaller) cannot hold the server's records (`notes/wal-link-handoff.md`, "L1b by (iii)").
+  Go's `r.hardState()` builds all three cells and no unknown fields (raft.go:504-510; its proof already showed it,
+  `raft__hardState.lean`), and a `Ready`'s `HardState` is that pointer or `nil`.
+- **Change (stronger posts only, no premise added).** `raft.hardState.spec`: post `hsRO p hs` → `hsROC p hs` (new,
+  `InvPb.lean`: `hsRO` with the cells set and no unknown fields; `hsROC_hsRO`). `RawNode.readyWithoutAccept.spec`,
+  `RawNode.Ready.spec`: post `"#Hhard" ∷ hsOpt rd.HardState' h` → `"#Hhard" ∷ hsOptC rd.HardState' h` (new,
+  `InvPbLog.lean`: `nil` and zero, or `hsROC`; `hsOptC_hsOpt`). `readyRest` (`InvNode.lean`, `InvApi.lean`):
+  conjunct `hsOpt rd.HardState' h` → `hsOptC rd.HardState' h`. Clients convert with `hsOptC_hsOpt` (kv, kvreconf,
+  kvdurable, the server's `InvRaftNode`); premises unchanged (`acceptReady`, `IsEmptyHardState`, `MustSync`,
+  `SetHardState` still take `hsOpt`). No closed statement's text changes; no trust-base change.
+- **Decision.** Decided by etcd-grove-03, 2026-11-17 (conditions: no premise added, no closed etcd/k8s statement text
+  changed, RaftTla regenerated); made by the wal-link agent on `wal-link`.
+## 2026-11-19: the snapshotter's directory per execution (`isSnapshotter ss sd`; wal-link)
+- **Specs.** `snap.Snapshotter.{DBFilePath,SaveDBFrom,ReleaseSnapDBs}.spec` (axioms), `storage.storage.Release.spec`,
+  `isWalStorage`'s Release law and `rnNewStorageOk`, `storage.OpenSnapshotBackend.spec`, `EtcdServer.applySnapshot`'s
+  `specSnapM`, `rafthttp.{Transport.Start,newSnapshotHandler}.spec`, `snapHandlerOk`, `bootstrappedRaft.newRaftNode.spec`;
+  the vocabulary `snap.isSnapshotter`, `snap.snapDBPath`, `snapDirInv`; the bootstrap contracts' `bootOk`/`bootOkR`.
+- **Defect.** `snap.snapDBPath : Loc → w64 → GoString` was opaque and pinned per run by `bootOk`'s `Hssp`: across runs
+  every member's paths had to be one function, so the members' exclusive name claims (`Hsfree`, S5; `Hpath`, B1)
+  collided and the multi-member boot premise was unsatisfiable (`notes/snapdir-crossworld.md`).
+- **Evidence.** /shared/tmp/wallink/attack-b1.md §3 (the B1 attack).
+- **Change.** `isSnapshotter ss sd` holds the `dir` field's cell `snapDirAddr ss ↦□ sd` and `⌜∃ dd, sd = snapDirOf dd⌝`;
+  `snapDBPath sd i := sd ++ "/" ++ snapDBName i` (a definition); every spec over `sd`. Converges with `SpecPlan`'s
+  `snap/Api.lean` (`isSnapshotter ss sd`, paths `dbPathOf sd i` over the directory).
+- **Decision.** Approved by the user, 2026-11-19, via etcd-grove-03; made on `wal-link`.
+
+## 2026-11-18: the batch lock's share of the auth history carries the states' permission keys (auth-schema-srv A6, STOP 3)
+
+- **Spec.** `auth.authLockQ` (Model.lean), through `authLockI`: `authSchemaSrv`'s premise `authLockI (.on γa) bootState`,
+  the write contract `authBatchTxLkR`'s `Lock` (gives it) and `Unlock` (takes it), `authSchemaSnap`'s lock share.
+- **Defect.** Unprovable as stated, not false: at the write contract's `Unlock` the realization holds only the lock's
+  quarter of the history; the write-back moves the auth buckets to the session's state `st`, which the invariant must
+  record (`authStateAt`, which includes `permKeysOk st`, as the read contract's views hand it to readers), and nothing
+  gives `permKeysOk st` (the quarter carried none; `roleEncode` opaque; `UnsafePutRole` allows an empty key).
+- **Evidence.** `questions.md` "A6 STOP 3"; the store's history carries the fact (`authHist`, `authHistHalf`).
+- **Proposed change.** `authLockQ γa hs := monoListAuthOwn γa.hist ¼ hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝` (P1'). Every
+  producer goes through `authHist_split`; independent read-only check: no producer lacks the fact, nothing new for a
+  client against the four forbidden laws. P2 kept (now redundant).
+- **Decision.** Approved by etcd-grove-03, 2026-11-18 (on the A7 list); made on branch `auth-schema-srv`.
+
+## 2026-11-19: `GetAllRoles` lists every role only below the range's implicit limit (auth-schema-srv A6, STOP 4, F-roles)
+
+- **Spec.** `auth.rolesOut` (InvAuth.lean; the trusted write contract's `GetAllRoles` clause, `auth.authBackendReads`) and
+  `auth.roleListOut` (Reads.lean; the post of the exported `auth.authStore.RoleList.spec`).
+- **Defect.** Unprovable as stated: both listed every role of the state (`n ∈ names ↔ role ∧ roleListed n`). schema's
+  `unsafeGetAllRoles` ranges with limit `-1`, which the backend's cursor reads as at most `2^63 - 1` entries
+  (`backend.cursorRange`), and nothing bounds a recorded state's roles (the snapshot clause installs any state).
+- **Evidence.** `questions.md` "A6 STOP 4"; `schema.rolesRangeEnts`, `mvcc.cursorRange_window`.
+- **Proposed change.** `auth.rolesListed names st`: the names each once, each a role of `st` that `roleListed`, and every
+  such role when `names.length < 2^63 - 1` (R-c); both texts use it. Weaker only in states with `2^63 - 1` or more roles.
+- **SpecPlan.** W0's model answers `.roleList` with every role (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, ~l.1262),
+  stronger than the code in two ways (F3's `0xff` names, this cap); not changed here (a SpecPlan entry for convergence).
+- **Decision.** Approved by etcd-grove-03, 2026-11-19 (on the A7 list for the user); made on branch `auth-schema-srv`.
+
+## 2026-11-19: `schema.authBucketsAre` holds a role's permissions in the state's order (auth-schema-srv A6, STOP 5, F-order)
+
+- **Spec.** `schema.authBucketsAre` (etcdserver/InvAuthBackend.lean), through `authBucketsAt` (ImageOn.lean) in the trusted
+  `authBkLend` (AuthBkHook.lean), `authSchemaSnap`'s premise (AuthSnapKit.lean) and the image certificates.
+- **Defect.** False of ordinary runs: its roles clause said `st.roles.lookup n = some rr.toRole`, the bucket's record exactly
+  the recorded state's role. Go's `RoleGrantPermission` appends and `sort.Sort`s by key (`server/auth/store.go:844-845`), the
+  model's `grantPerms` (Steps.lean:222) appends: grant key `b` then `a`, the history says `[b, a]`, the bucket `[a, b]`. The
+  write contract (`UnsafePutRole`) already allows a permutation; so the realization cannot prove `authBkLend` (the fifth
+  refutation of `authSchemaSrv`'s text, `notes/auth-schema-srv-refuted.md`).
+- **Evidence.** `questions.md` "A6 STOP 5" and its survey.
+- **Proposed change.** (O-a) up to permutation: `∃ ps, st.roles.lookup n = some ps ∧ rr.toRole.Perm ps` (as `rolesAt`).
+  (O-b, a sorting model) is not viable (Go's sort is unstable, equal keys); (O-c, a nondeterministic model order) is larger.
+- **Decision.** (O-a), decided by etcd-grove-03, 2026-11-19 (on the A7 list for the user); made on branch `auth-schema-srv`.
+
+## 2026-11-19: the auth records' size: the realization cannot meet `UnsafePut`'s entry bound (auth-schema-srv port, P5)
+
+- **Spec.** The schema write contract's `UnsafePutUser`/`UnsafePutRole` clauses (`auth.authBatchTxLk`, `auth.authBatchTxLkR`,
+  InvAuth.lean; inside `authSchemaSrv`'s text) and `authRecordsFit` (InvBoot.lean, opaque; a premise of
+  `NewAuthStore`'s axiom, `NewServer.spec`, `NewServerR.spec` and the closed theorems' `Haf`).
+- **Defect.** Since bbolt-integrate, `backend.batchTxBuffered.UnsafePut.spec` takes `kb.length + vb.length ≤
+  bbolt.bboltEntryMax` (2^28). The realization's `lk_put` (AuthRealWr) puts `userEncode ur`/`roleEncode rr`, whose size
+  neither the contract (key bounds only) nor `authSmall` (roles and permissions at most the revision, ≤ 2^61 + 2^48)
+  bounds; `authRecordsFit` is opaque (no law). Known runtime finding: `nonissues/etcd-auth-record-too-large-fatal.md`.
+- **Evidence.** Full timed build 20261119-190055-1577997 (`AuthRealWr.lean` l.1209, 1260); `questions.md` "BLOCKER
+  (2026-11-19 h)".
+- **Proposed change.** The user's option (1): the put clauses take `⌜name.length + enc.length ≤ bboltEntryMax⌝`;
+  `authRecordsFit` gets content as a bound on the auth state the store keeps (a size field in `authSmall`, kept by every
+  writer). Its concrete form: pending (questions.md "Option (1): concrete form").
+- **Decision.** Option (1) chosen by the user, 2026-11-19, via etcd-grove-03.
+- **Decision, revised.** Route (d') chosen by the user, 2026-11-19, via etcd-grove-03 (in place of option (1), whose
+  parameterless content would have been false): the goosed bbolt fork's `Put` refuses an entry above `2^28` bytes
+  (3f8520bd, branch `goose-lean-entrymax`, with a Go test); `bbolt.Bucket.Put.spec` in place (the size premise dropped,
+  an oversized-error branch); `backend.batchTx.unsafePut`/`UnsafePut`/`UnsafeSeqPut` drop the premise and their posts
+  say the entry was within the bound (else `lg.Fatal`); `batchTxBuffered.UnsafePut`/`UnsafeSeqPut` drop the premise.
+  `authRecordsFit` and the schema contracts unchanged; A7 stays "only `hD22` removed".
+
+## 2026-11-20: the error-free open/rename specs need the paths to fit (wal-fsfix merge of lean 94ea36b029)
+
+- **Spec.** `Fs.wp_osOpenCreateSNE`, `wp_osOpenFileSNE`, `open_failure_eintr`, `wp_osRenameFileSNE`
+  (`GooseLang/Ext/Fs/NoErrSpecs{OpenFile,Rename}.lean`) and the specs above them (`os.OpenFile.specCreateS`,
+  `os.Rename.spec`, bbolt's `Open.spec`, the backend's glue, the server's snapshot backend).
+- **Defect.** They build `IoCovers "Open"/"Rename"` for any path; since the user's A1 decision (2026-11-19)
+  `NoIoErr` covers only paths that fit (`PathFits`: under 4096 bytes, no component over 255), so the specs are
+  unprovable on wal-fsfix: a path call on an over-long path may fail with `ENAMETOOLONG` (`TestNoIoErrNameTooLong`).
+- **Evidence.** The merge's build (2026-11-20): `NoErrSpecsRename.lean:214`, `NoErrSpecsOpenFile.lean`.
+- **Proposed change.** `PathFits` premises on the four lemmas; the shared-mode name claims carry `PathFits path`;
+  error arms `¬ FsNoErr ∨ ¬ PathFits p`; a bound on the member's data directory in `bootCfgFresh`, discharged in
+  the examples from the member name (≤ 200 bytes).
+- **Decision.** Option 2, the user, 2026-11-20, via etcd-grove-03; flock left to `NoMapLockErr` the same day.

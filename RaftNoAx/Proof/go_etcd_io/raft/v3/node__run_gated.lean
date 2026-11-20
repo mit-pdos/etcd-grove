@@ -901,7 +901,7 @@ theorem node.run.gated_of
         ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
-        (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
+        (∃ h : HardStateM, hsOptC rdv'.HardState' h ∗
           hsWit γ.raft (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length) ∗
         rdSnapOut γ.raft rs rdv' ce es L ∗
         ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ (rs.psnap = false → L = none)⌝)
@@ -1014,8 +1014,9 @@ theorem node.run.gated_of
     icases ownRawNodeReady_loanDec γ.raft nv.rn' id rs rdv' ce es ms false L $$ Hrn
       with ⟨#Hld, Hrn⟩
     -- (2026-11-01, durability stage II (k)/(n)) the hand-out and the cut, inside the send's update
+    ihave #HhhO := hsOptC_hsOpt _ _ $$ Hhh
     imod ownRawNodeReady_handout ⊤ γ.raft nv.rn' id rs rdv' ce es ms L (1 : Qp).half γ.gen h
-      CoPset.subseteq_top $$ Hhh Hsl Hfree Hrn
+      CoPset.subseteq_top $$ HhhO Hsl Hfree Hrn
       with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, #Hmss, %Hrf⟩
     -- (step 4) the escrow's key for the handed-out messages (the driver's claim), at the commit
     imod rtk_keyG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk with ⟨Hrtk, Hel⟩
@@ -1071,7 +1072,7 @@ theorem node.run.gated_of
           ipureintro; exact ⟨Hrdz, Hbatch⟩
         | some l =>
           simp only [readyDataL, readySnapData, rdSnapOut]
-          icases Hsnz with ⟨Hhalf, #Hdc, %Hlo⟩
+          icases Hsnz with ⟨Hhalf, #Hdc, %Hrns, %Hlo⟩
           ihave ⟨#Hll, %Hbl⟩ : iprop(snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
               ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ []
           · rw [Hgid]; iapply Hlloc $$ %l %rfl
@@ -1084,6 +1085,8 @@ theorem node.run.gated_of
           · iexists h; iframe Hhh; ipureintro; rfl
           isplitr
           · ipureintro; exact Hbl
+          isplitr
+          · ipureintro; exact Hrns
           isplitr
           · ipureintro; exact Hllast l rfl
           isplitr
@@ -1111,7 +1114,7 @@ theorem node.run.gated_of
     wp_auto
     imod termLB_rb γ.bud rs.tc ⊤ (by solve_ndisj) $$ Hbud Hlb' with %Hrbr
     wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L
-      (fun h => ⟨tc_bound Hrbr (Hrb h), Hfit h⟩) $$ [$Hrn $Hhh] as %steps %ss2 ⟨#Hss2, %Hssn2, Hrn, Htoks⟩
+      (fun h => ⟨tc_bound Hrbr (Hrb h), Hfit h⟩) $$ [$Hrn $HhhO] as %steps %ss2 ⟨#Hss2, %Hssn2, Hrn, Htoks⟩
     -- (step 4) the deposit: the `Ready`'s tokens into the escrow, `run`'s half back at `none`
     imod rtk_depositG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk Htoks with Hrtk
     ihave %Hsse := softStateIs_agree rdv'.SoftState' ss ss2 Hssn1 Hssn2 $$ [$Hss1 $Hss2]

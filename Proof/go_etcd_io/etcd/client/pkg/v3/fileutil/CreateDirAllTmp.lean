@@ -36,7 +36,7 @@ theorem fileutil.CreateDirAll.wp_proofTmp (hC : fileutil.CreateDirAll.spec (GF :
   intro lg R jp d parent name qp h hd hname hlen
   rcases hc : h.cur !! name with _ | ⟨i | J⟩
   · -- absent: `CreateDirAll.spec`
-    iintro %Φ ⟨#Hpkg, #Hlg, #Hinv, #Hsi, Hp, Hperm, Ht⟩ HΦ
+    iintro %Φ ⟨#Hpkg, #Hlg, #Hinv, #Hsi, #Hab, Hp, Hperm, Ht⟩ HΦ
     iunfold tmpDirH at Ht
     icases Ht with ⟨Hn, -⟩
     wp_apply hC lg R jp d parent name qp h hd hname hlen hc $$ [Hp Hperm Hn] as %err ⟨Hp, Hperm, Hr⟩
@@ -51,7 +51,7 @@ theorem fileutil.CreateDirAll.wp_proofTmp (hC : fileutil.CreateDirAll.spec (GF :
       iexists h', hJ, J
       iframe
       ipureintro; exact ⟨hf.1, hf.2.2⟩
-  · iintro %Φ ⟨#Hpkg, #Hlg, #Hinv, #Hsi, Hp, Hperm, Ht⟩ HΦ
+  · iintro %Φ ⟨#Hpkg, #Hlg, #Hinv, #Hsi, #Hab, Hp, Hperm, Ht⟩ HΦ
     iunfold tmpDirH at Ht
     icases Ht with ⟨-, Hs⟩
     rw [hc]
@@ -59,7 +59,7 @@ theorem fileutil.CreateDirAll.wp_proofTmp (hC : fileutil.CreateDirAll.spec (GF :
     icases Hs with %hf
     exact hf.elim
   · -- a directory of files: `TouchDirAll.specDir`, `ReadDir`
-    wp_start as ⟨#Hlg, #Hinv, #Hsi, Hp, Hperm, Ht⟩
+    wp_start as ⟨#Hlg, #Hinv, #Hsi, #Hab, Hp, Hperm, Ht⟩
     wp_auto
     wp_apply hT lg R jp d parent name qp h J hd hname hlen hc $$ [Hp Hperm Ht] as %err ⟨Hp, Hperm, Hr⟩
     · iframe; iframe #
@@ -86,6 +86,7 @@ theorem fileutil.CreateDirAll.wp_proofTmp (hC : fileutil.CreateDirAll.spec (GF :
       iapply tmpDirH_of jp name h J hJ hc hfo
       iframe
       rw [hJt]; unfold tmpEnt; iempintro
+    icases osCallPerm_child R parent name _ jp 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases osPathS_child_borrow R parent name jp J qp 1 h hname hc $$ [Hp Hn] with ⟨%ε, Hpc, Hback⟩
     · iframe
     wp_apply wp_ReadDir (child parent name) slice.nil [] [] (DFrac.own 1) R J (DFrac.own ε) 1 (.except [])
@@ -100,6 +101,7 @@ theorem fileutil.CreateDirAll.wp_proofTmp (hC : fileutil.CreateDirAll.spec (GF :
       iempintro
     iintro %r %e ⟨Hpc, Hperm, HJ, -, Hres⟩
     icases Hback $$ Hpc with ⟨Hp, Hn⟩
+    icases osCallPerm_unchild R parent name _ jp 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases Hres with (⟨%names, %rs, %hrd, Hr⟩ | ⟨%he, -⟩)
     rotate_left
     · cases e with

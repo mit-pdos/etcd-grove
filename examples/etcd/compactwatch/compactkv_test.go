@@ -9,6 +9,8 @@ import (
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestCompactKV runs Main once, in a fresh data directory (the member's DataDir is relative). Main
@@ -17,6 +19,7 @@ import (
 // revision must fail with ErrCompacted (the last round compacted past it).
 func TestCompactKV(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "compactkv") // the members' WAL areas (wal-link P2)
 	Main()
 
 	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{clientAddr}, Logger: zap.NewNop()})

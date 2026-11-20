@@ -36,8 +36,10 @@ theorem Gen.wp_proof (wp_get : cache.get.spec (GF := GF) (hG := hG))
     (wp_genFrom : genFrom.spec (GF := GF) (hG := hG))
     (wp_genWatch : genWatch.spec (GF := GF) (hG := hG)) :
     Gen.spec (GF := GF) (hG := hG) := by
-  intro c tbl id
-  wp_start as #Hc
+  intro c tbl id f
+  wp_start as ⟨#Hc, #Hfl⟩
+  iunfold cacheFloor at Hfl
+  icases Hfl with ⟨#Hfl, %hf⟩
   ihave #Hc2 := Hc
   iunfold isCache at Hc2
   icases Hc2 with ⟨-, ⟨%w, %u, %t, #Hw, #Hu, #Ht⟩, #Hd⟩
@@ -63,18 +65,18 @@ theorem Gen.wp_proof (wp_get : cache.get.spec (GF := GF) (hG := hG))
        wp_if_destruct
        · iapply HΦ
          isplitr
-         · ipureintro; right; exact ⟨rfl, rfl, fun _ => rfl, fun h => by simp at h⟩
+         · ipureintro; exact ⟨Or.inr ⟨rfl, rfl, fun _ => rfl, fun h => by simp at h⟩, floorOk_nil _ _ rfl⟩
          unfold cachedIn; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
        · wp_apply wp_getW c tbl id $$ [Hc] as %o %ok -
          · iframe Hc
          (try wp_auto)
-         wp_apply wp_genWatch id o ok as %x %Hx
+         wp_apply wp_genWatch id o ok f hf as %x %Hx
          (try wp_auto)
          iapply HΦ
          isplitr
-         · ipureintro; exact Or.inr Hx
+         · ipureintro; exact ⟨Or.inr Hx.1, Hx.2⟩
          unfold cachedIn
-         simp only [Hx.2.1, Bool.false_eq_true, ↓reduceIte]
+         simp only [Hx.1.2.1, Bool.false_eq_true, ↓reduceIte]
          itrivial)
     | -- a unary client: `genFrom` of its cached object
       (wp_apply wp_get c tbl id $$ [Hc] as %o %ok #Ho
@@ -82,14 +84,14 @@ theorem Gen.wp_proof (wp_get : cache.get.spec (GF := GF) (hG := hG))
        (try wp_auto)
        wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %n _
        (try wp_auto)
-       wp_apply wp_genFrom n id o ok as %x %Hx
+       wp_apply wp_genFrom n id o ok f hf as %x %Hx
        (try wp_auto)
        iapply HΦ
        isplitr
-       · ipureintro; exact Or.inl Hx.1
+       · ipureintro; exact ⟨Or.inl Hx.1, Hx.2.2⟩
        unfold cachedIn
        by_cases hu : x.UseCached' = true
-       · obtain ⟨hok, hc⟩ := Hx.2 hu
+       · obtain ⟨hok, hc⟩ := Hx.2.1 hu
          simp only [hu, ↓reduceIte]
          isimp only [hok, ↓reduceIte] at Ho
          rw [hc]; iexact Ho

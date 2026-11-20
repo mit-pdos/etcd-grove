@@ -86,12 +86,12 @@ theorem wp_createSeg [os.file.FieldAssumptions]
     (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (h : NamesH) (qc : Qp)
     (hb : NameOk b) (hcur : h.cur !! b = none) :
     {{ osInv (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-        osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h }}
+        osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ osNames j (.only [b]) (DFrac.own 1) h }}
       (App (App (Val #(functions go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
           [go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty]))
           (Val #(child dir b))) (Val #false))
     {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
-        osPathS R dir dq j ∗ osCallPerm qc ∗ ∃ o, crOut j b h (DFrac.own 1) o ∗ crMeta o ∗
+        osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ ∃ o, crOut j b h (DFrac.own 1) o ∗ crMeta o ∗
         ((⌜err = interface.nil⌝ ∗ ∃ (f : Loc) (fd : w64) (i : Ino) (lo lk : Option Bool),
             ⌜0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir b) (DFrac.own 1) ∗
@@ -101,11 +101,11 @@ theorem wp_createSeg [os.file.FieldAssumptions]
   iintro %Φ ⟨#Hos, #Hpkg, #Hsi, Hp, Hperm, Hn⟩ HΦ
   obtain ⟨hfl, hcr, htr⟩ := walOpenFlag_create
   let A : Option (Nat × Nat × Ino) → Bool → IProp GF := fun o _ =>
-    iprop(osPathS R dir dq j ∗ osCallPerm qc ∗ crOut j b h (DFrac.own 1) o ∗ crMeta o)
+    iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ crOut j b h (DFrac.own 1) o ∗ crMeta o)
   have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := by
     intro J hJ; rw [hcur] at hJ; cases hJ
   have hT : fileutil.OpenTriple
-      iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm qc ∗
+      iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
         osNames j (.only [b]) (DFrac.own 1) h)
       (child dir b) (wal.walOpenFlag false) (W32 384) A (crIno b h) := by
     unfold fileutil.OpenTriple

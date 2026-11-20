@@ -21,6 +21,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvBytes
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvString
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.pick
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.floored
 
 @[expose] public section
 
@@ -66,7 +67,8 @@ theorem wkeyOk_obj (k ns nm : GoString) (hk : k ∈ wksD) (hns : nsCand k ns) (h
 /-- What `genWatchFrom` has established of its record `y` once the key is set: a watch, no cached
 object, not skipped, its key `WKeyOk`, its RV `rv`, the initial-events and match options unset. -/
 def WK5 (rv : GoString) (y : Input) : Prop :=
-  y.Kind' = W64 5 ∧ y.UseCached' = false ∧ y.Skip' = false ∧ WKeyOk y.WKey' ∧ y.MinRV' = rv
+  y.Kind' = W64 5 ∧ y.UseCached' = false ∧ y.Skip' = false ∧ WKeyOk y.WKey' ∧ y.MinRV' = rv ∧
+    y.Limit' = W64 0
 
 /-- `WK5`, the initial-events and match options still unset. -/
 def WK (rv : GoString) (y : Input) : Prop := WK5 rv y ∧ y.SendInit' = W64 0 ∧ y.Match' = W64 0
@@ -114,9 +116,10 @@ theorem genWatchFrom.wp_proof (wp_pick : pick.spec (GF := GF) (hG := hG))
     (wp_workloadNodes : workloadNodes.spec (GF := GF) (hG := hG))
     (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
     (wp_workloadApps : workloadApps.spec (GF := GF) (hG := hG))
-    (wp_parseRV : parseRV.spec (GF := GF) (hG := hG)) :
+    (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
+    (wp_floored : floored.spec (GF := GF) (hG := hG)) :
     genWatchFrom.spec (GF := GF) (hG := hG) := by
-  intro n id c hasC
+  intro n id c hasC f hf
   wp_start
   wp_auto
   wp_apply wp_pick _ (W64 10) (by decide)
@@ -153,7 +156,7 @@ theorem genWatchFrom.wp_proof (wp_pick : pick.spec (GF := GF) (hG := hG))
   (try ipersist wl); (try ipersist m2); (try ipersist m3); (try ipersist d); (try ipersist kt)
   (try ipersist ki); (try ipersist sc); (try ipersist rc); (try ipersist fs); (try ipersist ls)
   (try ipersist ni); (try ipersist ai); (try ipersist bm); (try ipersist bh)
-  (try ipersist watchList); (try ipersist id)
+  (try ipersist watchList); (try ipersist id); (try ipersist floor)
   -- `if watchList && m == 6 { m = m2 }`
   wp_join iprop(∃ mv : w64, m_ptr ↦ mv ∗ ⌜uint.nat mv < 7⌝) with [m]
   · wp_if_destruct
@@ -190,16 +193,18 @@ theorem genWatchFrom.wp_proof (wp_pick : pick.spec (GF := GF) (hG := hG))
   (try wp_auto)
   -- the resource version
   wp_join iprop(∃ rvs : GoString, rv_ptr ↦ rvs ∗ m_ptr ↦ mv' ∗ c_ptr ↦ c ∗
-      ⌜∃ r0 : w64, parseRVD rvs = some r0 ∧ uint.Z r0 < 2 ^ 62 + 201⌝) with [rv m c]
+      ⌜∃ r0 : w64, parseRVD rvs = some r0 ∧ uint.Z r0 < 2 ^ 62 + 201 ∧
+        (r0 = 0 ∨ uint.nat f ≤ uint.nat r0)⌝) with [rv m c]
   jcases
     repeat' (first | wp_if_destruct | wp_auto | (wp_apply wp_rvBytes; (try wp_auto)) |
-      (wp_apply wp_rvString; (try wp_auto)))
+      (wp_apply wp_rvString; (try wp_auto)) | (wp_apply wp_floored; (try wp_auto)))
     all_goals (
       jfin; iexists _; iframe; ipureintro
       first
-        | exact ⟨0, rfl, by decide⟩
-        | exact ⟨_, parseRVD_rvBytes _, by word⟩
-        | (refine ⟨_, parseRVD_rvStr _, ?_⟩
+        | exact ⟨0, rfl, by decide, Or.inl rfl⟩
+        | exact ⟨_, parseRVD_rvBytes _, by word, Or.inl rfl⟩
+        | exact ⟨_, parseRVD_rvBytes _, flooredL_lt _ _ _ (by word) (by word), flooredL_ok _ _⟩
+        | (refine ⟨_, parseRVD_rvStr _, flooredL_lt _ _ _ ?_ (by word), flooredL_ok _ _⟩
            simp only [eq_comm (a := true), decide_eq_true_eq] at *
            have hcT : hc = true := Hmv'.2 (by word)
            have := Hhc hcT
@@ -243,7 +248,7 @@ theorem genWatchFrom.wp_proof (wp_pick : pick.spec (GF := GF) (hG := hG))
     repeat' (first | wp_if_destruct | wp_auto | (wp_apply wp_storeKey; (try wp_auto)))
     all_goals (
       jfin; iexists _; iframe; ipureintro
-      refine ⟨⟨rfl, rfl, rfl, ?_, rfl⟩, rfl, rfl⟩
+      refine ⟨⟨rfl, rfl, rfl, ?_, rfl, rfl⟩, rfl, rfl⟩
       first
         | exact wkeyOk_cluster
         | exact wkeyOk_ns k nsv hgk Hnn.1
@@ -275,7 +280,7 @@ theorem genWatchFrom.wp_proof (wp_pick : pick.spec (GF := GF) (hG := hG))
   iintro ⟨%y, Hin, %Hy⟩
   (try wp_auto)
   -- `r, _ := parseRV(rv)`, then the initial-events and match options
-  obtain ⟨r0, hr0, hr0b⟩ := Hrv
+  obtain ⟨r0, hr0, hr0b, hr0f⟩ := Hrv
   wp_apply wp_parseRV as %r %err Hp
   isimp only [hr0] at Hp
   icases Hp with %Hp
@@ -319,9 +324,11 @@ theorem genWatchFrom.wp_proof (wp_pick : pick.spec (GF := GF) (hG := hG))
   (try wp_auto)
   iapply HΦ
   ipureintro
-  obtain ⟨⟨h1, h2, h3, ⟨h4a, h4b, h4c⟩, h5⟩, hw, hb, hs⟩ := Hy
-  refine ⟨h1, h2, ?_, fun _ => ⟨h4a, h4b _, h4c, r, by rw [h5]; exact hr0, by word, hw, hb, hs⟩⟩
-  intro h; rw [h3] at h; cases h
+  obtain ⟨⟨h1, h2, h3, ⟨h4a, h4b, h4c⟩, h5, h6⟩, hw, hb, hs⟩ := Hy
+  refine ⟨⟨h1, h2, ?_, fun _ => ⟨h4a, h4b _, h4c, r, by rw [h5]; exact hr0, by word, hw, hb, hs, h6⟩⟩,
+    fun q hq => ?_⟩
+  · intro h; rw [h3] at h; cases h
+  · rw [h5, hr0] at hq; cases hq; exact hr0f
 
 end proof
 

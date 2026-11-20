@@ -61,6 +61,8 @@ theorem Boot.wp_proof
   wp_start as ⟨Hrun⟩
   iunfold TRun at Hrun
   icases Hrun with ⟨#Hinv, Ho, Hwo, #Harea, #Hdd, Hres, Htok, #Hdi, Hh, Hperm⟩
+  iunfold tPerm at Hperm
+  icases Hperm with ⟨Hperm, Hor⟩
   ihave ⟨#Hos, #Hsi⟩ := walAreaOk_os W e $$ Harea
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
@@ -109,9 +111,12 @@ theorem Boot.wp_proof
   simp only [TypedPointsto.typedPointstoDef]
   icases Hm with ⟨Hlg, Hr, Hop, Hwd, Hw, Hov, Ht, Hv, Hc, Hb, Hl, Htm, -⟩
   rw [show (e.orDir ++ go!"/state" : GoString) = tOrPath e.orDir from rfl]
-  wp_apply (wp_load W e γ o (1 : Qp) hf) $$ [Hh Hperm Ho] as %v ⟨Hh, Hperm, Hrep, Ho⟩
+  wp_apply (wp_load W e γ o (1 : Qp) hf) $$ [Hh Hor Ho] as %v ⟨Hh, Hor, Hrep, Ho⟩
   · iframe; iframe #
   imod osPathS_root e.R e.area e.jr (DFrac.own 1) hr (by simp) $$ Hsi with Hpath
+  icases osPathS_callKey e.R e.area _ e.jr $$ Hpath with ⟨Hpath, %hkc⟩
+  have hkw : callKey e.R (tWalDir e.area) = callKey e.R e.area := by rw [tWalDir_child]; exact hkc _
+  ihave Hperm := osCallPerm_congr 1 hkw $$ Hperm
   try wp_auto
   rw [show (e.area ++ go!"/wal" : GoString) = tWalDir e.area from rfl]
   wp_apply (wp_exist W e.R e.jr e.area (tWalDir e.area) go!"wal" 1
@@ -196,8 +201,8 @@ theorem Boot.wp_proof
     · ipureintro; exact ⟨rfl, tFreshC_cand, tCandOk_freshC _, tCheckWf_freshC⟩
     rw [show tCandMark { tFreshOracle with created := true } tCand0 = 0 from rfl]
     iframe #
-  wp_apply (wp_store W e γ _ o tFreshC (some (walDurFresh go!"m")) (1 : Qp).half hf tOrSmall_freshC)
-    $$ [Hh Hph Hrep1 Ho Hwo] as ⟨Hh, Hph, Hrep1, Ho, Hwo⟩
+  wp_apply (wp_store W e γ _ o tFreshC (some (walDurFresh go!"m")) 1 hf tOrSmall_freshC)
+    $$ [Hh Hor Hrep1 Ho Hwo] as ⟨Hh, Hor, Hrep1, Ho, Hwo⟩
   · iframe; iframe #
   try wp_auto
   ihave #Hc0 : contentsRep (zero_val contents) tC0 $$ []
@@ -210,6 +215,8 @@ theorem Boot.wp_proof
     as ⟨Ht, Hv, Hc, Hb, Hl, %tm', Htm, HM⟩
   · iframe; iframe #
   try wp_auto
+  ihave Hph : tPerm (GF := GF) e (1 : Qp).half $$ [Hph Hor]
+  · iunfold tPerm; rw [hkw]; iframe
   ihave Hlive := memLive_intro W e γ «$r0_ptr» w _ tFreshC tFreshC tCand0 (walDurFresh go!"m") (1 : Qp).half
     _ _ _ _ _ tm' _ r rv (tMemOk_freshC _) (tMemHs_freshC _) tMemFields_c0 tCheckWf_freshC tMemSim_freshC
     $$ [Hh Hph Hop Hw Hov Hrep1 Ho Hwo Hwf Hpw Ht Hv Hc Hb Hl Htm HM Hr Hrv]
@@ -226,6 +233,8 @@ theorem Boot.wp_proof
   try wp_auto
   ihave ⟨%cd, %hcd, #HrW⟩ := tRelI_relW W e.area o od2 $$ HR
   obtain ⟨hcd, hok, hcwf⟩ := hcd
+  ihave Hperm : tPerm (GF := GF) e 1 $$ [Hperm Hor]
+  · iunfold tPerm; rw [hkw]; iframe
   wp_apply (wp_restart W e γ «$r0_ptr» lg null v o cd od2 1 _ _ _ _ _ _ r rv hmn hf
       ⟨hia, hnm, hca, hdl⟩ hcd hok hcwf)
     $$ [Hh Hperm Hpath Hres Htok Hlg Hwd Hop Hw Hov Ht Hv Hc Hb Hl Htm Hr Hrv Hrep Ho Hwo]

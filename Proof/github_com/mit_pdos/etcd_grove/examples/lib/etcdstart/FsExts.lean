@@ -9,20 +9,26 @@ through `syscall.FcntlFlock`, whose model is over the Linux file extension (`fsE
 `wp_initialize'` takes `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]`, and the etcd examples'
 closed theorems (`examples/{etcd,k8s}/*/Adequacy.lean`) run over this list of extensions instead of
 `TrivialExt.lean`'s `trivialExts` (`[idIssueExt]`): `[idIssueExt, fsExt]`, the extension's own
-semantics (`fs_semantics`, every step `FsStep` allows: no premise on the environment; since S3e,
-2026-11-17, restricted by `etcdSQ`: no file I/O error, `etcdFsSem`) and ghost state,
-as the osfs programs' results do (`GooseLang/Ext/Fs/Adequacy.lean`'s `fsExts`). Their new premise is
-the file extension's initial state, `FsInit` (the files as on disk, the roots well formed): each
-says that the program runs on a real file system (the user's decision (A), 2026-11-15,
-`notes/wal-units/lean-integration.md`, session 3). The probe takes no extension step
-(`syscall.FcntlFlock.wp_getlk`), so the programs' proofs need none of the extension's start
-resources.
+semantics restricted by `etcdSQ` (`etcdFsSem`: no file I/O error, no error of `flock`, `mmap`,
+`munmap`; S3e, 2026-11-17) and ghost state, as the osfs programs' results do
+(`GooseLang/Ext/Fs/Adequacy.lean`'s `fsExts`). Their premise on the file extension's initial state is
+`FsInit` (the files as on disk, the roots well formed): each says that the program runs on a real file
+system (the user's decision (A), 2026-11-15, `notes/wal-units/lean-integration.md`, session 3).
+
+**The semantics: the file system does not fail** (S3e's `etcdSQ`; since wal-link P2, 2026-11-19, the
+server's WAL is the real WAL over the file extension, layer 1, whose no-error specs use the `NoIoErr`
+half: `etcdFsExts_sat`, `notes/wal-link-scope.md` §3.4 P2). It is an assumption on the environment,
+which every closed theorem over these extensions states by being about this semantics: the theorems are
+about the runs in which no file system call that can succeed fails. The specs hold over it
+(`etcdFsSemOk`).
 -/
 module
 
 public import GooseLang.Ext.IdIssue.Specs
 public import GooseLang.Ext.Fs.Ghost
 public import GooseLang.Ext.Fs.SemOk
+public import GooseLang.Ext.Fs.Adequacy
+public import GooseLang.Ext.Fs.NoIoErr
 public import GooseLang.Ext.Fs.NoMapLockErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 
@@ -89,6 +95,51 @@ theorem etcdFsExts_hasFs : letI := etcdFsSem; HasExt Fs.fsExt where
   registered := rfl
   sem_eq := rfl
   interp_eq := rfl
+
+/-- Every step of the restricted semantics has no I/O error (`etcdSQ`'s first half: what the WAL's
+no-error specs use). -/
+theorem etcdFsExts_sat : Fs.FsStepSat (Fs.NoIoErr allIo) (S := etcdFsSem) :=
+  letI := etcdFsSem
+  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ (fun _ _ => True)
+  Fs.fsStepSat_and_left (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)
+
+attribute [local instance] etcdFsExts_hasFs etcdFsSemOk
+
+section start
+variable [GoGlobalContext] {GF : BundledGFunctors}
+
+/-- The local start resources of `[idIssueExt, fsExt]`: the file extension's (`osStart`). -/
+theorem etcdFsExts_localStart [L : GooseLocalGS GF] (w : ExtsLocalState etcdFsExts.exts) :
+    extsLocalStart (GF := GF) w ⊢ Fs.osStart (Fs.gooseOsGS (L := L)) (extLocal Fs.fsExt w) :=
+  (sep_elim_right (P := iprop(True))).trans sep_elim_left
+
+/-- **The start resources of the file extension** (`fs_start` for `[idIssueExt, fsExt]`): the
+invariant of the mapped cells, every file, and the tree's history. -/
+theorem etcdFs_start [hG : HeapGS .hasLC GF] (σ : state) (h : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    ⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
+      Fs.osInv (L := hG.goose_localGS) ∗
+      ([∗map] i ↦ f ∈ (extLocal Fs.fsExt σ.world).fs.files, Fs.osFileStart (L := hG.goose_localGS) i f) ∗
+      Fs.osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal Fs.fsExt σ.world).fs.roots
+        ((extLocal Fs.fsExt σ.world).fs.treeDur, []) := by
+  have Hl := etcdFsExts_localStart (GF := GF) (L := hG.goose_localGS) σ.world
+  have hdisk : ∀ i f, (extLocal Fs.fsExt σ.world).fs.files !! i = some f →
+      ∃ vs sz, f = Fs.OsFile.ofDisk vs sz := fun i f hf =>
+    let ⟨img, sz, _, e⟩ := (h.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, e⟩
+  iintro Hs
+  icases Hl $$ Hs with Hs
+  unfold Fs.osStart Fs.osStartF Fs.treeStart Fs.bytesMap Fs.metaMap
+  icases Hs with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
+  ihave Hfs := Fs.start_files (Fs.gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
+  · iframe
+  imod Fs.osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imodintro
+  iframe Hinv
+  isplitl [Hfs]
+  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+      (Fs.fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
+  · unfold Fs.osTree; iexact Hd
+
+end start
 
 end EtcdGrove
 end Perennial

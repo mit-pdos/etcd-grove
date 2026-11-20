@@ -70,6 +70,7 @@ theorem NewRawNode.wp_proof
   ipersist ss
   icases ownRaftPhysC_core _ r cv.ID' s $$ Hphys with ⟨Hcore, Hpb⟩
   wp_apply wp_hardState r cv.ID' s $$ Hcore as %hp ⟨#Hhp, Hcore⟩
+  ihave #Hhp := hsROC_hsRO _ _ $$ Hhp
   ihave Hphys := Hpb $$ Hcore
   obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hcq, Hp, Hse, Hue, Hsd, Hcm, Hap, Happ', Hun, Hsn, Hsg', Hlsn, Hgh,
     Hrst, Hrpd, Hsdr', Hdom, Hdtk⟩ := Hpost

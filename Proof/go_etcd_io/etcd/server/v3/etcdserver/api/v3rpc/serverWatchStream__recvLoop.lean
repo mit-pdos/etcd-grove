@@ -193,7 +193,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     (hZErr : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (hZE : zap.Error.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) := by
-  intro sws r Up Dn st ci cd L0 sent0
+  intro sws r Up Dn st ci tok cd L0 sent0
   have := v3rpc.swsIs_persistent (GF := GF) hP
   wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, HRD, Hrdr⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
@@ -202,7 +202,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Hzl, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
-    #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hinv, #HW, #Hspsc, #Hcc,
+    #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #HtokC, #Hspec, #Haux, #Hup, #Hwstream, #Hinv, #HW, #Hspsc, #Hcc,
     #Hmu⟩
   iunfold v3rpc.wsInv at Hinv
   ihave %Hsh := hShapes.2.2.2 r.ws r.W.γm r.ι $$ Hwstream
@@ -315,14 +315,14 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_if_destruct
       · -- a negative start revision: the compacted response
         ws_rev
-        wp_apply (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+        wp_apply (hHdr sws r Up Dn _ ci tok cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
         · iframe #
         err_msg eC HeCm
         create_refused msg
       -- the permission check
       have hsr0 : 0 ≤ sint.Z c.startRev := by
         have := Hif; simp only [show sint.Z (W64 0) = 0 from rfl] at this; omega
-      wp_apply hPerm sws r Up Dn _ ci cd cr ks' es (if c.key = [] then [W8 0] else c.key) c.rangeEnd
+      wp_apply hPerm sws r Up Dn _ ci tok cd cr ks' es (if c.key = [] then [W8 0] else c.key) c.rangeEnd
         (DFrac.own 1) (DFrac.own 1) c.bound $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, #Hcls, -⟩
       · iframe #
         ipureintro
@@ -570,7 +570,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             iframe #
             ipureintro; exact HVF
           ws_rev
-          wp_apply +noauto (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+          wp_apply +noauto (hHdr sws r Up Dn _ ci tok cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
           · iframe #
           wp_auto_lc 3
           irename «$r0» => Hwr
@@ -642,7 +642,6 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               · iapply apply.watchClassFrom_of_classResFrom $$ Hcl
               isplitr
               · iintro !> %hon
-                iapply infoBoundT_of_principalBoundI
                 iapply Hbd; ipureintro; exact hon
               ipureintro
               exact apply.reqShape_of_watch c.key c.rangeEnd Hrng
@@ -672,7 +671,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           ihave #Heim := errMsgOk_errorStringSpec _ $$ Heim
           wp_auto
           ws_rev
-          wp_apply (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+          wp_apply (hHdr sws r Up Dn _ ci tok cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
           · iframe #
           (try wp_auto)
           err_msg ei Heim
@@ -719,7 +718,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           wp_auto
           wp_join_done
       ws_rev
-      wp_apply +noauto (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+      wp_apply +noauto (hHdr sws r Up Dn _ ci tok cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
       · iframe #
       create_refused reason
     · -- cancel
@@ -744,7 +743,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       · -- `err == nil`: the canceled response (whichever of `Cancel`'s outcomes)
         wp_auto
         ws_rev
-        wp_apply +noauto (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+        wp_apply +noauto (hHdr sws r Up Dn _ ci tok cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
         · iframe #
         wp_auto_lc 3
         irename «$r0» => Hwr

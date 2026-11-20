@@ -2,7 +2,7 @@
 
 # A lent tail unregistered (B1 of the W4c U5 log, fifth session)
 
-`Close` of the handle a failed `ReadAll` leaves (`WAL.Close.specFailed`) puts back a tail the handle
+`Close` of the handle a failed `ReadAll` leaves (`WAL.Close.spec` (state `failed`)) puts back a tail the handle
 holds by the lent token (`walLentTokB dir γ k p`: `p = true`, registered, not yet zeroed, the exits
 before `ZeroToEnd`; `p = false`, after `ZeroToEnd`'s first step), not by the key. As
 `walInvBody_untailR` (`RepairPut.lean`), but the token's entry of the lent registry deleted with the

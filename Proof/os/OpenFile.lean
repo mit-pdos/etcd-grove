@@ -89,7 +89,7 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hinv, Hh⟩
   iloeb as IH generalizing Hh HΦ
   ihave Hh := (osTree_halves q R V).1 $$ Hh
-  wp_apply wp_osCallBegin R V q.half q.half CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
+  wp_apply wp_osCallBegin R V _ q.half q.half CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
   rw [os.file_ty_eq, os.File_ty_eq,
     show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
   (try wp_auto)
@@ -174,7 +174,7 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
   | none =>
     unfold crSt
     ihave Hh := (osTree_halves 1 R V).1 $$ Hh
-    wp_apply wp_osCallBegin R V (1 : Qp).half (1 : Qp).half CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
+    wp_apply wp_osCallBegin R V _ (1 : Qp).half (1 : Qp).half CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
     rw [os.file_ty_eq, os.File_ty_eq,
       show (W64 66 ||| W64 524288) = flCreat from by decide]
     (try wp_auto)
@@ -239,7 +239,7 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
     icases Hh with ⟨%hr, Hh, Hm⟩
     have hl := lookupH_create (i := i) V.2.length hr hd hb hn
     ihave Hh := (osTree_halves 1 R _).1 $$ Hh
-    wp_apply wp_osCallBegin R _ (1 : Qp).half (1 : Qp).half CoPset.subseteq_top $$ Hinv Hh
+    wp_apply wp_osCallBegin R _ _ (1 : Qp).half (1 : Qp).half CoPset.subseteq_top $$ Hinv Hh
       as %t Hh Hk
     rw [os.file_ty_eq, os.File_ty_eq,
       show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]

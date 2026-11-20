@@ -27,8 +27,8 @@ model; the pattern of `PbRecord.lean`).
 
 **The WAL's snapshot predicates** (the part's, in place of the main tree's `WalDisk.lean` ones, which
 `etc/gen-part-copies.py` omits from the part's copy; same names):
-- `walSnapAt Mr sp md cs`: a frozen snapshot at a content `c` of model `md`, `Index` and `Term` set,
-  conf state non-nil iff `cs`, **whose encoding is `Mr.encSnap md`** (the marshaller parameter is the
+- `walSnapAt Mr sp md al cs`: a frozen snapshot at a content `c` of model `md`, `Index` and `Term` set,
+  conf state non-nil iff `cs`, **whose encoding is `Mr.encSnap md al`** (the marshaller parameter is the
   client's: one wire form per snapshot metadata, an obligation of the server at C6, ledger
   2026-11-13 "`walSnapAt` ties the object's encoding to `Mr.encSnap`");
 - `walSnapIdTerm sp s`: a frozen snapshot whose getters read index and term `s`;
@@ -268,11 +268,12 @@ def pbSnapC : PbTypeC GF where
 /-! ## The WAL's snapshot predicates (see the file header) -/
 
 /-- **`sp` points to a frozen `walpb.Snapshot` of metadata `md`, with `Index` and `Term` set, whose
-conf state is non-nil iff `cs` and whose encoding is `Mr.encSnap md`** (persistent). -/
-def walSnapAt (Mr : WalMarshal) (sp : Loc) (md : SnapshotMetadataM) (cs : Bool) : IProp GF :=
+conf state is non-nil iff `cs` and whose encoding is `Mr.encSnap md al`** (persistent; `al`: the history's
+presence bit, `WalOpG.snap`). -/
+def walSnapAt (Mr : WalMarshal) (sp : Loc) (md : SnapshotMetadataM) (al cs : Bool) : IProp GF :=
   iprop(∃ c : WalSnapC, walSnapRoC sp c ∗
     ⌜c.model = md ∧ c.index = some md.Index' ∧ c.term = some md.Term' ∧
-      cs = c.confState.isSome ∧ snapEnc c = Mr.encSnap md⌝)
+      cs = c.confState.isSome ∧ snapEnc c = Mr.encSnap md al⌝)
 
 /-- **`sp` points to a frozen `walpb.Snapshot` whose getters read index and term `s`**
 (persistent). -/
@@ -284,14 +285,14 @@ def walSnapIdTerm (sp : Loc) (s : w64 × w64) : IProp GF :=
 def walSnapsAt (ps : List Loc) (snaps : List (w64 × w64)) : IProp GF :=
   iprop([∗list] p; s ∈ ps; snaps, walSnapIdTerm p s)
 
-instance walSnapAt_persistent (Mr : WalMarshal) (sp : Loc) (md : SnapshotMetadataM) (cs : Bool) :
-    Persistent (walSnapAt (GF := GF) Mr sp md cs) := by unfold walSnapAt; infer_instance
+instance walSnapAt_persistent (Mr : WalMarshal) (sp : Loc) (md : SnapshotMetadataM) (al cs : Bool) :
+    Persistent (walSnapAt (GF := GF) Mr sp md al cs) := by unfold walSnapAt; infer_instance
 instance walSnapIdTerm_persistent (sp : Loc) (s : w64 × w64) :
     Persistent (walSnapIdTerm (GF := GF) sp s) := by unfold walSnapIdTerm; infer_instance
 
 /-- A snapshot of metadata `md` reads index and term `md`'s. -/
-theorem walSnapAt_idTerm (Mr : WalMarshal) (sp : Loc) (md : SnapshotMetadataM) (cs : Bool) :
-    walSnapAt (GF := GF) Mr sp md cs ⊢ walSnapIdTerm sp (md.Index', md.Term') := by
+theorem walSnapAt_idTerm (Mr : WalMarshal) (sp : Loc) (md : SnapshotMetadataM) (al cs : Bool) :
+    walSnapAt (GF := GF) Mr sp md al cs ⊢ walSnapIdTerm sp (md.Index', md.Term') := by
   unfold walSnapAt walSnapIdTerm
   iintro ⟨%c, #H, %Hm, -⟩
   iexists c

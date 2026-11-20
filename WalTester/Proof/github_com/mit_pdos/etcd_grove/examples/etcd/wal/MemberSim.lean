@@ -236,9 +236,9 @@ theorem tMemSim_own {o : TOracle} {c : TCand} {bs l cm : w64} (hm : tMemSim o c 
     tSim ((tCandHist (tSnapO1 o a t) c).map absOp) (tCandMark o c) ∧ tMemSim (tSnapO o a t) c a l cm := by
   obtain ⟨σ, hs, hb, hl, hcm⟩ := hm
   have hσ := tSimAt_commitLe hs
-  have hs2 := tSimAt_own (m := absSnapMd a t) hs (by rw [absSnapMd_index]; omega)
+  have hs2 := tSimAt_own (m := absSnapMd a t) (al := true) hs (by rw [absSnapMd_index]; omega)
   have hh : ∀ o', tCandHist o' c = tCandHist o c ++ [tSnapOp a t] →
-      (tCandHist o' c).map absOp = (tCandHist o c).map absOp ++ [WalOpG.snap (absSnapMd a t)] := by
+      (tCandHist o' c).map absOp = (tCandHist o c).map absOp ++ [WalOpG.snap (absSnapMd a t) true] := by
     intro o' h'; rw [h', List.map_append]; rfl
   have hnl : ¬ uint.nat (absSnapMd a t).Index' < σ.b := by rw [absSnapMd_index]; omega
   refine ⟨by rw [hh _ (tSnapO1_hist' o c a t)]; exact tSimAt_tSim (tSimAt_mark (by unfold tCandMark; omega) hs2),
@@ -262,7 +262,7 @@ theorem tMemSim_recv {o : TOracle} {c : TCand} {bs l cm : w64} (hm : tMemSim o c
   obtain ⟨σ, hs, hb, hl, hcm⟩ := hm
   have hσ := tSimAt_commitLe hs
   have hh : ∀ o', tCandHist o' c = tCandHist o c ++ [tSnapOp s t] →
-      (tCandHist o' c).map absOp = (tCandHist o c).map absOp ++ [WalOpG.snap (absSnapMd s t)] := by
+      (tCandHist o' c).map absOp = (tCandHist o c).map absOp ++ [WalOpG.snap (absSnapMd s t) true] := by
     intro o' h'; rw [h', List.map_append]; rfl
   refine ⟨?_, ?_⟩
   · rw [hh _ (tSnapO1_hist' o c s t)]
@@ -285,7 +285,7 @@ theorem tMemSim_recv {o : TOracle} {c : TCand} {bs l cm : w64} (hm : tMemSim o c
       · exact Or.inr ⟨hes, by omega, by omega, by omega⟩)
     (by rw [hhc]; split <;> omega)
   rw [hσ1] at hd
-  have hrec := tSimAt_recv (m := absSnapMd s t) hs (by rw [absSnapMd_index]; omega) hd
+  have hrec := tSimAt_recv (m := absSnapMd s t) (al := true) hs (by rw [absSnapMd_index]; omega) hd
     (by rw [hc2, absSnapMd_index, hhc]; exact Nat.le_refl _) (by
       intro e he
       obtain ⟨x, hx, rfl⟩ := List.mem_map.1 he
@@ -296,7 +296,7 @@ theorem tMemSim_recv {o : TOracle} {c : TCand} {bs l cm : w64} (hm : tMemSim o c
       rw [absSnapMd_index]; omega)
   have hh2 : ∀ o', tCandHist o' c = tCandHist (tSnapO o s t) c ++ [tSaveOp h es] →
       (tCandHist o' c).map absOp = (tCandHist o c).map absOp ++
-        [WalOpG.snap (absSnapMd s t), WalOpG.save (absHs h) (es.map absEnt)] := by
+        [WalOpG.snap (absSnapMd s t) true, WalOpG.save (absHs h) (es.map absEnt)] := by
     intro o' h'; rw [h', tSnapO_hist]
     simp only [List.map_append, List.map_cons, List.map_nil, List.append_assoc, List.singleton_append]; rfl
   have hhcn : ¬ (tHsEmpty h && es.isEmpty) = true := by
@@ -321,7 +321,7 @@ theorem tMemSim_recv {o : TOracle} {c : TCand} {bs l cm : w64} (hm : tMemSim o c
 def walIdxLt (B : Nat) (H : WalHist) : Prop :=
   ∀ o ∈ H, match o with
     | .save _ es => ∀ e ∈ es, uint.nat e.Index' < B
-    | .snap m => uint.nat m.Index' < B
+    | .snap m _ => uint.nat m.Index' < B
 
 theorem save_last_lt {B : Nat} {σ σ' : StorContents} {h : HardStateM} {es : List EntryM}
     (hl : σ.last < B) (hes : ∀ e ∈ es, uint.nat e.Index' < B)
@@ -370,7 +370,7 @@ theorem gFold_last_lt {B : Nat} : ∀ (L : List (WalOp × Bool)) {G G' : StorCon
           · cases hst; exact save_last_lt hl ho hg3
           · cases hst
         · cases hst
-    | snap m =>
+    | snap m al =>
       simp only [gStep] at hst
       split at hst
       · cases hst; split
@@ -384,10 +384,10 @@ theorem TDisc.last_lt {B : Nat} {σ σ' : StorContents} {H : WalHist} (hD : TDis
   | nil => exact hl
   | @save σ1 σ2 B0 h es _ hd ih =>
     exact save_last_lt (ih (fun o ho => hb o (by simp [ho]))) (hb (.save h es) (by simp)) hd.1
-  | @own σ1 B0 m _ _ ih =>
-    exact snap_last_lt (ih (fun o ho => hb o (by simp [ho]))) (hb (.snap m) (by simp))
-  | @recv σ1 σ2 B0 m h es _ _ hd _ _ ih =>
-    exact save_last_lt (snap_last_lt (ih (fun o ho => hb o (by simp [ho]))) (hb (.snap m) (by simp)))
+  | @own σ1 B0 m al _ _ ih =>
+    exact snap_last_lt (ih (fun o ho => hb o (by simp [ho]))) (hb (.snap m al) (by simp))
+  | @recv σ1 σ2 B0 m al h es _ _ hd _ _ ih =>
+    exact save_last_lt (snap_last_lt (ih (fun o ho => hb o (by simp [ho]))) (hb (.snap m al) (by simp)))
       (hb (.save h es) (by simp)) hd.1
 
 theorem tSimAt_last_lt {B : Nat} {H : WalHist} {n : Nat} {σ : StorContents} (hs : tSimAt H n σ)

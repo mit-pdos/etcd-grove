@@ -71,7 +71,8 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Requests
 public import Proof.go_etcd_io.etcd.server.v3.lease.MvccShapes
 public import Proof.go_etcd_io.etcd.server.v3.auth.Tokens
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
-public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.server.v3.auth.CtxDone
 public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
@@ -725,9 +726,11 @@ instance infoBound_persistent (M : AuthMode) (token : GoString) (a : Loc) :
     Persistent (infoBound (GF := GF) M token a) := by
   unfold infoBound; infer_instance
 
-/-- **The token a call's metadata carries** (`ctxTokenOf`'s, over the metadata itself: what a
-metadata-indexed gRPC spec sees of the attempt; moved from `client/v3/InvKVConn.lean` in G2,
-2026-10-30, so that the server's watch registration can name it). -/
+/-- **The token a call's metadata carries** (what `AuthInfoFromCtx` reads of the context's incoming
+metadata, `ctxToken`: the first value of the key `token` (`rpctypes.TokenFieldNameGRPC`), else of
+`authorization` (`TokenFieldNameSwagger`), with a `"Bearer "` prefix trimmed; `none` if the context
+has no metadata or neither key; moved from `client/v3/InvKVConn.lean` in G2, 2026-10-30; until
+perheap 1b also as `ctxTokenOf`, a pure function of the context). -/
 def mdTokenOf (md : Option (GoString → Option (List GoString))) : Option GoString :=
   match md with
   | none => none
@@ -740,35 +743,15 @@ def mdTokenOf (md : Option (GoString → Option (List GoString))) : Option GoStr
       | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
       | _ => none
 
-/-- **The token a request's context carries** (the auth plan's E2c, 2026-10-25): what
-`AuthInfoFromCtx` reads of the context's incoming metadata (`metadata.incomingOf`): the first value
-of the key `token` (`rpctypes.TokenFieldNameGRPC`), else of `authorization`
-(`TokenFieldNameSwagger`), with a `"Bearer "` prefix trimmed; `none` if the context has no metadata
-or neither key. -/
-def ctxTokenOf (ctx : GoInterface) : Option GoString :=
-  match metadata.incomingOf ctx with
-  | none => none
-  | some md =>
-    match md go!"token" with
-    | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
-    | some [] => none
-    | none =>
-      match md go!"authorization" with
-      | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
-      | _ => none
+/-- **The auth info bound to the token `tok`** in the mode `M` (persistent; S5): `nil`, or one bound
+to the token (`infoBound`: in `on γa`, its user is one the token was issued to). Indexed by the token
+a request carries (perheap C1a, 2026-11-18; until then by the context, through the pure
+`ctxTokenOf`): a spec relates it to a context through `ctxToken ctx tok`. -/
+def ctxBound (M : AuthMode) (tok : Option GoString) (a : Loc) : IProp GF :=
+  iprop(⌜a = null⌝ ∨ ∃ token : GoString, ⌜tok = some token⌝ ∗ infoBound M token a)
 
-/-- A context's token is its incoming metadata's (moved from `client/v3/KVServiceOn.lean`, G2). -/
-theorem ctxTokenOf_md (ctx : GoInterface) : ctxTokenOf ctx = mdTokenOf (metadata.incomingOf ctx) :=
-  rfl
-
-/-- **The auth info the request context `ctx` gives** in the mode `M` (persistent; S5): `nil`, or
-one bound to the context's own token (`ctxTokenOf`, the auth plan's E2c, 2026-10-25; until then
-"some token"). -/
-def ctxBound (M : AuthMode) (ctx : GoInterface) (a : Loc) : IProp GF :=
-  iprop(⌜a = null⌝ ∨ ∃ token : GoString, ⌜ctxTokenOf ctx = some token⌝ ∗ infoBound M token a)
-
-instance ctxBound_persistent (M : AuthMode) (ctx : GoInterface) (a : Loc) :
-    Persistent (ctxBound (GF := GF) M ctx a) := by
+instance ctxBound_persistent (M : AuthMode) (tok : Option GoString) (a : Loc) :
+    Persistent (ctxBound (GF := GF) M tok a) := by
   unfold ctxBound; infer_instance
 
 /-- **An `Authenticate` context** `ctx` in the mode `M` (the auth plan's S5b, 2026-10-24): what
@@ -1375,6 +1358,73 @@ end defs
 
 /-! The write side is at `HasLC.hasLC`: its critical-section contract is the API's
 (`srvApi.csContractA`, over `mvcc.api.hookRun`; strict M1, 2026-11-05). -/
+section ctxtok
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The token the context `ctx` carries is `o`** (persistent, per heap; SpecPlan's `Auth.ctxToken`,
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`; perheap C1a): `ctx`'s incoming metadata is
+some `md` (`metadata.ctxInMD`) whose token (`mdTokenOf`: the first value of `token`, else of
+`authorization`, a `"Bearer "` prefix trimmed) is `o`. -/
+def ctxToken (ctx : GoInterface) (o : Option GoString) : IProp GF :=
+  iprop(∃ (c : GoInterfaceOk) (md : Option (GoString → Option (List GoString))), ⌜ctx = GoInterface.ok c⌝ ∗ metadata.ctxInMD c md ∗
+    ⌜mdTokenOf md = o⌝)
+
+instance ctxToken_persistent (ctx : GoInterface) (o : Option GoString) :
+    Persistent (ctxToken (GF := GF) ctx o) := by
+  unfold ctxToken; infer_instance
+
+/-- A context whose incoming metadata is `md` carries `md`'s token. -/
+theorem ctxToken_of_ctxInMD (c : GoInterfaceOk) md :
+    metadata.ctxInMD (GF := GF) c md ⊢ ctxToken (GoInterface.ok c) (mdTokenOf md) := by
+  iintro #H
+  unfold ctxToken
+  iexists c, md
+  iframe H
+  ipureintro; exact ⟨rfl, rfl⟩
+
+/-- **The token carries over** to a context whose incoming metadata is its parent's (the transfer
+`Tracer.Start`, `WithValue`, `EnsureTrace` and the cancel wrappers give). -/
+theorem ctxToken_transfer (c c' : GoInterfaceOk) (o : Option GoString) :
+    □ (∀ md, metadata.ctxInMD (GF := GF) c md -∗ metadata.ctxInMD c' md) ∗
+      ctxToken (GoInterface.ok c) o ⊢ ctxToken (GoInterface.ok c') o := by
+  iintro ⟨#Ht, #H⟩
+  unfold ctxToken
+  icases H with ⟨%c0, %md, %Heq, #Hmd, %Hm⟩
+  cases Heq
+  iexists c', md
+  ihave #Hmd' := Ht $$ %md Hmd
+  iframe Hmd'
+  ipureintro; exact ⟨rfl, Hm⟩
+
+/-- **Some token**: a context with grpc's library values (`context.libCtxOk`, whose incoming part is
+`∃ md, ctxInMD c md`) carries some token (the token of a caller with no request of its own, which
+the mode's gate makes irrelevant or `Authenticate` does not read). -/
+theorem ctxToken_of_libCtxOk (c : GoInterfaceOk) :
+    context.libCtxOk (GF := GF) c ⊢ ∃ tok, ctxToken (GoInterface.ok c) tok := by
+  iintro #Hlib
+  iunfold context.libCtxOk at Hlib
+  icases Hlib with ⟨#Hinc, -, -, -⟩
+  iunfold metadata.incomingCtxOk at Hinc
+  icases Hinc with ⟨%md, #Hmd⟩
+  iexists (mdTokenOf md)
+  iapply ctxToken_of_ctxInMD c md $$ Hmd
+
+/-- `ctxToken_transfer` under a gate (the mode's, `□ (⌜b = true⌝ → …)`). -/
+theorem ctxToken_transfer_gate (b : Bool) (c c' : GoInterfaceOk) (o : Option GoString) :
+    □ (∀ md, metadata.ctxInMD (GF := GF) c md -∗ metadata.ctxInMD c' md) ∗
+      □ (⌜b = true⌝ → ctxToken (GoInterface.ok c) o) ⊢
+      □ (⌜b = true⌝ → ctxToken (GoInterface.ok c') o) := by
+  iintro ⟨#Ht, #H⟩
+  iintro !> %hb
+  ihave #H' := H $$ %hb
+  iapply ctxToken_transfer c c' o
+  iframe Ht H'
+
+end ctxtok
+
 section wdefs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -1433,6 +1483,11 @@ D14f) and the mode `M`:
   roles (`ownRole`: no unknown fields in the role's message nor in its permissions', `ownPermS`,
   the review's MAJ-1); `UnsafeSaveAuthEnabled(b)` and `UnsafeSaveAuthRevision(rev)` set the flag and the
   revision;
+- every write (the six above) costs a time receipt `⧗ 1` (A4, the put budget, decided by etcd-grove-03,
+  2026-11-17): the backend bounds a batch session's writes (`pend + 1 < 2 ^ 58`, `Unlock`'s room for the
+  hook), and `RoleDelete` puts one user per holder of the role, a count no bound on the state gives below
+  that; the store takes the receipt at the write's method resolution (`wp_take_receipt`), and a realization
+  bounds the session's writes by the receipts it is handed (`receipt_add_one_lt`);
 - the session's writes are tracked by a token `Sw w` (`AuthSess`, 2026-11-16, the second refutation's
   fix): `Lock()` gives `Sw AuthSess.init`, a put into the users' (the roles') bucket needs that the
   session deleted nothing there and a delete that it put nothing there, `Unlock()` takes it back;
@@ -1457,32 +1512,32 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
           ⌜histLast M hs st⌝ }}) ∗
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ownUser u ur ∗
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownUser u ur ∗
           ⌜w.users ≠ .dels ∧ ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧
             ur.name.length ≤ backend.maxKeySize ∧ ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
       {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ Sw { w with users := .puts } ∗
           ownUser u ur }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
         (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
       {{ RET #(); Lk (delUser st name) X ∗ Sw { w with users := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ownRole r rr ∗
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownRole r rr ∗
           ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
             rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
         (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
       {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X ∗
           Sw { w with roles := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (b : Bool),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
+      {{ Lk st X ∗ ⧗ 1 }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
       {{ RET #(); Lk { st with enabled := b } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (rev : w64),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
+      {{ Lk st X ∗ ⧗ 1 }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
       {{ RET #(); Lk { st with revision := uint.nat rev } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (hs : List AuthState) (w : AuthSess),
       {{ Lk st X ∗ Sw w ∗ authOwnF M hs ∗ ⌜histLast M hs st⌝ ∗ Wb ∗ Wb }}
@@ -1519,32 +1574,32 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
       {{ RET #(); ∃ st : AuthState, Lk st Post ∗ Sw AuthSess.init ∗ authLockI M st }}) ∗
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ownUser u ur ∗
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownUser u ur ∗
           ⌜w.users ≠ .dels ∧ ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧
             ur.name.length ≤ backend.maxKeySize ∧ ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
       {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ Sw { w with users := .puts } ∗
           ownUser u ur }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
         (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
       {{ RET #(); Lk (delUser st name) X ∗ Sw { w with users := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ownRole r rr ∗
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownRole r rr ∗
           ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
             rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
         (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
       {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X ∗
           Sw { w with roles := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (b : Bool),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
+      {{ Lk st X ∗ ⧗ 1 }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
       {{ RET #(); Lk { st with enabled := b } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (rev : w64),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
+      {{ Lk st X ∗ ⧗ 1 }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
       {{ RET #(); Lk { st with revision := uint.nat rev } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (w : AuthSess),
       {{ Lk st X ∗ Sw w ∗ authLockI M st ∗ Wb ∗ Wb }}
@@ -1591,13 +1646,22 @@ is non-empty and below `"\xff"`; a name starting with the byte `0xff` (never val
 etcd's request strings are) is skipped (`nonissues/etcd-auth-getallroles-ff-names.md`). -/
 def roleListed (n : GoString) : Prop := n ≠ [] ∧ go.GoStringLt n [W8 255]
 
+/-- **The role names `GetAllRoles()` lists of the state `st`** (auth-schema-srv A6 (R-c), 2026-11-19,
+decided by etcd-grove-03): each once, each a role of `st` that `roleListed`; and every such role
+when fewer than `2 ^ 63 - 1` names are listed. schema's range has no limit (`-1`), which the
+backend's cursor reads as `2 ^ 63 - 1` entries at most (a Go slice holds fewer than `2 ^ 63`), and
+nothing bounds a state's roles; a bounded run never stores that many (until A6 (R-c) every listed
+role unconditionally, which the realization could not show). -/
+def rolesListed (names : List GoString) (st : AuthState) : Prop :=
+  names.Nodup ∧ (∀ n ∈ names, (st.roles.lookup n).isSome ∧ roleListed n) ∧
+    (names.length < 2 ^ 63 - 1 → ∀ n, (st.roles.lookup n).isSome → roleListed n → n ∈ names)
+
 /-- What `GetAllRoles()` returns of the state `st` (the auth plan's E2j): as `usersOut`, the
-state's roles (`roleOut`) whose names it lists (`roleListed`; until auth-schema-fix F3 every role,
-false of a role named `"\xff"`: S0's F3). -/
+state's roles (`roleOut`) whose names it lists (`rolesListed`; until auth-schema-fix F3 every role,
+false of a role named `"\xff"`: S0's F3; until A6 (R-c) every listed role at any count). -/
 def rolesOut (s : GoSlice) (st : AuthState) : IProp GF :=
   iprop(∃ (rs : List Loc) (names : List GoString), s ↦* rs ∗
-    ⌜rs.length = names.length ∧ names.Nodup ∧
-      ∀ n, n ∈ names ↔ (st.roles.lookup n).isSome ∧ roleListed n⌝ ∗
+    ⌜rs.length = names.length ∧ rolesListed names st⌝ ∗
     [∗list] x ∈ rs.zip names, roleOut x.1 st x.2)
 
 /-- **The auth backend's reads** `bi` with the hook `P f` and the write token `T` in the mode `M`

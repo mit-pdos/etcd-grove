@@ -50,7 +50,9 @@ abbrev newReplica.spec : Prop :=
       memSnapNone γs memSnapEmpty ∗ ownCSM cs0 DFrac.discard (bootCS vs) ∗ sendSpec γr id f ∗
       id ↪[γr.rseq] W64 0 ∗
       -- (raft-entsize §2, 2026-11-09) no bound on proposed data (the replica's `%Hmd`)
-      ⌜γr.cluster.maxData = none⌝ }}
+      ⌜γr.cluster.maxData = none⌝ ∗
+      -- (auth-lease S4, 2026-11-16) outside raft's no-snapshot mode (`isReplica`'s)
+      ⌜¬ clusterNoSnap γr.cluster⌝ }}
     (App (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.newReplica))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st)) (Val #cs0))
       (Val #tick)) (Val #sts)) (Val #f))

@@ -12,11 +12,17 @@ on `Q` (`watchQ_pure`; `watchQ_same`: two firings are of one history, by the mon
 producers (`watch_read_au`, `watch_readAus`): the invariant, with a lower bound `l` of the changes,
 gives each member's read update at any `lb ≤ l.length` (`[]` for the first firing; an earlier
 firing's changes for the next, so the next one is not older).
+
+(k8s 7g step 5) `run_hist_ge`: the configurations the model reaches have histories at least the seeded
+one's; `kInv_lb_seed`: a lower bound of etcd's changes past the seeded revision (a watch's read updates
+fire past it, so the store's watch starts after the seeds: B5's `WatchFromL`); `watch_commit` also
+returns a pure fact every configuration related to the commit state gives.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.InvSteps
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatchBridge
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealWatchFrom
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
@@ -253,10 +259,13 @@ configuration related to it accepts `y` (`hw`: given the commit state's history 
 bound `l` of the changes, its facts and the configuration's relation). -/
 theorem watch_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (x : Input) (y : Output) (hk5 : x.Kind' = W64 5) (hE : y.Err' ≠ W64 4)
-    (l : List (List mvcc.Change)) (Φ : val → IProp GF)
+    (l : List (List mvcc.Change)) (Φ : val → IProp GF) (P : Prop)
     (hw : ∀ (σe : KVState) (cf : linkv.PCfg HSt Input), l <+: σe.changes → KHistI γ σe →
-      kvWfHist c σe → KRelH cf.st σe → cf.st.hist.length = σe.rev → watchOkL x y cf.st = true) :
-    kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ∗ monoListLbOwn γ.ch l ⊢ |={⊤}=> contAt g0 x y Φ := by
+      kvWfHist c σe → KRelH cf.st σe → cf.st.hist.length = σe.rev → watchOkL x y cf.st = true)
+    (hP : ∀ (σe : KVState) (cf : linkv.PCfg HSt Input), l <+: σe.changes → KHistI γ σe →
+      kvWfHist c σe → KRelH cf.st σe → cf.st.hist.length = σe.rev → P) :
+    kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ∗ monoListLbOwn γ.ch l ⊢
+      |={⊤}=> contAt g0 x y Φ ∗ ⌜P⌝ := by
   have HE := drvE_mask_top
   iintro ⟨#Hinv, HU, #Hl⟩
   iunfold kInv at Hinv
@@ -267,11 +276,15 @@ theorem watch_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNa
   ihave ⟨Hrv, %Hpre⟩ := revOwn_lb γ σ l $$ [Hrv Hl]
   · iframe Hrv Hl
   imod revOwn_hist γ σ $$ Hrv with ⟨Hrv, %Hkh, -⟩
-  obtain ⟨S', HS', Hok'⟩ := kOk_obs Hok x y hk5
+  have HPp : P := by
+    obtain ⟨cf, -, hst, hlen, -⟩ := Hok.cfg
+    exact hP σ cf Hpre Hkh Hok.hwf hst hlen
+  obtain ⟨S', HS', Hok'⟩ := kOk_obs Hok x (plainOut y) hk5
     (fun cf _ hst hlen => hw σ cf Hpre Hkh Hok.hwf hst hlen)
   have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut y) = some S' := by
     rw [step_box]
-    have e : ansOf y = .ok y := by unfold ansOf; rw [if_neg hE]
+    have e : ansOf (plainOut y) = .ok (plainOut y) := by
+      unfold ansOf; rw [if_neg (show ¬ (plainOut y).Err' = W64 4 from hE)]
     rw [e]; exact HS'
   imod (fupd_mask_subseteq HE) with Hclose3
   imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
@@ -284,7 +297,58 @@ theorem watch_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNa
     iframe
     ipureintro; exact ⟨run_snoc g0 h S S' _ Hr Hst, Hok'⟩
   imodintro
-  iexact HΦ
+  iframe HΦ
+  ipureintro; exact HPp
+
+/-- **The configurations the model reaches have histories at least the seeded one's** (a step keeps
+the history or appends to it). -/
+theorem run_hist_ge (g0 : HSt) (h : List github_com.anishathalye.porcupine.OpV)
+    (S : linkv.PSet HSt Input)
+    (hr : github_com.anishathalye.porcupine.Theory.run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) h = some S)
+    (cf : linkv.PCfg HSt Input) (hc : S cf) : g0.hist.length ≤ cf.st.hist.length := by
+  refine run_inv (kSpec g0) decOp (fun st => g0.hist.length ≤ st.hist.length) ?_ h _ S ?_ hr cf hc
+  · intro i st hst
+    show g0.hist.length ≤ (kstepL i st).1.hist.length
+    have : st.hist.length ≤ (kstepL i st).1.hist.length := by
+      unfold kstepL
+      split
+      · simp
+      · unfold advanceL
+        split <;> simp_all
+    omega
+  · intro c' hc'
+    simp only [linkv.pInit] at hc'
+    subst hc'
+    exact Nat.le_refl _
+
+/-- **A lower bound of etcd's changes past the seeded revision** (see the file header): the
+invariant's state is related to a configuration the model reached, whose history is at least the
+seeded one's. -/
+theorem kInv_lb_seed (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
+    (hg : uint.nat g0.st.rv ≤ g0.hist.length) :
+    kInv γ c g0 γk ⊢ |={⊤}=> ∃ l : List (List mvcc.Change), monoListLbOwn γ.ch l ∗
+      ⌜uint.nat g0.st.rv ≤ l.length⌝ := by
+  have HE := drvE_mask_top
+  iintro #Hinv
+  iunfold kInv at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold kInvBody at Hi
+  icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
+  obtain ⟨Hr, Hok⟩ := Hok
+  imod revOwn_hist γ σ $$ Hrv with ⟨Hrv, %Hkh, #Hlbσ⟩
+  have hrev : σ.rev = σ.changes.length := by unfold KVState.rev; rw [Hkh.1, Nat.zero_add]
+  obtain ⟨cf, hcf, -, hlen, -⟩ := Hok.cfg
+  have hge := run_hist_ge g0 h S Hr cf hcf
+  imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+  · inext
+    iunfold kInvBody
+    iexists h, S, σ, M, nx
+    iframe
+    ipureintro; exact ⟨Hr, Hok⟩
+  imodintro
+  iexists σ.changes
+  iframe Hlbσ
+  ipureintro; omega
 
 end proofs
 

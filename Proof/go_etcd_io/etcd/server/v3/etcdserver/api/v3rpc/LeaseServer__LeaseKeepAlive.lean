@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
     (hLoop : v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E γl S' st γs Up Dn ci cd
-  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE, %HT5⟩
+  intro p s A cid mid E γl S' st γs Up Dn ci tok cd
+  wp_start as ⟨#Hls, #HRn, #Hst, #Htk, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE, %HT5⟩
   ihave #Hst' := Hst
   iunfold srvStreamIs at Hst'
   icases Hst' with ⟨%si, %Hsi, -, -, #HCtx, #Hwk, -⟩
@@ -55,7 +55,7 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
   · iintro Htt
     icases (threadTok_lend4 (GF := GF) HT5) $$ Htt with ⟨Hl4, Hback⟩
     wp_auto
-    wp_apply hLoop p s A cid mid E γl S' st γs Up Dn ci cd $$ [$Hrt $Hstt $HS $HR $Hl4] as %lerr
+    wp_apply hLoop p s A cid mid E γl S' st γs Up Dn ci tok cd $$ [$Hrt $Hstt $HS $HR $Hl4] as %lerr
       ⟨-, -, Hl4, -⟩
     · iframe #
     ihave Htt := Hback $$ Hl4

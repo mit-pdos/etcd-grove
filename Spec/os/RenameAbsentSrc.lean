@@ -32,10 +32,10 @@ abbrev os.Rename.specAbsentSrc : Prop :=
   ∀ (d bs bt : GoString) (j : Ino) (N : NameSet) (R : Roots) (qd : Qp) (dqn : DFrac) (h : NamesH)
     (qc : Qp),
   NameOk bs → NameOk bt → N.Mem bs → N.Mem bt → h.cur !! bs = none →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm qc ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
       osNames j N dqn h }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
-  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm qc ∗
+  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
       osNames j N dqn h ∗ ⌜err ≠ interface.nil ∧ os.renameErrOk err⌝ }}
 
 end spec

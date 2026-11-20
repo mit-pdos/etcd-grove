@@ -8,12 +8,15 @@ import (
 	"github.com/anishathalye/porcupine"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestMainRun runs Main for real: one member in a fresh data directory, 8 clients of 100
 // operations each, and porcupine's verdict must be Ok; then it checks that writes took effect.
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "linkvtxn") // the members' WAL areas (wal-link P2)
 	if r := Main(8, 100); r != porcupine.Ok {
 		t.Fatalf("got %v", r)
 	}

@@ -26,14 +26,17 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `Spec` registered for `LeaseGrant` and the caller's `Q`: the request `{TTL: ttl}` through the retry
 lease client; on success a new `*LeaseGrantResponse` whose header, `ID` and `TTL` are the reply's
 (`resp.GetHeader()`; read-only) with `Q` of the reply; otherwise `nil` and `ContextError(ctx, err)`,
-a client error grpc's `status` accepts. -/
+a client error grpc's `status` accepts. (Auth-lease S4, Freeze §2.2) Over the connection `conn` (`lessorRemoteAtC`), metadata-indexed: the
+spec at every metadata an attempt may deliver (`attemptPre`); the old form is the new one at
+`GrpcSpec.md` (`attemptPre_md`, `isGrpcRpcs_md`, `lessorRemoteAt_conn`). -/
 abbrev lessor.Grant.spec : Prop :=
-  ∀ (l : Loc) (addr : List GoString)
-    (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
+  ∀ (l conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (ttl : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
-      isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (ttl, W64 0) Q ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+      isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec (ttl, W64 0) Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
       (Val #(GoInterface.ok ctx))) (Val #ttl))

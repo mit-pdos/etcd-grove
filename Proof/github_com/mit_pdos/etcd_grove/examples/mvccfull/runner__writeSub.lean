@@ -75,9 +75,9 @@ theorem runner.writeSub.wp_proof
     (try wp_auto)
     try rw [hlease]
     have hklen : (sm.key.length : Int) < 2 ^ 63 - 1 := hkl sm.key hkks
-    wp_apply (hPutC γk trace te σ pend sv.key' vs sm.key sm.val sm.lease L)
+    wp_apply (hPutC γk trace te σ pend sv.key' vs sm.key sm.val sm.lease L none)
       $$ [$Htx $Htrc $Hk $Hvs' $Hlo] as ⟨Htx, Htrc, Hlo⟩
-    · ipureintro; exact ⟨hklen, ⟨hkl0, hvl0⟩, hlL⟩
+    · ipureintro; exact ⟨hklen, ⟨hkl0, hvl0⟩, hlL, lease.winMove_none _ _⟩
     (try wp_auto)
     iunfold ownPending at Hp
     icases Hp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩
@@ -108,8 +108,9 @@ theorem runner.writeSub.wp_proof
       wp_apply wp_del p P keys ks DFrac.discard sv.key' sv.end' sm.key sm.e DFrac.discard
         DFrac.discard Hsorted $$ [$Hp $Hksl $Hk $He] as ⟨Hp, -, -, -⟩
       (try wp_auto)
-      wp_apply (hDelC γk trace σ pend sv.key' sv.end' sm.key sm.e L) $$ [$Htx $Hk $He $Hlo]
+      wp_apply (hDelC γk trace σ pend sv.key' sv.end' sm.key sm.e L none) $$ [$Htx $Hk $He $Hlo]
         as %n2 %rev ⟨Htx, Hlo, %Hnr, %Hlwf⟩
+      · ipureintro; exact lease.winDrops_none _ _
       have hks := delKeys_eq_match ks Hsorted σ.log pend hne hLok (decide (sv.end' = slice.nil))
         sm.key sm.e P.st hok.2
       have hok' := pendOk_del' ks σ Hs pend P hok (decide (sv.end' = slice.nil)) sm.key sm.e hks

@@ -12,6 +12,7 @@ states it (to audit); the proof is in
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 
 @[expose] public section
@@ -57,7 +58,9 @@ def etcd_restartN_robust.spec : Prop :=
     (HEnv : verifyEnvOff (restartNProgram k))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC restartNGF,
       ⊢ etcd_restartN.premises (GF := restartNGF) (hG := heapAtRN hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)),
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_restartN.restartNDirs k)),
     Robustness.Robust [] [(restartNProgram k, σ)] g (2 ^ 28 - 1)
 
 end adequacy

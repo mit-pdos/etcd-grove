@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // maxMembers is the bound of etcd_putgetN_safe's member count.
@@ -97,6 +98,7 @@ func TestPutGetN(t *testing.T) {
 	}
 	t.Logf("putgetN: k=%d (rerun with PUTGETN_MEMBERS=%d)", k, k)
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "putgetN") // the members' WAL areas (wal-link P2)
 	Main(k)
 
 	client := "127.0.0.1:" + strconv.FormatUint(ClientBase, 10)

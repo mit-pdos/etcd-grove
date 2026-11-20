@@ -6,7 +6,8 @@ The proof of `Spec/fmt/ErrorfStrs.lean`, over Perennial's model of `fmt.Errorf`
 module
 
 public import Spec.fmt.ErrorfStrs
-public import Perennial.Spec.errors.New
+public import Perennial.Proof.errors.NewVar
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 
@@ -24,20 +25,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [_root_.Perennial.fmt.Assumptions] [_root_.Perennial.errors.Assumptions]
 
-theorem fmt.ErrorfStrs.wp_proof
-    (wp_New : _root_.Perennial.errors.New.spec (GF := GF) (hG := hG)) :
+theorem fmt.ErrorfStrs.wp_proof :
     fmt.ErrorfStrs.spec (GF := GF) (hG := hG) := by
   intro format args_sl args dq
   wp_start as ⟨Hsl, Has⟩
-  wp_apply wp_New as %err ⟨-, #Herr⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x #Herr
   iapply HΦ
   iframe Hsl Has
-  iunfold errOk
-  imodintro
-  iintro %Φ HΦ
-  iapply Herr
-  inext
-  iapply HΦ
+  iapply errorString_errOk
+  iexact Herr
 
 end proof
 

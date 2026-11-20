@@ -55,6 +55,9 @@ abbrev startMember.spec : Prop :=
   rafthttp.bootCfg dir ps →
   urlsOk peerAddr client ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩ →
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
+  -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
+  -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
+  name.length ≤ 200 →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth3 ∗
       zapLoggerOk lg ∗

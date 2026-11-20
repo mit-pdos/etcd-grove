@@ -73,7 +73,7 @@ raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, D8): `readyWithoutAccept`
 out (`ms : List QMsg`, a response at half -- `acceptReady` read the other half, which stays with
 the node's way back and is dropped with the queues: the application gets responses read-only,
 `nonissues/raft-ready-messages-read-after-handout.md`), the entries `entsRO`, the read states
-`readStatesPts`, `rd.Snapshot` `nil`, and the hard state `hsOpt rd.HardState' h` (new). The
+`readStatesPts`, `rd.Snapshot` `nil`, and the hard state `hsOptC rd.HardState' h` (new; canonical since 2026-11-17). The
 `ReadState`s' contexts are bytes (D6), `readStateRaw` over `ReadStateM`. (D22 S-d3a, 2026-10-21) With
 a snapshot pending (until then a premise `rs.psnap = false`): handed out with the storage itself,
 the loan `L` recorded (`RawNode.readyWithoutAccept.spec`, `RawNode.acceptReady.spec`).
@@ -151,7 +151,7 @@ abbrev RawNode.Ready.spec : Prop :=
       "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateRaw γ st) ∗
       -- (2026-10-16, stage R5) the hard state, `nil` or fresh and read-only
-      "#Hhard" ∷ hsOpt rd.HardState' h ∗
+      "#Hhard" ∷ hsOptC rd.HardState' h ∗
       -- (D22 S-b) a non-`nil` one is the node's: its witness (`hsWit`); (D22l) of `prevHardSt`
       -- after the `Ready` (`phsNext`)
       "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length ∗

@@ -190,8 +190,9 @@ theorem writer.deleteRange.wp_proof
   wp_apply wp_del p ⟨W64 (Hs.length : Int), lastSt Hs, []⟩ ks es kk e DFrac.discard DFrac.discard
     $$ [$Hpkg $Hp $Hks $Hes] as ⟨Hp, -, -⟩
   (try wp_auto)
-  wp_apply (hDelC γ.kv trace σ [] ks es kk e L) $$ [$Hmv $Htx $Hks $Hes $Hlo]
+  wp_apply (hDelC γ.kv trace σ [] ks es kk e L none) $$ [$Hmv $Htx $Hks $Hes $Hlo]
     as %n %rev ⟨Htx, Hlo, %Hnr, -⟩
+  · ipureintro; exact lease.winDrops_none _ _
   have hM := stMatch_lastSt σ Hs Hlen (by omega) Hmatch
   have hks := delKeys_eq_match σ.log [] hne hLok (decide (es = slice.nil)) kk e (lastSt Hs) hM
   have hdl : (matchKeys (lastSt Hs) (decide (es = slice.nil)) kk e).length ≤ 6 := by

@@ -32,7 +32,7 @@ variable [GooseExts]
 
 /-- The WAL state after the snapshot record's update. -/
 def tSnapD (d : WalDur) (idx term : w64) : WalDur :=
-  { d with H := d.H ++ [WalOpG.snap (absSnapMd idx term)] }
+  { d with H := d.H ++ [WalOpG.snap (absSnapMd idx term) true] }
 
 theorem tSnapD_hist (d : WalDur) (idx term : w64) :
     (tSnapD d idx term).H.map WalOpG.toM = d.H.map WalOpG.toM ++ [absOp (tSnapOp idx term)] := by
@@ -86,14 +86,14 @@ theorem absSnapMd_cs_ne (idx term : w64) : (absSnapMd idx term).ConfState' ≠ w
 
 /-- **The canonical object of `absSnapMd`.** -/
 theorem walSnapCanon_absSnapMd (idx term : w64) :
-    walSnapCanon (absSnapMd idx term) = ⟨some idx, some term, some ⟨[W64 1], [], [], [], some false, []⟩, []⟩ := by
+    walSnapCanon (absSnapMd idx term) true = ⟨some idx, some term, some ⟨[W64 1], [], [], [], some false, []⟩, []⟩ := by
   unfold walSnapCanon
   rw [if_neg (absSnapMd_cs_ne idx term)]
   rfl
 
 /-- **The snapshot record's encoding is short.** -/
-theorem absSnapMd_enc_lt (idx term : w64) : (walRaftMr.encSnap (absSnapMd idx term)).length < 2 ^ 40 := by
-  show (snapEnc (walSnapCanon (absSnapMd idx term))).length < 2 ^ 40
+theorem absSnapMd_enc_lt (idx term : w64) : (walRaftMr.encSnap (absSnapMd idx term) true).length < 2 ^ 40 := by
+  show (snapEnc (walSnapCanon (absSnapMd idx term) true)).length < 2 ^ 40
   rw [walSnapCanon_absSnapMd]
   have h1 := varintEnc_length_w64 (uint.nat idx) (by word)
   have h2 := varintEnc_length_w64 (uint.nat term) (by word)
@@ -147,7 +147,7 @@ theorem tInv_snapAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
       AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.area) d' ∗ ⌜d'.sized = true⌝ }>
           @ WalFs.walAuMask, ∅
         <{ WalFs.walDiskAt (W := W) (tWalDir e.area)
-            { d' with H := d'.H ++ [WalOpG.snap (absSnapMd idx term)] },
+            { d' with H := d'.H ++ [WalOpG.snap (absSnapMd idx term) true] },
           COMM ⌜d' = d⌝ ∗ tWalOwn γ (some (tSnapD d idx term)) ∗ tOrOwn γ (tSnapO1 o idx term) none }> := by
   iintro ⟨#Hinv, Hwo, Hoo, #Hsl, #Hnm⟩
   iauintro
@@ -219,14 +219,14 @@ variable [raftpb_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
 
 /-- **`saveSnap`'s literal frozen**: `&walpb.Snapshot{Index: p, Term: q, ConfState:
 &raftpb.ConfState{Voters: []uint64{1}, AutoLeave: new(bool)}}` is `walSnapAt walRaftMr` of `absSnapMd`
-with a conf state (its object `walSnapCanon (absSnapMd idx term)`, so its encoding is the model's). -/
+with a conf state (its object `walSnapCanon (absSnapMd idx term) true`, so its encoding is the model's). -/
 theorem walSnapAt_litCs (l pi pt pc pa : Loc) (sv : GoSlice)
     (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32)
     (st2 : google_golang_org.protobuf.internal.impl.MessageState) (sc2 : w32) (idx term : w64) :
     ⊢ l ↦ (walpb.Snapshot.mk st pi pt pc slice.nil sc) -∗ pi ↦ idx -∗ pt ↦ term -∗
       pc ↦ (raftpb.ConfState.mk st2 sv slice.nil slice.nil slice.nil pa slice.nil sc2) -∗
       sv ↦* [W64 1] -∗ pa ↦ false ={⊤}=∗
-      walSnapAt (GF := GF) walRaftMr l (absSnapMd idx term) true := by
+      walSnapAt (GF := GF) walRaftMr l (absSnapMd idx term) true true := by
   iintro Hl Hi Ht Hc Hsv Ha
   ihave ⟨Hl, %Hln⟩ := typedPointsto_not_null_dup _ _ _ $$ Hl
   ihave ⟨Hc, %Hcn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hc
@@ -267,7 +267,7 @@ theorem walSnapAt_litCs (l pi pt pc pa : Loc) (sv : GoSlice)
   ipersist Hnil
   imodintro
   iunfold walSnapAt
-  iexists walSnapCanon (absSnapMd idx term)
+  iexists walSnapCanon (absSnapMd idx term) true
   rw [walSnapCanon_absSnapMd]
   isplitl
   · iunfold walSnapRoC
@@ -288,7 +288,7 @@ theorem walSnapAt_litCs (l pi pt pc pa : Loc) (sv : GoSlice)
   ipureintro
   refine ⟨?_, rfl, rfl, rfl, ?_⟩
   · rw [← walSnapCanon_absSnapMd, walSnapCanon_model]
-  · show _ = snapEnc (walSnapCanon (absSnapMd idx term))
+  · show _ = snapEnc (walSnapCanon (absSnapMd idx term) true)
     rw [walSnapCanon_absSnapMd]
 
 end lit

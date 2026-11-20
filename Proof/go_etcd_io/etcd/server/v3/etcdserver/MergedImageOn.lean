@@ -77,7 +77,8 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   ihave %Hrw := srvKVInvsM_rows true s E γr $$ Hki
   ihave #Hinvs := srvKVInvsM_true s E γr $$ Hki
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, -, #HrI, -, -, -, %Hrows⟩
+  icases Hinvs with ⟨#HkI, -, #HrI, -, -, -, %Hrows0, %Hrows1, -⟩
+  have Hrows := And.intro Hrows0 Hrows1
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ HrI
   imod (kvInvOn_ch0 γr.raft γr.kv srvAuthSt0) $$ HkI with %hch
   imod (kvInvOn_authOn γr.raft γr.kv srvAuthSt0) $$ HkI with %hao

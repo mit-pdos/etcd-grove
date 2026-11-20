@@ -233,9 +233,10 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
   ihave Hau := durRename_osAUnc γ f { p with ht := ht1 } ⟨i, m1.synced, data⟩ Ψ hc $$ Hdi Hq
   icases osPathS_split_halves R f.d qd f.J $$ Hpath with ⟨Hpa, Hpb⟩
   unfold DFile.tmp DFile.name
+  icases osPathS_sameRoot R f.d f.tb f.b _ f.J $$ Hpa with ⟨Hpa, %hsr⟩
   wp_apply wp_Rename f.d f.tb f.d f.b f.J f.J i (.only [f.tb]) (.only [f.b]) R (DFrac.own qd.half)
       (DFrac.own qd.half) ht1 p.hb (1 : Qp).half (1 : Qp).half (1 : Qp).half (1 : Qp).half qc _
-      hf.2.2.2.2.1 hf.2.2.2.1 hNt hNb hkey hi hnd (Qp.half_add_half 1) (Qp.half_add_half 1)
+      hf.2.2.2.2.1 hf.2.2.2.1 hNt hNb hkey hi hnd (Qp.half_add_half 1) (Qp.half_add_half 1) hsr
     $$ [Hinv Hsi Hpa Hpb Hperm Hnt Hnb Hau] as %e4 ⟨Hpa, Hpb, Hperm, %o, %ho, Hq, Hout⟩
   · iframe; iframe #
   ihave Hpath := osPathS_join_halves R f.d qd f.J $$ [$Hpa $Hpb]
@@ -309,7 +310,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
   wp_apply wp_SyncDir dfl dfd f.d (DFrac.own 1) R f.J .idle _ $$ [Hinv Hsi Hdf Hdfd Hlb]
     as %e6 ⟨Hdf, Hdfd, Hres⟩
   · iframe; iframe #
-  icases Hres with (%he6 | ⟨%he6, #Hclb⟩)
+  icases Hres with (⟨%he6, -⟩ | ⟨%he6, #Hclb⟩)
   · cases e6 with
     | nil => exact absurd rfl he6
     | ok ie =>

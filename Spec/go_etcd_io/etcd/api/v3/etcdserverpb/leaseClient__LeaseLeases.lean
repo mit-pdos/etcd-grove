@@ -27,15 +27,17 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `Invoke` of `"/etcdserverpb.Lease/LeaseLeases"` with `grpc.StaticMethod()` before the options,
 into a new `*LeaseLeasesResponse`: the call's answer (`leaseLeasesCallOut`); the request comes back. The
 request has no unknown fields (a struct literal; 2026-10-30, the wire model's bound,
-`ProtoMsg.wireLen`). -/
+`ProtoMsg.wireLen`). (Auth-lease S4, Freeze §2.3) Metadata-indexed: the spec `Spec` at every metadata an attempt may deliver
+(`attemptPre`, as `kVClient.Put`'s; a plain spec is `GrpcSpec.md`); persistent, since the call may be
+retried. -/
 abbrev leaseClient.LeaseLeases.spec : Prop :=
   ∀ (lc conn : Loc) (addr : List GoString)
-    (Spec : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
+    (Spec : GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
     (Φ : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseLeasesRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ leaseStubAt lc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
-      □ ▷ Spec () Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec () Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜req.unknownFields' = slice.nil⌝ }}
     (App (App (App (Val (lc @!! go.GoType.PointerType etcdserverpb.leaseClient.ty @!! go!"LeaseLeases"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

@@ -60,7 +60,8 @@ theorem backend.bktOf_create (S : backend.Data) (n n' : GoString) : backend.bktO
 theorem backend.bgOk_step {P : backend.BParams} {st st' : backend.BSess} {n w u : Nat} (h :
     backend.bgOk P st false n w u) (hR : st'.R = st.R) (hc : st'.cnt = st.cnt) (hp : sint.nat
     st'.pend = sint.nat st.pend + 1) (hW : ∀ (i : w64), (backend.bkOf st'.W.bks i).length ≤
-    (backend.bkOf st.W.bks i).length + 1) : backend.bgOk P st' false n w u
+    (backend.bkOf st.W.bks i).length + 1) (hT : backend.trkOk P st st.tk → backend.trkOk P st'
+    st'.tk) : backend.bgOk P st' false n w u
 
 theorem backend.pend_succ_nat {st : backend.BSess} {P : backend.BParams} (hst : backend.sessWf P st)
     (hp : sint.Z st.pend + 1 < 2 ^ 58) : sint.nat (st.pend + W64 1) = sint.nat st.pend + 1

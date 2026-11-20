@@ -65,6 +65,35 @@ theorem wp_GoAttach_tok (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
   iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
   iframe
 
+/-- **`GoAttach` with a whole thread token, its closure on the goroutine's tokens** (wal-link L2,
+2026-11-17: `purgeFile` borrows an `lgMu` slot from `GoAttach`'s pool with its level-1 token): as
+`wp_GoAttach_tok`, the closure given `GoAttach.spec`'s `threadTokFrom 1` (and giving it back). -/
+theorem wp_GoAttach_tokT (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : GoNames) (f : GoFunc) (P : IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        srvGoResAt s γ ∗ P ∗
+        {{ P ∗ goRunning γ ∗ threadTokFrom 1 }} (App (Val #f) (Val #()))
+          {{ RET #(); goRunning γ ∗ threadTokFrom 1 }} }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"GoAttach")) (Val #f))
+    {{ RET #(); srvGoResAt s γ }} := by
+  iintro %Φ ⟨#Hinit, Hgr, HP, #Hf⟩ HΦ
+  iunfold srvGoResAt at Hgr
+  icases Hgr with ⟨Hwr, Htok⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
+  icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Ht1 with ⟨H1, H2⟩
+  iapply hGA s γ f P $$ [Hwr H1 HP] [HΦ H0 H2]
+  · iframe Hinit Hwr H1 HP
+    iexact Hf
+  inext
+  iintro ⟨Hwr, H1⟩
+  iapply HΦ
+  iunfold srvGoResAt
+  iframe Hwr
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe H0
+  iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+  iframe
+
 end lemmas
 
 end EtcdGrove

@@ -11,6 +11,7 @@ states it (to audit); the proof is in
 -/
 module
 
+public import GooseLang.Ext.Fs.PathFitsLemmas
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.TopLevelDefs
 public import Robustness.Statement
@@ -51,7 +52,8 @@ def mvccfull_robust.spec : Prop :=
     [os.fileStat.FieldAssumptions] (r : GoString) (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
-    (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none),
+    (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
+    (Hrfit : Fs.DirFits r),
     Robustness.Robust [] [(mvccfullProgram r, σ)] g (2 ^ 28 - 1)
 
 end adequacy

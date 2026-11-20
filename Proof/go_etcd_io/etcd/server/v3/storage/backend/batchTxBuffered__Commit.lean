@@ -46,11 +46,12 @@ theorem backend.batchTxBuffered.Commit.wp_proof
   wp_apply (hlock γ P W Pk b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Ho⟩
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
-  wp_apply (hC γ P W Pk b t rt st false false 0 0 X Y (vData P (st.C, st.R))) $$ [$Hl $HWR Htok $HX] as ⟨HY, HWR, -, Hpost⟩
+  ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True) ⊤
+  wp_apply (hC γ P W Pk b t rt st false false 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True) ⊤ CoPset.subseteq_top) $$ [$Hl $HWR Htok $HX] as ⟨HY, -, HWR, -, Hpost⟩
   · iframe #
     isplitr
     · ipureintro
-      exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1⟩
+      exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1, fun n hn => Or.inl (Hfo.1.2.2.2.2.2 n hn)⟩
     isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]
       rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
@@ -58,17 +59,18 @@ theorem backend.batchTxBuffered.Commit.wp_proof
     isplitr
     · ipureintro; intro h; cases h
     isplitr
-    · ipureintro; exact Hfo.1.2.2.2.2
+    · ipureintro; exact Hfo.1.2.2.2.2.1
     unfold payIn
     rw [if_neg (by decide), if_pos rfl]
     iframe Htok
+    ipureintro; exact ⟨List.nodup_nil, Or.inl rfl⟩
   try simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, -⟩
   wp_method_call
   wp_call
   unfold batchPhys
   icases Hph2 with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
-  rw [Hfin.2.2]
+  rw [Hfin.2.2.1]
   wp_auto
   wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg2 HWv HWR]
   · iframe #
@@ -78,7 +80,7 @@ theorem backend.batchTxBuffered.Commit.wp_proof
     isplitl
     · unfold batchPhys
       iexists hk
-      rw [Hfin.2.2]
+      rw [Hfin.2.2.1]
       iframe
       iframe #
     · ipureintro

@@ -23,6 +23,9 @@ theorem backend.hookStep_refl (P : backend.BParams) (st : backend.BSess) : backe
 theorem backend.agreeOff_trans {HB : GoString → Bool} {f g h : backend.VFun} (h1 : backend.agreeOff
     HB f g) (h2 : backend.agreeOff HB g h) : backend.agreeOff HB f h
 
+theorem backend.ovB_wEmpty {P : backend.BParams} {W : backend.WBuf} {n : GoString} (h :
+    backend.wEmpty P W n) (f : backend.VFun) (k : GoString) : backend.ovB P.BT W.bks f n k = f n k
+
 theorem backend.bkOf_bksResetC (B : GMap w64 (List backend.Ent)) (i : w64) : backend.bkOf
     (backend.bksReset B) i = []
 
@@ -34,8 +37,10 @@ theorem backend.commit_bgOk {P : backend.BParams} {st st' : backend.BSess} {C' :
     backend.bkOf st.W.bks i = []) (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : backend.hookStep P st
     st') (hst : backend.sessWf P st) (hb' : backend.bgOk P st' false n w u) (n' w' u' : Nat) (hbud :
     uint.Z st.R.ver + ↑n' + ↑k' < 2 ^ 40) (huw : u' ≤ w') (hc : st.cnt.c + 1 ≤ k' + 1 + if u' = w'
-    then 1 else 0) (hwv : ↑w' ≤ uint.Z st.R.ver) : backend.bgOk P (backend.commitSt st' C' tx' { k
-    := k', c := st.cnt.c + 1, p0 := 0, e := 0, hw := false }) true n' w' u'
+    then 1 else 0) (hwv : ↑w' ≤ uint.Z st.R.ver) (ht : backend.trkOk P (backend.commitSt st' C' tx'
+    { k := k', c := st.cnt.c + 1, p0 := 0, e := 0, hw := false }) backend.tkIdle) : backend.bgOk P
+    (backend.commitSt st' C' tx' { k := k', c := st.cnt.c + 1, p0 := 0, e := 0, hw := false }) true
+    n' w' u'
 
 theorem backend.vData_free (P : backend.BParams) (st : backend.BSess) (hst : backend.sessWf P st)
     (hn : st.ndel = W64 0) (hW : ∀ (n : GoString) (i : w64), P.BT !! n = some i → P.HB n = false →
@@ -67,7 +72,7 @@ def backend.BSess.setHw (st : backend.BSess) (x : Bool) : backend.BSess :=
     cnt :=
       have __src := st.cnt;
       { k := __src.k, c := __src.c, p0 := __src.p0, e := __src.e, hw := x },
-    dl := st.dl, win := st.win }
+    dl := st.dl, win := st.win, tk := st.tk, cw := st.cw }
 
 theorem backend.agree_of_vData_eq (P : backend.BParams) (rv rv' : backend.RView) (h : backend.vData
     P rv = backend.vData P rv') : backend.agreeOff P.HB (backend.vOf P rv) (backend.vOf P rv')

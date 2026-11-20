@@ -778,7 +778,7 @@ theorem DirsRoots.upd {R : Roots} {s : AbsDiskState} {dir : GoString} {f : WalDu
 
 /-- **The last segment synced** (`TailIdle`'s third part; the W7-W12 log, sixth session): every byte of
 the last segment durable, and zeros known (`OsMeta.zf`) only from its end on. Then an fdatasync of an
-idle tail (`Close` of a handle that never registered it: `WAL.Close.specOpening`) changes nothing the
+idle tail (`Close` of a handle that never registered it: `WAL.Close.spec` (state `opening`)) changes nothing the
 invariant says but the segment's `OsMeta` (`OsMeta.synced`, `walInvBody_syncIdle`). Established by a
 crash (the segments are their files' images, `initMeta`: zeros known from the last page's end), by
 `Create`'s commit (its segment fsynced before the rename) and by `Close`'s unregistration (after its
@@ -2126,12 +2126,31 @@ with the WAL's own crash token (`walCrashTok`, exclusive: the contents are taken
 running generation holds `notCrashed` (in its state interpretation), which excludes the second
 branch (`walInv_open`). -/
 def walInv (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : IProp GF :=
-  inv walN iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
-    (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))
+  iprop(⌜W.roots = R⌝ ∗ inv walN iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
+    (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W))))
 
 instance walInv_persistent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) :
     Persistent (walInv (L := L) (W := W) C Mr R jr r) := by
   unfold walInv; infer_instance
+
+/-- The ghost names' roots are the invariant's (the key of a handle's call permission,
+`callKey W.roots dir`). -/
+theorem walInv_roots (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) :
+    ⊢@{IProp GF} walInv (L := L) (W := W) C Mr R jr r -∗ ⌜W.roots = R⌝ := by
+  unfold walInv
+  iintro ⟨%h, -⟩
+  ipureintro; exact h
+
+/-- A share of a WAL directory's key, named by the area's roots, is one named by the ghost names'
+(`walInv_roots`). -/
+theorem walPerm_toW {R : Roots} (hWR : W.roots = R) (d : GoString) (q : Qp) :
+    osCallPerm (L := L) (callKey R d) q ⊢ osCallPerm (L := L) (callKey W.roots d) q := by
+  rw [hWR]
+
+/-- The converse of `walPerm_toW`. -/
+theorem walPerm_ofW {R : Roots} (hWR : W.roots = R) (d : GoString) (q : Qp) :
+    osCallPerm (L := L) (callKey W.roots d) q ⊢ osCallPerm (L := L) (callKey R d) q := by
+  rw [hWR]
 
 /-- **Opening the WAL invariant while the generation runs**: with `notCrashed` (which a step of the
 generation has, in its state interpretation), the invariant holds its contents; it is closed again
@@ -2143,6 +2162,7 @@ theorem walInv_open (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
       ((∃ s, walInvBody (L := L) (W := W) C Mr R jr r s) ={E \ ↑walN, E}=∗ True) := by
   iintro #Hinv Hnc
   unfold walInv
+  icases Hinv with ⟨-, #Hinv⟩
   imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with (>Hb | ⟨>Hc, -⟩)
   · imodintro

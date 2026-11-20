@@ -190,13 +190,13 @@ theorem txn.executeTxn.wp_proof
     (hDel : txn.deleteRange.spec (GF := GF) (hG := hG))
     (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG))
     : txn.executeTxn.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg γ trace te tw kt rt t pl rest tresp skip L
+  intro ctx cd nd lg γ trace te tw kt rt t pl rest tresp skip L wn
   dsimp only
   iloeb as IH generalizing %kt %rt %t %pl %rest %tresp
   wp_start as ⟨Htw, Htrc, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, Hskel, #Hleases, #Hknown, Hown, %Hpre⟩
   icases txn.mvccTxn_shape hsh tw γ trace kt $$ Htw with ⟨%Hsh, Htw⟩
   obtain ⟨tyX, vX, rfl, hRevC, -, -, -, -, hChC, -⟩ := Hsh
-  obtain ⟨hreach, hpre1, hpre3, hpre4, hfit⟩ := Hpre
+  obtain ⟨hreach, hpre1, hwin, hpre3, hpre4, hfit⟩ := Hpre
   have Hpre := And.intro hpre1 (And.intro True.intro (And.intro hpre3 hpre4))
   iunfold txn.txnRequestIs at Hrt
   icases Hrt with ⟨%Hrtn, #Hrt⟩
@@ -259,8 +259,8 @@ theorem txn.executeTxn.wp_proof
         (srvOps s0 r st (ops.take (sint.nat n))).2 ∗
       "#Hknown" ∷ (if txn.MTxn.isRead kt then iprop(True) else leasesKnown L
         (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1)) ∗
-      "Hown" ∷ (⌜txn.MTxn.isRead kt = true⌝ ∨ lease.leaseOwn (mvcc.api.mvccLeases γ) L
-        (mvcc.pendItems kt.state.log (kt.pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1))) ∗
+      "Hown" ∷ (⌜txn.MTxn.isRead kt = true⌝ ∨ lease.leaseOwnW (mvcc.api.mvccLeases γ) L
+        (mvcc.pendItems kt.state.log (kt.pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1)) wn) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ops.length⌝) $$ [i iv req txns txnPath err Htw Htrc Hskel Hown]
   · iexists W64 0, _, _, pl, ok, GoInterface.nil
     simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero, srvOps_nil,
@@ -293,6 +293,13 @@ theorem txn.executeTxn.wp_proof
     have htake := srvOps_take_succ s0 r st ops (sint.nat n) op Hop_lookup
     have hokn := (opsOk_drop false s0 r _ ops (sint.nat n) op Hop_lookup).1
       (opsOk_drop' false s0 r st ops (sint.nat n) Hpre.1)
+    have hwinn : txn.MTxn.isRead kt = false → txn.WinOp wn s0 r
+        (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1) op ∧
+        txn.WinOps wn s0 r (mvcc.applyChanges r (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1)
+          (srvOp s0 r (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1) op).1)
+          (ops.drop (sint.nat n + 1)) := fun h =>
+      (txn.winOps_drop wn s0 r _ ops (sint.nat n) op Hop_lookup).1
+        (txn.winOps_drop' wn s0 r st ops (sint.nat n) (hwin.resolve_left (by simp [h])))
     have hmem : op ∈ ops := List.mem_of_getElem? Hop_lookup
     have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     have hrl : sint.nat n < rps.length := by omega
@@ -387,7 +394,7 @@ theorem txn.executeTxn.wp_proof
           -- `%w` of `rangeKeys`' error: no fact from Perennial's model (errorf-wrap)
           ihave #He2 := He
           iunfold mvcc.ctxErrorf at He2
-          ihave #Hxs := go_etcd_io.etcd.cache.v3.ctxWrapErr_stringMethodSpec x $$ He2
+          ihave #Hxs := go_etcd_io.etcd.cache.v3.ctxWrapErr_fmtErrorOk x $$ He2
           rw [show (go!"applyTxn: failed Range: %w" : GoString) = go!"applyTxn: failed Range: " ++ go!"%w" from rfl]
           wp_apply (hWrap go!"applyTxn: failed Range: " _ x (DFrac.own 1) (by decide))
             $$ [$Hfmt $Hasl $Hxs] as %e0 ⟨-, #Hw, -⟩
@@ -536,11 +543,17 @@ theorem txn.executeTxn.wp_proof
       wp_auto
       icases Hown with (%Hro | Hown)
       · cases Hro
-      wp_apply (hDel ctx cd true (interface.mkOk tyX vX) γ trace te σ _ dr o L)
+      have hwd : lease.winDrops wn (mvcc.pendItems σ.log (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1))
+          (txn.delSelOf o) := by
+        show lease.winDrops wn (mvcc.leaseItemsOf (pendState σ.log _)) _
+        rw [hps]; exact (hwinn hro).1
+      wp_apply (hDel ctx cd true (interface.mkOk tyX vX) γ trace te σ _ dr o L wn)
         $$ [$Hctx $Htw $Htrc $Hdr $Hown] as %dresp %derr ⟨Htrc, Hout⟩
       · simp only [↓reduceIte]
         iframe Hnd
-        ipureintro; exact hreach
+        isplitl []
+        · ipureintro; exact hreach
+        ipureintro; exact hwd
       rw [hps]
       icases Hout with (⟨%Herr, Htw, #Hdresp, -, Hown⟩ | ⟨%Hc, -⟩)
       rotate_left
@@ -637,7 +650,7 @@ theorem txn.executeTxn.wp_proof
           apply opsLeases_mem s0 ops _ hmem
           rw [txn.opLeases_txn_et]; exact hl
         ipureintro
-        refine ⟨hreach, hokT, ?_, ?_, ?_⟩
+        refine ⟨hreach, hokT, Or.inr (txn.winOp_txn wn s0 r stn cs ts es (hwinn hro).1), ?_, ?_, ?_⟩
         · intro hro; cases hro
         · intro h; cases h
         · intro op hop
@@ -724,7 +737,7 @@ theorem txn.executeTxn.wp_proof
           | exact Or.inr (Or.inl ⟨_, _, rfl⟩)
           | exact Or.inr (Or.inr ⟨_, _, rfl⟩)) $$ Hrq
         with ⟨%Hrqn, %w', %pr, %o, %Hop, #Hrqw, #Hw'pr, #Hpr⟩
-      rw [Hop] at Hop_lookup hokn htake hmem hdropo
+      rw [Hop] at Hop_lookup hokn htake hmem hdropo hwinn
       rw [Hop, txn.opSkel_put_et]
       iunfold txn.putSkel at Hp
       icases Hp with ⟨%Hpn, %w, #Hpw, Hw⟩
@@ -778,12 +791,20 @@ theorem txn.executeTxn.wp_proof
         iapply leasesOk_sub L _ _ (opsLeases_mem s0 ops _ hmem) $$ Hleases
       icases Hown with (%Hro | Hown)
       · cases Hro
-      wp_apply (hPut ctx cd (interface.mkOk tyX vX) γ trace te σ _ pr o pv L)
+      have hwp : Perennial.EtcdGrove.lease.winMove wn (mvcc.pendItems σ.log (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1))
+          (mvcc.pendItems σ.log (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1 ++
+            [putChangeOf o (mvcc.findKey o.key stn)])) := by
+        have h1 := txn.winOp_put_et wn s0 r stn o (hwinn hro).1
+        show Perennial.EtcdGrove.lease.winMove wn (mvcc.leaseItemsOf (pendState σ.log _)) (mvcc.leaseItemsOf (pendState σ.log _))
+        rw [pendState_append σ.log _ [_], hps, hr]; exact h1
+      wp_apply (hPut ctx cd (interface.mkOk tyX vX) γ trace te σ _ pr o pv L wn)
         $$ [$Hctx $Hct $Htw $Htrc $Hpr Hpv Hown] as %presp ⟨Htw, Htrc, #Hpresp, -, Hown⟩
       · rw [hps]
         iframe Hpv Hlo Hown
-        ipureintro
-        exact ⟨txn.opOk_put_et s0 r stn o hokn.1, txn.putTxnOp_putsLe o (hfit _ hmem)⟩
+        isplitl []
+        · ipureintro
+          exact txn.opOk_put_et s0 r stn o hokn.1
+        ipureintro; exact ⟨hwp, txn.putTxnOp_putsLe o (hfit _ hmem)⟩
       rw [hps]
       ipersist Hw
       wp_apply (hStop trace te slice.nil) $$ [$Htrc] as Htrc

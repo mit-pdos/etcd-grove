@@ -34,15 +34,16 @@ theorem os.OpenFile.wp_absentS (d b : GoString) (flag : w64) (perm : w32) (R : R
     (hcr : (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 0)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
-        osCallPerm qc ∗ ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err }} := by
+        osCallPerm (callKey R d) qc ∗ ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   iloeb as IH generalizing Hperm Hp Hn HΦ
-  wp_apply wp_osCallBeginS R qc h.next CoPset.subseteq_top CoPset.subseteq_top
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
@@ -71,10 +72,10 @@ theorem os.OpenFile.wp_absentS (d b : GoString) (flag : w64) (perm : w32) (R : R
 /-- `os.Open(d/b)` of a name holding nothing: `OpenFile(d/b, O_RDONLY, 0)`, an error. -/
 theorem os.Open.wp_absentS (d b : GoString) (R : Roots) (j : Ino) (N : NameSet) (dq dqn : DFrac)
     (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b) (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Open)) (Val #(child d b)))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
-        osCallPerm qc ∗ ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err }} := by
+        osCallPerm (callKey R d) qc ∗ ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err }} := by
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
   wp_auto
   have e : W64 0 ||| W64 0x80000 = flRO := by decide

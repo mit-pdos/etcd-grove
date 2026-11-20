@@ -45,10 +45,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.wp_proofAbsent
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply HErrorf _ _ [GoInterface.ok e] [e] (by
-        intro ii hii
-        right
-        simpa using hii) $$ [Hasl] as %err2 #Herr2
+  wp_apply HErrorf _ _ [GoInterface.ok e] [e] ?wf $$ [Hasl] as %err2 #Herr2
+  case wf => errargs_wf
   · iframe
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
     iexact He

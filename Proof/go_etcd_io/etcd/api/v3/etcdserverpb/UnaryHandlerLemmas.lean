@@ -172,7 +172,7 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+      grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -306,7 +306,7 @@ theorem wp_unaryHandlerMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth f
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+      grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -360,8 +360,8 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
   iapply (wp_unaryHandlerOwnMd (V := V) h srvTy reqTy repTy meth fullMethod Req Rep (GrpcSpec.md Spec)
     srv S ics Rs Q m Φ' (fun _ => iprop(True)) ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] [HΦ]
   · iframe; iframe #
-    simp only [GrpcSpec.md]
-    iframe
+    iapply (grpcSpecAt_md_intro Spec ci m Φ' (fun _ => iprop(True)))
+    iframe HSpec Hrc
     imodintro
     iintro %_
     itrivial
@@ -405,8 +405,8 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
   iapply (wp_unaryHandlerMd (V := V) h srvTy reqTy repTy meth fullMethod Req Rep (GrpcSpec.md Spec)
     srv S ics Rs Q m Φ' (fun _ => iprop(True)) ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] [HΦ]
   · iframe; iframe #
-    simp only [GrpcSpec.md]
-    iframe
+    iapply (grpcSpecAt_md_intro Spec ci m Φ' (fun _ => iprop(True)))
+    iframe HSpec Hrc
     imodintro
     iintro %_
     itrivial

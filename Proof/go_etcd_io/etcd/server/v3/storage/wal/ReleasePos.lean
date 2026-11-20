@@ -44,14 +44,14 @@ theorem cutStart_le_namePos {H : WalHist} {p ix : Nat} {a : w64} (strict : Bool)
     · next ha => subst ha; simp at hia'; omega
     split
     · next hg =>
-      obtain ⟨⟨i, m, hi, hma⟩, -⟩ := hg
+      obtain ⟨⟨i, m, al, hi, hma⟩, -⟩ := hg
       have hip : p ≤ i := by
         rcases Nat.lt_or_ge i p with hlt | hge
         · exfalso
-          have hmem : WalOpG.snap m ∈ H.take p := by
+          have hmem : WalOpG.snap m al ∈ H.take p := by
             apply List.mem_iff_getElem?.2
             exact ⟨i, by rw [List.getElem?_take, if_pos hlt]; exact hi⟩
-          have h1 := walMaxSnap_mem (H.take p) 0 m hmem
+          have h1 := walMaxSnap_mem (H.take p) 0 m al hmem
           have h2 := walLastIdx_eq (H.take p)
           rw [hma] at h1
           omega

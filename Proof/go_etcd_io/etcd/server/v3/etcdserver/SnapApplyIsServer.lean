@@ -66,7 +66,7 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
   subst Heq
   have hok : srvEnvOk s (snapγ γ π0 d'.γB) ci
       (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci d' g d'.γB al ast lp v.cluster d'.be) v.cluster :=
-    ⟨Henv.1, rfl, d'.γB, _, rfl, rfl, d', al, ast, lp, rfl, rfl, rfl⟩
+    ⟨Henv.1, rfl, Henv.2.2.1, d'.γB, _, rfl, rfl, d', al, ast, lp, rfl, rfl, rfl⟩
   rw [srvAtomicsM_snapE, srvGenAt_snapE]
   isplitr
   · ipureintro; exact Hrd

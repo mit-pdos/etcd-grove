@@ -1161,7 +1161,8 @@ def isEtcdProgressNotifier (w : GoInterfaceOk) : IProp GF :=
       (App (Val #(methods w.ty go!"RequestProgress" w.v)) (Val #(GoInterface.ok ctx)))
     {{ (err : GoInterface), RET #err;
         □ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
-          errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none⌝ }})
+          errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none ∧
+            methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig⌝ }})
 
 omit EM in
 instance isEtcdProgressNotifier_persistent (w : GoInterfaceOk) :
