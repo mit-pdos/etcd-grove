@@ -773,8 +773,19 @@ theorem storBnd_cap (γ : Cluster) (K : GName) (c : Nat) :
 returns objects at contents of bounded size, cut at `maxSize` when `maxSize ≤ 2^20` (`isStorageP`'s
 flag); what raft's `MsgApp` size bound and the handed-out entries' (`Cluster.outEnt_size`) rest on.
 A cluster without the bound (`maxData = none`, kv's) asks nothing more of its storage. -/
-def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
-  isStorageP γ.maxData.isSome (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
+def isStorage (γ : Cluster) (K : GName) (st : Storage)
+    (SV : SnapshotM → IProp GF := snapshotValid γ) : IProp GF :=
+  isStorageP γ.maxData.isSome SV (storBnd γ K) (nodeCommitLb γ K) st
+
+/-- The node pinned this certificate for snapshots returned by its storage at attach. -/
+@[no_expose] def nodeTagPin (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) : IProp GF :=
+  iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗ savedPredOwn γn.sn.gsv DFrac.discard SV)
+
+instance nodeTagPin_persistent (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) :
+    Persistent (nodeTagPin γ n SV) := by
+  unfold nodeTagPin
+  haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
+  infer_instance
 
 /-- A storage whose nonempty snapshots also carry the client's source tag. -/
 def isStorageT (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) (st : Storage) : IProp GF :=
@@ -824,7 +835,7 @@ client allocating its storage's invariant at `K` in the continuation has it at t
 made once `InitialState` returned: the contract comes in `InitialState`'s post. Each attach has its
 key, so a key's bounds are one node's. -/
 def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat)
-    (F : GName → IProp GF) : IProp GF :=
+    (F : GName → IProp GF) (SV : SnapshotM → IProp GF := snapshotValid γ) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk) (R : IProp GF) (f : Nat), ⌜st = interface.ok i⌝ ∗
     -- (2026-11-01, durability stage II (k)) the freeze point: the stored entries up to `f`, committed,
     -- frozen (`storHolds`), so that the client may have made a snapshot among them before the attach
@@ -837,7 +848,7 @@ def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : Conf
        {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
           hsOpt hp σ.hs ∗ csPts cs DFrac.discard csm al ∗
           ∀ K : GName, nodeAppliedLb γ K (max σ.b A) -∗ nodeCommitLb γ K σ.commit -∗
-            |={⊤}=> isStorage γ K st ∗ storHolds st σ f ∗ F K }}))
+            |={⊤}=> isStorage γ K st SV ∗ storHolds st σ f ∗ F K }}))
 
 /-- (raft-final, 2026-10-29, U8: the WIP's `snapshotCert_valid`) **A certified snapshot is valid**:
 a `Ready`'s snapshot (`readySnap`'s certificate, its index past `0` and below `2^61`) is what

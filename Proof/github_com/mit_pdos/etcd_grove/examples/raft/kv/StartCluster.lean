@@ -345,6 +345,7 @@ theorem StartCluster.wp_proof
       (kvMembership γr)
       (fun S => iprop(raftState γr.cluster id0 S ∗ ⌜S = RaftState.init⌝))
       (fun K => memStorInvP ms γs (kvJ γr.cluster K))
+      (snapshotValid γr.cluster) (fun _ => by iintro H; iexact H)
       (nodeConfig_valid vs Hvs id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
@@ -352,7 +353,7 @@ theorem StartCluster.wp_proof
       (by rw [Hbl0]; simp [StorContents.commit]) (by rw [← Hγv]; exact kvConfState_is γr)
       (fun h => by have := clusterNoSnap_boot _ h; omega) rfl Htr0)
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
-      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, ⟨HrS, %HS⟩, #HmsInv⟩
+      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, -, ⟨HrS, %HS⟩, #HmsInv⟩
     · have hA : uint.nat (nodeConfig id0 st).Applied' = 0 := rfl
       have hI : (nodeConfig id0 st).ID' = id0 := rfl
       rw [← Hiface, hA, hI]
