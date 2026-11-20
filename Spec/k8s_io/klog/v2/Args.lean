@@ -88,7 +88,7 @@ theorem klog.argOkAt_of_argOk {d : fmt.Directive} {a : GoInterface} :
   | ok ii =>
     unfold klog.argOkAt fmt.argOkAt
     iintro ⟨%h, H⟩
-    ileft; iright; iright
+    ileft; iright; iright; ileft
     isplitr
     · ipureintro
       refine ⟨h.1, h.2, fun hw => ?_⟩
