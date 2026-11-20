@@ -18,8 +18,9 @@
 - Then: full build, tcb --check --update, collections, interfaces; cut.specNoErr (reuse `wp_osRenameFileSNE` etc.;
   `LockFile`'s blocking flock is named by both NoIoErr and NoMapLockErr now: a twin of trusted coverage, see report);
   rnNewStorageOk_holds; Create.specNoErr is a STOP (directory read permission, final attack finding 2).
-- Config-C run for the user: commit f5823538f2, filter
-  `^(TestLocks|TestNoIoErr|TestDirRenameScopedToRoot|TestCrossRootRenameExcluded)`.
+- Config-C run at f5823538f2 done by the user (`/shared/tmp/walfsfix-cmodels/t.out`): the failures were harness
+  bugs, fixed in 768dbff487 (Go/scripts only). Rerun for the user: commit 768dbff487, `examples/osfs/semantics/run-models-on-c.sh -v
+  -run '^(TestNoIoErrPermissions|TestNoIoErrPermAncestor|TestNoIoErrPermFileWrite|TestNoIoErrProtectedSymlinks|TestDirRenameScopedToRoot|TestEnoent)$'`.
 - Pitfalls: Go tests here as root; `/shared` idmapped; no loop devices in this container.
 
 ## History (2026-11-19 x)
