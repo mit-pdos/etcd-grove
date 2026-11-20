@@ -17,7 +17,7 @@
 /etcdserverpb.Auth/UserList e2e-apply
 /etcdserverpb.Auth/UserRevokeRole e2e-apply
 /etcdserverpb.Cluster/MemberAdd contract
-/etcdserverpb.Cluster/MemberList server
+/etcdserverpb.Cluster/MemberList e2e
 /etcdserverpb.Cluster/MemberPromote contract
 /etcdserverpb.Cluster/MemberRemove contract
 /etcdserverpb.Cluster/MemberUpdate contract

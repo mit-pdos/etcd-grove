@@ -30,6 +30,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__PromoteMembe
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberAdd
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberRemove
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberUpdate
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberList
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterServer__MemberPromote
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleAdd
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleDelete
@@ -251,11 +252,12 @@ def v3rpc.clientPortTable : List v3rpc.PortRow :=
           EtcdServer.UpdateMember.spec (GF := GF) (hG := hG) ∧
           v3rpc.ClusterServer.MemberUpdate.spec (GF := GF) (hG := hG),
       why := "configure is a names-only contract (MemberContracts.lean)" },
-    { key := go!"/etcdserverpb.Cluster/MemberList", isPrefix := false, cls := .authenticated, status := .server,
+    { key := go!"/etcdserverpb.Cluster/MemberList", isPrefix := false, cls := .authenticated, status := .e2e,
       specs :=
           EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) ∧
-          EtcdServer.MemberList.spec (GF := GF) (hG := hG),
-      why := "the wrapper ClusterServer.MemberList is proved (R/ClusterServer__MemberList), but EtcdServer.MemberList.spec takes isServerReq (auth off): e2e awaits its generalization over isServerReqM (auth-mediation M2, reported 2026-11-20)" },
+          EtcdServer.MemberList.spec (GF := GF) (hG := hG) ∧
+          v3rpc.ClusterServer.MemberList.spec (GF := GF) (hG := hG),
+      why := "" },
     { key := go!"/etcdserverpb.Cluster/MemberPromote", isPrefix := false, cls := .admin, status := .contract,
       specs :=
           EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) ∧

@@ -3267,4 +3267,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** Reading the premise while writing the handler's spec (auth-mediation M2, 2026-11-20).
 - **Proposed change.** Restate over `isServerReqM E.authOn`/`isServerReadM E.authOn` (as `EtcdServer.Range`),
   the proof taking the fields through `srvReqFieldsAtM`/`srvReadFieldsAtM`; then the row can be `e2e`.
-- **Decision.** Open (reported to etcd-grove-03): the row stays `server`, its reason saying why.
+- **Decision.** 2026-11-20, decided by etcd-grove-03 (a stronger proved spec: its premise generalized):
+  restated IN PLACE (no twin) over `isServerReqM E.authOn`/`isServerReadM E.authOn`, the read's dependency
+  at `kvStM E.authOn` (as `EtcdServer.Range`); `ClusterServer.MemberList.spec` the same; the row raised to
+  `e2e` with the handler's spec in its specs.

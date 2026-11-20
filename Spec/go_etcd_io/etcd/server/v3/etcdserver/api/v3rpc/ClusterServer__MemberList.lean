@@ -6,6 +6,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvCluster
 public import Proof.context.LibKeys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 
 @[expose] public section
@@ -36,19 +38,20 @@ the members. An error grpc's server takes (`srvErrOk`); on `nil` the guard's tok
 some auth info and, with `r.Linearizable`, the read index (`readIndexOk`, `readServed`); on an error
 (and no response), made by `togRPCError` of the server's `e0`, an `e0` that is one of the auth
 package's variables refused for the authenticated class's reason (`authedWhy` relative to the
-caller's lower bound `n` of the auth store's published index). -/
+caller's lower bound `n` of the auth store's published index). In either auth mode (the server's views
+at `E.authOn`, as `EtcdServer.MemberList.spec`'s, auth-mediation M2 2026-11-20). -/
 abbrev v3rpc.ClusterServer.MemberList.spec : Prop :=
   ∀ (p s cl : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (tok : Option GoString) (r : Loc) (lin : Bool)
     (dq : DFrac) (c : w64) (g : GName) (Q : List EntryModel → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.clusterServerIs p s cl ∗ v3rpc.clusterHdrOk s cl ∗
-      isServerReq s E ρ ∗ isServerRead s E γr ∗ □ auth.authPubLbM E.authMode n ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ □ auth.authPubLbM E.authMode n ∗
       mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
       srvReadReader s γr ∗ committedAtLeast γr c ∗ savedPredOwn g DFrac.discard Q ∗
-      kvDep γr.kv Q }}
+      kvDep γr.kv Q (kvStM E.authOn γr.kv) }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.ClusterServer.ty @!! go!"MemberList"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗

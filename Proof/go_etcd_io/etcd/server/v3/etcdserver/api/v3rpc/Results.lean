@@ -2302,7 +2302,7 @@ theorem clientPortTable_ok :
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkMembershipOperationPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_AddMember, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberAdd⟩,
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkMembershipOperationPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_RemoveMember, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberRemove⟩,
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkMembershipOperationPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_UpdateMember, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberUpdate⟩,
-    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_requireAuthInfo, _root_.Perennial.EtcdGrove.EtcdServer.wp_MemberList⟩,
+    List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_requireAuthInfo, _root_.Perennial.EtcdGrove.EtcdServer.wp_MemberList, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberList⟩,
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.EtcdServer.wp_checkMembershipOperationPermission, _root_.Perennial.EtcdGrove.EtcdServer.wp_promoteMember, _root_.Perennial.EtcdGrove.EtcdServer.wp_PromoteMember, _root_.Perennial.EtcdGrove.v3rpc.ClusterServer.wp_MemberPromote⟩,
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_Defragment⟩,
     List.forall_mem_cons.2 ⟨fun _ => ⟨_root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_isPermitted, _root_.Perennial.EtcdGrove.v3rpc.authMaintenanceServer.wp_Snapshot⟩,
