@@ -403,6 +403,8 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     have hl01 : (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length = 8192 := by
       simp only [List.length_append, metaBuf_length]
     rw [hl01, List.length_replicate]
+    wp_method_call; wp_call
+    try wp_auto
     -- page 2: the freelist's, empty
     wp_apply hPIB db sl (W64 2) (by rw [hslen]; decide) (by rw [hslen]; decide) Hpos $$ []
     · iframe #
