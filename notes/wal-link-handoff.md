@@ -1,6 +1,20 @@
 # WAL link: handoff
 
-## START HERE (2026-11-20 z6, lean 3ce5a9e526 MERGED; land list in progress)
+## START HERE (2026-11-20 z7, AT THE LAND STOP; lean 3ce5a9e526 merged)
+
+- **Branch** `wal-link` (this commit), pin 3afd77e35 (`/shared/tmp/manifest-3af.json`). Do not commit while it lands.
+- **Done:** merges of lean up to 3ce5a9e526 (z6); gen-init's wal entry kept our `MaxSaveBatchBytes`/
+  `ErrSaveBatchTooLarge`; tcb baseline (733 axioms, 2 sorries: `storage.storage.Release.wp_proof`, `walFiles` gone),
+  70 collections (24 gain `recEncC_ok`), interfaces, axiom-tok allow (purgeFile proved), reader-slot floor 179,
+  STATUS entry. Full timed build 20261120-060813-3969904 green; `etc/gates.sh` passes but for the reader-slot floor,
+  since fixed (`/shared/tmp/wallink/gates-z12.log`); Go suite (`gosuite-z12.log`, `restartN-z12.log` back to back,
+  `k8scomp-z12.log`) passes; txnlin not run (needs a go.work).
+- **Next:** the coordinator's land (LAKE_PACKAGES=/shared/tmp/manifest-3af.json PERENNIAL_CHECKOUT=PERENNIAL_DIR=
+  /shared/perennial-3afd77e35, GOWORK unset); if lean moves first, merge it and rerun the build and gates.
+- **Follow-ups:** Go harness (ResetFamily leaves areas absent; global data dirs shared across runs); stale docstrings
+  (`InvRestart` `Hssp`, `etcdstart/Defs` `name.etcd`); optional `snapDirOf d` under `d` as a stated fact.
+
+### START HERE (2026-11-20 z6, lean 3ce5a9e526 MERGED; land list in progress)
 
 - **Branch** `wal-link` b6a2d8d787 (+ this note), pin 3afd77e35 (`/shared/tmp/manifest-3af.json`). Merged lean
   34986d22ae, cee6468281 (S4, 7g, merge-origin7), 621788348a (auth-schema port: hD22 gone), 3ce5a9e526
