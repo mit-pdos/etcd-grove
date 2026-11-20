@@ -22,24 +22,17 @@ without the configuration gets git's normal merge).
                                          copies: theirs' extra lines appended), plus the entries the
                                          STATUS merge evicts; exits 1 (git merge-file's result) if a
                                          side dropped the last copy of a line or edited one.
-  merge-status.py --post-merge           the post-merge hook (below).
   merge-status.py --selftest             replays this week's real merges of the two files and some
                                          synthetic cases.
 
 The entries beyond ten (and base entries a side dropped that no history has) go to
-status-history.md, but a driver writes only its own file, and git's merge-ort runs the history
-driver first, then the STATUS one, then checks the result out over the working tree. Both drivers
-therefore compute the same plan (`plan`) from the three commits (under `git merge`: ours HEAD,
-theirs the one `GITHEAD_<oid>` variable git sets, the base their merge-base, each checked against
-the driver's input files):
-  - both sides changed the history differently: the history driver appends them;
-  - the merge keeps ours' history (both sides moved the same entries, the common case, so git runs
-    no history driver): the STATUS driver appends them to the working tree's history and leaves a
-    note in the git directory, and the post-merge hook (`--post-merge`, installed by
-    etc/setup-merge-drivers.sh) rewrites the merge commit with it (without the hook, or when the
-    merge stops on a conflict, the change waits in the working tree, to be committed with it);
-  - otherwise (theirs' history wins, a rebase or cherry-pick, a conflict in STATUS itself): they
-    stay on the "Last updated" line, beyond ten, with a warning.
+status-history.md only where the history driver runs: a driver writes only its own file, and git
+runs the history driver only when both sides changed the history differently. Both drivers compute
+the same plan (`plan`) from the three commits (under `git merge`: ours HEAD, theirs the one
+`GITHEAD_<oid>` variable git sets, the base their merge-base, each checked against the driver's
+input files). Otherwise (both sides moved the same entries, the common case; theirs' history wins;
+a rebase or cherry-pick) the evicted entries stay on the "Last updated" line, beyond ten, with a
+warning, and the next STATUS update moves them (CLAUDE.md keeps ten).
 """
 
 import os
@@ -262,10 +255,9 @@ def plan(st, hi):
       entries  the merged "Last updated" entries, newest first (None: no such line);
       evicted  the entries beyond KEEP that no history has yet;
       lost     the base entries a side dropped that no history has;
-      where    where the evicted and lost entries go: "history" (the history driver appended them), "worktree" (the merge
-               keeps ours' history: the STATUS driver appends them to the working tree's, and the
-               post-merge hook amends the merge commit with it), "line" (the evicted kept on the
-               line; the lost ones are left out, as the side that dropped them did)."""
+      where    where the evicted and lost entries go: "history" (the history driver appended
+               them), "line" (no history driver runs: the evicted kept on the line; the lost ones
+               are left out, as the side that dropped them did)."""
     ho, ha, hb = hi
     driver = not (ha == hb or ho == hb or ho == ha)
     if driver:
@@ -279,8 +271,6 @@ def plan(st, hi):
     if evicted or lost:
         if driver and hclean:
             h, where = append_history(h, evicted + lost), "history"
-        elif h == ha:
-            where = "worktree"
         else:
             where = "line"
     return {"history": h, "hclean": hclean, "entries": es, "evicted": evicted, "lost": lost, "where": where}
@@ -311,10 +301,6 @@ def read(p):
 def write(p, t):
     with open(p, "w", encoding="utf-8", newline="") as f:
         f.write(t)
-
-
-def pending_path():
-    return git("rev-parse", "--git-path", "etcd-merge-status-pending").stdout.strip()
 
 
 def driver(mode, po, pa, pb, path):
@@ -350,23 +336,6 @@ def driver(mode, po, pa, pb, path):
         ev = [e for e in (es or [])[KEEP:] if hist_line(e) not in have]
         p = {"entries": es, "evicted": ev, "lost": lost, "where": "line" if ev or lost else None}
     extra = []
-    if p["where"] == "worktree" and not merge_status(o, a, b, p["entries"])[1]:
-        p["where"] = "line"  # STATUS is resolved by hand: the evicted entries stay in view on the line
-    if p["where"] == "worktree":
-        try:
-            wt = read(HISTORY_PATH)
-        except OSError:
-            wt = None
-        if wt == triple[1]:
-            new = append_history(wt, p["evicted"] + p["lost"])
-            write(HISTORY_PATH, new)
-            write(pending_path(), git("rev-parse", "HEAD").stdout.strip() + "\n" + new[len(wt):])
-            warn(f"{len(p['evicted']) + len(p['lost'])} \"Last updated\" entries (beyond {KEEP}, or dropped by a side) appended to {HISTORY_PATH} "
-                 f"in the working tree (the post-merge hook of etc/setup-merge-drivers.sh amends the merge "
-                 f"commit with it; otherwise commit it with the merge; after `git merge --abort`, "
-                 f"`git checkout {HISTORY_PATH}`)")
-        else:
-            p["where"] = "line"
     if p["where"] == "line":
         extra = p["evicted"]
         if p["lost"]:
@@ -379,45 +348,6 @@ def driver(mode, po, pa, pb, path):
         warn(f"{path}: conflict outside the \"Last updated\" line")
     write(pa, out)
     return 0 if ok else 1
-
-
-def post_merge():
-    """The post-merge hook: amend the merge commit with the history the STATUS driver extended."""
-    pp = pending_path()
-    try:
-        ours, added = read(pp).split("\n", 1)
-    except (OSError, ValueError):
-        return 0
-    os.unlink(pp)
-    ps = git("rev-list", "--parents", "-n1", "HEAD").stdout.split()[1:]
-    if len(ps) != 2 or ps[0] != ours:
-        return 0  # not the merge the driver ran in (--no-commit, a conflict): the change is in the working tree
-    try:
-        wt = read(HISTORY_PATH)
-    except OSError:
-        return 0
-    if wt != terminate(show("HEAD", HISTORY_PATH) or "") + added:
-        warn(f"{HISTORY_PATH} changed since the merge: not amending; commit it by hand")
-        return 0
-    # git commit --amend refuses while the merge is finishing (MERGE_HEAD is still there): the
-    # same commit with the history's new blob, by plumbing; the index has nothing else staged
-    if git("diff", "--cached", "--quiet", "HEAD", check=False).returncode != 0:
-        warn("the index differs from the merge commit: not amending; commit the history by hand")
-        return 0
-    mode = git("ls-tree", "HEAD", "--", HISTORY_PATH).stdout.split()[0]
-    blob = git("hash-object", "-w", "--", HISTORY_PATH).stdout.strip()
-    git("update-index", "--cacheinfo", f"{mode},{blob},{HISTORY_PATH}")
-    tree = git("write-tree").stdout.strip()
-    an, ae, ad = git("log", "-1", "--format=%an%x00%ae%x00%ad", "--date=raw", "HEAD").stdout.rstrip("\n").split("\0")
-    msg = git("log", "-1", "--format=%B", "HEAD").stdout
-    env = dict(os.environ, GIT_AUTHOR_NAME=an, GIT_AUTHOR_EMAIL=ae, GIT_AUTHOR_DATE=ad)
-    old = git("rev-parse", "HEAD").stdout.strip()
-    r = subprocess.run(["git", "commit-tree", tree, "-p", ps[0], "-p", ps[1]], input=msg, env=env,
-                       capture_output=True, text=True, check=True)
-    git("update-ref", "-m", "merge-status: history amended into the merge", "HEAD", r.stdout.strip(), old)
-    print(f"merge-status: merge commit amended with the {added.count(chr(10))} entries "
-          f"evicted from the \"Last updated\" line, in {HISTORY_PATH}")
-    return 0
 
 
 # ---------------------------------------------------------------- selftest
@@ -469,8 +399,6 @@ def replay(m):
         return None
     p = plan(st, hi)
     h = p["history"]
-    if p["where"] == "worktree":
-        h = append_history(h, p["evicted"] + p["lost"])
     s, sclean = merge_status(*st, p["entries"], p["evicted"] if p["where"] == "line" else [])
     res = {"m": m[:10], "where": p["where"], "sconflict": not sclean, "hconflict": not p["hclean"]}
     if not p["hclean"]:
@@ -478,6 +406,7 @@ def replay(m):
         return res
     res["problems"] = check_result(st, hi, s, h, p["evicted"], p["where"]) if sclean else []
     res["short"] = len(side_entries(s)) < KEEP
+    res["over"] = len(side_entries(s)) > KEEP
     res["committed"] = side_entries(show(m, STATUS_PATH))
     res["got"] = side_entries(s)
     return res
@@ -496,7 +425,7 @@ def synthetic():
 
     def run(sts, his):
         p = plan(sts, his)
-        h = append_history(p["history"], p["evicted"] + p["lost"]) if p["where"] == "worktree" else p["history"]
+        h = p["history"]
         s, c = merge_status(*sts, p["entries"], p["evicted"] if p["where"] == "line" else [])
         return p, s, c, h
 
@@ -506,7 +435,7 @@ def synthetic():
     want = [E[11], E[10]] + base[:8]
     # both add one and move the same entry: identical histories, so no history driver runs
     p, s, c, h = run((st(base), st(ours), st(theirs)), (hist([]), hist([E[0]]), hist([E[0]])))
-    if not (c and side_entries(s) == want and p["where"] == "worktree" and h == hist([E[0], E[1]])):
+    if not (c and side_entries(s) == want + [base[8]] and p["where"] == "line" and h == hist([E[0]])):
         fails.append(f"both add one, same move: {p['where']} {side_entries(s)}")
     # ... with otherwise different histories: the history driver appends the evicted entry
     p, s, c, h = run((st(base), st(ours), st(theirs)), (hist([]), hist([E[0]], "x\n"), hist([E[0]], "y\n")))
@@ -524,7 +453,7 @@ def synthetic():
     # a real conflict elsewhere still conflicts, with the line composed
     hi = (hist([]), hist([E[0]]), hist([E[0]]))
     p, s, c, h = run((st(base), st(ours, "a\nB1\nc\nd\ne\n"), st(theirs, "a\nB2\nc\nd\ne\n")), hi)
-    if c or "<<<<<<<" not in s or side_entries(s) != want:
+    if c or "<<<<<<<" not in s or side_entries(s) != want + [base[8]]:
         fails.append("a real conflict elsewhere was not kept")
     # changes elsewhere on both sides merge cleanly
     p, s, c, h = run((st(base), st(ours, "a\nB1\nc\nd\ne\n"), st(theirs, "a\nb\nc\nd\nE2\n")), hi)
@@ -572,10 +501,12 @@ def selftest():
     diff = [r for r in rs if not r["hconflict"] and not r["sconflict"] and r["got"] != r["committed"]]
     from collections import Counter
     wh = Counter(r["where"] or "none evicted" for r in rs if not r["hconflict"])
+    over = [r for r in rs if not r["hconflict"] and r.get("over")]
     print(f"merge-status selftest: {len(rs)} real merges replayed ({', '.join(refs) or 'HEAD'}): "
           f"{len(bad)} with problems; {len(hconf)} history conflicts (a side edited or dropped history lines)"
           f"{': ' + ' '.join(hconf) if hconf else ''}; {len(sconf)} conflicts outside the line"
           f"{': ' + ' '.join(sconf) if sconf else ''}; evicted entries: {dict(wh)}; "
+          f"{len(over)} lines beyond {KEEP} entries (left for the next STATUS update); "
           f"{len(diff)} lines differ from the committed one")
     if os.environ.get("MERGE_STATUS_VERBOSE"):
         for r in diff:
@@ -589,12 +520,6 @@ def selftest():
 def main(argv):
     if argv[1:] == ["--selftest"]:
         return selftest()
-    if argv[1:] == ["--post-merge"]:
-        try:
-            return post_merge()
-        except Exception as e:
-            warn(f"post-merge: {e}")
-            return 0
     if len(argv) == 6 and argv[1] in ("status", "history"):
         try:
             return driver(*argv[1:])
