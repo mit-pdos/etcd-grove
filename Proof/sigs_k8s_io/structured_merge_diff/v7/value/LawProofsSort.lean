@@ -83,6 +83,79 @@ theorem eq_mergeSort_of_perm_sorted {α : Type} (key : α → GoString) (xs ys :
   have hk : key a = key b := gsLt_total h2 h1
   exact nodup_map_inj hnd' ha hb' hk
 
+/-- The lexical zip's keys, collected: the left map's keys (any order), then the right map's not
+on the left (any order), are a permutation of `zipKeys`. -/
+theorem zipKeys_perm_collect (ol or_ : Option (List (GoString × UVal)))
+    (hl : keysSorted (kvsOrEmpty ol) = true) (hr : keysSorted (kvsOrEmpty or_) = true)
+    (d1 d2 : List GoString) (h1 : d1.Perm (kvKeys (kvsOrEmpty ol)))
+    (h2 : d2.Perm (kvKeys (kvsOrEmpty or_))) :
+    (d1 ++ d2.filter (fun k => !(lookupKV k (kvsOrEmpty ol)).isSome)).Perm (zipKeys ol or_) := by
+  have hn1 : d1.Nodup := h1.nodup_iff.2 (keysSorted_nodup _ hl)
+  have hn2 : d2.Nodup := h2.nodup_iff.2 (keysSorted_nodup _ hr)
+  apply perm_of_nodup_mem
+  · rw [List.nodup_append]
+    refine ⟨hn1, hn2.filter _, ?_⟩
+    intro a ha b hb hab
+    subst hab
+    have ha' := (lookupKV_isSome_iff a _).2 (h1.mem_iff.1 ha)
+    simp at hb
+    rw [hb.2] at ha'; cases ha'
+  · apply zipKeys_nodup_law_holds
+    · intro kvs h; subst h; exact hl
+    · intro kvs h; subst h; exact hr
+  · intro a
+    rw [zipKeys_mem_law_holds, List.mem_append, List.mem_filter, h1.mem_iff, h2.mem_iff,
+      ← lookupKV_isSome_iff, ← lookupKV_isSome_iff]
+    by_cases h : (lookupKV a (kvsOrEmpty ol)).isSome <;> simp [h]
+
+/-- `sort.Strings`' result on a permutation of `zipKeys` is `zipKeys`. -/
+theorem eq_zipKeys_of_perm_sorted (ol or_ : Option (List (GoString × UVal)))
+    (hl : keysSorted (kvsOrEmpty ol) = true) (hr : keysSorted (kvsOrEmpty or_) = true)
+    (ys : List GoString) (hp : ys.Perm (zipKeys ol or_))
+    (hs : ∀ (i j : Nat) (xi xj : GoString), ys[i]? = some xi → ys[j]? = some xj → i < j →
+      go.GoStringLe xi xj) :
+    ys = zipKeys ol or_ := by
+  have hz : (zipKeys ol or_).Pairwise go.GoStringLe := by
+    have := zipLexical_sorted ((kvsOrEmpty ol).length + (kvsOrEmpty or_).length + 1)
+      (kvsOrEmpty ol) (kvsOrEmpty or_) (by omega) hl hr
+    unfold zipKeys
+    refine this.imp ?_
+    intro a b h
+    exact Or.inr ((goStringLt_iff_gsLt a b).2 h)
+  have hy : ys.Pairwise go.GoStringLe := by
+    rw [List.pairwise_iff_getElem]
+    intro i j hi hj hij
+    exact hs i j _ _ (List.getElem?_eq_getElem hi) (List.getElem?_eq_getElem hj) hij
+  apply List.Perm.eq_of_pairwise _ hy hz hp
+  intro a b _ _ h1 h2
+  rcases h1 with h1 | h1
+  · exact h1
+  rcases h2 with h2 | h2
+  · exact h2.symm
+  exact absurd h2 (go.goStringLt_asymm h1)
+
+theorem zipKeys_length_le (ol or_ : Option (List (GoString × UVal)))
+    (hl : keysSorted (kvsOrEmpty ol) = true) (hr : keysSorted (kvsOrEmpty or_) = true) :
+    (zipKeys ol or_).length ≤ (kvsOrEmpty ol).length + (kvsOrEmpty or_).length := by
+  have hn : (zipKeys ol or_).Nodup := by
+    apply zipKeys_nodup_law_holds
+    · intro kvs h; subst h; exact hl
+    · intro kvs h; subst h; exact hr
+  have hsub : zipKeys ol or_ ⊆ kvKeys (kvsOrEmpty ol) ++ kvKeys (kvsOrEmpty or_) := by
+    intro k hk
+    rw [zipKeys_mem_law_holds] at hk
+    rw [List.mem_append]
+    rcases hk with h | h
+    · exact Or.inl ((lookupKV_isSome_iff k _).1 h)
+    · exact Or.inr ((lookupKV_isSome_iff k _).1 h)
+  have := List.Nodup.length_le_of_subset hn hsub
+  simpa [kvKeys] using this
+
+theorem take_append_getElem_prefix {α : Type} (l : List α) (i : Nat) (h : i < l.length) :
+    (l.take i ++ [l[i]]).IsPrefix l := by
+  rw [List.take_append_getElem h]
+  exact List.take_prefix _ _
+
 end ValuePure
 
 end smd
