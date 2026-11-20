@@ -816,7 +816,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       · iframe #
       try wp_auto
       create_seg_exit
-    obtain rfl : wsz = 64000000 := hwsz.2.2 rfl
+    obtain rfl : wsz = 64000000 := hwsz.2.2.1 rfl
     try wp_auto
     -- `w := &WAL{lg, dir, metadata}` (allocated), `newFileEncoder(f.File, 0)`
     irename lg => Hlgp

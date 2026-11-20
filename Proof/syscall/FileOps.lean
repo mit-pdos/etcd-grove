@@ -13,6 +13,7 @@ public import Proof.syscall.Base
 public import GooseLang.Ext.Fs.Falloc
 public import GooseLang.Ext.Fs.Locks
 public import GooseLang.Ext.Fs.NoMapLockErrSpecs
+public import GooseLang.Ext.Fs.NoIoErrResize
 
 @[expose] public section
 
@@ -35,8 +36,8 @@ variable [syscall.Assumptions]
 the mapped cells over the bytes it grows the file over: a resize to `tg := max size (off + len)`
 (`Falloc.lean`), its change number `n`. On success the file is grown to `tg`, the new bytes zeros
 (`rsDone`); on failure nothing landed (`rsUndone`) or a prefix of the growth did (`rsDone` at its
-end). -/
-theorem syscall.Fallocate.wp_grow (fd off len : w64) (dq : DFrac) (d : OsFd)
+end), and the error witnessed: the file system can fail on an inode, or `tg` is past `maxBytes`. -/
+theorem syscall.Fallocate.wp_grow [go.BasicIntoValInj] (fd off len : w64) (dq : DFrac) (d : OsFd)
     (m : OsMeta) (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt) :
     {{ osInv (GF := GF) ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
         mcellsAny (GF := GF) m.maps m.size (max m.size (off.toNat + len.toNat)) }}
@@ -47,17 +48,19 @@ theorem syscall.Fallocate.wp_grow (fd off len : w64) (dq : DFrac) (d : OsFd)
             (max m.size (off.toNat + len.toNat)) m n) ∨
          (⌜e ≠ 0⌝ ∗ (rsUndone false d.ino (max m.size (off.toNat + len.toNat)) m [] n ∨
            ∃ w, ⌜m.size ≤ w ∧ w ≤ max m.size (off.toNat + len.toNat)⌝ ∗
-             rsDone false d.ino (max m.size (off.toNat + len.toNat)) w m n))) }} := by
+             rsDone false d.ino (max m.size (off.toNat + len.toNat)) w m n))) ∗
+        ⌜e ≠ 0 → ¬ FsNoErrIno ∨ maxBytes < max m.size (off.toNat + len.toNat)⌝ }} := by
   wp_start as ⟨#Hinv, Hfd, Hm, Hc⟩
   wp_apply wp_osFallocStart fd off len dq d m CoPset.subseteq_top hwr hoff hlen
     $$ Hinv Hfd Hm Hc as %t %n %_ Hfd Ht
-  wp_apply wp_osFallocFinish t d.ino _ m n (Nat.le_max_left _ _) CoPset.subseteq_top
-    $$ Hinv Ht as %e Hr
+  wp_apply wp_osFallocFinishW t d.ino _ m n (Nat.le_max_left _ _) CoPset.subseteq_top
+    $$ Hinv Ht as %e Hr %hw
   iapply wp_errno
   iapply HΦ
   iframe Hfd
   iexists n
-  iexact Hr
+  iframe Hr
+  ipureintro; exact hw
 
 /-- `syscall.Fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: no visible change, any errno. -/
 theorem syscall.Fallocate.wp_keep (fd off len : w64) (dq : DFrac) (d : OsFd)
