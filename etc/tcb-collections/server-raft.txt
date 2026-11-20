@@ -11,10 +11,6 @@ roots raftNode\.wp_
 roots \bwp_updateCommittedIndex$
 axiom proto.CloneSnapshot.wp_proof
 axiom walFiles
-axiom zap.Duration.wp_proof
-axiom zap.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Info.wp_proof
-axiom zap.Logger.Warn.wp_proof
-axiom zap.String.wp_proof
-axiom zap.Uint64.wp_proof
+axiom zap.Logger.check.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof

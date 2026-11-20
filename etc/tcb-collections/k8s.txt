@@ -133,12 +133,5 @@ axiom v3rpc.pbWatchResponseT_reg
 axiom wait.Jitter.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
-axiom zap.Duration.wp_proof
-axiom zap.Error.wp_proof
-axiom zap.Int'.wp_proof
-axiom zap.Int64.wp_proof
-axiom zap.Logger.Debug.wp_proof
-axiom zap.Logger.Info.wp_proof
-axiom zap.Logger.Warn.wp_proof
-axiom zap.String.wp_proof
-axiom zap.Uint.wp_proof
+axiom zap.Logger.check.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof
