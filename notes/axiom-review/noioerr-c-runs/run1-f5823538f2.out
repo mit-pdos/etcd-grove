@@ -1,0 +1,74 @@
+check: /shared/tmp/tmp.wX9aqTLAhY/mnt is C (kernel 7.0.0-1014-aws, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+=== RUN   TestLocksOFDConflict
+--- PASS: TestLocksOFDConflict (0.00s)
+=== RUN   TestLocksOFDRemoveThenClose
+--- PASS: TestLocksOFDRemoveThenClose (0.00s)
+=== RUN   TestLocksOFDSameDescription
+--- PASS: TestLocksOFDSameDescription (0.00s)
+=== RUN   TestLocksOFDMisuse
+--- PASS: TestLocksOFDMisuse (0.00s)
+=== RUN   TestLocksBlocking
+--- PASS: TestLocksBlocking (0.41s)
+=== RUN   TestLocksFlock
+--- PASS: TestLocksFlock (0.00s)
+=== RUN   TestLocksFlockVsOFD
+--- PASS: TestLocksFlockVsOFD (0.00s)
+=== RUN   TestLocksPosixPerProcess
+--- PASS: TestLocksPosixPerProcess (0.00s)
+=== RUN   TestLocksMmapKeepsDescription
+--- PASS: TestLocksMmapKeepsDescription (0.00s)
+=== RUN   TestLocksProcReaderEagain
+    locks_test.go:456: ofd, no reader: EAGAIN in 0 of 5000 rounds
+    locks_test.go:456: flock, no reader: EAGAIN in 0 of 5000 rounds
+    locks_test.go:470: ofd, with the reader: EAGAIN after 5 rounds (a closed, no mapping)
+    locks_test.go:470: flock, with the reader: EAGAIN after 188 rounds (a closed, no mapping)
+--- PASS: TestLocksProcReaderEagain (0.39s)
+=== RUN   TestLocksProcReaderHelper
+    locks_test.go:479: helper
+--- SKIP: TestLocksProcReaderHelper (0.00s)
+=== RUN   TestLocksCloseDuringLock
+    locks_test.go:565: ofd, released by close: close(fd) returned 0, then the blocking lock on fd returned 0 (excluded by the model; the environment rules the run out)
+    locks_test.go:565: ofd, released by unlock: close(fd) returned 0, then the blocking lock on fd returned 0 (excluded by the model; the environment rules the run out)
+    locks_test.go:565: flock, released by close: close(fd) returned 0, then the blocking lock on fd returned 0 (excluded by the model; the environment rules the run out)
+    locks_test.go:565: flock, released by unlock: close(fd) returned 0, then the blocking lock on fd returned 0 (excluded by the model; the environment rules the run out)
+--- PASS: TestLocksCloseDuringLock (1.20s)
+=== RUN   TestDirRenameScopedToRoot
+    meta_rename_scoped_test.go:178: root A: 26 directory renames; root B: 4 workers x 3000 sequences (15 path calls each)
+    meta_rename_scoped_test.go:181: too few renames in root A (26) to have raced root B
+--- FAIL: TestDirRenameScopedToRoot (0.89s)
+=== RUN   TestCrossRootRenameExcluded
+    meta_rename_scoped_test.go:247: cross-root rename racing root A's directory renames: 7 of 2000 succeeded at a path no tree had (depth 1900)
+--- PASS: TestCrossRootRenameExcluded (0.71s)
+=== RUN   TestNoIoErrLocks
+--- PASS: TestNoIoErrLocks (0.07s)
+=== RUN   TestNoIoErrReaddir
+--- PASS: TestNoIoErrReaddir (0.04s)
+=== RUN   TestNoIoErrPathErrno
+--- PASS: TestNoIoErrPathErrno (0.17s)
+=== RUN   TestNoIoErrPermissions
+    premise_no_io_err_test.go:180: append-only: FS_IOC_SETFLAGS: operation not supported: not measured
+    premise_no_io_err_test.go:199: open /shared/tmp/tmp.wX9aqTLAhY/mnt/models-test-2154779668/0.wal: operation not permitted
+--- FAIL: TestNoIoErrPermissions (0.01s)
+=== RUN   TestNoIoErrPermHelper
+    premise_no_io_err_test.go:252: helper
+--- SKIP: TestNoIoErrPermHelper (0.00s)
+=== RUN   TestNoIoErrPermAncestor
+    premise_no_io_err_test.go:327: ancestor 0755: unlink: permission denied, want ENOENT
+--- FAIL: TestNoIoErrPermAncestor (0.18s)
+=== RUN   TestNoIoErrPermFileWrite
+    premise_no_io_err_test.go:353: 0666: open O_RDWR: permission denied, want success
+--- FAIL: TestNoIoErrPermFileWrite (0.01s)
+=== RUN   TestNoIoErrProtectedSymlinks
+    premise_no_io_err_test.go:406: its target: open: permission denied, want success
+--- FAIL: TestNoIoErrProtectedSymlinks (0.01s)
+=== RUN   TestNoIoErrProtectedRegular
+    premise_no_io_err_test.go:422: fs.protected_regular is not set
+--- SKIP: TestNoIoErrProtectedRegular (0.00s)
+=== RUN   TestNoIoErrNameTooLong
+--- PASS: TestNoIoErrNameTooLong (0.00s)
+=== RUN   TestNoIoErrEmfile
+    premise_no_io_err_test.go:551: open after 58 more fds (soft limit 64): EMFILE
+--- PASS: TestNoIoErrEmfile (0.00s)
+FAIL
+FAIL	github.com/mit-pdos/etcd-grove/examples/osfs/semantics	4.097s
+FAIL

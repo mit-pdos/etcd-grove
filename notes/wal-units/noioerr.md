@@ -556,3 +556,23 @@ Holding (the attack's checks): no `ENOENT` from `open` racing `rename` replacing
 1 GiB chunking; `File.Fd`/`poll.FD` deferred close (stuck in the model); locks (hidden descriptions only make blocking
 requests wait; no `EDEADLK`; flock/OFD independent; `MapDesc` with fd reuse); the remaining errnos of the covered fd
 calls are the environment's; `PathFits`; `PathErrno`'s order (but 4); `model.stat` consistent under `NoIoErr`.
+
+## Session 9 (2026-11-20, branch `wal-fsfix`): the configuration-C runs
+
+The user ran `examples/osfs/semantics/run-models-on-c.sh` on C (Linux 7.0, ext4 defaults, loop device; `check.sh`'s
+line heads each log). Logs: `notes/axiom-review/noioerr-c-runs/`.
+- **Run 1, at f5823538f2** (`run1-f5823538f2.out`): every lock test (`TestLocksProcReaderEagain`,
+  `TestLocksCloseDuringLock` included), `TestCrossRootRenameExcluded`, `TestNoIoErr{Locks,Readdir,PathErrno,
+  NameTooLong,Emfile}` pass. Five failures, each a harness bug (no refutation), fixed in 768dbff487:
+  `TestNoIoErrPermissions` (a bare `FS_IOC_SETFLAGS` value clears `FS_EXTENT_FL`, which ext4 refuses: now
+  GETFLAGS and the one bit); `TestNoIoErrPermAncestor`/`PermFileWrite`/`ProtectedSymlinks` (the script's
+  `mktemp -d` directory, 0700, kept nobody from the mount: now 0755, and `permDir` checks nobody reaches its base;
+  reproduced on /dev/shm: a 0700 ancestor gives exactly the run's EACCES); `TestDirRenameScopedToRoot` (root A's
+  fsync made 26 renames: now B runs until A made 400); `TestEnoent` (bounded: 200-3000 rounds within 20 s); the
+  script's cleanup on Ctrl-C (process group, INT/TERM, unmount retried then lazy, failures printed).
+- **Run 2, at 768dbff487** (`run2-768dbff487.out`): every test passes (`TestDirRenameScopedToRoot`: 402 renames
+  in A). Skipped: `TestNoIoErrProtectedRegular` (`fs.protected_regular` is 0 on that host). Configuration C does
+  not fix that sysctl (`notes/axiom-review/fs-config/README.md` names none), and C's claim does not depend on it:
+  the environment clause (`Impl.lean`'s "Environment", `env_config.go`) assumes the sysctl denies nothing, which a
+  setting of 0 makes true outright; the test is only the contrast (why it is an assumption where the sysctl is
+  set), measured where it is set: not on this host. `TestEnoent`'s bounded form was not in the run (untested on C).
