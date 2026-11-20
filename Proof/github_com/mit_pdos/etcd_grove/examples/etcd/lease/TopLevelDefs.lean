@@ -85,9 +85,9 @@ def leasekvProgram [GoSemanticsFunctions] : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.lease.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.lease.Main) #()
 
-/-- The read package's two metric names, which `leasekv`'s initialization registers (`readRegPerm`,
-D16). -/
-def leasekvNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def leasekvNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.lease.initNames
 
 end adequacy
 end EtcdGrove

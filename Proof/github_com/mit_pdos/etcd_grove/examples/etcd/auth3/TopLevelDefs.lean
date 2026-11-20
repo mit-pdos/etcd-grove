@@ -49,8 +49,9 @@ def auth3Addrs : List GoString :=
   [etcd_auth3.peerAddr₁, etcd_auth3.peerAddr₂, etcd_auth3.peerAddr₃, etcd_auth3.clientAddr₁,
     etcd_auth3.clientAddr₂, etcd_auth3.clientAddr₃]
 
-/-- The read package's two metric names, which `auth3`'s initialization registers. -/
-def auth3Names : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
+/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
+mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
+def auth3Names : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.initNames
 
 end adequacy
 end EtcdGrove
