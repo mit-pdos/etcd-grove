@@ -94,7 +94,6 @@ axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
-axiom rafthttp.waitSchedule.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
@@ -128,14 +127,11 @@ axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.RangeSecObserve.wp_proof
-axiom types.ID.String.wp_proof
-axiom types.ID.String_ptr.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom verify.Verify.wp_proof
-axiom version.LessThan.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
