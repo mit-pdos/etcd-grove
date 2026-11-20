@@ -3,9 +3,10 @@
 # `net/shutdown`: the top-level robustness result, stated
 
 `shutdown_crash_robust`: the example's closed theorem as an instance of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps, no thread is stuck and none has an unrecovered panic). This file only
+fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
+no thread is stuck and none has an unrecovered panic). This file only
 states it (to audit); the proof is in
 `NetTcp/Proof/github_com/mit_pdos/etcd_grove/examples/net/shutdown/TopLevelRobustness.lean`.
 -/
@@ -49,7 +50,7 @@ def shutdown_crash_robust.spec : Prop :=
     (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
     (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅) (bound : Nat),
-    Robustness.Robust (system σ0) [] g bound
+    Robustness.Robust (system σ0) [] g (threads := bound + 1) (bound := bound)
 
 end adequacy
 end github_com.mit_pdos.etcd_grove.examples.net.shutdown

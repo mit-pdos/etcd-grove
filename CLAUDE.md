@@ -176,8 +176,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   Perennial, and nothing outside it imports it (its namespaces are the main tree's). No `Link`/`Results`:
   the trust-base and verified-code scripts see nothing of it.
 - `Robustness/` (lean_lib `Robustness`): the generic statement of robustness theorems, one
-  definition (`Robust crashing stable g bound`: in every execution of Perennial's `DistCrashNsteps`
-  of programs on machines that crash and restart and programs on machines that never crash, with
+  definition (`Robust crashing stable g threads bound`: in every execution of Perennial's `DistCrashNstepsBelow`
+  (fewer than `threads` live threads on every machine, fewer than `bound` steps) of programs on machines that crash and restart and programs on machines that never crash, with
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
   is checked by a program of the deployment that panics, never stated over traces in Lean), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the

@@ -123,7 +123,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy_start (GF := mvccrandGF) (n + 1) (n + 2) (mvccrandProgram r) σ g
+  refine goose_adequacy_start_all (GF := mvccrandGF) (n + 1) (n + 2) (mvccrandProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
     ⟨trivial, Hfs, trivial⟩ [] [] [] List.nodup_nil List.nodup_nil List.nodup_nil
     (fun _ h => absurd h List.not_mem_nil) (fun _ h => absurd h List.not_mem_nil)

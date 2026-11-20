@@ -91,13 +91,13 @@ theorem etcd_restartN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([restartNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow (2 ^ 28) n ([restartNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 12 ≤ 2 ^ 40) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   have _hk3 := hk3
-  refine etcd_adequate_members (GF := restartNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_restartN.restartNAddrs_lit k hk)
+  refine etcd_adequate_members_below (GF := restartNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_restartN.restartNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.restartN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_restartN.restartNAddrs k)
@@ -105,7 +105,7 @@ theorem etcd_restartN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_restartN.restartNDirs_nodup k hk) (etcd_restartN.startAddrs k) []
     (etcd_restartN.restartNAddrs_perm k) (etcd_restartN.restartNDirs_perm k)
     σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
-    n κs t2 σ2 Hsteps fun hG HN HT => ?_
+    (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC restartNGF := heapAtRN hG lctx
   haveI := Hctx hG
   unfold progOk

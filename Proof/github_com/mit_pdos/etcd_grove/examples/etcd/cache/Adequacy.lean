@@ -102,12 +102,12 @@ theorem etcd_cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([cachekvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps : RealNstepsBelow (2 ^ 28) n ([cachekvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 12 ≤ 2 ^ 40) :
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2) ∨ v = #(W64 3)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.cache.initialize'
+  refine etcd_adequate_members_below (GF := putgetGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.cache.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.cache.Main) #nw #nops)
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2) ∨ v = #(W64 3)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
@@ -115,7 +115,7 @@ theorem etcd_cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
           (fun h => intoVal_ne_PanicV _ p h.symm)))) [go!"127.0.0.1:23873"] (by decide) [go!"/tmp/etcd-grove-data/cachekv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(go!"cachekv", ⟨none, some go!"127.0.0.1:23873"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
-    n κs t2 σ2 Hsteps fun hG HN HT => ?_
+    (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG
   haveI := Hcec hG

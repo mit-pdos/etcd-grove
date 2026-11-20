@@ -97,12 +97,12 @@ theorem etcd_txnlinfaultsN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps' : RealNsteps n ([txnlinfaultsNProgram k clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 28) :
+    (Hsteps' : RealNstepsBelow (2 ^ 28) n ([txnlinfaultsNProgram k clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 12 ≤ 2 ^ 40) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := linkvGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
+  refine etcd_adequate_members_below (GF := linkvGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
     (hAsLit := etcd_txnlinfaultsN.txnlinfaultsNAddrs_lit k hk) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.initialize'
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Main))
@@ -114,7 +114,7 @@ theorem etcd_txnlinfaultsN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_txnlinfaultsN.startAddrs k) (etcd_txnlinfaultsN.bridges k)
     (etcd_txnlinfaultsN.txnlinfaultsNAddrs_perm k) (etcd_txnlinfaultsN.txnlinfaultsNDirs_perm k)
     σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
-    n κs t2 σ2 Hsteps' fun hG HN HT => ?_
+    (2 ^ 28) n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvGF := linkvHeapAt hG lctx
   haveI := Hctx hG
   haveI := Hcec hG

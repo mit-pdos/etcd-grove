@@ -3,9 +3,10 @@
 # `osfs/walfs`: the top-level robustness results, stated
 
 `dirswap_crash_robust`, `crash_robust`, `seglog_crash_robust`: the example's closed theorems as instances of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g bound`: in every execution of the
+(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps, no thread is stuck and none has an unrecovered panic). This file only
+fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
+no thread is stuck and none has an unrecovered panic). This file only
 states them (to audit); the proofs are in
 `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean`.
 -/
@@ -57,7 +58,7 @@ def dirswap_crash_robust.spec : Prop :=
       ∃ k, DS.SafeT j (some k) (extLocal fsExt σ.world).fs.treeDur ∧
         ∃ f, (extLocal fsExt σ.world).fs.files !! k = some f ∧ DS.DataGood (some f))
     (bound : Nat),
-    Robustness.Robust [(bootDS dir, σ)] [] g bound
+    Robustness.Robust [(bootDS dir, σ)] [] g (threads := bound + 1) (bound := bound)
 
 end adequacy
 end osfs_walfs
@@ -105,7 +106,7 @@ def crash_robust.spec : Prop :=
     (Hseg : ∀ k, (extLocal fsExt σ.world).lookup (child dir segB) = some (.file k) →
       DataGood ((extLocal fsExt σ.world).fs.files !! k))
     (bound : Nat),
-    Robustness.Robust [(boot dir, σ)] [] g bound
+    Robustness.Robust [(boot dir, σ)] [] g (threads := bound + 1) (bound := bound)
 
 end adequacy
 end osfs_walfs
@@ -148,7 +149,7 @@ def seglog_crash_robust.spec : Prop :=
       {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString) (Hinit : FsInit (extLocal fsExt σ.world))
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots) (bound : Nat),
-    Robustness.Robust [(bootLog dir, σ)] [] g bound
+    Robustness.Robust [(bootLog dir, σ)] [] g (threads := bound + 1) (bound := bound)
 
 end adequacy
 end osfs_walfs
