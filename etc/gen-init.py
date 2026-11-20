@@ -3045,6 +3045,89 @@ TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supp
         '(_root_.Perennial.fmt.IntArgValue.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Svp] as %rvp -',
         'try wp_auto']},
 )
+_ZC = 'go_uber_org.zap.zapcore'
+_ZCL = f'{_ZC}.Level.ty'
+_ZCC = '_root_.Perennial.go_uber_org.zap.internal.color.Color.ty'
+def _zc_pool(h):
+    return ['try wp_auto', 'rw [recv_eq_func_mk BAnon BAnon]',
+            f'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %{h} -',
+            'try wp_auto']
+SPECIAL[_ZC] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers and its translated `init` (prove-misc, 2026-11-20; until then the
+trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`): the pools (`pool.New`, proved), the interface
+assertions, `nullLiteralBytes`, `errUnmarshalNilLevel` (`errors.New`), the level colors (a map literal)
+and their two string maps, which `init` (`level_strings.go`) fills: each level's color formatted
+around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of the map's levels).''',
+    alloc_types={'DefaultClock': f'{_ZC}.systemClock', '_sliceEncoderPool': 'Loc', '_cePool': 'Loc',
+                 '_errArrayElemPool': 'Loc', '_jsonPool': 'Loc', 'nullLiteralBytes': 'GoSlice',
+                 '_levelToColor': 'Loc', '_unknownLevelColor': 'w8',
+                 '_levelToLowercaseColorString': 'Loc', '_levelToCapitalColorString': 'Loc'},
+    before={'_sliceEncoderPool': _zc_pool('psl'), '_cePool': _zc_pool('pce'),
+            '_errArrayElemPool': _zc_pool('pea'), '_jsonPool': _zc_pool('pjs'),
+            'nullLiteralBytes': ['try wp_auto', 'wp_apply wp_string_to_bytes _ as %snull ⟨Hsnull, -⟩', 'try wp_auto'],
+            '_levelToColor': map_lit_steps('Hlc', 'w8', 'w8', _ZCL, _ZCC, 7),
+            '_levelToLowercaseColorString': ['try wp_auto',
+                f'wp_apply (wp_map_len (t := go.GoType.MapType {_ZCL} {_ZCC}) mHlc _ _) $$ [$Hlc] as Hlc',
+                'try wp_auto',
+                f'wp_apply (wp_map_make2 (K := w8) (V := GoString) _ {_ZCL} go.string) as %mlow Hlow',
+                'try wp_auto'],
+            '_levelToCapitalColorString': ['try wp_auto',
+                f'wp_apply (wp_map_len (t := go.GoType.MapType {_ZCL} {_ZCC}) mHlc _ _) $$ [$Hlc] as Hlc',
+                'try wp_auto',
+                f'wp_apply (wp_map_make2 (K := w8) (V := GoString) _ {_ZCL} go.string) as %mcap Hcap',
+                'try wp_auto']},
+    after={'init.«0»': [
+        'wp_func_lits',
+        'wp_bind (App (App (Val (map.forRange _ _)) _) _)',
+        'iapply (wp_map_for_range (K := w8) (V := w8) (fun _ _ => iprop(∃ (lv cv : w8) (L U : GMap w8 GoString), '
+        'color_ptr ↦ cv ∗ level_ptr ↦ lv ∗ mlow ↦$ L ∗ mcap ↦$ U ∗ '
+        'globalAddr _levelToLowercaseColorString ↦ mlow ∗ globalAddr _levelToCapitalColorString ↦ mcap))) $$ Hlc',
+        'iintro %keys -',
+        'isplitl [color level Hlow Hcap H_levelToLowercaseColorString H_levelToCapitalColorString]',
+        '· iexists _, _, _, _; iframe',
+        'isplitr',
+        '· imodintro',
+        '  iintro %i %key %vv ⟨-, %Hvv⟩ ⟨%lv, %cv, %L, %U, Hc, Hl, HL, HU, HgL, HgU⟩',
+        '  wp_auto',
+        '  have hk : ' + ' ∨ '.join(f'key = W8 {x}' for x in ['5', '4', '3', '2', '1', '0', '(-1)']) + ' := by',
+        '    simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty] at Hvv',
+        '    by_cases h0 : W8 5 = key; · exact Or.inl h0.symm',
+        '    simp only [h0, ↓reduceIte] at Hvv',
+        '    by_cases h1 : W8 4 = key; · exact Or.inr (Or.inl h1.symm)',
+        '    simp only [h1, ↓reduceIte] at Hvv',
+        '    by_cases h2 : W8 3 = key; · exact Or.inr (Or.inr (Or.inl h2.symm))',
+        '    simp only [h2, ↓reduceIte] at Hvv',
+        '    by_cases h3 : W8 2 = key; · exact Or.inr (Or.inr (Or.inr (Or.inl h3.symm)))',
+        '    simp only [h3, ↓reduceIte] at Hvv',
+        '    by_cases h4 : W8 1 = key; · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl h4.symm))))',
+        '    simp only [h4, ↓reduceIte] at Hvv',
+        '    by_cases h5 : W8 0 = key; · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl h5.symm)))))',
+        '    simp only [h5, ↓reduceIte] at Hvv',
+        '    by_cases h6 : W8 (-1) = key; · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (h6.symm))))))',
+        '    simp only [h6, ↓reduceIte] at Hvv',
+        '    simp at Hvv',
+        '  iclear MerrUnmarshalNilLevel',
+        '  haveI : go.NotInterface go.int8 := ⟨by unfold go.int8; trivial⟩',
+        '  haveI : go.NotInterface go.uint8 := ⟨by unfold go.uint8; trivial⟩',
+        '  rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl',
+        '  all_goals (repeat (first',
+        '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HL as HL',
+        '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HU as HU',
+        '    | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; '
+        'try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        '(_root_.Perennial.fmt.IntArgValue.uint8 _) (_root_.Perennial.fmt.ArgsWf.cons_string _ _ '
+        '_root_.Perennial.fmt.ArgsWf.nil)) $$ [$Ssl] as %r -)',
+        '    | wp_method_call',
+        '    | wp_auto',
+        '    | wp_call))',
+        '  all_goals (unfold forMapPostcondition; iright; ileft; isplitr; (· ipureintro; rfl); iexists _, _, _, _; iframe)',
+        'iintro - -',
+        'wp_auto',
+        ]},
+    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+    heavy=True,
+), ['errUnmarshalNilLevel'])
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates

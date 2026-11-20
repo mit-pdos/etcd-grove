@@ -22,7 +22,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.bbolt.InitLinked
 public import Proof.go_etcd_io.bbolt.errors.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram

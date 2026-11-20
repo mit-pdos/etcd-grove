@@ -14,7 +14,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLi
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.cache.v3.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

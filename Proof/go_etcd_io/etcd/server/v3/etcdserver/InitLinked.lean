@@ -24,7 +24,7 @@ public import Proof.github_com.dustin.go_humanize.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.version.Init
-public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.Init
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.logutil.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.contention.Init
@@ -32,8 +32,8 @@ public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
-public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Init
-public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.InitLinked
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.InitLinked
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Init
 public import Proof.go_etcd_io.etcd.server.v3.auth.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.config.InitLinked
@@ -42,7 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.InitLinked
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InitLinked
@@ -60,7 +60,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.InitLinked
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.otel.attribute.Init
 public import Proof.go_opentelemetry_io.otel.trace.Init
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.golang_org.x.crypto.bcrypt.Init
 public import Proof.net.http.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter

@@ -11,7 +11,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
