@@ -8,9 +8,10 @@ Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, transla
 `[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
 backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
 `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom `time.Unix.wp_proof`) and
-`maxBackoff`, and `LeaseResponseChSize` (`lease.go`, untranslated: `16`; the trust-boundary axiom
-`LeaseResponseChSize_init`). Its initializer also runs its other untranslated initializers
-(`opaqueInitsOk`).
+`maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
+trust-boundary axiom `LeaseResponseChSize_init`), and the translated constants
+`defaultUnaryMaxRetries`, `defaultStreamMaxRetries` and `defaultBackoffWaitBetween`
+(`options.go`). Its initializer also runs its other untranslated initializers (`opaqueInitsOk`).
 -/
 module
 
@@ -76,8 +77,7 @@ axiom opaqueInitsOk :
         ErrMutuallyExclusiveCfg.init,
         defaultWaitForReady.init,
         defaultMaxCallSendMsgSize.init,
-        defaultMaxCallRecvMsgSize.init,
-        defaultStreamMaxRetries.init] : List val),
+        defaultMaxCallRecvMsgSize.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.client.v3`'s untranslated `init` functions return.** Goose
@@ -100,25 +100,10 @@ axiom defaultCallOpts_init :
     {{ (True : IProp GF) }} (App (Val defaultCallOpts.init) (Val #()))
     {{ RET #(); ∃ (sl : GoSlice) (vs : List GoInterface), globalAddr defaultCallOpts ↦ sl ∗ sl ↦*□ vs ∗ ⌜sl.len = sl.cap ∧ ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty, google_golang_org.grpc.MaxSendMsgSizeCallOption.ty, google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝ }}
 
-/-- `defaultUnaryMaxRetries uint = 100` (`options.go`). -/
-axiom defaultUnaryMaxRetries_init :
-    {{ (True : IProp GF) }} (App (Val defaultUnaryMaxRetries.init) (Val #()))
-    {{ RET #(); ∃ n : w64, globalAddr defaultUnaryMaxRetries ↦ n }}
-
-/-- `defaultBackoffWaitBetween = 25 * time.Millisecond` (`options.go`). -/
-axiom defaultBackoffWaitBetween_init :
-    {{ (True : IProp GF) }} (App (Val defaultBackoffWaitBetween.init) (Val #()))
-    {{ RET #(); ∃ d : time.Duration, globalAddr defaultBackoffWaitBetween ↦ d }}
-
 /-- `defaultBackoffJitterFraction = 0.10` (`options.go`): a float. -/
 axiom defaultBackoffJitterFraction_init :
     {{ (True : IProp GF) }} (App (Val defaultBackoffJitterFraction.init) (Val #()))
     {{ RET #(); ∃ f : w64, globalAddr defaultBackoffJitterFraction ↦ f }}
-
-/-- `LeaseResponseChSize = 16` (`lease.go`). -/
-axiom LeaseResponseChSize_init :
-    {{ (True : IProp GF) }} (App (Val LeaseResponseChSize.init) (Val #()))
-    {{ RET #(); globalAddr LeaseResponseChSize ↦ (W64 16 : w64) }}
 
 end go_etcd_io.etcd.client.v3
 end opaqueInits

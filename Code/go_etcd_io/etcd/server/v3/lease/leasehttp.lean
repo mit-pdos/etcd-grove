@@ -34,12 +34,8 @@ opaque maxLeaseHTTPResponseSize [GooseExts] [GoGlobalContext] : val
 noncomputable def LeasePrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasehttp.LeasePrefix"
 
-opaque LeasePrefix.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def LeaseInternalPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasehttp.LeaseInternalPrefix"
-
-opaque LeaseInternalPrefix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def applyTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasehttp.applyTimeout"
@@ -74,15 +70,23 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"/leases"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"/leases/internal"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val ErrLeaseHTTPTimeout.init) (Val #())))))
   (App (Val doExecute)
   (App (Val applyTimeout.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val LeaseInternalPrefix.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr LeaseInternalPrefix))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val LeasePrefix.init) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr LeasePrefix))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc LeasePrefix go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc LeaseInternalPrefix go.string)) (Val #()))))))))
 
 opaque leaseHandler.nonempty_type : NonemptyType.{0}
 def leaseHandler : Type := leaseHandler.nonempty_type.type

@@ -25,12 +25,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.keysGauge_init : ⊢ ∀ 
     go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSetSpec m) -∗ Φ (intoVal ())) -∗ WP
     (go_etcd_io.etcd.server.v3.storage.mvcc.keysGauge.init (intoVal ())) {{ Φ }}
 
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.defaultCompactionSleepInterval_init : ⊢ ∀ Φ,
-    True -∗ ▷ ((∃ d, typedPointsto (globalAddr
-    go_etcd_io.etcd.server.v3.storage.mvcc.defaultCompactionSleepInterval) d (DFrac.own 1)) -∗ Φ
-    (intoVal ())) -∗ WP (go_etcd_io.etcd.server.v3.storage.mvcc.defaultCompactionSleepInterval.init
-    (intoVal ())) {{ Φ }}
-
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.putCounter_init : ⊢ ∀ Φ, True -∗ ▷ ((∃ m,
     typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.putCounter) (GoInterface.ok m)
     (DFrac.own 1) ∗ go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec m) -∗ Φ (intoVal ())) -∗ WP
@@ -80,12 +74,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.opaqueInitsOk (v : val) :
     go_etcd_io.etcd.server.v3.storage.mvcc.compactRev.init,
     go_etcd_io.etcd.server.v3.storage.mvcc._.init] → ⊢ ∀ Φ, True -∗ ▷ (True -∗ Φ (intoVal ())) -∗ WP
     (v (intoVal ())) {{ Φ }}
-
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.defaultCompactionBatchLimit_init : ⊢ ∀ Φ,
-    True -∗ ▷ (typedPointsto (globalAddr
-    go_etcd_io.etcd.server.v3.storage.mvcc.defaultCompactionBatchLimit) (W64 1000) (DFrac.own 1) -∗
-    Φ (intoVal ())) -∗ WP (go_etcd_io.etcd.server.v3.storage.mvcc.defaultCompactionBatchLimit.init
-    (intoVal ())) {{ Φ }}
 
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.dbCompactionKeysCounter_init : ⊢ ∀ Φ, True -∗
     ▷ ((∃ m, typedPointsto (globalAddr
