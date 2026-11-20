@@ -152,10 +152,9 @@ ASSUMED = {}
 # generated `regNames`; any number of them may be in a closure (`ownInitResL`'s list). The value:
 # the registrations in `init()`'s order, `(x, collector, collectorName fact, (ns, sub, name))`
 # (`reg_scalar`/`reg_vec` below build them from the metric's variable; filled in with the packages'
-# configurations). Until then one package, read, its resource `EtcdGrove.read.readRegPerm`. Not here
-# (mustreg): auth, lease, backend and mvcc, whose registrations would put the premise
-# `namesUnclaimed` on the closed theorems of mvccrand and mvccfull, which have none (their
-# `initFuncsOk` stay).
+# configurations). Until then one package, read, its resource `EtcdGrove.read.readRegPerm`.
+# (etcdstorage, 2026-11-20, the user's decision) auth, lease, backend and mvcc too: the closed
+# theorems of mvccrand and mvccfull now take the premise `namesUnclaimed` (mustreg had left them out).
 PRE_RES = {}
 
 def reg_scalar(x, ns, sub, name, c=None, n=None):
@@ -830,7 +829,7 @@ def metric_steps(x, kind):
 def gaugefunc_steps(x):
     """`x = prometheus.NewGaugeFunc(opts, func() float64 {...})`, over `NewGaugeFunc`'s spec."""
     return ['try wp_auto',
-            f'wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %c{x} -',
+            f'wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %c{x} %N{x}',
             'try wp_auto']
 
 _MV = 'go_etcd_io.etcd.server.v3.storage.mvcc'
@@ -3130,6 +3129,52 @@ register(SPECIAL['go_etcd_io.etcd.server.v3.storage.wal'], 'go_etcd_io.etcd.serv
     reg_scalar('walFsyncSec', _E, 'disk', 'wal_fsync_duration_seconds'),
     reg_scalar('walWriteSec', _E, 'disk', 'wal_write_duration_seconds'),
     reg_scalar('walWriteBytes', _E, 'disk', 'wal_write_bytes_total')])
+# (etcdstorage, 2026-11-20, the user's decision: mvccrand's and mvccfull's closed theorems take
+# `namesUnclaimed`) auth, lease, backend and mvcc. A `NewGaugeFunc` gauge's `collectorName` fact is
+# conditional on its name's validity (`N<x> : nameOk ... → collectorName ...`), `decide`d here.
+def reg_gfunc(x, ns, sub, name):
+    return reg_scalar(x, ns, sub, name, n=f'(N{x} (by decide))')
+register(SPECIAL['go_etcd_io.etcd.server.v3.auth'], 'go_etcd_io.etcd.server.v3.auth', [
+    reg_gfunc('currentAuthRevision', _D, 'auth', 'revision')])
+register(SPECIAL['go_etcd_io.etcd.server.v3.lease'], 'go_etcd_io.etcd.server.v3.lease', [
+    reg_scalar('leaseGranted', _D, 'lease', 'granted_total'),
+    reg_scalar('leaseRevoked', _D, 'lease', 'revoked_total'),
+    reg_scalar('leaseRenewed', _D, 'lease', 'renewed_total'),
+    reg_scalar('leaseTotalTTLs', _D, 'lease', 'ttl_total')])
+register(SPECIAL['go_etcd_io.etcd.server.v3.storage.backend'], 'go_etcd_io.etcd.server.v3.storage.backend', [
+    reg_scalar('commitSec', _E, 'disk', 'backend_commit_duration_seconds'),
+    reg_scalar('rebalanceSec', _D, 'disk', 'backend_commit_rebalance_duration_seconds'),
+    reg_scalar('spillSec', _D, 'disk', 'backend_commit_spill_duration_seconds'),
+    reg_scalar('writeSec', _D, 'disk', 'backend_commit_write_duration_seconds'),
+    reg_scalar('defragSec', _E, 'disk', 'backend_defrag_duration_seconds'),
+    reg_scalar('defragBlockingSec', _E, 'disk', 'backend_defrag_blocking_duration_seconds'),
+    reg_scalar('snapshotTransferSec', _E, 'disk', 'backend_snapshot_duration_seconds'),
+    reg_scalar('isDefragActive', _E, 'disk', 'defrag_inflight')])
+_MVR = 'mvcc'
+register(SPECIAL[_MV], _MV, [
+    reg_scalar('rangeCounter', _E, _MVR, 'range_total'),
+    reg_scalar('putCounter', _E, _MVR, 'put_total'),
+    reg_scalar('deleteCounter', _E, _MVR, 'delete_total'),
+    reg_scalar('txnCounter', _E, _MVR, 'txn_total'),
+    reg_scalar('keysGauge', _D, _MVR, 'keys_total'),
+    reg_scalar('watchStreamGauge', _D, _MVR, 'watch_stream_total'),
+    reg_scalar('watcherGauge', _D, _MVR, 'watcher_total'),
+    reg_scalar('slowWatcherGauge', _D, _MVR, 'slow_watcher_total'),
+    reg_scalar('totalEventsCounter', _D, _MVR, 'events_total'),
+    reg_scalar('pendingEventsGauge', _D, _MVR, 'pending_events_total'),
+    reg_scalar('indexCompactionPauseMs', _D, _MVR, 'index_compaction_pause_duration_milliseconds'),
+    reg_scalar('dbCompactionPauseMs', _D, _MVR, 'db_compaction_pause_duration_milliseconds'),
+    reg_scalar('dbCompactionTotalMs', _D, _MVR, 'db_compaction_total_duration_milliseconds'),
+    reg_scalar('dbCompactionLast', _D, _MVR, 'db_compaction_last'),
+    reg_scalar('dbCompactionKeysCounter', _D, _MVR, 'db_compaction_keys_total'),
+    reg_gfunc('dbTotalSize', _E, _MVR, 'db_total_size_in_bytes'),
+    reg_gfunc('dbTotalSizeInUse', _E, _MVR, 'db_total_size_in_use_in_bytes'),
+    reg_gfunc('dbOpenReadTxN', _E, _MVR, 'db_open_read_transactions'),
+    reg_scalar('hashSec', _E, _MVR, 'hash_duration_seconds'),
+    reg_scalar('hashRevSec', _E, _MVR, 'hash_rev_duration_seconds'),
+    reg_gfunc('currentRev', _D, _MVR, 'current_revision'),
+    reg_gfunc('compactRev', _D, _MVR, 'compact_revision'),
+    reg_scalar('totalPutSizeGauge', _D, _MVR, 'total_put_size_in_bytes')])
 
 
 def closure(p):

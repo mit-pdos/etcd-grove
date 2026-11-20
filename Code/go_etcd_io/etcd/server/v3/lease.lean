@@ -1569,6 +1569,31 @@ noncomputable def lessor.initAndRecover.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))
   (Val #()))))
 
+/-- go: metrics.go:55:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr leaseTotalTTLs))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr leaseRenewed))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr leaseRevoked))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr leaseGranted))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
+  (Val #())))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.lease where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.container.heap, pkg_id.context, pkg_id.errors, pkg_id.sort, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.github_com.prometheus.client_golang.prometheus]
 
@@ -2441,6 +2466,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewLease_unfold : FuncUnfold NewLease [] NewLease.impl
   newLeaseExpiredNotifier_unfold : FuncUnfold newLeaseExpiredNotifier [] newLeaseExpiredNotifier.impl
   greaterOrEqual_unfold : FuncUnfold greaterOrEqual [] greaterOrEqual.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_leasepb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Assumptions
@@ -2475,6 +2501,7 @@ attribute [instance] Assumptions.Lease_instance
   Assumptions.NewLease_unfold
   Assumptions.newLeaseExpiredNotifier_unfold
   Assumptions.greaterOrEqual_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_leasepb_Assumption

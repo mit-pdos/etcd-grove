@@ -40,7 +40,9 @@ bbolt_Tx__Stats: @
 sort_Stable:
 time_Duration__Seconds:
 verify_Assert:
-verify_Verify:
+os_Getenv:
+strings_ToLower:
+verify_Verify: os_Getenv strings_ToLower
 zap_Error:
 zap_Logger__Fatal:
 zap_Logger__Panic:

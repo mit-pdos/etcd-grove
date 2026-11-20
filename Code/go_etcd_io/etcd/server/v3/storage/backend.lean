@@ -2159,6 +2159,51 @@ noncomputable def NewHooks.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Hooks.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Hooks.ty))) (Var "$res0")))))
 
+/-- go: metrics.go:106:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr isDefragActive))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr snapshotTransferSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr defragBlockingSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr defragSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr writeSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr spillSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr rebalanceSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr commitSec))) (Val #()))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.prometheus.client_golang.prometheus.Collector.ty (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
+  (Val #())))
+
 /-- go: read_tx.go:54:31 -/
 noncomputable def baseReadTx.UnsafeForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "baseReadTx"
@@ -4945,6 +4990,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   unsafeForEach_unfold : FuncUnfold unsafeForEach [] unsafeForEach.impl
   newBatchTxBuffered_unfold : FuncUnfold newBatchTxBuffered [] newBatchTxBuffered.impl
   NewHooks_unfold : FuncUnfold NewHooks [] NewHooks.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   newBucketBuffer_unfold : FuncUnfold newBucketBuffer [] newBucketBuffer.impl
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
@@ -5001,6 +5047,7 @@ attribute [instance] Assumptions.Backend_instance
   Assumptions.unsafeForEach_unfold
   Assumptions.newBatchTxBuffered_unfold
   Assumptions.NewHooks_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.newBucketBuffer_unfold
   Assumptions.import_bytes_Assumption
   Assumptions.import_fmt_Assumption
