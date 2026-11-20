@@ -1,6 +1,22 @@
 # wal-fsfix2 handoff
 
-## START HERE (2026-11-20 a1) — item 1 at the LAND STOP; item 2 stopped before a trusted-text change
+## START HERE (2026-11-20 a2) — item 2 for a fresh agent
+
+- Item 1 LANDED (lean 9d6a486a91, merged into this branch). Worktree `/shared/etcd-grove-walfsfix2`, branch
+  `wal-fsfix2`; pin c44b74871 (`--packages=/shared/tmp/manifest-c44.json`, `PERENNIAL_DIR=/shared/perennial-c44b74871`);
+  `.lake/build` is built at 94f2824169 (the lean merge is notes-only). Plain build-slot; lean-check `--max-open 2`.
+- **Approved by the user 2026-11-20** (questions.md, ledger "2026-11-20: `cut.specNoErr` needs lock coverage…"):
+  `WalH` (`storage/WalRecs.lean`, `WalA`'s fields; handed out by `wal.bootOk`, assumed) gains
+  `FsStepSat (NoMapLockErr Sio)` and `Fs.DirFits dir` (the WAL directory's, derived from the data directory's
+  `DirFits`). List old → new in the land report.
+- **Do, in order:** (1) the `WalH` change, then an independent attack on it (fresh read-only subagent, axiom
+  skill) BEFORE relying on it; (2) one proof of `cut` parametrized by coverage (error arms `⌜err ≠ nil ∧ ¬ cov⌝`,
+  callees at `CalleeCov.lean`'s "at a call" form), `cut.spec` (at `ioNone`) and `cut.specNoErr` (+ the two new
+  premises) as corollaries: no twins; (3) the no-error callee specs (below), reusing existing ones; (4) thread
+  the premises through `Save`/`SaveSnapshot`/storage specs/`gen-link`; (5) item 3: if `rnNewStorageOk_holds` needs
+  `Create.specNoErr`, STOP with a proposal. Hand off at ~300k.
+
+## History (2026-11-20 a1) — item 1 at the land stop
 
 - Verified at the commit after 553c3c21f4: full timed build `20261120-160035-816652` (+ `20261120-162415-882575`
   after comment-only fixes) green; `etc/gates.sh` all passed (tcb 674 axioms/2 sorries = baseline, no update;

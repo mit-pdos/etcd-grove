@@ -3242,3 +3242,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   error arms `¬ FsNoErr ∨ ¬ PathFits p`; a bound on the member's data directory in `bootCfgFresh`, discharged in
   the examples from the member name (≤ 200 bytes).
 - **Decision.** Option 2, the user, 2026-11-20, via etcd-grove-03; flock left to `NoMapLockErr` the same day.
+
+## 2026-11-20: `cut.specNoErr` needs lock coverage and a WAL directory that fits (`WalH`)
+
+- **Spec.** `WalH` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`, the open WAL handed out by the assumed
+  `bootstrapContract`'s `wal.bootOk`); `WAL.cut.specNoErr` (`Spec/.../storage/wal/WAL__cutNoErr.lean`).
+- **Defect.** `cut.specNoErr` is not provable over `FsStepSat (NoIoErr Sio)` alone: `cut` locks its new segment
+  (`fileutil.LockFile`: OFD lock, `flock` fallback, covered by `NoMapLockErr`, not `NoIoErr`), and its path calls
+  (`dir/<seg>.wal`, `dir/<n>.tmp`) are covered only when they fit (`PathFits`, the user's A1 decision). `WalH`
+  carries neither the `NoMapLockErr` instance nor the WAL directory's `DirFits`, so `Save`'s covered case cannot
+  discharge them.
+- **Evidence.** wal-fsfix's attack (noioerr.md session 10, item 1) and the `cut` proof's callees (`WAL__cut.lean`).
+- **Proposed change.** `WalH` gains the `FsStepSat (NoMapLockErr Sio)` instance and `Fs.DirFits dir` (derived from
+  the data directory's `DirFits`, `bootCfgFresh`); `cut.specNoErr` takes them. Old → new meaning of
+  `bootstrapContract`: the open WAL it hands out was covered by `NoIoErr` only → also by `NoMapLockErr` (its lock
+  calls succeed whenever they can), in a directory that fits.
+- **Decision.** Approved by the user, 2026-11-20, via etcd-grove-03; an independent attack before relying on it.
