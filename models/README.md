@@ -37,7 +37,8 @@ marked `MODEL:`, and its difference from grpc-go is computed, never stored: `dif
 
 - **The transport** (`model_transport.go` over `model_wire.go`), in place of HTTP/2: one stream per
   connection. The client writes HTTP/2's 24-byte preface (cmux's `HTTP2()` matcher reads exactly
-  it), then header blocks carrying grpc-go's own header fields (made by grpc-go's
+  it) and writes a stream only once the server's preface arrived (as grpc-go waits for SETTINGS:
+  a connection made in a blackhole never carries a stream), then header blocks carrying grpc-go's own header fields (made by grpc-go's
   `createHeaderFields`, read by its `operateHeaders`, `writeStatus`, ...; `model_http_util.go` is
   `http_util.go`'s helpers verbatim), gRPC's length-prefixed messages (read by grpc-go's `parser`,
   which checks the size limit before reading a message) and RST_STREAM codes. Not modelled, and not

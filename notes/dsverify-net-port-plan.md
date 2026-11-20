@@ -514,7 +514,7 @@ Each model a patch (Q1), dsverify's tests kept as differential tests against the
    the message framing and size checks (`parser.recvMsg`, `encode`, `msgHeader`, `recv`), the header
    helpers (`model_http_util.go`: `http_util.go` verbatim). *Replaced* (the `model_*.go` files,
    2.3k lines): the HTTP/2 transport by `model_transport.go` over `model_wire.go` (preface, header
-   blocks of grpc-go's own header fields, made and read by grpc-go's `createHeaderFields`,
+   blocks of grpc-go's own header fields (a stream written only after the server's preface arrived, as grpc-go waits for SETTINGS; found by `examples/etcd/partition`'s blackholed bridge, `TestBlackhole`), made and read by grpc-go's `createHeaderFields`,
    `operateHeaders`, `writeHeaderLocked`, `writeStatus`, `writeEarlyAbort`, `handleRSTStream`
    adapted from hpack; gRPC messages; RST_STREAM codes: REFUSED_STREAM for an undispatched stream,
    CANCEL at the server's deadline); the balancers, subchannels, picker, idleness manager by
