@@ -34,6 +34,9 @@ theorem cluster_alloc_ns [package_sem : Assumptions] (N : Namespace) (vs : List 
 
 def (sealed) confDecided (γ : Cluster) (k : Nat) (d : ConfDecision) : IProp GF
 
+theorem isStorage_tagTrue [package_sem : Assumptions] (γ : Cluster) (K : GName) (st : Storage) :
+    isStorage γ K st ⊢ isStorageT γ K (fun x => iprop(True)) st
+
 def (sealed) storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF
 
 theorem committed_confDecodes [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
@@ -154,6 +157,9 @@ theorem confDecided_timeless (γ : Cluster) (k : Nat) (d : ConfDecision) : Timel
 
 theorem storBnd_zero [package_sem : Assumptions] (γ : Cluster) (K : GName) : ⊢ storBnd γ K 0
 
+def isStorageT (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) (st : Storage) : IProp GF :=
+  isStorageP γ.maxData.isSome (fun sv => iprop(snapshotValid γ sv ∗ Tg sv)) (storBnd γ K) (nodeCommitLb γ K) st
+
 theorem joinAuth_join [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (U : GSet w64) (id :
     w64) : ¬id ∈ U → id ≠ W64 0 → ⊢ isCluster γ N ∗ joinAuth γ U ==∗ joinAuth γ ({id} ∪ U) ∗
     raftState γ id RaftState.init ∗ nodeVacant γ id
@@ -257,6 +263,9 @@ def storHolds (st : Storage) (σ : StorContents) (f : Nat) : IProp GF :=
           storLog st σ.b DFrac.discard [e0] ∗
             storLog st (σ.b + 1) DFrac.discard (List.take (f - σ.b) σ.ents) ∗
               storLog st (f + 1) (DFrac.own 1) (List.drop (f - σ.b) σ.ents) ∗ storEnd st (σ.last + 1))
+
+theorem isStorageT_forget [package_sem : Assumptions] (γ : Cluster) (K : GName) (Tg : SnapshotM →
+    IProp GF) (st : Storage) : isStorageT γ K Tg st ⊢ isStorage γ K st
 
 theorem snapshotCert_make [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (E : CoPset) (l
     : List LogEntry) (i t : w64) (d : List w8) (m : Membership) (cs : ConfStateM) (S : List SnapRec)

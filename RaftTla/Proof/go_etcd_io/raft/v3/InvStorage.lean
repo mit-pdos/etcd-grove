@@ -332,6 +332,36 @@ theorem isStorageP_unsize (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd : Nat �
       · ipureintro; exact ⟨Hcs.1, fun h => absurd h (by simp)⟩
     · ipureintro; exact Hpost
 
+/-- Map the certificate returned by a successful nonempty storage snapshot. -/
+theorem isStorageP_mono_SV (sz : Bool) (SV SV' : SnapshotM → IProp GF)
+    (Bnd DL : Nat → IProp GF) (st : Storage) (h : ∀ sv, SV sv ⊢ SV' sv) :
+    isStorageP sz SV Bnd DL st ⊢ isStorageP sz SV' Bnd DL st := by
+  unfold isStorageP
+  iintro ⟨%i, %Hi, #HL, #HT, #HE, #HF, #HS, #Hb, #Hlen⟩
+  iexists i
+  iframe HL HT HE HF Hb Hlen
+  isplitr
+  · ipureintro; exact Hi
+  iintro %c %esu
+  imodintro
+  iintro %Φ Hpre HΦ
+  wp_apply HS $$ %c %esu [$Hpre] as %snap %err Hres
+  iapply HΦ $$ %snap %err
+  icases Hres with (Hu | ⟨%Herr, %sv, Hown, %Hc, Hvalid⟩)
+  · ileft; iexact Hu
+  iright
+  isplitr
+  · ipureintro; exact Herr
+  iexists sv
+  iframe Hown
+  isplitr
+  · ipureintro; exact Hc
+  icases Hvalid with (Hz | ⟨Hv, Hd⟩)
+  · ileft; iexact Hz
+  iright
+  iframe Hd
+  iapply h sv $$ Hv
+
 end rangeContract
 
 /-! ## The snapshots' certificates as raft carries them (U8 v2; γ-free pins) -/

@@ -775,6 +775,25 @@ A cluster without the bound (`maxData = none`, kv's) asks nothing more of its st
 def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
   isStorageP γ.maxData.isSome (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
 
+/-- A storage whose nonempty snapshots also carry the client's source tag. -/
+def isStorageT (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) (st : Storage) : IProp GF :=
+  isStorageP γ.maxData.isSome (fun sv => iprop(snapshotValid γ sv ∗ Tg sv))
+    (storBnd γ K) (nodeCommitLb γ K) st
+
+theorem isStorageT_forget (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) (st : Storage) :
+    isStorageT γ K Tg st ⊢ isStorage γ K st := by
+  apply isStorageP_mono_SV
+  intro sv
+  iintro ⟨H, -⟩
+  iexact H
+
+theorem isStorage_tagTrue (γ : Cluster) (K : GName) (st : Storage) :
+    isStorage (GF := GF) γ K st ⊢ isStorageT γ K (fun _ => iprop(True)) st := by
+  apply isStorageP_mono_SV
+  intro sv
+  iintro H
+  iframe H
+
 /-- (2026-11-01, durability stage I-4) **The storage `st` holds the contents `σ`**, as the storage
 contract states its log: compacted at the base, the base's entry (of the base's term) frozen, the
 entries above it owned, the end after them. What a restarted node's view of its storage starts
