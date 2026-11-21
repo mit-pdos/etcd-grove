@@ -1011,8 +1011,9 @@ theorem hookGateOpt_fupd_recv (tr : Option GName) (r : Loc) (oE : Option (TraceE
   iintro H
   iunfold HookGateOpt at H
   iunfold HookGateOpt
+  iintro Hnc
   imod H with H
-  iexact H
+  iapply H $$ Hnc
 
 /-- A resource framed into a hook gate's result. -/
 theorem hookGateOpt_frame (tr : Option GName) (r : Loc) (oE : Option (TraceEv → Prop)) (X Q : IProp GF) :
@@ -1020,8 +1021,10 @@ theorem hookGateOpt_frame (tr : Option GName) (r : Loc) (oE : Option (TraceEv �
   iintro ⟨HX, H⟩
   iunfold HookGateOpt at H
   iunfold HookGateOpt
-  imod H with ⟨%tl, #Htl, %Hok, H⟩
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, %tl, #Htl, %Hok, H⟩
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   isplitr

@@ -219,8 +219,9 @@ theorem hookGateN_fupd (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (n :
   iintro H
   iunfold HookGateN at H
   iunfold HookGateN
+  iintro Hnc
   imod H with H
-  iexact H
+  iapply H $$ Hnc
 
 /-- The `Replicate` lines' chained facts (`fxPres_replicate`, no resource). -/
 theorem repChain (γd : GName) (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s : NState) (ents : List EntryM)
