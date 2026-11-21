@@ -22,6 +22,7 @@ public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.hash
+public import GeneratedProof.hash.crc32
 public import GeneratedProof.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sync

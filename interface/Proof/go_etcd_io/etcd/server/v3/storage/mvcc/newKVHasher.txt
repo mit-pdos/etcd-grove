@@ -2,13 +2,17 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom mvcc.newKVHasher.wp_proof : mvcc.newKVHasher.spec
+theorem mvcc.newKVHasher.wp_proof (hMT : hash.crc32.MakeTable.spec) (hNew : hash.crc32.New.spec)
+    (hName : schema.bucket.Name.spec) (hWrite : hash.crc32.digest.Write.spec) :
+    mvcc.newKVHasher.spec
   -- `Perennial.EtcdGrove.mvcc.newKVHasher.spec`, unfolded:
   ∀ (prev rev : w64) (keep : GoMap),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc -∗
-          (▷ ∀ h, ⌜mvcc.kvHasherOk h⌝ -∗ Φ (intoVal h)) -∗
+          (▷
+              ∀ h,
+                mvcc.kvHasherOk h ∗ ⌜h.compactRevision' = prev ∧ h.revision' = rev ∧ h.keep' = keep⌝ -∗ Φ (intoVal h)) -∗
             WP
               ((((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher [])) (intoVal prev))
                   (intoVal rev))

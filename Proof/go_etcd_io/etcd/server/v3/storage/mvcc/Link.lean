@@ -28,6 +28,11 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedComp
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
+public import Proof.hash.crc32.MakeTable
+public import Proof.hash.crc32.New
+public import Proof.hash.crc32.digest__Sum32
+public import Proof.hash.crc32.digest__Write
+public import Proof.hash.crc32.update
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
 public import Proof.fmt.ErrorfWrap
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
@@ -418,21 +423,45 @@ theorem mvcc.treeIndex.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Compact.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Compact.wp_proof zap.wp_Int64 zap.Logger.wp_Info btree.BTree.wp_Clone btree.BTree.wp_Ascend mvcc.keyIndex.wp_compact mvcc.keyIndex.wp_isEmpty btree.BTree.wp_Delete zap.Logger.wp_Panic
 
+theorem hash.crc32.wp_MakeTable :
+    hash.crc32.MakeTable.spec (GF := GF) (hG := hG) :=
+  hash.crc32.MakeTable.wp_proof
+
+theorem hash.crc32.wp_New :
+    hash.crc32.New.spec (GF := GF) (hG := hG) :=
+  hash.crc32.New.wp_proof
+
+theorem schema.bucket.wp_Name :
+    schema.bucket.Name.spec (GF := GF) (hG := hG) :=
+  schema.bucket.Name.wp_proof
+
+theorem hash.crc32.wp_update :
+    hash.crc32.update.spec (GF := GF) (hG := hG) :=
+  hash.crc32.update.wp_proof
+
+theorem hash.crc32.digest.wp_Write :
+    hash.crc32.digest.Write.spec (GF := GF) (hG := hG) :=
+  hash.crc32.digest.Write.wp_proof hash.crc32.wp_update
+
 theorem mvcc.wp_newKVHasher :
     mvcc.newKVHasher.spec (GF := GF) (hG := hG) :=
-  mvcc.newKVHasher.wp_proof
+  mvcc.newKVHasher.wp_proof hash.crc32.wp_MakeTable hash.crc32.wp_New schema.bucket.wp_Name hash.crc32.digest.wp_Write
 
 theorem mvcc.kvHasher.wp_WriteKeyValue :
     mvcc.kvHasher.WriteKeyValue.spec (GF := GF) (hG := hG) :=
-  mvcc.kvHasher.WriteKeyValue.wp_proof
+  mvcc.kvHasher.WriteKeyValue.wp_proof mvcc.wp_BytesToRev mvcc.Revision.wp_GreaterThan mvcc.wp_BytesToBucketKey hash.crc32.digest.wp_Write
 
 theorem mvcc.wp_UnsafeSetFinishedCompact :
     mvcc.UnsafeSetFinishedCompact.spec (GF := GF) (hG := hG) :=
   mvcc.UnsafeSetFinishedCompact.wp_proof mvcc.wp_NewRevBytes mvcc.wp_RevToBytes
 
+theorem hash.crc32.digest.wp_Sum32 :
+    hash.crc32.digest.Sum32.spec (GF := GF) (hG := hG) :=
+  hash.crc32.digest.Sum32.wp_proof
+
 theorem mvcc.kvHasher.wp_Hash :
     mvcc.kvHasher.Hash.spec (GF := GF) (hG := hG) :=
-  mvcc.kvHasher.Hash.wp_proof
+  mvcc.kvHasher.Hash.wp_proof hash.crc32.digest.wp_Sum32
 
 theorem zap.wp_Duration :
     zap.Duration.spec (GF := GF) (hG := hG) :=
@@ -573,10 +602,6 @@ theorem schema.bucket.wp_ID :
 theorem schema.bucket.wp_IsSafeRangeBucket :
     schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG) :=
   schema.bucket.IsSafeRangeBucket.wp_proof
-
-theorem schema.bucket.wp_Name :
-    schema.bucket.Name.spec (GF := GF) (hG := hG) :=
-  schema.bucket.Name.wp_proof
 
 theorem schema.bucket.wp_String :
     schema.bucket.String.spec (GF := GF) (hG := hG) :=

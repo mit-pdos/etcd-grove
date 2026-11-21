@@ -408,6 +408,11 @@ fresh table where Go returns one shared pointer. **Proposed upstream**: the same
 GooseLang `simplePopulateTable` (or by translating `crc32_generic.go` with bodies and trusting only
 `Update`'s dispatch to it), with `IEEE` alongside; then this part's names-only `hash/crc32` and the
 local model go.
+(2026-11-21, prove-etcdint3: the second form, locally. `Code/hash/crc32.toml` translates `New`,
+`digest.Write`/`Sum32`, `Update`, `simpleMakeTable`/`simplePopulateTable` and the package's
+initializers (`IEEETable`, the two `sync.OnceFunc`s) with bodies, and trusts `MakeTable` and the
+dispatching `update` (in place of `Update`, which calls it): mvcc's hasher is proved over them, and
+`hash.crc32.opaqueInitsOk` is gone. Still a local model, pending the user's review.)
 
 ### `io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without bodies (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
@@ -1607,7 +1612,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`Code/hash.toml`, `-lean-root hash=`, as `encoding/hex`), which makes Goose translate
   `kvHasher` as a struct. Proposed: `hash`'s interfaces in Perennial's standard library (and
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
-  provable); then this repository's `hash` translation goes.
+  provable); then this repository's `hash` translation goes. (2026-11-21: the three are proved, over this repository's
+  local `hash/crc32` model; the upstream proposal stands.)
 
 ### `encoding/binary`'s `Write`/`Read`, and protobuf at the bytes (2026-10-22, rafthttp stage 3, branch `rafthttp-plan`)
 
@@ -3401,3 +3407,16 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   stepped: they stay in zap's `opaqueInitsOk` (prove-initleft, which translated zap's other variables).
 - **Proposed (general).** Translate `Unix` and `unixTime` (as `Now`, which reads `Local` too) and prove
   `time.Unix.spec` (some `Time`, no panic: the divisions are by the constant `1e9`). **Status.** Recorded only.
+  (srvloops2, 2026-11-21) **Done**: Perennial's pin `c8e356cb1` has `Unix` and `time.Unix.spec`; zap's two
+  variables are translated and in zap's fact (`Proof/go_uber_org/zap/PkgInit.lean`, `etc/gen-init.py`).
+
+## 2026-11-21: `Time.Location` is names-only (`zap.Time`, `ensureLeadership`'s debug log)
+
+- **The gap.** `zap.Time(key, val)` builds its field from `val.UnixNano()` and `val.Location()`; Perennial's
+  `time` did not translate `Time.Location` (`l := t.loc; if l == nil { l = UTC }`), so `zap.Time` had no
+  provable spec, and `EtcdServer.ensureLeadership` (which logs `zap.Time` twice) stayed an axiom.
+- **Change (general).** `Time.Location` translated, `time.Time.Location.spec` (some `*Location`, `t.loc` when not
+  nil) proved over `UTC`'s global, held by time's `isInit`. **Status.** Landed on Perennial `lean` as
+  `7103946b3` (2026-11-21, srvloops2); the pin bump is pending (the coordinator's queue). With it,
+  `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
+  `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.

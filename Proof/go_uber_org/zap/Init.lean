@@ -4,14 +4,15 @@ Package initialization of `go_uber_org.zap`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+Its fact: `_minTimeInt64` and `_maxTimeInt64` hold fixed times (prove-srvloops2, 2026-11-21: `zap.Time`
+compares with them; until then `True`). Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-initleft, 2026-11-21; until then the trust-boundary axiom
 `opaqueInitsOk` covered them all): `errNoEncoderNameSpecified` (`errors.New`), the encoder constructors (a
 map literal of two func literals), `_errArrayElemPool` (`pool.New`, proved), `_globalL = NewNop()`
 (`zapcore.NewNopCore()`, `zapcore.AddSync(io.Discard)` over any writer, `zapcore.DefaultClock` from
 zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the interface assertion
-`var _ internal.LeveledEnabler = AtomicLevel{}`; `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, names only
-in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaqueInitsOk`.
+`var _ internal.LeveledEnabler = AtomicLevel{}`, and (prove-srvloops2) `_minTimeInt64`/`_maxTimeInt64`
+(`time.Unix`); `_sinkRegistry` (`newSinkRegistry`) stays untranslated, `opaqueInitsOk`.
 -/
 module
 
@@ -20,6 +21,7 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.atomic.Link
+public import Perennial.Proof.time.Link
 public import Proof.go_uber_org.zap.internal.Init
 public import Proof.go_uber_org.zap.internal.pool.Init
 public import Proof.go_uber_org.zap.zapcore.Init
@@ -53,9 +55,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([_minTimeInt64.init,
-        _maxTimeInt64.init,
-        _sinkRegistry.init] : List val),
+    ∀ v ∈ ([_sinkRegistry.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 end go_uber_org.zap

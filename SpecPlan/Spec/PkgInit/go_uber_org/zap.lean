@@ -4,6 +4,7 @@ module
 public import GeneratedProof.go_uber_org.zap
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap.zapcore
 public import Perennial.Proof.errors.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap.internal.pool

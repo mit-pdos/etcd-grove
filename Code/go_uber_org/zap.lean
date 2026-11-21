@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.fmt
+public import Perennial.Code.time
 public import Code.go_uber_org.zap.zapcore
 public import Perennial.Code.errors
 public import Code.go_uber_org.zap.internal.pool
@@ -242,10 +243,6 @@ noncomputable def invalidPairs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] invalidPairs.ty
 
-opaque durations.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque times.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 @[reducible] noncomputable def Field.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.go_uber_org.zap.zapcore.Field.ty
 
@@ -298,12 +295,8 @@ noncomputable def _errArrayElemPool [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def _minTimeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._minTimeInt64"
 
-opaque _minTimeInt64.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def _maxTimeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._maxTimeInt64"
-
-opaque _maxTimeInt64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _globalMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._globalMu"
@@ -1049,6 +1042,44 @@ noncomputable def Stringer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad Field.ty))) (Var "$res0"))))))
 
+/-- Time constructs a Field with the given key and value. The encoder
+    controls how the time is serialized.
+
+    go: field.go:347:6 -/
+noncomputable def Time.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "key"
+  (Lam "val"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Field.ty))) (App (Val (GoInstruction (GoZeroVal Field.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "val" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "val"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$v1" (Val #(W8 16))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"UnixNano"))) (Var "val")) (Val #()))
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Location"))) (Var "val")) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Field.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.FieldType.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Integer")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Interface")) (ElementExpression (go.GoType.PointerType _root_.Perennial.time.Location.ty) (Var "$v3")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GlobalVarAddr _minTimeInt64))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (Var "val")) (Var "$a0"))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GlobalVarAddr _maxTimeInt64))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"After"))) (Var "val")) (Var "$a0"))))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$v1" (Val #(W8 17))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "val"))
+  (App (Val (GoInstruction (CompositeLiteral Field.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.FieldType.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Interface")) (ElementExpression _root_.Perennial.time.Time.ty (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad Field.ty))) (Var "$res0"))))))
+
 /-- Duration constructs a field with the given key and value. The encoder
     controls how the duration is serialized.
 
@@ -1277,12 +1308,15 @@ noncomputable def Logger.clone.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap where
-  pkgImportedPkgs := [pkg_id.fmt, pkg_id.go_uber_org.zap.zapcore, pkg_id.errors, pkg_id.go_uber_org.zap.internal.pool, pkg_id.io, pkg_id.sync.atomic, pkg_id.go_uber_org.zap.internal]
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.time, pkg_id.go_uber_org.zap.zapcore, pkg_id.errors, pkg_id.go_uber_org.zap.internal.pool, pkg_id.io, pkg_id.sync.atomic, pkg_id.go_uber_org.zap.internal]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_uber_org.zap)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1348,7 +1382,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType errArrayElem.ty)))) (Var "$res0")))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.internal.pool.New [(go.GoType.PointerType errArrayElem.ty)]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W64 0))
+  (Let "$a1" (Val #(W64 (-9223372036854775808)))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Unix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W64 0))
+  (Let "$a1" (Val #(W64 9223372036854775807))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Unix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NewNop []))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1362,9 +1402,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Logger.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr _globalL))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _maxTimeInt64.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr _maxTimeInt64))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _minTimeInt64.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr _minTimeInt64))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType errArrayElem.ty)))))) (Pair (App (Val (GoInstruction (GlobalVarAddr _errArrayElemPool))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1373,6 +1413,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errNoEncoderNameSpecified))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.zapcore.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1391,6 +1433,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc _encoderNameToConstructor (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc _errArrayElemPool (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType errArrayElem.ty))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _minTimeInt64 _root_.Perennial.time.Time.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _maxTimeInt64 _root_.Perennial.time.Time.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc _globalL (go.GoType.PointerType Logger.ty))) (Val #()))))))
   (App (Val doExecute)
@@ -1508,22 +1554,17 @@ attribute [instance] complex64s.TypeAssumptions.underlying
   complex64s.TypeAssumptions.method_set
   complex64s.TypeAssumptions.ptr_method_set
 
-opaque durations.nonempty_type : NonemptyType.{0}
-def durations : Type := durations.nonempty_type.type
-instance durations.nonempty : Nonempty durations := durations.nonempty_type.property
-opaque durations.zero_val : ZeroVal durations := ⟨Classical.ofNonempty⟩
-attribute [instance] durations.zero_val
+abbrev durations [GooseExts] : Type := GoSlice
+
+@[reducible] noncomputable def durations.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.SliceType _root_.Perennial.time.Duration.ty)
 
 class durations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying durations.underlying durations
   underlying : go.UnderlyingDirectedEq durations.ty durations.underlying
-  isUnderlying : go.IsUnderlying durations.underlying durations.underlying
   method_set : go.MethodSetIs durations.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType durations.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
-attribute [instance] durations.TypeAssumptions.type_repr
-  durations.TypeAssumptions.underlying
-  durations.TypeAssumptions.isUnderlying
+attribute [instance] durations.TypeAssumptions.underlying
   durations.TypeAssumptions.method_set
   durations.TypeAssumptions.ptr_method_set
 
@@ -1639,22 +1680,17 @@ attribute [instance] stringArray.TypeAssumptions.underlying
   stringArray.TypeAssumptions.method_set
   stringArray.TypeAssumptions.ptr_method_set
 
-opaque times.nonempty_type : NonemptyType.{0}
-def times : Type := times.nonempty_type.type
-instance times.nonempty : Nonempty times := times.nonempty_type.property
-opaque times.zero_val : ZeroVal times := ⟨Classical.ofNonempty⟩
-attribute [instance] times.zero_val
+abbrev times [GooseExts] : Type := GoSlice
+
+@[reducible] noncomputable def times.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.SliceType _root_.Perennial.time.Time.ty)
 
 class times.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying times.underlying times
   underlying : go.UnderlyingDirectedEq times.ty times.underlying
-  isUnderlying : go.IsUnderlying times.underlying times.underlying
   method_set : go.MethodSetIs times.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType times.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
-attribute [instance] times.TypeAssumptions.type_repr
-  times.TypeAssumptions.underlying
-  times.TypeAssumptions.isUnderlying
+attribute [instance] times.TypeAssumptions.underlying
   times.TypeAssumptions.method_set
   times.TypeAssumptions.ptr_method_set
 
@@ -2428,9 +2464,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Uint64_unfold : FuncUnfold Uint64 [] Uint64.impl
   Uint32_unfold : FuncUnfold Uint32 [] Uint32.impl
   Stringer_unfold : FuncUnfold Stringer [] Stringer.impl
+  Time_unfold : FuncUnfold Time [] Time.impl
   Duration_unfold : FuncUnfold Duration [] Duration.impl
   NewNop_unfold : FuncUnfold NewNop [] NewNop.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zapcore_Assumption : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_pool_Assumption : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions
@@ -2496,9 +2534,11 @@ attribute [instance] Assumptions.objects_instance
   Assumptions.Uint64_unfold
   Assumptions.Uint32_unfold
   Assumptions.Stringer_unfold
+  Assumptions.Time_unfold
   Assumptions.Duration_unfold
   Assumptions.NewNop_unfold
   Assumptions.import_fmt_Assumption
+  Assumptions.import_time_Assumption
   Assumptions.import_zapcore_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_pool_Assumption
