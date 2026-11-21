@@ -47,6 +47,15 @@ theorem NewConflict.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
+  have hset : ∀ a b c : GoInterface,
+      ([a, GoInterface.nil, GoInterface.nil].set (sint.nat (W64 (0 + 1))) b).set
+        (sint.nat (W64 (0 + 1 + 1))) c = [a, b, c] := by
+    intro a b c
+    have h1 : sint.nat (W64 (0 + 1)) = 1 := by word
+    have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := by word
+    rw [h1, h2]
+    rfl
+  rw [hset]
   have hds : _root_.Perennial.fmt.fmtDirectives
       go!"Operation cannot be fulfilled on %s %q: %v" =
       some [⟨W8 115, false⟩, ⟨W8 113, false⟩, ⟨W8 118, false⟩] := by
