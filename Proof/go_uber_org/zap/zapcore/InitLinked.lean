@@ -54,6 +54,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Loc) _levelToCapitalColorString _ as H_levelToCapitalColorString
   wp_apply wp_GlobalAlloc (V := Loc) _levelToLowercaseColorString _ as H_levelToLowercaseColorString
   wp_apply wp_GlobalAlloc (V := w8) _unknownLevelColor _ as H_unknownLevelColor
@@ -183,8 +184,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   -- translated initializer of _levelToColor))
   -- translated initializer of _levelToColor))
+  ipersist HDefaultClock
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  iexists (zero_val go_uber_org.zap.zapcore.systemClock)
+  itrivial
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

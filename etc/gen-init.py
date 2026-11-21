@@ -3278,6 +3278,98 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
     heavy=True,
 ), ['errUnmarshalNilLevel'])
+# (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
+SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
+SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
+    'imodintro', f'iexists (zero_val {_ZC}.systemClock)', 'itrivial']
+# (prove-initleft, 2026-11-21) zap's package variables, translated but `_minTimeInt64`/`_maxTimeInt64`
+# (Perennial's `time.Unix` is names only) and `_sinkRegistry`
+_Z = 'go_uber_org.zap'
+_ZENC = (f'(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.{_ZC}.EncoderConfig.ty] false '
+         f'[_root_.Perennial.{_ZC}.Encoder.ty, go.error]))')
+SPECIAL[_Z] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-initleft, 2026-11-21; until then the trust-boundary axiom
+`opaqueInitsOk` covered them all): `errNoEncoderNameSpecified` (`errors.New`), the encoder constructors (a
+map literal of two func literals), `_errArrayElemPool` (`pool.New`, proved), `_globalL = NewNop()`
+(`zapcore.NewNopCore()`, `zapcore.AddSync(io.Discard)` over any writer, `zapcore.DefaultClock` from
+zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the interface assertion
+`var _ internal.LeveledEnabler = AtomicLevel{}`; `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, names only
+in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaqueInitsOk`.''',
+    alloc_types={'_encoderNameToConstructor': 'Loc', '_errArrayElemPool': 'Loc', '_globalL': 'Loc',
+                 '_globalS': 'Loc'},
+    before={
+        '_encoderNameToConstructor': map_lit_steps('Henc', 'GoString', 'GoFunc', 'go.string', _ZENC, 2),
+        '_errArrayElemPool': _zc_pool('pea'),
+        '_globalL': ['try wp_auto',
+                     'ihave #HNN : (iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) '
+                     'pkg_id.go_uber_org.zap.zapcore) : IProp GF) $$ []',
+                     '· isplitl []', '  · iexact {Hd:io}', '  · iexact {Hd:go_uber_org.zap.zapcore}',
+                     'wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl⟩', 'try wp_auto'],
+        '_globalS': ['try wp_auto', 'wp_apply (EtcdGrove.zap_wp_Sugar_init lgl vgl) $$ Hgl as %sgl Hgl', 'try wp_auto'],
+    },
+    pre=[
+        'section zapinit',
+        'variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]',
+        'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]',
+        'variable [package_sem : _root_.Perennial.go_uber_org.zap.Assumptions]',
+        '',
+        '/-- (prove-initleft) `zapcore.AddSync(w)` returns, whatever the writer (a type switch: `w` itself if',
+        'it is a `WriteSyncer`, else `writerWrapper{w}`). -/',
+        'theorem EtcdGrove.zap_wp_AddSync_init (w : GoInterface) :',
+        '    {{ (True : IProp GF) }} (App (Val (@! _root_.Perennial.go_uber_org.zap.zapcore.AddSync)) (Val #w))',
+        '    {{ (r : GoInterface), RET #r; True }} := by',
+        '  wp_start',
+        '  wp_auto',
+        '  rcases w with wo | _',
+        '  · wp_auto',
+        '    cases hws : go.typeSetContains wo.ty _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty',
+        '    all_goals (wp_auto; iapply HΦ; itrivial)',
+        '  · wp_auto',
+        '    iapply HΦ',
+        '    itrivial',
+        '',
+        '/-- (prove-initleft) `zap.NewNop()` before zap\'s `isPkgInit`: a new `Logger` (its body: `NewNopCore()`,',
+        '`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io\'s and zapcore\'s facts). -/',
+        'theorem EtcdGrove.zap_wp_NewNop_init :',
+        '    {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore }}',
+        '      (App (Val (@! _root_.Perennial.go_uber_org.zap.NewNop)) (Val #()))',
+        '    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v }} := by',
+        '  wp_start',
+        '  ihave #IO : (_root_.Perennial.io.isInit : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ Hpkg',
+        '  iNamed IO',
+        '  icases HDiscard with ⟨%wd, #HDiscard⟩',
+        '  ihave #ZC : (iprop(∃ c : _root_.Perennial.go_uber_org.zap.zapcore.systemClock, typedPointsto (globalAddr',
+        '      _root_.Perennial.go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard) : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ Hpkg2',
+        '  icases ZC with ⟨%dc, #HDC⟩',
+        '  wp_auto',
+        '  wp_func_call',
+        '  wp_call',
+        '  wp_auto',
+        '  wp_apply EtcdGrove.zap_wp_AddSync_init as %ws -',
+        '  try wp_auto',
+        '  iapply HΦ',
+        '  iexists _',
+        '  iframe',
+        '',
+        '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
+        'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
+        '    {{ (l ↦ v : IProp GF) }}',
+        '      (App (Val (l @!! go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty @!! go!"Sugar")) (Val #()))',
+        '    {{ (s : Loc), RET #s; l ↦ v }} := by',
+        '  wp_start as Hl',
+        '  wp_auto',
+        '  wp_method_call',
+        '  wp_call',
+        '  wp_auto',
+        '  iapply HΦ',
+        '  iframe',
+        '',
+        'end zapinit'],
+    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+), ['errNoEncoderNameSpecified'])
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates

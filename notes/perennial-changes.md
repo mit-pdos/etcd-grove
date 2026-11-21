@@ -3356,3 +3356,12 @@ rules already handle the nil map at the builtin boundary. The WAL verification
 needs the valid-key case for a pointer key. The WAL release proof passed against the merged commit. [Perennial PR #645](https://github.com/mit-pdos/perennial/pull/645)
 
 The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's previous Perennial revision `c44b74871`. The intervening upstream translation of `reflect.Type` changed instance selection in 32 trust collections. The backport keeps those collections comparable.
+
+## 2026-11-21: `time.Unix` is names-only (zap's `_minTimeInt64`/`_maxTimeInt64`)
+
+- **The gap.** Perennial's `time` translates `Now` and the `Time` methods but not `Unix` nor `unixTime`
+  (`time.go`: the seconds/nanoseconds normalization, then `Time{uint64(nsec), sec + unixToInternal, Local}`),
+  so zap's package variables `_minTimeInt64 = time.Unix(0, math.MinInt64)` and `_maxTimeInt64` cannot be
+  stepped: they stay in zap's `opaqueInitsOk` (prove-initleft, which translated zap's other variables).
+- **Proposed (general).** Translate `Unix` and `unixTime` (as `Now`, which reads `Local` too) and prove
+  `time.Unix.spec` (some `Time`, no panic: the divisions are by the constant `1e9`). **Status.** Recorded only.

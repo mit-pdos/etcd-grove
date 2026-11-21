@@ -13,7 +13,9 @@ translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
   "DefaultClock", "_sliceEncoderPool", "_", "_cePool", "_errArrayElemPool", "_jsonPool",
   "nullLiteralBytes", "errUnmarshalNilLevel", "_levelToColor", "_unknownLevelColor",
   "_levelToLowercaseColorString", "_levelToCapitalColorString", "init.0",
-  "Level.String", "Level.CapitalString"]
+  "Level.String", "Level.CapitalString",
+  # (prove-initleft, 2026-11-21) what `zap.NewNop` calls (zap's `_globalL = NewNop()`)
+  "NewNopCore", "AddSync"]
 imports = ["!*", "time", "io", "errors", "fmt", "sync", "go.uber.org/zap/internal/pool",
   "go.uber.org/zap/internal/color"]
 
