@@ -33,7 +33,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InitLinked
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.features.Init
 public import Proof.go_etcd_io.etcd.server.v3.lease.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.InitLinked
