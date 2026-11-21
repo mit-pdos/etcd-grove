@@ -5,8 +5,9 @@
 def skippedIn (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
   [∗list] j ∈ List.range' a (b - a), iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j ConfDecision.skip)
 
-def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
-  isStorageP γ.maxData.isSome (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
+def isStorage (γ : Cluster) (K : GName) (st : Storage) (SV : SnapshotM → IProp GF := snapshotValid
+    γ) : IProp GF :=
+  isStorageP γ.maxData.isSome SV (storBnd γ K) (nodeCommitLb γ K) st
 
 theorem nodeRunning_stopped [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (q :
     Qp) : nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False
@@ -130,8 +131,13 @@ theorem storBnd_intro_untraced [package_sem : Assumptions] (γ : Cluster) (K : G
 theorem nodeBoot_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     (id : w64) : Persistent (nodeBoot γ N vs ctxs id)
 
+theorem nodeTagPin_persistent (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) : Persistent
+    (nodeTagPin γ n SV)
+
 theorem nodeConfig_confAt [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (v :
     ConfigView) : nodeConfig n γ N v ⊢ nodeConfig n γ N v ∗ confAt γ v.applied v.membership
+
+def (sealed) nodeTagPin (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) : IProp GF
 
 theorem committed_emptyV2_joint [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) (k : Nat) (e : LogEntry) (m : Membership) : l[k]? = some e → e.isEmptyV2 → isCluster γ
@@ -179,7 +185,7 @@ def (sealed) nodeStartedFresh (n : Loc) (γ : Cluster) (N : Namespace) (vs : Lis
     (List w8)) (id : w64) : IProp GF
 
 def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat) (F :
-    GName → IProp GF) : IProp GF :=
+    GName → IProp GF) (SV : SnapshotM → IProp GF := snapshotValid γ) : IProp GF :=
   iprop(∃ i R f,
       ⌜st = GoInterface.ok i⌝ ∗
         ⌜σ.b ≤ f ∧ f ≤ σ.commit⌝ ∗
@@ -209,7 +215,7 @@ def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : Conf
                                 csPts cs DFrac.discard csm al ∗
                                   ∀ K,
                                     nodeAppliedLb γ K (max σ.b A) -∗
-                                      nodeCommitLb γ K σ.commit ={⊤}=∗ isStorage γ K st ∗ storHolds st σ f ∗ F K) -∗
+                                      nodeCommitLb γ K σ.commit ={⊤}=∗ isStorage γ K st SV ∗ storHolds st σ f ∗ F K) -∗
                               Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
                         WP
                           ((intoVal
@@ -237,6 +243,9 @@ theorem confDecide [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (D
 theorem ownConfDecisions_timeless (γ : Cluster) (D : GMap Nat ConfDecision) : Timeless
     (ownConfDecisions γ D)
 
+theorem nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) : Persistent
+    (nodeRestoreCert γ n sv)
+
 theorem ownSnapsMade_snapshotValid_data [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec)
     (sv : SnapshotM) : ownSnapsMade γ S ∗ snapshotValid γ sv ⊢ ⌜∃ r, r ∈ S ∧ r.data = sv.Data'⌝
 
@@ -248,6 +257,11 @@ theorem ownConfDecisions_witness [package_sem : Assumptions] (γ : Cluster) (D :
 
 theorem confDecided_persistent (γ : Cluster) (k : Nat) (d : ConfDecision) : Persistent (confDecided
     γ k d)
+
+theorem readySnapSources_msgSnap [package_sem : Assumptions] (γ : Cluster) (n : Loc) (ms : List
+    QMsg) (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) : ⊢
+    readySnapSources γ n ms -∗ nodeTagPin γ n SV -∗ ∃ sv, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨
+    nodeRestoreCert γ n sv)
 
 def (sealed) ownSnapsMade (γ : Cluster) (S : List SnapRec) : IProp GF
 
@@ -274,3 +288,5 @@ theorem snapshotCert_make [package_sem : Assumptions] (γ : Cluster) (N : Namesp
     cs m → ⊢ isCluster γ N -∗ isCommittedLogLb γ l -∗ confAt γ l.length m -∗ ownSnapsMade γ S ={E}=∗
     ownSnapsMade γ (S ++ [{ index := l.length, conf := m, data := d }]) ∗ snapshotCert γ N { sid :=
     { term' := t, index' := i }, cl := cs.lists, al := m.autoLeave, dat := d }
+
+def (sealed) nodeRestoreCert (γ : Cluster) (n : Loc) (sv : SnapshotM) : IProp GF

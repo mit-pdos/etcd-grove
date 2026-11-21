@@ -68,6 +68,8 @@ abbrev RestartNode.spec : Prop :=
     (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership)
     (Q : RaftState → IProp GF) (F : GName → IProp GF),
   -- `NewRawNode`'s premises
+  ∀ (SV : SnapshotM → IProp GF) [∀ sv, Persistent (SV sv)],
+  (∀ sv, SV sv ⊢ snapshotValid γ sv) →
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
@@ -110,7 +112,7 @@ abbrev RestartNode.spec : Prop :=
       AU <{ ∃∃ (S : RaftState), ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q S }> ∗
       confAt γ a m ∗
-      restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F }}
+      restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F SV }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
       ∃ (n : Loc) (S : RaftState) (l : List LogEntry) (K : GName),
@@ -122,7 +124,7 @@ abbrev RestartNode.spec : Prop :=
         ⌜(LogEntry.toEntries l 0).drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
         nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
         nodeConfig n γ N ⟨a, m⟩ ∗
-        nodeRunning n γ N 1 ∗
+        nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗
         Q S ∗ F K }}
 
 end spec

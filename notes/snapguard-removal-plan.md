@@ -5,8 +5,22 @@
 The main raft build checks `isStorageP_mono_SV`, the tagged storage contract
 `isStorageT`, the tagged memory-storage invariant, its allocation
 `memStorInvT_alloc`, and its contract law `memStorage_isStorageT`. Existing
-clients can keep their original validity predicate. The tag still needs to
-reach the startup and Ready interfaces before the server can use it.
+clients can keep their original validity predicate. Both startup functions now accept any persistent storage certificate that entails
+`snapshotValid` and return its `nodeTagPin`. Existing clients instantiate the
+certificate with `snapshotValid`. The Ready receive now exposes `readySnapSources` at the node object for the
+handed-out messages. Applying `readySnapSources_msgSnap` to one of them and the
+startup pin gives either the client's storage certificate (under a later) or
+the restore-path certificate. R2 still has to establish the term and position
+of that restore in the node's history.
+
+## Snapshot sender evidence (2026-11-20)
+
+`sentMsg_localSnapshotLeader` identifies the node that sent a queued snapshot
+as an elected leader in the message term. Its proof gets the id from the
+outbox invariant and the election certificate from the protocol message.
+`snapshotLeader_terms_ne` rules out equal terms for two distinct leaders.
+The remaining comparison needs the term of the *local restore* and the
+position of the Ready batch in the apply thread.
 
 ## HANDOFF (2026-11-20, first session paused by the coordinator)
 
