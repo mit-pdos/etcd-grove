@@ -12,7 +12,6 @@
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/(Results|TopLevelRobustness)\.lean$
 axiom Perennial.encoding.json.initFuncsOk
 axiom Perennial.encoding.json.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.fields.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.runtime.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.validation.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
