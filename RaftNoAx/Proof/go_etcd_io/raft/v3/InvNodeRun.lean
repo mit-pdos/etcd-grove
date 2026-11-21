@@ -775,8 +775,11 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       · rw [h2]; iexact Hsloc
       · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
         isplitr
-        · rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
-        ipureintro; show _ < uint.Z sv0.Metadata'.Index'; omega
+        · isplitr
+          · rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
+          ipureintro; show _ < uint.Z sv0.Metadata'.Index'; omega
+        iapply restoredSnapSource_of_message γ id m sv0 scfg0
+          (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) $$ Hm0
     -- (2026-10-28, stage U3c) in either mode: the ghost part at a new full prefix (a restore's)
     obtain ⟨fp', ds', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
     ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp', ds'⟩) cf id s' $$ [Hghost]
