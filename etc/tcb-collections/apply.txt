@@ -12,9 +12,6 @@ axiom envVerifyOffTok
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kvHasher.Hash.wp_proof
-axiom mvcc.kvHasher.WriteKeyValue.wp_proof
-axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof

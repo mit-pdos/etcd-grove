@@ -5,6 +5,7 @@ attaches). Lean-first (the request path's unit 4c).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MonitorsOn
 
 @[expose] public section
@@ -30,13 +31,16 @@ back: `semverValid`), with the permission `srvMonitorPermitM` gives (in either a
 `InvMonitors.lean`; until then the contract took only the package's initialization, and its
 proposals were outside the model). (2026-11-02, the cluster-rows stage: its versions are not above
 the server's, `Major.Minor.0` of the members' minimum with the local member's among them, or
-`3.0.0`; `monitorReq lid`.) -/
+`3.0.0`; `monitorReq lid`.) (srvloops2, 2026-11-21, bounds B2 for `lgMu`) With
+`GoAttach`'s pool of `s.lgMu` reader slots (`raftPool (srvLgReader s)`, `srvGoAttachOk`'s, persistent) and a
+level-1 token (`levelTok 1`, given back), with which `Logger()` borrows a slot for its read lock (until then
+`Logger()` read-locked without one: what the spec now rules out). -/
 abbrev EtcdServer.monitorClusterVersions.spec : Prop :=
   ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvMonitorPermitM on s E ρ }}
+      srvMonitorPermitM on s E ρ ∗ raftPool (srvLgReader s) ∗ levelTok 1 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorClusterVersions")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 1 }}
 
 end spec
 

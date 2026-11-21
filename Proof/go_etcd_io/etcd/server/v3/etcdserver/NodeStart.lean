@@ -118,8 +118,13 @@ theorem rnFixed_split (a : Loc) (rv : raftNode) :
 /-- **Installing the wrapper** (see the file header): the struct value `rv` at `a` (the server's
 `r` field, after the copy and the transport set), its fresh `tickMu`, the components' predicates
 and what the node and the server provide give `isRaftNode E γ a` and the right to close `done`.
-A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RWMutex`). -/
-theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : raftNode) :
+A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RWMutex`), and
+(srvloops2, 2026-11-21, bounds B2 for `tickMu`) its reader slots become the pools `rnTickPool` (thread
+pools at levels 3 and 4, half of the lock's `2 ^ 30 - 1` slots each, under `threadBound GF ≤ 2 ^ 29`);
+the node is raft's (`Hnode`, recorded in `isRaftNode`). -/
+theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : raftNode)
+    (Hnode : rv.raftNodeConfig'.Node' = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γ.nl)
+    (Hbnd : threadBound GF ≤ 2 ^ 29) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnLogFits γ ∗ rnReadStateBridge E γ ∗
       -- (restart S3 item 7) the restart data
@@ -149,7 +154,20 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
   · iPkgInit
   imod sync.init_RWMutex (rnTickInv a) rv.tickMu' $$ [latestTickTsR] Hmu with Hslots
   · inext; iunfold rnTickInv; iexists rv.latestTickTs'; iexact latestTickTsR
-  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hmug⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hmug⟩
+  -- (srvloops2) `tickMu`'s pools at levels 3 and 4, half of the slots each
+  have hsplit : Int.toNat sync.rwmutex.actualMaxReaders = (2 ^ 29 - 1) + 2 ^ 29 := by
+    rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+  ihave ⟨Hs3, Hs4⟩ : ([∗list] _x ∈ List.replicate (2 ^ 29 - 1) (),
+      sync.ownRWMutex rv.tickMu' (rnTickInv a)) ∗
+      [∗list] _x ∈ List.replicate (2 ^ 29) (), sync.ownRWMutex rv.tickMu' (rnTickInv a) $$ [Hslots]
+  · rw [hsplit, ← List.replicate_append_replicate]
+    iapply BigSepL.bigSepL_append.1
+    iexact Hslots
+  imod threadPool.initL (rnTickPoolN 3) 3 (sync.ownRWMutex rv.tickMu' (rnTickInv a)) ⊤
+      (2 ^ 29 - 1) (by omega) $$ Hs3 with ⟨%γt3, #Htp3⟩
+  imod threadPool.initL (rnTickPoolN 4) 4 (sync.ownRWMutex rv.tickMu' (rnTickInv a)) ⊤
+      (2 ^ 29) (by omega) $$ Hs4 with ⟨%γt4, #Htp4⟩
   imodintro
   isplitr
   · iunfold isRaftNode
@@ -161,8 +179,15 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
     iframe #
     isplitr
     · ipureintro; exact Hmsγ
-    rw [Hmsγ]
-    iexact Hmsi
+    isplitr
+    · rw [Hmsγ]; iexact Hmsi
+    isplitr
+    · ipureintro; exact Hnode
+    iunfold rnTickPool
+    iintro %l %hl
+    rcases hl with rfl | rfl
+    · iexists γt3; iexact Htp3
+    · iexists γt4; iexact Htp4
   · iframe NodeC transportC
     iunfold rnDoneTok
     iexists rv.done', rv.raftNodeConfig'.storage'
@@ -781,7 +806,9 @@ abbrev NodeStartSpec : Prop :=
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             srvRdCtxInv E.γr.raft issued -∗
             rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
-            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
+            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) -∗
+            -- (srvloops2, 2026-11-21) the bound `tickMu`'s pool of reader slots needs
+            ⌜threadBound GF ≤ 2 ^ 29⌝ ={⊤}=∗
             isRaftNode E γw a ∗ rnDoneTok γw a ∗
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
@@ -880,7 +907,9 @@ abbrev NodeStartSpecR : Prop :=
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             srvRdCtxInv E.γr.raft issued -∗
             rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
-            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
+            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) -∗
+            -- (srvloops2, 2026-11-21) the bound `tickMu`'s pool of reader slots needs
+            ⌜threadBound GF ≤ 2 ^ 29⌝ ={⊤}=∗
             isRaftNode E γw a ∗ rnDoneTok γw a ∗
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗

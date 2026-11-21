@@ -14,6 +14,7 @@ public import Code.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.Code.errors
 public import Perennial.Code.math
 public import Code.go_etcd_io.bbolt.errors
+public import Code.syscall
 public import Code.github_com.prometheus.client_golang.prometheus
 public import Code.encoding.hex
 public import Perennial.Code.sort
@@ -202,8 +203,6 @@ noncomputable def safeRangeBucketNames [GooseExts] [GoGlobalContext] : GoString 
 
 noncomputable def boltOpenOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.boltOpenOptions"
-
-opaque boltOpenOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def commitSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.commitSec"
@@ -3711,7 +3710,7 @@ noncomputable def VerifyBackendConsistency.impl [GooseExts] [GoGlobalContext] : 
   (Val #()))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.backend where
-  pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.io, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
+  pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.io, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.syscall, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -3719,6 +3718,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.backend)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3758,6 +3759,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 30)) (Val #(W64 1000000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.Options.ty))) (Let "$v0" (Val #(W64 32768))
+  (Let "$v1" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.bbolt.Options.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MmapFlags")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"NoFreelistSync")) (ElementExpression go.bool (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
   (Let "$v1" (Val #(go!"disk"))
@@ -3862,7 +3866,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr commitSec))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val boltOpenOptions.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Options.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr boltOpenOptions))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr minSnapshotWarningTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -3900,6 +3904,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.bbolt.errors.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.hex.initialize') (Val #()))))))
@@ -3915,6 +3921,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc InitialMmapSize go.uint64)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc minSnapshotWarningTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc boltOpenOptions (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Options.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc commitSec _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -5215,6 +5223,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_math_Assumption : _root_.Perennial.math.Assumptions
   import_bbolt_errors_Assumption : _root_.Perennial.go_etcd_io.bbolt.errors.Assumptions
+  import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
   import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_hex_Assumption : _root_.Perennial.encoding.hex.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
@@ -5277,6 +5286,7 @@ attribute [instance] Assumptions.Backend_instance
   Assumptions.import_errors_Assumption
   Assumptions.import_math_Assumption
   Assumptions.import_bbolt_errors_Assumption
+  Assumptions.import_syscall_Assumption
   Assumptions.import_prometheus_Assumption
   Assumptions.import_hex_Assumption
   Assumptions.import_sort_Assumption
