@@ -215,7 +215,6 @@ axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
 axiom http.RespCloseAny_ok
 axiom http.RespClose_ok
-axiom http.StatusText_ok
 axiom http.URLStringAny_ok
 axiom http.URLString_ok
 axiom http.WithContext_ok

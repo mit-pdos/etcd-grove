@@ -199,9 +199,10 @@ private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : 
 /-- **The certificate link of fresh storage names** (`certLink`): their `SV` pin the API's
 `snapshotValid`, their snapshot pin raft's certificate. -/
 private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N) (sn : StorNames)
+    (Cert : SnapshotM → IProp GF) (hCert : ∀ sv, Cert sv ⊢ EtcdGrove.snapshotValid γ sv)
     (hsz : sn.sz = γ.raft.maxData.isSome) :
     ⊢ clusterInv (GF := GF) γ N -∗
-      savedPredOwn sn.gsv DFrac.discard (EtcdGrove.snapshotValid (GF := GF) γ) -∗
+      savedPredOwn sn.gsv DFrac.discard Cert -∗
       savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗
       ctCommitted γ.raft sn -∗ certLink γ.raft sn := by
   iintro #Hci #Hsv #Hgk #Hct
@@ -223,11 +224,12 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
     unfold svCert
     icases Hc with ⟨%SV, #Hp, #HSV⟩
     ihave #Heq := saved_pred_agree sn.gsv DFrac.discard DFrac.discard SV
-      (EtcdGrove.snapshotValid (GF := GF) γ) sv $$ Hp Hsv
+      Cert sv $$ Hp Hsv
     ihave Hv : ▷ EtcdGrove.snapshotValid (GF := GF) γ sv $$ []
     · inext
       ihave Hiff := internalEq_iff _ _ $$ Heq
       icases Hiff with ⟨Hiff, -⟩
+      iapply hCert sv
       iapply Hiff $$ HSV
     have : Timeless (EtcdGrove.snapshotValid (GF := GF) γ sv) := by
       have : ∀ s, Timeless (snapMadeU (GF := GF) γ s) := fun s => by
@@ -407,7 +409,7 @@ private theorem wp_RestartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec
-  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk
+  intro γ N c cv lok si σ csm a m Q F Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk
     HtrC
   have HtrG : γ.raft.reTrace = none := HtrC
   wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
@@ -542,7 +544,7 @@ private theorem wp_RestartNode_impl
   imod mono_nat_own_alloc (GF := GF) (uint.nat σ.base.index') with ⟨%ga, Hga, #Hgalb⟩
   imod mono_nat_own_alloc (GF := GF) σ.b with ⟨%gg, Hgg, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := w64) with ⟨%gdd, Hgd⟩
-  imod saved_pred_alloc (EtcdGrove.snapshotValid (GF := GF) γ) DFrac.discard trivial
+  imod saved_pred_alloc Cert DFrac.discard trivial
     with ⟨%gsv, #Hsv⟩
   imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
   let sn : StorNames :=
@@ -560,7 +562,7 @@ private theorem wp_RestartNode_impl
     obtain ⟨h1, h2, h3⟩ := restartCt_mem HcF hm
     refine ⟨h1, ?_⟩
     rw [List.getElem?_take, ite_eq_left (by omega)]; exact h3
-  ihave #Hlink := certLink_make γ N HU sn rfl $$ Hci Hsv Hgk Hct
+  ihave #Hlink := certLink_make γ N HU sn Cert hCert rfl $$ Hci Hsv Hgk Hct
   ihave HA : storAuths (GF := GF) sn.unrec σv $$ [Hga Hgg Hgd]
   · ihave #Hcu := storCaught_unrec (GF := GF) sn 1 _ $$ Hga
     unfold storAuths
@@ -697,7 +699,7 @@ private theorem wp_RestartNode_impl
     isplitl [Hst]
     · iapply isStorage_of_V
       unfold isStorageV
-      iexists EtcdGrove.snapshotValid (GF := GF) γ, EtcdGrove.storBnd (GF := GF) γ K,
+      iexists Cert, EtcdGrove.storBnd (GF := GF) γ K,
         EtcdGrove.nodeCommitLb (GF := GF) γ K
       isplitl [Hst]
       · iunfold EtcdGrove.isStorage at Hst
@@ -711,7 +713,8 @@ private theorem wp_RestartNode_impl
         iapply storBnd_raftBnd γ K sn c' $$ HKn Hga0 Hb
       · iintro !> %sv Hv Hd
         imodintro
-        iapply storDL_raftDL γ K sn sv $$ HKn Hv Hd
+        ihave Hvalid := hCert sv $$ Hv
+        iapply storDL_raftDL γ K sn sv $$ HKn Hvalid Hd
     isplitl [Hsh HA]
     · iunfold storHolds at Hsh
       icases Hsh with ⟨%e0, %He0, #Hc0, #Hl0, #Hlf, Hown, Hend⟩
@@ -1036,6 +1039,11 @@ private theorem wp_RestartNode_impl
   haveI := nodeTabOk_persistent (GF := GF) γ n_ptr γn
   ihave #Htb : nodeTabOk (GF := GF) γ n_ptr γn $$ []
   · unfold nodeTabOk; iexact Hte
+  ihave #Htag : EtcdGrove.nodeTagPin γ n_ptr Cert $$ []
+  · iunfold EtcdGrove.nodeTagPin
+    iexists γn
+    iframe Htb
+    iExactEq Hsv; rfl
   ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1 Hgen1]
   · unfold nodeLiveRaw; iframe Hlive1 Hgen1
   ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2 Hgen2]
@@ -1103,7 +1111,7 @@ private theorem wp_RestartNode_impl
   iexists n_ptr, S, strip ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))), K
   isplitr
   · ipureintro; rfl
-  iframe HQ HFK
+  iframe HQ HFK Htag
   isplitr
   · iunfold EtcdGrove.isNode
     unfold isNode

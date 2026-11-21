@@ -772,8 +772,85 @@ theorem storBnd_cap (γ : Cluster) (K : GName) (c : Nat) :
 returns objects at contents of bounded size, cut at `maxSize` when `maxSize ≤ 2^20` (`isStorageP`'s
 flag); what raft's `MsgApp` size bound and the handed-out entries' (`Cluster.outEnt_size`) rest on.
 A cluster without the bound (`maxData = none`, kv's) asks nothing more of its storage. -/
-def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
-  isStorageP γ.maxData.isSome (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
+def isStorage (γ : Cluster) (K : GName) (st : Storage)
+    (SV : SnapshotM → IProp GF := snapshotValid γ) : IProp GF :=
+  isStorageP γ.maxData.isSome SV (storBnd γ K) (nodeCommitLb γ K) st
+
+/-- The node pinned this certificate for snapshots returned by its storage at attach. -/
+@[no_expose] def nodeTagPin (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) : IProp GF :=
+  iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗ savedPredOwn γn.sn.gsv DFrac.discard SV)
+
+instance nodeTagPin_persistent (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) :
+    Persistent (nodeTagPin γ n SV) := by
+  unfold nodeTagPin
+  haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
+  infer_instance
+
+/-- The certificate carried by the received-snapshot path of this node. -/
+@[no_expose] def nodeRestoreCert (γ : Cluster) (n : Loc) (sv : SnapshotM) : IProp GF :=
+  iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗
+    ksnCert γn.sn (snapTrip sv sv.Metadata'.ConfState'.lists))
+
+instance nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) :
+    Persistent (nodeRestoreCert (GF := GF) γ n sv) := by
+  unfold nodeRestoreCert
+  haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
+  infer_instance
+
+/-- For an outgoing MsgSnap, the storage supplied its pinned certificate or raft
+carried the certificate for a received snapshot. The later comes from saved
+predicate agreement and applies only to the client-selected certificate. -/
+theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (ms : List QMsg)
+    (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
+    ⊢ readySnapSources (GF := GF) γ n ms -∗ nodeTagPin γ n SV -∗
+      ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert γ n sv) := by
+  haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
+  unfold readySnapSources ApiImpl.snapSources nodeTagPin
+  iintro ⟨%γn, #Htab, #Hs⟩ ⟨%γp, #Htabp, #Hpin⟩
+  iunfold qSrcs at Hs
+  ihave ⟨#Hq, -⟩ := BigSepL.bigSepL_mem_acc hq $$ Hs
+  iunfold qSrc at Hq
+  iunfold tsSrc at Hq
+  icases Hq with (%Hne | ⟨%sv, %Hsv, Hc⟩)
+  · exact False.elim (Hne ht)
+  iexists sv
+  isplitr
+  · ipureintro; exact Hsv
+  icases Hc with (Hc | Hc)
+  · ileft
+    ihave %He := ApiImpl.nodeTabOk_agree γ n γn γp $$ Htab Htabp
+    have Hkey : γn.sn.gsv = γp.sn.gsv := congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.1) He
+    iunfold svCert at Hc
+    icases Hc with ⟨%P, #Hp, #HP⟩
+    ihave #Hp' : savedPredOwn γp.sn.gsv DFrac.discard P $$ []
+    · rw [← Hkey]; iexact Hp
+    ihave #Heq := saved_pred_agree γp.sn.gsv DFrac.discard DFrac.discard P SV sv $$ Hp' Hpin
+    inext
+    ihave ⟨Hiff, -⟩ := internalEq_iff _ _ $$ Heq
+    iapply Hiff $$ HP
+  · iright
+    unfold nodeRestoreCert
+    iexists γn
+    iframe Htab Hc
+
+/-- A storage whose nonempty snapshots also carry the client's source tag. -/
+def isStorageT (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) (st : Storage) : IProp GF :=
+  isStorageP γ.maxData.isSome (fun sv => iprop(snapshotValid γ sv ∗ Tg sv))
+    (storBnd γ K) (nodeCommitLb γ K) st
+
+theorem isStorageT_forget (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) (st : Storage) :
+    isStorageT γ K Tg st ⊢ isStorage γ K st := by
+  apply isStorageP_mono_SV
+  intro sv
+  iintro ⟨H, -⟩
+  iexact H
+
+theorem isStorage_tagTrue (γ : Cluster) (K : GName) (st : Storage) :
+    isStorage (GF := GF) γ K st ⊢ isStorageT γ K (fun _ => iprop(True)) st := by
+  apply isStorageP_mono_SV
+  intro sv
+  iintro H
+  iframe H
 
 /-- (2026-11-01, durability stage I-4) **The storage `st` holds the contents `σ`**, as the storage
 contract states its log: compacted at the base, the base's entry (of the base's term) frozen, the
@@ -804,7 +881,7 @@ client allocating its storage's invariant at `K` in the continuation has it at t
 made once `InitialState` returned: the contract comes in `InitialState`'s post. Each attach has its
 key, so a key's bounds are one node's. -/
 def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat)
-    (F : GName → IProp GF) : IProp GF :=
+    (F : GName → IProp GF) (SV : SnapshotM → IProp GF := snapshotValid γ) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk) (R : IProp GF) (f : Nat), ⌜st = interface.ok i⌝ ∗
     -- (2026-11-01, durability stage II (k)) the freeze point: the stored entries up to `f`, committed,
     -- frozen (`storHolds`), so that the client may have made a snapshot among them before the attach
@@ -817,7 +894,7 @@ def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : Conf
        {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
           hsOpt hp σ.hs ∗ csPts cs DFrac.discard csm al ∗
           ∀ K : GName, nodeAppliedLb γ K (max σ.b A) -∗ nodeCommitLb γ K σ.commit -∗
-            |={⊤}=> isStorage γ K st ∗ storHolds st σ f ∗ F K }}))
+            |={⊤}=> isStorage γ K st SV ∗ storHolds st σ f ∗ F K }}))
 
 /-- (raft-final, 2026-10-29, U8: the WIP's `snapshotCert_valid`) **A certified snapshot is valid**:
 a `Ready`'s snapshot (`readySnap`'s certificate, its index past `0` and below `2^61`) is what
