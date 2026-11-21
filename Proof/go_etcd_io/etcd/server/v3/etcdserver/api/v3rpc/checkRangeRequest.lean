@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 theorem v3rpc.checkRangeRequest.wp_proof :
     v3rpc.checkRangeRequest.spec (GF := GF) (hG := hG) := by
-  intro r o
-  wp_start as #Hr
+  intro r dq o
+  wp_start as Hr
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨#HeK, #HeS, -, -, -, -, -⟩, Hmaps, -⟩
@@ -39,14 +39,25 @@ theorem v3rpc.checkRangeRequest.wp_proof :
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeK HeS
   icases HeK with ⟨%eK, #HeK, #SeK⟩
   icases HeS with ⟨%eS, #HeS, #SeS⟩
-  iunfold txn.rangeRequestIs at Hr
+  iunfold txn.rangeRequestAt at Hr
   icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co,
-    %minM, %maxM, %minC, %maxC, #Hk, #Hks, -, -, -, -, #Ho, #Ht, -, -, -, -, -, -, -, %Hop, -⟩
+    %minM, %maxM, %minC, %maxC, Hk, #Hks, #He, #Hes, Hlim, Hrev, #Ho, #Ht, #Hser, #Hko, #Hco, #HminM,
+    #HmaxM, #HminC, #HmaxC, %Hop, %Hkb⟩
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
-  subst Hop
   wp_auto
+  -- (auth-mediation M3) past the key's load, the request back together
+  ihave Hr : txn.rangeRequestAt r dq o $$ [Hk Hlim Hrev]
+  · iunfold txn.rangeRequestAt
+    isplitr
+    · ipureintro; exact Hrn
+    iexists ksl, esl, k, e, rev, limit, order, target, ser, ko, co, minM, maxM, minC, maxC
+    iframe Hk Hlim Hrev
+    iframe #
+    ipureintro; exact ⟨Hop, Hkb⟩
+  subst Hop
   wp_if_destruct
   · iapply HΦ
+    iframe Hr
     have hk : k = [] := by
       apply List.eq_nil_of_length_eq_zero; word
     simp only [v3rpc.rangeCheck, txn.rangeOpOf, hk, ↓reduceIte]
@@ -62,6 +73,7 @@ theorem v3rpc.checkRangeRequest.wp_proof :
   wp_if_destruct
   rotate_left
   · iapply HΦ
+    iframe Hr
     have ho : ¬ (0 ≤ sint.Z order ∧ sint.Z order ≤ 2) := fun h => Hif ((HMo order).2 h)
     simp only [v3rpc.rangeCheck, v3rpc.sortOrderKnown, txn.rangeOpOf, hk, hz, ho, ↓reduceIte, _root_.and_self, _root_.and_true, _root_.true_and, ite_self,
       decide_false, Bool.not_false]
@@ -74,6 +86,7 @@ theorem v3rpc.checkRangeRequest.wp_proof :
   wp_if_destruct
   rotate_left
   · iapply HΦ
+    iframe Hr
     have ht : ¬ (0 ≤ sint.Z target ∧ sint.Z target ≤ 4) := fun h => Hif ((HMt target).2 h)
     simp only [v3rpc.rangeCheck, v3rpc.sortOrderKnown, v3rpc.sortTargetKnown, txn.rangeOpOf, hk,
       hz, ho, ht, ↓reduceIte, _root_.and_self, _root_.and_true, _root_.true_and, ite_self, decide_false, _root_.decide_true, Bool.not_false, Bool.not_true,
@@ -82,6 +95,7 @@ theorem v3rpc.checkRangeRequest.wp_proof :
     iexists eS; iframe HeS; itrivial
   have ht : 0 ≤ sint.Z target ∧ sint.Z target ≤ 4 := (HMt target).1 Hif
   iapply HΦ
+  iframe Hr
   simp only [v3rpc.rangeCheck, v3rpc.sortOrderKnown, v3rpc.sortTargetKnown, txn.rangeOpOf, hk,
     hz, ho, ht, ↓reduceIte, _root_.and_self, _root_.and_true, _root_.true_and, ite_self, _root_.decide_true, Bool.not_true, Bool.false_eq_true]
   unfold v3rpc.checkRes

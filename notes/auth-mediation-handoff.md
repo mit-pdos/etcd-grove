@@ -2,26 +2,25 @@
 
 ## START HERE
 
-- **M4 at its land stop** (approved by the user 2026-11-21): lean `a5dbbadebd` merged, full timed build
-  `20261121-043014-3987002` green, tcb `--check` matches (606, 2), 71 collections match, gen-link modes, interfaces
-  `--check --layout`, tier, gen-init, goose, mode 456, bounds 399, axiom-tok, auth-mediation and the other gate scripts
-  pass. Waits for etcd-grove-03 to land; do not commit to the branch until then. **M3 waits on Q4** (questions.md: the keys-only race; fork fix vs margin).
-- M0-M2 are on lean (`3c8804f01f`). M3/M4: worktree `/shared/etcd-grove-authm3`, branch `auth-mediation-m3`
-  (off lean `3c8804f01f`), agent of etcd-grove-03. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
-  `PERENNIAL_DIR=/shared/perennial-c44b74871`. Decisions: `questions.md` (untracked, worktree root).
-- M4 as done: `adminTieAr` (`KVAuthModel.lean`) rejected case `¬ auth.adminOk st (principal)`; `ReqOn.lean`:
-  `resultIsM`, `appliedErrM` (mode-uniform; + `appliedErr_of_M`, `appliedErrM_intro`); `raftRequest.spec`'s and
-  `adminOutOn`'s error branches `appliedErrM E.authOn` (not `true`: the mode ratchet's lit-mode count); consumers
-  (Put, DeleteRange, Txn, ModeSpecs) forget with `appliedErr_of_M`. Ledger entry 2026-11-21 (M4). Table: the five
-  admin kinds the mode-on proposer admits (`adminPropOk`) state the reason; the seven other Auth rows say why not.
-- M3 state (unchanged by M4): `rangeStream`/`adjustChunkLimit` names only; vocabulary `RangeStreamDefs.lean`; the
-  axiom `EtcdServer.rangeStream.wp_proof` NOT linked (not in any Link, so in no trust base); review
-  `notes/axiom-review/rangestream.md`; Go tests `examples/authmedrangestream/`;
-  `nonissues/etcd-rangestream-keysonly-index-key-race.md` (Q4); `doSerialize.spec` strengthened (Q2); the draft
-  `Spec/.../EtcdServer__RangeStream.lean`. Row 2 stays `none`.
-- M3 next (once Q4 is answered): prove `EtcdServer.RangeStream` (model: `Range`'s on-branch), the `RangeRequest`
-  getters at `↦{dq}`; `kvServer.RangeStream`; Links (`--server`, `--v3rpc`); row 2 -> `e2e`; the axiom in
-  `etc/tcb-baseline.txt` and the server/v3rpc collections; `notes/audit.md`'s row.
+- **M4 landed on lean** (`dc24475728`). **M3 in progress** (2026-11-21): worktree `/shared/etcd-grove-authm3fix`,
+  branch `auth-m3-forkfix` (off lean `dc24475728`), agent of etcd-grove-03. Pin c8e356cb1:
+  `--packages=/shared/tmp/manifest-c8e.json`, `PERENNIAL_DIR=/shared/perennial-c8e356cb1`. Decisions: `questions.md`
+  (untracked, worktree root; Q4 decided: option (i), the fork fix).
+- Fork: etcd pin `4416a5786` (branch `goose-lean-rangestream-clone` of `upamanyus/etcd`, local checkout
+  `/shared/tmp/authm3fix/etcd`, upstream etcd-io/etcd@9acc0ebe37 cherry-picked): NOT pushed; the user pushes it
+  (`git -C /shared/tmp/authm3fix/etcd push origin goose-lean-rangestream-clone`) before the coordinator lands.
+  Translate with `etc/goose.py --project etcd --src etcd=/shared/tmp/authm3fix/etcd --perennial /shared/perennial-c8e356cb1`.
+  `TestConcurrentKeysOnly` passes with `-race` at the fork (rerun 2026-11-21).
+- M3 as done: `headerFillingRangeStream.Context` translated (`v3rpc.toml`); `txn.rangeRequestAt r dq o`
+  (`txn/RequestAt.lean`) and the readers over it (getters `GetKey`/`GetLimit`/`GetRevision` at `↦{dq}`,
+  `HasRevisionFilters`, `checkRangeRequest`, `checkRangeStreamRequest`; ledger 2026-11-21); proofs
+  `EtcdServer__RangeStream.lean` (over the axiom `EtcdServer.rangeStream.wp_proof` and `doSerialize`) and
+  `kvServer__RangeStream.lean` (spec new, vocabulary `v3rpc/RangeStreamOut.lean`: `rangeChunkOut`); Links
+  (`--server`, `--v3rpc`); row 2 `e2e` (`etc/auth-table.txt`, `ClientPortTable.lean`, `Results.lean`);
+  `notes/audit.md` row. The axiom joins the linked trust base (approved: Q1 option (B)).
+- Next: whatever of the above is not yet checked (`git log`); full timed build; tcb `--check --update` (+1 axiom
+  expected: `EtcdServer.rangeStream.wp_proof`) and the server/v3rpc collections; `etc/auth-mediation-check.py
+  --check --update`; `etc/gates.sh`; STATUS entry; then STOP at the land stop.
 
 ## M4 proposal (approved 2026-11-21; implemented in `a351492b8d`)
 
