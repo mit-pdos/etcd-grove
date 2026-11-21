@@ -3845,3 +3845,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   as `Leases.spec` does; the server's callers (`LessorOk.lean`'s contract, `NewServer`'s promotion on becoming
   leader) supply them. Not applied: it changes the server's lessor contract.
 - **Decision.** Open (the axiom stays).
+
+## 2026-11-21 · the backend image can be ahead of the merged snapshot's apply cursor
+
+- **Spec.** `EtcdServer.createMergedSnapshotMessage` and `MemoryStorage.Entries`.
+- **Defect.** The old sender postcondition fixed the label at the apply cursor.
+  A restarted leader may already have a later committed image. The storage
+  read postcondition allowed a strict prefix even for an unlimited read.
+- **Evidence.** The Go regression reopens an image at index 7 with entry
+  term 2 and recovered commit 3. The Raft storage implementation returns
+  the entire requested interval for an unlimited successful read.
+- **Decision.** The implementation proof uses the image's index, its entry
+  term, and its configuration. It reads the initial log from the actual
+  MemoryStorage before RestartNode and maintains an immutable history per
+  Ready. The public storage spec retains the bounded-read prefix guarantee
+  and identifies the complete interval for the unlimited case.
+  [Replay regression](../../issues/etcd-merged-snapshot-replay-failure.md).
