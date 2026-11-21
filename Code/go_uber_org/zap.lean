@@ -3,6 +3,11 @@ module
 
 public import Perennial.Code.fmt
 public import Code.go_uber_org.zap.zapcore
+public import Perennial.Code.errors
+public import Code.go_uber_org.zap.internal.pool
+public import Perennial.Code.io
+public import Perennial.Code.sync.atomic
+public import Code.go_uber_org.zap.internal
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -244,10 +249,6 @@ opaque times.underlying [GooseExts] [GoGlobalContext] : go.GoType
 @[reducible] noncomputable def Field.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.go_uber_org.zap.zapcore.Field.ty
 
-opaque AtomicLevel.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque Sink.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque sinkRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque _stdLogDefaultDepth [GooseExts] [GoGlobalContext] : val
@@ -285,20 +286,14 @@ opaque _multipleErrMsg [GooseExts] [GoGlobalContext] : val
 noncomputable def errNoEncoderNameSpecified [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.errNoEncoderNameSpecified"
 
-opaque errNoEncoderNameSpecified.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def _encoderNameToConstructor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._encoderNameToConstructor"
-
-opaque _encoderNameToConstructor.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _encoderMutex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._encoderMutex"
 
 noncomputable def _errArrayElemPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._errArrayElemPool"
-
-opaque _errArrayElemPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _minTimeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._minTimeInt64"
@@ -316,12 +311,8 @@ noncomputable def _globalMu [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def _globalL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._globalL"
 
-opaque _globalL.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def _globalS [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._globalS"
-
-opaque _globalS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _sinkRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._sinkRegistry"
@@ -1080,6 +1071,59 @@ noncomputable def Duration.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad Field.ty))) (Var "$res0"))))))
 
+/-- NewNop returns a no-op Logger. It never writes out logs or internal errors,
+    and it never runs user-defined hooks.
+
+    Using WithOptions to replace the Core or error output of a no-op Logger can
+    re-enable logging.
+
+    go: logger.go:87:6 -/
+noncomputable def NewNop.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Logger.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Logger.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.zapcore.NewNopCore []))) (Val #())) (Val #()))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.Discard))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.zapcore.AddSync []))) (Val #())) (Var "$a0")))
+  (Let "$v2" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.go_uber_org.zap.zapcore.Level.ty))) (Pair (Val #(W8 5)) (Val #(W8 1))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.zapcore.systemClock.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_uber_org.zap.zapcore.DefaultClock))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral Logger.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"core")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.Core.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"errorOutput")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"addStack")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.Level.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.systemClock.ty (Var "$v3")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Logger.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "$res0")))))
+
+/-- Sugar wraps the Logger to provide a more ergonomic, but slightly slower,
+    API. Sugaring a Logger is quite inexpensive, so it's reasonable for a
+    single application to use both Loggers and SugaredLoggers, converting
+    between them on the boundaries of performance-sensitive code.
+
+    go: logger.go:146:20 -/
+noncomputable def Logger.Sugar.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "log"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType SugaredLogger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType SugaredLogger.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "log" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (Var "log"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Logger.ty) go!"clone"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log"))) (Val #()))
+  (Let "core" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc SugaredLogger.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "core"))
+  (App (Val (GoInstruction (CompositeLiteral SugaredLogger.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Logger.ty) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType SugaredLogger.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Logger.ty go!"callerSkip"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "core"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"callerSkip"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "core")))) (Val #(W64 2))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Logger.ty)))) (Pair (Var "core") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SugaredLogger.ty)))) (Var "$res0"))))))
+
 /-- Check returns a CheckedEntry if logging a message at the specified level
     is enabled. It's a completely optional optimization; in high-performance
     applications, Check can help avoid allocating a slice to hold fields.
@@ -1212,10 +1256,28 @@ noncomputable def Logger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Pair (Var "ce") (Var "$r0")))))))))))
   (Val #())))))
 
-noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap where
-  pkgImportedPkgs := [pkg_id.fmt, pkg_id.go_uber_org.zap.zapcore]
+/-- go: logger.go:317:20 -/
+noncomputable def Logger.clone.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "log"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Logger.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "log" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (Var "log"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log")))
+  (Let "clone" (App (Val (GoInstruction (GoAlloc Logger.ty))) (App (Val (GoInstruction (GoZeroVal Logger.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Var "clone")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Logger.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "clone") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "$res0"))))))
 
-opaque «_».init [GooseExts] [GoGlobalContext] : val
+noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap where
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.go_uber_org.zap.zapcore, pkg_id.errors, pkg_id.go_uber_org.zap.internal.pool, pkg_id.io, pkg_id.sync.atomic, pkg_id.go_uber_org.zap.internal]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1231,28 +1293,108 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"no encoder name specified"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"console"))
+  (Let "$v1" (Lam "encoderConfig"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "encoderConfig" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty))) (Var "encoderConfig"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty))) (Var "encoderConfig"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.zapcore.NewConsoleEncoder []))) (Val #())) (Var "$a0")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val _sinkRegistry.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+  (Let "$k2" (Val #(go!"json"))
+  (Let "$v3" (Lam "encoderConfig"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "encoderConfig" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty))) (Var "encoderConfig"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty))) (Var "encoderConfig"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.zapcore.NewJSONEncoder []))) (Val #())) (Var "$a0")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val _globalS.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val _globalL.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error])))))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error])) (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error])) (Var "$v3")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType errArrayElem.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType errArrayElem.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc errArrayElem.ty))) (App (Val (GoInstruction (CompositeLiteral errArrayElem.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType errArrayElem.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType errArrayElem.ty)))) (Var "$res0")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.internal.pool.New [(go.GoType.PointerType errArrayElem.ty)]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NewNop []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Logger.ty) go!"Sugar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (App (Val (GoInstruction (GlobalVarAddr _globalL))) (Val #())))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert AtomicLevel.ty _root_.Perennial.go_uber_org.zap.internal.LeveledEnabler.ty))) (App (Val (GoInstruction (CompositeLiteral AtomicLevel.ty))) (LiteralValue [])))
+  (App (Val doExecute)
+  (App (Val _sinkRegistry.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType SugaredLogger.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr _globalS))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Logger.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr _globalL))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _maxTimeInt64.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _minTimeInt64.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _errArrayElemPool.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType errArrayElem.ty)))))) (Pair (App (Val (GoInstruction (GlobalVarAddr _errArrayElemPool))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _encoderNameToConstructor.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error])))))) (Pair (App (Val (GoInstruction (GlobalVarAddr _encoderNameToConstructor))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val errNoEncoderNameSpecified.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errNoEncoderNameSpecified))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_uber_org.zap.zapcore.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_uber_org.zap.zapcore.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.internal.pool.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.atomic.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.internal.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errNoEncoderNameSpecified go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _encoderNameToConstructor (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _errArrayElemPool (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType errArrayElem.ty))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _globalL (go.GoType.PointerType Logger.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _globalS (go.GoType.PointerType SugaredLogger.ty))) (Val #()))))))))
 
 abbrev objects [GooseExts] (T : Type) : Type := GoSlice
 
@@ -1647,22 +1789,38 @@ attribute [instance] SamplingConfig.TypeAssumptions.type_repr
   SamplingConfig.TypeAssumptions.method_set
   SamplingConfig.TypeAssumptions.ptr_method_set
 
-opaque AtomicLevel.nonempty_type : NonemptyType.{0}
-def AtomicLevel : Type := AtomicLevel.nonempty_type.type
-instance AtomicLevel.nonempty : Nonempty AtomicLevel := AtomicLevel.nonempty_type.property
-opaque AtomicLevel.zero_val : ZeroVal AtomicLevel := ⟨Classical.ofNonempty⟩
-attribute [instance] AtomicLevel.zero_val
+structure AtomicLevel [GooseExts] where
+  mk ::
+  l' : Loc
+
+noncomputable instance AtomicLevel.zero_val [GooseExts] : ZeroVal AtomicLevel :=
+  ⟨AtomicLevel.mk zeroValDef⟩
+
+@[reducible] noncomputable def AtomicLevel.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"l" (go.GoType.PointerType _root_.Perennial.sync.atomic.Int32.ty))]
+
+@[irreducible] noncomputable def AtomicLevel.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  AtomicLevel.fieldsUnsealed
+
+noncomputable instance equals_unfold_AtomicLevel [GooseExts] [GoGlobalContext] :
+    EqualsUnfold AtomicLevel.fields AtomicLevel.fieldsUnsealed :=
+  ⟨by unfold AtomicLevel.fields; rfl⟩
+
+@[reducible] noncomputable def AtomicLevel.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AtomicLevel.fields)
 
 class AtomicLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AtomicLevel.underlying AtomicLevel
   underlying : go.UnderlyingDirectedEq AtomicLevel.ty AtomicLevel.underlying
-  isUnderlying : go.IsUnderlying AtomicLevel.underlying AtomicLevel.underlying
+  get_l : ∀ (x : AtomicLevel), go.IsGoStepPureDetTagged under (StructFieldGet AtomicLevel.underlying go!"l") #x (Val #(x.l'))
+  set_l : ∀ (x : AtomicLevel) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AtomicLevel.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : AtomicLevel)))
   method_set : go.MethodSetIs AtomicLevel.ty [(go!"Enabled", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"SetLevel", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.uber.org/zap.serveHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AtomicLevel.ty) [(go!"Enabled", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"SetLevel", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.uber.org/zap.serveHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [go.error])))]
 
 attribute [instance] AtomicLevel.TypeAssumptions.type_repr
   AtomicLevel.TypeAssumptions.underlying
-  AtomicLevel.TypeAssumptions.isUnderlying
+  AtomicLevel.TypeAssumptions.get_l
+  AtomicLevel.TypeAssumptions.set_l
   AtomicLevel.TypeAssumptions.method_set
   AtomicLevel.TypeAssumptions.ptr_method_set
 
@@ -1948,7 +2106,9 @@ class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_Debug_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Debug" Logger.Debug.impl
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Error" Logger.Error.impl
   ptr_Info_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Info" Logger.Info.impl
+  ptr_Sugar_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Sugar" Logger.Sugar.impl
   ptr_Warn_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Warn" Logger.Warn.impl
+  ptr_clone_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"clone" Logger.clone.impl
 
 attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.underlying
@@ -1978,7 +2138,9 @@ attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.ptr_Debug_unfold
   Logger.TypeAssumptions.ptr_Error_unfold
   Logger.TypeAssumptions.ptr_Info_unfold
+  Logger.TypeAssumptions.ptr_Sugar_unfold
   Logger.TypeAssumptions.ptr_Warn_unfold
+  Logger.TypeAssumptions.ptr_clone_unfold
 
 abbrev Option [GooseExts] : Type := GoInterface
 
@@ -2008,22 +2170,17 @@ attribute [instance] optionFunc.TypeAssumptions.underlying
   optionFunc.TypeAssumptions.method_set
   optionFunc.TypeAssumptions.ptr_method_set
 
-opaque Sink.nonempty_type : NonemptyType.{0}
-def Sink : Type := Sink.nonempty_type.type
-instance Sink.nonempty : Nonempty Sink := Sink.nonempty_type.property
-opaque Sink.zero_val : ZeroVal Sink := ⟨Classical.ofNonempty⟩
-attribute [instance] Sink.zero_val
+abbrev Sink [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def Sink.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))])
 
 class Sink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Sink.underlying Sink
   underlying : go.UnderlyingDirectedEq Sink.ty Sink.underlying
-  isUnderlying : go.IsUnderlying Sink.underlying Sink.underlying
   method_set : go.MethodSetIs Sink.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Sink.ty) []
 
-attribute [instance] Sink.TypeAssumptions.type_repr
-  Sink.TypeAssumptions.underlying
-  Sink.TypeAssumptions.isUnderlying
+attribute [instance] Sink.TypeAssumptions.underlying
   Sink.TypeAssumptions.method_set
   Sink.TypeAssumptions.ptr_method_set
 
@@ -2272,8 +2429,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Uint32_unfold : FuncUnfold Uint32 [] Uint32.impl
   Stringer_unfold : FuncUnfold Stringer [] Stringer.impl
   Duration_unfold : FuncUnfold Duration [] Duration.impl
+  NewNop_unfold : FuncUnfold NewNop [] NewNop.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_zapcore_Assumption : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions
+  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_pool_Assumption : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions
+  import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
+  import_internal_Assumption : _root_.Perennial.go_uber_org.zap.internal.Assumptions
 
 attribute [instance] Assumptions.objects_instance
   Assumptions.ObjectMarshalerPtr_instance
@@ -2334,8 +2497,14 @@ attribute [instance] Assumptions.objects_instance
   Assumptions.Uint32_unfold
   Assumptions.Stringer_unfold
   Assumptions.Duration_unfold
+  Assumptions.NewNop_unfold
   Assumptions.import_fmt_Assumption
   Assumptions.import_zapcore_Assumption
+  Assumptions.import_errors_Assumption
+  Assumptions.import_pool_Assumption
+  Assumptions.import_io_Assumption
+  Assumptions.import_atomic_Assumption
+  Assumptions.import_internal_Assumption
 
 end go_uber_org.zap
 

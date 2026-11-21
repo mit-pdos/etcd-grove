@@ -484,6 +484,8 @@ PROJECTS = [
             # wrapper (`pool.New`) and its terminal colors (`color.Add`, `fmt.Sprintf`)
             "go.uber.org/zap/internal/pool",
             "go.uber.org/zap/internal/color",
+            # (prove-initleft, 2026-11-21) types only: `LeveledEnabler`, which zap's `var _` asserts
+            "go.uber.org/zap/internal",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",

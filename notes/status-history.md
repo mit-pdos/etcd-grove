@@ -19568,3 +19568,5 @@ session discipline on the write contract, and weakens `CheckPassword.spec`: `not
 - 2026-11-20 (**Raft records successful snapshot restores**). Each RawNode owns its restore history from startup. A successful MsgSnap step records the foreign leader and term, and Ready and Advance preserve the record
 - 2026-11-20 (**Nil map builtins in Perennial**). Pinned the reviewed definitions for delete and clear on Grove’s previous Perennial revision. Existing non-nil ownership proofs and nil-map observations are checked in Perennial. [PR #645](https://github.com/mit-pdos/perennial/pull/645).
 - 2026-11-20 (**Bound restored snapshots at Ready handout**). The Ready channel carries the hard-state term and a bound from the delivered log. Election safety now bounds the restore case for two batches in the same leader term. A send queued across terms still needs its original certificate
+
+- 2026-11-20 (**Raft snapshot send term**): Ready preserves the original term of queued snapshots across elections and proves the restored-index bound in that term, including when a later batch drains the message.
