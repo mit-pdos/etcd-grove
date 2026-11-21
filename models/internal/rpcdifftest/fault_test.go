@@ -216,6 +216,12 @@ func outcomes(t *testing.T, toClient, half bool) []string {
 			t.Fatalf("no success after %d bytes", n)
 		}
 	}
+	// ErrShutdown is a race, in both builds (the model's Client is Go's code): when the cut comes
+	// before the call is registered (n small), the client's reader may see the end of stream and
+	// shut the client down before send runs, which then fails the call with ErrShutdown instead of
+	// the reader's error. Allowed, not required (measured in both builds, 2026-11-21: one run in
+	// ~20 sees it).
+	delete(set, "ErrShutdown")
 	var out []string
 	for d := range set {
 		out = append(out, d)
