@@ -11,7 +11,7 @@ Each error `startWatching` and `syncPaginated` hand to `sendError` (`notes/k8s-7
 - `kErrOk_errorString`: an `*errors.errorString` whose `Error()` returns (`fmt.ErrorfPlain`'s, E3:
   `parseEvent`'s, `syncPaginated`'s and `GetCurrentResourceVersion`'s own; a context's `Canceled`);
 - `kErrOk_client`: an error of etcd's client (`kClientErr`: its four types, `clientErrTys`), a
-  `*status.Error`'s status code through E1 (`grpcStatusRO`, `status.Status.Code.spec`);
+  `*status.Error`'s status code through E1 (`status.statusAt`, `status.Status.Code.spec`);
 - `kErrOk_statusError`: a `*StatusError` with a `Failure` status (`interpretListError`'s 410,
   `transformErrorToEvent`'s); `StatusError.Error` and `Status` are translated with their bodies.
 -/
@@ -242,15 +242,14 @@ theorem kErrOk_clientP [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
         have := go.MethodSetIs.method_set_is
           (t := go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty) go!"GRPCStatus"
         simpa [go.methodSetLookup_cons, go.methodSetLookup_nil] using this
-      ihave ⟨%s, #Hw, #Hro⟩ := Hgs $$ %hm
+      ihave ⟨%s, %sc, %sm, #Hw, #Hro⟩ := Hgs $$ %hm
       iexists s
       isplitr
       · iintro %Φ HΦ
         iapply Hw $$ HΦ
       · iintro %Φ HΦ
-        wp_apply (wp_SCode s _) $$ [Hro]
+        wp_apply (wp_SCode s sc sm) $$ [Hro]
         · iexact Hro
-        iintro -
         iapply HΦ
     · iapply kErrOk_none_api
       go_type_set <;> simp

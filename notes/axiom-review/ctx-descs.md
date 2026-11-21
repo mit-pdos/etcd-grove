@@ -188,4 +188,6 @@ makes these per-run relations instead of functions:
   grpc's key, over the opaque `IProp` leaf `metadata.builtRawMDRaw v f`, no law) replaces them. The
   posts that equated `outgoingOf` of an allocated context now give `outMD` of it, at metadata the
   precondition fixed (`notes/decisions.md`, "Outgoing metadata as a per-run relation").
-- **Stage 2 (errors):** `errDesc`, `statusCode`, `grpcStatusROP` (pending at this writing).
+- **Stage 2a (status codes, branch `prove-errdesc2/2026-11-20`):** `statusCode` and `grpcStatusROP` are gone;
+  `status.statusAt s c m` (over the opaque leaf `status.statusAtRaw`) and `statusCodeIs err c` replace them.
+- **Stage 2b (descriptions):** `errDesc` (pending at this writing; design `notes/errdesc-ghost-plan.md` §7).
