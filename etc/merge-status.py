@@ -358,6 +358,12 @@ REPLAY_BRANCHES = ["lean", "merge-origin7", "k8s-7g", "auth-lease-s4"]
 # window grew past midnight and took in that night's merges (ea5de40e16, resolved by hand at the time;
 # its two entries are in the history since), failing every landing from 00:15 on
 REPLAY_SINCE, REPLAY_UNTIL = "2026-11-18 00:00:00 -0500", "2026-11-21 00:00:00 -0500"
+# Merges whose replay finds a problem the driver is right about (the merge's own inputs), with why:
+# (2026-11-21, backend-snapshot's landing) cf54600750 merged `lean` while it held the k8s-authz revert
+# (037b2e926d), which had taken the two KEP-5681 history entries out on purpose; the merge kept the
+# revert (so dropped them), and 1e08dd38e7 (the revert reverted) put them back on `lean`.
+REPLAY_KNOWN = {"cf54600750": ("history lost lines",
+                               "the k8s-authz revert 037b2e926d; restored by 1e08dd38e7")}
 
 
 def side_entries(t):
@@ -496,7 +502,9 @@ def selftest():
             r = replay(m)
             if r is not None:
                 rs.append(r)
-    bad = [r for r in rs if r["problems"]]
+    # merges whose replay problem is the merge's own input, not the driver's (`REPLAY_KNOWN`)
+    bad = [r for r in rs if r["problems"] and
+           not (r["m"] in REPLAY_KNOWN and set(r["problems"]) <= {REPLAY_KNOWN[r["m"]][0]})]
     for r in bad:
         print(f"  {r['m']}: " + "; ".join(r["problems"]))
     hconf = [r["m"] for r in rs if r["hconflict"]]
