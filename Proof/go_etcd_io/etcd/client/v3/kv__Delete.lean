@@ -32,13 +32,13 @@ theorem kv.Delete.wp_generic
     (wp_Do : kv.Do.specG (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.specG (GF := GF) (hG := hG) := by
-  intro api conn addr ci cd key sl gs Sd Qd
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
+  intro api conn addr ci om cd key sl gs Sd Qd
+  wp_start as ⟨#Hkv, #Hom, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api conn addr ci cd opv (opDeleteModel key gs) (fun _ _ _ _ => iprop(False))
+  wp_apply wp_Do api conn addr ci om cd opv (opDeleteModel key gs) (fun _ _ _ _ => iprop(False))
       (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Sd Qd (fun _ => iprop(True)) $$ [Hrun]
     as %r %err ⟨-, Hout⟩
   · iframe #
@@ -91,11 +91,14 @@ theorem kv.Delete.wp_members
     kv.Delete.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key sl gs Q F
   iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun, %Hsz⟩ HΦ
+  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
   obtain ⟨Hnp, Ht, Hz⟩ := Hnp
   iunfold isKV at Hkv
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
-  iapply (wp_Delete api conn (ms.map SrvAt.addr) ci cd key sl gs (GrpcSpec.md (kvDeleteSpec ms))
+  iapply (wp_Delete api conn (ms.map SrvAt.addr) ci om cd key sl gs (GrpcSpec.md (kvDeleteSpec ms))
     (delAns ms F (deleteWireOf (opDeleteModel key gs)) Q)) $$ [Hrun] HΦ
   iframe #
   isplitl []
@@ -106,7 +109,7 @@ theorem kv.Delete.wp_members
   · ipureintro; exact Hsz
   iapply (kvReqPre_wand api (ms.map SrvAt.addr) (floorsAt ms F) _ _
     ((deleteSpec_of ms F (deleteWireOf (opDeleteModel key gs)) Q Hz).trans
-      (attemptPre_md conn (GoInterface.ok ci) (kvDeleteSpec ms) _ _)))
+      (attemptPre_md conn om (kvDeleteSpec ms) _ _)))
   iframe HF Hrun
 
 theorem kv.Delete.wp_proof

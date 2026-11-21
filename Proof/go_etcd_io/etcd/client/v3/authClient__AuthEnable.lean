@@ -28,8 +28,8 @@ theorem authClient.AuthEnable.wp_proof
     (wp_retry : retryAuthClient.AuthEnable.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.AuthEnable.spec (GF := GF) (hG := hG) := by
-  intro api conn addr ci cd Spec Q
-  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre⟩
+  intro api conn addr ci om cd Spec Q
+  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hom, #Hpre⟩
   iunfold authObjAtC at Hapi
   icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
@@ -40,7 +40,7 @@ theorem authClient.AuthEnable.wp_proof
     ipureintro; rfl
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
-  wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» () sl vs $$ [Hsend]
+  wp_apply wp_retry rac conn addr Spec Q ci om cd «$a1_ptr» () sl vs $$ [Hsend]
     as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe

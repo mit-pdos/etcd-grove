@@ -49,6 +49,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort__Swap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.mkGteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.newTxnResp
+public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.pruneKVs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.put
@@ -57,6 +58,7 @@ public import Proof.reflect.ValueOf
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.sortRangeResults
 public import Proof.sort.Reverse
 public import Proof.sort.Sort
+public import Proof.strconv.FormatBool
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
@@ -301,13 +303,21 @@ theorem wp_WarnOfExpensiveReadOnlyTxnRequest :
     EtcdGrove.txn.WarnOfExpensiveReadOnlyTxnRequest.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof wp_NewLoggableTxnRequest wp_isNil ResponseOp.wp_GetResponseRange RangeResponse.wp_GetKvs wp_warnOfExpensiveGenericRequest
 
+theorem prometheus.HistogramVec.wp_WithLabelValues :
+    EtcdGrove.prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.prometheus.HistogramVec.WithLabelValues.wp_proof
+
+theorem strconv.wp_FormatBool :
+    EtcdGrove.strconv.FormatBool.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.FormatBool.wp_proof
+
 theorem wp_ApplySecObserve :
     EtcdGrove.txn.ApplySecObserve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.ApplySecObserve.wp_proof
+  EtcdGrove.txn.ApplySecObserve.wp_proof strconv.wp_FormatBool prometheus.HistogramVec.wp_WithLabelValues
 
 theorem wp_RangeSecObserve :
     EtcdGrove.txn.RangeSecObserve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.RangeSecObserve.wp_proof
+  EtcdGrove.txn.RangeSecObserve.wp_proof strconv.wp_FormatBool prometheus.HistogramVec.wp_WithLabelValues
 
 theorem zap.wp_Int32 :
     EtcdGrove.zap.Int32.spec (GF := GF) (hG := hG) :=

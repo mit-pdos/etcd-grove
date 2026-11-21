@@ -34,8 +34,8 @@ theorem leaseClient.LeaseLeases.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     leaseClient.LeaseLeases.spec (GF := GF) (hG := hG) := by
-  intro lc conn addr Spec Q ctx cd inp req opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
+  intro lc conn addr Spec Q ctx om cd inp req opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -59,7 +59,7 @@ theorem leaseClient.LeaseLeases.wp_proof
   · simp only [pbLeaseLeasesResponse]
     iexact «$r0»
   have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseLeases" pbLeaseLeasesRequestT
-    pbLeaseLeasesResponseT pbLeaseLeasesRequestT_reg pbLeaseLeasesResponseT_reg Spec () Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+    pbLeaseLeasesResponseT pbLeaseLeasesRequestT_reg pbLeaseLeasesResponseT_reg Spec () Q ctx om cd inp «$r0_ptr» copts ([sm] ++ vs)
   simp only [pbLeaseLeasesRequestT, pbLeaseLeasesResponseT] at hI
   rw [show (pbLeaseLeasesRequest (GF := GF)).ty = etcdserverpb.LeaseLeasesRequest.ty from rfl,
     show (pbLeaseLeasesResponse (GF := GF)).ty = etcdserverpb.LeaseLeasesResponse.ty from rfl] at hI

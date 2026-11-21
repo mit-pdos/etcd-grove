@@ -25,15 +25,22 @@ variable [sem : go.Semantics]
 
 /-- `prometheus.NewGaugeFunc(opts, function)` of label-free options (`GaugeOpts` is `Opts`, as
 `CounterOpts`: `counterOpts`) returns a non-nil `GaugeFunc` and does not call `function` (any
-function value). Nothing about the result's methods: its users here only register it, in an
-untranslated `init` (`initFuncsOk`). -/
+function value). Nothing about the result's methods: its users here only register it
+(`MustRegister`, in their translated `init`). (etcdstorage, 2026-11-20) If the fully-qualified name
+is valid, the result describes one descriptor, of that name (`collectorName`): client_golang v1.24.1,
+`gauge.go:306` `NewGaugeFunc` is `newValueFunc(V2.NewDesc(BuildFQName(ns, sub, name), help,
+UnconstrainedLabels(nil), ConstLabels, WithUnit(Unit)), GaugeValue, function)` (`value.go:79`: the
+`valueFunc` is its own `selfCollector`), whose `Describe` sends its one `desc` (`collector.go:113`);
+with no labels and no const labels the descriptor is `collectorName`'s, as `NewGauge`'s. -/
 abbrev prometheus.NewGaugeFunc.spec : Prop :=
   ∀ (o : github_com.prometheus.client_golang.prometheus.GaugeOpts) (ns sub name help : GoString)
     (f : GoFunc),
   prometheus.counterOpts o ns sub name help →
   {{ (True : IProp GF) }}
     (App (App (Val (@! github_com.prometheus.client_golang.prometheus.NewGaugeFunc)) (Val #o)) (Val #f))
-  {{ (g : GoInterfaceOk), RET #(GoInterface.ok g); True }}
+  {{ (g : GoInterfaceOk), RET #(GoInterface.ok g);
+      ⌜prometheus.nameOk (prometheus.fqName ns sub name) →
+        prometheus.collectorName g (prometheus.fqName ns sub name)⌝ }}
 
 end spec
 

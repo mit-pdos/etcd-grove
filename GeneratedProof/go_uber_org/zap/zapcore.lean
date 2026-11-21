@@ -2,7 +2,12 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
+public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.go_uber_org.zap.internal.color
+public import GeneratedProof.go_uber_org.zap.internal.pool
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_uber_org.zap.zapcore
@@ -1159,12 +1164,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance lazyWithCore_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.lazyWithCore :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.lazyWithCore where
+  typedPointstoDef l v dq := iprop(
+    "core" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq ∗
+    "originalCore" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq ∗
+    "Once" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq ∗
+    "fields" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance lazyWithCore_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.lazyWithCore go_uber_org.zap.zapcore.lazyWithCore.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.lazyWithCore go_uber_org.zap.zapcore.lazyWithCore.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance lazyWithCore_access_load_core (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazyWithCore_access_store_core (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (core' : go_uber_org.zap.zapcore.Core) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) core' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with core' := core' } : go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazyWithCore_access_load_originalCore (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazyWithCore_access_store_originalCore (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (originalCore' : go_uber_org.zap.zapcore.Core) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) originalCore' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with originalCore' := originalCore' } : go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazyWithCore_access_load_Once (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazyWithCore_access_store_Once (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (Once' : sync.Once) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) Once' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Once' := Once' } : go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazyWithCore_access_load_fields (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazyWithCore_access_store_fields (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (fields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) fields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := fields' } : go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end lazyWithCore
@@ -1419,12 +1496,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance lockedWriteSyncer_typed_pointsto :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.lockedWriteSyncer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.lockedWriteSyncer where
+  typedPointstoDef l v dq := iprop(
+    "Mutex" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq ∗
+    "ws" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance lockedWriteSyncer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.lockedWriteSyncer go_uber_org.zap.zapcore.lockedWriteSyncer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.lockedWriteSyncer go_uber_org.zap.zapcore.lockedWriteSyncer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance lockedWriteSyncer_access_load_Mutex (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lockedWriteSyncer_access_store_Mutex (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (Mutex' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) Mutex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_uber_org.zap.zapcore.lockedWriteSyncer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lockedWriteSyncer_access_load_ws (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lockedWriteSyncer_access_store_ws (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (ws' : go_uber_org.zap.zapcore.WriteSyncer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) ws' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ws' := ws' } : go_uber_org.zap.zapcore.lockedWriteSyncer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end lockedWriteSyncer

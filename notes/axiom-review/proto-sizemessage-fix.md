@@ -1,8 +1,7 @@
 # `proto.SizeMessage`: the `0 ≤ n` claim replaced, and the stream receiver's size facts (rafthttpfix, 2026-11-20)
 
-Found by prove-protootel (`notes/axiom-review/proto-size-wrap.md` and its Go test
-`examples/axiomcx/protosizewrap`, both on branch `prove-protootel/2026-11-20` when this was written;
-ledger 2026-11-20): `proto.SizeMessage.spec` returned `0 ≤ sint.Z n` for any `msgPtsC l dq dqe cap ms`,
+Found by prove-protootel (`notes/axiom-review/proto-size-wrap.md` and its Go test `examples/axiomcx/protosizewrap`; ledger
+2026-11-20): `proto.SizeMessage.spec` returned `0 ≤ sint.Z n` for any `msgPtsC l dq dqe cap ms`,
 but protobuf-go sums sizes with wrapping `int` additions (`internal/impl/encode.go:63-117`), and
 `msgPtsC` admits one entry pointer repeated many times (entries are read-only, `entRoC`) and says
 nothing of the responses: a message repeating one `2^33`-byte entry `2^30` times (or through `2^15`

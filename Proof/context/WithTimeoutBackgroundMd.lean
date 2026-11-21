@@ -2,7 +2,7 @@
 The trust boundary: `context.WithTimeout(context.Background(), d)`'s outgoing metadata
 (`Spec/context/WithTimeoutBackgroundMd.lean`; the auth-mode merge's 5b, 2026-10-29). Perennial's
 context model does not describe values at other packages' keys (`ContextDesc.Values` holds the
-`context` package's own), and `metadata.outgoingOf` is opaque, so the fact is assumed.
+`context` package's own), and the metadata relation (`metadata.outMD`) rests on the opaque leaf `metadata.builtRawMDRaw`, so the fact is assumed.
 -/
 module
 

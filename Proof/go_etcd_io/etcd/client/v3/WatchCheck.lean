@@ -35,30 +35,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A watch's check, as the client sees it** (persistent): the gRPC stream the watch's create
-went on was opened with outgoing metadata `m` of the same stream key as the watch's context `ctx`;
+went on was opened with outgoing metadata `m` of the same stream key as the watch's context's outgoing
+metadata `om` (errdesc stage 1, 2026-11-20: until then of a context `ctx`, through the pure
+`metadata.outgoingOf ctx`; `watcher.Watch`'s precondition relates `om` to its context);
 an attempt of it on the connection `conn` delivered `md` (`clientAttemptMdOf`); and the server
 `s`'s check of a create of the key `key` and the range end `rangeEnd` passed for `md`'s token at
 the bound `n` (`v3rpc.watchAuthed`, at the server's auth tag `tag`; strict M1: was over mvcc's watch names `γ`,
 whose `γ.tag` it read). -/
-def watchCheckOk (tag : GName) (s conn : Loc) (ctx : GoInterface) (n : Nat)
+def watchCheckOk (tag : GName) (s conn : Loc) (om : GrpcMd) (n : Nat)
     (key rangeEnd : GoString) : IProp GF :=
   iprop(∃ (m md : GrpcMd),
-    ⌜streamKeyOf m = streamKeyOf (metadata.outgoingOf ctx) ∧ clientAttemptMdOf conn m md⌝ ∗
+    ⌜streamKeyOf m = streamKeyOf om ∧ clientAttemptMdOf conn m md⌝ ∗
     v3rpc.watchAuthed tag s (auth.mdTokenOf md) n key rangeEnd)
 
-instance watchCheckOk_persistent (tag : GName) (s conn : Loc) (ctx : GoInterface) (n : Nat)
-    (key rangeEnd : GoString) : Persistent (watchCheckOk (GF := GF) tag s conn ctx n key rangeEnd) := by
+instance watchCheckOk_persistent (tag : GName) (s conn : Loc) (om : GrpcMd) (n : Nat)
+    (key rangeEnd : GoString) : Persistent (watchCheckOk (GF := GF) tag s conn om n key rangeEnd) := by
   unfold watchCheckOk; infer_instance
 
 /-- **A watch's check, with the connection's token fact**: the stream's metadata `m` has the
 watch's stream key, its token is one meeting `P` or `m`'s own, and the check passed for an auth
 info bound to it (with auth on) at a state no older than `n`. -/
-theorem watchCheckOk_tok (tag : GName) (s conn : Loc) (ctx : GoInterface) (n : Nat)
+theorem watchCheckOk_tok (tag : GName) (s conn : Loc) (om : GrpcMd) (n : Nat)
     (key rangeEnd : GoString) (P : GoString → IProp GF) :
-    watchCheckOk (GF := GF) tag s conn ctx n key rangeEnd ∗ attemptTokOk conn P ⊢
+    watchCheckOk (GF := GF) tag s conn om n key rangeEnd ∗ attemptTokOk conn P ⊢
       ∃ (m : GrpcMd) (tok : Option GoString) (M : auth.AuthMode)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-        ⌜streamKeyOf m = streamKeyOf (metadata.outgoingOf ctx)⌝ ∗
+        ⌜streamKeyOf m = streamKeyOf om⌝ ∗
         ((∃ t, ⌜tok = some (strings.trimPrefix t go!"Bearer ")⌝ ∗ □ P t) ∨
           ⌜tok = auth.mdTokenOf (metadata.mdNorm m)⌝) ∗
         auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
@@ -80,7 +82,7 @@ watch's context, bound, request key and range end. -/
 theorem wsRow_eq [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) (P : WsPrm GF) :
     wsRow V P = iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
-      (GoInterface.ok P.ctx) P.n P.key P.ed)) := rfl
+      P.omd P.n P.key P.ed)) := rfl
 
 /-- **The client's watcher, with its connection's token fact** (G2's F-W3, 2026-10-30;
 `isNewClient_watcher` with `clientTokAt`): `New`'s client at one server has a `Watcher` field that

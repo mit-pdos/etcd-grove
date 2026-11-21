@@ -860,7 +860,7 @@ theorem run.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
-    as %tctx %tcd %tcancel ⟨#Htcancel, #Htctx, #Htce, -, %Htout, -⟩
+    as %tctx %tcd %tcancel ⟨#Htcancel, #Htctx, #Htce, -, #Htout, -⟩
   (try wp_auto)
   wp_apply wp_WithLease lu as %f #Hf
   (try wp_auto)
@@ -899,7 +899,7 @@ theorem run.wp_proof
     simp [TxnModel.empty, leaseTxn]
   (try wp_auto)
   wp_apply (client.client_txn_on tp uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
-      wu.cid wu.mid (W64 0) i₂ tctx tcd ⟨leaseTxn tK lu, false, true, false⟩ (psAtLeast γc 3) F₂
+      wu.cid wu.mid (W64 0) i₂ tctx none tcd ⟨leaseTxn tK lu, false, true, false⟩ (psAtLeast γc 3) F₂
       (fun h => by simp [hro] at h) htsz (fun _ => htsh)) $$ [Hobj] as %tresp %terr Ht
   · iframe Hobj; iframe #
     ileft
@@ -912,7 +912,7 @@ theorem run.wp_proof
     iexists Lset
     iframe Hll₂
     ihave #Htx := cell_txnTAu xu.2.ρ.rd.kv γc lz lu ps2 hps2
-      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } uconn (GoInterface.ok tctx)
+      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } uconn none
         (.txn (txnWireOf (leaseTxn tK lu))) Lset) $$ []
     · iframe #
     iexact Htx
@@ -1042,7 +1042,7 @@ theorem run.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
-    as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -, %Hpout, -⟩
+    as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -, #Hpout, -⟩
   (try wp_auto)
   wp_apply wp_WithLease lz as %f2 #Hf2
   (try wp_auto)
@@ -1062,7 +1062,7 @@ theorem run.wp_proof
     ⟨by simp [opPutModel, OpFull.putPanics, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero],
       rfl⟩
   wp_apply (client.client_put_on uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid
-      pctx pcd xK go!"v" _ [withLeaseM lz] (fun _ => iprop(False)) F₂
+      pctx none pcd xK go!"v" _ [withLeaseM lz] (fun _ => iprop(False)) F₂
       (hszL xK lz (by decide)) hokx.1 hokx.2 (Or.inr (hlm xu hxum))) as %presp %perr Hp
   · iframe #
     ileft
@@ -1070,7 +1070,7 @@ theorem run.wp_proof
     rw [leasePut_wire]
     iapply Hrfp
     · iexact Hutok
-    · ipureintro; rw [hau]; exact Hpout
+    · ipureintro; exact hau.symm
   (try wp_auto)
   wp_apply Hpcancel
   (try wp_auto)
@@ -1091,7 +1091,7 @@ theorem run.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
-    as %xctx %xcd %xcancel ⟨#Hxcancel, #Hxctx, #Hxce, -, %Hxout, -⟩
+    as %xctx %xcd %xcancel ⟨#Hxcancel, #Hxctx, #Hxce, -, #Hxout, -⟩
   (try wp_auto)
   wp_apply wp_WithLease lz as %f3 #Hf3
   (try wp_auto)
@@ -1131,7 +1131,7 @@ theorem run.wp_proof
     simp [TxnModel.empty, leaseTxn]
   (try wp_auto)
   wp_apply (client.client_txn_on tp3 uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
-      wu.cid wu.mid (W64 0) i₂ xctx xcd ⟨leaseTxn xK lz, false, true, false⟩ (fun _ => iprop(False)) F₂
+      wu.cid wu.mid (W64 0) i₂ xctx none xcd ⟨leaseTxn xK lz, false, true, false⟩ (fun _ => iprop(False)) F₂
       (fun h => by simp [hro'] at h) htsz' (fun _ => htsh')) $$ [Hobj3] as %xresp %xerr Hx
   · iframe Hobj3; iframe #
     ileft
@@ -1142,7 +1142,7 @@ theorem run.wp_proof
     · ipureintro; exact ⟨hro', Or.inr ⟨hlm xu hxum, htpl'⟩, htnz', htnest'⟩
     iapply Hrft
     · iexact Hutok
-    · ipureintro; rw [hau]; exact Hxout
+    · ipureintro; exact hau.symm
   (try wp_auto)
   wp_apply Hxcancel
   (try wp_auto)
@@ -1234,12 +1234,12 @@ theorem run.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
-    as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -, -, -⟩
+    as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -, #Hgout, -⟩
   (try wp_auto)
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave Hres := optsAt_res slice.nil [] iprop(True) $$ Hnil
   wp_apply (etcd_auth.client_Get_on rcl rapi rconn x0.1.Client' s0 w0.E x0.2.ρ.rd w0.cid w0.mid (W64 0) i₁
-      gctx gcd zK slice.nil [] iprop(True) (cellSeen γc ps1 0) F0₂ (hszG zK (by decide))) $$ [Hres]
+      gctx none gcd zK slice.nil [] iprop(True) (cellSeen γc ps1 0) F0₂ (hszG zK (by decide))) $$ [Hres]
     as %gresp %gerr Hgout
   · iframe #
     rw [show (opGetModel zK []).base.sortSet = false from rfl]
@@ -1303,9 +1303,9 @@ theorem run.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
-    as %rctx %rcd %rcancel ⟨#Hrcancel, #Hrctx, #Hrce, -, -, -⟩
+    as %rctx %rcd %rcancel ⟨#Hrcancel, #Hrctx, #Hrce, -, #Hrout, -⟩
   (try wp_auto)
-  wp_apply (client.client_lease_revoke_on ulp uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } rctx rcd
+  wp_apply (client.client_lease_revoke_on ulp uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } rctx none rcd
       i₂ lu (revoked γc)) as %rresp %rerr Hrv
   · iframe #
     iintro !>
@@ -1313,7 +1313,7 @@ theorem run.wp_proof
     iexists Lset
     iframe Hll₂
     ihave #Hrvk := cell_revokeUAu xu.2.ρ.rd.kv γc lz lu ps3 hps3
-      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } uconn (GoInterface.ok rctx) (.leaseRevoke lu) Lset)
+      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } uconn none (.leaseRevoke lu) Lset)
       $$ [Hinvu HlbU Hps3 Hal1]
     · iframe #
     iexact Hrvk

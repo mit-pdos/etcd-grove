@@ -2,7 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom backend.VerifyBackendConsistency.wp_proof : backend.VerifyBackendConsistency.spec
+theorem backend.VerifyBackendConsistency.wp_proof [verify_sem :
+    go_etcd_io.etcd.client.pkg.v3.verify.Assumptions] (hVerify : verify.Verify.spec) :
+    backend.VerifyBackendConsistency.spec
   -- `Perennial.EtcdGrove.backend.VerifyBackendConsistency.spec`, unfolded:
   ∀ (b : GoInterface) (lg : Loc) (skip : Bool) (bs : GoSlice),
     ⊢

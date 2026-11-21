@@ -3,6 +3,7 @@ module
 
 public import Code.crypto.tls
 public import Perennial.Code.errors
+public import Perennial.Code.strings
 public import Code.go_uber_org.zap
 public import Perennial.Golang.Defn
 
@@ -234,8 +235,27 @@ noncomputable def NewTransport [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewUnixListener [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/transport.NewUnixListener"
 
+/-- IsClosedConnError returns true if the error is from closing listener, cmux.
+    copied from golang.org/x/net/http2/http2.go
+
+    go: listener.go:617:6 -/
+noncomputable def IsClosedConnError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #()))
+  (Let "$a1" (Val #(go!"closed"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Contains []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.transport where
-  pkgImportedPkgs := [pkg_id.crypto.tls, pkg_id.errors, pkg_id.go_uber_org.zap]
+  pkgImportedPkgs := [pkg_id.crypto.tls, pkg_id.errors, pkg_id.strings, pkg_id.go_uber_org.zap]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -243,6 +263,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.pkg.v3.transport)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -255,6 +276,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.crypto.tls.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -766,8 +789,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   rwTimeoutListener_instance : rwTimeoutListener.TypeAssumptions
   unixTransport_instance : unixTransport.TypeAssumptions
   unixListener_instance : unixListener.TypeAssumptions
+  IsClosedConnError_unfold : FuncUnfold IsClosedConnError [] IsClosedConnError.impl
   import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
 
 attribute [instance] Assumptions.keepaliveListener_instance
@@ -787,8 +812,10 @@ attribute [instance] Assumptions.keepaliveListener_instance
   Assumptions.rwTimeoutListener_instance
   Assumptions.unixTransport_instance
   Assumptions.unixListener_instance
+  Assumptions.IsClosedConnError_unfold
   Assumptions.import_tls_Assumption
   Assumptions.import_errors_Assumption
+  Assumptions.import_strings_Assumption
   Assumptions.import_zap_Assumption
 
 end go_etcd_io.etcd.client.pkg.v3.transport

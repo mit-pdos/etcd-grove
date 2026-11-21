@@ -507,8 +507,8 @@ it stopped (`noCancelOk`), and (D25) its goroutine's current lifetime (`wsLife`)
 def wsElem (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (ws : Loc) :
     IProp GF :=
   iprop(∃ (P : WsPrm GF) (ph : WPh), ⌜P.ws = ws ∧ phOk S ws ph ∧
-      streamKeyOf (metadata.outgoingOf (GoInterface.ok P.ctx)) =
-        streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V P ∗
+      streamKeyOf P.omd =
+        streamKeyOf G.omd⌝ ∗ wsIs V P ∗
     wsF ws go!"id" ↦ ph.id ∗ wsRest V γs S.Dm P ph ∗ noCancelOk S P ph ∗
     wsLife V G n P ph.isOrphan)
 
@@ -540,7 +540,7 @@ def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat) (clm
     cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗ sspscConsumer G.γr rcv ∗
     ⌜rcv.length = b + S.Dm.length⌝ ∗
     (∃ tok, epochSt G γs b i tok ∗
-      ⌜∃ md, tok = auth.mdTokenOf md ∧ clientAttemptMd V.conn (GoInterface.ok G.ctx) md⌝) ∗
+      ⌜∃ md, tok = auth.mdTokenOf md ∧ clientAttemptMd V.conn G.omd md⌝) ∗
     v3rpc.downLbW γs S.Dm ∗
     ⌜gOk S U⌝ ∗
     ([∗list] i ∈ S.ansd, ansH γs i) ∗ ([∗list] X ∈ S.regs, idH γs X) ∗
@@ -2115,7 +2115,7 @@ def dummyWsPrm (G : WgsPrm GF) (γr : SpscNames) : WsPrm GF :=
     false false) (W64 0) G.ctx G.cd [] [] false false false slice.nil null G.γreq null
     (EtcdWatchNames.mk γr G.γws G.γws false) null null γr G.γws G.γws G.γws false G.γws
     ⟨G.γws, W64 0, apply.alarmChain false false false, [], G.γws, G.γws,
-      ⟨G.γws, G.γws, G.γws, W64 0, G.γws, 0, G.γws, G.γws⟩, G.γws, false, G.γws, 0, .none, []⟩ (fun _ => iprop(True)) 0 0
+      ⟨G.γws, G.γws, G.γws, W64 0, G.γws, 0, G.γws, G.γws⟩, G.γws, false, G.γws, 0, .none, []⟩ (fun _ => iprop(True)) 0 0 G.omd
 
 /-- Some `donec` (for a dispatch with no target). -/
 def dummyDn (G : WgsPrm GF) : DnInfo GF := ⟨null, G.γreq, iprop(True)⟩

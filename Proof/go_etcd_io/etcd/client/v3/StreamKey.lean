@@ -20,7 +20,7 @@ namespace Perennial
 namespace EtcdGrove
 
 /-- **The key `streamKeyFromCtx` computes from the outgoing metadata `m`**
-(`metadata.outgoingOf`'s view: what `FromOutgoingContext` returns): Go's
+(the `md` of `metadata.outMD ctx md`: what `FromOutgoingContext` returns): Go's
 `fmt.Sprintf("%+v", map[string][]string(md))` (`map[k1:[v1 v2] k2:[...]]`, keys sorted, each
 value list joined by spaces) when there is metadata, `""` when there is none. -/
 opaque streamKeyOf [GooseExts] : GrpcMd → GoString

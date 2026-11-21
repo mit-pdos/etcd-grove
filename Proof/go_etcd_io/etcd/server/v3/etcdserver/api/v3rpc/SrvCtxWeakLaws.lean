@@ -195,12 +195,12 @@ theorem v3rpc.libCtxOk_cc (l : Loc) (c : GoInterfaceOk) :
   iintro ⟨#Hpkg, #Hf, #H⟩
   unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
     trace.spanValOk
-  icases H with ⟨⟨%md, #Hi⟩, ⟨%vo, %hvo, #Ho⟩, #Hp, #Hs⟩
+  icases H with ⟨⟨%md, #Hi⟩, ⟨%vo, %omd, #Ho, #Hho⟩, #Hp, #Hs⟩
   isplitl []
   · iexists md
     iapply v3rpc.ctxInMD_cc; iframe #
   isplitl []
-  · iexists vo; iframe %hvo
+  · iexists vo, omd; iframe Hho
     iapply v3rpc.valueAt_cc; iframe #
   isplitl []
   · iapply v3rpc.valueAt_cc; iframe #

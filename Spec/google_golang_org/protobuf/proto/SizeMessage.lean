@@ -41,7 +41,8 @@ is the size. It reads the message (its entries, snapshot, context and responses)
 cache atomically: a write to the hidden fields only, which the hidden-field invariant (`pbMsg`,
 inside `msgPtsC`/`msgPtsCC`) owns. (Until rafthttpfix, 2026-11-20, form 1 only, with `0 ≤ n`: false,
 a message repeating one large entry `2^30` times sizes negative,
-`notes/axiom-review/proto-sizemessage-fix.md`, `examples/axiomcx/protosizewrap`.) -/
+`notes/axiom-review/proto-size-wrap.md`, `notes/axiom-review/proto-sizemessage-fix.md`,
+`examples/axiomcx/protosizewrap`.) -/
 abbrev proto.SizeMessage.spec : Prop :=
   (∀ (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
     {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msgPtsC l dq dqe cap ms }}

@@ -1,17 +1,20 @@
 /-
-**A context's outgoing metadata** (grpc's `metadata`, names-only; the auth plan's E2f,
-2026-10-25). Lean-first (no Rocq counterpart).
+**Outgoing metadata values** (grpc's `metadata`, names-only; the auth plan's E2f, 2026-10-25).
+Lean-first (no Rocq counterpart).
 
-The call side's counterpart of a context's incoming metadata (`metadata.ctxInMD`,
-`Proof/context/LibKeys.lean`; until perheap 1b the pure `incomingOf`): the metadata a context
-carries under grpc's outgoing-metadata key (`metadata.NewOutgoingContext`,
-`AppendToOutgoingContext`; read by `FromOutgoingContext` and by grpc's transport, which sends it as
-the call's header fields), a function of the context value (`outgoingOf`, opaque) for the same
-reason: a context is immutable. `mdAdd md k v` is the metadata with `v` appended to the values of
-`k` (as `AppendToOutgoingContext(ctx, k, v)` adds it, for a lower-case `k`); `mdSet md k vs`, with
-them set to `vs` (`MD.Set`). The client's auth
-contract (`examples/etcd/auth/ClientAuth.lean`, C1-C4) is stated over it and `ctxInMD`. It stays a
-pure function of a pointer until Part II of the per-heap redesign (`notes/perheap-scope.md`).
+The call side's counterpart of a context's incoming metadata: the metadata a context carries under
+grpc's outgoing-metadata key (`metadata.NewOutgoingContext`, `AppendToOutgoingContext`; read by
+`FromOutgoingContext` and by grpc's transport, which sends it as the call's header fields). Which
+metadata a context carries is the per-run relation `metadata.outMD ctx md`
+(`Proof/context/LibKeysChain.lean`; errdesc stage 1, 2026-11-20: until then the opaque pure function
+`metadata.outgoingOf : GoInterface → Option (...)` declared here, a function of the context value,
+which no implementation can meet for the contexts it allocates, `notes/errdesc-ghost-plan.md`).
+This file keeps the pure operations on metadata values: `mdAdd md k v` is the metadata with `v`
+appended to the values of `k` (as `AppendToOutgoingContext(ctx, k, v)` adds it, for a lower-case
+`k`); `mdSet md k vs`, with them set to `vs` (`MD.Set`). The client's auth contract
+(`examples/etcd/auth/ClientAuth.lean`, C1-C4) is stated over `outMD` and `ctxInMD`. A raw `MD` whose
+keys collide up to case (a literal map given to `NewOutgoingContext`, where grpc's result depends on
+map order) is outside the model (G2, 2026-10-30: `streamKeyOf`'s laws rely on this reading).
 -/
 module
 
@@ -24,13 +27,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace metadata
-
-/-- **The outgoing metadata of the context `ctx`** (opaque, see the file header): `none` if it
-has none, else each key's values, as `FromOutgoingContext` returns them: the context's metadata
-merged with its appended pairs (`added` after `md`), keys lower-cased. A raw `MD` whose keys collide
-up to case (a literal map given to `NewOutgoingContext`, where grpc's result depends on map order) is
-outside the model (G2, 2026-10-30: `streamKeyOf`'s laws rely on this reading). -/
-opaque outgoingOf [GooseExts] : GoInterface → Option (GoString → Option (List GoString))
 
 /-- Metadata (`none`: no metadata) with `v` appended to the values of the key `k`. -/
 def mdAdd (md : Option (GoString → Option (List GoString))) (k v : GoString) :
