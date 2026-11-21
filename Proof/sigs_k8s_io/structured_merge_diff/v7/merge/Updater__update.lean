@@ -624,6 +624,120 @@ theorem merge.Updater.update.wp_proof
         · exact Or.inl
       simp only [hiff]
       iapply HME $$ %k %i %e'; ipureintro; exact ⟨hk, he'⟩
+  iintro HP Hcm
+  iNamed HP
+  have hck : ckeys.take ((GMap.size CM : Nat) : Int).toNat = ckeys := by
+    rw [Int.toNat_natCast, ← Hcklen, List.take_length]
+  wp_auto
+  wp_func_lits
+  wp_bind (App (App (Val (map.forRange _ _)) _) _)
+  iapply wp_map_for_range (fun (rkeys : List GoString) (j : Int) => iprop(∃ (MM : GMap GoString GoInterface)
+      (y : GoInterface) (x : GoString),
+      "%Hj" ∷ ⌜0 ≤ j⌝ ∗
+      "%HMM" ∷ ⌜∀ k, (MM !! k).isSome = (mf.get k).isSome⌝ ∗
+      "#HME" ∷ □ (∀ k i e, ⌜MM !! k = some i ∧ mf.get k = some e⌝ -∗
+        isVSet i { e with set := (if k ∈ rkeys.take j.toNat then ((if k ∈ ckeys.take ((GMap.size CM : Nat) : Int).toNat then (e.set.diff (e.set.inter ((compare S t old new).modified.union (compare S t old new).added))) else e.set).diff
+          (compare S t old new).removed) else (if k ∈ ckeys.take ((GMap.size CM : Nat) : Int).toNat then (e.set.diff (e.set.inter ((compare S t old new).modified.union (compare S t old new).added))) else e.set)) }) ∗
+      "HM" ∷ mfm ↦$ MM ∗
+      "managers" ∷ managers_ptr ↦ mfm ∗
+      "removedSet" ∷ removedSet_ptr ↦ y ∗
+      "manager" ∷ manager_ptr ↦ x)) $$ Hrm
+  iintro %rkeys ⟨%Hrkset, %Hrklen, %Hrknodup⟩
+  isplitl [HM managers removedSet manager]
+  · iexists MM, _, _
+    simp only [named]
+    iframe
+    isplitr
+    · ipureintro; omega
+    isplitr
+    · ipureintro; exact HMM
+    imodintro
+    iintro %k %i %e ⟨%hk, %he⟩
+    simp only [Int.toNat_zero, List.take_zero, List.not_mem_nil, ite_false]
+    iapply HME $$ %k %i %e; ipureintro; exact ⟨hk, he⟩
+  isplitr
+  · imodintro
+    iintro %j %key %ri ⟨%Hkey, %Hri⟩ HP
+    iNamed HP
+    obtain ⟨⟨e, he⟩, hkw, hrne⟩ : (∃ e, mf.get key = some e) ∧ key ≠ wf ∧
+        ¬ (compare S t old new).removed.IsEmpty := by
+      have h := (HRM2 key).1 (by rw [Hri]; rfl)
+      exact ⟨Option.isSome_iff_exists.1 h.1, h.2⟩
+    ihave #Hrv := HRE $$ %key %ri %e %(⟨Hri, he⟩)
+    ihave ⟨%rvv, %hrvv⟩ := isVSet_concrete_law_holds ri _ $$ Hrv
+    subst hrvv
+    have hnotin := MUpd.key_notin_take rkeys j key Hrknodup Hkey
+    have htk := MUpd.mem_take_succ rkeys j key Hj Hkey
+    obtain ⟨mi, hmi⟩ : ∃ mi, MM !! key = some mi :=
+      Option.isSome_iff_exists.1 (by rw [HMM, he]; rfl)
+    ihave #Hmv : isVSet mi { e with set := (let k := key; (if k ∈ ckeys.take ((GMap.size CM : Nat) : Int).toNat then (e.set.diff (e.set.inter ((compare S t old new).modified.union (compare S t old new).added))) else e.set)) } $$ []
+    · have heq : ({ e with set := (if key ∈ rkeys.take j.toNat then ((let k := key; (if k ∈ ckeys.take ((GMap.size CM : Nat) : Int).toNat then (e.set.diff (e.set.inter ((compare S t old new).modified.union (compare S t old new).added))) else e.set)).diff
+          (compare S t old new).removed) else (let k := key; (if k ∈ ckeys.take ((GMap.size CM : Nat) : Int).toNat then (e.set.diff (e.set.inter ((compare S t old new).modified.union (compare S t old new).added))) else e.set))) } : VSet) =
+          { e with set := (let k := key; (if k ∈ ckeys.take ((GMap.size CM : Nat) : Int).toNat then (e.set.diff (e.set.inter ((compare S t old new).modified.union (compare S t old new).added))) else e.set)) } := by
+        simp only [hnotin, ite_false]
+      rw [← heq]
+      iapply HME $$ %key %mi %e %(⟨hmi, he⟩)
+    ihave ⟨%mvv, %hmvv⟩ := isVSet_concrete_law_holds mi _ $$ Hmv
+    subst hmvv
+    wp_auto
+    wp_apply (h_versionedSet_Set rvv _) as %qs #Hqs
+    · iexact Hrv
+    wp_apply (wp_map_lookup1 _ _ mfm MM key) $$ HM as HM
+    rw [hmi, Option.getD_some]
+    wp_auto
+    wp_apply (h_versionedSet_Set mvv _) as %ps #Hps
+    · iexact Hmv
+    wp_apply (h_Set_Difference ps qs _ _) as %d #Hd
+    · isplitr
+      · iexact Hps
+      · iexact Hqs
+    wp_apply (wp_map_lookup1 _ _ mfm MM key) $$ HM as HM
+    rw [hmi, Option.getD_some]
+    wp_auto
+    wp_apply (h_versionedSet_APIVersion mvv _) as %ev %hev
+    · iexact Hmv
+    subst hev
+    wp_apply (wp_map_lookup1 _ _ mfm MM key) $$ HM as HM
+    rw [hmi, Option.getD_some]
+    wp_auto
+    wp_apply (h_versionedSet_Applied mvv _) as %ea %hea
+    · iexact Hmv
+    subst hea
+    wp_apply (h_NewVersionedSet d _ _ _) as %ni #Hni
+    · iexact Hd
+    try wp_auto
+    wp_apply (wp_mapInsert _ mfm MM key ni) $$ HM as HM
+    unfold forMapPostcondition
+    iright; ileft
+    isplitr
+    · ipureintro; rfl
+    iexists _, _, _
+    simp only [named]
+    iframe
+    isplitr
+    · ipureintro; omega
+    isplitr
+    · ipureintro
+      intro k
+      by_cases hk : key = k
+      · subst hk; rw [GMap.lookup_insert, he]; rfl
+      · rw [GMap.lookup_insert_ne _ _ hk]; exact HMM k
+    imodintro
+    iintro %k %i %e' ⟨%hk, %he'⟩
+    by_cases hkk : key = k
+    · subst hkk
+      rw [GMap.lookup_insert] at hk; cases hk
+      rw [he] at he'; cases he'
+      have hin : key ∈ rkeys.take (j + 1).toNat := (htk key).2 (Or.inr rfl)
+      simp only [hin, ite_true]
+      iexact Hni
+    · rw [GMap.lookup_insert_ne _ _ hkk] at hk
+      have hiff : (k ∈ rkeys.take (j + 1).toNat) ↔ (k ∈ rkeys.take j.toNat) := by
+        rw [htk k]; constructor
+        · rintro (h | h); exact h; exact absurd h.symm hkk
+        · exact Or.inl
+      simp only [hiff]
+      iapply HME $$ %k %i %e'; ipureintro; exact ⟨hk, he'⟩
   sorry
 
 end proof
