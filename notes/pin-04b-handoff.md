@@ -1,6 +1,15 @@
 # pin-04b handoff (2026-11-21) — STOPPED by the coordinator, not built
 
-## START HERE
+## START HERE (resumed 2026-11-21)
+
+Resumed: lean `2ca9ce4d1d` (pin `60800ea5e`) merged (`bbd655c73b`, manifest kept at `04b42a139`). Every
+generator rerun at `04b42a139` (goose, gen-init, gen-specs-pkginit, copy-part, gen-raft-tla, every gen-link
+mode): nothing differs from lean's, since `60800ea5e` already has the goose fold and the `strings` imports
+(`04b42a139` = `60800ea5e` + a merge of Perennial's `lean`). So the branch's change over lean is the pin rev and
+the hand-written removal below. Blocked at the seed: `/shared` had 39 GB free (another session copying a build);
+next: seed `.lake/build` from authm3 when >= 40 GB, full build, gates, tcb, STATUS.
+
+## Earlier (stopped)
 
 Stopped: the Perennial pin is a single-writer resource claimed elsewhere (GitHub issue mit-pdos/etcd-grove#9,
 branch `pinbump/perennial-ncfupd-2026-11-21`, pinning `60800ea5e`; our `04b42a139` builds on it). Redo the
