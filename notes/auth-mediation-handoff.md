@@ -18,9 +18,12 @@
   `kvServer__RangeStream.lean` (spec new, vocabulary `v3rpc/RangeStreamOut.lean`: `rangeChunkOut`); Links
   (`--server`, `--v3rpc`); row 2 `e2e` (`etc/auth-table.txt`, `ClientPortTable.lean`, `Results.lean`);
   `notes/audit.md` row. The axiom joins the linked trust base (approved: Q1 option (B)).
-- Next: whatever of the above is not yet checked (`git log`); full timed build; tcb `--check --update` (+1 axiom
-  expected: `EtcdServer.rangeStream.wp_proof`) and the server/v3rpc collections; `etc/auth-mediation-check.py
-  --check --update`; `etc/gates.sh`; STATUS entry; then STOP at the land stop.
+- Checked: full timed build `20261121-142116-1287569` green (at lean `3ac6cb4031` merged); tcb `--check --update`:
+  +1 axiom `EtcdServer.rangeStream.wp_proof` (533 axioms, 0 sorries); collections `server`, `v3rpc` +1 (updated), 69
+  unchanged; `etc/auth-mediation-check.py --check --update` (row 2 `none` -> `e2e`). Until the fork commit is pushed,
+  the checks that clone etcd (`auth-mediation-check`, `goose.py --check`) need `.lake/goose/etcd` at `4416a5786`
+  (`git -C .lake/goose/etcd fetch /shared/tmp/authm3fix/etcd 4416a5786... && git -C .lake/goose/etcd checkout --detach FETCH_HEAD`).
+- Next: `etc/gates.sh` result (see `git log`), then the LAND STOP (the coordinator lands; the user pushes the fork first).
 
 ## M4 proposal (approved 2026-11-21; implemented in `a351492b8d`)
 
