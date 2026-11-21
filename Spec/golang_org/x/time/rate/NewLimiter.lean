@@ -20,6 +20,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : golang_org.x.time.rate.Assumptions]
 
 /-- **`rate.NewLimiter(r, b)`**: a rate limiter (`rate.limiterOk`). -/
 abbrev rate.NewLimiter.spec : Prop :=

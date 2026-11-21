@@ -57,7 +57,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   wp_auto
   wp_apply HVer as %prev -
   wp_apply hMP as %rv Hrv
-  icases Hrv with (⟨-, %nv, %Hnv, #Hsv⟩ | %Hn)
+  icases Hrv with (⟨-, %nv, %nx, %Hnv, -, #Hsv⟩ | %Hn)
   rotate_left
   · exact absurd Hvalid.1 Hn.1
   obtain ⟨rfl, Hnv⟩ := Hnv
