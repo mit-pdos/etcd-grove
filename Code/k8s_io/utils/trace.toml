@@ -2,8 +2,10 @@
 # notes/k8s-clientgo-goose.md): the slow-operation trace of `tools/cache`'s
 # `threadSafeMap.Transaction` (a log line when it is long; no effect on the store).
 # (prove-k8s, 2026-11-20) `klogV`, a func literal over `klog.V(lvl).Enabled()` (until then `opaqueInitsOk`).
-translate = ["!*", "klogV"]
-imports = ["!*", "k8s.io/klog/v2"]
+# (prove-metrics3, 2026-11-21) `FromContext` (`ctx.Value(ContextTraceKey{})` asserted to `*Trace`), for
+# component-base's `tracing.SpanFromContext`.
+translate = ["!*", "klogV", "FromContext"]
+imports = ["!*", "k8s.io/klog/v2", "context"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

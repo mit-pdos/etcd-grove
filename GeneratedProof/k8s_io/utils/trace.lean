@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import GeneratedProof.k8s_io.klog.v2
 public import Perennial.Golang.Theory
 public import Code.k8s_io.utils.trace

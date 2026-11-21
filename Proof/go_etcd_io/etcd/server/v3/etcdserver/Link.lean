@@ -3052,7 +3052,7 @@ theorem probing.wp_NewProber :
 
 theorem rate.wp_Every :
     rate.Every.spec (GF := GF) (hG := hG) :=
-  rate.Every.wp_proof
+  rate.Every.wp_proof time.Duration.wp_Seconds_ptr
 
 theorem rafthttp.streamWriter.wp_writec :
     rafthttp.streamWriter.writec.spec (GF := GF) (hG := hG) :=

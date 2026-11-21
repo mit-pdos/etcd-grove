@@ -194,6 +194,33 @@ noncomputable def WithServerHandlingTimeHistogram [GooseExts] [GoGlobalContext] 
 noncomputable def WithContextLabels [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.WithContextLabels"
 
+/-- WithServerHandlingTimeHistogram turns on recording of handling time of RPCs.
+    Histogram metrics can be very expensive for Prometheus to retain and query.
+
+    go: server_options.go:42:6 -/
+noncomputable def WithServerHandlingTimeHistogram.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "opts"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerMetricsOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerMetricsOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType HistogramOption.ty)))) (Var "opts"))
+  (Let "$r0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serverMetricsConfig.ty)))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType HistogramOption.ty)))) (Var "opts"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef serverMetricsConfig.ty go!"enableHistogram"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverMetricsConfig.ty)))) (Var "o"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore histogramOptions.ty))) (Pair (App (Val (GoInstruction (StructFieldRef serverMetricsConfig.ty go!"histogramOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverMetricsConfig.ty)))) (Var "o"))) (Var "$r0"))))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ServerMetricsOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ServerMetricsOption.ty))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus where
   pkgImportedPkgs := [pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.reflection]
 
@@ -744,6 +771,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   labelsFromCtxFn_instance : labelsFromCtxFn.TypeAssumptions
   serverMetricsConfig_instance : serverMetricsConfig.TypeAssumptions
   ServerMetricsOption_instance : ServerMetricsOption.TypeAssumptions
+  WithServerHandlingTimeHistogram_unfold : FuncUnfold WithServerHandlingTimeHistogram [] WithServerHandlingTimeHistogram.impl
   import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
   import_reflection_Assumption : _root_.Perennial.google_golang_org.grpc.reflection.Assumptions
@@ -766,6 +794,7 @@ attribute [instance] Assumptions.ClientMetrics_instance
   Assumptions.labelsFromCtxFn_instance
   Assumptions.serverMetricsConfig_instance
   Assumptions.ServerMetricsOption_instance
+  Assumptions.WithServerHandlingTimeHistogram_unfold
   Assumptions.import_prometheus_Assumption
   Assumptions.import_grpc_Assumption
   Assumptions.import_reflection_Assumption
