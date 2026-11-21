@@ -46,10 +46,10 @@ abbrev grantPut.spec : Prop :=
         (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) ∗
       isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
       srvApi.kvLogLb E.γs F ∗
-      □ (∀ (conn : Loc) (ctx : GoInterface) (id : w64),
+      □ (∀ (conn : Loc) (ctx : GrpcMd) (id : w64),
           clientOpAuOn s E ρ conn ctx (.leaseGrant id grantTTLv) (Qg id)) ∗ R ∗
       (∀ id : w64, ⌜id ≠ W64 0⌝ -∗ (∃ σ, Qg id σ) -∗ R ={⊤}=∗ R' id ∗
-        □ (∀ (conn : Loc) (ctx : GoInterface), attemptTokOk conn P -∗ ⌜metadata.outgoingOf ctx = none⌝ -∗
+        □ (∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn P -∗ ⌜ctx = none⌝ -∗
           clientOpAuOn s E ρ conn ctx (.put (leasePutOp k id)) (Qp id))) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut)) (Val #cli))
       (Val #k))

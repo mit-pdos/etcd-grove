@@ -53,10 +53,13 @@ abbrev lessor.Grant.specP : Prop :=
 theorem lessor.Grant.specP_of (h : lessor.Grant.spec (GF := GF) (hG := hG)) :
     lessor.Grant.specP (GF := GF) (hG := hG) := by
   intro l addr Spec Q ctx cd ttl
-  iintro %Φ ⟨#Hpkg, #Hrem, #Hrpc, #Hpre, Hrest⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hrem, #Hrpc, #Hpre, #Hctx, Hrest⟩ HΦ
   ihave ⟨%conn, #HremC⟩ := (lessorRemoteAt_conn l addr).1 $$ Hrem
-  iapply (h l conn addr (GrpcSpec.md Spec) Q ctx cd ttl) $$ [Hrest] HΦ
-  iframe Hpkg HremC
+  ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
+  iapply (h l conn addr (GrpcSpec.md Spec) Q ctx om cd ttl) $$ [Hrest] HΦ
+  iframe Hpkg HremC Hom Hctx
   isplitr
   · iapply (isGrpcRpcs_md addr _ Spec).1 $$ Hrpc
   isplitr
@@ -88,10 +91,13 @@ abbrev lessor.Revoke.specP : Prop :=
 theorem lessor.Revoke.specP_of (h : lessor.Revoke.spec (GF := GF) (hG := hG)) :
     lessor.Revoke.specP (GF := GF) (hG := hG) := by
   intro l addr Spec Q ctx cd id
-  iintro %Φ ⟨#Hpkg, #Hrem, #Hrpc, #Hpre, Hrest⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hrem, #Hrpc, #Hpre, #Hctx, Hrest⟩ HΦ
   ihave ⟨%conn, #HremC⟩ := (lessorRemoteAt_conn l addr).1 $$ Hrem
-  iapply (h l conn addr (GrpcSpec.md Spec) Q ctx cd id) $$ [Hrest] HΦ
-  iframe Hpkg HremC
+  ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
+  iapply (h l conn addr (GrpcSpec.md Spec) Q ctx om cd id) $$ [Hrest] HΦ
+  iframe Hpkg HremC Hom Hctx
   isplitr
   · iapply (isGrpcRpcs_md addr _ Spec).1 $$ Hrpc
   isplitr
@@ -131,10 +137,13 @@ abbrev lessor.TimeToLive.specP : Prop :=
 theorem lessor.TimeToLive.specP_of (h : lessor.TimeToLive.spec (GF := GF) (hG := hG)) :
     lessor.TimeToLive.specP (GF := GF) (hG := hG) := by
   intro l addr Spec Q ctx cd id osl gs
-  iintro %Φ ⟨#Hpkg, #Hrem, #Hrpc, #Hpre, Hrest⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hrem, #Hrpc, #Hpre, Hopt, #Hctx, Hrest⟩ HΦ
   ihave ⟨%conn, #HremC⟩ := (lessorRemoteAt_conn l addr).1 $$ Hrem
-  iapply (h l conn addr (GrpcSpec.md Spec) Q ctx cd id osl gs) $$ [Hrest] HΦ
-  iframe Hpkg HremC
+  ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
+  iapply (h l conn addr (GrpcSpec.md Spec) Q ctx om cd id osl gs) $$ [Hopt Hrest] HΦ
+  iframe Hpkg HremC Hom Hctx Hopt
   isplitr
   · iapply (isGrpcRpcs_md addr _ Spec).1 $$ Hrpc
   isplitr
@@ -169,10 +178,13 @@ abbrev lessor.Leases.specP : Prop :=
 theorem lessor.Leases.specP_of (h : lessor.Leases.spec (GF := GF) (hG := hG)) :
     lessor.Leases.specP (GF := GF) (hG := hG) := by
   intro l addr Spec Q ctx cd 
-  iintro %Φ ⟨#Hpkg, #Hrem, #Hrpc, #Hpre, Hrest⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hrem, #Hrpc, #Hpre, #Hctx, Hrest⟩ HΦ
   ihave ⟨%conn, #HremC⟩ := (lessorRemoteAt_conn l addr).1 $$ Hrem
-  iapply (h l conn addr (GrpcSpec.md Spec) Q ctx cd ) $$ [Hrest] HΦ
-  iframe Hpkg HremC
+  ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
+  iapply (h l conn addr (GrpcSpec.md Spec) Q ctx om cd ) $$ [Hrest] HΦ
+  iframe Hpkg HremC Hom Hctx
   isplitr
   · iapply (isGrpcRpcs_md addr _ Spec).1 $$ Hrpc
   isplitr

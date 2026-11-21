@@ -1,10 +1,14 @@
 # The etcd server's functions (all Lean-first: no Rocq counterpart), read by
 # `etc/gen-link.py --server`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
 # The trust boundary (`axiom … .wp_proof`): encoding/binary's BigEndian (Perennial translates
-# only LittleEndian) and etcd's verify.Verify (names-only: it reads ETCD_VERIFY).
+# only LittleEndian); `os.Getenv` and `strings.ToLower` (names-only in Perennial), which etcd's
+# verify.Verify calls (proved, etcdstorage 2026-11-20).
 binary_bigEndian__Uint64:
 binary_bigEndian__PutUint64:
-verify_Verify:
+os_Getenv:
+strings_ToLower:
+verify_IsVerificationEnabled: os_Getenv strings_ToLower
+verify_Verify: verify_IsVerificationEnabled
 # schema's consistent-index reads and writes (server/storage/schema/cindex.go), see InvCindex.lean.
 schema_UnsafeReadConsistentIndex: binary_bigEndian__Uint64
 schema_ReadConsistentIndex: schema_UnsafeReadConsistentIndex
@@ -375,7 +379,7 @@ EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeas
 # `waitLeader` (names-only) and the forwarding, `leasehttp.RenewHTTP`.
 lease_lessor__Renew:
 EtcdServer__ensureLeadership:
-EtcdServer__waitAppliedIndex:
+EtcdServer__waitAppliedIndex: EtcdServer__getCommittedIndex
 EtcdServer__waitLeader:
 leasehttp_RenewHTTP:
 EtcdServer__LeaseRenew: EtcdServer__ensureLeadership EtcdServer__waitAppliedIndex EtcdServer__waitLeader EtcdServer__checkLeaseRenew lease_lessor__Renew lease_lessor__Lookup leasehttp_RenewHTTP EtcdServer__isLeader EtcdServer__FeatureEnabled config_ServerConfig__ReqTimeout traceutil_Tracer__Start trace_WithAttributes attribute_Int64 errors_Is errors_IsCtxErr errors_IsStatusErr EtcdServer__Logger zap_Error zap_Logger__Warn
@@ -484,12 +488,12 @@ EtcdServer__AppliedIndex: EtcdServer__getAppliedIndex
 EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
 # The apply loop's step `applyAll` (server.go; the request path's unit 4b): `applySnapshot` under
 # raft's no-snapshot contract, the backend getter, the snapshot trigger, with bodies; the
-# trust boundary (`axiom … .wp_proof`): backend's VerifyBackendConsistency (verification code),
-# and the names-only snapshot method. See InvApplyAll.lean. (The merged-snapshot
+# trust boundary (`axiom … .wp_proof`): the names-only snapshot method; (etcdstorage, 2026-11-20)
+# backend's VerifyBackendConsistency proved over `verify.Verify` with assertions off. See InvApplyAll.lean. (The merged-snapshot
 # methods `createMergedSnapshotMessage`/`sendMergedSnap` were its callees until D19p, 2026-10-18,
 # and are again since S1, 2026-10-31: the merge branch proved, behind the fork's index guard,
 # with the getters it reads and the specs of `mergedCreate_window`'s commit-and-snapshot window.)
-backend_VerifyBackendConsistency:
+backend_VerifyBackendConsistency: verify_Verify
 # (2026-10-30, the repair) `snapshot` proved (lean's `specFull`; its proof a SNAPSHOT-SORRY until
 # rewired), no longer the trust boundary
 MemoryStorage__CreateSnapshot: @
@@ -1004,7 +1008,8 @@ path_Dir: path_Split path_Clean
 path_Base: bytealg_LastIndexByteString
 path_Join: path_Clean
 httputil_GracefulClose:
-transport_IsClosedConnError:
+transport_IsClosedConnError: strings_Contains
+strings_Contains:
 rate_Limiter__Wait:
 proto_MarshalPb:
 path_Split: bytealg_LastIndexByteString

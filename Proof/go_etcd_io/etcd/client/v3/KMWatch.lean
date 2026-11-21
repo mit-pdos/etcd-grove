@@ -616,7 +616,10 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
   ihave #Hw' := Hw
   iunfold isKvWatcher at Hw'
   icases Hw' with ⟨%V, #Hcw, %Hkst⟩
-  iapply (v3.watcher.wp_Watch w V γ.kv ctx cs key sl gs rev (kmSeenQ γ l0) 0) $$ [] [HΦ]
+  ihave #HctxO' := HctxO
+  iunfold metadata.outgoingCtxOkC at HctxO'
+  icases HctxO' with ⟨%om, #Hom⟩
+  iapply (v3.watcher.wp_Watch w V γ.kv ctx cs om key sl gs rev (kmSeenQ γ l0) 0) $$ [] [HΦ]
   · iframe #
     isplitr
     · ipureintro; exact Hkst

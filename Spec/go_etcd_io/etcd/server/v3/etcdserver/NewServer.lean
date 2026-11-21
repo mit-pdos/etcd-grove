@@ -353,7 +353,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
             γrn b (W64 0)
             (W64 0) (bootKVOf on) N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
-          srvBuildGap srv γrn ρ.rd.applied (W64 0) (W64 0) ∗
+          srvBuildGap srv γrn ρ.rd.cursor (W64 0) (W64 0) ∗
           -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
           -- watchable store, the progress interval's field, `v3rpc.Server`'s `bemu` slot and
           -- `Start`'s two `lgMu` slots (until per-type stage B3, 2026-11-11, also 64 request slots:

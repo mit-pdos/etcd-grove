@@ -5,6 +5,8 @@ The package-initialization instances of zap and `zapcore`: fact `True` (names on
 module
 
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.go_uber_org.zap.internal.pool
+public import GeneratedProof.go_uber_org.zap.internal.color
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.io
 public import Perennial.Proof.fmt
@@ -32,6 +34,25 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+-- zap's internal `pool` and `color` (prove-misc, 2026-11-20: zapcore's package variables call them)
+namespace go_uber_org.zap.internal.pool
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.internal.pool :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.internal.pool :=
+  build_get_is_pkg_init_wf
+
+end go_uber_org.zap.internal.pool
+
+namespace go_uber_org.zap.internal.color
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.internal.color :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.internal.color :=
+  build_get_is_pkg_init_wf
+
+end go_uber_org.zap.internal.color
 
 namespace go_uber_org.zap.zapcore
 

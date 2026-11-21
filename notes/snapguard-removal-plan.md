@@ -8,6 +8,13 @@ and configuration of the frozen database. A pre-3.5 backend can lack the
 term and configuration. The sender reads that term from the Ready batch's
 immutable log and rebuilds the configuration from the frozen membership.
 
+The apply worker tracks its own cursor from the startup snapshot through
+each serialized job. This matters on restart, when the backend's applied
+index can already exceed the worker's position. Local snapshot creation
+attaches a lower bound for this incarnation's worker cursor. The server
+can therefore establish the physical index comparison immediately after
+the term matches, including in the replay window.
+
 The Go regression reopens a database at index 7 with a recovered HardState
 commit of 3 and verifies the sent snapshot for both formats. The Lean
 proof now reads the index and term from the very transaction that the

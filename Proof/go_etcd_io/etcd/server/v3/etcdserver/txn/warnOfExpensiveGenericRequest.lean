@@ -40,7 +40,7 @@ theorem txn.warnOfExpensiveGenericRequest.wp_proof
   subst Hsi
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.txn.txnInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, ⟨%c, #Hc, #Hcs⟩⟩
+  icases Hinit with ⟨-, -, ⟨%c, #Hc, #Hcs⟩, -⟩
   (try wp_auto)
   wp_apply time.wp_Since as %_ -
   wp_apply hDur as %_ -

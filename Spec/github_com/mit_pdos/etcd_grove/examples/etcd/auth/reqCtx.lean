@@ -30,7 +30,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 principal `c0` with `token: badtoken` appended to its outgoing metadata (contract C3,
 `metadata.AppendToOutgoingContext`). `c0` has no outgoing metadata
 (`context.WithTimeoutBackgroundMd.spec`; round 1 of `notes/authkv-main-plan.md`, F-W4: so `anon`'s calls
-carry no token, and `bad`'s only `badtoken`). `cancel` is callable from anywhere. -/
+carry no token, and `bad`'s only `badtoken`). `cancel` is callable from anywhere. (errdesc stage 1,
+2026-11-20) Its outgoing metadata is stated as the per-run relation `metadata.outMD` (until then the
+pure `metadata.outgoingOf`). -/
 abbrev reqCtx.spec : Prop :=
   ∀ [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
@@ -42,12 +44,10 @@ abbrev reqCtx.spec : Prop :=
   {{ (c : GoInterface) (cancel : GoFunc), RET (PairV #c #cancel);
       □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
         WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
-      ∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (c0 : GoInterface),
+      ∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
         ⌜c = GoInterface.ok ci⌝ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
-        ⌜metadata.outgoingOf c0 = none ∧
-          if who = go!"bad" then
-            metadata.outgoingOf c = metadata.mdAdd (metadata.outgoingOf c0) go!"token" badToken
-          else c = c0⌝ }}
+        metadata.outMD ci
+          (if who = go!"bad" then metadata.mdAdd none go!"token" badToken else none) }}
 
 end spec
 

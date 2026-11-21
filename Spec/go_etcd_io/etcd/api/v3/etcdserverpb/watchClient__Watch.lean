@@ -41,19 +41,19 @@ abbrev watchClient.Watch.spec : Prop :=
   ∀ (wc conn : Loc) (addrs : List GoString) (ics : List GoFunc)
     (Up : GoString → Nat → v3rpc.WatchReqM → IProp GF)
     (Spec : GoString → GrpcMd → StreamSpec (GF := GF) v3rpc.pbWatchResponse) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (opts : GoSlice) (vs : List GoInterface),
+    (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       v3rpc.watchStubAt wc conn ∗ grpcConn conn addrs ics [] ∗
       isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addrs
         go!"/etcdserverpb.Watch/Watch" Up Spec ∗
-      v3rpc.watchDescOk ∗ ctxOk ctx cd ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      v3rpc.watchDescOk ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (Val (wc @!! go.GoType.PointerType etcdserverpb.watchClient.ty @!! go!"Watch"))
       (Val #(GoInterface.ok ctx))) (Val #opts))
   {{ (cs err : GoInterface), RET (PairV #cs #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames)
           (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
           (md : GrpcMd),
-        ⌜a ∈ addrs ∧ clientAttemptMd conn (GoInterface.ok ctx) md⌝ ∗
+        ⌜a ∈ addrs ∧ clientAttemptMd conn om md⌝ ∗
         v3rpc.cliWatchStreamIs cs γ (Up a) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γ [] ∗
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γ [] ∗ Spec a md γ Dn) ∨

@@ -791,7 +791,7 @@ abbrev NodeStartSpec : Prop :=
           -- (2026-10-30, the repair) the storage's invariant at the justifications of its key (the
           -- wrapper's, `γw.key`; `memStorInv`, allocated by `InitialState`, `restartStorage`'s
           -- frame) and its hard state
-          srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.applied γw.nl γw.snap0 ∗
+          srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 ∗
           memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
           -- (2026-11-04, R2b-3d) the claim on the loop's stop escrow, kept for the server's stop
           rnStopClaim γw }}
@@ -885,7 +885,7 @@ abbrev NodeStartSpecR : Prop :=
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
           b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
-          srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.applied γw.nl γw.snap0 ∗ memStorMeta bv.storage' γs σ.hs ∗
+          srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 ∗ memStorMeta bv.storage' γs σ.hs ∗
           -- (restart S6 B2, 2026-11-14) the storage's snapshot not yet opened for writes, the WAL's
           -- (which `run`'s `Snapshot()` answers: `restart_snapOnceR`)
           memSnapNone γs (walSnapCS σ cs) ∗

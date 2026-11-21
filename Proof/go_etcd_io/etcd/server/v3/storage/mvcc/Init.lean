@@ -62,25 +62,46 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
 
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.mvcc`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+/-- The fully-qualified names of the metrics this package's `init()` registers with
+prometheus's default registry, in its order (`MustRegister`; `metrics.go`). -/
+def regNames : List GoString :=
+  [EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"range_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"put_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"delete_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"txn_total",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"keys_total",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"watch_stream_total",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"watcher_total",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"slow_watcher_total",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"events_total",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"pending_events_total",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"index_compaction_pause_duration_milliseconds",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"db_compaction_pause_duration_milliseconds",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"db_compaction_total_duration_milliseconds",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"db_compaction_last",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"db_compaction_keys_total",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"db_total_size_in_bytes",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"db_total_size_in_use_in_bytes",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"db_open_read_transactions",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"hash_duration_seconds",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"mvcc" go!"hash_rev_duration_seconds",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"current_revision",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"compact_revision",
+   EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"mvcc" go!"total_put_size_in_bytes"]
+
+/-- The packages of this package's import closure (itself included) whose initializers
+register metrics, with their names: their registration rights are its initializer's
+resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
+def regQs : List (GoString × List GoString) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regNames)]
+
+/-- The metric names its initializer registers, with those of its import closure: its
+`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
+def initNames : List GoString := regQs.flatMap (·.2)
 
 end go_etcd_io.etcd.server.v3.storage.mvcc
-end opaqueInits
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 

@@ -21,15 +21,15 @@ public import Proof.github_com.dustin.go_humanize.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.github_com.xiang90.probing.Init
 public import Proof.go_etcd_io.etcd.api.v3.version.Init
-public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.Init
+public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.httputil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.InitLinked
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.InitLinked
 public import Proof.go_etcd_io.raft.v3.Init
-public import Proof.go_uber_org.zap.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.golang_org.x.time.rate.Init
 public import Proof.net.Init
 public import Proof.net.http.Init
@@ -584,6 +584,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HRaftStreamPrefix
   ipersist HRaftSnapshotPrefix
   ipersist HConnReadTimeout
+  ipersist HConnWriteTimeout
   ipersist HlinkHeartbeatSize
   ipersist HreadBytesLimit
   ipersist HerrUnsupportedStreamType

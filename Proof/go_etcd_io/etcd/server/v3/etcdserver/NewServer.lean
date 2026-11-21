@@ -1457,7 +1457,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe
   -- the read names
   iunfold srvReadNamesFreshNK at Hrd
-  icases Hrd with ⟨Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
+  icases Hrd with ⟨Hcursor, Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
   icases hHalves _ _ $$ Hkhi with ⟨Hkhi1, Hkhi2⟩
   ihave #Hrlb := Hrlb0
   -- (R8) the writer's facts at the boot (`srvApi.writer_facts`): a floor of the store's log
@@ -1604,11 +1604,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexact HM
   · iexact Hrtm
   -- (D17d) `run`'s snapshot contract, from the storage's snapshot token
-  ihave Hgap : srvBuildGap s γrn ρ.rd.applied (W64 0) (W64 0) $$ [Hsnone]
+  ihave Hgap : srvBuildGap s γrn ρ.rd.cursor (W64 0) (W64 0) $$ [Hsnone Hcursor]
   · iunfold srvBuildGap
     rw [Hrn8, show γrn.node.reg = MemStorReg.memStorRegName (GF := GF) by rw [Hrn1]; rfl]
-    ihave Honce := rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 HrnSnapZero $$ Hpkg Hrn [] Hsnone
+    ihave Honce := rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 HrnSnapZero $$ Hpkg Hrn [] Hsnone [Hcursor]
     · rw [Hrn1]; iExactEq Hminv; rfl
+    · iExactEq Hcursor; rfl
     iExactEq Honce; rfl
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'

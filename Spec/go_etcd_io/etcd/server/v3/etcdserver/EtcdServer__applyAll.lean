@@ -106,11 +106,11 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
       -- the store, the storage's invariant at the storage key `nk`, the apply side's half of the WAL token
       srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
-      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; srvAttachedMem mst γs γr.raft.raft.cl nk γr.applied γn.nl γn.snap0) ∗
+      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; srvAttachedMem mst γs γr.raft.raft.cl nk γr.cursor γn.nl γn.snap0) ∗
       rnWalTokA γn (srvRAddr s) q ∗
       -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
       -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗
+      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗
       -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
       -- (`srvSnapOwn`), passed through the batch; (restart S6, CP2 route (C), 2026-11-13) at the
       -- ghost applied index `g` (until then Go's `ai`)
@@ -126,7 +126,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc) (g' : w64),
-        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ monoNatAuthOwn γr.cursor 1 n ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
@@ -240,7 +240,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
           srvFrozenAt γs (uint.nat sv.Metadata'.Index') ∗
           srvFrozenBelow γs (uint.nat sv.Metadata'.Index') ∗
           rnWalHanded γn (uint.nat sv.Metadata'.Index'))) ∗
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗
+      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗
       -- the apply thread's resources, as `spec`'s
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
@@ -270,7 +270,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   {{ RET #();
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (A' : List EntryModel) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ isServerM E.authOn s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ monoNatAuthOwn γr.cursor 1 n ∗ isServerM E.authOn s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
         srvRLogLb γr.raft A' ∗
         epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
         epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗

@@ -47,12 +47,14 @@ theorem absent.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bg wp_WithTimeout wp_ErrAny hAs _)
-    as %ectx %ecd %ecancel ⟨#Hecancel, #Hectx, #Hece, -⟩
+    as %ectx %ecd %ecancel ⟨#Hecancel, #Hectx, #Hece, -, #HeO⟩
+  iunfold metadata.outgoingCtxOkC at HeO
+  icases HeO with ⟨%eom, #Heom⟩
   (try wp_auto)
   -- `g, err := root.Get(ctx, k)`
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave Hres := optsAt_res slice.nil [] iprop(True) $$ Hnil
-  wp_apply (client_Get_on root api conn addr s E γr cid mid c n ectx ecd k slice.nil []
+  wp_apply (client_Get_on root api conn addr s E γr cid mid c n ectx eom ecd k slice.nil []
       iprop(True) Q F hsz) $$ [Hres] as %resp %err Hout
   · iframe #
     isplitl []

@@ -614,12 +614,12 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
     (hb : σ.b ≤ A.length) (hcs : confStateIs cs (Membership.simple γr.raft.cfg))
     (hsz : GMap.size γr.raft.cfg ≤ 2 ^ 20) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ srvAttachedMem ms0 γs γ.node.cl γ.key E.γr.applied γ.nl γ.snap0 -∗ memSnapNone γs (walSnapCS σ cs) -∗
+      isRaftNode E γ r -∗ srvAttachedMem ms0 γs γ.node.cl γ.key E.γr.cursor γ.nl γ.snap0 -∗ memSnapNone γs (walSnapCS σ cs) -∗ monoNatAuthOwn E.γr.cursor 1 0 -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗
         rnSnapOnceR (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs
-          (W64 (A.take σ.b).length) σ.base.term' γr A E.γr.applied γ.nl γ.snap0 := by
+          (W64 (A.take σ.b).length) σ.base.term' γr A E.γr.cursor γ.nl γ.snap0 := by
   subst Hms0
-  iintro #Hpkg #Hrn #Hinv Hnone
+  iintro #Hpkg #Hrn #Hinv Hnone Hcursor
   ihave #Hinv0 := Hinv
   iunfold srvAttachedMem at Hinv
   icases Hinv with ⟨%pin, -, -, #Hinv⟩
@@ -639,7 +639,7 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
   iNamed Hinit
   ihave #Hc0 := memCompacted_zero (GF := GF) γs
   iapply wp_fupd
-  wp_apply wp_Snapshot γ.ms γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.applied pin γ.snap0)) none 0 (some (walSnapCS σ cs)) _
+  wp_apply wp_Snapshot γ.ms γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)) none 0 (some (walSnapCS σ cs)) _
     $$ [$Hraft $Hc0 Hnone $ErrSnapUnavail] as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
   · isplitr [Hnone]
     · iapply memStorAt_none_intro $$ Hinv
@@ -656,7 +656,7 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
     rw [hl]
     show σ.base.index' = W64 σ.b
     unfold StorContents.b; simp
-  iapply HΦ $$ %snap %pm %pc %(walSnapCS σ cs) [] Hsn Hpm Hpc [] [] [] []
+  iapply HΦ $$ %snap %pm %pc %(walSnapCS σ cs) [] Hsn Hpm Hpc [] [] [] [] Hcursor
   · ipureintro
     refine ⟨hidx, rfl, Hnn.1, Hnn.2, ?_⟩
     rw [← hidx, walSnapCS_index, hboot]
