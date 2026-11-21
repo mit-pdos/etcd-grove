@@ -27,7 +27,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
-variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
+variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)]
 
 /-- **`st.Save(s, ents)`** of the storage `p` over the WAL `w` (`storageOver`), with a reader token
 (`storageRd`, given back): under `st.mux`'s read lock, `w.Save(s, ents)`, whose triple (`WAL.Save.spec`)
@@ -38,6 +38,7 @@ abbrev storage.storage.Save.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
     (Q : WalDur → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storageOver p w ss ∗ storageRd p w ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
+      ⌜walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)⌝ ∗
       P.hsIn hp hs ∗ sl ↦*□ esL ∗ walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗
       (⌜saveBatchBytes Mr es ≤ maxSaveBatch⌝ -∗

@@ -1,7 +1,6 @@
 package kvnet
 
 import (
-	"context"
 	"time"
 
 	"sync"
@@ -9,7 +8,6 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/durable"
 	"go.etcd.io/raft/v3"
 	pb "go.etcd.io/raft/v3/raftpb"
-	"google.golang.org/protobuf/proto"
 )
 
 // Replica is the replica a process runs: kvdurable's Replica (examples/raft/kvdurable/kv.go)
@@ -60,7 +58,7 @@ func newReplica(id uint64, file string, node raft.Node, storage *Storage, kv map
 	hs := storage.img.hs
 	r := &Replica{id: id, file: file, node: node, storage: storage, stats: stats, tick: tick,
 		snapc: make(chan snapReq, 1),
-		cs:    proto.Clone(cs).(*pb.ConfState), index: index,
+		cs:    pb.CloneConfState(cs), index: index,
 		kv: kv, applied: applied,
 		waiters: make(map[string]chan string), reads: make(map[uint64]chan string)}
 	go r.run(send, index, hs, rafted)
@@ -277,7 +275,7 @@ func (r *Replica) snapshot(req snapReq, known uint64) uint64 {
 // and answers each operation waiting here that the snapshot covers with the answer the snapshot
 // records.
 func (r *Replica) install(md *pb.SnapshotMetadata, kv map[string]string, applied map[string]string) {
-	cs := proto.Clone(md.GetConfState()).(*pb.ConfState)
+	cs := pb.CloneConfState(md.GetConfState())
 	r.mu.Lock()
 	r.kv = kv
 	r.applied = applied
@@ -315,13 +313,13 @@ func (r *Replica) applyEntry(e *pb.Entry) {
 		r.applyOp(e.GetData())
 	case pb.EntryConfChange:
 		var cc pb.ConfChange
-		if err := proto.Unmarshal(e.GetData(), &cc); err != nil {
+		if err := pb.UnmarshalConfChangeV1(e.GetData(), &cc); err != nil {
 			panic("kvnet: a configuration change that does not decode")
 		}
 		r.applyConf(&cc)
 	case pb.EntryConfChangeV2:
 		var cc pb.ConfChangeV2
-		if err := proto.Unmarshal(e.GetData(), &cc); err != nil {
+		if err := pb.UnmarshalConfChangeV2(e.GetData(), &cc); err != nil {
 			panic("kvnet: a configuration change that does not decode")
 		}
 		r.applyConf(&cc)
@@ -421,7 +419,7 @@ func (r *Replica) propose(op []byte, timeout time.Duration) (string, bool) {
 	}
 	r.waiters[o] = ch
 	r.mu.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := withTimeout(timeout)
 	for r.node.Propose(ctx, op) != nil && ctx.Err() == nil {
 		time.Sleep(time.Millisecond)
 	}
@@ -457,7 +455,7 @@ func (r *Replica) read(seq uint64, key string, timeout time.Duration) (string, b
 	}
 	r.reads[seq] = ch
 	r.mu.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := withTimeout(timeout)
 	r.node.ReadIndex(ctx, readCtx(r.id, seq, key))
 	select {
 	case v := <-ch:

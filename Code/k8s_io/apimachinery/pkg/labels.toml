@@ -1,8 +1,16 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md), except `Set`'s lookups, which the k8s etcd3 driver's selectors call
 # (stage 7e-2, Q7e-2-4: a map index and a comma-ok lookup, proved rather than trusted).
-translate = ["!*", "Set.Get", "Set.Has"]
-imports = ["!*"]
+# (prove-k8s, 2026-11-20) the variables' initializers (until then `opaqueInitsOk`): the operator
+# slices (one an `append`), the shared selectors (empty literals), `string2token` (a map literal) and
+# `var _ Selector = ValidatedSetSelector{}`; with `selection` imported (the operators' constants).
+translate = ["!*", "Set.Get", "Set.Has", "unaryOperators", "binaryOperators", "validRequirementOperators",
+  "sharedEverythingSelector", "sharedNothingSelector", "string2token", "_",
+  # the `Token` constants `string2token` maps to (a names-only constant is a value of unknown shape)
+  "ErrorToken", "EndOfStringToken", "ClosedParToken", "CommaToken", "DoesNotExistToken", "DoubleEqualsToken",
+  "EqualsToken", "GreaterThanToken", "IdentifierToken", "InToken", "LessThanToken", "NotEqualsToken", "NotInToken",
+  "OpenParToken"]
+imports = ["!*", "k8s.io/apimachinery/pkg/selection"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

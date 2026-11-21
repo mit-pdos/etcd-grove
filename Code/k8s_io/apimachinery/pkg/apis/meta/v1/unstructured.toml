@@ -1,7 +1,10 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
-imports = ["!*"]
+# (prove-k8s, 2026-11-20) `UnstructuredJSONScheme`, an empty struct literal, and the `var _` checks
+# (until then `opaqueInitsOk`).
+translate = ["!*", "UnstructuredJSONScheme", "_"]
+# `runtime` and `meta/v1` (prove-k8s): the interfaces of `UnstructuredJSONScheme` and the `var _` checks
+imports = ["!*", "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/apis/meta/v1"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

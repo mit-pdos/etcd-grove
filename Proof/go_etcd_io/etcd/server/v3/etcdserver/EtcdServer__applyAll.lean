@@ -400,7 +400,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
         iintro %m HP
         iunfold rnSnapMsg at HP
-        icases HP with ⟨%sm, Hm, %Hty, #Hsm, -, #Huf⟩
+        icases HP with ⟨%sm, Hm, %Hty, #Hsm, -, #Huf, #Hsrc⟩
         rw [Hγb]
         letI := srvStor (GF := GF) γr.raft.raft
         ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm
@@ -556,7 +556,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
             rw [hγn]
-            icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct⟩)
+            icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, #Hbatch⟩)
             · exfalso
               exact (Hsh.1.2.2.2.1 (by rw [Hty]; simp [MsgSnap, MsgProp, MsgReadIndex,
                 MsgTransferLeader])) Hrt0

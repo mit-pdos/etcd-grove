@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-// TestAddressAliases (D12: "the plan's strings must name distinct sockets (no
-// two strings for one host:port)"; D7: a listener at a accepts only
-// connections dialed to the string a). Distinct strings reach one listener:
+// TestAddressAliases (D20: "no two valid strings alias"; D7, D21: a listener
+// at a accepts only connections dialed to the string a, a wildcard's to any
+// address with its port, lisAccepts). Distinct strings reach one listener:
 // a listener at "127.0.0.1:P" accepts Dials of "localhost:P" and of ":P"
 // (Go: an empty host dials the local system); a wildcard listener at ":P"
 // accepts a Dial of "127.0.0.1:P" and "127.0.0.2:P" (all of 127/8 is local);
@@ -18,8 +18,11 @@ import (
 // routes by the bound address and port, Go resolves names: what D12 excludes
 // is wider than "two strings for one host:port" (":P" and "127.0.0.1:P" are
 // different host:port pairs and conflict, and the wildcard catches every
-// local address), so a plan with two such strings is a deployment D12 must
-// exclude explicitly (notes/axiom-review/tcp-semantics.md). Measured.
+// local address), so the valid strings (addrOk, D20) are the canonical
+// a.b.c.d:p only (no hostname, no wildcard as a Dial address), and a wildcard
+// Listen takes every address with its port (lisAccepts, D21: the model any
+// address, a superset of the local ones; EADDRINUSE at 127.0.0.1:P is a sys
+// failure it allows) (notes/axiom-review/tcp-semantics.md). Measured.
 func TestAddressAliases(t *testing.T) {
 	t.Parallel()
 	accepts := func(ln net.Listener, dial string) bool {

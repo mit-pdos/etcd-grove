@@ -47,7 +47,7 @@ entries, its entries' keys non-empty and within `bboltEntryMax`. -/
 def rootNodesOK (B : BRec) : Prop :=
   ∀ l r, B.ns !! l = some r →
     ((r.nv.parent' ≠ null → 0 < r.ws.length) ∧ (r.nv.isLeaf' = false → 2 ≤ r.ws.length)) ∧
-    ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax
+    ∀ w ∈ r.ws, 0 < w.key.length ∧ entryBytesFit w.key.length w.value.length w.pgid
 
 variable {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString} {Lroot : List Nat}
   {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
@@ -105,7 +105,7 @@ theorem rootPage_shape (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {Y Y' : WX} 
     ∀ B pa pg, Y.t.bs !! X0.rl = some B → wpageAt Y.v B pgid = some (pa, pg) →
       (parent ≠ null → 0 < pageCount pg) ∧ (pageFlags pg ≠ leafPageFlag → 2 ≤ pageCount pg) ∧
       ∀ i < pageCount pg, 0 < (pageW pg i).key.length ∧
-        (pageW pg i).key.length + (pageW pg i).value.length ≤ bboltEntryMax := by
+        entryBytesFit (pageW pg i).key.length (pageW pg i).value.length (pageW pg i).pgid := by
   have h0 : ∀ B, X.t.bs !! X0.rl = some B → B.ib.root' ≠ W64 0 := by
     intro B hB; rw [hI.rootIb B hB]; exact hI.rootPg
   obtain ⟨hlocY, hvY, -, hibY, -⟩ := matGrow_keep hY hI.rootOK.1 h0
@@ -147,26 +147,26 @@ theorem rootPage_shape (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {Y Y' : WX} 
     | leaf _ pg' _ _ hp' hf _ _ => rw [hpg] at hp'; cases hp'; exact absurd hf hnl
     | branch _ pg' _ _ _ hp' _ h2 _ _ _ => rw [hpg] at hp'; cases hp'; exact h2
   · by_cases hfl : pageFlags pg = leafPageFlag
-    · obtain ⟨-, -, f3, f4⟩ := mat_pageW_leaf pg i hfl
+    · obtain ⟨-, f2, f3, f4⟩ := mat_pageW_leaf pg i hfl
       have hs := hI.shape0 c0 _ pg hc0 hown hpg0 hfl i hi
-      rw [f3, f4]
+      rw [f3, f4, f2]
       unfold leafKey leafValue
       have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i) (leafKsize pg i)
       have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i + leafKsize pg i)
         (leafVsize pg i)
-      omega
+      exact entryBytesFit_mono hs.2.1 (by omega) (by omega)
     · rw [pageW_value_branch pg i hfl, mat_pageW_key]
       have htk0 : treeKeys X0.v.pages pgid.toNat lo hi' := by rw [← hPY]; exact htk
       have := treeKeys_keyLe htk0 hown hL pg hpg0 i hi
-      simp only [List.length_nil, Nat.add_zero]
-      unfold maxKeySize at this; unfold bboltEntryMax; omega
+      apply entryBytesFit_branch
+      unfold maxKeySize at this; unfold branchKeyMax; omega
 
 theorem pageWsAs_mem {pg : List w8} {src : Src} {w : WEntry} (hw : w ∈ pageWsAs pg src) :
-    ∃ i < pageCount pg, w.key = (pageW pg i).key ∧ w.value = (pageW pg i).value := by
+    ∃ i < pageCount pg, w.key = (pageW pg i).key ∧ w.value = (pageW pg i).value ∧ w.pgid = (pageW pg i).pgid := by
   unfold pageWsAs pageWs at hw
   obtain ⟨w', hw', rfl⟩ := List.mem_map.1 hw
   obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hw'
-  exact ⟨i, List.mem_range.1 hi, rfl, rfl⟩
+  exact ⟨i, List.mem_range.1 hi, rfl, rfl, rfl⟩
 
 theorem pageWsAs_length (pg : List w8) (src : Src) : (pageWsAs pg src).length = pageCount pg := by
   unfold pageWsAs pageWs; simp
@@ -200,13 +200,13 @@ theorem rootNodes_matGrow (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) :
       rw [← pageWsAs_length pg (posSrc B)]; exact length_of_dat hdat
     have hnew : ((r.nv.parent' ≠ null → 0 < r.ws.length) ∧
         (r.nv.isLeaf' = false → 2 ≤ r.ws.length)) ∧
-        ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax := by
+        ∀ w ∈ r.ws, 0 < w.key.length ∧ entryBytesFit w.key.length w.value.length w.pgid := by
       refine ⟨⟨fun h => by rw [hlen]; exact s1 (by rw [← hpar]; exact h), fun h => ?_⟩, ?_⟩
       · rw [hlen]; apply s2; intro e; rw [hlf, e] at h; simp at h
       · intro w hw
         obtain ⟨w', hw', he⟩ := mem_of_dat hdat hw
-        obtain ⟨i, hi, hk, hv⟩ := pageWsAs_mem hw'
-        rw [wDat_key he, wDat_value he, hk, hv]
+        obtain ⟨i, hi, hk, hv, hp⟩ := pageWsAs_mem hw'
+        rw [wDat_key he, wDat_value he, wDat_pgid he, hk, hv, hp]
         exact s3 i hi
     intro x rx hx
     rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', hrp, -, -, hws, -, -, -, -, hnv, rfl⟩
@@ -417,7 +417,7 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
       · rw [r_ws, hlenP]; exact o1 (r_par ▸ hpar)
       · rw [r_lf, hleaf] at hl; cases hl
       · rw [r_ws] at hy; rcases hmemP y hy with rfl | h
-        · exact ⟨hkpos, hkv⟩
+        · exact ⟨hkpos, entryBytesFit_put hkmax hkv⟩
         · exact o3 y h
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hx'; exact hnodes1 x rx hx'
   -- the root entries

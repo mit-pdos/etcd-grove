@@ -299,6 +299,10 @@ structure StorNames where
   at contents of bounded size, cut at `maxSize` (`entsPtsC`, `entsCut`). The node pins it to
   `γ.maxData.isSome` (the node API's `isStorage`); `false` for a storage of no such contract. -/
   sz : Bool := false
+  /-- The ordered history of this attachment’s snapshot restores and Ready handouts. -/
+  history : Nat := 0
+  /-- The committed bounds and successful snapshot installations of this attachment. -/
+  installs : Nat := 0
 
 /-- (durability stage I-6) The same names with no attach record: raft's view of its storage before
 it has caught up with the record (`newRaft`'s window between `InitialState` and `appliedTo`: the
@@ -1023,8 +1027,8 @@ def restoreSdt (ls : LogState) : w64 × List w64 :=
 /-- (2026-10-28, stage U4a) The fields `NetFrame`/`LocalFrame` keep of what the storage holds:
 `stored`, the record of the storage's terms (`stb`, `sdt`), and (U8 v2 step 4) the certification
 bound (`dtk`). -/
-def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 × Nat :=
-  (ls.stored, ls.stb, ls.sdt, ls.dtk)
+def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 × Nat × List SnapTrip :=
+  (ls.stored, ls.stb, ls.sdt, ls.dtk, ls.ksn)
 
 theorem logStoreRec_stored {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) :
     ls'.stored = ls.stored := congrArg Prod.fst h
@@ -1032,7 +1036,11 @@ theorem logStoreRec_stored {ls ls' : LogState} (h : logStoreRec ls' = logStoreRe
 /-- (U8 v2 step 4) ... and the certification bound (`LogState.dtk`): only `ownRaftLog_certify`
 moves it. -/
 theorem logStoreRec_dtk {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) :
-    ls'.dtk = ls.dtk := congrArg (fun p => p.2.2.2) h
+    ls'.dtk = ls.dtk := congrArg (fun p => p.2.2.2.1) h
+
+/-- Ordinary network and local steps preserve the list of restored snapshots. -/
+theorem logStoreRec_ksn {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) :
+    ls'.ksn = ls.ksn := congrArg (fun p => p.2.2.2.2) h
 
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
 id is the boundary, nothing after it, committed up to it, `applied` untouched, the

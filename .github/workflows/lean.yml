@@ -125,6 +125,12 @@ jobs:
       # stage 2, D2): no new match on a mode, off/on twin or literal mode. Reads the sources only.
       - name: Check the auth-mode baseline
         run: ./etc/mode-check.py --check
+      # Every registration on etcd's client port has a row in `etc/auth-table.txt`, with the specs
+      # that carry its access check, no row weaker than its baseline (stage M0 of
+      # `notes/auth-mediation-scope.md`). Reads the Go sources (`.lake/goose/etcd`, cloned by the
+      # Goose check above) and the specs; the tcb.json half is skipped here (no build yet).
+      - name: Check the client port's access-control table
+        run: ./etc/auth-mediation-check.py --check
       - name: Build
         # `timed-build.py` is `lake build`, recording each module compile's
         # timing for the report below.

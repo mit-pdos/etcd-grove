@@ -110,7 +110,7 @@ def _calls_of(run):
 
 def tampers():
     """(name, run, tampered witness, tampered calls (None: the run's), the step it must fail at
-    (None: the plan, or a call), a substring of the expected message)."""
+    (None: a call), a substring of the expected message)."""
     out = []
     run, w = _load("probe-dialthenlisten.tar.gz")
     calls = _calls_of(run)
@@ -222,10 +222,36 @@ def tampers():
     st[3], st[4] = st[4], st[3]
     out.append(("steps swapped", run, t, None, st[4]["i"], "not in t order"))
 
-    # an ill-formed plan (an ephemeral port)
-    t = copy.deepcopy(w)
-    t["plan"] = [["127.0.0.1:40000", t["plan"][0][1]]] + t["plan"]
-    out.append(("ill-formed plan", run, t, None, None, "PlanWellFormed"))
+    # v3.4 (witness version 2: no plan; a Listen listens at its own address): the addresses are
+    # checked at each Listen and Dial step, and at each Accept the listener's address must take
+    # the connection's (lisAccepts). The witness and the calls are tampered together, so that the
+    # call check agrees and only the model refuses.
+    def readdr(t, cl, s, a):
+        s["addr"] = a
+        for c in cl["calls"]:
+            if (c["pid"], c["b"]["s"]) == (s["trace"]["pid"], s["trace"]["s"]):
+                c["b"]["addr"] = a
+
+    # a Listen at an invalid address (an ephemeral port: not listenOk, a panic of the model)
+    t, cl = copy.deepcopy(w), copy.deepcopy(CC.calls_json(run))
+    s = [x for x in _steps(t, op="Listen") if x["res"]["code"] == 0][0]
+    readdr(t, cl, s, "127.0.0.1:40000")
+    out.append(("Listen of an invalid address", run, t, cl, s["i"], "listenOk"))
+
+    # a Dial of an invalid address (an ephemeral port: not addrOk, a panic of the model)
+    t, cl = copy.deepcopy(w), copy.deepcopy(CC.calls_json(run))
+    s = [x for x in _steps(t, op="Dial") if x["res"]["code"] == 3][0]
+    readdr(t, cl, s, "127.0.0.1:40000")
+    out.append(("Dial of an invalid address", run, t, cl, s["i"], "addrOk"))
+
+    # an Accept at a listener whose address does not take the connection's: the Listen moved to
+    # another valid port, the connection still dialed to the old one
+    t, cl = copy.deepcopy(w), copy.deepcopy(CC.calls_json(run))
+    s = [x for x in _steps(t, op="Listen") if x["res"]["code"] == 0][0]
+    port = int(s["addr"].rsplit(":", 1)[1])
+    readdr(t, cl, s, s["addr"].rsplit(":", 1)[0] + f":{port + 1}")
+    acc = [x for x in _steps(t, op="Accept") if x["res"]["code"] == 0 and x["lis"] == s["res"]["lis"]][0]
+    out.append(("Accept at another address", run, t, cl, acc["i"], "not at the address"))
 
     # a crash left out: the restarted server's first step is then of a process that is not its
     # node's current incarnation
@@ -262,7 +288,7 @@ def negative(exe, out):
         cert, got, msg, _ = replay(exe, wp, cp)
         good = (not cert) and got == step and sub in msg
         ok = ok and good
-        where = f"step {step}" if step is not None else "the plan or a call"
+        where = f"step {step}" if step is not None else "a call"
         print(f"{'rejected' if good else 'WRONG   '} {name:32} expected at {where}: {msg[:200]}", flush=True)
     return ok
 

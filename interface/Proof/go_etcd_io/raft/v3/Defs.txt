@@ -126,6 +126,9 @@ theorem rdNL_toPState [GoGlobalContext] [GoSemanticsFunctions] (s : NState) : rd
 theorem logAppend.proj_inprogress (ls : LogState) (ents : List EntryM) : (logAppend ls
     ents).inprogress = ls.inprogress
 
+theorem logStoreRec_ksn {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) : ls'.ksn =
+    ls.ksn
+
 theorem becomePrecandidate.proj_gh [GoGlobalContext] [GoSemanticsFunctions] (s : NState) :
     (becomePrecandidate s).gh = s.gh
 
@@ -441,8 +444,8 @@ theorem isMessage_absMsg_ctx [ReceiptGS GF] (γ : RaftNames) (ty : MsgType) (m :
 def campaignTransfer : CampaignType :=
   go!"CampaignTransfer"
 
-def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 × Nat :=
-  (ls.stored, ls.stb, ls.sdt, ls.dtk)
+def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 × Nat × List SnapTrip :=
+  (ls.stored, ls.stb, ls.sdt, ls.dtk, ls.ksn)
 
 def inflightsReset (i : Inflights) : Inflights :=
   { count := 0, size := i.size, bytes := 0, maxBytes := i.maxBytes }
@@ -642,7 +645,8 @@ theorem nstateWf_becomeLeader [GoGlobalContext] [GoSemanticsFunctions] (id : w64
     NStateWf (becomeLeader id s)
 
 def StorNames.unrec (sn : StorNames) : StorNames :=
-  { ga := sn.ga, gg := sn.gg, gsv := sn.gsv, gd := sn.gd, gk := sn.gk, sz := sn.sz }
+  { ga := sn.ga, gg := sn.gg, gsv := sn.gsv, gd := sn.gd, gk := sn.gk, sz := sn.sz, history := sn.history,
+    installs := sn.installs }
 
 theorem nstateWf_sendMsgs [GoGlobalContext] [GoSemanticsFunctions] (s : NState) (ms : List Msg) (H :
     NStateWf s) : NStateWf (sendMsgs s ms)
@@ -1538,6 +1542,8 @@ structure StorNames : Type where
   c0 : Nat
   ct : List (Nat × w64)
   sz : Bool
+  history : Nat
+  installs : Nat
 
 theorem becomeLeaderPre.proj_outbox [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState)
     : (becomeLeaderPre id s).outbox = (resetTo s s.term).outbox

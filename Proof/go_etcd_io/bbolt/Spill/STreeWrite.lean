@@ -53,7 +53,7 @@ theorem sTree_wBranch {P : Pages} {hwm : Nat} {lo hi : Option (List w8)} {h : Na
     (hlt : wid.toNat < hwm)
     (hlen : (wPage wid false ms ovf tail).length = (1 + ovf.toNat) * 4096)
     (hn2 : 2 ≤ ms.length) (hn : ms.length < 2 ^ 16)
-    (hb : 16 + (pageBody true ms).length ≤ maxAllocSize) (hs : msSorted ms)
+    (hb : 16 + (pageBody true ms).length ≤ 16 + maxAllocSize) (hs : msSorted ms)
     (hk0 : ∀ m ∈ ms, 0 < m.key.length) (hkin : ∀ m ∈ ms, keyIn lo hi m.key)
     (hch : ∀ i (hix : i < ms.length), sTree P hwm ms[i].pgid.toNat (childLo lo (msKey ms) i)
       (childHi hi (msKey ms) ms.length i) h (Sc i))
@@ -106,7 +106,7 @@ theorem sTree_wLeaf {P : Pages} {hwm : Nat} {lo hi : Option (List w8)}
     (hlt : wid.toNat < hwm)
     (hlen : (wPage wid true ms ovf tail).length = (1 + ovf.toNat) * 4096)
     (hn : ms.length < 2 ^ 16)
-    (hb : 16 + (pageBody true ms).length ≤ maxAllocSize) (hs : msSorted ms)
+    (hb : 16 + (pageBody true ms).length ≤ 16 + maxAllocSize) (hs : msSorted ms)
     (hk0 : ∀ m ∈ ms, 0 < m.key.length) (hkin : ∀ m ∈ ms, keyIn lo hi m.key)
     (hbv : ∀ i (hix : i < ms.length), ms[i].flags.toNat % 2 = bucketLeafFlag →
       bvalS P hwm ms[i].value (Sb i))

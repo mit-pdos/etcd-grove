@@ -166,7 +166,7 @@ macro "save_main" : tactic => `(tactic| (
       · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
       imodintro
       wp_apply (lc := 1) (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) γs 1 hp (absHs h) rs ls
-          (es.map absEnt) true (fun _ => iprop(False))) $$ [Hws Hents]
+          (es.map absEnt) true (fun _ => iprop(False)) (fun hc => absurd hc walCov_ioNone)) $$ [Hws Hents]
         as %err Hr
       · iframe; iframe #
         isplitr
@@ -205,7 +205,7 @@ macro "save_main" : tactic => `(tactic| (
     · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
     imodintro
     wp_apply (lc := 1) (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) γs 1 hp (absHs h) rs ls
-        (es.map absEnt) true _) $$ [Hws Hents Hau]
+        (es.map absEnt) true _ (fun hc => absurd hc walCov_ioNone)) $$ [Hws Hents Hau]
       as %err Hr
     · iframe Hws Hents; iframe #
       isplitr

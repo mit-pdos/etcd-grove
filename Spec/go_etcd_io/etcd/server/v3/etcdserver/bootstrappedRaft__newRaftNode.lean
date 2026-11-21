@@ -73,6 +73,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
     -- (restart S3 item 5, Q35 (a)) how the node boots
     (bt : RNBoot),
   letI := srvStor (GF := GF) γr
+  ∀ (SV : SnapshotM → IProp GF) [∀ sv, Persistent (SV sv)],
+  (∀ sv, SV sv ⊢ snapshotValid γr.cl sv) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the pure premises, one conjunction (2026-11-05, the user's M1: until then the
       -- configuration's, the peers' and the WAL's were implications before the triple): a positive
@@ -94,7 +96,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- conjuncts) the configuration and the peers, the storage as `StartNode` boots it with the
       -- frame `Q`, this node's boot token, its id vacant and its durable state at `RaftState.init`;
       -- at a restart, `RestartNode`'s
-      "Hboot" ∷ rnBootPre γr bv cv lok pv ps ctxs Q bt ∗
+      "Hboot" ∷ rnBootPre γr bv cv lok pv ps ctxs Q SV bt ∗
       -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, `newRaftNode`'s
       -- proof calls the ticker's spec)
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
@@ -109,7 +111,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
           γw.snap0 = bt.snap0⌝ ∗
         -- the node API's node and (2026-10-30, the repair) its whole running token
         isNode n γr.cl srvClusterN cv.ID' ∗
-        nodeRunning n γr.cl srvClusterN 1 ∗
+        nodeRunning n γr.cl srvClusterN 1 ∗ nodeTagPin γr.cl n SV ∗
         -- (restart S3 item 5) what the start gives of the boot (`rnBootPost`, at the storage's key,
         -- the wrapper's `γw.key`: raft names it at the attach): at `fresh` (until then the spec's
         -- own conjuncts) made by `StartNode` (`nodeStartedFresh`), its driver at its start, the

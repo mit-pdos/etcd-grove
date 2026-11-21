@@ -30,8 +30,8 @@ theorem kVClient.Range.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Range.spec (GF := GF) (hG := hG) := by
-  intro kc conn addr Spec Q ctx cd inp req k e opts vs Ψe
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok, %Hsz⟩
+  intro kc conn addr Spec Q ctx om cd inp req k e opts vs Ψe
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -55,7 +55,7 @@ theorem kVClient.Range.wp_proof
   ihave Hblank : pbRangeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbRangeResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMdE wp_Invoke conn addr go!"/etcdserverpb.KV/Range" pbRangeRequestT pbRangeResponseT pbRangeRequestT_reg pbRangeResponseT_reg Spec (rangeReqOp req k e) Q Ψe ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMdE wp_Invoke conn addr go!"/etcdserverpb.KV/Range" pbRangeRequestT pbRangeResponseT pbRangeRequestT_reg pbRangeResponseT_reg Spec (rangeReqOp req k e) Q Ψe ctx om cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   simp only [pbRangeRequestT, pbRangeResponseT] at hI
   rw [show (pbRangeRequest (GF := GF)).ty = etcdserverpb.RangeRequest.ty from rfl,

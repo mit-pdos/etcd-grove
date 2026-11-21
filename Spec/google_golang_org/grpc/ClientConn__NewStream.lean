@@ -59,16 +59,19 @@ credentials' data, then the outgoing metadata and `added`, reserved keys skipped
 once), and the stream specification is the registration's at `md`. True of a connection whose
 stream interceptor is etcd's (`dialOk`). Since stage A of the per-type models (2026-11-07): the
 request's and the reply's models are the ones registered for their Go types (`streamReqModelOf`,
-`streamRepModelOf`). -/
+`streamRepModelOf`). (errdesc stage 1, 2026-11-20) The attempt's metadata is over the context's outgoing
+metadata `om`, which the precondition relates to `ctx` (`metadata.outMD ctx om`); until then over the
+pure `metadata.outgoingOf ctx`. -/
 abbrev grpc.ClientConn.NewStream.spec : Prop :=
   ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (method : GoString)
     (Req Rep : StreamMsgT GF),
     streamReqModelOf GF Req.ty = some Req → streamRepModelOf GF Rep.ty = some Rep →
   ∀ (Up : GoString → Nat → Req.M → IProp GF)
     (Spec : GoString → GrpcMd → StreamSpec Rep.toStreamMsg) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (desc : Loc) (opts : GoSlice) (vs : List GoInterface),
+    (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (desc : Loc) (opts : GoSlice)
+    (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics [] ∗
-      isGrpcStreamsMd addrs method Up Spec ∗ ctxOk ctx cd ∗
+      isGrpcStreamsMd addrs method Up Spec ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗
       (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs }}
     (App (App (App (App
@@ -77,7 +80,7 @@ abbrev grpc.ClientConn.NewStream.spec : Prop :=
   {{ (cs err : GoInterface), RET (PairV #cs #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)
           (cd' : context.ContextDesc (IProp GF)) (md : GrpcMd),
-        ⌜a ∈ addrs ∧ clientAttemptMd conn (GoInterface.ok ctx) md⌝ ∗
+        ⌜a ∈ addrs ∧ clientAttemptMd conn om md⌝ ∗
         cliStreamIs cs γ Req.toStreamMsg Rep.toStreamMsg (Up a) Dn cd' ∗
         cliSendTok (Req := Req.toStreamMsg) γ [] ∗ cliRecvTok (Rep := Rep.toStreamMsg) γ [] ∗
         Spec a md γ Dn) ∨

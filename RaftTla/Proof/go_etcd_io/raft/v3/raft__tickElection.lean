@@ -58,7 +58,7 @@ theorem raft.tickElection.wp_proof
     iapply HΦ $$ %s
     iframe Hphys Hghost
     isplitr; · ipureintro; exact Hwf
-    isplitr; · ipureintro; exact ⟨Int.le_refl _, PVoteLe.refl _⟩
+    isplitr; · ipureintro; exact TickProgress.refl _
     isplitr; · ipureintro; exact TickStep.refl s
     ileft; iframe HG; ipureintro; rfl
   wp_apply wp_pastElectionTimeout c r id s $$ [$Hphys] as %b2 Hphys
@@ -68,7 +68,7 @@ theorem raft.tickElection.wp_proof
     iapply HΦ $$ %s
     iframe Hphys Hghost
     isplitr; · ipureintro; exact Hwf
-    isplitr; · ipureintro; exact ⟨Int.le_refl _, PVoteLe.refl _⟩
+    isplitr; · ipureintro; exact TickProgress.refl _
     isplitr; · ipureintro; exact TickStep.refl s
     ileft; iframe HG; ipureintro; rfl
   -- the campaign: `r.electionElapsed = 0`, `r.Step(&pb.Message{From: new(r.id), Type:
@@ -140,7 +140,7 @@ theorem raft.tickElection.wp_proof
     iintro %Hc
     simp [MsgSnap, MsgHup] at Hc
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', -, %Hfr, -, %Htm, -, -, -, Herr, HG⟩
-  have Hcm := And.intro Href.commit_mono Href.voteLe
+  have Hcm := TickProgress.mk Href.commit_mono Href.voteLe Href.snapQueue
   have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hc' (by msg_ne); subst c'
   icases Herr with (%Herr | ⟨%Hc'', -⟩)

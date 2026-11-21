@@ -96,7 +96,7 @@ theorem etcd_leaseN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseN.leaseNAddrs_lit k hk)
+  refine etcd_adequate_members (GF := putgetNGF) (hmsL := etcd_leaseN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseN.leaseNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_leaseN.leaseNAddrs k)

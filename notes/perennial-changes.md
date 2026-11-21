@@ -17,6 +17,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
+
+- **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
+  `float64Leb`, `float64Add`, `uint64ToFloat64`, ... are arbitrary functions. A proof cannot show
+  `¬ (float64(n) < 0)` for an unsigned `n`, nor relate the float order to the bits' order, and an axiom here stating
+  such a fact would be false of some instance (inconsistent), so a local workaround can only keep the whole function
+  behind an axiom.
+- **Needed by.** prometheus (`/shared/tmp/extlib-promdeep-triage.md`): `counter.Add`'s `if v < 0 { panic }` (inside
+  `NewCounter`'s and `CounterVec.WithLabelValues`'s posts, `metric.counterSpec`), `newHistogram`'s bucket checks
+  (`bucketsOk` is stated over the bits' order), `ExponentialBuckets` (exact doubling); also x/time/rate's token bucket
+  and `lessor.Promote` (smalllibs, etcdstorage).
+- **Workaround here.** The functions stay trust-boundary axioms.
+- **Proposed (general).** IEEE-754 binary64 facts as assumptions of the semantics (a `FloatLaws` class over
+  `FloatOps`, required by `go.Semantics` or by the packages that need it): the order of finite non-negative floats is
+  their bits' order, `uint64ToFloat64`/`int64ToFloat64` of a non-negative integer is non-negative and finite, NaN
+  compares false, doubling a normal float whose result is normal adds `2^52` to its bits. Or a full model (Lean's
+  `Float` is opaque to the kernel; a bit-level IEEE model would be checkable). Each law is true of Go's `float64`.
+- **Status.** Not started.
+
 ### `wp_apply` with a `have`-local spec can close the goal with `sorry` (2026-11-20, k8s-authz)
 
 - **Limitation.** In `Proof/k8s_io/apimachinery/pkg/util/errors/aggregate__visit.lean`, `have hrec :=
@@ -1370,6 +1389,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`time` is translated without `Duration.String`, so its pointer wrapper is missing too).
 - **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
   base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
+  (2026-11-20, auth-mediation M2) etcd's membership operations: `json.Marshal` of a
+  `membership.Member` and of a `ConfigChangeContext` (`EtcdServer.AddMember`, `UpdateMember`,
+  `promoteMember`), local trust-boundary specs in the smallest form (no error, some fresh bytes:
+  `Spec/encoding/json/MarshalMember.lean`, `MarshalConfigChangeContext.lean`); the general fix is a
+  model of `encoding/json`'s encoder for structs of basic fields and string slices.
 - **Workaround here.** The three packages names-only in this repository's configuration (survey
   branch: `Code/encoding/{json,base64}.toml`, `Code/path.toml`); specs as
   needed, local until proposed.
@@ -3193,6 +3217,19 @@ parameter.
 - **Proposed (general).** Fix the two docstrings ("the first binding of a key wins"); documentation only.
   **Status.** Recorded only.
 
+## 2026-11-20: `≤u` has no transitive instance (a named type whose underlying is another named interface; branch `prove-k8s`)
+
+- **The gap.** `go.UnderlyingEq` (`≤u`, `Perennial/Golang/Theory/PostLifting.lean`) has only the
+  reflexive instance and one `<u` step (`unfold_to_underlying_eq`), unlike `↓u` (`is_underlying_unfold`
+  chains). So converting a value to an interface type declared as another named interface (apimachinery's
+  `type Codec Serializer`) does not step: `convert_to_interface` needs `Codec.ty ≤u go.InterfaceType _`,
+  two `<u` steps away.
+- **Worked around locally.** The one place it is needed (`unstructured`'s initializer,
+  `UnstructuredJSONScheme runtime.Codec = unstructuredJSONScheme{}`): a local `haveI` of the two-step
+  instance (`etc/gen-init.py`, `Proof/k8s_io/apimachinery/pkg/apis/meta/v1/unstructured/Init.lean`).
+- **Proposed (general).** A transitive instance `[t <u t'] [t' ≤u u] : t ≤u u` (as for `↓u`; `<u` is
+  directed, so search terminates). **Status.** Recorded only.
+
 ## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
 
 - **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
@@ -3213,3 +3250,19 @@ parameter.
   `rate.Every` (`1 / Limit(interval.Seconds())`) cannot be stepped; its axiom stays.
 - **Proposed (general).** Translate `Duration.Seconds` (and `Minutes`, `Hours`) over the uninterpreted
   `FloatOps`; float constants as their bits. **Status.** Recorded only (prove-smalllibs).
+
+## 2026-11-20 · Deleting from and clearing a nil Go map
+
+The WAL lock-release loop deletes a file from a map that is allocated only when
+recovery encounters an old segment name. At Perennial pin `c44b74871`,
+`delete_map` checks the key and then reads the map at its address. On nil the
+read gets stuck. The sibling `clear_map` similarly attempts a store to nil.
+On the builder, Go returned normally for both operations on a nil
+`map[any]int` with a valid key and panicked for `delete(m, []int{1})`.
+
+Perennial commit `15145e014` checks the key before testing for nil in delete
+and returns immediately on nil in both builtins. The map length and lookup
+rules already handle the nil map at the builtin boundary. The WAL verification
+needs the valid-key case for a pointer key. The WAL release proof passed against the merged commit. [Perennial PR #645](https://github.com/mit-pdos/perennial/pull/645)
+
+The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's previous Perennial revision `c44b74871`. The intervening upstream translation of `reflect.Type` changed instance selection in 32 trust collections. The backport keeps those collections comparable.

@@ -3,15 +3,16 @@
 # `k8s/all`: the one closed Kubernetes theorem over the operational semantics
 
 `k8s_adequate` (`notes/k8s-unified-scope.md`, §3.3; restated as `k8s_safe` in `Results.lean`): every
-real execution of `k8sProgram k clients ops watchers wops steps₁ steps₂` (`TopLevelDefs.lean`: the
-package's initialization, then `Main` with the two schedules built as slice literals) from a fresh
+real execution of `k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂` (`TopLevelDefs.lean`:
+the package's initialization, then `Main` with the two member counts and the two schedules built as
+slice literals) from a fresh
 state with one thread, of `n` steps: if the main thread has finished, its result is `#()`; no thread is
 stuck; no thread has ended in a panic (no porcupine check of the store's history fails, no API
 server's compactor check fails).
 
 It follows from `etcd_adequate_alloc_members` with the members of both clusters (the store cluster's
-`k8s_etcd3N.startAddrs k`, then the compactor cluster's `cluster3.members k8s_compactor.clusterCfg`),
-their bridges, the program's addresses `k8sAddrs k` and data directories `k8sDirs k`, whose
+`k8s_etcd3N.startAddrs k₁`, then the compactor cluster's `k8s_compactorN.startAddrs k₂`), their
+bridges, the program's addresses `k8sAddrs k₁ k₂` and data directories `k8sDirs k₁ k₂`, whose
 distinctness is `Disjoint.lean`'s; the compactor registry is allocated before the program's proof is
 chosen, as the compactor driver's retired closed theorems did, and `Main` receives its claims'
 authority with no endpoint claimed. The proof of the body: `k8sall`'s `wp_initialize'`, the two
@@ -24,7 +25,6 @@ idutil's trusted model) is not used by the proof and is stated in `Results.lean`
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.Disjoint
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.InitLinked
@@ -122,8 +122,8 @@ section adequacy
 variable [go_gctx : GoGlobalContext]
 
 /-- **The one closed Kubernetes theorem, over the operational semantics** (see the file header):
-every real execution of `k8sProgram k clients ops watchers wops steps₁ steps₂` from a fresh state with
-one thread, of `n` steps: if the main thread has finished, its result is `#()`; no thread is stuck; no
+every real execution of `k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂` from a fresh state
+with one thread, of `n` steps: if the main thread has finished, its result is `#()`; no thread is stuck; no
 thread has ended in a panic. -/
 theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
@@ -136,10 +136,12 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
-    (id₁ id₂ id₃ : w64) (ps' : List w64) (ctxs' : List (List w8)) (boot' : List LogEntry)
-    (Hbf' : cluster3.BootFacts id₁ id₂ id₃ ps' ctxs' boot')
+    (k₁ : Nat) (hk₁1 : 1 ≤ k₁) (hk₁ : k₁ ≤ 1000) (ids : List w64) (ps : List w64)
+    (ctxs : List (List w8)) (boot : List LogEntry) (Hlen : ids.length = k₁)
+    (Hbf : k8s_etcd3N.BootFacts ids ps ctxs boot)
+    (k₂ : Nat) (hk₂1 : 1 ≤ k₂) (hk₂ : k₂ ≤ 1000) (ids' : List w64) (ps' : List w64)
+    (ctxs' : List (List w8)) (boot' : List LogEntry) (Hlen' : ids'.length = k₂)
+    (Hbf' : k8s_compactorN.BootFacts ids' ps' ctxs' boot')
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
     (clients ops watchers wops : w64) (Hc0 : 0 ≤ sint.Z clients) (Hw0 : 0 ≤ sint.Z watchers)
@@ -148,37 +150,40 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60)
     (steps₁ steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps₁ : steps₁.length < 2 ^ 63) (Hsteps₂ : steps₂.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8sProgram k clients ops watchers wops steps₁ steps₂) k8sNames)
-    (HAs : addrsUnclaimed (k8sProgram k clients ops watchers wops steps₁ steps₂) (k8sAddrs k))
-    (HDs : dataDirsAbsent (k8sProgram k clients ops watchers wops steps₁ steps₂) (k8sDirs k))
-    (HEnv : verifyEnvOff (k8sProgram k clients ops watchers wops steps₁ steps₂))
+    (HNs : prometheus.namesUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) k8sNames)
+    (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sAddrs k₁ k₂))
+    (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sDirs k₁ k₂))
+    (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂))
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC k8sGF,
-      ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k n ids ps ctxs boot)
+      ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₁ n ids ps ctxs boot)
     (Hprem₂ : ∀ hG : HeapGS .hasLC k8sGF,
-      ⊢ cluster3.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k8s_compactor.clusterCfg n
-        id₁ id₂ id₃ ps' ctxs' boot')
+      ⊢ k8s_compactorN.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₂ n ids' ps' ctxs' boot')
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k))
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k₁ k₂))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps' : RealNsteps n ([k8sProgram k clients ops watchers wops steps₁ steps₂],
+    (Hsteps' : RealNsteps n ([k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂],
       ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine etcd_adequate_alloc_members (GF := k8sGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
-    (hAsLit := k8s_all.k8sAddrs_lit k hk) (HEnv := HEnv)
+    (hmsL := fun m hm => (List.mem_append.1 hm).elim (k8s_etcd3N.startAddrs_names_len k₁ m)
+      (k8s_compactorN.startAddrs_names_len k₂ m))
+    (hAsLit := k8s_all.k8sAddrs_lit k₁ k₂ hk₁ hk₂) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.all.initialize'
-    (App (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.all.Main))
-      (Val #(W64 (k : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops))
-      (schedLit steps₁)) (schedLit steps₂))
+    (App (App (App (App (App (App (App (App
+      (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.all.Main))
+      (Val #(W64 (k₁ : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops))
+      (schedLit steps₁)) (Val #(W64 (k₂ : Int)))) (schedLit steps₂))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm)
-    (k8sAddrs k) (k8s_all.k8sAddrs_nodup k hk) (k8sDirs k) (k8s_all.k8sDirs_nodup k hk)
-    (k8s_etcd3N.startAddrs k ++ cluster3.members k8s_compactor.clusterCfg)
-    (k8s_etcd3N.bridges k ++ cluster3.bridges k8s_compactor.clusterCfg)
-    (k8s_all.k8sAddrs_perm k) (k8s_all.k8sDirs_perm k)
+    (k8sAddrs k₁ k₂) (k8s_all.k8sAddrs_nodup k₁ k₂ hk₁ hk₂) (k8sDirs k₁ k₂)
+    (k8s_all.k8sDirs_nodup k₁ k₂ hk₁ hk₂)
+    (k8s_etcd3N.startAddrs k₁ ++ k8s_compactorN.startAddrs k₂)
+    (k8s_etcd3N.bridges k₁ ++ k8s_compactorN.bridges k₂)
+    (k8s_all.k8sAddrs_perm k₁ k₂) (k8s_all.k8sDirs_perm k₁ k₂)
     σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC k8sGF := k8sHeapAt hG lctx
@@ -197,10 +202,8 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨⟨Hms, Hbs⟩, Hreg⟩
   icases Hms with ⟨Hms1, Hms2⟩
   icases Hbs with ⟨Hbs1, Hbs2⟩
-  ihave Hstart := cluster3.startRes_intro k8s_compactor.clusterCfg $$ [Hms2 Hbs2]
-  · iframe
-  unfold k8s_etcd3N.startAddrs
-  rw [BigSepL.bigSepL_map]
+  unfold k8s_etcd3N.startAddrs k8s_compactorN.startAddrs
+  rw [BigSepL.bigSepL_map, BigSepL.bigSepL_map]
   wp_bind (schedLit steps₂)
   iapply wp_schedLit steps₂ Hsteps₂
   iintro %sl₂ Hsl₂
@@ -212,12 +215,12 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ThreadBoundLe k8sGF (2 ^ 28) := ⟨by rw [HT]; word⟩
   haveI : ReceiptBoundLe k8sGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   haveI : ReceiptBoundLe k8sGF (n + 1) := ⟨by rw [HN]; omega⟩
-  have hM := k8s_all.wp_Main (GF := k8sGF) (Hafter hG) k n ids ps ctxs boot id₁ id₂ id₃ ps' ctxs'
-    boot' clients ops watchers wops sl₁ sl₂ steps₁ steps₂ (srvLevels_of_max HT) hk1 hk Hlen Hbf Hbf'
-    (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance
+  have hM := k8s_all.wp_Main (GF := k8sGF) (Hafter hG) k₁ n ids ps ctxs boot k₂ ids' ps' ctxs'
+    boot' clients ops watchers wops sl₁ sl₂ steps₁ steps₂ (srvLevels_of_max HT) hk₁1 hk₁ Hlen Hbf
+    hk₂1 hk₂ Hlen' Hbf' (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance
     EtcdGrove.rpctypesEtcdError_asTarget k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds
     Hc0 Hw0 Hc31 Hops Hwops Hmul
-  wp_apply hM $$ [Hms1 Hbs1 Hstart Htok Hreg]
+  wp_apply hM $$ [Hms1 Hbs1 Hms2 Hbs2 Htok Hreg]
   · iframe; iframe #
   ipureintro
   rfl

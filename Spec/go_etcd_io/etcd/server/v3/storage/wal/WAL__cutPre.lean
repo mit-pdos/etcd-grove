@@ -58,14 +58,15 @@ def walPreInL (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e : 
     locks ↦* (ls ++ [lt]) ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ fileutil.lockedFile lt f)
 
 /-- **`w.sync()` before a rename** (S/wal.go:967-992): W4's `WAL.sync.specPre` over `walPreInL` (any
-locks, the tail last). -/
+locks, the tail last), over a writer called only with bytes (`io.writerStreamPNE`, wal-fsfix2: `cut`'s
+stream on `N.tmp` fails only when the file system can; every bounded stream is one). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL : Prop :=
   ∀ (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e : Loc) (ls : List Loc)
     (lt f : Loc) (snapi enti : w64)
     (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) (S : List w8 → IProp GF)
     (lim : Nat) (out pend : List w8) (c : w32),
   out.length + pend.length ≤ lim → walPreSyncOk f W S →
-  ⊢ io.writerStream (wal.fileWi f) lim W B -∗
+  ⊢ io.writerStreamPNE (wal.fileWi f) (fun ys => ys.length ≤ lim) W B -∗
     {{ encEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗
         walPreInL w lg dir mds md e ls lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗ W out }}
       (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
@@ -73,7 +74,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL : Prop :=
     {{ (err : GoInterface), RET #err;
         walPreInL w lg dir mds md e ls lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c [] ∗
         ((⌜err = GoInterface.nil⌝ ∗ S (out ++ pend)) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗ (B out pend ∨ W (out ++ pend)))) }}
+         (⌜err ≠ GoInterface.nil⌝ ∗ (B out pend ∨ (⌜¬ Fs.FsNoErrIno⌝ ∗ W (out ++ pend))))) }}
 
 /-- **`raft.IsEmptyHardState` over the client's hard states**: whether `hp` holds an empty state
 (`hsEmptyP`; a nil `hp` holds the zero state, empty). Raft's initialization gives `emptyState`, which it
@@ -97,7 +98,8 @@ abbrev WalPbIn.MarshalHsLaw (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
 def stateFrame (Mr : WalMarshal) (c : w32) (hs : HardStateM) : List w8 :=
   frame (walRecEnc ⟨stateType, hash.crc32.crc32c c (Mr.encState hs), Mr.encState hs⟩)
 
-/-- **`w.saveState(hp)` before a rename** (S/wal.go:1083-1091), over any guarded writer: of an empty
+/-- **`w.saveState(hp)` before a rename** (S/wal.go:1083-1091), over any guarded writer called only with
+bytes (`io.writerStreamPNE`, wal-fsfix2): of an empty
 hard state, nothing; else `w.state := hp` and `hp`'s state record encoded after what the encoder
 holds (the post of `encoder.encode.specG`). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specPre (P : WalPbIn GF)
@@ -107,7 +109,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specPre (P : WalPbIn 
   (∀ xs ys, xs <+: ys → ok ys → ok xs) →
   (¬ hsEmptyP hs → ok (out ++ pend ++ stateFrame Mr c hs) ∧
     recSize (recOf ⟨stateType, hash.crc32.crc32c c (Mr.encState hs), Mr.encState hs⟩) < 2 ^ 47) →
-  ⊢ io.writerStreamP wi ok W B -∗
+  ⊢ io.writerStreamPNE wi ok W B -∗
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ encEnv ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp0 ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗

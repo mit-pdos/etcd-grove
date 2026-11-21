@@ -883,7 +883,7 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
   "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
   -- (U8 v2) the snapshots the node may send, certified (`ksnCert`)
-  "#Hkcert" ∷ ksnCerts ls.sn ls.ksn ∗
+  "#Hkcert" ∷ logRestoreCerts ls.sn ls.ksn ls.prev.index' ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
                  = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1⌝ ∗
   "Huents" ∷ entsROz ls.sn.sz lv.unstable'.entries' ls.uents ∗
@@ -983,7 +983,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       lentStor lt sn st σ -∗
       ownSnap lv.unstable'.snapshot' snap -∗
       pendKsn lv.unstable'.snapshot' snap K -∗
-      ksnCerts sn K -∗
+      logRestoreCerts sn K ls.prev.index' -∗
       entsROz sn.sz lv.unstable'.entries' uents -∗
       ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
       isLoggerVal lv.logger' -∗
@@ -1078,7 +1078,7 @@ def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
   "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
   -- (U8 v2) the snapshots the node may send, certified (`ksnCert`)
-  "#Hkcert" ∷ ksnCerts ls.sn ls.ksn ∗
+  "#Hkcert" ∷ logRestoreCerts ls.sn ls.ksn ls.prev.index' ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
                  = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1⌝ ∗
   "Huents" ∷ entsROz ls.sn.sz lv.unstable'.entries' ls.uents ∗
@@ -1159,7 +1159,7 @@ theorem ownRaftLogW_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorStat
       lentStor lt sn st σ -∗
       ownSnap lv.unstable'.snapshot' snap -∗
       pendKsn lv.unstable'.snapshot' snap K -∗
-      ksnCerts sn K -∗
+      logRestoreCerts sn K ls.prev.index' -∗
       entsROz sn.sz lv.unstable'.entries' uents -∗
       ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
       isLoggerVal lv.logger' -∗
@@ -1942,8 +1942,8 @@ set_option hygiene false in
 bounds), or, after `reopen_unstable`, by the same once rewritten with `Huoff`. -/
 macro "reseal_raftLog" : tactic =>
   `(tactic| (try (ihave HStorage := Perennial.EtcdGrove.lentStor_close Hlnt _ _ _ $$ HStorage)) <;>
-    (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger) <;>
-    try (first | with_reducible rfl | with_reducible assumption
+    (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn [Hkcert] Huents Huents_cap Hl_logger Hu_logger) <;>
+    try (first | (unfold Perennial.EtcdGrove.logRestoreCerts; iexact Hkcert) | with_reducible rfl | with_reducible assumption
                | ((rewrite [Huoff]); with_reducible assumption)
                -- the storage and its pending batch (2026-10-10), for a state that
                -- keeps the fields they are stated on
@@ -1954,8 +1954,8 @@ set_option hygiene false in
 /-- `reseal_raftLog` for `ownRaftLogW` (`ownRaftLogW_intro`). -/
 macro "reseal_raftLogW" : tactic =>
   `(tactic| (try (ihave HStorage := Perennial.EtcdGrove.lentStor_close Hlnt _ _ _ $$ HStorage)) <;>
-    (iapply Perennial.EtcdGrove.ownRaftLogW_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger) <;>
-    try (first | with_reducible rfl | with_reducible assumption
+    (iapply Perennial.EtcdGrove.ownRaftLogW_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn [Hkcert] Huents Huents_cap Hl_logger Hu_logger) <;>
+    try (first | (unfold Perennial.EtcdGrove.logRestoreCerts; iexact Hkcert) | with_reducible rfl | with_reducible assumption
                | ((rewrite [Huoff]); with_reducible assumption)
                | exact Hstor | exact Hpend | exact Hfl | exact Hfr
                | (exact Perennial.EtcdGrove.FrOk.of_le Hfr rfl rfl (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega) (by simp only [Perennial.EtcdGrove.w64Max_spec]; omega) Hfr.2.2)))

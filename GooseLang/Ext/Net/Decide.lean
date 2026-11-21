@@ -11,13 +11,12 @@ A relation with an existential is decided at the instance it is given, all its a
 * `ReadOutcome st d n r d'`: its cut's `∃ k` (the prefix the cut keeps) is determined by `r` and
   `d'` (`cutKeep`: the bytes returned and the bytes left, or nothing for EOF, or the bytes left),
   so the decider tries that one only (`readOutcomeB`, `cut_unique`);
-* `ListenAt (GMap.ofList pl) host a a0`: its `∃ p` is `wildPort a`, its `∀ x` ranges over the
-  plan's list (`listenAtB`);
+* `lisAccepts la a`: its `∃ p` is `wildPort la` (`lisAcceptsB`);
 * `WriteOutcome st d rs k res d'` has none: the step's count `k` is an argument.
 
 The other relations (`WriteOutcome`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`,
-`LisCloseOutcome`, `IsEnd`) are decided by the same case split as their definitions. `PlanWellFormed`
-and `timeIsZero` are `Bool` already (`Deploy.lean`, `Impl.lean`).
+`LisCloseOutcome`, `IsEnd`) are decided by the same case split as their definitions. `addrOk`,
+`listenOk` and `timeIsZero` are `Bool` already (`Impl.lean`).
 
 The atoms avoid walking a direction's bytes where they can (the probe's directions hold megabytes):
 `lenGe` decides `k ≤ l.length` in `k` cells, `appendEqB` decides `a = b ++ c` without building
@@ -254,7 +253,7 @@ def isEndB (e : w64) (c : Nat) (s : Bool) : Bool :=
 theorem isEndB_iff {e : w64} {c : Nat} {s : Bool} : isEndB e c s = true ↔ IsEnd e c s := by
   simp [isEndB, IsEnd]
 
-/-! ## The plan and `ListenAt` -/
+/-! ## Association lists and `lisAccepts` -/
 
 /-- The lookup of `a` in an association list: its first pair's value. -/
 def alGet {K V : Type} [DecidableEq K] (l : List (K × V)) (a : K) : Option V :=
@@ -271,7 +270,7 @@ theorem alGet_isSome {K V : Type} [DecidableEq K] (l : List (K × V)) (a : K) :
     (alGet l a).isSome ↔ ∃ x ∈ l, x.1 = a := by
   unfold alGet; simp [List.find?_isSome]
 
-/-- The extension's plan of a plan list is its association list's lookup. -/
+/-- The map of an association list is its lookup. -/
 theorem ofList_lookup {K V : Type} [DecidableEq K] (l : List (K × V)) (a : K) :
     (GMap.ofList l).lookup a = alGet l a := by
   induction l with
@@ -280,46 +279,25 @@ theorem ofList_lookup {K V : Type} [DecidableEq K] (l : List (K × V)) (a : K) :
     obtain ⟨k, v⟩ := x
     rw [alGet_cons, ← ih]; rfl
 
-/-- Decides `ListenAt (GMap.ofList pl) host a a0`: its `∃ p` is `wildPort a`, its `∀ x` ranges
-over the plan list. -/
-def listenAtB (pl : List (GoString × GoString)) (host a a0 : GoString) : Bool :=
-  decide (alGet pl a0 = some host) &&
-  (decide (a0 = a) ||
-   (decide (alGet pl a = none) &&
-    match wildPort a with
-    | none => false
-    | some p => decide (portOf a0 = some p) &&
-        pl.all (fun x => decide (portOf x.1 = some p → x.1 = a0))))
+/-- Decides `lisAccepts la a`: its `∃ p` is `wildPort la`. -/
+def lisAcceptsB (la a : GoString) : Bool :=
+  decide (la = a) ||
+  match wildPort la with
+  | none => false
+  | some p => decide (portOf a = some p)
 
-theorem listenAtB_iff {pl : List (GoString × GoString)} {host a a0 : GoString} :
-    listenAtB pl host a a0 = true ↔ ListenAt (GMap.ofList pl) host a a0 := by
-  unfold listenAtB ListenAt
-  simp only [ofList_lookup, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq]
-  apply and_congr Iff.rfl
+theorem lisAcceptsB_iff {la a : GoString} : lisAcceptsB la a = true ↔ lisAccepts la a := by
+  unfold lisAcceptsB lisAccepts
+  simp only [Bool.or_eq_true, decide_eq_true_eq]
   apply or_congr Iff.rfl
-  apply and_congr Iff.rfl
-  cases hw : wildPort a with
+  cases hw : wildPort la with
   | none => simp
-  | some p =>
-    simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, Option.some.injEq,
-      exists_eq_left']
-    apply and_congr Iff.rfl
-    constructor
-    · intro h x hx hp
-      obtain ⟨y, hy, rfl⟩ := (alGet_isSome pl x).mp hx
-      exact h y hy hp
-    · intro h y hy hp
-      exact h y.1 ((alGet_isSome pl y.1).mpr ⟨y, hy, rfl⟩) hp
+  | some p => simp
 
-/-- `PlanWellFormed` is a `Bool` equation (`Deploy.lean`): its decider is that `Bool`. -/
-def planWellFormedB (l : List (GoString × GoString)) : Bool :=
-  keysDistinct l && l.all (fun x => addrOk x.1)
-
-theorem planWellFormedB_iff {l : List (GoString × GoString)} :
-    planWellFormedB l = true ↔ PlanWellFormed l := Iff.rfl
-
-/-- The examples' plan, decided. -/
-example : planWellFormedB [(go!"127.0.0.1:7101", go!"h")] = true := by decide
+/-- The examples' addresses, decided. -/
+example : addrOk go!"127.0.0.1:7101" = true := by decide
+example : lisAcceptsB go!":7101" go!"127.0.0.1:7101" = true := by decide
+example : lisAcceptsB go!"127.0.0.2:7101" go!"127.0.0.1:7101" = false := by decide
 
 end Net
 

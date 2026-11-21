@@ -85,26 +85,30 @@ theorem lockFrame_of_fds {st st' : OsState} (h : st'.proc.fds = st.proc.fds) : L
 
 /-- A lock call's step leaves the state as it was or sets the description's lock of its kind. -/
 theorem lockStep_cases [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKind} {fd : w64}
-    {d : OsFd} {req : Option Bool} {nb : Bool} {e' : Expr} {st' : OsState}
-    (h : LockStep st k fd d req nb e' st') : st' = st ∨ ∃ x, st' = st.setFd fd (d.setLk k x) := by
+    {d : OsFd} {req : Option Bool} {nb : Bool} {w e' : Expr} {st' : OsState}
+    (h : LockStep st k fd d req nb w e' st') : st' = st ∨ ∃ x, st' = st.setFd fd (d.setLk k x) := by
   unfold LockStep at h
   split at h
-  · rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩
+  · rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩ | ⟨-, -, rfl, -⟩⟩
     · exact .inr ⟨_, rfl⟩
+    · exact .inl rfl
     · exact .inl rfl
   · rcases h with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩
     · exact .inr ⟨_, rfl⟩
     · exact .inl rfl
     · exact .inr ⟨_, rfl⟩
 
-/-- A lock call's step returns an errno. -/
+/-- A lock call's step returns an errno, or waits (steps to the call itself, `w`). -/
 theorem lockStep_val [GooseExts] [GoGlobalContext] {st : OsState} {k : LockKind} {fd : w64}
-    {d : OsFd} {req : Option Bool} {nb : Bool} {e' : Expr} {st' : OsState}
-    (h : LockStep st k fd d req nb e' st') : (toVal e').isSome := by
+    {d : OsFd} {req : Option Bool} {nb : Bool} {w e' : Expr} {st' : OsState}
+    (h : LockStep st k fd d req nb w e' st') : (toVal e').isSome ∨ e' = w := by
   unfold LockStep at h
   split at h
-  · rcases h with ⟨-, ⟨-, -, rfl⟩ | ⟨e, -, -, rfl⟩⟩ <;> rfl
-  · rcases h with ⟨-, rfl⟩ | ⟨e, -, rfl, -⟩ <;> rfl
+  · rcases h with ⟨-, ⟨-, -, rfl⟩ | ⟨e, -, -, rfl⟩ | ⟨-, -, -, rfl⟩⟩
+    · exact .inl rfl
+    · exact .inl rfl
+    · exact .inr rfl
+  · rcases h with ⟨-, rfl⟩ | ⟨e, -, rfl, -⟩ <;> exact .inl rfl
 
 theorem setLk_ino (d : OsFd) (k : LockKind) (x : Option Bool) : (d.setLk k x).ino = d.ino := by
   cases k <;> rfl
