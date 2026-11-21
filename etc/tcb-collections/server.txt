@@ -174,7 +174,6 @@ axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
-axiom sort.Sort.wp_anyLess
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom strings.Contains.wp_proof

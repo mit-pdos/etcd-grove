@@ -2660,6 +2660,13 @@ strict weak order. Not `wp_Sort`'s induction without the order: with any `Less`,
 "outside unchanged" invariant fails; the proof needs a whole-slice invariant (every index in
 `[0, n)`, the list a permutation). The local axiom goes when it lands.
 
+**Proved here, 2026-11-21** (branch `prove-ps2-sort`): `sort.Sort.wp_anyLess` is a theorem
+(`Proof/sort/SortAnyLessLinked.lean`) over Perennial's translation of `pdqsort` and its helpers, each
+with an any-`Less` spec (`Spec/sort/<fn>AnyLess.lean`) and proof (`Proof/sort/<fn>AnyLess.lean`):
+Perennial's loops with the whole-slice invariant above (bounds and a permutation), as `sort.Stable`'s
+helpers are proved here. Perennial needs no change; the specs could still move there (as the
+proposed change above) if another user of Perennial needs them.
+
 ## A thread pool's loans are fewer than the live threads (2026-11-01, bounds B2's leasing pilot)
 
 `threadPool` (`Perennial/Proof/ThreadPool.lean`) lends a copy of its resource for a thread token

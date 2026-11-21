@@ -318,7 +318,7 @@ public import Proof.os.fileStat__Size
 public import Proof.reflect.DeepEqual
 public import Proof.sort.SliceIsSorted
 public import Proof.sort.Sort
-public import Proof.sort.SortAnyLess
+public import Proof.sort.SortAnyLessLinked
 public import Proof.strings.ToLower
 public import Proof.syscall.Fdatasync
 public import Proof.syscall.Flock
