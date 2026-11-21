@@ -1382,7 +1382,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Range over a string, stepping by `utf8` decoding (needs a model of
   `utf8.DecodeRuneInString`).
 - **Status.** Fixed on Perennial's `lean` (`474911152`, with `wp_string_for_range`; in the pin since
-  `edcadb1e5`); `isWellFormed` is still names only here.
+  `edcadb1e5`); `isWellFormed` is translated and proved here since 2026-11-21 (#25).
 
 ### Tactics: `wp_apply` after an atomic spec applied with `iapply` (2026-10-27, client-go consistency)
 

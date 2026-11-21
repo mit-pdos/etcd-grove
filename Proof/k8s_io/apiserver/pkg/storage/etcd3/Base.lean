@@ -22,7 +22,8 @@ type is axiomatized: its methods name `storage.Feature`, an alias, Goose's gap G
 which `createWatchChan` reads, a predicate with no shard selector and the selectors of
 `labels.Everything()` and `fields.Everything()`, whose `Empty()` is `true`: `everythingOk`) and
 apimachinery's `util/validation/field`'s (`fieldInit`, 2026-11-19: `omitValue`'s address is not
-`nil`, for `(*Error).ErrorBody`'s load of it). As in the cache's `Base.lean`, these
+`nil`, for `(*Error).ErrorBody`'s load of it) and `labels`' (`labelsInit`, #25: its shared selectors,
+read-only, for `Everything` and `MatchesNothing`). As in the cache's `Base.lean`, these
 are assumptions about package initialization only once an `Init.lean` proves a package's
 `wp_initialize'` from them (none does yet: the packages are not in `etc/gen-init.py`'s `ROOTS`).
 -/
@@ -92,6 +93,20 @@ every allocated variable's: what `(*Error).ErrorBody`'s load of it, in its compa
 `e.BadValue == omitValue`, needs (`field/ErrorMethods.lean`). -/
 abbrev fieldInit : IProp GF :=
   iprop(⌜globalAddr k8s_io.apimachinery.pkg.util.validation.field.omitValue ≠ null⌝)
+
+/-- apimachinery's `labels`' fact (#25, 2026-11-21): its shared selectors, read-only for good (Go never
+writes the unexported variables after their initializers, `selector.go:93`, `:115`):
+`sharedEverythingSelector` holds `internalSelector{}` (an empty slice literal: length and capacity
+`0`), which `Everything` returns, and `sharedNothingSelector` a `nothingSelector`, which
+`MatchesNothing` compares with. -/
+def labelsInit : IProp GF :=
+  iprop((∃ p : Loc, globalAddr k8s_io.apimachinery.pkg.labels.sharedEverythingSelector ↦□
+      interface.mkOk k8s_io.apimachinery.pkg.labels.internalSelector.ty #(slice.mk p (W64 0) (W64 0))) ∗
+    (∃ v : val, globalAddr k8s_io.apimachinery.pkg.labels.sharedNothingSelector ↦□
+      interface.mkOk k8s_io.apimachinery.pkg.labels.nothingSelector.ty v))
+
+instance labelsInit_persistent : Persistent (labelsInit (GF := GF)) := by
+  unfold labelsInit; infer_instance
 
 /-- `util/feature`'s fact: `DefaultMutableFeatureGate` and `DefaultFeatureGate` hold the same
 feature gate, for good (Go never writes the variables after). (Sweep repairs 1, B5: until then
@@ -336,7 +351,7 @@ instance k8s_io_apimachinery_pkg_fields_get_is_pkg_init_wf_inst :
 
 instance k8s_io_apimachinery_pkg_labels_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.labels :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init labelsInit
 instance k8s_io_apimachinery_pkg_labels_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.labels :=
   build_get_is_pkg_init_wf

@@ -4060,3 +4060,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   with `⌜Pre r ∧ rd ≠ nil⌝` (Go's server request bodies are never nil); `ReadFull_stream_spec` takes `isPkgInit io`,
   and `bodyStream_readFullAt` takes it (the snapshot handler has it).
 - **Decision.** Applied (prove-http3, 2026-11-21): `ReadFull_stream_ok` is a theorem over Perennial's `io.ReadFull`.
+
+## 2026-11-21: `labels.Everything` needs `labels`' initialization (#25)
+
+- **Spec.** `Spec/k8s_io/apimachinery/pkg/labels/Everything.lean`, `labels.Everything.spec` (the trust-boundary
+  axiom `labels.Everything.wp_proof` until now).
+- **Defect.** The pre is `True`, but `Everything` returns the package variable `sharedEverythingSelector`
+  (`selector.go:93-98`), and its post's `MatchesNothing` triple reads `sharedNothingSelector`: no proof over the
+  code can load them without `labels`' initialization, whose fact said nothing of them.
+- **Evidence.** `Everything.impl` (`Code/k8s_io/apimachinery/pkg/labels.lean`, translated since #25): a `GoLoad` of
+  `GlobalVarAddr sharedEverythingSelector`.
+- **Proposed change.** The pre takes `isPkgInit pkg_id.k8s_io.apimachinery.pkg.labels`; `labels`' fact becomes
+  `labelsInit` (`storage/etcd3/Base.lean`: both shared selectors read-only, the everything selector an empty
+  `internalSelector`), established by its generated `Init.lean`. The post is unchanged. Callers
+  (`daemonSetLister.GetPodDaemonSets`/`GetHistoryDaemonSets`, `storage`'s initializer) hold `labels`' `isPkgInit`
+  through their own package's.
+- **Decision.** Applied (#25, 2026-11-21): an initialization premise every caller holds; no client-visible change.
