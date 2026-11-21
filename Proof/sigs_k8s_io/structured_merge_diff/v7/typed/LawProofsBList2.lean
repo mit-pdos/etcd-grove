@@ -216,6 +216,18 @@ theorem MInv_rdone {inR : PE → Bool} {target done L' sh mg : List PE} {l : PE}
     rw [← h]
     simp [mergeOrderF, hin, hmg]
 
+/-- The right side done: a left key passed over if merged already (`nextL`). -/
+theorem MInv_nextL_nil {inR : PE → Bool} {target done L sh mg : List PE}
+    (hin : ∀ l L', L = l :: L' → inR l = true)
+    (h : MInv inR target done L [] sh mg) :
+    MInv inR target done (nextL L mg) [] sh mg := by
+  rcases L with _ | ⟨l, L'⟩
+  · exact h
+  · simp only [nextL]
+    split
+    · exact MInv_rdone (hin l L' rfl) (by assumption) h
+    · exact h
+
 end LawBL2
 
 end smd

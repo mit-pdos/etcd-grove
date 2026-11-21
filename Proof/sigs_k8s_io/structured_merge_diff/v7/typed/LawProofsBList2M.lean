@@ -264,6 +264,12 @@ theorem drop_cons {α : Type} (l : List α) (i : Nat) (x : α) (h : l[i]? = some
 theorem drop_nil {α : Type} (l : List α) (i : Nat) (h : l.length ≤ i) : l.drop i = [] :=
   List.drop_eq_nil_of_le h
 
+/-- A pair of the zip of two lists of equal length, each one longer. -/
+theorem zip_snoc_mem {α β : Type} (xs : List α) (ys : List β) (h : xs.length = ys.length) (a : α)
+    (b : β) (q : α × β) (hq : q ∈ (xs ++ [a]).zip (ys ++ [b])) : q ∈ xs.zip ys ∨ q = (a, b) := by
+  rw [List.zip_append h] at hq
+  simpa using hq
+
 /-- The done keys' merges, one more. -/
 theorem fm_snoc {α β : Type} (f : α → Option β) (d : List α) (a : α) :
     (d ++ [a]).filterMap f = d.filterMap f ++ (f a).toList := by
@@ -286,6 +292,53 @@ def shRep (R : List PE) (base : GoSlice) (nsp : Loc) (sps : List Loc) (sh : List
     | [] => nsp = null ∧ sps = []
     | i :: is => nsp = sliceIndexRef fieldpath.PathElement (i : Int) base ∧
         sps = is.map (fun x : Nat => sliceIndexRef fieldpath.PathElement (x : Int) base)
+
+theorem shKeys_cons (R : List PE) (i : Nat) (is : List Nat) (h : i < R.length) :
+    shKeys R (i :: is) = R[i] :: shKeys R is := by
+  simp [shKeys, List.filterMap_cons, List.getElem?_eq_getElem h]
+
+/-- `nextShared`: nil when nothing shared is left, else a pointer into the right side's path
+elements at a position whose key is the head. -/
+theorem shRep_head {R : List PE} {base : GoSlice} {nsp : Loc} {sps : List Loc} {sh : List PE}
+    (h : shRep (GF := GF) R base nsp sps sh) :
+    (nsp = null ∧ sh = []) ∨
+      ∃ i, i < R.length ∧ nsp = sliceIndexRef fieldpath.PathElement (i : Int) base ∧ sh.head? = R[i]? := by
+  obtain ⟨idxs, hall, hk, hm⟩ := h
+  rcases idxs with _ | ⟨i, is⟩
+  · left; exact ⟨hm.1, by rw [← hk]; rfl⟩
+  · right
+    have hi := hall i List.mem_cons_self
+    refine ⟨i, hi, hm.1, ?_⟩
+    rw [← hk, shKeys_cons R i is hi]
+    simp [List.getElem?_eq_getElem hi]
+
+/-- The shared order popped, none left in the slice. -/
+theorem shRep_pop_nil {R : List PE} {base : GoSlice} {nsp : Loc} {sh : List PE}
+    (h : shRep (GF := GF) R base nsp [] sh) : shRep (GF := GF) R base null [] sh.tail := by
+  obtain ⟨idxs, hall, hk, hm⟩ := h
+  refine ⟨[], by simp, ?_, rfl, rfl⟩
+  rcases idxs with _ | ⟨i, is⟩
+  · rw [← hk]; rfl
+  · obtain ⟨-, hm⟩ := hm
+    have his : is = [] := by
+      cases is with
+      | nil => rfl
+      | cons _ _ => simp at hm
+    subst his
+    rw [← hk, shKeys_cons R i [] (hall i List.mem_cons_self)]; rfl
+
+/-- The shared order popped: its next pointer. -/
+theorem shRep_pop_cons {R : List PE} {base : GoSlice} {nsp p : Loc} {ps : List Loc} {sh : List PE}
+    (h : shRep (GF := GF) R base nsp (p :: ps) sh) : shRep (GF := GF) R base p ps sh.tail := by
+  obtain ⟨idxs, hall, hk, hm⟩ := h
+  rcases idxs with _ | ⟨i, is⟩
+  · simp at hm
+  · obtain ⟨-, hm⟩ := hm
+    rcases is with _ | ⟨i2, is⟩
+    · simp at hm
+    · simp only [List.map_cons, List.cons.injEq] at hm
+      refine ⟨i2 :: is, fun x hx => hall x (List.mem_cons_of_mem _ hx), ?_, hm.1, hm.2⟩
+      rw [← hk, shKeys_cons R i _ (hall i List.mem_cons_self)]; rfl
 
 end LawBL2
 
