@@ -930,13 +930,14 @@ private theorem wp_RestartNode_impl
           exact ⟨hi2, t, ht⟩⟩
       Hsvr.1.symm HphsR
       (show s.gh.tr = γ.raft.reTrace by rw [Hgh, HtrG])
-      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] Hdurt
+      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] [Hhistory] Hdurt
     · iunfold sdrOk; iexists _; iexact Hsd0
     · iapply pendList_nil
     · iapply ackInv_none; intro _ _ _ _ h; cases h
     · iapply loanCom_none γ.raft rfl
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
     · rw [show s1.logst.ksn = [] from Hksn]; iapply restoredSnapHistory_nil
+    · iapply restoreLedger_fresh γ.raft cv.ID' _ _ (show s1.logst.ksn = [] from Hksn) $$ Hhistory
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- raft's certified terms of the committed log handed out (the attach record's)

@@ -111,7 +111,7 @@ theorem ownRawNode_trNoLoan (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
   · ipureintro; exact ⟨Hsl, Hboot⟩
   iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hledger Hdur Hrntr
 
 /-- **G3 (a) over a committed log** (`isCommitted_trNoConf`, route (A) of the design's step-4 section):
 at a traced cluster a committed log's conf entries lie within the bootstrap log: the committed log is
@@ -399,6 +399,9 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
         $$ Hstrecs Hents
     · iapply ackInv_keep γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 Happ) $$ Hstrecs
   ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+    (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
+    (logStoreRec_ksn Hsd) $$ Hledger
   ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
   · rw [Hsn]; iexact Hsloc
   -- (slice 25n) the capability back, idle at the end state
@@ -445,7 +448,7 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
         HlO
         (Hsdt.ofRec Hsn Hsd) Hrole
         (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (ip_of_step Hip4 Htrc))
-        (by rw [Hgx]; exact Hgtr) (by rw [Hgx]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur] Hrntr
+        (by rw [Hgx]; exact Hgtr) (by rw [Hgx]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur] Hrntr
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
   ipureintro
   rw [Htrm]
@@ -598,6 +601,9 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
     iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ HG
   iapply HΦ $$ %err %s'.term
   ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+    (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
+    (logStoreRec_ksn Hsd) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
   isplitl
   · iapply ownRawNode_intro_tr γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
@@ -609,7 +615,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
       (Hsdt.ofRec Hsn Hsd) Hrole
       (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by hup_ne))))
       (by rw [Hgh]; exact Hgtr) (by rw [Hgh]; exact Hglq)
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur] Hrntr
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur] Hrntr
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
   ipureintro
   rw [Htrm]
@@ -976,7 +982,7 @@ theorem wp_applyConf_dyn_g
       ⟨HL.1, HL.2.1, HL.2.2.1, Hcap'⟩
       (by unfold SdtTie; rw [Hls']; exact Hsdt) Hrole
       (Hphs.keep rfl rfl rfl (HsLe.of_step (applyCCOkC_voteLe Hok) Hc') (by rw [Hls'])
-        (.inl (by rw [Hls']; exact Int.le_refl _))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap0 Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur] Hrntr
+        (.inl (by rw [Hls']; exact Int.le_refl _))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap0 Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur] Hrntr
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rw [Hls']) (by rw [Hls'])
         (by rw [Hls']) $$ Hdur
   ipureintro; exact Hcs0

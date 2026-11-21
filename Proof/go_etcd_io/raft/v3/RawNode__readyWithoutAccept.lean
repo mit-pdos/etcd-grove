@@ -762,7 +762,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
-      Hce_cap Hents Hrdhard Hrdz Hsloc Hhist Hdur Hmsgl Hsrcs Hmsnap Hrdlead Hrntr
+      Hce_cap Hents Hrdhard Hrdz Hsloc Hhist Hledger Hdur Hmsgl Hsrcs Hmsnap Hrdlead Hrntr
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro

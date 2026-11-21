@@ -151,6 +151,9 @@ theorem RawNode.ProposeConfChange.wp_proof
   iframe Hc
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
   ihave #Hhist' := restoredSnapHistory_keep γ id Hfr.2.2.2.2.2.1 $$ Hhist
+  ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
+    (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
+    (logStoreRec_ksn Hfr.2.2.2.2.2.1) $$ Hledger
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr.2.2.2.1) $$ Hsloc
   · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hasync
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
@@ -166,7 +169,7 @@ theorem RawNode.ProposeConfChange.wp_proof
       (Hloan.keep Hfr.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.2.1 Hap' Hc)
       (Hsdt.ofRec Hfr.2.2.2.1 Hfr.2.2.2.2.2.1) Hrole
       (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hfr.2.2.2.1 (.inl Hfr.2.1))
-      (by rw [LocalFrame.ns Hfr]; exact Hgtr) (by rw [LocalFrame.ns Hfr]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' [Hdur]
+      (by rw [LocalFrame.ns Hfr]; exact Hgtr) (by rw [LocalFrame.ns Hfr]; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' Hhist' Hledger' [Hdur]
     · -- (durability stage II (i)) the step keeps `durTie`'s fields
       iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hfr.2.2.2.1 Hfr.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) $$ Hdur
   icases Herr with (%Herr | ⟨-, #Hd⟩)
