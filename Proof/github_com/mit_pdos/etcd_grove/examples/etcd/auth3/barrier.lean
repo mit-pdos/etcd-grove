@@ -99,7 +99,9 @@ theorem barrier.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bg wp_WithTimeout wp_ErrAny hAs _)
-    as %ectx %ecd %ecancel ⟨#Hecancel, #Hectx, #Hece, -⟩
+    as %ectx %ecd %ecancel ⟨#Hecancel, #Hectx, #Hece, -, #HeO⟩
+  iunfold metadata.outgoingCtxOkC at HeO
+  icases HeO with ⟨%eom, #Heom⟩
   (try wp_auto)
   -- `root.Get(ctx, "z/barrier")`, at the bound `ai0 + |Lc|`
   ihave %HLcI := srvRLogLb_idx ρ.raft Lc $$ HLc
@@ -118,7 +120,7 @@ theorem barrier.wp_proof
   icases HKV with ⟨-, #Hrange, -, -⟩
   iapply wp_fupd
   wp_apply (h_client_Get_on rcl rapi rconn addr s E ρ.rd cid mid
-      (W64 (uint.Z ρ.raft.ai0 + Lc.length)) 0 ectx ecd go!"z/barrier" slice.nil []
+      (W64 (uint.Z ρ.raft.ai0 + Lc.length)) 0 ectx eom ecd go!"z/barrier" slice.nil []
       iprop(True) (fun _ => iprop(True)) []
       (opSizeOk_opGetModel (K := 16) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide)
         (by decide))) $$ [Hres] as %resp %err Hout

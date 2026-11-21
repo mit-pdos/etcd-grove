@@ -33,15 +33,19 @@ one, `context.TODO()`, gives a quiet one, `valueCtx` delegating `Err` to its par
 (`rpctypes.MetadataClientAPIVersionKey`, `client-api-version`) set to one value (`version.APIVersion`,
 computed at the package's initialization), every other key as in `ctx` (`metadata.mdSet`: `Pairs`
 when `ctx` has none, else `MD.Copy` and `MD.Set`; `FromOutgoingContext` reads what
-`metadata.outgoingOf` models). -/
+the outgoing metadata models). (errdesc stage 1, 2026-11-20) The metadata is a per-run relation: of a
+context whose outgoing metadata is `md` (`metadata.outMD ctx md` in the precondition), the result's is
+`mdSet md …`; until then the post equated the pure `metadata.outgoingOf` of the fresh context, which no
+implementation can meet (`notes/errdesc-ghost-plan.md`). -/
 abbrev withVersion.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxOk ctx cd }}
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (md : Option (GoString → Option (List GoString))),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxOk ctx cd ∗
+      metadata.outMD ctx md }}
     (App (Val (@! go_etcd_io.etcd.client.v3.withVersion)) (Val #(GoInterface.ok ctx)))
   {{ (c' : GoInterface), RET #c'; ∃ (ci : GoInterfaceOk) (vs : GMap GoInterface GoInterface),
       ⌜c' = GoInterface.ok ci⌝ ∗ ctxOk ci { cd with Values := vs } ∗
-      ⌜∃ v : GoString, metadata.outgoingOf c' =
-        metadata.mdSet (metadata.outgoingOf (GoInterface.ok ctx)) go!"client-api-version" [v]⌝ }}
+      ∃ v : GoString, metadata.outMD ci (metadata.mdSet md go!"client-api-version" [v]) }}
 
 end spec
 

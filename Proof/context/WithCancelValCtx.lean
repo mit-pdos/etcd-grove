@@ -8,7 +8,7 @@ Q1 (b), `notes/k8s-compactor-plan.md`, the user's approval) for any `inctx` the 
 `context.go:388`) and fails: that call returns (`watchCtx`'s `"#HCC"`), and a `*cancelCtx` it returns
 is a valid one (`isCancelCtxAny`, not a typed nil, which `p.done.Load()` would dereference), whose
 `done` is other than `valCtxCh`; so Go's `propagateCancel` takes the same goroutine branch; `inctx`
-reaches the result only through `Value` (the outgoing metadata, `outgoingOf`).
+reaches the result only through `Value` (the outgoing metadata, `metadata.outMD`).
 (Corrected by the context sweep's fixes, 2026-11-13, decided by etcd-grove-81,
 `notes/ctx-sweep-fixes.md`: until then `watchCtx` had no `"#HCC"` and this justification said
 `parentCancelCtx` fails "whatever `inctx` is", overlooking the `Value` call; a context whose `Value`

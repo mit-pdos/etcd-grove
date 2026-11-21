@@ -362,10 +362,12 @@ theorem Run.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bg wp_WithTimeout wp_ErrAny hAs _)
-    as %ectx %ecd %ecancel ⟨#Hecancel, #Hectx, #Hece, -⟩
+    as %ectx %ecd %ecancel ⟨#Hecancel, #Hectx, #Hece, -, #HeO⟩
+  iunfold metadata.outgoingCtxOkC at HeO
+  icases HeO with ⟨%eom, #Heom⟩
   (try wp_auto)
   wp_apply (client_Put_on rcl rapi rconn addr srv E { ρ with wait := γw } cid mid
-      ectx ecd endKey go!"end" slice.nil (fun _ => iprop(True)) []
+      ectx eom ecd endKey go!"end" slice.nil (fun _ => iprop(True)) []
       (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _) (by decide)
         (by decide) (by decide))) $$ [] as %eresp %eerr Hend'
   · iframe #
@@ -388,6 +390,7 @@ theorem Run.wp_proof
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
     as %hctx %γhctx %hcancel ⟨#Hhcancel, #Hhctx, -, #hctxFrom⟩
   ihave #hctxO := metadata.outgoingCtxOkC_bgFrom hctx $$ hctxFrom
+  ihave #hctxM := metadata.outMD_bgFrom hctx $$ hctxFrom
   (try wp_auto)
   wp_apply wp_WithPrefix as %f1 #Hf1
   wp_apply wp_WithRev (W64 1) as %f2 #Hf2
@@ -412,7 +415,7 @@ theorem Run.wp_proof
   iunfold kvAu at Hrau
   wp_apply (wp_Watch rw { akV R with conn := rwconn, ics := rwics, wc := rwwc, lg := rwlg } ρ.rd.kv
       hctx ({ Values := ∅, Deadline := none, Done_gn := γhctx, PDone := iprop(True) } :
-        context.ContextDesc (IProp GF))
+        context.ContextDesc (IProp GF)) none
       _ _ [withPrefixM, withRevM (W64 1)] (W64 1) (fun σ => iprop(⌜stateHistOk σ⌝)) 0) $$ []
     as %hch %γh ⟨#Hhsp, Hhcons, Hhcur⟩
   · iframe #
@@ -468,6 +471,7 @@ theorem Run.wp_proof
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
     as %uctx %γuctx %ucancel ⟨#Hucancel, #Huctx, -, #uctxFrom⟩
   ihave #uctxO := metadata.outgoingCtxOkC_bgFrom uctx $$ uctxFrom
+  ihave #uctxM := metadata.outMD_bgFrom uctx $$ uctxFrom
   (try wp_auto)
   wp_apply wp_WithRange hi as %g1 #Hg1
   wp_apply wp_WithRev (W64 1) as %g2 #Hg2
@@ -487,7 +491,7 @@ theorem Run.wp_proof
   (try wp_auto)
   wp_apply (wp_Watch uw { akV R with conn := uwconn, ics := uwics, wc := uwwc, lg := uwlg }
       ρ.rd.kv uctx ({ Values := ∅, Deadline := none, Done_gn := γuctx, PDone := iprop(True) } :
-        context.ContextDesc (IProp GF))
+        context.ContextDesc (IProp GF)) none
       _ _ [withRangeM hi, withRevM (W64 1)] (W64 1) (fun σ => iprop(⌜stateHistOk σ⌝)) 0) $$ []
     as %uch %γu ⟨#Husp, Hucons, Hucur⟩
   · iframe #
