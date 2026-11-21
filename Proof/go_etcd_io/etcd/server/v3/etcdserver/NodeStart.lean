@@ -881,7 +881,7 @@ abbrev NodeStartSpecR : Prop :=
         -- the configuration at the backend's index, the server's raft-log invariant, the backend's
         -- log committed, the records' snapshot certificate
         "#Hclu" ∷ isCluster γr.cl srvClusterN ∗ "#Hrf" ∷ readyFits γr.cl srvClusterN ∗
-        "Hvac" ∷ nodeVacant γr.cl cv.ID' ∗ "HrS" ∷ raftState γr.cl cv.ID' S ∗
+        "Hvac" ∷ (∃ x, nodeVacantA γr.cl cv.ID' x) ∗ "HrS" ∷ raftState γr.cl cv.ID' S ∗
         "#Hconf" ∷ confAt γr.cl A₀.length m ∗
         "#Hlinv" ∷ srvRaftLogInv ⟨γr, [], W64 0⟩ ∗ "#HA0" ∷ srvRLogLb ⟨γr, [], W64 0⟩ A₀ ∗
         "#Hcert" ∷ walSnapCert γr.cl σ ∗

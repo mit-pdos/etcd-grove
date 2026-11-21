@@ -453,6 +453,14 @@ log, third session; pending the user's review). General fix: `append` (and `make
   `wp_atomic_nc`'s update written `|NC={E1,E2}=> ...` (`ncfupd`, a reducible abbreviation of the same
   wand); the local copies were deleted at the pin bump of 2026-11-21 (branch
   `pinbump/perennial-ncfupd-2026-11-21`).
+- **Addition (2026-11-21, raft's crash law, `notes/raft-crash-law-design.md` (i)).** The crash-token
+  update `ncfupd E P := notCrashed -∗ |={E}=> notCrashed ∗ P` (Rocq Perennial's `ncfupd`) with
+  `wp_ncfupd` (before a step: `wp_notCrashed_acc`) and **`wp_ncfupd_post`**: for a non-value `e`,
+  `WP e @ s; E {{ v, ncfupd E (Φ v) }} ⊢ WP e @ s; E {{ Φ }}` (the postcondition's update run after
+  `e`'s last step, by the state interpretation it holds; Löb over `wp_unfold`, as iris's
+  `wp_strong_mono`). Proved locally first (`GooseLang/NotCrashed.lean`); Perennial `7ad4f91b1` has it, and the local module went at the merge of `lean` (2026-11-21). Raft's ghost steps take the token,
+  and `raft.Step`'s arms, whose ghost step runs at the return, get it by `wp_ncfupd_post`. Proposed for
+  `GooseLang/Lifting.lean` with the two above.
 
 ### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
 

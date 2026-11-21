@@ -349,8 +349,13 @@ theorem traceCommit.tracedSpec_of_spec (h : traceCommit.spec (GF := GF) (hG := h
   ihave Hgate := trCapB_hookGate s.gh.tr γ r id c tl0 _ b _ (fun C => SimIdle C s) Λ Λ' iprop(emp)
     (phaseStepB_commit id c s) (fun _ e he => by rw [nodeEvOf_name_commit he]; rfl) hΛ hOk Hok
     $$ [$Htl0 $Hcap $Hfx]
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hgate
-  imod Hgate with ⟨%tl, #Htl, Hfire⟩
+  unfold ncfupd
+  iintro Hnc
+  imod Hgate $$ Hnc with ⟨Hnc, %tl, #Htl, Hfire⟩
+  imodintro
+  iframe Hnc
   icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
   iapply h c r id s tl iprop(trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ' ∗ emp)
     $$ [$Hpkg $Htl $Hown Hfire]
@@ -528,7 +533,9 @@ theorem raft.send.tracedSpec_of_spec (h : raft.send.spec (GF := GF) (hG := hG)) 
       unfold sendOutGate
       rw [hev]
       iunfold HookGateOpt
+      iintro Hnc
       imodintro
+      iframe Hnc
       iexists tl0
       iframe Htl0
       isplitr
@@ -561,8 +568,10 @@ theorem raft.send.tracedSpec_of_spec (h : raft.send.spec (GF := GF) (hG := hG)) 
       simp only [Option.map_some, TraceFireOpt]
       rw [hE]
       iunfold HookGateOpt
+      iintro Hnc
       simp only [TraceFireOpt]
       imodintro
+      iframe Hnc
       iexists tl0
       iframe Htl0
       isplitr
@@ -655,8 +664,10 @@ theorem hookGateN_mono (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (n :
   iintro ⟨HW, H⟩
   iunfold HookGateN at H
   iunfold HookGateN
-  imod H with ⟨%tl, #Htl, H⟩
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, %tl, #Htl, H⟩
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   iapply traceFireN_mono tr tl E n Q Q'
@@ -668,8 +679,10 @@ theorem hookGate_mono (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q Q'
   iintro ⟨HW, H⟩
   iunfold HookGate at H
   iunfold HookGate
-  imod H with ⟨%tl, #Htl, H⟩
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, %tl, #Htl, H⟩
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   iapply traceFire_mono tr tl E Q Q'
@@ -681,8 +694,10 @@ theorem hookGate_n1 (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IP
   iintro H
   iunfold HookGate at H
   iunfold HookGateN
-  imod H with ⟨%tl, #Htl, H⟩
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, %tl, #Htl, H⟩
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   simp only [TraceFireN, TraceFireOpt]
@@ -694,8 +709,10 @@ theorem hookGate_opt (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : I
   iintro H
   iunfold HookGate at H
   iunfold HookGateOpt
-  imod H with ⟨%tl, #Htl, H⟩
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, %tl, #Htl, H⟩
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   simp only [TraceFireOpt]
@@ -791,10 +808,12 @@ theorem trCapB_hookGateN (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w6
     simp only [trCapB]
     iintro ⟨#Hl, -, HR, Hch⟩
     iunfold HookGateN
+    iintro Hnc
     have h := fxChain_none γ id E Φs Rs n 0
     rw [Nat.zero_add] at h
     imod h $$ [$HR $Hch] with HR
     imodintro
+    iframe Hnc
     iexists tl0
     iframe Hl
     iapply traceFireN_of_none rfl tl0 E (hok rfl) _ n
@@ -803,7 +822,9 @@ theorem trCapB_hookGateN (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w6
     iintro ⟨-, Hcap, HR, Hch⟩
     icases trCapB_logger γd γ r id c b (Φs 0) Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
     iunfold HookGateN
+    iintro Hnc
     imodintro
+    iframe Hnc
     iexists tl
     iframe Htl
     have h := trCap_fireN γd γ r id c tl E Φs Λ' Rs n hps hnb hΛ (hOk rfl) n 0 b Λ (by omega)

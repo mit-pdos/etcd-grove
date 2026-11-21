@@ -424,7 +424,7 @@ theorem NewServer.wp_proofRG
     iunfold srvClusterOk at Hco
     icases Hco with ⟨-, -, -, #H, -⟩
     iexact H
-  ihave Hvac : nodeVacant γ.cl cv.ID' $$ [Hvac]
+  ihave Hvac : (∃ x, nodeVacantA γ.cl cv.ID' x) $$ [Hvac]
   · rw [Hrid]; iexact Hvac
   ihave HrS : raftState γ.cl cv.ID' S $$ [HrS]
   · rw [Hrid]; iexact HrS

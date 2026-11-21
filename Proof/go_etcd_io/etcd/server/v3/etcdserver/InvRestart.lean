@@ -165,7 +165,7 @@ directory `config.snapDirOf dd`, no snapshotter in it: `notes/snapdir-crossworld
 def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
     (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
     (M : GMap Loc MemStorNamesRec) : IProp GF :=
-  iprop(nodeVacant γ.cl id ∗ raftState γ.cl id S ∗
+  iprop((∃ x, nodeVacantA γ.cl id x) ∗ raftState γ.cl id S ∗
     ⌜ρ.rd.raft.raft = γ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
       imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧

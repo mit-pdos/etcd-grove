@@ -25,6 +25,45 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/StartNode.lean`, `RestartNode.lean`, `node__Stop.lean`,
+  `RawNode__Ready.lean` (the enter wand); `InvNode.lean`'s `readyEnter` and the new laws
+  `nodeVacant_arm`, `nodeCrash`. SpecPlan's raft node specs, likewise.
+- **Defect.** Too weak for a crashing client: a process killed at any instruction loses its threads'
+  resources, so `nodeVacant` (needed by `RestartNode`) never comes back. kvnet's crash obligation
+  (`goose_dist_crash_adequacy`'s wand, given the dead generation's `crashed`) cannot be met.
+- **Evidence.** `notes/kvnet-proof-plan.md` gap 1; `notes/raft-crash-law-design.md` (a).
+- **Proposed change.**
+  - `nodeVacant_arm : nodeVacant ={E}=∗ ∃ x, nodeVacantA ∗ nodeCrashTok` and
+    `nodeCrash : crashed -∗ nodeCrashTok ={E}=∗ nodeVacant`.
+  - `StartNode`/`RestartNode` take `nodeVacantA γ id x`, and `node.Stop`'s post gives it back (same `x`).
+  - `readyEnter` and `Ready`'s enter wand become crash-token updates (`ncfupd E`: the client applies them
+    at a step, by `wp_ncfupd`).
+  - Clients: kvdurable keeps its `node.Stop` path and drops its `nodeCrashTok`; the etcd server likewise;
+    kvnet's boot obligation arms.
+- **Decision.** Accepted (the coordinating session, 2026-11-21, design route 1, sections (b1), (f),
+  (i)); applied on branch `worktree-agent-aa878c2e224f33d0c`.
+- **As applied** (2026-11-21, the implementing session):
+  - "Same `x`" needs the client to know the arm the node started from. `StartNode`/`RestartNode` give
+    a persistent `nodeArm n γ x` (sealed; `nodeArm_agree`). `node.Stop`'s post is
+    `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`, so its precondition is unchanged.
+  - `nodeCrash` also takes `isCluster γ N` and `↑N ⊆ E` (for `↑(raftN) ⊆ E`).
+  - `nodeVacant_armD : nodeVacant ={E}=∗ ∃ x, nodeVacantA γ id x` (the token dropped) is for clients
+    whose crash is `node.Stop`'s: kv, kvreconf, kvdurable and the server. They keep the vacancy as
+    `∃ x, nodeVacantA …` where they kept `nodeVacant` (kvdurable's `Cluster.start`, `Replica.stop`,
+    `Replica.crash`; the server's restart image, `rnStopImage`, `rnBootPre`'s restart).
+  - `examples/lib/durable`'s `Write.spec`: the update may use `notCrashed` when it opens (handed back
+    at once; `wp_atomic_nc` at the extension's step). Strictly more permissive for a client. kvdurable's
+    *enter* runs in the write's update, so it needs the token there.
+  - The server's `raftNode.stop` post (`Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__stop.lean`)
+    gives `∃ x, nodeVacantA …` in place of `nodeVacant`.
+  - The traced `StartNode.tracedSpec` (`TracedNodeApi.lean`) and the Draft's `StartNode.gatedSpec`
+    (`TracedApiDraft.lean`) changed as `StartNode.spec` did.
+  - In raft's `with_tla` build (`RaftTla/`, per (f)), the trace logger's contract (`isTraceLogger`) and
+    the trace check's `SyncRecorder.TraceEvent.spec` take the update in its crash-token form: the
+    token is lent at the commit and handed back.
+
 ## 2026-11-20: `cache.wp_Errorf_setArgs` -- reads the maps it formats without owning them
 
 - **Spec.** `Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean`, `wp_Errorf_setArgs` (a lemma over Perennial's

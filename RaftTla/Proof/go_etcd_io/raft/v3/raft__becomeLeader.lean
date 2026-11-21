@@ -151,8 +151,13 @@ theorem raft.becomeLeader.wp_proof
     subst hs1; exact fun e he => he
   icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
   ihave Hg := Hgbl $$ HG
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hg
-  imod Hg with ⟨%tl, #Htl, Hfire⟩
+  unfold ncfupd
+  iintro Hnc
+  imod Hg $$ Hnc with ⟨Hnc, %tl, #Htl, Hfire⟩
+  imodintro
+  iframe Hnc
   wp_apply wp_traceBecomeLeader c r id s2 tl G1 $$ [Htl Hown Hfire] as ⟨Hown, HG1⟩
   · rw [Hgh]
     iframe Htl Hown

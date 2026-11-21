@@ -2,6 +2,10 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem nodeCrash [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (x :
+    CrashNames) (E : CoPset) (HE : ↑N ⊆ E) : ⊢ isCluster γ N -∗ crashed -∗ nodeCrashTok γ id x
+    ={E}=∗ nodeVacant γ id
+
 def skippedIn (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
   [∗list] j ∈ List.range' a (b - a), iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j ConfDecision.skip)
 
@@ -192,6 +196,9 @@ theorem snapshotValid_timeless (γ : Cluster) (sv : SnapshotM) : Timeless (snaps
 theorem storBnd_cap [package_sem : Assumptions] (γ : Cluster) (K : GName) (c : Nat) : storBnd γ K c
     ⊢ ⌜clusterNoSnap γ → c ≤ 1⌝
 
+theorem nodeVacant_armD [package_sem : Assumptions] (γ : Cluster) (id : w64) (E : CoPset) : ⊢
+    nodeVacant γ id ={E}=∗ ∃ x, nodeVacantA γ id x
+
 theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (sv :
     SnapshotM) : 0 < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 → isCluster γ
     N ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢ snapshotValid γ sv
@@ -301,6 +308,9 @@ def storHolds (st : Storage) (σ : StorContents) (f : Nat) : IProp GF :=
           storLog st σ.b DFrac.discard [e0] ∗
             storLog st (σ.b + 1) DFrac.discard (List.take (f - σ.b) σ.ents) ∗
               storLog st (f + 1) (DFrac.own 1) (List.drop (f - σ.b) σ.ents) ∗ storEnd st (σ.last + 1))
+
+theorem nodeVacant_arm [package_sem : Assumptions] (γ : Cluster) (id : w64) (E : CoPset) : ⊢
+    nodeVacant γ id ={E}=∗ ∃ x, nodeVacantA γ id x ∗ nodeCrashTok γ id x
 
 theorem isStorageT_forget [package_sem : Assumptions] (γ : Cluster) (K : GName) (Tg : SnapshotM →
     IProp GF) (st : Storage) : isStorageT γ K Tg st ⊢ isStorage γ K st

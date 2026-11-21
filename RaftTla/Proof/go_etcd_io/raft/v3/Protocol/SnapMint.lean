@@ -42,7 +42,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- A full log's last entry at `i ≥ 1`, from its term there. -/
 private theorem full_entry_of_term (F : List EntryM) (i t : w64) :
