@@ -41532,7 +41532,9 @@ agreement law. Axioms restated, none added: `status.Error` (post `descIs err msg
 `handlerErrOut Ψe err`), `waitRetryBackoff` (post `err = nil ∨ notHandlerErr err`),
 `v3rpc.toGRPCErrorMap_init` (`grpcErrMapOk` an `IProp`), and through their definitions `ClientConn.Invoke`
 (`grpcInvokerOk`), `status.Code`/`errors.Is` (`grpcErrMethodsOk`'s `Is` clause). `rpctypes.errDesc_etcdError`
-is gone (−1 axiom; `descIs_etcdError` is definitional).
+is gone (`descIs_etcdError` is definitional), and so is fmtmodel's `rpctypes.errDesc_wrapError` (the
+description of a `*fmt.wrapError`, now `errorfWrap_descIs`, proved); `context.WithTimeoutBackgroundMd` is
+proved besides (−3 axioms).
 
 **One strengthening of a trusted post** (`grpcInvokerOk`, hence `ClientConn.Invoke`): the invoker's error
 satisfies `notLearnerErr err` (it is not `rpctypes.ErrGRPCNotSupportedForLearner`'s value). Needed because

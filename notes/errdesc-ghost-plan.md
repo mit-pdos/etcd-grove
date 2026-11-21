@@ -1,6 +1,6 @@
 # Plan: errors' descriptions, status codes and outgoing metadata as per-run relations (errdesc)
 
-**Status: PLAN, 2026-11-20.** Branch `prove-errdesc/2026-11-20` (worktree `/shared/etcd-grove-wt/prove-errdesc`),
+**Status: stages 1, 2a, 2b landed (2026-11-20/21; §6, §8). Originally PLAN, 2026-11-20.** Branch `prove-errdesc/2026-11-20` (worktree `/shared/etcd-grove-wt/prove-errdesc`),
 group `errdesc`. Part II of the per-heap redesign (`notes/perheap-scope.md`): Part I (incoming metadata,
 `metadata.ctxInMD`) has landed; this plan takes the outline Part II left (revision 2 of the Scope, commit
 `3b10ff2b93`: its §1.2-§1.3 inventory, §2.1-§2.2 vocabulary, §3.2-§3.3 old→new tables, and review 2's
@@ -219,8 +219,10 @@ with a relation in the precondition; posts of producers give `∃ m, descIs err 
 ## 8. Stage 2b as implemented (2026-11-21, branch `prove-errdesc2b/2026-11-21`)
 
 `go_etcd_io.etcd.cache.v3.errDesc` and its two modules (`Proof/google_golang_org/grpc/status/ErrDesc.lean`,
-`Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean`) are gone; the axiom `rpctypes.errDesc_etcdError` with
-them (−1 axiom, no axiom or `sorry` added). Departures from §7, each simpler or forced:
+`Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean`) are gone; the axioms `rpctypes.errDesc_etcdError` and
+`rpctypes.errDesc_wrapError` (fmtmodel's, 2026-11-20, `ErrDescWrap.lean`) with them, and
+`context.WithTimeoutBackgroundMd` is proved (from Perennial's `wp_WithTimeout_Background` and stage 1's
+`outMD_bgFrom`): −3 axioms, none or `sorry` added. Departures from §7, each simpler or forced:
 
 - **`descIs err m`** (`cache/v3/Base.lean`, next to `errorMsgIs`): nil and `""`; an `EtcdError` value
   `mkOk EtcdError.ty #x` and `m = x.desc'` (the value pin is a disjunct, not a side condition: the producer
@@ -270,4 +272,6 @@ them (−1 axiom, no axiom or `sorry` added). Departures from §7, each simpler 
   `□ ∀ k v, M !! k = some v → descIs v k` (`ErrorDesc(e)` returns the literal), `Err* = Error(ErrGRPC*)` an
   `EtcdError` of the literal `desc`.
 
-Not done: `context.WithCancelValCtx` and `WithTimeoutBackgroundMd` remain axioms (§6).
+Not done: `context.WithCancelValCtx` remains an axiom: its parent is a `*valCtx` outside Perennial's
+context model, whose `WithCancel` takes an `isContext` parent (the `Value` contract of
+`notes/perennial-changes.md`).
