@@ -16,7 +16,7 @@ public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.util.flowcontrol
 public import SpecPlan.Spec.PkgInit.k8s_io.klog.v2
 public import SpecPlan.Spec.PkgInit.net.http
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import Perennial.Proof.strings.Base
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.«attribute»
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata

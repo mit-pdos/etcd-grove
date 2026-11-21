@@ -43,7 +43,8 @@ abbrev MemoryStorage.Entries.spec : Prop :=
           ⌜cs.map EntryC.model = es ∧
             (γs.sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
         ⌜es ≠ [] ∧ s.cap = s.len ∧
-          es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)⌝)) }}
+          (es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)) ∧
+          (maxSize = W64 (-1) → es = ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo))⌝)) }}
 
 end spec
 

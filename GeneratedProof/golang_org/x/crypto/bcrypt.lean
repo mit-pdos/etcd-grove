@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.encoding.base64
+public import Perennial.GeneratedProof.errors
 public import Perennial.Golang.Theory
 public import Code.golang_org.x.crypto.bcrypt
 

@@ -285,7 +285,7 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
     rw [vOf_emptyR, vOf_emptyR]
     exact hCS
   have hsw : sessWf P (commitSt st' C' tx' cnt') := by
-    obtain ⟨h1, h2, h3, h4, -, -, -, -, -, -, hsf'⟩ := hst'
+    obtain ⟨h1, h2, h3, h4, -, -, -, -, -, -, hsf', hpc'⟩ := hst'
     have hsafe : safeSt P (commitSt st' C' tx' cnt') := by
       refine ⟨?_, fun n i hn hsb => ?_⟩
       · intro n i _ _ kc vc e _ he
@@ -295,7 +295,14 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
         have : bkOf st'.W.bks i = [] := hW' n i hn hHB
         exact absurd he (by show e ∉ bkOf st'.W.bks i; rw [this]; simp)
     refine ⟨h1, RBuf.reset_wf h2, h3, idsOk_bksReset h4, by simp [commitSt], by simp [commitSt],
-      by simp [commitSt], by simp [commitSt], fun _ i => bkOf_bksResetC _ i, fun _ => ?_, hsafe⟩
+      by simp [commitSt], by simp [commitSt], fun _ i => bkOf_bksResetC _ i, fun _ => ?_, hsafe,
+      fun _ => ?_⟩
+    rotate_left
+    · -- (backend-snapshot B2) the committed data is the writer's contents
+      show st'.S = C'
+      rcases hC' with h | ⟨hp, h⟩
+      · exact h.symm
+      · rw [h]; exact hpc' hp
     show agreeOff P.HB (dget st'.S) (ovB P.BT st'.W.bks (ovB P.BT (bksReset st'.R.bks) (dget C')))
     rw [ovB_empty P.BT _ _ (bkOf_bksResetC st'.R.bks)]
     refine agreeOff_trans ?_ (agreeOff_symm (agreeOff_ovB_nonHB P st'.W.bks _ hW'))

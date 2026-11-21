@@ -20,6 +20,8 @@ opaque; now the package's initializer and `EncodeToString` are translated with t
 module
 
 public import GeneratedProof.encoding.base64
+public import Proof.internal.byteorder.Base
+public import Perennial.Proof.strconv.Base
 
 @[expose] public section
 
@@ -90,8 +92,21 @@ abbrev rawUrlEncInit : IProp GF :=
       WP (App (Val #(methods (go.GoType.PointerType Encoding.ty) go!"EncodeToString" #e)) (Val #sl))
         {{ Φ }})
 
-/-- **`encoding/base64`'s fact**: the two parts. -/
-abbrev base64Init : IProp GF := iprop(stdEncInit ∗ rawUrlEncInit)
+/-- **`encoding/base64`'s fact, `StdEncoding`'s decoder** (prove-authcrypto, 2026-11-21; the auth
+store's `selectPassword`): on `StdEncoding`'s fixed pointer, `DecodeString(s)` returns a fresh slice
+and an error, the error `nil` when `s` is the standard encoding `stdEnc` of some bytes
+(`(*Encoding).DecodeString`: `make([]byte, enc.DecodedLen(len(s)))`, `enc.Decode(dbuf, []byte(s))`,
+`dbuf[:n]`; no panic on any input). -/
+abbrev stdDecInit : IProp GF :=
+  iprop(∃ e : Loc, globalAddr StdEncoding ↦□ e ∗
+    □ ∀ (s : GoString) (Φ : val → IProp GF),
+      ▷ (∀ (b : GoSlice) (err : GoInterface) (bs : List w8), b ↦* bs -∗
+          ⌜(∃ x : List w8, s = stdEnc x) → err = GoInterface.nil⌝ -∗ Φ (PairV #b #err)) -∗
+      WP (App (Val #(methods (go.GoType.PointerType Encoding.ty) go!"DecodeString" #e)) (Val #s))
+        {{ Φ }})
+
+/-- **`encoding/base64`'s fact**: the three parts. -/
+abbrev base64Init : IProp GF := iprop(stdEncInit ∗ rawUrlEncInit ∗ stdDecInit)
 
 instance encoding_base64_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.encoding.base64 :=
@@ -114,8 +129,14 @@ theorem stdEncInit_access :
 theorem rawUrlEncInit_access :
     isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 ⊢ rawUrlEncInit (GF := GF) := by
   iintro #H
-  ihave ⟨-, #H2⟩ := base64Init_access $$ H
+  ihave ⟨-, #H2, -⟩ := base64Init_access $$ H
   iexact H2
+
+theorem stdDecInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 ⊢ stdDecInit (GF := GF) := by
+  iintro #H
+  ihave ⟨-, -, #H3⟩ := base64Init_access $$ H
+  iexact H3
 
 end init
 

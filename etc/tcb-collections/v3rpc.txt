@@ -63,7 +63,6 @@ axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
-axiom lease.lessor.Renew.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
@@ -93,7 +92,6 @@ axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof
-axiom sort.Sort.wp_anyLess
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
 axiom status.FromError.wp_proof
@@ -102,7 +100,6 @@ axiom strings.ToLower.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom types.NewURLs.wp_proof
-axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof

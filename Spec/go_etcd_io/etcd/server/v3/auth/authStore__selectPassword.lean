@@ -1,8 +1,10 @@
 /-
-`authStore.selectPassword` (`server/auth/store.go`): names only, the trust boundary (it hashes
-with `golang.org/x/crypto/bcrypt` or decodes with `encoding/base64`, neither translated). The
-auth plan's S4 (2026-10-24): `UserAdd` and `UserChangePassword` store its result as the user's
-password, which the model does not keep. Lean-first (no Rocq counterpart).
+`authStore.selectPassword` (`server/auth/store.go`): the auth plan's S4 (2026-10-24): `UserAdd` and
+`UserChangePassword` store its result as the user's password, which the model does not keep.
+Names only (the trust boundary) until prove-authcrypto (2026-11-21): translated with its body and
+proved over bcrypt's `GenerateFromPassword` (the trust boundary) and base64's `DecodeString`
+(proved, `Proof/encoding/base64/`, `StdEncoding`'s through the package fact `stdDecInit`). Lean-first
+(no Rocq counterpart).
 -/
 module
 
@@ -33,10 +35,13 @@ the Go code: with `password == ""` the function returns `base64.StdEncoding.Deco
 hashedPassword)`, and `DecodeString` of a string `StdEncoding.EncodeToString` produced decodes
 without an error (the encoding emits only the alphabet's characters, padded to a multiple of 4, which
 is exactly what the decoder accepts). Otherwise the error is any (bcrypt's
-`GenerateFromPassword`, a decoding of other text). -/
+`GenerateFromPassword`, a decoding of other text). The pre has the store's read-only `bcryptCost`
+(prove-authcrypto, 2026-11-21: the bcrypt branch reads `as.bcryptCost`; callers have it from
+`authInv`, `authInv_bcryptCost`; ledger 2026-11-21). -/
 abbrev auth.authStore.selectPassword.spec : Prop :=
   ∀ (st : Loc) (password hashed : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜st ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜st ≠ null⌝ ∗
+      ∃ c : w64, aF go!"bcryptCost" st ↦□ c }}
     (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"selectPassword"))
       (Val #password)) (Val #hashed))
   {{ (b : GoSlice) (err : GoInterface), RET (PairV #b #err); ∃ bs : GoString, b ↦*□ bs ∗

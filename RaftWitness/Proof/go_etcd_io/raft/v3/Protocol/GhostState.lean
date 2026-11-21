@@ -448,7 +448,7 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
         -- (2026-10-20) the voters without repetition (`GetNonWitnessVoterSlice`, a map's
         -- keys): `handleVote` counts the responders over them
         iprop(∃ (x : w64) (P : List EntryM) (c : CfgM) (H : GSet w64),
-          ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ c.incoming \ ({[γ.reWit]} ∪ {[x]})) ∧
+          ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ c.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]})) ∧
             m.voters.Nodup⌝ ∗
           wJust γ m.term m.sub m.index x P c H)
       else iprop(True)

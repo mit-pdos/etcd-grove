@@ -6,7 +6,7 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.sort.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.bbolt.internal.common
-public import SpecPlan.Spec.PkgInit.reflect
+public import Perennial.Proof.reflect.Base
 public import Perennial.Proof.math.Base
 public import Perennial.Proof.unsafe.Base
 

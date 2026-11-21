@@ -14,22 +14,24 @@ axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec
               backend.bOpen γ qo ∗
                 backend.wbTok γ ∗
                   threadTok ∗
-                    R ∗
-                      □
-                        ∀ vd d r v X,
-                          R -∗
-                            W -∗
-                              Pk -∗
-                                backend.viewAtD γ P vd X -∗
-                                  backend.dlsOwn γ X -∗
-                                    backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.fkdOwn γ v -∗ ⌜Q vd d r v⌝) -∗
+                    backend.rdTok γ P b ∗
+                      R ∗
+                        □
+                          ∀ vd d r v X,
+                            R -∗
+                              W -∗
+                                Pk -∗
+                                  backend.viewAtD γ P vd X -∗
+                                    backend.dlsOwn γ X -∗
+                                      backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.fkdOwn γ v -∗ ⌜Q vd d r v⌝) -∗
           (▷
               ∀ sp D,
                 backend.snapOpen sp D ∗
                     backend.bOpen γ qo ∗
-                      R ∗
-                        backend.fkRd γ P (D, { bks := ∅, ver := W64 0 }) ∗
-                          ⌜Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D) (backend.fkVals D)⌝ -∗
+                      backend.rdTok γ P b ∗
+                        R ∗
+                          backend.fkRd γ P (D, { bks := ∅, ver := W64 0 }) ∗
+                            ⌜Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D) (backend.fkVals D)⌝ -∗
                   Φ
                     (intoVal
                       (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty.PointerType (intoVal sp)))) -∗

@@ -1,6 +1,6 @@
 /-
-`binary.Read(r, binary.LittleEndian, p)` into an `*int64`: the trust boundary (names-only in
-Perennial; `Proof/encoding/binary/ReadInt64LE.lean`), stated over `io.ReadFull` of `r`, as
+`binary.Read(r, binary.LittleEndian, p)` into an `*int64` (proved over Perennial's translation of
+`Read`: `Proof/encoding/binary/ReadInt64LE.lean`, stdlib4 2026-11-21), stated over `io.ReadFull` of `r`, as
 `binary.ReadUint64` (`Spec/encoding/binary/ReadUint64.lean`) is for the big-endian `*uint64`. The
 WAL's `readInt64` (decoder.go:227-231). WAL leaf specs, 2026-11-13; Lean-first.
 -/

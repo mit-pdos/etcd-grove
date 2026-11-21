@@ -1,6 +1,7 @@
 /-
-`binary.Read(r, binary.BigEndian, p)` into a `*uint64`: the trust boundary (names-only in
-Perennial), stated over `io.ReadFull` of `r`. Lean-first.
+`binary.Read(r, binary.BigEndian, p)` into a `*uint64`, stated over `io.ReadFull` of `r`. Proved
+over Perennial's translation of `Read` (`Proof/encoding/binary/ReadUint64.lean`; stdlib4,
+2026-11-21: until then names-only). Lean-first.
 -/
 module
 

@@ -56,7 +56,7 @@ theorem lease.lessor.Revoke.wp_proof
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨#Hnf, -, -, -, -, ⟨%crv, #Hcrv, #Hcrvs⟩, -, -⟩
+  icases Hli with ⟨#Hnf, -, -, -, -, ⟨⟨%crv, #Hcrv, #Hcrvs⟩, -⟩, -, -⟩
   ihave #Hnf' := Hnf
   iunfold leaseErrVar at Hnf'
   icases Hnf' with ⟨%enf, #Henf, -⟩
@@ -372,7 +372,7 @@ theorem lease.lessor.Revoke.wp_proof
       ihave Ha := Hback $$ %(C4.delete id) Hcl
       imod lessor_live_revoke _ lp L (C4.delete id) id $$ [$Ha $Hg $Hfr] with ⟨Ha, Hg, Hfr⟩
       iunfold lessorExtra at Hx
-      icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+      icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl, Hdt⟩
       icases (BigSepM.bigSepM_delete (Φ := fun i x => leaseMeta (GF := GF) i x 1) HM2l).1 $$ Hmeta
         with ⟨Hml, Hmeta⟩
       iunfold leaseMeta at Hml
@@ -394,7 +394,7 @@ theorem lease.lessor.Revoke.wp_proof
       · iPkgInit
       ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hsch
-      icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bL, #HLeaseG, -⟩⟩
+      icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bL, #HLeaseG, -⟩, -⟩
       wp_apply (hUDL ⟨go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ «$a1_ptr» (DFrac.own 1) _ bL
           iprop(mvccTxn (interface.mkOk tyX vX) γ trace (.write σ₀ (ks'.map mvcc.Change.del)) ∗
@@ -485,7 +485,7 @@ theorem lease.lessor.Revoke.wp_proof
           some (C4.delete id, mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del), T.delete id) := by
         simp
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
-          Hmeta Hbl Hhl]
+          Hmeta Hbl Hdt Hhl]
       · inext
         iunfold lessorMu
         iexists lm2, im2, (C4.delete id), _, rd2, (L.filter (· != id))
@@ -506,7 +506,7 @@ theorem lease.lessor.Revoke.wp_proof
         · icases (BigSepM.bigSepM_delete (Φ := fun _ x => isLeaseObj (GF := GF) (mvccLeases γ) x) HM2l).1 $$ Hls2
             with ⟨-, #H⟩
           iexact H
-        isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
+        isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl Hdt]
         · iunfold lessorExtra
           iexists dc, np, h, hx, _
           iframe

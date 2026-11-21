@@ -9,6 +9,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Sender
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PeerStatus
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Proof.sync.WaitGroupJoin
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Defs
 
 @[expose] public section
 
@@ -37,13 +38,14 @@ def pipeMsg (Rh : RaftHttp GF) (to : w64) (ml : Loc) : IProp GF :=
     ⌜MsgMarshals st ∧ st.msg.To' = to ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = []⌝)
 
 /-- **What `handle` reads** (persistent) of the pipeline `p` to the peer `to`: what `post` reads,
-its peer status, its follower stats (`nil` or not), its `Raft` (whose calls take one of the
+its peer status, its follower stats (`nil`, or with their mutex: `v2stats.isFollowerStats`, which
+`Fail` takes; prove-ps2, 2026-11-21), its `Raft` (whose calls take one of the
 resources `R`), and its message channel (a bag of `pipeMsg`s). -/
 def pipeHandleOk (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF) : IProp GF :=
   iprop(pipeSenderOk Rh p to ∗
     ∃ (ps fs : Loc) (r : GoInterface) (id : w64) (γd : GName) (mc : Loc) (γm : ChanNames),
     p.[rafthttp.pipeline, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
-    p.[rafthttp.pipeline, go!"followerStats"] ↦□ fs ∗
+    p.[rafthttp.pipeline, go!"followerStats"] ↦□ fs ∗ (⌜fs = null⌝ ∨ v2stats.isFollowerStats fs) ∗
     p.[rafthttp.pipeline, go!"raft"] ↦□ r ∗ netRaftOk Rh.γn id γd R r ∗
     p.[rafthttp.pipeline, go!"msgc"] ↦□ mc ∗ isChanBag γm mc (pipeMsg Rh to))
 
@@ -67,7 +69,7 @@ def pipeFixed (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF) : IProp GF 
     tr.[rafthttp.Transport, go!"pipelineRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
     pickerOk pk (peerURL Rh to) ∗
     p.[rafthttp.pipeline, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
-    p.[rafthttp.pipeline, go!"followerStats"] ↦□ fs ∗
+    p.[rafthttp.pipeline, go!"followerStats"] ↦□ fs ∗ (⌜fs = null⌝ ∨ v2stats.isFollowerStats fs) ∗
     p.[rafthttp.pipeline, go!"raft"] ↦□ r ∗ netRaftOk Rh.γn id γd R r ∗ pipeReg Rh to ∗
     ⌜Rh.member lid ∧ lid ≠ to⌝ ∗ ⌜trURLsOk Rh lid uvs⌝)
 

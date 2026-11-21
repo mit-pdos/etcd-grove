@@ -33,7 +33,7 @@ public import Perennial.Proof.time
 public import Perennial.Proof.unsafe
 public import Proof.os.PkgInit
 public import Proof.hash.PkgInit
-public import Proof.reflect.PkgInit
+public import Perennial.Proof.reflect.Base
 public import Proof.golang_org.x.sys.unix.PkgInit
 public import Spec.fmt.ErrorOk
 

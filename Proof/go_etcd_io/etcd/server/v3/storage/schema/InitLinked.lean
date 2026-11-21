@@ -206,7 +206,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩
   try wp_auto
-  wp_apply wp_string_to_bytes go!"confState" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"confState" as %sconf ⟨Hsconf, -⟩
   try wp_auto
   wp_apply wp_string_to_bytes go!"clusterVersion" as %_ ⟨-, -⟩
   try wp_auto
@@ -294,7 +294,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HKey
   ipersist HMeta
   ipersist HMetaConsistentIndexKeyName
+  ipersist HMembers
   ipersist HMetaTermKeyName
+  ipersist HMetaConfStateName
+  ipersist Hsconf
   ipersist HAuth
   ipersist HAuthUsers
   ipersist HAuthRoles

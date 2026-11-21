@@ -672,6 +672,12 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
                               "Perennial.Proof.sync.Link", "Perennial.Proof.context.Link",
                               "Perennial.Proof.strings.Link",
+                              # (stdlib4, 2026-11-21) `binary.Read`/`Write`'s fast path proved over
+                              # Perennial's byte orders (`=_root_.Perennial.encoding.binary.*`)
+                              "Perennial.Proof.encoding.binary.Link",
+                              # (prove-authcrypto, 2026-11-21) the simple token provider's
+                              # `genTokenPrefix`'s callees (`=` terms)
+                              "Perennial.Proof.crypto.rand.Link", "Perennial.Proof.math.big.Link",
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
                               # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
                               # axiom, net/http's errors not `errMemberRemoved`
@@ -680,9 +686,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (2026-10-27) the node API's results at the server's storage model
                               # (`=srvApi_wp_*` callees)
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink",
-                              # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, the
-                              # axiom `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`)
-                              "Proof.sort.SortAnyLess",
+                              # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, which
+                              # `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`; an axiom
+                              # until 2026-11-21)
+                              "Proof.sort.SortAnyLessLinked",
                               # (the `lean` merge, R6/R8, 2026-11-07) mvcc's API laws the server's
                               # proofs take as terms (`=mvcc.api.*` callees)
                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
@@ -823,7 +830,7 @@ EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.stor
 NAMESPACED["--mvccfull"] = "mvccfull"
 EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
                                "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
-                               "Proof.sort.SortAnyLess",
+                               "Proof.sort.SortAnyLessLinked",
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]

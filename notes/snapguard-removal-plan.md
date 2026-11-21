@@ -1,13 +1,16 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
-## Index check removed from the verified Go source
+## Replay metadata and the recovered commit
 
-The etcd pin is `34f5142d062b`. In `applyAll`, the successful term
-comparison identifies the queued message's leader term. The source tag
-distinguishes a snapshot present at bootstrap, one created by the apply
-thread, and one installed by Raft. The apply job uses the proof for its
-actual node and Ready to bound the original snapshot index. Both apply
-paths pass this bound to Raft when they replace the message's snapshot.
+This branch pins etcd `d7c7f6434abc`, which includes the RangeStream fix
+at `4416a5786` and the replay repair at `03c73a97acff`. When the backend is ahead of the
+apply cursor, the sender labels its snapshot with the index, entry term
+and configuration of the frozen database. A pre-3.5 backend can lack the
+term and configuration. Bootstrap recovers the configuration from backend membership.
+While the Ready log covers the initial image, the sender uses that configuration
+and the log term at the image index. Installing a replacement backend clears
+the cached configuration. The fallback reads the frozen metadata and can
+rebuild the configuration from the membership in the streaming transaction.
 
 The apply worker tracks its own cursor from the startup snapshot through
 each serialized job. This matters on restart, when the backend's applied
@@ -16,11 +19,117 @@ attaches a lower bound for this incarnation's worker cursor. The server
 can therefore establish the physical index comparison immediately after
 the term matches, including in the replay window.
 
-The replay deferral remains a separate change. Its fork regression tests
-exercise a frozen backend at index 7 and a recovered HardState commit of 3
-with both current and legacy metadata. The replay proof still has to
-establish the term and membership for the image actually sent.
-[Replay issue](../nonissues/etcd-backward-snapshot-install-panics-watcher.md).
+The Go regression reopens a database at index 7 with a recovered HardState
+commit of 3 and verifies the sent snapshot for both formats. The Lean
+proof now reads the index and term from the very transaction that the
+reader streams. The apply thread can now open the snapshot with its actual backend
+index even while the cursor is behind. Lean also follows the schema reader
+to its nil return on a pre-3.5 image missing the ConfState key, preserving
+the same snapshot for streaming. The linked server proof connects the configuration and entry term to the
+committed prefix under the existing restart contract. That contract assumes
+the initial backend prefix ends at or below the recovered commit. Recovery
+after a power loss that leaves the commit below the backend index is covered
+by the Go regression. A separate end-to-end crash theorem would have to
+recover the prior quorum certificate and connect it to the reopened storage.
+[Replay issue and regression](../issues/etcd-merged-snapshot-replay-failure.md).
+
+### Replay proof handoff, November 21
+
+Bootstrap now reads the retained suffix directly from the restored MemoryStorage
+before RestartNode receives it. A VM regression checks an empty suffix on fresh
+and compacted storage, then verifies the exact three term runs after appending
+four entries above the snapshot base. The source is pinned at `995dedf00f36`.
+Lean checked the complete translated storage read and both node constructors.
+The storage owner obtains the exact immutable runs and hands the same storage
+to RestartNode. The durable Raft invariant supplies term ordering and identifies
+the terms of the committed backend prefix under the existing restart contract.
+Every ordinary Ready preserves the term of the pending backend index as
+entries are appended or overwritten. An installed snapshot advances the apply
+cursor past the initial image. The linked worker supplies the resulting term
+history to each apply job, and the apply worker sends the labelled image.
+The VM built the linked server and the entire repository. The first trust
+check found that the mvccfull workload inherited JSON and membership initialization
+from the snapshot readers. Revision `d7c7f6434abc` shares the readers in
+`storage/schema/snapshotmeta`, outside the workload's dependency table.
+The rerun uses the Perennial pin on public `lean` at `88c3789867`.
+
+Public `lean` includes the replay repair at `2c47b4340a9b`, with the production fork
+at `d7c7f6434abc`. All 51 trust collections and the global baseline
+matched under the landing gates. The power-loss scope is described above.
+
+The public Grove pin removes the index comparison at `7bc6d14671`. The
+original replay report and failing test are on `lean` at `044d40223c`.
+
+### Earlier proof checkpoints
+
+The VM checked `ApplyAllSnap` in both auth modes after pulling public
+`lean` at `2ca9ce4d1d`. Installing an incoming snapshot puts the backend
+at the apply cursor, so a same-term request can use the caught-up sender
+proof with the job's replay field. The ordinary entries branch
+now reaches the sender with a backend ahead of that cursor. The physical
+snapshot borrows the buckets of the durable log while keeping the replayed
+in-memory membership. The VM checked this window and both merged server
+constructors at public `lean` revision `a9b495f0e9`. The ahead branch still
+has to certify the outgoing metadata. The VM checked the full five-argument
+sender through message construction for both formats. Its caller must identify
+what the real configuration decoder reads from this image and supply the
+durable term or the legacy Ready lookup. The present-key schema proof opens
+the frozen row, calls the decoder on its bytes, and returns the snapshot
+share. These checks do not yet establish the value-specific codec facts.
+The VM checked the constructor that carries the initial replay-term slice
+into `raftNodeConfig`. It also checked that cutting an overwritten term
+range or joining adjacent equal-term ranges preserves earlier lookups.
+The VM checked `replayTerms_prefix` for the full slice expression
+`r[:n:n]`. It retains the readable prefix and gives the writer zero
+spare capacity, so the next append cannot overwrite an earlier Ready.
+It also checked the translated empty-entry return of `appendEntries` and
+the bootstrap case for a nonempty batch with equal endpoint terms. From
+a nil receiver the translated method returns one run with the actual
+first and last indices and the first term. `replayBatch_ordered` derives
+term ordering for sublists of a recorded full Raft log. This justifies
+the endpoint shortcut when the input is tied to that log. The later complete update proof above covers mixed terms
+and updates to an existing history.
+
+The ordinary apply proof now carries the initial backend log from the server
+constructor to the job. Its durable index is below a commit certified in the
+message term. The worker can use either the current Ready or a receipt from
+an earlier term that covers the image. The latter rule does not require the
+recovered WAL commit to cover that index. The existing graceful restart
+producer uses the current Ready. The VM checked both receipt paths, the run
+loop's handoff, and the ordinary replay send continuation through delivery.
+The remaining sender precondition needs the metadata of the frozen image.
+
+Three obligations still need proofs.
+
+1. At startup and at each Ready, connect the immutable ranges supplied to
+   this apply job to Raft's log. The translated `raftNode.start` now reads
+   and clears `initialReplayTerms` before its loop, then updates the ranges
+   as it builds the job. The constructor proofs for fresh and restarted
+   servers now give the worker exclusive ownership of the config field.
+   The VM checked both constructors and their Raft installer. The worker
+   proof reaches the new `appendEntries` call on both snapshot branches.
+   On the receiving side, both job constructors in `EtcdServer.run` now
+   pass the concrete `toApply.replayTerms` header to `applyAll` from the
+   heap-allocated job. The VM checked `EtcdServer__run` on this change.
+   Giving the worker the field establishes ownership of the slice header.
+   The historical runs in its backing array still need a log certificate.
+2. Read the configuration from the frozen image. The missing-key branch
+   of `schema.UnsafeConfStateFromBackend` is checked, including returning
+   the snapshot share to the streaming reader. The present-key branch
+   decodes a `raftpb.ConfState`; the legacy fallback decodes a
+   `*membership.Member`. The current `json.Unmarshal` contract only covers
+   `membership.ConfigChangeContext`. The existing ConfState writer contract
+   bounds the serialized length; it does not identify the serialized
+   configuration. The installed format and each read must agree.
+   The VM checked the translated legacy `confStateFromMembers` loop. Every saved
+   map key occurs exactly once in its enumeration. Both returned ID slices use that
+   enumeration, partitioned by each member's stored learner bit.
+3. Retain the historical quorum certificate for the durable backend index.
+   `committedAtTerm_mono_term` transports that certificate to a later
+   term. The existing graceful-restart contract takes `i ≤ σ.commit`;
+   the disk state in the regression has `i = 7` and `σ.commit = 3`.
+   The proof has to connect the actual persisted history and the leader
+   term without this inequality.
 
 ## The two MemoryStorage writers and the apply job
 
@@ -223,7 +332,7 @@ attach really uses. `StorNames`/`MemStorNames` are stored as tuples in ghost map
 registry is the hard part (time ordering; see "Refined design"). All Lean runs on the VM
 (`/shared/tmp/vm-build.sh`, `VM_CMD=...`); land with `ETCD_GROVE_GATES=/shared/tmp/vm-gates.sh etc/land.sh`.
 
-**Open question (replay-window fix, after the guard removal).** Labelling the in-window merged snapshot with
+**Historical question from the index-guard stage.** The replay fix and the scope of its crash evidence are recorded at the top of this note. Labelling the in-window merged snapshot with
 the backend's own `(ci, term at ci, conf state at ci)` is right when `ci ≤` the sender's committed index
 (graceful restarts). After a power loss `ci` can exceed the WAL's (hence raft's) commit index
 (`nonissues/etcd-backward-snapshot-install-panics-watcher.md`, crash path): what should the merge send

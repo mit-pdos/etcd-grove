@@ -266,6 +266,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable {Sio : IoSet}
+variable [_root_.Perennial.encoding.binary.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions]
 variable [_root_.Perennial.path.filepath.Assumptions]
 variable [_root_.Perennial.internal.filepathlite.Assumptions]
@@ -292,6 +293,7 @@ variable [FsStepSat (NoMapLockErr Sio)]
 theorem binary.wp_ReadInt64LE :
     _root_.Perennial.EtcdGrove.binary.ReadInt64LE.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.binary.ReadInt64LE.wp_proof
+    _root_.Perennial.encoding.binary.littleEndian.wp_Uint64
 
 theorem bufio.wp_NewReader :
     _root_.Perennial.EtcdGrove.bufio.NewReader.spec (GF := GF) (hG := hG) :=
@@ -1300,6 +1302,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable {Sio : IoSet}
+variable [_root_.Perennial.encoding.binary.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions]
 variable [_root_.Perennial.path.filepath.Assumptions]
 variable [_root_.Perennial.internal.filepathlite.Assumptions]
@@ -2067,6 +2070,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable {Sio : IoSet}
+variable [_root_.Perennial.encoding.binary.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions]
 variable [_root_.Perennial.path.filepath.Assumptions]
 variable [_root_.Perennial.internal.filepathlite.Assumptions]

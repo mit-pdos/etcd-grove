@@ -31,7 +31,7 @@ v1.36.12 `proto/decode.go`, `unmarshal` resets the message and its loop over the
 times). (raft-noax) `UnmarshalConfChangeV2` of the empty input: no field's tag, no change, the end
 of the input. -/
 theorem ccDecodeV2_nil [GooseExts] : ccDecodeV2 [] = some ConfChangeV2M.empty := by
-  simp [ccDecodeV2, ccOptField, ccChangesLoop, ConfChangeV2M.empty]
+  rfl
 
 end EtcdGrove
 end Perennial

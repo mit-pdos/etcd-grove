@@ -23,13 +23,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.encoding.base64.Assumptions]
 
-/-- `NewEncoding(s)`, `s` a valid alphabet: an `Encoding` over `s` with padding `=` (61). -/
+/-- `NewEncoding(s)`, `s` a valid alphabet: an `Encoding` over `s` with padding `=` (61), not strict,
+its decode map `s`'s inverse (`dmAfter s 64`: each symbol's index, `0xff` for every other byte;
+prove-authcrypto, 2026-11-21, for the decoder). -/
 abbrev base64.NewEncoding.spec : Prop :=
   ∀ (s : GoString), s.length = 64 → s.Nodup → (10 : w8) ∉ s → (13 : w8) ∉ s →
   {{ (True : IProp GF) }}
     (App (Val (@! _root_.Perennial.encoding.base64.NewEncoding)) (Val #s))
   {{ (e : Loc), RET #e; ∃ enc : _root_.Perennial.encoding.base64.Encoding, e ↦ enc ∗
-      ⌜enc.encode'.arr = s ∧ enc.padChar' = W32 61⌝ }}
+      ⌜enc.encode'.arr = s ∧ enc.padChar' = W32 61 ∧ enc.decodeMap'.arr = base64.dmAfter s 64 ∧
+        enc.strict' = false⌝ }}
 
 end spec
 

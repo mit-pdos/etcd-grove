@@ -74,7 +74,11 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF :
                 typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.defaultBatchLimit) (W64 10000)
                     DFrac.discard ∗
                   typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.InitialMmapSize) (W64 10737418240)
-                    DFrac.discard)
+                      DFrac.discard ∗
+                    ∃ h,
+                      typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.snapshotTransferSec)
+                          (GoInterface.ok h) DFrac.discard ∗
+                        go_etcd_io.etcd.server.v3.storage.backend.histSpec h)
 
 def Perennial.github_com.dustin.go_humanize.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.github_com.dustin.go_humanize :=
