@@ -34,3 +34,8 @@ four cases cross the two disk formats with the presence or absence of
 that configuration. They check the delivered image index, entry term,
 voters, learners, and bytes. The VM ran all four plus the immutable-log
 test on `1e59f9f173ea`. [Fork regression tests](https://github.com/upamanyus/etcd/blob/1e59f9f173eafbb104d172f9ab4c53f44f24cdc1/server/etcdserver/merged_snapshot_replay_test.go)
+
+The recovered suffix now comes from MemoryStorage before RestartNode takes
+ownership. All four send cases and the immutable-log test pass on this pin.
+A startup test covers an empty log, a snapshot with no later entries, and
+a suffix spanning three terms. [Fork revision](https://github.com/upamanyus/etcd/commit/995dedf00f366702d1090a9a0702c2bbc57eaa5d)

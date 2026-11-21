@@ -537,6 +537,9 @@ noncomputable def NewAccessController [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def newSnapshotReaderCloser [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.newSnapshotReaderCloser"
 
+noncomputable def replayTermsFromStorage [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver.replayTermsFromStorage"
+
 noncomputable def firstCompareKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.firstCompareKey"
 
@@ -676,7 +679,7 @@ noncomputable def bootstrappedBackend.Close.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef bootstrappedBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedBackend.ty)))) (Var "s"))))) (Val #())))))
   (Val #()))))
 
-/-- go: bootstrap.go:600:28 -/
+/-- go: bootstrap.go:598:28 -/
 noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "ss"
@@ -689,6 +692,7 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext
   (Let "wal" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (Var "wal"))
   (Let "ss" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (Var "ss"))
   (Let "n" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Val #())))
+  (Let "terms" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (App (Val (GoInstruction (GoZeroVal replayTerms.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Status"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Var "n")))
@@ -710,7 +714,7 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Var "n"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"heartbeat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
-  (Let "$v5" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"replayTerms"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "terms"))
   (Let "$v6" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)))) (Var "wal"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (Var "ss"))
@@ -730,15 +734,20 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (GlobalVarAddr raftStatusMu))) (Val #()))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"peers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
+  (App (App (Val (GoInstruction (FuncResolve replayTermsFromStorage []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.RestartNode []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "terms") (Var "$r0"))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedRaft.ty go!"peers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "b"))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.StartNode []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "$res0"))))))))
 
 /-- go: bootstrap.go:748:29 -/
@@ -6669,9 +6678,77 @@ noncomputable def newSnapshotReaderCloser.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.io.PipeReader.ty)))) (Pair (Var "pr") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (Var "$res0"))))))
 
+/-- Read the same recovered log that RestartNode will use. Bootstrap still
+    owns storage exclusively: its first and last indices are stable and Entries
+    over that range succeeds. An empty storage has first == last+1.
+
+    go: snapshot_terms.go:25:6 -/
+noncomputable def replayTermsFromStorage.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "storage"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc replayTerms.ty))) (App (Val (GoInstruction (GoZeroVal replayTerms.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "storage" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "storage"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"FirstIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "storage"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "first" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"LastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "storage"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "last" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first"))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "last")) (Val #(W64 1))))
+  (Let "$a2" (Val #(W64 18446744073709551615))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) go!"Entries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "storage"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "entries" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries"))
+  (App (App (Val (GoInstruction (MethodResolve replayTerms.ty go!"appendEntries"))) (App (Val (GoInstruction (Convert go.untypedNil replayTerms.ty))) (Val UntypedNil))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "entries") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "last")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil replayTerms.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore replayTerms.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "last") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "first") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$res0")))))
+
 /-- after discards entries that this batch has already handed to the applier.
 
-    go: snapshot_terms.go:18:22 -/
+    go: snapshot_terms.go:36:22 -/
 noncomputable def replayTerms.after.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "index"
@@ -6700,7 +6777,7 @@ noncomputable def replayTerms.after.impl [GooseExts] [GoGlobalContext] : val :=
 /-- appendEntries replaces the suffix beginning at the first new entry. Old
     batches may still refer to r, including a range cut in the middle.
 
-    go: snapshot_terms.go:27:22 -/
+    go: snapshot_terms.go:45:22 -/
 noncomputable def replayTerms.appendEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ents"
@@ -6835,7 +6912,7 @@ noncomputable def replayTerms.appendEntries.impl [GooseExts] [GoGlobalContext] :
 
 /-- covers reports whether an index is in this Ready's retained log suffix.
 
-    go: snapshot_terms.go:63:22 -/
+    go: snapshot_terms.go:81:22 -/
 noncomputable def replayTerms.covers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "index"
@@ -6857,7 +6934,7 @@ noncomputable def replayTerms.covers.impl [GooseExts] [GoGlobalContext] : val :=
     snapshot request from this member. Its elected log contains the committed
     backend prefix, even if the recovered HardState.Commit was lower.
 
-    go: snapshot_terms.go:70:22 -/
+    go: snapshot_terms.go:88:22 -/
 noncomputable def replayTerms.termAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "index"
@@ -12372,43 +12449,8 @@ attribute [instance] bootstrappedCluster.TypeAssumptions.type_repr
   bootstrappedCluster.TypeAssumptions.method_set
   bootstrappedCluster.TypeAssumptions.ptr_method_set
 
-abbrev replayTerms [GooseExts] : Type := GoSlice
-
-@[reducible] noncomputable def replayTerms.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.SliceType replayTermRun.ty)
-
-class replayTerms.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq replayTerms.ty replayTerms.underlying
-  method_set : go.MethodSetIs replayTerms.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver.after", (some (go.signature.Signature [go.uint64] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.appendEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.covers", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.termAt", (some (go.signature.Signature [go.uint64] false [go.uint64])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replayTerms.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver.after", (some (go.signature.Signature [go.uint64] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.appendEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.covers", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.termAt", (some (go.signature.Signature [go.uint64] false [go.uint64])))]
-  after_unfold : MethodUnfold replayTerms.ty go!"after" replayTerms.after.impl
-  appendEntries_unfold : MethodUnfold replayTerms.ty go!"appendEntries" replayTerms.appendEntries.impl
-  covers_unfold : MethodUnfold replayTerms.ty go!"covers" replayTerms.covers.impl
-  termAt_unfold : MethodUnfold replayTerms.ty go!"termAt" replayTerms.termAt.impl
-  ptr_after_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"after" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"after"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
-  ptr_appendEntries_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"appendEntries" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"appendEntries"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
-  ptr_covers_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"covers" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"covers"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
-  ptr_termAt_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"termAt" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"termAt"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
-
-attribute [instance] replayTerms.TypeAssumptions.underlying
-  replayTerms.TypeAssumptions.method_set
-  replayTerms.TypeAssumptions.ptr_method_set
-  replayTerms.TypeAssumptions.after_unfold
-  replayTerms.TypeAssumptions.appendEntries_unfold
-  replayTerms.TypeAssumptions.covers_unfold
-  replayTerms.TypeAssumptions.termAt_unfold
-  replayTerms.TypeAssumptions.ptr_after_unfold
-  replayTerms.TypeAssumptions.ptr_appendEntries_unfold
-  replayTerms.TypeAssumptions.ptr_covers_unfold
-  replayTerms.TypeAssumptions.ptr_termAt_unfold
-
 structure bootstrappedRaft [GooseExts] where
   mk ::
-  replayTerms' : replayTerms
   lg' : Loc
   heartbeat' : _root_.Perennial.time.Duration
   peers' : GoSlice
@@ -12416,11 +12458,10 @@ structure bootstrappedRaft [GooseExts] where
   storage' : Loc
 
 noncomputable instance bootstrappedRaft.zero_val [GooseExts] : ZeroVal bootstrappedRaft :=
-  ⟨bootstrappedRaft.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨bootstrappedRaft.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def bootstrappedRaft.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"replayTerms" replayTerms.ty),
-(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"heartbeat" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"peers" (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)),
 (go.field_decl.FieldDecl go!"config" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)),
@@ -12439,8 +12480,6 @@ noncomputable instance equals_unfold_bootstrappedRaft [GooseExts] [GoGlobalConte
 class bootstrappedRaft.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedRaft.underlying bootstrappedRaft
   underlying : go.UnderlyingDirectedEq bootstrappedRaft.ty bootstrappedRaft.underlying
-  get_replayTerms : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"replayTerms") #x (Val #(x.replayTerms'))
-  set_replayTerms : ∀ (x : bootstrappedRaft) (y : replayTerms), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"replayTerms") (PairV #x #y) (Val #(({ x with replayTerms' := y } : bootstrappedRaft)))
   get_lg : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : bootstrappedRaft) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bootstrappedRaft.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : bootstrappedRaft)))
   get_heartbeat : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"heartbeat") #x (Val #(x.heartbeat'))
@@ -12457,8 +12496,6 @@ class bootstrappedRaft.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
 
 attribute [instance] bootstrappedRaft.TypeAssumptions.type_repr
   bootstrappedRaft.TypeAssumptions.underlying
-  bootstrappedRaft.TypeAssumptions.get_replayTerms
-  bootstrappedRaft.TypeAssumptions.set_replayTerms
   bootstrappedRaft.TypeAssumptions.get_lg
   bootstrappedRaft.TypeAssumptions.set_lg
   bootstrappedRaft.TypeAssumptions.get_heartbeat
@@ -12837,6 +12874,40 @@ attribute [instance] hashKVHandler.TypeAssumptions.type_repr
   hashKVHandler.TypeAssumptions.set_server
   hashKVHandler.TypeAssumptions.method_set
   hashKVHandler.TypeAssumptions.ptr_method_set
+
+abbrev replayTerms [GooseExts] : Type := GoSlice
+
+@[reducible] noncomputable def replayTerms.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.SliceType replayTermRun.ty)
+
+class replayTerms.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq replayTerms.ty replayTerms.underlying
+  method_set : go.MethodSetIs replayTerms.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver.after", (some (go.signature.Signature [go.uint64] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.appendEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.covers", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.termAt", (some (go.signature.Signature [go.uint64] false [go.uint64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replayTerms.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver.after", (some (go.signature.Signature [go.uint64] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.appendEntries", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [replayTerms.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.covers", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver.termAt", (some (go.signature.Signature [go.uint64] false [go.uint64])))]
+  after_unfold : MethodUnfold replayTerms.ty go!"after" replayTerms.after.impl
+  appendEntries_unfold : MethodUnfold replayTerms.ty go!"appendEntries" replayTerms.appendEntries.impl
+  covers_unfold : MethodUnfold replayTerms.ty go!"covers" replayTerms.covers.impl
+  termAt_unfold : MethodUnfold replayTerms.ty go!"termAt" replayTerms.termAt.impl
+  ptr_after_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"after" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"after"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
+  ptr_appendEntries_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"appendEntries" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"appendEntries"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
+  ptr_covers_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"covers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"covers"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
+  ptr_termAt_unfold : MethodUnfold (go.GoType.PointerType replayTerms.ty) go!"termAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve replayTerms.ty go!"termAt"))) (App (Val (GoInstruction (GoLoad replayTerms.ty))) (Var "$r"))))
+
+attribute [instance] replayTerms.TypeAssumptions.underlying
+  replayTerms.TypeAssumptions.method_set
+  replayTerms.TypeAssumptions.ptr_method_set
+  replayTerms.TypeAssumptions.after_unfold
+  replayTerms.TypeAssumptions.appendEntries_unfold
+  replayTerms.TypeAssumptions.covers_unfold
+  replayTerms.TypeAssumptions.termAt_unfold
+  replayTerms.TypeAssumptions.ptr_after_unfold
+  replayTerms.TypeAssumptions.ptr_appendEntries_unfold
+  replayTerms.TypeAssumptions.ptr_covers_unfold
+  replayTerms.TypeAssumptions.ptr_termAt_unfold
 
 structure toApply [GooseExts] where
   mk ::
@@ -14293,6 +14364,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
   verifyConsistentIndexIsLatest_unfold : FuncUnfold verifyConsistentIndexIsLatest [] verifyConsistentIndexIsLatest.impl
   newSnapshotReaderCloser_unfold : FuncUnfold newSnapshotReaderCloser [] newSnapshotReaderCloser.impl
+  replayTermsFromStorage_unfold : FuncUnfold replayTermsFromStorage [] replayTermsFromStorage.impl
   firstCompareKey_unfold : FuncUnfold firstCompareKey [] firstCompareKey.impl
   firstOpKey_unfold : FuncUnfold firstOpKey [] firstOpKey.impl
   firstOpType_unfold : FuncUnfold firstOpType [] firstOpType.impl
@@ -14409,6 +14481,7 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.NewServer_unfold
   Assumptions.verifyConsistentIndexIsLatest_unfold
   Assumptions.newSnapshotReaderCloser_unfold
+  Assumptions.replayTermsFromStorage_unfold
   Assumptions.firstCompareKey_unfold
   Assumptions.firstOpKey_unfold
   Assumptions.firstOpType_unfold

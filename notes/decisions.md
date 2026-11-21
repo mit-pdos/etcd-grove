@@ -28066,7 +28066,10 @@ restarts.
 **2026-11-21, replay repair on the working branch.** Bootstrap recovers
 the configuration of the backend before the apply cursor begins WAL replay.
 Retain that configuration for an outgoing snapshot of the initial image
-and take the term at the image index from the same Ready's log. Installing
+and take the term at the image index from the same Ready's log. At restart,
+read the complete retained interval from the rebuilt MemoryStorage before
+calling RestartNode, while bootstrap still owns that storage. Each Ready
+updates its own immutable view from the entries Raft hands out. Installing
 an incoming snapshot clears the retained configuration. The sender can
 also read the metadata and membership from the transaction it streams.
 [Regression and proof status](snapguard-removal-plan.md).

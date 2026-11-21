@@ -2,7 +2,7 @@
 
 ## Replay metadata and the recovered commit
 
-This branch pins etcd `1e59f9f173ea`, which includes the RangeStream fix
+This branch pins etcd `995dedf00f36`, which includes the RangeStream fix
 at `4416a5786` and the replay repair at `03c73a97acff`. When the backend is ahead of the
 apply cursor, the sender labels its snapshot with the index, entry term
 and configuration of the frozen database. A pre-3.5 backend can lack the
@@ -31,6 +31,11 @@ after a power loss.
 [Replay issue and regression](../issues/etcd-merged-snapshot-replay-failure.md).
 
 ### Replay proof handoff, November 21
+
+Bootstrap now reads the retained suffix directly from the restored MemoryStorage
+before RestartNode receives it. A VM regression checks an empty suffix on fresh
+and compacted storage, then verifies the exact three term runs after appending
+four entries above the snapshot base. The source is pinned at `995dedf00f36`.
 
 At fork revision `1e59f9f173ea` the VM checked the sender with cached and
 uncached configuration, the range check on the immutable log, and the

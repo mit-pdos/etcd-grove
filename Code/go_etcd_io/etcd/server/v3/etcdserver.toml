@@ -153,7 +153,7 @@ translate = ["!*",
   # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go): the merged
   # message, its reader goroutine over the backend snapshot and `io.Pipe`, and its send with the
   # in-flight count released by a `GoAttach` goroutine
-  "replayTerms", "replayTermRun", "replayTerms.after", "replayTerms.covers", "replayTerms.appendEntries", "replayTerms.termAt",
+  "replayTerms", "replayTermRun", "replayTermsFromStorage", "replayTerms.after", "replayTerms.covers", "replayTerms.appendEntries", "replayTerms.termAt",
   "confStateFromMembers", "EtcdServer.createMergedSnapshotMessage", "newSnapshotReaderCloser", "EtcdServer.sendMergedSnap",
   "releaseDelayAfterSnapshot",
   # (D43 M5e, 2026-10-26) the membership change's application (server.go), over the cluster's

@@ -1,8 +1,10 @@
 # Status (Lean port)
 
-The replay worktree pins etcd `1e59f9f173ea`. Four Go regression cases
+The replay worktree pins etcd `995dedf00f36`. Four Go regression cases
 send an image at index 7 after recovery with HardState commit 3. They cover
 current and legacy backends, with and without the bootstrap configuration.
+Another test starts from the same MemoryStorage passed to RestartNode and
+checks empty storage, a compacted base, and entries spanning three terms.
 Lean checks the send using either metadata source and the clearing of the
 cached configuration when an incoming snapshot replaces the backend.
 The worker still needs to establish that the Ready's immutable term history

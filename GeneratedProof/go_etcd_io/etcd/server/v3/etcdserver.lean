@@ -68,6 +68,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.chunk1
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.chunk2
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.chunk3
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.chunk4
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.chunk5
 
 @[expose] public section
 
