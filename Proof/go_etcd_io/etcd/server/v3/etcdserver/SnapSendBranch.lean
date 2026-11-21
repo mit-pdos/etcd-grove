@@ -844,10 +844,10 @@ caller's configuration, index and term. -/
 theorem EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec
     (h : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG)) :
     EtcdServer.createMergedSnapshotMessage.specCaughtUp (GF := GF) (hG := hG) := by
-  intro s ml st snapt snapi ci terms cs lg kv be dq RC RC' RS RS' Qd γs hci hsz hsh
+  intro s ml st snapt snapi ci terms boot cs lg kv be dq RC RC' RS RS' Qd γs hci hsz hsh
   iintro %Φ ⟨#Hpkg, #Hlgf, #Hlgn, Hlr, #Hkvf, Hkv, HRC, Hbe, Hsnap, HR, Hm, #Hpb, #Hcs, Htok⟩ HΦ
   have hn : ¬uint.Z snapi < uint.Z ci := by omega
-  have hc := h s ml st snapt snapi ci snapt terms cs lg kv be dq RC RC' RS RS' Qd γs hsz hsh
+  have hc := h s ml st snapt snapi ci snapt terms boot cs lg kv be dq RC RC' RS RS' Qd γs hsz hsh
   simp only [hn, ↓reduceIte] at hc
   iapply hc $$ %Φ [Hlr Hkv HRC Hbe Hsnap HR Hm Htok]
   · iframe Hpkg Hlgf Hlgn Hlr Hkvf Hkv HRC Hbe HR Hm Hpb Hcs Htok

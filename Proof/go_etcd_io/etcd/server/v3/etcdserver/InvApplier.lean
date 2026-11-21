@@ -85,6 +85,7 @@ abbrev cfgElectionTicksAddr (c : Loc) : Loc :=
 abbrev cfgTickMsAddr (c : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" c
 
+abbrev epReplayConfAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"replayConf" ep
 abbrev epConfStateAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"confState" ep
 abbrev epAppliedTAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"appliedt" ep
 abbrev epAppliedIAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"appliedi" ep
@@ -497,6 +498,11 @@ def epCsVoters (γs : ServerRaftNames) (cs : Loc) : IProp GF :=
 instance epCsVoters_persistent (γs : ServerRaftNames) (cs : Loc) :
     Persistent (epCsVoters (GF := GF) γs cs) := by
   unfold epCsVoters; infer_instance
+
+/-- The initial backend's configuration is available until the cursor reaches
+its log length. Installing a later snapshot clears the pointer. -/
+def epReplayCfg (ep : Loc) (γs : ServerRaftNames) (base cursor : Nat) : IProp GF :=
+  iprop(∃ p : Loc, epReplayConfAddr ep ↦ p ∗ (⌜base ≤ cursor⌝ ∨ epCsVoters γs p))
 
 /-- (2026-10-31, S5) **`ep.confState` after the applied log `L`** (persistent; the apply loop's):
 nothing applied yet, or it reports the voters (the log's first entry is a conf entry,

@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapshotCindex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__covers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.confStateFromMembers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
@@ -70,7 +71,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) := by
-  intro s ml st snapt snapi ci backendTerm terms cs lg kv be dq RC RC' RS RS' Qd γs Hsz20 Hsh
+  intro s ml st snapt snapi ci backendTerm terms boot cs lg kv be dq RC RC' RS RS' Qd γs Hsz20 Hsh
   wp_start as ⟨#Hlgf, #Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Huf, #Hcs, Htok⟩
   (try wp_auto)
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
@@ -107,7 +108,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   wp_apply snapshot_read_cindex_open hRead hUR hID hName hSafe sp γd D 1 (ci, storedTerm) hmeta $$ [Hsn] as Hsn
   · iexact Hsn
   (try wp_auto)
-  ipersist lg; ipersist dbsnap; ipersist ci; ipersist term; ipersist terms
+  ipersist lg; ipersist dbsnap; ipersist ci; ipersist term; ipersist terms; ipersist replayConf
   ihave #Pbe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Psch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
@@ -121,68 +122,111 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
     $$ [Hsn Hreplay snapi snapt confState]
   · wp_if_destruct
     · have ahead : uint.Z snapi < uint.Z ci := by first | exact Hif | word
-      ihave ⟨Ht, %hreadCfg⟩ := Hreplay $$ %ahead
+      ihave Hmeta := Hreplay $$ %ahead
+      iunfold replayImageMetadata at Hmeta
+      icases Hmeta with ⟨%useBoot, Hdecision, Hsource⟩
       have hnz : ci ≠ W64 0 := by word
       simp only [hnz, ahead, ↓reduceIte]
       (try wp_auto)
-      wp_bind (If _ _ _)
-      iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ snapt_ptr ↦ backendTerm))) $$ [Ht snapt]
-      · wp_if_destruct
-        · iunfold replaySnapshotTerm at Ht
+      wp_bind (If _ _ (Val #false))
+      iapply (wp_wand (Φ := fun v => iprop(⌜v = #useBoot⌝))) $$ [Hdecision]
+      · by_cases hb : boot = null
+        · subst boot
           simp only [↓reduceIte]
-          icases Ht with ⟨%runs, %run, #Hruns, %hfound⟩
+          icases Hdecision with %hfalse
+          subst useBoot
           (try wp_auto)
-          rw [replayTerms.TypeAssumptions.ptr_termAt_unfold.method_unfold]
+          ipureintro; rfl
+        · simp only [hb, ↓reduceIte]
+          icases Hdecision with ⟨%runs, #Hruns, %hbool⟩
           (try wp_auto)
-          wp_apply replayTerms.termAt.wp_proof terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
+          (try simp only [hb, decide_false, Bool.not_false, intoVal_eq_iff, ↓reduceIte])
           (try wp_auto)
-          rw [← hfound.2]
-          iframe snapt
-          (try (ipureintro; rfl))
-        · have hz : storedTerm ≠ W64 0 := by first | exact Hif | word
-          iunfold replaySnapshotTerm at Ht
-          simp only [hz, ↓reduceIte]
-          icases Ht with %heq
+          rw [replayTerms.TypeAssumptions.ptr_covers_unfold.method_unfold]
           (try wp_auto)
-          rw [← heq]
-          iframe snapt
-          (try (ipureintro; rfl))
-      iintro %v ⟨%hv, snapt⟩
+          wp_apply replayTerms.covers.wp_proof terms runs ci $$ [$Hpkg $Hruns]
+          (try wp_auto)
+          ipureintro; rw [hbool]
+      iintro %v %hv
       subst v
-      (try wp_auto)
-      wp_apply hreadCfg lg sp γd $$ [$Psch $Pbe $Hsn] as %cp ⟨Hsn, Hcfg⟩
-      (try wp_auto)
-      wp_if_destruct
-      · (try simp only [↓reduceIte])
-        icases Hcfg with %hread
-        unfold replayMemberRead at hread
+      cases useBoot
+      rotate_left
+      · simp only [↓reduceIte]
+        icases Hsource with ⟨#Hboot, Ht⟩
+        iunfold replaySnapshotTerm at Ht
+        simp only [↓reduceIte]
+        icases Ht with ⟨%runs, %run, #Hruns, %hfound⟩
         (try wp_auto)
-        wp_apply hread $$ [$Psch $Pbe $Hsn] as %mp ⟨Hsn, Hmap⟩
-        iunfold replaySnapshotMembers at Hmap
-        icases Hmap with ⟨%ptrs, %memberID, %learner, Hptrs, #Hmembers, %hmembers⟩
+        rw [replayTerms.TypeAssumptions.ptr_termAt_unfold.method_unfold]
         (try wp_auto)
-        iapply wp_fupd
-        wp_apply wp_confStateFromMembers mp ptrs (DFrac.own 1) memberID learner
-          $$ [$Hpkg $Hptrs $Hmembers] as %value ⟨-, %keys, %hk, Hv, Hl⟩
-        obtain ⟨hkeys, hnodup, hshape⟩ := hk
+        wp_apply replayTerms.termAt.wp_proof terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
         (try wp_auto)
-        have hcfg := hmembers keys hkeys hnodup
-        imod confStateFromMembers_freeze γs cs_ptr value.Voters' value.Learners' _ _ hcfg $$ [cs Hv Hl] with #Hnew
-        · rw [← hshape]
-          iframe cs Hv Hl
-        imodintro
+        rw [← hfound.2]
         iframe Hsn snapi snapt
         isplitr; · ipureintro; rfl
-        iexists cs_ptr
-        iframe confState Hnew
+        iexists boot; iframe confState Hboot
         ipureintro; intro hf; exact (hf True.intro).elim
-      · have hn : cp ≠ null := by first | exact Hif | assumption
-        simp only [hn, ↓reduceIte]
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        icases Hsource with ⟨Ht, %hreadCfg⟩
         (try wp_auto)
-        iframe Hsn snapi snapt
-        iexists cp
-        iframe confState Hcfg
-        ipureintro; intro hf; exact (hf True.intro).elim
+        wp_bind (If _ _ _)
+        iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ snapt_ptr ↦ backendTerm))) $$ [Ht snapt]
+        · wp_if_destruct
+          · iunfold replaySnapshotTerm at Ht
+            simp only [↓reduceIte]
+            icases Ht with ⟨%runs, %run, #Hruns, %hfound⟩
+            (try wp_auto)
+            rw [replayTerms.TypeAssumptions.ptr_termAt_unfold.method_unfold]
+            (try wp_auto)
+            wp_apply replayTerms.termAt.wp_proof terms runs ci run hfound.1 $$ [$Hpkg $Hruns]
+            (try wp_auto)
+            rw [← hfound.2]
+            iframe snapt
+            (try (ipureintro; rfl))
+          · have hz : storedTerm ≠ W64 0 := by first | exact Hif | word
+            iunfold replaySnapshotTerm at Ht
+            simp only [hz, ↓reduceIte]
+            icases Ht with %heq
+            (try wp_auto)
+            rw [← heq]
+            iframe snapt
+            (try (ipureintro; rfl))
+        iintro %v ⟨%hv, snapt⟩
+        subst v
+        (try wp_auto)
+        wp_apply hreadCfg lg sp γd $$ [$Psch $Pbe $Hsn] as %cp ⟨Hsn, Hcfg⟩
+        (try wp_auto)
+        wp_if_destruct
+        · (try simp only [↓reduceIte])
+          icases Hcfg with %hread
+          unfold replayMemberRead at hread
+          (try wp_auto)
+          wp_apply hread $$ [$Psch $Pbe $Hsn] as %mp ⟨Hsn, Hmap⟩
+          iunfold replaySnapshotMembers at Hmap
+          icases Hmap with ⟨%ptrs, %memberID, %learner, Hptrs, #Hmembers, %hmembers⟩
+          (try wp_auto)
+          iapply wp_fupd
+          wp_apply wp_confStateFromMembers mp ptrs (DFrac.own 1) memberID learner
+            $$ [$Hpkg $Hptrs $Hmembers] as %value ⟨-, %keys, %hk, Hv, Hl⟩
+          obtain ⟨hkeys, hnodup, hshape⟩ := hk
+          (try wp_auto)
+          have hcfg := hmembers keys hkeys hnodup
+          imod confStateFromMembers_freeze γs cs_ptr value.Voters' value.Learners' _ _ hcfg $$ [cs Hv Hl] with #Hnew
+          · rw [← hshape]
+            iframe cs Hv Hl
+          imodintro
+          iframe Hsn snapi snapt
+          isplitr; · ipureintro; rfl
+          iexists cs_ptr
+          iframe confState Hnew
+          ipureintro; intro hf; exact (hf True.intro).elim
+        · have hn : cp ≠ null := by first | exact Hif | assumption
+          simp only [hn, ↓reduceIte]
+          (try wp_auto)
+          iframe Hsn snapi snapt
+          iexists cp
+          iframe confState Hcfg
+          ipureintro; intro hf; exact (hf True.intro).elim
     · have caught : ¬uint.Z snapi < uint.Z ci := by first | exact Hif | word
       simp only [caught, ↓reduceIte]
       (try wp_auto)

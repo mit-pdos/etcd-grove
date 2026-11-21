@@ -28063,6 +28063,14 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-21, replay repair on the working branch.** Bootstrap recovers
+the configuration of the backend before the apply cursor begins WAL replay.
+Retain that configuration for an outgoing snapshot of the initial image
+and take the term at the image index from the same Ready's log. Installing
+an incoming snapshot clears the retained configuration. The sender can
+also read the metadata and membership from the transaction it streams.
+[Regression and proof status](snapguard-removal-plan.md).
+
 **2026-11-21.** Remove the index comparison in the etcd pin. Both
 `applyAll` proof paths use the bound derived from the outgoing snapshot
 and the current Ready in the matching term. Each worker carries its

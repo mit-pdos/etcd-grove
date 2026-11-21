@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- The frozen backend has reached at most the apply cursor. Its bytes can be sent with the
 current apply metadata, independently of the retained replay terms. -/
 abbrev EtcdServer.createMergedSnapshotMessage.specCaughtUp : Prop :=
-  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi ci : w64) (terms : GoSlice) (cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
+  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi ci : w64) (terms : GoSlice) (boot cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
     (RC RC' RS RS' : IProp GF) (Qd : backend.Data → IProp GF) (γs : ServerRaftNames),
   uint.Z ci ≤ uint.Z snapi → GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -40,8 +40,8 @@ abbrev EtcdServer.createMergedSnapshotMessage.specCaughtUp : Prop :=
         iprop(Qd D ∗ ⌜∃ term : w64, metaIs D (ci, term)⌝)) ∗ (RC' -∗ RS) ∗
       msgOwn ml (DFrac.own 1) st ∗ pbMsg go_etcd_io.raft.v3.raftpb.Message ml [] ∗
       epCsVoters γs cs ∗ threadTok }}
-    (App (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
-      go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs)) (Val #terms))
+    (App (App (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
+      go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs)) (Val #terms)) (Val #boot))
   {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗
       ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
         mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c snapi snapt) ∗
@@ -88,10 +88,21 @@ def replaySnapshotTerm (terms : GoSlice) (ci stored chosen : w64) : IProp GF :=
       terms ↦*□ runs ∗ ⌜replayRunAt runs ci = some r ∧ r.term' = chosen⌝)
   else iprop(⌜stored = chosen⌝)
 
+/-- The bootstrap configuration belongs to the initial backend. The sender can
+pair it with the immutable Ready's term when that log contains the image index.
+An installed backend or an uncovered index uses the frozen metadata instead. -/
+def replayImageMetadata (γs : ServerRaftNames) (D : backend.Data) (boot : Loc)
+    (terms : GoSlice) (ci stored chosen : w64) : IProp GF :=
+  iprop(∃ useBoot : Bool,
+    (if boot = null then ⌜useBoot = false⌝ else ∃ runs : List replayTermRun,
+      terms ↦*□ runs ∗ ⌜replayRunCovers runs ci = useBoot⌝) ∗
+    (if useBoot then epCsVoters γs boot ∗ replaySnapshotTerm terms ci (W64 0) chosen
+     else replaySnapshotTerm terms ci stored chosen ∗ ⌜replayConfigRead (GF := GF) γs D⌝))
+
 /-- The sent index, term and configuration describe the backend image in the
 restart window and the apply cursor once replay has caught up. -/
 abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
-  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi ci backendTerm : w64) (terms : GoSlice) (cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
+  ∀ (s ml : Loc) (st : MsgSt) (snapt snapi ci backendTerm : w64) (terms : GoSlice) (boot cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
     (RC RC' RS RS' : IProp GF) (Qd : backend.Data → IProp GF) (γs : ServerRaftNames),
   GMap.size γs.raft.cfg ≤ 2 ^ 20 → st.ents = [] ∧ st.ctx = [] ∧ st.resps = [] →
   let ahead := uint.Z snapi < uint.Z ci
@@ -102,11 +113,11 @@ abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
       srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' (fun D =>
         iprop(Qd D ∗ ∃ stored : w64, ⌜metaIs D (ci, stored)⌝ ∗
-          (⌜ahead⌝ -∗ replaySnapshotTerm terms ci stored backendTerm ∗ ⌜replayConfigRead (GF := GF) γs D⌝))) ∗ (RC' -∗ RS) ∗
+          (⌜ahead⌝ -∗ replayImageMetadata γs D boot terms ci stored backendTerm))) ∗ (RC' -∗ RS) ∗
       msgOwn ml (DFrac.own 1) st ∗ pbMsg go_etcd_io.raft.v3.raftpb.Message ml [] ∗
       epCsVoters γs cs ∗ threadTok }}
-    (App (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
-      go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs)) (Val #terms))
+    (App (App (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
+      go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs)) (Val #terms)) (Val #boot))
   {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗
       ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
         mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c labelIndex labelTerm) ∗

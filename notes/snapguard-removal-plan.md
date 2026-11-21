@@ -2,12 +2,15 @@
 
 ## Replay metadata and the recovered commit
 
-This branch pins etcd `2d47031f65be`, which includes the RangeStream fix
+This branch pins etcd `1e59f9f173ea`, which includes the RangeStream fix
 at `4416a5786` and the replay repair at `03c73a97acff`. When the backend is ahead of the
 apply cursor, the sender labels its snapshot with the index, entry term
 and configuration of the frozen database. A pre-3.5 backend can lack the
-term and configuration. The sender reads that term from the Ready batch's
-immutable log and rebuilds the configuration from the frozen membership.
+term and configuration. Bootstrap recovers the configuration from backend membership.
+While the Ready log covers the initial image, the sender uses that configuration
+and the log term at the image index. Installing a replacement backend clears
+the cached configuration. The fallback reads the frozen metadata and can
+rebuild the configuration from the membership in the streaming transaction.
 
 The apply worker tracks its own cursor from the startup snapshot through
 each serialized job. This matters on restart, when the backend's applied
@@ -28,6 +31,13 @@ after a power loss.
 [Replay issue and regression](../issues/etcd-merged-snapshot-replay-failure.md).
 
 ### Replay proof handoff, November 21
+
+At fork revision `1e59f9f173ea` the VM checked the sender with cached and
+uncached configuration, the range check on the immutable log, and the
+clearing of the cache on snapshot install. The Go regression covers both
+paths for each disk format. The ordinary apply job still needs a proof
+that the Ready log covers the durable index and supplies its entry term.
+The earlier checkpoints below record which parts were checked independently.
 
 The public Grove pin removes the index comparison at `7bc6d14671`; the
 replay report and its failing test are on `lean` at `044d40223c`.

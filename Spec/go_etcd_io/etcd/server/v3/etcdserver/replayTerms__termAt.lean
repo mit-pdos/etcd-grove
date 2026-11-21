@@ -17,6 +17,18 @@ Only the first run ending at or after the requested index can supply its term. -
 def replayRunAt (runs : List replayTermRun) (index : w64) : Option replayTermRun :=
   runs.find? (fun run => decide (uint.nat index ≤ uint.nat run.last'))
 
+/-- The retained log suffix includes the index between its first and last run. -/
+def replayRunCovers (runs : List replayTermRun) (index : w64) : Bool :=
+  match runs.head?, runs.getLast? with
+  | some first, some last => decide (uint.Z first.first' ≤ uint.Z index ∧ uint.Z index ≤ uint.Z last.last')
+  | _, _ => false
+
+abbrev replayTerms.covers.spec : Prop :=
+  ∀ (r : GoSlice) (runs : List replayTermRun) (index : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ r ↦*□ runs }}
+    (App (Val (r @!! replayTerms.ty @!! go!"covers")) (Val #index))
+  {{ RET #(replayRunCovers runs index); True }}
+
 theorem replayRunAt_after (runs : List replayTermRun) (applied index : w64)
     (h : uint.nat applied < uint.nat index) :
     replayRunAt (runs.dropWhile (fun run => decide (uint.nat run.last' ≤ uint.nat applied))) index =

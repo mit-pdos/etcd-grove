@@ -28,3 +28,9 @@ The replay branch reads the index, term and ConfState from the bbolt read transa
 ## Proof
 
 The fork introduced the deferral in `6e8f0c004`. The sender proof uses that branch to exclude the case where the committed database is ahead of the replay cursor. After a machine crash the durable database can also be ahead of the recovered HardState commit. The regression test sets up the sender's replay window directly and does not simulate such a crash. [Crash and replay analysis](../nonissues/etcd-backward-snapshot-install-panics-watcher.md)
+
+The current fork also exercises bootstrap's recovered configuration. The
+four cases cross the two disk formats with the presence or absence of
+that configuration. They check the delivered image index, entry term,
+voters, learners, and bytes. The VM ran all four plus the immutable-log
+test on `1e59f9f173ea`. [Fork regression tests](https://github.com/upamanyus/etcd/blob/1e59f9f173eafbb104d172f9ab4c53f44f24cdc1/server/etcdserver/merged_snapshot_replay_test.go)

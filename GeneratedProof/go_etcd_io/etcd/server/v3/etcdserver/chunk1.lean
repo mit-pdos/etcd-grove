@@ -937,6 +937,7 @@ variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 noncomputable instance etcdProgress_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.etcdProgress where
   typedPointstoDef l v dq := iprop(
+    "replayConf" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"replayConf" l) v.replayConf' dq ∗
     "confState" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"confState" l) v.confState' dq ∗
     "diskSnapshotIndex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"diskSnapshotIndex" l) v.diskSnapshotIndex' dq ∗
     "memorySnapshotIndex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"memorySnapshotIndex" l) v.memorySnapshotIndex' dq ∗
@@ -950,6 +951,22 @@ noncomputable instance etcdProgress_typed_pointsto :
 noncomputable instance etcdProgress_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go_etcd_io.etcd.server.v3.etcdserver.etcdProgress.underlying := by
   solve_into_val_typed_struct
+
+noncomputable instance etcdProgress_access_load_replayConf (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.etcdProgress) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"replayConf" l) v.replayConf' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"replayConf" l) v.replayConf' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance etcdProgress_access_store_replayConf (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.etcdProgress) (replayConf' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"replayConf" l) v.replayConf' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"replayConf" l) replayConf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replayConf' := replayConf' } : go_etcd_io.etcd.server.v3.etcdserver.etcdProgress) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 noncomputable instance etcdProgress_access_load_confState (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.etcdProgress) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)

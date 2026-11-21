@@ -1,11 +1,12 @@
 # Status (Lean port)
 
-The replay worktree pins etcd `2d47031f65be`. Its Go regression passes
-with a database at index 7 and a recovered HardState commit of 3, for
-current and legacy snapshot metadata. Lean proves the consistent index and term
-read from the streaming snapshot. In the replay window the frozen buckets
-match the durable log even while the in-memory member attributes are replayed.
-Lean checks the sender through message construction for either metadata format. The caller still needs to identify the decoded configuration and certify the term at the durable index. Both server constructors give the
+The replay worktree pins etcd `1e59f9f173ea`. Four Go regression cases
+send an image at index 7 after recovery with HardState commit 3. They cover
+current and legacy backends, with and without the bootstrap configuration.
+Lean checks the send using either metadata source and the clearing of the
+cached configuration when an incoming snapshot replaces the backend.
+The worker still needs to establish that the Ready's immutable term history
+covers the durable image and returns the entry term for that index. Both server constructors give the
 replay field to the Raft worker. The VM checked that Raft's entry records
 give nondecreasing terms and justify treating a batch with equal endpoint
 terms as a single run. [Snapshot proof and regression](snapguard-removal-plan.md).
