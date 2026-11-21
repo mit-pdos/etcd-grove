@@ -220,3 +220,13 @@ before this stage).
   facts in the `Base.lean`s and the `finish` steps in `etc/gen-init.py`'s `SPECIAL` entries.
 - `SpecPlan/Spec/PkgInit/` (`etc/gen-specs-pkginit.py --check`) does not have SMD's or the driver's
   files (SMD's were already missing before this stage; not regenerated here).
+
+## Result (2026-11-21)
+
+`smd_driver_robust` is proved with no `sorry`. `#print axioms smd_driver_robust`:
+`propext`, `Classical.choice`, `Quot.sound`, `Perennial.reflect.opaqueInitsOk`,
+`reflect.DeepEqual.wp_proofNil`, `slices.BinarySearchFunc.wp_proof`, `slices.Insert.wp_proof`,
+`sort.SliceStable.wp_proof` (`etc/tcb-collections/smd.txt`). The whole SMD + driver tree builds
+(2863 jobs). The specs, decisions D1-D10 and every post-freeze change: `notes/smd-plan.md`. What
+this does and does not cover (one API version, identity converter, unstructured values, no
+managedfields/apiserver layers): `notes/smd-plan.md`, "Scope".
