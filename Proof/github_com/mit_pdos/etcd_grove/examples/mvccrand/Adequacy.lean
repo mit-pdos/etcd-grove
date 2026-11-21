@@ -129,7 +129,8 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := mvccrandGF) (n + 1) (n + 2) (mvccrandProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
-    ⟨trivial, Hfs, trivial⟩ mvccrandNames [] [] (by decide +kernel) List.nodup_nil List.nodup_nil
+    ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccrand.initNames [] []
+    (by decide +kernel) List.nodup_nil List.nodup_nil
     (fun _ h => absurd h List.not_mem_nil) HNs
     (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
     HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)

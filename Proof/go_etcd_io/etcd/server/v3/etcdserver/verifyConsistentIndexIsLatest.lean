@@ -55,7 +55,7 @@ theorem verifyConsistentIndexIsLatest.wp_proof
     (try wp_auto)
     wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string mref _ _ _) $$ [$Hmp] as Hmp
     (try wp_auto)
-    iexists #mref
+    iexists mref
     iframe
     ipureintro
     have : decide (uint.Z sv.Metadata'.Index' ≤ uint.Z cindex) = true := decide_eq_true Hle
