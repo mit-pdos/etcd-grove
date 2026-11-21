@@ -62,7 +62,6 @@ axiom goose_adequacy_start
 axiom httpProtoFree
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Stop.wp_proof
-axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom lease.lessorStopTok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom netAddrFree
@@ -88,7 +87,6 @@ axiom sort.Sort.wp_anyLess
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
 axiom verifyEnvOff
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof

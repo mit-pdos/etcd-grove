@@ -809,7 +809,7 @@ EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoStri
 # (`lessorApplyOk`, `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above)
 NAMESPACED["--mvccrand"] = "mvccrand"
 EXTRA_IMPORTS["--mvccrand"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
-                               "Perennial.Proof.sort.Link"]
+                               "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link"]
 EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
                             "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
 # mvcc's full tester (examples/mvccfull, F1 Draft, 2026-11-09): as mvccrand's, and the lessor's

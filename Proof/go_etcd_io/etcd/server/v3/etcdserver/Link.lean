@@ -241,6 +241,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Cl
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
 public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
+public import Proof.github_com.jonboulle.clockwork.realClock__After
+public import Proof.github_com.jonboulle.clockwork.realClock__Now
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -1205,7 +1207,7 @@ theorem lease.LeaseExpiredNotifier.wp_RegisterOrUpdate :
 
 theorem lease.lessor.wp_scheduleCheckpointIfNeeded :
     lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG) :=
-  lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+  lease.lessor.scheduleCheckpointIfNeeded.wp_proof lease.Lease.wp_getRemainingTTL time.Duration.wp_Seconds lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Push zap.Logger.wp_Debug zap.wp_Int64 zap.wp_Duration _root_.Perennial.time.wp_Now _root_.Perennial.time.Time.wp_Add
 
 theorem version.wp_LessThan :
     version.LessThan.spec (GF := GF) (hG := hG) :=
@@ -2950,9 +2952,17 @@ theorem bootstrappedWAL.wp_MemoryStorage :
     bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
   bootstrappedWAL.MemoryStorage.wp_proof srvApi_wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot srvApi_wp_MemSetHardState srvApi_wp_MemAppend
 
+theorem clockwork.realClock.wp_Now :
+    clockwork.realClock.Now.spec (GF := GF) (hG := hG) :=
+  clockwork.realClock.Now.wp_proof _root_.Perennial.time.wp_Now
+
+theorem clockwork.realClock.wp_After :
+    clockwork.realClock.After.spec (GF := GF) (hG := hG) :=
+  clockwork.realClock.After.wp_proof _root_.Perennial.time.wp_After
+
 theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=
-  clockwork.NewRealClock.wp_proof
+  clockwork.NewRealClock.wp_proof clockwork.realClock.wp_Now clockwork.realClock.wp_After
 
 theorem membership.RaftCluster.wp_String :
     membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
