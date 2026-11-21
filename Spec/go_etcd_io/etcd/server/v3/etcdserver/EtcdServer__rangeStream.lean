@@ -43,26 +43,22 @@ it into `Send`'s precondition. It returns `nil`, an error of the store's reads (
 `txn.Count`'s, mvcc's `ErrFutureRev` or `ErrCompacted`, or `rangeKeys`' wrapped context error), or the
 error a `Send` returned (`Ξ resp err` of the chunk `resp` it was sending).
 
-Why it is true of Go (`v3_server.go:198-274`, the fork's `goose-lean` branch): its only calls on
+Why it is true of Go (`v3_server.go:199-275`, the fork's `goose-lean` branch): its only calls on
 `rs` are `rs.Send(&pb.RangeStreamResponse{RangeResponse: out})`, after which it returns that call's
 error if not `nil`. `out` is a fresh `&pb.RangeResponse{Kvs: resp.Kvs}` (or, count-only, with no
 key-values), its `Header` set only on the last chunk, to a fresh `&pb.ResponseHeader{Revision: ..}`.
 `resp` is `txn.Range(ctx, s.Logger(), s.KV(), r, false)` of the request as rewritten: the first
-page at `o`'s key, each later page at `nextKey = append(lastKey, 0)`, the smallest key after the
+page at `o`'s key, each later page at `nextKey = append(bytes.Clone(lastKey), 0)`, the smallest key after the
 previous page's last, with `o`'s range end and every other field unchanged (only `Key`, `Limit` and
 `Revision` are written), so each page's keys are in `o`'s range; mvcc reads a `nil` range end as the
 key alone, an empty or `"\x00"` one as every key from the key on, any other as `[key, end)`, as
-`auth.inRange` does on the model's range end (`txn.rangeEndOf`). The append writes past the last
-key's length only (into the capacity of a key slice mvcc unmarshalled for this read), never inside
-the chunk's key-values. Its errors are those of `txn.Range` and `txn.Count` (the same as `Range`'s,
+`auth.inRange` does on the model's range end (`txn.rangeEndOf`). The append writes into a fresh
+copy of the last key (the fork's cherry-pick of upstream's etcd-io/etcd@9acc0ebe37), never into the
+chunk's key-values or mvcc's index. Its errors are those of `txn.Range` and `txn.Count` (the same as `Range`'s,
 `rangeResult_errIs`) and of `Send`. It takes no lock but the logger's reader slot and the store's
 read transaction, both given back. `More` is set only when the page had `Limit ≥ 1` keys (`Limit` is
 at least `1` on each page: `adjustChunkLimit`'s floor and `totalLimit - count > 0` while not done),
-so `resp.Kvs[len(resp.Kvs)-1]` is in bounds. **Margin** (the independent review, `notes/axiom-review/rangestream.md`): with keys-only, the
-last key is mvcc's index key and the append writes into its array's capacity, which two concurrent
-keys-only streams both write (`0`, past every key's length): a data race in Go, fixed upstream
-after the fork's base (`nonissues/etcd-rangestream-keysonly-index-key-race.md`); hence the request's
-new key is given back without its contents. Evidence: the Go tests `examples/authmedrangestream/`
+so `resp.Kvs[len(resp.Kvs)-1]` is in bounds. Evidence: the Go tests `examples/authmedrangestream/`
 (each chunk's keys in the range, through the real server; the review's errors and aliasing). -/
 abbrev EtcdServer.rangeStream.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)

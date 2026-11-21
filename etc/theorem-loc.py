@@ -5,7 +5,7 @@ usage: etc/theorem-loc.py THEOREM... [--collection FILE] [--file PATH]
                           [--list-tcb] [--list-verified] [--json OUT] [--tsv]
                           [--go-src DIR] [--no-go] [--refresh-go]
 
-For each top-level theorem (e.g. `etcd_putget3_safe`, found in a `Results.lean` of `Proof/` or a
+For each top-level theorem (e.g. `etcd_safe`, found in a `Results.lean` of `Proof/` or a
 part's `<root>/Proof/`), print
 
   * TCB lines: the non-blank, non-comment Lean lines of this repository's `Spec/` and `Proof/` (and

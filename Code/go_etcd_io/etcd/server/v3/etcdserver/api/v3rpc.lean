@@ -8020,6 +8020,10 @@ class headerFillingRangeStream.TypeAssumptions [GooseExts] [GoGlobalContext] [Go
   set_hdr : ∀ (x : headerFillingRangeStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet headerFillingRangeStream.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : headerFillingRangeStream)))
   method_set : go.MethodSetIs headerFillingRangeStream.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType headerFillingRangeStream.ty) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse.ty)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  Context_unfold : MethodUnfold headerFillingRangeStream.ty go!"Context" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty go!"Context"))) (App (Val (GoInstruction (StructFieldGet headerFillingRangeStream.ty go!"KV_RangeStreamServer"))) (Var "$r"))))
+  ptr_Context_unfold : MethodUnfold (go.GoType.PointerType headerFillingRangeStream.ty) go!"Context" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty go!"Context"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty))) (App (Val (GoInstruction (StructFieldRef headerFillingRangeStream.ty go!"KV_RangeStreamServer"))) (Var "$r")))))
   ptr_Send_unfold : MethodUnfold (go.GoType.PointerType headerFillingRangeStream.ty) go!"Send" headerFillingRangeStream.Send.impl
 
 attribute [instance] headerFillingRangeStream.TypeAssumptions.type_repr
@@ -8030,6 +8034,8 @@ attribute [instance] headerFillingRangeStream.TypeAssumptions.type_repr
   headerFillingRangeStream.TypeAssumptions.set_hdr
   headerFillingRangeStream.TypeAssumptions.method_set
   headerFillingRangeStream.TypeAssumptions.ptr_method_set
+  headerFillingRangeStream.TypeAssumptions.Context_unfold
+  headerFillingRangeStream.TypeAssumptions.ptr_Context_unfold
   headerFillingRangeStream.TypeAssumptions.ptr_Send_unfold
 
 structure LeaseServer [GooseExts] where

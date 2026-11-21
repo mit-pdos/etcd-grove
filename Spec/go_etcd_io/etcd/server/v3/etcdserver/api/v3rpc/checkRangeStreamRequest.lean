@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RequestAt
 
 @[expose] public section
 
@@ -29,12 +30,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`checkRangeStreamRequest(r)`**: `checkRangeRequest`'s error, or, past it, a non-nil
 `status` error (`Unimplemented`) for a sort other than the default or a revision filter
-(`streamOk`), else `nil`. -/
+(`streamOk`), else `nil`. The request at any fraction of its rewritable fields, given back
+(`txn.rangeRequestAt`; auth-mediation M3, 2026-11-21: `kvServer.RangeStream` checks a request whose
+three fields `rangeStream` then rewrites; was `rangeRequestIs`). -/
 abbrev v3rpc.checkRangeStreamRequest.spec : Prop :=
-  ∀ (r : Loc) (o : OpFull),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ txn.rangeRequestIs r o }}
+  ∀ (r : Loc) (dq : DFrac) (o : OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ txn.rangeRequestAt r dq o }}
     (App (Val (@! v3rpc.checkRangeStreamRequest)) (Val #r))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; txn.rangeRequestAt r dq o ∗
       match v3rpc.rangeCheck o with
       | some e => txn.errVarIs e.var err
       | none => ⌜err = GoInterface.nil ↔ v3rpc.streamOk o⌝ }}

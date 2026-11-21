@@ -25,8 +25,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 theorem RangeRequest.GetRevision.wp_proof : RangeRequest.GetRevision.spec (GF := GF) (hG := hG) := by
-  intro p v
-  wp_start as ⟨%Hnn, #Hh⟩
+  intro p v dq
+  wp_start as ⟨%Hnn, Hh⟩
   wp_auto
   wp_if_destruct
   · exact absurd rfl Hnn

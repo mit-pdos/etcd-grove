@@ -1944,7 +1944,7 @@ noncomputable def lower.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 65)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 90)))) (Val #false)))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (App (Val (GoInstruction (GoOp GoSub go.untypedRune))) (Pair (Val #(97 : Int)) (Val #(65 : Int))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 32))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))

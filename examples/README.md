@@ -24,19 +24,21 @@ names).
 
 | dir | was | what it is | headline result |
 |---|---|---|---|
-| `etcd/putget` | `putget` | one member, a Put and a Get of its key | `etcd_putget_safe` |
-| `etcd/putget3` | `putget3` | `putget` on a three-member cluster | `etcd_putget3_safe` |
-| `etcd/compacted` | `putgetc` | `putget` with the auto-compactor on | `etcd_compacted_safe` |
-| `etcd/compactwatch` | `compactkv` | rounds of Puts and watches under compaction pressure | `etcd_compactwatch_safe` |
-| `etcd/restart` | `restart3` | `putget3` with a member stopped and restarted on its data directory | (in progress) |
-| `etcd/watch` | `watchkv` | a prefix watch against concurrent writers: every Put is seen, in order | `etcd_watch_safe` |
-| `etcd/cache` | `cachekv` | `watch` read through etcd's cache, its `Get` and progress notifications checked | `etcd_cache_safe` |
-| `etcd/lease` | `leasekv` | the client's lease reads (`Leases`, `TimeToLive`) | `etcd_lease_safe` |
-| `etcd/leasegrant` | `leasegrant` | a lease granted, then listed: the listing has it (three-member cluster test of amendment (E)'s failure answers) | `etcd_leasegrant_safe` |
-| `etcd/leaseexpiry` | -- | a lease of the minimum TTL granted, polled until not found, then listed: the listing does not have it (no proof yet: `notes/lease-expiry-plan.md`) | -- |
-| `etcd/auth` | `authkv` | authentication: users, roles, permissions, tokens | `etcd_auth_safe` (with D22's `authSchemaSrv` as a hypothesis) |
-| `etcd/txnlin` | `linkvtxn` | porcupine over the KV API with transactions, as etcd's robustness tester drives it | `etcd_txnlin_safe` |
-| `etcd/partition` | `linkv3p` | `txnlin` on three members under network partitions, and a watch | `etcd_partition_safe` |
+| `etcd/putget` | `putget` | one member, a Put and a Get of its key | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/putget3` | `putget3` | `putget` on a three-member cluster | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/compacted` | `putgetc` | `putget` with the auto-compactor on | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/compactwatch` | `compactkv` | rounds of Puts and watches under compaction pressure | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/restart` | `restart3` | `putget3` with a member stopped and restarted on its data directory | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/watch` | `watchkv` | a prefix watch against concurrent writers: every Put is seen, in order | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/cache` | `cachekv` | `watch` read through etcd's cache, its `Get` and progress notifications checked | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/lease` | `leasekv` | the client's lease reads (`Leases`, `TimeToLive`) | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/leasegrant` | `leasegrant` | a lease granted, then listed: the listing has it (three-member cluster test of amendment (E)'s failure answers) | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/leaseexpiry` | -- | a lease of the minimum TTL granted, polled until not found, then listed: the listing does not have it | – (retired 2026-11-21: `etcd_leaseexpiryN_safe`) |
+| `etcd/auth` | `authkv` | authentication: users, roles, permissions, tokens | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/txnlin` | `linkvtxn` | porcupine over the KV API with transactions, as etcd's robustness tester drives it | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/partition` | `linkv3p` | `txnlin` on three members under network partitions, and a watch | – (retired 2026-11-21: `etcd_safe`) |
+| `etcd/all` | – | the twelve drivers at once in one process (txnlinfaultsN, partition's `MainWatch`, compactwatch, compacted, cache, authN, authlease, leaseN, leasecatchup, restartN, restart1; `notes/etcd-unified-scope.md`); the other `etcd/` drivers' closed theorems retired into it | `etcd_safe` (`etcd_robust`) |
+| `etcd/leaseexpiryN` | – | `leaseexpiry` on `k` members (not in `etcd/all`: its expiry contradicts the lease premise of authlease and leasecatchup) | `etcd_leaseexpiryN_safe` |
 | `etcd/bugs` | `etcdbugs` | reproductions of bugs found (`issues/`); not translated | – |
 
 ## `k8s/`: Kubernetes over etcd

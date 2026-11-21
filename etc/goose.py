@@ -11,7 +11,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, k8s-all, k8s-authz, k8s-authz-driver, bbolt-bank or bbolttest; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -333,6 +333,12 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
+        # Includes legacy WAL recovery and the same-term snapshot send without an index guard.
+        # Then (auth-mediation M3, 2026-11-21, the user's Q4 option (i) via etcd-grove-03) 4416a5786
+        # (branch `goose-lean-rangestream-clone`, on 34f5142d0): upstream's fix of the keys-only
+        # `RangeStream` data race cherry-picked (etcd-io/etcd@9acc0ebe37: `rangeStream`'s next key is
+        # `append(bytes.Clone(lastKey), 0)`, no longer an append into mvcc's index key;
+        # nonissues/etcd-rangestream-keysonly-index-key-race.md).
         # goose-lean-replay-storage-history keeps the legacy WAL recovery and RangeStream fixes.
         # Same-term snapshots stream the backend during restart replay. The label comes from the
         # frozen image and its Ready's retained entry terms (issues/etcd-merged-snapshot-replay-failure.md).
@@ -1282,6 +1288,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart1")],
+    ),
+    Project(
+        name="etcd-all",
+        # The program of the one closed etcd theorem, etcd_safe (notes/etcd-unified-scope.md):
+        # package `.` of examples/etcd/all (a package of the examples' Go module, examples/go.mod),
+        # eleven drivers at once in four parts (KV, Auth, Lease, Restart), with bodies. Everything
+        # it names outside the package is the drivers' and the etcd project's translations (the
+        # empty root): the drivers are not translated again.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "all"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "all")],
     ),
     Project(
         name="etcd-wal",

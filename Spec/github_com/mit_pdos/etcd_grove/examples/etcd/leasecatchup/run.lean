@@ -22,8 +22,8 @@ recs`, proved inside the server's apply loop): `run` itself does not reason abou
 (the bootstrap facts, `cluster3.BootFacts`; the thread and time-receipt bounds; the write budget;
 the server's named workload and effect premises), at the monotone lease mode: no lease of any lessor
 the program creates (granted, or reloaded by `Recover`) expires while the program runs
-(`lease.leasesNoExpiry`, which gives `lease.runCfg .mono .mono`; leases are granted for an hour, the
-run takes seconds) and the lease reads' deployment premise (`leasePeersOk`); the client's context
+(`lease.leasesNoExpiry`, which gives `lease.runCfg .mono .mono`; leases are granted with etcd's
+`MaxLeaseTTL`, about 285 years, so it holds however long the process runs) and the lease reads' deployment premise (`leasePeersOk`); the client's context
 premises (`ContextReadErrs`, `ContextErrsClient`, instances, and `errors.As`'s target), as
 leasegrant's `Main`.
 -/
