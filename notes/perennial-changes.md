@@ -442,7 +442,19 @@ local model go.
   invariant `bodyStream rd Pre Φ r ⊢ ⌜Pre r⌝`. `http.NewBuffer_ok` and `http.readerHas_nil` are
   theorems (`readerHas` defined over `bytes.ownBuffer`).
 
-### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`) -- DONE (Perennial `04b42a139`, pin moved 2026-11-21, branch `pin-04b`)
+
+- **Done.** Perennial `04b42a139` (fix-semantics Cases 39/40): goose folds constant expressions of untyped
+  runes (`Separator == '/'` is now a constant), `UntypedIntSemantics.convert_untyped_int_to_string` steps
+  `string(c)` of an untyped integer to `go.runeString c` (its UTF-8 encoding, U+FFFD if not a code point),
+  and `string(b)` of a byte is `go.runeString b` too (no longer the one byte `b`). The local class
+  `UntypedRuneSemantics` (`Proof/internal/filepathlite/UntypedRune.lean`) is deleted; `filepathlite.Base`,
+  `FromSlash`, `filepath.join` and the WAL's, WalTester's and the server's `NewStorage` results no longer take
+  it (`go.runeString 47 = [W8 47]` by `decide`). `rnNewStorageOk` stays a premise of the closed theorems: what
+  is left for passing the law to `newRaftNode` is `os`'s `fileStat`/`file` field assumptions
+  (`notes/wal-item3-handoff.md`). `bufio.opaqueInitsOk` (`errorRune`) stays: its initializer is untranslated
+  (names-only), so the new step does not reach it; translating `bufio`'s initializers would.
+- The entry as it was:
 
 - **Missing.** Goose emits `Separator == '/'` (`GoOp GoEquals go.untypedRune`) and `string(Separator)`
   (`Convert go.untypedRune go.string`) of `internal/filepathlite`'s untyped constant as run-time
