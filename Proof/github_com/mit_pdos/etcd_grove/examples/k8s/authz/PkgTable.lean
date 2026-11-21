@@ -59,6 +59,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.math.bits, isPkgInit (PROP := IProp GF) pkg_id.math.bits),
    (pkg_id.math.rand, isPkgInit (PROP := IProp GF) pkg_id.math.rand),
    (pkg_id.net.http, isPkgInit (PROP := IProp GF) pkg_id.net.http),
+   (pkg_id.net.textproto, isPkgInit (PROP := IProp GF) pkg_id.net.textproto),
    (pkg_id.reflect, isPkgInit (PROP := IProp GF) pkg_id.reflect),
    (pkg_id.slices, isPkgInit (PROP := IProp GF) pkg_id.slices),
    (pkg_id.strings, isPkgInit (PROP := IProp GF) pkg_id.strings),
@@ -184,35 +185,39 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h15, h26, h24, h23, True.intro⟩
-  have h28 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
+  have h28 : GetIsPkgInitProp pkg_id.net.textproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
-  have h29 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.fields (getIsPkgInit (GF := GF)) := by
+    exact ⟨h4, h0, True.intro⟩
+  have h29 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h28, True.intro⟩
+  have h30 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.fields (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h18, True.intro⟩
-  have h30 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.selection (getIsPkgInit (GF := GF)) := by
+  have h31 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.selection (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h31 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.labels (getIsPkgInit (GF := GF)) := by
+  have h32 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.labels (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h30, True.intro⟩
-  have h32 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.authorization.authorizer (getIsPkgInit (GF := GF)) := by
+    exact ⟨h31, True.intro⟩
+  have h33 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.authorization.authorizer (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h15, h16, h18, h24, h23, h6, h22, h25, h27, h0, h28, h29, h31, h13, h11, h14, True.intro⟩
-  have h33 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.authorization.union (getIsPkgInit (GF := GF)) := by
+    exact ⟨h15, h16, h18, h24, h23, h6, h22, h25, h27, h0, h29, h30, h32, h13, h11, h14, True.intro⟩
+  have h34 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.authorization.union (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h0, h15, h18, h24, h23, h14, h32, True.intro⟩
-  have h34 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz (getIsPkgInit (GF := GF)) := by
+    exact ⟨h6, h0, h15, h18, h24, h23, h14, h33, True.intro⟩
+  have h35 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h0, h7, h13, h11, h14, h32, h33, True.intro⟩
-  exact h34
+    exact ⟨h6, h0, h7, h13, h11, h14, h33, h34, True.intro⟩
+  exact h35
 
 end table
 
