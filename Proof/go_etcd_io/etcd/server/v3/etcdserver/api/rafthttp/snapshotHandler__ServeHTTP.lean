@@ -69,7 +69,9 @@ theorem msgFrame_prefix_eq {bs bs' : List w8} (hl : bs.length < 2 ^ 63) (hl' : b
 /-- **A streamed request body is a reader** (`readFullAt`) of its stream's prefixes. -/
 theorem bodyStream_readFullAt (hRF : http.ReadFull_stream_spec (GF := GF)) (rd : GoInterface)
     (Pre Φ : List w8 → Prop) :
-    ⊢ readFullAt (GF := GF) rd (http.bodyStream rd Pre Φ) (fun rs => iprop(⌜Pre rs⌝)) := by
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.io -∗
+      readFullAt (GF := GF) rd (http.bodyStream rd Pre Φ) (fun rs => iprop(⌜Pre rs⌝)) := by
+  iintro #Hio
   unfold readFullAt
   iintro !> %p %xs %rs %Ψ !> ⟨Hp, Hs⟩ HΨ
   wp_apply (hRF rd Pre Φ rs p xs) $$ [$Hs $Hp] as %n %err ⟨%ys, %Hys, Hp, Hs, #He⟩
@@ -322,7 +324,8 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
         ipersist r_d
         iclear __d
         (try wp_auto)
-        ihave #Hrf := bodyStream_readFullAt hReadFull rd Pre Φ
+        ihave #Hrf := bodyStream_readFullAt hReadFull rd Pre Φ $$ []
+        · iPkgInit
         wp_apply hDecode «$r0_ptr» rd (http.bodyStream rd Pre Φ) (fun rs => iprop(⌜Pre rs⌝)) []
             (W64 67108864) (by decide) $$ [$Hbs] as %ml %err ⟨#Herr, %Hml, %rs', Hbs, Hok⟩
         · iframe #
