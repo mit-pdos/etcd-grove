@@ -4041,3 +4041,8 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** (a) and (b) decided by the coordinator (etcd-grove-03, 2026-11-21, issue #15): (b) as an internal
   spec premise. The user signs off at the closed statement, whose world premises will list "the area's `wal` and
   `wal.tmp` paths fit (`PathFits`)" explicitly.
+- **Made (2026-11-21, `wal-safe` `15fb2e2e44`, `26904191fa`).** (a) `wp_osRenameDirSNE`/`wp_osRenameDirSW`
+  (`GooseLang/Ext/Fs/NoErrSpecsRenameDir.lean`), `specDirS`/`specDirSnc`'s witness; (b) the premise on
+  `renameWAL.spec`, `wal.Create.spec`/`specFresh`; the error branch refuted, `errors.As` no longer reached
+  (`h_errors_AsLinkError` left the Links too); `WAL__renameWALUnlock.lean` deleted; the tester's `Boot`/`Main`
+  take `tWalFsOk area`. `renameWALPost`'s arm 2 is now dead but kept (its removal is a cleanup).
