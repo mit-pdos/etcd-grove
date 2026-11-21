@@ -381,7 +381,6 @@ theorem io.wp_copyBuffer (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF
         have hmk' : m = k.toNat := hmew rfl
         have hnwk : nw = k := by apply BitVec.eq_of_toNat_eq; omega
         subst hnwk
-        simp only [_root_.decide_true]
         wp_auto
         rcases er with ei | _
         · -- `er != nil`: the loop ends
@@ -475,12 +474,103 @@ theorem io.wp_copyBuffer (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF
         exact ⟨by omega, hWb, hbn, hHd, hc'⟩
     done)
 
+/-- `Copy(w, l)` is `copyBuffer(w, l, nil)` (`io.wp_copyBuffer`). -/
+theorem io.wp_Copy (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) (c : Bool)
+    (bs₀ : List w8) (l sr : Loc) (r : GoInterfaceOk) (off n : w64) (P : IProp GF)
+    (Hd : Nat → w8 → Prop) (hplain : io.writerPlain w) (hn : 0 ≤ sint.Z n)
+    (hsum : off.toNat + n.toNat < 2 ^ 63) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ io.writerOk w Wr ∗ Wr c bs₀ ∗
+        l ↦ io.limAt sr n (W64 0) ∗ sr ↦ io.secAt r off n (W64 0) ∗ io.readerAtOk r P Hd ∗ P }}
+      (App (App (Val (@! _root_.Perennial.io.Copy)) (Val #(GoInterface.ok w)))
+        (Val #(interface.mkOk (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty) #l)))
+    {{ (written : w64) (err : GoInterface), RET (PairV #written #err);
+        ∃ (c' : Bool) (bs : List w8), P ∗ Wr c' (bs₀ ++ bs) ∗
+          ⌜sint.Z written = bs.length ∧ bs.length ≤ n.toNat ∧
+            (∀ j x, bs[j]? = some x → Hd (off.toNat + j) x) ∧
+            (c' = true ∨ (c' = c ∧ bs = []))⌝ }} := by
+  wp_start as ⟨#Hw, HWr, Hl, Hsr, #Hr, HP⟩
+  wp_auto
+  wp_apply io.wp_copyBuffer w Wr c bs₀ l sr r off n P Hd hplain hn hsum
+    $$ [HWr Hl Hsr HP] as %wr %e ⟨%c', %bs, HP, HWr, %H⟩
+  · iframe; iframe #
+  try wp_auto
+  iapply HΦ
+  iexists c', bs
+  iframe
+  ipureintro; exact H
+
 theorem io.CopyN.wp_proof : io.CopyN.spec (GF := GF) (hG := hG) := by
   intro w Wr c bs₀ sr r off n P Hd hplain hn
   wp_start as ⟨#Hw, HWr, Hsr, #Hr, HP⟩
+  unfold io.secReader
+  icases Hsr with ⟨%hsec, Hsr⟩
+  obtain ⟨hoff0, hn0, hsum⟩ := hsec
+  ihave HEOF := _root_.Perennial.io.eof_of_init $$ Hpkg
+  iunfold errors.newVar at HEOF
+  icases HEOF with ⟨%xeof, #HEOF, -⟩
   wp_auto
   wp_apply io.wp_LimitReader as %l Hl
-  done
+  ihave Hl : (l ↦ io.limAt sr n (W64 0) : IProp GF) $$ [Hl]
+  · rw [show io.limAt sr n (W64 0) =
+        { R' := interface.mkOk (go.GoType.PointerType _root_.Perennial.io.SectionReader.ty) #sr,
+          N' := n } by
+      simp only [io.limAt, show n - W64 0 = n by word]]
+    iexact Hl
+  ihave Hsr : (sr ↦ io.secAt r off n (W64 0) : IProp GF) $$ [Hsr]
+  · rw [show io.secAt r off n (W64 0) =
+        { r' := GoInterface.ok r, base' := off, off' := off, limit' := off + n, n' := n } by
+      simp only [io.secAt, show off + W64 0 = off by word]]
+    iexact Hsr
+  wp_apply io.wp_Copy w Wr c bs₀ l sr r off n P Hd hplain hn hsum
+    $$ [HWr Hl Hsr HP] as %wr %e ⟨%c', %bs, HP, HWr, %H⟩
+  · iframe; iframe #
+  obtain ⟨hwr, hbn, hHd, hc'⟩ := H
+  have hnz : sint.Z n = n.toNat := by
+    simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
+  try wp_auto
+  wp_if_destruct
+  · -- `written == n`: `(n, nil)`
+    try wp_auto
+    iapply HΦ
+    iexists c', bs
+    iframe
+    ipureintro
+    have : bs.length = n.toNat := by subst Hif; omega
+    exact ⟨by omega, hbn, hHd, by simp [this], hc'⟩
+  · have hne : bs.length ≠ n.toNat := by
+      intro h; apply Hif; apply BitVec.eq_of_toNat_eq
+      have : wr.toNat = bs.length := by
+        have : sint.Z wr = wr.toInt := rfl
+        rw [BitVec.toInt_eq_toNat_cond] at this; split at this <;> omega
+      omega
+    rcases e with ei | _
+    · try wp_auto
+      wp_if_destruct
+      · try wp_auto
+        iapply HΦ
+        iexists c', bs
+        iframe
+        ipureintro
+        exact ⟨by omega, hbn, hHd, by simp [hne], hc'⟩
+      · try wp_auto
+        iapply HΦ
+        iexists c', bs
+        iframe
+        ipureintro
+        exact ⟨by omega, hbn, hHd, by simp [hne], hc'⟩
+    · try wp_auto
+      wp_if_destruct
+      · try wp_auto
+        iapply HΦ
+        iexists c', bs
+        iframe
+        ipureintro
+        exact ⟨by omega, hbn, hHd, by simp [hne, interface.mkOk], hc'⟩
+      · exfalso
+        have : wr.toNat = bs.length := by
+          have : sint.Z wr = wr.toInt := rfl
+          rw [BitVec.toInt_eq_toNat_cond] at this; split at this <;> omega
+        omega
 
 end proof
 
