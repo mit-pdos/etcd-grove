@@ -1,10 +1,11 @@
 /-
-`(*rate.Limiter).Wait`: the trust boundary (`golang.org/x/time/rate` is names-only; rafthttp
-stage 5c, the stream reader's dial retries). Lean-first (no Rocq counterpart).
+`(*rate.Limiter).Wait`: the trust boundary (`golang.org/x/time/rate`'s token bucket is not
+translated; rafthttp stage 5c, the stream reader's dial retries). Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Perennial.Proof.context
+public import Perennial.Proof.sync.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import GeneratedProof.golang_org.x.time.rate
 
@@ -21,9 +22,24 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : golang_org.x.time.rate.Assumptions]
 
-/-- `rate.limiterOk`'s fact, raw (opaque). -/
-opaque rate.limiterRaw (rl : Loc) : IProp GF
+/-- The fields of the limiter `rl` its mutex guards: all but `mu` (x/time/rate v0.16.0, `rate.go`:
+every method reads and writes `limit`, `burst`, `tokens`, `last` and `lastEvent` only with `lim.mu`
+held; `NewLimiter` initializes them before the limiter is shared). -/
+def rate.limiterFields (rl : Loc) : IProp GF :=
+  iprop(∃ (l : golang_org.x.time.rate.Limit) (b tk : w64) (la le : _root_.Perennial.time.Time),
+    rl.[golang_org.x.time.rate.Limiter, go!"limit"] ↦ l ∗
+    rl.[golang_org.x.time.rate.Limiter, go!"burst"] ↦ b ∗
+    rl.[golang_org.x.time.rate.Limiter, go!"tokens"] ↦ tk ∗
+    rl.[golang_org.x.time.rate.Limiter, go!"last"] ↦ la ∗
+    rl.[golang_org.x.time.rate.Limiter, go!"lastEvent"] ↦ le)
+
+/-- `rate.limiterOk`'s fact, raw: `rl`'s mutex guards its fields (prove-smalllibs, 2026-11-20:
+until then opaque; `NewLimiter` is proved over the real code). -/
+def rate.limiterRaw (rl : Loc) : IProp GF :=
+  _root_.Perennial.sync.isMutex (rl.[golang_org.x.time.rate.Limiter, go!"mu"]) (rate.limiterFields rl)
 
 /-- **`rl` is a rate limiter** (persistent): what `rate.NewLimiter` returns. A `Limiter` is safe
 for concurrent use (its methods take its own mutex). -/
@@ -39,7 +55,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.context.Assumptions]
+variable [package_sem : golang_org.x.time.rate.Assumptions]
 
 /-- `rl.Wait(ctx)` of a rate limiter and a context: waits (or not) and returns some error (`nil`
 once a token is had; an error if the context is done first, or if the wait would outlast its

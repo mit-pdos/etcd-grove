@@ -19,6 +19,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : github_com.Masterminds.semver.v3.Assumptions]
 
 axiom semver.MustParse.wp_proof : semver.MustParse.spec (GF := GF) (hG := hG)
 

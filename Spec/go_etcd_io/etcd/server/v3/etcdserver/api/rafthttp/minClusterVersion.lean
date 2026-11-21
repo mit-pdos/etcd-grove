@@ -20,14 +20,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 /-- **`minClusterVersion(h)`** of a header map `hm` holding `hs`: a version (not `nil`), or a panic
-when its `X-Min-Cluster-Version` does not parse (`semver.MustParse`; unset is `"2.0.0"`). -/
+when its `X-Min-Cluster-Version` does not parse (`semver.MustParse`; unset is `"2.0.0"`). The
+version is read-only (2026-11-20, prove-smalllibs: `Version`'s methods read it). -/
 abbrev rafthttp.minClusterVersion.spec : Prop :=
   ∀ (hm : Loc) (hs : List (GoString × GoString)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ http.hdrAt hm hs }}
     (App (Val (@! rafthttp.minClusterVersion)) (Val #hm))
-  {{ (r : val), RET r; ⌜(∃ v : Loc, r = #v ∧ v ≠ null) ∨ ∃ p : val, r = PanicV p⌝ }}
+  {{ (r : val), RET r; (∃ (v : Loc) (x : github_com.Masterminds.semver.v3.Version), ⌜r = #v ∧ v ≠ null⌝ ∗ v ↦□ x) ∨
+      ⌜∃ p : val, r = PanicV p⌝ }}
 
 end spec
 
