@@ -20,7 +20,8 @@
   statement, axiom, sorry or trusted text changed beyond the docstring. Collection
   `etc/tcb-collections/etcd-all.txt`.
 - Builds: 20261121-154220-1696446 (MainLinked, peak 2.6 GiB), 20261121-155212-1759113 (Results,
-  TopLevelRobustness, peak 2.6 GiB); full build and gates: see the report / the line below.
+  TopLevelRobustness, peak 2.6 GiB); full timed build 20261121-155243-1760503 OK; `etc/gates.sh` all passed
+  (log `/shared/tmp/etcdall-e3/gates.log`; trust base 532 axioms, 0 sorry, unchanged; 72 collections match).
 - Next: E4 (retire the subsumed theorems, scope §4), a separate stage; then the paper (below).
 - Run Go as: `GOWORK=off PATH=/usr/local/go/bin:$HOME/go/bin:$PATH systemd-run --scope -q -p MemoryMax=32G
   go test -count=1 -run TestMainRun -v ./etcd/all` from `examples/`; never beside the drivers' own tests.
