@@ -199,7 +199,12 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   was granted (`lessorAuth`'s `leaseGranted`, kept by `Grant`, `Revoke` and `Recover`, which empties
   the map), and the lock's acquisition is the step that strips the guard's agreement's later.
 * The reader slots of `mu` (a `sync.RWMutex`, made by `newLessor`): one per reader (D14i,
-  2026-10-17: the store's and the apply thread's lease owner each hold one).
+  2026-10-17: the store's and the apply thread's lease owner each hold one). All of them but one
+  (prove-ps2-newlessor, 2026-11-21, the user's approval): the `runLoop` goroutine read-locks `mu`
+  in every iteration (`revokeExpiredLeases`, `lessor.go:640`) and keeps one slot for its lifetime.
+  Until then the post gave all `Int.toNat actualMaxReaders` slots to the caller, one more than
+  `init_RWMutex` makes once the loop has its own: false of the model
+  (`notes/axiom-review/newlessor-reader-slot.md`).
 * (lease-keys Part B, 2026-10-31) **The readers' model** (`lessorRdInv`, in `lessorInv`), ghost
   state only: allocated before `γl`'s element, which pins its names (`lessorPinR`), it is the
   lessor's history at the single snapshot `(∅, ∅)` (the fresh `leaseMap` and `itemMap`, empty as
@@ -272,7 +277,7 @@ abbrev lease.NewLessor.spec : Prop :=
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorModeIs γl mono ∗
       lease.lessorCfg lp ∗ lease.lF go!"minLeaseTTL" lp ↦□ cfg.MinLeaseTTL' ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (), lease.lessorRdOf γl) ∗
       lease.leaseOwn γl Lr ∅ ∗ lease.lessorWinTie γl [] ∗ lease.leaseEver γl (recs.map (·.1)) ∗
       lease.leaseRevokers γl Lr ∗
       lease.rdOwn γl func.nil ∗

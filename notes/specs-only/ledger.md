@@ -4002,3 +4002,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   claims more of its result (checked: `notes/axiom-review/lessor-demotec-stop.md`, prove-ps2-renew section).
 - **Decision.** Applied (prove-ps2-renew, 2026-11-21): `Renew` and `Lease.expired` translated and proved, the axiom
   retired; `NewLease`, `initAndRecover`, `Grant`, `Revoke`, `Stop` re-proved over the new definitions.
+
+## 2026-11-21: `lease.NewLessor`'s reader slots (prove-ps2-newlessor)
+
+- **Spec.** `lease.NewLessor.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/NewLessor.lean`; a trust-boundary axiom).
+- **Defect.** False of the model: the post gave the caller all `Int.toNat actualMaxReaders` reader slots of `le.mu`,
+  while the `runLoop` goroutine `newLessor` forks read-locks `le.mu` in every iteration (`revokeExpiredLeases`,
+  `lessor.go:640`); `init_RWMutex` makes exactly that many slots, so none is left for the loop.
+- **Evidence.** `notes/axiom-review/newlessor-reader-slot.md`; `lessor.go:245,640`; Perennial's `RWMutexGuard.lean`.
+- **Proposed change.** The post gives `Int.toNat actualMaxReaders - 1` slots (the loop keeps one); the rest unchanged.
+- **Decision.** Approved by the user (2026-11-21), on the condition that every caller still proves: applied, the callers'
+  slot arithmetic adjusted (`NewServer`, `NewServerR`, `mvccfull`'s `runner.open`, `mvccrand`'s `runChecks`).
