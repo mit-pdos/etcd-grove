@@ -5,7 +5,9 @@
 consistent", keeps the entry itself, which is `reconcile`'s identity case), **owned** (`ownMF`):
 `Apply` and `Update` go on to write it. With an identity converter every manager's version
 converts (`Convert` returns the live object, `IsMissingVersionError(nil)` is `false`), so no
-manager is dropped and there is no error. The input map is only read. The first stage of
+manager is dropped and there is no error. The input map is only read. The managers' union below
+`smdSizeMax` trie nodes (D9, `inputsSmall`'s second half) gives `ReconcileFieldSetWithSchema` its
+`CardLt (2 ^ 63)` premise (added in Prove, 2026-11-21: the premise was missing). The first stage of
 `applyResult` and `updateResult` (`mf0`).
 
 Internal to `merge`: mirrors the code over the abstract stage. Draft (2026-11-19,
@@ -38,7 +40,8 @@ variable [package_sem : merge.Assumptions]
 abbrev merge.Updater.reconcileManagedFieldsWithSchemaChanges.spec : Prop :=
   ∀ (u : Loc) (cv : merge.Converter) (igf igfl : GoMap) (rion : Bool) (sc : Loc) (S : Schema) (t : TypeRef)
     (lp : Loc) (live : UVal) (mfm : GoMap) (mf : MF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ isUpdater u cv igf igfl rion ∗ isIdentityConverter cv ∗ isTV lp sc S t live ∗ isMF mfm mf }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ isUpdater u cv igf igfl rion ∗ isIdentityConverter cv ∗ isTV lp sc S t live ∗ isMF mfm mf ∗
+      ⌜(mfUnion mf).nodes.card < smdSizeMax⌝ }}
     (App (App (Val (u @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.Updater.ty @!! go!"reconcileManagedFieldsWithSchemaChanges"))
       (Val #lp)) (Val #mfm))
   {{ (r : GoMap) (err : GoInterface), RET (PairV #r #err);
