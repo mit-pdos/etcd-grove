@@ -106,22 +106,44 @@ theorem getD_mem (α : List w8) (hα : α.length = 64) (x : w8) (hx : x.toNat < 
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
   exact List.getElem_mem _
 
+/-! The six-bit pieces' bounds, by their values (`toNat`), not `bv_decide`, whose proof rests on
+native evaluation. -/
+
+theorem shr_lt (b : w8) (k : Nat) (hk : k ≤ 8) : (b >>> k).toNat < 2 ^ (8 - k) := by
+  rw [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
+  have hb := b.isLt
+  rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos k), ← Nat.pow_add, Nat.sub_add_cancel hk]
+  exact hb
+
+theorem shl_and_lt (b : w8) (m k : Nat) (h : (m + 1) * 2 ^ k ≤ 64) :
+    ((b &&& BitVec.ofNat 8 m) <<< k).toNat < 64 := by
+  rw [BitVec.toNat_shiftLeft, BitVec.toNat_and, Nat.shiftLeft_eq]
+  have h1 : b.toNat &&& (BitVec.ofNat 8 m).toNat ≤ m :=
+    Nat.le_trans Nat.and_le_right (by rw [BitVec.toNat_ofNat]; exact Nat.mod_le _ _)
+  have h2 : (b.toNat &&& (BitVec.ofNat 8 m).toNat) * 2 ^ k < 64 :=
+    Nat.lt_of_lt_of_le (Nat.mul_lt_mul_of_pos_right (Nat.lt_succ_of_le h1) (Nat.two_pow_pos k)) h
+  exact Nat.lt_of_le_of_lt (Nat.mod_le _ _) h2
+
+theorem and63_lt (b : w8) : (b &&& 63#8).toNat < 64 := by
+  rw [BitVec.toNat_and]
+  exact Nat.lt_of_le_of_lt Nat.and_le_right (by decide)
+
+theorem or_lt64' (a b : w8) (ha : a.toNat < 64) (hb : b.toNat < 64) : (a ||| b).toNat < 64 := by
+  rw [BitVec.toNat_or]
+  exact Nat.or_lt_two_pow (n := 6) ha hb
+
 /-- **`b64Enc` with padding `=` is padded base64 text.** -/
 theorem b64Enc_ok (α : List w8) (hα : α.length = 64) :
     ∀ d : List w8, b64Ok α (_root_.Perennial.encoding.base64.b64Enc α (some 61) d)
   | b0 :: b1 :: b2 :: rest => by
     have h0 : (b0 >>> 2).toNat < 64 := by
-      have : b0 >>> 2 < 64#8 := by bv_decide
-      exact this
+      exact shr_lt b0 2 (by decide)
     have h1 : (((b0 &&& 3) <<< 4) ||| (b1 >>> 4)).toNat < 64 := by
-      have : ((b0 &&& 3) <<< 4) ||| (b1 >>> 4) < 64#8 := by bv_decide
-      exact this
+      exact or_lt64' _ _ (shl_and_lt b0 3 4 (by decide)) (Nat.lt_trans (shr_lt b1 4 (by decide)) (by decide))
     have h2 : (((b1 &&& 15) <<< 2) ||| (b2 >>> 6)).toNat < 64 := by
-      have : ((b1 &&& 15) <<< 2) ||| (b2 >>> 6) < 64#8 := by bv_decide
-      exact this
+      exact or_lt64' _ _ (shl_and_lt b1 15 2 (by decide)) (Nat.lt_trans (shr_lt b2 6 (by decide)) (by decide))
     have h3 : (b2 &&& 63).toNat < 64 := by
-      have : b2 &&& 63 < 64#8 := by bv_decide
-      exact this
+      exact and63_lt b2
     have ih := b64Enc_ok α hα rest
     simp only [_root_.Perennial.encoding.base64.b64Enc]
     generalize _root_.Perennial.encoding.base64.b64Enc α (some 61) rest = r at ih
@@ -134,24 +156,19 @@ theorem b64Enc_ok (α : List w8) (hα : α.length = 64) :
       exact ⟨getD_mem α hα _ h0, getD_mem α hα _ h1, getD_mem α hα _ h2, getD_mem α hα _ h3, ih⟩
   | [b0, b1] => by
     have h0 : (b0 >>> 2).toNat < 64 := by
-      have : b0 >>> 2 < 64#8 := by bv_decide
-      exact this
+      exact shr_lt b0 2 (by decide)
     have h1 : (((b0 &&& 3) <<< 4) ||| (b1 >>> 4)).toNat < 64 := by
-      have : ((b0 &&& 3) <<< 4) ||| (b1 >>> 4) < 64#8 := by bv_decide
-      exact this
+      exact or_lt64' _ _ (shl_and_lt b0 3 4 (by decide)) (Nat.lt_trans (shr_lt b1 4 (by decide)) (by decide))
     have h2 : ((b1 &&& 15) <<< 2).toNat < 64 := by
-      have : (b1 &&& 15) <<< 2 < 64#8 := by bv_decide
-      exact this
+      exact shl_and_lt b1 15 2 (by decide)
     simp only [_root_.Perennial.encoding.base64.b64Enc, Option.toList_some, List.cons_append,
       List.nil_append, b64Ok]
     exact ⟨getD_mem α hα _ h0, getD_mem α hα _ h1, .inl ⟨getD_mem α hα _ h2, .inr trivial⟩⟩
   | [b0] => by
     have h0 : (b0 >>> 2).toNat < 64 := by
-      have : b0 >>> 2 < 64#8 := by bv_decide
-      exact this
+      exact shr_lt b0 2 (by decide)
     have h1 : ((b0 &&& 3) <<< 4).toNat < 64 := by
-      have : (b0 &&& 3) <<< 4 < 64#8 := by bv_decide
-      exact this
+      exact shl_and_lt b0 3 4 (by decide)
     simp only [_root_.Perennial.encoding.base64.b64Enc, Option.toList_some, List.cons_append,
       List.nil_append, b64Ok]
     exact ⟨getD_mem α hα _ h0, getD_mem α hα _ h1, .inr ⟨trivial, trivial⟩⟩
@@ -244,10 +261,14 @@ theorem or_lt64 (a b : w8) (ha : a.toNat < 64) (hb : b.toNat < 64) : (a ||| b).t
 
 /-- An entry `0xff` makes the OR `0xff`: `assemble32`/`assemble64` reject. -/
 theorem or_ff_left (a b : w8) (ha : a = W8 255) : a ||| b = W8 255 := by
-  subst ha; bv_decide
+  subst ha
+  have e : (W8 255 : w8) = BitVec.allOnes 8 := by decide
+  rw [e, BitVec.allOnes_or]
 
 theorem or_ff_right (a b : w8) (hb : b = W8 255) : a ||| b = W8 255 := by
-  subst hb; bv_decide
+  subst hb
+  have e : (W8 255 : w8) = BitVec.allOnes 8 := by decide
+  rw [e, BitVec.or_allOnes]
 
 end base64
 end EtcdGrove
