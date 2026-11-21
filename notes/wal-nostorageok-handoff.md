@@ -1,6 +1,25 @@
 # wal-nostorageok handoff
 
-## START HERE (2026-11-21) — HARD STOP at step 1: the two `os` field classes cannot be proved
+## START HERE (2026-11-21, after approval) — option (A) applied, unbuilt; next: seed, build, fix, gates
+
+- Approved by the user 2026-11-21 via etcd-grove-03 (option (A), `questions.md` Q1): the closed statements
+  bind `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]` in place of `rnNewStorageOk`; continue through
+  full build, gates, tcb `--check` (may only shrink: report the delta), STATUS, to the land stop. Stop if the
+  changed closed statements differ from: `etcd_robust.spec`/`etcd_safe`, `etcd_leaseexpiryN_robust.spec`/
+  `etcd_leaseexpiryN_safe`, `k8s_robust.spec`/`k8s_safe`. If pin-04b lands on lean meanwhile, merge lean first.
+- Commit `55477c6af6` (unbuilt): the 72ce32ea4e template (specs, premises, `#Hns` destructurings); the law in
+  the link list as `=rnNewStorageOk_law_holds~raftpb.SnapshotMetadata.wp_GetIndex` (gen-link: `~` separates an `=`
+  term's arguments); `os.file`/`os.fileStat` `FieldAssumptions` added to gen-link's `SEM_PREMISES` (detected as a
+  proof's section variable only, `SEM_VARIABLE_ONLY`, and from an `=` callee's module's variables, `eq_premises`;
+  not repeated where a mode has them as section variables); Links regenerated (server, etcdstart, cluster3,
+  partition, cache, txnlin, watch, k8s etcd3; `--bbolt`/`--walfs` differ from gen-link before this change too);
+  the binders added to the three Specs and to `Results`/`Adequacy` of etcd/all, leaseexpiryN, k8s/all.
+- Expected next: hand-written linking modules (`MainLinked`, `Results` of the drivers, `Adequacy`, InitLinked?)
+  that use the changed linked results (`wp_NewServer`, `wp_StartMember`, ...) fail to synthesize the classes: add
+  the two binders per theorem (as `[go_etcd_io.etcd.client.v3.DialWithBalancerBody]`). Seed: `/shared/etcd-grove-pin04b`
+  after its build (`/shared/tmp/pin04b/build2.log` ends with `exit`). `.lake/packages` and overrides set up.
+
+## Step 1 (2026-11-21, before approval)
 
 - Worktree `/shared/etcd-grove-walns`, branch `wal-nostorageok` off `pin-04b` (`9ac46cf77e`, Perennial
   `04b42a139`; `--packages=/shared/tmp/manifest-04b.json`, `PERENNIAL_DIR=/shared/perennial-04b42a139`).
