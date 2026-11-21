@@ -131,11 +131,13 @@ Proved in the part, no axiom or `sorry` (`lake build KvNet`: 2717 jobs; `KvNet/{
   (returns exactly `Net.addrOk a`: `goAddrOk_eq`, a pure equivalence of the Go scan with the
   extension's parser), `ValidAddrs`, `ValidCluster`.
 
-Open (decisions for the coordinator):
-- `getMsg` takes `st.ents = [] ∨ st.snap = none`: the reused `getEntry` spec reads persistent bytes
-  (`↦*□`), `getSnapshot` owned ones (`↦*`), and entries precede the snapshot. No raft message has both,
-  but the fix is to generalize kvdurable's `getEntry` spec (main tree) to `↦*{dq}` and regenerate.
-- `getMsg`'s proper-prefix rejection (`TestMsgRoundTrip`) needs the decoders' specs on short input,
-  which have no place yet (the decoders' spec files here are copies).
-- `AddrOk` (and `ValidAddrs`/`ValidCluster`) takes `a.length + 1 < 2^63`: at `len(a) = 2^63-1` its
-  loop's `i+1` wraps and `a[i]` panics (no real string is that long).
+Decided (the coordinator, issue #22, 2026-11-21):
+- `getMsg`'s premise `st.ents = [] ∨ st.snap = none` is gone: kvdurable's `getEntry` spec (main tree)
+  now reads its bytes at any fraction (`↦*{dq}`, the entry's data persisted inside its proof; ledger
+  entry of 2026-11-21), its copies regenerated, `openStorage` passing `DFrac.discard`.
+- **The Go test checks more than the proof needs**: `TestMsgRoundTrip` also checks that `getMsg`
+  rejects every proper prefix of an encoding. The proof does not: `readFrame` hands `getMsg` only a
+  whole frame, and the protocol layer will give that a frame is exactly what a peer's `writeFrame`
+  wrote (a cut stream fails `readFrame`, not `getMsg`).
+- `AddrOk`'s premise `a.length + 1 < 2^63` stays: a canonical address is at most 21 bytes, and the
+  top-level premises (`addrOk` of every replica address, fewer than 2^32 replicas) discharge it.

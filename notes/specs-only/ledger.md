@@ -25,6 +25,24 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-21: `kvdurable.getEntry` -- reads only persistent bytes, so a caller holding owned bytes cannot use it
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/getEntry.lean`, `getEntry.spec`
+  (and its copies, RaftNoAx's kvdurablenoax and KvNet's kvnet, `etc/copy-part.py`). No SpecPlan counterpart.
+- **Defect.** Too strong a premise: the bytes must be persistent (`b ↦*□ (encEntry e ++ r)`, the rest given
+  back persistent). kvnet's `getMsg` (KvNet, issue #22) decodes the entries of a message and then its snapshot
+  from the same owned bytes, and `getSnapshot` needs the snapshot's bytes owned; with `getEntry` persisting them,
+  a message with both entries and a snapshot could not be decoded (`getMsg` took the premise
+  `st.ents = [] ∨ st.snap = none`).
+- **Evidence.** `KvNet/Proof/.../kvnet/getMsg.lean` (fork C's report, 2026-11-21). The Go only reads `b`
+  (`getUint64`, `getBytes`: subslices), so any fraction suffices; the entry's data, a subslice of `b`, must be
+  read-only for `entOwn`, which the proof gets by persisting that subslice alone.
+- **Proposed change.** `∀ b (dq : DFrac) e r, EntWf e → {{ … b ↦*{dq} (encEntry e ++ r) }} getEntry b
+  {{ l rest; entOwn l e ∗ rest ↦*{dq} r }}` (the data slice persisted inside the proof). The one main-tree caller,
+  `openStorage`, passes `dq := DFrac.discard` (its statement unchanged); kvnet's `getMsg` passes its own fraction
+  and drops its premise.
+- **Decision.** Accepted (the coordinator, issue #22, 2026-11-21).
+
 ## 2026-11-20: `cache.wp_Errorf_setArgs` -- reads the maps it formats without owning them
 
 - **Spec.** `Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean`, `wp_Errorf_setArgs` (a lemma over Perennial's
