@@ -53,9 +53,12 @@ theorem watcher.RequestProgress.wp_proof
   ihave #Hwctx := EtcdGrove.context.watchCtx_of_isContext ctx cs $$ [Hctx HctxO]
   · iframe Hctx HctxO
   wp_auto
-  wp_apply wp_key ctx cs $$ []
+  ihave #HctxO' := HctxO
+  iunfold metadata.outgoingCtxOkC at HctxO'
+  icases HctxO' with ⟨%om, #Hom⟩
+  wp_apply wp_key ctx cs om $$ []
   · iframe #
-  generalize hck : streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx)) = ckey
+  generalize hck : streamKeyOf om = ckey
   irename ctx => Hctxp
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold watcherMu at HR
@@ -86,11 +89,11 @@ theorem watcher.RequestProgress.wp_proof
     (DFrac.own 1) $$ [$HM] as HM
   wp_join iprop(∃ (G : WgsPrm GF) (M' : GMap GoString Loc), wgs_ptr ↦ G.wgs ∗ m ↦$ M' ∗
       (□ [∗map] k ↦ x ∈ M', ∃ G' : WgsPrm GF, ⌜G'.wgs = x ∧ G'.w = w ∧
-        streamKeyOf (metadata.outgoingOf (GoInterface.ok G'.ctx)) = k⌝ ∗ isWGS V G' callSl) ∗
+        streamKeyOf G'.omd = k⌝ ∗ isWGS V G' callSl) ∗
       ⌜G.w = w⌝ ∗ isWGS V G callSl ∗ w_ptr ↦ w ∗ ctx_ptr ↦ GoInterface.ok ctx ∗
       ctxKey_ptr ↦ ckey ∗ watcherF w go!"streams" ↦ m)
     with [wgs HM w Hctxp ctxKey Hst] as ⟨%G, %M', wgs, HM, #HMs', %HGw, #HG, w, Hctxp, ctxKey, Hst⟩
-  · wp_apply wp_newStream V w ctx cs $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG, %Hmd⟩
+  · wp_apply wp_newStream V w ctx cs om $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG, %Hmd⟩
     · iframe #
     icombine Hco Hco' gives %Hcs
     obtain ⟨-, rfl⟩ := Hcs

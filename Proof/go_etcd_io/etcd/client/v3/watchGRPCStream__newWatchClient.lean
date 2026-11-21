@@ -315,8 +315,8 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   -- what each substream's goroutine left, lent
   ihave ⟨HTr, HTw⟩ : iprop(([∗list] ws ∈ (S.l ++ keys.filterMap (S.M !! ·)).filter
         (fun x => decide (x ≠ null)), ⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1 ∧
-        streamKeyOf (metadata.outgoingOf (GoInterface.ok (f ws).1.ctx)) =
-          streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V (f ws).1 ∗
+        streamKeyOf (f ws).1.omd =
+          streamKeyOf G.omd⌝ ∗ wsIs V (f ws).1 ∗
         wsRest V γs S.Dm (f ws).1 (f ws).2.1 ∗ lifeInvIs V G (f ws).1 (f ws).2.2) ∗
       ([∗list] ws ∈ (S.l ++ keys.filterMap (S.M !! ·)).filter
         (fun x => decide (x ≠ null)), wcIn V G (f ws).1)) $$ [HT]
@@ -333,7 +333,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     intro ws hws
     exact (Hfph ws (HlU ws hws)).1
   simp only [ne_eq, decide_not] at *
-  wp_apply wp_open V G.wgs G.ctx G.cd callSl vs $$ [] as %wc %err Hopen
+  wp_apply wp_open V G.wgs G.ctx G.cd G.omd callSl vs $$ [] as %wc %err Hopen
   · iframe #
   wp_apply wp_broadcast_chan_close stopc γst iprop(True) $$ [$Hstb] as -
   · imodintro; itrivial
@@ -357,8 +357,8 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   icases client.bigSepM_take_list _ U _ Hlnd HlU $$ Hdcs with ⟨Hdcl, Hdcs⟩
   ihave Hbun : iprop([∗list] ws ∈ (S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)),
       ((((⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1 ∧
-        streamKeyOf (metadata.outgoingOf (GoInterface.ok (f ws).1.ctx)) =
-          streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V (f ws).1 ∗
+        streamKeyOf (f ws).1.omd =
+          streamKeyOf G.omd⌝ ∗ wsIs V (f ws).1 ∗
         wsRest V γs S.Dm (f ws).1 (f ws).2.1 ∗ lifeInvIs V G (f ws).1 (f ws).2.2) ∗
         wcOut V G (f ws).1) ∗ wsF ws go!"id" ↦ W64 (-1)) ∗
         donecAt ws (lifeDn V G (f ws).1 (f ws).2.2))) $$ [HTr Hout Hidl Hdcl]
@@ -394,8 +394,8 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null))).length : Int)⌝ ∗
       "Hnew" ∷ ([∗list] ws ∈ ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null))).take (sint.nat k), wsElem V G (n + 1) γs (S.reconnect ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)))) ws) ∗
       "Hbun" ∷ ([∗list] ws ∈ ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null))).drop (sint.nat k), ((((⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1 ∧
-        streamKeyOf (metadata.outgoingOf (GoInterface.ok (f ws).1.ctx)) =
-          streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V (f ws).1 ∗
+        streamKeyOf (f ws).1.omd =
+          streamKeyOf G.omd⌝ ∗ wsIs V (f ws).1 ∗
         wsRest V γs S.Dm (f ws).1 (f ws).2.1 ∗ lifeInvIs V G (f ws).1 (f ws).2.2) ∗
         wcOut V G (f ws).1) ∗ wsF ws go!"id" ↦ W64 (-1)) ∗
         donecAt ws (lifeDn V G (f ws).1 (f ws).2.2))) ∗

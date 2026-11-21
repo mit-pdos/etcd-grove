@@ -88,6 +88,12 @@ def mvccrandProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.mvccrand.initialize' #() ;;
   ((@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Run) #(mvccrandCfg r) ;; #())
 
+/-- The metric names the program's initialization registers (mvcc's, the lessor's, the backend's and
+auth's `init()`, `prometheus.MustRegister`; etcdstorage, 2026-11-20, the user's decision): its
+`initNames`. -/
+def mvccrandNames : List GoString :=
+  _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.mvccrand.initNames
+
 end adequacy
 end EtcdGrove
 end Perennial

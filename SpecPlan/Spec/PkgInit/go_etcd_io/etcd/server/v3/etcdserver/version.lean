@@ -3,7 +3,11 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
+public import SpecPlan.Spec.PkgInit.go_uber_org.zap
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.version
 public import Perennial.Proof.errors.Base
+public import Perennial.Proof.context.Base
 
 @[expose] public section
 noncomputable section

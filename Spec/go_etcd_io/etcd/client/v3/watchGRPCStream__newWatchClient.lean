@@ -74,7 +74,7 @@ abbrev watchGRPCStream.newWatchClient.spec : Prop :=
         -- (W3b) the stream at the member `i`, which its epoch records; (G2) opened with the
         -- metadata `md` an attempt on the connection delivered for the stream's context, its
         -- specification at `md`'s token, which the epoch records too
-        ⌜i < V.nm ∧ clientAttemptMd V.conn (GoInterface.ok G.ctx) md⌝ ∗
+        ⌜i < V.nm ∧ clientAttemptMd V.conn G.omd md⌝ ∗
         v3rpc.cliWatchStreamIs wc γs' (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs' [] ∗
         v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs' Dn ∗

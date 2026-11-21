@@ -30,12 +30,12 @@ merge's 5b, 2026-10-29) and the caller's persistent `Φ` at every metadata an at
 response: the call's answer (`authCallOut`, the run's `Φ`); the request comes back. -/
 abbrev etcdserverpb.authClient.AuthEnable.spec : Prop :=
   ∀ (ac conn : Loc) (addr : List GoString)
-    (Spec : GrpcSpecMd (GF := GF) pbAuthEnableRequest pbAuthEnableResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk)
+    (Spec : GrpcSpecMd (GF := GF) pbAuthEnableRequest pbAuthEnableResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthEnableRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ authStubAt ac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/AuthEnable" Spec ∗
-      □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗
+      metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthEnableRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (ac @!! go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.authClient.ty @!! go!"AuthEnable"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

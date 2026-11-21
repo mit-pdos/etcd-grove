@@ -95,7 +95,7 @@ theorem txnResp_warn (hSize : proto.Size.spec (GF := GF) (hG := hG)) (resp : Loc
   · iapply txn.txnRespShow_of_rd $$ Hrd
   iunfold txn.sizeOk
   iintro !> %Φ !> ⟨#Hp, Hh⟩ HΦ
-  wp_apply (hSize.2.2 resp) $$ [$Hp $Hrd $Hh] as %n ⟨-, Hh⟩
+  wp_apply (hSize.2.2 resp) $$ [$Hp $Hrd $Hh] as %n Hh
   iapply HΦ $$ Hh
 
 set_option hygiene false in

@@ -41238,8 +41238,48 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 
 **Not done:** auth, lease, backend and mvcc register only too, but their closures are reached by
 `mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
-`PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
+`PRE_RES` would add that premise, so their `initFuncsOk` stay. (Superseded 2026-11-20 by the next
+entry: done, with that premise.) `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
+
+## auth, lease, backend and mvcc register too: mvccrand and mvccfull take `namesUnclaimed` (2026-11-20 · the user's decision · branch `prove-etcdstorage/2026-11-20`)
+
+The previous entry left the four packages' `init()` names-only (`initFuncsOk`), because registering
+their metrics through `PRE_RES` puts the premise `namesUnclaimed` on every closed theorem whose
+program reaches them, and mvccrand's and mvccfull's had none.
+
+**Decision (the user, 2026-11-20, via the coordinator):** extend `namesUnclaimed` to cover them.
+`init.0` of auth (1 metric), lease (4), backend (8) and mvcc (23) is translated and stepped by
+`etc/gen-init.py` (`register(...)`, as the mustreg packages); `mvccrand_adequate`/`mvccrand_robust`
+and `mvccfull_adequate`/`mvccfull_safe`/`mvccfull_robust` take `prometheus.namesUnclaimed` of the
+program's `initNames` (`mvccrandNames`, `mvccfullMetricNames`; until then `[]` was passed to
+`goose_adequacy_start`), and every etcd program's name list (its root's `initNames`) grows by the
+36 names. No other etcd code registers them (grep of the pinned source for the names and the
+`auth`/`lease`/`mvcc` subsystems outside the four `metrics.go`, as mustreg did).
+
+Six of the registered metrics are `NewGaugeFunc` gauges, whose spec posted nothing:
+`NewGaugeFunc.spec` now posts `nameOk (fqName ns sub name) → collectorName g (fqName ns sub name)`
+(a strengthening, true of client_golang v1.24.1: `gauge.go:306` builds one descriptor of that name
+with no labels, `collector.go:113`'s `selfCollector.Describe` sends it); the generator `decide`s the
+name's validity.
+
+
+## `ETCD_VERIFY` read through `os.Getenv`'s spec, not assumed per check (2026-11-20 · the coordinator's group `etcdstorage` · branch `prove-etcdstorage/2026-11-20`)
+
+Sweep repairs 1 (B4) gave each of etcd's `ETCD_VERIFY` checks (`backend.ValidateCalled{Inside,OutSide}Apply`,
+`ValidateCalledInsideUnittest`, `VerifyBackendConsistency`) an axiom taking the token `envVerifyOff`;
+`verify.Verify` was an axiom too.
+
+**Decision:** the one function that reads the environment says it: `os.Getenv`'s post gives
+`envVerifyOff -∗ ⌜key = "ETCD_VERIFY" → etcdVerifyOffValue v⌝`, and `strings.ToLower`'s post says
+exactly when its result is a given lower-case ASCII word (`strings.lowersTo`, `Proof/strings/Lower.lean`:
+the rune-by-rune rule with the two non-ASCII runes Go lower-cases to ASCII, U+0130 and U+212A,
+measured). Both are strengthenings of existing trust-boundary axioms (posts were `True`); the world
+assumption `verifyEnvOff` is unchanged. `verify.IsVerificationEnabled`, `Verify`, the three lock checks
+and `VerifyBackendConsistency` are translated and proved; `Verify`'s premise is weakened to
+"`f` returns true, or `envVerifyOff`" (its five callers take the first, `ileft`), so
+`VerifyBackendConsistency` need not prove the backend consistent. Review:
+`notes/axiom-review/getenv-etcd-verify.md`.
 
 ## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
 
@@ -41383,6 +41423,35 @@ own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projectio
 crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
 (`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
 `NetGlobal.init` and `FsInit`). There is no change to the file extension.
+## Outgoing metadata as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc/2026-11-20`, stage 1)
+
+**Supersedes in part:** the auth plan's E2f (`metadata.outgoingOf`, "a function of the context value
+for the same reason: a context is immutable") and G2's use of it for the watch's stream key; and
+premise-fixes-7's opaque `Prop` `metadata.builtRawMD`.
+
+**Why.** `metadata.outgoingOf : GoInterface → GrpcMd` was a fixed Lean function of a context value,
+and the posts of `AppendToOutgoingContext`, `withVersion`, `WithCancelValCtx`,
+`WithTimeoutBackgroundMd` equated it with caller-chosen data for a context the call allocates. A fresh
+allocation may be any location, so no implementation can meet those posts (two runs of
+`AppendToOutgoingContext(ctx, "k", "a")` and `(…, "b")` from one heap may return the same `*valueCtx`;
+etcd-refimpl's `README.md` "Findings"; `notes/errdesc-ghost-plan.md` §0).
+
+**Decision** (`notes/errdesc-ghost-plan.md` §2.1, Part II of `notes/perheap-scope.md`):
+`metadata.outMD ctx md` (persistent; `Proof/context/LibKeysChain.lean`), Perennial's chain at grpc's
+outgoing key holding a value `v` that `metadata.outgoingHeld v md` (not a `rawMD` and `none`, or one
+grpc made with view `f`, the opaque leaf `□ metadata.builtRawMDRaw v f`, and `some f`).
+`outgoingCtxOkC ctx := ∃ md, outMD ctx md` (name kept); `outgoingCtxOk` (WP form) carries the same
+`outgoingHeld`. No agreement law. Every spec that relates a context's metadata to something takes the
+metadata as a parameter `om` with `metadata.outMD ctx om` in its precondition: the client's call
+contracts (`attemptPre conn om …`, `clientAttemptMd conn om md`, `clientOpAuOn`/`clientGrant`/
+`clientHistAu` and the retry interceptor's contract over `om`), grpc's attempt contract
+(`grpcAttemptMd conn om md`; `grpcInvokerOk` and `ClientConn.NewStream` take `outMD ctx om`), the watch
+(`watcher.Watch`'s `om`, kept in the watch's record `WsPrm.omd` and the stream's `WgsPrm.omd`;
+`watchCheckOk … om …`). A caller with no stake in the metadata takes one from `ctxOk`/`watchCtx`
+(`ctxOk_outgoingC`, `watchCtx_outMD`); the examples state theirs (`metadata.outMD ci (akOut who)`).
+Axioms restated (none added): `AppendToOutgoingContext`, `withVersion`, `streamKeyFromCtx`,
+`WithCancelValCtx`, `WithTimeoutBackgroundMd`, `ClientConn.NewStream` (and the meaning of
+`ClientConn.Invoke`'s and `WithRequireLeader`'s through `grpcInvokerOk`/`outgoingCtxOkC`).
 
 ### Match a queued snapshot to the server’s apply job (2026-11-20)
 
@@ -41394,3 +41463,14 @@ its origin at bootstrap, its creator’s applied-index lower bound, or its
 local installation receipt. The saved node location identifies the
 incarnation that installed the snapshot. The server rule leaves the apply
 thread’s index authority available for the remainder of the job.
+
+### Attach the etcd snapshot origin at the two writers (2026-11-21)
+
+The server allocates a location name before attaching MemoryStorage to Raft.
+After startup it records the node returned by StartNode or RestartNode.
+CreateSnapshot retains the apply thread’s index lower bound. ApplySnapshot
+retains the receipt for the index installed by that node. For the initial
+image, the WAL base is the lower bound with which application starts.
+These facts are carried by the same storage invariant used for reads and
+compaction. The job reads its own node’s outgoing channel and compares the
+message with the Ready actually delivered to that job.

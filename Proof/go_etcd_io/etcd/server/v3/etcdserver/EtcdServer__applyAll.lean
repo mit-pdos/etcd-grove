@@ -94,8 +94,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
     q γn rt n rp g
   simp only [srvRunH_applyAll_specBatch]
   wp_start as ⟨%hP, #HsrvC, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
-  obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hEpk, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA, hnsw⟩ := hP
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, #Hmerge, Hso, HtokR⟩
+  obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hEpk, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA, hbase, hnsw⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
   -- (the auth component's stage 2c) the slot's rows at the mode's
   ihave #Hsrv := (isServerM_C C s γ ci TM E ρ γr).2 $$ HsrvC
@@ -111,7 +111,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   icases Hfl with ⟨#Hlgf, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γb, %Hγb, #Hmidm, #Hmscb, #Hrnf, #Hrnsi⟩, #Hsc,
+  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γb, %Hγb, #Hmidm, -, #Hrnf, #Hrnsi⟩, #Hsc,
     ⟨%stg, #Hstgf, #Hstgc⟩, -, #Hinf, -, ⟨%tr, %γN, %lid, %SN, %TSN, #Htrf, #Htr, %HγN⟩, %Hkv0⟩
   ihave #HstgS := Hstgc
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -300,7 +300,12 @@ theorem EtcdServer.applyAll.wp_proofBatch
   icases Hkb' with ⟨#HlbB, -, -⟩
   ihave Hstor : srvSnapStor mst γs γr nk ai' at' $$ []
   · iunfold srvSnapStor
-    iframe Hmsi
+    isplitr
+    · iunfold srvAttachedMem at Hmsi
+      icases Hmsi with ⟨%pin, -, -, #Hinv⟩
+      iunfold srvCreateMem
+      iexists pin, γn.snap0; iexact Hinv
+    iframe Hlb
     isplitr
     · rw [← hidx, ← hρr]; iexact Hsdl
     isplitr
@@ -345,8 +350,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
       applyThread γ stF -∗ applyBackend γ ci b -∗ ciApplying ci a' t' -∗ srvLgReader s -∗
       srvGoRes s -∗ mvcc.api.mvccReaders E.γ 1 -∗ srvApplyKVC C s E ρ.wait x' sa' -∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' -∗
-      srvRestRM C.isOn E γr rp (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR Hso]
-  · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
+      srvRestRM C.isOn E γr rp (A ++ unapplied ai ms) -∗ srvAppliedOwn γr g' -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun HwalT HtokR Hso]
+  · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
     ihave HtokR : acTok C (ciEff γ stF.k) $$ [HtokR]
@@ -378,6 +383,10 @@ theorem EtcdServer.applyAll.wp_proofBatch
   -- out, merged with the backend's image and sent when the guard holds)
   -- (restart3 A1) the merged send's receive through `isServerApplyAll`'s bag, of the raft node `γm`
   -- (until then `srvSnapBagN` at the run's names)
+  iunfold srvMergeAttachment at Hmerge
+  icases Hmerge with ⟨%srcChan, %pin, #Hcf, #Hmscb, #Hlocpin, #Htagpin⟩
+  icombine Hmscf Hcf gives %hchan
+  subst srcChan
   iunfold isRNMsgSnapC at Hmscb
   icases Hmscb with ⟨%γc, #Hmscb⟩
   ihave #Hmscch := is_bag_is_chan γc msc _ $$ Hmscb
@@ -401,11 +410,13 @@ theorem EtcdServer.applyAll.wp_proofBatch
         iintro %m HP
         iunfold rnSnapMsg at HP
         icases HP with ⟨%sm, Hm, %Hty, #Hsm, -, #Huf, #Hsrc⟩
-        rw [Hγb]
-        letI := srvStor (GF := GF) γr.raft.raft
-        ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm
+        ihave %Hsh := (letI := srvStor (GF := GF) γn.node; sentMsg_shape γn.node.cl srvClusterN γn.id sm) $$ Hsm
         obtain ⟨sn, hsn, -⟩ := Hsh.2 Hty
-        ihave %Hsnp := srv_sentSnap_pos γr γb.id sm sn Hty hsn $$ [Hrli' Hsm]
+        ihave Hidx := srv_merge_index γn γr pin ⟨m, sm⟩ sn rt g' n Hty hsn hbase
+          (by have := uint_nat_eq ai'; have := uint_nat_eq g'; omega) $$ Hsrc Hrt Hsm Hlocpin Htagpin
+        rw [hγn]
+        letI := srvStor (GF := GF) γr.raft.raft
+        ihave %Hsnp := srv_sentSnap_pos γr γn.id sm sn Hty hsn $$ [Hrli' Hsm]
         · iframe Hrli' Hsm
         -- two Go steps' time receipts (`m`'s zero value, `GetTerm`'s method value), for the merge
         -- window's write tokens
@@ -474,7 +485,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
               wp_apply (hRSn γb s sm.msg.To' (W64 2)) $$ []
               · iframe #
               (try wp_auto)
-              iapply Hfin $$ %st4 %Hst4 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
+              iapply Hfin $$ %st4 %Hst4 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
             -- past the window: the consistent index at most the applied index, so the backend's
             -- log `A₀` is within Go's (`kvBatchR`'s `ai₀ + |A₀| ≤ ciEff`)
             have hW : rp.A₀.length ≤ (A ++ unapplied ai ms).length := by
@@ -571,8 +582,9 @@ theorem EtcdServer.applyAll.wp_proofBatch
             · iframe Hcso Hc0
             subst Hcc
             ihave %h61 := srvFrozenTerm_bound γs ai' at' $$ Hft
-            imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γb.id ct sm sn hpos h61 hsz hlenZ
-                hltA Hcs0 Hty hsn (by word) (by have := hnA; have := uint_nat_eq ai'; omega)
+            ihave ⟨Hao, %hidxRaft⟩ := Hidx $$ %(by first | trivial | rfl | assumption | symm; assumption) Hao
+            imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γn.id ct sm sn hpos h61 hsz hlenZ
+                hltA Hcs0 Hty hsn (by have := uint_nat_eq sn.Metadata'.Index'; have := uint_nat_eq g'; word) (by have := hnA; have := uint_nat_eq ai'; omega)
               $$ [Hrli' HlbB Hsm Hct] with #Hsm'
             · iframe Hrli' HlbB Hsm Hct
             -- (`merged_imageC`) the image's certificate: the component's buckets the lent part's
@@ -583,7 +595,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
               iframe Hsrv Hka Hmimg
               ipureintro; exact Hst3.1
             imod Hmi with ⟨Hka, #Himg⟩
-            imod srvMerged_bundle γr.raft.raft m rc sm γb.id c ai' at' D Hty
+            imod srvMerged_bundle γr.raft.raft m rc sm γn.id c ai' at' D Hty
               $$ [Hml HszC Hsm' Hrs Himg] with Hbun
             · iframe Hml HszC Hsm' Hrs Himg
             (try wp_auto)
@@ -593,7 +605,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             (try wp_auto)
             have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
               ⟨Hst3.2.1, by rw [Hst3.2.2]; exact Hst4.2⟩
-            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
+            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
           · (try wp_auto)
             wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
             · iframe #; iframe Hm
@@ -601,7 +613,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             wp_apply (hRSn γb s sm.msg.To' (W64 2)) $$ []
             · iframe #
             (try wp_auto)
-            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
+            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
         · (try wp_auto)
           wp_apply (hGTo.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
           · iframe #; iframe Hm
@@ -609,13 +621,13 @@ theorem EtcdServer.applyAll.wp_proofBatch
           wp_apply (hRSn γb s sm.msg.To' (W64 2)) $$ []
           · iframe #
           (try wp_auto)
-          iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
+          iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
       · itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · -- `default`
     (try wp_auto)
-    iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
+    iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS Hao
 
 set_option maxRecDepth 100000 in
 /-- **`applyAll.spec`** (the auth component's stage 2, 2026-11-04: in both auth modes): the batch
