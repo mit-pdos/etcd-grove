@@ -53,7 +53,7 @@ theorem EtcdServer.Process.wp_proof
   intro γn γd s id ctx cd ml
   wp_start as ⟨#Hok, #Hctx, Hlr, Hrecv⟩
   iunfold srvProcOk at Hok
-  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, #Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #Hn,
+  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, #Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #HstI, #Hn,
     #Hsi, #Hcok, %HN, %Hd⟩
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []

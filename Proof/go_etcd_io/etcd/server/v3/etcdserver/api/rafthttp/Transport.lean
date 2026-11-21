@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ReaderRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PeerStatus
 public import Spec.github_com.xiang90.probing.NewProber
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Defs
 
 @[expose] public section
 
@@ -76,7 +77,7 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"pipelineRt"] ↦□ prt ∗ http.roundTripperOk (raftHttpNet Rh) prt ∗
     t.[rafthttp.Transport, go!"DialRetryFrequency"] ↦□ drf ∗
     t.[rafthttp.Transport, go!"LeaderStats"] ↦□ ls ∗ ⌜ls ≠ null⌝ ∗
-    t.[rafthttp.Transport, go!"ServerStats"] ↦□ ss ∗ ⌜ss ≠ null⌝ ∗
+    t.[rafthttp.Transport, go!"ServerStats"] ↦□ ss ∗ ⌜ss ≠ null⌝ ∗ v2stats.isServerStats ss ∗
     t.[rafthttp.Transport, go!"pipelineProber"] ↦□ pp ∗
     t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
     streamRegInv Rh ∗ (□ ∀ pid : w64, ⌜Rh.member pid ∧ pid ≠ lid⌝ -∗ pipeReg Rh pid) ∗

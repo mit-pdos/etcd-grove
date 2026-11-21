@@ -3521,3 +3521,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   their `_members` forms, so that every program's names are checked by the kernel where its closed theorem is
   proved; the closed theorems' statements do not change.
 - **Decision.** Applied (prove-promdeep, 2026-11-20; a strengthening of an axiom's premise, discharged at every use).
+
+## 2026-11-20: `v2stats.ServerStats.RecvAppendReq`/`SendAppendReq` need `NewServerStats`' queues (prove-rafthttpfix)
+
+- **Spec.** `v2stats.ServerStats.RecvAppendReq.spec`, `v2stats.ServerStats.SendAppendReq.spec`, `v2stats.NewServerStats.spec`
+  (axioms), `rafthttp.Transport.Start.spec`, `srvProcOk`, `trFixed`.
+- **Defect.** As recorded by prove-etcdserver the same day: the methods' premise was `st ≠ null` only, and a zero
+  `&v2stats.ServerStats{}` has nil rate queues, which `statsQueue.Insert` dereferences (`server.go:91-128`, `queue.go:62-63`).
+- **Evidence.** Code reading; `notes/axiom-review/v2stats-serverstats-queues.md`.
+- **Proposed change.** A persistent `v2stats.isServerStats st` (opaque: `ServerStats`' anonymous struct field keeps its
+  fields untranslated), in `NewServerStats`' post and the two methods' premises, threaded through `srvProcOk` (to
+  `EtcdServer.Process`) and `Transport.Start`'s premise and `trFixed` (to `Transport.Send`). Converges to the spec plan's
+  `v2stats.isServerStats`.
+- **Decision.** Applied (prove-rafthttpfix, 2026-11-20).
