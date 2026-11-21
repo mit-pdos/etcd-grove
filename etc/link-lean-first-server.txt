@@ -995,10 +995,10 @@ v3_Version__Major:
 v3_Version__Minor:
 v3_MustParse:
 v3_Version__LessThan:
-binary_ReadUint64:
+binary_ReadUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 proto_UnmarshalPb:
 proto_SizePb: @
-binary_WriteUint64:
+binary_WriteUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_PutUint64
 pbutil_MustMarshalMessage: proto_MarshalPb
 raftpb_Message__GetIndex: @
 raftpb_Message__GetTerm: @
