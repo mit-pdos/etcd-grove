@@ -275,3 +275,8 @@ with a relation in the precondition; posts of producers give `∃ m, descIs err 
 Not done: `context.WithCancelValCtx` remains an axiom: its parent is a `*valCtx` outside Perennial's
 context model, whose `WithCancel` takes an `isContext` parent (the `Value` contract of
 `notes/perennial-changes.md`).
+
+**Landing state (2026-11-21, 03:30).** The branch builds green with lean `51e4debf62` merged, the trust base
+check passes (546 axioms: only the three removals) and every gate passes but `merge-status --selftest`,
+which fails on lean itself: lean's merge `cf54600750` (robust-threads) lost `notes/status-history.md` lines
+(`etc/merge-status.py`'s replay of this week's merges). Re-enqueue once lean's history check is repaired.
