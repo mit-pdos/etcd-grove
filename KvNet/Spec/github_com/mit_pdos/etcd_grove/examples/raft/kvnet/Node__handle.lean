@@ -3,7 +3,8 @@
 and payload `p` (holding `pl`, with its fact `reqOk F id kind pl`, what the request frame carried:
 `Proto.lean`), run on the node; `good` false if it has no answer, else the answer `v`, with the fact
 the reply frame carries (`ansOk F id kind pl v`), of a length a frame takes. A spec at the store's
-seam `rep` (`NodeDefs.lean`): its parameters `F`, `rep` are fixed by the store layer.
+seam `rep` (`NodeDefs.lean`), with its conf law (`confLaw`, over what `GetConfChange` reads back,
+`cf`): its parameters `F`, `rep`, `cf` are fixed by the store layer.
 -/
 module
 
@@ -28,11 +29,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assum
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
-abbrev Node.handle.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF) : Prop :=
+abbrev Node.handle.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
+    (cf : GoInterface → List w8 → IProp GF) : Prop :=
   ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (kind : w8) (p : GoSlice)
     (pl : List w8) (dq : DFrac) (tmo : _root_.Perennial.time.Duration),
+  pl.length < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
-      isNodeS F rep nd γ N id n ∗ context.isClosedchanInit ∗ p ↦*{dq} pl ∗ reqOk F id kind pl }}
+      isNodeS F rep nd γ N id n ∗ confLaw F rep cf γ N id ∗ context.isClosedchanInit ∗
+      p ↦*{dq} pl ∗ reqOk F id kind pl }}
     (App (App (App (Val (nd @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node.ty
       @!! go!"handle")) (Val #kind)) (Val #p)) (Val #tmo))
   {{ (ans : GoSlice) (good : Bool), RET (PairV #ans #good);

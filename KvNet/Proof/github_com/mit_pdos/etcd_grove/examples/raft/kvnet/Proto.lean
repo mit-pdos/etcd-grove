@@ -42,10 +42,12 @@ open Iris Iris.BI Iris.ProofMode Net go_etcd_io.raft.v3
 /-- The first byte of a peer's connection (`helloPeer`, `'P'`). -/
 def helloPeerB : w8 := W8 80
 
-/-- The request kinds (`ReqPropose`, `ReqRead`, `ReqConf`). -/
+/-- The request kinds (`ReqPropose`, `ReqRead`, `ReqConf`, `ReqDisrupt`, `ReqStatus`). -/
 def reqProposeB : w8 := W8 1
 def reqReadB : w8 := W8 2
 def reqConfB : w8 := W8 3
+def reqDisruptB : w8 := W8 4
+def reqStatusB : w8 := W8 5
 
 /-! ## Frames are prefix-free -/
 
@@ -116,6 +118,7 @@ def reqOk (id : w64) (kind : w8) (pl : List w8) : IProp GF :=
   else if kind = reqReadB then
     iprop(∃ seq key, ⌜pl = u64Le seq ++ putB key⌝ ∗ F.readOk id seq key)
   else if kind = reqConfB then iprop(⌜F.confOk pl⌝)
+  else if kind = reqDisruptB then iprop(⌜∃ what to : w64, pl = u64Le what ++ u64Le to⌝)
   else iprop(True)
 
 /-- An answer's fact, by the request's kind. -/
@@ -138,6 +141,18 @@ theorem reqOk_read (id : w64) (pl : List w8) :
 theorem ansOk_read (id : w64) (pl v : List w8) :
     ansOk F id (W8 2) pl v = iprop(∃ seq key, ⌜pl = u64Le seq ++ putB key⌝ ∗ F.ansRead id seq key v) := by
   simp [ansOk, reqProposeB, reqReadB]
+
+theorem reqOk_conf (id : w64) (pl : List w8) : reqOk F id (W8 3) pl = iprop(⌜F.confOk pl⌝) := by
+  simp [reqOk, reqProposeB, reqReadB, reqConfB]
+
+theorem reqOk_disrupt (id : w64) (pl : List w8) :
+    reqOk F id (W8 4) pl = iprop(⌜∃ what to : w64, pl = u64Le what ++ u64Le to⌝) := by
+  simp [reqOk, reqProposeB, reqReadB, reqConfB, reqDisruptB]
+
+theorem ansOk_other (id : w64) (kind : w8) (pl v : List w8) (h1 : kind ≠ W8 1) (h2 : kind ≠ W8 2) :
+    ansOk F id kind pl v = iprop(True) := by
+  unfold ansOk reqProposeB reqReadB
+  rw [if_neg h1, if_neg h2]
 
 instance framesOk_persistent R : Persistent (framesOk F R) := by unfold framesOk; infer_instance
 instance reqOk_persistent id kind pl : Persistent (reqOk F id kind pl) := by

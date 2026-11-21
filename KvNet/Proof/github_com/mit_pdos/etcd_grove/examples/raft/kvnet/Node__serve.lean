@@ -31,14 +31,15 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 theorem Node.serve.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
-    (wp_serveClient : Node.serveClient.spec (GF := GF) (hG := hG) F rep)
+    (cf : GoInterface → List w8 → IProp GF)
+    (wp_serveClient : Node.serveClient.spec (GF := GF) (hG := hG) F rep cf)
     (wp_servePeer : Transport.servePeer.spec (GF := GF) (hG := hG))
     (wp_readFull : readFull.spec (GF := GF) (hG := hG))
     (wp_closeAfter : closeAfter.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG)) :
-    Node.serve.spec (GF := GF) (hG := hG) F rep := by
+    Node.serve.spec (GF := GF) (hG := hG) F rep cf := by
   intro nd γ N id n c cn a eof ed
-  wp_start as ⟨#Hnd, #Hc, #Heof, #Hed, #Hcc, Hce⟩
+  wp_start as ⟨#Hnd, #Hcl, #Hc, #Heof, #Hed, #Hcc, Hce⟩
   unfold connEnd
   icases Hce with ⟨HW, HR⟩
   ihave HR := recvTok_L _ _ _ _ $$ HR
@@ -120,7 +121,7 @@ theorem Node.serve.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
   wp_if_destruct
   · -- a client
     try wp_auto
-    wp_apply wp_serveClient nd γ N id n _ cn a eof ed $$ [$Hpkg $Hnd $Hc $Heof $Hed $Hcc HR $HW]
+    wp_apply wp_serveClient nd γ N id n _ cn a eof ed $$ [$Hpkg $Hnd $Hcl $Hc $Heof $Hed $Hcc HR $HW]
     · unfold helloClientB; iexact HR
     try wp_auto
     iapply HΦ

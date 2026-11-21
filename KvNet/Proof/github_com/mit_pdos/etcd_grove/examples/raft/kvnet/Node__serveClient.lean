@@ -34,15 +34,16 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 theorem Node.serveClient.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
-    (wp_handle : Node.handle.spec (GF := GF) (hG := hG) F rep)
+    (cf : GoInterface → List w8 → IProp GF)
+    (wp_handle : Node.handle.spec (GF := GF) (hG := hG) F rep cf)
     (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_writeFrame : writeFrame.spec (GF := GF) (hG := hG))
     (wp_closeAfter : closeAfter.spec (GF := GF) (hG := hG))
     (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG)) :
-    Node.serveClient.spec (GF := GF) (hG := hG) F rep := by
+    Node.serveClient.spec (GF := GF) (hG := hG) F rep cf := by
   intro nd γ N id n c cn a eof ed
-  wp_start as ⟨#Hnd, #Hc, #Heof, #Hed, #Hcc, HR, HW⟩
+  wp_start as ⟨#Hnd, #Hcl, #Hc, #Heof, #Hed, #Hcc, HR, HW⟩
   icases recvTokL_connIs _ _ _ _ $$ HR with ⟨HR, #Hci⟩
   ihave #Hca := cAcc_of_connIs cn true $$ Hci
   ihave #Hc' := Hc
@@ -134,7 +135,8 @@ theorem Node.serveClient.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp 
       as #Hbx
     · ipureintro; rfl
     try wp_auto
-    wp_apply wp_handle nd γ N id n kind rest pl DFrac.discard _ $$ [$Hpkg $Hnd $Hcc $Hrest $Hok]
+    wp_apply wp_handle nd γ N id n kind rest pl DFrac.discard _ (by simp [reqBytes] at Hrl; omega)
+        $$ [$Hpkg $Hnd $Hcl $Hcc $Hrest $Hok]
       as %ans %good Hans
     try wp_auto
     wp_apply wp_slice_literal (V := w8) [W8 0]
