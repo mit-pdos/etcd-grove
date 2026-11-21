@@ -110,7 +110,8 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
             ileft
             iexists D
             isimp only [backend.dbHalf, onFs_some hfs]
-            iframe Hh Hregs            iframe #
+            iframe Hh Hregs
+            iframe #
           imodintro
           iframe Hs Hopn Hsp
         · iintro ⟨-, Hw⟩
@@ -124,7 +125,8 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
             ileft
             iexists S
             isimp only [backend.dbHalf, onFs_some hfs]
-            iframe Hh Hregs            iframe #
+            iframe Hh Hregs
+            iframe #
           imodintro
           iframe Hs Hopn Hi Hlb'
       have h' := h tx γ.db (wView D S G)
@@ -175,7 +177,8 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
             ileft
             iexists D
             isimp only [backend.dbHalf, onFs_some hfs]
-            iframe Hh Hregs            iframe #
+            iframe Hh Hregs
+            iframe #
           imodintro
           iframe Hs Hopn Hsp
         · iintro ⟨-, Hw⟩
@@ -264,7 +267,8 @@ private theorem cmt_arm_noop (γ : BNames) (P : BParams) (W Pk : IProp GF) (db :
       ileft
       iexists C
       isimp only [backend.dbHalf, onFs_some hfs]
-      iframe Hh Hregs      iframe #
+      iframe Hh Hregs
+      iframe #
     imodintro
     iframe Hdb Hs Hrest Hopn Hi Hlb'
 
