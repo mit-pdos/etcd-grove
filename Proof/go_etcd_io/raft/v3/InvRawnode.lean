@@ -2244,6 +2244,16 @@ theorem maxRestored_append [GooseExts] (ks ls : List SnapTrip) :
   | nil => simp [maxRestored]
   | cons k ks ih => simp [maxRestored, ih, Nat.max_assoc]
 
+theorem maxRestored_le [GooseExts] (ks : List SnapTrip) (base : w64)
+    (hb : ∀ k ∈ ks, uint.Z k.sid.index' ≤ uint.Z base) :
+    maxRestored ks ≤ uint.nat base := by
+  induction ks with
+  | nil => exact Nat.zero_le _
+  | cons k ks ih =>
+    apply Nat.max_le.mpr
+    exact ⟨by have := hb k (.head _); word,
+      ih (fun x hx => hb x (.tail k hx))⟩
+
 /-- The observation was issued on the very incoming message which installed
 this snapshot. The local Raft term equals the foreign leader's sending term. -/
 def timedRestore (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) : IProp GF :=
@@ -2255,37 +2265,37 @@ instance (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) :
     Persistent (timedRestore (GF := GF) γ id sn k) := by unfold timedRestore; infer_instance
 
 /-- The authority follows the node term and the largest restored index. -/
-def restoreLedger (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) : IProp GF :=
+def restoreClock (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) : IProp GF :=
   iprop(snapHistoryOwn sn.history (uint.nat s.term) (maxRestored s.logst.ksn) ∗
     (∀ k : SnapTrip, ⌜k ∈ s.logst.ksn⌝ -∗ timedRestore γ id sn k))
 
-theorem restoreLedger_fresh (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState)
+theorem restoreClock_fresh (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState)
     (hf : s.logst.ksn = []) :
-    snapHistoryOwn (GF := GF) sn.history 0 0 ⊢ restoreLedger γ id sn s := by
-  unfold restoreLedger; rw [hf]
+    snapHistoryOwn (GF := GF) sn.history 0 0 ⊢ restoreClock γ id sn s := by
+  unfold restoreClock; rw [hf]
   iintro Ha; isplitl [Ha]
   · iapply snapHistory_raise sn.history 0 0 _ _ (Nat.zero_le _) (Nat.zero_le _) $$ Ha
   · iintro %k %hk; cases hk
 
-theorem restoreLedger_keep (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : NState}
+theorem restoreClock_keep (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : NState}
     (ht : uint.Z s.term ≤ uint.Z s'.term) (hk : s'.logst.ksn = s.logst.ksn) :
-    restoreLedger (GF := GF) γ id sn s ⊢ restoreLedger γ id sn s' := by
-  unfold restoreLedger; rw [hk]
+    restoreClock (GF := GF) γ id sn s ⊢ restoreClock γ id sn s' := by
+  unfold restoreClock; rw [hk]
   iintro ⟨Ha, #Hks⟩; iframe Hks
   iapply snapHistory_raise sn.history _ _ _ _ (by word) (Nat.le_refl _) $$ Ha
 
-theorem restoreLedger_step (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : NState}
+theorem restoreClock_step (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : NState}
     {sv : SnapshotM} {m : MessageM} (cs : CSLists) (hn : m.From' ≠ id)
     (ht : uint.Z s.term ≤ uint.Z s'.term) (h : SnapLogStep sv m s s') :
-    ⊢ restoreLedger (GF := GF) γ id sn s -∗ isMessageC γ (absSnap m sv cs) ==∗ restoreLedger γ id sn s' := by
+    ⊢ restoreClock (GF := GF) γ id sn s -∗ isMessageC γ (absSnap m sv cs) ==∗ restoreClock γ id sn s' := by
   iintro Hl #Hm
   rcases h with h | h
-  · imodintro; iapply restoreLedger_keep γ id sn ht h.2.2.2.2.2.2.2 $$ Hl
-  · obtain ⟨cl, hk⟩ := h.2.2.2.2.2.2.2.2.2
+  · imodintro; iapply restoreClock_keep γ id sn ht h.2.2.2.2.2.2.2 $$ Hl
+  · obtain ⟨cl, hk, -⟩ := h.2.2.2.2.2.2.2.2.2
     let k := snapTrip sv cl
     have hmx : maxRestored s'.logst.ksn = max (maxRestored s.logst.ksn) (uint.nat k.sid.index') := by
       rw [hk, maxRestored_append]; simp [k, maxRestored]
-    unfold restoreLedger
+    unfold restoreClock
     icases Hl with ⟨Ha, #Hks⟩
     imod snapHistory_record sn (uint.nat s.term) (maxRestored s.logst.ksn)
       (uint.nat s'.term) (maxRestored s'.logst.ksn) (by word) (by rw [hmx]; exact Nat.le_max_left _ _) $$ Ha
@@ -2306,10 +2316,10 @@ theorem restoreLedger_step (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : 
         iexact Hmark
 
 /-- The term and snapshot frontier observed at a Ready handout. -/
-theorem restoreLedger_ready (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
-    ⊢ restoreLedger (GF := GF) γ id sn s ==∗ restoreLedger γ id sn s ∗
+theorem restoreClock_ready (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
+    ⊢ restoreClock (GF := GF) γ id sn s ==∗ restoreClock γ id sn s ∗
       snapHistoryMark sn (uint.nat s.term) (maxRestored s.logst.ksn) := by
-  unfold restoreLedger
+  unfold restoreClock
   iintro ⟨Ha, #Hks⟩
   imod snapHistory_record sn _ _ _ _ (Nat.le_refl _) (Nat.le_refl _) $$ Ha with ⟨Ha, #Hm⟩
   imodintro; iframe Ha Hks Hm
@@ -2325,10 +2335,10 @@ def restoreAtSend (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) (t
 instance (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) (term : w64) :
     Persistent (restoreAtSend (GF := GF) γ id sn k term) := by unfold restoreAtSend; infer_instance
 
-theorem restoreLedger_send (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState)
+theorem restoreClock_send (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState)
     (k : SnapTrip) (hk : k ∈ s.logst.ksn) :
-    restoreLedger (GF := GF) γ id sn s ⊢ restoreLedger γ id sn s ∗ restoreAtSend γ id sn k s.term := by
-  unfold restoreLedger restoreAtSend
+    restoreClock (GF := GF) γ id sn s ⊢ restoreClock γ id sn s ∗ restoreAtSend γ id sn k s.term := by
+  unfold restoreClock restoreAtSend
   iintro ⟨Ha, #Hks⟩
   ihave #H := Hks $$ %k %hk
   iunfold timedRestore at H
@@ -2339,6 +2349,117 @@ theorem restoreLedger_send (γ : RaftNames) (id : w64) (sn : StorNames) (s : NSt
   iframe Hm Hmark
   ipureintro
   exact ⟨hm.1, hm.2.1, hm.2.2.1, hm.2.2.2.1, hm.2.2.2.2, hb.1⟩
+
+theorem restoreClock_send_all (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
+    restoreClock (GF := GF) γ id sn s ⊢
+      (∀ k : SnapTrip, ⌜k ∈ s.logst.ksn⌝ -∗ restoreAtSend γ id sn k s.term) := by
+  iintro Hl %k %hk
+  icases restoreClock_send γ id sn s k hk $$ Hl with ⟨-, #Hs⟩
+  iexact Hs
+
+/-- A snapshot can wait in the outbox across elections. Its index is already
+committed, and a restore at that index predates the term stamped on the message. -/
+def queuedRestoreTerms (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) : IProp GF :=
+  iprop(∀ m : Msg, ⌜m ∈ s.outbox⌝ -∗ ⌜m.ty = .snap⌝ -∗
+    ⌜uint.Z m.index ≤ uint.Z s.logst.committed⌝ ∗
+    (∀ k : SnapTrip, ⌜k ∈ s.logst.ksn ∧ k.sid.index' = m.index⌝ -∗
+      restoreAtSend γ id sn k m.term))
+
+instance (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
+    Persistent (queuedRestoreTerms (GF := GF) γ id sn s) := by unfold queuedRestoreTerms; infer_instance
+
+def restoreLedger (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) : IProp GF :=
+  iprop(restoreClock γ id sn s ∗ queuedRestoreTerms γ id sn s)
+
+theorem restoreAtSend_mono (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip)
+    {t t' : w64} (ht : uint.Z t ≤ uint.Z t') :
+    restoreAtSend (GF := GF) γ id sn k t ⊢ restoreAtSend γ id sn k t' := by
+  unfold restoreAtSend
+  iintro ⟨%m, %front, %hm, #Hm, #Hmark⟩
+  iexists m, front; iframe Hm Hmark
+  ipureintro
+  obtain ⟨ha, hb, hc, hd, he, hf⟩ := hm
+  exact ⟨ha, hb, hc, hd, he, by word⟩
+
+theorem restoreLedger_outbox (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
+    restoreLedger (GF := GF) γ id sn s ⊢ queuedRestoreTerms γ id sn s := by
+  unfold restoreLedger; iintro ⟨-, #Hq⟩; iexact Hq
+
+theorem restoreLedger_fresh (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState)
+    (hf : s.logst.ksn = []) (ho : s.outbox = []) :
+    snapHistoryOwn (GF := GF) sn.history 0 0 ⊢ restoreLedger γ id sn s := by
+  unfold restoreLedger
+  iintro Ha; isplitl [Ha]
+  · iapply restoreClock_fresh γ id sn s hf $$ Ha
+  · unfold queuedRestoreTerms
+    iintro %m %hm; rw [ho] at hm; cases hm
+
+theorem restoreLedger_keep (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : NState}
+    (ht : uint.Z s.term ≤ uint.Z s'.term) (hk : s'.logst.ksn = s.logst.ksn)
+    (hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    (hq : SnapQueueStep (toPState s) (toPState s')) :
+    restoreLedger (GF := GF) γ id sn s ⊢ restoreLedger γ id sn s' := by
+  unfold restoreLedger
+  iintro ⟨Ha, #Hq⟩
+  ihave #Hknown := restoreClock_send_all γ id sn s $$ Ha
+  isplitl [Ha]
+  · iapply restoreClock_keep γ id sn ht hk $$ Ha
+  · unfold queuedRestoreTerms
+    iintro %m %hm %hs
+    rcases hq m hm hs with ho | ⟨htm, hi⟩
+    · icases Hq $$ %m %ho %hs with ⟨%hi, #Hmem⟩
+      isplitr
+      · ipureintro; exact Int.le_trans hi hc
+      · rw [hk]; iexact Hmem
+    · isplitr
+      · ipureintro; exact hi
+      · iintro %k %hp
+        iapply restoreAtSend_mono γ id sn k (t := s.term) htm
+        iapply Hknown $$ %k %(hk ▸ hp.1)
+
+theorem restoreLedger_step (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : NState}
+    {sv : SnapshotM} {m : MessageM} (cs : CSLists) (hn : m.From' ≠ id)
+    (ht : uint.Z s.term ≤ uint.Z s'.term) (h : SnapLogStep sv m s s')
+    (hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    (hq : SnapQueueStep (toPState s) (toPState s')) :
+    ⊢ restoreLedger (GF := GF) γ id sn s -∗ isMessageC γ (absSnap m sv cs) ==∗ restoreLedger γ id sn s' := by
+  iintro Hl #Hm
+  rcases h with h | h
+  · imodintro; iapply restoreLedger_keep γ id sn ht h.2.2.2.2.2.2.2 hc hq $$ Hl
+  · obtain ⟨cl, hk, hout⟩ := h.2.2.2.2.2.2.2.2.2
+    iunfold restoreLedger at Hl
+    icases Hl with ⟨Ha, #Hq⟩
+    imod restoreClock_step γ id sn cs hn ht (.inr h) $$ Ha Hm with Ha
+    imodintro; unfold restoreLedger; iframe Ha
+    unfold queuedRestoreTerms
+    iintro %q %hm %hs
+    icases Hq $$ %q %(hout q hm hs) %hs with ⟨%hi, #Hknown⟩
+    isplitr
+    · ipureintro; exact Int.le_trans hi hc
+    · iintro %k %hp
+      obtain ⟨hmem, hix⟩ := hp
+      rw [hk] at hmem
+      rcases List.mem_append.1 hmem with ho | hnew
+      · iapply Hknown $$ %k %(And.intro ho hix)
+      · cases List.mem_singleton.1 hnew
+        change sv.Metadata'.Index' = q.index at hix
+        have hgt := h.2.2.2.2.1
+        rw [hix] at hgt
+        exact False.elim (Int.not_lt_of_ge hi hgt)
+
+theorem restoreLedger_ready (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
+    ⊢ restoreLedger (GF := GF) γ id sn s ==∗ restoreLedger γ id sn s ∗
+      snapHistoryMark sn (uint.nat s.term) (maxRestored s.logst.ksn) := by
+  unfold restoreLedger
+  iintro ⟨Ha, #Hq⟩
+  imod restoreClock_ready γ id sn s $$ Ha with ⟨Ha, #Hmark⟩
+  imodintro; iframe Ha Hq Hmark
+
+theorem restoreLedger_send_all (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
+    restoreLedger (GF := GF) γ id sn s ⊢
+      (∀ k : SnapTrip, ⌜k ∈ s.logst.ksn⌝ -∗ restoreAtSend γ id sn k s.term) := by
+  unfold restoreLedger
+  iintro ⟨Ha, -⟩; iapply restoreClock_send_all γ id sn s $$ Ha
 
 /-- For an outgoing snapshot restored from another node, its restore preceded
 the sender's election. A Ready already observed in the send term therefore
@@ -2395,6 +2516,20 @@ def readyMsgOrigins (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg
 instance (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg) :
     Persistent (readyMsgOrigins (GF := GF) γ id st ms) := by unfold readyMsgOrigins; infer_instance
 
+/-- The exact restore history at a Ready handout, witnessed at the node's
+current term and shared by all messages in this batch. -/
+def handoutOrigins (γ : RaftNames) (id : w64) (sn : StorNames) (term : w64)
+    (ms : List QMsg) (bound : Nat) : IProp GF :=
+  iprop(∃ ks : List SnapTrip, ⌜maxRestored ks ≤ bound⌝ ∗ snapHistoryMark sn (uint.nat term) (maxRestored ks) ∗
+    (∀ k : SnapTrip, ⌜k ∈ ks⌝ -∗ restoreAtSend γ id sn k term) ∗
+    (∀ q : QMsg, ⌜q ∈ ms⌝ -∗ ∀ sv : SnapshotM, ⌜q.st.msg.Type' = MsgSnap ∧ q.st.snap = some sv⌝ -∗
+      ∀ k : SnapTrip, ⌜k ∈ ks ∧ k.sid.index' = sv.Metadata'.Index'⌝ -∗ restoreAtSend γ id sn k q.st.msg.Term') ∗
+    qSrcs sn ms (· ∈ ks))
+
+instance (γ : RaftNames) (id term : w64) (sn : StorNames) (ms : List QMsg) (bound : Nat) :
+    Persistent (handoutOrigins (GF := GF) γ id sn term ms bound) := by
+  unfold handoutOrigins; infer_instance
+
 theorem restoredSnapHistory_keep (γ : RaftNames) (id : w64) {ls ls' : LogState}
     (h : logStoreRec ls' = logStoreRec ls) :
     restoredSnapHistory (GF := GF) γ id ls.ksn ⊢ restoredSnapHistory γ id ls'.ksn := by
@@ -2413,7 +2548,7 @@ theorem restoredSnapHistory_step (γ : RaftNames) (id : w64) {s s' : NState}
   iintro #Hhist #Hrecv
   rcases h with h | h
   · rw [h.2.2.2.2.2.2.2]; iexact Hhist
-  · obtain ⟨cl, hk⟩ := h.2.2.2.2.2.2.2.2.2
+  · obtain ⟨cl, hk, -⟩ := h.2.2.2.2.2.2.2.2.2
     unfold restoredSnapHistory
     iintro %k %hmem
     rw [hk] at hmem
@@ -3452,7 +3587,7 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle', H5⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
     ⟨Hloan.1, Hloan.2.1, Hloan.2.2.1, Hloan.2.2.2⟩
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist [Hledger] [Hdur] [Hrntr]
-  · unfold restoreLedger; iexact Hledger
+  · unfold restoreLedger restoreClock queuedRestoreTerms; iexact Hledger
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   · iapply rnTrace_congr γ _ id cf (s := s) (s' := { s with gh := { s.gh with tc := tc } }) rfl rfl rfl rfl rfl $$ Hrntr
 
@@ -3506,7 +3641,7 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h),
         Hloan.2.2.2⟩
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist [Hledger] [Hdur] [Hrntr]
-  · unfold restoreLedger; iexact Hledger
+  · unfold restoreLedger restoreClock queuedRestoreTerms; iexact Hledger
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   · iapply rnTrace_congr γ _ id cf (s := s) (s' := { s with logst := { s.logst with unpersisted := [] } }) rfl rfl rfl rfl rfl $$ Hrntr
 
@@ -3638,7 +3773,7 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h),
         Hloan.2.2.2⟩
       Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist [Hledger] [Hdur] [Hrntr]
-    · unfold restoreLedger; iexact Hledger
+    · unfold restoreLedger restoreClock queuedRestoreTerms; iexact Hledger
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
     · iapply rnTrace_congr γ _ id cf (s := s) (s' := { s with logst := { s.logst with fl := s.logst.applying } }) rfl rfl rfl rfl rfl $$ Hrntr
   iexists s.logst.applying

@@ -333,7 +333,8 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="d3feef9bcdddb9ad15ee5fc8bf725050395debb4",
+        # Recover the start record from earlier segments of a WAL created by an older writer.
+        rev="f6ef28518829ab1589fd24e7ed6693b5d5f36216",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

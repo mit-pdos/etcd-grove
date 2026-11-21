@@ -2207,11 +2207,11 @@ theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List Entr
   iframe Hn Hlb Hr
 
 /-- Snapshot sources for the messages handed out by one node instance. -/
-def snapSources (γ : Cluster) (n : Loc) (id : w64) (ms : List QMsg) : IProp GF :=
-  iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ readyMsgOrigins γ.raft id γn.sn ms)
+def snapSources (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) : IProp GF :=
+  iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ readyMsgOrigins γ.raft id γn.sn ms ∗ handoutOrigins γ.raft id γn.sn term ms bound)
 
-instance snapSources_persistent (γ : Cluster) (n : Loc) (id : w64) (ms : List QMsg) :
-    Persistent (snapSources (GF := GF) γ n id ms) := by
+instance snapSources_persistent (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) :
+    Persistent (snapSources (GF := GF) γ n id term ms bound) := by
   unfold snapSources
   haveI (γn : NodeNames) := nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
@@ -2222,7 +2222,7 @@ abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeD
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    snapSources γ n id ms ∗
+    snapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
@@ -2293,7 +2293,7 @@ abbrev readyPostT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : Node
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    snapSources γ n id ms ∗
+    snapSources γ n id (phsNext st.hardState h).Term' ms (st.afterReady ce es h L ss).delivered.length ∗
     committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
     isCommittedLogLb γ (st.delivered ++ ce) ∗
     (∃ rs, readStatesPts rd.ReadStates' rs ∗
@@ -2868,9 +2868,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   -- (2026-11-12, trace-check implementation step 1) the claim, at the node's names
   ihave Hcl := readyToksClaim_of_elem n γ N γn ms Hnok $$ Htab Hel
   iunfold readyCut at Hcut
-  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead, #Hmss, #Hsrcs, %Hrf⟩
-  ihave #HsrcsN : snapSources γ n γn.id ms $$ []
-  · unfold snapSources; iexists γn; iframe Htab; rw [← Hγr]; iexact Hsrcs
+  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead, #Hmss, #Hsrcs, #Hobs, %Hrf⟩
+  ihave #HsrcsN : snapSources γ n γn.id p'.Term' ms (dlvAfter ds ce L).length $$ []
+  · unfold snapSources; iexists γn; iframe Htab; rw [← Hγr]; iframe Hsrcs Hobs
   ihave #Hmss' : iprop([∗list] q ∈ ms, snapToOk γ.raft γn.id q.st) $$ []
   · rw [← Hγr]; iexact Hmss
   ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hdur Hdx
@@ -2936,7 +2936,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     imodintro
     iexists strip ce, es, h, none, ms, ss
     isplitl []
-    · iexact HsrcsN
+    · rw [← Hp']; simp only [NodeDriverState.afterReady, dlvAfter, List.length_append, strip_length, Hlen] at *; iexact HsrcsN
     isplitl []
     · unfold committedEntriesAt; rw [Hce]; iexact Hce
     isplitl []
@@ -3063,7 +3063,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     imodintro
     iexists [], es, h, some l, ms, ss
     isplitl []
-    · iexact HsrcsN
+    · rw [← Hp']; simp only [NodeDriverState.afterReady, dlvAfter, strip_length] at *; iexact HsrcsN
     isplitl []
     · unfold committedEntriesAt LogEntry.toEntries; simp only [List.mapIdx_nil]
       iexact Hce
