@@ -413,7 +413,106 @@ theorem typed.mergingWalker.visitListItems.wp_proofBody
       by simp, ?_⟩
     exact LawBL2.MInv_init L R
   wp_for HI2
-  sorry
+  rcases HI with ⟨Hsh, HMG, HMGR, Hxsl, Hspj, HlI0, HlIL, HrI0, HrIR, HMI⟩
+  have hlpl : sint.nat lpes.len = L.length := by rw [← HpLl, HesLl.1]
+  have hrpl : sint.nat rpes.len = R.length := by rw [← HpRl, HesRl.1]
+  wp_join (Q := fun v => iprop(⌜v = #(decide (sint.nat lI < L.length ∨ sint.nat rI < R.length))⌝ ∗
+      rI_ptr ↦ rI ∗ rLen_ptr ↦ rpes.len)) at (If _ _ _) with [rI rLen]
+  · wp_if_destruct
+    · iframe
+      ipureintro
+      have : sint.nat lI < L.length := by have := HesLl.2; word
+      simp [this]
+    · iframe
+      ipureintro
+      have : ¬ sint.nat lI < L.length := by have := HesLl.2; word
+      have h2 : (sint.nat rI < R.length) ↔ sint.Z rI < sint.Z rpes.len := by
+        have := HesRl.2; constructor <;> intro h <;> word
+      by_cases h3 : sint.nat rI < R.length
+      · simp [this, h3, h2.1 h3]
+      · have h4 : ¬ sint.Z rI < sint.Z rpes.len := fun h => h3 (h2.2 h)
+        simp [this, h3, h4]
+  iintro ⟨%hv, rI, rLen⟩
+  rw [hv]
+  by_cases hcond : sint.nat lI < L.length ∨ sint.nat rI < R.length
+  · simp only [hcond, decide_true, ↓reduceIte]
+    sorry
+  · simp only [hcond, decide_false]
+    rw [if_neg (by simp [false_neq_true])]
+    rw [if_pos (by simp)]
+    have hLd : L.drop (sint.nat lI) = [] := LawBL2.drop_nil _ _ (by omega)
+    have hRd : R.drop (sint.nat rI) = [] := LawBL2.drop_nil _ _ (by omega)
+    rw [hLd, hRd] at HMI
+    have hdone := LawBL2.MInv_done HMI
+    subst hdone
+    have hout := LawBL2.mergeListOut_eq S e ks ls rs
+    rw [hLdef, hRdef] at hout
+    rw [hout]
+    ihave %Hoslen := ownSlice_len _ _ _ $$ Hosl
+    iunfold mwOwn at Hown
+    icases Hown with ⟨%ps2, Hcore, Hp, Hsp, Ha⟩
+    iunfold mwCore at Hcore
+    icases Hcore with ⟨%tr2, %rule2, %o2, Hw, #Htr2, -, -, #Hrule2, #Ho2⟩
+    rw [Hout]
+    simp only [outRep]
+    icases Ho2 with %ho2
+    subst ho2
+    cases hE : ((mergeKeys L R).filterMap (LawBL2.mItem S e ks ls rs)).isEmpty
+    · have hpos : decide (sint.Z osl.len > sint.Z (W64 0)) = true := by
+        have : xs.length ≠ 0 := by
+          rw [Hxsl]; intro h; rw [List.length_eq_zero_iff] at h; rw [h] at hE; cases hE
+        simp only [decide_eq_true_eq]; have := Hoslen.1; have := Hoslen.2; word
+      wp_auto
+      rw [hpos]
+      imod ownSlice_persist _ _ _ $$ Hosl with #Hosl
+      iapply wp_fupd
+      wp_auto
+      ipersist i
+      imodintro
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iapply HΦ
+      isplitl [Herrs2s Herrs2c]
+      · unfold noErrs ownErrs; iframe
+      iexists spj
+      isplitl
+      · unfold mwOwn mwCore
+        iexists ps2
+        iframe
+        iframe #
+        simp only [outRep]
+        isplitr
+        · ipureintro; exact Hwf
+        iexists _
+        isplitr
+        · iexact i
+        iapply isIface_list_law_holds osl xs _ Hxsl $$ Hosl
+        iapply LawA3.sepL_of_forall
+        iexact Hxs
+      ipureintro; exact Hspj
+    · have hpos : decide (sint.Z osl.len > sint.Z (W64 0)) = false := by
+        have : xs.length = 0 := by
+          rw [Hxsl]; rw [List.length_eq_zero_iff]; exact List.isEmpty_iff.1 hE
+        simp only [decide_eq_false_iff_not]; have := Hoslen.1; have := Hoslen.2; word
+      wp_auto
+      rw [hpos]
+      wp_auto
+      simp only [↓reduceIte]
+      iapply HΦ
+      isplitl [Herrs2s Herrs2c]
+      · unfold noErrs ownErrs; iframe
+      iexists spj
+      isplitl
+      · have hst : MWSt.mk st.lhs st.rhs st.t st.path none st.inLeaf st.alloc = st := by
+          rw [← Hout]
+        rw [hst]
+        unfold mwOwn mwCore
+        iexists ps2
+        iframe
+        iframe #
+        rw [Hout]
+        simp only [outRep]
+        ipureintro; exact ⟨Hwf, trivial⟩
+      ipureintro; exact Hspj
 
 end proof
 
