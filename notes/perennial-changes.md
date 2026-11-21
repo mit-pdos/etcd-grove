@@ -3524,3 +3524,19 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `7103946b3` (2026-11-21, srvloops2); the pin bump is pending (the coordinator's queue). With it,
   `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
   `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.
+
+## 2026-11-21: Goose emits no field steps for a trusted struct layout (`os.file`, `os.fileStat`)
+
+- **The gap.** goose writes a translated struct's field steps (`get_f`/`set_f`: `StructFieldGet`/`StructFieldSet`
+  on its underlying struct type) into `T.TypeAssumptions`, hence into its package's `Assumptions`, which every
+  closed statement binds through its program's package. A trusted struct (its layout in `TrustedCode`, as
+  `os.file`'s and `os.fileStat`'s in `TrustedCode/os.lean`) gets none, and the semantics has no generic step
+  for a field of a `go.StructType`. So `TrustedCode/os.lean` states them by hand as two classes,
+  `os.file.FieldAssumptions`/`os.fileStat.FieldAssumptions`, which every closed statement reaching `os`'s
+  files binds separately (`mvccfull`, `mvccrand`, `bboltfs`, `walfs`, `crashlog`; since wal-nostorageok,
+  2026-11-21, also `etcd_robust`/`etcd_safe`, `etcd_leaseexpiryN`, `k8s_robust`/`k8s_safe`, in place of the
+  premise `rnNewStorageOk`).
+- **Proposed (general).** A Goose configuration entry giving a trusted type's layout (field names and types),
+  from which goose emits the same `get_f`/`set_f` fields into `T.TypeAssumptions`; the hand-written classes
+  then go, and the closed statements lose the two binders. **Status.** Recorded only (option (B) of
+  `questions.md` Q1, wal-nostorageok).

@@ -30,7 +30,8 @@ triple of a function the program calls, D19a's second kind):
 * `proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`; 2026-10-27, until
   then part of `bootstrap`'s contract's postcondition), which the cluster's allocation takes;
 * the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s): `rnLoggerZapOk`,
-  `rnTimeoutDetectorOk`, `rnNewStorageOk` (2026-10-30, the repair:
+  `rnTimeoutDetectorOk` (wal-nostorageok, 2026-11-21: `rnNewStorageOk` gone, proved over the real WAL,
+  `rnNewStorageOk_law_holds`; 2026-10-30, the repair:
   `rnStopOkStarted` gone, the node's `Stop` is proved; 2026-11-03, the boot premises: `rnTickerOk`
   gone, since proved where the ticker is made: Perennial's `time` specs are
   `newRaftNode`'s proof's callees; premise-fixes-4, 2026-11-10: `rnSetLoggerOk` gone, false in the

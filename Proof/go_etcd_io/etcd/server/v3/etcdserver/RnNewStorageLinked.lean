@@ -5,9 +5,11 @@ over the WAL's linked result at the server's message model `walSrvP`/`walSrvMr` 
 the instance's laws from `walSrvPb_laws` and `walSrvP_marshalHs`, the latter over `proto.MarshalPb`'s trust
 boundary at the registered `raftpb.HardState`, `RaftModel/PbHardState.lean`), and from them and `NewStorage`'s
 proof the law `rnNewStorageOk.law` (`rnNewStorageOk_law_holds`). Both take `os`'s `fileStat`/`file` field
-assumptions, as the WAL `Link`'s results do, which the server's package assumptions do not include, so
-`bootstrappedRaft.newRaftNode` does not take the law yet: `rnNewStorageOk` stays its spec's premise, and every
-closed theorem's. (Until Perennial `04b42a139`, 2026-11-21, they also took the semantic hypothesis
+assumptions, as the WAL `Link`'s results do, which the server's package assumptions do not include (goose emits
+no field steps for `os`'s trusted layouts): so the server `Link`'s `bootstrappedRaft.wp_newRaftNode`, which passes
+the law to `newRaftNode`'s proof, takes them, and so does every result reaching it (`etc/gen-link.py`'s
+`SEM_PREMISES`), up to the closed theorems (wal-nostorageok, 2026-11-21: until then `rnNewStorageOk` was
+`newRaftNode`'s spec's premise, and every closed theorem's). (Until Perennial `04b42a139`, 2026-11-21, they also took the semantic hypothesis
 `UntypedRuneSemantics`, for `filepath.join` and `filepathlite.Base`/`FromSlash`: `string(Separator)`,
 `Separator == '/'`; Perennial's semantics now steps the one and goose folds the other.) The server's `Link`
 imports this module, so the trust-base report sees these results.

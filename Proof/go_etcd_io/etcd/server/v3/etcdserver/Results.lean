@@ -331,8 +331,9 @@ theorem wait_time (tl : Loc) (P : w64 → IProp GF) :
 /-- **`NewStorage`'s contract over the real WAL** (wal-item3, 2026-11-21; `RnNewStorageLinked.lean`): given the
 storage package's initialization, `rnNewStorageOk`, from `NewStorage`'s proof and the storage methods' proofs over
 the WAL's linked results at the server's message model (whose hard-state marshal law rests on the registered
-`raftpb.HardState`, `hsEncC_ok`/`pbHsC_reg`). Under `os`'s field assumptions (the WAL's), so not yet passed to
-`bootstrappedRaft.newRaftNode`, whose spec keeps the premise `rnNewStorageOk`. -/
+`raftpb.HardState`, `hsEncC_ok`/`pbHsC_reg`). Under `os`'s field assumptions (the WAL's). Since wal-nostorageok
+(2026-11-21) the server's `Link` passes it to `bootstrappedRaft.newRaftNode` (until then its spec's premise
+`rnNewStorageOk`), and the results reaching it take those two classes. -/
 theorem new_storage_contract [os.fileStat.FieldAssumptions]
     [os.file.FieldAssumptions] : rnNewStorageOk.law (GF := GF) (hG := hG) :=
   rnNewStorageOk_law_holds raftpb.SnapshotMetadata.wp_GetIndex

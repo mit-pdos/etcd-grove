@@ -16,8 +16,8 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   callees of `newRaftNode`'s proof, `isRNTicker_of_time`; until then `rnTickerOk`); the server's package
   globals `raftStatus` (a function value) and `raftStatusMu` (the mutex protecting it; not in the
   package facts `srvRaftInit`, which hold the metrics only: `rnRaftStatusOk`, the mutex's
-  invariant owning the function); `serverstorage.NewStorage` (names-only: the WAL, `isRNWal`,
-  `rnNewStorageOk`); `membership.RaftCluster.IsIDRemoved` (translated and proved,
+  invariant owning the function); `serverstorage.NewStorage` (until wal-nostorageok a contract, `isRNWal`,
+  `rnNewStorageOk`; now proved, `rnNewStorageOk.law`); `membership.RaftCluster.IsIDRemoved` (translated and proved,
   `membership.RaftCluster.IsIDRemoved.spec_static`; here as some boolean, `rnClusterOk`, from which
   the `isIDRemoved` closure meets `isRNIDRemoved`; `bootstrapContract`'s post gives it, a
   consequence of its `isRaftCluster`).
