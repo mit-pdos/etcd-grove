@@ -72,6 +72,9 @@ Three obligations still need proofs.
    `membership.ConfigChangeContext`. The existing ConfState writer contract
    bounds the serialized length; it does not identify the serialized
    configuration. The installed format and each read must agree.
+   The VM checked the translated legacy `confStateFromMembers` loop. Every saved
+   map key occurs exactly once in its enumeration. Both returned ID slices use that
+   enumeration, partitioned by each member's stored learner bit.
 3. Retain the historical quorum certificate for the durable backend index.
    `committedAtTerm_mono_term` transports that certificate to a later
    term. The existing graceful-restart contract takes `i ≤ σ.commit`;
