@@ -17,6 +17,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
+
+- **Limitation.** `FloatOps` (`Perennial/Golang/Defn/PostLang.lean`) is a field of the semantics class with no laws:
+  `float64Leb`, `float64Add`, `uint64ToFloat64`, ... are arbitrary functions. A proof cannot show
+  `¬ (float64(n) < 0)` for an unsigned `n`, nor relate the float order to the bits' order, and an axiom here stating
+  such a fact would be false of some instance (inconsistent), so a local workaround can only keep the whole function
+  behind an axiom.
+- **Needed by.** prometheus (`/shared/tmp/extlib-promdeep-triage.md`): `counter.Add`'s `if v < 0 { panic }` (inside
+  `NewCounter`'s and `CounterVec.WithLabelValues`'s posts, `metric.counterSpec`), `newHistogram`'s bucket checks
+  (`bucketsOk` is stated over the bits' order), `ExponentialBuckets` (exact doubling); also x/time/rate's token bucket
+  and `lessor.Promote` (smalllibs, etcdstorage).
+- **Workaround here.** The functions stay trust-boundary axioms.
+- **Proposed (general).** IEEE-754 binary64 facts as assumptions of the semantics (a `FloatLaws` class over
+  `FloatOps`, required by `go.Semantics` or by the packages that need it): the order of finite non-negative floats is
+  their bits' order, `uint64ToFloat64`/`int64ToFloat64` of a non-negative integer is non-negative and finite, NaN
+  compares false, doubling a normal float whose result is normal adds `2^52` to its bits. Or a full model (Lean's
+  `Float` is opaque to the kernel; a bit-level IEEE model would be checkable). Each law is true of Go's `float64`.
+- **Status.** Not started.
+
 ### `fmt`'s models that call the arguments' formatting methods, `%p`, and `Errorf`'s `%w`: what retires this repository's `fmt` axioms (2026-11-20, prove-reflectfmt)
 
 - **Limitation.** Perennial's models of `Sprintf`, `Printf` and `Errorf` (`Perennial/TrustedCode/fmt.lean`) never
@@ -1403,6 +1422,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`time` is translated without `Duration.String`, so its pointer wrapper is missing too).
 - **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
   base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
+  (2026-11-20, auth-mediation M2) etcd's membership operations: `json.Marshal` of a
+  `membership.Member` and of a `ConfigChangeContext` (`EtcdServer.AddMember`, `UpdateMember`,
+  `promoteMember`), local trust-boundary specs in the smallest form (no error, some fresh bytes:
+  `Spec/encoding/json/MarshalMember.lean`, `MarshalConfigChangeContext.lean`); the general fix is a
+  model of `encoding/json`'s encoder for structs of basic fields and string slices.
 - **Workaround here.** The three packages names-only in this repository's configuration (survey
   branch: `Code/encoding/{json,base64}.toml`, `Code/path.toml`); specs as
   needed, local until proposed.

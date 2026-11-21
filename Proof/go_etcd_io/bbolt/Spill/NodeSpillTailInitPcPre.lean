@@ -145,7 +145,9 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       insSize_ws x.2.2 ws hxl hpl1.symm, sum_wSz_congr hwsd]
   have hbody : 16 + (pageBody true (wsMs rk.ws)).length = insSize rk.ins := by
     rw [body_ws, insSize_ws rk.ins rk.ws hlr (by rw [hinsl, hlen, hpl1])]
-  have hE : ∀ it ∈ x.2.2, it.key'.len.toNat + it.value'.len.toNat ≤ bboltEntryMax := by
+  have hE : ∀ it ∈ x.2.2,
+      it.key'.len.toNat + it.value'.len.toNat ≤ bboltEntryMax ∧
+      (x.2.1.isLeaf' = false → it.key'.len.toNat + it.value'.len.toNat ≤ branchKeyMax) := by
     intro it hit
     obtain ⟨m, hm⟩ := List.mem_iff_getElem?.1 hit
     have hmw : m < ws.length := by rw [hpl1]; exact (List.getElem?_eq_some_iff.1 hm).1
@@ -154,10 +156,25 @@ theorem pcInv_pre' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     have hmem : ws[m] ∈ r'.ws := by
       have : ws ⊆ wss.flatten := fun a ha => List.mem_flatten.2 ⟨ws, List.mem_of_getElem? hws, ha⟩
       rw [hsr.ws] at this; exact this (List.getElem_mem hmw)
-    have := (hun'.2.2.2.2.2.2.1 _ hmem).2.2
-    omega
-  obtain ⟨hb1, hb2⟩ := pieceFits_bounds 4096 x.2.2 (by omega) hE
-    (hfit x (List.mem_of_getElem? hx)).1
+    have hb := (hun'.2.2.2.2.2.2.1 _ hmem).2.2
+    rw [h1, h2]
+    refine ⟨hb.2.1, fun hbr => hb.2.2 ?_⟩
+    obtain ⟨Sb, Eb, _, _, hs⟩ := hents i ws hws
+    have ht := ((hs m _ hwm).2 (hleaf ▸ hbr)).1.wf
+    cases ht with
+    | page _ _ htwo _ _ _ _ _ =>
+      intro hz
+      rw [hz] at htwo
+      contradiction
+  have hpiece := (hfit x (List.mem_of_getElem? hx)).1
+  have hr : leafReadable x.2.2 := by
+    cases hf : x.2.1.isLeaf' with
+    | true => exact hpiece.2 hf
+    | false => exact branchPiece_readable _ hpiece.1 (fun it hit => (hE it hit).2 hf)
+  obtain ⟨hb1, hb2⟩ := pieceFits_bounds 4096 x.2.2 (by omega) (fun it hit => (hE it hit).1)
+    hpiece.1 hr
+  change insSize x.2.2 ≤ 16 + maxAllocSize at hb2
+  have hlimit : maxAllocSize = 2 ^ 31 - 1 := rfl
   have hcnt : insSize rk.ins ≤ pcCount (insSize rk.ins) * 4096 := by unfold pcCount; omega
   refine ⟨hlv, hnv.1.trans hbk, ?_, spG_pcFreed hrk hlv hGi, ?_, ?_, by omega, ?_,
     by omega, by omega, ?_, ?_, by omega⟩

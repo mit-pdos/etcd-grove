@@ -37,10 +37,10 @@ theorem Main.wp_proof
     (wp_store : k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG))
     (wp_comp : k8s_compactor.MainPartition.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS SE RT SC ST SV CRE CEC k N ids ps ctxs boot id₁ id₂ id₃ ps' ctxs' boot' clients ops
-    watchers wops sched₁ sched₂ steps₁ steps₂ TB RB48 RBN HLv hk1 hk hlen Hbf Hbf' HwbN Haf Hbuq Hrf
-    Hdbo Hms hAs Hse Hot Hc0 Hw0 Hc31 Hops Hwops Hmul
-  wp_start as ⟨Hms1, Hbs1, Hstart2, #Hs1, #Hs2, Htok, #Hprem1, #Hprem2, Hreg⟩
+  intro CS SE RT SC ST SV CRE CEC k N ids ps ctxs boot k₂ ids' ps' ctxs' boot' clients ops
+    watchers wops sched₁ sched₂ steps₁ steps₂ TB RB48 RBN HLv hk1 hk hlen Hbf hk₂1 hk₂ hlen' Hbf' HwbN
+    Haf Hbuq Hrf Hdbo Hms hAs Hse Hot Hc0 Hw0 Hc31 Hops Hwops Hmul
+  wp_start as ⟨Hms1, Hbs1, Hms2, Hbs2, #Hs1, #Hs2, Htok, #Hprem1, #Hprem2, Hreg⟩
   ihave #Pst : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 $$ []
   · iPkgInit
@@ -67,8 +67,8 @@ theorem Main.wp_proof
   ihave Hadd := sync.join.ownAdder_wand iprop(True) _ _ _ $$ [] Hadd
   · iintro _; itrivial
   (try wp_auto)
-  -- `go func() { k8setcd3.MainPartition(k, ..., sched1); wg.Done() }()`
-  wp_apply wp_fork_tok_body $$ [Hdone Hms1 Hbs1 Htok₂ k clients ops watchers wops sched1]
+  -- `go func() { k8setcd3.MainPartition(k1, ..., sched1); wg.Done() }()`
+  wp_apply wp_fork_tok_body $$ [Hdone Hms1 Hbs1 Htok₂ k1 clients ops watchers wops sched1]
   · iintro Htok₃
     (try wp_auto)
     wp_apply (wp_store k N ids ps ctxs boot clients ops watchers wops sched₁ steps₁ HLv hk1 hk hlen
@@ -81,10 +81,10 @@ theorem Main.wp_proof
     (try wp_auto)
     iframe
   (try wp_auto)
-  -- `compactor.MainPartition(sched2)`, with the main thread's token
-  wp_apply (wp_comp N id₁ id₂ id₃ ps' ctxs' boot' sched₂ steps₂ Hbf' TB.threadBound_le HLv
+  -- `compactor.MainPartition(k2, sched2)`, with the main thread's token
+  wp_apply (wp_comp k₂ N ids' ps' ctxs' boot' sched₂ steps₂ hk₂1 hk₂ hlen' Hbf' TB.threadBound_le HLv
     RB48.receiptBound_le RBN.receiptBound_le HwbN Haf Hbuq Hrf Hdbo Hms hAs)
-    $$ [Hstart2 Htok Hreg]
+    $$ [Hms2 Hbs2 Htok Hreg]
   · iframe; iframe #
   (try wp_auto)
   -- `wg.Wait()`

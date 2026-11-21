@@ -137,9 +137,9 @@ theorem entriesBounded_step {X X' : WX} (h : derefStep X X') (he : entriesBounde
   obtain ⟨B, hB, hs⟩ := derefStep_bwd h hB'
   obtain ⟨r, hr, hrs⟩ := bktStep_bwd hs hr'
   obtain ⟨w, hw, e, -⟩ := nodeStep_mem hrs hw'
-  obtain ⟨-, -, ek, ev⟩ := wDat_eq e
+  obtain ⟨-, ep, ek, ev⟩ := wDat_eq e
   have d := he bl B hB l r hr w hw
-  rw [← ek, ← ev, h.2.2.2.2.1]
+  rw [← ek, ← ev, ← ep, h.2.2.2.2.1]
   exact d
 
 theorem handlesOK_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (hh : handlesOK X) :

@@ -97,7 +97,7 @@ def uNode (X : WX) (bl n : Loc) (r : NRec) (lo hi : Option (List w8)) : Prop :=
   n ∈ X.live ∧ r.nv.bucket' = bl ∧ r.nv.spilled' = false ∧ r.capOwn = true ∧
   r.ins.length = r.ws.length ∧ wsSorted r.ws ∧
   (∀ w ∈ r.ws, keyIn lo hi w.key ∧ 0 < w.key.length ∧
-    w.key.length + w.value.length ≤ bboltEntryMax) ∧
+    entryBytesFit w.key.length w.value.length w.pgid) ∧
   ownPg X.v r.nv.pgid'
 
 /-- **A spilled node** `c` of bucket `bl` (a piece of an earlier spill, in a branch's

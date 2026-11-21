@@ -90,7 +90,7 @@ theorem os.File.Truncate.wp_specRepTail (Mr : WalMarshal)
   · iright
     iframe Hof Hoff
     isplitr
-    · ipureintro; exact he
+    · ipureintro; exact he.1
     iexists rd, lo, lk; iframe
 
 end proof

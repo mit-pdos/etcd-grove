@@ -144,7 +144,7 @@ theorem inl_child (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
     C.bv.rootNode' ∈ X.live ∧ rn.nv.pgid' = C.ib.root' ∧ Dc k = ownSl X.v rn.nv.pgid' ∧
     ownPg X.v rn.nv.pgid' ∧ rn.ins.length = rn.ws.length ∧ wsSorted rn.ws ∧ wsLive rn.ws ∧
     (∀ w ∈ rn.ws, w.flags.toNat % 2 = 0 ∧ 0 < w.key.length ∧
-      w.key.length + w.value.length ≤ bboltEntryMax) ∧
+      entryBytesFit w.key.length w.value.length) ∧
     rn.ws.map (fun w => (w.key, w.value)) = lbktEnts X0 c ∧
     resolve C C.ib.root' = some C.bv.rootNode' := by
   have htd := hI.kids k c hc
@@ -177,7 +177,7 @@ theorem inl_child (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
   | leaf _ r _ _ Sb hr hu' _ _ _ hSb =>
     rw [hrn] at hr; cases hr
     have hpl' : ∀ w ∈ rn.ws, w.flags.toNat % 2 = 0 ∧ 0 < w.key.length ∧
-        w.key.length + w.value.length ≤ bboltEntryMax :=
+        entryBytesFit w.key.length w.value.length :=
       fun w hw => hpl (wEl w) (List.mem_map_of_mem hw)
     have hz : ((List.range rn.ws.length).flatMap fun i => pgSlots (spP X) (Sb i)) = [] := by
       rw [List.flatMap_eq_nil_iff]

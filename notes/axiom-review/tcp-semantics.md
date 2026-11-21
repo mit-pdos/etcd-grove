@@ -1009,3 +1009,41 @@ changed definitions of `Impl.lean`, the trusted models of `Net/TrustedCode/net.l
   `"[::]:p"`, `":p"`, `"0.0.0.0:p"` binds `0.0.0.0:p` (`"tcp"`: dual-stack `[::]:p`); every pair of
   `{tcp, tcp4} × {127.0.0.1, "", 0.0.0.0, [::]}` at one port: the second `Listen` fails. Other
   network names (`"TCP"` included) make the model panic, which a proof must rule out.
+
+## v3.4 (2026-11-20)
+
+The network without a plan or hosts (`notes/net-tcp.md`, v3.4; branch `net-noplan`). A fresh agent
+reviewed the changed rows only (`addrOk`, `portOk`, `wildOk`, `listenOk`, `lisAccepts`,
+`ListenStep`, `DialStep`, `AcceptStep`, `IsNetStep`'s `Listen`/`Dial`, `NetLocal.init`,
+`NetGlobal.init`, `crash_init`; D6, D7, D8, D10, D13, D20, D21, the D22 rows), given the code and
+the diff, not the author's argument, asked for a real Linux behaviour the new definitions exclude.
+
+**Findings.**
+
+* **F1 (unsound as stated; fixed): the closed world.** The first v3.4 wording, "no process outside
+  the deployment's machines listens at, or dials, an address the deployment's programs listen at
+  or dial", no longer excluded a process that runs on one of the deployment's machines without
+  being one of its nodes (v3.3 said "outside the system's nodes"): a squatter on the server's
+  machine listening at its address first (`examples/axiomcx/tcp-squat` puts it in the same
+  process) feeds the client bytes no node wrote; a local monitoring process dialing a node's
+  listener makes `Accept` return a connection no `Dial` made. Fixed: D13 now says, in terms of
+  nodes and reachability, that no process other than the deployment's nodes accepts a connection a
+  node dials, or dials a connection a node's listener can accept, on any machine.
+* **F2 (documentation; covered by F1's fix):** with a wildcard listener, "an address the programs
+  listen at" read as the string `":p"` would not exclude an outsider dialing the machine's own IP
+  at port `p`; the reachability wording covers it.
+* **F3 (documentation; covered by F1's fix):** read literally, the first wording forbade every
+  machine in the world from listening at a loopback address a node dials.
+* **F4 (documentation; fixed):** `ListenStep`'s "only `sys`" rule is per node (a process: its
+  `NetLocal`), not per machine; two nodes on one machine may both succeed in the model where Linux
+  refuses the second (sound: `sys` is allowed). The notes and the header now say node.
+
+**Checks that passed** (the reviewer's): a `Listen` at an address another process holds, or at an
+IP the machine does not own (`EADDRINUSE`, `EADDRNOTAVAIL`, and `EACCES` below 1024, all `sys`); the
+one excluded outcome, a second success at the same string on the same node (Go sets `SO_REUSEADDR`,
+not `SO_REUSEPORT`; `TestListenTwice`); a wildcard and a specific listener on one port; two machines
+listening at `127.0.0.1:p`; the three wildcard spellings and canonical ports; a `Dial` before any
+listener; a crash of the listener and its restart (pending connections kept); IPv4-mapped
+addresses, hostnames and non-canonical ports (not valid: a panic the proofs rule out); TIME_WAIT
+on restart; self-connect and this machine's `ip_local_port_range` (32768-60999); `Accept`'s order;
+D16's abandoned dials; the D22 rows; the initial states.

@@ -45,7 +45,7 @@ structure InitB (X : WX) (bl : Loc) (B : BRec) (P : Pages) (C : CommitSt) (pht :
   live : ∀ l r, B.ns !! l = some r → l ∈ X.live
   ne : ∀ l r, B.ns !! l = some r →
     (r.nv.parent' ≠ null → 0 < r.ws.length) ∧ (r.nv.isLeaf' = false → 2 ≤ r.ws.length)
-  bound : ∀ l r, B.ns !! l = some r → ∀ w ∈ r.ws, w.key.length + w.value.length ≤ bboltEntryMax
+  bound : ∀ l r, B.ns !! l = some r → ∀ w ∈ r.ws, entryBytesFit w.key.length w.value.length w.pgid
   cok : treeOK C
   cpages : X.v.pages = C.pages
   chwm : C.hwm ≤ X.t.mv.pgid'.toNat

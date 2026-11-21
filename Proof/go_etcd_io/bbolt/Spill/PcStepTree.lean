@@ -138,7 +138,7 @@ theorem pcTree {P P' : Pages} {hwm hwm' : Nat} {id : w64} {leaf : Bool} {ws ws0 
     (h2 : 2 ≤ id.toNat) (hext : id.toNat + count ≤ hwm) (hc0 : 0 < count)
     (hcnt : count - 1 < 2 ^ 32)
     (hbody : 16 + (pageBody true (wsMs ws)).length ≤ count * 4096)
-    (hb : 16 + (pageBody true (wsMs ws)).length ≤ maxAllocSize)
+    (hb : 16 + (pageBody true (wsMs ws)).length ≤ 16 + maxAllocSize)
     (hn : ws.length < 2 ^ 16)
     (hs : wsSorted ws) (hk0 : ∀ e ∈ ws, 0 < e.key.length) (hkin : ∀ e ∈ ws, keyIn lo hi e.key)
     (hhm : hwm' ≤ hwm)

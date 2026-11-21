@@ -242,7 +242,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
   ihave Hpath := osPathS_join_halves R f.d qd f.J $$ [$Hpa $Hpb]
   rcases o with _ | ⟨x, s1⟩
   · -- no effect: the rename failed, the temporary kept
-    have he4 : e4 ≠ interface.nil := fun h => by simpa using ho h
+    have he4 : e4 ≠ interface.nil := fun h => by simpa using ho.1 h
     cases e4 with
     | nil => exact absurd rfl he4
     | ok ie =>
@@ -312,7 +312,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
   · iframe; iframe #
   icases Hres with (⟨%he6, -⟩ | ⟨%he6, #Hclb⟩)
   · cases e6 with
-    | nil => exact absurd rfl he6
+    | nil => exact absurd rfl he6.1
     | ok ie =>
     (try wp_auto)
     wp_apply os.File.Close.wp_dirS dfl dfd f.d f.J .idle $$ [Hinv Hdf Hdfd] as %e7 -

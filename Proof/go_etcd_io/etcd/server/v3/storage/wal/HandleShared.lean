@@ -87,6 +87,15 @@ instance fsStepSat_ioNone [ExtSemantics fsExt] : FsStepSat (NoIoErr ioNone) wher
     unfold IoCovers at hc
     split at hc <;> simp_all [ioNone]
 
+/-- `NoMapLockErr ioNone` holds of every step too (no file or path covered): a client at `ioNone` (WalTester's,
+`Create`'s `SaveSnapshot` call) takes the specs that assume it. -/
+instance fsStepSat_ioNoneL [ExtSemantics fsExt] : FsStepSat (NoMapLockErr ioNone) where
+  sat := by
+    intro _ _ o v _ st _ e' _ _ _ _ hc
+    exfalso
+    unfold MapLockCovers at hc
+    split at hc <;> simp_all [ioNone]
+
 /-- The shared handles' invariant's namespace. -/
 def walShN : Namespace := nroot .@ "walShared"
 

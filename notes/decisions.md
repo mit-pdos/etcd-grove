@@ -30867,6 +30867,7 @@ separate backend-switch stage (the `_kv` statements become corollaries, three ar
   slot); `Open` takes `ThreadBoundLe GF (2^29)` (a spare slot for a failed commit's `freepages`)
   and `ReceiptBoundLe GF (2^62)` (txids do not wrap). *D2*: `DB.Stats` pays `statlock`'s slot
   (`statSlot`).
+- The 2026-11-20 decision below supersedes the D4 entry-size bound.
 - *D4, D5 (the user)*: `Put` takes the entry bound `bboltEntryMax = 2^28` (bbolt accepts values it
   cannot store); `FillPercent` is written back only non-NaN.
 - *D13 (the user)*: `OptsM.ok` excludes `Mlock` and `MmapFlags` other than `0`/`MAP_POPULATE`
@@ -39920,6 +39921,16 @@ etcd-grove-81; a restricting change, no further round).**
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
 
+### Preserve the incoming message through an outgoing Ready
+
+Raft's log records every successful restore in this node instance. A queued
+snapshot from the unstable log carries membership in that history. When
+`readyWithoutAccept` selects its outgoing messages, the Ready keeps the history
+and the selection's membership proof together. The public Ready carries the
+driver's node ID, so its restore evidence identifies a leader different from
+that very node. Restart and Bootstrap establish that the local history starts
+empty. The apply-order comparison is the next part of the index-guard proof.
+
 ### WAL upgrade recovery (2026-11-20)
 
 The filename-selected suffix of a WAL written with the current segment naming
@@ -41230,6 +41241,42 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 `PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
 
+## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
+
+**Context.** kvnet's top-level theorem (`notes/kvnet-robust-goal.md`, branch
+`worktree-kvnet-toplevel-statement`) is `Robust` over the fixed extensions `[Net.netExt, Fs.fsExt]`
+and mentions no plan, no hosts and no network premises but that the replicas' addresses are valid
+(`Net.addrOk`) and distinct. v3.3's network carried the deployment's plan (address -> host) and
+each node its host; `Listen` panicked unless the address was the plan's at this node's host,
+`Dial` unless it was in the plan.
+
+**Decision (the user's).** The plan and the hosts go (`notes/net-tcp.md`, v3.4, with the soundness
+argument): an address is valid if `addrOk` (moved into `Impl.lean`), `Listen` takes a valid address
+or a wildcard with a valid canonical port (`listenOk`), any machine may listen at any valid address,
+`Accept` takes any connection pending at an address its listener takes (`lisAccepts`; a wildcard
+takes any address with its port, the user's preferred D21), and everything else is unchanged. It
+only adds behaviours (every new one starts from a step that was a panic), so robustness under v3.3
+carries over. Initial states: `NetLocal.init` (no listener), `NetGlobal.init` (no connection),
+standalone in `Impl.lean` until Perennial's `ExtSemantics` gets `init`/`globalInit`; the
+interpretation's `initgP` is `NetGlobal.init`, its `initP` stays `True` (the examples' and kits'
+statements do not yet say their machines start with no listener; `KitDeploy` does).
+
+**Ghost state.** Without a plan the start resources cannot be "the plan's addresses": they are every
+valid address's pending set (`netStart`, `pendInit := addrSpace ∅`). The valid addresses are
+finitely many (`Deploy.lean`'s `addrOk_length`: at most 21 bytes), so their map is a finite `GMap`;
+it is built from a list chosen by `Classical.choose` (`addrList`), never computed (a computed list of
+every byte string up to 21 bytes made the elaborator hang on the first lemma that mentioned it).
+`netPlan` is gone; the specs of `Dial`, `DialTimeout` and `Listen` take `⌜addrOk a⌝`, and
+`netLisAt l a` carries `addrOk a` (so `Accept`'s spec, at a valid listener, takes exactly the
+connections dialed to `a`); the wildcards the semantics allows are not covered by the specs (no
+verified program uses one). The kits' `KitDeploy` is now the kit's addresses (distinct, valid), no
+connection, no listener; the examples' statements lose their plan and host premises.
+
+**Rejected.** An infinite ghost resource for "every address" (a new camera code in Perennial, a
+shared dependency); claiming addresses at run time (the pending sets' authority is in the state
+interpretation, which only a step can change, so a claim outside a step cannot add an address);
+keeping wildcards in the specs (a wildcard's `Accept` must open every matching address's
+protocol).
 ## Recognizing bbolt's interrupted first write (2026-11-20)
 
 The first write initializes two zero meta pages, a freelist and an empty root. Zero meta pages
@@ -41252,3 +41299,19 @@ need validity. The next step is to preserve the pin at node startup and the sour
 
 This supersedes the October 31 decision to retain the server's snapshot-index guard.
 The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).
+
+## bbolt admits readable values on a split leaf (2026-11-20)
+
+A valid key and value fit a single amd64 leaf when their lengths sum to at
+most `2^31 - 17`. The element header occupies the other 16 bytes of the
+`MaxAllocSize` window. The old 256 MiB limit came from assuming that four
+elements would share the leaf. The fork now measures the proposed prefix
+during spill and can put a single entry on a leaf.
+
+The verified page bound starts at the first element, 16 bytes after the page
+header. Branches still keep at least two children. A leaf key can be promoted
+to a separator, so the file model bounds a key by `branchKeyMax`, the share
+available to one of four branch entries. Every key accepted by `Put` fits
+this bound. `entryBytesFit_legacy` also covers every key and value admitted
+by the previous file model. The fork's regression and the upstream split
+problem are in `issues/bbolt-put-refuses-readable-entry.md`.

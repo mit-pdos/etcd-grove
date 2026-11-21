@@ -237,7 +237,7 @@ theorem startCluster.wp_proof
   (try wp_auto)
   wp_apply (wp_StartMembers N token (W64 1) (W64 1) msl lg ((members k).zip gs) ps
       (LogEntry.toEntries boot 0) ctxs
-      (etcd_putgetN.dirN (members k) ids) Φs γn .none Htb Hrb48 HrbN HwbN
+      (etcd_putgetN.dirN (members k) ids) Φs γn .none false Htb Hrb48 HrbN HwbN
       (by simp [LogEntry.toEntries, hblen]; omega)
       hγn2 Hdok Hbc hnd hutf hnlen hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]

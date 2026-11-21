@@ -33,7 +33,7 @@ theorem RawNode.Ready.wp_proof [package_sem : Assumptions] (wp_RawNode_readyWith
                                           slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
                               "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
                                 ("#Hsnapto" ∷ [∗list] q ∈ ms, snapToOk γ id q.st) ∗
-                                  "#Hsrcs" ∷ qSrcs rs.sn ms ∗
+                                  "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn ms ∗
                                     "#Hss" ∷ softStateIs rd.SoftState' ss ∗
                                       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
                                         "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗

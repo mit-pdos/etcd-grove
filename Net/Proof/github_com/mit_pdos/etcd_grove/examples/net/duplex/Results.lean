@@ -109,12 +109,10 @@ theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics]
 /-- The precondition of node `i`'s program in the generation with local ghost state `L`:
 the protocol, the plan's entry for `SrvAddr` (at `h`: its resource, and the network's plan's), a
 fresh package state, and for the server (`i = 0`), that its host is `h`. -/
-def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (i : Nat) (L : GooseLocalGS GF) :
+def nodePre [G : GooseGlobalGS .hasLC GF] (i : Nat) (L : GooseLocalGS GF) :
     IProp GF :=
-  iprop((∃ γm, dupInvs (Gg := G) γm) ∗ netPlan (extGlobalGS netExt) srvAddr h ∗
-    ⌜(extGlobalGS netExt (G := G)).plan !! srvAddr = some h⌝ ∗
-    ownGoState (hG := L.goose_go_stateGS) ∅ ∗
-    ⌜i = 0 → (extLocalGS netExt (L := L)).host = h⌝)
+  iprop((∃ γm, dupInvs (Gg := G) γm) ∗ ⌜addrOk srvAddr = true⌝ ∗
+    ownGoState (hG := L.goose_go_stateGS) ∅)
 
 set_option linter.unusedVariables false in
 /-- `duplex_crash_safety` for executions of fewer than `N` steps along which every node has
@@ -124,12 +122,8 @@ the `example` after the theorems). -/
 theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    [hPre : GooseGpreS GF] (N T : Nat) (σs σc : state) (g : GlobalState) (h : GoString)
+    [hPre : GooseGpreS GF] (N T : Nat) (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
-    (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc).map Prod.fst) n
@@ -143,24 +137,18 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) := by
   refine goose_dist_crash_adequacy (GF := GF) N T (system σs σc) g (fun _ v => v = #())
     (fun _ p h => intoVal_ne_PanicV () p h.symm) ⟨Hconns, trivial⟩
-    (fun _ _ => ⟨trivial, trivial⟩) (fun i L => nodePre h i L) ?_ ?_
+    (fun _ _ => ⟨trivial, trivial⟩) (fun i L => nodePre i L) ?_ ?_
     n κs c Hsteps Hbound ?_ Hlive
   · -- the global setup and the first generation of every node
     intro G _
     iintro Hg
     icases net_globalStart g.globalWorld $$ Hg with Hnet
     unfold netStart
-    icases Hnet with ⟨Hplans, Hpends, %HGplan⟩
-    have Hpl : PartialMap.get? (extGlobal netExt g.globalWorld).plan srvAddr = some h := by
-      rw [gmap_get?_eq]; exact Hplan
-    ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a h => netPlan (extGlobalGS netExt) a h) Hpl)
-      $$ Hplans
-    have HGp : (extGlobalGS netExt (G := G)).plan !! srvAddr = some h := by
-      rw [HGplan]; exact Hpl
-    have Hpe : PartialMap.get? (pendInit (extGlobal netExt g.globalWorld)) srvAddr = some ∅ := by
-      rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
+    have Hpe : PartialMap.get? pendInit srvAddr = some ∅ := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok _ (by decide)
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => netPend (extGlobalGS netExt) a S) Hpe)
-      $$ Hpends
+      $$ Hnet
+    have HGp : addrOk srvAddr = true := by decide
     -- the protocol: every connection's state (none yet), then the address's invariant
     imod dupInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
     imodintro
@@ -168,21 +156,16 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     unfold nodeStart
     isplitl []
     · -- the server: its host is `h`
-      iintro %L %_ %_ Hstart Hgs
-      ihave Hl := net_localStart (L := L) σs.world $$ Hstart
-      iunfold lisStart at Hl
-      icases Hl with ⟨%Hh, -⟩
+      iintro %L %_ %_ - Hgs
       rw [Hs.packageState]
       imodintro
       simp only []
       unfold nodePre
-      iframe Hgs Hp
+      iframe Hgs
       isplitl []
       · iexists γm
         iexact Hinvs
-      isplitl []
-      · ipureintro; exact HGp
-      ipureintro; intro _; exact Hh.trans Hhost
+      ipureintro; exact HGp
     isplitl []
     · -- the client
       iintro %L %_ %_ - Hgs
@@ -190,13 +173,11 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       imodintro
       simp only []
       unfold nodePre
-      iframe Hgs Hp
+      iframe Hgs
       isplitl []
       · iexists γm
         iexact Hinvs
-      isplitl []
-      · ipureintro; exact HGp
-      ipureintro; intro h0; cases h0
+      ipureintro; exact HGp
     iempintro
   · -- every generation of every node: its program, and its next precondition
     intro hG _ _ i e σ Hes Hlctx
@@ -213,7 +194,7 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     subst Hlctx
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold nodePre
-    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, %HGp, Hgs, %Hh⟩ _
+    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, Hgs⟩ _
     imodintro
     isplitl [Hgs]
     · rcases Hnode with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
@@ -222,30 +203,20 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
           (cmd.server.wp_initialize' _ cmd.server.getIsPkgInit_wf)
           (cmd.server.wp_main net.Listen.wp_proof net.Listener.Accept.wp_proof
             net.Conn.Read.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
-        rw [Hh rfl]
-        iframe Hinvs
-        ipureintro; exact HGp
+        iframe Hinvs Hplan
       · unfold boot_client
         iapply wp_boot _ _ _ _ _
           (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf)
           (cmd.client.wp_main net.Dial.wp_proof
             (wire.ReadFull.wp_proof net.Conn.Read.wp_proof) net.Conn.Write.wp_proof
-            net.Conn.Close.wp_proof γm h) $$ [] Hgs
+            net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
     · -- after a crash: the host is kept, the rest is persistent
-      iintro %L' _ Hcs Hgs'
-      icases net_crashStart _ L' $$ Hcs with %Hhost'
+      iintro %L' _ - Hgs'
       imodintro
       iframe Hgs' Hplan
-      isplitl []
-      · iexists γm
-        iexact Hinvs
-      isplitl []
-      · ipureintro; exact HGp
-      ipureintro
-      intro hi
-      rw [Hhost']
-      exact Hh hi
+      iexists γm
+      iexact Hinvs
   · intro n hn
     simp only [system, List.mem_cons, List.not_mem_nil, _root_.or_false] at hn
     rcases hn with rfl | rfl
@@ -273,12 +244,8 @@ and the thread bound `n + 2`, which an execution of `n` steps from single thread
 theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σs σc : state) (g : GlobalState) (h : GoString)
+    (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
-    (Hhost : (extLocal netExt σs.world).host = h)
-    (Hplan : (extGlobal netExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal netExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc).map Prod.fst) n
@@ -287,8 +254,7 @@ theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       (∀ v tp', tp = Val v :: tp' → v = #()) ∧
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
-  duplex_crash_safety_bounded (GF := netGF) (n + 1) (n + 2) σs σc g h Hs Hc Hhost Hplan
-    pl Hwf Hpl Hconns n κs c Hsteps (by omega)
+  duplex_crash_safety_bounded (GF := netGF) (n + 1) (n + 2) σs σc g Hs Hc Hconns n κs c Hsteps (by omega)
     (DistCrashThreadsBelow.of_single (fun (i : Nat) (tp : List Expr) (σ : state) hi => by
       simp only [distInit, system, List.map_cons, List.map_nil] at hi
       match i, hi with
@@ -298,7 +264,7 @@ theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
 end adequacy
 
 /-- The example's plan, `SrvAddr` at a host, is well formed (D20). -/
-example : PlanWellFormed [(srvAddr, go!"h")] := by decide
+example : addrOk srvAddr = true := by decide
 
 #print axioms duplex_crash_safety
 
