@@ -800,9 +800,9 @@ instance nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) :
 /-- For an outgoing MsgSnap, the storage supplied its pinned certificate or raft
 carried the certificate for a received snapshot. The later comes from saved
 predicate agreement and applies only to the client-selected certificate. -/
-theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) {term : w64} (ms : List QMsg)
+theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) {term : w64} {bound : Nat} (ms : List QMsg)
     (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
-    ⊢ readySnapSources (GF := GF) γ n id term ms -∗ nodeTagPin γ n SV -∗
+    ⊢ readySnapSources (GF := GF) γ n id term ms bound -∗ nodeTagPin γ n SV -∗
       ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert γ n sv ∗ nodeRestoreSource γ id (snapId sv)) := by
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   unfold readySnapSources ApiImpl.snapSources nodeTagPin
@@ -841,6 +841,58 @@ theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) {term : w64
     unfold nodeRestoreCert
     iexists γn
     iframe Htab Hc
+
+
+/-- A restored snapshot in a leader's Ready is bounded by the delivered log
+of any Ready from the same node incarnation and hard-state term. The other
+source is the predicate attached to the application’s storage. -/
+theorem readySnapSources_sameTerm_le (γ : Cluster) (n : Loc) (id term : w64)
+    (ms observed : List QMsg) (bound observedBound : Nat) (q : QMsg) (SV : SnapshotM → IProp GF)
+    (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
+    ⊢ readySnapSources (GF := GF) γ n id term ms bound -∗
+      readySnapSources γ n id term observed observedBound -∗ snapshotLeader γ id term -∗
+      nodeTagPin γ n SV -∗ ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗
+        (▷ SV sv ∨ ⌜uint.nat sv.Metadata'.Index' ≤ observedBound⌝) := by
+  haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
+  unfold readySnapSources ApiImpl.snapSources nodeTagPin snapshotLeader
+  iintro ⟨%γn, #Htab, -, #Hs⟩ ⟨%γo, #Htabo, -, #Ho⟩ #Hlead ⟨%γp, #Htabp, #Hpin⟩
+  iunfold handoutOrigins at Hs
+  icases Hs with ⟨%ks, -, -, #Hknown, #Hqs⟩
+  iunfold qSrcs at Hqs
+  ihave ⟨#Hq, -⟩ := BigSepL.bigSepL_mem_acc hq $$ Hqs
+  iunfold qSrc at Hq
+  iunfold tsSrc at Hq
+  icases Hq with (%Hne | ⟨%sv, %Hsv, Hc⟩)
+  · exact False.elim (Hne ht)
+  iexists sv
+  isplitr
+  · ipureintro; exact Hsv
+  icases Hc with (Hc | ⟨-, %Hmem⟩)
+  · ileft
+    ihave %He := ApiImpl.nodeTabOk_agree γ n γn γp $$ Htab Htabp
+    have Hkey : γn.sn.gsv = γp.sn.gsv := congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.1) He
+    iunfold svCert at Hc
+    icases Hc with ⟨%P, #Hp, #HP⟩
+    ihave #Hp' : savedPredOwn γp.sn.gsv DFrac.discard P $$ []
+    · rw [← Hkey]; iexact Hp
+    ihave #Heq := saved_pred_agree γp.sn.gsv DFrac.discard DFrac.discard P SV sv $$ Hp' Hpin
+    inext
+    ihave ⟨Hiff, -⟩ := internalEq_iff _ _ $$ Heq
+    iapply Hiff $$ HP
+  · iright
+    ihave #Hsend := Hknown $$ %(snapTrip sv sv.Metadata'.ConfState'.lists) %Hmem
+    iunfold handoutOrigins at Ho
+    icases Ho with ⟨%obs, %hbound, #Hmark, -, -⟩
+    ihave %He := ApiImpl.nodeTabOk_agree γ n γn γo $$ Htab Htabo
+    have hkey : γn.sn.history = γo.sn.history :=
+      congrArg (fun k : ApiImpl.CfgNames => k.2.2.2.2.2.2.2.2.2.2.2.2.2) He
+    ihave #HmarkN : snapHistoryMark γn.sn (uint.nat term) (maxRestored obs) $$ []
+    · rw [show snapHistoryMark (GF := GF) γn.sn (uint.nat term) (maxRestored obs) =
+          snapHistoryMark γo.sn (uint.nat term) (maxRestored obs) by unfold snapHistoryMark; rw [hkey]]
+      iexact Hmark
+    ihave %hindex := restoredSend_index_le γ.raft id term γn.sn _ (maxRestored obs) $$ Hsend Hlead HmarkN
+    ipureintro; exact Nat.le_trans hindex hbound
+
 
 /-- A storage whose nonempty snapshots also carry the client's source tag. -/
 def isStorageT (γ : Cluster) (K : GName) (Tg : SnapshotM → IProp GF) (st : Storage) : IProp GF :=

@@ -1,5 +1,26 @@
 # Removing the merged snapshot's index guard (plan, 2026-11-20)
 
+## 2026-11-20 · the Ready history and the remaining send-time obligation
+
+The main linked proof passes with a monotone restore history on each RawNode.
+Every log restore raises the boundary past the old committed index. A Ready
+with a snapshot hands out the committed log ending at that boundary. Without
+a snapshot the boundary is at or below the apply cursor. These two cases bound
+all restored indices by the length of the log handed out in this Ready.
+
+The Ready channel carries a persistent observation at the hard-state term that
+the receiver enters. `readySnapSources_sameTerm_le` compares two Ready batches
+from the same node incarnation and term. In the storage case it returns the
+application’s storage tag. In the restore case it uses the foreign leader’s
+message and election safety to bound the index by the observed batch.
+
+An outgoing message can stay queued across a term change. Its own stamped term
+can then precede its handout’s hard-state term. The server’s term check uses the
+message term, so the same-term result alone cannot discharge the server proof.
+The remaining Raft obligation is to retain the receive term through
+`raftLog.snapshot`, `maybeSendSnapshot` and `raft.send` for this case.
+
+
 ## Term and index comparison (2026-11-20)
 
 The node now has a ghost name for a history of term and index observations.

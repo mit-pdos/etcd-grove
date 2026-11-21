@@ -2245,6 +2245,16 @@ theorem maxRestored_append [GooseExts] (ks ls : List SnapTrip) :
   | nil => simp [maxRestored]
   | cons k ks ih => simp [maxRestored, ih, Nat.max_assoc]
 
+theorem maxRestored_le [GooseExts] (ks : List SnapTrip) (base : w64)
+    (hb : ∀ k ∈ ks, uint.Z k.sid.index' ≤ uint.Z base) :
+    maxRestored ks ≤ uint.nat base := by
+  induction ks with
+  | nil => exact Nat.zero_le _
+  | cons k ks ih =>
+    apply Nat.max_le.mpr
+    exact ⟨by have := hb k (.head _); word,
+      ih (fun x hx => hb x (.tail k hx))⟩
+
 /-- The observation was issued on the very incoming message which installed
 this snapshot. The local Raft term equals the foreign leader's sending term. -/
 def timedRestore (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) : IProp GF :=
@@ -2341,6 +2351,13 @@ theorem restoreLedger_send (γ : RaftNames) (id : w64) (sn : StorNames) (s : NSt
   ipureintro
   exact ⟨hm.1, hm.2.1, hm.2.2.1, hm.2.2.2.1, hm.2.2.2.2, hb.1⟩
 
+theorem restoreLedger_send_all (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
+    restoreLedger (GF := GF) γ id sn s ⊢
+      (∀ k : SnapTrip, ⌜k ∈ s.logst.ksn⌝ -∗ restoreAtSend γ id sn k s.term) := by
+  iintro Hl %k %hk
+  icases restoreLedger_send γ id sn s k hk $$ Hl with ⟨-, #Hs⟩
+  iexact Hs
+
 /-- For an outgoing snapshot restored from another node, its restore preceded
 the sender's election. A Ready already observed in the send term therefore
 bounds the snapshot's index. -/
@@ -2395,6 +2412,17 @@ def readyMsgOrigins (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg
 
 instance (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg) :
     Persistent (readyMsgOrigins (GF := GF) γ id st ms) := by unfold readyMsgOrigins; infer_instance
+
+/-- The exact restore history at a Ready handout, witnessed at the node's
+current term and shared by all messages in this batch. -/
+def handoutOrigins (γ : RaftNames) (id : w64) (sn : StorNames) (term : w64)
+    (ms : List QMsg) (bound : Nat) : IProp GF :=
+  iprop(∃ ks : List SnapTrip, ⌜maxRestored ks ≤ bound⌝ ∗ snapHistoryMark sn (uint.nat term) (maxRestored ks) ∗
+    (∀ k : SnapTrip, ⌜k ∈ ks⌝ -∗ restoreAtSend γ id sn k term) ∗ qSrcs sn ms (· ∈ ks))
+
+instance (γ : RaftNames) (id term : w64) (sn : StorNames) (ms : List QMsg) (bound : Nat) :
+    Persistent (handoutOrigins (GF := GF) γ id sn term ms bound) := by
+  unfold handoutOrigins; infer_instance
 
 theorem restoredSnapHistory_keep (γ : RaftNames) (id : w64) {ls ls' : LogState}
     (h : logStoreRec ls' = logStoreRec ls) :

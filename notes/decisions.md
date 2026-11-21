@@ -41262,3 +41262,7 @@ problem are in `issues/bbolt-put-refuses-readable-entry.md`.
 ### The RawNode owns the restore history (2026-11-20)
 
 Startup allocates each incarnation’s history. A successful snapshot restore records the incoming sender, term and index in that history. A stale snapshot leaves the history intact. The evidence follows the node through Ready and Advance, including a snapshot outstanding when another restore arrives. The server still needs the observation at handout and the link to the original outgoing message.
+
+### Bounding restored snapshots at Ready handout (2026-11-20)
+
+Keep the restore-index bound in Raft's log invariant. The bound starts at the initial log boundary and follows each accepted restore. At Ready handout, the committed prefix delivered by the batch covers that boundary. Record the hard-state term and this bound together, so the server can compare an observed batch against a snapshot from the same leader term. A message drained in a later term still needs the certificate from its original send.

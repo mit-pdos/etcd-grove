@@ -2262,7 +2262,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       -- (restart S7.3, 2026-11-14) the messages' `MsgSnap` facts, at once (not behind `W`'s
       -- fragments: they read only the committed log and the sender's configuration at its step)
       ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
-      readyMsgOrigins γ id rs.sn ms ∗ handoutOrigins γ id rs.sn (phsNext rs.phs hrd).Term' ms ∗
+      readyMsgOrigins γ id rs.sn ms ∗ handoutOrigins γ id rs.sn (phsNext rs.phs hrd).Term' ms (dlvAfter rs.delivered ce L).length ∗
       -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
       ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
   iintro #Hh Hlive Hfree H
@@ -2282,19 +2282,8 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   iNamed Hphys
   simp only [Bool.false_eq_true, ↓reduceIte]
   imod restoreLedger_ready γ id rs.sn s $$ Hledger with ⟨Hledger, #Hmark⟩
-  ihave ⟨Hledger, #Htimed⟩ : restoreLedger γ id rs.sn s ∗
-      (∀ k : SnapTrip, ⌜k ∈ s.logst.ksn⌝ -∗ timedRestore γ id rs.sn k) $$ [Hledger]
-  · unfold restoreLedger
-    icases Hledger with ⟨Ha, #Hks⟩
-    iframe Ha Hks
-  ihave #Hobs : handoutOrigins γ id rs.sn rs.term ms $$ []
-  · unfold handoutOrigins
-    iexists s.logst.ksn
-    rw [Htrm]
-    iframe Hmark Htimed
-    rw [Hstor.2, Hgh_unst.1.2.2]
-    iapply qSrcs_sub s.gh.sn (ms1 ++ ms2) ms
-      (fun q hq => Hmslen.subset (List.mem_append_left _ hq)) (· ∈ s.logst.ksn) $$ Hscert
+  icases (entails_wand (persistent_entails_left (restoreLedger_send_all γ id rs.sn s)))
+    $$ Hledger with ⟨Hledger, #Htimed⟩
   ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
   · iExactEq Hlog; rfl
   -- (2026-10-18, D19b stage 5) the indices handed out, from the log and the ghost state
@@ -2339,6 +2328,28 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     intro h
     have := Hpa0 (Hrdp.1 h).2
     omega
+  icases ownRaftLog_restoreCerts s.log s.logst $$ Hlog with ⟨#HcsLog, Hlog⟩
+  iunfold logRestoreCerts at HcsLog
+  icases HcsLog with ⟨-, %hBound⟩
+  have hMax : maxRestored s.logst.ksn ≤ (dlvAfter rs.delivered ce L).length := by
+    apply Nat.le_trans (maxRestored_le _ _ hBound)
+    cases L with
+    | none => simpa [dlvAfter, Hdl] using Nat.le_trans (Hpa rfl) (Nat.le_add_right (uint.nat s.logst.applying) ce.length)
+    | some l =>
+      have hlen := (Hrdp.2 l rfl).2.2.2.2.2.2.2.2.1
+      rw [Hpv l rfl]
+      change uint.nat l.snap.Metadata'.Index' ≤ l.dlv.length
+      word
+  ihave #Hobs : handoutOrigins γ id rs.sn rs.term ms (dlvAfter rs.delivered ce L).length $$ []
+  · unfold handoutOrigins
+    iexists s.logst.ksn
+    isplitr
+    · ipureintro; exact hMax
+    rw [Htrm]
+    iframe Hmark Htimed
+    rw [Hstor.2, Hgh_unst.1.2.2]
+    iapply qSrcs_sub s.gh.sn (ms1 ++ ms2) ms
+      (fun q hq => Hmslen.subset (List.mem_append_left _ hq)) (· ∈ s.logst.ksn) $$ Hscert
   ihave %Hag : ⌜L = none → ∀ k e, (s.logst.sents ++ s.logst.uents)[k]? = some e →
       uint.nat s.logst.prev.index' + k < (rs.delivered ++ ce).length →
       (rs.delivered ++ ce)[uint.nat s.logst.prev.index' + k]? = some e⌝ $$ [Hghost]
