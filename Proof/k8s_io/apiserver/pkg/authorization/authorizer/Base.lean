@@ -41,12 +41,8 @@ instance k8s_io_apimachinery_pkg_util_validation_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.validation :=
   build_get_is_pkg_init_wf
 
-instance k8s_io_apiserver_pkg_authentication_user_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.authentication.user :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_apiserver_pkg_authentication_user_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.authentication.user :=
-  build_get_is_pkg_init_wf
+-- (prove-k8s2, 2026-11-20) `authentication/user`'s instances moved to `storage/etcd3/Base.lean`:
+-- `util/flowcontrol` imports it since its `var _ fmt.GoStringer = RequestDigest{}` is translated
 
 /-- The authorizer package's fact: `ErrorConditionEvaluationNotSupported` (`errors.New(...)`,
 `interfaces.go`) holds some error, and nothing writes it. -/

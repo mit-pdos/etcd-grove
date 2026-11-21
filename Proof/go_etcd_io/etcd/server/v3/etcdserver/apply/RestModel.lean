@@ -26,15 +26,16 @@ store's writes, the lessor's `Grant`/`Checkpoint`, the cluster's `SetDowngradeIn
 environment's write right `AEnv.RW` instead, which leaves `RO`'s state alone: the server's,
 `srvRestRWH`, is never lent (their requests are not admitted: `rqOk`).
 
-`memberKey`, `memberEnc` and `semverNorm` are opaque pure functions, each named in one writer's
-statement (`schema.BackendMemberKey`'s hex id, `json.Marshal` of a member, `semver.MustParse(v)
-.String()`).
+`memberEnc` and `semverNorm` are opaque pure functions, each named in one writer's statement
+(`json.Marshal` of a member, `semver.MustParse(v).String()`); `memberKey`, `schema.BackendMemberKey`'s
+hex id, is `types.idStr`.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
 
 @[expose] public section
 
@@ -50,14 +51,16 @@ structure RestM where
   bk : GMap GoString backend.BktData
   mem : GMap w64 MemberM
 
-/-- **`schema.BackendMemberKey(id)`**: a member's key in `members` (its id in hex; opaque). -/
-opaque memberKey : w64 → GoString
+/-- **`schema.BackendMemberKey(id)`**: a member's key in `members`, `[]byte(id.String())`
+(`server/storage/schema/bucket.go:106-108`), its id in hex (`types.idStr`, `ID.String`'s
+`strconv.FormatUint(uint64(i), 16)`, `client/pkg/types/id.go:27-29`). (2026-11-20: until then
+opaque, with `memberKey_inj` an axiom.) -/
+def memberKey (id : w64) : GoString := types.idStr id
 
-/-- **Distinct ids, distinct keys** (2026-11-04, the restart plan's R2b-3d gap 3, the user's approval;
-a trust-boundary axiom on the opaque `memberKey`). `schema.BackendMemberKey(id)` is
-`[]byte(id.String())` (`server/storage/schema/bucket.go:106-108`), and `types.ID.String()` is
-`strconv.FormatUint(uint64(i), 16)` (`client/pkg/types/id.go:27-29`), which is injective. -/
-axiom memberKey_inj (a b : w64) (h : memberKey a = memberKey b) : a = b
+/-- **Distinct ids, distinct keys** (2026-11-04, the restart plan's R2b-3d gap 3; proved 2026-11-20
+from `types.idStr_inj`, a trust-boundary axiom on the opaque `memberKey` until then). -/
+theorem memberKey_inj (a b : w64) (h : memberKey a = memberKey b) : a = b :=
+  types.idStr_inj a b h
 
 /-- **`json.Marshal(m)` of a member** (`MustSaveMemberToBackend`'s value; opaque). -/
 opaque memberEnc : MemberM → GoString

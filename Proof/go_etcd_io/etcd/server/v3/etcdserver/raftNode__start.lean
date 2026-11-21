@@ -732,7 +732,7 @@ theorem raftNode.start.wp_proof
           icases ErrSnapOOD with ⟨%eood, #Heood⟩
           iunfold srvAttachedMem at Hmsinv
           icases Hmsinv with ⟨%pin, #Hpinloc, -, #Hmsinv⟩
-          ihave #HmsP : memStorInvP ms γ.γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.applied pin γ.snap0)) $$ []
+          ihave #HmsP : memStorInvP ms γ.γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)) $$ []
           · rw [Hmsγ]; iunfold memStorInvT at Hmsinv; iexact Hmsinv
           ihave #HmsP' := HmsP
           iunfold memStorInvP at HmsP'
@@ -743,19 +743,19 @@ theorem raftNode.start.wp_proof
           · iExactEq Hend; rfl
           ihave Hlog := memStorLog_to γ.ms γ.γs _ _ _ $$ Hreg Hlog
           ihave Hend := memStorEnd_to γ.ms γ.γs _ $$ Hreg Hend
-          ihave #HBJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.applied pin γ.snap0)).B (uint.nat l.snap.Metadata'.Index') $$ []
+          ihave #HBJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)).B (uint.nat l.snap.Metadata'.Index') $$ []
           · simp only [memStorJT]
             iapply memStorJ_B_off γ.node.cl γ.key _ Hrns
             iExactEq Hgiven; rfl
-          ihave #HsvJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.applied pin γ.snap0)).SV l.snap $$ []
+          ihave #HsvJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)).SV l.snap $$ []
           · simp only [memStorJT]
             iframe HsvV
             iunfold srvStoredOrigin
             iright; iright; iexists γ.nl; iframe Hpinloc Hinstalled
-          ihave #HDLJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.applied pin γ.snap0)).DL (uint.nat l.snap.Metadata'.Index') $$ []
+          ihave #HDLJ : (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)).DL (uint.nat l.snap.Metadata'.Index') $$ []
           · unfold memStorJT memStorJ; iExactEq HcLbS; rfl
           -- (2026-11-02, the lean merge) attached (mode `none`, durability stage I-5)
-          wp_apply wp_ApplySnapshot.1 ms γ.γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.applied pin γ.snap0)) none k old c1 DFrac.discard
+          wp_apply wp_ApplySnapshot.1 ms γ.γs (memStorJT γ.node.cl γ.key (srvStoredOrigin γ.node.cl E.γr.cursor pin γ.snap0)) none k old c1 DFrac.discard
               l.snap eood Hk (by word) $$ [$Hrpkg $Hlog $Hend $Hslb0 $Heood]
             as ⟨-, #HcpS, #Hdum, HendS, -⟩
           · rw [memStorAt_none]

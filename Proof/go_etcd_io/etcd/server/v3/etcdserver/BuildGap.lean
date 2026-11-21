@@ -277,7 +277,7 @@ and its store handle into `#Hrdb`), and the residual's snapshot contract. -/
 theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
-    srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn γr.applied ai₀ at₀ ⊢
+    srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn γr.cursor ai₀ at₀ ⊢
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',

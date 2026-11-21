@@ -153,7 +153,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
       ihave #Hsec := cliStreamErr_closeErrOk _ $$ Hse
       ihave %Hpc := closeErrOk_pure _ $$ Hsec
       wp_auto
-      wp_apply wp_isHaltErr ci cd err' $$ [] as %bh %Hbh
+      wp_apply wp_isHaltErr ci cd err' $$ [] as %bh -
       · iframe #
       cases bh
       · wp_auto

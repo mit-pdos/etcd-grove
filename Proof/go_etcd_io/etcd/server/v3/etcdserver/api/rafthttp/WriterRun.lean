@@ -150,13 +150,13 @@ codec's state, of a message whose facts are the connection's next frame's, is in
 protocol. -/
 theorem stream_perm (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (a : GoString)
     (R : http.HReq) (γk γw : GName) (fr : List (MsgWire × List w8))
-    (s : (ty.codec Rh.γn.N.Sz lid pid).S)
-    (st : MsgSt) (Hc : Chain (ty.codec Rh.γn.N.Sz lid pid) (ty.codec Rh.γn.N.Sz lid pid).init fr s)
+    (s : (ty.codec True lid pid).S)
+    (st : MsgSt) (Hc : Chain (ty.codec True lid pid) (ty.codec True lid pid).init fr s)
     (Hown : Rh.owner R.host = lid) :
     ⊢ streamReg Rh γk (γw, ty, pid) -∗ ([∗list] i ↦ f ∈ fr, frameDep Rh.γn.N γw pid i f.1) -∗
       frameDep Rh.γn.N γw pid fr.length (wireOf st) -∗
-      □ (∀ (bs : List w8) (s' : (ty.codec Rh.γn.N.Sz lid pid).S) (k : Nat),
-          ⌜(ty.codec Rh.γn.N.Sz lid pid).F s (wireOf st) bs s'⌝ -∗
+      □ (∀ (bs : List w8) (s' : (ty.codec True lid pid).S) (k : Nat),
+          ⌜(ty.codec True lid pid).F s (wireOf st) bs s'⌝ -∗
           ((raftHttpNet Rh).proto a).resp R γk (W64 200) (chainBytes fr ++ bs.take k)) := by
   iintro #Hreg #Hfs #Hd
   iintro !> %bs %s' %k %Hf

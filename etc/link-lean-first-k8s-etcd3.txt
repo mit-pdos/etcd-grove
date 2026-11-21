@@ -154,8 +154,12 @@ reflect_Value__Cap:
 reflect_Value__IsNil:
 reflect_Type__Elem:
 json_Marshal:
-IsTimeout:
-HasStatusCause:
+# (prove-k8s2, 2026-11-20) the APIStatus checks over their bodies, over errors.As's trust boundary
+errors_AsNoMatch:
+reasonAndCodeForError: errors_AsNoMatch
+StatusCause: errors_AsNoMatch
+IsTimeout: reasonAndCodeForError
+HasStatusCause: StatusCause
 RecordStorageListMetrics:
 RecordListLatency:
 # restated in 7e-2's first third, linked as axioms already elsewhere (k8setcd3, txn, client)
@@ -204,7 +208,7 @@ RecordEtcdEvent:
 RecordEtcdBookmark:
 Event_EventType__StringPtr:
 Status__Code:
-errors_AsLeafTy:
+errors_AsLeafTy: errors_AsNoMatch
 rpctypes_EtcdError__Code:
 Event__GetType:
 Event__GetKv:

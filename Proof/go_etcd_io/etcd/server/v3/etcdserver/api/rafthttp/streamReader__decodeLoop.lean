@@ -129,7 +129,7 @@ local macro "dl_send" C:term "," G:term : tactic => `(tactic| (
             have hw : wireOf st0 = wireOf st := Hst0.1.trans Hw.symm
             have hr : st.resps = [] := by rw [← hst]; simp [MsgC.model, Hres]
             exact ⟨by rw [hst]; exact MsgSt.eq_of_wire hw hr, Hcs, Hst0.2.1,
-              fun hs _ => Hsz hs (by rw [← hst] at HnHB; exact HnHB)⟩
+              fun _ _ => Hsok⟩
           iunfold netSnapRecv
           iintro %hs
           exact absurd hs Hst0.2.2.1
@@ -168,10 +168,10 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
       iframe
       iright; iexact Hcl
     wp_auto_lc 3
-    ihave HI : (∃ (decv : GoInterface) (fr : List (MsgWire × List w8)) (s : (StreamTy.codec Rh.γn.N.Sz $T pid lid).S),
-        "dec" ∷ dec_ptr ↦ decv ∗ "HdecO" ∷ decOwn Rh.γn.N.Sz lid pid $T decv rc s ∗
+    ihave HI : (∃ (decv : GoInterface) (fr : List (MsgWire × List w8)) (s : (StreamTy.codec True $T pid lid).S),
+        "dec" ∷ dec_ptr ↦ decv ∗ "HdecO" ∷ decOwn True lid pid $T decv rc s ∗
         "Hrr" ∷ http.respReader (raftHttpNet Rh) rc R γk (W64 200) (chainBytes fr) ∗
-        "%Hc" ∷ ⌜Chain (StreamTy.codec Rh.γn.N.Sz $T pid lid) (StreamTy.codec Rh.γn.N.Sz $T pid lid).init fr s⌝ ∗
+        "%Hc" ∷ ⌜Chain (StreamTy.codec True $T pid lid) (StreamTy.codec True $T pid lid).init fr s⌝ ∗
         "Hrd" ∷ streamRd γw fr.length ∗ "cr" ∷ cr_ptr ↦ cr ∗
         "Hlc1" ∷ £ 1 ∗ "Hlc2" ∷ £ 1 ∗ "Hlc3" ∷ £ 1) $$ [dec HdecO Hrr Hrd cr Hlc1 Hlc2 Hlc3]
     · iexists _, [], _
@@ -188,7 +188,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
     obtain ⟨ei, rfl⟩ := Hei
     (try wp_auto)
     ihave #Hrf := respReader_readFullAt (raftHttpNet Rh) (hReadFull _) rc R γk (W64 200)
-    wp_apply +noauto (wp_stream_decode hMsgDec hV2Dec Rh.γn.N γw $T lid pid _ ei rfl rc _ _ fr s Hc)
+    wp_apply +noauto (wp_stream_decode hMsgDec hV2Dec True Rh.γn.N γw $T lid pid _ ei rfl rc _ _ fr s Hc)
         $$ [HdecO Hrr] as %ml %err ⟨#Herr, %rs', %s', Hrr, HdecO, Hok⟩
     · iframe; iframe #
       iintro !> %bs HB
@@ -220,16 +220,21 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
     | nil =>
       ihave ⟨%w, %bs, %c, %Hfr, #HB, Hm⟩ := Hok $$ %rfl
       obtain ⟨Hf, rfl, Hw, Hres, Hcs, Hsz⟩ := Hfr
-      -- (raft-entsize §4) read through half of it, keeping the content for `netRecv`
-      icases msgPtsCC_read ml true c Hcs $$ Hm with ⟨Hm, Hback⟩
-      generalize hst : c.model = st at Hw Hsz ⊢
+      -- (rafthttpfix, 2026-11-20) of bounded size: the codec's `Sz` is `True`
+      have Hsok : msgSizeOk c := Hsz trivial
       ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
       icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, ⟨%vRB, #HRB, %HRBl⟩, ⟨%vRF, #HRF, %HRFl⟩, -⟩
       wp_auto
-      -- `receivedBytes.WithLabelValues(types.ID(m.GetFrom()).String()).Add(float64(proto.Size(m)))`
-      wp_apply hSize ml _ _ _ st $$ [Hm] as %n ⟨Hm, %Hn⟩
+      -- `receivedBytes.WithLabelValues(types.ID(m.GetFrom()).String()).Add(float64(proto.Size(m)))`:
+      -- (rafthttpfix) at the content, below `2^63` bytes
+      wp_apply hSize.2 ml _ _ _ c Hres $$ [Hm] as %n ⟨Hm, %Hn0⟩
       · iframe
+      have Hn : 0 ≤ sint.Z n := by
+        rw [Hn0 (by have := msgSize_lt_of_ok c Hsok; omega)]; omega
+      -- (raft-entsize §4) read through half of it, keeping the content for `netRecv`
+      icases msgPtsCC_read ml true c Hcs $$ Hm with ⟨Hm, Hback⟩
+      generalize hst : c.model = st at Hw ⊢
       wp_apply hGetFrom.1 ml _ _ _ st $$ [Hm] as Hm
       · iframe
       haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
@@ -381,9 +386,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
     (try wp_auto)
     wp_apply hNewDec _ lid pid as %d Hd
     (try wp_auto)
-    ihave HdecO : decOwn Rh.γn.N.Sz lid pid .msgAppV2
+    ihave HdecO : decOwn True lid pid .msgAppV2
         (interface.mkOk (go.GoType.PointerType rafthttp.msgAppV2Decoder.ty) #d) rc
-        (StreamTy.msgAppV2.codec Rh.γn.N.Sz pid lid).init $$ [Hd]
+        (StreamTy.msgAppV2.codec True pid lid).init $$ [Hd]
     · simp only [decOwn]
       iexists d
       iframe
@@ -397,9 +402,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
     ipersist r_d
     iclear __d
     (try wp_auto)
-    ihave HdecO : decOwn Rh.γn.N.Sz lid pid .message
+    ihave HdecO : decOwn True lid pid .message
         (interface.mkOk (go.GoType.PointerType rafthttp.messageDecoder.ty) #d) rc
-        (StreamTy.message.codec Rh.γn.N.Sz pid lid).init $$ []
+        (StreamTy.message.codec True pid lid).init $$ []
     · simp only [decOwn]
       iexists d
       iframe #

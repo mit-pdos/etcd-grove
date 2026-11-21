@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.Base
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

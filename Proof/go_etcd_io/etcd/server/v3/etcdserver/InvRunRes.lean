@@ -346,6 +346,7 @@ def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemSto
       -- empty snapshot; until then the application's snapshot token `memSnapTok`)
       epCsOk cs -∗ memSnapNone γs memSnapEmpty -∗
       (letI : MemStorReg GF := ⟨rg⟩; srvAttachedMem ms γs cl nk applied n boot) -∗
+      monoNatAuthOwn applied 1 0 -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})

@@ -66,15 +66,18 @@ is vacuous); `errorMsgIs` is never read as total correctness. (incomingof T8) A 
 by that method, and `errors.As` on a leaf checks only the error itself;
 `examples/axiomcx/incomingof-real` `TestFromErrorNoGRPCStatus`). The `Message()` conjunct rests on `s`
 being unwritable: a fresh `*Status` no ownership of which is given out when `ok = false`, the error's own
-read-only status (`grpcStatusRO`) when `ok = true`. -/
+read-only status (`status.statusAt`) when `ok = true`. (errdesc stage 2a, 2026-11-20) `Code()` returns the
+code `c` the precondition relates to the error (`statusCodeIs err c`; `statusErrOk_code` gives some), not
+the pure `statusCode err`: a fixed function of the value, which no implementation can meet for the errors
+it allocates (`notes/errdesc-ghost-plan.md`). -/
 abbrev status.FromError.spec : Prop :=
-  ∀ (err : GoInterface) (m : GoString),
+  ∀ (err : GoInterface) (m : GoString) (c : w32),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
-      (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
+      (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) ∗ statusCodeIs err c }}
     (App (Val (@! google_golang_org.grpc.status.FromError)) (Val #err))
   {{ (s : Loc) (ok : Bool), RET (PairV #s #ok);
       ⌜err = GoInterface.nil → ok = true⌝ ∗
-      □ (∀ Φ : val → IProp GF, ▷ Φ #(statusCode err) -∗
+      □ (∀ Φ : val → IProp GF, ▷ Φ #c -∗
         WP (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.status.Status.ty @!! go!"Code"))
           (Val #())) {{ Φ }}) ∗
       □ (∀ Φ : val → IProp GF, ▷ Φ #(errDesc err) -∗

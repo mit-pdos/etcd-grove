@@ -1187,15 +1187,15 @@ instance (γ : RNNames GF) (t : w64) (bound : Nat) :
 /-- The outgoing message and the applying batch can be from different Ready
 calls. The equality of terms is supplied by the server's term check. -/
 theorem srv_snapshot_index_le (γ : RNNames GF) (rd : ReadNames) (pin : GName)
-    (q : QMsg) (sv : SnapshotM) (ai : w64) (bound : Nat)
+    (q : QMsg) (sv : SnapshotM) (bound : Nat)
     (ht : q.st.msg.Type' = MsgSnap) (hs : q.st.snap = some sv)
-    (hb : γ.snap0 ≤ uint.nat ai) (ha : bound ≤ uint.nat ai) :
+    (hb : γ.snap0 ≤ bound) :
     letI := srvStor (GF := GF) γ.node
     rnMessageSource γ q ⊢ rnBatchSource γ q.st.msg.Term' bound -∗
       sentMsg γ.node.cl srvClusterN γ.id q.st -∗ dghostVar pin DFrac.discard γ.nl -∗
       nodeTagPin γ.node.cl γ.nl (fun s => iprop(snapshotValid γ.node.cl s ∗
-        srvStoredOrigin γ.node.cl rd.applied pin γ.snap0 s)) -∗
-      ▷ (srvAppliedOwn rd ai -∗ srvAppliedOwn rd ai ∗ ⌜uint.nat sv.Metadata'.Index' ≤ uint.nat ai⌝) := by
+        srvStoredOrigin γ.node.cl rd.cursor pin γ.snap0 s)) -∗
+      ▷ (monoNatAuthOwn rd.cursor 1 bound -∗ monoNatAuthOwn rd.cursor 1 bound ∗ ⌜uint.nat sv.Metadata'.Index' ≤ bound⌝) := by
   letI := srvStor (GF := GF) γ.node
   iintro #Hsrc #Hobs #Hsent #Hpin #Htag
   iunfold rnMessageSource at Hsrc
@@ -1214,11 +1214,8 @@ theorem srv_snapshot_index_le (γ : RNNames GF) (rd : ReadNames) (pin : GName)
     iintro Hown
     icases Horigin with (%hi | Hlb | ⟨%n, #Hn, #Hinstalled⟩)
     · iframe Hown; ipureintro; omega
-    · iunfold srvAppliedOwn at Hown
-      icases Hown with ⟨Hauth, Hpending⟩
-      ihave %hi := monoNatLbOwn_valid rd.applied _ _ _ $$ Hauth Hlb
-      iunfold srvAppliedOwn
-      iframe Hauth Hpending
+    · ihave %hi := monoNatLbOwn_valid rd.cursor _ _ _ $$ Hown Hlb
+      iframe Hown
       ipureintro; exact hi.2
     · ihave %hn := dghostVar_agree pin n DFrac.discard γ.nl DFrac.discard $$ Hn Hpin
       subst n
@@ -1891,15 +1888,15 @@ instance rnRtOk_persistent (γ : RNNames GF) (t : w64) (n : Nat) :
 /-- Before evaluating GetTerm the worker can retain a conditional index
 bound. Its first Go step discharges the storage tag's later modality. -/
 theorem srv_merge_index (γ : RNNames GF) (rd : ReadNames) (pin : GName)
-    (q : QMsg) (sv : SnapshotM) (term ai : w64) (bound : Nat)
+    (q : QMsg) (sv : SnapshotM) (term : w64) (bound : Nat)
     (ht : q.st.msg.Type' = MsgSnap) (hs : q.st.snap = some sv)
-    (hb : γ.snap0 ≤ bound) (ha : bound ≤ uint.nat ai) :
+    (hb : γ.snap0 ≤ bound) :
     letI := srvStor (GF := GF) γ.node
     rnMessageSource γ q ⊢ rnRtOk γ term bound -∗ sentMsg γ.node.cl srvClusterN γ.id q.st -∗
       dghostVar pin DFrac.discard γ.nl -∗ nodeTagPin γ.node.cl γ.nl
-        (fun s => iprop(snapshotValid γ.node.cl s ∗ srvStoredOrigin γ.node.cl rd.applied pin γ.snap0 s)) -∗
-      ▷ (⌜q.st.msg.Term' = term⌝ -∗ srvAppliedOwn rd ai -∗ srvAppliedOwn rd ai ∗
-        ⌜uint.nat sv.Metadata'.Index' ≤ uint.nat ai⌝) := by
+        (fun s => iprop(snapshotValid γ.node.cl s ∗ srvStoredOrigin γ.node.cl rd.cursor pin γ.snap0 s)) -∗
+      ▷ (⌜q.st.msg.Term' = term⌝ -∗ monoNatAuthOwn rd.cursor 1 bound -∗ monoNatAuthOwn rd.cursor 1 bound ∗
+        ⌜uint.nat sv.Metadata'.Index' ≤ bound⌝) := by
   letI := srvStor (GF := GF) γ.node
   iintro #Hsrc #Hrt #Hsent #Hloc #Hpin
   by_cases he : q.st.msg.Term' = term
@@ -1908,7 +1905,7 @@ theorem srv_merge_index (γ : RNNames GF) (rd : ReadNames) (pin : GName)
     icases Hrt with (%hzero | ⟨%c, -, -, #Hbatch⟩)
     · ihave %shape := sentMsg_shape γ.node.cl srvClusterN γ.id q.st $$ Hsent
       exact False.elim (shape.1.2.2.2.1 (by rw [ht]; exact msgSnap_not_termless) hzero)
-    · ihave Hle := srv_snapshot_index_le γ rd pin q sv ai bound ht hs (Nat.le_trans hb ha) ha
+    · ihave Hle := srv_snapshot_index_le γ rd pin q sv bound ht hs hb
         $$ Hsrc Hbatch Hsent Hloc Hpin
       inext; iintro -; iexact Hle
   · inext; iintro %he'; exact False.elim (he he')

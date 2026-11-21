@@ -363,7 +363,7 @@ theorem NewServer.wp_proofRG
   · iexact Hzlg
   wp_apply h5 as %cls -
   · iexact Hrc
-  wp_apply h4 as %sstats %Hssnn
+  wp_apply h4 as %sstats ⟨%Hssnn, #HssI⟩
   (try wp_auto)
   wp_apply h7 $$ [$nodeID] as %ids ⟨nodeID, -⟩
   wp_apply h6 as %lstats ⟨%Hlsnn, #Hlsi, Hlsf⟩
@@ -1170,7 +1170,7 @@ theorem NewServer.wp_proofRG
   · iunfold srvProcOk
     iexists cfg.Logger', bc.cl', sstats, γrn
     rw [← Hid]
-    iframe stats memberID HNodeC cluster lg HstepI Hrc Hkind Hzlg
+    iframe stats memberID HNodeC cluster lg HstepI Hrc Hkind Hzlg HssI
     ipureintro
     exact ⟨by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1],
       by rw [Hrn1]; (first | (rw [Hid]; exact Hsloc) | (rw [← Hid]; exact Hsloc) | exact Hsloc)⟩
@@ -1196,7 +1196,7 @@ theorem NewServer.wp_proofRG
   · iframe «$r0»
     simp only
     rw [Hid]
-    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool Hzlg
+    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool Hzlg HssI
     ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
   icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
@@ -1438,7 +1438,7 @@ theorem NewServer.wp_proofRG
     iframe
   -- the read names
   iunfold srvReadNamesFreshNK at Hrd
-  icases Hrd with ⟨Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
+  icases Hrd with ⟨Hcursor, Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
   -- (restart) the certificates' bound at the image's KV model
   imod (ghostVar_update (kvModel ρ.rd.kv A).length _ _) $$ Hkhi with Hkhi
   icases hHalves _ _ $$ Hkhi with ⟨Hkhi1, Hkhi2⟩
@@ -1597,8 +1597,9 @@ theorem NewServer.wp_proofRG
   · iframe HA0 Hcert
   ihave ⟨%msR, #HmsR, HsnapR⟩ := restart_snapOnceR h85 _ γrn (srvRAddr s) bv.storage' γs σ cs
       ρ.rd.raft A Hrn7 Hrns0 (by omega) (by rw [HρRaft]; exact Hcsv) (by rw [HρRaft]; exact Hcfg20)
-      $$ Hpkg Hrn [] Hmsnone
+      $$ Hpkg Hrn [] Hmsnone [Hcursor]
   · rw [Hrn1]; iExactEq Hminv; rfl
+  · iExactEq Hcursor; rfl
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"
