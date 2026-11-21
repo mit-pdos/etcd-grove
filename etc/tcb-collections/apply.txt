@@ -37,7 +37,6 @@ axiom strconv.FormatUint.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Time.Unix.wp_proof
-axiom trace.SpanFromContext.wp_proof
 axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
