@@ -110,7 +110,6 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
-axiom apierrors.NewInternalError.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
@@ -285,8 +284,6 @@ axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom io.ReadFull.wp_proof
-axiom k8sfeature.featureOff_persistent
-axiom k8sfeature.featureOn_persistent
 axiom klog.Background.wp_proof
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof

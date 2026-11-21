@@ -3755,3 +3755,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`isDescs`, `dm : Option`), SpecPlan's takes them always.
 - **Decision.** Applied (prove-errdesc2b, 2026-11-21; `notes/decisions.md`, "An error's description as a per-run
   relation").
+
+## 2026-11-21: `apierrors.NewInternalError` needs its error's `Error() string` in the method set (prove-k8s3)
+
+- **Spec.** `apierrors.NewInternalError.spec` (`Spec/k8s_io/apimachinery/pkg/api/errors/NewInternalError.lean`;
+  until this change a trust-boundary axiom).
+- **Defect.** Not provable over the body: `fmt.Sprintf("Internal error occurred: %v", err)` is specified by
+  Perennial's `fmt.argOk`, which asks the method-set entry `methodSet ei.ty !! "Error" = some fmt.noArgStringSig`
+  (`fmt`'s `handleMethods` switches `case error:` by signature); the precondition gave `Error()`'s WP and no
+  `Format`, not the entry. Go's type system gives the entry of every non-nil `error`; the model ties no interface
+  value's type to its static interface. Not a defect of Go's behavior.
+- **Evidence.** prove-k8s2's attempt (2026-11-21, `notes/STATUS.md`); the proof of this change.
+- **Proposed change.** Add the entry to the precondition's pure conjunct. Callers: `transformErrorToEvent` (from
+  `kErrOk`, which already has it) and the model API server's handlers (from `apimodelInit`, whose error clauses gain
+  it: its errors are `errors.New`'s `*errorString`, which has it; the fact is not proved yet, no `Init.lean`).
+- **Decision.** Applied (prove-k8s3, 2026-11-21); `apierrors.NewInternalError.wp_proof` is a theorem.
