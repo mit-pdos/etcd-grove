@@ -22,10 +22,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `r.Close()` returns. -/
+/-- `r.Close()` of a resolver whose closing right the caller holds (`etcdResolverCloser`, which
+`New` gives; prove-grpc3, 2026-11-21: until then no premise, as an axiom, which a nil or
+foreign `r` refutes) returns. -/
 abbrev resolver.EtcdManualResolver.Close.spec : Prop :=
   ∀ (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver ∗
+      etcdResolverCloser r }}
     (App (Val (r @!! go.GoType.PointerType
       go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty @!! go!"Close")) (Val #()))
   {{ RET #(); True }}

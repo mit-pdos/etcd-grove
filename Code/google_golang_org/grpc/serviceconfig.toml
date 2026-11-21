@@ -1,0 +1,7 @@
+# Types only (prove-grpc3, 2026-11-21): `ParseResult`, the type of etcd's
+# `EtcdManualResolver.serviceConfig` and of grpc's `resolver.State.ServiceConfig`.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

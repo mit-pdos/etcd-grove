@@ -155,7 +155,6 @@ axiom errors.AsNoMatch.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
@@ -412,9 +411,6 @@ axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
 axiom reflectM.value_intoVal_inj
 axiom reflectM.value_into_val_typed
-axiom resolver.EtcdManualResolver.Close.wp_proof
-axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
-axiom resolver.New.wp_proof
 axiom resourceversion.isWellFormed.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
