@@ -29,6 +29,41 @@ theorem replayRunAt_after (runs : List replayTermRun) (applied index : w64)
       simpa [List.dropWhile, replayRunAt, List.find?, hd, hl] using ih
     · simp [List.dropWhile, hd]
 
+/-- Joining two adjacent runs with the same term preserves the value read by
+`termAt`. An earlier run in the same immutable Ready still wins the lookup. -/
+theorem replayRunAt_coalesce (prior : List replayTermRun) (left right : replayTermRun)
+    (index : w64) (hends : uint.nat left.last' ≤ uint.nat right.last')
+    (hterm : left.term' = right.term') :
+    (replayRunAt (prior ++ [left, right]) index).map (·.term') =
+      (replayRunAt (prior ++ [{ right with first' := left.first' }]) index).map (·.term') := by
+  induction prior with
+  | nil =>
+    by_cases hl : uint.nat index ≤ uint.nat left.last'
+    · have hr := Nat.le_trans hl hends
+      simp [replayRunAt, List.find?, hl, hr, hterm]
+    · by_cases hr : uint.nat index ≤ uint.nat right.last' <;>
+        simp [replayRunAt, List.find?, hl, hr]
+  | cons head tail ih =>
+    by_cases hh : uint.nat index ≤ uint.nat head.last' <;>
+      simp [replayRunAt, List.find?, hh] at ih ⊢ <;> assumption
+
+/-- Replacing an uncommitted suffix can split a run. Its retained part still
+answers every earlier index that used to select that run. -/
+theorem replayRunAt_clip (prior oldTail newTail : List replayTermRun) (run : replayTermRun)
+    (first index : w64) (h : uint.nat index < uint.nat first)
+    (hend : uint.nat first ≤ uint.nat run.last') :
+    (replayRunAt (prior ++ run :: oldTail) index).map (·.term') =
+      (replayRunAt (prior ++ { run with last' := first - W64 1 } :: newTail) index).map
+        (·.term') := by
+  induction prior with
+  | nil =>
+    have hold : uint.nat index ≤ uint.nat run.last' := by omega
+    have hclip : uint.nat index ≤ uint.nat (first - W64 1) := by word
+    simp only [List.nil_append, replayRunAt, List.find?, hold, hclip, decide_true, Option.map_some]
+  | cons head tail ih =>
+    by_cases hh : uint.nat index ≤ uint.nat head.last' <;>
+      simp [replayRunAt, List.find?, hh] at ih ⊢ <;> assumption
+
 abbrev replayTerms.termAt.spec : Prop :=
   ∀ (r : GoSlice) (runs : List replayTermRun) (index : w64) (run : replayTermRun),
   replayRunAt runs index = some run →
