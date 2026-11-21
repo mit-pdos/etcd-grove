@@ -257,3 +257,60 @@ proof, the `TraceFire` lemmas and `trCapB_hookGate`. The untraced cluster's logg
 (`TraceLoggerOk_nil`): its contract is vacuous, so the main tree's clients are unaffected.
 Not yet re-checked: the other update points (the untraced win, the cut, enter, start/restart/stop),
 which (e) did not contradict.
+
+## (g) Second gap: the slot's half of the virtual maps is read at ordinary steps (2026-11-21)
+
+Found by the session implementing (f), before any Lean was changed. Section (a) says the six
+pieces are touched only at the win, the cut, enter, and start/restart/stop, and that every other
+use "only passes these conjuncts through or reads pure facts about their contents". That holds for
+the four leader-side authorities: their lookups against foreign fragments, `ReadIndex.lean:435`
+(`ownLogGhost_prefix_within`), `GhostState.lean:1991` (`rdOwn_hbResp_pos`) and
+`Refinement.lean:4212` (`rdOwn_ack`), are of keys already in the node's own map, so the node's own
+persistent fragments (`Htfrags`, `#Hf`) give them by `ghostMapElem_agree`, without the authority.
+It does **not** hold for `V`'s half, `ghostVar γs.1 ½ V` (`ownRaftGhost`'s `Hvirt`).
+
+`slot_open` (`StepGhost.lean:1341`) opens `slotInv` and reads `Hvirt` against the slot's own half
+(`ghostVar_agree`) to learn `DurLe E V`: the entered maps lie below the node's virtual maps. That is
+how a durable fragment (an entered vote or acknowledgement) is known to be in `V`. The steps that do
+it are ordinary protocol steps:
+- `vote_excl` (`StepGhost.lean:1472`) in `ownRaftGhost_step_stale` (`Refinement.lean:615`), `_app_accept`
+  (`:2545`), `_snap_fastfwd` (`:3478`) and `_snap_restore` (`:3619`);
+- `ownLogGhost_ack_agree` (`StepGhost.lean:1496`) and `ownLogGhost_hbResp` (`Refinement.lean:2366`) in
+  `ownRaftGhost_step_heartbeat` (`:2392`); the traced heartbeat paths do the same
+  (`TracedRaftStepRecvHb.lean:81`, `TracedRaftStepRecvUTHb.lean:52`, `ownRaftGhost_hbHigher`);
+- `heartbeat_commit_le_last` (`Facts.lean:91`), from `raft__Step.lean:240` and the traced heartbeat;
+- `ownLogGhost_not_doomed(_list)` (`Refinement.lean:2299`) and `rdOwn_arrive` (`:3921`) in the
+  read-index steps (`ownRaftGhost_arrive`, `ownRaftGhost_single_confirm`);
+- `slot_campK` (`StepGhost.lean:1415`) at the win (already an NC point).
+
+With `V`'s half inside the crash invariant, as (b1) puts it, each of these steps must open that
+invariant, and so needs `notCrashed`. NC then has to reach every ghost step, not five points:
+- the generic `ownRaftGhost_stepC`/`ownRaftGhostR_stepR` and `StepGhostMode`'s lemmas;
+- every `raft.Step` arm, whose ghost step runs at the arm's return, after `wp_apply` of the physical
+  lemma (`raft__Step.lean:598` and so on). It can be done there by a lemma (sound, not yet proved):
+  `WP e {{ v, |NC={E}=> Φ v }} ⊢ WP e {{ Φ }}` for a non-value `e`, since the last step holds the
+  state interpretation;
+- `node.run`'s and `RawNode`'s direct ghost steps (`InvNodeRun.lean:1516`, `TracedNodeRun.lean:900`, ...);
+- in the traced instance, the heartbeat and append gates as well as the win's. So `HookGate`'s
+  modality becomes NC everywhere, and every hook call site supplies it.
+
+This is still route 1 and still sound. But (a)'s inventory and (c)'s estimate are wrong: the NC
+plumbing row grows from ~16 files to essentially all of raft's step proofs, and the gates row from
+the win's two gates to all of them.
+
+Alternatives for the user to choose from (nothing implemented):
+1. **Accept it.** NC goes through every ghost step, using the WP-post lemma above. This roughly
+   doubles (c), mostly mechanical.
+2. **Keep `V`'s half with the node.** Make the slot's virtual-map variable per generation: a fresh
+   name per generation, recorded in `slotInv`, so a crash re-allocates both halves for `g + 1`
+   without the dead node's half. The crash invariant then holds `slotLive 1 g` and the four
+   authorities only, and `slot_open`'s readers need no NC. This changes `SlotNames`/`slotBody`,
+   allocation, and the cut, enter, restart and stop proofs (`Enter.lean`, `Facts.lean`'s allocation).
+3. **Variant (b3) first** (the four maps keyed by term in the winners' table), combined with 2. The
+   crash invariant then holds only `slotLive`, and the win needs no NC either.
+
+Also noted, for whichever is chosen:
+- a stop must agree the crash names of the client's handle with those inside the run's
+  `ownRaftGhost`. Two armed invariants of one id can be told apart with NC (both left disjuncts
+  would hold the full `terms` authority) if the namespace includes the names;
+- `NodeNames` is the natural carrier of the arm's names.
