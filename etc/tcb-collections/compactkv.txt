@@ -78,9 +78,7 @@ axiom Perennial.google_golang_org.grpc.health.initFuncsOk
 axiom Perennial.google_golang_org.grpc.health.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
-axiom Perennial.google_golang_org.grpc.metadata.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
-axiom Perennial.google_golang_org.grpc.reflection.opaqueInitsOk
 axiom Perennial.hash.crc32.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
@@ -148,8 +146,8 @@ axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
+axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
-axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ChainStreamInterceptor.wp_proof
@@ -158,13 +156,6 @@ axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
-axiom grpc.GenericClientStream.CloseSend.wp_proof
-axiom grpc.GenericClientStream.Context.wp_proof
-axiom grpc.GenericClientStream.Recv.wp_proof
-axiom grpc.GenericClientStream.Send.wp_proof
-axiom grpc.GenericServerStream.Context.wp_proof
-axiom grpc.GenericServerStream.Recv.wp_proof
-axiom grpc.GenericServerStream.Send.wp_proof
 axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
@@ -361,6 +352,7 @@ axiom strconv.FormatUint.wp_proof
 axiom strconv.Itoa.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
+axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom strings.TrimSuffix.wp_proof
@@ -389,7 +381,6 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
-axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg

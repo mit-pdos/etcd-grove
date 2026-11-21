@@ -420,7 +420,13 @@ requests received (`upClosed`), or another error (`out` back owned), a status er
 (`statusErrOk`: grpc's `serverStream.RecvMsg` returns `io.EOF` or `toRPCErr`'s, a `*status.Error`;
 premise fixes 7, `examples/premisefix/ctxvalue` `TestRealStreamErrors`); `SendMsg(&l)` of a message
 `Rep.send l m` (given back) with the handler's content `Dn j m` for its position `j` grows the
-sender's token, or fails, the message delivered or not (the token at the old or the new list);
+sender's token, or fails, the message delivered or not (the token at the old or the new list),
+with an error grpc's `status` accepts (`statusErrOk`; prove-grpcext, 2026-11-20, for
+`v3rpc.isClientCtxErr`'s premise: grpc v1.84.0 `stream.go:1808-1860`, `serverStream.SendMsg` returns
+`prepareMsg`'s errors, `encode`'s and `compress`'s `status.Errorf`, `status.Errorf(codes.ResourceExhausted,
+...)` for an oversized message, or `toRPCErr` of the transport's `Write` error, which passes `io.EOF`
+through and turns the rest into `*status.Error`s, as for `RecvMsg`; grpc-prometheus's
+`monitoredServerStream.SendMsg` returns the wrapped stream's error unchanged);
 `Context()` returns the run's context `ci` (`isContext ci cd`, `grpcRunCtx ci`).
 (k8s 7f-4, T-c, T-g) It is a pointer (`rawStreamKey`: a pointer type, its value a location), so that it is a comparable map
 key (etcd's `monitorLeader` keys a map by it): grpc passes a `*serverStream` (`server.go`
@@ -464,8 +470,8 @@ def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF
         (App (Val #(methods si.ty go!"SendMsg" si.v)) (Val #(msgAny Rep.ty l)))
       {{ (err : GoInterface), RET #err; Rep.send l m ∗
           ((⌜err = GoInterface.nil⌝ ∗ srvSendTok (Rep := Rep) γ (L ++ [m])) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ ∃ L' : List Rep.M,
-            ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L')) }}) ∗
+          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+            ∃ L' : List Rep.M, ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L')) }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
     context.isContext ci cd ∗ grpcRunCtx ci ∗ context.libCtxOkC ci ∗ trace.spanCtxOkC ci ∗
@@ -507,8 +513,8 @@ def srvRawStreamIsW (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg G
         (App (Val #(methods si.ty go!"SendMsg" si.v)) (Val #(msgAny Rep.ty l)))
       {{ (err : GoInterface), RET #err; Rep.send l m ∗
           ((⌜err = GoInterface.nil⌝ ∗ srvSendTok (Rep := Rep) γ (L ++ [m])) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ ∃ L' : List Rep.M,
-            ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L')) }}) ∗
+          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+            ∃ L' : List Rep.M, ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L')) }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
     srvCtxWeak ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci ∗ http.netCtxOkC ci ∗
@@ -573,8 +579,8 @@ def srvStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
         (App (Val #(methods si.ty go!"Send" si.v)) (Val #l))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ srvSendTok (Rep := Rep) γ (L ++ [m])) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ ∃ L' : List Rep.M,
-            ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L') }}) ∗
+          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+            ∃ L' : List Rep.M, ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L') }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
     srvCtxWeak ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci ∗ http.netCtxOkC ci ∗
@@ -683,7 +689,8 @@ embedded stream (read-only) is a raw server end with a weak context (`srvRawStre
 receiver owns, `Req.own`) and receives into it, `Send` and `Context` are the raw end's
 (`GenericServerStream`'s methods, axioms at the boundary). -/
 theorem srvStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal V]
-    [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V Req.ty]
+    [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V Req.ty] [TypeRepr Req.ty V]
+    [ZeroVal W] [TypeRepr Rep.ty W]
     (wp_Recv : grpc.GenericServerStream.Recv.spec (GF := GF) (hG := hG))
     (wp_Send : grpc.GenericServerStream.Send.spec (GF := GF) (hG := hG))
     (wp_Context : grpc.GenericServerStream.Context.spec (GF := GF) (hG := hG))
@@ -744,6 +751,9 @@ theorem srvStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal V]
     iapply HSend $$ %L %l %m [Htok Hs HDn]
     · iframe
     iintro !> %err ⟨-, Hres⟩
+    iexists err
+    isplitr
+    · ipureintro; rfl
     iapply HΦ
     iexact Hres
   isplitr
@@ -762,7 +772,8 @@ its embedded stream (read-only) is a raw client end: `Send`, `CloseSend` and `Co
 raw end's, `Recv` allocates the response (a fresh message the receiver owns, `Rep.own`) and
 receives into it (`GenericClientStream`'s methods, axioms at the boundary). -/
 theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
-    [TypedPointsto (GF := GF) W] [IntoValTyped (GF := GF) W Rep.ty]
+    [TypedPointsto (GF := GF) W] [IntoValTyped (GF := GF) W Rep.ty] [TypeRepr Rep.ty W]
+    [ZeroVal V] [TypeRepr Req.ty V]
     (wp_Send : grpc.GenericClientStream.Send.spec (GF := GF) (hG := hG))
     (wp_Recv : grpc.GenericClientStream.Recv.spec (GF := GF) (hG := hG))
     (wp_CloseSend : grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG))
@@ -788,7 +799,12 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
     · iexact Hf
     iapply HSend $$ %L %l %m [Htok Hs HUp]
     · iframe; iexact Hsz
-    iexact HΦ
+    iintro !> %err Hres
+    iexists err
+    isplitr
+    · ipureintro; rfl
+    iapply HΦ
+    iexact Hres
   isplitr
   · iintro !> %L %Φ !> Htok HΦ
     iapply (wp_Recv Req.ty Rep.ty V W p ci Φ)
