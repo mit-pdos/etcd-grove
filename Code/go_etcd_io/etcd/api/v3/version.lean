@@ -41,62 +41,38 @@ noncomputable def GitSHA [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def V3_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_0"
 
-opaque V3_0.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def V3_1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_1"
-
-opaque V3_1.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_2"
 
-opaque V3_2.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def V3_3 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_3"
-
-opaque V3_3.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_4 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_4"
 
-opaque V3_4.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def V3_5 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_5"
-
-opaque V3_5.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_6 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_6"
 
-opaque V3_6.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def V3_7 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_7"
-
-opaque V3_7.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_8"
 
-opaque V3_8.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def V3_9 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_9"
-
-opaque V3_9.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V4_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V4_0"
 
-opaque V4_0.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def AllVersions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.AllVersions"
-
-opaque AllVersions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.init.0"
@@ -144,6 +120,18 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"3.0.0"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"3.8.0-alpha.0"))
@@ -152,44 +140,121 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"Not provided (use ./build instead of go build)"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 1))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 2))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 3))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 4))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 5))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 6))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 7))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 8))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 3))
+  (Let "$a1" (Val #(W64 9))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Let "$a0" (Val #(W64 4))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (Val #(go!""))
+  (Let "$a4" (Val #(go!""))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.Masterminds.semver.v3.New []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_0))) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_1))) (Val #())))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_2))) (Val #())))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_3))) (Val #())))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_4))) (Val #())))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_5))) (Val #())))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_6))) (Val #())))
+  (Let "$v7" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_7))) (Val #())))
+  (Let "$v8" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V3_8))) (Val #())))
+  (Let "$v9" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr V4_0))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v2"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v3"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v4"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v5"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v6"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v7"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v8"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (Var "$v9")))]))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val AllVersions.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr AllVersions))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V4_0.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V4_0))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_9.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_9))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_8.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_8))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_7.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_7))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_6.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_6))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_5.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_5))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_4.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_4))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_3.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_3))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_2.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_2))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_1.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_1))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val V3_0.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr V3_0))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr GitSHA))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -207,7 +272,31 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc APIVersion go.string)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc GitSHA go.string)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc GitSHA go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_0 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_1 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_2 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_3 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_4 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_5 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_6 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_7 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_8 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V3_9 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc V4_0 _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc AllVersions (go.GoType.SliceType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (Val #()))))))))
 
 structure Versions [GooseExts] where
   mk ::
