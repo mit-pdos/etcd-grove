@@ -37,7 +37,13 @@ range or joining adjacent equal-term ranges preserves earlier lookups.
 The VM checked `replayTerms_prefix` for the full slice expression
 `r[:n:n]`. It retains the readable prefix and gives the writer zero
 spare capacity, so the next append cannot overwrite an earlier Ready.
-It also checked the translated empty-entry return of `appendEntries`.
+It also checked the translated empty-entry return of `appendEntries` and
+the bootstrap case for a nonempty batch with equal endpoint terms. From
+a nil receiver the translated method returns one run with the actual
+first and last indices and the first term. `replayBatch_ordered` derives
+term ordering for sublists of a recorded full Raft log. This justifies
+the endpoint shortcut when the input is tied to that log. Mixed terms
+and updates to an existing history are still open.
 
 Three obligations still need proofs.
 

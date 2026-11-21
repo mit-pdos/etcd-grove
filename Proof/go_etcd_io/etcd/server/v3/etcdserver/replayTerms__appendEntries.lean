@@ -127,5 +127,87 @@ theorem replayTerms.appendEntries_empty (r ents : GoSlice) (hempty : ents.len = 
   (try wp_auto)
   iapply HΦ; itrivial
 
+attribute [local instance] pure_test_execute
+
+/-- Bootstrap builds from a nil receiver. When the first and last entries share a term,
+the translated method emits one run with exactly those two indices. -/
+theorem replayTerms.appendEntries_oneRun (ents : GoSlice) (ls : List Loc) (nonempty : 0 < ls.length)
+    (first last : EntryModel) (same : last.term = first.term)
+    (getIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (getTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+       ents ↦*□ ls ∗ entryAt ls[0] first ∗ entryAt ls[ls.length - 1] last }}
+      (App (Val (slice.nil @!! replayTerms.ty @!! go!"appendEntries")) (Val #ents))
+    {{ (out : GoSlice), RET #out; out ↦*□ [replayTermRun.mk first.index last.index first.term] }} := by
+  wp_start as ⟨#Hents, #Hfirst, #Hlast⟩
+  ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
+  ihave %hlen := ownSlice_len ents _ ls $$ Hents
+  have hpos : 0 < sint.Z ents.len := by word
+  have hne : ents.len ≠ W64 0 := by word
+  have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z ents.len := ⟨by decide, hpos⟩
+  have hend : 0 ≤ sint.Z (ents.len - W64 1) ∧ sint.Z (ents.len - W64 1) < sint.Z ents.len := by word
+  have hlastIndex : (sint.Z (ents.len - W64 1)).toNat = ls.length - 1 := by word
+  icases ownSlice_elem_acc (sint.Z (W64 0)) ls[0] ents DFrac.discard ls (by decide)
+    (List.getElem?_eq_getElem nonempty) $$ Hents with ⟨#Hef, -⟩
+  icases ownSlice_elem_acc (sint.Z (ents.len - W64 1)) ls[ls.length - 1] ents DFrac.discard ls hend.1
+    (by rw [hlastIndex]; exact List.getElem?_eq_getElem (by omega)) $$ Hents with ⟨#Hel, -⟩
+  (try wp_auto)
+  simp only [hne, decide_false]
+  (try wp_auto)
+  simp only [hb]
+  (try wp_auto)
+  wp_apply wp_entryAt_GetIndex getIndex _ first $$ [$Hpb $Hfirst]
+  (try wp_auto)
+  wp_for
+  rw [doFor_unseal]
+  unfold doForDef
+  (try wp_auto)
+  simp only [hb.2, _root_.decide_true]
+  (try wp_auto)
+  simp only [hb]
+  (try wp_auto)
+  wp_apply wp_entryAt_GetTerm getTerm _ first $$ [$Hpb $Hfirst]
+  simp only [hend]
+  (try wp_auto)
+  wp_apply wp_entryAt_GetTerm getTerm _ last $$ [$Hpb $Hlast]
+  simp only [same]
+  simp only [_root_.decide_true]
+  (try wp_auto)
+  (try simp only [hb])
+  (try wp_auto)
+  wp_apply wp_entryAt_GetIndex getIndex _ first $$ [$Hpb $Hfirst]
+  (try simp only [hend])
+  (try wp_auto)
+  wp_apply wp_entryAt_GetIndex getIndex _ last $$ [$Hpb $Hlast]
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := replayTermRun) [replayTermRun.mk first.index last.index first.term]
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  (try wp_auto)
+  have hnil : slice.fullSlice slice.nil replayTermRun (W64 0) 0 0 = slice.nil :=
+    (slice_slice_trivial (V := replayTermRun) slice.nil).symm
+  rw [hnil]
+  ihave #Hnil := ownSlice_nil (GF := GF) (V := replayTermRun) DFrac.discard
+  ihave Hcap := ownSliceCap_nil (GF := GF) (V := replayTermRun)
+  wp_apply wp_slice_append_persistent (V := replayTermRun) slice.nil [] _ _ (DFrac.own 1) $$ [$Hnil $Hcap $Hsl]
+    as %result ⟨#Hresult, -, -⟩
+  (try wp_auto)
+  ihave %hwf := ownSlice_wf ents _ ls $$ Hents
+  have hb' : 0 ≤ sint.Z ents.len ∧ sint.Z ents.len ≤ sint.Z ents.len ∧ sint.Z ents.len ≤ sint.Z ents.cap :=
+    ⟨hlen.2, Int.le_refl _, hwf.2⟩
+  (try simp only [hb'])
+  (try wp_auto)
+  wp_pures
+  (try wp_auto)
+  (try simp only [slice.slice])
+  (try wp_auto)
+  simp only [show ¬sint.Z (W64 0) < sint.Z (ents.len - ents.len) by word, decide_false]
+  (try wp_auto)
+  iapply HΦ
+  simp only [List.nil_append]
+  iexact Hresult
+
 end EtcdGrove
 end Perennial
