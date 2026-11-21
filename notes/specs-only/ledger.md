@@ -4013,3 +4013,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** The post gives `Int.toNat actualMaxReaders - 1` slots (the loop keeps one); the rest unchanged.
 - **Decision.** Approved by the user (2026-11-21), on the condition that every caller still proves: applied, the callers'
   slot arithmetic adjusted (`NewServer`, `NewServerR`, `mvccfull`'s `runner.open`, `mvccrand`'s `runChecks`).
+
+## 2026-11-21: `wal.WAL.renameWALUnlock.spec` -- its call made unreachable (supersedes the open parts of the 2026-11-14 entries)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWALUnlock.lean` (a hypothesis of
+  `renameWAL.wp_proof`, and so of `wal.Create`'s and every result over it: the WAL tester's `wp_Boot`/`wp_Main`,
+  `h_wal_WAL_renameWALUnlock`).
+- **Defect.** False as stated (entries of 2026-11-14): (1) its `w.Close()` needs the encoder and the tail file,
+  which `walPreIn` does not carry; (2) its `Open`/`ReadAll` need an atomic update on `walDirIs dir` that the client
+  spent at the first rename's commit; (3) after a rename that committed with an error, the second
+  `os.Rename(nm.tmp, nm)` has an absent source, which no `os.Rename` spec covers. A false hypothesis makes
+  every result over it vacuous.
+- **Evidence.** The 2026-11-14 entries; `renameWAL.wp_proof` (`WAL__renameWAL.lean:116-125`) reaches the call only
+  when `os.Rename(nm.tmp, nm)` returned an error. The WAL's other specs already rule out such errors when the file
+  system cannot fail on the path (`cut.spec`, `Save.spec`: `walCov Sio → DirFits dir ∧ …`; `os.Rename.specFileS`'s
+  witness `err ≠ nil → ¬ (FsNoErrOn (· = target) ∧ PathFits src ∧ PathFits target)`, wal-fsfix2).
+- **Proposed change.** (a) `os.Rename.specDirS`/`specDirSnc` (`Spec/os/RenameS.lean`) gain the same error witness
+  as `specFileS` (a stronger post; proof over a new `wp_osRenameDirSW`/`wp_osRenameDirSNE` in
+  `GooseLang/Ext/Fs/NoErrSpecsRename.lean`, as for files: `NoIoErr` gives a directory rename with a success, the
+  source a directory, the target absent, the whole call permission held, errno 0). (b) `renameWAL.spec` and
+  `wal.Create.spec`/`specFresh` take the premise `FsNoErrOn (· = dir) ∧ PathFits (child r tmp) ∧ PathFits dir`
+  (the file system does not fail on the WAL's name, and both names fit). `renameWAL`'s rename-error branch is
+  then refuted, and `renameWALUnlock.spec` leaves `renameWAL.wp_proof`'s hypotheses, so it leaves every Link. The spec
+  file is deleted, and `renameWALPost`'s arm 2 (the reopened handle) can go, with its handling in `Create`.
+  Clients: the WAL tester (premise from its semantics, `NoIoErr allIo`, and its area's path fitting); no
+  etcdserver proof calls `wal.Create` (C6 unwritten).
+- **Decision.** The fix was approved by the coordinator (2026-11-21, issue #15). The form (b), a new premise on
+  `wal.Create.spec`, an exported result of the WAL's Link, is **pending the coordinator**.
