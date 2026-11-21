@@ -242,3 +242,18 @@ ways out, neither in this note:
 Nothing was implemented: the user (or the next design round) picks one of these first. Every other
 update point the note lists (the untraced win's inserts in `Refinement.lean`, cut, enter,
 start/restart/stop) was not contradicted by this check.
+
+## (f) Resolution of (e) (2026-11-21, the coordinating session; open to the user's veto)
+
+Way out 1: the trace's atomic update carries `notCrashed`. The logger's linearization point
+(`TraceEvent`'s commit under the recorder's lock) is an atomic step, so `wp_atomic_nc` supplies the
+token there; `TraceFire`'s update and `isTraceLogger`'s contract gain it; the win gate hands out
+the view half of the term map's authority instead of the authority, and `FxPresU` opens the crash
+invariant itself (with the token) to check freshness and insert, as now. Why not way out 2: it
+redoes review round 5's E1 (freshness proved with the new term's log already in the map), which is
+new protocol reasoning; way out 1 only threads a token through contracts, keeping every argument.
+Cost added to (c): the logger contract (`RaftTla`'s `InvTraceLogger`), the tracecheck recorder's
+proof, the `TraceFire` lemmas and `trCapB_hookGate`. The untraced cluster's logger is `nil`
+(`TraceLoggerOk_nil`): its contract is vacuous, so the main tree's clients are unaffected.
+Not yet re-checked: the other update points (the untraced win, the cut, enter, start/restart/stop),
+which (e) did not contradict.
