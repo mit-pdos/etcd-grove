@@ -485,8 +485,10 @@ theorem newAuthStore_on
     · ipureintro; exact Hstnn
     isplitr
     · iexists lg; iframe lg; iexact Hlgz
-    iexists tp; iframe tokenProvider
-    iapply tokenProviderOk_of_A $$ HtpA
+    isplitr
+    · iexists tp; iframe tokenProvider
+      iapply tokenProviderOk_of_A $$ HtpA
+    iexists _; iexact bcryptCost
   -- `if enabled { as.tokenProvider.enable() }`: the provider's admin resource kept
   ihave #HtpA' := HtpA
   iunfold tokenProviderOkA at HtpA'

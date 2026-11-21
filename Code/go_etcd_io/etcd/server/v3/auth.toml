@@ -98,8 +98,12 @@ translate = ["!*",
   # (prove-authcrypto, 2026-11-21) the simple provider's `genTokenPrefix` with its body, over
   # Perennial's `crypto/rand.Int` (its trusted model) and `math/big`'s `NewInt`/`Int64`, and the
   # constants it reads; until then names only (the trust boundary)
-  "tokenSimple.genTokenPrefix", "letters", "defaultSimpleTokenLength"]
-imports = ["!*", "bytes", "context", "crypto/rand", "math/big", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
+  "tokenSimple.genTokenPrefix", "letters", "defaultSimpleTokenLength",
+  # (prove-authcrypto, 2026-11-21) the password's selection with its body: bcrypt's
+  # `GenerateFromPassword` (the trust boundary) or base64's `StdEncoding.DecodeString` (proved,
+  # `Proof/encoding/base64/`); until then names only
+  "authStore.selectPassword"]
+imports = ["!*", "bytes", "context", "crypto/rand", "math/big", "encoding/base64", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
   "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt",

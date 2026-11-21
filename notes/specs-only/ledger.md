@@ -3863,6 +3863,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   leader) supply them. Not applied: it changes the server's lessor contract.
 - **Decision.** Open (the axiom stays).
 
+## 2026-11-21: the auth store's `selectPassword` reads `as.bcryptCost` (prove-authcrypto)
+
+- **Spec.** `auth.authStore.selectPassword.spec` (`Spec/go_etcd_io/etcd/server/v3/auth/`; a trust-boundary axiom
+  until this change, the method names only).
+- **Defect.** Not provable over the real code: its bcrypt branch is `bcrypt.GenerateFromPassword([]byte(password),
+  as.bcryptCost)` (`store.go:420-426`), a load of the store's `bcryptCost` field, and the premise gave only
+  `st ≠ null`.
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/auth.lean`, `authStore.selectPassword.impl`).
+- **Proposed change.** The premise takes the field read-only (`∃ c, aF "bcryptCost" st ↦□ c`); `authInv` holds it
+  (its last conjunct; `NewAuthStore`'s composite literal sets it and nothing writes it: `NewAuthStoreOn`'s proof
+  already had it persistent), `authInv_bcryptCost` hands it out; the four callers (`UserAdd`, its two `sure`
+  variants, `UserChangePassword`) pass it. `NewAuthStore`'s axiom is unchanged (its contracts do not mention
+  `authInv`).
+- **Decision.** Applied (prove-authcrypto, 2026-11-21).
+
+## 2026-11-21: bcrypt's `GenerateFromPassword` returns `nil` with its error (prove-authcrypto)
+
+- **Spec.** `bcrypt.GenerateFromPassword.spec` (a trust-boundary axiom).
+- **Defect.** Too weak for `selectPassword`'s post (`∃ bs, b ↦*□ bs` on every path): the error disjunct said nothing
+  of the returned slice.
+- **Evidence.** `bcrypt.go:95-104` (x/crypto v0.57.0): both error returns are `return nil, err`.
+- **Proposed change.** The error disjunct also states `h = slice.nil` (a strengthening of the axiom, true of the
+  code; `EtcdServer.UserAdd`'s two uses drop it).
+- **Decision.** Applied (prove-authcrypto, 2026-11-21).
 ## 2026-11-21: the lessor's `demotec` and stop channels get ghost state (prove-ps2-lease)
 
 - **Spec.** `lease.lessor.Demote.spec`, `lease.lessor.Stop.spec`, `lease.lessorStopTok`
