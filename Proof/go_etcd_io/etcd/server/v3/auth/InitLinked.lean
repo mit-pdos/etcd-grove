@@ -9,8 +9,10 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.auth.Init
 public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.context.Link
+public import Perennial.Proof.crypto.rand.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.math.big.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
@@ -102,28 +104,34 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoFunc) reportCurrentAuthRev _ as HreportCurrentAuthRev
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCurrentAuthRevMu _ as HreportCurrentAuthRevMu
   wp_apply wp_GlobalAlloc (V := GoInterface) currentAuthRevision _ as HcurrentAuthRevision
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd20⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd19⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd18⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.golang_org.x.crypto.bcrypt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd15⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
-      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd14⟩
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd16⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
-      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd13⟩
+      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd15⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
-      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd12⟩
+      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
-      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd11⟩
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd13⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
-      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1))
+      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.math.big _root_.Perennial.math.big.initialize'
+      EtcdGrove.ExternalInit.math_big _root_.Perennial.math.big.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.crypto.rand _root_.Perennial.crypto.rand.initialize'
+      EtcdGrove.ExternalInit.crypto_rand _root_.Perennial.crypto.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd10⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd9⟩
@@ -287,7 +295,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     repeat (first | (isplitl []; · (iexists _; iframe #)) | (iexists _; iframe #))
     try itrivial
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd18
+  · iapply isPkgInit_access $$ Hd20
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩
   imod (sync.init_RWMutex go_etcd_io.etcd.server.v3.auth.reportP (globalAddr reportCurrentAuthRevMu) (E := ⊤)) $$ [HreportCurrentAuthRev] HreportCurrentAuthRevMu with HRP
   · inext

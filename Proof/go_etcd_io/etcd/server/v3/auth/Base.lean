@@ -27,6 +27,8 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.Proof.strings
 public import Perennial.Proof.strconv.Base
+public import Perennial.Proof.crypto.rand.Base
+public import Perennial.Proof.math.big.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Proof.errors.NewVarCell

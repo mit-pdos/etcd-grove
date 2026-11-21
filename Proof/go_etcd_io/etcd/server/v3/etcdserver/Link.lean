@@ -631,6 +631,8 @@ public import Perennial.Proof.time.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.strings.Link
+public import Perennial.Proof.crypto.rand.Link
+public import Perennial.Proof.math.big.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.bytes.Buffer__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
@@ -1459,7 +1461,7 @@ theorem auth.authStore.wp_setupMetricsReporter :
 
 theorem auth.tokenSimple.wp_genTokenPrefix :
     auth.tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG) :=
-  auth.tokenSimple.genTokenPrefix.wp_proof
+  auth.tokenSimple.genTokenPrefix.wp_proof _root_.Perennial.math.big.wp_NewInt _root_.Perennial.crypto.rand.wp_Int _root_.Perennial.math.big.Int.wp_Int64
 
 theorem config.ServerConfig.wp_PeerDialTimeout :
     config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=

@@ -10,6 +10,8 @@ public import Code.github_com.prometheus.client_golang.prometheus
 public import Perennial.Code.fmt
 public import Code.go_etcd_io.etcd.api.v3.authpb
 public import Code.go_etcd_io.etcd.pkg.v3.adt
+public import Perennial.Code.crypto.rand
+public import Perennial.Code.math.big
 public import Perennial.Code.strconv
 public import Perennial.Code.strings
 public import Perennial.Code.bytes
@@ -149,9 +151,11 @@ opaque jwtOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 @[reducible] noncomputable def optTTL [GooseExts] [GoGlobalContext] : val :=
   #(go!"ttl")
 
-opaque letters [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def letters [GooseExts] [GoGlobalContext] : val :=
+  #(go!"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-opaque defaultSimpleTokenLength [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def defaultSimpleTokenLength [GooseExts] [GoGlobalContext] : val :=
+  #(16 : Int)
 
 @[reducible] noncomputable def rootUser [GooseExts] [GoGlobalContext] : val :=
   #(go!"root")
@@ -1043,6 +1047,75 @@ noncomputable def simpleTokenTTLKeeper.run.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Pair (Var "tokenTicker") (Var "$r0"))))))))))
   (Val #()))))
+
+/-- go: simple_token.go:110:23 -/
+noncomputable def tokenSimple.genTokenPrefix.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenSimple.ty)))) (Var "t"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultSimpleTokenLength)))
+  (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "ret")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultSimpleTokenLength)))))) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.crypto.rand.Reader))) (Val #())))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.int64))) (Val #(W64 52)))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.big.NewInt []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.crypto.rand.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "bInt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val letters) (App (Val (GoInstruction (Convert go.int64 go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty) go!"Int64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty)))) (Var "bInt"))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "ret")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #(go!""))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty)))) (Pair (Var "bInt") (Var "$r0"))))))))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "ret") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- go: simple_token.go:125:23 -/
 noncomputable def tokenSimple.assignSimpleTokenToUser.impl [GooseExts] [GoGlobalContext] : val :=
@@ -4800,12 +4873,14 @@ noncomputable def authStore.setupMetricsReporter.impl [GooseExts] [GoGlobalConte
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.auth where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.sort, pkg_id.sync.atomic, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.crypto.rand, pkg_id.math.big, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.sort, pkg_id.sync.atomic, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.auth)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5066,6 +5141,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.crypto.rand.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.math.big.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -5394,6 +5473,7 @@ class tokenSimple.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   ptr_assignSimpleTokenToUser_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"assignSimpleTokenToUser" tokenSimple.assignSimpleTokenToUser.impl
   ptr_disable_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"disable" tokenSimple.disable.impl
   ptr_enable_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"enable" tokenSimple.enable.impl
+  ptr_genTokenPrefix_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"genTokenPrefix" tokenSimple.genTokenPrefix.impl
   ptr_info_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"info" tokenSimple.info.impl
   ptr_invalidateUser_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"invalidateUser" tokenSimple.invalidateUser.impl
   ptr_isValidSimpleToken_unfold : MethodUnfold (go.GoType.PointerType tokenSimple.ty) go!"isValidSimpleToken" tokenSimple.isValidSimpleToken.impl
@@ -5418,6 +5498,7 @@ attribute [instance] tokenSimple.TypeAssumptions.type_repr
   tokenSimple.TypeAssumptions.ptr_assignSimpleTokenToUser_unfold
   tokenSimple.TypeAssumptions.ptr_disable_unfold
   tokenSimple.TypeAssumptions.ptr_enable_unfold
+  tokenSimple.TypeAssumptions.ptr_genTokenPrefix_unfold
   tokenSimple.TypeAssumptions.ptr_info_unfold
   tokenSimple.TypeAssumptions.ptr_invalidateUser_unfold
   tokenSimple.TypeAssumptions.ptr_isValidSimpleToken_unfold
@@ -5870,6 +5951,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
   import_adt_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Assumptions
+  import_rand_Assumption : _root_.Perennial.crypto.rand.Assumptions
+  import_big_Assumption : _root_.Perennial.math.big.Assumptions
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
@@ -5920,6 +6003,8 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.import_fmt_Assumption
   Assumptions.import_authpb_Assumption
   Assumptions.import_adt_Assumption
+  Assumptions.import_rand_Assumption
+  Assumptions.import_big_Assumption
   Assumptions.import_strconv_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_bytes_Assumption

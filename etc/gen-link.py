@@ -663,6 +663,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
                               "Perennial.Proof.sync.Link", "Perennial.Proof.context.Link",
                               "Perennial.Proof.strings.Link",
+                              # (prove-authcrypto, 2026-11-21) the simple token provider's
+                              # `genTokenPrefix`'s callees (`=` terms)
+                              "Perennial.Proof.crypto.rand.Link", "Perennial.Proof.math.big.Link",
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
                               # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
                               # axiom, net/http's errors not `errMemberRemoved`
