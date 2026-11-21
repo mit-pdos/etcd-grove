@@ -334,7 +334,12 @@ PROJECTS = [
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
         # Includes legacy WAL recovery and the same-term snapshot send without an index guard.
-        rev="34f5142d062b6b138420e6d192a5b649d7063fd9",
+        # Then (auth-mediation M3, 2026-11-21, the user's Q4 option (i) via etcd-grove-03) 4416a5786
+        # (branch `goose-lean-rangestream-clone`, on 34f5142d0): upstream's fix of the keys-only
+        # `RangeStream` data race cherry-picked (etcd-io/etcd@9acc0ebe37: `rangeStream`'s next key is
+        # `append(bytes.Clone(lastKey), 0)`, no longer an append into mvcc's index key;
+        # nonissues/etcd-rangestream-keysonly-index-key-race.md).
+        rev="4416a5786332f9489e5f641810e8aeace53e92aa",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
