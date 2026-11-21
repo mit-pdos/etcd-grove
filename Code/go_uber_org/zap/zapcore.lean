@@ -615,6 +615,21 @@ noncomputable def Lock [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewMultiWriteSyncer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewMultiWriteSyncer"
 
+/-- NewNopCore returns a no-op Core.
+
+    go: core.go:50:6 -/
+noncomputable def NewNopCore.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Core.ty))) (App (Val (GoInstruction (GoZeroVal Core.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert nopCore.ty Core.ty))) (App (Val (GoInstruction (CompositeLiteral nopCore.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Core.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad Core.ty))) (Var "$res0")))))
+
 /-- String returns a lower-case ASCII representation of the log level.
 
     go: level.go:113:16 -/
@@ -781,6 +796,37 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_uber_org.zap.internal.color.Color.ty))) (Pair (Var "color") (Var "$value"))))))))))))
   (Val #())))
+
+/-- AddSync converts an io.Writer to a WriteSyncer. It attempts to be
+    intelligent: if the concrete type of the io.Writer implements WriteSyncer,
+    we'll use the existing Sync method. If it doesn't, we'll add a no-op Sync.
+
+    go: write_syncer.go:40:6 -/
+noncomputable def AddSync.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc WriteSyncer.ty))) (App (Val (GoInstruction (GoZeroVal WriteSyncer.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$y" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 WriteSyncer.ty))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "w" (App (Val (GoInstruction (GoAlloc WriteSyncer.ty))) (Var "$x"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore WriteSyncer.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert writerWrapper.ty WriteSyncer.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (App (Val (GoInstruction (CompositeLiteral writerWrapper.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.io.Writer.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore WriteSyncer.ty))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap.zapcore where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.fmt, pkg_id.go_uber_org.zap.internal.pool, pkg_id.io, pkg_id.errors, pkg_id.go_uber_org.zap.internal.color]
@@ -2436,7 +2482,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   lockedWriteSyncer_instance : lockedWriteSyncer.TypeAssumptions
   writerWrapper_instance : writerWrapper.TypeAssumptions
   multiWriteSyncer_instance : multiWriteSyncer.TypeAssumptions
+  NewNopCore_unfold : FuncUnfold NewNopCore [] NewNopCore.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  AddSync_unfold : FuncUnfold AddSync [] AddSync.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
@@ -2498,7 +2546,9 @@ attribute [instance] Assumptions.BufferedWriteSyncer_instance
   Assumptions.lockedWriteSyncer_instance
   Assumptions.writerWrapper_instance
   Assumptions.multiWriteSyncer_instance
+  Assumptions.NewNopCore_unfold
   Assumptions.«init.0_unfold»
+  Assumptions.AddSync_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_fmt_Assumption

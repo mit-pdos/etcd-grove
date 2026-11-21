@@ -1090,22 +1090,32 @@ generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` 
         'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
 )
 
+_VERS = ['V3_0', 'V3_1', 'V3_2', 'V3_3', 'V3_4', 'V3_5', 'V3_6', 'V3_7', 'V3_8', 'V3_9', 'V4_0']
+_SEMVER_NEW = 'EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof'
+def semver_new_steps(x):
+    """`x = *semver.New(...)`: `semver.New`'s spec (a read-only version), then the load."""
+    return ['try wp_auto',
+            f'wp_apply ({_SEMVER_NEW}) as %p{x} ⟨%N{x}, %o{x}, #P{x}⟩',
+            'try wp_auto']
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
-    doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
-`MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string variables
-(`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since 2026-11-19,
-until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`) and runs its other
-variables' untranslated initializers: `semver` versions (`*semver.New(3, 6, 0, "", "")`, which
-formats with `fmt`) and `AllVersions`; the trust-boundary axiom `V3_6_init` states the one the fact
-reads, `opaqueInitsOk` the others.''',
-    alloc_types={x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
-    custom={
-        'V3_6': dict(doc='/-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/',
-                     post='∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v',
-                     pat='⟨%v@, H@⟩'),
-    },
-    before={'V3_0': ['try wp_auto']},
-    finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion'] + FIN_PRE[:6],
+    doc='''Its fact (`api/v3/version/PkgInit.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6`, `V3_7` and `V3_8`
+fixed values and `MinClusterVersion` `"3.0.0"`. Its initializer allocates and sets its translated string
+variables (`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`; translated since
+2026-11-19, until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`), its `semver`
+versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, proved over the real code) and
+`AllVersions` (a slice literal of them; prove-initleft, 2026-11-21: until then the trust-boundary axioms
+`V3_6_init` and `opaqueInitsOk`), and runs its untranslated `init` function, which the trust-boundary
+axiom `initFuncsOk` says returns.''',
+    alloc_types=dict({x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
+                     **{x: 'github_com.Masterminds.semver.v3.Version' for x in _VERS}, AllVersions='GoSlice'),
+    before=dict({x: semver_new_steps(x) for x in _VERS},
+                AllVersions=['try wp_auto',
+                             'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sav ⟨Sav, -⟩',
+                             'try wp_auto']),
+    imports=['Proof.github_com.Masterminds.semver.v3.New',
+             'Proof.github_com.Masterminds.semver.v3.Version__String'],
+    finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion',
+            'ipersist HV3_7', 'ipersist HV3_8'] + FIN_PRE[:6],
 )
 
 # (the lease-renew plan, 2026-11-01) names only: `LeaseRenew` reads `LeasePrefix`
@@ -1675,9 +1685,12 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
 (`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
 2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
-names), initializes its imports and runs its other variables' untranslated initializers, which
-the trust-boundary axiom `opaqueInitsOk` says run.''',
-    alloc_types={'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
+names), initializes its imports and runs its other variables' initializers, all translated
+(prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
+interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated
+`init` function (`bucket.go`), which the trust-boundary axiom `initFuncsOk` says returns.''',
+    imports=['Proof.github_com.Masterminds.semver.v3.MapKey'],
+    alloc_types={'schemaChanges': 'Loc', 'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
                  'Meta': 'GoInterface', 'Key': 'GoInterface', 'metaBucketName': 'GoSlice',
                  'keyBucketName': 'GoSlice', 'authEnabled': 'GoSlice', 'authDisabled': 'GoSlice',
                  'authBucketName': 'GoSlice', 'authUsersBucketName': 'GoSlice',
@@ -1693,7 +1706,9 @@ the trust-boundary axiom `opaqueInitsOk` says run.''',
                                            'emptyStorageVersion']},
                  **{x: 'GoInterface' for x in ['Alarm', 'Cluster', 'Members', 'MembersRemoved', 'Test']}},
     before={
-        '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
+        # `authEnabled`/`authDisabled` (slice literals), then the interface assertions `var _ ... = (*T)(nil)`
+        # (prove-initleft, 2026-11-21: until then in `opaqueInitsOk`), stepped by `wp_auto`
+        'keyBucketName': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
                 'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
@@ -1721,6 +1736,28 @@ the trust-boundary axiom `opaqueInitsOk` says run.''',
                               'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto']
                              + [l for n in ['confState', 'clusterVersion', 'downgrade', 'storageVersion', '']
                                 for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')],
+        # (prove-initleft, 2026-11-21) `schemaChanges`, a map literal keyed by `version.V3_6`, `V3_7`,
+        # `V3_8` (read-only by `version`'s fact; `semver.Version` a safe map key, `MapKey.lean`), whose
+        # first value is a slice of one `addNewField(...)` (translated, its body stepped); until then
+        # `opaqueInitsOk`
+        'schemaChanges': [
+            'try wp_auto',
+            'ihave #Hvv : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗',
+            '    (∃ v : github_com.Masterminds.semver.v3.Version, globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗',
+            '    globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0" ∗',
+            '    (∃ v7 v8 : github_com.Masterminds.semver.v3.Version,',
+            '      globalAddr go_etcd_io.etcd.api.v3.version.V3_7 ↦□ v7 ∗ globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v8)) $$ []',
+            '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.api.v3.version}',
+            'icases Hvv with ⟨-, ⟨%v36, #Hv36⟩, -, ⟨%v37, %v38, #Hv37, #Hv38⟩⟩',
+            'try wp_auto',
+            'wp_func_call', 'wp_call', 'try wp_auto',
+            'wp_apply (wp_map_make1 (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) '
+            'github_com.Masterminds.semver.v3.Version.ty (go.GoType.SliceType schemaChange.ty)) as %msc Hmsc'] +
+            ['try wp_auto',
+             'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩',
+             'try wp_auto',
+             'wp_apply (wp_mapInsert (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) '
+             'github_com.Masterminds.semver.v3.Version.ty) $$ Hmsc as Hmsc'] * 3 + ['try wp_auto'],
     },
     finish=['ipersist Hskey', 'ipersist Hsmeta', 'ipersist Hsci', 'ipersist Hsterm',
             'ipersist Hsen', 'ipersist Hsdis', 'ipersist Hsauth', 'ipersist Hsausers', 'ipersist Hsaroles',
@@ -3214,6 +3251,98 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
     heavy=True,
 ), ['errUnmarshalNilLevel'])
+# (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
+SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
+SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
+    'imodintro', f'iexists (zero_val {_ZC}.systemClock)', 'itrivial']
+# (prove-initleft, 2026-11-21) zap's package variables, translated but `_minTimeInt64`/`_maxTimeInt64`
+# (Perennial's `time.Unix` is names only) and `_sinkRegistry`
+_Z = 'go_uber_org.zap'
+_ZENC = (f'(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.{_ZC}.EncoderConfig.ty] false '
+         f'[_root_.Perennial.{_ZC}.Encoder.ty, go.error]))')
+SPECIAL[_Z] = newvars_cfg(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-initleft, 2026-11-21; until then the trust-boundary axiom
+`opaqueInitsOk` covered them all): `errNoEncoderNameSpecified` (`errors.New`), the encoder constructors (a
+map literal of two func literals), `_errArrayElemPool` (`pool.New`, proved), `_globalL = NewNop()`
+(`zapcore.NewNopCore()`, `zapcore.AddSync(io.Discard)` over any writer, `zapcore.DefaultClock` from
+zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the interface assertion
+`var _ internal.LeveledEnabler = AtomicLevel{}`; `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, names only
+in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaqueInitsOk`.''',
+    alloc_types={'_encoderNameToConstructor': 'Loc', '_errArrayElemPool': 'Loc', '_globalL': 'Loc',
+                 '_globalS': 'Loc'},
+    before={
+        '_encoderNameToConstructor': map_lit_steps('Henc', 'GoString', 'GoFunc', 'go.string', _ZENC, 2),
+        '_errArrayElemPool': _zc_pool('pea'),
+        '_globalL': ['try wp_auto',
+                     'ihave #HNN : (iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) '
+                     'pkg_id.go_uber_org.zap.zapcore) : IProp GF) $$ []',
+                     '· isplitl []', '  · iexact {Hd:io}', '  · iexact {Hd:go_uber_org.zap.zapcore}',
+                     'wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl⟩', 'try wp_auto'],
+        '_globalS': ['try wp_auto', 'wp_apply (EtcdGrove.zap_wp_Sugar_init lgl vgl) $$ Hgl as %sgl Hgl', 'try wp_auto'],
+    },
+    pre=[
+        'section zapinit',
+        'variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]',
+        'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]',
+        'variable [package_sem : _root_.Perennial.go_uber_org.zap.Assumptions]',
+        '',
+        '/-- (prove-initleft) `zapcore.AddSync(w)` returns, whatever the writer (a type switch: `w` itself if',
+        'it is a `WriteSyncer`, else `writerWrapper{w}`). -/',
+        'theorem EtcdGrove.zap_wp_AddSync_init (w : GoInterface) :',
+        '    {{ (True : IProp GF) }} (App (Val (@! _root_.Perennial.go_uber_org.zap.zapcore.AddSync)) (Val #w))',
+        '    {{ (r : GoInterface), RET #r; True }} := by',
+        '  wp_start',
+        '  wp_auto',
+        '  rcases w with wo | _',
+        '  · wp_auto',
+        '    cases hws : go.typeSetContains wo.ty _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty',
+        '    all_goals (wp_auto; iapply HΦ; itrivial)',
+        '  · wp_auto',
+        '    iapply HΦ',
+        '    itrivial',
+        '',
+        '/-- (prove-initleft) `zap.NewNop()` before zap\'s `isPkgInit`: a new `Logger` (its body: `NewNopCore()`,',
+        '`AddSync(io.Discard)`, `zapcore.DefaultClock`, from io\'s and zapcore\'s facts). -/',
+        'theorem EtcdGrove.zap_wp_NewNop_init :',
+        '    {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore }}',
+        '      (App (Val (@! _root_.Perennial.go_uber_org.zap.NewNop)) (Val #()))',
+        '    {{ (l : Loc), RET #l; ∃ v : _root_.Perennial.go_uber_org.zap.Logger, l ↦ v }} := by',
+        '  wp_start',
+        '  ihave #IO : (_root_.Perennial.io.isInit : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ Hpkg',
+        '  iNamed IO',
+        '  icases HDiscard with ⟨%wd, #HDiscard⟩',
+        '  ihave #ZC : (iprop(∃ c : _root_.Perennial.go_uber_org.zap.zapcore.systemClock, typedPointsto (globalAddr',
+        '      _root_.Perennial.go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard) : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ Hpkg2',
+        '  icases ZC with ⟨%dc, #HDC⟩',
+        '  wp_auto',
+        '  wp_func_call',
+        '  wp_call',
+        '  wp_auto',
+        '  wp_apply EtcdGrove.zap_wp_AddSync_init as %ws -',
+        '  try wp_auto',
+        '  iapply HΦ',
+        '  iexists _',
+        '  iframe',
+        '',
+        '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
+        'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
+        '    {{ (l ↦ v : IProp GF) }}',
+        '      (App (Val (l @!! go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty @!! go!"Sugar")) (Val #()))',
+        '    {{ (s : Loc), RET #s; l ↦ v }} := by',
+        '  wp_start as Hl',
+        '  wp_auto',
+        '  wp_method_call',
+        '  wp_call',
+        '  wp_auto',
+        '  iapply HΦ',
+        '  iframe',
+        '',
+        'end zapinit'],
+    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+), ['errNoEncoderNameSpecified'])
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates

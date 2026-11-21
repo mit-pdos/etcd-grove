@@ -10,7 +10,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
-public import Proof.go_etcd_io.etcd.api.v3.version.Init
+public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
 

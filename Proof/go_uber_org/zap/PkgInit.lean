@@ -7,6 +7,7 @@ module
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.go_uber_org.zap.internal.pool
 public import GeneratedProof.go_uber_org.zap.internal.color
+public import GeneratedProof.go_uber_org.zap.internal
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.io
 public import Perennial.Proof.fmt
@@ -56,12 +57,25 @@ end go_uber_org.zap.internal.color
 
 namespace go_uber_org.zap.zapcore
 
+/-- `zapcore`: `DefaultClock` holds a fixed `systemClock` (prove-initleft, 2026-11-21: zap's
+`NewNop`, which zap's initializer runs for `_globalL`, loads it; until then `True`). -/
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init iprop(∃ c : go_uber_org.zap.zapcore.systemClock,
+    typedPointsto (globalAddr go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard)
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
   build_get_is_pkg_init_wf
 
 end go_uber_org.zap.zapcore
+
+-- zap's `internal` (types only: `LeveledEnabler`, which zap's `var _` asserts; prove-initleft, 2026-11-21)
+namespace go_uber_org.zap.internal
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.internal :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.internal :=
+  build_get_is_pkg_init_wf
+
+end go_uber_org.zap.internal
 
 namespace go_uber_org.zap
 
