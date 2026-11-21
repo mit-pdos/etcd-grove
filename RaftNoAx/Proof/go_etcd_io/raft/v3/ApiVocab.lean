@@ -168,6 +168,11 @@ is the node's own. What rafthttp's msgappv2 codec needs: its frames carry no sen
 sets the stream's remote peer (`XfOk`, `isRaftMsg`). -/
 def AppFrom (id : w64) (st : MsgSt) : Prop := st.msg.Type' = MsgApp → st.msg.From' = id
 
+/-- Raft stamps both append and snapshot messages with the identity of the local node. -/
+def replicationFrom (id : w64) (st : MsgSt) : Prop :=
+  st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgSnap → st.msg.From' = id
+
+
 /-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap` is not to its sender** `id`:
 `send` panics on a non-response message addressed to `r.id` (`raft.go`, `message should not be
 self-addressed`), and a `MsgSnap` is no response. -/
@@ -429,7 +434,7 @@ clauses, no `MsgSnap` in the no-snapshot mode and `SentMsgOk` in the no-transfer
 def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
   iprop(⌜SentMsgShape st⌝ ∗
     (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
-    msgDat γ st ∗ ⌜AppFrom id st⌝ ∗
+    msgDat γ st ∗ ⌜replicationFrom id st⌝ ∗
     □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
       isLeader γ st.msg.To' st.msg.Term') ∗
     -- (restart S7.3, 2026-11-14) a `MsgSnap` not to its sender (`send`'s panic)
@@ -464,6 +469,21 @@ def snapToOk (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
 instance snapToOk_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
     Persistent (snapToOk (GF := GF) γ id st) := by
   unfold snapToOk; infer_instance
+
+/-- The sender recorded in the snapshot message is leader of its term. -/
+theorem isRaftMsg_snapshotLeader (γ : RaftNames) (id : w64) (st : MsgSt)
+    (ht : st.msg.Type' = MsgSnap) :
+    isRaftMsg (GF := GF) γ id st ⊢ isLeader γ st.msg.From' st.msg.Term' := by
+  unfold isRaftMsg
+  iintro ⟨-, ⟨%a, %Ha, #Hx⟩, -⟩
+  rcases Ha with ⟨Hn, -⟩ | ⟨ty, Hty, Hne, -⟩ | ⟨sv, -, -, rfl⟩
+  · rw [ht, mtypeOf_MsgSnap] at Hn; cases Hn
+  · rw [ht, mtypeOf_MsgSnap] at Hty; cases Hty; exact absurd rfl Hne
+  · simp only [Option.toList_some]
+    ihave #Hm := (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ x)).1 $$ Hx
+    ihave #Hp := isMessageC_isMessage γ _ $$ Hm
+    ihave #Hleader := isMessage_snapshotLeader γ (absSnap st.msg sv sv.Metadata'.ConfState'.lists) rfl $$ Hp
+    iExactEq Hleader; rfl
 
 /-- (restart S7.3) **A sent message's `MsgSnap` facts** (`snapToOk`), out of `isRaftMsg`: the
 abstraction of a `MsgSnap` is `absSnap`, whose destination is the message's `To`. -/

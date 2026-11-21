@@ -191,6 +191,8 @@ theorem deliveredLogLb_nodeCommitLb [package_sem : Assumptions] (n : Loc) (γ : 
 theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (l0 : List
     LogEntry) : readStateOk γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝
 
+theorem snapshotLeader_persistent (γ : Cluster) (id t : w64) : Persistent (snapshotLeader γ id t)
+
 def (sealed) Cluster.snapLoc (γ : Cluster) : w64 → Option GName
 
 def (sealed) nodeVacant (γ : Cluster) (id : w64) : IProp GF
@@ -313,6 +315,9 @@ theorem readyEnts_sized [package_sem : Assumptions] (γ : Cluster) (s : GoSlice)
     entSizeOk c⌝
 
 def (sealed) readyToksClaim (n : Loc) (γ : Cluster) (N : Namespace) (ms : List QMsg) : IProp GF
+
+theorem snapshotLeader_terms_ne [package_sem : Assumptions] (γ : Cluster) (id sender t tr : w64) (hd
+    : id ≠ sender) : ⊢ snapshotLeader γ id t -∗ snapshotLeader γ sender tr -∗ ⌜t ≠ tr⌝
 
 theorem propErrS_propErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
     context.ContextDesc (IProp GF)) (err : GoInterface) : propErrS n γ N cd err ⊢ propErr cd err
@@ -457,6 +462,10 @@ theorem readyRest_ceInBatch [package_sem : Assumptions] (γ : Cluster) (N : Name
     ≤ st.delivered.length + 1 + j → Option.map LogEntry.ofEntryM es[st.delivered.length + 1 + j -
     uint.nat e0.Index']? = some e⌝ ∗ readyRest γ N id rd st ce es h none ms ss
 
+theorem sentMsg_localSnapshotLeader [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id :
+    w64) (st : MsgSt) (ht : st.msg.Type' = MsgSnap) : sentMsg γ N id st ⊢ snapshotLeader γ id
+    st.msg.Term'
+
 theorem isCommittedLogLb_small [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜l.length < 2 ^ 61⌝
 
@@ -485,6 +494,10 @@ theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) 
     some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c) → sentMsg γ N src st ∗ msgPtsCC ml (DFrac.own 1)
     (DFrac.own 1) true c ∗ msgCredits γ N st ∗ snapLocalMsg γ id st ∗ sentTok γ st ⊢ |==> stepIn γ N
     id ml
+
+theorem sentMsg_snapshotLeader [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64)
+    (st : MsgSt) (ht : st.msg.Type' = MsgSnap) : sentMsg γ N id st ⊢ snapshotLeader γ st.msg.From'
+    st.msg.Term'
 
 theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜↑l.length + 1 < 2 ^ 64⌝
@@ -528,6 +541,8 @@ theorem isCommittedLogLb_mono (γ : Cluster) (l1 l2 : List LogEntry) : l1 <+: l2
 
 theorem msgOut_discard_persistent (γ : Cluster) (l : Loc) (st : MsgSt) : Persistent (msgOut γ l
     DFrac.discard st)
+
+def (sealed) snapshotLeader (γ : Cluster) (id t : w64) : IProp GF
 
 theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 1 →
     cm.nodeId ≠ W64 0 → ¬cm.nodeId ∈ vs → (Membership.simple vs).Valid → Membership.applyChange
