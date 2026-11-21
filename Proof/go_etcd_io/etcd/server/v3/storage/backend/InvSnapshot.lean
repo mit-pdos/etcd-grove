@@ -97,19 +97,8 @@ opaque readerStreams (r : GoInterface) (Φ : List w8 → Prop) : IProp GF
 
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **The batch lock's quarter of the readers' view, its physical view at `vd`** (see the file
-header): the quarter at some logical view `L` that `vd` is thin of (question 2, option (a), the
-user's, 2026-10-29: the batch lock's quarter is over the logical view, `batchViewQ`; until then the
-quarter at `vd` itself, an instance: `viewQ_exact`). -/
-def viewAt (γ : BNames) (vd : VData) : IProp GF :=
-  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L)
-
-/-- **The batch lock's quarter of the readers' view at a commit, with the safe-range buckets'
-deleted entries** (the user's decision, 2026-11-04, probe M2: a snapshot's observation knows the
-safe-range bucket exactly): the quarter at a logical view `L`, the physical view `vd` thin of it,
-and `vd` exactly `L` but the deleted entries `X` on the safe-range buckets (`dlVd`). -/
-def viewAtD (γ : BNames) (P : BParams) (vd X : VData) : IProp GF :=
-  iprop(∃ L : VData, viewQ γ (1 : Qp).half.half vd L ∗ ⌜dlVd P vd L X⌝)
+-- (backend-snapshot B2) `viewAt` and `viewAtD` are in `InvBackend.lean` (the commit invariant's
+-- registrations use them).
 
 /-- The quarter with the deleted entries is the quarter. -/
 theorem viewAtD_viewAt (γ : BNames) (P : BParams) (vd X : VData) :

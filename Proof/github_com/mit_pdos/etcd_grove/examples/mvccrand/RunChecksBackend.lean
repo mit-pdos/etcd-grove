@@ -365,7 +365,7 @@ theorem backend_defaults :
   iintro #Hpkg
   ihave Hbi : (backendInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hbi with ⟨-, -, -, -, -, #Hbi, #Hbl, #Hms⟩
+  icases Hbi with ⟨-, -, -, -, -, #Hbi, #Hbl, #Hms, -⟩
   iframe #
 
 open go_etcd_io.etcd.server.v3.storage.backend in
