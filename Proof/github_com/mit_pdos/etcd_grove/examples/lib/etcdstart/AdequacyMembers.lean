@@ -130,6 +130,47 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go
           (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
             (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD) (Hprog hG HN HT)))
 
+/-- **`etcd_adequate_members` at a thread bound of the execution** (2026-11-20): the same, for an execution
+along which fewer than `TB` threads are live (`RealNstepsBelow`, `goose_adequacy_start`'s premise),
+the WP proof at the thread bound `max TB srvLevelK`, a constant, where the base theorem's is
+`max (n + 2) srvLevelK`, which grows with the step count and so caps it below the thread bound
+the specs need. -/
+theorem etcd_adequate_members_below [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go.BasicIntoValInj]
+    (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (hbody : toVal body = none)
+    (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (Ds : List GoString) (hDs : Ds.Nodup)
+    (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
+    (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
+    (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds)
+    (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
+    (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+    {Ns : List GoString} (HNs : prometheus.namesUnclaimed (init #() ;; body) Ns)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
+    (HEnv : verifyEnvOff (init #() ;; body))
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
+    (TB n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow TB n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
+      threadBound GF = max TB srvLevelK →
+      progOk (hG := heapWith hG lctx) (prometheus.namesFree (GF := GF) Ns)
+        iprop(([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b)
+        init body φ)
+    (hNs : Ns.Nodup := by decide +kernel)
+    (hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
+  etcd_adequate_below init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs HDs HEnv
+    TB n κs t2 σ2 Hsteps (hNs := hNs) fun hG HN HT =>
+      progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ (sep_reassoc5 _ _ _ _ _)
+        (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
+          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn) (walDirsFit_of_names ms Ds hD hmsL)
+          (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
+            (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD) (Hprog hG HN HT)))
+
+
+
 /-- **`etcd_adequate_alloc`, from the members' start bundles** (hub step 7's L4): as
 `etcd_adequate_members`, with ghost state allocated first. -/
 theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go.BasicIntoValInj]
@@ -172,6 +213,53 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
             (sep_swap_right3 _ _ _ |>.trans
               (sep_mono_left (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD)))
             (Hp x)))⟩
+
+/-- **`etcd_adequate_alloc_members` at a thread bound of the execution** (2026-11-20): the same, for an execution
+along which fewer than `TB` threads are live (`RealNstepsBelow`, `goose_adequacy_start`'s premise),
+the WP proof at the thread bound `max TB srvLevelK`, a constant, where the base theorem's is
+`max (n + 2) srvLevelK`, which grows with the step count and so caps it below the thread bound
+the specs need. -/
+theorem etcd_adequate_alloc_members_below [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go.BasicIntoValInj]
+    (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (hbody : toVal body = none)
+    (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (Ds : List GoString) (hDs : Ds.Nodup)
+    (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
+    (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
+    (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds)
+    (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
+    (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+    {Ns : List GoString} (HNs : prometheus.namesUnclaimed (init #() ;; body) Ns)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
+    (HEnv : verifyEnvOff (init #() ;; body))
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
+    (TB n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow TB n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
+      threadBound GF = max TB srvLevelK →
+      ∃ (X : Type) (T : X → IProp GF),
+        (⊢ (|==> ∃ x, T x : IProp GF)) ∧
+        ∀ x, progOk (hG := heapWith hG lctx) (prometheus.namesFree (GF := GF) Ns)
+          iprop((([∗list] m ∈ ms, etcdstart.memberStartRes (hG := heapWith hG lctx) m.1 m.2) ∗
+            [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ)
+    (hNs : Ns.Nodup := by decide +kernel)
+    (hmsL : ∀ m ∈ ms, m.1.length ≤ 200 := by decide) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
+  etcd_adequate_alloc_below init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs
+    HDs HEnv TB n κs t2 σ2 Hsteps (hNs := hNs) fun hG HN HT => by
+      obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT
+      exact ⟨X, T, Halloc, fun x => progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
+        sep_assoc.2
+        (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
+          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn) (walDirsFit_of_names ms Ds hD hmsL)
+          (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
+            (sep_swap_right3 _ _ _ |>.trans
+              (sep_mono_left (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD)))
+            (Hp x)))⟩
+
+
 
 end adequacy
 

@@ -190,7 +190,7 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
+  refine goose_adequacy_start_all (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
     Ns As Ds hNs hAs hDs hAsLit HNs HAs HDs HEnv ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
@@ -211,6 +211,58 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   · iunfold prometheus.namesFree
     iexact Hns
   · iframe; iexact Hvoff
+
+/-- **`etcd_adequate_alloc` at a thread bound of the execution** (2026-11-20): the same, for an execution
+along which fewer than `TB` threads are live (`RealNstepsBelow`, `goose_adequacy_start`'s premise),
+the WP proof at the thread bound `max TB srvLevelK`, a constant, where the base theorem's is
+`max (n + 2) srvLevelK`, which grows with the step count and so caps it below the thread bound
+the specs need. -/
+theorem etcd_adequate_alloc_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+    (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (Ds : List GoString) (hDs : Ds.Nodup)
+    (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
+    (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+    {Ns : List GoString} (HNs : prometheus.namesUnclaimed (init #() ;; body) Ns)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
+    (HEnv : verifyEnvOff (init #() ;; body))
+    (TB n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow TB n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
+      threadBound GF = max TB srvLevelK →
+      ∃ (X : Type) (T : X → IProp GF),
+        (⊢ (|==> ∃ x, T x : IProp GF)) ∧
+        ∀ x, progOk (hG := heapWith hG lctx) (prometheus.namesFree (GF := GF) Ns)
+          iprop((([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
+            ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x ∗
+            extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ)
+    (hNs : Ns.Nodup := by decide +kernel) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
+  refine goose_adequacy_start (GF := GF) (n + 1) (max TB srvLevelK) _ σ g φ hφ Hinitg
+    Hinitw
+    Ns As Ds hNs hAs hDs hAsLit HNs HAs HDs HEnv ?_
+    n κs t2 σ2 (Hsteps.mono (Nat.le_max_left _ _)) (Nat.lt_succ_self n) Hthreads
+  intro hG HN HT HL
+  obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT
+  obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
+  subst Hlctx
+  subst HL
+  letI : HeapGS .hasLC GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
+  unfold IsInit at Hinit
+  rw [Hinit]
+  iintro - Hl Hgs Htok Hrights
+  iunfold startRights at Hrights
+  icases Hrights with ⟨Hns, Has, Hps, Hds, #Hvoff⟩
+  imod Halloc with ⟨%x, HTx⟩
+  iapply (wp_of_progOk _ _ init body φ (Hp x)) $$ Hgs Htok [Hns] [Has Hps Hds HTx Hl]
+  · iunfold prometheus.namesFree
+    iexact Hns
+  · iframe; iexact Hvoff
+
+
+
 
 /-- **An etcd example's closed theorem over `goose_adequacy_start`** (see the file header): as
 `init_adequate`, for a program whose initializer takes the rights to register the metric names
@@ -245,7 +297,7 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
+  refine goose_adequacy_start_all (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
     Ns As Ds hNs hAs hDs hAsLit HNs HAs HDs HEnv ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
@@ -265,6 +317,55 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   · iunfold prometheus.namesFree
     iexact Hns
   · iframe; iexact Hvoff
+
+/-- **`etcd_adequate` at a thread bound of the execution** (2026-11-20): the same, for an execution
+along which fewer than `TB` threads are live (`RealNstepsBelow`, `goose_adequacy_start`'s premise),
+the WP proof at the thread bound `max TB srvLevelK`, a constant, where the base theorem's is
+`max (n + 2) srvLevelK`, which grows with the step count and so caps it below the thread bound
+the specs need. -/
+theorem etcd_adequate_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+    (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (Ds : List GoString) (hDs : Ds.Nodup)
+    (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
+    (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+    {Ns : List GoString} (HNs : prometheus.namesUnclaimed (init #() ;; body) Ns)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
+    (HEnv : verifyEnvOff (init #() ;; body))
+    (TB n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow TB n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
+      threadBound GF = max TB srvLevelK →
+      progOk (hG := heapWith hG lctx) (prometheus.namesFree (GF := GF) Ns)
+        iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
+          ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff ∗
+          extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ)
+    (hNs : Ns.Nodup := by decide +kernel) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
+  refine goose_adequacy_start (GF := GF) (n + 1) (max TB srvLevelK) _ σ g φ hφ Hinitg
+    Hinitw
+    Ns As Ds hNs hAs hDs hAsLit HNs HAs HDs HEnv ?_
+    n κs t2 σ2 (Hsteps.mono (Nat.le_max_left _ _)) (Nat.lt_succ_self n) Hthreads
+  intro hG HN HT HL
+  have Hp := Hprog hG HN HT
+  obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
+  subst Hlctx
+  subst HL
+  letI : HeapGS .hasLC GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
+  unfold IsInit at Hinit
+  rw [Hinit]
+  iintro - Hl Hgs Htok Hrights
+  iunfold startRights at Hrights
+  icases Hrights with ⟨Hns, Has, Hps, Hds, #Hvoff⟩
+  iapply (wp_of_progOk _ _ init body φ Hp) $$ Hgs Htok [Hns] [Has Hps Hds Hl]
+  · iunfold prometheus.namesFree
+    iexact Hns
+  · iframe; iexact Hvoff
+
+
+
 
 end adequacy
 
