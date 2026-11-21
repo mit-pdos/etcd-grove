@@ -3551,10 +3551,11 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   could not tell why its admin request failed (refusal-completeness at the proposer, G4 left).
 - **Evidence.** `adminOut_model` (`ApplyTieOn.lean`) already has `adminRejL` at the latest state (`hrej`) and dropped it.
 - **Proposed change.** `adminTieAr`'s rejected case states `¬ auth.adminOk st (principal of rq)`; `raftRequest.spec`'s
-  error branch gives `appliedErrM E.authOn` (off: `appliedErr`; on: `appliedErrOn`, at the committed prefix `L` before
-  the entry, with the result, the step's outcome and `adminTieM true` of that one outcome, `resultIsOn`), and
-  `adminOutOn`'s error branch `appliedErrOn`. Stronger posts; `appliedErr_of_M` forgets.
+  error branch gives `appliedErrM E.authOn` (`appliedErr`'s, at the committed prefix `L` before the entry, with the
+  result, the step's outcome, `modelOutM` and `adminTieM` of that one outcome, `resultIsM`; one mode-uniform
+  definition, no `match` on the mode), and `adminOutOn`'s error branch the same. Stronger posts; `appliedErr_of_M`
+  forgets.
 - **Decision.** Approved by the user (2026-11-21, via etcd-grove-03), as proposed in `notes/auth-mediation-handoff.md`
-  ("M4 proposal"); the exact error-branch form (`appliedErrOn`, the outcome bound in the same existential as the result,
+  ("M4 proposal"); the exact error-branch form (`appliedErrM`, the outcome bound in the same existential as the result,
   so the tie is not vacuous) decided by the M4 agent. It reaches the five admin kinds the mode-`on` proposer admits
   (`adminPropOk`: AuthEnable, UserAdd, RoleAdd, UserGrantRole, RoleGrantPermission), not the other seven Auth rows.

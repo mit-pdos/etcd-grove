@@ -361,59 +361,40 @@ def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRM
     ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
     grantAnsM E rq' resp ∗ revokeAnsM E rq' resp)
 
-/-- **The apply thread's result `ar` of `rq` at the committed prefix `L`, in the mode `on`**
+/-- **The apply thread's result `ar` of `rq` at the committed prefix `L`, in the auth mode `on`**
 (auth-mediation M4, 2026-11-21): `resultIs`'s, with the outcome not waived, what the proposer learns
-of the model at `L` (`modelOutM true`) and an admin request's tie (`adminTieM true`: a refused outcome
-names why, the request's principal not admitted at the auth state `L` reaches), all of the one
-outcome `out` the step took. What `resPostM true` gives of a result whatever its error. -/
-def resultIsOn (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log) (ar : Loc)
-    (L : List EntryModel) : IProp GF :=
+of the model at `L` (`modelOutM`) and, with auth on, an admin request's tie (`adminTieM`: a refused
+outcome names why, the request's principal not admitted at the auth state `L` reaches), all of the
+one outcome `out` the step took. What `resPostM` gives of a result whatever its error. -/
+def resultIsM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
+    (ar : Loc) (L : List EntryModel) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧
-        out.waived = false ∧ modelOutM true ρ.kv rq L y.log out⌝ ∗
+        out.waived = false ∧ modelOutM on ρ.kv rq L y.log out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ adminTieM true ρ.kv rq L ar out)
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ adminTieM on ρ.kv rq L ar out)
 
-/-- **A request applied with the error `err`, in the mode `on`** (auth-mediation M4): `appliedErr`'s,
-at a committed prefix `L` before the entry, with the result as `resultIsOn` gives it (an admin
-request refused at apply: why, at the auth state `L` reaches). -/
-def appliedErrOn (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
-    (err : GoInterface) : IProp GF :=
-  iprop(∃ (ar : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (L : List EntryModel),
-    ar ↦□ v ∗ ⌜v.Err' = err⌝ ∗ srvRLogLb ρ.raft L ∗ resultIsOn E ρ rq' F ar L)
-
-/-- **A request applied with an error, in the auth mode `on`**: `appliedErr` off, `appliedErrOn`
-on. -/
+/-- **A request applied with the error `err`, in the auth mode `on`** (auth-mediation M4):
+`appliedErr`'s, at a committed prefix `L` before the entry, with the result as `resultIsM` gives it
+(with auth on, an admin request refused at apply: why, at the auth state `L` reaches). -/
 def appliedErrM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (err : GoInterface) : IProp GF :=
-  match on with
-  | false => appliedErr E rq' F err
-  | true => appliedErrOn E ρ rq' F err
+  iprop(∃ (ar : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (L : List EntryModel),
+    ar ↦□ v ∗ ⌜v.Err' = err⌝ ∗ srvRLogLb ρ.raft L ∗ resultIsM on E ρ rq' F ar L)
 
-theorem appliedErrM_false (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
-    (err : GoInterface) : appliedErrM (GF := GF) false E ρ rq' F err = appliedErr E rq' F err := rfl
-
-theorem appliedErrM_true (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
-    (err : GoInterface) : appliedErrM (GF := GF) true E ρ rq' F err = appliedErrOn E ρ rq' F err :=
-  rfl
-
-/-- `appliedErrM` at `on = true` is `appliedErrOn`. -/
-theorem appliedErrOn_of_M (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
-    (err : GoInterface) : appliedErrM (GF := GF) true E ρ rq' F err ⊢ appliedErrOn E ρ rq' F err := by
-  rw [appliedErrM_true]
-
-/-- `appliedErrOn` forgets to `appliedErr`. -/
-theorem appliedErr_of_on (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
-    (err : GoInterface) : appliedErrOn (GF := GF) E ρ rq' F err ⊢ appliedErr E rq' F err := by
-  iunfold appliedErrOn
+/-- `appliedErrM` forgets to `appliedErr` at every mode. -/
+theorem appliedErr_of_M (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
+    (F : mvcc.Log) (err : GoInterface) :
+    appliedErrM (GF := GF) on E ρ rq' F err ⊢ appliedErr E rq' F err := by
+  iunfold appliedErrM
   iunfold appliedErr
   iintro ⟨%ar, %v, %L, #Hv, %He, -, Hr⟩
   iexists ar, v
   iframe Hv
   isplitr
   · ipureintro; exact He
-  iunfold resultIsOn at Hr
+  iunfold resultIsM at Hr
   iunfold resultIs
   icases Hr with ⟨%Hnn, %y, %y', %out, %Hs, Hres, Hc, Hm, -⟩
   isplitr
@@ -421,14 +402,6 @@ theorem appliedErr_of_on (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRMod
   iexists y, y', out
   iframe Hres Hc Hm
   ipureintro; exact ⟨Hs.1, Hs.2.1⟩
-
-/-- `appliedErrM` forgets to `appliedErr` at every mode. -/
-theorem appliedErr_of_M (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
-    (F : mvcc.Log) (err : GoInterface) :
-    appliedErrM (GF := GF) on E ρ rq' F err ⊢ appliedErr E rq' F err := by
-  cases on
-  · rw [appliedErrM_false]
-  · exact appliedErr_of_on E ρ rq' F err
 
 /-- **`appliedErrM` from the pieces of `resPostM`** (the error branch of `raftRequest`): the result
 `ar` read with the error `err`, the committed prefix `L`, and the step's outcome `out` with its
@@ -443,31 +416,17 @@ theorem appliedErrM_intro (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' :
       srvApi.kvLogLb E.γs y'.log -∗ revMinted E y.log y'.log -∗ adminTieM on ρ.kv rq' L ar out -∗
       appliedErrM (GF := GF) on E ρ rq' F err := by
   iintro #HL #Hv Hres Hc Hm Ht
-  cases on
-  · simp only [appliedErrM]
-    iunfold appliedErr
-    iexists ar, v
-    iframe Hv
-    isplitr
-    · ipureintro; exact hv
-    iunfold resultIs
-    isplitr
-    · ipureintro; exact hnn
-    iexists y, y', out
-    iframe Hres Hc Hm
-    ipureintro; exact ⟨hs.1, hs.2.1⟩
-  · simp only [appliedErrM]
-    iunfold appliedErrOn
-    iexists ar, v, L
-    iframe Hv HL
-    isplitr
-    · ipureintro; exact hv
-    iunfold resultIsOn
-    isplitr
-    · ipureintro; exact hnn
-    iexists y, y', out
-    iframe Hres Hc Hm Ht
-    ipureintro; exact hs
+  iunfold appliedErrM
+  iexists ar, v, L
+  iframe Hv HL
+  isplitr
+  · ipureintro; exact hv
+  iunfold resultIsM
+  isplitr
+  · ipureintro; exact hnn
+  iexists y, y', out
+  iframe Hres Hc Hm Ht
+  ipureintro; exact hs
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/
 def reqWaitRM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)

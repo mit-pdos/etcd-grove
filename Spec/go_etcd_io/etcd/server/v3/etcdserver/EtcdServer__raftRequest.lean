@@ -42,8 +42,8 @@ the auth state the entry met and the auth layer's verdict the model's grant ther
 lease-exact at the model's table). (Sweep repairs 1,
 B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's
 `Value(StartTimeKey{})` is type-asserted from). (Auth-mediation M4, 2026-11-21) The apply's error
-in the mode (`appliedErrM`): with auth on at the committed prefix before the entry, with the
-outcome's admin tie (`appliedErrOn`: an admin request refused at apply names why). -/
+in the mode (`appliedErrM`): at the committed prefix before the entry, with the outcome and, with
+auth on, its admin tie (an admin request refused at apply names why). -/
 abbrev EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF))

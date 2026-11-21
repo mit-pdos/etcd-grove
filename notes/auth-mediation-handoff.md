@@ -2,32 +2,26 @@
 
 ## START HERE
 
-- **M3 waits on Q4** (questions.md: the keys-only race; fork fix vs margin, for the user via etcd-grove-03).
-  **Do M4 next** (the "M4 proposal" below, approved by the user 2026-11-21).
+- **M4 implemented** (`a351492b8d`, approved by the user 2026-11-21): full build + land gates in progress or done,
+  see the last "M4 land stop" below. **M3 waits on Q4** (questions.md: the keys-only race; fork fix vs margin).
 - M0-M2 are on lean (`3c8804f01f`). M3/M4: worktree `/shared/etcd-grove-authm3`, branch `auth-mediation-m3`
   (off lean `3c8804f01f`), agent of etcd-grove-03. Pin c44b74871: `--packages=/shared/tmp/manifest-c44.json`,
   `PERENNIAL_DIR=/shared/perennial-c44b74871`. Decisions: `questions.md` (untracked, worktree root).
-- Decided 2026-11-21: M3 option (B) (the user): `rangeStream` names only, one trust-boundary spec, attacked first;
-  `doSerialize`'s `get` given `∃ info, C info ∗ infoBoundM` (C persistent; etcd-grove-03); M4 as proposed below
-  (the user). Ledger: the two 2026-11-21 entries.
-- M2's gate on lean's tree (session 2026-11-21): build `20261121-025555-3461867` green (at `84a69cf279`), tcb
-  `--check` matches (603 axioms, 2 sorries), collections server/v3rpc match, auth-mediation gate ok.
-- M3 done so far: `rangeStream`/`adjustChunkLimit` back to names only (`etcdserver.toml`, retranslated);
-  vocabulary `Proof/.../etcdserver/RangeStreamDefs.lean` (`rangeRequestOwn`, `rangeRequestBack`, `rangeChunkIs`,
-  `rangeSendOk`, `rangeReadErr`, `rangeStreamCtx`); the axiom `EtcdServer.rangeStream.wp_proof`
-  (`Spec/.../EtcdServer__rangeStream.lean`, `Proof/.../EtcdServer__rangeStream.lean`, not linked yet); the review
-  `notes/axiom-review/rangestream.md` (survives; F1 applied: the request's key given back without contents), Go tests
-  `examples/authmedrangestream/`, `nonissues/etcd-rangestream-keysonly-index-key-race.md` (a keys-only data race at
-  the fork's pin, fixed upstream `9acc0ebe37`: REPORTED to etcd-grove-03, awaiting its call);
-  `doSerialize.spec` strengthened (and `specOff`), Range/Txn/ModeSpecs adapted; the draft
-  `Spec/.../EtcdServer__RangeStream.lean` (post: each `Send`'s `Ψ` from `rangeChunkIs o` and `rangeStreamPassed`).
-- M3 next (once Q4 is answered): prove `EtcdServer.RangeStream` (model: `Range`'s on-branch, `range_tailOn`; the three
-  `RangeRequest` getters it calls on owned fields, `GetKey`/`GetRevision`/`GetLimit`, need their specs generalized to
-  `↦{dq}` with the points-to given back); then `kvServer.RangeStream` (its spec over a stream contract whose `Send`
-  errors are `srvErrIs`, for `togRPCError`), Links (`--server`, `--v3rpc`), table row 2 -> `e2e` with the baseline,
-  the axiom in `etc/tcb-baseline.txt` and the server/v3rpc collections, `notes/audit.md`'s row. Then M4.
+- M4 as done: `adminTieAr` (`KVAuthModel.lean`) rejected case `¬ auth.adminOk st (principal)`; `ReqOn.lean`:
+  `resultIsM`, `appliedErrM` (mode-uniform; + `appliedErr_of_M`, `appliedErrM_intro`); `raftRequest.spec`'s and
+  `adminOutOn`'s error branches `appliedErrM E.authOn` (not `true`: the mode ratchet's lit-mode count); consumers
+  (Put, DeleteRange, Txn, ModeSpecs) forget with `appliedErr_of_M`. Ledger entry 2026-11-21 (M4). Table: the five
+  admin kinds the mode-on proposer admits (`adminPropOk`) state the reason; the seven other Auth rows say why not.
+- M3 state (unchanged by M4): `rangeStream`/`adjustChunkLimit` names only; vocabulary `RangeStreamDefs.lean`; the
+  axiom `EtcdServer.rangeStream.wp_proof` NOT linked (not in any Link, so in no trust base); review
+  `notes/axiom-review/rangestream.md`; Go tests `examples/authmedrangestream/`;
+  `nonissues/etcd-rangestream-keysonly-index-key-race.md` (Q4); `doSerialize.spec` strengthened (Q2); the draft
+  `Spec/.../EtcdServer__RangeStream.lean`. Row 2 stays `none`.
+- M3 next (once Q4 is answered): prove `EtcdServer.RangeStream` (model: `Range`'s on-branch), the `RangeRequest`
+  getters at `↦{dq}`; `kvServer.RangeStream`; Links (`--server`, `--v3rpc`); row 2 -> `e2e`; the axiom in
+  `etc/tcb-baseline.txt` and the server/v3rpc collections; `notes/audit.md`'s row.
 
-## M4 proposal (for the STOP; not implemented)
+## M4 proposal (approved 2026-11-21; implemented in `a351492b8d`)
 
 The refusal reason for the admin rows (28-42) reaches the proposer in two definitions; no spec text changes,
 the specs that mention them get stronger posts.
