@@ -132,7 +132,7 @@ theorem LazyErrorNodeSelector.Match.wp_proof
   · -- every term tried: `false` and the aggregated parse errors
     simp only [hlt, _root_.decide_false, Bool.false_eq_true, ↓reduceIte]
     wp_auto
-    wp_apply (wp_NewAggregate es (DFrac.own 1) L) $$ [$Hes] as %a Hes
+    wp_apply (wp_NewAggregate es (DFrac.own 1) L) $$ [$Hes] as %a ⟨Hes, -⟩
     wp_apply (wp_Flatten a) as %a' -
     iapply HΦ
     iunfold nodeAt

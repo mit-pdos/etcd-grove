@@ -28063,6 +28063,8 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+*Superseded on 2026-11-20 by the decision to carry the snapshot source through raft's API below.*
+
 **2026-10-31 · accepted**
 
 `applyAll`'s `msgSnapC` branch merges the queued `MsgSnap` only if
@@ -39907,6 +39909,27 @@ etcd-grove-81; a restricting change, no further round).**
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
 
+### WAL upgrade recovery (2026-11-20)
+
+The filename-selected suffix of a WAL written with the current segment naming
+rule contains the newest valid starting snapshot. `readAll_eof_matched` proves
+that folding every record in that suffix sets the reader's match flag, including
+when the starting snapshot is the zero record. An older writer could name a
+segment below a snapshot already in an earlier file. That disk layout requires
+locating the actual record, checking its term, and protecting its segment
+through the next purge. The Go regression and fork fix are recorded in
+`issues/etcd-wal-upgrade-legacy-segment-name.md`.
+
+### Which physical WAL file a CRC seed describes
+
+The CRC seeds in the decoder's accepted records enumerate the segment files in
+order. The lock's path names the corresponding segment. When decoding reaches
+bytes beyond the canonical history, a rejected CRC can arrive after the last
+lock. The counter at that point already covers every lock. A probe of a closed
+prefix file temporarily reserves that inode, obtains its original bytes by
+agreement with the layout, and returns it to the same outstanding inode set.
+These facts support the legacy scan in the fork's `ReadAll` repair.
+
 ## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; CP3 approved by etcd-grove-81 under the user's delegation, 2026-11-12: `walCommitLe` as C2's premise, the guard dropped, C4 without `walNoDormant` · branch `wal-w4b`)
 
 Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
@@ -41195,3 +41218,26 @@ client_golang v1.24.1 (`MetricVec.Describe` sends its one descriptor; variable l
 `mvccrand` and `mvccfull`, whose closed theorems have no `namesUnclaimed` premise: making them
 `PRE_RES` would add that premise, so their `initFuncsOk` stay. `ownInitRes` (the one-package form)
 stays in `PkgInit.lean`, unused: deleting it rebuilds every module.
+
+## Recognizing bbolt's interrupted first write (2026-11-20)
+
+The first write initializes two zero meta pages, a freelist and an empty root. Zero meta pages
+alone were an ambiguous signature. A writable Open at the fork pin 3f8520bd replaced even files
+with unrelated payload or a fifth page. Recovery now checks the first write's size and every
+byte present. A byte may be zero or its intended value, allowing partial persistence. The
+shared data-page initializer supplies the expected bytes at the configured page size.
+The public Open triple still covers empty and well-formed files. Tests cover the interrupted
+and damaged images. [Regression test and fork pins](../issues/bbolt-open-zero-meta-reinitializes-data.md)
+
+
+## Carry the stored snapshot's source through raft (2026-11-20)
+
+The caller may associate a persistent predicate with each nonempty snapshot returned by
+storage. The storage already supplies a validity certificate, pinned by raft at attach.
+A tagged memory storage can put validity and the caller's predicate in that certificate.
+The allocation proof uses the general memory-storage invariant allocation, including at
+a nonempty starting snapshot. The existing contract still works for clients that only
+need validity. The next step is to preserve the pin at node startup and the source in Ready.
+
+This supersedes the October 31 decision to retain the server's snapshot-index guard.
+The invariant argument and remaining obligations are in [the removal plan](snapguard-removal-plan.md).

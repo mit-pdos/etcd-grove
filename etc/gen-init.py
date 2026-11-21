@@ -133,6 +133,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
+# (2026-11-19) Kubernetes' conditional authorization's driver (examples/k8s/authz), for its closed
+# theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
+# and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
 # (WAL W4c, 2026-11-12, until 2026-11-15) the WAL robustness tester was a root here; it is the part
 # `WalTester/`'s now (`wt_inits`), and the WAL reaches the closure through the server
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
@@ -333,7 +337,9 @@ error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-o
 initializer runs its variables' initializers: (prove-errinits, 2026-11-19) its errors' are translated,
 `errors.New` calls and verb-less `fmt.Errorf` calls (`msg_codec.go`, `http.go`, `peer.go`,
 `stream.go`; `fmt.Errorf`'s trusted model is `errors.New(format)`), until then the trust-boundary axiom
-`errorsNewVarsInit`; `linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`).
+`errorsNewVarsInit`; (prove-misc, 2026-11-20) `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)`
+(`stream.go`) is translated, over `proto.SizePb`'s spec at the registered `raftpb.Message` (until then
+the trust-boundary axiom `linkHeartbeatSize_init`).
 (const-inits, 2026-11-19) The timeouts and intervals (`snapResponseReadTimeout`, `ConnWriteTimeout`,
 `proberInterval`, `statusMonitoringInterval`, `statusErrorInterval`), `errMemberNotFound`
 (`fmt.Errorf`, its proof) and `supportedStream` (a map literal of slice literals) are translated
@@ -346,20 +352,13 @@ literal frozen by `hbMsg_init`) are translated and set. (metric-vecs, 2026-11-19
 vectors (`metrics.go`: `sentBytes`, `activePeers`, `rttSec`, the snapshot metrics, ...), over
 prometheus's `New<Kind>Vec` specs, each with its label names (`vecLabels`; until then the
 trust-boundary axioms `<X>_init`).''',
-    custom={
-        # (2026-10-23, rafthttp stage 5b) the stream writer counts a heartbeat's size
-        'linkHeartbeatSize': dict(
-        doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
-        post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
-        pat='⟨%n@, H@, %B@⟩')},
-
     alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64',
                  'ProbingPrefix': 'GoString', 'RaftStreamPrefix': 'GoString',
                  'RaftSnapshotPrefix': 'GoString',
                  'linkHeartbeatMessage': '_root_.Perennial.go_etcd_io.raft.v3.raftpb.Message',
                  'snapResponseReadTimeout': 'w64', 'errMemberNotFound': 'GoInterface',
                  'ConnWriteTimeout': 'w64', 'proberInterval': 'w64', 'statusMonitoringInterval': 'w64',
-                 'statusErrorInterval': 'w64', 'supportedStream': 'Loc'},
+                 'statusErrorInterval': 'w64', 'supportedStream': 'Loc', 'linkHeartbeatSize': 'w64'},
     # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step;
     # (2026-10-24, rafthttp stage 6d) the three subpaths of `RaftPrefix`: `path.Join` (proved)
     before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto'],
@@ -386,7 +385,20 @@ trust-boundary axioms `<X>_init`).''',
                 'intro x; wp_start; wp_auto; iapply HΦ; iframe) (W32 8) as %phb Hphb',
                 'try wp_auto',
                 'imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage',
-                '· iframe HlinkHeartbeatMessage Hphb']},
+                '· iframe HlinkHeartbeatMessage Hphb'],
+            # (prove-misc, 2026-11-20) `proto.Size(&linkHeartbeatMessage)`: `SizePb` at the registered
+            # `raftpb.Message`, the heartbeat read-only at a content of bounded size (`hbMsg_msgRoC`)
+            'linkHeartbeatSize': ['try wp_auto',
+                'icases (EtcdGrove.hbMsg_msgRoC _) $$ [HlinkHeartbeatMessage] with ⟨%chb, #Hchb, %Hchb⟩',
+                '· iexact HlinkHeartbeatMessage',
+                'have wpShb := EtcdGrove.proto.SizePb.wp_proof (GF := GF) (hG := hG) EtcdGrove.pbMessageC EtcdGrove.pbMessageC_reg (globalAddr linkHeartbeatMessage) chb',
+                'simp only [EtcdGrove.pbMessageC_ty, EtcdGrove.pbMessageC_roC, EtcdGrove.pbMessageC_size] at wpShb',
+                'wp_apply wpShb $$ [$Hchb] as %nlinkHeartbeatSize %HnlinkHeartbeatSize',
+                'have BlinkHeartbeatSize : 0 ≤ sint.Z nlinkHeartbeatSize ∧ sint.Z nlinkHeartbeatSize < 2 ^ 50 := by',
+                '  have hlt := EtcdGrove.msgSize_lt_of_ok chb Hchb.2.2.2',
+                '  have he := HnlinkHeartbeatSize (by omega)',
+                '  omega',
+                'try wp_auto']},
     # (const-inits, 2026-11-19) a lookup in a map literal finds one of its values
     pre=['/-- A lookup in `<[k := v]> m` finds `v` or one of `m`\'s values. -/',
          'theorem EtcdGrove.lookup_insert_some {K V : Type} [DecidableEq K] (m : GMap K V) (k k\' : K) (v w : V)',
@@ -396,7 +408,9 @@ trust-boundary axioms `<X>_init`).''',
     imports=['Proof.path.Join', 'Proof.path.Clean', 'Proof.path.lazybuf__index',
              'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string',
              'Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum',
-             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2'],
+             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2',
+             'Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage',
+             'Proof.google_golang_org.protobuf.proto.SizePb'],
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
             'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',
@@ -424,6 +438,41 @@ trust-boundary axioms `<X>_init`).''',
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# (2026-11-19) Kubernetes' conditional authorization (KEP-5681, project k8s-authz)
+SPECIAL['k8s_io.apiserver.pkg.authorization.authorizer'] = dict(
+    doc='''Its fact (`authorizerInit`, `authorizer/Base.lean`): `ErrorConditionEvaluationNotSupported`
+holds some error, read-only for good. Its initializer allocates it, initializes its imports and runs
+its translated initializers: the interface assertions `var _ Condition = GenericCondition{}` and
+`var _ Authorizer = AuthorizerFunc(nil)` (conversions to interfaces) and `errors.New(...)`
+(Perennial's `errors.wp_New`, `interfaces.go`).''',
+    imports=['Perennial.Proof.errors.Link'],
+    alloc_types={'ErrorConditionEvaluationNotSupported': 'GoInterface'},
+    before={'$end': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New as %xE -',
+                     'try wp_auto']},
+    finish=['ipersist HErrorConditionEvaluationNotSupported'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold authorizerInit',
+            'iexists _; iexact HErrorConditionEvaluationNotSupported'],
+)
+# (2026-11-19) apimachinery's `util/validation/field` (names only but `NewPath`,
+# `ErrorList.ToAggregate` and `(*Error).Error`'s code, translated with bodies)
+SPECIAL['k8s_io.apimachinery.pkg.util.validation.field'] = dict(
+    doc='''Its fact (`fieldInit`, `storage/etcd3/Base.lean`): `omitValue`'s address is not `nil`
+(`(*Error).ErrorBody` loads it). Its initializer allocates it (the allocation gives its points-to,
+hence the address), initializes its imports, and runs its translated initializers: `omitValue`'s
+(`OmitValueType{}`, `errors.go`) and `var _ error = &Error{}` (an allocation; prove-smallinits,
+2026-11-20: until then `opaqueInitsOk`).''',
+    alloc_types={'omitValue': 'k8s_io.apimachinery.pkg.util.validation.field.OmitValueType'},
+    before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']},
+    finish=['ihave %Hnn := typedPointsto_not_null _ _ _ $$ HomitValue'] + FIN_PRE[:6] +
+           ['try (imodintro; ipureintro; exact Hnn)'],
+)
+SPECIAL['k8s_io.apiserver.pkg.authorization.union'] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports and runs its translated
+initializer, the interface assertion `var _ = authorizer.Authorizer(unionAuthzHandler{})` (a
+conversion to an interface, `union.go`).''',
+    before={'$end': ['try wp_auto']},
+)
 
 # bbolt (project bbolt, translated with bodies, 2026-11-03; facts in
 # `Proof/go_etcd_io/bbolt/PkgInit.lean`)
@@ -3014,6 +3063,27 @@ which the trust-boundary axiom `initFuncsOk` says returns.''',
     alloc_types={'strToCode': 'Loc'},
     before={'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_GC}.Code.ty', 17)},
 )
+_OP = 'go_opentelemetry_io.otel.propagation'
+SPECIAL[_OP] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (prove-misc, 2026-11-20): the interface assertions (`var _
+TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supportedVersion)`
+(Perennial's `fmt.wp_Sprintf`: some string, no panic).''',
+    alloc_types={'versionPart': 'GoString', 'handleExtractErrOnce': '_root_.Perennial.sync.Once'},
+    before={'versionPart': [
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mmc -',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType go.string)) as %mhc1 -',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) go.string (go.GoType.SliceType go.string)) as %mhc2 -',
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %svp ⟨Svp, -⟩',
+        'try wp_auto',
+        'wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
+        '(_root_.Perennial.fmt.IntArgValue.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Svp] as %rvp -',
+        'try wp_auto']},
+)
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates
@@ -3048,8 +3118,9 @@ trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).''',
 _K8S_ALLOCS = {'k8s_io.utils.clock', 'k8s_io.apimachinery.pkg.util.validation.field'}
 for _p, _what in [('k8s_io.apimachinery.pkg.conversion', '`DefaultNameFunc`, a func literal'),
                   ('k8s_io.apimachinery.pkg.runtime.schema', '`EmptyObjectKind`, an empty struct literal'),
-                  ('k8s_io.utils.clock', 'its `var _` conversions'),
-                  ('k8s_io.apimachinery.pkg.util.validation.field', '`var _ error = &Error{}` and `omitValue`, an empty struct literal')]:
+                  ('k8s_io.utils.clock', 'its `var _` conversions')]:
+    # (merge, 2026-11-20) `util/validation/field` is k8s-authz's SPECIAL entry above (its fact
+    # `fieldInit`), which allocates the `var _ error = &Error{}` check as these do
     assert _p not in SPECIAL, _p
     SPECIAL[_p] = dict(doc=f'''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers: {_what} (prove-smallinits, 2026-11-20; until then the trust-boundary
@@ -3845,6 +3916,9 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
+# (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

@@ -107,10 +107,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       wp_apply (wp_StartNode γr γr.cl srvClusterN ps ctxs bv.config' cv lok
           ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
           memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
-          bv.peers' dq pv Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
+          bv.peers' dq pv (snapshotValid γr.cl) (fun _ => by iintro H; iexact H) Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg) Hcfg.applied
           rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, Hpeers⟩
+        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, -, Hrst, HQ, Hpeers⟩
       · iframe #; iframe Hc Hpeers Hboot Hvac Hau
         iExactEq Hbs; rfl
       subst Hnd
@@ -166,12 +166,12 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       wp_apply (wp_RestartNode γr γr.cl srvClusterN bv.config' cv lok
           ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ σ cs a m
           (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) Q
-          Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
+          (snapshotValid γr.cl) (fun _ => by iintro H; iexact H) Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
           (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs Hnsm
           Hcfg.traceLogger HtrC)
         $$ [Hc Hbs Hvac Hau]
-        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, Hrst, HQ⟩
+        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, -, Hrst, HQ⟩
       · iframe #; iframe Hc Hvac Hau
         rw [Hcfg.applied]
         iExactEq Hbs; rfl
