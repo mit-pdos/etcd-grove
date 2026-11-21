@@ -18,9 +18,6 @@ axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
-axiom EtcdServer.monitorCompactHash.wp_proof
-axiom EtcdServer.monitorDowngrade.wp_proof
-axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom NewCluster.wp_proof
@@ -60,7 +57,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
@@ -276,7 +272,6 @@ axiom mvcc.newKVHasher.wp_proof
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt
-axiom newCorruptionChecker.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
@@ -397,8 +392,6 @@ axiom trace.SpanFromContext.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom transport.IsClosedConnError.wp_proof
-axiom txn.ApplySecObserve.wp_proof
-axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof

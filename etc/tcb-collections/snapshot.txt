@@ -73,6 +73,7 @@ axiom pbEntryC_reg
 axiom pbMessageC_reg
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
+axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
@@ -113,6 +114,7 @@ axiom sort.StringSlice.Sort.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
+axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strconv.Itoa.wp_proof
 axiom strings.ToLower.wp_proof
@@ -121,7 +123,6 @@ axiom time.Duration.Seconds.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom transport.IsClosedConnError.wp_proof
-axiom txn.RangeSecObserve.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
