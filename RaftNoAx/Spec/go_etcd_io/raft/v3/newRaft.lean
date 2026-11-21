@@ -210,7 +210,7 @@ abbrev newRaft.spec : Prop :=
         s.gh = { sn := sn, tr := γ.reTrace } ∧
         s.rd.states = [] ∧ s.rd.pend = [] ∧
         s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = domSet cs'.prs ∧
-        s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ ∗
+        s.logst.dtk = uint.nat (committedAfter σ.prev hs) ∧ s.logst.ksn = []⌝ ∗
       -- (step 5) the storage's no-compaction, handed on, and the capability after positions 0-2
       trNoCut γ.reTrace (interface.ok si) ∗
       trCapB γ.reTrace γ r cv.ID' (bootCfg vs) false (bootPhase vs cv.ID') (bootAt vs cv.ID' 2) }}

@@ -189,7 +189,7 @@ theorem wOK_setLeaf (X : WX) (bl l : Loc) (B : BRec) (r r' : NRec)
     (hok : wOK X) (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns !! l = some r)
     (hlf : r.nv.isLeaf' = true) (hsh : sameShapeU r r') (hbk : bktKeysB X.v B bnd)
     (hins : r'.ins.length = r'.ws.length) (hsort : wsSorted r'.ws) (hlive : wsLive r'.ws)
-    (hent : ∀ w ∈ r'.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax ∧
+    (hent : ∀ w ∈ r'.ws, 0 < w.key.length ∧ entryBytesFit w.key.length w.value.length w.pgid ∧
       (bl = X.rl → w.key.length ≤ maxKeySize))
     (hshape : ∀ w ∈ r'.ws, (isBktFlag w.flags ↔ bl = X.rl))
     (hbkt : ∀ w ∈ r'.ws, isBktFlag w.flags →
@@ -424,7 +424,7 @@ theorem wOK_putLeaf (X : WX) (bl l : Loc) (B : BRec) (r : NRec) (k : List w8) (e
     (s : GoSlice) (ins : List Inode)
     (hok : wOK X) (hd : objsDisj X.t) (hroot : bl ≠ X.rl) (hlf : leafFor X bl k l)
     (hB : X.t.bs !! bl = some B) (hr : B.ns !! l = some r)
-    (hek : e.key = k) (hk : 0 < k.length) (hbnd : k.length + e.value.length ≤ bboltEntryMax)
+    (hek : e.key = k) (hk : 0 < k.length) (hbnd : entryBytesFit k.length e.value.length e.pgid)
     (hfl : ¬ isBktFlag e.flags) (hpg : e.pgid = W64 0) (hks : e.ks ≠ Src.stale)
     (hvs : e.vs ≠ Src.stale) (hins : ins.length = (wsPutAt r.ws k e).length) :
     wOK (X.setNode bl l (r.withEnts s ins (wsPutAt r.ws k e))) := by

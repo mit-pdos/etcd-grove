@@ -166,7 +166,7 @@ theorem rinv_inlPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} 
     (hn : C.bv.rootNode' ≠ null) :
     ∃ rn, X.node c C.bv.rootNode' = some rn ∧ C.ns !! C.bv.rootNode' = some rn ∧
       C.bv.rootNode' ∈ X.live ∧ wsLive rn.ws ∧
-      ∀ w ∈ rn.ws, w.key.length + w.value.length ≤ bboltEntryMax := by
+      ∀ w ∈ rn.ws, entryBytesFit w.key.length w.value.length w.pgid := by
   obtain ⟨C', hC', -, -, -, hloc, -, -, -, htree⟩ := rinv_todo hI hks hc
   rw [hC] at hC'; cases hC'
   obtain ⟨rn, h, F, N, E, hrn, -, hu, -⟩ := htree hn

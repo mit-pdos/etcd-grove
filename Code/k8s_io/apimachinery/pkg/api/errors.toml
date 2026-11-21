@@ -10,7 +10,10 @@
 # `transformErrorToEvent` calls through `err.(APIStatus).Status()`; and `StatusError.Error`
 # (`return e.ErrStatus.Message`), which its error paths call (`kErrOk`).
 translate = ["!*", "NewTimeoutError", "NewBadRequest", "NewResourceExpired", "NewNotFound",
-  "NewAlreadyExists", "StatusError.Status", "StatusError.Error"]
+  "NewAlreadyExists", "StatusError.Status", "StatusError.Error",
+  # (prove-k8s, 2026-11-20) `var _ error = &StatusError{}` and `knownReasons`, a map literal (until then
+  # `opaqueInitsOk`)
+  "_", "knownReasons"]
 # what `NewTimeoutError`'s body names: `fmt.Sprintf`, `http.StatusGatewayTimeout`, metav1's
 # `Status` constants
 imports = ["!*", "fmt", "net/http", "k8s.io/apimachinery/pkg/apis/meta/v1",

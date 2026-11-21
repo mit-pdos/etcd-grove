@@ -39,7 +39,7 @@ theorem uNode_kept {X X' : WX} {bl : Loc} (hk : nodesKept X X' bl) {n : Loc}
     by rw [hs.2.2.2.2.2.2]; exact hcap, by rw [hs.2.2.2.1, length_of_dat hs.2.2.1]; exact hlen,
     wsSorted_of_dat hs.2.2.1 hsort, fun w' hw' => ?_, ?_⟩
   · obtain ⟨w, hw, he⟩ := mem_of_dat hs.2.2.1 hw'
-    rw [wDat_key he, wDat_value he]; exact hent w hw
+    rw [wDat_key he, wDat_value he, wDat_pgid he]; exact hent w hw
   · unfold ownPg at hown ⊢; rw [nodeSim_pgid hs, hk.1]; exact hown
 
 theorem spilledN_kept {X X' : WX} {bl : Loc} (hk : nodesKept X X' bl) {c : Loc}

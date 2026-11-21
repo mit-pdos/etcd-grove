@@ -258,10 +258,10 @@ theorem ownConfDecisions_witness [package_sem : Assumptions] (γ : Cluster) (D :
 theorem confDecided_persistent (γ : Cluster) (k : Nat) (d : ConfDecision) : Persistent (confDecided
     γ k d)
 
-theorem readySnapSources_msgSnap [package_sem : Assumptions] (γ : Cluster) (n : Loc) (ms : List
-    QMsg) (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) : ⊢
-    readySnapSources γ n ms -∗ nodeTagPin γ n SV -∗ ∃ sv, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨
-    nodeRestoreCert γ n sv)
+theorem readySnapSources_msgSnap [package_sem : Assumptions] (γ : Cluster) (n : Loc) (id : w64) (ms
+    : List QMsg) (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' =
+    MsgSnap) : ⊢ readySnapSources γ n id ms -∗ nodeTagPin γ n SV -∗ ∃ sv, ⌜q.st.snap = some sv⌝ ∗ (▷
+    SV sv ∨ nodeRestoreCert γ n sv ∗ nodeRestoreSource γ id (snapId sv))
 
 def (sealed) ownSnapsMade (γ : Cluster) (S : List SnapRec) : IProp GF
 
