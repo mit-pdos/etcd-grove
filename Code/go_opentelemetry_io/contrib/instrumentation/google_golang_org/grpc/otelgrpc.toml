@@ -1,8 +1,12 @@
 # Types and names only: function and method bodies are axiomatized. grpc's `stats` is imported so
 # that the types naming it translate (`NewServerHandler`'s result, a `stats.Handler`: an
 # implementation can return one, etcd-refimpl's reference implementation).
-translate = ["!*"]
-imports = ["!*", "google.golang.org/grpc/stats"]
+# (prove-misc, 2026-11-20) its package variable `var _ propagation.TextMapCarrier =
+# metadataSupplier{}` (until then `opaqueInitsOk`), with otel's `propagation` and grpc's `metadata`
+# (`metadataSupplier`'s field) imported.
+translate = ["!*", "_"]
+imports = ["!*", "google.golang.org/grpc/stats", "go.opentelemetry.io/otel/propagation",
+  "google.golang.org/grpc/metadata"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
