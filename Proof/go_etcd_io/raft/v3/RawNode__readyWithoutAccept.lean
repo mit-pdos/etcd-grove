@@ -756,13 +756,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iapply HΦ $$ %(readyVal sp HP RS sents SN sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states %hrd %L
   simp only [named]
-  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr]
+  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger]
   · unfold ownRawNodeReady
     iexists s, cf, fp, ds, rnv, sv, hprev
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
-      Hce_cap Hents Hrdhard Hrdz Hsloc Hhist Hdur Hmsgl Hsrcs Hmsnap Hrdlead Hrntr
+      Hce_cap Hents Hrdhard Hrdz Hsloc Hhist Hledger Hdur Hmsgl Hsrcs Hmsnap Hrdlead Hrntr
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro

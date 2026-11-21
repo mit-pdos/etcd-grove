@@ -1517,6 +1517,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   -- (2026-10-26, D22 J2, R-loc) as `ownRawNode`'s: the pending snapshot's receiver-local fact
   "#Hsloc" ∷ snapLocOk γ id s.logst.snap ∗
   "#Hhist" ∷ restoredSnapHistory γ id s.logst.ksn ∗
+  "Hledger" ∷ restoreLedger γ id rs.sn s ∗
   -- (2026-10-28, stage U4a) the record of the storage's terms
   "%Hsdt" ∷ ⌜SdtTie rs s⌝ ∗
   -- (2026-11-01, durability stage I fix G2) as `ownRawNode`'s: the recorded role and durable state
@@ -1703,7 +1704,8 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc Hhist [Hdur] [Hrntr]
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc Hhist [Hledger] [Hdur] [Hrntr]
+  · unfold restoreLedger; iexact Hledger
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   · iapply rnTrace_congr γ _ id c (s := s) (s' := s') rfl rfl rfl rfl rfl $$ Hrntr
 
@@ -2642,7 +2644,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     iexists s, c, fp, ds, rnv, sv, hprev
     simp only [named, ↓reduceIte]
     iframe Hrn Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hrdsoft
-      Hrdrs Hce Hce_cap Hents Hsloc Hhist Hmsgl Hsrcs Hmsnap Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2 Hrntr
+      Hrdrs Hce Hce_cap Hents Hsloc Hhist Hledger Hmsgl Hsrcs Hmsnap Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2 Hrntr
     isplitl
     · iunfold ownRaftPhysReady
       iexists rsl, sl1, sl2, ms1, ms2
@@ -2732,6 +2734,7 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   -- (2026-10-26, D22 J2, R-loc) as `ownRawNode`'s
   "#Hsloc" ∷ snapLocOk γ id s.logst.snap ∗
   "#Hhist" ∷ restoredSnapHistory γ id s.logst.ksn ∗
+  "Hledger" ∷ restoreLedger γ id rs.sn s ∗
   -- (2026-10-28, stage U4a) as `ownRawNode`'s
   "%Hsdt" ∷ ⌜SdtTie rs s⌝ ∗
   -- (2026-11-01, durability stage I fix G2) as `ownRawNode`'s
@@ -2778,14 +2781,15 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       loanCom γ rs.slent -∗
       snapLocOk γ id s.logst.snap -∗
       restoredSnapHistory γ id s.logst.ksn -∗
+      restoreLedger γ id rs.sn s -∗
       durTie γ rs s -∗
       rnTrace γ rnv.raft' id c rs.delivered s -∗
       ownRawNodeIdle γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hhist #Hdur Hrntr
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hhist Hledger #Hdur Hrntr
   unfold ownRawNodeIdle
   iexists s, c, fp, ds, rnv, sv, hprev, steps
   simp only [named]
-  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
+  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hledger Hdur Hrntr
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
     Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle, Hsdt, Hrole, Hphs, Hhsi, Hgtr, Hglq⟩
@@ -2796,7 +2800,7 @@ theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : R
   iNamed H
   iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hledger Hdur Hrntr
 
 /-- What the client sees of an idle node: the lower bounds at their least, and the commit
 index at most the committed log handed out (`applying`). (D22 S-d3a) With no loan: no snapshot
@@ -2823,7 +2827,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       · exact absurd Hsn H
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hidle
-    Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
+    Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hledger Hdur Hrntr
 
 /-- Accepting, after all, a `Ready` computed earlier and abandoned (see the section
 header): an idle node (no `Ready` outstanding: `rs.steps = []`, `rs.unpersisted = []`) is
@@ -2928,7 +2932,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iexists s, cf, fp, ds, rnv, sv, hprev
   simp only [named, Bool.false_eq_true, ↓reduceIte]
   iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
-    Hce Hce_cap Hents Hrdhard Hrdz Hsloc Hhist Hdur Hmsgl Hsrcs Hmsnap Hrdlead Hrntr
+    Hce Hce_cap Hents Hrdhard Hrdz Hsloc Hhist Hledger Hdur Hmsgl Hsrcs Hmsnap Hrdlead Hrntr
   isplitl
   · iunfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2

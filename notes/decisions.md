@@ -41332,6 +41332,12 @@ this bound. `entryBytesFit_legacy` also covers every key and value admitted
 by the previous file model. The fork's regression and the upstream split
 problem are in `issues/bbolt-put-refuses-readable-entry.md`.
 
+
+
+### The RawNode owns the restore history (2026-11-20)
+
+Startup allocates each incarnation’s history. A successful snapshot restore records the incoming sender, term and index in that history. A stale snapshot leaves the history intact. The evidence follows the node through Ready and Advance, including a snapshot outstanding when another restore arrives. The server still needs the observation at handout and the link to the original outgoing message.
+
 ## The listening token and the net+fs bundle (2026-11-21 · the user's request · branch `net-noplan`, stages B and C)
 
 **Token.** `netLisTok a` (`Ghost.lean`): exclusive, one per valid address, in the network's start

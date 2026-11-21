@@ -40,7 +40,7 @@ theorem RawNode.BasicStatus.wp_proof
   isplitl
   · iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
       Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-      Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hdur Hrntr
+      Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist Hledger Hdur Hrntr
   simp only [basicStatusOf]
   iframe Hhs
   ipureintro
