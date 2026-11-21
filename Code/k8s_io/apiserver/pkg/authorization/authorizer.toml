@@ -1,0 +1,7 @@
+# With bodies (project k8s-authz): conditional authorization's decisions, conditions maps, the
+# union decision builder and partial evaluation (KEP-5681, the fork's branch
+# impl-conditional-authz-review).
+translate = ["*"]
+imports = ["*"]
+
+translate_types = true

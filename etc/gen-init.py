@@ -133,6 +133,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
+# (2026-11-19) Kubernetes' conditional authorization's driver (examples/k8s/authz), for its closed
+# theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
+# and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
 # (WAL W4c, 2026-11-12, until 2026-11-15) the WAL robustness tester was a root here; it is the part
 # `WalTester/`'s now (`wt_inits`), and the WAL reaches the closure through the server
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
@@ -424,6 +428,41 @@ trust-boundary axioms `<X>_init`).''',
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# (2026-11-19) Kubernetes' conditional authorization (KEP-5681, project k8s-authz)
+SPECIAL['k8s_io.apiserver.pkg.authorization.authorizer'] = dict(
+    doc='''Its fact (`authorizerInit`, `authorizer/Base.lean`): `ErrorConditionEvaluationNotSupported`
+holds some error, read-only for good. Its initializer allocates it, initializes its imports and runs
+its translated initializers: the interface assertions `var _ Condition = GenericCondition{}` and
+`var _ Authorizer = AuthorizerFunc(nil)` (conversions to interfaces) and `errors.New(...)`
+(Perennial's `errors.wp_New`, `interfaces.go`).''',
+    imports=['Perennial.Proof.errors.Link'],
+    alloc_types={'ErrorConditionEvaluationNotSupported': 'GoInterface'},
+    before={'$end': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New as %xE -',
+                     'try wp_auto']},
+    finish=['ipersist HErrorConditionEvaluationNotSupported'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold authorizerInit',
+            'iexists _; iexact HErrorConditionEvaluationNotSupported'],
+)
+# (2026-11-19) apimachinery's `util/validation/field` (names only but `NewPath`,
+# `ErrorList.ToAggregate` and `(*Error).Error`'s code, translated with bodies)
+SPECIAL['k8s_io.apimachinery.pkg.util.validation.field'] = dict(
+    doc='''Its fact (`fieldInit`, `storage/etcd3/Base.lean`): `omitValue`'s address is not `nil`
+(`(*Error).ErrorBody` loads it). Its initializer allocates it (the allocation gives its points-to,
+hence the address), initializes its imports, and runs its translated initializers: `omitValue`'s
+(`OmitValueType{}`, `errors.go`) and `var _ error = &Error{}` (an allocation; prove-smallinits,
+2026-11-20: until then `opaqueInitsOk`).''',
+    alloc_types={'omitValue': 'k8s_io.apimachinery.pkg.util.validation.field.OmitValueType'},
+    before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']},
+    finish=['ihave %Hnn := typedPointsto_not_null _ _ _ $$ HomitValue'] + FIN_PRE[:6] +
+           ['try (imodintro; ipureintro; exact Hnn)'],
+)
+SPECIAL['k8s_io.apiserver.pkg.authorization.union'] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports and runs its translated
+initializer, the interface assertion `var _ = authorizer.Authorizer(unionAuthzHandler{})` (a
+conversion to an interface, `union.go`).''',
+    before={'$end': ['try wp_auto']},
+)
 
 # bbolt (project bbolt, translated with bodies, 2026-11-03; facts in
 # `Proof/go_etcd_io/bbolt/PkgInit.lean`)
@@ -2122,6 +2161,172 @@ _R.setdefault('before', {})['ErrGRPCNotSupportedForLearner'] = status_steps('Err
 _R['alloc_types']['ErrGRPCNotSupportedForLearner'] = 'GoInterface'
 _R['imports'].append('Proof.google_golang_org.grpc.status.Error')
 
+# (prove-rpcmap, 2026-11-20) the whole package is translated: its other `ErrGRPC* = status.Error(...)`
+# errors (`status_steps`), the map literal `errStringToError` and the client-side errors
+# `Err* = Error(ErrGRPC*)`; until then the trust-boundary axioms `opaqueInitsOk`, `errStringToError_init`
+# and the seven `Err*_init`. The map's keys are `ErrorDesc(ErrGRPC*)` (`ErrorDesc.wp_init`: over grpc's
+# `status`, the package's own `isPkgInit` not holding yet), each substituted by its description
+# (`errDesc`), and its values the `ErrGRPC*` errors: built under `rpctypesErrMapInv` (each value one
+# grpc's `status` accepts, under its description), it gives the fact's map. `Error(ErrGRPC*)` is then
+# `Error.wp_initErr` (an `EtcdError` with `ErrGRPC*`'s description: its key is in the map, found along
+# the literal's insertions) or, for `ErrGRPCTimeoutWaitAppliedIndex` (no key of the map),
+# `Error.wp_initAny`.
+def _rpc_code():
+    return open('Code/go_etcd_io/etcd/api/v3/v3rpc/rpctypes.lean').read()
+_RPC_CODE = _rpc_code()
+# the variables' stores, in execution order (the translation nests them in reverse)
+_RPC_STORES = list(reversed(re.findall(r'\(GoStore go\.error\)\)\) \(Pair \(App \(Val \(GoInstruction \(GlobalVarAddr (\w+)\)',
+                                       _RPC_CODE)))
+# the aliases (`ErrGRPCClusterIdMismatch = ErrGRPCClusterIDMismatch`, deprecated names): a load
+_RPC_ALIASES = ['ErrGRPCClusterIdMismatch', 'ErrClusterIdMismatch']
+# the `status.Error(...)` errors
+_RPC_STATUS = [x for x in _RPC_STORES if x.startswith('ErrGRPC') and x not in _RPC_ALIASES]
+assert len(_RPC_STATUS) == _RPC_CODE.count('FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []'), _RPC_STATUS
+# the map literal's keys `ErrorDesc(X)`, in the literal's order (its values are the same `X`)
+_RPC_KEYS = re.findall(r'\(Let "\$k\d+" \(Let "\$a0" \(App \(Val \(GoInstruction \(GoLoad go\.error\)\)\) '
+                       r'\(App \(Val \(GoInstruction \(GlobalVarAddr (\w+)\)', _RPC_CODE)
+_RPC_VALS = re.findall(r'\(Let "\$v\d+" \(App \(Val \(GoInstruction \(GoLoad go\.error\)\)\) '
+                       r'\(App \(Val \(GoInstruction \(GlobalVarAddr (\w+)\)', _RPC_CODE)
+# `Error(X)`'s arguments in execution order, and the variables they initialize (in the same order)
+_RPC_ERRARGS = re.findall(r'\(Let "\$r0" \(Let "\$a0" \(App \(Val \(GoInstruction \(GoLoad go\.error\)\)\) '
+                          r'\(App \(Val \(GoInstruction \(GlobalVarAddr (\w+)\)\)\) \(Val #\(\)\)\)\)\n\s*'
+                          r'\(App \(App \(Val \(GoInstruction \(FuncResolve Error \[\]\)\)\)', _RPC_CODE)
+
+# the client-side errors `Err* = Error(ErrGRPC*)`, with their arguments
+_RPC_ERRS = [x for x in _RPC_STORES if not x.startswith('ErrGRPC') and x not in _RPC_ALIASES]
+assert len(_RPC_ERRS) == len(_RPC_ERRARGS) and _RPC_KEYS == _RPC_VALS, (_RPC_ERRS, _RPC_ERRARGS)
+_RPC_ERRS = dict(zip(_RPC_ERRS, _RPC_ERRARGS))
+_RPCST = '{Hd:google_golang_org.grpc.status}'
+for x in _RPC_STATUS:
+    if x not in _R['before']:
+        _R['before'][x] = status_steps(x)
+    _R['alloc_types'][x] = 'GoInterface'
+for x in _RPC_ALIASES + list(_RPC_ERRS):
+    _R['alloc_types'][x] = 'GoInterface'
+_R['alloc_types']['errStringToError'] = 'Loc'
+for x in ['ErrFutureRev', 'ErrCompacted', 'errStringToError', 'ErrUserEmpty', 'ErrInvalidAuthToken',
+          'ErrAuthOldRevision', 'ErrNoLeader', 'ErrAuthNotEnabled']:
+    del _R['custom'][x]
+_RPC_ARGS = ('EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc MD')
+_RPC_ED = '(EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof)'
+# the map literal: its keys (`ErrorDesc(X)`, each its description), then the map made and its entries inserted
+_R['before']['errStringToError'] = (
+    ['have HtyRpc : go_etcd_io.etcd.cache.v3.rpctypesEtcdErrorTy (GF := GF) (hG := hG) :=',
+     '  ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus,',
+     '   EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat,',
+     '   EtcdGrove.RpctypesEtcdErrorMethods.errorSig⟩'] +
+    sum([['try wp_auto',
+          f'ihave ⟨%mq{x}, #MQ{x}⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ O{x}',
+          f'wp_apply ({_RPC_ED} (GoInterface.ok e{x}) mq{x}) $$ [${_RPCST} $O{x} $MQ{x}]',
+          f'  as %q{x} ⟨%Q{x}, -⟩',
+          f'subst Q{x}'] for x in _RPC_KEYS], []) +
+    ['try wp_auto',
+     'wp_apply (wp_map_make1 (K := GoString) (V := GoInterface) go.string go.error) as %mesm Hesm0',
+     'ihave Hesm := EtcdGrove.rpctypes_errMapInv_empty mesm $$ Hesm0',
+     'try wp_auto'] +
+    sum([[f'wp_apply (EtcdGrove.rpctypes_wp_errMapInsert mesm _ e{x}) $$ [$Hesm $O{x}] as Hesm',
+          'try wp_auto'] for x in _RPC_KEYS], []))
+# `Err* = Error(ErrGRPC*)`: the map's facts first (before the first one), then each call
+_RPC_FIRST = next(iter(_RPC_ERRS))
+for x, g in _RPC_ERRS.items():
+    st = []
+    if x == _RPC_FIRST:
+        st += ['try wp_auto', 'ihave ⟨Hesm, #MS, %MD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hesm', 'ipersist Hesm', 'ipersist HerrStringToError']
+    st += ['try wp_auto']
+    if g in _RPC_KEYS:
+        st += [f'wp_apply (EtcdGrove.rpctypes.Error.wp_initErr {_RPC_ED} {_RPC_ARGS} e{g})',
+               f'    $$ [${_RPCST} $HerrStringToError $Hesm $MS $O{g}] as %x{x} ⟨%X{x}, #S{x}⟩',
+               '· ipureintro',
+               '  repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))',
+               f'rw [D{g}] at X{x}']
+        if x in ('ErrFutureRev', 'ErrCompacted'):
+            st += [f'have D{x} : go_etcd_io.etcd.cache.v3.errDesc (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x{x}) =',
+                   f'    go_etcd_io.etcd.cache.v3.{_RSTATUS[g]} := by rw [EtcdGrove.rpctypes.errDesc_etcdError]; exact X{x}',
+                   f'have F{x} : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none := HtyRpc.2.2.2.1',
+                   f'have T{x} : ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x{x} =',
+                   f'    interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x := ⟨_, rfl⟩']
+    else:
+        st += [f'wp_apply (EtcdGrove.rpctypes.Error.wp_initAny {_RPC_ED} {_RPC_ARGS} e{g})',
+               f'    $$ [${_RPCST} $HerrStringToError $Hesm $MS $O{g}] as %r{x} -']
+    st += ['try wp_auto']
+    _R['before'][x] = st
+_R['finish'].remove('ipersist HerrStringToError')
+_R['rec_depth'] = 200000
+_R['imports'] += ['Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error',
+                  'Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc',
+                  'Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error',
+                  'Proof.google_golang_org.grpc.status.FromError']
+_R['pre'] += [
+    'section rpcmap',
+    'variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]',
+    'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]',
+    '',
+    '/-- (prove-rpcmap) A lookup in `<[k := v]> m` finds `v` at `k`, or one of `m`\'s entries. -/',
+    'theorem EtcdGrove.rpctypes_lookup_insert_some {K V : Type} [DecidableEq K] {m : GMap K V} {k k\' : K}',
+    '    {v w : V} (h : (<[k := v]> m) !! k\' = some w) : (k = k\' ∧ v = w) ∨ m !! k\' = some w :=',
+    '  ((GMap.lookup_insert_Some m k k\' v w).1 h).imp id And.right',
+    '',
+    '/-- (prove-rpcmap) A key of `<[k := v]> m`: `k`, or one of `m`\'s. -/',
+    'theorem EtcdGrove.rpctypes_lookup_insert_isSome {K V : Type} [DecidableEq K] (m : GMap K V) (k k\' : K)',
+    '    (v : V) (h : k = k\' ∨ (m !! k\').isSome) : ((<[k := v]> m) !! k\').isSome :=',
+    '  (GMap.lookup_insert_is_Some m k k\' v).2 (by by_cases hk : k = k\' <;> simp_all)',
+    '',
+    '/-- (prove-rpcmap) The map literal `errStringToError` while `rpctypes`\' initializer builds it: its',
+    'values are errors grpc\'s `status` accepts, each under its description (`rpctypesInit`\'s map). -/',
+    'abbrev EtcdGrove.rpctypesErrMapInv (mref : Loc) (M : GMap GoString GoInterface) : IProp GF :=',
+    '  iprop(mref ↦$ M ∗',
+    '    (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗',
+    '    ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝)',
+    '',
+    'theorem EtcdGrove.rpctypes_errMapInv_elim (mref : Loc) (M : GMap GoString GoInterface) :',
+    '    (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ⊢ mref ↦$ M ∗',
+    '      (□ ∀ (k : GoString) (v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗',
+    '      ⌜∀ (k : GoString) (v : GoInterface), M !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝ := by',
+    '  iintro H; iexact H',
+    '',
+    'theorem EtcdGrove.rpctypes_errMapInv_empty (mref : Loc) :',
+    '    (mref ↦$ (∅ : GMap GoString GoInterface) : IProp GF) ⊢ EtcdGrove.rpctypesErrMapInv mref ∅ := by',
+    '  iintro Hm',
+    '  unfold EtcdGrove.rpctypesErrMapInv',
+    '  iframe Hm',
+    '  isplitr',
+    '  · iintro !> %k %v %h; simp at h',
+    '  · ipureintro; intro k v h; simp at h',
+    '',
+    '/-- (prove-rpcmap) Inserting an error grpc\'s `status` accepts under its description. -/',
+    'theorem EtcdGrove.rpctypes_wp_errMapInsert (mref : Loc) (M : GMap GoString GoInterface) (e : GoInterfaceOk) :',
+    '    {{ (EtcdGrove.rpctypesErrMapInv mref M : IProp GF) ∗ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) }}',
+    '      (App (App (App (Val (map.insert go.string)) (Val #mref))',
+    '        (Val #(go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e)))) (Val #(GoInterface.ok e)))',
+    '    {{ RET #(); EtcdGrove.rpctypesErrMapInv mref',
+    '        (<[go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) := GoInterface.ok e]> M) }} := by',
+    '  wp_start_folded as ⟨Hinv, #Hok⟩',
+    '  ihave ⟨Hm, #HS, %HD⟩ := EtcdGrove.rpctypes_errMapInv_elim _ _ $$ Hinv',
+    '  wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string) $$ Hm as Hm',
+    '  iapply HΦ',
+    '  unfold EtcdGrove.rpctypesErrMapInv',
+    '  iframe Hm',
+    '  isplitr',
+    '  · iintro !> %k %v %h',
+    '    rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨-, rfl⟩ | h',
+    '    · iexact Hok',
+    '    · iapply HS; ipureintro; exact h',
+    '  · ipureintro; intro k v h',
+    '    rcases EtcdGrove.rpctypes_lookup_insert_some h with ⟨rfl, rfl⟩ | h',
+    '    · rfl',
+    '    · exact HD k v h',
+    '',
+    'end rpcmap',
+    '']
+_R['doc'] = _R['doc'].replace("""Its variables'
+initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
+`<X>_init` state the ones the fact reads, `opaqueInitsOk` the others.""",
+"""(prove-rpcmap, 2026-11-20) Its
+variables' initializers (`error.go`, `md.go`, `metadatafields.go`) are all translated: the
+`status.Error` errors, the map literal `errStringToError` (keys `ErrorDesc(ErrGRPC*)`) and the
+client-side `Err* = Error(ErrGRPC*)` (`Error.wp_initErr`); until then the trust-boundary axioms
+`opaqueInitsOk`, `errStringToError_init` and `<X>_init` for the errors the fact reads.""")
+
 _P = SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb']
 _P['doc'] = """Its fact (`etcdserverpbInit`, `cache/v3/Base.lean`): the sort enumerations' name maps. Its
 initializer allocates and sets the translated gRPC service descriptors (`KV_ServiceDesc`, ...:
@@ -2880,8 +3085,9 @@ trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).''',
 _K8S_ALLOCS = {'k8s_io.utils.clock', 'k8s_io.apimachinery.pkg.util.validation.field'}
 for _p, _what in [('k8s_io.apimachinery.pkg.conversion', '`DefaultNameFunc`, a func literal'),
                   ('k8s_io.apimachinery.pkg.runtime.schema', '`EmptyObjectKind`, an empty struct literal'),
-                  ('k8s_io.utils.clock', 'its `var _` conversions'),
-                  ('k8s_io.apimachinery.pkg.util.validation.field', '`var _ error = &Error{}` and `omitValue`, an empty struct literal')]:
+                  ('k8s_io.utils.clock', 'its `var _` conversions')]:
+    # (merge, 2026-11-20) `util/validation/field` is k8s-authz's SPECIAL entry above (its fact
+    # `fieldInit`), which allocates the `var _ error = &Error{}` check as these do
     assert _p not in SPECIAL, _p
     SPECIAL[_p] = dict(doc=f'''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers: {_what} (prove-smallinits, 2026-11-20; until then the trust-boundary
@@ -3351,6 +3557,9 @@ def gen(p, cfg=None):
     A('')
     if len(items) > 50 or cfg.get('heavy'):
         A('set_option maxHeartbeats 8000000 in')
+    if cfg.get('rec_depth'):
+        # (prove-rpcmap, 2026-11-20) an initializer too deep for the default (`rpctypes`' 180 variables)
+        A(f"set_option maxRecDepth {cfg['rec_depth']} in")
     assert not hyps(p), p
     form = 'self' if p in PRE_RES else ('res' if rl else 'lb')
     # the resource list the body sees (`self`: without `p`'s own entry) and its literal
@@ -3674,6 +3883,9 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
+# (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

@@ -68,17 +68,11 @@ noncomputable def ErrGRPCNoSpace [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrGRPCLeaseNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseNotFound"
 
-opaque ErrGRPCLeaseNotFound.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCLeaseExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseExist"
 
-opaque ErrGRPCLeaseExist.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCLeaseTTLTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseTTLTooLarge"
-
-opaque ErrGRPCLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCWatchCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCWatchCanceled"
@@ -86,77 +80,47 @@ noncomputable def ErrGRPCWatchCanceled [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def ErrGRPCMemberExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberExist"
 
-opaque ErrGRPCMemberExist.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCPeerURLExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPeerURLExist"
-
-opaque ErrGRPCPeerURLExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCMemberNotEnoughStarted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotEnoughStarted"
 
-opaque ErrGRPCMemberNotEnoughStarted.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCMemberBadURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberBadURLs"
-
-opaque ErrGRPCMemberBadURLs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotFound"
 
-opaque ErrGRPCMemberNotFound.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCMemberNotLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotLearner"
-
-opaque ErrGRPCMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCLearnerNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLearnerNotReady"
 
-opaque ErrGRPCLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCTooManyLearners [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTooManyLearners"
-
-opaque ErrGRPCTooManyLearners.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterIDMismatch"
 
-opaque ErrGRPCClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCClusterIdMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterIdMismatch"
-
-opaque ErrGRPCClusterIdMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRequestTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRequestTooLarge"
 
-opaque ErrGRPCRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCRequestTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRequestTooManyRequests"
-
-opaque ErrGRPCRequestTooManyRequests.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRootUserNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRootUserNotExist"
 
-opaque ErrGRPCRootUserNotExist.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCRootRoleNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRootRoleNotExist"
 
-opaque ErrGRPCRootRoleNotExist.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCUserAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserAlreadyExist"
-
-opaque ErrGRPCUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCUserEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserEmpty"
@@ -164,32 +128,20 @@ noncomputable def ErrGRPCUserEmpty [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrGRPCUserNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserNotFound"
 
-opaque ErrGRPCUserNotFound.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCRoleAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleAlreadyExist"
-
-opaque ErrGRPCRoleAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRoleNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleNotFound"
 
-opaque ErrGRPCRoleNotFound.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCRoleEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleEmpty"
-
-opaque ErrGRPCRoleEmpty.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCAuthFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthFailed"
 
-opaque ErrGRPCAuthFailed.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCPermissionNotGiven [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionNotGiven"
-
-opaque ErrGRPCPermissionNotGiven.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCPermissionDenied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionDenied"
@@ -197,25 +149,17 @@ noncomputable def ErrGRPCPermissionDenied [GooseExts] [GoGlobalContext] : GoStri
 noncomputable def ErrGRPCRoleNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleNotGranted"
 
-opaque ErrGRPCRoleNotGranted.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCPermissionNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionNotGranted"
 
-opaque ErrGRPCPermissionNotGranted.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCAuthNotEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthNotEnabled"
-
-opaque ErrGRPCAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCInvalidAuthToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidAuthToken"
 
 noncomputable def ErrGRPCInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidAuthMgmt"
-
-opaque ErrGRPCInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCAuthOldRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthOldRevision"
@@ -226,12 +170,8 @@ noncomputable def ErrGRPCNoLeader [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrGRPCNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotLeader"
 
-opaque ErrGRPCNotLeader.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCLeaderChanged [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaderChanged"
-
-opaque ErrGRPCLeaderChanged.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNotCapable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotCapable"
@@ -239,37 +179,23 @@ noncomputable def ErrGRPCNotCapable [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrGRPCStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCStopped"
 
-opaque ErrGRPCStopped.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeout"
-
-opaque ErrGRPCTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTimeoutDueToLeaderFail [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutDueToLeaderFail"
 
-opaque ErrGRPCTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCTimeoutDueToConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutDueToConnectionLost"
-
-opaque ErrGRPCTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTimeoutWaitAppliedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutWaitAppliedIndex"
 
-opaque ErrGRPCTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCUnhealthy [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUnhealthy"
 
-opaque ErrGRPCUnhealthy.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCCorrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCorrupt"
-
-opaque ErrGRPCCorrupt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNotSupportedForLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotSupportedForLearner"
@@ -277,337 +203,203 @@ noncomputable def ErrGRPCNotSupportedForLearner [GooseExts] [GoGlobalContext] : 
 noncomputable def ErrGRPCBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCBadLeaderTransferee"
 
-opaque ErrGRPCBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCWrongDowngradeVersionFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCWrongDowngradeVersionFormat"
-
-opaque ErrGRPCWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCInvalidDowngradeTargetVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidDowngradeTargetVersion"
 
-opaque ErrGRPCInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCClusterVersionUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterVersionUnavailable"
-
-opaque ErrGRPCClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCDowngradeInProcess [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDowngradeInProcess"
 
-opaque ErrGRPCDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCNoInflightDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoInflightDowngrade"
-
-opaque ErrGRPCNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCanceled"
 
-opaque ErrGRPCCanceled.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrGRPCDeadlineExceeded [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDeadlineExceeded"
-
-opaque ErrGRPCDeadlineExceeded.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errStringToError [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.errStringToError"
 
-opaque errStringToError.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrEmptyKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrEmptyKey"
-
-opaque ErrEmptyKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrKeyNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrKeyNotFound"
 
-opaque ErrKeyNotFound.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrValueProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrValueProvided"
-
-opaque ErrValueProvided.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaseProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseProvided"
 
-opaque ErrLeaseProvided.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrTooManyOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyOps"
-
-opaque ErrTooManyOps.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrDuplicateKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrDuplicateKey"
 
-opaque ErrDuplicateKey.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrInvalidSortOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidSortOption"
-
-opaque ErrInvalidSortOption.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrCompacted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrCompacted"
 
-opaque ErrCompacted.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrFutureRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrFutureRev"
-
-opaque ErrFutureRev.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoSpace"
 
-opaque ErrNoSpace.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrLeaseNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseNotFound"
-
-opaque ErrLeaseNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaseExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseExist"
 
-opaque ErrLeaseExist.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrLeaseTTLTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseTTLTooLarge"
-
-opaque ErrLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberExist"
 
-opaque ErrMemberExist.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrPeerURLExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPeerURLExist"
-
-opaque ErrPeerURLExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberNotEnoughStarted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotEnoughStarted"
 
-opaque ErrMemberNotEnoughStarted.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrMemberBadURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberBadURLs"
-
-opaque ErrMemberBadURLs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotFound"
 
-opaque ErrMemberNotFound.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrMemberNotLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotLearner"
-
-opaque ErrMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberLearnerNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberLearnerNotReady"
 
-opaque ErrMemberLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrTooManyLearners [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyLearners"
-
-opaque ErrTooManyLearners.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRequestTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRequestTooLarge"
 
-opaque ErrRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyRequests"
-
-opaque ErrTooManyRequests.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRootUserNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRootUserNotExist"
 
-opaque ErrRootUserNotExist.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrRootRoleNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRootRoleNotExist"
-
-opaque ErrRootRoleNotExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUserAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserAlreadyExist"
 
-opaque ErrUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrUserEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserEmpty"
-
-opaque ErrUserEmpty.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUserNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserNotFound"
 
-opaque ErrUserNotFound.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrRoleAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleAlreadyExist"
-
-opaque ErrRoleAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRoleNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleNotFound"
 
-opaque ErrRoleNotFound.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrRoleEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleEmpty"
-
-opaque ErrRoleEmpty.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrAuthFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthFailed"
 
-opaque ErrAuthFailed.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrPermissionDenied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPermissionDenied"
-
-opaque ErrPermissionDenied.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRoleNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleNotGranted"
 
-opaque ErrRoleNotGranted.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrPermissionNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPermissionNotGranted"
-
-opaque ErrPermissionNotGranted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrAuthNotEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthNotEnabled"
 
-opaque ErrAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrInvalidAuthToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidAuthToken"
-
-opaque ErrInvalidAuthToken.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrAuthOldRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthOldRevision"
 
-opaque ErrAuthOldRevision.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidAuthMgmt"
-
-opaque ErrInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterIDMismatch"
 
-opaque ErrClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrClusterIdMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterIdMismatch"
-
-opaque ErrClusterIdMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoLeader"
 
-opaque ErrNoLeader.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNotLeader"
-
-opaque ErrNotLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaderChanged [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaderChanged"
 
-opaque ErrLeaderChanged.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrNotCapable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNotCapable"
-
-opaque ErrNotCapable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrStopped"
 
-opaque ErrStopped.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeout"
-
-opaque ErrTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutDueToLeaderFail [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutDueToLeaderFail"
 
-opaque ErrTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrTimeoutDueToConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutDueToConnectionLost"
-
-opaque ErrTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutWaitAppliedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutWaitAppliedIndex"
 
-opaque ErrTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrUnhealthy [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUnhealthy"
-
-opaque ErrUnhealthy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrCorrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrCorrupt"
 
-opaque ErrCorrupt.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrBadLeaderTransferee"
-
-opaque ErrBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClusterVersionUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterVersionUnavailable"
 
-opaque ErrClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrWrongDowngradeVersionFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrWrongDowngradeVersionFormat"
-
-opaque ErrWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidDowngradeTargetVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidDowngradeTargetVersion"
 
-opaque ErrInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrDowngradeInProcess [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrDowngradeInProcess"
 
-opaque ErrDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrNoInflightDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoInflightDowngrade"
-
-opaque ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetadataRequireLeaderKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataRequireLeaderKey"
@@ -776,12 +568,114 @@ noncomputable def ErrorDesc.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status]
 
-opaque «_».init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -852,49 +746,131 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Val #(go!"etcdserver: mvcc: database space exceeded"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 5))
+  (Let "$a1" (Val #(go!"etcdserver: requested lease not found"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: lease already exists"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 11))
+  (Let "$a1" (Val #(go!"etcdserver: too large lease TTL"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W32 1))
   (Let "$a1" (Val #(go!"etcdserver: watch canceled"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: member ID already exist"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: Peer URLs already exists"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: re-configuration failed due to not enough started members"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: given member URLs are invalid"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 5))
+  (Let "$a1" (Val #(go!"etcdserver: member not found"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: can only promote a learner member"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: can only promote a learner member which is in sync with leader"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: too many learner members in cluster"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: cluster ID mismatch"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterIDMismatch))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: request is too large"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 8))
+  (Let "$a1" (Val #(go!"etcdserver: too many requests"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: root user does not exist"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: root user does not have root role"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: user name already exists"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W32 3))
   (Let "$a1" (Val #(go!"etcdserver: user name is empty"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: user name not found"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: role name already exists"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: role name not found"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: role name is empty"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: authentication failed, invalid user ID or password"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: permission not given"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W32 7))
   (Let "$a1" (Val #(go!"etcdserver: permission denied"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: role is not granted to the user"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: permission is not granted to the role"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: authentication is not enabled"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W32 16))
   (Let "$a1" (Val #(go!"etcdserver: invalid auth token"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: invalid auth management"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W32 3))
   (Let "$a1" (Val #(go!"etcdserver: revision of auth store is old"))
@@ -904,89 +880,427 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Val #(go!"etcdserver: no leader"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: not leader"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 14))
+  (Let "$a1" (Val #(go!"etcdserver: leader changed"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W32 9))
   (Let "$a1" (Val #(go!"etcdserver: not capable"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 14))
+  (Let "$a1" (Val #(go!"etcdserver: server stopped"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 14))
+  (Let "$a1" (Val #(go!"etcdserver: request timed out"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 14))
+  (Let "$a1" (Val #(go!"etcdserver: request timed out, possibly due to previous leader failure"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 14))
+  (Let "$a1" (Val #(go!"etcdserver: request timed out, possibly due to connection lost"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 14))
+  (Let "$a1" (Val #(go!"etcdserver: request timed out, waiting for the applied index took too long"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 14))
+  (Let "$a1" (Val #(go!"etcdserver: unhealthy cluster"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 15))
+  (Let "$a1" (Val #(go!"etcdserver: corrupt cluster"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W32 9))
   (Let "$a1" (Val #(go!"etcdserver: rpc not supported for learner"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: bad leader transferee"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: wrong downgrade target version format"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 3))
+  (Let "$a1" (Val #(go!"etcdserver: invalid downgrade target version"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: cluster version not found during downgrade"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: cluster has a downgrade job in progress"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 9))
+  (Let "$a1" (Val #(go!"etcdserver: no inflight downgrade job"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 1))
+  (Let "$a1" (Val #(go!"etcdserver: request canceled"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W32 4))
+  (Let "$a1" (Val #(go!"etcdserver: context deadline exceeded"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCEmptyKey))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCEmptyKey))) (Val #())))
+  (Let "$k2" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCKeyNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCKeyNotFound))) (Val #())))
+  (Let "$k4" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCValueProvided))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCValueProvided))) (Val #())))
+  (Let "$k6" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseProvided))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v7" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseProvided))) (Val #())))
+  (Let "$k8" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTooManyOps))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v9" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTooManyOps))) (Val #())))
+  (Let "$k10" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDuplicateKey))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v11" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDuplicateKey))) (Val #())))
+  (Let "$k12" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidSortOption))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v13" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidSortOption))) (Val #())))
+  (Let "$k14" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCompacted))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v15" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCompacted))) (Val #())))
+  (Let "$k16" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCFutureRev))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v17" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCFutureRev))) (Val #())))
+  (Let "$k18" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoSpace))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v19" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoSpace))) (Val #())))
+  (Let "$k20" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v21" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseNotFound))) (Val #())))
+  (Let "$k22" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v23" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseExist))) (Val #())))
+  (Let "$k24" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseTTLTooLarge))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v25" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseTTLTooLarge))) (Val #())))
+  (Let "$k26" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v27" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberExist))) (Val #())))
+  (Let "$k28" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPeerURLExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v29" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPeerURLExist))) (Val #())))
+  (Let "$k30" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotEnoughStarted))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v31" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotEnoughStarted))) (Val #())))
+  (Let "$k32" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberBadURLs))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v33" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberBadURLs))) (Val #())))
+  (Let "$k34" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v35" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotFound))) (Val #())))
+  (Let "$k36" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotLearner))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v37" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotLearner))) (Val #())))
+  (Let "$k38" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLearnerNotReady))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v39" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLearnerNotReady))) (Val #())))
+  (Let "$k40" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTooManyLearners))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v41" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTooManyLearners))) (Val #())))
+  (Let "$k42" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterIDMismatch))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v43" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterIDMismatch))) (Val #())))
+  (Let "$k44" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRequestTooLarge))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v45" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRequestTooLarge))) (Val #())))
+  (Let "$k46" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRequestTooManyRequests))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v47" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRequestTooManyRequests))) (Val #())))
+  (Let "$k48" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRootUserNotExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v49" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRootUserNotExist))) (Val #())))
+  (Let "$k50" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRootRoleNotExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v51" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRootRoleNotExist))) (Val #())))
+  (Let "$k52" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserAlreadyExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v53" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserAlreadyExist))) (Val #())))
+  (Let "$k54" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserEmpty))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v55" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserEmpty))) (Val #())))
+  (Let "$k56" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v57" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserNotFound))) (Val #())))
+  (Let "$k58" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleAlreadyExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v59" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleAlreadyExist))) (Val #())))
+  (Let "$k60" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v61" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleNotFound))) (Val #())))
+  (Let "$k62" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleEmpty))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v63" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleEmpty))) (Val #())))
+  (Let "$k64" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthFailed))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v65" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthFailed))) (Val #())))
+  (Let "$k66" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionDenied))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v67" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionDenied))) (Val #())))
+  (Let "$k68" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleNotGranted))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v69" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleNotGranted))) (Val #())))
+  (Let "$k70" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionNotGranted))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v71" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionNotGranted))) (Val #())))
+  (Let "$k72" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthNotEnabled))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v73" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthNotEnabled))) (Val #())))
+  (Let "$k74" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthToken))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v75" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthToken))) (Val #())))
+  (Let "$k76" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthMgmt))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v77" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthMgmt))) (Val #())))
+  (Let "$k78" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthOldRevision))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v79" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthOldRevision))) (Val #())))
+  (Let "$k80" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoLeader))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v81" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoLeader))) (Val #())))
+  (Let "$k82" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotLeader))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v83" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotLeader))) (Val #())))
+  (Let "$k84" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaderChanged))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v85" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaderChanged))) (Val #())))
+  (Let "$k86" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotCapable))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v87" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotCapable))) (Val #())))
+  (Let "$k88" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCStopped))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v89" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCStopped))) (Val #())))
+  (Let "$k90" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeout))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v91" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeout))) (Val #())))
+  (Let "$k92" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutDueToLeaderFail))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v93" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutDueToLeaderFail))) (Val #())))
+  (Let "$k94" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutDueToConnectionLost))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v95" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutDueToConnectionLost))) (Val #())))
+  (Let "$k96" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUnhealthy))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v97" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUnhealthy))) (Val #())))
+  (Let "$k98" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCorrupt))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v99" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCorrupt))) (Val #())))
+  (Let "$k100" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotSupportedForLearner))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v101" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotSupportedForLearner))) (Val #())))
+  (Let "$k102" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCBadLeaderTransferee))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v103" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCBadLeaderTransferee))) (Val #())))
+  (Let "$k104" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterVersionUnavailable))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v105" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterVersionUnavailable))) (Val #())))
+  (Let "$k106" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCWrongDowngradeVersionFormat))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v107" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCWrongDowngradeVersionFormat))) (Val #())))
+  (Let "$k108" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidDowngradeTargetVersion))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v109" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidDowngradeTargetVersion))) (Val #())))
+  (Let "$k110" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDowngradeInProcess))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v111" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDowngradeInProcess))) (Val #())))
+  (Let "$k112" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoInflightDowngrade))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0")))
+  (Let "$v113" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoInflightDowngrade))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.error)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.error (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.error (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.error (Var "$v5"))), (KeyedElement (some (KeyExpression go.string (Var "$k6"))) (ElementExpression go.error (Var "$v7"))), (KeyedElement (some (KeyExpression go.string (Var "$k8"))) (ElementExpression go.error (Var "$v9"))), (KeyedElement (some (KeyExpression go.string (Var "$k10"))) (ElementExpression go.error (Var "$v11"))), (KeyedElement (some (KeyExpression go.string (Var "$k12"))) (ElementExpression go.error (Var "$v13"))), (KeyedElement (some (KeyExpression go.string (Var "$k14"))) (ElementExpression go.error (Var "$v15"))), (KeyedElement (some (KeyExpression go.string (Var "$k16"))) (ElementExpression go.error (Var "$v17"))), (KeyedElement (some (KeyExpression go.string (Var "$k18"))) (ElementExpression go.error (Var "$v19"))), (KeyedElement (some (KeyExpression go.string (Var "$k20"))) (ElementExpression go.error (Var "$v21"))), (KeyedElement (some (KeyExpression go.string (Var "$k22"))) (ElementExpression go.error (Var "$v23"))), (KeyedElement (some (KeyExpression go.string (Var "$k24"))) (ElementExpression go.error (Var "$v25"))), (KeyedElement (some (KeyExpression go.string (Var "$k26"))) (ElementExpression go.error (Var "$v27"))), (KeyedElement (some (KeyExpression go.string (Var "$k28"))) (ElementExpression go.error (Var "$v29"))), (KeyedElement (some (KeyExpression go.string (Var "$k30"))) (ElementExpression go.error (Var "$v31"))), (KeyedElement (some (KeyExpression go.string (Var "$k32"))) (ElementExpression go.error (Var "$v33"))), (KeyedElement (some (KeyExpression go.string (Var "$k34"))) (ElementExpression go.error (Var "$v35"))), (KeyedElement (some (KeyExpression go.string (Var "$k36"))) (ElementExpression go.error (Var "$v37"))), (KeyedElement (some (KeyExpression go.string (Var "$k38"))) (ElementExpression go.error (Var "$v39"))), (KeyedElement (some (KeyExpression go.string (Var "$k40"))) (ElementExpression go.error (Var "$v41"))), (KeyedElement (some (KeyExpression go.string (Var "$k42"))) (ElementExpression go.error (Var "$v43"))), (KeyedElement (some (KeyExpression go.string (Var "$k44"))) (ElementExpression go.error (Var "$v45"))), (KeyedElement (some (KeyExpression go.string (Var "$k46"))) (ElementExpression go.error (Var "$v47"))), (KeyedElement (some (KeyExpression go.string (Var "$k48"))) (ElementExpression go.error (Var "$v49"))), (KeyedElement (some (KeyExpression go.string (Var "$k50"))) (ElementExpression go.error (Var "$v51"))), (KeyedElement (some (KeyExpression go.string (Var "$k52"))) (ElementExpression go.error (Var "$v53"))), (KeyedElement (some (KeyExpression go.string (Var "$k54"))) (ElementExpression go.error (Var "$v55"))), (KeyedElement (some (KeyExpression go.string (Var "$k56"))) (ElementExpression go.error (Var "$v57"))), (KeyedElement (some (KeyExpression go.string (Var "$k58"))) (ElementExpression go.error (Var "$v59"))), (KeyedElement (some (KeyExpression go.string (Var "$k60"))) (ElementExpression go.error (Var "$v61"))), (KeyedElement (some (KeyExpression go.string (Var "$k62"))) (ElementExpression go.error (Var "$v63"))), (KeyedElement (some (KeyExpression go.string (Var "$k64"))) (ElementExpression go.error (Var "$v65"))), (KeyedElement (some (KeyExpression go.string (Var "$k66"))) (ElementExpression go.error (Var "$v67"))), (KeyedElement (some (KeyExpression go.string (Var "$k68"))) (ElementExpression go.error (Var "$v69"))), (KeyedElement (some (KeyExpression go.string (Var "$k70"))) (ElementExpression go.error (Var "$v71"))), (KeyedElement (some (KeyExpression go.string (Var "$k72"))) (ElementExpression go.error (Var "$v73"))), (KeyedElement (some (KeyExpression go.string (Var "$k74"))) (ElementExpression go.error (Var "$v75"))), (KeyedElement (some (KeyExpression go.string (Var "$k76"))) (ElementExpression go.error (Var "$v77"))), (KeyedElement (some (KeyExpression go.string (Var "$k78"))) (ElementExpression go.error (Var "$v79"))), (KeyedElement (some (KeyExpression go.string (Var "$k80"))) (ElementExpression go.error (Var "$v81"))), (KeyedElement (some (KeyExpression go.string (Var "$k82"))) (ElementExpression go.error (Var "$v83"))), (KeyedElement (some (KeyExpression go.string (Var "$k84"))) (ElementExpression go.error (Var "$v85"))), (KeyedElement (some (KeyExpression go.string (Var "$k86"))) (ElementExpression go.error (Var "$v87"))), (KeyedElement (some (KeyExpression go.string (Var "$k88"))) (ElementExpression go.error (Var "$v89"))), (KeyedElement (some (KeyExpression go.string (Var "$k90"))) (ElementExpression go.error (Var "$v91"))), (KeyedElement (some (KeyExpression go.string (Var "$k92"))) (ElementExpression go.error (Var "$v93"))), (KeyedElement (some (KeyExpression go.string (Var "$k94"))) (ElementExpression go.error (Var "$v95"))), (KeyedElement (some (KeyExpression go.string (Var "$k96"))) (ElementExpression go.error (Var "$v97"))), (KeyedElement (some (KeyExpression go.string (Var "$k98"))) (ElementExpression go.error (Var "$v99"))), (KeyedElement (some (KeyExpression go.string (Var "$k100"))) (ElementExpression go.error (Var "$v101"))), (KeyedElement (some (KeyExpression go.string (Var "$k102"))) (ElementExpression go.error (Var "$v103"))), (KeyedElement (some (KeyExpression go.string (Var "$k104"))) (ElementExpression go.error (Var "$v105"))), (KeyedElement (some (KeyExpression go.string (Var "$k106"))) (ElementExpression go.error (Var "$v107"))), (KeyedElement (some (KeyExpression go.string (Var "$k108"))) (ElementExpression go.error (Var "$v109"))), (KeyedElement (some (KeyExpression go.string (Var "$k110"))) (ElementExpression go.error (Var "$v111"))), (KeyedElement (some (KeyExpression go.string (Var "$k112"))) (ElementExpression go.error (Var "$v113")))]))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCEmptyKey))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCKeyNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCValueProvided))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseProvided))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTooManyOps))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDuplicateKey))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidSortOption))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCompacted))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCFutureRev))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoSpace))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseTTLTooLarge))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPeerURLExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotEnoughStarted))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberBadURLs))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotLearner))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLearnerNotReady))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTooManyLearners))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRequestTooLarge))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRequestTooManyRequests))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRootUserNotExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRootRoleNotExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserAlreadyExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserEmpty))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleAlreadyExist))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleNotFound))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleEmpty))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthFailed))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionDenied))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleNotGranted))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionNotGranted))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthNotEnabled))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthToken))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthOldRevision))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthMgmt))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterIDMismatch))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrClusterIDMismatch))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoLeader))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotLeader))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaderChanged))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotCapable))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCStopped))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeout))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutDueToLeaderFail))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutDueToConnectionLost))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutWaitAppliedIndex))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUnhealthy))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCorrupt))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCBadLeaderTransferee))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterVersionUnavailable))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCWrongDowngradeVersionFormat))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidDowngradeTargetVersion))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDowngradeInProcess))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoInflightDowngrade))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve Error []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"hasleader"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1008,229 +1322,229 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetadataRequireLeaderKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrNoInflightDowngrade.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNoInflightDowngrade))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrDowngradeInProcess.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrDowngradeInProcess))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrInvalidDowngradeTargetVersion.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidDowngradeTargetVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrWrongDowngradeVersionFormat.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrWrongDowngradeVersionFormat))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrClusterVersionUnavailable.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrClusterVersionUnavailable))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrBadLeaderTransferee.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrBadLeaderTransferee))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrCorrupt.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrCorrupt))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrUnhealthy.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrUnhealthy))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrTimeoutWaitAppliedIndex.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTimeoutWaitAppliedIndex))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrTimeoutDueToConnectionLost.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTimeoutDueToConnectionLost))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrTimeoutDueToLeaderFail.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTimeoutDueToLeaderFail))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrTimeout.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrStopped.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrStopped))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrNotCapable.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNotCapable))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrLeaderChanged.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrLeaderChanged))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrNotLeader.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNotLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrNoLeader.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNoLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrClusterIdMismatch.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrClusterIdMismatch))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrClusterIDMismatch.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrClusterIDMismatch))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrInvalidAuthMgmt.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthMgmt))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrAuthOldRevision.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrAuthOldRevision))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrInvalidAuthToken.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthToken))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrAuthNotEnabled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrAuthNotEnabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrPermissionNotGranted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrPermissionNotGranted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrRoleNotGranted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrRoleNotGranted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrPermissionDenied.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrPermissionDenied))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrAuthFailed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrAuthFailed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrRoleEmpty.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrRoleEmpty))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrRoleNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrRoleNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrRoleAlreadyExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrRoleAlreadyExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrUserNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrUserNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrUserEmpty.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrUserEmpty))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrUserAlreadyExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrUserAlreadyExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrRootRoleNotExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrRootRoleNotExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrRootUserNotExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrRootUserNotExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrTooManyRequests.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTooManyRequests))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrRequestTooLarge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrRequestTooLarge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrTooManyLearners.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTooManyLearners))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrMemberLearnerNotReady.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrMemberLearnerNotReady))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrMemberNotLearner.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrMemberNotLearner))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrMemberNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrMemberNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrMemberBadURLs.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrMemberBadURLs))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrMemberNotEnoughStarted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrMemberNotEnoughStarted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrPeerURLExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrPeerURLExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrMemberExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrMemberExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrLeaseTTLTooLarge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrLeaseTTLTooLarge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrLeaseExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrLeaseExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrLeaseNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrLeaseNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrNoSpace.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNoSpace))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrFutureRev.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrFutureRev))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrCompacted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrCompacted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrInvalidSortOption.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidSortOption))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrDuplicateKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrDuplicateKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrTooManyOps.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTooManyOps))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrLeaseProvided.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrLeaseProvided))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrValueProvided.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrValueProvided))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrKeyNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrKeyNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrEmptyKey.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrEmptyKey))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val errStringToError.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.error)))) (Pair (App (Val (GoInstruction (GlobalVarAddr errStringToError))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCDeadlineExceeded.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDeadlineExceeded))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCCanceled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCanceled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCNoInflightDowngrade.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoInflightDowngrade))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCDowngradeInProcess.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCDowngradeInProcess))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCClusterVersionUnavailable.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterVersionUnavailable))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCInvalidDowngradeTargetVersion.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidDowngradeTargetVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCWrongDowngradeVersionFormat.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCWrongDowngradeVersionFormat))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCBadLeaderTransferee.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCBadLeaderTransferee))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotSupportedForLearner))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCCorrupt.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCCorrupt))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCUnhealthy.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUnhealthy))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCTimeoutWaitAppliedIndex.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutWaitAppliedIndex))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCTimeoutDueToConnectionLost.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutDueToConnectionLost))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCTimeoutDueToLeaderFail.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeoutDueToLeaderFail))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCTimeout.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCStopped.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCStopped))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotCapable))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCLeaderChanged.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaderChanged))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCNotLeader.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNotLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoLeader))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthOldRevision))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCInvalidAuthMgmt.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthMgmt))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCInvalidAuthToken))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCAuthNotEnabled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthNotEnabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCPermissionNotGranted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionNotGranted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCRoleNotGranted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleNotGranted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionDenied))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCPermissionNotGiven.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPermissionNotGiven))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCAuthFailed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCAuthFailed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCRoleEmpty.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleEmpty))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCRoleNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCRoleAlreadyExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRoleAlreadyExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCUserNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserEmpty))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCUserAlreadyExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCUserAlreadyExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCRootRoleNotExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRootRoleNotExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCRootUserNotExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRootUserNotExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCRequestTooManyRequests.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRequestTooManyRequests))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCRequestTooLarge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCRequestTooLarge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCClusterIdMismatch.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterIdMismatch))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCClusterIDMismatch.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCClusterIDMismatch))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCTooManyLearners.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCTooManyLearners))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCLearnerNotReady.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLearnerNotReady))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCMemberNotLearner.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotLearner))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCMemberNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCMemberBadURLs.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberBadURLs))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCMemberNotEnoughStarted.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberNotEnoughStarted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCPeerURLExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCPeerURLExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCMemberExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCMemberExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCWatchCanceled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCLeaseTTLTooLarge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseTTLTooLarge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCLeaseExist.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseExist))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrGRPCLeaseNotFound.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseNotFound))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCNoSpace))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1280,21 +1594,229 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCNoSpace go.error)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCLeaseNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCLeaseExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCLeaseTTLTooLarge go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCWatchCanceled go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCMemberExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCPeerURLExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCMemberNotEnoughStarted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCMemberBadURLs go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCMemberNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCMemberNotLearner go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCLearnerNotReady go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCTooManyLearners go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCClusterIDMismatch go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCClusterIdMismatch go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCRequestTooLarge go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCRequestTooManyRequests go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCRootUserNotExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCRootRoleNotExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCUserAlreadyExist go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCUserEmpty go.error)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCUserNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCRoleAlreadyExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCRoleNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCRoleEmpty go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCAuthFailed go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCPermissionNotGiven go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCPermissionDenied go.error)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCRoleNotGranted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCPermissionNotGranted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCAuthNotEnabled go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCInvalidAuthToken go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCInvalidAuthMgmt go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCAuthOldRevision go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCNoLeader go.error)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCNotLeader go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCLeaderChanged go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCNotCapable go.error)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCStopped go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCTimeout go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCTimeoutDueToLeaderFail go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCTimeoutDueToConnectionLost go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCTimeoutWaitAppliedIndex go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCUnhealthy go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCCorrupt go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrGRPCNotSupportedForLearner go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCBadLeaderTransferee go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCWrongDowngradeVersionFormat go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCInvalidDowngradeTargetVersion go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCClusterVersionUnavailable go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCDowngradeInProcess go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCNoInflightDowngrade go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCCanceled go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCDeadlineExceeded go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errStringToError (go.GoType.MapType go.string go.error))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrEmptyKey go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrKeyNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrValueProvided go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrLeaseProvided go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrTooManyOps go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrDuplicateKey go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrInvalidSortOption go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrCompacted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrFutureRev go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrNoSpace go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrLeaseNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrLeaseExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrLeaseTTLTooLarge go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrMemberExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrPeerURLExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrMemberNotEnoughStarted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrMemberBadURLs go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrMemberNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrMemberNotLearner go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrMemberLearnerNotReady go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrTooManyLearners go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrRequestTooLarge go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrTooManyRequests go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrRootUserNotExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrRootRoleNotExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrUserAlreadyExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrUserEmpty go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrUserNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrRoleAlreadyExist go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrRoleNotFound go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrRoleEmpty go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrAuthFailed go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrPermissionDenied go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrRoleNotGranted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrPermissionNotGranted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrAuthNotEnabled go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrInvalidAuthToken go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrAuthOldRevision go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrInvalidAuthMgmt go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrClusterIDMismatch go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrClusterIdMismatch go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrNoLeader go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrNotLeader go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrLeaderChanged go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrNotCapable go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrStopped go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrTimeout go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrTimeoutDueToLeaderFail go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrTimeoutDueToConnectionLost go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrTimeoutWaitAppliedIndex go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrUnhealthy go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrCorrupt go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrBadLeaderTransferee go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrClusterVersionUnavailable go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrWrongDowngradeVersionFormat go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrInvalidDowngradeTargetVersion go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrDowngradeInProcess go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrNoInflightDowngrade go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc MetadataRequireLeaderKey go.string)) (Val #()))))))
   (App (Val doExecute)

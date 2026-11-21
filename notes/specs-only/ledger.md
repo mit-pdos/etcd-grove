@@ -3367,3 +3367,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Decided by etcd-grove-03 (the one-spec form, 2026-11-20). Done (wal-fsfix2 a8): `cut.spec` proved
   (`WAL__cut.lean`: every callee's error witnessed, `Fs.fsNoErrOn_of` refutes it under `walCov`), `cut.specNoErr`,
   `walCov_cut` and `WAL__cutNoErr.lean` deleted; the WAL Link's hypothesis `h_wal_WAL_cutNoErr` gone.
+
+## 2026-11-20: `http.ReadAll_spec` admits a reader's negative count (prove-http)
+
+- **Spec.** `http.ReadAll_spec` (`Proof/net/http/Boundary.lean`, the axiom `http.ReadAll_ok`) over `http.prefixReaderOk`.
+- **Defect.** `prefixReaderOk`'s `Read` post said `ys.length = sint.nat n`, met by a `Read` returning `(-1, nil)`;
+  go1.27.3's `io.ReadAll` slices `b[:len(b)+n]` (`io/io.go:723`) and panics.
+- **Evidence.** `examples/premisefix/negread`; `notes/axiom-review/http-readall-negread.md`.
+- **Proposed change.** `sint.Z n = ys.length` in `prefixReaderOk` and in `http.bodyRead_spec` (its producer's axiom, whose
+  post gets stronger: Go's body reader returns `0 <= n`); `NewLimitedBufferReader`'s proof passes it through.
+- **Decision.** Applied (prove-http, 2026-11-20).

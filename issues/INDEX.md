@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (72)
+## Not reported (73)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -48,6 +48,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [bbolt: `Cursor.Last` never returns after deleting every key of a bucket in the same transaction](bbolt-cursor-last-empty-leaves-hang.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
 | [bbolt: `Cursor.Prev` returns nil in the middle of a bucket after deletes in the same transaction](bbolt-cursor-prev-empty-leaf.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
 | [bbolt: `Get` panics on values committed together whose sizes add up to more than 2 GiB](bbolt-large-values-leaf-unreadable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#182 issue closed |
+| [bbolt fork reinitializes a nonempty database when both meta pages are zero](bbolt-open-zero-meta-reinitializes-data.md) | no |  |
 | [bbolt: on 32-bit platforms every transaction panics with "unaligned 64-bit atomic operation"](bbolt-txstats-unaligned-32bit.md) | no | etcd-io/bbolt#1300 pr merged; etcd-io/bbolt#577 issue closed |
 | [bbolt: a database restored from `Tx.WriteTo` loses both meta pages after two failed commits](bbolt-writeto-meta-parity.md) | no | etcd-io/bbolt#1311 issue open |
 | [server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed](etcd-apply-alarm-gauge-reactivate.md) | no |  |

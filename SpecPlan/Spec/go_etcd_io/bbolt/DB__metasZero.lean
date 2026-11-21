@@ -1,5 +1,5 @@
 /-
-`db.metasZero(size)` (`db.go`, the fork): whether every byte the file holds of its meta pages is zero (an interrupted `init`).
+`db.metasZero(size)` (`db.go`, the fork): whether every byte the file holds of its meta pages is zero. `needsInit` also checks the file size and remaining bytes.
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
 -/
 module
