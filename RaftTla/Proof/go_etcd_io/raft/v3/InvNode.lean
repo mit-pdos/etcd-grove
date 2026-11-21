@@ -1305,6 +1305,16 @@ instance committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) :
     Persistent (committedAtTerm (GF := GF) γ N t c) := by
   unfold committedAtTerm; exact ApiImpl.committedAtTerm_persistent γ N t c
 
+/-- Use a pre-restart commit certificate to label a snapshot in a later
+term, even if the WAL lost its most recent HardState commit. -/
+theorem committedAtTerm_mono_term (γ : Cluster) (N : Namespace) (old t c : w64)
+    (ht : uint.Z old ≤ uint.Z t) :
+    committedAtTerm (GF := GF) γ N old c ⊢ committedAtTerm γ N t c := by
+  unfold committedAtTerm ApiImpl.committedAtTerm
+  iintro ⟨#Hw, Hlb⟩
+  iframe Hlb
+  iapply commitWit_mono_term γ.raft old t c ht $$ Hw
+
 theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
     committedAtTerm (GF := GF) γ N t c ⊢
       ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝ := by

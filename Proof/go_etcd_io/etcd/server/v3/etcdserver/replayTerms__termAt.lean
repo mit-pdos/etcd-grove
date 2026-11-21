@@ -13,7 +13,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem replayTerms.termAt.wp_proof : replayTerms.termAt.spec (GF := GF) (hG := hG) := by
-  intro r runs index j run hrun hlast hbefore
+  intro r runs index run hfound
+  obtain ⟨hlast, j, hjlen, heq, hprior⟩ := List.find?_eq_some_iff_getElem.1 hfound
+  have hlastNat : uint.nat index ≤ uint.nat run.last' := of_decide_eq_true hlast
+  have hrun : runs[j]? = some run := by rw [List.getElem?_eq_getElem hjlen, heq]
+  have hbefore (i : Nat) (hi : i < j) (earlier : replayTermRun)
+      (he : runs[i]? = some earlier) : uint.nat earlier.last' < uint.nat index := by
+    rw [List.getElem?_eq_getElem (Nat.lt_trans hi hjlen)] at he
+    cases he
+    simpa using hprior i hi
   wp_start as #Hr
   ihave %hlen := ownSlice_len r _ runs $$ Hr
   have hj := (List.getElem?_eq_some_iff.1 hrun).1
