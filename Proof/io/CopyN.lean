@@ -347,7 +347,89 @@ theorem io.wp_copyBuffer (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF
       wp_if_destruct
       · exfalso; rw [hkz] at Hif; omega
       try wp_auto
-      done
+      have hmz : nw.toNat = m := by
+        have : sint.Z nw = nw.toInt := rfl
+        rw [BitVec.toInt_eq_toNat_cond] at this; split at this <;> omega
+      have hWnw : (W + nw).toNat = W.toNat + m := by rw [BitVec.toNat_add]; omega
+      have hlen' : (bs ++ (bv'.take k.toNat).take m).length = bs.length + m := by
+        simp only [List.length_append, List.length_take]; omega
+      have hWz' : sint.Z (W + nw) = (bs ++ (bv'.take k.toNat).take m).length := by
+        rw [hlen']; simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
+      have hbn' : (bs ++ (bv'.take k.toNat).take m).length ≤ n.toNat := by rw [hlen']; omega
+      have hHd' : ∀ j x, (bs ++ (bv'.take k.toNat).take m)[j]? = some x → Hd (off.toNat + j) x := by
+        intro j x hx
+        by_cases hj : j < bs.length
+        · rw [List.getElem?_append_left hj] at hx; exact hHd j x hx
+        · rw [List.getElem?_append_right (by omega), List.getElem?_take, List.getElem?_take] at hx
+          split at hx
+          · split at hx
+            · have := hHdk (j - bs.length) x hx (by omega)
+              rw [show off.toNat + W.toNat + (j - bs.length) = off.toNat + j by omega] at this
+              exact this
+            · simp at hx
+          · simp at hx
+      rcases ew with ei | _
+      · -- the write failed: the loop ends
+        wp_auto
+        wp_for_post
+        iapply HΦ
+        iexists true, (bs ++ (bv'.take k.toNat).take m)
+        rw [← List.append_assoc]
+        iframe
+        ipureintro; exact ⟨hWz', hbn', hHd', Or.inl rfl⟩
+      · -- the write succeeded: all `k` bytes
+        have hmk' : m = k.toNat := hmew rfl
+        have hnwk : nw = k := by apply BitVec.eq_of_toNat_eq; omega
+        subst hnwk
+        simp only [_root_.decide_true]
+        wp_auto
+        rcases er with ei | _
+        · -- `er != nil`: the loop ends
+          obtain ⟨ty, v⟩ := ei
+          wp_auto
+          by_cases hty : ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty
+          · obtain ⟨l', hl'⟩ := hter ⟨ty, v⟩ _ rfl hty
+            simp only at hl'
+            subst hty hl'
+            simp only [↓reduceIte]
+            wp_auto
+            wp_if_destruct
+            · wp_for_post
+              iapply HΦ
+              iexists true, (bs ++ (bv'.take nw.toNat).take m)
+              rw [← List.append_assoc]
+              iframe
+              ipureintro; exact ⟨hWz', hbn', hHd', Or.inl rfl⟩
+            · wp_for_post
+              iapply HΦ
+              iexists true, (bs ++ (bv'.take nw.toNat).take m)
+              rw [← List.append_assoc]
+              iframe
+              ipureintro; exact ⟨hWz', hbn', hHd', Or.inl rfl⟩
+          · simp only [hty, ↓reduceIte]
+            wp_auto
+            wp_for_post
+            iapply HΦ
+            iexists true, (bs ++ (bv'.take nw.toNat).take m)
+            rw [← List.append_assoc]
+            iframe
+            ipureintro; exact ⟨hWz', hbn', hHd', Or.inl rfl⟩
+        · -- `er == nil`: next iteration
+          wp_auto
+          wp_for_post
+          iframe
+          iexists (W + nw), (bs ++ (bv'.take nw.toNat).take m), true, bv'
+          rw [← List.append_assoc]
+          iframe
+          isplitl [Hs1 Hs2]
+          · have e := ownSlice_combine (GF := GF) (V := w8) nw sl (DFrac.own 1)
+              (bv'.take nw.toNat) (bv'.drop nw.toNat) (W64 0) sl.len
+              ⟨by rw [htk, ← hsk]; rfl, by decide, by omega, by omega⟩
+            rw [List.take_append_drop] at e
+            iapply ownSlice_trivial_slice_2
+            iapply e $$ Hs1 Hs2
+          ipureintro
+          exact ⟨by omega, by rw [hWnw, hlen'], hbn', hHd', Or.inl rfl⟩
     · -- `nr == 0`: nothing written
       rw [show sint.Z (W64 0) = 0 from rfl, hkz] at Hif
       have hk0 : k = W64 0 := by apply BitVec.eq_of_toNat_eq; simp; omega
