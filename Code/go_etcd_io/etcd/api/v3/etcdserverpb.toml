@@ -142,7 +142,12 @@ translate = ["!*", "RangeRequest_SortOrder_name", "RangeRequest_SortTarget_name"
   # handlers, the request of `Leases` and the getters the client reads
   "leaseClient.LeaseTimeToLive", "leaseClient.LeaseLeases", "Lease_LeaseTimeToLive_FullMethodName",
   "Lease_LeaseLeases_FullMethodName", "_Lease_LeaseTimeToLive_Handler", "_Lease_LeaseLeases_Handler",
-  "LeaseLeasesRequest", "LeaseTimeToLiveResponse.GetHeader", "LeaseLeasesResponse.GetHeader"]
+  "LeaseLeasesRequest", "LeaseTimeToLiveResponse.GetHeader", "LeaseLeasesResponse.GetHeader",
+  # auth-mediation M2 (2026-11-20): the Cluster service's messages, which its handlers
+  # (`v3rpc/member.go`) read and build
+  "Member", "MemberAddRequest", "MemberAddResponse", "MemberRemoveRequest", "MemberRemoveResponse",
+  "MemberUpdateRequest", "MemberUpdateResponse", "MemberListResponse", "MemberPromoteRequest",
+  "MemberPromoteResponse"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

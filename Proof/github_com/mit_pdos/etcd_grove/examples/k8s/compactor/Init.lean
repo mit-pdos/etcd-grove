@@ -16,7 +16,9 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Init
 public import Proof.k8s_io.utils.clock.Init

@@ -17,7 +17,8 @@ guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `e
 reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
 axiom `NewCounter.wp_proof`), which
-`revokeExpiredLeases` increments. (prove-errinits, 2026-11-19) Its other metrics (`learnerPromoteFailed`,
+`revokeExpiredLeases` increments. (auth-mediation M2, 2026-11-20) And `PromoteMember`'s metrics,
+the counter `learnerPromoteSucceed` and the counter vector `learnerPromoteFailed`. (prove-errinits, 2026-11-19) Its other metrics (`learnerPromoteFailed`,
 `learnerPromoteSucceed`, `currentVersion`, `currentGoVersion`, `fdUsed`, `fdLimit`),
 and `recommendedMaxRequestBytesString` (`humanize.Bytes`, over its spec) are translated too;
 `opaqueInitsOk` keeps `monitorVersionInterval` (`rafthttp.ConnWriteTimeout - time.Second`, which

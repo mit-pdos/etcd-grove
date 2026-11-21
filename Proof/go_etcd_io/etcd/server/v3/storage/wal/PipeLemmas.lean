@@ -188,7 +188,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
             osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗ fdLocks fd ⟨i, false, true, lo, lk⟩ ∗
             trFile i True ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
             ⌜0 ≤ fd.toInt ∧ h.cur !! b = some (.file i)⌝) ∨
-         (⌜err ≠ interface.nil⌝ ∗ tmpClaim j b)) }} := by
+         (⌜err ≠ interface.nil⌝ ∗ tmpClaim j b ∗ ⌜¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)) }} := by
   iintro %Φ ⟨#Hos, #Hpkg, #Hsi, Hp, Hperm, Hc⟩ HΦ
   unfold tmpClaim
   icases Hc with ⟨%h, Hn, Hent⟩
@@ -198,7 +198,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
     -- the name absent: a create, with the trivial update
     let A : Option (Nat × Nat × Ino) → Bool → IProp GF := fun o ok =>
       iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ crOut j b h (DFrac.own 1) o ∗
-        crTr (ok = true) o)
+        crTr (ok = true) o ∗ ⌜ok = false → ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)
     have hT : fileutil.OpenTriple
         iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           osNames j (.only [b]) (DFrac.own 1) h)
@@ -218,7 +218,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
       unfold fileutil.openPost
       iexists o
       ihave Ho := crOut_join j b h o $$ [$Ho1 $Ho2]
-      icases Hr with (⟨%fd, %i, %hres, Hf, Hoff, Hfd⟩ | ⟨%herr, Hok⟩)
+      icases Hr with (⟨%fd, %i, %hres, Hf, Hoff, Hfd⟩ | ⟨%herr, Hok, %hWo⟩)
       · obtain ⟨rfl, hfd, hi⟩ := hres
         ileft
         isplitr
@@ -226,6 +226,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         isplitl [Hp Hperm Ho Htr]
         · simp only [A]
           iframe
+          ipureintro; nofun
         iexists fd, i
         iframe
         ipureintro; exact ⟨hfd, hi⟩
@@ -238,13 +239,14 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         have : (false = true) = (err = interface.nil) := by
           simp only [Bool.false_eq_true, false_iff, eq_iff_iff]; exact herr.1
         rw [this]
-        iexact Htr
+        iframe Htr
+        ipureintro; exact fun _ => hWo
     wp_apply wp_create (child dir b) true _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn]
       as %lf %err Hpost
-    unfold fileutil.lockPost
-    icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA⟩)⟩
+    unfold fileutil.lockPostW
+    icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
     · simp only [A]
-      icases HA with ⟨Hp, Hperm, Ho, Htr⟩
+      icases HA with ⟨Hp, Hperm, Ho, Htr, -⟩
       iapply HΦ
       iframe Hp Hperm
       ileft
@@ -266,12 +268,18 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         iframe
         ipureintro; exact ⟨hfd, by simp [NamesH.log]⟩
     · simp only [A]
-      icases HA with ⟨Hp, Hperm, Ho, Htr⟩
+      icases HA with ⟨Hp, Hperm, Ho, Htr, %hWo⟩
       iapply HΦ
       iframe Hp Hperm
       iright
       isplitr
       · ipureintro; exact he.1
+      isplitl
+      rotate_left
+      · ipureintro
+        cases ok
+        · exact hWo rfl
+        · exact fun hw => hWk rfl (hw.1.mono (fun _ h => h.elim))
       cases o with
       | none =>
         simp only [crOut]
@@ -299,7 +307,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
       -- a leftover file: truncated
       let A : Unit → Bool → IProp GF := fun _ ok =>
         iprop(osPathS R dir dq j ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
-          osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i (ok = true))
+          osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i (ok = true) ∗ ⌜ok = false → ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)
       have hT : fileutil.OpenTriple
           iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗
             osNames j (.only [b]) (DFrac.own 1) h ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i False)
@@ -314,7 +322,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         iapply HΨ
         unfold fileutil.openPost
         iexists ()
-        icases Hr with (⟨%fd, %hres, Hf, Hoff, Hfd⟩ | ⟨%herr, Hok⟩)
+        icases Hr with (⟨%fd, %hres, Hf, Hoff, Hfd⟩ | ⟨%herr, Hok, %hWo⟩)
         · obtain ⟨rfl, hfd⟩ := hres
           ileft
           isplitr
@@ -322,6 +330,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
           isplitl [Hp Hperm Hn Htr]
           · simp only [A]
             iframe
+            ipureintro; nofun
           iexists fd, i
           iframe
           ipureintro; exact ⟨hfd, rfl⟩
@@ -331,13 +340,15 @@ theorem wp_createTmp [os.file.FieldAssumptions]
           iframe Hok
           simp only [A]
           iframe
-          iapply trFile_mono i _ _ (fun h => by cases h) $$ Htr
+          isplitl [Htr]
+          · iapply trFile_mono i _ _ (fun h => by cases h) $$ Htr
+          ipureintro; exact fun _ => hWo
       wp_apply wp_create (child dir b) true _ _ A (fun _ i' => i' = i) hT
         $$ [$Hos $Hpkg $Hsi $Hp $Hn $Hperm $Hent] as %lf %err Hpost
-      unfold fileutil.lockPost
-      icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i', %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA⟩)⟩
+      unfold fileutil.lockPostW
+      icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i', %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
       · simp only [A]
-        icases HA with ⟨Hp, Hn, Hperm, Htr⟩
+        icases HA with ⟨Hp, Hn, Hperm, Htr, -⟩
         obtain ⟨hfd, rfl⟩ := hc
         iapply HΦ
         iframe Hp Hperm
@@ -351,12 +362,18 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         iframe
         ipureintro; exact ⟨hfd, hcur⟩
       · simp only [A]
-        icases HA with ⟨Hp, Hn, Hperm, Htr⟩
+        icases HA with ⟨Hp, Hn, Hperm, Htr, %hWo⟩
         iapply HΦ
         iframe Hp Hperm
         iright
         isplitr
         · ipureintro; exact he.1
+        isplitl
+        rotate_left
+        · ipureintro
+          cases ok
+          · exact hWo rfl
+          · exact fun hw => hWk rfl (hw.1.mono (fun _ h => h.elim))
         iexists h
         iframe Hn
         rw [hcur]

@@ -872,26 +872,6 @@ opaque SnapshotRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque SnapshotResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Member.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberAddRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberAddResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberRemoveRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberRemoveResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberUpdateRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberUpdateResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberListResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberPromoteRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque MemberPromoteResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque DefragmentRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque DefragmentResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -7629,47 +7609,207 @@ noncomputable instance equals_unfold_LeaseLeasesResponse [GooseExts] [GoGlobalCo
 @[reducible] noncomputable def LeaseLeasesResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LeaseLeasesResponse.fields)
 
-opaque Member.nonempty_type : NonemptyType.{0}
-def Member : Type := Member.nonempty_type.type
-instance Member.nonempty : Nonempty Member := Member.nonempty_type.property
-opaque Member.zero_val : ZeroVal Member := ⟨Classical.ofNonempty⟩
-attribute [instance] Member.zero_val
+structure Member [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  ID' : w64
+  Name' : GoString
+  PeerURLs' : GoSlice
+  ClientURLs' : GoSlice
+  IsLearner' : Bool
+  unknownFields' : GoSlice
+  sizeCache' : w32
 
-opaque MemberAddRequest.nonempty_type : NonemptyType.{0}
-def MemberAddRequest : Type := MemberAddRequest.nonempty_type.type
-instance MemberAddRequest.nonempty : Nonempty MemberAddRequest := MemberAddRequest.nonempty_type.property
-opaque MemberAddRequest.zero_val : ZeroVal MemberAddRequest := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberAddRequest.zero_val
+noncomputable instance Member.zero_val [GooseExts] : ZeroVal Member :=
+  ⟨Member.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-opaque MemberAddResponse.nonempty_type : NonemptyType.{0}
-def MemberAddResponse : Type := MemberAddResponse.nonempty_type.type
-instance MemberAddResponse.nonempty : Nonempty MemberAddResponse := MemberAddResponse.nonempty_type.property
-opaque MemberAddResponse.zero_val : ZeroVal MemberAddResponse := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberAddResponse.zero_val
+@[reducible] noncomputable def Member.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"ID" go.uint64),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"PeerURLs" (go.GoType.SliceType go.string)),
+(go.field_decl.FieldDecl go!"ClientURLs" (go.GoType.SliceType go.string)),
+(go.field_decl.FieldDecl go!"IsLearner" go.bool),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-opaque MemberRemoveRequest.nonempty_type : NonemptyType.{0}
-def MemberRemoveRequest : Type := MemberRemoveRequest.nonempty_type.type
-instance MemberRemoveRequest.nonempty : Nonempty MemberRemoveRequest := MemberRemoveRequest.nonempty_type.property
-opaque MemberRemoveRequest.zero_val : ZeroVal MemberRemoveRequest := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberRemoveRequest.zero_val
+@[irreducible] noncomputable def Member.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Member.fieldsUnsealed
 
-opaque MemberRemoveResponse.nonempty_type : NonemptyType.{0}
-def MemberRemoveResponse : Type := MemberRemoveResponse.nonempty_type.type
-instance MemberRemoveResponse.nonempty : Nonempty MemberRemoveResponse := MemberRemoveResponse.nonempty_type.property
-opaque MemberRemoveResponse.zero_val : ZeroVal MemberRemoveResponse := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberRemoveResponse.zero_val
+noncomputable instance equals_unfold_Member [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Member.fields Member.fieldsUnsealed :=
+  ⟨by unfold Member.fields; rfl⟩
 
-opaque MemberUpdateRequest.nonempty_type : NonemptyType.{0}
-def MemberUpdateRequest : Type := MemberUpdateRequest.nonempty_type.type
-instance MemberUpdateRequest.nonempty : Nonempty MemberUpdateRequest := MemberUpdateRequest.nonempty_type.property
-opaque MemberUpdateRequest.zero_val : ZeroVal MemberUpdateRequest := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberUpdateRequest.zero_val
+@[reducible] noncomputable def Member.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Member.fields)
 
-opaque MemberUpdateResponse.nonempty_type : NonemptyType.{0}
-def MemberUpdateResponse : Type := MemberUpdateResponse.nonempty_type.type
-instance MemberUpdateResponse.nonempty : Nonempty MemberUpdateResponse := MemberUpdateResponse.nonempty_type.property
-opaque MemberUpdateResponse.zero_val : ZeroVal MemberUpdateResponse := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberUpdateResponse.zero_val
+structure MemberAddRequest [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  PeerURLs' : GoSlice
+  IsLearner' : Bool
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance MemberAddRequest.zero_val [GooseExts] : ZeroVal MemberAddRequest :=
+  ⟨MemberAddRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def MemberAddRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"PeerURLs" (go.GoType.SliceType go.string)),
+(go.field_decl.FieldDecl go!"IsLearner" go.bool),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberAddRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberAddRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberAddRequest [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberAddRequest.fields MemberAddRequest.fieldsUnsealed :=
+  ⟨by unfold MemberAddRequest.fields; rfl⟩
+
+@[reducible] noncomputable def MemberAddRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberAddRequest.fields)
+
+structure MemberAddResponse [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  Member' : Loc
+  Members' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance MemberAddResponse.zero_val [GooseExts] : ZeroVal MemberAddResponse :=
+  ⟨MemberAddResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def MemberAddResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Member" (go.GoType.PointerType Member.ty)),
+(go.field_decl.FieldDecl go!"Members" (go.GoType.SliceType (go.GoType.PointerType Member.ty))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberAddResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberAddResponse.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberAddResponse [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberAddResponse.fields MemberAddResponse.fieldsUnsealed :=
+  ⟨by unfold MemberAddResponse.fields; rfl⟩
+
+@[reducible] noncomputable def MemberAddResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberAddResponse.fields)
+
+structure MemberRemoveRequest [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  ID' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance MemberRemoveRequest.zero_val [GooseExts] : ZeroVal MemberRemoveRequest :=
+  ⟨MemberRemoveRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def MemberRemoveRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"ID" go.uint64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberRemoveRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberRemoveRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberRemoveRequest [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberRemoveRequest.fields MemberRemoveRequest.fieldsUnsealed :=
+  ⟨by unfold MemberRemoveRequest.fields; rfl⟩
+
+@[reducible] noncomputable def MemberRemoveRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberRemoveRequest.fields)
+
+structure MemberRemoveResponse [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  Members' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance MemberRemoveResponse.zero_val [GooseExts] : ZeroVal MemberRemoveResponse :=
+  ⟨MemberRemoveResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def MemberRemoveResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Members" (go.GoType.SliceType (go.GoType.PointerType Member.ty))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberRemoveResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberRemoveResponse.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberRemoveResponse [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberRemoveResponse.fields MemberRemoveResponse.fieldsUnsealed :=
+  ⟨by unfold MemberRemoveResponse.fields; rfl⟩
+
+@[reducible] noncomputable def MemberRemoveResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberRemoveResponse.fields)
+
+structure MemberUpdateRequest [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  ID' : w64
+  PeerURLs' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance MemberUpdateRequest.zero_val [GooseExts] : ZeroVal MemberUpdateRequest :=
+  ⟨MemberUpdateRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def MemberUpdateRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"ID" go.uint64),
+(go.field_decl.FieldDecl go!"PeerURLs" (go.GoType.SliceType go.string)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberUpdateRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberUpdateRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberUpdateRequest [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberUpdateRequest.fields MemberUpdateRequest.fieldsUnsealed :=
+  ⟨by unfold MemberUpdateRequest.fields; rfl⟩
+
+@[reducible] noncomputable def MemberUpdateRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberUpdateRequest.fields)
+
+structure MemberUpdateResponse [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  Members' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance MemberUpdateResponse.zero_val [GooseExts] : ZeroVal MemberUpdateResponse :=
+  ⟨MemberUpdateResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def MemberUpdateResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Members" (go.GoType.SliceType (go.GoType.PointerType Member.ty))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberUpdateResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberUpdateResponse.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberUpdateResponse [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberUpdateResponse.fields MemberUpdateResponse.fieldsUnsealed :=
+  ⟨by unfold MemberUpdateResponse.fields; rfl⟩
+
+@[reducible] noncomputable def MemberUpdateResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberUpdateResponse.fields)
 
 structure MemberListRequest [GooseExts] where
   mk ::
@@ -7697,23 +7837,87 @@ noncomputable instance equals_unfold_MemberListRequest [GooseExts] [GoGlobalCont
 @[reducible] noncomputable def MemberListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MemberListRequest.fields)
 
-opaque MemberListResponse.nonempty_type : NonemptyType.{0}
-def MemberListResponse : Type := MemberListResponse.nonempty_type.type
-instance MemberListResponse.nonempty : Nonempty MemberListResponse := MemberListResponse.nonempty_type.property
-opaque MemberListResponse.zero_val : ZeroVal MemberListResponse := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberListResponse.zero_val
+structure MemberListResponse [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  Members' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
 
-opaque MemberPromoteRequest.nonempty_type : NonemptyType.{0}
-def MemberPromoteRequest : Type := MemberPromoteRequest.nonempty_type.type
-instance MemberPromoteRequest.nonempty : Nonempty MemberPromoteRequest := MemberPromoteRequest.nonempty_type.property
-opaque MemberPromoteRequest.zero_val : ZeroVal MemberPromoteRequest := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberPromoteRequest.zero_val
+noncomputable instance MemberListResponse.zero_val [GooseExts] : ZeroVal MemberListResponse :=
+  ⟨MemberListResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-opaque MemberPromoteResponse.nonempty_type : NonemptyType.{0}
-def MemberPromoteResponse : Type := MemberPromoteResponse.nonempty_type.type
-instance MemberPromoteResponse.nonempty : Nonempty MemberPromoteResponse := MemberPromoteResponse.nonempty_type.property
-opaque MemberPromoteResponse.zero_val : ZeroVal MemberPromoteResponse := ⟨Classical.ofNonempty⟩
-attribute [instance] MemberPromoteResponse.zero_val
+@[reducible] noncomputable def MemberListResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Members" (go.GoType.SliceType (go.GoType.PointerType Member.ty))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberListResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberListResponse.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberListResponse [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberListResponse.fields MemberListResponse.fieldsUnsealed :=
+  ⟨by unfold MemberListResponse.fields; rfl⟩
+
+@[reducible] noncomputable def MemberListResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberListResponse.fields)
+
+structure MemberPromoteRequest [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  ID' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance MemberPromoteRequest.zero_val [GooseExts] : ZeroVal MemberPromoteRequest :=
+  ⟨MemberPromoteRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def MemberPromoteRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"ID" go.uint64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberPromoteRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberPromoteRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberPromoteRequest [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberPromoteRequest.fields MemberPromoteRequest.fieldsUnsealed :=
+  ⟨by unfold MemberPromoteRequest.fields; rfl⟩
+
+@[reducible] noncomputable def MemberPromoteRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberPromoteRequest.fields)
+
+structure MemberPromoteResponse [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  Members' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance MemberPromoteResponse.zero_val [GooseExts] : ZeroVal MemberPromoteResponse :=
+  ⟨MemberPromoteResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def MemberPromoteResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Members" (go.GoType.SliceType (go.GoType.PointerType Member.ty))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def MemberPromoteResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  MemberPromoteResponse.fieldsUnsealed
+
+noncomputable instance equals_unfold_MemberPromoteResponse [GooseExts] [GoGlobalContext] :
+    EqualsUnfold MemberPromoteResponse.fields MemberPromoteResponse.fieldsUnsealed :=
+  ⟨by unfold MemberPromoteResponse.fields; rfl⟩
+
+@[reducible] noncomputable def MemberPromoteResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberPromoteResponse.fields)
 
 opaque DefragmentRequest.nonempty_type : NonemptyType.{0}
 def DefragmentRequest : Type := DefragmentRequest.nonempty_type.type
