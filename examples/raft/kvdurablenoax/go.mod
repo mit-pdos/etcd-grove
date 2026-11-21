@@ -4,7 +4,7 @@ go 1.27
 
 // raft: the fork's branch raft37-goose-lean-noax (notes/raft-noax.md), project raft's revision
 // with the axiomatized code replaced by hand-written Go.
-replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261117222007-91e2ea70f483
+replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261121172512-e98d795867e6
 
 // The driver and the vendored porcupine (third_party/porcupine/UPSTREAM.md), as translated, and
 // the examples' module, for the durable package (examples/lib/durable).

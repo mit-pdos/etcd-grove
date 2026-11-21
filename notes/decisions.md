@@ -28063,6 +28063,17 @@ restarts.
 
 ## The merged snapshot's index guard (2026-10-31, S1 · the user's decision (B))
 
+**2026-11-21, replay repair on the working branch.** Bootstrap recovers
+the configuration of the backend before the apply cursor begins WAL replay.
+Retain that configuration for an outgoing snapshot of the initial image
+and take the term at the image index from the same Ready's log. At restart,
+read the complete retained interval from the rebuilt MemoryStorage before
+calling RestartNode, while bootstrap still owns that storage. Each Ready
+updates its own immutable view from the entries Raft hands out. Installing
+an incoming snapshot clears the retained configuration. The sender can
+also read the metadata and membership from the transaction it streams.
+[Regression and proof status](snapguard-removal-plan.md).
+
 **2026-11-21.** Remove the index comparison in the etcd pin. Both
 `applyAll` proof paths use the bound derived from the outgoing snapshot
 and the current Ready in the matching term. Each worker carries its
@@ -41498,6 +41509,34 @@ image, the WAL base is the lower bound with which application starts.
 These facts are carried by the same storage invariant used for reads and
 compaction. The job reads its own node’s outgoing channel and compares the
 message with the Ready actually delivered to that job.
+
+## Sending a merged snapshot while replay catches up
+
+**2026-11-21 · fork repair and linked server proof**
+
+The replay cursor can be at 3 while a reopened backend contains index 7.
+Reporting failure on that path leaves a follower waiting for data the
+sender already has. The replay fork streams the backend and reads its
+metadata in the same bbolt read transaction. For older databases it uses
+the immutable log for the Ready being applied to recover the entry term,
+and the membership in that database to recover the configuration.
+
+The sender and the schema package use the same readers for the saved
+configuration and membership. Keeping these functions in the snapshotmeta
+package lets the sender verify the decoders without importing their
+initialization dependencies into the MVCC proof.
+
+The startup worker reads the retained log from the same MemoryStorage that
+RestartNode takes. Each Ready carries its own immutable view of the term runs.
+Replacing entries after the committed backend index preserves the term even
+when the replacement splits a run. Advancing the apply cursor retains that
+term until the cursor reaches the backend index. These facts supply the
+historical entry term to the snapshot sender under the graceful restart
+contract. After a power loss the recovered HardState commit can be lower.
+The Go regression reopens that state and checks delivery. A top-level proof
+of that recovery case would also need the previous quorum's commit evidence.
+[Reproduction and fork revision](../issues/etcd-merged-snapshot-replay-failure.md).
+
 ## A status's code as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc2/2026-11-20`, stage 2a)
 
 **Supersedes in part:** the watch slice's W-C (`statusCode : GoInterface → w32`, "the status is embedded
@@ -41570,3 +41609,21 @@ syncer and encoder; one that panics (a user `WriteSyncer`) makes `check`'s and `
 of Go. `loggerOther` requires zap's own encoders, write syncers and level enablers, or ones whose
 methods return without panicking. No proof depended on the looser reading (only `NewNop` produces
 `zapLoggerOk`).
+
+## Configuration changes use protobuf wire order on the noax fork (2026-11-21)
+
+A Raft caller can receive a configuration change from a different protobuf
+encoder. An optional field, including one inside a nested change, must survive
+a decode and re-encode. The producer of a configuration entry also controls field
+order and can repeat a field. The old fork accepted only the ordering its own
+encoder wrote. The public formatter regression demonstrates the difference for
+both message versions. [Issue and regression](../issues/raft-noax-confchange-wire-compat.md).
+
+The repaired implementation decodes fields in wire order. The last decoded
+singular field supplies its value, repeated changes accumulate, and unknown
+fields keep their original value bytes. Its group scanner checks matching
+end tags and the same depth bound as protobuf-go. The Lean wire model ties a
+successful skip to the protobuf grammar used when allocating a message, and
+shows any field admitted by that grammar can be skipped. The encoder proof uses
+both facts to account for extension bytes in nested changes and both top-level
+messages. [Noax codec proofs](raft-noax-codec.md).
