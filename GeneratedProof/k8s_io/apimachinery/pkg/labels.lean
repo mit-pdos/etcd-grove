@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apimachinery.pkg.selection
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.labels
 
@@ -48,12 +49,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.labels.Assumptions]
 
 noncomputable instance Requirement_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.labels.Requirement :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.labels.Requirement where
+  typedPointstoDef l v dq := iprop(
+    "key" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) v.key' dq ∗
+    "operator" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) v.operator' dq ∗
+    "strValues" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) v.strValues' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Requirement_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.labels.Requirement k8s_io.apimachinery.pkg.labels.Requirement.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.labels.Requirement k8s_io.apimachinery.pkg.labels.Requirement.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Requirement_access_load_key (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) v.key' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Requirement_access_store_key (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (key' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) v.key' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"key" l) key' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : k8s_io.apimachinery.pkg.labels.Requirement) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Requirement_access_load_operator (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) v.operator' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) v.operator' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Requirement_access_store_operator (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (operator' : k8s_io.apimachinery.pkg.selection.Operator) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) v.operator' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) operator' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with operator' := operator' } : k8s_io.apimachinery.pkg.labels.Requirement) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Requirement_access_load_strValues (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) v.strValues' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) v.strValues' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Requirement_access_store_strValues (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (strValues' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) v.strValues' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"strValues" l) strValues' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with strValues' := strValues' } : k8s_io.apimachinery.pkg.labels.Requirement) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Requirement

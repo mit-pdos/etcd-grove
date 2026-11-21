@@ -5,6 +5,8 @@ public import Perennial.Code.context
 public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Code.k8s_io.utils.clock
+public import Perennial.Code.errors
+public import Perennial.Code.math.rand
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -112,37 +114,23 @@ attribute [irreducible] waitWithContextFunc.ty
 noncomputable def ErrWaitTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ErrWaitTimeout"
 
-opaque ErrWaitTimeout.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errWaitTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.errWaitTimeout"
-
-opaque errWaitTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RealTimer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.RealTimer"
 
-opaque RealTimer.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def internalClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.internalClock"
-
-opaque internalClock.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ForeverTestTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ForeverTestTimeout"
 
-opaque ForeverTestTimeout.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def NeverStop [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.NeverStop"
 
-opaque NeverStop.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def jitterRand [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.jitterRand"
-
-opaque jitterRand.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def delay [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.delay"
@@ -328,6 +316,37 @@ noncomputable def ExponentialBackoff.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
+/-- ErrorInterrupted returns an error that indicates the wait was ended
+    early for a given reason. If no cause is provided a generic error
+    will be used but callers are encouraged to provide a real cause for
+    clarity in debugging.
+
+    go: error.go:72:6 -/
+noncomputable def ErrorInterrupted.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cause"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cause" (App (Val (GoInstruction (GoAlloc go.error))) (Var "cause"))
+  (Let "$y" (App (Val (GoInstruction (GoLoad go.error))) (Var "cause"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 errInterrupted.ty))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "cause"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert errInterrupted.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.error))) (Var "cause"))
+  (App (Val (GoInstruction (CompositeLiteral errInterrupted.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.error (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+
 /-- ContextForChannel provides a context that will be treated as cancelled
     when the provided parentCh is closed. The implementation returns
     context.Canceled for Err() if and only if the parentCh is closed.
@@ -421,9 +440,7 @@ noncomputable def channelContext.Value.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.wait where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock, pkg_id.errors, pkg_id.math.rand]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -440,22 +457,41 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$a0" (Val #(go!"timed out waiting for the condition"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve ErrorInterrupted []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral errInterrupted.ty))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.utils.clock.RealClock.ty go!"NewTimer"))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.utils.clock.RealClock.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.utils.clock.RealClock.ty))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1000000000)) (Val #(W64 30))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Float64 []))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert channelContext.ty _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (CompositeLiteral channelContext.ty))) (LiteralValue [])))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
+  (Val #())))))
   (App (Val doExecute)
-  (App (Val jitterRand.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr jitterRand))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val NeverStop.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr NeverStop))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ForeverTestTimeout.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr ForeverTestTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val internalClock.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.utils.clock.RealClock.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr internalClock))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val RealTimer.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr RealTimer))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val errWaitTimeout.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore errInterrupted.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr errWaitTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrWaitTimeout.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrWaitTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -463,7 +499,25 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.utils.clock.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.k8s_io.utils.clock.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.math.rand.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrWaitTimeout go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errWaitTimeout errInterrupted.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc RealTimer (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc internalClock _root_.Perennial.k8s_io.utils.clock.RealClock.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ForeverTestTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc NeverStop (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc jitterRand (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))))
 
 structure Backoff [GooseExts] where
   mk ::
@@ -1084,11 +1138,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   waitFunc_instance : waitFunc.TypeAssumptions
   waitWithContextFunc_instance : waitWithContextFunc.TypeAssumptions
   ExponentialBackoff_unfold : FuncUnfold ExponentialBackoff [] ExponentialBackoff.impl
+  ErrorInterrupted_unfold : FuncUnfold ErrorInterrupted [] ErrorInterrupted.impl
   ContextForChannel_unfold : FuncUnfold ContextForChannel [] ContextForChannel.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
+  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
 
 attribute [instance] Assumptions.Backoff_instance
   Assumptions.backoffManager_instance
@@ -1108,11 +1165,14 @@ attribute [instance] Assumptions.Backoff_instance
   Assumptions.waitFunc_instance
   Assumptions.waitWithContextFunc_instance
   Assumptions.ExponentialBackoff_unfold
+  Assumptions.ErrorInterrupted_unfold
   Assumptions.ContextForChannel_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_clock_Assumption
+  Assumptions.import_errors_Assumption
+  Assumptions.import_rand_Assumption
 
 end k8s_io.apimachinery.pkg.util.wait
 
