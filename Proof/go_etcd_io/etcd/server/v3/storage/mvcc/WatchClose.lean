@@ -81,6 +81,7 @@ theorem wp_watch_close (s st : Loc) (γ : WsNames) (ch : Loc) (γc : WatchChanNa
   iapply (chan.wp_close (V := WatchResponse) ch γc.ch) $$ Hch
   iintro -
   unfold closeAu
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

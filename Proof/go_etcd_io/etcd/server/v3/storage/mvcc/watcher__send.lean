@@ -395,6 +395,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
           unfold nonblockingSendAu
           isplit
           · unfold nonblockingSendAuInner
+            iapply ncfupd_of_fupd
             iinv Hinv with Hi Hclose
             all_goals try exact CoPset.subseteq_top
             iapply fupd_mask_intro Std.LawfulSet.empty_subset

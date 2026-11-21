@@ -317,6 +317,7 @@ theorem schedule.fifo.run.wp_proof
         iintro -
         unfold closeAu
         clear Hif Hcf HLpos Hcfnn
+        iapply ncfupd_of_fupd
         iinv Hrinv with Hri Hclose
         iapply fupd_mask_intro Std.LawfulSet.empty_subset
         iintro Hmask
