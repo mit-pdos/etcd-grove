@@ -17,6 +17,31 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
+
+- **Limitation 1 (the guard).** `var maxSpan = newSpanLimits()` (`go.opentelemetry.io/otel/trace` v1.47.0,
+  `auto.go:622`) is refused by goose's modelcheck (R4, `docs/design/unsafe-memory.md`: a call returning a
+  pointer-free struct in a package-variable initializer, which gc may inline and build in place). Here the callee's
+  literal elements are `firstEnv(...)` calls returning `int`s, which cannot overlap `maxSpan`, but the guard does not
+  look at callee bodies. The doc says any change to the guard's rule needs the project owner's approval: not
+  proposed by this repository; `maxSpan.init` stays in `go_opentelemetry_io.otel.trace.opaqueInitsOk`.
+- **Limitation 2 (axiomatized aliases).** goose declares a names-only type alias as `opaque X : go.GoType`, but
+  every reference to an alias names its descriptor `X.ty` (`TypeIdent`), as a translated alias declares it. In
+  go1.27 `encoding/json.Marshaler` is an alias (`= jsonv2.Marshaler`, `v2_encode.go:206`), so otel trace's four
+  `var _ json.Marshaler = ...` assertions do not compile (`Code/encoding/json.lean` is names-only), and with them
+  every `var _` of the package (goose's `"_"` selects them all): 11 entries stay in `opaqueInitsOk`. Today such a
+  reference is avoided by translating the alias itself (`protoimpl.toml`), which for `json.Marshaler` needs
+  `encoding/json/v2` translated (reflect, an `init`).
+- **Tried (not proposed).** goose declaring an axiomatized alias's descriptor `opaque X.ty` (patch
+  `/shared/tmp/otel4/alias.patch`, goose's tests pass) makes the `var _` assertions compile, and the rest of the tree
+  builds (with encoding/json's `IsPkgInit` instance moved from `apply/Base.lean` to `mvcc/Base.lean`), but the
+  initializer still does not step: `Convert TraceID.ty encoding.json.Marshaler.ty` needs `Marshaler.ty` known to be
+  an interface type, which an opaque descriptor is not; `attributeOption{}` also needs a `wp_slice_literal` step.
+  So retiring these entries needs `json.Marshaler`'s target translated (the alias in `Code/encoding/json.toml` and
+  `encoding/json/v2`'s `Marshaler`, names-only), on top of the goose fix: not done (the PR was not opened).
+- **Done here.** The other four initializers (`tracerProviderInstance`, `autoInstEnabled`, `start`, `ended`)
+  translated: `opaqueInitsOk` from 15 entries to 12.
+
 ### Goose keeps a struct axiomatized when a field's type is another package's alias (2026-11-21, prove-k8s4)
 
 - **Limitation.** `translate_types` fails a type whose definition mentions an alias of another package
@@ -1128,6 +1153,12 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   sibling branch's `0 < prev`; and a `word` side goal later in the same proof failed with "unknown
   free variable" (a cached term over a hypothesis of another goal). Workaround there: `omega` on
   `BitVec.toNat` for the first, the `word` fact proved at the top of the proof for the second.
+- **Seen again** (2026-11-21, `sort.Stable`'s proofs, branch `prove-stdlib4-stable`): "unknown free
+  variable" from `word` in `rotate`'s, `symMerge`'s and `stable`'s proofs, each time with a hypothesis
+  holding an `if` (or a loop condition `#!decide (i = j) = #true`) in the context, and gone once that
+  hypothesis was cleared, kept in the Iris context (`symMerge`'s `Hsr0`), or introduced after the
+  `word`s; once it was a false goal (`stable`'s invariant `bs ≤ 2^62`), so the error can hide a
+  plain failure. Workaround there: those hypotheses kept out of `word`'s context.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
@@ -3380,6 +3411,14 @@ parameter.
   directed, so search terminates). **Status.** Recorded only.
 
 ## 2026-11-20: `time.After` and the timers have no clock content (clockwork's real clock)
+
+**Done (2026-11-21, prove-clock; Perennial `2a3d3f7d1`):** Perennial models the runtime's monotonic
+clock (a model-only cell allocated by `asynctimerchan`'s trusted initializer, readings a CAS loop
+that only advances it), `time.After` waits for it, `time.clockLb n` is its lower bound, and
+`time.After.spec` gives `T ≥ n` and values carrying `Ψ T` derived from `clockLb (T + d)`
+(`time.After.spec_pkgInit` is the old shape). clockwork's axioms are definitions over it.
+`runtimeNano`/`runtimeNow`/the other timers still read arbitrary values (future work: their specs
+would take `isPkgInit time`).
 
 - **The gap.** Perennial's `time.After(d)` spec gives a bag of times with no logical content
   (`isChanBag γ ch (fun _ => True)`), and `time.Now` arbitrary readings; there is no ghost clock that

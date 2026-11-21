@@ -241,6 +241,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Cl
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
 public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
+public import Proof.github_com.jonboulle.clockwork.realClock__After
+public import Proof.github_com.jonboulle.clockwork.realClock__Now
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -2948,9 +2950,17 @@ theorem bootstrappedWAL.wp_MemoryStorage :
     bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
   bootstrappedWAL.MemoryStorage.wp_proof srvApi_wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot srvApi_wp_MemSetHardState srvApi_wp_MemAppend
 
+theorem clockwork.realClock.wp_Now :
+    clockwork.realClock.Now.spec (GF := GF) (hG := hG) :=
+  clockwork.realClock.Now.wp_proof _root_.Perennial.time.wp_Now
+
+theorem clockwork.realClock.wp_After :
+    clockwork.realClock.After.spec (GF := GF) (hG := hG) :=
+  clockwork.realClock.After.wp_proof _root_.Perennial.time.wp_After
+
 theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=
-  clockwork.NewRealClock.wp_proof
+  clockwork.NewRealClock.wp_proof clockwork.realClock.wp_Now clockwork.realClock.wp_After
 
 theorem membership.RaftCluster.wp_String :
     membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=

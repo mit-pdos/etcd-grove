@@ -3800,6 +3800,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   back. The one caller (`store.scheduleCompaction`) threads them.
 - **Decision.** Applied (prove-etcdint3, 2026-11-21).
 
+## 2026-11-21: k8s utils `trace.New` needs its package's initialization; `trace.fromNew` defined (prove-otel4)
+
+- **Spec.** `trace.New.spec` (`Spec/k8s_io/utils/trace/New.lean`, a trust-boundary axiom until this change) and the
+  predicate `trace.fromNew` (`Proof/k8s_io/utils/trace/Defs.lean`, opaque until now), which `Trace.Step`'s and
+  `Trace.LogIfLong`'s specs take.
+- **Defect.** Not provable as stated: `New` is `&Trace{name: name, startTime: time.Now(), fields: fields}`
+  (`k8s.io/utils` `be93311217bd` `trace/trace.go:154-156`), and `time.Now`'s spec takes `isPkgInit time`, which the
+  premise `True` does not give; and its post was the opaque `trace.fromNew t`, which no proof can establish.
+- **Evidence.** The translation (`Code/k8s_io/utils/trace.lean`, `New.impl`, with `time` and `sync` imported so that
+  `Trace` translates as a struct).
+- **Proposed change.** The premise `isPkgInit pkg_id.k8s_io.utils.trace` (which gives `time`'s: `iPkgInit`);
+  `trace.fromNew t := t ≠ null` (what `Step` and `LogIfLong` need: they lock `t.lock` first, a nil receiver panics;
+  any non-nil `*Trace` of a Go program is a `Trace`, and both accept its zero value). The three callers
+  (`RealFIFO.Pop`, `processorListener.run`, `Reflector.list`) have `isPkgInit` of client-go's `cache`, which imports
+  the package: discharged there with no change to their statements.
+- **Decision.** Applied (prove-otel4, 2026-11-21); `trace.New.wp_proof` is a theorem.
+
 ## 2026-11-21: the lessor's `scheduleCheckpointIfNeeded` reads the lease's `ID` (prove-pgaps)
 
 - **Spec.** `lease.lessor.scheduleCheckpointIfNeeded.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/`; a trust-boundary
