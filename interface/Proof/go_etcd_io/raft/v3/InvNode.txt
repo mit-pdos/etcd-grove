@@ -462,6 +462,10 @@ theorem readyRest_ceInBatch [package_sem : Assumptions] (γ : Cluster) (N : Name
     ≤ st.delivered.length + 1 + j → Option.map LogEntry.ofEntryM es[st.delivered.length + 1 + j -
     uint.nat e0.Index']? = some e⌝ ∗ readyRest γ N id rd st ce es h none ms ss
 
+theorem sentMsg_localSnapshotLeader [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id :
+    w64) (st : MsgSt) (ht : st.msg.Type' = MsgSnap) : sentMsg γ N id st ⊢ snapshotLeader γ id
+    st.msg.Term'
+
 theorem isCommittedLogLb_small [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜l.length < 2 ^ 61⌝
 
