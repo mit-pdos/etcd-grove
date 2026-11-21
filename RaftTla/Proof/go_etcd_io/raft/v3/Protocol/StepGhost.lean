@@ -37,7 +37,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-! ### The log ghost state across a step -/
 
@@ -1337,6 +1337,54 @@ private theorem slot_batch_le (E : DurMaps) (Mq : GMap Nat (Option RaftBatch)) (
     | none => exact DurLe_refl E
     | some b => exact (H b h).2
 
+/-- The mask with every crash invariant of `id` open is within the one with an arm's open. -/
+theorem crashNs_diff_sub (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) :
+    E \ ↑(crashNs γ id) ⊆ E \ ↑(crashN γ id x) := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
+  exact ⟨hp.1, fun h => hp.2 (crashN_sub γ id x p h)⟩
+
+/-- The slot is outside every crash invariant. -/
+theorem slotN_diff_crash (E : CoPset) (γ : RaftNames) (id : w64) :
+    ↑(slotN γ id) ⊆ E → ↑(slotN γ id) ⊆ E \ ↑(crashNs γ id) := by
+  intro HE p hp
+  rw [Iris.Std.LawfulSet.mem_diff]
+  refine ⟨HE p hp, fun h => ?_⟩
+  have h1 := nclose_subseteq (raftN γ .@ "slot") id p hp
+  have h2 := nclose_subseteq (raftN γ .@ "crash") id p h
+  exact ndot_ne_disjoint (raftN γ) (show "slot" ≠ "crash" by decide) p ⟨h1, h2⟩
+
+/-- **The slot's half of the virtual maps, used through its view** (2026-11-21, the crash invariant):
+the update `f` gets the piece, with the generation running (`notCrashed`), and gives it back. -/
+theorem cviewV_use (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps)
+    (R : IProp GF) :
+    γ.reSlot !! id = some γs → ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+      (ghostVar γs.1 (1 : Qp).half V ={E \ ↑(crashNs γ id)}=∗ ghostVar γs.1 (1 : Qp).half V ∗ R) ={E}=∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ R := by
+  intro Hs HE
+  unfold cview
+  iintro Hnc ⟨%x, #Hinv, Hv⟩ Hf
+  iapply nodeCrashInv_acc E γ id x _ HE $$ Hnc Hinv
+  iintro Hl
+  icases crashLens_v γ id x $$ Hl with ⟨Hp, Hback⟩
+  unfold crashV
+  icases Hp with ⟨%γs', %V', %Hs', Hv0, Hpc⟩
+  rw [Hs] at Hs'; cases Hs'
+  icases ghostVar_agree _ _ _ _ _ $$ Hv Hv0 with %HV
+  subst HV
+  ihave Hf := Hf $$ Hpc
+  imod fupd_mask_mono (crashNs_diff_sub E γ id x) $$ Hf with ⟨Hpc, HR⟩
+  imodintro
+  isplitr [Hv HR]
+  · iapply Hback
+    iexists γs, V
+    iframe Hv0 Hpc
+    ipureintro; exact Hs
+  iframe HR
+  iexists x
+  iframe Hinv Hv
+
 /-- **Opening the slot** against the node's half of its virtual maps `V`: the entered maps `E`,
 below `V`, with their authority shares, until the slot is closed. -/
 theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps) :
@@ -1367,6 +1415,55 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
     ipureintro; exact ⟨Hdom, Hcur, Hb⟩
   imodintro; ipureintro; trivial
 
+/-- The crash invariants are outside the slot's mask. -/
+theorem crashNs_diff_slot (E : CoPset) (γ : RaftNames) (id : w64) :
+    ↑(crashNs γ id) ⊆ E → ↑(crashNs γ id) ⊆ E \ ↑(slotN γ id) := by
+  intro HE p hp
+  rw [Iris.Std.LawfulSet.mem_diff]
+  refine ⟨HE p hp, fun h => ?_⟩
+  have h1 := nclose_subseteq (raftN γ .@ "slot") id p h
+  have h2 := nclose_subseteq (raftN γ .@ "crash") id p hp
+  exact ndot_ne_disjoint (raftN γ) (show "slot" ≠ "crash" by decide) p ⟨h1, h2⟩
+
+/-- **Opening the slot against the view of the node's virtual maps** (2026-11-21, the crash
+invariant: the slot's half is there, read with the generation running): `slot_open`, the crash
+invariant opened inside the slot's and closed again at once. -/
+theorem slot_openV (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps) :
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → ↑(crashNs γ id) ⊆ Em →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V
+      ={Em, Em \ ↑(slotN γ id)}=∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗
+      ∃ E, ⌜DurLe E V⌝ ∗ durShares γ id (1 : Qp).half E ∗
+        (durShares γ id (1 : Qp).half E ={Em \ ↑(slotN γ id), Em}=∗ True) := by
+  intro Hs HE HC
+  iintro Hnc #Hslot Hv
+  unfold slotInv
+  iinv Hslot with H Hclose
+  unfold slotBody
+  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  rw [Hs] at Hγs'; cases Hγs'
+  have Hle := slot_batch_le E Mq g Hb
+  imod cviewV_use (Em \ ↑(slotN γ id)) γ id γs V
+      iprop(⌜V = virtQ E (Mq !! g)⌝ ∗ ghostVar γs.1 (1 : Qp).half (virtQ E (Mq !! g))) Hs
+      (crashNs_diff_slot Em γ id HC) $$ Hnc Hv [Hv'] with ⟨Hnc, Hv, %HV, Hv'⟩
+  · iintro Hv0
+    icases ghostVar_agree γs.1 V (1 : Qp).half _ (1 : Qp).half $$ Hv0 Hv' with %HV
+    imodintro
+    iframe Hv0 Hv'
+    ipureintro; exact HV
+  imodintro
+  iframe Hnc Hv
+  iexists E
+  isplitr; · ipureintro; rw [HV]; exact Hle
+  isplitl [Hsh]; · iexact Hsh
+  iintro Hsh
+  imod Hclose $$ [Hsh Hv' Hg Hq] with -
+  · inext
+    iexists γs, E, g, Mq
+    isplitr; · ipureintro; exact Hs
+    iframe Hsh Hfr Hai Hv' Hg Hq
+    ipureintro; exact ⟨Hdom, Hcur, Hb⟩
+  imodintro; ipureintro; trivial
 /-- An entered vote's fragment against the authority share. -/
 theorem durShares_vote (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (t c : w64) :
     ⊢ durShares (GF := GF) γ id q E -∗ isVote γ id t c -∗
@@ -1415,19 +1512,20 @@ theorem durShares_camp (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γc' 
 its term is pending (`PromsFresh`). -/
 theorem slot_campK (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps)
     (πc : List Prom) (T : w64) (F : List EntryM) (k : w64) :
-    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → PromsFresh V πc →
-    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗ isCampK γ id T F k ={Em}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → ↑(crashNs γ id) ⊆ Em → PromsFresh V πc →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+      isCampK γ id T F k ={Em}=∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗
       ⌜(virt V πc).camps !! T = some (F, k) ∧ ∀ F' k', Prom.camp T F' k' ∉ πc⌝ := by
-  intro Hs HE Hfr
-  iintro #Hslot Hv #Hck
-  imod slot_open Em γ id γs V Hs HE $$ Hslot Hv with ⟨%E0, %HEV, Hsh, Hv, Hcl⟩
+  intro Hs HE HC Hfr
+  iintro Hnc #Hslot Hv #Hck
+  imod slot_openV Em γ id γs V Hs HE HC $$ Hnc Hslot Hv with ⟨Hnc, Hv, %E0, %HEV, Hsh, Hcl⟩
   unfold isCampK
   icases Hck with ⟨%γc, %Hc, #Hf, -⟩
   icases durShares_camp γ id _ E0 γc T F k Hc.1 $$ Hsh Hf with ⟨%HE0, Hsh⟩
   imod Hcl $$ Hsh with -
   imodintro
-  iframe Hv
+  iframe Hnc Hv
   ipureintro
   have HV : V.camps !! T = some (F, k) := HEV.2.2.1 T _ HE0
   refine ⟨(DurLe_virt V πc Hfr).2.2.1 T _ HV, fun F' k' Hin => ?_⟩
@@ -1472,45 +1570,46 @@ its log. -/
 through the slot invariant's entered votes, which the virtual maps extend.) -/
 theorem vote_excl (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) (γs : SlotNames)
     (V : DurMaps) (πc : List Prom) (ldr : w64) (q : GSet w64) :
-    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E → VoteHistOk (virt V πc).voted s →
-    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗ isWin γ ldr s.term q ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ⌜s.vote = W64 0 → id ∉ q⌝ := by
-  intro Hs HE Hhist
-  iintro #Hslot Hv #Hw
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E → ↑(crashNs γ id) ⊆ E → VoteHistOk (virt V πc).voted s →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+      isWin γ ldr s.term q ={E}=∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ ⌜s.vote = W64 0 → id ∉ q⌝ := by
+  intro Hs HE HC Hhist
+  iintro Hnc #Hslot Hv #Hw
   by_cases H0 : s.vote = W64 0
   · by_cases Hin : id ∈ q
     · ihave #Hq := isWin_votes γ ldr s.term q $$ Hw
       ihave #Hf := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v s.term ldr)
         ((GMap.elem_of_gset _ _).mp Hin) $$ Hq
-      imod slot_open E γ id γs V Hs HE $$ Hslot Hv with ⟨%E0, %Hle, Hsh, Hv, Hcl⟩
+      imod slot_openV E γ id γs V Hs HE HC $$ Hnc Hslot Hv with ⟨Hnc, Hv, %E0, %Hle, Hsh, Hcl⟩
       icases durShares_vote γ id _ E0 s.term ldr $$ Hsh Hf with ⟨%Hl, Hsh⟩
       have H1 := virt_voted_isSome V πc s.term (by rw [Hle.1 _ _ Hl]; rfl)
       have H2 := Hhist.2
       simp only [H0, ite_true] at H2
       rw [H2] at H1
       cases H1
-    · imodintro; iframe Hv; ipureintro; exact fun _ => Hin
-  · imodintro; iframe Hv; ipureintro; exact fun H => absurd H H0
+    · imodintro; iframe Hnc Hv; ipureintro; exact fun _ => Hin
+  · imodintro; iframe Hnc Hv; ipureintro; exact fun H => absurd H H0
 
 /-- A non-leader's own acknowledgement of its term above its commit index agrees with its log.
 (2026-10-31, durability R2: the fragment is an entered one, found through the slot.) -/
 theorem ownLogGhost_ack_agree (E : CoPset) (γ : RaftNames) (id : w64) (s : PState)
     (kl : Option w64) (γs : SlotNames) (V : DurMaps) (πc : List Prom) (i : w64) :
-    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E →
-    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E → ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ slotInv (GF := GF) γ id -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
       ownLogGhost γ id s kl (virt V πc) -∗ isAcked γ id s.term i ={E}=∗
-      ghostVar γs.1 (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗
+      notCrashed ∗ cview γ id CrashNames.v (1 : Qp).half V ∗ ownLogGhost γ id s kl (virt V πc) ∗
       ∀ (_ : s.role ≠ .leader ∧ uint.Z s.commit < uint.Z i),
         ackAgree γ s.base s.log s.term i := by
-  intro Hs HE
-  iintro #Hslot Hv H Hk
+  intro Hs HE HC
+  iintro Hnc #Hslot Hv H Hk
   unfold isAcked
   icases Hk with (%H0 | ⟨⟨%γa', %Hγa', #Hfrag⟩, -⟩)
-  · imodintro; iframe Hv H
+  · imodintro; iframe Hnc Hv H
     iintro %Hr
     have := Hr.2
     exact absurd H0 (by have := uint_Z_nonneg s.commit; omega)
-  · imod slot_open E γ id γs V Hs HE $$ Hslot Hv with ⟨%E0, %Hle, Hsh, Hv, Hcl⟩
+  · imod slot_openV E γ id γs V Hs HE HC $$ Hnc Hslot Hv with ⟨Hnc, Hv, %E0, %Hle, Hsh, Hcl⟩
     icases durShares_ack γ id _ E0 γa' s.term i Hγa' $$ Hsh Hfrag with ⟨%Hk, Hsh⟩
     imod Hcl $$ Hsh with -
     have Hk' := virt_acks_isSome V πc (s.term, i) (Hle.2.1 _ (by rw [Hk]; rfl))
@@ -1518,7 +1617,7 @@ theorem ownLogGhost_ack_agree (E : CoPset) (γ : RaftNames) (id : w64) (s : PSta
     icases persistent_entails_right (wand_entails (ownLogGhost_acks_ok (GF := GF) γ id s kl (virt V πc))) $$ H
       with ⟨#Hacks_ok, H⟩
     imodintro
-    iframe Hv H
+    iframe Hnc Hv H
     iintro %Hr
     rw [acksOk_nl γ s _ Hr.1]
     ihave #Hk' := BigSepM.bigSepM_lookup (Φ := fun (k : w64 × w64) (_ : Unit) => ackOk (GF := GF) γ s k)

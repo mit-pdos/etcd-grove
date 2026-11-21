@@ -44,6 +44,18 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
     kvnet's boot obligation arms.
 - **Decision.** Accepted (the coordinating session, 2026-11-21, design route 1, sections (b1), (f),
   (i)); applied on branch `worktree-agent-aa878c2e224f33d0c`.
+- **As applied** (2026-11-21, the implementing session):
+  - "Same `x`" needs the client to know the arm the node started from. `StartNode`/`RestartNode` give
+    a persistent `nodeArm n γ x` (sealed; `nodeArm_agree`). `node.Stop`'s post is
+    `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`, so its precondition is unchanged.
+  - `nodeCrash` also takes `isCluster γ N` and `↑N ⊆ E` (for `↑(raftN) ⊆ E`).
+  - `nodeVacant_armD : nodeVacant ={E}=∗ ∃ x, nodeVacantA γ id x` (the token dropped) is for clients
+    whose crash is `node.Stop`'s: kv, kvreconf, kvdurable and the server. They keep the vacancy as
+    `∃ x, nodeVacantA …` where they kept `nodeVacant` (kvdurable's `Cluster.start`, `Replica.stop`,
+    `Replica.crash`; the server's restart image, `rnStopImage`, `rnBootPre`'s restart).
+  - `examples/lib/durable`'s `Write.spec`: the update may use `notCrashed` when it opens (handed back
+    at once; `wp_atomic_nc` at the extension's step). Strictly more permissive for a client. kvdurable's
+    *enter* runs in the write's update, so it needs the token there.
 
 ## 2026-11-18: `leaseStep`'s grant -- a server-chosen id is fresh in the history, the plan says only "not live"
 

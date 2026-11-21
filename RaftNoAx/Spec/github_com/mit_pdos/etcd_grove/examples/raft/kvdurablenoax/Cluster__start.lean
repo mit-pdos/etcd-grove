@@ -40,7 +40,9 @@ abbrev Cluster.start.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) (id : w64) (S : RaftState)
     (o : Option StorFile),
   1 ≤ uint.nat id → uint.nat id ≤ γ.max →
-  {{ isClusterC γ vs dir c ∗ kdFileInv γ dir id ∗ nodeVacant γ.r.cluster id ∗
+  -- (2026-11-21, the crash invariant) the id's vacancy armed (`nodeVacant_arm`; kvdurable keeps no
+  -- crash token: its crash is `node.Stop`'s)
+  {{ isClusterC γ vs dir c ∗ kdFileInv γ dir id ∗ (∃ x, nodeVacantA γ.r.cluster id x) ∗
       kdWriter γ id S o ∗ repKnown γ id }}
     (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"start")) (Val #id))
   {{ (r : Loc), RET #r; (∃ (n st sts sq : Loc) (ρ : KdRepNames),

@@ -22,7 +22,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- What a node at term `T` with commit index `c` knows of its full log `F`: its records,
 `commitIn γ F c T` and the committed prefix `F.take c` (D22 S-b; `SnapMint.lean`'s header). -/

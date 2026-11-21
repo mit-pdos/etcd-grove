@@ -27,7 +27,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 
 section ghost
 variable [GooseExts]
-variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- **An append request at index `0` has previous term `0`**: its previous entry is in its leader's
 full log, from the base `(0, 0)`. -/

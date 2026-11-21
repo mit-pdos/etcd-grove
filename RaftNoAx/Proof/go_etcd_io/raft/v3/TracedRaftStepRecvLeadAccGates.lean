@@ -333,7 +333,8 @@ theorem leadAccGate_commit (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM
     rw [commitAt_prvals]; exact nodeEvOf_prvals _ _ _ _ _
   rw [← hev]
   iintro ⟨Hlc, #Hm, Hgh, Hc⟩
-  iapply hookGate_fupd
+  iapply hookGate_nc
+  iintro Hnc
   -- the response's index within the log, the leader's term non-zero (at `s`)
   ihave #Hai := isMessage_appResp_ackIn γ (absMsg .appResp m ents) rfl hrej $$ Hm
   ihave Hai' := ackIn_cast γ (show (absMsg .appResp m ents).term = (toPState s).term from hterm)
@@ -345,8 +346,8 @@ theorem leadAccGate_commit (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM
   ihave Hgh : ownStepGhost γ md c id s $$ [Hg Hrest]
   · iunfold ownStepGhost; iframe Hg Hrest
   -- raft's ghost state past the commit
-  imod ghost_stepAppCommit γ md c id s m ents pvs b N hty hto hterm hrole hrej hx hpvs hout $$ Hlc Hm Hgh
-    with Hgh
+  imod ghost_stepAppCommit γ md c id s m ents pvs b N hty hto hterm hrole hrej hx hpvs hout $$ Hnc Hlc Hm Hgh
+    with ⟨Hnc, Hgh⟩
   imod ownStepGhost_traceBound (GF := GF) γ md c id (commitAt { s with prvals := pvs } b N) hfit $$ Hgh
     with ⟨%Hb, Hgh⟩
   -- the capability's pin, the voters
@@ -434,6 +435,7 @@ theorem leadAccGate_commit (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM
     hidC hXr hcl $$ [$Hr $Hcm $Hci $Hl $Hf]
   ihave Hfx := fxPres_upd γ id _ _ _ $$ Hfx
   imodintro
+  iframe Hnc
   iapply hookGate_mono (some γd) r _
     iprop(trCapB (some γd) γ r id c true
       (CommitTgt (commitAt { s with prvals := pvs } b N) C1 cs2 P1

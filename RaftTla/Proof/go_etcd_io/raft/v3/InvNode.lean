@@ -44,6 +44,7 @@ predicates are raft's storage API, carried over unchanged (not redesigned here).
 module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import GooseLang.NotCrashed
 public import Perennial.Proof.context
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvMemstorage
 public import RaftTla.Proof.go_etcd_io.raft.v3.NodeApiVocab
@@ -666,6 +667,31 @@ gives back, so that at most one node of an id runs at a time. Allocation gives i
 @[no_expose] def nodeVacant (γ : Cluster) (id : w64) : IProp GF :=
   ApiImpl.nodeVacantU γ id
 
+/-- (2026-11-21, the crash invariant: `notes/raft-crash-law-design.md` (i)) **No node of `id` runs,
+armed for a crash at arm `x`** (exclusive): what `RestartNode`/`StartNode` take and `node.Stop`
+gives back. `nodeVacant_arm` makes it, with the arm's crash token (`nodeCrashTok`). -/
+@[no_expose] def nodeVacantA (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
+  ApiImpl.nodeVacantAU γ id x
+
+/-- (2026-11-21) **The crash token of arm `x` of `id`** (exclusive): after a crash, it gives the
+id's vacancy back (`nodeCrash`), whatever node of `id` ran from arm `x`. -/
+@[no_expose] def nodeCrashTok (γ : Cluster) (id : w64) (x : CrashNames) : IProp GF :=
+  ApiImpl.nodeCrashTokU γ id x
+
+/-- (2026-11-21) **The node at `n` was started from arm `x`** (persistent): `StartNode`/`RestartNode`
+give it with the node, and `node.Stop` gives the vacancy back at the arm the node was started from
+(`nodeArm_agree`), so a client keeping the arm's crash token keeps it across a stop and restart. -/
+@[no_expose] def nodeArm (n : Loc) (γ : Cluster) (x : CrashNames) : IProp GF :=
+  ApiImpl.nodeArmU n γ x
+
+instance nodeArm_persistent (n : Loc) (γ : Cluster) (x : CrashNames) :
+    Persistent (nodeArm (GF := GF) n γ x) := by
+  unfold nodeArm; exact ApiImpl.nodeArmU_persistent n γ x
+
+theorem nodeArm_agree (n : Loc) (γ : Cluster) (x x' : CrashNames) :
+    ⊢ nodeArm (GF := GF) n γ x -∗ nodeArm n γ x' -∗ ⌜x = x'⌝ := by
+  unfold nodeArm; exact ApiImpl.nodeArmU_agree n γ x x'
+
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2;
 2026-11-01, durability stage I-4: keyed by the storage key `K`) -/
 
@@ -949,9 +975,9 @@ commit-only batch leaves the durable state but its commit index, so even a durab
 applies it at once. -/
 def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
     (ms : List QMsg) : IProp GF :=
-  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗
+  iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗ notCrashed -∗
     raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
-      raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
+      notCrashed ∗ raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
       readyMsgs γ N id ms)
 
 /-- (2026-11-01, durability stage I-3; candidate 12's deletion of *check*) **At role leader a

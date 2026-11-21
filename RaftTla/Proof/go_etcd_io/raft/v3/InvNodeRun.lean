@@ -33,6 +33,7 @@ the loan's committed log (`rsDlv`, `runCfg_extend`, `runCfg_advance`).
 -/
 module
 
+public import GooseLang.NotCrashed
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvNodeChan
 public import RaftTla.Spec.go_etcd_io.raft.v3.raft__Step
 public import RaftTla.Spec.go_etcd_io.raft.v3.raft__applyConfChange
@@ -1474,7 +1475,7 @@ theorem wp_applyConf_dyn
     have Hac := HI.applied_cidx
     exact Hn k e (Nat.le_trans Hac Hk1) Hkc Hfull_k Hconf
   imod rdCred_zero_upd (GF := GF) γ with Hcr0
-  iapply wp_fupd
+  iapply (wp_ncfupd_post (App _ _) _ rfl)
   wp_apply +noauto wp_raft_applyConfChange cf rnv.raft' id s cc ccm dq cs'
       (by rw [Hcfg]; exact Happ) (by have := Hsz; omega) Hltz
       (fun h => by
@@ -1482,6 +1483,8 @@ theorem wp_applyConf_dyn
         · exact absurd h Hnc
         · exact absurd h Hnpc) Hli2
     (by tr_none) $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
+  unfold ncfupd
+  iintro Hnc
   -- the ghost step
   let g' : RGh := ⟨k + 1, cs', fp, ds⟩
   have Hadm : AdmS (effDec dec ds) c0 (fun l => l = (rOf s g).full.take (k + 1)) ((rOf s g).full.take (k + 1))
@@ -1514,13 +1517,14 @@ theorem wp_applyConf_dyn
     iframe Hg Hfr
     ipureintro; exact HI
   imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
-  imod ownRaftGhostR_stepR γ dec ds c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hrc0 HM Hrecs [] [Hcr0] []
-    Hlc Hgr with Hgr
+  imod ownRaftGhostR_stepR γ dec ds c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hnc Hrc0 HM Hrecs [] [Hcr0] []
+    Hlc Hgr with ⟨Hnc, Hgr⟩
   · rw [List.nil_append]
     iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [List.nil_append, show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr0
   · rw [List.nil_append]; iapply msgsTks_nil
+  iframe Hnc
   ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g') cs'.cfg id s' $$ [Hgr]
   · iapply (ownStepGhost_dyn γ dec c0 h0 g' cs'.cfg id s').2
     iframe Hgr HM
@@ -1636,8 +1640,8 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       -- (raft-final phase 2) the leader witness and the transfer records' witnesses
       leadW γ id (toPState s) -∗ xfW γ s -∗
       -- (2026-11-01, durability stage I fix G2) the durable state's tie
-      durTie γ rs s -∗ £ 1 ={⊤}=∗
-      ownRawNode γ rn id rs := by
+      durTie γ rs s -∗ notCrashed -∗ £ 1 ={⊤}=∗
+      notCrashed ∗ ownRawNode γ rn id rs := by
   obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ :=
     (applyCCOkC_step (B := 0) _ _ _ _ Hok).resolve_right
       (fun ⟨_, Hv, _⟩ => Hv (by rw [CfgM.voters_simple]; exact Hin))
@@ -1650,7 +1654,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   have Hwf' : NStateWf s' := by
     obtain ⟨-, H1, H2⟩ := Hrel
     exact ⟨by rw [Hsf, Hro]; exact H1, by rw [Htk]; exact H2⟩
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc #Hlw #Hxw #Hdur Hlc
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl #Hsloc #Hlw #Hxw #Hdur Hnc Hlc
   ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsnap') $$ Hsloc
   -- (raft-final phase 2) the witnesses across the change (`leadW_applyCC`; `xw` kept)
   ihave #Hlw' := leadW_applyCC γ Hok $$ Hlw
@@ -1662,7 +1666,9 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
   ihave %Hst0 := ownRaftGhost_static γ id _ $$ Hghost
   imod ownRaftGhost_step_0 γ _ (CfgStatic.simple γ _ Hst0) id Htrk' 0 (by decide) _ _ Hst
-    $$ Hrc0 Hlc Hghost with Hghost
+    $$ Hnc Hrc0 Hlc Hghost with ⟨Hnc, Hghost⟩
+  imodintro
+  iframe Hnc
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Htm]; exact Int.le_refl _)
     Hprev Hsnap' Hstored (by rw [Hls]; exact Int.le_refl _) $$ Hstrecs
   iapply ownRawNode_intro_static γ rn id rs s' (toPState s') rnv sv hprev steps Hm ⟨rfl, Hwf'⟩ Hin Hasync
@@ -1708,7 +1714,7 @@ theorem wp_rn_raft_applyConfChange
     ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl, #Hlw, #Hxw⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
-  iapply wp_fupd
+  iapply (wp_ncfupd_post (App _ _) _ rfl)
   icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
   icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
   obtain ⟨lrn', Hd', Hsz', Hn', Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
@@ -1717,12 +1723,15 @@ theorem wp_rn_raft_applyConfChange
   wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id
       s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hltz Hli2 Hin (by tr_none)
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
+  unfold ncfupd
+  iintro Hnc
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs (Hdom' ▸ Hok)
     (trackedOk_shrink Htrk Hlp Hdom') Hnl Hgtr HtrG
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlw Hxw Hdur Hlc with Hrn
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlw Hxw Hdur Hnc Hlc with ⟨Hnc, Hrn⟩
   try wp_auto
   imodintro
+  iframe Hnc
   iapply HΦ $$ %cs %xs %ls
   iframe Hrn Hccs Hcs
   ipureintro

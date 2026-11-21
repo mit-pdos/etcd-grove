@@ -94,12 +94,15 @@ nil, or a logger whose `TraceEvent`, handed the representation of an event `e`, 
 caller's atomic update appending `e` to the trace (its linearization point, under the recorder's
 lock), and returns (`#()`: until 2026-11-09, Q8 stage 1 slice 2, any value, a panic's included,
 which left the traced `traceEvent`'s continuation unprovable). Generic: it names nothing of the TLA+
-specification. -/
+specification. (2026-11-21, the crash invariant: `notes/raft-crash-law-design.md` (f)) The update
+lends the generation's `notCrashed` at its commit (and gets it back): the logger commits at one of
+its own steps, where the token is at hand (`wp_ncfupd`), and the caller's commit (`FxPresU`) runs a
+ghost step of raft's that needs it. -/
 def isTraceLogger (γt : GName) (tl : GoInterface) : IProp GF :=
   iprop(⌜tl = interface.nil⌝ ∨
     ∃ l : GoInterfaceOk, ⌜tl = GoInterface.ok l⌝ ∗
       □ ∀ (p : Loc) (e : TraceEv) (Q : IProp GF), tracingEventRep p e -∗
-        (AU <{ ∃∃ L, traceAuth γt L }> @ ⊤, ∅ <{ traceAuth γt (L ++ [e]), COMM Q }>) -∗
+        (AU <{ ∃∃ L, traceAuth γt L }> @ ⊤, ∅ <{ traceAuth γt (L ++ [e]) ∗ notCrashed, COMM notCrashed ∗ Q }>) -∗
         WP (App (Val #(methods l.ty go!"TraceEvent" l.v)) (Val #p)) {{ fun v => iprop(⌜v = #()⌝ ∗ Q) }})
 
 instance isTraceLogger_persistent (γt : GName) (tl : GoInterface) :
