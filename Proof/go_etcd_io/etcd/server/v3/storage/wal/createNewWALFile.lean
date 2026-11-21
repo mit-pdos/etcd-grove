@@ -43,7 +43,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.wp_proofLocked
       wp_auto
       iapply HΦ $$ H
     | ok e =>
-      unfold fileutil.lockPost
+      unfold fileutil.lockPostW
       icases H with ⟨%x, (⟨%h, -⟩ | ⟨%h, HA⟩)⟩
       · cases h
       obtain ⟨-, rfl⟩ := h
@@ -65,7 +65,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.wp_proofLocked
       wp_auto
       iapply HΦ $$ H
     | ok e =>
-      unfold fileutil.lockPost
+      unfold fileutil.lockPostW
       icases H with ⟨%x, (⟨%h, -⟩ | ⟨%h, HA⟩)⟩
       · cases h
       obtain ⟨-, rfl⟩ := h

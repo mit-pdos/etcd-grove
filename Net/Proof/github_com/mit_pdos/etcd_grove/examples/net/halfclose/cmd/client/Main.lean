@@ -37,9 +37,9 @@ theorem wp_main
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_CloseWrite : net.TCPConn.CloseWrite.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) :
+    (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client ∗
-        hcInvs γm ∗ netPlan G srvAddr h }}
+        hcInvs γm ∗ ⌜addrOk srvAddr = true⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, #Hplan⟩
@@ -48,7 +48,7 @@ theorem wp_main
   · iPkgInit
   icases eof_init $$ Hhc with ⟨%x, #Heof⟩
   (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_Read wp_Write wp_CloseWrite wp_Close γm h x $$ []
+  wp_apply wp_Call wp_Dial wp_Read wp_Write wp_CloseWrite wp_Close γm x $$ []
   · iframe Hinvs Hplan Heof
   (try wp_auto)
   iapply HΦ

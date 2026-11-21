@@ -185,6 +185,7 @@ axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
+axiom context.madeCancelCtx_of_isCancelCtx
 axiom conversion.EnforcePtr.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
 axiom corev1.Pod.DeepCopyObject.wp_proof
@@ -195,6 +196,8 @@ axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
+axiom encoding.json.MarshalConfigChangeContext.wp_proof
+axiom encoding.json.MarshalMember.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom entryEncC_ok

@@ -27,12 +27,12 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
-  intro nw hnw a h Qfail Qok
-  wp_start as ⟨#Hp, HQ⟩
+  intro nw hnw a Qfail Qok
+  wp_start as ⟨%Hp, HQ⟩
   wp_apply wp_netOk nw hnw
   (try wp_auto)
   wp_bind (ExternalOp _ _ _)
-  iapply wp_net_Dial a h $$ Hp
+  iapply wp_net_Dial a $$ %Hp
   isplit
   · -- a failure
     icases HQ with ⟨HQ, -⟩

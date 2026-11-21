@@ -47,7 +47,7 @@ theorem fileutil.wp_ofdLockFile
         fileutil.lockKind (GF := GF) .ofd ∗ P }}
       (App (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.ofdLockFile)) (Val #path))
         (Val #flag)) (Val #perm))
-    {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err); fileutil.lockPost A C path flag lf err }} := by
+    {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err); fileutil.lockPostW (¬ FsNoErrIno) A C path flag lf err }} := by
   wp_start as ⟨#Hinv, #Hpkg, #Hkind, HP⟩
   ihave #Hdef := fileutil.pkgInit_fact $$ Hpkg
   icases Hdef with ⟨-, ⟨%w, #Hw, %hw⟩, -⟩
@@ -73,13 +73,14 @@ theorem fileutil.wp_ofdLockFile
       iapply errOk_of_fmtErrorOkOrNil
       iexact Herr
     iapply HΦ
-    unfold fileutil.lockPost
+    unfold fileutil.lockPostW
     iexists x
     iright
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
     iexists false
-    iexact HA
+    iframe HA
+    ipureintro; nofun
   subst he
   wp_auto
   wp_apply wp_Fd f fd path (DFrac.own 1) $$ Hf as Hf
@@ -87,7 +88,7 @@ theorem fileutil.wp_ofdLockFile
     (by simp [OsFd.lk, openFd])
   wp_apply syscall.FcntlFlock.wp_lock fd (W64 38) flock_ptr w (openFd i (flag ||| W64 0x80000))
     (some true) (.inr rfl) hw.2.1 hw.2.2.1 hw.2.2.2.1 hw.2.2.2.2 (by rw [hw.1]; rfl)
-    (fun _ => hwr) (fun h => by cases h) (fun _ => rfl) $$ [Hinv flock Hfd Ht] as %e ⟨-, Hout⟩
+    (fun _ => hwr) (fun h => by cases h) (fun _ => rfl) $$ [Hinv flock Hfd Ht] as %e ⟨-, %hW, Hout⟩
   · iframe; isplitl []; iexact Hinv; iexact Ht
   icases fileutil.lockOut_split .ofd fd i flag e $$ Hout with (⟨%he, Hfd, Hk⟩ | ⟨%he, Hfd, Hlt⟩)
   · subst he
@@ -98,7 +99,7 @@ theorem fileutil.wp_ofdLockFile
     ipersist «$r0»
     imodintro
     iapply HΦ
-    unfold fileutil.lockPost
+    unfold fileutil.lockPostW
     iexists x
     ileft
     isplitr
@@ -116,13 +117,14 @@ theorem fileutil.wp_ofdLockFile
     wp_apply wp_Close f fd path _ $$ [Hinv Hf Hfd Hlt] as %cerr ⟨Hf, -⟩
     · iframe; iexact Hinv
     iapply HΦ
-    unfold fileutil.lockPost
+    unfold fileutil.lockPostW
     iexists x
     iright
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
     iexists true
-    iexact HA
+    iframe HA
+    ipureintro; exact fun _ => hW rfl he
 
 theorem fileutil.wp_flockLockFile
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
@@ -135,7 +137,7 @@ theorem fileutil.wp_flockLockFile
     {{ osInv (GF := GF) ∗ fileutil.lockKind (GF := GF) .flock ∗ P }}
       (App (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.flockLockFile)) (Val #path))
         (Val #flag)) (Val #perm))
-    {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err); fileutil.lockPost A C path flag lf err }} := by
+    {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err); fileutil.lockPostW (¬ FsNoErrIno) A C path flag lf err }} := by
   wp_start as ⟨#Hinv, #Hkind, HP⟩
   wp_auto
   unfold fileutil.OpenTriple at hopen
@@ -149,20 +151,21 @@ theorem fileutil.wp_flockLockFile
     | ok ie =>
     wp_auto
     iapply HΦ
-    unfold fileutil.lockPost
+    unfold fileutil.lockPostW
     iexists x
     iright
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
     iexists false
-    iexact HA
+    iframe HA
+    ipureintro; nofun
   subst he
   wp_auto
   wp_apply wp_Fd f fd path (DFrac.own 1) $$ Hf as Hf
   ihave Ht := lockTok_none (GF := GF) .flock fd (openFd i (flag ||| W64 0x80000))
     (by simp [OsFd.lk, openFd])
   wp_apply wp_Flock fd (W64 2) (openFd i (flag ||| W64 0x80000)) (some true) false
-    (by rfl) (fun _ => rfl) $$ [Hinv Hfd Ht] as %e ⟨-, Hout⟩
+    (by rfl) (fun _ => rfl) $$ [Hinv Hfd Ht] as %e ⟨%hW, Hout⟩
   · iframe; isplitl []; iexact Hinv; iexact Ht
   icases fileutil.lockOut_split .flock fd i flag e $$ Hout with (⟨%he, Hfd, Hk⟩ | ⟨%he, Hfd, Hlt⟩)
   · subst he
@@ -173,7 +176,7 @@ theorem fileutil.wp_flockLockFile
     ipersist «$r0»
     imodintro
     iapply HΦ
-    unfold fileutil.lockPost
+    unfold fileutil.lockPostW
     iexists x
     ileft
     isplitr
@@ -192,13 +195,19 @@ theorem fileutil.wp_flockLockFile
     wp_apply wp_Close f fd path _ $$ [Hinv Hf Hfd Hlt] as %cerr ⟨Hf, -⟩
     · iframe; iexact Hinv
     iapply HΦ
-    unfold fileutil.lockPost
+    unfold fileutil.lockPostW
     iexists x
     iright
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
     iexists true
-    iexact HA
+    iframe HA
+    ipureintro
+    intro _
+    rcases hW with h0 | ⟨-, hnb, -⟩ | h0
+    · exact absurd h0 he
+    · cases hnb
+    · exact h0
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile.wp_proof
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))

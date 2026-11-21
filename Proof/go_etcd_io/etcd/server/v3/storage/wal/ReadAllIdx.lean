@@ -250,6 +250,71 @@ theorem walMaxSnapIdx_append (P Q : WalHist) (X : Nat) (hP : walMaxSnapIdx P ≤
   rw [List.foldl_append]
   exact snapMax_le Q _ X hP hQ
 
+/-- The snapshot high-water mark covers both its initial accumulator and every
+snapshot index seen by the fold. -/
+private theorem snapMax_ge : ∀ (P : WalHist) (x : Nat),
+    let y := P.foldl (fun n op => match op with
+      | .save _ _ => n
+      | .snap m _ => max n (uint.nat m.Index')) x
+    x ≤ y ∧ ∀ m al, WalOpG.snap m al ∈ P → uint.nat m.Index' ≤ y
+  | [], _ => ⟨Nat.le_refl _, by simp⟩
+  | op :: P, x => by
+    cases op with
+    | save hs es =>
+      obtain ⟨hx, hm⟩ := snapMax_ge P x
+      exact ⟨hx, fun m al h => hm m al (by simpa using h)⟩
+    | snap md a =>
+      obtain ⟨hx, hm⟩ := snapMax_ge P (max x (uint.nat md.Index'))
+      refine ⟨Nat.le_trans (Nat.le_max_left ..) hx, fun m al h => ?_⟩
+      rcases List.mem_cons.1 h with h | h
+      · cases h; exact Nat.le_trans (Nat.le_max_right ..) hx
+      · exact hm _ _ h
+
+/-- With the current cut naming rule, every snapshot in the skipped prefix is
+strictly below the index used for `Open`. Legacy segment names can violate
+this inequality, which is why a physical prefix search is needed on upgrade. -/
+theorem readAll_prefix_snap_lt {I : WalHist} {k start : Nat}
+    (hb : walLastIdx (I.take k) < start) {m : SnapshotMetadataM} {al : Bool}
+    (hm : WalOpG.snap m al ∈ I.take k) : uint.nat m.Index' < start := by
+  have h : uint.nat m.Index' ≤ walMaxSnapIdx (I.take k) := (snapMax_ge _ 0).2 m al hm
+  rw [walLastIdx_eq] at hb
+  omega
+
+/-- When the selected segment's name bounds its prefix, the start snapshot
+chosen by `ValidSnapshotEntries` survives in the suffix. Index zero can also
+be the creation header, which a read starting at the first segment sees. -/
+theorem readAll_selected_start {I : WalHist} {k cut : Nat} {s : w64 × w64}
+    (hs : walNewestPair (walValidSnaps I cut) = some s)
+    (hb : k = 0 ∨ walLastIdx (I.take k) < uint.nat s.1) :
+    (k = 0 ∧ cut = 0 ∧ s = (W64 0, W64 0)) ∨
+      ∃ m al, WalOpG.snap m al ∈ I.drop k ∧ (m.Index', m.Term') = s := by
+  have hm := walNewestPair_mem hs
+  unfold walValidSnaps at hm
+  rcases List.mem_append.1 hm with h | h
+  · by_cases hc : cut = 0
+    · simp [hc] at h
+      subst s
+      exact Or.inl ⟨hb.resolve_right (by simp), hc, rfl⟩
+    · simp [hc] at h
+  · obtain ⟨op, hop, hp⟩ := List.mem_filterMap.1 h
+    cases op with
+    | save hs es => cases hp
+    | snap m al =>
+      change (if uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit' then some (m.Index', m.Term') else none) = some s at hp
+      split at hp
+      · have he := Option.some.inj hp
+        have hall : WalOpG.snap m al ∈ I := List.mem_of_mem_drop hop
+        refine Or.inr ⟨m, al, ?_, he⟩
+        rcases hb with rfl | hb
+        · simpa using hall
+        rw [← List.take_append_drop k I] at hall
+        rcases List.mem_append.1 hall with hpre | hpost
+        · have ha := readAll_prefix_snap_lt hb hpre
+          rw [← he] at ha
+          exact absurd ha (Nat.lt_irrefl _)
+        · exact hpost
+      · cases hp
+
 /-- The indices' fold below a bound `B` when every index read is. -/
 theorem raIdxT_lt (U : WalUnmarshal) (s : w64 × w64) (B : Nat) :
     ∀ (L : List (w64 × List w8)) (ix : w64 × w64),
@@ -390,6 +455,37 @@ theorem readAll_idxD {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : Lis
           simp only
           omega
 
+private theorem raStep_keeps_match {U : WalUnmarshal} {s : w64 × w64} {st st' : RAState}
+    {td : w64 × List w8} (h : raStep U s st td = .ok st') (hm : st.matched = true) :
+    st'.matched = true := by
+  unfold raStep at h
+  repeat' first | split at h | contradiction
+  all_goals cases h <;> first | exact hm | rfl
+
+/-- A successful read through a matching record remembers that match until EOF. -/
+theorem raFold_match {U : WalUnmarshal} {s : w64 × w64} (ds : List (w64 × List w8))
+    {st0 st : RAState} (hf : ds.foldlM (raStep U s) st0 = .ok st)
+    (hm : st0.matched = true ∨ ∃ bytes, (snapshotType, bytes) ∈ ds ∧ U.decSnap bytes = some s) :
+    st.matched = true := by
+  induction ds generalizing st0 with
+  | nil =>
+    simp only [List.foldlM_nil, pure, Except.pure, Except.ok.injEq] at hf
+    subst st; simpa using hm
+  | cons td ds ih =>
+    simp only [List.foldlM_cons, bind, Except.bind] at hf
+    cases h : raStep U s st0 td with
+    | error e => rw [h] at hf; cases hf
+    | ok st1 =>
+      rw [h] at hf
+      apply ih hf
+      rcases hm with hm | ⟨bytes, hb, hd⟩
+      · exact Or.inl (raStep_keeps_match h hm)
+      rcases List.mem_cons.1 hb with ht | hb
+      · subst td
+        simp [raStep, snapshotType, entryType, stateType, metadataType, crcType, hd] at h
+        subst st1; exact Or.inl rfl
+      · exact Or.inr ⟨bytes, hb, hd⟩
+
 /-- **A matched start has its snapshot record among those read** (`raStep`'s only `matched := true`). -/
 theorem raStep_matched (U : WalUnmarshal) (s : w64 × w64) :
     ∀ (L : List (w64 × List w8)) (st0 st : RAState), L.foldlM (raStep U s) st0 = .ok st →
@@ -508,6 +604,73 @@ theorem readAll_idx {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarsh
     rw [hP]
     rw [hpms] at h3
     omega
+
+/-- A read of all the filename-selected segments of a WAL written with the
+current naming rule matches the requested valid snapshot before EOF. -/
+theorem readAll_eof_matched {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarshal} (hU : U.Ok Mr)
+    {d : WalDur} {lay : WalLay} {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
+    (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat) (g : SegG)
+    (hg : lay.segs[kk]? = some g) (s : w64 × w64)
+    (hsel : ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1)
+    {acc : List WalRec} (hacc : (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs = acc)
+    {st : RAState} (hf : (acc.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st)
+    (hs : walNewestPair (walValidSnaps (histM d) d.cut) = some s) : st.matched = true := by
+  apply raFold_match _ hf
+  right
+  have hkk : kk < lay.segs.length := (List.getElem?_eq_some_iff.1 hg).1
+  obtain ⟨hcp, hlt, hfl⟩ := hab.cuts
+  have hle : ∀ b ∈ lay.cuts, b ≤ (histM d).length := fun b hb => cut_le_length (hcp b hb)
+  have hp : lay.first + kk ≤ lay.cuts.length := by omega
+  have hk := length_flatten_take_segsOf (I := histM d) hlt hle hp
+  have hflat : (segsOf (histM d) lay.cuts).flatten = histM d :=
+    segsOf_flatten _ _ (hlt.imp Nat.le_of_lt) hle
+  rw [walReadFiles_running hC hab hex hwr kk hkk] at hacc
+  generalize hSs : segsOf (histM d) lay.cuts = Ss at hk hflat hacc
+  generalize hpp : lay.first + kk = p at hk hp hacc
+  rcases Nat.eq_zero_or_pos p with h0 | h0
+  · subst h0
+    have hmap : acc.map (fun r => (r.typ, r.data)) = (segsDs Mr d.metadata true [] Ss).flatten := by
+      rw [← hacc]
+      simp only [List.take_zero]
+      have e0 : (recsOfSegs C Mr d.metadata []).length = 0 := rfl
+      rw [e0, List.drop_zero, recsOfSegs_map]
+    rw [hmap]
+    rcases readAll_selected_start (k := 0) hs (Or.inl rfl) with ⟨-, -, rfl⟩ | ⟨m, al, hm, he⟩
+    · refine ⟨Mr.snap0, ?_, hU.snap0⟩
+      cases Ss with
+      | nil => simp [segsOf] at hSs
+      | cons S Ss => simp [segsDs, segHdrDs, hdrDs]
+    · refine ⟨Mr.encSnap m al, snap_mem_segsDs Mr d.metadata true [] Ss m al ?_, ?_⟩
+      · simpa [hflat] using hm
+      · rw [hU.snap m al, he]
+  · have hpre : Ss.take p ≠ [] := by
+      intro h
+      rw [List.take_eq_nil_iff] at h
+      rcases h with h | h
+      · omega
+      · subst h; simp [segsOf] at hSs
+    have hmap : acc.map (fun r => (r.typ, r.data)) =
+        (segsDs Mr d.metadata false (Ss.take p).flatten (Ss.drop p)).flatten := by
+      rw [← hacc]
+      have := recsOfSegs_drop_map C Mr d.metadata hpre (Ss.drop p)
+      rw [List.take_append_drop] at this
+      exact this
+    have hI : histM d = (Ss.take p).flatten ++ (Ss.drop p).flatten := by
+      rw [← hflat, ← List.flatten_append, List.take_append_drop]
+    have hP : (Ss.take p).flatten = (histM d).take (segStart lay.cuts p) := by
+      rw [← hk, hI, List.take_left]
+    obtain ⟨sq, ix, hname, hix, hbound⟩ := hab.nameBound kk g hg
+    rw [hpp] at hbound
+    have hb := hbound h0
+    have hi := hsel sq ix hname hix
+    have hb' : walLastIdx ((histM d).take (segStart lay.cuts p)) < uint.nat s.1 := by omega
+    rcases readAll_selected_start hs (Or.inr hb') with ⟨-, -, he⟩ | ⟨m, al, hm, he⟩
+    · rw [he] at hb'; simp at hb'
+    · rw [hmap]
+      refine ⟨Mr.encSnap m al, snap_mem_segsDs Mr d.metadata false _ _ m al ?_, ?_⟩
+      · rw [← hk, hI, List.drop_left] at hm
+        exact hm
+      · rw [hU.snap m al, he]
 
 end pure
 

@@ -144,13 +144,13 @@ def mutants(run, rng, n):
             yield kind, desc, m
 
 
-def run(r, n=5, seed=1, plan=None):
+def run(r, n=5, seed=1):
     """Mutants of the run r; returns ({kind: (made, rejected)}, [descriptions of the admitted])."""
     rng = random.Random(seed)
     res = {}
     missed = []
     for kind, desc, m in mutants(r, rng, n):
-        v = checker.check_run(m, plan=plan, replay=False)["verdict"]
+        v = checker.check_run(m, replay=False)["verdict"]
         made, rej = res.get(kind, (0, 0))
         res[kind] = (made + 1, rej + (v == "NOT ADMITTED"))
         if v != "NOT ADMITTED":

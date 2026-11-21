@@ -6,7 +6,8 @@
 **The triple:** `StartMember`'s for every member of a list, each member `m` paired with its ghost
 names `g` (`xs : List (GMember × MemberG)`, the Go slice the members `xs.map (·.1)`), at one
 cluster (the peers `ps`, the bootstrap log, the peer-URL directory `dir`, the claimers' facts `Φs`,
-the network `γn`, the lease mode `lm`), the members' names distinct and valid UTF-8, and each
+the network `γn`, the lease mode `lm`, the compaction mode `cmp`: `false` but for the compactor's
+k-member cluster, `notes/k8s-compactor-n-plan.md`), the members' names distinct and valid UTF-8, and each
 member's URLs `urlsN` of the cluster's (its peer URL `http://Peer`, its client URL
 `http://Client`, the initial cluster's map of the members' names, `iuOf`): from the thread token and,
 per member, `bootstrap`'s contract (`bootPremise`), `memberBoot`, its network's HTTP side and its
@@ -43,7 +44,7 @@ abbrev StartMembers.spec : Prop :=
     (msl : GoSlice) (lg : Loc)
     (xs : List (GMember × MemberG GF)) (ps : List w64) (bootLog : List EntryM)
     (ctxs : List (List w8)) (dir : w64 → List GoString)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode) (cmp : Bool),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   N + 7 + bootWB ≤ backend.wbInit →
   bootLog.length ≤ 2 ^ 60 → γn.dir = dir → netDirOk dir → rafthttp.bootCfg dir ps →
@@ -59,7 +60,7 @@ abbrev StartMembers.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      [∗list] x ∈ xs, memberPre N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn lm x }}
+      [∗list] x ∈ xs, memberPre N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn lm x cmp }}
     (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers))
       (Val #msl)) (Val #token)) (Val #snapCount)) (Val #catchUp)) (Val #lg))

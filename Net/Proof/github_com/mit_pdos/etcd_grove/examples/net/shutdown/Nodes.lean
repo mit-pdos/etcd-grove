@@ -235,16 +235,15 @@ theorem wp_Run
     (γm : GName) (eof ed : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ inv addrN (addrInv addr (connProto (GF := GF) γm)) ∗
         inv downN (downInv G γm) ∗
-        netPlan G addr (extLocalGS netExt (L := hG.goose_localGS)).host ∗
-        ⌜(G (GF := GF)).plan !! addr = some (extLocalGS netExt (L := hG.goose_localGS)).host⌝ ∗
+        ⌜addrOk addr = true⌝ ∗
         globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
       (App (Val (@! Run)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Ha, #Hdown, #Hplan, %Hpl, #Heof, #Hed⟩
+  wp_start as ⟨#Ha, #Hdown, %Hpl, #Heof, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp addr addr $$ []
+  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp addr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · ipureintro; exact listenAt_self Hpl
+  · ipureintro; exact Hpl
   · -- listening
     subst Herr
     imod lisInv_alloc' l $$ Hlis with ⟨%γo, #Hl, Ho⟩
@@ -261,10 +260,10 @@ theorem wp_Run
         ipureintro; rfl
       itrivial
     (try wp_auto)
-    wp_apply wp_Dial go!"tcp" net.tcpNet_tcp addr _ iprop(True)
+    wp_apply wp_Dial go!"tcp" net.tcpNet_tcp addr iprop(True)
         (fun cn => iprop(netFresh G cn false ∗ downReg G γm cn)) $$ []
       as %c %err (⟨%Herr, %cn, #Hc, ⟨Hd, #Hreg⟩⟩ | ⟨-, %x', -, #Herr⟩)
-    · iframe Hplan
+    · iframe %Hpl
       isplit
       · itrivial
       · iapply wire.dial_au addrN addr (connProto γm) (downReg G γm) $$ Ha

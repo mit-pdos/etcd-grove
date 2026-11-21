@@ -35,8 +35,8 @@ processes over real TCP.
   passed): the semantics covers what the peers then see (a process's exit or kill, its kernel's
   FIN or reset, is a break of its connections; `GooseLang/Ext/Net/Impl.lean`, D10, D11).
 - **Addresses.** Each example has its own address constants, `127.0.0.1:71xx`, distinct across
-  all the examples (the deployment's plan names each address and the node that listens at it;
-  distinct ports also let the packages' tests run in parallel): `echo` 7101, `framed` 7102,
+  all the examples (the model has no plan, v3.4: any node may listen at any valid address, and
+  which node does is the proofs' business; distinct ports also let the packages' tests run in parallel): `echo` 7101, `framed` 7102,
   `acceptloop` 7103, `duplex` 7104, `halfclose` 7105, `shutdown` 7106, `preface` 7107. The next
   example takes 7108.
 - **Errors are opaque**: the programs test only `err != nil`, `err == nil` and `err == io.EOF`.

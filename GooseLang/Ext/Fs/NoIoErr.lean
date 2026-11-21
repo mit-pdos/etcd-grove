@@ -79,11 +79,11 @@ theorem openEffect_maps {st : OsState} {p : GoString} {acc : Nat} {creat trunc :
 
 /-- A lock request's step leaves the mappings. -/
 theorem lockStep_maps {st : OsState} {k : LockKind} {fd : w64} {d : OsFd} {req : Option Bool}
-    {nb : Bool} {e' : Expr} {st' : OsState} (h : LockStep st k fd d req nb e' st') :
+    {nb : Bool} {w e' : Expr} {st' : OsState} (h : LockStep st k fd d req nb w e' st') :
     st'.proc.maps = st.proc.maps := by
   unfold LockStep at h
   cases req with
-  | some ex => rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩ <;> rfl
+  | some ex => rcases h with ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩ | ⟨-, -, rfl, -⟩⟩ <;> rfl
   | none => rcases h with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩ <;> rfl
 
 /-- Every outcome of `open` leaves the mappings as they were. -/

@@ -18,6 +18,7 @@ public import GooseLang.Ext.Fs.WpPost
 public import GooseLang.Ext.Fs.Specs
 public import GooseLang.Ext.Fs.Write
 public import GooseLang.Ext.Fs.TreeShared
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -78,6 +79,22 @@ theorem dirClose_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, S
   have hz := noIoErr_step (Sio := Sio) hs (by simp only [IoCovers]; exact ⟨fd', df, hv, hdf, hS _ _⟩)
     ⟨Val (#(0 : w64)), st.setProc { st.proc with dfds := GMap.delete fd' st.proc.dfds },
       by simp only [IsFsStep]; exact ⟨fd', 0, df, hv, hdf, by trivial, by trivial⟩,
+      (rfl : Val (#(0 : w64)) = Val (#(0 : w64)))⟩
+  exact ⟨_, (hz : e' = Val (#(0 : w64))), rfl⟩
+
+/-- Every step of a directory fd's `fsync(fd)` returns 0 when every inode is covered. -/
+theorem dirSync_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
+    (fd : w64) :
+    ∀ h st g e' h' st' g', S.step "DirSync" (#fd) h st g e' h' st' g' →
+      ∃ r, e' = Val r ∧ r = #(0 : w64) := by
+  intro h st g e' h' st' g' hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
+  obtain ⟨hst, -, -⟩ := hf
+  simp only [IsFsStep] at hst
+  obtain ⟨fd', df, hv, hdf, -⟩ := hst
+  have hz := noIoErr_step (Sio := Sio) hs (by simp only [IoCovers]; exact ⟨fd', df, hv, hdf, hS _ _⟩)
+    ⟨Val (#(0 : w64)), st.commitAll,
+      by simp only [IsFsStep]; exact ⟨fd', df, hv, hdf, .inl ⟨by trivial, by trivial⟩⟩,
       (rfl : Val (#(0 : w64)) = Val (#(0 : w64)))⟩
   exact ⟨_, (hz : e' = Val (#(0 : w64))), rfl⟩
 
@@ -213,6 +230,72 @@ theorem wp_osPWriteFinishKNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ s
     · exact absurd rfl h1
   have hall : k ≤ data.length ∧ (k = data.length ∨ 0 < k) ∧ _ := ⟨hk, hke', hz⟩
   iapply HΦ $$ %k %zs %hall %hpc %hcut Hm Hbs Hc
+
+/-- **`pwrite`'s end, its error witnessed** (`wp_osPWriteFinish`, wal-fsfix2): an errno only when the
+file system can fail on an inode or the write starts at or past `maxBytes`. -/
+theorem wp_osPWriteFinishW (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : OsMeta)
+    (xs : List ByteG) (n : Nat) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ pwTok (L := L) t p off data m xs n -∗
+      (∀ k : Nat, ∀ e : w64, ∀ zs : List Cands,
+        ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
+          zs.length = pwSize m.size off k - m.size ∧
+          ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
+        ⌜PwCut off data.length k⌝ -∗
+        osMeta (L := L) p (DFrac.own 1) (pwPost m off data.length k) -∗
+        osBytes (L := L) p off (DFrac.own 1) (pwBytes m.size off data k n xs zs) -∗
+        mcells m.maps off (off + data.length) (pwCell m.size off data k xs) -∗
+        ⌜e ≠ 0 → ¬ FsNoErrIno ∨ maxBytes ≤ off⌝ -∗
+        Φ (PairV (#(W64 k)) (#e))) -∗
+      WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
+  iintro #Hinv Ht HΦ
+  by_cases hno : FsNoErrIno ∧ off < maxBytes
+  · obtain ⟨⟨Sio, hi, h1, -, -⟩, hoff⟩ := hno
+    iapply wp_ext_postS "PWriteFinish" (osTokV t) (by simp [val.isPanic])
+      (pwTok (L := L) t p off data m xs n)
+      (fun (st : OsState) => ∃ c, st.proc.inflight !! t = some c ∧ c.kind = .write off data)
+      (pwTok_inflight t p off data m xs n) (fun r => ∃ r0, r = PairV r0 (#(0 : w64)))
+      (fun h st g e' h' st' g' ⟨c, hc, hk⟩ hs => pwFinish_noErr (Sio := Sio) hi t c off data hoff
+        h st g e' h' st' g' ⟨hc, hk⟩ hs) Φ $$ Ht
+    iintro Ht
+    iapply wp_osPWriteFinish t p off data m xs n hE _ $$ Hinv Ht
+    iintro %k %e %zs %h %hpc Hm Hbs Hc %he
+    obtain ⟨r0, hr0⟩ := he
+    injection hr0 with _ he0
+    have he0 : e = 0 := go.intoVal_inj he0
+    subst he0
+    iapply HΦ $$ %k %(0 : w64) %zs %h %hpc Hm Hbs Hc
+    ipureintro; intro h0; exact absurd rfl h0
+  · iapply wp_osPWriteFinish t p off data m xs n hE _ $$ Hinv Ht
+    iintro %k %e %zs %h %hpc Hm Hbs Hc
+    iapply HΦ $$ %k %e %zs %h %hpc Hm Hbs Hc
+    ipureintro; intro _
+    by_cases hf : FsNoErrIno
+    · exact .inr (Nat.le_of_not_lt fun h' => hno ⟨hf, h'⟩)
+    · exact .inl hf
+
+/-- **A shared directory fd's `fsync(fd)`, its error witnessed** (`wp_osDirSyncS`, wal-fsfix2): an
+errno only when the file system can fail on an inode (`¬ FsNoErrIno`). -/
+theorem wp_osDirSyncSW (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) (hE : ↑osN ⊆ E)
+    (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osDirFdS (L := L) fd j ph -∗
+      osLogLb (L := L) n -∗
+      (∀ e : w64, osDirFdS (L := L) fd j ph -∗ (⌜e ≠ 0⌝ ∨ osCommitLb (L := L) n) -∗
+        ⌜e ≠ 0 → ¬ FsNoErrIno⌝ -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "DirSync" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hfd #Hlb HΦ
+  by_cases hno : FsNoErrIno
+  · obtain ⟨Sio, hi, h1, -, -⟩ := hno
+    iapply wp_ext_post "DirSync" (#fd) (by simp) (· = #(0 : w64)) (dirSync_noErr (Sio := Sio) hi fd) Φ
+    iapply wp_osDirSyncS R fd j ph n hE hE' _ $$ Hinv Hsi Hfd Hlb
+    iintro %e Hfd Hr %he
+    have he0 : e = 0 := go.intoVal_inj he
+    subst he0
+    iapply HΦ $$ Hfd Hr
+    ipureintro; intro h; exact absurd rfl h
+  · iapply wp_osDirSyncS R fd j ph n hE hE' _ $$ Hinv Hsi Hfd Hlb
+    iintro %e Hfd Hr
+    iapply HΦ $$ Hfd Hr
+    ipureintro; intro _; exact hno
 
 end specs
 
