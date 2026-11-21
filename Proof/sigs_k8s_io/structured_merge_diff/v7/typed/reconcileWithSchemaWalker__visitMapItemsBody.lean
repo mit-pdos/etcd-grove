@@ -2,9 +2,9 @@
 `typed.reconcileWithSchemaWalker.visitMapItems`: a member of the recursion cluster `typed.reconcileWithSchemaWalkerRec` (`reconcileWithSchemaWalkerRec.lean`); its proof is the
 projection of the cluster's (its body is `reconcileWithSchemaWalker__visitMapItemsBody.lean`).
 
-Proved but for one gap (`sorry`, Prove phase 2026-11-20), `visitListItems`' (see
-`reconcileWithSchemaWalker__visitListItemsBody.lean`): the cluster posts' `rwOwn` hides the
-walker's path slice, so `prepareDescent`'s wand cannot give the parent's path back.
+Proved (Prove phase 2026-11-21): the cluster's specs give the walker back as `rwOwnAt` with its
+path slice unchanged (`LawProofsBRecon2Own.lean`), so the child's slice after `v2.reconcile()` is
+the one `prepareDescent` gave it and `prepareDescent`'s wand gives the parent's path back.
 -/
 module
 
@@ -25,6 +25,7 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsSet
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
+set_option synthInstance.maxSize 1024
 
 noncomputable section
 
@@ -75,11 +76,11 @@ theorem typed.reconcileWithSchemaWalker.visitMapItems.wp_proofBody
     typed.reconcileWithSchemaWalker.visitMapItems.specI
   iintro #IH
   icases IH with ⟨-, -, #Hrec, -, -⟩
-  iintro %w %sc %S %st %R %A %tp %fl %em %rel %ep %F %sp
+  iintro %w %sc %S %st %ps %R %A %tp %fl %em %rel %ep %F %sp
   wp_start as ⟨Hown, #Hm, #HF, %Hpre⟩
   obtain ⟨Hfind, Hrel, Hcard⟩ := Hpre
-  iunfold rwOwn at Hown
-  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, Hcore, Hp, #Hfs, #Hrem, #Hadd, Hsp⟩
+  iunfold rwOwnAt at Hown
+  icases Hown with ⟨%fs, %tv, %rem, %add, Hcore, Hp, #Hfs, #Hrem, #Hadd, Hsp⟩
   iunfold rwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   icases isSet_split_law_holds ep F $$ HF with ⟨#Hmem, #Hch⟩
@@ -141,13 +142,13 @@ theorem typed.reconcileWithSchemaWalker.visitMapItems.wp_proofBody
       cases hbv : b
       all_goals
         wp_auto
-        wp_apply Hrec $$ %w2 %sc %S %(RWSt.mk e (st.path ++ [x]) (b && !ok)) %(LawBR.childSet F x ok)
+        wp_apply Hrec $$ %w2 %sc %S %(RWSt.mk e (st.path ++ [x]) (b && !ok)) %ps2 %(LawBR.childSet F x ok)
             %(optU R (LawBR.reconKids S st.t st.path F L)) %(optU A (LawBR.reconKids S st.t st.path F L)) %sp'
             [Hw2 Hp2 Hsp] as %errs2 ⟨Herrs2, %R', %A', ⟨%sp'', Hown2, %Hsp''⟩, %HRA⟩
         · iframe #
           isplitl
-          · unfold rwOwn rwCore
-            iexists ps2, q, tv, rem1, add1
+          · unfold rwOwnAt rwCore
+            iexists q, tv, rem1, add1
             iframe
             isplitl [Hw2]
             · iexists tr2
@@ -163,12 +164,8 @@ theorem typed.reconcileWithSchemaWalker.visitMapItems.wp_proofBody
         subst sp''
         wp_apply LawA2.wp_append_noErrs el errs2 $$ [Herrs Herrs2] as %el' Hel'
         · iframe
-        iunfold rwOwn at Hown2
-        icases Hown2 with ⟨%ps3, %fs3, %tv3, %rem2, %add2, Hcore2, Hp3, -, #Hrem2, #Hadd2, Hsp⟩
-        -- the gap (see the file header): the child's post does not say that its path slice is still
-        -- `ps2` (`rwOwn` hides it), which `prepareDescent`'s wand needs to give the parent's back
-        have hps3 : ps3 = ps2 := sorry
-        subst ps3
+        iunfold rwOwnAt at Hown2
+        icases Hown2 with ⟨%fs3, %tv3, %rem2, %add2, Hcore2, Hp3, -, #Hrem2, #Hadd2, Hsp⟩
         ihave %Hcap : ⌜0 ≤ sint.Z ps2.cap⌝ $$ [Hp3]
         · iunfold ownPath at Hp3
           icases Hp3 with ⟨-, Hpc⟩
@@ -293,8 +290,8 @@ theorem typed.reconcileWithSchemaWalker.visitMapItems.wp_proofBody
   · iexists sp1
     isplitl; rotate_left
     · ipureintro; exact Hsp1
-    unfold rwOwn
-    iexists ps, fs, tv, rem1, add1
+    unfold rwOwnAt
+    iexists fs, tv, rem1, add1
     iframe
     iframe #
   ipureintro

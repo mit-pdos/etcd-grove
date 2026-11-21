@@ -15,6 +15,7 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsSet
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
+set_option synthInstance.maxSize 1024
 
 noncomputable section
 
@@ -40,10 +41,10 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
     typed.reconcileWithSchemaWalker.doMap.specI typed.reconcileWithSchemaWalker.visitListItems.specI
     typed.reconcileWithSchemaWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %F %R %A %tp %e %rel %ks %sp
+  iintro %w %sc %S %st %ps %F %R %A %tp %e %rel %ks %sp
   wp_start as ⟨Hown, #Hl, %Hfind, %Hat, %Hcard⟩
-  iunfold rwOwn at Hown
-  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
+  iunfold rwOwnAt at Hown
+  icases Hown with ⟨%fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
   iunfold rwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   icases isListRep_elim_law_holds tp e rel ks $$ Hl with ⟨%lv, %ksl, #Hlv, %Hlv', -, -⟩
@@ -87,8 +88,8 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
       · iexists sp
         isplitl; rotate_left
         · ipureintro; intro _; rfl
-        unfold rwOwn rwCore ownPath
-        iexists ps, fs, tv, r1, r2
+        unfold rwOwnAt rwCore ownPath
+        iexists fs, tv, r1, r2
         iframe
         isplitl [Hw]
         · iexists tr
@@ -123,8 +124,8 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
       · iexists sp
         isplitl; rotate_left
         · ipureintro; intro _; rfl
-        unfold rwOwn rwCore
-        iexists ps, null, tv, rem, add
+        unfold rwOwnAt rwCore
+        iexists null, tv, rem, add
         iframe
         isplitl [Hw]
         · iexists tr
@@ -148,8 +149,8 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
       wp_apply HvL $$ [Hw Hp Hrem Hadd Hsp] as %errs ⟨Herrs, %R', %A', Hown, %HRA⟩
       · iframe #
         isplitl
-        · unfold rwOwn rwCore
-          iexists ps, fs, tv, rem, add
+        · unfold rwOwnAt rwCore
+          iexists fs, tv, rem, add
           iframe
           isplitl [Hw]
           · iexists tr
@@ -185,8 +186,8 @@ theorem typed.reconcileWithSchemaWalker.doList.wp_proofBody
     · iexists sp
       isplitl; rotate_left
       · ipureintro; intro _; rfl
-      unfold rwOwn rwCore
-      iexists ps, null, tv, rem, add
+      unfold rwOwnAt rwCore
+      iexists null, tv, rem, add
       iframe
       isplitl [Hw]
       · iexists tr

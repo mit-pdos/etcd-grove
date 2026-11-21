@@ -70,9 +70,9 @@ theorem typed.ReconcileFieldSetWithSchema.wp_proof
   obtain ⟨hpath, hat, hrem, hadd⟩ := Hv0
   wp_auto
   simp only
-  ihave Hown : rwOwn wl sc S (RWSt.mk t [] false) (some s) none none v0.spareWalkers' $$ [Hw Hsp]
-  · unfold rwOwn rwCore
-    iexists v0.path', fp, p, v0.toRemove', v0.toAdd'
+  ihave Hown : rwOwnAt wl sc S (RWSt.mk t [] false) v0.path' (some s) none none v0.spareWalkers' $$ [Hw Hsp]
+  · unfold rwOwnAt rwCore
+    iexists fp, p, v0.toRemove', v0.toAdd'
     iframe
     isplitl [Hw]
     · iexists tvv.typeRef'
@@ -86,7 +86,7 @@ theorem typed.ReconcileFieldSetWithSchema.wp_proof
     unfold isSetO
     iframe #
     ipureintro; exact ⟨hrem, hadd⟩
-  wp_apply h_reconcileWithSchemaWalker_reconcile wl sc S (RWSt.mk t [] false) (some s) none none
+  wp_apply h_reconcileWithSchemaWalker_reconcile wl sc S (RWSt.mk t [] false) v0.path' (some s) none none
       v0.spareWalkers' $$ [Hown] as %errs ⟨Herrs, %R', %A', ⟨%sp', Hown, -⟩, %HRA⟩
   · iframe
     ipureintro
@@ -98,8 +98,8 @@ theorem typed.ReconcileFieldSetWithSchema.wp_proof
   simp only [optU] at HRA
   obtain ⟨rfl, rfl⟩ := HRA
   have hlaw := reconOut_reconcile_law_holds S t s Hc.1
-  iunfold rwOwn at Hown
-  icases Hown with ⟨%ps', %fs', %tv', %rem', %add', Hcore, Hp', Hfs, Hrem, Hadd, Hsp'⟩
+  iunfold rwOwnAt at Hown
+  icases Hown with ⟨%fs', %tv', %rem', %add', Hcore, Hp', Hfs, Hrem, Hadd, Hsp'⟩
   iunfold rwCore at Hcore
   icases Hcore with ⟨%tr', Hw, #Htr', #Hsc', %Hwf'⟩
   simp only [Option.getD]
@@ -116,7 +116,7 @@ theorem typed.ReconcileFieldSetWithSchema.wp_proof
     icases Hadd with %Hadd
     subst Hrem Hadd
     wp_auto
-    wp_apply h_reconcileWithSchemaWalker_finished wl sc S (RWSt.mk t [] false) ps' fs' tv' null null sp'
+    wp_apply h_reconcileWithSchemaWalker_finished wl sc S (RWSt.mk t [] false) v0.path' fs' tv' null null sp'
       $$ [Hw Hsp']
     · iframe
       unfold rwCore
@@ -149,7 +149,7 @@ theorem typed.ReconcileFieldSetWithSchema.wp_proof
     wp_apply h_Set_Union o1 add' (PathSet.rdiff s N) N $$ [] as %o2 #Ho2
     · iframe #
     try wp_auto
-    wp_apply h_reconcileWithSchemaWalker_finished wl sc S (RWSt.mk t [] false) ps' fs' tv' rem' add' sp'
+    wp_apply h_reconcileWithSchemaWalker_finished wl sc S (RWSt.mk t [] false) v0.path' fs' tv' rem' add' sp'
       $$ [Hw Hsp']
     · iframe
       unfold rwCore

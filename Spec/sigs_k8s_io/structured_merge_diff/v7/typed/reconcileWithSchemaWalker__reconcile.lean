@@ -8,11 +8,15 @@ so the post says what they are joined with the parent's (`optU`): `finishDescent
 error (the type resolves).
 
 Draft (2026-11-19, notes/smd-plan.md, "The call DAG": the `typed` rows).
+
+The walker is `rwOwnAt` with its path slice `ps` the same before and after (spec change, Prove
+phase 2026-11-21, ownership rule: `LawProofsBRecon2Own.lean`; it was `rwOwn`, slice hidden).
 -/
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Walkers
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBRecon2Own
 
 @[expose] public section
 
@@ -34,10 +38,10 @@ variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.reconcileWithSchemaWalker.reconcile.spec : Prop :=
-  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (F R A : Option PathSet) (sp : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwn w sc S st F R A sp ∗ ⌜(S.find st.t.name).isSome ∧ (st.isAtomic = true → F = none) ∧ (F.getD PathSet.empty).CardLt (2 ^ 63)⌝ }}
+  ∀ (w sc : Loc) (S : Schema) (st : RWSt) (ps : fieldpath.Path) (F R A : Option PathSet) (sp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ rwOwnAt w sc S st ps F R A sp ∗ ⌜(S.find st.t.name).isSome ∧ (st.isAtomic = true → F = none) ∧ (F.getD PathSet.empty).CardLt (2 ^ 63)⌝ }}
     (App (Val (w @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker.ty @!! go!"reconcile")) (Val #()))
-  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
+  {{ (errs : GoSlice), RET #errs; noErrs errs ∗ ∃ R' A' : Option PathSet, (∃ sp' : Loc, rwOwnAt w sc S st ps F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
         optU A A' = optU A (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty))⌝ }}
 

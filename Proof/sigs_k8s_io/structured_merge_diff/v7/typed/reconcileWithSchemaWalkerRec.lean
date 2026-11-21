@@ -13,6 +13,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchem
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
+set_option synthInstance.maxSize 1024
 
 noncomputable section
 
@@ -58,23 +59,23 @@ theorem typed.reconcileWithSchemaWalkerRec.wp_proof
     iexact H4
   unfold typed.reconcileWithSchemaWalkerRec.specI typed.reconcileWithSchemaWalker.doList.specI typed.reconcileWithSchemaWalker.doMap.specI typed.reconcileWithSchemaWalker.reconcile.specI typed.reconcileWithSchemaWalker.visitListItems.specI typed.reconcileWithSchemaWalker.visitMapItems.specI at H
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
     iintro %Φ HP HΦ
     ihave ⟨HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
     iintro %Φ HP HΦ
     ihave ⟨-, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8
     iintro %Φ HP HΦ
     ihave ⟨-, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, HH, -⟩ := H
     iapply HH $$ HP HΦ
-  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13
     iintro %Φ HP HΦ
     ihave ⟨-, -, -, -, HH⟩ := H
     iapply HH $$ HP HΦ

@@ -1,6 +1,5 @@
 /-
-`typed.reconcileWithSchemaWalker.doScalar`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.reconcileWithSchemaWalker.doScalar`: proved (nothing to do).
 -/
 module
 
@@ -29,7 +28,7 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.doScalar.wp_proof :
     typed.reconcileWithSchemaWalker.doScalar.spec (GF := GF) :=
-    fun w sc S st F R A tp sp => by
+    fun w sc S st ps F R A tp sp => by
   wp_start as Hown
   wp_auto
   iapply HΦ

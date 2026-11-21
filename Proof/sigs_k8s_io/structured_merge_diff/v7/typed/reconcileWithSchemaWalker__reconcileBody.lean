@@ -15,6 +15,7 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.LawProofs
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
+set_option synthInstance.maxSize 1024
 
 noncomputable section
 
@@ -42,11 +43,11 @@ theorem typed.reconcileWithSchemaWalker.reconcile.wp_proofBody
     typed.reconcileWithSchemaWalker.doMap.specI typed.reconcileWithSchemaWalker.visitListItems.specI
     typed.reconcileWithSchemaWalker.visitMapItems.specI
   iintro #IH
-  iintro %w %sc %S %st %F %R %A %sp
+  iintro %w %sc %S %st %ps %F %R %A %sp
   wp_start as ⟨Hown, %Hfind, %Hat⟩
   obtain ⟨At, hA⟩ := Option.isSome_iff_exists.1 Hfind
-  iunfold rwOwn at Hown
-  icases Hown with ⟨%ps, %fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
+  iunfold rwOwnAt at Hown
+  icases Hown with ⟨%fs, %tv, %rem, %add, Hcore, Hp, Hfs, Hrem, Hadd, Hsp⟩
   iunfold rwCore at Hcore
   icases Hcore with ⟨%tr, Hw, #Htr, #Hsc, %Hwf⟩
   have Hnd := Schema.WF_types_nodup_law_holds S Hwf
@@ -57,9 +58,9 @@ theorem typed.reconcileWithSchemaWalker.reconcile.wp_proofBody
   simp only [Schema.resolveRef, Schema.resolvesRef, Schema.resolves, hA, Option.isSome_some] at Hok ⊢
   subst Hok
   wp_auto
-  ihave Hown : rwOwn w sc S st F R A sp $$ [Hw Hp Hfs Hrem Hadd Hsp]
-  · unfold rwOwn rwCore
-    iexists ps, fs, tv, rem, add
+  ihave Hown : rwOwnAt w sc S st ps F R A sp $$ [Hw Hp Hfs Hrem Hadd Hsp]
+  · unfold rwOwnAt rwCore
+    iexists fs, tv, rem, add
     iframe Hp Hfs Hrem Hadd Hsp
     iexists tr
     iframe Hw
@@ -67,9 +68,9 @@ theorem typed.reconcileWithSchemaWalker.reconcile.wp_proofBody
     ipureintro; exact Hwf
   icases IH with ⟨#HdL, #HdM, -, -, -⟩
   wp_apply h_handleAtom a At tr (go.GoType.PointerType typed.reconcileWithSchemaWalker.ty) #w
-    iprop(rwOwn w sc S st F R A sp)
+    iprop(rwOwnAt w sc S st ps F R A sp)
     (fun errs => iprop(noErrs errs ∗ ∃ R' A' : Option PathSet,
-      (∃ sp' : Loc, rwOwn w sc S st F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
+      (∃ sp' : Loc, rwOwnAt w sc S st ps F R' A' sp' ∗ ⌜sp ≠ null → sp' = sp⌝) ∗
       ⌜optU R R' = optU R (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty)) ∧
         optU A A' = optU A (reconOut S st.t st.path st.isAtomic (F.getD PathSet.empty))⌝))
     $$ [Hown] as %errs HQ
@@ -81,7 +82,7 @@ theorem typed.reconcileWithSchemaWalker.reconcile.wp_proofBody
       icases (isAtomOpt_scalar_law_holds a sk).1 $$ Ha with ⟨#Hs, -⟩
       imodintro
       iintro %Φ2 Hown HΦ2
-      wp_apply h_reconcileWithSchemaWalker_doScalar w sc S st F R A a.Scalar' sp $$ [Hown]
+      wp_apply h_reconcileWithSchemaWalker_doScalar w sc S st ps F R A a.Scalar' sp $$ [Hown]
         as %errs ⟨Herrs, Hown⟩
       · iframe #; iframe
       iapply HΦ2
