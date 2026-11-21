@@ -56,7 +56,7 @@ theorem Boot.wp_proof
     (wp_choose : rnd.choose.spec (GF := GF) (hG := hG))
     (wp_close : member.close.spec (GF := GF) (hG := hG)) :
     Boot.spec (GF := GF) (hG := hG) := by
-  intro W e γ o od seed nOps hf hpath hr
+  intro W e γ o od seed nOps hf hpath hr hfs
   obtain ⟨hia, hnm, hca, hdl⟩ := hpath
   wp_start as ⟨Hrun⟩
   iunfold TRun at Hrun
@@ -154,7 +154,7 @@ theorem Boot.wp_proof
     intro h; subst h; have h1 := hmpl.1; exact absurd h1 (by rw [show sint.nat slice.nil.len = 0 from rfl]; decide)
   wp_apply (wp_create W lg e.R e.jr e.area (tWalDir e.area) go!"wal" mp go!"m" 1
       (iprop(tOrOwn γ o none ∗ tWalOwn γ (some (walDurFresh go!"m")))) hia hnm hdl hca hmp (by decide)
-      (by decide) walRaftMr_createOk) $$ [Hpath Hres Hperm Htok Ho Hwo]
+      (by decide) walRaftMr_createOk hfs) $$ [Hpath Hres Hperm Htok Ho Hwo]
     as %w %err ⟨Hpath, Hres, Hcr⟩
   · iframe; iframe #
     iapply tInv_createAu W e γ o od2 go!"m" hex hpre.1 hcr

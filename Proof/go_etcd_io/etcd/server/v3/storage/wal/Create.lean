@@ -499,7 +499,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_cleanupWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (W := W) P Mr)
     (wp_ErrorfErrs : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) P Mr := by
-  intro lg R jr r dir nm mp md qp Q Pv hin hnmO hdl hr hmp hmd hmdne hMr
+  intro lg R jr r dir nm mp md qp Q Pv hin hnmO hdl hr hmp hmd hmdne hMr hnoerr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -1173,7 +1173,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
       (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _
-      (createUH jr J r nm md Q Wn d) hOk
+      (createUH jr J r nm md Q Wn d) hOk ⟨hnoerr.1, by rw [← tmp_path]; exact hnoerr.2.1, hnoerr.2.2⟩
       $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hlks Hoff] as %w' %err Hpost
     · iframe; iframe #
       iunfold walLockIn
