@@ -151,7 +151,9 @@ time_Duration__Seconds:
 time_Duration__Seconds_ptr:
 verify_Assert:
 rand_Int63n:
-isClientCtxErr:
+isClientCtxErr: status_FromError strings_HasSuffix
+status_FromError:
+strings_HasSuffix:
 IsCreateEvent:
 context_TODO:
 filterNoDelete:

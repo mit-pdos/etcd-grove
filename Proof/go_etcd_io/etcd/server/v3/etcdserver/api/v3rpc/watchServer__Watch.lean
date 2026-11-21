@@ -276,7 +276,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
       wp_apply +noauto HErr $$ [$Hl4r] as %cerr Hl4r
       ihave Htt := Hback $$ Hl4r
       wp_auto
-      wp_apply hICE as %b -
+      wp_apply hICE $$ [$Hso] as %b -
       wp_if_destruct
       · wp_apply hZE as %f -
         wp_apply wp_slice_literal (l := [f])

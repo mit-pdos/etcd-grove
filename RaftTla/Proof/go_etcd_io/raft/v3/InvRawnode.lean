@@ -2233,6 +2233,26 @@ instance loanCom_pers (γ : RaftNames) (o : Option SnapLoan) :
     Persistent (loanCom (GF := GF) γ o) := by
   cases o <;> unfold loanCom <;> infer_instance
 
+/-- The pending snapshot came from a different member's certified snapshot
+message, at this snapshot's index and log term. `RawNode.Step` installs this
+evidence only on the successful restore arm of `SnapLogStep`. -/
+def restoredSnapSource (γ : RaftNames) (id : w64) (p : entryID) : IProp GF :=
+  iprop(∃ m : Msg, ⌜m.ty = .snap ∧ m.src ≠ id ∧ m.index = p.index' ∧ m.logterm = p.term'⌝ ∗
+    isMessage γ m)
+
+instance (γ : RaftNames) (id : w64) (p : entryID) : Persistent (restoredSnapSource (GF := GF) γ id p) := by
+  unfold restoredSnapSource; infer_instance
+
+theorem restoredSnapSource_of_message (γ : RaftNames) (id : w64) (m : MessageM) (sv : SnapshotM)
+    (cs : CSLists) (h : m.From' ≠ id) :
+    isMessageC (GF := GF) γ (absSnap m sv cs) ⊢ restoredSnapSource γ id (snapId sv) := by
+  iintro #Hm
+  unfold restoredSnapSource
+  iexists absSnap m sv cs
+  isplitr
+  · ipureintro; exact ⟨rfl, h, rfl, rfl⟩
+  iapply isMessageC_isMessage $$ Hm
+
 /-- (2026-10-26, D22 J2, R-loc) **The pending snapshot is local to the node**: the receiver-local
 fact (`snapLocal`, `RaftNames.reSnapLoc`) of the pending snapshot's index, if one is pending.
 `RawNode.Step` of a `MsgSnap` sets it from the message's (`netP`); every other step keeps or clears
@@ -2243,7 +2263,7 @@ commit index (`SnapLogStep`), which is at least the bootstrap log's length (`own
 def snapLocOk (γ : RaftNames) (id : w64) (o : Option entryID) : IProp GF :=
   match o with
   | none => iprop(True)
-  | some p => iprop(snapLocal γ id p.index' ∗ ⌜(γ.reBoot.length : Int) < uint.Z p.index'⌝)
+  | some p => iprop((snapLocal γ id p.index' ∗ ⌜(γ.reBoot.length : Int) < uint.Z p.index'⌝) ∗ restoredSnapSource γ id p)
 
 instance snapLocOk_pers (γ : RaftNames) (id : w64) (o : Option entryID) :
     Persistent (snapLocOk (GF := GF) γ id o) := by
@@ -2256,7 +2276,7 @@ theorem snapLocOk_none (γ : RaftNames) (id : w64) : ⊢ snapLocOk (GF := GF) γ
 /-- The fact at a pending snapshot of index `i`. -/
 theorem snapLocOk_some (γ : RaftNames) (id : w64) (p : entryID) :
     snapLocOk (GF := GF) γ id (some p) ⊣⊢
-      snapLocal γ id p.index' ∗ ⌜(γ.reBoot.length : Int) < uint.Z p.index'⌝ := by
+      (snapLocal γ id p.index' ∗ ⌜(γ.reBoot.length : Int) < uint.Z p.index'⌝) ∗ restoredSnapSource γ id p := by
   unfold snapLocOk; exact .rfl
 
 /-- A step that keeps the pending snapshot or clears it keeps the fact. -/
@@ -3458,7 +3478,7 @@ theorem ownRawNode_loanLoc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   · rw [show l.snap.Metadata'.Index' = (snapId l.snap).index' from rfl]
     ihave Hx := (snapLocOk_some γ id (snapId l.snap)).1 $$ [Hsloc]
     · rw [← h]; iexact Hsloc
-    icases Hx with ⟨Hx, -⟩
+    icases Hx with ⟨⟨Hx, -⟩, -⟩
     iexact Hx
   · rw [Hp] at h; cases h
 

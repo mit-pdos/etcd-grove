@@ -753,7 +753,8 @@ local macro "send_fail" k:tactic : tactic => `(tactic| (
   · iunfold v3rpc.sendTok
     iframe
   wp_auto
-  wp_apply hICE as %bc -
+  wp_apply hICE $$ [Hsok] as %bc -
+  · iframe #
   wp_if_destruct
   · wp_apply hZE as %f -
     wp_apply wp_slice_literal (l := [f])
@@ -1242,7 +1243,7 @@ local macro "watch_resp" : tactic => `(tactic| (
       iapply HSend $$ [Hst HDn]
       · iframe Hst HDn Hmsg
       iintro !> %serr Hsr
-      icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
+      icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, #Hsok, Hst⟩)
       rotate_left
       · send_fail (iapply Hfalse; ret_frame)
       subst Hserr
@@ -1595,7 +1596,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
     iapply HSend $$ [Hst HDn]
     · iframe Hst HDn Hml2
     iintro !> %serr Hsr
-    icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
+    icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, #Hsok, Hst⟩)
     rotate_left
     · send_fail ret_exit
     subst Hserr
@@ -1785,7 +1786,7 @@ local macro "ctrl_rest" : tactic => `(tactic| (
   iapply HSend $$ [Hst HDn]
   · iframe Hst HDn Hmsg
   iintro !> %serr Hsr
-  icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
+  icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, #Hsok, Hst⟩)
   · subst Hserr
     ihave #Hmsg' := Hmsg
     iunfold v3rpc.watchRespMsg at Hmsg'

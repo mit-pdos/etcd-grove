@@ -35,6 +35,8 @@ theorem etcdserverpb._Watch_Watch_Handler.wp_proof
   iStructNamed Hp
   ipersist ServerStream
   have hI : IntoValTyped (GF := GF) etcdserverpb.WatchRequest Req.ty := hReq ▸ inferInstance
+  have hT : TypeRepr Req.ty etcdserverpb.WatchRequest := hReq ▸ inferInstance
+  have hT' : TypeRepr Rep.ty etcdserverpb.WatchResponse := hRep ▸ inferInstance
   have hw := srvStreamIs_of_raw (GF := GF) (Req := Req) (Rep := Rep) etcdserverpb.WatchRequest
     etcdserverpb.WatchResponse wp_Recv wp_Send wp_Context p st γ Up Dn ci cd
   rw [hReq, hRep] at hw
