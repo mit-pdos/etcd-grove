@@ -858,6 +858,8 @@ The main tree's names-only `net` becomes the part's; the gRPC and net/http axiom
 rafthttp's dialer and etcd's `client/pkg/transport` wrappers run as translated code (option B §3);
 the closed theorems become distributed (one node per member). Planned on its own from
 `tcp-extension-design.md` §5-7 once phase 5 has streams, cmux and the HTTP client.
+**Planned 2026-11-21: `notes/phase7-plan.md`** (claim #24; the inventory, the slices, the user's
+decisions it needs).
 
 ## 4. Sizes and risks
 

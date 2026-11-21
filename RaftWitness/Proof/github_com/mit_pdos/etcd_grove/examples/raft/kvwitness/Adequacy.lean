@@ -127,6 +127,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.sync, isPkgInit pkg_id.sync),
    (pkg_id.internal.synctest, isPkgInit pkg_id.internal.synctest),
    (pkg_id.internal.race, isPkgInit pkg_id.internal.race),
+   (pkg_id.internal.sync, isPkgInit pkg_id.internal.sync),
    (pkg_id.sync.atomic, isPkgInit pkg_id.sync.atomic),
    (pkg_id.encoding.binary, isPkgInit pkg_id.encoding.binary),
    (pkg_id.slices, isPkgInit pkg_id.slices),

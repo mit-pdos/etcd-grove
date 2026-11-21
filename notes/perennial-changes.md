@@ -1005,9 +1005,13 @@ a mutex and locks it before the invariant holds cannot use it: kvreconf's `Start
 needed because the replicas' `run` goroutines, started inside the loop, call `c.replica`. The
 workaround here is `wp_Mutex_Lock_fresh` in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/MutexFresh.lean`.
 It is proved, with no axiom, from Perennial's exported unsealing equations and `lock.lock`'s code:
-`Lock` of a wholly owned mutex at `false` gives `isMutex m R ∗ ownMutex m` for any `R`, and the
-first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in Perennial's
-`Proof/sync/Base.lean`, after which the local copy goes. Status: not yet proposed.
+`Lock` of a wholly owned zero mutex gives `isMutex m R ∗ ownMutex m` for any `R`, and the
+first `Unlock` establishes `R`. Since Perennial d648cfe22 (`sync.Mutex` a struct over a trusted
+`internal/sync.Mutex`) it goes through `Proof/sync/MutexOwned.lean` (`wp_Mutex_Lock_owned`,
+`wp_Mutex_Unlock_owned`, `init_Mutex_locked`: an owned mutex locked and unlocked, a locked one made
+a held lock), which the backend's, bbolt's and mvcc's owned-mutex lemmas use too. Proposed: those
+lemmas next to `init_Mutex` in Perennial's `Proof/sync/Base.lean`, after which the local copies go.
+Status: not yet proposed.
 
 ### Tactics: `wp_auto` and `iunfold` unfold a `token` hypothesis to its model (2026-11-01, kvdurable)
 
@@ -1470,6 +1474,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   literal at `go.bool`) closed after review: Upamanyu Sharma asked for `sync.Mutex` modeled as a struct with one
   `bool` field instead (no new trusted rule); his session writes that change and retires `backend.wp_mutexLit`
   (etcd-grove#16).
+  The struct model landed in Perennial (#652/#653, pin d648cfe22, 2026-11-21: `sync.Mutex{}` steps
+  through the struct rules). `newBackend` no longer applies `backend.wp_mutexLit` (whose `RET #false` is
+  now false of the struct literal: unused, declared still) and `newQueue` no longer needs
+  `MutexLitSemantics`'s step (still taken as an instance); #16 deletes both.
 
 ### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
 

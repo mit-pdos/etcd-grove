@@ -42,7 +42,7 @@ abbrev backend.newBatchTxBuffered.spec : Prop :=
       ownDB db γd D ∗ wrTok γd ∗ threadTok }}
     (App (Val (@! newBatchTxBuffered)) (Val #b))
   {{ (t : Loc), RET #t; ∃ (wtx rtx : Loc),
-      muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
+      muOf t ↦ (zero_val sync.Mutex) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
       ownWB (wbOf t) ⟨∅, ∅⟩ ∗ beOf t ↦□ b ∗
       bF go!"hooks" b ↦ (GoInterface.nil : Hooks) ∗ rtxOf (baseOf rt) ↦ rtx ∗
       sync.rwmutex.ownRWMutex γrw (rwmutex.RLocked 0) ∗

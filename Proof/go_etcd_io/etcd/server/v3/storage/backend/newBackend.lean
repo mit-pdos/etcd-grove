@@ -241,7 +241,7 @@ theorem backend.newBackend.wp_proof
   -- the backend's structure
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %m Hm
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %cm Hcm
-  wp_apply wp_mutexLit
+  try wp_auto
   wp_apply chan.wp_make1 (V := Unit) as %sc %γsc ⟨#Hscc, %-, Hsco⟩
   wp_apply chan.wp_make1 (V := Unit) as %dc %γdc ⟨#Hdcc, %-, Hdco⟩
   iStructNamed «$r0»
