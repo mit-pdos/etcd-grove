@@ -1182,8 +1182,21 @@ theorem readyRest_ents_type (γ : Cluster) (N : Namespace) (id : w64) (rd : Read
   icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
   iframe H; ipureintro
   cases L with
-  | none => exact Hf.2.2.2.2.2.2
-  | some l => exact Hf.2.2.2.2
+  | none => exact Hf.2.2.2.2.2.2.1
+  | some l => exact Hf.2.2.2.2.1
+
+/-- A Ready's physical entries have nondecreasing terms and strictly increasing indices. -/
+theorem readyRest_ents_order (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗
+      ⌜es.Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')⌝ := by
+  iintro H
+  icases readyRest_facts γ N id rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.2.2.2.2.2.2.2
+  | some l => exact Hf.2.2.2.2.2
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 

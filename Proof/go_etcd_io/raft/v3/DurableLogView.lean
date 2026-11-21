@@ -1,7 +1,7 @@
 /- Observe the retained entries and committed prefix while keeping ownership of the durable state. -/
 module
 public import Proof.go_etcd_io.raft.v3.InvNodeRule
-public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
+import Proof.go_etcd_io.raft.v3.LogEntryOrder
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
@@ -21,7 +21,7 @@ theorem raftState_logView (γ : Cluster) (id : w64) (S : RaftState) (N : Namespa
     isCluster (GF := GF) γ N ∗ raftState γ id S ⊢ |={⊤}=>
       raftState γ id S ∗ ∃ fp : List EntryM,
         ⌜FullOk S.base fp ∧ PlogWf S.base S.ents ∧ uint.nat S.commit ≤ (fp ++ S.ents).length⌝ ∗
-        ⌜(fp ++ S.ents).Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term')⌝ ∗
+        ⌜(fp ++ S.ents).Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')⌝ ∗
         isCommittedLogLb γ (strip ((fp ++ S.ents).take (uint.nat S.commit))) := by
   iintro ⟨#Hcluster, Hstate⟩
   iunfold isCluster at Hcluster
@@ -38,18 +38,7 @@ theorem raftState_logView (γ : Cluster) (id : w64) (S : RaftState) (N : Namespa
   obtain ⟨-, -, -, -, hfull, hwf, -, -, hmax⟩ := hf
   ihave #Hlog := logRecs_full (ApiImpl.Cluster.raft γ) S.base fp S.ents hfull $$ Hpre Hents
   have hfw := full_wf S.base fp S.ents hfull hwf
-  ihave %hm := recs_mono (ApiImpl.Cluster.raft γ) (fp ++ S.ents) hfw $$ Hlog
-  have hordered : (fp ++ S.ents).Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term') := by
-    rw [List.pairwise_iff_getElem]
-    intro i j hi hj hij
-    have hei := List.getElem?_eq_getElem hi
-    have hej := List.getElem?_eq_getElem hj
-    have hidxi := hfw _ _ hei
-    have hidxj := hfw _ _ hej
-    have hti := plogTermAt_lookup base0 _ _ i _ hei hidxi
-    have htj := plogTermAt_lookup base0 _ _ j _ hej hidxj
-    have hle := hm _ _ _ _ (by omega) hti htj
-    word
+  ihave %horder := logRecs_entryOrder (ApiImpl.Cluster.raft γ) _ hfw $$ Hlog
   have hc : (uint.Z S.commit).toNat = uint.nat S.commit := by word
   isimp only [hc] at Hcommit
   imod ApiImpl.api_committed_lb γ N ⊤ CoPset.subseteq_top
@@ -67,7 +56,7 @@ theorem raftState_logView (γ : Cluster) (id : w64) (S : RaftState) (N : Namespa
   iframe Hlb
   isplitl []
   rotate_left
-  · ipureintro; exact hordered
+  · ipureintro; exact horder
   ipureintro
   refine ⟨hfull, hwf, ?_⟩
   have hlen := hfull.1
