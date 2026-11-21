@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
+public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured
 
@@ -48,12 +50,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.Assumptions]
 
 noncomputable instance jsonFallbackEncoder_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder where
+  typedPointstoDef l v dq := iprop(
+    "encoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' dq ∗
+    "identifier" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) v.identifier' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance jsonFallbackEncoder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance jsonFallbackEncoder_access_load_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jsonFallbackEncoder_access_store_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) encoder' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with encoder' := encoder' } : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jsonFallbackEncoder_access_load_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) v.identifier' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) v.identifier' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jsonFallbackEncoder_access_store_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (identifier' : k8s_io.apimachinery.pkg.runtime.Identifier) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) v.identifier' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) identifier' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with identifier' := identifier' } : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end jsonFallbackEncoder

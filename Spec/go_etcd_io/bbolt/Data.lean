@@ -46,20 +46,47 @@ def bktEnts (m : BktData) : List BoltEnt :=
 it, but accepts sizes it cannot store (`issues/bbolt-max-value-size-unusable.md`). -/
 @[word_unfold] def maxValueSize : Nat := 2 ^ 31 - 2
 
-/-- **The largest entry (key plus value, in bytes) bbolt stores and reads back.** A leaf node of
-at most `2 * MinKeysPerPage = 4` entries is never split (`node.splitTwo`), and a larger one is
-split into pages of at most that many entries above the fill threshold; so one page holds up to
-four entries whatever their size, and a page's buffer (its bytes rounded up to the page size)
-must stay below `MaxAllocSize = 2^31 - 1` (amd64), or `Commit` (`WriteInodeToPage`) or a later
-read (`leafPageElement.Value`) panics (`issues/bbolt-max-value-size-unusable.md`,
-`issues/bbolt-large-values-leaf-unreadable.md`). `4 * (2^28 + 16) + 16` rounded up to the page
-size is far below it. The bound of the old bbolt proof's spill (`old/bbolt/`, `SpillFit.lean`).
-**What it rests on** (round 3): the split threshold being at most the page size, which Perennial
-does not give (every float-to-int conversion is an `ArbitraryInt`, and float `*`/`<` are
-uninterpreted): `splitThresholdOk`, the model of the trusted helper `splitThreshold` (D17,
-approved), which lives in `TrustedCode/go_etcd_io/bbolt.lean` (round 4: not in the client API;
-stated at the end of this file). -/
-@[word_unfold] def bboltEntryMax : Nat := 2 ^ 28
+/-- The element header and its key and value must fit inside the element's
+address window. On amd64 MaxAllocSize is 2^31 - 1 and a leaf element is 16 bytes.
+Spill bounds the combined size of keys that share a page. -/
+@[word_unfold] def bboltEntryMax : Nat := 2 ^ 31 - 17
+
+/-- Four branch elements can share an unsplit page. This bounds their keys
+even in a file whose keys exceed the public API's MaxKeySize. -/
+def branchKeyMax : Nat := (2 ^ 31 - 1) / 4 - 16
+
+/-- A key can become a separator when its leaf splits. A nonzero child page
+identifies a branch entry. These two constraints leave the entire leaf payload
+available to a Put with a legal key. -/
+def entryBytesFit (k v : Nat) (child : w64 := W64 0) : Prop :=
+  k ≤ branchKeyMax ∧ k + v ≤ bboltEntryMax ∧ (child ≠ W64 0 → k + v ≤ branchKeyMax)
+
+theorem entryBytesFit_legacy {k v : Nat} {child : w64} (h : k + v ≤ 2 ^ 28) :
+    entryBytesFit k v child := by
+  unfold entryBytesFit branchKeyMax bboltEntryMax
+  omega
+
+theorem entryBytesFit_put {k v : Nat} (hk : k ≤ maxKeySize) (hv : k + v ≤ bboltEntryMax) :
+    entryBytesFit k v := by
+  refine ⟨?_, hv, fun hn => False.elim (hn rfl)⟩
+  unfold branchKeyMax
+  unfold maxKeySize at hk
+  omega
+
+theorem entryBytesFit_leaf {k v : Nat} {child : w64} (h : entryBytesFit k v child) :
+    entryBytesFit k v := ⟨h.1, h.2.1, fun hn => False.elim (hn rfl)⟩
+
+theorem entryBytesFit_mono {k v k' v' : Nat} {child : w64}
+    (h : entryBytesFit k v child) (hk : k' ≤ k) (hv : v' ≤ v) : entryBytesFit k' v' child :=
+  ⟨Nat.le_trans hk h.1, Nat.le_trans (Nat.add_le_add hk hv) h.2.1,
+    fun hne => Nat.le_trans (Nat.add_le_add hk hv) (h.2.2 hne)⟩
+
+theorem entryBytesFit_branch {k : Nat} (h : k ≤ branchKeyMax) (child : w64) :
+    entryBytesFit k 0 child := by
+  refine ⟨h, ?_, fun _ => by simpa using h⟩
+  unfold branchKeyMax at h
+  unfold bboltEntryMax
+  omega
 
 /-- `f`, a `float64`'s bits, is a NaN: exponent all ones, mantissa non-zero. -/
 def float64IsNaN (f : w64) : Prop :=

@@ -119,7 +119,7 @@ theorem RawNode.Bootstrap.wp_proof
   ihave Hcap : trCapB (GF := GF) s.gh.tr γ rnv.raft' id (bootCfg ps) false (bootPhase ps id)
       (bootAt ps id 2) $$ [Hcap]
   · rw [Hgtr0]; iexact Hcap
-  obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg, Hdtk0'⟩ := Hlog
+  obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg, Hdtk0', Hksn⟩ := Hlog
   obtain ⟨Ht0, Hv0, Hr, Ho, Hrst, Hrpd⟩ := Hterm0
   ihave %Hplen := ownSlice_len $$ Hpeers
   have Hpslen : ps.length = pv.length := by rw [R1, List.length_map]
@@ -821,12 +821,13 @@ theorem RawNode.Bootstrap.wp_proof
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
         (by show sk.gh.tr = γ.reTrace; rw [HNgh]; exact Hgtr0)
         (by show sk.gh.lq = []; rw [HNgh])
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] Hrntr
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] [] Hrntr
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
+      · rw [HNls]; simp only [logAppend, Hksn]; iapply restoredSnapHistory_nil
       · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp
@@ -894,12 +895,13 @@ theorem RawNode.Bootstrap.wp_proof
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
         (by show sk.gh.tr = γ.reTrace; rw [HNgh]; exact Hgtr0)
         (by show sk.gh.lq = []; rw [HNgh])
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] Hrntr
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] [] Hrntr
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
+      · rw [HNls]; simp only [logAppend, Hksn]; iapply restoredSnapHistory_nil
       · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp

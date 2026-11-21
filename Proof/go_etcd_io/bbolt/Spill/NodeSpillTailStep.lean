@@ -350,10 +350,10 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         have hn16 : ws.length < 2 ^ 16 := by rw [← hlws]; omega
         have hbody' : 16 + (pageBody true (wsMs ws)).length ≤ pcCount (insSize rl.ins) * 4096 := by
           rw [← hmsr]; exact hbody
-        have hbmax : 16 + (pageBody true (wsMs ws)).length ≤ maxAllocSize := by
+        have hbmax : 16 + (pageBody true (wsMs ws)).length ≤ 16 + maxAllocSize := by
           have e : insSize rl.ins = 16 + (pageBody true (wsMs rl.ws)).length := by
             rw [body_ws, insSize_ws rl.ins rl.ws hlr hil0]
-          rw [← hmsr]; unfold maxAllocSize; omega
+          rw [← hmsr, ← e]; exact hins31
         have hfrN : ∀ m < ws.length, ∀ y ∈ pgSlots (spP X') (Sb m),
             y < id.toNat ∨ id.toNat + pcCount (insSize rl.ins) ≤ y := by
           intro m hm y hy
@@ -374,7 +374,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
           refine ⟨?_, fun m e he => (hSb m e he).2 hl⟩
           by_cases hx2 : 2 ≤ xs.length
           · rw [(hsr.plen k x ws hx hws).1]
-            exact (hfit x (List.mem_of_getElem? hx)).2 hx2
+            simpa [pieceMin, hxlf, NRec.nilCh, hl] using (hfit x (List.mem_of_getElem? hx)).2 hx2
           · have hx1 : xs.length = 1 := by have := hsr.ne; cases xs with
               | nil => exact absurd rfl this
               | cons _ _ => simp at hx2 ⊢; omega
