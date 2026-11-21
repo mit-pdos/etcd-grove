@@ -14,9 +14,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/Results\.lean$
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
-axiom EtcdServer.monitorCompactHash.wp_proof
-axiom EtcdServer.monitorDowngrade.wp_proof
-axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom Perennial.bufio.opaqueInitsOk
@@ -51,7 +48,6 @@ axiom Perennial.go_etcd_io.etcd.pkg.v3.featuregate.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions_init
@@ -192,7 +188,6 @@ axiom mvcc.newKVHasher.wp_proof
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt
-axiom newCorruptionChecker.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom pbEntryC_reg
@@ -279,8 +274,6 @@ axiom time.Time.Unix.wp_proof
 axiom time.Unix.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
-axiom txn.ApplySecObserve.wp_proof
-axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof

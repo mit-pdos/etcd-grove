@@ -24,7 +24,6 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
 axiom EtcdServer.ensureLeadership.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
-axiom EtcdServer.waitAppliedIndex.wp_proof
 axiom EtcdServer.waitLeader.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
@@ -115,7 +114,6 @@ axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
-axiom txn.RangeSecObserve.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
