@@ -616,7 +616,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h105 : GetIsPkgInitProp pkg_id.golang_org.x.time.rate (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h6, h4, h5, True.intro⟩
   have h106 : GetIsPkgInitProp pkg_id.github_com.xiang90.probing (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

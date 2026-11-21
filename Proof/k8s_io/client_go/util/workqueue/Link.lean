@@ -207,7 +207,7 @@ theorem rate.Limiter.wp_Reserve :
 
 theorem rate.Reservation.wp_Delay :
     EtcdGrove.rate.Reservation.Delay.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.rate.Reservation.Delay.wp_proof
+  EtcdGrove.rate.Reservation.Delay.wp_proof _root_.Perennial.time.wp_Now _root_.Perennial.time.Time.wp_Sub
 
 theorem TypedBucketRateLimiter.wp_When :
     EtcdGrove.workqueue.TypedBucketRateLimiter.When.spec (GF := GF) (hG := hG) :=

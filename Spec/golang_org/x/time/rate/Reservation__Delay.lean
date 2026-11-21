@@ -20,6 +20,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : golang_org.x.time.rate.Assumptions]
 
 /-- **`r.Delay()`**: a non-negative duration (`DelayFrom(time.Now())`: `InfDuration`, `MaxInt64`, if
 the reservation is not OK, else the time to act minus now, or `0` if that is negative; x/time/rate

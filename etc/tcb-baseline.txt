@@ -482,8 +482,6 @@ axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Reserve.wp_proof
 axiom rate.Limiter.Wait.wp_proof
-axiom rate.NewLimiter.wp_proof
-axiom rate.Reservation.Delay.wp_proof
 axiom recEncC_ok
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
@@ -521,10 +519,7 @@ axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.MustParse.wp_proof
-axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof
-axiom semver.Version.Major.wp_proof
-axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom slices.Clone.wp_proof
