@@ -31,7 +31,6 @@ axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
-axiom EtcdServer.waitLeader.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom addFeatureGateMetrics.wp_proof

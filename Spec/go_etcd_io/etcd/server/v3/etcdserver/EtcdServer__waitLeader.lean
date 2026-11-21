@@ -1,5 +1,6 @@
 /-
-`s.waitLeader(ctx)` (`v3_server.go`), names only: a trust-boundary contract. Lean-first (no Rocq counterpart); the
+`s.waitLeader(ctx)` (`v3_server.go`): proved over the cluster's `Member` since prove-srvloops (2026-11-21), until
+then names only, a trust-boundary contract. Lean-first (no Rocq counterpart); the
 lease-renew plan (`notes/lease-renew-plan.md`, 2026-11-01), vocabulary `LeaseRead.lean`.
 -/
 module
@@ -27,7 +28,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.waitLeader(ctx)`** (names-only, a contract; the lease-renew plan's C4), any goroutine, at a
+/-- **`s.waitLeader(ctx)`** (the lease-renew plan's C4; proved since prove-srvloops), any goroutine, at a
 context, with the request side's and the read side's server facts: a member `m` (read-only) and
 its peer URLs `urls` (read-only) and `nil`; or `nil` and `ErrStopped` or `ErrNoLeader`
 (`applyErrIs`).

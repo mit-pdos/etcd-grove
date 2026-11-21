@@ -25,12 +25,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `m.Clone()` of a member `m` at some fraction `q` with the value `mm` (not nil: the points-tos
 say so) returns a fresh owned member with the same id; `m` kept. (Until D43 M5b, 2026-10-26, of
-an owned member, `memberIs`: the cluster's lock now holds half of each member.) -/
+an owned member, `memberIs`: the cluster's lock now holds half of each member.) The clone's two
+embedded structs' addresses are not null (prove-srvloops, 2026-11-21: what folds its fields back
+into one points-to of the whole member, `typedPointsto_combine`; the allocation's points-tos say
+so). -/
 abbrev membership.Member.Clone.spec : Prop :=
   ∀ (m : Loc) (q : Qp) (mm : apply.MemberM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.memberAt m q mm }}
     (App (Val (m @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty @!! go!"Clone")) (Val #()))
-  {{ (mc : Loc), RET #mc; membership.memberAt m q mm ∗ membership.memberIs mc mm.id }}
+  {{ (mc : Loc), RET #mc; membership.memberAt m q mm ∗ membership.memberIs mc mm.id ∗
+      ⌜membership.mRaftAttrAddr mc ≠ null ∧ membership.mAttrAddr mc ≠ null⌝ }}
 
 end spec
 

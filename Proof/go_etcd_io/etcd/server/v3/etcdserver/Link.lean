@@ -331,6 +331,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__unsafeLeases
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP
 public import Proof.math.Ceil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Member
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Recover
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetVersionChangedNotifier
@@ -868,6 +869,10 @@ theorem lease.Lease.wp_Keys :
 theorem membership.RaftCluster.wp_ID :
     membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ID.wp_proof
+
+theorem membership.RaftCluster.wp_Member :
+    membership.RaftCluster.Member.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.Member.wp_proof membership.Member.wp_Clone
 
 theorem lease.lessor.wp_Lookup :
     lease.lessor.Lookup.spec (GF := GF) (hG := hG) :=
@@ -1918,7 +1923,7 @@ theorem EtcdServer.wp_waitAppliedIndex :
 
 theorem EtcdServer.wp_waitLeader :
     EtcdServer.waitLeader.spec (GF := GF) (hG := hG) :=
-  EtcdServer.waitLeader.wp_proof
+  EtcdServer.waitLeader.wp_proof EtcdServer.wp_Leader membership.RaftCluster.wp_Member
 
 theorem EtcdServer.wp_checkLeaseRenew :
     EtcdServer.checkLeaseRenew.spec (GF := GF) (hG := hG) :=
