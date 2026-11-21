@@ -37,6 +37,10 @@ uncached configuration, the range check on the immutable log, and the
 clearing of the cache on snapshot install. The Go regression covers both
 paths for each disk format. The ordinary apply job still needs a proof
 that the Ready log covers the durable index and supplies its entry term.
+The ordinary apply proof now constructs the merged message, bundles the frozen
+database with the Raft evidence, and sends it when its Ready supplies that term
+history. The checked run loop transports the evidence from the apply channel.
+The remaining producer is the Raft worker.
 The earlier checkpoints below record which parts were checked independently.
 
 The public Grove pin removes the index comparison at `7bc6d14671`; the

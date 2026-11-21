@@ -110,7 +110,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       rnWalTokA γn (srvRAddr s) q ∗
       -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
       -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ taReplayField ap ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayCfg ep γr.raft rp.A₀.length A.length ∗
+      taRaftTermAddr ap ↦□ rt ∗ taReplayBatch ap γn rt n ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayCfg ep γr.raft rp.A₀.length A.length ∗
       -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
       -- (`srvSnapOwn`), passed through the batch; (restart S6, CP2 route (C), 2026-11-13) at the
       -- ghost applied index `g` (until then Go's `ai`)

@@ -46,6 +46,7 @@ public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.ThreadPool
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
@@ -2107,6 +2108,21 @@ theorem rnView_first (γ : RNNames GF) (h : γ.a0 = []) :
   · unfold rnApR; rw [hv]
   · unfold rnApGive; rw [hv]
 
+/-- An ordinary Ready that sends a same-term snapshot during recovery can
+read the durable image's last entry term from this particular immutable slice. -/
+def rnReplayJob (γ : RNNames GF) (terms : GoSlice) (rt : w64) (n : Nat) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(□ ∀ (sm : MsgSt) (ci : w64),
+    ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < γ.a0.length ∧ uint.Z ci = γ.a0.length⌝ -∗
+    sentMsg γ.node.cl srvClusterN γ.id sm -∗
+    ∃ (runs : List replayTermRun) (r : replayTermRun), terms ↦*□ runs ∗
+      ⌜replayRunCovers runs ci = true ∧ replayRunAt runs ci = some r ∧
+        r.term' = (γ.a0.getLast?.map EntryModel.term).getD (W64 0)⌝)
+
+instance rnReplayJob_persistent (γ : RNNames GF) (terms : GoSlice) (rt : w64) (n : Nat) :
+    Persistent (rnReplayJob γ terms rt n) := by
+  unfold rnReplayJob; infer_instance
+
 /-- The `i`th payload on `applyc` with committed entries: the log `F` forwarded before it (`cum[i]`)
 and the batch `ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its two
 channels; and (2026-10-14, unit C2a) the committed index at least the batch's last index
@@ -2134,7 +2150,8 @@ def rnApN (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp GF :
         rnWalHanded γ (γ.pre ++ F ++ ce).length)) ∗
     committedLast E.γr ce ∗
     -- (D22 S-b) the raft term it carries; (D22l) whose witness's commit index bounds the batch
-    rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
+    rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length ∗
+    rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
 
 /-- (D22 J6a, 2026-10-26) **The `i`th payload on `applyc` with a snapshot** (raft's snapshot `Ready`,
 `readySnapData`; `raftNode.start` hands the apply thread its own clone of `rd.Snapshot`): the log
@@ -2199,13 +2216,13 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) :
   iunfold rnApP at H
   icases H with (H | H)
   · iunfold rnApN at H
-    icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, H7, HG, #H8, #H9, #Hrt⟩
+    icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, H7, HG, #H8, #H9, #Hrt, #Hjob⟩
     isplitl [H7 HG]
     · iunfold rnApP
       ileft
       iunfold rnApN
       iexists F, ce, ceL
-      iframe H1 H2 H3 H4 H5 H7 HG H8 H9 Hrt
+      iframe H1 H2 H3 H4 H5 H7 HG H8 H9 Hrt Hjob
       ipureintro; exact H6
     iexists F, ce
     iframe H2 Hrt

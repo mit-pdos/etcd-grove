@@ -70,6 +70,13 @@ def taReplayField (ta : Loc) : IProp GF :=
 instance taReplayField_persistent (ta : Loc) : Persistent (taReplayField (GF := GF) ta) := by
   unfold taReplayField; infer_instance
 
+/-- The queued batch's header and the term-history evidence for its contents. -/
+def taReplayBatch (ta : Loc) (γ : RNNames GF) (rt : w64) (n : Nat) : IProp GF :=
+  iprop(∃ terms : GoSlice, taReplayTermsAddr ta ↦□ terms ∗ rnReplayJob γ terms rt n)
+
+instance taReplayBatch_persistent (ta : Loc) (γ : RNNames GF) (rt : w64) (n : Nat) :
+    Persistent (taReplayBatch ta γ rt n) := by unfold taReplayBatch; infer_instance
+
 /-- `s.bemu`'s lock invariant at fraction `q`: `s.be` at half the fraction, holding the real
 backend `d`, the current backend's ghost variable `γbe` at `d` at half the fraction, and
 `d`'s persistent facts (`srvBeRO`). (D22 receiver epochs, S7b, 2026-10-23: the other half of `s.be`
