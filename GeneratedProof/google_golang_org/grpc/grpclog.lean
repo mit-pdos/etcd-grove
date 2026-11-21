@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.google_golang_org.grpc.grpclog.internal
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.grpclog
 
@@ -55,63 +56,6 @@ noncomputable instance componentData_access_store_name (l : Loc) (v : google_gol
 
 end def_
 end componentData
-
-namespace Logger
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.grpclog.Assumptions]
-
-noncomputable instance Logger_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.Logger :=
-  sorry -- axiomatized type
-
-noncomputable instance Logger_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.Logger google_golang_org.grpc.grpclog.Logger.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Logger
-
-namespace LoggerV2
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.grpclog.Assumptions]
-
-noncomputable instance LoggerV2_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.LoggerV2 :=
-  sorry -- axiomatized type
-
-noncomputable instance LoggerV2_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.LoggerV2 google_golang_org.grpc.grpclog.LoggerV2.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LoggerV2
-
-namespace DepthLoggerV2
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.grpclog.Assumptions]
-
-noncomputable instance DepthLoggerV2_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.DepthLoggerV2 :=
-  sorry -- axiomatized type
-
-noncomputable instance DepthLoggerV2_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.DepthLoggerV2 google_golang_org.grpc.grpclog.DepthLoggerV2.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end DepthLoggerV2
 
 end google_golang_org.grpc.grpclog
 end
