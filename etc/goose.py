@@ -494,6 +494,9 @@ PROJECTS = [
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",
+            # (prove-http3, 2026-11-21) `CanonicalMIMEHeaderKey` and `MIMEHeader.Set`/`Get`, with
+            # their bodies (Code/net/textproto.toml): what `http.Header.Set`/`Get` call
+            "net/textproto",
             # (net: the interface net.Addr, the type of grpc's peer.Peer's fields; unit P3a)
             "net",
             "encoding/hex",

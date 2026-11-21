@@ -64,7 +64,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply_core chan.wp_close (V := Unit) ch γ $$ His_ch
   iintro -
   unfold closeAu
-  iapply ncfupd_of_fupd
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
