@@ -44,7 +44,12 @@ Three obligations still need proofs.
 1. At startup and at each Ready, connect the immutable ranges supplied to
    this apply job to Raft's log. The translated `raftNode.start` now reads
    and clears `initialReplayTerms` before its loop, then updates the ranges
-   as it builds the job.
+   as it builds the job. The constructor proofs for fresh and restarted
+   servers now give the worker exclusive ownership of the config field.
+   The VM checked both constructors and their Raft installer. The worker
+   proof reaches the new `appendEntries` call on both snapshot branches.
+   Giving the worker the field establishes ownership of the slice header.
+   The historical runs in its backing array still need a log certificate.
 2. Read the configuration from the frozen image. The missing-key branch
    of `schema.UnsafeConfStateFromBackend` is checked, including returning
    the snapshot share to the streaming reader. The present-key branch

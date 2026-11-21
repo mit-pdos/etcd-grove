@@ -150,6 +150,8 @@ abbrev rnIsIDRemovedAddr (r : Loc) : Loc :=
   structFieldRef raftNodeConfig go!"isIDRemoved" (rnCfgAddr r)
 abbrev rnRaftStorageAddr (r : Loc) : Loc :=
   structFieldRef raftNodeConfig go!"raftStorage" (rnCfgAddr r)
+abbrev rnReplayTermsAddr (r : Loc) : Loc :=
+  structFieldRef raftNodeConfig go!"initialReplayTerms" (rnCfgAddr r)
 abbrev rnStorageAddr (r : Loc) : Loc := structFieldRef raftNodeConfig go!"storage" (rnCfgAddr r)
 abbrev rnHeartbeatAddr (r : Loc) : Loc :=
   structFieldRef raftNodeConfig go!"heartbeat" (rnCfgAddr r)
@@ -2335,6 +2337,10 @@ instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames GF) (r : Loc) :
 def rnDoneTok (γ : RNNames GF) (r : Loc) : IProp GF :=
   iprop(∃ (dnc : GoChan) (st : GoInterface), rnDoneAddr r ↦□ dnc ∗ rnStorageAddr r ↦□ st ∗
     ownBroadcastChan dnc γ.done (rnDoneEsc γ) .Pending)
+
+/-- The worker takes the bootstrapped replay terms out of the config before its first Ready. -/
+def rnWorkerStartTok (γ : RNNames GF) (r : Loc) : IProp GF :=
+  iprop(rnDoneTok γ r ∗ ∃ terms : GoSlice, rnReplayTermsAddr r ↦ terms)
 
 
 /-- (2026-11-03, R2b-3b; review M2) **The stop's caller takes the image out of `done`'s escrow**: with

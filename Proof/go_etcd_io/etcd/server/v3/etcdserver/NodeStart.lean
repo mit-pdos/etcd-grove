@@ -87,10 +87,11 @@ def rnFixed (a : Loc) (rv : raftNode) : IProp GF :=
 instance rnFixed_persistent (a : Loc) (rv : raftNode) : Persistent (rnFixed (GF := GF) a rv) := by
   unfold rnFixed; infer_instance
 
-/-- The struct at `a`, split: its fixed fields read-only, `transport` and `latestTickTs` owned. -/
+/-- The struct at `a`, split: its fixed fields read-only and its transport, tick timestamp and replay terms owned. -/
 theorem rnFixed_split (a : Loc) (rv : raftNode) :
     a ↦ rv ⊢ |={⊤}=> rnFixed (GF := GF) a rv ∗
-      rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' := by
+      rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗
+      rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' := by
   iintro Ha
   iStructNamedSuffix Ha "R"
   iStructNamedSuffix raftNodeConfigR "C"
@@ -110,7 +111,7 @@ theorem rnFixed_split (a : Loc) (rv : raftNode) :
   ipersist stoppedR
   ipersist doneR
   imodintro
-  iframe transportC latestTickTsR
+  iframe transportC latestTickTsR initialReplayTermsC
   iunfold rnFixed
   simp only [named]
   iframe #
@@ -134,13 +135,14 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
-      rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
+      rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' ∗
+      rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
       ownBroadcastChan rv.done' γ.done (rnDoneEsc γ) .Pending ⊢
-      |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
+      |={⊤}=> isRaftNode E γ a ∗ rnWorkerStartTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
   iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hrok, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
-    #Hfix, #transportC, latestTickTsR, Hmu, Hdtok⟩
+    #Hfix, #transportC, latestTickTsR, Hreplay, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
   iunfold rnFixed at Hfix
@@ -164,10 +166,14 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
     rw [Hmsγ]
     iexact Hmsi
   · iframe NodeC transportC
-    iunfold rnDoneTok
-    iexists rv.done', rv.raftNodeConfig'.storage'
-    iframe doneR Hdtok
-    iexact storageC
+    iunfold rnWorkerStartTok
+    isplitl [Hdtok]
+    · iunfold rnDoneTok
+      iexists rv.done', rv.raftNodeConfig'.storage'
+      iframe doneR Hdtok
+      iexact storageC
+    iexists rv.raftNodeConfig'.initialReplayTerms'
+    iexact Hreplay
 
 /-- **The loop's and the apply side's tokens at the start** (`rnLoopTok γ []`, `rnApplyTok γ
 []`): from the node API's driver at its start (`NodeDriverState.init`: nothing delivered, with
@@ -773,7 +779,7 @@ abbrev NodeStartSpec : Prop :=
           -- half of the node's running token (`StartNode`'s `nodeRunning 1`, the other half in
           -- `rnLoopTok`)
           rnLoopTok γw [] ∗ rnApplyTok γw [] ∗ (letI := srvStor (GF := GF) γw.node; nodeRunning γw.nl γw.node.cl srvClusterN (1 : Qp).half) ∗
-          -- the installer: `isRaftNode` and `rnDoneTok` at the address `a` the struct is copied
+          -- the installer: `isRaftNode` and `rnWorkerStartTok` at the address `a` the struct is copied
           -- to, once its `transport` is set to `tr`, with the server's own: `rnEnvOk` for the
           -- wrapper's names, the committed index's invariant of the server `s` and the read
           -- contexts' invariant (2026-10-27); (2026-11-05, R2b-3d stage 5c) the `transport` field
@@ -781,8 +787,8 @@ abbrev NodeStartSpec : Prop :=
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             srvRdCtxInv E.γr.raft issued -∗
             rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
-            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
-            isRaftNode E γw a ∗ rnDoneTok γw a ∗
+            rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' -∗ isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
+            isRaftNode E γw a ∗ rnWorkerStartTok γw a ∗
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
           -- the receiver and (2026-11-05: until then kept, as the node API's `StartNode` did until
@@ -880,8 +886,8 @@ abbrev NodeStartSpecR : Prop :=
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             srvRdCtxInv E.γr.raft issued -∗
             rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
-            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
-            isRaftNode E γw a ∗ rnDoneTok γw a ∗
+            rnReplayTermsAddr a ↦ rv.raftNodeConfig'.initialReplayTerms' -∗ isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
+            isRaftNode E γw a ∗ rnWorkerStartTok γw a ∗
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
           b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗

@@ -168,7 +168,7 @@ theorem raftNode_of_StartNode
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts #Htri Hmu'
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts Hreplay #Htri Hmu'
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
@@ -189,8 +189,8 @@ theorem raftNode_of_StartNode
     iexact Hfix
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
-    $$ [Htrf Hlts Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
-  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hmu' Hdtok
+    $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
+  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hreplay Hmu' Hdtok
     isplitr
     · iunfold rnRestartOk; ileft; ipureintro; exact ⟨Hwa0, Hwt0, Hwc0, Hws0⟩
     simp only [Hrvcfg]
@@ -410,7 +410,7 @@ theorem raftNode_of_RestartNode
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts #Htri Hmu'
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts Hreplay #Htri Hmu'
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
@@ -431,8 +431,8 @@ theorem raftNode_of_RestartNode
     iexact Hfix
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
-    $$ [Htrf Hlts Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
-  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hmu' Hdtok
+    $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
+  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hreplay Hmu' Hdtok
     isplitr
     · -- the restart data: the restart disjunct
       iunfold rnRestartOk; iright
