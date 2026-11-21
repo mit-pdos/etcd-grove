@@ -84,6 +84,7 @@ DecidableEq`. (`hs_empty_abs`'s port `hsEmptyAbs` had no user and is gone, 2026-
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import RaftTla.Proof.go_etcd_io.raft.v3.ApiVocab
 public import RaftTla.Proof.go_etcd_io.raft.v3.NetMsgOk
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvReadylog
@@ -2232,6 +2233,132 @@ abbrev loanCom (γ : RaftNames) (o : Option SnapLoan) : IProp GF :=
 instance loanCom_pers (γ : RaftNames) (o : Option SnapLoan) :
     Persistent (loanCom (GF := GF) γ o) := by
   cases o <;> unfold loanCom <;> infer_instance
+
+/-- The largest snapshot index restored by this node since attachment. -/
+def maxRestored [GooseExts] : List SnapTrip → Nat
+  | [] => 0
+  | k :: ks => max (uint.nat k.sid.index') (maxRestored ks)
+
+theorem maxRestored_append [GooseExts] (ks ls : List SnapTrip) :
+    maxRestored (ks ++ ls) = max (maxRestored ks) (maxRestored ls) := by
+  induction ks with
+  | nil => simp [maxRestored]
+  | cons k ks ih => simp [maxRestored, ih, Nat.max_assoc]
+
+/-- The observation was issued on the very incoming message which installed
+this snapshot. The local Raft term equals the foreign leader's sending term. -/
+def timedRestore (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) : IProp GF :=
+  iprop(∃ (m : Msg) (front : Nat),
+    ⌜m.ty = .snap ∧ m.src ≠ id ∧ m.index = k.sid.index' ∧ m.logterm = k.sid.term' ∧
+      uint.nat k.sid.index' ≤ front⌝ ∗ isMessage γ m ∗ snapHistoryMark sn.history (uint.nat m.term) front)
+
+instance (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) :
+    Persistent (timedRestore (GF := GF) γ id sn k) := by unfold timedRestore; infer_instance
+
+/-- The authority follows the node term and the largest restored index. -/
+def restoreLedger (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) : IProp GF :=
+  iprop(snapHistoryOwn sn.history (uint.nat s.term) (maxRestored s.logst.ksn) ∗
+    (∀ k : SnapTrip, ⌜k ∈ s.logst.ksn⌝ -∗ timedRestore γ id sn k))
+
+theorem restoreLedger_fresh (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState)
+    (hf : s.logst.ksn = []) :
+    snapHistoryOwn (GF := GF) sn.history 0 0 ⊢ restoreLedger γ id sn s := by
+  unfold restoreLedger; rw [hf]
+  iintro Ha; isplitl [Ha]
+  · iapply snapHistory_raise sn.history 0 0 _ _ (Nat.zero_le _) (Nat.zero_le _) $$ Ha
+  · iintro %k %hk; cases hk
+
+theorem restoreLedger_keep (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : NState}
+    (ht : uint.Z s.term ≤ uint.Z s'.term) (hk : s'.logst.ksn = s.logst.ksn) :
+    restoreLedger (GF := GF) γ id sn s ⊢ restoreLedger γ id sn s' := by
+  unfold restoreLedger; rw [hk]
+  iintro ⟨Ha, #Hks⟩; iframe Hks
+  iapply snapHistory_raise sn.history _ _ _ _ (by word) (Nat.le_refl _) $$ Ha
+
+theorem restoreLedger_step (γ : RaftNames) (id : w64) (sn : StorNames) {s s' : NState}
+    {sv : SnapshotM} {m : MessageM} (cs : CSLists) (hn : m.From' ≠ id)
+    (ht : uint.Z s.term ≤ uint.Z s'.term) (h : SnapLogStep sv m s s') :
+    ⊢ restoreLedger (GF := GF) γ id sn s -∗ isMessageC γ (absSnap m sv cs) ==∗ restoreLedger γ id sn s' := by
+  iintro Hl #Hm
+  rcases h with h | h
+  · imodintro; iapply restoreLedger_keep γ id sn ht h.2.2.2.2.2.2.2 $$ Hl
+  · obtain ⟨cl, hk⟩ := h.2.2.2.2.2.2.2.2.2
+    let k := snapTrip sv cl
+    have hmx : maxRestored s'.logst.ksn = max (maxRestored s.logst.ksn) (uint.nat k.sid.index') := by
+      rw [hk, maxRestored_append]; simp [k, maxRestored]
+    unfold restoreLedger
+    icases Hl with ⟨Ha, #Hks⟩
+    imod snapHistory_record sn.history (uint.nat s.term) (maxRestored s.logst.ksn)
+      (uint.nat s'.term) (maxRestored s'.logst.ksn) (by word) (by rw [hmx]; exact Nat.le_max_left _ _) $$ Ha
+      with ⟨Ha, #Hmark⟩
+    imodintro; iframe Ha
+    iintro %x %hx
+    rw [hk] at hx
+    rcases List.mem_append.1 hx with hx | hx
+    · iapply Hks $$ %x %hx
+    · cases List.mem_singleton.1 hx
+      unfold timedRestore
+      iexists absSnap m sv cs, maxRestored s'.logst.ksn
+      isplitr
+      · ipureintro; exact ⟨rfl, hn, rfl, rfl, by rw [hmx]; exact Nat.le_max_right _ _⟩
+      isplitr
+      · iapply isMessageC_isMessage $$ Hm
+      · rw [show (absSnap m sv cs).term = s'.term from h.1.symm]
+        iexact Hmark
+
+/-- The term and snapshot frontier observed at a Ready handout. -/
+theorem restoreLedger_ready (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState) :
+    ⊢ restoreLedger (GF := GF) γ id sn s ==∗ restoreLedger γ id sn s ∗
+      snapHistoryMark sn.history (uint.nat s.term) (maxRestored s.logst.ksn) := by
+  unfold restoreLedger
+  iintro ⟨Ha, #Hks⟩
+  imod snapHistory_record sn.history _ _ _ _ (Nat.le_refl _) (Nat.le_refl _) $$ Ha with ⟨Ha, #Hm⟩
+  imodintro; iframe Ha Hks Hm
+
+/-- Information captured when the leader stamps a snapshot message. Later
+terms can drain the same outbox without changing the original send term. -/
+def restoreAtSend (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) (term : w64) : IProp GF :=
+  iprop(∃ (m : Msg) (front : Nat),
+    ⌜m.ty = .snap ∧ m.src ≠ id ∧ m.index = k.sid.index' ∧ m.logterm = k.sid.term' ∧
+      uint.nat k.sid.index' ≤ front ∧ uint.nat m.term ≤ uint.nat term⌝ ∗
+    isMessage γ m ∗ snapHistoryMark sn.history (uint.nat m.term) front)
+
+instance (γ : RaftNames) (id : w64) (sn : StorNames) (k : SnapTrip) (term : w64) :
+    Persistent (restoreAtSend (GF := GF) γ id sn k term) := by unfold restoreAtSend; infer_instance
+
+theorem restoreLedger_send (γ : RaftNames) (id : w64) (sn : StorNames) (s : NState)
+    (k : SnapTrip) (hk : k ∈ s.logst.ksn) :
+    restoreLedger (GF := GF) γ id sn s ⊢ restoreLedger γ id sn s ∗ restoreAtSend γ id sn k s.term := by
+  unfold restoreLedger restoreAtSend
+  iintro ⟨Ha, #Hks⟩
+  ihave #H := Hks $$ %k %hk
+  iunfold timedRestore at H
+  icases H with ⟨%m, %front, %hm, #Hm, #Hmark⟩
+  icases snapHistory_mark_bound sn.history _ _ _ _ $$ Ha Hmark with ⟨Ha, %hb⟩
+  iframe Ha Hks
+  iexists m, front
+  iframe Hm Hmark
+  ipureintro
+  exact ⟨hm.1, hm.2.1, hm.2.2.1, hm.2.2.2.1, hm.2.2.2.2, hb.1⟩
+
+/-- For an outgoing snapshot restored from another node, its restore preceded
+the sender's election. A Ready already observed in the send term therefore
+bounds the snapshot's index. -/
+theorem restoredSend_index_le (γ : RaftNames) (id term : w64) (sn : StorNames)
+    (k : SnapTrip) (index : Nat) :
+    ⊢ restoreAtSend (GF := GF) γ id sn k term -∗ isLeader γ id term -∗
+      snapHistoryMark sn.history (uint.nat term) index -∗ ⌜uint.nat k.sid.index' ≤ index⌝ := by
+  unfold restoreAtSend
+  iintro ⟨%m, %front, %h, #Hmsg, #Hmark⟩ #Hlocal #Hready
+  obtain ⟨hty, hsrc, -, -, hindex, hterm⟩ := h
+  ihave #Hsrc := isMessage_snapshotLeader γ m hty $$ Hmsg
+  by_cases heq : m.term = term
+  · rw [heq] at *
+    ihave %hid := isLeader_unique γ m.src id term $$ Hsrc Hlocal
+    exact False.elim (hsrc hid)
+  have hlt : uint.nat m.term < uint.nat term := by word
+  ihave %hi := snapHistory_index_le sn.history _ _ _ _ hlt $$ Hmark Hready
+  ipureintro; exact Nat.le_trans hindex hi
 
 /-- The pending snapshot came from a different member's certified snapshot
 message, at this snapshot's index and log term. `RawNode.Step` installs this
