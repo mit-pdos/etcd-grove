@@ -6,6 +6,7 @@ observations let two clients compare those events even after the node advances.
 module
 
 public import Perennial.Ghost.MonoList
+public import Proof.go_etcd_io.raft.v3.Defs
 
 @[expose] public section
 
@@ -23,11 +24,11 @@ noncomputable def snapHistoryOwn (γ : GName) (term index : Nat) : IProp GF :=
     ⌜∀ e ∈ events, e.1 ≤ term ∧ e.2 ≤ index⌝)
 
 /-- A restore or Ready handout at the indicated point in this node's history. -/
-noncomputable def snapHistoryMark (γ : GName) (term index : Nat) : IProp GF :=
-  iprop(∃ (before : List (Nat × Nat)), monoListLbOwn γ (before ++ [(term, index)]) ∗
+noncomputable def snapHistoryMark (sn : StorNames) (term index : Nat) : IProp GF :=
+  iprop(∃ (before : List (Nat × Nat)), monoListLbOwn sn.history (before ++ [(term, index)]) ∗
     ⌜∀ e ∈ before, e.1 ≤ term ∧ e.2 ≤ index⌝)
 
-instance (γ : GName) (t i : Nat) : Persistent (snapHistoryMark (GF := GF) γ t i) := by
+instance (sn : StorNames) (t i : Nat) : Persistent (snapHistoryMark (GF := GF) sn t i) := by
   unfold snapHistoryMark; infer_instance
 
 theorem snapHistory_alloc : ⊢ |==> ∃ γ, snapHistoryOwn (GF := GF) γ 0 0 := by
@@ -49,8 +50,8 @@ theorem snapHistory_raise (γ : GName) (t i t' i' : Nat) (ht : t ≤ t') (hi : i
   ipureintro
   exact fun e he => ⟨Nat.le_trans (h e he).1 ht, Nat.le_trans (h e he).2 hi⟩
 
-theorem snapHistory_record (γ : GName) (t i t' i' : Nat) (ht : t ≤ t') (hi : i ≤ i') :
-    ⊢ snapHistoryOwn (GF := GF) γ t i ==∗ snapHistoryOwn γ t' i' ∗ snapHistoryMark γ t' i' := by
+theorem snapHistory_record (sn : StorNames) (t i t' i' : Nat) (ht : t ≤ t') (hi : i ≤ i') :
+    ⊢ snapHistoryOwn (GF := GF) sn.history t i ==∗ snapHistoryOwn sn.history t' i' ∗ snapHistoryMark sn t' i' := by
   unfold snapHistoryOwn snapHistoryMark
   iintro ⟨%events, Ha, %h⟩
   imod monoListAuthOwn_update (events ++ [(t', i')]) ⟨_, rfl⟩ $$ Ha with ⟨Ha, #Hlb⟩
@@ -80,12 +81,12 @@ private theorem snapHistory_prefix {a b : List (Nat × Nat)} {t i u j : Nat}
     cases he; exact ⟨Nat.le_refl _, Nat.le_refl _⟩
 
 /-- At send time the current node state bounds every restore observed so far. -/
-theorem snapHistory_mark_bound (γ : GName) (t i tr ir : Nat) :
-    ⊢ snapHistoryOwn (GF := GF) γ t i -∗ snapHistoryMark γ tr ir -∗
-      snapHistoryOwn γ t i ∗ ⌜tr ≤ t ∧ ir ≤ i⌝ := by
+theorem snapHistory_mark_bound (sn : StorNames) (t i tr ir : Nat) :
+    ⊢ snapHistoryOwn (GF := GF) sn.history t i -∗ snapHistoryMark sn tr ir -∗
+      snapHistoryOwn sn.history t i ∗ ⌜tr ≤ t ∧ ir ≤ i⌝ := by
   unfold snapHistoryOwn snapHistoryMark
   iintro ⟨%events, Ha, %hb⟩ ⟨%pre, #Hm, -⟩
-  ihave %hp := mono_list_auth_lb_valid γ 1 _ _ $$ Ha Hm
+  ihave %hp := mono_list_auth_lb_valid sn.history 1 _ _ $$ Ha Hm
   isplitl [Ha]
   · iexists events; iframe Ha; ipureintro; exact hb
   · ipureintro
@@ -93,11 +94,11 @@ theorem snapHistory_mark_bound (γ : GName) (t i tr ir : Nat) :
 
 /-- A restore in a strictly earlier term cannot be ahead of this Ready. This
 compares observations on the node itself and is independent of apply scheduling. -/
-theorem snapHistory_index_le (γ : GName) (tr ir t i : Nat) (ht : tr < t) :
-    ⊢ snapHistoryMark (GF := GF) γ tr ir -∗ snapHistoryMark γ t i -∗ ⌜ir ≤ i⌝ := by
+theorem snapHistory_index_le (sn : StorNames) (tr ir t i : Nat) (ht : tr < t) :
+    ⊢ snapHistoryMark (GF := GF) sn tr ir -∗ snapHistoryMark sn t i -∗ ⌜ir ≤ i⌝ := by
   unfold snapHistoryMark
   iintro ⟨%a, #Ha, %ha⟩ ⟨%b, #Hb, %hb⟩
-  ihave %hp := mono_list_lb_valid γ _ _ $$ Ha Hb
+  ihave %hp := mono_list_lb_valid sn.history _ _ $$ Ha Hb
   ipureintro
   rcases hp with h | h
   · exact (snapHistory_prefix h hb).2
