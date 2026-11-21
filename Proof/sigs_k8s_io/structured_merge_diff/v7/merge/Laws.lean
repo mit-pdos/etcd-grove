@@ -127,10 +127,14 @@ def inputsSmall_prune.law : Prop :=
 
 /-- **`prune`'s passes keep the object conforming** (D10 (b): `RemoveItems`' premise), from
 `keysWithItems` of the managers' and the last sets (`Apply`'s premise; round 1's finding 1 is the
-counterexample without it). -/
+counterexample without it). Restated 2026-11-21 (Prove phase; the frozen form is false, two
+`decide`-checked counterexamples): the managers sorted (`keysSorted mf`: else a later duplicate's
+set, in `mfUnion` but not covered by the `mf.get` premise, can strip an item's key) and the last
+set `schemaConsistent` (else a path below an item of an atomic map type nulls the item). -/
 def prune_conforms.law : Prop :=
-  ∀ S t merged (mf : MF) (L : VSet), S.WF → conforms S t merged →
+  ∀ S t merged (mf : MF) (L : VSet), S.WF → conforms S t merged → keysSorted mf = true →
     (∀ m e, mf.get m = some e → keysWithItems S t e.set) → keysWithItems S t L.set →
+    schemaConsistent S t L.set →
     let p0 := removeItems S t merged (ensureNamed S t L.set)
     let p1 := addBackOwnedMF S t merged p0 mf
     conforms S t p0 ∧ conforms S t p1 ∧ conforms S t (addBackDangling S t merged p1 L.set)

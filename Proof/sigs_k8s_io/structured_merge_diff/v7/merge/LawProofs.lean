@@ -49,15 +49,8 @@ theorem MF.set_sorted_law_holds : MF.set_sorted.law := by
 theorem removeItems_size_law_holds : removeItems_size.law :=
   fun S t x R => removeAt_size S t R x
 
-/-- `prune`'s passes keep the object conforming (D10 (b)). **False as stated** (Prove phase,
-2026-11-21; two `decide`-checked counterexamples): a last-set path below an item of an atomic
-map type nulls the item (needs `schemaConsistent S t L.set`), and with a duplicate manager name a
-later entry's set, in `mfUnion` but not covered by the `mf.get` premise, can strip an item's key
-(needs `keysSorted mf`). With both premises it is `Prune.prune_conforms'`
-(`merge/LawProofsPrune.lean`, which imports `LawProofsGlue`, so the restated law's proof lives
-there). -/
-theorem prune_conforms_law_holds : prune_conforms.law := by
-  sorry
+/- `prune_conforms_law_holds` is in `merge/LawProofsPrune.lean` (it needs `LawProofsGlue`, which
+imports this module). -/
 
 end smd
 end EtcdGrove

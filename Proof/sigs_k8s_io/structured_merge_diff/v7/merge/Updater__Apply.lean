@@ -22,7 +22,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__ToFiel
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.EqualsUsing
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
-import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsGlue
+import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsPrune
 import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsMF
 import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 
@@ -150,7 +150,9 @@ theorem merge.Updater.Apply.wp_proof
       refine ⟨by rw [hmf1, MF.get_set_law_holds]; simp, fun m e h => (hents m e h).1,
         fun L h => (hlast L h).1⟩
     · ipureintro
-      refine ⟨fun m e h => (hents m e h).2, fun L h => (hlast L h).2, hmsz, ?_⟩
+      refine ⟨fun m e h => (hents m e h).2, fun L h => ⟨(hlast L h).2.1,
+        Prune.reconcileMF_get_consistent S t mf mgr L (by rw [← hmf0]; exact h),
+        (hlast L h).2.2⟩, hmsz, ?_⟩
       rw [hmf1, hmf0]; exact hunion
   subst herrp
   try wp_auto

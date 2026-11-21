@@ -22,7 +22,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Remove
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__Schema_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__TypeRef_ptr
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
-import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofs
+import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.LawProofsPrune
 import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsMF
 
 @[expose] public section
@@ -83,7 +83,10 @@ theorem merge.Updater.prune.wp_proof
     subst hlv
     ihave ⟨#Hsc, %hwf⟩ := isTV_schema_law_holds _ _ _ _ _ $$ Hm
     ihave %hconf := isTV_conforms_law_holds _ _ _ _ _ $$ Hm
-    have hpc := prune_conforms_law_holds S t merged mf L hwf hconf hkmf (hklast L rfl).1
+    icases (ownMF_access_law_holds mfm mf) $$ Hmf with ⟨%M0, HM0, %hM0, #Hview0, Hback0⟩
+    ihave Hmf := Hback0 $$ HM0 %hM0 Hview0
+    have hpc := prune_conforms_law_holds S t merged mf L hwf hconf hM0.1 hkmf (hklast L rfl).1
+      (hklast L rfl).2.1
     have hLv := hlver L rfl
     have hmfne : mf ≠ [] := by
       intro h; subst h; simp [MF.get, lookupKV] at hmgr
@@ -123,7 +126,7 @@ theorem merge.Updater.prune.wp_proof
     · iexact Hls
     ihave %hne := isSet_ne_law_holds _ _ $$ Hls2
     wp_apply (h_Set_EnsureNamedFieldsAreMembers ls2 _ sc S tr (some t)) as %e0 #He0
-    · iframe Hls2 Hsc Htro; ipureintro; exact ⟨hwf, nodes_cardLt _ hne (hklast L rfl).2⟩
+    · iframe Hls2 Hsc Htro; ipureintro; exact ⟨hwf, nodes_cardLt _ hne (hklast L rfl).2.2⟩
     try wp_auto
     wp_apply (h_TypedValue_RemoveItems_ptr mp e0 sc S t merged _) as %p0 #Hp0
     · iframe Hm He0; ipureintro; exact hc0
@@ -163,7 +166,7 @@ theorem merge.Updater.prune.wp_proof
       isplitr
       · iexact Hls
       ipureintro
-      refine ⟨hms, by omega, (hklast L rfl).2, hc2⟩
+      refine ⟨hms, by omega, (hklast L rfl).2.2, hc2⟩
     subst herr2
     wp_auto
     icases (ownMF_access_law_holds mfm mf) $$ Hmf with ⟨%M, HM, %hM, #Hview, Hback⟩

@@ -643,6 +643,11 @@ theorem reconcileMF_get_consistent (S : Schema) (t : TypeRef) (mf : MF) (m : GoS
 
 end Prune
 
+/-- **`prune`'s passes keep the object conforming** (`merge/Laws.lean`, restated). -/
+theorem prune_conforms_law_holds : prune_conforms.law :=
+  fun S t merged mf L hS hc hs hkmf hkL hcL =>
+    Prune.prune_conforms' S t merged mf L hS hc hs hkmf hkL hcL
+
 end smd
 end EtcdGrove
 end Perennial
