@@ -23,7 +23,11 @@
   unchanged; `etc/auth-mediation-check.py --check --update` (row 2 `none` -> `e2e`). Until the fork commit is pushed,
   the checks that clone etcd (`auth-mediation-check`, `goose.py --check`) need `.lake/goose/etcd` at `4416a5786`
   (`git -C .lake/goose/etcd fetch /shared/tmp/authm3fix/etcd 4416a5786... && git -C .lake/goose/etcd checkout --detach FETCH_HEAD`).
-- Next: `etc/gates.sh` result (see `git log`), then the LAND STOP (the coordinator lands; the user pushes the fork first).
+- `etc/gates.sh` (2026-11-21, log `/shared/tmp/authm3fix/gates.log`): everything passes (tcb 533/0, 71 collections
+  match, links, goose, interfaces, tiers, auth-mediation) except `axiom-tok` and its selftest: rule 5, 48 axioms tainted
+  by `metadata.builtRawMDRaw`, `transportMDRaw`, `status.statusAtRaw`, `envVerifyOffTok` (none of M3's: `rangeStream` is
+  not listed); mo25's gates at `dc24475728` passed it, so it came with lean `dc24475728..3ac6cb4031` (whose mo27 build
+  ran no gates). Reported to etcd-grove-03. **At the LAND STOP**: the coordinator lands; the user pushes the fork first.
 
 ## M4 proposal (approved 2026-11-21; implemented in `a351492b8d`)
 
