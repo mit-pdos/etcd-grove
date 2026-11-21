@@ -21,39 +21,45 @@ open Iris Iris.BI Iris.ProofMode
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.strconv.Assumptions]
 
 theorem strconv.ParseInt.wp_proof : strconv.ParseInt.spec (GF := GF) (hG := hG) := by
   intro s base bitSize hb1 hb2 hs1 hs2
   iintro %Φ #Hpkg HΦ
-  wp_apply _root_.Perennial.strconv.wp_ParseInt s base bitSize hb1 hb2 hs1 hs2 as %n %err Hres
-  iapply HΦ
   have key : ∀ m : w64, s = fmtInt m (W64 10) → base = W64 10 → bitSize = W64 64 →
       internal.strconv.parseInt s (sint.nat base) (sint.nat bitSize) = .ok (sint.Z m) := by
     intro m hs hb hbs
     subst hs hb hbs
     exact internal.strconv.parseInt_fmtInt10 m
-  generalize hr : internal.strconv.parseInt s (sint.nat base) (sint.nat bitSize) = r at Hres key
-  cases r with
-  | ok k =>
+  rcases hr : internal.strconv.parseInt s (sint.nat base) (sint.nat bitSize) with k | _ | k
+  · wp_apply _root_.Perennial.strconv.wp_ParseInt s base bitSize hb1 hb2 hs1 hs2 as %n %err Hres
+    rw [hr]
     icases Hres with %Hk
+    iapply HΦ
     ipureintro
     intro m hs hb hbs
     have := key m hs hb hbs
+    rw [hr] at this
     cases this
     refine ⟨?_, Hk.2⟩
     rw [Hk.1]
     word
-  | errSyntax =>
+  · wp_apply _root_.Perennial.strconv.wp_ParseInt s base bitSize hb1 hb2 hs1 hs2 as %n %err -
+    iapply HΦ
     ipureintro
     intro m hs hb hbs
-    cases key m hs hb hbs
-  | errRange k =>
+    have := key m hs hb hbs
+    rw [hr] at this
+    cases this
+  · wp_apply _root_.Perennial.strconv.wp_ParseInt s base bitSize hb1 hb2 hs1 hs2 as %n %err -
+    iapply HΦ
     ipureintro
     intro m hs hb hbs
-    cases key m hs hb hbs
+    have := key m hs hb hbs
+    rw [hr] at this
+    cases this
 
 end proof
 
