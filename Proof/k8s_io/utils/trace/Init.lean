@@ -9,6 +9,7 @@ their translated initializers: `klogV`, a func literal over `klog.V(lvl).Enabled
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.context.Link
 public import Proof.k8s_io.klog.v2.Init
 public import Proof.runtime.PkgInitExt
 
@@ -49,7 +50,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply wp_GlobalAlloc (V := _) klogV _ as HklogV
-  wp_apply (_root_.Perennial.k8s_io.klog.v2.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (_root_.Perennial.k8s_io.klog.v2.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of klogV))
   iframe Hown
   is_pkg_init_finish
