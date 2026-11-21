@@ -642,6 +642,7 @@ public import Perennial.Proof.time.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.strings.Link
+public import Perennial.Proof.encoding.binary.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.bytes.Buffer__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
@@ -1014,7 +1015,7 @@ theorem zap.Logger.wp_Debug :
 
 theorem binary.wp_ReadUint64 :
     binary.ReadUint64.spec (GF := GF) (hG := hG) :=
-  binary.ReadUint64.wp_proof
+  binary.ReadUint64.wp_proof _root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 
 theorem fmt.wp_SprintfArgs :
     fmt.SprintfArgs.spec (GF := GF) (hG := hG) :=
@@ -1170,7 +1171,7 @@ theorem schema.wp_NewMembershipBackend :
 
 theorem binary.wp_WriteUint64 :
     binary.WriteUint64.spec (GF := GF) (hG := hG) :=
-  binary.WriteUint64.wp_proof
+  binary.WriteUint64.wp_proof _root_.Perennial.encoding.binary.bigEndian.wp_PutUint64
 
 theorem proto.wp_MarshalAppendPb :
     proto.MarshalAppendPb.spec (GF := GF) (hG := hG) :=

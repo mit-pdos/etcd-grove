@@ -49,34 +49,47 @@ theorem CountGe.of_oltq {s : GSet w64} {f : w64 → w64} {N : w64}
   · unfold CountGe; rw [h1]; exact Nat.zero_le _
   exact (H3 h0 h1).2.1
 
+/-- The regular acknowledgements needed before offering an index to this half's witness.
+An empty half places no constraint on a joint index. -/
+def witnessRegularCount (s : GSet w64) (selected : Bool) : Nat := by
+  classical
+  exact if selected then GMap.size s / 2 else if s = ∅ then 0 else GMap.size s / 2 + 1
+
+theorem CountGe.of_committed {s : GSet w64} {f : w64 → w64} {N : w64}
+    (H : s ≠ ∅ → IsQuorumIndex s f N) : CountGe s f (witnessRegularCount s false) N := by
+  by_cases he : s = ∅
+  · simp [CountGe, witnessRegularCount, he]
+  simp only [witnessRegularCount, Bool.false_eq_true, ite_false, he]
+  have hq := (IsQuorum_alt _ _).1 (H he).2.1
+  refine Nat.le_trans hq (GMap.subseteq_size ?_)
+  rw [GMap.elem_of_subseteq]
+  intro v hv
+  exact ((GMap.elem_of_intersection _ _ _).1 hv).1
+
 /-- A half's acknowledgements as the leader counts them for its witness: the `Match` of the
 replication set's non-witness voters, `0` for the others. -/
 def rsAcked (pvs : GMap w64 Progress) (r : RSM) (v : w64) : w64 :=
   (scopedAcked r.nwv (pvsAcked pvs) v).getD (W64 0)
 
-/-- What `OneLessThanQuorumInReplicationSet` returns (`res`) for the halves' voters `V0`, `V1`,
-the epoch `em` and the peers' progress `pvs`: an entry for the witness of each half that
-replicates to its witness (`RSM.rep`), and nothing else; its index acknowledged by quorum − 1
-(`|V| / 2`) voters of the half in its replication set, in every such half with that witness (a
-joint configuration with the one witness in both halves gets the smaller of the two indices). -/
+/-- A shared witness has the same nonzero ID in both halves. -/
+def sharedWitness (em : EpochM) : Bool :=
+  decide (em.rs0.wit ≠ W64 0 ∧ em.rs0.wit = em.rs1.wit)
+
+/-- The result contains each witness selected by at least one half. In each
+half contributing to that witness's index, regular voters acknowledge the index at
+the threshold for that half. A shared witness contributes to both halves. -/
 def OltqOk (V0 V1 : GSet w64) (em : EpochM) (pvs : GMap w64 Progress) (res : GMap w64 w64) :
     Prop :=
   (∀ w, (res !! w).isSome = true ↔
     ((em.rs0.rep = true ∧ em.rs0.wit = w) ∨ (em.rs1.rep = true ∧ em.rs1.wit = w))) ∧
   ∀ w N, res !! w = some N →
-    (em.rs0.rep = true → em.rs0.wit = w →
-      CountGe V0 (rsAcked pvs em.rs0) (GMap.size V0 / 2) N) ∧
-    (em.rs1.rep = true → em.rs1.wit = w →
-      CountGe V1 (rsAcked pvs em.rs1) (GMap.size V1 / 2) N)
+    ((em.rs0.rep || sharedWitness em) = true → em.rs0.wit = w →
+      CountGe V0 (rsAcked pvs em.rs0) (witnessRegularCount V0 em.rs0.rep) N) ∧
+    ((em.rs1.rep || sharedWitness em) = true → em.rs1.wit = w →
+      CountGe V1 (rsAcked pvs em.rs1) (witnessRegularCount V1 em.rs1.rep) N)
 
-/-- When `OneLessThanQuorumInReplicationSet` returns `nil` (2026-10-20, fork `99cb9e2d9`): no half
-replicates to its witness, or the two halves share a witness and only one of them replicates to
-it -- a witness shared by both halves of a joint configuration is sent an entry only if both have
-it in their replication sets (its acknowledgement counts in both halves' commit, its vote is
-checked against the incoming half's set alone: notes/raft-witness-reconfig.md). -/
-def OltqNone (em : EpochM) : Prop :=
-  (em.rs0.rep = false ∧ em.rs1.rep = false) ∨
-  (em.rs0.wit ≠ W64 0 ∧ em.rs0.wit = em.rs1.wit ∧ em.rs0.rep ≠ em.rs1.rep)
+/-- There is no witness to send to exactly when neither half selected one. -/
+def OltqNone (em : EpochM) : Prop := em.rs0.rep = false ∧ em.rs1.rep = false
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -98,9 +111,8 @@ def oltqRes (dq : DFrac) (tv : tracker.ProgressTracker) (V0 V1 : GSet w64)
     ownProgressMap tv.Progress' pvs)
 
 /-- `p.OneLessThanQuorumInReplicationSet()`: `nil` when no half replicates to its witness (the
-early return, which reads nothing but the epoch); else, given the fields it reads
-(`oltqRes`, given back), `nil` for a shared witness only one half replicates to (`OltqNone`), or a
-map satisfying `OltqOk`. -/
+early return, which reads nothing but the epoch). Otherwise the map satisfies
+`OltqOk`, with the tracker fields in `oltqRes` returned to the caller. -/
 abbrev tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec : Prop :=
   ∀ (trk : Loc) (dq : DFrac) (tv : tracker.ProgressTracker) (em : EpochM) (V0 V1 : GSet w64)
     (pvs : GMap w64 Progress),
@@ -132,7 +144,7 @@ theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec_nw
   iintro %mref ⟨Htrk, -, (%Hm | ⟨%Hrep, -⟩)⟩
   · rw [Hm.2]; iapply HΦ $$ Htrk
   · exfalso
-    exact Hrep (Or.inl (by simp [EpochM.bare, RSM.bare, RSM.rep]))
+    exact Hrep (by simp [OltqNone, EpochM.bare, RSM.bare, RSM.rep])
 
 /-- At a tracker of the configuration `c` (2026-10-20, witness support): `nil` (`OltqNone`), or a
 map satisfying `OltqOk` for the configuration's halves and the tracker's epoch and peers; the

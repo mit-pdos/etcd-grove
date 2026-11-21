@@ -349,6 +349,7 @@ public import RaftWitness.Proof.go_etcd_io.raft.v3.tracker.ReplicationSet__GetNo
 public import RaftWitness.Proof.go_etcd_io.raft.v3.tracker.ReplicationSet__String
 public import RaftWitness.Proof.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
 public import RaftWitness.Proof.go_etcd_io.raft.v3.tracker.scopedAckIndexer__AckedIndex
+public import RaftWitness.Proof.go_etcd_io.raft.v3.tracker.witnessIndex
 public import RaftWitness.Proof.go_etcd_io.raft.v3.unstable__acceptInProgress
 public import RaftWitness.Proof.go_etcd_io.raft.v3.unstable__maybeFirstIndex
 public import RaftWitness.Proof.go_etcd_io.raft.v3.unstable__maybeLastIndex
@@ -768,13 +769,17 @@ theorem quorum.MajorityConfig.wp_OneLessThanQuorum :
     quorum.MajorityConfig.OneLessThanQuorum.spec (GF := GF) (hG := hG) :=
   quorum.MajorityConfig.OneLessThanQuorum.wp_proof slices.wp_Sort
 
+theorem tracker.wp_witnessIndex :
+    tracker.witnessIndex.spec (GF := GF) (hG := hG) :=
+  tracker.witnessIndex.wp_proof quorum.MajorityConfig.wp_OneLessThanQuorum quorum.MajorityConfig.wp_CommittedIndex
+
 theorem tracker.scopedAckIndexer.wp_AckedIndex :
     tracker.scopedAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   tracker.scopedAckIndexer.AckedIndex.wp_proof
 
 theorem tracker.ProgressTracker.wp_OneLessThanQuorumInReplicationSet :
     tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof tracker.Epoch.wp_ReplicateToWitness quorum.MajorityConfig.wp_OneLessThanQuorum tracker.matchAckIndexer.wp_AckedIndex tracker.scopedAckIndexer.wp_AckedIndex
+  tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof tracker.Epoch.wp_ReplicateToWitness tracker.wp_witnessIndex tracker.matchAckIndexer.wp_AckedIndex tracker.scopedAckIndexer.wp_AckedIndex
 
 theorem raftLog.wp_matchTerm [StorageModel GF] :
     raftLog.matchTerm.spec (GF := GF) (hG := hG) :=

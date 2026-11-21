@@ -281,12 +281,12 @@ inductive StepCF : PState → List Msg → PState → Prop where
       s.role = .leader →
       c.wit ≠ W64 0 →
       c.wit ∈ c.incoming →
-      exclOf c s ≠ c.wit →
+      (exclOf c s ≠ c.wit ∨ (s.rsx = W64 0 ∧ s.sub ≠ W64 0)) →
       exclOf c s ∈ c.incoming →
       plogEntryAt s.base s.log i = some e →
       e.Term' = s.term →
       e.Subterm' = s.sub →
-      size c.incoming / 2 ≤ size (ackedBy s i ∩ rsVoters c s) →
+      witnessWriteCount (size c.incoming) s.rsx ≤ size (ackedBy s i ∩ rsVoters c s) →
       vs ≡ₚ elements (rsVoters c s) →
       StepCF s []
         (psendMsgs s [Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []])

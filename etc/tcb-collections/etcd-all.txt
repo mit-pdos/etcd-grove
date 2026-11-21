@@ -78,7 +78,6 @@ axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
 axiom Perennial.path.filepath.opaqueInitsOk
-axiom Perennial.reflect.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
@@ -99,8 +98,6 @@ axiom auth.tokenSimple.genTokenPrefix.wp_proof
 axiom backend.backend.Snapshot.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
-axiom binary.ReadUint64.wp_proof
-axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bridge.New.wp_proof
 axiom bridge.bridge.Blackhole.wp_proof
