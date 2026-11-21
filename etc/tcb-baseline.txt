@@ -475,7 +475,6 @@ axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
 axiom time.Duration.String_ptr.wp_proof
-axiom trace.New.wp_proof
 axiom trace.Trace.LogIfLong.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof

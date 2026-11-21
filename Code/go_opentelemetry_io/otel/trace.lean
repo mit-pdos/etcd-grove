@@ -279,17 +279,11 @@ opaque errDuplicate [GooseExts] [GoGlobalContext] : val
 noncomputable def tracerProviderInstance [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.tracerProviderInstance"
 
-opaque tracerProviderInstance.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def start [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.start"
 
-opaque start.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ended [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.ended"
-
-opaque ended.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxSpan [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.maxSpan"
@@ -301,8 +295,6 @@ noncomputable def noopSpanInstance [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def autoInstEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.autoInstEnabled"
-
-opaque autoInstEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nilTraceID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.nilTraceID"
@@ -584,6 +576,25 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc autoTracerProvider.ty))) (App (Val (GoInstruction (GoZeroVal autoTracerProvider.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -592,6 +603,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert noopSpan.ty Span.ty))) (App (Val (GoInstruction (CompositeLiteral noopSpan.ty))) (LiteralValue [])))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -605,7 +617,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val autoInstEnabled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr autoInstEnabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Span.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr noopSpanInstance))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -619,15 +631,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val maxSpan.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ended.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr ended))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val start.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType autoSpan.ty), (go.GoType.PointerType SpanContext.ty), (go.GoType.PointerType go.bool), (go.GoType.PointerType SpanContext.ty)] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr start))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val tracerProviderInstance.init) (Val #()))))))
+  (App (Val «_».init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType autoTracerProvider.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr tracerProviderInstance))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -637,7 +649,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc noopSpanInstance Span.ty)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc tracerProviderInstance (go.GoType.PointerType autoTracerProvider.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc start (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType autoSpan.ty), (go.GoType.PointerType SpanContext.ty), (go.GoType.PointerType go.bool), (go.GoType.PointerType SpanContext.ty)] false [])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ended (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc noopSpanInstance Span.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc autoInstEnabled (go.GoType.PointerType go.bool))) (Val #()))))))))
 
 structure autoTracerProvider [GooseExts] where
   mk ::

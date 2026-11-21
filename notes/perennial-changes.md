@@ -17,6 +17,31 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
+
+- **Limitation 1 (the guard).** `var maxSpan = newSpanLimits()` (`go.opentelemetry.io/otel/trace` v1.47.0,
+  `auto.go:622`) is refused by goose's modelcheck (R4, `docs/design/unsafe-memory.md`: a call returning a
+  pointer-free struct in a package-variable initializer, which gc may inline and build in place). Here the callee's
+  literal elements are `firstEnv(...)` calls returning `int`s, which cannot overlap `maxSpan`, but the guard does not
+  look at callee bodies. The doc says any change to the guard's rule needs the project owner's approval: not
+  proposed by this repository; `maxSpan.init` stays in `go_opentelemetry_io.otel.trace.opaqueInitsOk`.
+- **Limitation 2 (axiomatized aliases).** goose declares a names-only type alias as `opaque X : go.GoType`, but
+  every reference to an alias names its descriptor `X.ty` (`TypeIdent`), as a translated alias declares it. In
+  go1.27 `encoding/json.Marshaler` is an alias (`= jsonv2.Marshaler`, `v2_encode.go:206`), so otel trace's four
+  `var _ json.Marshaler = ...` assertions do not compile (`Code/encoding/json.lean` is names-only), and with them
+  every `var _` of the package (goose's `"_"` selects them all): 11 entries stay in `opaqueInitsOk`. Today such a
+  reference is avoided by translating the alias itself (`protoimpl.toml`), which for `json.Marshaler` needs
+  `encoding/json/v2` translated (reflect, an `init`).
+- **Tried (not proposed).** goose declaring an axiomatized alias's descriptor `opaque X.ty` (patch
+  `/shared/tmp/otel4/alias.patch`, goose's tests pass) makes the `var _` assertions compile, and the rest of the tree
+  builds (with encoding/json's `IsPkgInit` instance moved from `apply/Base.lean` to `mvcc/Base.lean`), but the
+  initializer still does not step: `Convert TraceID.ty encoding.json.Marshaler.ty` needs `Marshaler.ty` known to be
+  an interface type, which an opaque descriptor is not; `attributeOption{}` also needs a `wp_slice_literal` step.
+  So retiring these entries needs `json.Marshaler`'s target translated (the alias in `Code/encoding/json.toml` and
+  `encoding/json/v2`'s `Marshaler`, names-only), on top of the goose fix: not done (the PR was not opened).
+- **Done here.** The other four initializers (`tracerProviderInstance`, `autoInstEnabled`, `start`, `ended`)
+  translated: `opaqueInitsOk` from 15 entries to 12.
+
 ### Goose keeps a struct axiomatized when a field's type is another package's alias (2026-11-21, prove-k8s4)
 
 - **Limitation.** `translate_types` fails a type whose definition mentions an alias of another package
