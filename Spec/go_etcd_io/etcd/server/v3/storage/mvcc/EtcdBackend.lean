@@ -254,7 +254,7 @@ abbrev mvccImage_snapshot.law : Prop :=
     (Φ : MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isMvcc kv γ ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗ backend.bOpen bk.γB qo ∗ backend.wbTok bk.γB ∗
-      threadTok ∗ R ∗
+      threadTok ∗ backend.rdTok bk.γB bk.P bk.be ∗ R ∗
       □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
         R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜σ.pending = none⌝ }>
@@ -264,8 +264,8 @@ abbrev mvccImage_snapshot.law : Prop :=
   {{ (sp : Loc) (D : backend.Data),
       RET #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);
-      backend.snapOpen sp D ∗ backend.bOpen bk.γB qo ∗ R ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
-      ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
+      backend.snapOpen sp D ∗ backend.bOpen bk.γB qo ∗ backend.rdTok bk.γB bk.P bk.be ∗ R ∗
+      mvccBackend γ 1 (etcdStorage bk) Pk ∗ ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
       ∃ (σ : MvccState) (u : Bool), Φ σ ∗ mvccImage D σ.log σ.crev u }}
 
 end snapshot

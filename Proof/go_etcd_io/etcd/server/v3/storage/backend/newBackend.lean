@@ -270,7 +270,7 @@ theorem backend.newBackend.wp_proof
     (bF go!"mu" «$r0_ptr») (HPfrac := ptOwn_fractional _ _) $$ [db] mu with Hmus
   · inext; iexact db
   icases rep_guard _ actualMaxReaders_pos' _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
-  ihave Hmu1 := rep_one _ actualMaxReaders_pos' _ $$ Hmus
+  icases rep_one_slots _ $$ Hmus with ⟨Hmu1, Hbmus⟩
   -- `b.safeRangeDeleteMu`: a reader's slot of it (`srSlot`, Q5-2)
   imod sync.init_RWMutex (fun _ => iprop(True)) (E := ⊤)
     (bF go!"safeRangeDeleteMu" «$r0_ptr») $$ [] safeRangeDeleteMu with Hsrs
@@ -298,7 +298,7 @@ theorem backend.newBackend.wp_proof
   -- the backend's invariants
   imod backend_init P W Pk K cfg.Hooks' «$r0_ptr» t «$v5_ptr» «$v3_ptr» «$v2_ptr» db lg wtx rtx m cm γd
     cfg.Path'
-    γrw D sc dc γsc γdc HP.1 $$ [Hmk Hmu1 Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
+    γrw D sc dc γsc γdc HP.1 $$ [Hmk Hmu1 Hbmus Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
       Hhalf Hwtx Hst Hrtoks rtx Hlive rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
       cbuf cbufVersion Hsco Hdco Hsr1]
     with ⟨%γ, %Hγd, #Hbfile, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩

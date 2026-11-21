@@ -41,6 +41,10 @@ live thread, paid by its own fork's fuel; net, the caller is out one token per o
 `Close` (`notes/axiom-review/begin-tok-restated.md`, A8). Under
 `[ThreadBoundLe GF (2 ^ 29)]`, `bbolt.Open_kv`'s bound. Until then the pre took no token and a
 proof could hold `2 ^ 30` open snapshots (`notes/axiom-review/backend-snapshot-begin.md`).
+
+(Backend-snapshot B3, 2026-11-20, `notes/backend-snapshot-plan.md`; ledger entry of that day) The pre also lends
+a reader's token (`rdTok`, given back): its read slot of `b.mu` (`bmSlot`) is what `Snapshot` read-locks `b.mu`
+with, the `threadTok` going to bbolt's `Begin`. The server's apply thread lends its own (`apply.bkRT`).
 -/
 module
 
@@ -72,7 +76,7 @@ abbrev backend.backend.Snapshot.spec : Prop :=
     (R : IProp GF)
     (Q : VData → GMap (GoString × GoString) GoString → GMap GoString BktData → FkVals → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ threadTok ∗ R ∗
+      isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ threadTok ∗ rdTok γ P b ∗ R ∗
       □ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData)
           (v : FkVals),
         ∀ X : VData,
@@ -80,7 +84,7 @@ abbrev backend.backend.Snapshot.spec : Prop :=
           ⌜Q vd d r v⌝) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Snapshot")) (Val #()))
   {{ (sp : Loc) (D : Data), RET #(interface.mkOk (go.GoType.PointerType snapshot.ty) #sp);
-      snapOpen sp D ∗ bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗
+      snapOpen sp D ∗ bOpen γ qo ∗ rdTok γ P b ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗
       ⌜Q (sData P D) (hkData P D) (rbData P D) (fkVals D)⌝ }}
 
 end spec

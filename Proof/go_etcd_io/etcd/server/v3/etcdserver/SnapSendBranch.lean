@@ -645,7 +645,7 @@ theorem mergedCreate_window
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d) ∗ freezeY γ st ∗ emp)
   iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗
       (mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d) ∗
-      backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗
+      backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗ backend.rdTok d.γB d.P d.be ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
           (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
@@ -655,7 +655,7 @@ theorem mergedCreate_window
         RL)) ∗
       srvApi.wStQ E.γs E.stq x.log x.crev))
   iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗ (backend.bOpen d.γB backend.rdOpen ∗
-      (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
+      backend.rdTok d.γB d.P d.be ∗ (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
           (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         backend.rbPart d.γB (restSet E.authMode)
@@ -683,7 +683,7 @@ theorem mergedCreate_window
     iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #d.be⟩
     isplitr
     · ipureintro; rfl
-    iintro %Φ !> ⟨⟨Hmr, HmB, Ho, Hwb, HR, Hws⟩, Htok⟩ HΦ
+    iintro %Φ !> ⟨⟨Hmr, HmB, Ho, Hwb, Hrd, HR, Hws⟩, Htok⟩ HΦ
     wp_apply (srvApi.snapImageG hPers hReach hImg hSnap E.Nx E.Cp E.kv E.γ E.γs x.log x.crev d (E.Pk d)
         backend.rdOpen
         iprop(freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
@@ -698,9 +698,9 @@ theorem mergedCreate_window
             (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
               (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk.lookup n) ∧
           ∃ ra, QA ra ∧ ∀ n, SA n → r.lookup n = ra.lookup n))
-      $$ [HmB Ho Hwb Htok HR Hws]
-      as %sp %D ⟨Hsn, Ho, HR, HmB, Hws, %HQD, %Hre, %u, #Him⟩
-    · iframe #; iframe HmB Ho Hwb Htok HR Hws
+      $$ [HmB Ho Hwb Htok Hrd HR Hws]
+      as %sp %D ⟨Hsn, Ho, Hrd, HR, HmB, Hws, %HQD, %Hre, %u, #Him⟩
+    · iframe #; iframe HmB Ho Hwb Htok Hrd HR Hws
       rw [hPkd]
       iintro !> %dd %r ⟨HY, Hrc, Hrn, HRL⟩ HPk Hhk Hrb'
       icases Hlaw $$ %r HRL Hrb' with ⟨%Hra, -, Hrb'⟩
@@ -713,7 +713,7 @@ theorem mergedCreate_window
       ipureintro; exact ⟨Hob.1, Hob.2.1, Hra⟩
     iapply HΦ
     simp only []
-    iframe Hsn Hmr Ho HR HmB Hws
+    iframe Hsn Hmr Ho Hrd HR HmB Hws
     obtain ⟨⟨hci1, t1, ht1⟩, hrbD, hraD⟩ := HQD
     rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
     rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
@@ -730,10 +730,10 @@ theorem mergedCreate_window
     have := hraD n h
     simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
     exact this
-  isplitl [Hopn Ht1 Hrb Hws]
+  isplitl [Hopn Ht1 Hrdt Hrb Hws]
   · iintro ⟨Hmr, HmB, HY, -⟩
-    iframe Hmr HmB Hopn Ht1 HY Hrb Hws
-  · iintro %D ⟨Hmr, Hopn, ⟨HY, Hrb⟩, HmB⟩ ⟨Hws, #Hmi, %Hra'⟩ Hbe
+    iframe Hmr HmB Hopn Ht1 Hrdt HY Hrb Hws
+  · iintro %D ⟨Hmr, Hopn, Hrdt, ⟨HY, Hrb⟩, HmB⟩ ⟨Hws, #Hmi, %Hra'⟩ Hbe
     icases Hrb with ⟨Hrc, Hrn, Hpa⟩
     imod Hlb $$ Hpa with HRA
     imod unfreeze γ st $$ Hinv HY with Hst

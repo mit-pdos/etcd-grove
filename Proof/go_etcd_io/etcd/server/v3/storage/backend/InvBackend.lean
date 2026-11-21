@@ -1872,10 +1872,18 @@ def crTok (γ : BNames) (b : Loc) : IProp GF :=
   iprop(∃ (rt tm : Loc), bF go!"readTx" b ↦□ rt ∗ rtmuOf (baseOf rt) ↦□ tm ∗
     sync.ownRWMutex tm (fun q => tmTok γ q) ∗ ownToks γ.rdt 1)
 
-/-- A reader's token: a slot of `readTx.mu`, and `crTok`. -/
+/-- **A read slot of `b.mu`** over the backend's database (backend-snapshot B3, 2026-11-20): what
+`Snapshot` read-locks `b.mu` with, around bbolt's `Begin(false)`; every reader's token carries one
+(`rdTok`), so a snapshotter lends its own (`notes/backend-snapshot-plan.md`, "The reader slot of
+`b.mu`"). -/
+def bmSlot (γ : BNames) (b : Loc) : IProp GF :=
+  iprop(∃ db : Loc, bDB γ db ∗ sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
+
+/-- A reader's token: a slot of `readTx.mu`, `crTok`, and (backend-snapshot B3) a read slot of
+`b.mu` (`bmSlot`). -/
 def rdTok (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
   iprop(∃ rt : Loc, bF go!"readTx" b ↦□ rt ∗ sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    crTok γ b)
+    crTok γ b ∗ bmSlot γ b)
 
 /-- What `baseReadTx.UnsafeRange` needs of its receiver `base` (a shared or a concurrent read
 transaction): its read buffer at `dq` (writable buffers unless read-only for good, a
@@ -1914,7 +1922,8 @@ own (`UnsafeRange`, `rtHeldF_lend'`, `rtHeldF_read'`). -/
 def rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗
+    iprop(crTok γ b ∗ bmSlot γ b))
 
 /-- The shared read transaction held with the share `p` of bbolt's transaction (`rtHeld` holds
 `sync.rfrac.half`; a part lent to another reader of the same snapshot, `rtHeld_lend`: the restore
@@ -1922,12 +1931,24 @@ plan's R5b), its interval live (`rtHeld`). -/
 def rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) : IProp GF :=
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗
+    iprop(crTok γ b ∗ bmSlot γ b))
 
 theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv = rtHeldF γ P b rtx rv sync.rfrac.half := rfl
 
 end preds
+
+/-- **The number of reader's tokens the constructor makes** (backend-snapshot B3, 2026-11-20): one
+fewer than `readTx.mu`'s and `b.mu`'s `actualMaxReaders` slots, since each token carries a slot of
+both (`rdTok`) and the batch transaction keeps one of `b.mu`'s. -/
+def rdSlotsN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - 1
+
+theorem rdSlotsN_pos : 0 < rdSlotsN := by
+  unfold rdSlotsN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+
+theorem rdSlotsN_add_one : rdSlotsN + 1 = Int.toNat sync.rwmutex.actualMaxReaders := by
+  unfold rdSlotsN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide
 
 section shares
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -1940,8 +1961,7 @@ orchestrator's decision: the shares counted): half of the open token divided amo
 every reader's token and the remainder back, the whole open token is reassembled
 (`bOpen_one_shares`), which the old backend's `Close` needs (`applySnapshot`). -/
 def rdOpen : Qp :=
-  Qp.divide_even (1 : Qp).half (Int.toNat sync.rwmutex.actualMaxReaders)
-    (by have := sync.actualMaxReaders_ge_2; omega)
+  Qp.divide_even (1 : Qp).half rdSlotsN (by have := rdSlotsN_pos; omega)
 
 /-- `q` plus `n` shares `s`. -/
 def qpRep (q s : Qp) : Nat → Qp
@@ -1999,17 +2019,16 @@ theorem bOpen_rep (γ : BNames) (q s : Qp) : ∀ n : Nat,
 /-- **The whole open token is the constructors' half and every reader's share** (W7). -/
 theorem bOpen_one_shares (γ : BNames) :
     bOpen (GF := GF) γ 1 ⊣⊢ bOpen γ (1 : Qp).half ∗
-      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), bOpen γ rdOpen := by
-  have h : qpRep (1 : Qp).half rdOpen (Int.toNat sync.rwmutex.actualMaxReaders) = 1 := by
+      [∗list] _x ∈ List.replicate rdSlotsN (), bOpen γ rdOpen := by
+  have h : qpRep (1 : Qp).half rdOpen rdSlotsN = 1 := by
     apply Subtype.ext
     rw [qpRep_val]
-    have := sync.actualMaxReaders_ge_2
-    have hN : ((Int.toNat sync.rwmutex.actualMaxReaders : Nat) : Rat) ≠ 0 := by
-      exact_mod_cast (show Int.toNat sync.rwmutex.actualMaxReaders ≠ 0 by omega)
+    have := rdSlotsN_pos
+    have hN : ((rdSlotsN : Nat) : Rat) ≠ 0 := by
+      exact_mod_cast (show rdSlotsN ≠ 0 by omega)
     simp only [rdOpen, Qp.val_divide_even, Qp.val_half, Qp.val_one]
     grind
-  have hr := bOpen_rep (GF := GF) (hG := hG) γ (1 : Qp).half rdOpen
-    (Int.toNat sync.rwmutex.actualMaxReaders)
+  have hr := bOpen_rep (GF := GF) (hG := hG) γ (1 : Qp).half rdOpen rdSlotsN
   rw [h] at hr
   exact hr
 

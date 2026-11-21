@@ -4746,8 +4746,8 @@ writes and its storage-version monitor, `etcdStorage_open.law`). -/
 abbrev nReaders : Nat := backend.rdStockN - 2
 
 /-- The store's readers' number (2026-11-02, the backend-auth-split stage). -/
-theorem nReaders_val : nReaders = 536870781 := by
-  show backend.rdStockN - 2 = 536870781
+theorem nReaders_val : nReaders = 536870780 := by
+  show backend.rdStockN - 2 = 536870780
   rw [backend.rdStockN_val]
 
 /-- A lock's reader slots, as many as the store's readers (`nReaders`, the backend's stock: at most

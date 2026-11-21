@@ -3242,3 +3242,20 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   error arms `¬ FsNoErr ∨ ¬ PathFits p`; a bound on the member's data directory in `bootCfgFresh`, discharged in
   the examples from the member name (≤ 200 bytes).
 - **Decision.** Option 2, the user, 2026-11-20, via etcd-grove-03; flock left to `NoMapLockErr` the same day.
+
+## 2026-11-20: `backend.Snapshot` proved; its pre lends a reader's token (backend-snapshot B3/B4)
+
+- **Spec.** `backend.backend.Snapshot.spec` (`Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean`),
+  and the statements that restate it: mvcc's `mvccImage_snapshot.law` (`Spec/.../storage/mvcc/EtcdBackend.lean`), the
+  server's `senderImage.law` (`KVStoreApi.lean`).
+- **Defect.** Unprovable as stated (an axiom until now): `Snapshot` read-locks `b.mu` around bbolt's `Begin(false)`, which
+  takes the caller's `threadTok` for `mmaplock`'s slot; one thread token cannot also pay for `b.mu`'s slot (thread pools
+  borrow the whole token), and the pre had no other reader resource.
+- **Evidence.** `notes/backend-snapshot-plan.md`, "The reader slot of `b.mu`" (Perennial's `threadPool.borrow`,
+  bbolt's `Begin.spec`).
+- **Proposed change.** Every backend reader's token `rdTok` carries a read slot of `b.mu` (`bmSlot`; the constructor makes
+  `actualMaxReaders - 1` tokens, the batch transaction keeping one of `b.mu`'s slots); the pre and post of the three
+  statements add the caller's `rdTok`, lent (SpecPlan's `Snapshot` takes a counted reader slot too). The server's apply
+  thread lends the one it holds (`apply.bkRT`). The observation `Q` and the rest are unchanged.
+- **Decision.** Taken under the user's direction of 2026-11-20 ("make your own choice ... the top-level robustness theorems
+  should have fewer axioms"): it retires the `backend.Snapshot` axiom from every collection that reaches it.
