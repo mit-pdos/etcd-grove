@@ -78,6 +78,11 @@ theorem wp_ncfupd {s : Stuckness} {E : CoPset} (e : Expr) (Φ : val → IProp GF
   unfold ncfupd
   exact wp_notCrashed_acc e Φ h
 
+/-- `wp_ncfupd` at an application (the shape of a call, and of a `let`). -/
+theorem wp_ncfupd_app {s : Stuckness} {E : CoPset} (e1 e2 : Expr) (Φ : val → IProp GF) :
+    ncfupd E (WP (App e1 e2) @ s; E {{ Φ }}) ⊢ WP (App e1 e2) @ s; E {{ Φ }} :=
+  wp_ncfupd _ Φ rfl
+
 /-- (Löb's body) The postcondition's crash-token update, run at the last step: by the state
 interpretation that step holds. -/
 private theorem wp_ncfupd_post_step {s : Stuckness} {E : CoPset} (σ : BcfgState) (ns : Nat)

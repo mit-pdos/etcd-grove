@@ -1640,6 +1640,24 @@ theorem cview_auth_use {A : Type} [Pos.Countable A] (E : CoPset) (γ : RaftNames
   iexists x
   iframe Hinv Hv
 
+/-- **A pure fact of a leader-side map's authority** (`cview_auth_use`, the fact read out). -/
+theorem cview_auth_pure {A : Type} [Pos.Countable A] (E : CoPset) (γ : RaftNames) (id : w64)
+    (sel : CrashNames → GName) (names : GMap w64 GName)
+    (hlens : CrashLens (GF := GF) γ id (fun x => leadPiece (A := A) γ id (sel x) names))
+    (m : GMap w64 A) (γm : GName) (P : IProp GF) (φ : Prop)
+    (h : (ghostMapAuth γm 1 m ∗ P : IProp GF) ⊢ ⌜φ⌝) :
+    ↑(crashNs γ id) ⊆ E → names !! id = some γm →
+    ⊢ notCrashed -∗ cview γ id sel (1 : Qp).half m -∗ P ={E}=∗
+      notCrashed ∗ cview γ id sel (1 : Qp).half m ∗ P ∗ ⌜φ⌝ := by
+  intro HE Hγm
+  iintro Hnc Hv HP
+  iapply cview_auth_use E γ id sel names hlens m γm P iprop(P ∗ ⌜φ⌝) HE Hγm $$ Hnc Hv HP
+  iintro Ha HP
+  icases persistent_entails_right h $$ [Ha HP] with ⟨%Hφ, Ha, HP⟩
+  · iframe Ha HP
+  iframe Ha HP
+  ipureintro; exact Hφ
+
 def lcmOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (lcm : GMap w64 GName), ⌜γ.reLcm !! id = some γl⌝ ∗
     cview γ id CrashNames.l (1 : Qp).half lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc ∗ campKey γ id t) ∗

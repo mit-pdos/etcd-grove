@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.go_etcd_io.raft.v3.TraceSimFacts
 public import Proof.go_etcd_io.raft.v3.TraceSimSpecInv
 public import Proof.strconv.FormatUintDefs
+public import GooseLang.NotCrashed
 
 @[expose] public section
 
