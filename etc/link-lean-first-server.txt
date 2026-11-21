@@ -376,11 +376,12 @@ EtcdServer__leaseTimeToLive:
 EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
 # The lease keep-alive entry point (the lease-renew plan, 2026-11-01; its contracts approved by
 # the user): the trust boundary is the lessor's `Renew`, `ensureLeadership`, `waitAppliedIndex`,
-# `waitLeader` (names-only) and the forwarding, `leasehttp.RenewHTTP`.
+# `waitLeader` (names-only; `waitAppliedIndex` proved by prove-etcdserver, `waitLeader` by prove-srvloops)
+# and the forwarding, `leasehttp.RenewHTTP`.
 lease_lessor__Renew:
 EtcdServer__ensureLeadership:
 EtcdServer__waitAppliedIndex: EtcdServer__getCommittedIndex
-EtcdServer__waitLeader:
+EtcdServer__waitLeader: EtcdServer__Leader membership_RaftCluster__Member
 leasehttp_RenewHTTP:
 EtcdServer__LeaseRenew: EtcdServer__ensureLeadership EtcdServer__waitAppliedIndex EtcdServer__waitLeader EtcdServer__checkLeaseRenew lease_lessor__Renew lease_lessor__Lookup leasehttp_RenewHTTP EtcdServer__isLeader EtcdServer__FeatureEnabled config_ServerConfig__ReqTimeout traceutil_Tracer__Start trace_WithAttributes attribute_Int64 errors_Is errors_IsCtxErr errors_IsStatusErr EtcdServer__Logger zap_Error zap_Logger__Warn
 # auth-mediation M2 (2026-11-20): the promotion's entry point (local, or forwarded to the leader as
@@ -560,6 +561,8 @@ EtcdServer__Start: EtcdServer__start EtcdServer__GoAttach EtcdServer__Logger Etc
 # Unit P1b (2026-10-14): the request path's leaf functions proved (traceutil, the cluster's
 # members, the transport queries; `time.Time.IsZero` and `LogWithStepThreshold` are axioms).
 Member__Clone:
+# (prove-srvloops, 2026-11-21) the leader lookup of the server's `waitLeader`
+membership_RaftCluster__Member: Member__Clone
 MembersByID__Len:
 MembersByID__Less:
 MembersByID__Swap:

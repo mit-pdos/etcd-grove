@@ -41,9 +41,9 @@ entry, with what the proposer learns of the model there (`appliedOkM`, `modelOut
 the auth state the entry met and the auth layer's verdict the model's grant there, its outcome
 lease-exact at the model's table). (Sweep repairs 1,
 B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's
-`Value(StartTimeKey{})` is type-asserted from).  (Sweep repairs 1,
-B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's
-`Value(StartTimeKey{})` is type-asserted from). -/
+`Value(StartTimeKey{})` is type-asserted from). (Auth-mediation M4, 2026-11-21) The apply's error
+in the mode (`appliedErrM`): at the committed prefix before the entry, with the outcome and, with
+auth on, its admin tie (an admin request refused at apply names why). -/
 abbrev EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF))
@@ -70,7 +70,7 @@ abbrev EtcdServer.raftRequest.spec : Prop :=
           hdrBoundM E.authOn s E tok hm) ∨
        (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-            ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' F err ∗
+            ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErrM E.authOn E ρ rq' F err ∗
             hdrBoundM E.authOn s E tok hm) ∨
           srvMaybeDeposited ρ rq))) }}
 
