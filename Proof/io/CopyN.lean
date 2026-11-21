@@ -202,6 +202,20 @@ theorem io.wp_LimitReader (src : GoInterface) (n : w64) :
   iapply HΦ
   iexact Hl
 
+/-- A call of `Write`, with `writerOk` kept folded in the caller's context. -/
+theorem io.wp_writer_Write (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) (p : GoSlice)
+    (dq : DFrac) (chunk bs : List w8) (c : Bool) :
+    {{ io.writerOk w Wr ∗ p ↦*{dq} chunk ∗ Wr c bs }}
+      (App (Val #(methods w.ty go!"Write" w.v)) (Val #p))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+        ∃ k : Nat, p ↦*{dq} chunk ∗ Wr true (bs ++ chunk.take k) ∗
+          ⌜sint.Z n = k ∧ k ≤ chunk.length ∧ (err = GoInterface.nil → k = chunk.length)⌝ ∗
+          fmtErrorOkOrNil err }} := by
+  iintro %Φ ⟨#Hw, Hp, HWr⟩ HΦ
+  unfold io.writerOk
+  iapply Hw $$ %p %dq %chunk %bs %c [Hp HWr] HΦ
+  iframe Hp HWr
+
 /-- The size of `copyBuffer`'s buffer for a limited reader of `n` bytes. -/
 def io.copySize (n : w64) : w64 :=
   if sint.Z n < 32768 then (if sint.Z n < 1 then W64 1 else n) else W64 32768
@@ -233,6 +247,15 @@ theorem io.wp_copyBuffer (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF
             (∀ j x, bs[j]? = some x → Hd (off.toNat + j) x) ∧
             (c' = true ∨ (c' = c ∧ bs = []))⌝ }} := by
   wp_start as ⟨#Hw, HWr, Hl, Hsr, #Hr, HP⟩
+  ihave Hi := _root_.Perennial.io.isInit_access $$ Hpkg
+  icases Hi with ⟨-, #HSW, #HIW, -, #HEOF, -⟩
+  iunfold errors.newVar at HSW HIW HEOF
+  icases HSW with ⟨%xsw, #HSW, -⟩
+  icases HIW with ⟨%xiw, #HIW, -⟩
+  icases HEOF with ⟨%xeof, #HEOF, -⟩
+  have heof : _root_.Perennial.io.ptrTyped
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xeof) := by
+    intro ii T h _; cases h; exact ⟨xeof, rfl⟩
   have hwt : go.typeSetContains (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)
       _root_.Perennial.io.WriterTo.ty = false := by
     rw [go.typeSetContains_underlying, go.typeSetElemsContains_cons,
@@ -252,25 +275,123 @@ theorem io.wp_copyBuffer (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF
   have h32 : sint.Z (W64 32768) = 32768 := rfl
   have h1 : sint.Z (W64 1) = 1 := rfl
   wp_if_destruct
-  · have hc1 := Hif
-    rw [h32] at hc1
+  have hc1 := Hif
+  rw [h32] at hc1
+  wp_if_destruct
+  -- `n < 1`: a buffer of 1 byte
+  rw [show n - W64 0 = n by word, h1] at Hif
+  rw [show W64 1 = io.copySize n by unfold io.copySize; simp only [hc1, Hif, ↓reduceIte]]
+  rotate_left
+  -- `1 ≤ n < 32 KiB`: a buffer of `n` bytes
+  rw [show n - W64 0 = n by word, h1] at Hif
+  rw [show n - W64 0 = io.copySize n by
+    unfold io.copySize; simp only [hc1, Hif, ↓reduceIte]; word]
+  rotate_left
+  -- a buffer of 32 KiB
+  rw [h32] at Hif
+  rw [show W64 32768 = io.copySize n by unfold io.copySize; simp only [Hif, ↓reduceIte]]
+  rotate_left
+  all_goals (
+    wp_apply (wp_slice_make2 (V := w8) (io.copySize n)) as %sl ⟨Hsl, -⟩
+    · ipureintro; omega
+    ihave HI : (∃ (W : w64) (bs : List w8) (c' : Bool) (bv : List w8),
+        "written" ∷ written_ptr ↦ W ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗ "buf" ∷ buf_ptr ↦ sl ∗
+        "Hsl" ∷ sl ↦* bv ∗ "Hl" ∷ l ↦ io.limAt sr n W ∗ "Hsr" ∷ sr ↦ io.secAt r off n W ∗
+        "HWr" ∷ Wr c' (bs₀ ++ bs) ∗ "HP" ∷ P ∗
+        "%Hinv" ∷ ⌜bv.length = sint.nat (io.copySize n) ∧ W.toNat = bs.length ∧
+          bs.length ≤ n.toNat ∧ (∀ j x, bs[j]? = some x → Hd (off.toNat + j) x) ∧
+          (c' = true ∨ (c' = c ∧ bs = []))⌝ : IProp GF) $$ [written err buf Hsl Hl Hsr HWr HP]
+    · iexists W64 0, [], c, _
+      simp only [List.append_nil]
+      iframe
+      ipureintro
+      refine ⟨by simp, by simp, by simp, fun j x h => by simp at h, by simp⟩
+    wp_for HI
+    try simp only [_root_.decide_true, ↓reduceIte]
+    try wp_auto
+    obtain ⟨hbv, hWb, hbn, hHd, hc'⟩ := Hinv
+    have hszn : sint.nat (io.copySize n) ≤ 32768 := by
+      have : sint.nat (io.copySize n) = (sint.Z (io.copySize n)).toNat := rfl
+      omega
+    wp_apply io.wp_limReader_Read l sr r off n W P Hd sl bv _ hsum (by omega) (by omega) heof
+      $$ [Hl Hsr HP Hsl] as %k %er ⟨Hl, Hsr, HP, %bv', Hsl, %Hk⟩
+    · iframe; iframe #
+    obtain ⟨hbv', hkb, hWk, hHdk, hter⟩ := Hk
+    ihave %Hwf := ownSlice_wf $$ Hsl
+    ihave %Hlen := ownSlice_len $$ Hsl
+    have hkz : sint.Z k = k.toNat := by
+      simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
+    have hsll : sint.Z sl.len = bv'.length := by
+      have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
     wp_if_destruct
-    · rw [h1] at Hif
-      have h : W64 1 = io.copySize n := by
-        unfold io.copySize; simp only [hc1, Hif, ↓reduceIte]
-      rw [h]
-      done
-    · rw [h1] at Hif
-      have h : n = io.copySize n := by
-        unfold io.copySize; simp only [hc1, Hif, ↓reduceIte]
+    · -- `nr > 0`: write `buf[0:nr]`
+      rw [show sint.Z (W64 0) = 0 from rfl, hkz] at Hif
+      have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z k ∧ sint.Z k ≤ sint.Z sl.cap := by
+        rw [show sint.Z (W64 0) = 0 from rfl, hkz]; omega
+      simp only [hb, _root_.and_self, ↓reduceIte]
       wp_auto
-      rw [h]
+      icases (ownSlice_split_all k sl _ _ ⟨by omega, by omega⟩).1 $$ Hsl with ⟨Hs1, Hs2⟩
+      wp_apply io.wp_writer_Write w Wr _ (DFrac.own 1) (bv'.take (sint.nat k)) (bs₀ ++ bs) c'
+        $$ [Hs1 HWr] as %nw %ew ⟨%m, Hs1, HWr, %Hm, -⟩
+      · iframe Hw Hs1 HWr
+      have hsk : sint.nat k = k.toNat := by
+        have : sint.nat k = (sint.Z k).toNat := rfl
+        rw [this, hkz]; simp
+      rw [hsk] at Hm
+      rw [hsk]
+      have htk : (bv'.take k.toNat).length = k.toNat := by simp only [List.length_take]; omega
+      rw [htk] at Hm
+      obtain ⟨hnw, hmk, hmew⟩ := Hm
+      wp_if_destruct
+      · exfalso; rw [show sint.Z (W64 0) = 0 from rfl] at Hif; omega
+      wp_if_destruct
+      · exfalso; rw [hkz] at Hif; omega
+      try wp_auto
       done
-  · rw [h32] at Hif
-    have h : W64 32768 = io.copySize n := by
-      unfold io.copySize; simp only [Hif, ↓reduceIte]
-    rw [h]
-    done
+    · -- `nr == 0`: nothing written
+      rw [show sint.Z (W64 0) = 0 from rfl, hkz] at Hif
+      have hk0 : k = W64 0 := by apply BitVec.eq_of_toNat_eq; simp; omega
+      subst hk0
+      rcases er with ei | _
+      · -- `er != nil`: the loop ends
+        have hWz : sint.Z W = bs.length := by
+          simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
+        obtain ⟨ty, v⟩ := ei
+        wp_auto
+        by_cases hty : ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty
+        · obtain ⟨l', hl'⟩ := hter ⟨ty, v⟩ _ rfl hty
+          simp only at hl'
+          subst hty hl'
+          simp only [↓reduceIte]
+          wp_auto
+          wp_if_destruct
+          · wp_for_post
+            iapply HΦ
+            iexists c', bs
+            iframe
+            ipureintro; exact ⟨hWz, hbn, hHd, hc'⟩
+          · wp_for_post
+            iapply HΦ
+            iexists c', bs
+            iframe
+            ipureintro; exact ⟨hWz, hbn, hHd, hc'⟩
+        · simp only [hty, ↓reduceIte]
+          wp_auto
+          wp_for_post
+          iapply HΦ
+          iexists c', bs
+          iframe
+          ipureintro; exact ⟨hWz, hbn, hHd, hc'⟩
+      · -- `er == nil`: next iteration
+        wp_auto
+        wp_for_post
+        iframe
+        iexists W, bs, c', bv'
+        rw [show W + W64 0 = W by word]
+        iframe
+        ipureintro
+        exact ⟨by omega, hWb, hbn, hHd, hc'⟩
+    done)
 
 theorem io.CopyN.wp_proof : io.CopyN.spec (GF := GF) (hG := hG) := by
   intro w Wr c bs₀ sr r off n P Hd hplain hn
