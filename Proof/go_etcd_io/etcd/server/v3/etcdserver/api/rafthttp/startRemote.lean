@@ -62,6 +62,8 @@ theorem rafthttp.startRemote.wp_proof
   · iframe
     iunfold pipeFixed
     iexists t, pk, ec, lg, turls, tuvs, lid, cid, prt, ps, null, r, lid, γd
+    ihave #Hfso : (⌜(null : Loc) = null⌝ ∨ v2stats.isFollowerStats (GF := GF) null) $$ []
+    · ileft; ipureintro; rfl
     iframe #
     isplitr
     · ipureintro; exact ⟨Hmem, Hnp⟩
