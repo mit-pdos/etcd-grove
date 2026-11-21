@@ -131,6 +131,17 @@ theorem itemMap_some (f : PE → Option UVal) (M : PEMap value.Value) (k : PE) (
   · iexfalso; iexact H
   · iexists _; iframe; ipureintro; rfl
 
+/-- The entry of a key, or nil: the walker's side for that key's item. -/
+theorem itemMap_valO (f : PE → Option UVal) (M : PEMap value.Value) (k : PE) :
+    (∀ k, match f k, M k with
+      | none, none => iprop(True)
+      | some x, some v => isVal (GF := GF) v x
+      | _, _ => iprop(False)) ⊢ isValO ((M k).getD interface.nil) DFrac.discard (f k) := by
+  iintro H
+  ispecialize H $$ %k
+  cases f k <;> cases M k <;> simp only [isValO, Option.getD_none, Option.getD_some]
+  all_goals first | (ipureintro; rfl) | (iexfalso; iexact H) | iexact H
+
 /-- A persistent slice of pointers without its first element (`s[1:]`). -/
 theorem ownSlice_tail_pers (so : GoSlice) (x : Loc) (xs : List Loc) :
     (so ↦*□ (x :: xs) : IProp GF) ⊢ slice.slice so Loc (W64 1) so.len ↦*□ xs := by
