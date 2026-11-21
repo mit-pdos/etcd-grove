@@ -855,7 +855,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   (try wp_auto)
   wp_apply HPause
   (try wp_auto)
-  wp_apply +noauto time.wp_After as %tch %γt #Hbag
+  wp_apply +noauto (time.After.spec_pkgInit time.wp_After _) as %tch %γt #Hbag
   wp_auto_lc 2
   ihave #Hstcc := Hstopch
   iunfold mvcc.isStopChan at Hstcc

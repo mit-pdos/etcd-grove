@@ -89,7 +89,6 @@ axiom Perennial.k8s_io.apiserver.pkg.audit.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.features.opaqueInitsOk
-axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.opaqueInitsOk
@@ -118,7 +117,6 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
-axiom apierrors.NewInternalError.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
@@ -231,10 +229,6 @@ axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
 axiom http.Handle_ok
-axiom http.HeaderGetOwnPtr_ok
-axiom http.HeaderGetPtr_ok
-axiom http.HeaderSetPtr_ok
-axiom http.HeaderSet_ok
 axiom http.NewRequest_ok
 axiom http.NewServeMux_ok
 axiom http.ReadAll_any_ok
@@ -263,8 +257,6 @@ axiom httputil.GracefulClose.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
-axiom k8sfeature.featureOff_persistent
-axiom k8sfeature.featureOn_persistent
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.InfoS.wp_proof

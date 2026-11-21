@@ -323,6 +323,7 @@ theorem kRes_close_au [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec G
       closeAu γ.res.chanName k8s_io.apimachinery.pkg.watch.Event Φ := by
   unfold kResChan closeAu
   iintro ⟨#Hchan, #Hinv⟩ Hlc1 HT Hcont
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
   icases Hi with ⟨Hi, HX⟩

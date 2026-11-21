@@ -102,6 +102,7 @@ theorem schedule.fifo.run.wp_proof
       · iexact Hrch
       unfold recvAu
       clear Hchain Hlen
+      iapply ncfupd_of_fupd
       iinv Hrinv with Hi Hclose
       iapply fupd_mask_intro Std.LawfulSet.empty_subset
       iintro Hmask
@@ -283,6 +284,7 @@ theorem schedule.fifo.run.wp_proof
         wp_apply_core chan.wp_close (V := Unit) F.dch F.γd $$ Hdch
         iintro -
         unfold closeAu
+        iapply ncfupd_of_fupd
         iinv Hdinv with Hdi Hclose
         iapply fupd_mask_intro Std.LawfulSet.empty_subset
         iintro Hmask
@@ -315,6 +317,7 @@ theorem schedule.fifo.run.wp_proof
         iintro -
         unfold closeAu
         clear Hif Hcf HLpos Hcfnn
+        iapply ncfupd_of_fupd
         iinv Hrinv with Hri Hclose
         iapply fupd_mask_intro Std.LawfulSet.empty_subset
         iintro Hmask

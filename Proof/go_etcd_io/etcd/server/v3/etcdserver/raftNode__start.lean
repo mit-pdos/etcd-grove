@@ -361,7 +361,7 @@ theorem raftNode.start.wp_proof
             have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
             have h1 := Hrsl.1
             omega
-          wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
+          wp_apply (lc := 2) (time.After.spec_pkgInit time.wp_After _) as %ach %γa #Ha
           ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => srvReadStateOk (GF := GF) E.γr.raft E.RQ rs)
             Hrs_lookup) $$ Hrsok
           wp_apply_core chan.wp_select_blocking
@@ -1161,7 +1161,7 @@ theorem raftNode.start.wp_proof
           have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
           have h1 := Hrsl.1
           omega
-        wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
+        wp_apply (lc := 2) (time.After.spec_pkgInit time.wp_After _) as %ach %γa #Ha
         ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => srvReadStateOk (GF := GF) E.γr.raft E.RQ rs)
           Hrs_lookup) $$ Hrsok
         wp_apply_core chan.wp_select_blocking

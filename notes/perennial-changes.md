@@ -376,7 +376,10 @@ log, third session; pending the user's review). General fix: `append` (and `make
   (`LinuxFs/Proof/os/SharedAu.lean`).
 - **Proposed.** Both lemmas in Perennial's `GooseLang/Lifting.lean`, beside `wp_ext_acc` (they use
   only `goose_bstateInterp_eq` and iris's `wp_unfold`); generic, nothing about `fsExt`.
-- **Status.** Recorded; the local copies go when the pin has them.
+- **Status.** Done: Perennial `7ad4f91b1` (`GooseLang/NotCrashed.lean`, Upamanyu Sharma) has both, with
+  `wp_atomic_nc`'s update written `|NC={E1,E2}=> ...` (`ncfupd`, a reducible abbreviation of the same
+  wand); the local copies were deleted at the pin bump of 2026-11-21 (branch
+  `pinbump/perennial-ncfupd-2026-11-21`).
 
 ### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
 
@@ -464,6 +467,14 @@ local model go.
   expressions"), or Perennial's `UntypedIntSemantics` gains the two steps. Not yet proposed.
 - **Also hit** (2026-11-20, `prove-smallinits`): `bufio`'s `errorRune = []byte(string(utf8.RuneError))`
   (`Convert go.untypedRune go.string #65533`, a non-ASCII rune), so `bufio.opaqueInitsOk` stays.
+- **Also blocks** (2026-11-21, wal-item3): removing the premise `rnNewStorageOk` from every closed theorem over
+  the server. `rnNewStorageOk_law_holds` (`etcdserver/RnNewStorageLinked.lean`) proves it from the WAL's linked
+  results, which take `[UntypedRuneSemantics]` (storage `Save` → WAL `Save` → `cut` → `filepath.join`); passing
+  the law to `bootstrappedRaft.newRaftNode` would put the class in every closed statement. Decided by
+  etcd-grove-03 (option (c)): the premise stays until this general fix (the two steps in Perennial's
+  `UntypedIntSemantics`, `string(c)` of an untyped rune and `==` of untyped runes, or Goose folding constant
+  expressions) lands and the pin moves; then `newRaftNode`'s proof takes `rnNewStorageOk.law`
+  (`=rnNewStorageOk_law_holds`) and the class is discharged. No Perennial branch started yet.
 
 ### `Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx` of a `uint64`, `Time.Format` (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 

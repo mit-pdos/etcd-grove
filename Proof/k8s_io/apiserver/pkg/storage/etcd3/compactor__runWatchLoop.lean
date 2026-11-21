@@ -157,7 +157,7 @@ theorem compactor.runWatchLoop.wp_proof
   · itrivial
   wp_for HI
   (try wp_auto)
-  wp_apply (lc := 2) (wp_After _) as %ach %γach #Hbag
+  wp_apply (lc := 2) (time.After.spec_pkgInit wp_After _) as %ach %γach #Hbag
   (try wp_auto)
   wp_apply (wp_Done sc) $$ [$Pw]
   (try wp_auto)

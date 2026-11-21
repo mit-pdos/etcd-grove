@@ -79,7 +79,7 @@ public import Spec.go_uber_org.zap.String
 public import Spec.time.Duration__Seconds
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
-public import GooseLang.Ext.Fs.NotCrashedAcc
+public import Perennial.GooseLang.NotCrashed
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.MetaZf
 
 @[expose] public section
