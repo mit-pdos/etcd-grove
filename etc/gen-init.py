@@ -3368,6 +3368,103 @@ in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaque
         'end zapinit'],
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
 ), ['errNoEncoderNameSpecified'])
+# (prove-zap3, 2026-11-21) zap's last package variables: `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`,
+# translated in Perennial since) and `_sinkRegistry` (`newSinkRegistry`: the file sink registered,
+# `normalizeScheme("file")` over `strings.ToLower`'s spec); `opaqueInitsOk` is gone
+SPECIAL[_Z]['doc'] = SPECIAL[_Z]['doc'].replace('''`var _ internal.LeveledEnabler = AtomicLevel{}`; `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, names only
+in Perennial) and `_sinkRegistry` (`newSinkRegistry`) stay untranslated, `opaqueInitsOk`.''',
+'''`var _ internal.LeveledEnabler = AtomicLevel{}`, `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, Perennial's
+spec), and `_sinkRegistry = newSinkRegistry()` (prove-zap3, 2026-11-21: a registry whose fresh mutex is
+locked around the registration of the file sink, `normalizeScheme("file")` being `"file"` by
+`strings.ToLower`'s spec).''')
+SPECIAL[_Z]['alloc_types'].update({'_minTimeInt64': '_root_.Perennial.time.Time',
+                                   '_maxTimeInt64': '_root_.Perennial.time.Time',
+                                   '_sinkRegistry': 'Loc'})
+SPECIAL[_Z]['before'].update({
+    '_minTimeInt64': ['try wp_auto', 'wp_apply (_root_.Perennial.time.wp_Unix _ _) $$ {Hd:time} as %tmin -',
+                      'try wp_auto'],
+    '_maxTimeInt64': ['try wp_auto', 'wp_apply (_root_.Perennial.time.wp_Unix _ _) $$ {Hd:time} as %tmax -',
+                      'try wp_auto'],
+    '_sinkRegistry': ['try wp_auto',
+                      'wp_apply (EtcdGrove.zap_wp_newSinkRegistry_init EtcdGrove.strings.ToLower.wp_proof) $$ '
+                      '{Hd:sync} as %srl -',
+                      'try wp_auto'],
+})
+_i = SPECIAL[_Z]['pre'].index('end zapinit')
+SPECIAL[_Z]['pre'][_i:_i] = [
+    '/-- (prove-zap3) `normalizeScheme("file")` is `("file", nil)`: `strings.ToLower` of an ASCII word with',
+    'no upper-case letter is the word itself (its spec, `strings.lowersTo`), whose first byte is a letter and',
+    'whose other bytes are letters. -/',
+    'theorem EtcdGrove.zap_wp_normalizeScheme_file (hTL : EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG)) :',
+    '    {{ (True : IProp GF) }}',
+    '      (App (Val (@! _root_.Perennial.go_uber_org.zap.normalizeScheme)) (Val #(go!"file")))',
+    '    {{ RET (PairV #(go!"file") #interface.nil); True }} := by',
+    '  wp_start',
+    '  wp_auto',
+    '  wp_apply hTL as %r %Hr',
+    '  have hr : r = go!"file" := (Hr go!"file" (by decide)).mpr (by decide)',
+    '  subst hr',
+    '  wp_auto',
+    '  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗ "%Hi" ∷ ⌜1 ≤ sint.Z i ∧ sint.Z i ≤ 4⌝ : IProp GF) $$ [i]',
+    '  · iexists W64 1; iframe; ipureintro; decide',
+    '  wp_for HI',
+    '  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-',
+    '  try wp_auto',
+    '  wp_if_destruct',
+    '  · have hi : i = W64 1 ∨ i = W64 2 ∨ i = W64 3 := by',
+    '      have : sint.Z i < 4 := by have h := go.intoVal_inj Hif; simp at h; word',
+    '      rcases (show sint.Z i = 1 ∨ sint.Z i = 2 ∨ sint.Z i = 3 by omega) with h | h | h',
+    '      · left; word',
+    '      · right; left; word',
+    '      · right; right; word',
+    '    rcases hi with rfl | rfl | rfl',
+    '    all_goals (wp_auto; wp_for_post; iframe; iexists _; iframe; ipureintro; word)',
+    '  · rw [ite_eq_right_of_eq_false _ _ (by',
+    '      cases h : decide (sint.Z i < sint.Z (W64 ↑[W8 102, W8 105, W8 108, W8 101].length)) <;> simp_all)]',
+    '    wp_auto',
+    '    iapply HΦ',
+    '    itrivial',
+    '',
+    '/-- (prove-zap3) `newSinkRegistry()` returns (a new registry: an empty factory map, `os.OpenFile`, and the',
+    'file sink registered by `RegisterSink`, under the registry\'s fresh mutex, `normalizeScheme("file")`',
+    'succeeding and the map holding no factory yet). -/',
+    'theorem EtcdGrove.zap_wp_newSinkRegistry_init (hTL : EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG)) :',
+    '    {{ isPkgInit (PROP := IProp GF) pkg_id.sync }}',
+    '      (App (Val (@! _root_.Perennial.go_uber_org.zap.newSinkRegistry)) (Val #()))',
+    '    {{ (sr : Loc), RET #sr; True }} := by',
+    '  wp_start as #Hsync',
+    '  wp_auto',
+    '  wp_apply wp_map_make1 (K := GoString) (V := GoFunc) as %m Hm',
+    '  try wp_auto',
+    '  iStructNamed «$r0»',
+    '  imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[_root_.Perennial.go_uber_org.zap.sinkRegistry, go!"mu"])',
+    '    $$ mu [] with #Hmu',
+    '  · inext; itrivial',
+    '  try wp_auto',
+    '  wp_method_call',
+    '  wp_call',
+    '  rw [show _root_.Perennial.go_uber_org.zap.schemeFile = #(go!"file") from rfl]',
+    '  try wp_auto',
+    '  wp_apply wp_with_defer as %defer defer',
+    '  try wp_auto',
+    '  wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, -⟩',
+    '  try wp_auto',
+    '  wp_apply (EtcdGrove.zap_wp_normalizeScheme_file hTL)',
+    '  try wp_auto',
+    '  wp_apply wp_map_lookup2 $$ [$Hm] as Hm',
+    '  try wp_auto',
+    '  wp_apply (wp_mapInsert (K := GoString) (V := GoFunc) _) $$ Hm as Hm',
+    '  try wp_auto',
+    '  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked]',
+    '  · itrivial',
+    '  try wp_auto',
+    '  iapply HΦ',
+    '  itrivial',
+    '',
+]
+for _m in ['Spec.strings.ToLower', 'Proof.strings.ToLower']:
+    if _m not in SPECIAL[_Z]['imports']:
+        SPECIAL[_Z]['imports'].append(_m)
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates

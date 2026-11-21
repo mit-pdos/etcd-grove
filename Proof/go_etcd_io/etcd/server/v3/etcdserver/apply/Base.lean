@@ -52,6 +52,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
 -- (wal-link L2, 2026-11-17) `server/v3/storage` imports the WAL since its storage has bodies
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
+public import Proof.net.url.PkgInit
 
 @[expose] public section
 
@@ -660,15 +661,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.version
 
--- `net/url` (names only: the element type of `types.URLs`; unit N4, 2026-10-17)
-namespace net.url
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.url :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.url :=
-  build_get_is_pkg_init_wf
-
-end net.url
+-- `net/url`: `Proof/net/url/PkgInit.lean` (prove-zap3, 2026-11-21)
 
 -- `client/pkg/v3/types` (names only: `ID.String`)
 namespace go_etcd_io.etcd.client.pkg.v3.types

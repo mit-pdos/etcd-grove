@@ -2,12 +2,18 @@
 module
 
 public import Perennial.Code.fmt
+public import Perennial.Code.time
 public import Code.go_uber_org.zap.zapcore
 public import Perennial.Code.errors
+public import Perennial.Code.sync
 public import Code.go_uber_org.zap.internal.pool
+public import Perennial.Code.math
+public import Code.os
 public import Perennial.Code.io
 public import Perennial.Code.sync.atomic
 public import Code.go_uber_org.zap.internal
+public import Perennial.Code.strings
+public import Code.net.url
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -242,14 +248,8 @@ noncomputable def invalidPairs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] invalidPairs.ty
 
-opaque durations.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque times.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 @[reducible] noncomputable def Field.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.go_uber_org.zap.zapcore.Field.ty
-
-opaque sinkRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque _stdLogDefaultDepth [GooseExts] [GoGlobalContext] : val
 
@@ -275,7 +275,8 @@ opaque PanicLevel [GooseExts] [GoGlobalContext] : val
 
 opaque FatalLevel [GooseExts] [GoGlobalContext] : val
 
-opaque schemeFile [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def schemeFile [GooseExts] [GoGlobalContext] : val :=
+  #(go!"file")
 
 opaque _oddNumberErrMsg [GooseExts] [GoGlobalContext] : val
 
@@ -298,12 +299,8 @@ noncomputable def _errArrayElemPool [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def _minTimeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._minTimeInt64"
 
-opaque _minTimeInt64.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def _maxTimeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._maxTimeInt64"
-
-opaque _maxTimeInt64.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _globalMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._globalMu"
@@ -316,8 +313,6 @@ noncomputable def _globalS [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def _sinkRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap._sinkRegistry"
-
-opaque _sinkRegistry.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Array [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.Array"
@@ -1276,13 +1271,231 @@ noncomputable def Logger.clone.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "clone") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "$res0"))))))
 
+/-- go: sink.go:64:6 -/
+noncomputable def newSinkRegistry.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sinkRegistry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType sinkRegistry.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc sinkRegistry.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error])))]))) (Val #())) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.OpenFile []))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral sinkRegistry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"factories")) (ElementExpression (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error]))) (Var "$v0"))), (KeyedElement (some (KeyField go!"openFile")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.string, go.int, _root_.Perennial.os.FileMode.ty] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error])) (Var "$v1")))])))))
+  (Let "sr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sinkRegistry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType sinkRegistry.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val schemeFile))
+  (Let "$a1" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType sinkRegistry.ty) go!"newFileSinkFromURL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sinkRegistry.ty)))) (Var "sr")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType sinkRegistry.ty) go!"RegisterSink"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sinkRegistry.ty)))) (Var "sr"))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sinkRegistry.ty)))) (Var "sr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType sinkRegistry.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType sinkRegistry.ty)))) (Pair (Var "sr") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sinkRegistry.ty)))) (Var "$res0")))))
+
+/-- RegisterSink registers the given factory for the specific scheme.
+
+    go: sink.go:75:25 -/
+noncomputable def sinkRegistry.RegisterSink.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "sr"
+  (Lam "scheme"
+  (Lam "factory"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "sr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sinkRegistry.ty)))) (Var "sr"))
+  (Let "factory" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error]))))) (Var "factory"))
+  (Let "scheme" (App (Val (GoInstruction (GoAlloc go.string))) (Var "scheme"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "scheme"))
+  (App (App (Val (GoInstruction (FuncResolve normalizeScheme []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "normalized" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error]))))) (Var "factory"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error])))))) (App (Val (GoInstruction (StructFieldRef sinkRegistry.ty go!"factories"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sinkRegistry.ty)))) (Var "sr"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "normalized"))) (Var "$r0")))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error])))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error])))))) (App (Val (GoInstruction (StructFieldRef sinkRegistry.ty go!"factories"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sinkRegistry.ty)))) (Var "sr"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "normalized")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Let "$a0" (Val #(go!"sink factory already registered for scheme %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "normalized")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"%q is not a valid scheme: %v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "scheme")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "normalized") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "scheme")) (Val #(go!"")))))
+  (Let "$r0" (Let "$a0" (Val #(go!"can't register a sink factory for empty string"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef sinkRegistry.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sinkRegistry.ty)))) (Var "sr"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef sinkRegistry.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sinkRegistry.ty)))) (Var "sr")))) (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- go: sink.go:161:6 -/
+noncomputable def normalizeScheme.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.ToLower []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Val #(W64 1))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!""))
+  (Let "$r1" (Let "$a0" (Val #(go!"may not contain %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.byte go.any))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 97)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 122)))) (Val #false))))
+  (App (Val doContinue) (Val #()))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 48)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 57)))) (Val #false))))
+  (App (Val doContinue) (Val #()))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 46)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 43))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 45)))))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "c") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 0))))
+  (Let "first" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.byte))) (Pair (Val #(W8 97)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "first")))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (Val #(W8 122)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "first"))))))
+  (Let "$r0" (Val #(go!""))
+  (Let "$r1" (Let "$a0" (Val #(go!"must start with a letter"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "first") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0"))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap where
-  pkgImportedPkgs := [pkg_id.fmt, pkg_id.go_uber_org.zap.zapcore, pkg_id.errors, pkg_id.go_uber_org.zap.internal.pool, pkg_id.io, pkg_id.sync.atomic, pkg_id.go_uber_org.zap.internal]
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.time, pkg_id.go_uber_org.zap.zapcore, pkg_id.errors, pkg_id.sync, pkg_id.go_uber_org.zap.internal.pool, pkg_id.math, pkg_id.os, pkg_id.io, pkg_id.sync.atomic, pkg_id.go_uber_org.zap.internal, pkg_id.strings, pkg_id.net.url]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_uber_org.zap)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1348,23 +1561,30 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType errArrayElem.ty)))) (Var "$res0")))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.internal.pool.New [(go.GoType.PointerType errArrayElem.ty)]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W64 0))
+  (Let "$a1" (Val #(W64 (-9223372036854775808)))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Unix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W64 0))
+  (Let "$a1" (Val #(W64 9223372036854775807))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Unix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NewNop []))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Logger.ty) go!"Sugar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (App (Val (GoInstruction (GlobalVarAddr _globalL))) (Val #())))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert AtomicLevel.ty _root_.Perennial.go_uber_org.zap.internal.LeveledEnabler.ty))) (App (Val (GoInstruction (CompositeLiteral AtomicLevel.ty))) (LiteralValue [])))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve newSinkRegistry []))) (Val #())) (Val #()))
   (App (Val doExecute)
-  (App (Val _sinkRegistry.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType sinkRegistry.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr _sinkRegistry))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType SugaredLogger.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr _globalS))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Logger.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr _globalL))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _maxTimeInt64.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr _maxTimeInt64))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val _minTimeInt64.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr _minTimeInt64))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType errArrayElem.ty)))))) (Pair (App (Val (GoInstruction (GlobalVarAddr _errArrayElemPool))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1374,11 +1594,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.zapcore.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.internal.pool.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.math.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.os.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1386,15 +1614,25 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.internal.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.net.url.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc errNoEncoderNameSpecified go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc _encoderNameToConstructor (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc _errArrayElemPool (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType errArrayElem.ty))))) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _minTimeInt64 _root_.Perennial.time.Time.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _maxTimeInt64 _root_.Perennial.time.Time.ty)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc _globalL (go.GoType.PointerType Logger.ty))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc _globalS (go.GoType.PointerType SugaredLogger.ty))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc _globalS (go.GoType.PointerType SugaredLogger.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc _sinkRegistry (go.GoType.PointerType sinkRegistry.ty))) (Val #()))))))))
 
 abbrev objects [GooseExts] (T : Type) : Type := GoSlice
 
@@ -1508,22 +1746,17 @@ attribute [instance] complex64s.TypeAssumptions.underlying
   complex64s.TypeAssumptions.method_set
   complex64s.TypeAssumptions.ptr_method_set
 
-opaque durations.nonempty_type : NonemptyType.{0}
-def durations : Type := durations.nonempty_type.type
-instance durations.nonempty : Nonempty durations := durations.nonempty_type.property
-opaque durations.zero_val : ZeroVal durations := ⟨Classical.ofNonempty⟩
-attribute [instance] durations.zero_val
+abbrev durations [GooseExts] : Type := GoSlice
+
+@[reducible] noncomputable def durations.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.SliceType _root_.Perennial.time.Duration.ty)
 
 class durations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying durations.underlying durations
   underlying : go.UnderlyingDirectedEq durations.ty durations.underlying
-  isUnderlying : go.IsUnderlying durations.underlying durations.underlying
   method_set : go.MethodSetIs durations.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType durations.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
-attribute [instance] durations.TypeAssumptions.type_repr
-  durations.TypeAssumptions.underlying
-  durations.TypeAssumptions.isUnderlying
+attribute [instance] durations.TypeAssumptions.underlying
   durations.TypeAssumptions.method_set
   durations.TypeAssumptions.ptr_method_set
 
@@ -1639,22 +1872,17 @@ attribute [instance] stringArray.TypeAssumptions.underlying
   stringArray.TypeAssumptions.method_set
   stringArray.TypeAssumptions.ptr_method_set
 
-opaque times.nonempty_type : NonemptyType.{0}
-def times : Type := times.nonempty_type.type
-instance times.nonempty : Nonempty times := times.nonempty_type.property
-opaque times.zero_val : ZeroVal times := ⟨Classical.ofNonempty⟩
-attribute [instance] times.zero_val
+abbrev times [GooseExts] : Type := GoSlice
+
+@[reducible] noncomputable def times.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.SliceType _root_.Perennial.time.Time.ty)
 
 class times.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying times.underlying times
   underlying : go.UnderlyingDirectedEq times.ty times.underlying
-  isUnderlying : go.IsUnderlying times.underlying times.underlying
   method_set : go.MethodSetIs times.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType times.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
-attribute [instance] times.TypeAssumptions.type_repr
-  times.TypeAssumptions.underlying
-  times.TypeAssumptions.isUnderlying
+attribute [instance] times.TypeAssumptions.underlying
   times.TypeAssumptions.method_set
   times.TypeAssumptions.ptr_method_set
 
@@ -2254,24 +2482,54 @@ attribute [instance] nopCloserSink.TypeAssumptions.type_repr
   nopCloserSink.TypeAssumptions.method_set
   nopCloserSink.TypeAssumptions.ptr_method_set
 
-opaque sinkRegistry.nonempty_type : NonemptyType.{0}
-def sinkRegistry : Type := sinkRegistry.nonempty_type.type
-instance sinkRegistry.nonempty : Nonempty sinkRegistry := sinkRegistry.nonempty_type.property
-opaque sinkRegistry.zero_val : ZeroVal sinkRegistry := ⟨Classical.ofNonempty⟩
-attribute [instance] sinkRegistry.zero_val
+structure sinkRegistry [GooseExts] where
+  mk ::
+  mu' : _root_.Perennial.sync.Mutex
+  factories' : GoMap
+  openFile' : GoFunc
+
+noncomputable instance sinkRegistry.zero_val [GooseExts] : ZeroVal sinkRegistry :=
+  ⟨sinkRegistry.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def sinkRegistry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"factories" (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error])))),
+(go.field_decl.FieldDecl go!"openFile" (go.GoType.FunctionType (go.signature.Signature [go.string, go.int, _root_.Perennial.os.FileMode.ty] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error])))]
+
+@[irreducible] noncomputable def sinkRegistry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  sinkRegistry.fieldsUnsealed
+
+noncomputable instance equals_unfold_sinkRegistry [GooseExts] [GoGlobalContext] :
+    EqualsUnfold sinkRegistry.fields sinkRegistry.fieldsUnsealed :=
+  ⟨by unfold sinkRegistry.fields; rfl⟩
+
+@[reducible] noncomputable def sinkRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType sinkRegistry.fields)
 
 class sinkRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sinkRegistry.underlying sinkRegistry
   underlying : go.UnderlyingDirectedEq sinkRegistry.ty sinkRegistry.underlying
-  isUnderlying : go.IsUnderlying sinkRegistry.underlying sinkRegistry.underlying
+  get_mu : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : sinkRegistry) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : sinkRegistry)))
+  get_factories : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"factories") #x (Val #(x.factories'))
+  set_factories : ∀ (x : sinkRegistry) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"factories") (PairV #x #y) (Val #(({ x with factories' := y } : sinkRegistry)))
+  get_openFile : ∀ (x : sinkRegistry), go.IsGoStepPureDetTagged under (StructFieldGet sinkRegistry.underlying go!"openFile") #x (Val #(x.openFile'))
+  set_openFile : ∀ (x : sinkRegistry) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet sinkRegistry.underlying go!"openFile") (PairV #x #y) (Val #(({ x with openFile' := y } : sinkRegistry)))
   method_set : go.MethodSetIs sinkRegistry.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sinkRegistry.ty) [(go!"RegisterSink", (some (go.signature.Signature [go.string, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/url.URL" []))] false [Sink.ty, go.error]))] false [go.error]))), (go!"go.uber.org/zap.newFileSinkFromPath", (some (go.signature.Signature [go.string] false [Sink.ty, go.error]))), (go!"go.uber.org/zap.newFileSinkFromURL", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/url.URL" []))] false [Sink.ty, go.error]))), (go!"go.uber.org/zap.newSink", (some (go.signature.Signature [go.string] false [Sink.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sinkRegistry.ty) [(go!"RegisterSink", (some (go.signature.Signature [go.string, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error]))] false [go.error]))), (go!"go.uber.org/zap.newFileSinkFromPath", (some (go.signature.Signature [go.string] false [Sink.ty, go.error]))), (go!"go.uber.org/zap.newFileSinkFromURL", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [Sink.ty, go.error]))), (go!"go.uber.org/zap.newSink", (some (go.signature.Signature [go.string] false [Sink.ty, go.error])))]
+  ptr_RegisterSink_unfold : MethodUnfold (go.GoType.PointerType sinkRegistry.ty) go!"RegisterSink" sinkRegistry.RegisterSink.impl
 
 attribute [instance] sinkRegistry.TypeAssumptions.type_repr
   sinkRegistry.TypeAssumptions.underlying
-  sinkRegistry.TypeAssumptions.isUnderlying
+  sinkRegistry.TypeAssumptions.get_mu
+  sinkRegistry.TypeAssumptions.set_mu
+  sinkRegistry.TypeAssumptions.get_factories
+  sinkRegistry.TypeAssumptions.set_factories
+  sinkRegistry.TypeAssumptions.get_openFile
+  sinkRegistry.TypeAssumptions.set_openFile
   sinkRegistry.TypeAssumptions.method_set
   sinkRegistry.TypeAssumptions.ptr_method_set
+  sinkRegistry.TypeAssumptions.ptr_RegisterSink_unfold
 
 structure SugaredLogger [GooseExts] where
   mk ::
@@ -2430,13 +2688,21 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Stringer_unfold : FuncUnfold Stringer [] Stringer.impl
   Duration_unfold : FuncUnfold Duration [] Duration.impl
   NewNop_unfold : FuncUnfold NewNop [] NewNop.impl
+  newSinkRegistry_unfold : FuncUnfold newSinkRegistry [] newSinkRegistry.impl
+  normalizeScheme_unfold : FuncUnfold normalizeScheme [] normalizeScheme.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zapcore_Assumption : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_pool_Assumption : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions
+  import_math_Assumption : _root_.Perennial.math.Assumptions
+  import_os_Assumption : _root_.Perennial.os.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_internal_Assumption : _root_.Perennial.go_uber_org.zap.internal.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  import_url_Assumption : _root_.Perennial.net.url.Assumptions
 
 attribute [instance] Assumptions.objects_instance
   Assumptions.ObjectMarshalerPtr_instance
@@ -2498,13 +2764,21 @@ attribute [instance] Assumptions.objects_instance
   Assumptions.Stringer_unfold
   Assumptions.Duration_unfold
   Assumptions.NewNop_unfold
+  Assumptions.newSinkRegistry_unfold
+  Assumptions.normalizeScheme_unfold
   Assumptions.import_fmt_Assumption
+  Assumptions.import_time_Assumption
   Assumptions.import_zapcore_Assumption
   Assumptions.import_errors_Assumption
+  Assumptions.import_sync_Assumption
   Assumptions.import_pool_Assumption
+  Assumptions.import_math_Assumption
+  Assumptions.import_os_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_internal_Assumption
+  Assumptions.import_strings_Assumption
+  Assumptions.import_url_Assumption
 
 end go_uber_org.zap
 

@@ -18,6 +18,9 @@ public import Perennial.Proof.errors
 public import Perennial.Proof.sort
 public import Perennial.Proof.context
 public import Perennial.Proof.bytes
+public import Perennial.Proof.math
+public import Proof.os.PkgInit
+public import Proof.net.url.PkgInit
 
 @[expose] public section
 
