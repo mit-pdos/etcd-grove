@@ -100,6 +100,16 @@ theorem wit_count_meet (S H G : GSet w64) (n m : Nat) (hS : size S + 2 = n)
     (hadj : n ≤ m + 1) : ∃ x, x ∈ H ∧ x ∈ G :=
   gset_meet S H G hH hG (by omega)
 
+omit [GooseExts] in
+/-- If the incoming half excluded its shared witness, all of its regular voters
+are eligible to respond. The write needs a full regular majority in this half.
+Even if the candidate's half has one fewer voter, its regular votes and the
+write acknowledgements meet. -/
+theorem wit_count_meet_full (S H G : GSet w64) (n m : Nat) (hS : size S + 1 ≤ n)
+    (hH : H ⊆ S) (hG : G ⊆ S) (hHn : n / 2 + 1 ≤ size H) (hGm : m / 2 ≤ size G)
+    (hadj : n ≤ m + 1) : ∃ x, x ∈ H ∧ x ∈ G :=
+  gset_meet S H G hH hG (by omega)
+
 /-- A campaign log ends at its last entry. -/
 theorem camp_last (T : w64) (F0 : List EntryM) :
     CampOk T F0 →
@@ -768,7 +778,7 @@ theorem lc_wit_gen (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
     have Hcv : cv.incoming = cA.incoming := CfgAt.incoming_eq Hjpv.2.1 HcA
     -- the request's granted votes of the campaign configuration's incoming half, and `H`, in
     -- the replication set without the witness
-    let S := cA.incoming \ ({[γ.reWit]} ∪ {[x]})
+    let S := cA.incoming \ ({[γ.reWit]} ∪ {[if x = W64 0 then γ.reWit else x]})
     let Gh := G' ∩ Kh
     have HGhS : Gh ⊆ S := by
       rw [GMap.elem_of_subseteq]
@@ -776,9 +786,28 @@ theorem lc_wit_gen (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
       rw [GMap.elem_of_intersection] at hg
       have := (Hrs g).1 (Hresp g (HG'resp g hg.1))
       rw [Hcv] at this; exact this
-    have Hsz := gset_size_minus2 cA.incoming γ.reWit x HwA Hxcfg Hxw
-    obtain ⟨h, hH, hGh⟩ := wit_count_meet S H Gh (size cA.incoming) (size Kh)
-      Hsz HHsub HGhS HHsize HKh2 HKh1
+    have Hmeet : ∃ h, h ∈ H ∧ h ∈ Gh := by
+      by_cases hx0 : x = W64 0
+      · have hsub : ({[γ.reWit]} : GSet w64) ⊆ cA.incoming := by
+          rw [GMap.elem_of_subseteq]
+          intro y hy
+          rw [GMap.elem_of_singleton] at hy
+          exact hy ▸ HwA
+        have hsize := GMap.size_difference hsub
+        have hpos := GMap.subseteq_size hsub
+        rw [GMap.size_singleton] at hsize hpos
+        apply wit_count_meet_full S H Gh (size cA.incoming) (size Kh) _ HHsub HGhS _ HKh2 HKh1
+        · have he : S = cA.incoming \ {[γ.reWit]} := by
+            apply GMap.set_eq; intro y
+            simp only [S, hx0, ite_true, GMap.elem_of_difference, GMap.elem_of_union, or_self]
+          rw [he]; omega
+        · simpa only [witnessWriteCount, if_pos hx0] using HHsize
+      · have hxin : x ∈ cA.incoming := by simpa only [if_neg hx0] using Hxcfg
+        have hsz := gset_size_minus2 cA.incoming γ.reWit x HwA hxin Hxw
+        apply wit_count_meet S H Gh (size cA.incoming) (size Kh) _ HHsub HGhS _ HKh2 HKh1
+        · simpa only [S, if_neg hx0] using hsz
+        · simpa only [witnessWriteCount, if_neg hx0] using HHsize
+    obtain ⟨h, hH, hGh⟩ := Hmeet
     have hG' : h ∈ G' := by
       have := hGh; rw [GMap.elem_of_intersection] at this; exact this.1
     icases grantLb_win γ c T G' V $$ Hglb Hwg with %HG'V
