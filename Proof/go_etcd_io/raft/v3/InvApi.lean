@@ -2064,7 +2064,7 @@ theorem sentMsg_appFrom_impl (γ : Cluster) (N : Namespace) (src : w64) (st : Ms
     sentMsg (GF := GF) γ N src st ⊢ ⌜AppFrom src st⌝ := by
   unfold sentMsg isRaftMsg
   iintro ⟨-, ⟨-, -, -, %H, -⟩, -⟩
-  ipureintro; exact H
+  ipureintro; exact fun ht => H (Or.inl ht)
 
 omit [StorageModel GF] sem package_sem in
 /-- (raft-final, phase 2) **A sent snapshot's index is below `2^61`**: its certificate's

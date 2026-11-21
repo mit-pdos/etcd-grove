@@ -97,10 +97,8 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     | (intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd))
   -- (2026-10-22, D38a) no responses (the premise)
   · first | exact Hrs | (simp only; exact Hrs)
-  · intro h
-    simp only at h ⊢
-    try rw [Hfr1]
-    try first
+  · rintro (h | h) <;> simp only at h ⊢ <;> try rw [Hfr1]
+    all_goals first
       | rfl
       | exact Hsrc (by rw [← Hty1, h]; tyne) (by rw [← Hty1, h]; tyne)
   · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)
@@ -579,7 +577,7 @@ theorem raft.send.wp_proof
           exact fun e => Hself e.symm
         · exact absurd h' hTL
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
-      · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
+      · rcases h with h | h <;> rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · exact Hxw h
       · -- (2026-11-12, implementation step 3) untraced: the premise refutes a traced node
         obtain ⟨_, htyx, -⟩ := Htsnap (Option.isSome_iff_ne_none.1 htr)

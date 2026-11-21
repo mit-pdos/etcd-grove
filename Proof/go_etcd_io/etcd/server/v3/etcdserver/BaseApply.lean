@@ -60,14 +60,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-namespace net.http
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.http :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
-  build_get_is_pkg_init_wf
-
-end net.http
+-- `net/http`: `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Base.lean` (otel's `propagation`
+-- imports it; prove-misc, 2026-11-20).
 
 -- `go-humanize`: mvcc's `Base.lean` (2026-10-13: mvcc's compaction calls `humanize.Bytes`).
 
