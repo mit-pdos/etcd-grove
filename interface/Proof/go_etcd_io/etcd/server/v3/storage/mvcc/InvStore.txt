@@ -893,7 +893,7 @@ theorem mvcc.mwSwap_frameU (K W MW : IProp GF) : □ (W ={⊤}=∗ K ∗ (K ={�
 theorem mvcc.StoreNames.withPhys_api (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys p).api
     = γ.api
 
-theorem mvcc.nReaders_val : mvcc.nReaders = 536870781
+theorem mvcc.nReaders_val : mvcc.nReaders = 536870780
 
 theorem mvcc.rangeOutcomeC_live (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (crev :
     Int) (endNil : Bool) (k e : GoString) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)

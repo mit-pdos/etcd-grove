@@ -89,18 +89,20 @@ def mvcc.api.mvccImage_snapshot.law : Prop :=
                   backend.bOpen bk.γB qo ∗
                     backend.wbTok bk.γB ∗
                       threadTok ∗
-                        R ∗
-                          (□ ∀ d r, R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) ∗
-                            AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                                mvcc.api.mvccState γ σ, COMM Φ σ }> -∗
+                        backend.rdTok bk.γB bk.P bk.be ∗
+                          R ∗
+                            (□ ∀ d r, R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) ∗
+                              AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                                  mvcc.api.mvccState γ σ, COMM Φ σ }> -∗
             (▷
                 ∀ sp D,
                   (backend.snapOpen sp D ∗
                       backend.bOpen bk.γB qo ∗
-                        R ∗
-                          mvcc.api.mvccBackend γ 1 (mvcc.api.etcdStorage bk) Pk ∗
-                            ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
-                              ∃ σ u, Φ σ ∗ mvcc.api.mvccImage D σ.log σ.crev u) -∗
+                        backend.rdTok bk.γB bk.P bk.be ∗
+                          R ∗
+                            mvcc.api.mvccBackend γ 1 (mvcc.api.etcdStorage bk) Pk ∗
+                              ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
+                                ∃ σ u, Φ σ ∗ mvcc.api.mvccImage D σ.log σ.crev u) -∗
                     Φ_1
                       (intoVal
                         (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty.PointerType
