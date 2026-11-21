@@ -35,7 +35,11 @@ The VM checked `ApplyAllSnap` in both auth modes after pulling public
 `lean` at `2ca9ce4d1d`. Installing an incoming snapshot puts the backend
 at the apply cursor, so a same-term request can use the caught-up sender
 proof with the job's replay field. The ordinary entries branch still
-has to handle a backend ahead of that cursor.
+now reaches the sender with a backend ahead of that cursor. The physical
+snapshot borrows the buckets of the durable log while keeping the replayed
+in-memory membership. The VM checked this window and both merged server
+constructors at public `lean` revision `a9b495f0e9`. The ahead branch still
+has to choose and certify the outgoing metadata.
 The VM checked the constructor that carries the initial replay-term slice
 into `raftNodeConfig`. It also checked that cutting an overwritten term
 range or joining adjacent equal-term ranges preserves earlier lookups.
