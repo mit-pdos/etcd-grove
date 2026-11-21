@@ -88,7 +88,6 @@ axiom sort.Sort.wp_anyLess
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
 axiom verifyEnvOff
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof

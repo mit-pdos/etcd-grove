@@ -714,8 +714,11 @@ auth_NewTokenProvider: auth_decomposeOpts auth_newTokenProviderSimple auth_newTo
 auth_NewAuthStore:
 # (the spec-first pilot, phase 1, 2026-10-27: notes/compactor-pilot-plan.md) the auto-compactor with
 # its bodies, specified; `New`, `newPeriodic`, `newRevision` and the getters are phase 1's glue
-# (`sorry` until written), `Run` phase 3's and the rest phase 4's. The clock is the trust boundary.
-clockwork_NewRealClock:
+# (`sorry` until written), `Run` phase 3's and the rest phase 4's. The clock: clockwork's real clock over
+# Perennial's model of the runtime clock (2026-11-21, prove-clock).
+clockwork_realClock__Now: =_root_.Perennial.time.wp_Now
+clockwork_realClock__After: =_root_.Perennial.time.wp_After
+clockwork_NewRealClock: clockwork_realClock__Now clockwork_realClock__After
 # `EtcdServer.Compact` (the compactor's Compactable) and the request's getters (its trace attributes);
 # (M2's S3; the apply side's stage 4c, 2026-10-31: over the request path's one spec, at
 # `reqPropOk`'s compaction form)

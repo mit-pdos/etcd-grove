@@ -27,7 +27,6 @@ axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom storage.NewBackendQuota.wp_proof
 axiom strings.ToLower.wp_proof
-axiom time.Duration.Seconds.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom zap.Logger.Fatal.wp_proof
