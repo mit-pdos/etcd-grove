@@ -127,10 +127,12 @@ def render(dump):
             raise GenError(f"{m['full_name']}: reached by a listed type's field, but has no schema "
                            "in TYPES (pbSchemaOf would give it [])")
     out = [BEGIN + " (from the registered descriptors, models/pbdesc: do not edit, rerun it)", ""]
-    for fn, _, lean in TYPES:
+    for fn, root, lean in TYPES:
         m = msgs[fn]
         if m["go"] is None:
             raise GenError(f"{fn}: no registered Go type")
+        if m["go"]["pkg"] + "." + m["go"]["name"] != root:
+            raise GenError(f"{fn}: its Go type is {m['go']['pkg']}.{m['go']['name']}, TYPES says {root}")
         fs = sorted(m["fields"], key=lambda f: f["number"])
         nums = [f["number"] for f in fs]
         if len(set(nums)) != len(nums):
