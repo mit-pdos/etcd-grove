@@ -193,7 +193,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     -- consistent index at most its applied one (`isServerRunC`'s)
     (γn : RNNames GF) (rt : w64) (hγn : γn.node = C.γr.raft.raft) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀)
     -- (2026-11-03, R2b-1 stage 5) a fresh start's log, the context's raft names `γn` (the WAL's)
-    (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) (hprefix : γn.pre = []) (hbase : γn.snap0 ≤ rp.b) :
+    (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) (hprefix : γn.pre = []) (hbase : γn.snap0 ≤ rp.b) (hbootLog : γn.a0 = rp.A₀) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
@@ -325,7 +325,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
       exact ⟨by rw [beSucc_authMode HB]; exact hM, hRB, hms, hb1, Hloop, hok',
         (by rw [hun]; exact ((logPutsOk_append A ce).1 hpk).2), hdv,
         by have := uint_nat_eq C.ai₀; omega, Hlt, hdisk, Hci, hcia, by rw [Hkc.2]; exact Hg0, hγn, hpre,
-        by rw [hun]; simp [rnLogOf, hprefix], by simp [rnLogOf, hprefix]; omega, Hnsw⟩
+        by rw [hun]; simp [rnLogOf, hprefix], by simp [rnLogOf, hprefix]; omega, hbootLog, Hnsw⟩
     rw [hun]
     iframe Hsd Hmsinv HKVf Hwal Hrtf HreplayField Hrtok Hmerge
     iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa
@@ -1455,7 +1455,7 @@ theorem EtcdServer.run.wp_proofG
         ⟨P.length, A₀⟩ A ce C hM hRB ap_ptr
         apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs (rnDv γn ce) γnc hidx hok hpk rfl hdvn hdvs
         γn.key ha0 Hdisk γn apv.raftTerm' hgn.symm Hc0a.1
-        (by have h := hpre.symm.trans hp0; rw [← HEγr, ← hρ]; exact h) rfl hp0 HbootAtStart
+        (by have h := hpre.symm.trans hp0; rw [← HEγr, ← hρ]; exact h) rfl hp0 HbootAtStart Ha0
       ihave #Hmsinv' : (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩;
           srvAttachedMem γn.ms γn.γs γr.raft.raft.cl γn.key γr.cursor γn.nl γn.snap0) $$ []
       · iExactEq Hmsinv; rw [hgn, ← Hmsγ]

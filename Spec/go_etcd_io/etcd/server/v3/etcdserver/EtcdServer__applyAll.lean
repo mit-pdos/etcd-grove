@@ -69,7 +69,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         uint.Z ai = A.length ∧ lastTermIs A at0 ∧
         storage.diskOk ∧ uint.Z g ≤ uint.Z (ciEff γ st.k) ∧
         uint.Z (ciEff γ st.k) ≤ uint.Z g ∧ uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
-        (A ++ unapplied ai ms).length = n ∧ γn.snap0 ≤ n ∧
+        (A ++ unapplied ai ms).length = n ∧ γn.snap0 ≤ n ∧ γn.a0 = rp.A₀ ∧
         -- (auth-lease S4, 2026-11-16, L1 option 1) in the cluster's no-snapshot mode, the applied
         -- index within the write tokens taken (`snapshotIfNeededAndCompactRaftLog`'s)
         (clusterNoSnap γr.raft.raft.cl → uint.nat ai ≤ w)⌝ ∗

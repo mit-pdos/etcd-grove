@@ -1909,7 +1909,7 @@ least the batch's log, `n` entries long. (2026-10-27 to 2026-10-31 `True`; 2026-
 node API's `nodeDriver_hardStateCommitted`.) -/
 def rnRtOk (γ : RNNames GF) (t : w64) (n : Nat) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  iprop(⌜t = W64 0⌝ ∨ ∃ c : w64, committedAtTerm γ.node.cl srvClusterN t c ∗ ⌜(n : Int) ≤ uint.Z c⌝ ∗ rnBatchSource γ t n)
+  iprop(⌜t = W64 0⌝ ∨ ∃ c : w64, committedAtTerm γ.node.cl srvClusterN t c ∗ ⌜(n : Int) ≤ uint.Z c⌝ ∗ ⌜(γ.a0.length : Int) ≤ uint.Z c⌝ ∗ rnBatchSource γ t n)
 
 instance rnRtOk_persistent (γ : RNNames GF) (t : w64) (n : Nat) :
     Persistent (rnRtOk (GF := GF) γ t n) := by
@@ -1932,7 +1932,7 @@ theorem srv_merge_index (γ : RNNames GF) (rd : ReadNames) (pin : GName)
   by_cases he : q.st.msg.Term' = term
   · subst term
     iunfold rnRtOk at Hrt
-    icases Hrt with (%hzero | ⟨%c, -, -, #Hbatch⟩)
+    icases Hrt with (%hzero | ⟨%c, -, -, -, #Hbatch⟩)
     · ihave %shape := sentMsg_shape γ.node.cl srvClusterN γ.id q.st $$ Hsent
       exact False.elim (shape.1.2.2.2.1 (by rw [ht]; exact msgSnap_not_termless) hzero)
     · ihave Hle := srv_snapshot_index_le γ rd pin q sv bound ht hs hb
@@ -1943,6 +1943,7 @@ theorem srv_merge_index (γ : RNNames GF) (rd : ReadNames) (pin : GName)
 /-- (2026-10-31) The term the `Ready` loop records (`0` or the driver's hard state's) is good for a
 batch of the log the driver was delivered, `pre ++ L` (`nodeDriver_hardStateCommitted`). -/
 theorem rn_rtOk_st (γ : RNNames GF) (rt : w64) (L : List EntryModel) (st : NodeDriverState)
+    (hboot : γ.a0.length ≤ uint.nat st.hardState.Commit')
     (hd : st.delivered = srvLE γ.srv L) (Hrt : uint.Z rt = 0 ∨ rt = st.hardState.Term') :
     (letI := srvStor (GF := GF) γ.node; nodeDriver (GF := GF) γ.nl γ.node.cl srvClusterN st) ∗
         rnBatchSource γ st.hardState.Term' (rnLogOf γ L).length ⊢
@@ -1961,34 +1962,59 @@ theorem rn_rtOk_st (γ : RNNames GF) (rt : w64) (L : List EntryModel) (st : Node
       iexists st.hardState.Commit'
       rw [Hrt]
       iframe Hc Hsrc
-      ipureintro
-      rw [hd] at Hle
-      simp only [srvLE, rnLogOf, RNNames.srv, List.length_map, List.length_append] at Hle ⊢
-      omega
+      have hz := uint_nat_eq st.hardState.Commit'
+      isplit
+      · ipureintro
+        rw [hd] at Hle
+        simp only [srvLE, rnLogOf, RNNames.srv, List.length_map, List.length_append] at Hle ⊢
+        omega
+      · ipureintro; omega
 
-/-- (2026-11-03, R2b-3: *enter* at the `Save`) The term the `Ready` loop records (`0` or the hard
-state's after the batch) is good for the batch's log, from the receive's committed hard state
-(`rnHsC`; until then the busy driver's, `nodeDriver_hardStateCommitted`). -/
+/-- A durable apply can outlive the last WAL commit. In that case the old
+incarnation's commit receipt covers the image. The new Ready still supplies
+the receipt for the batch and its snapshot-source observation. -/
+theorem rnRtOk_of_commit (γ : RNNames GF) (rt cur : w64) (n : Nat)
+    (hn : (n : Int) ≤ uint.Z cur) :
+    letI := srvStor (GF := GF) γ.node
+    committedAtTerm γ.node.cl srvClusterN rt cur -∗ rnBatchSource γ rt n -∗
+    (⌜(γ.a0.length : Int) ≤ uint.Z cur⌝ ∨ ∃ old cover : w64,
+      committedAtTerm γ.node.cl srvClusterN old cover ∗
+      ⌜uint.Z old ≤ uint.Z rt ∧ (γ.a0.length : Int) ≤ uint.Z cover⌝) -∗
+    rnRtOk γ rt n := by
+  letI := srvStor (GF := GF) γ.node
+  iintro #Hcur #Hsrc Hboot
+  iunfold rnRtOk
+  iright
+  icases Hboot with (%within | ⟨%old, %cover, #Hprior, %prior⟩)
+  · iexists cur; iframe Hcur Hsrc; isplit <;> ipureintro <;> assumption
+  · by_cases within : (γ.a0.length : Int) ≤ uint.Z cur
+    · iexists cur; iframe Hcur Hsrc; isplit <;> ipureintro <;> assumption
+    · ihave #Hcover := committedAtTerm_mono_term γ.node.cl srvClusterN old rt cover prior.1 $$ Hprior
+      iexists cover; iframe Hcover Hsrc
+      isplit <;> ipureintro <;> omega
+
+/-- Build the apply job from the receive's hard state. A graceful restart
+provides the first disjunct. A retained pre-crash receipt supplies the second
+even when the recovered commit is below the backend index. -/
 theorem rnRtOk_of_hsC (γ : RNNames GF) (rt : w64) (L : List EntryModel) (p : HardStateM)
     (Hrt : uint.Z rt = 0 ∨ rt = p.Term') :
-    rnHsC (GF := GF) γ p L ⊢ rnRtOk γ rt (rnLogOf γ L).length := by
-  iintro #Hc
-  iunfold rnRtOk
-  rcases Hrt with Hrt | Hrt
-  · ileft; ipureintro; word
+    letI := srvStor (GF := GF) γ.node
+    rnHsC γ p L -∗
+    (⌜(γ.a0.length : Int) ≤ uint.Z p.Commit'⌝ ∨ ∃ old cover : w64,
+      committedAtTerm γ.node.cl srvClusterN old cover ∗
+      ⌜uint.Z old ≤ uint.Z rt ∧ (γ.a0.length : Int) ≤ uint.Z cover⌝) -∗
+    rnRtOk γ rt (rnLogOf γ L).length := by
+  letI := srvStor (GF := GF) γ.node
+  iintro #Hc Hboot
+  rcases Hrt with Hrt | rfl
+  · iunfold rnRtOk; ileft; ipureintro; word
   · iunfold rnHsC at Hc
-    icases Hc with ⟨#Hsrc, #Hc⟩
-    icases Hc with (%Hz | ⟨#Hc, %Hle⟩)
-    · ileft; ipureintro; rw [Hrt, Hz]
-    · iright
-      iexists p.Commit'
-      rw [Hrt]
-      ihave #Hsrc' : rnBatchSource γ p.Term' (rnLogOf γ L).length $$ []
+    icases Hc with ⟨#Hsrc, (%Hz | ⟨#Hc, %Hle⟩)⟩
+    · iunfold rnRtOk; ileft; ipureintro; rw [Hz]
+    · ihave #Hsrc' : rnBatchSource γ p.Term' (rnLogOf γ L).length $$ []
       · iExactEq Hsrc; simp [srvLE, rnLogOf, RNNames.srv]
-      iframe Hc Hsrc'
-      ipureintro
-      simp only [srvLE, rnLogOf, RNNames.srv, List.length_map, List.length_append] at Hle ⊢
-      omega
+      iapply rnRtOk_of_commit γ p.Term' p.Commit' (rnLogOf γ L).length (by
+        simpa [srvLE, rnLogOf, RNNames.srv] using Hle) $$ Hc Hsrc' Hboot
 
 /-- (D22l) `prevHardSt`'s update by a `Ready` of the server's hard state `hs`. -/
 theorem phsNext_toM_empty (p : HardStateM) (hs : HardStateModel) (h : hs = HardStateModel.empty) :

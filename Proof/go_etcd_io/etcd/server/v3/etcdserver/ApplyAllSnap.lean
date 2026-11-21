@@ -51,8 +51,6 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     (hGT : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.specCaughtUp (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
-    -- (restart3 A1, 2026-11-15) the fork's window guard and the report of a dropped merged snapshot
-    (hCI : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (hGTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (hRSn : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
     [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
@@ -522,7 +520,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
             rw [hγn]
-            icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, #Hbatch⟩)
+            icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, %HbootCt, #Hbatch⟩)
             · exfalso
               exact (Hsh.1.2.2.2.1 (by rw [Hty]; simp [MsgSnap, MsgProp, MsgReadIndex,
                 MsgTransferLeader])) Hrt0
@@ -1043,7 +1041,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
           iunfold rnRtOk at Hrt
           rw [hγn]
-          icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, #Hbatch⟩)
+          icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, %HbootCt, #Hbatch⟩)
           · exfalso
             exact (Hsh.1.2.2.2.1 (by rw [Hty]; simp [MsgSnap, MsgProp, MsgReadIndex,
               MsgTransferLeader])) Hrt0

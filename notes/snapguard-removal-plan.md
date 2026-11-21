@@ -60,6 +60,15 @@ term ordering for sublists of a recorded full Raft log. This justifies
 the endpoint shortcut when the input is tied to that log. Mixed terms
 and updates to an existing history are still open.
 
+The ordinary apply proof now carries the initial backend log from the server
+constructor to the job. Its durable index is below a commit certified in the
+message term. The worker can use either the current Ready or a receipt from
+an earlier term that covers the image. The latter rule does not require the
+recovered WAL commit to cover that index. The existing graceful restart
+producer uses the current Ready. The VM checked both receipt paths, the run
+loop's handoff, and the ordinary replay send continuation through delivery.
+The remaining sender precondition needs the metadata of the frozen image.
+
 Three obligations still need proofs.
 
 1. At startup and at each Ready, connect the immutable ranges supplied to
